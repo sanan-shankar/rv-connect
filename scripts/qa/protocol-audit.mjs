@@ -39,6 +39,24 @@ function srcFiles({ includeLab = false } = {}) {
   return includeLab ? out : out.filter((f) => !f.startsWith("src/app/lab/"));
 }
 
+/* `git ls-files` names paths, not contents, and the two can disagree for a
+   whole pass: a tracked file staged as deleted is still listed, and in this
+   checkout -- where several sessions work at once -- a rename can land between
+   the listing and the read. Either way the audit used to die with a raw ENOENT
+   halfway through, which reads as "the tool crashed" rather than "one file
+   moved". A path with nothing behind it has no code to audit, so it is skipped.
+   Reported, never silent: a run that skipped anything says so at the end. */
+const skipped = [];
+function readSource(file) {
+  try {
+    return readFileSync(file, "utf8");
+  } catch (err) {
+    if (err.code !== "ENOENT") throw err;
+    skipped.push(file);
+    return null;
+  }
+}
+
 /* Read a file as lines with every COMMENT blanked out, so a rule that greps for
    a pattern never fires on the prose arguing about that pattern. This codebase
    comments heavily and cites the exact things these rules ban ("--card is
@@ -57,7 +75,9 @@ function srcFiles({ includeLab = false } = {}) {
 function codeLines(file) {
   const out = [];
   let inBlock = false;
-  for (const raw of readFileSync(file, "utf8").split("\n")) {
+  const src = readSource(file);
+  if (src === null) return out;
+  for (const raw of src.split("\n")) {
     let res = "";
     let i = 0;
     while (i < raw.length) {
@@ -127,7 +147,9 @@ const HEX_RE = /#[0-9a-fA-F]{6}\b/;
 
 for (const f of srcFiles()) {
   if (HEX_ALLOW.has(f)) continue;
-  const raw = readFileSync(f, "utf8").split("\n");
+  const src = readSource(f);
+  if (src === null) continue;
+  const raw = src.split("\n");
   codeLines(f).forEach((code, i) => {
     if (HEX_RE.test(code)) {
       violations.push(`${f}:${i + 1}  raw hex in production code: ${raw[i].trim().slice(0, 90)}`);
@@ -167,7 +189,9 @@ const DRAB_ALLOW = new Map([
 const FAKE_PROP_RE = /transition-\[[^\]]*\bcolors\b/;
 
 for (const f of srcFiles()) {
-  const raw = readFileSync(f, "utf8").split("\n");
+  const src = readSource(f);
+  if (src === null) continue;
+  const raw = src.split("\n");
   codeLines(f).forEach((code, i) => {
     if (SINK_RE.test(code)) {
       violations.push(`${f}:${i + 1}  hover sinks into tan (hover lifts, never sinks): ${raw[i].trim().slice(0, 90)}`);
@@ -199,7 +223,9 @@ const XL_ALLOW = new Map([
 ]);
 for (const f of srcFiles()) {
   if (XL_ALLOW.has(f)) continue;
-  const raw = readFileSync(f, "utf8").split("\n");
+  const src = readSource(f);
+  if (src === null) continue;
+  const raw = src.split("\n");
   codeLines(f).forEach((code, i) => {
     if (/rounded-(t-)?xl(?![a-z-])/.test(code)) {
       violations.push(`${f}:${i + 1}  rounded-xl (20.8px > the 16px card) outside the hero allowlist: ${raw[i].trim().slice(0, 90)}`);
@@ -212,7 +238,9 @@ for (const f of srcFiles()) {
    metaLine/MetaDots). String literals passed TO metaLine are fine. */
 for (const f of srcFiles()) {
   if (f === "src/lib/utils.ts") continue; // metaLine's own implementation
-  const raw = readFileSync(f, "utf8").split("\n");
+  const src = readSource(f);
+  if (src === null) continue;
+  const raw = src.split("\n");
   codeLines(f).forEach((code, i) => {
     if (
       (/[}"]\s*·\s*[{"]|&middot;|\.join\(" · "\)/.test(code)) &&
@@ -234,7 +262,9 @@ const MODAL_ALLOW = new Set([
 ]);
 for (const f of srcFiles()) {
   if (MODAL_ALLOW.has(f)) continue;
-  const raw = readFileSync(f, "utf8").split("\n");
+  const src = readSource(f);
+  if (src === null) continue;
+  const raw = src.split("\n");
   codeLines(f).forEach((code, i) => {
     if (/aria-modal/.test(code)) {
       violations.push(`${f}:${i + 1}  hand-rolled modal outside ui/dialog (dialogs are one material): ${raw[i].trim().slice(0, 90)}`);
@@ -243,10 +273,23 @@ for (const f of srcFiles()) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Said out loud rather than swallowed: "clean" must not be able to mean "clean
+   over the files I could open". A skip is normal mid-rename and not worth
+   failing over, but a run that quietly audited less than it listed is exactly
+   the shape of gate this project has had to fix before (C-190/C-195). */
+if (skipped.length) {
+  const names = [...new Set(skipped)];
+  console.warn(
+    `protocol-audit: ${names.length} listed file(s) had vanished by the time they were read ` +
+      `(a staged deletion, or a rename landing mid-pass in a shared checkout) and were not audited:`
+  );
+  for (const f of names) console.warn("  " + f);
+}
+
 if (violations.length) {
   console.error(`protocol-audit: ${violations.length} violation(s)\n`);
   for (const v of violations) console.error("  " + v);
   process.exit(1);
 } else {
-  console.log("protocol-audit: clean");
+  console.log(`protocol-audit: clean${skipped.length ? ` (${new Set(skipped).size} file(s) skipped, above)` : ""}`);
 }
