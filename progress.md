@@ -146,6 +146,19 @@ it at 3473ms with a delta of 0,0.
 
 `npm run check` green, 76/76. `npm run visual` 23/23.
 
+One thing the settled mount uncovered on /login: a faint blink in the email and
+password bars as the bird flew in. The password row carried
+`initial={{ opacity: 0 }}` from the days when the field did not render at all for
+the admin address, a fade with nothing left to announce since the bypass was
+removed. It was invisible only because the column used to fade in on top of it;
+with the column mounting settled it blinked on its own for ~180ms, measured
+dropping to 0 at the swap and easing back over eleven frames. Removed rather than
+suppressed, because the row is unconditional now: it is the same shape as the
+email row above it, `layout` for the reflow when an error line arrives and nothing
+else. Re-measured: no opacity dip and no row movement in the 45 frames after the
+swap, and a direct visit still plays the full entrance (0 to 1, x 48 to 0, settled
+by 700ms). `auth-first-frame.test.mjs` fails if a mount fade returns to either row.
+
 ## Session 2026-08-26 (fifth) — phase 4 part 1: the same thing, written once
 
 The fifth fix session of the 2026-08-25 refactor audit. Fifteen of phase 4's twenty-one rows,

@@ -279,12 +279,18 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
                 (security audit C1-a/b/c). That bypass is being removed, and
                 hiding the field was also what stopped the owner from ever
                 testing his own password. */}
-            <motion.div
-              layout
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ ...SPRINGS.snappy, ...rowTransition }}
-            >
+            {/* No mount fade on this row, and that is the point. It carried
+                `initial={{ opacity: 0 }}` from the days when the field could
+                appear later — when it did not render at all for the admin
+                address. It renders always now, so the fade had nothing left
+                to announce, and it was invisible only because the column
+                itself used to fade in on top of it. The column mounts settled
+                when the landing already drew it (auth-first-frame.tsx), which
+                left this row blinking on its own for ~180ms right as the bird
+                flew in (owner, 2026-08-26). Same shape as the email row above
+                now: `layout` for the reflow when the error line arrives,
+                nothing else. */}
+            <motion.div layout transition={rowTransition}>
               <PasswordField
                 id="password"
                 label="Password"
