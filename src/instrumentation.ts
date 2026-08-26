@@ -72,13 +72,11 @@ const common = {
 };
 
 export async function register() {
-  if (process.env.NEXT_RUNTIME === "nodejs") {
-    Sentry.init(common);
-  }
-
-  if (process.env.NEXT_RUNTIME === "edge") {
-    /* src/proxy.ts runs on the edge for every request in this app, so this
-     * runtime is not hypothetical. */
+  /* Both runtimes get the identical config, so they are one condition rather
+   * than two branches that could drift apart. The edge half is not
+   * hypothetical: src/proxy.ts runs there for every request in this app. */
+  const runtime = process.env.NEXT_RUNTIME;
+  if (runtime === "nodejs" || runtime === "edge") {
     Sentry.init(common);
   }
 }

@@ -17,9 +17,12 @@ loadEnv({ path: ".env", quiet: true });
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
-  migrations: {
-    path: "prisma/migrations",
-  },
+  /* No `migrations` block on purpose. It used to name `prisma/migrations`, a
+     directory that does not exist and never will: one Supabase database serves
+     production and local dev, so `prisma migrate` and `db push` are both
+     banned here (CLAUDE.md), and a schema change is a dated SQL file in
+     `prisma/migrations-manual/` applied with `scripts/dev/run-sql.mjs`.
+     Config naming a migrate workflow reads as an invitation to use it. */
   datasource: {
     // The CLI (db push / migrate) must use a direct/session connection, not the
     // transaction pooler. The app runtime uses DATABASE_URL via the adapter.
