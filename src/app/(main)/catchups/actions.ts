@@ -308,6 +308,61 @@ function refuseIfFrozen(
   };
 }
 
+/**
+ * The Round a member is acting in, or the reason they may not.
+ *
+ * Load it fresh (so the clock has advanced), then prove the caller is in the
+ * group behind it. Three member actions and every Keeper action below start
+ * here; before this helper each of them wrote the same four lines out, and the
+ * two refusal sentences with them.
+ */
+async function loadMemberEdition(editionId: string, viewerId: string) {
+  const edition = await loadFreshEdition(editionId);
+  if (!edition) return { error: "Catch-up round not found." as const };
+  const membership = await loadMembership(edition.catchup.group.id, viewerId);
+  if (!membership) return { error: "You are not a member of this group." as const };
+  return { edition, membership };
+}
+
+/**
+ * The same, plus the Keeper gate and the frozen gate: the whole preamble the
+ * seven edition-scoped Keeper controls used to restate, ~13 lines each.
+ *
+ * Both refusals are passed in rather than generalised. The ten "Only the
+ * Keeper can ..." sentences are owner-reviewed copy that differs per control,
+ * and a caller naming its own is also what keeps the sentence next to the
+ * thing it refuses.
+ *
+ * `pausedHint` is what makes this refuse a paused or ended Catch-up (B-061),
+ * so omitting it is a real choice, not a default: `curatePrompt`'s two
+ * branches leave it off because they are already gated to a `collecting`
+ * Round, which a freeze cannot be reached through. Everything else passes one,
+ * and catchup-lifecycle.test.mjs fails a caller that forgets.
+ */
+async function loadKeeperEdition(
+  editionId: string,
+  viewerId: string,
+  refusal: { notKeeper: string; pausedHint?: string }
+) {
+  const scope = await loadMemberEdition(editionId, viewerId);
+  if ("error" in scope) return scope;
+  const { edition, membership } = scope;
+  if (
+    !isEffectiveKeeper({
+      viewerId,
+      createdById: edition.catchup.createdById,
+      groupRole: membership.role,
+    })
+  ) {
+    return { error: refusal.notKeeper };
+  }
+  if (refusal.pausedHint) {
+    const frozen = refuseIfFrozen(edition.catchup.status, refusal.pausedHint);
+    if (frozen) return frozen;
+  }
+  return { edition, membership };
+}
+
 // ─── Catchup lifecycle (spec 3.2, 3.3 settings) ───────────────────────────────
 
 /**
@@ -509,21 +564,15 @@ export async function updateCatchupCadence(catchupId: string, cadence: Cadence) 
     const parsedCadence = cadenceSchema.safeParse(cadence);
     if (!parsedCadence.success) return { error: "Pick a valid rhythm." };
 
-    const ctx = await loadCatchupContext(catchupId, session.user.id);
-    if (!ctx) return { error: "Catch-up not found." };
-    if (!ctx.membership) return { error: "You are not a member of this group." };
-    if (
-      !isEffectiveKeeper({
-        viewerId: session.user.id,
-        createdById: ctx.catchup.createdById,
-        groupRole: ctx.membership.role,
-      })
-    ) {
-      return { error: "Only the Keeper can change the rhythm." };
-    }
+    const scope = await loadKeeperScope(catchupId, session.user.id, {
+      notMember: "You are not a member of this group.",
+      notKeeper: "Only the Keeper can change the rhythm.",
+    });
+    if ("error" in scope) return scope;
+    const { catchup } = scope;
 
     const next = parsedCadence.data;
-    const wasCadence = ctx.catchup.cadence as Cadence;
+    const wasCadence = catchup.cadence as Cadence;
 
     /* Reschedule what is already booked (audit M08).
      *
@@ -550,7 +599,7 @@ export async function updateCatchupCadence(catchupId: string, cadence: Cadence) 
       select: { publishedAt: true },
     });
     const origin = lastPublished?.publishedAt ?? null;
-    const shouldReschedule = next !== wasCadence && ctx.catchup.nextOpensAt !== null && origin !== null;
+    const shouldReschedule = next !== wasCadence && catchup.nextOpensAt !== null && origin !== null;
     const now = new Date();
     const rescheduled = shouldReschedule
       ? (() => {
@@ -576,19 +625,13 @@ export async function pauseCatchup(catchupId: string) {
     if (!session?.user?.id) return { error: "Not authenticated" };
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
 
-    const ctx = await loadCatchupContext(catchupId, session.user.id);
-    if (!ctx) return { error: "Catch-up not found." };
-    if (!ctx.membership) return { error: "You are not a member of this group." };
-    if (
-      !isEffectiveKeeper({
-        viewerId: session.user.id,
-        createdById: ctx.catchup.createdById,
-        groupRole: ctx.membership.role,
-      })
-    ) {
-      return { error: "Only the Keeper can pause this Catch-up." };
-    }
-    if (ctx.catchup.status === "ended") return { error: "This Catch-up has already ended." };
+    const scope = await loadKeeperScope(catchupId, session.user.id, {
+      notMember: "You are not a member of this group.",
+      notKeeper: "Only the Keeper can pause this Catch-up.",
+    });
+    if ("error" in scope) return scope;
+    const { catchup } = scope;
+    if (catchup.status === "ended") return { error: "This Catch-up has already ended." };
 
     // `pausedAt` stamps the moment the freeze begins. From here the live Round
     // stops advancing entirely (the gate is in advanceEdition), and resume
@@ -612,22 +655,16 @@ export async function resumeCatchup(catchupId: string) {
     if (!session?.user?.id) return { error: "Not authenticated" };
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
 
-    const ctx = await loadCatchupContext(catchupId, session.user.id);
-    if (!ctx) return { error: "Catch-up not found." };
-    if (!ctx.membership) return { error: "You are not a member of this group." };
-    if (
-      !isEffectiveKeeper({
-        viewerId: session.user.id,
-        createdById: ctx.catchup.createdById,
-        groupRole: ctx.membership.role,
-      })
-    ) {
-      return { error: "Only the Keeper can resume this Catch-up." };
-    }
-    if (ctx.catchup.status !== "paused") return { error: "This Catch-up is not paused." };
+    const scope = await loadKeeperScope(catchupId, session.user.id, {
+      notMember: "You are not a member of this group.",
+      notKeeper: "Only the Keeper can resume this Catch-up.",
+    });
+    if ("error" in scope) return scope;
+    const { catchup } = scope;
+    if (catchup.status !== "paused") return { error: "This Catch-up is not paused." };
 
     const now = new Date();
-    const pausedAt = ctx.catchup.pausedAt;
+    const pausedAt = catchup.pausedAt;
 
     await prisma.$transaction(async (tx) => {
       // Pinned on pausedAt as well as status: another Keeper completing a
@@ -659,17 +696,17 @@ export async function resumeCatchup(catchupId: string) {
         // still being null so it cannot stamp over a live schedule.
         const rearmed = await tx.catchup.updateMany({
           where: { id: catchupId, nextOpensAt: null },
-          data: { nextOpensAt: addCadenceGap(now, ctx.catchup.cadence as Cadence) },
+          data: { nextOpensAt: addCadenceGap(now, catchup.cadence as Cadence) },
         });
         if (rearmed.count > 0) return;
 
         // Otherwise the schedule survived, and it gets the same credit a live
         // Round's deadlines get: a Catch-up paused a month before its next
         // Round should not open one the instant it resumes.
-        const shifted = shiftPausedInstant(ctx.catchup.nextOpensAt, pausedAt, now);
+        const shifted = shiftPausedInstant(catchup.nextOpensAt, pausedAt, now);
         if (shifted) {
           await tx.catchup.updateMany({
-            where: { id: catchupId, nextOpensAt: ctx.catchup.nextOpensAt },
+            where: { id: catchupId, nextOpensAt: catchup.nextOpensAt },
             data: { nextOpensAt: shifted },
           });
         }
@@ -696,18 +733,11 @@ export async function endCatchup(catchupId: string) {
     if (IS_DEMO) return { error: "Ending a Catch-up cannot be undone, so the demo keeps that one switched off." };
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
 
-    const ctx = await loadCatchupContext(catchupId, session.user.id);
-    if (!ctx) return { error: "Catch-up not found." };
-    if (!ctx.membership) return { error: "You are not a member of this group." };
-    if (
-      !isEffectiveKeeper({
-        viewerId: session.user.id,
-        createdById: ctx.catchup.createdById,
-        groupRole: ctx.membership.role,
-      })
-    ) {
-      return { error: "Only the Keeper can end this Catch-up." };
-    }
+    const scope = await loadKeeperScope(catchupId, session.user.id, {
+      notMember: "You are not a member of this group.",
+      notKeeper: "Only the Keeper can end this Catch-up.",
+    });
+    if ("error" in scope) return scope;
 
     await prisma.catchup.update({
       where: { id: catchupId },
@@ -755,10 +785,9 @@ export async function submitPrompt(input: {
     if (!parsed.success) return { error: parsed.error.issues[0].message };
     const { editionId, text, category, showAsker } = parsed.data;
 
-    const edition = await loadFreshEdition(editionId);
-    if (!edition) return { error: "Catch-up round not found." };
-    const membership = await loadMembership(edition.catchup.group.id, session.user.id);
-    if (!membership) return { error: "You are not a member of this group." };
+    const scope = await loadMemberEdition(editionId, session.user.id);
+    if ("error" in scope) return scope;
+    const { edition, membership } = scope;
     if (edition.status !== "collecting") {
       return { error: "The question window for this Round is closed." };
     }
@@ -886,19 +915,11 @@ export async function curatePrompt(input: CuratePromptInput) {
       if (!parsed.success) return { error: "Invalid request." };
       const { editionId, orderedPromptIds } = parsed.data;
 
-      const edition = await loadFreshEdition(editionId);
-      if (!edition) return { error: "Catch-up round not found." };
-      const membership = await loadMembership(edition.catchup.group.id, session.user.id);
-      if (!membership) return { error: "You are not a member of this group." };
-      if (
-        !isEffectiveKeeper({
-          viewerId: session.user.id,
-          createdById: edition.catchup.createdById,
-          groupRole: membership.role,
-        })
-      ) {
-        return { error: "Only the Keeper can reorder questions." };
-      }
+      const scope = await loadKeeperEdition(editionId, session.user.id, {
+        notKeeper: "Only the Keeper can reorder questions.",
+      });
+      if ("error" in scope) return scope;
+      const { edition } = scope;
       if (edition.status !== "collecting") {
         return { error: "Questions can only be reordered while the window is open." };
       }
@@ -929,19 +950,11 @@ export async function curatePrompt(input: CuratePromptInput) {
     });
     if (!prompt) return { error: "Question not found." };
 
-    const edition = await loadFreshEdition(prompt.editionId);
-    if (!edition) return { error: "Catch-up round not found." };
-    const membership = await loadMembership(edition.catchup.group.id, session.user.id);
-    if (!membership) return { error: "You are not a member of this group." };
-    if (
-      !isEffectiveKeeper({
-        viewerId: session.user.id,
-        createdById: edition.catchup.createdById,
-        groupRole: membership.role,
-      })
-    ) {
-      return { error: "Only the Keeper can curate questions." };
-    }
+    const scope = await loadKeeperEdition(prompt.editionId, session.user.id, {
+      notKeeper: "Only the Keeper can curate questions.",
+    });
+    if ("error" in scope) return scope;
+    const { edition } = scope;
     if (edition.status !== "collecting") {
       return { error: "Questions can only be curated while the window is open." };
     }
@@ -962,21 +975,12 @@ export async function openAnswering(editionId: string) {
     if (!session?.user?.id) return { error: "Not authenticated" };
     if (typeof editionId !== "string" || !editionId) return { error: "Invalid request." };
 
-    const edition = await loadFreshEdition(editionId);
-    if (!edition) return { error: "Catch-up round not found." };
-    const membership = await loadMembership(edition.catchup.group.id, session.user.id);
-    if (!membership) return { error: "You are not a member of this group." };
-    if (
-      !isEffectiveKeeper({
-        viewerId: session.user.id,
-        createdById: edition.catchup.createdById,
-        groupRole: membership.role,
-      })
-    ) {
-      return { error: "Only the Keeper can open answering." };
-    }
-    const frozen = refuseIfFrozen(edition.catchup.status, "Resume it to pick the Round back up.");
-    if (frozen) return frozen;
+    const scope = await loadKeeperEdition(editionId, session.user.id, {
+      notKeeper: "Only the Keeper can open answering.",
+      pausedHint: "Resume it to pick the Round back up.",
+    });
+    if ("error" in scope) return scope;
+    const { edition } = scope;
     if (edition.status !== "collecting") {
       return { error: "This Round is not collecting questions right now." };
     }
@@ -1036,21 +1040,12 @@ export async function closeAndPrepare(editionId: string) {
     if (!session?.user?.id) return { error: "Not authenticated" };
     if (typeof editionId !== "string" || !editionId) return { error: "Invalid request." };
 
-    const edition = await loadFreshEdition(editionId);
-    if (!edition) return { error: "Catch-up round not found." };
-    const membership = await loadMembership(edition.catchup.group.id, session.user.id);
-    if (!membership) return { error: "You are not a member of this group." };
-    if (
-      !isEffectiveKeeper({
-        viewerId: session.user.id,
-        createdById: edition.catchup.createdById,
-        groupRole: membership.role,
-      })
-    ) {
-      return { error: "Only the Keeper can close and prepare early." };
-    }
-    const frozen = refuseIfFrozen(edition.catchup.status, "Resume it to pick the Round back up.");
-    if (frozen) return frozen;
+    const scope = await loadKeeperEdition(editionId, session.user.id, {
+      notKeeper: "Only the Keeper can close and prepare early.",
+      pausedHint: "Resume it to pick the Round back up.",
+    });
+    if ("error" in scope) return scope;
+    const { edition } = scope;
     if (edition.status !== "answering") {
       return { error: "This Round is not open for answers right now." };
     }
@@ -1120,21 +1115,12 @@ export async function extendDeadline(editionId: string, days: number) {
     const parsedDays = extendDaysSchema.safeParse(days);
     if (!parsedDays.success) return { error: "Pick 1, 2, 4 days or a week." };
 
-    const edition = await loadFreshEdition(editionId);
-    if (!edition) return { error: "Catch-up round not found." };
-    const membership = await loadMembership(edition.catchup.group.id, session.user.id);
-    if (!membership) return { error: "You are not a member of this group." };
-    if (
-      !isEffectiveKeeper({
-        viewerId: session.user.id,
-        createdById: edition.catchup.createdById,
-        groupRole: membership.role,
-      })
-    ) {
-      return { error: "Only a Keeper can extend the deadline." };
-    }
-    const frozen = refuseIfFrozen(edition.catchup.status, "Resume it to pick the Round back up.");
-    if (frozen) return frozen;
+    const scope = await loadKeeperEdition(editionId, session.user.id, {
+      notKeeper: "Only a Keeper can extend the deadline.",
+      pausedHint: "Resume it to pick the Round back up.",
+    });
+    if ("error" in scope) return scope;
+    const { edition } = scope;
 
     const now = new Date();
     const patch = extendPhasePatch(edition, parsedDays.data, now);
@@ -1179,21 +1165,12 @@ export async function publishNow(editionId: string) {
     if (!session?.user?.id) return { error: "Not authenticated" };
     if (typeof editionId !== "string" || !editionId) return { error: "Invalid request." };
 
-    const edition = await loadFreshEdition(editionId);
-    if (!edition) return { error: "Catch-up round not found." };
-    const membership = await loadMembership(edition.catchup.group.id, session.user.id);
-    if (!membership) return { error: "You are not a member of this group." };
-    if (
-      !isEffectiveKeeper({
-        viewerId: session.user.id,
-        createdById: edition.catchup.createdById,
-        groupRole: membership.role,
-      })
-    ) {
-      return { error: "Only the Keeper can publish early." };
-    }
-    const frozen = refuseIfFrozen(edition.catchup.status, "Resume it to pick the Round back up.");
-    if (frozen) return frozen;
+    const scope = await loadKeeperEdition(editionId, session.user.id, {
+      notKeeper: "Only the Keeper can publish early.",
+      pausedHint: "Resume it to pick the Round back up.",
+    });
+    if ("error" in scope) return scope;
+    const { edition } = scope;
     if (edition.status !== "preparing") {
       return { error: "This Round is not ready to publish yet." };
     }
@@ -1269,10 +1246,9 @@ export async function submitEntry(input: {
     });
     if (!prompt || !prompt.accepted) return { error: "This question is not part of the Round." };
 
-    const edition = await loadFreshEdition(prompt.editionId);
-    if (!edition) return { error: "Catch-up round not found." };
-    const membership = await loadMembership(edition.catchup.group.id, session.user.id);
-    if (!membership) return { error: "You are not a member of this group." };
+    const scope = await loadMemberEdition(prompt.editionId, session.user.id);
+    if ("error" in scope) return scope;
+    const { edition } = scope;
     if (edition.status !== "answering") {
       return { error: "Answering is not open for this Round right now." };
     }
@@ -1456,10 +1432,9 @@ export async function toggleEntryLove(entryId: string) {
     });
     if (!entry) return { error: "Answer not found." };
 
-    const edition = await loadFreshEdition(entry.editionId);
-    if (!edition) return { error: "Catch-up round not found." };
-    const membership = await loadMembership(edition.catchup.group.id, session.user.id);
-    if (!membership) return { error: "You are not a member of this group." };
+    const scope = await loadMemberEdition(entry.editionId, session.user.id);
+    if ("error" in scope) return scope;
+    const { edition } = scope;
     if (edition.status !== "published") {
       return { error: "Hearts open once the Round is published." };
     }
@@ -1622,15 +1597,33 @@ async function upsertCatchupPref(
   }
 }
 
+/** The three membership controls refuse as one, because they are one
+ *  permission: who is in this Catch-up. The lifecycle controls below each name
+ *  their own verb, so they pass their own. */
+const MEMBERSHIP_REFUSAL = {
+  notMember: "You are not a member of this Catch-up.",
+  notKeeper: "Only a Keeper can change who is in this Catch-up.",
+} as const;
+
 /**
  * The Catch-up a Keeper is acting on, or the reason they may not. Builds on
- * `loadCatchupContext` rather than re-reading the same two rows, so the three
- * actions below share one Keeper gate instead of each restating it.
+ * `loadCatchupContext` rather than re-reading the same two rows, so seven
+ * actions share one Keeper gate instead of each restating it.
+ *
+ * Both refusals come from the caller. They are not interchangeable: the four
+ * lifecycle controls say "a member of this group" and the three membership
+ * controls say "a member of this Catch-up", and the ten Keeper sentences each
+ * name their own verb. Passing them in is what let these seven collapse
+ * without a word of owner-reviewed copy changing.
  */
-async function loadKeeperScope(catchupId: string, viewerId: string) {
+async function loadKeeperScope(
+  catchupId: string,
+  viewerId: string,
+  refusal: { notMember: string; notKeeper: string }
+) {
   const ctx = await loadCatchupContext(catchupId, viewerId);
   if (!ctx) return { error: "Catch-up not found." as const };
-  if (!ctx.membership) return { error: "You are not a member of this Catch-up." as const };
+  if (!ctx.membership) return { error: refusal.notMember };
   if (
     !isEffectiveKeeper({
       viewerId,
@@ -1638,7 +1631,7 @@ async function loadKeeperScope(catchupId: string, viewerId: string) {
       groupRole: ctx.membership.role,
     })
   ) {
-    return { error: "Only a Keeper can change who is in this Catch-up." as const };
+    return { error: refusal.notKeeper };
   }
   return { catchup: ctx.catchup };
 }
@@ -1669,7 +1662,7 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
       return { error: `Pick between 1 and ${MAX_CATCHUP_PEOPLE} people.` };
     }
 
-    const scope = await loadKeeperScope(catchupId, session.user.id);
+    const scope = await loadKeeperScope(catchupId, session.user.id, MEMBERSHIP_REFUSAL);
     if ("error" in scope) return { error: scope.error };
     const { catchup } = scope;
     if (catchup.status === "ended") return { error: "This Catch-up has ended." };
@@ -1762,7 +1755,7 @@ export async function removeCatchupMember(catchupId: string, userId: string) {
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
     if (typeof userId !== "string" || !userId) return { error: "Invalid request." };
 
-    const scope = await loadKeeperScope(catchupId, session.user.id);
+    const scope = await loadKeeperScope(catchupId, session.user.id, MEMBERSHIP_REFUSAL);
     if ("error" in scope) return { error: scope.error };
     const { catchup } = scope;
 
@@ -1952,7 +1945,7 @@ export async function setCatchupKeeper(catchupId: string, userId: string, isKeep
     if (typeof userId !== "string" || !userId) return { error: "Invalid request." };
     if (typeof isKeeper !== "boolean") return { error: "Invalid request." };
 
-    const scope = await loadKeeperScope(catchupId, session.user.id);
+    const scope = await loadKeeperScope(catchupId, session.user.id, MEMBERSHIP_REFUSAL);
     if ("error" in scope) return { error: scope.error };
     const { catchup } = scope;
 
@@ -2030,21 +2023,12 @@ export async function nudgeGroup(editionId: string) {
     if (IS_DEMO) return { error: "A nudge would notify everyone in the Catch-up, so the demo leaves it switched off." };
     if (typeof editionId !== "string" || !editionId) return { error: "Invalid request." };
 
-    const edition = await loadFreshEdition(editionId);
-    if (!edition) return { error: "Catch-up round not found." };
-    const membership = await loadMembership(edition.catchup.group.id, session.user.id);
-    if (!membership) return { error: "You are not a member of this group." };
-    if (
-      !isEffectiveKeeper({
-        viewerId: session.user.id,
-        createdById: edition.catchup.createdById,
-        groupRole: membership.role,
-      })
-    ) {
-      return { error: "Only the Keeper can nudge the group." };
-    }
-    const frozen = refuseIfFrozen(edition.catchup.status, "Resume it to pick the Round back up.");
-    if (frozen) return frozen;
+    const scope = await loadKeeperEdition(editionId, session.user.id, {
+      notKeeper: "Only the Keeper can nudge the group.",
+      pausedHint: "Resume it to pick the Round back up.",
+    });
+    if ("error" in scope) return scope;
+    const { edition } = scope;
     if (edition.status !== "answering") {
       return { error: "Nudges only make sense while answers are open." };
     }
