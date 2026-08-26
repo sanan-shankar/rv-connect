@@ -193,6 +193,16 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/catchups", request.url));
   }
 
+  // Same shape, same reason: the school-donation framing was dropped and
+  // supporting the platform's hosting lives at /support. This was a page under
+  // (main) whose entire body was `redirect("/support")`, which meant it sat
+  // behind auth -- so a signed-out holder of an old /donate link bounced
+  // through /login before finding out where it went. Answering here costs one
+  // fewer route in the build and gets the answer in before the session check.
+  if (pathname === "/donate") {
+    return NextResponse.redirect(new URL("/support", request.url));
+  }
+
   // Public routes that don't require auth
   // NOTE: "/lab" is NO LONGER public (audit M19). It was the one index over
   // every dev/preview room, and /lab/everything served an internal audit log
