@@ -306,6 +306,28 @@ localhost clicking cannot pollute the funnels.
 
 ---
 
+## 8. knip — what nothing points at any more
+
+**Fires:** when you ask. `npx knip`. Not a dependency and not in the gate; it is the tool
+you reach for at the start of a cleanup, and once a release.
+
+It answers one question — which files and exports nothing imports — and it was answering it
+uselessly. Almost nothing here is reachable from `src`: the unit gate discovers its 74 test
+files by glob, the QA and dev scripts are run by hand or by `check.mjs`, Playwright loads
+`e2e/`, the Prisma CLI loads `prisma.config.ts`. knip counted every one of those as dead and
+reported **131 unused files**, 75 of them tests. A list that long is a list nobody reads,
+which is why the 2026-08-25 audit had to find the dead code by hand.
+
+`knip.jsonc` names those as entry points. The list is now **5**, and all five are the
+landing showcase, which is genuinely unreferenced because the flag that rendered it is off
+(report §4 #1, still the owner's call). That is the tool working: what remains is a
+question, not noise.
+
+The export list (~58) is mostly `/lab`, which is a deliberate exception — a lab room's
+exports exist to be read, not imported.
+
+---
+
 ## Still to do
 - **Staging database** — a second Supabase project so schema changes get a rehearsal.
   Data fixes (capitalisations, cities) would continue to run against production exactly as

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+
+  // Without this file knip reports 131 unused files, 75 of them the test suite,
+  // which makes its report useless as the leftovers detector it should be.
+  //
+  // Everything under `entry` is reachable, just not from src: the unit gate
+  // discovers *.test.mjs by glob, the QA and dev scripts are run by hand or by
+  // check.mjs, Playwright loads e2e/, the Prisma CLI loads prisma.config.ts,
+  // and Puppeteer reads .puppeteerrc.cjs.
+  //
+  // With it the list is short enough that every line on it is a real question.
+  // Run: npx knip
+  "entry": [
+    "src/**/*.test.mjs",
+    "src/lib/test-kit.mjs",
+    "src/lib/test-fn-body.mjs",
+    "scripts/**/*.{mjs,mts,ts}",
+    "e2e/**/*.ts",
+    "prisma.config.ts",
+    ".puppeteerrc.cjs"
+  ],
+
+  // `.claude` is imported skills and agents; `docs` holds the audits' own
+  // working scripts; `src/generated` is the Prisma client.
+  "ignore": [".claude/**", "docs/**", "src/generated/**"]
+}
