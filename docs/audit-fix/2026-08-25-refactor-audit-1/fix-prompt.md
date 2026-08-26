@@ -489,7 +489,19 @@ it — but a revert of `5cf90cc` would take a stale handover entry with it.
 **Awaiting owner** (unchanged from session 3, plus nothing new):
 1. **The public landing still links to no Privacy / Terms / Guidelines** (security audit H12).
 2. Session 1's `gate-coverage.test.mjs` widening is still unsighted.
-3. ~357 MB of unused Puppeteer Chrome in `~/.cache/puppeteer` is still his to delete.
+3. ~~~357 MB of unused Puppeteer Chrome in `~/.cache/puppeteer`.~~ **DONE — the owner
+   deleted it 2026-08-26.** Nothing depended on it: `.puppeteerrc.cjs` (session 2's
+   `cb3709d`) already sets `skipDownload`, so it cannot come back, and Playwright keeps
+   its own browsers in `~/Library/Caches/ms-playwright`, untouched. Re-verified after the
+   delete, one at a time: `verify:shot /about` 200, `verify:crawl` 17/17, `npm run visual`
+   green, and — the check that mattered — `npm run screenshot` with PUPPETEER_EXECUTABLE_PATH
+   **unset**, which found /Applications/Google Chrome on its own. Do not re-raise this.
+
+**A not-finding for phase 4, from `rv-connect-da`**: `src/app/lab/hoopoe-marks/_parts.tsx`
+deliberately copies geometry constants out of `src/components/mascot/hoopoe.tsx` — same
+curves, different proportions, reasons in its own header. If a duplication row ever flags the
+two as identical they must NOT be merged: the point is that one is a character and the other
+is a logo cut from it.
 
 **Peer traffic**: `rv-connect-da` worked in this tree all session on brand/logo under
 `src/app/lab/`, `src/app/icon.*`, `public/images/icons/` and `scripts/dev/generate-icons.mjs`,
