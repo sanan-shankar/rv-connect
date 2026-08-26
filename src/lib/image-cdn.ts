@@ -18,12 +18,18 @@
  *  When dimensions are stored and #18 is fixed, this should become the
  *  real <Image> component.
  *
- *  The widths are the only two of Next's default deviceSizes this UI can
- *  use: 750 covers a 728 px card at 1x and a 359 px half-card at 2x; 1080
- *  covers the full-width card on a retina laptop. Nothing here ever needs
- *  more, because the full-size original is what the VIEWER fetches -- and
- *  the viewer must keep fetching the original (its Download button saves
- *  the real file; see next.config.ts connect-src).
+ *  The ladder is three rungs, each earning its place against a real slot:
+ *  750 covers a 728 px full-width card at 1x and a 359 px half-card at 2x;
+ *  1080 covers a phone at ~2.5x; 1456 is a full-width card at 2x, i.e. a
+ *  Mac. That last rung is not in Next's defaults and had to be added to
+ *  deviceSizes in next.config.ts -- the first pass shipped without it, and
+ *  a retina screen fell back to 1080 for a slot wanting 1456, which is
+ *  1.48x and reads as SOFT on a photograph. Sharpness is the whole point of
+ *  a photo-sharing site; this ladder is not the place to save the last KB.
+ *
+ *  Nothing here ever needs more, because the full-size original is what the
+ *  VIEWER fetches -- and the viewer must keep fetching the original (its
+ *  Download button saves the real file; see next.config.ts connect-src).
  *
  *  No new attack surface: /_next/image only fetches hosts listed in
  *  next.config.ts remotePatterns, which is the exact-host allowlist audit
@@ -31,7 +37,7 @@
  *  the optimizer would just proxy them.
  * ------------------------------------------------------------------ */
 
-const WIDTHS = [750, 1080] as const;
+const WIDTHS = [750, 1080, 1456] as const;
 const QUALITY = 75;
 
 /** One optimizer URL at a given width. */
