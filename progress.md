@@ -1,5 +1,68 @@
 # Progress Log
 
+## Session 2026-08-26 (seventh) — refactor audit phase 4, part 2: the admin wing and the doors
+
+Fourteen commits, the six rows phase 4 had left, and the phase is closed. The full
+account with every rule-4 outcome is in
+`docs/audit-fix/2026-08-25-refactor-audit-1/fix-prompt.md`; this is the short version.
+
+**The admin wing was the biggest piece.** Nine functions across six files each wrote
+out the same setBusy / callAction / toast / refresh / release-in-a-finally handler,
+six of them carrying the same verbatim comment explaining the finally (B-042, the bug
+where a rejected call left a row disabled for the session). Six copies of a guard is
+six chances to write the seventh without it, so it is one `useAdminAct` now, with two
+options and no more. People and Content shared their filter controls and had each
+hand-built the same hundred-line assembly on top of them, which is how they ended up
+behaving differently behind an identical-looking bar; that is one `AdminFilterBar`,
+and two real behaviour differences were reconciled deliberately rather than
+preserved. The messages pages wrote the eight-field member shape four times and the
+take-one-extra-and-reverse message window twice. Twelve admin pages carried the same
+four-line paragraph about B-024, whose argument now lives once in `lib/admin.ts` —
+which needed it, because that file still claimed the layout guard was what protected
+a new section, and that is the belief B-024 disproved.
+
+**Three analytics views stopped paying for numbers they throw away.** Content and
+Faces each ran thirteen concurrent queries to get one integer, the denominator of a
+percentage. Rhythms fetched two user-joined visitor lists and two raw aggregates and
+rendered none of them. The room advertises itself as getting faster as it grows, and
+this was the page where that was untrue.
+
+**Eight API route handlers each had their own front door.** Next gives a route handler
+no origin check, and `gate-coverage` only sweeps `"use server"` files, so nothing
+anywhere failed if one arrived with three of the four checks — including three copies
+of a fail-closed constant-time secret comparison whose newest copy carried the comment
+"matching the two sibling cron routes". They share `lib/api-gate.ts` now, and two
+derived tests make the sharing stick. Both upload paths were driven against the real
+R2 bucket to prove it, and the test objects deleted afterwards.
+
+**One member-facing fix fell out of a dedupe.** The onboarding step and the profile
+letterhead each wrote out picking, framing and sending a photograph, and differed in
+the one place it mattered: onboarding shrank an undecodable file in the browser first
+and the profile did not. So the same HEIC off the same phone worked during the wizard
+and died at Vercel's body cap from the profile, with a stuck spinner and no message.
+One hook, one guard, both surfaces — driven as Jerry on each, including a deliberately
+truncated JPEG to reach the branch.
+
+**The best thing here is probably a test.** `scripts/README.md` has opened with "add a
+script, add a line" since the owner cleared 31 dead one-off probes by hand. Written
+down was not enough: the folder held 50 scripts and the README named 32, and the
+eighteen it had lost included every phase probe and the whole of `ops/`, which a
+nightly workflow runs. That rule is now a gate, in both directions. Three more pins
+landed with it — every upload route must use the shared door, every cron must use the
+shared secret check, and the avatar hook must really shrink — and every one was
+mutation-tested, because a pin that cannot fail is worse than no pin.
+
+**Refused, with reasons.** The audit's suggestion to give the audit log page the shared
+admin skeleton would have made it draw avatar circles that never arrive, for twelve
+lines. Its suggested home for the upload guard would have put NextAuth in five browser
+bundles. Its shared probe-cleanup would have over-deleted on the live database, and its
+shared dev-database opener wanted one default connection string across four scripts
+that deliberately point at different databases. Two of the five "live routes" it said
+the crawler was missing turned out not to be routes at all.
+
+Gates: `npm run check` green before every commit (77 test files now), `npm run visual`
+23/23, `npm run verify:crawl` 20/20 including the three routes nothing had ever crawled.
+
 ## Session 2026-08-26 (sixth) — eight more trivia questions, and the line that shows them
 
 The entry gate had two questions, so anyone who never lived in a house and never
