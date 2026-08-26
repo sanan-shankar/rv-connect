@@ -11,16 +11,12 @@ Systematically review existing pages and produce actionable improvements.
 ## Audit Process
 
 ### Step 1: Screenshot Every Page
-Use parallel sub-agents to screenshot all key pages (desktop + mobile):
-- Landing page (`/`)
-- Feed (`/feed`) — authenticated
-- Groups (`/groups`) — authenticated
-- Directory (`/directory`) — authenticated
-- Profile (`/profile/[id]`) — authenticated
-- Settings (`/settings`) — authenticated
-- Admin (`/admin`) — authenticated
-- About (`/about`) — authenticated
-- Donate (`/donate`) — authenticated
+Use parallel sub-agents to screenshot all key pages (desktop + mobile).
+
+Take the list from `scripts/qa/crawl.mjs`'s `routes` array rather than from here:
+that one is exercised by `npm run verify:crawl`, and this one was not, so it spent
+weeks naming `/groups` and `/settings` after both were deleted. The landing page
+(`/`) is in it too; everything else in it needs a signed-in shot.
 
 ### Step 2: Evaluate Against LiftKit Rules
 For each page, check (reference `.claude/skills/liftkit-spacing/SKILL.md`):
