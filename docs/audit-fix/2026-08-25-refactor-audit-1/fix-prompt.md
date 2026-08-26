@@ -35,10 +35,12 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
       (lib-tests-02 had already landed as `9cee0d5`). Two pieces deliberately deferred with
       reasons: shell-primitives-09's utils.ts module split belongs to phase 5's measurement,
       and lib-tests-01's optional `section()` migration is not safe as a sweep. See session 4.
-- [~] Phase 4 — dedupe at component/route level — **part 1 done 2026-08-26**, 25 commits,
-      15 of 21 rows. One row (catchups-12) was already executed and is not redone; one
-      (the shared pager) is deliberately not done, with reasons, and its clean half
-      (appendUnseen) landed. Six rows remain; see session 5 for the list in order.
+- [x] Phase 4 — dedupe at component/route level — **done 2026-08-26** over two sessions,
+      39 commits (25 + 14). All 21 rows executed or consciously refused. Part 1 is session
+      5; part 2 is session 6, which took the admin programme and the five remaining rows.
+      Three deliberate refusals across the phase, each with its reason in its session log:
+      the shared pager (feed-posts-05), the audit-log skeleton (admin-analytics-09), and
+      the halves of duplication-07/08 that would over-delete or point at the wrong database.
 - [ ] Phase 5 — bundle & build (+ before/after measurements vs report §1a)
 - [ ] Phase 6 — schema & architecture (owner-gated throughout)
 - [ ] Close-out: re-measure §1b's table, write the deltas into report §1b, flip this
@@ -683,3 +685,178 @@ Verification: check ✓/✗, visual ✓/✗ (+what was eyeballed)
 State left: <clean | exact description of any in-flight work>
 Next session: <the single next thing>
 ```
+
+### 2026-08-26 — session 6 (phase 4, part 2)
+
+**All six remaining rows executed, 14 commits. Phase 4 is closed.** Every item
+pre-flighted at HEAD per rule 4.
+
+**Done** (in order):
+mail tone map → `a987cbc` · Catch-up chip vocabulary → `7d6ae13` · admin hygiene batch →
+`18e2f0d` · B-024 comment ×12 → `ae9df23` · analytics query trim → `dbeda7e` · thread
+contract + message window → `fe9eaf6` · useAdminAct → `0cada95` · AdminFilterBar →
+`d16746f` · api-gate + toDisplayWebp → `60e8ee0` · useAvatarUpload → `5745fa2` ·
+email-queue doc blocks → `6277a3e` · probe + dev script kits → `6763918` · scripts ledger
+gate + demo/run-sql supersession + crawl list → `c3d8a4d` · three SKILL files → `c02cfb7`.
+
+**Where the audit was wrong, or thinner than the tree** (rule 4 outcomes):
+- **admin-analytics-09 is RE-REFUTED at fix time.** It says `audit/loading.tsx` should
+  become `<AdminSkeleton rows={8} columns={1} toolbar={false} />`. But the audit log page
+  renders TWO `<ul>` of text events with `divide-y` inside one bordered card and no avatar
+  anywhere, while AdminSkeleton draws separate bordered cards each with an `size-10
+  rounded-full` avatar. Adopting it makes the loading state hold a shape that never
+  arrives — which is precisely what AdminSkeleton's own banner says a skeleton is for
+  ("hold the shape of what is arriving"). 12 lines is not worth teaching the shared
+  component to lie. The local file is left as it is. **Do not retry this without also
+  fixing the local skeleton to the real two-section shape, which is a UI job, not a dedupe.**
+- **scripts-e2e-ci-08 names five missing routes; two of them are not routes.**
+  `src/app/(main)/notifications/` holds only `actions.ts` and `notice/` only an `[id]`
+  segment, so neither has a page to crawl. Added the three real ones (`/birds`,
+  `/pick-bird`, `/welcome`) with a comment saying to cross-check `ls src/app/(main)` AND
+  that not every directory there is a route. `verify:crawl` now reports 20/20 at 200.
+- **duplication-09's suggested home for the upload guard is wrong and would have cost a
+  bundle.** It says put `guardUploadRequest` in `src/lib/upload-shared.ts`. Five `"use
+  client"` components import that file, so giving it `auth` puts NextAuth and Prisma into
+  five browser bundles — the exact failure that once broke /messages with "Module not
+  found: Can't resolve 'dns'" while tsc stayed green. It went in a new server-only
+  `src/lib/api-gate.ts`, and `toDisplayWebp` beside `sharpImage` in `image.ts`.
+- **`gate-coverage.test.mjs` sweeps `"use server"` files only**, so no API route was ever
+  covered by it — which is why the eight route handlers could each drift. Recorded because
+  it is a real coverage gap; the two new pins below close it for uploads and crons only.
+- **lib-core-config-05's optional half is deliberately not done.** Collapsing
+  `scheduleSend`/`scheduleDrain` into `runDetached` would take the
+  `try { after(x) } catch { void x() }` shape away from `scheduleDrain`, and `docs/TRAPS.md:75`
+  sends readers to that function BY NAME to see it. The finding's own escape clause.
+- **duplication-07's `makeProbeUser` is not done.** The five cleanup blocks are not copies:
+  each deletes the tables its own probe wrote (phase5 seven tables, phase6 two, phase7/8
+  four plus mail, phase10 one and a cascade). A shared one either over-deletes on the live
+  shared database or takes a per-probe table list, which is the copy again.
+- **duplication-08's shared db opener is not done either.** Those scripts open a database
+  four different ways (pg with relaxed SSL, pg without, Prisma behind the pg adapter), and
+  a shared opener with a default connection string is the same convenience the finding
+  itself says to keep a wall against for `scripts/demo/*`. The **env parser** IS shared —
+  seven copies, five of them carrying the same leftover `[".env", ".env"]` where the second
+  entry was a file that stopped existing.
+- **admin-analytics-05's two reconciled differences** (both flagged by the verification):
+  People wrapped its navigations in `startTransition` and Content did not, so filtering
+  Content dropped the list to its skeleton where People kept it — both transition now. And
+  Content listed the search token third of four while People listed it last, which with a
+  three-token cap changed which token hid behind "+N more"; the term goes last on both.
+- **admin-analytics-08's `SERIES_STATUS` shapes differ**, as the verification said. The
+  fuller map won, so the list page now takes the tone as well as the label. Latent: no
+  Catch-up is paused today, and "Ended" was already idle on both.
+- **admin-analytics-03's ContentView reads `people.total` ONCE, not twice** — the
+  verification's correction, confirmed.
+
+**Four new mechanisms, all mutation-checked** (this is the phase's real output, more than
+the line count):
+1. `scripts/qa/scripts-ledger.test.mjs` — the README rule "add a script, add a line" is now
+   a gate, both directions. It found 18 unlisted scripts including every phase probe and
+   all of `ops/`. **Tracked files, not a filesystem walk** — the opposite of what
+   `gate-coverage` does for admin pages, and deliberately: several sessions share this
+   checkout and a gate that fails on a peer's WIP is a gate people learn to ignore.
+2. `upload-shared.test.mjs` — every route under `src/app/api/upload/` must call
+   `vetUploadRequest`. Nothing failed before if a fourth route arrived with three of the
+   four checks.
+3. `proxy-rule.test.mjs` — every cron in `vercel.json` must call `requireCronSecret`,
+   derived from the config rather than listed.
+4. `upload-size-rule.test.mjs` — gained `letterhead-profile.tsx`, which was missing from
+   both the guard and the list, accepts the shared hook as shrinking, AND separately pins
+   that the hook really shrinks, so the two delegating callers cannot go hollow.
+
+**Test pins that went red, and why**: only one, `upload-size-rule`, and it went red for
+the right reason (photo-step's `shrinkForUpload` moved into the hook). Widened as above
+rather than loosened. Everything else stayed green through fourteen commits, which is
+itself worth noticing given how much moved.
+
+**Owner-visible changes** (his standing rule; all deliberate, all admin-only except 5):
+1. **Filtering `/admin/content` keeps the list on screen** instead of dropping to the
+   skeleton, matching `/admin/people`. Same change puts the search term last in the filter
+   sentence on Content, so with three tokens showing it is a different one that hides
+   behind "+N more".
+2. **A paused Catch-up will chip cinnamon on `/admin/catchups`** rather than grey, matching
+   the reading room. Nothing on screen today: no Catch-up is paused.
+3. **The analytics room's Content, Faces and Rhythms views load faster.** Content and Faces
+   were each running 13 queries for one integer; Rhythms was fetching two user-joined
+   lists and two raw aggregates over `Visit` and rendering none of them.
+4. **Twelve admin pages lost a four-line comment** each; the argument moved to
+   `lib/admin.ts`, which needed it anyway — its banner claimed the layout guard was what
+   protected a new section, which is the belief B-024 disproved.
+5. **A phone photo the browser cannot decode (HEIC, mostly) now works from the profile.**
+   It shrinks in the browser first, as it always has during onboarding; before this it was
+   sent whole and died at Vercel's ~4.5MB body cap with a stuck spinner and no message
+   (B-030). This is the one member-facing change in the session.
+
+**Verification**: `npm run check` ✓ green before every commit and at session end (TS,
+ESLint, protocol, lab registry 43, unit 74 → 77 files). `npm run visual` ✓ 23/23, twice.
+`npm run verify:crawl` ✓ 20/20 with the three new routes.
+Proved rather than asserted, wherever a claim was load-bearing:
+- a thread marked sorted and reopened through the shared hook, and a note saved on Jerry's
+  record and put back, **both restored in the database afterwards**;
+- both upload paths driven against the REAL R2 bucket — 401 signed out, 403 cross-site, a
+  photo through the proxy and a photo through presign-then-finalize arriving
+  byte-identically (an EXIF-orientation-6 300x120 JPEG landing as a 120x300 WebP on both,
+  which is the `.rotate()` proving itself), another member's staging key still refused
+  ("Bad staging key"), and **all four test objects deleted from the bucket afterwards**;
+- `phase6-probe` 16/16 before and after the kit conversion, the same 16;
+- the whole avatar flow driven as Jerry on BOTH surfaces — pick, crop, save, remove — plus
+  a deliberately truncated JPEG reaching `onDecodeError`, which answered "That photo looks
+  corrupted or only partially uploaded", a sentence that comes from `image-downscale` and
+  therefore could not have appeared before this change;
+- `splitThreadWindow` mutation-tested by removing its `.reverse()` and watching the admin
+  thread really read newest-first on screen;
+- the shared dev env parser proved to return the old parser's 22 keys and values exactly;
+- the ported demo-ref guard proved by pointing a `.env.demo`-named file at another host;
+- `/admin/people` really paging 60 → 63 rows through the re-gated `loadMorePeople`.
+
+**Also found in passing, not fixed:**
+- `verify-shot.mjs`'s swallowed-screenshot bug that session 5 flagged is still live, and it
+  bit me: given a path whose parent does not exist it printed `{"status":200,...,"out":...}`
+  for a file it never wrote. One `try {} catch {}`.
+- `scripts/qa/phase3-probe.mjs:127,129` has two assigned-and-unused locals (`u0`, `u2`)
+  and `scripts/dev/merge-cities.ts:22` one (`CANONICAL_PLACE_ID`). Pre-existing; left alone
+  because each sits inside logic I did not otherwise touch.
+
+**A note on commit messages**: two exceeded the 150-word ceiling before I caught it —
+`d16746f` (174) and `0cada95` (158). They are **left over-length deliberately**: a peer's
+commit (`d703d91`) landed between them, so rewording either means rebasing over somebody
+else's work in a checkout with two live sessions. Same call session 3 made, same reason.
+Everything after that was word-counted BEFORE committing, which is the habit to keep.
+
+**Awaiting owner**:
+1. **The public landing still links to no Privacy / Terms / Guidelines** (security audit
+   H12). Unchanged since session 3; it is new UI on the public landing, so it is his.
+2. Session 1's `gate-coverage.test.mjs` widening is still unsighted.
+3. **NEW — the "close it out" checklist for CLAUDE.md.** scripts-e2e-ci-01's gate half is
+   done; its second half is six lines of prose for the Working agreement, and the finding
+   marks the wording as an owner sign-off. Report §4 lists CLAUDE.md wording under his
+   column. The draft is in the finding; nothing blocks on it.
+
+**Peer traffic**: `rv-connect-4f` worked in this tree all session on the landing → signup
+entrance (`landing-hero.tsx`, `signup-client.tsx`, `login-client.tsx`, `mascot-flight.ts`,
+`use-flight-arrival.ts`, new `signup-first-frame.tsx`) and landed `d703d91` and `2a3f0ec`
+mid-session; untouched by me. It broke `npm run check` briefly with a `react-hooks/refs`
+error in its own uncommitted file, fixed it within a minute of being told, and confirmed it
+is not touching `settings/`, `onboarding/` or `profile/`. The icon/lab/brand files still
+sitting uncommitted (`public/images/icons/`, `src/app/icon.svg`, `lab/glass-edges`,
+`lab/hoopoe-marks`, `scripts/dev/apple-edge/`, `docs/spec/apple-edge-light.md`,
+`public/images/brand/app-icon.svg`) belong to **neither** of us — 4f confirms they predate
+its session. They are an earlier session's Apple-edge-lighting favicon work and have now
+been sitting uncommitted for two days. **Somebody should ask the owner whether they land or
+go.** Note `scripts/dev/generate-icons.mjs` is among them and IS tracked, so it has a
+README line now; the untracked `scripts/dev/apple-edge/*.mjs` do not, and the ledger gate
+correctly ignores untracked files, which is the case that decided that design.
+
+**State left**: clean — every file I touched is committed. The `temporary screenshots/`
+folder is pruned of this session's 48 files (125MB → 97MB) and both scratch drivers I wrote
+(`_scratch-p4b.mjs`, `_scratch-avatar.mjs`) are deleted, which is what the new ledger gate
+would have demanded anyway.
+
+**Next session**: **phase 5 — bundle & build**, with the before/after measurement against
+report §1a. Two things are waiting for it specifically:
+- **shell-primitives-09**, deferred out of phase 3 for exactly this session: moving the
+  rich-text renderer and the phone kit out of `utils.ts`. Its payoff is bundle-shaped —
+  utils.ts builds an `Intl.Segmenter`, a 30-entry Set and five RegExp at import time, so
+  every client chunk importing only `cn` evaluates them. Measure before moving.
+- Phase 5 needs owner input first: report §4 #5 (duplicate TS check on deploys), #7 (Vercel
+  Analytics), #6 (lab CSS measurement authorisation).
