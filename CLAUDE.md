@@ -12,8 +12,8 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
 
 - `docs/spec/DESIGN-SYSTEM.md` is the canonical brand and design rulebook. **Read it before any UI
   work.** Live tokens are in `src/app/globals.css`; where the two disagree, globals.css is what ships.
-- `docs/spec/` holds a deep spec per area (avatars, catchups, demo, directory, letters, mascot,
-  media, profile, lab-voice). Read the one you are touching.
+- `docs/spec/` holds a deep spec per area (admin, avatars, catchups, demo, directory, letters,
+  mascot, media, profile, lab-voice). Read the one you are touching.
 - **`docs/TRAPS.md` is what this stack does to you** -- Postgres, Prisma, Next and Vercel facts that
   have each cost a session, every one proved before it was written down. Read it before touching the
   database, a migration, a scheduled job, or anything that looks like a race. (The tooling
@@ -46,7 +46,7 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
 - **Git commits**: never include `Co-Authored-By`, model names, or any AI attribution. Plain
   conventional commit messages.
 - **150 words is the ceiling for a commit message**, subject line included, and it is absolute, not a
-  target to drift past. Most commits want far less: a subject line and two or three sentences saying
+  target to drift past. Most commits want less: a subject line and two or three sentences saying
   what changed and why. The body is for the reasoning a future `git blame` cannot recover — not a
   retelling of the diff, not a bulleted inventory of every touched file, not the session's narration.
   Going over needs a reason you can state out loud (a migration whose ordering must be recorded, a
