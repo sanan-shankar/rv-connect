@@ -11,6 +11,7 @@ import { YourCatchupsCard, type IndexCardView } from "@/components/catchups/inde
 import { FreshOffThePress, type FreshRoundItem } from "@/components/catchups/index/fresh-off-the-press";
 import { GroupFirstGuidance } from "@/components/catchups/index/group-first-guidance";
 import { FiledAway, type FiledRow } from "@/components/catchups/index/filed-away";
+import { TourAnchorSlot } from "@/components/tour/tour-anchor-slot";
 import { catchupShelf, type CatchupShelf } from "@/lib/catchup-shelf";
 import { advanceDueCatchups, describeEditionStatus, isMissingCatchupTable } from "@/lib/catchups";
 import type { CatchupPersonRef, CatchupStatus, EditionStatus } from "@/lib/catchups-types";
@@ -373,9 +374,23 @@ export default async function CatchupsPage() {
         // cancel the offset; both are gone.)
         <div className={`${RAIL_GRID} gap-y-[var(--space-m)]`}>
           <div className="min-w-0 space-y-3.5">
-            {data.cards.map((card) => (
-              <YourCatchupsCard key={card.groupId} card={card} />
-            ))}
+            {/* The tour's Catch-ups stop spotlights the first card. It used
+                to name an anchor `catchups-explainer` that no element has
+                registered since the Catch-ups rebuild, so `awaitSpotlight`
+                timed out and every demo visitor watched a 2.5s stall on stop
+                4 before the hoopoe gave up and shrugged (audit
+                landing-mascot-avatars-04). The first card is what the stop's
+                copy is describing, and the demo's seeded visitor is a member
+                of the seeded Catch-up, so there is always one here for them. */}
+            {data.cards.map((card, i) =>
+              i === 0 ? (
+                <TourAnchorSlot key={card.groupId} anchorKey="catchups-explainer">
+                  <YourCatchupsCard card={card} />
+                </TourAnchorSlot>
+              ) : (
+                <YourCatchupsCard key={card.groupId} card={card} />
+              )
+            )}
             {/* Renders nothing at all when both are empty, which is the state
                 almost every member is in (owner: "hidden entirely when the
                 member has none, no dead buttons"). */}
