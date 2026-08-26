@@ -215,22 +215,21 @@ export async function createPost(formData: FormData) {
    * path that silently produces unreachable content should say no instead.
    * Verified live before writing this: zero rows in Post carry a groupId.
    *
-   * The read side (`loadPosts({ groupId })`, membership-gated) is left alone:
-   * it returns nothing today and harms nothing, and tearing the whole
-   * group-feed plumbing out is a bigger, separate change.
+   * That separate change has since happened: the group-feed plumbing is gone
+   * from the read paths too, so `groupId: null` is now a plain filter rather
+   * than one arm of a branch. This refusal stays regardless -- it guards the
+   * directly-callable action, which no longer has a UI that could reach it.
    */
   if (parsed.data.groupId) {
     return { error: "Group posts are not available." };
   }
-  const groupId = null;
 
   // City-scope audience control: only allowed to a city the poster themself has
   // listed (an own UserPlace), matched case-insensitively; anything else is
   // silently ignored rather than trusted, so a tampered form field can't scope
-  // a post to an arbitrary city. Group posts never get a cityScope, same as
-  // targetBatches above.
+  // a post to an arbitrary city.
   let cityScope: string | null = null;
-  if (!groupId && parsed.data.cityScope) {
+  if (parsed.data.cityScope) {
     const ownPlace = await prisma.userPlace.findFirst({
       where: {
         userId: session.user.id,
@@ -317,8 +316,8 @@ export async function createPost(formData: FormData) {
       // `images` is rebuilt from ownedUploadUrls above: what lands in the
       // column is a list this app can read back, normalised and de-duplicated,
       // never the client's own text (audit M43).
-      targetBatches: groupId ? null : storedBatchTargets(parsed.data.targetBatches),
-      groupId,
+      targetBatches: storedBatchTargets(parsed.data.targetBatches),
+      groupId: null,
       images: imagesJson,
       cityScope,
       status: isDraft ? "draft" : "published",
@@ -350,7 +349,7 @@ export async function createPost(formData: FormData) {
 
   // A draft is never posted anywhere public, so there is nothing to revalidate
   // except the letters page (its own "Your drafts" strip).
-  if (!isDraft) revalidatePath(groupId ? `/groups/${groupId}` : "/feed");
+  if (!isDraft) revalidatePath("/feed");
   if (parsed.data.kind === "letter") revalidatePath("/letters");
   return { success: true, postId: post.id, isDraft };
 }
@@ -372,7 +371,7 @@ export async function publishDraft(postId: string) {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { authorId: true, status: true, kind: true, groupId: true },
+    select: { authorId: true, status: true, kind: true },
   });
   if (!post) return { error: "Draft not found" };
   if (post.authorId !== session.user.id) return { error: "Not authorized" };
@@ -385,7 +384,7 @@ export async function publishDraft(postId: string) {
     data: { status: "published", createdAt: new Date() },
   });
 
-  revalidatePath(post.groupId ? `/groups/${post.groupId}` : "/feed");
+  revalidatePath("/feed");
   revalidatePath("/letters");
   revalidatePath(`/letters/${postId}`);
   return { success: true };
@@ -475,26 +474,20 @@ export async function deletePost(postId: string) {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { authorId: true, images: true, groupId: true, kind: true },
+    select: { authorId: true, images: true, kind: true },
   });
 
   if (!post) return { error: "Post not found" };
 
-  let authorized =
+  // The author or an admin. There used to be a third way in -- a group admin
+  // removing a post in their group -- which is why this was a `let`.
+  const authorized =
     post.authorId === session.user.id || session.user.role === "admin";
-  // Group admins may remove posts in their group.
-  if (!authorized && post.groupId) {
-    const membership = await prisma.groupMember.findUnique({
-      where: { groupId_userId: { groupId: post.groupId, userId: session.user.id } },
-      select: { role: true },
-    });
-    authorized = membership?.role === "admin";
-  }
   if (!authorized) return { error: "Not authorized" };
 
   // Delete image files (and, inside, the bell rows that pointed at it).
   await deletePostWithImages(postId, post.images, post.kind);
-  revalidatePath(post.groupId ? `/groups/${post.groupId}` : "/feed");
+  revalidatePath("/feed");
   return { success: true };
 }
 
@@ -514,7 +507,7 @@ export async function adminRemovePost(postId: string, note?: string) {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { authorId: true, groupId: true, kind: true },
+    select: { authorId: true, kind: true },
   });
   if (!post) return { error: "Post not found" };
 
@@ -529,7 +522,7 @@ export async function adminRemovePost(postId: string, note?: string) {
   const trimmedNote = note?.trim();
   if (trimmedNote) await notifyAdminNote(post.authorId, trimmedNote);
 
-  revalidatePath(post.groupId ? `/groups/${post.groupId}` : "/feed");
+  revalidatePath("/feed");
   if (post.kind === "letter") revalidatePath("/letters");
   revalidatePath("/admin");
   return { success: true };
@@ -547,7 +540,7 @@ export async function editPost(postId: string, formData: FormData) {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { authorId: true, kind: true, groupId: true, status: true, images: true },
+    select: { authorId: true, kind: true, status: true, images: true },
   });
 
   if (!post) return { error: "Post not found" };
@@ -632,7 +625,7 @@ export async function editPost(postId: string, formData: FormData) {
      audience never changes here -- readers have already seen it. */
   let cityScopeUpdate: { cityScope: string | null } | undefined;
   const cityScopeRaw = formData.get("cityScope");
-  if (cityScopeRaw !== null && isLetter && post.status === "draft" && !post.groupId) {
+  if (cityScopeRaw !== null && isLetter && post.status === "draft") {
     const wanted = String(cityScopeRaw).trim();
     if (!wanted) {
       cityScopeUpdate = { cityScope: null };
@@ -719,7 +712,7 @@ export async function editPost(postId: string, formData: FormData) {
   // work the nightly sweep will redo.
   if (removedImages.length > 0) await drainPendingImagePurges(removedImages);
 
-  revalidatePath(post.groupId ? `/groups/${post.groupId}` : "/feed");
+  revalidatePath("/feed");
   if (isLetter) {
     revalidatePath("/letters");
     revalidatePath(`/letters/${postId}`);
@@ -1098,7 +1091,6 @@ const PAGE_SIZE = 20;
 
 export async function loadPosts(opts?: {
   cursor?: string | null; // opaque: a post id (keyset) or "offset:N"
-  groupId?: string; // set => load this group's feed; unset => main feed
   authorId?: string; // set => only this author's posts (profile Posts tab)
   kind?: "post" | "letter";
   search?: string;
@@ -1111,17 +1103,7 @@ export async function loadPosts(opts?: {
 
   const sortBy = opts?.sortBy ?? "recent";
   const timeFilter = opts?.timeFilter ?? "all";
-  const groupId = opts?.groupId;
   const timeDate = getTimeFilterDate(timeFilter);
-
-  // Group feeds are private: only members may read them.
-  if (groupId) {
-    const membership = await prisma.groupMember.findUnique({
-      where: { groupId_userId: { groupId, userId: session.user.id } },
-      select: { id: true },
-    });
-    if (!membership) return empty;
-  }
 
   // City-scoped posts: cityScope IS NULL, OR the viewer has a matching
   // UserPlace, OR the viewer is an admin (sees everything). Admins skip the
@@ -1172,18 +1154,16 @@ export async function loadPosts(opts?: {
     ...(timeDate ? { createdAt: { gte: timeDate } } : {}),
   };
 
-  const where = groupId
-    ? { ...baseWhere, groupId }
-    : {
-        ...baseWhere,
-        groupId: null,
-        // ...or you wrote it: the author is not part of their own audience,
-        // they are its source, so a post aimed at another batch used to
-        // disappear from the feed of the person who wrote it (audit M30).
-        // Mirrors the same exemption in decidePostVisibility, which is what
-        // decides the single-post case. Both arms live in audienceWhere.
-        OR: audience.OR,
-      };
+  const where = {
+    ...baseWhere,
+    groupId: null,
+    // ...or you wrote it: the author is not part of their own audience,
+    // they are its source, so a post aimed at another batch used to
+    // disappear from the feed of the person who wrote it (audit M30).
+    // Mirrors the same exemption in decidePostVisibility, which is what
+    // decides the single-post case. Both arms live in audienceWhere.
+    OR: audience.OR,
+  };
 
   const include = {
     author: {
@@ -1274,7 +1254,6 @@ export async function loadPosts(opts?: {
       title: p.title,
       content: p.content,
       images: p.images,
-      groupId: p.groupId,
       cityScope: p.cityScope,
       createdAt: p.createdAt.toISOString(),
       author: p.author,
@@ -1318,12 +1297,6 @@ export async function loadSavedPosts() {
   if (!session?.user?.id) return { posts: [], capped: false };
   const userId = session.user.id;
 
-  // Only surface group posts the viewer can still legitimately read.
-  const memberships = await prisma.groupMember.findMany({
-    where: { userId },
-    select: { groupId: true },
-  });
-  const groupIds = memberships.map((m) => m.groupId);
   const isAdmin = session.user.role === "admin";
   const viewerCities = isAdmin ? [] : await getViewerCities(userId);
 
@@ -1339,7 +1312,7 @@ export async function loadSavedPosts() {
         // And the same standing rule the feed applies (audit Low 78): a post
         // saved before its author was blocked drops out of Saved too.
         ...AUTHOR_IN_GOOD_STANDING,
-        OR: [{ groupId: null }, { groupId: { in: groupIds } }],
+        groupId: null,
         // Same cityScope visibility rule as the main feed query: a bookmarked
         // post scoped to a city the viewer no longer lists should drop out of
         // Saved too, not just the feed.
@@ -1392,7 +1365,6 @@ export async function loadSavedPosts() {
       title: p.title,
       content: p.content,
       images: p.images,
-      groupId: p.groupId,
       cityScope: p.cityScope,
       createdAt: p.createdAt.toISOString(),
       author: p.author,

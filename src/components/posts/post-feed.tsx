@@ -23,19 +23,12 @@ import { callAction } from "@/lib/call-action";
 type SortBy = "recent" | "liked" | "commented";
 type TimeFilter = "all" | "today" | "week" | "month" | "year";
 
-/** Which slice of posts to render. `author` is reserved for a later batch (needs loadPosts support). */
-export type FeedScope = "all" | "author" | "group" | "letters";
-
 export function PostFeed({
-  groupId,
-  scope = "all",
   showControls = true,
   reloadKey = 0,
   initialSearch,
   lastSeenAt,
 }: {
-  groupId?: string;
-  scope?: FeedScope;
   showControls?: boolean;
   reloadKey?: number;
   /** Seeds the search query (e.g. from the header search pill's `?q=`) even
@@ -105,16 +98,14 @@ export function PostFeed({
     (next: string | null) =>
       loadPosts({
         cursor: next,
-        groupId,
-        kind: scope === "letters" ? "letter" : undefined,
         search: search || undefined,
         sortBy,
         timeFilter,
       }),
-    [groupId, scope, search, sortBy, timeFilter]
+    [search, sortBy, timeFilter]
   );
 
-  // First page whenever filters, group, or an external reload trigger change.
+  // First page whenever filters or an external reload trigger change.
   useEffect(() => {
     let cancelled = false;
     listGeneration.current += 1;
@@ -155,7 +146,7 @@ export function PostFeed({
     return () => {
       cancelled = true;
     };
-  }, [fetchPosts, reloadKey, groupId, scope, sortBy, search, timeFilter]);
+  }, [fetchPosts, reloadKey, sortBy, search, timeFilter]);
 
   /* The post a notification sent them to.
    *
