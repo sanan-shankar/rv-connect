@@ -35,7 +35,10 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
       (lib-tests-02 had already landed as `9cee0d5`). Two pieces deliberately deferred with
       reasons: shell-primitives-09's utils.ts module split belongs to phase 5's measurement,
       and lib-tests-01's optional `section()` migration is not safe as a sweep. See session 4.
-- [ ] Phase 4 — dedupe at component/route level (may be two sessions)
+- [~] Phase 4 — dedupe at component/route level — **part 1 done 2026-08-26**, 17 commits,
+      10 of 21 rows. One row (catchups-12) was already executed and is not redone; one
+      (the shared pager) is deliberately not done, with reasons, and its clean half
+      (appendUnseen) landed. Eleven rows remain; see session 5 for the list in order.
 - [ ] Phase 5 — bundle & build (+ before/after measurements vs report §1a)
 - [ ] Phase 6 — schema & architecture (owner-gated throughout)
 - [ ] Close-out: re-measure §1b's table, write the deltas into report §1b, flip this
@@ -516,6 +519,117 @@ a peer added a room mid-session.
 **Next session**: phase 4 (dedupe at component/route level, may be two sessions). Nothing in
 phase 3 blocks it. Read the two deferrals above first: shell-primitives-09 belongs to phase 5,
 not phase 4.
+
+### 2026-08-26 — session 5 (phase 4, part 1)
+
+**10 of phase 4's 21 rows executed, 17 commits.** Every item pre-flighted at HEAD per rule 4.
+This is part 1: the plan allowed two sessions for phase 4 and it needs them.
+
+**Done** (in order):
+auth flight machinery → `0dd055a` · AuthPhotoPanel → `76d999e` · PasswordField adopted →
+`da091ca` · bug lead filed → `529c5fd` · Keeper gates 14→2 → `5fba13b` · EDITION_COLUMNS +
+aggregate destructure → `146ba8a` · published-Round loader → `47433ba` · title helpers →
+`8c600a0` · NotAvailableCard → `57e06aa` · QuestionRow → `2d09e6e` · photo-intake prep →
+`04993fb` · MomentStage → `7a55fa2` · LetterDeskSkeleton → `e12a505` · viewer byline →
+`1947c59` · useWideViewport → `f48062f` · appendUnseen adopted → `4ef5a6e` ·
+useHeartToggle/useBookmarkToggle → `3f004d3`.
+
+**Where the audit was wrong, or thinner than the tree** (rule 4 outcomes):
+- **catchups-12 is already done** — all four pieces (`keeperName`, `initialPeople`,
+  ArchiveShelf's `groupName`, the MemberStrip comment) are gone at HEAD, the `createdBy`
+  include with them, and :177's comment already reads as the finding prescribes. Not redone.
+- **duplication-19 names four useWideViewport sites; only two are that hook.** auth-panel's
+  matchMedia moved into `useFlightArrival` earlier this session, where it is a deliberate
+  ONE-SHOT decision at mount with no listener; landing-hero's is a bare `.matches` read inside
+  a click handler. Folding either in would change behaviour. Two sites converted.
+- **catchups-14's two selects are not identical** (the verification already said so): the
+  first also nests the Catch-up and its group. `EDITION_COLUMNS` is the nine scalars only.
+- **feed-posts-06's "fourth copy" is two**: `entry-love-button` AND `photo-love-button`. All
+  five hearts now share the toggle, which is what let heart.test.mjs's five-file pin collapse
+  into "each asks for the shared hook" + one direct check of the hook.
+- **The stale `FeedScope` comment feed-posts-05 wants deleted is already gone**, taken with
+  phase 2's Groups plumbing.
+- **auth-edge-03's PasswordField needed one more prop than listed**: `focusHint` must accept
+  `null`. /login shows no hint (it asks for a password that already EXISTS), and the
+  component's default is "8+ characters", so `undefined` would have added a hint to /login.
+
+**Deliberately NOT done, with reasons:**
+1. **The shared pager (feed-posts-05 = duplication-12).** The three lists are not variants of
+   one thing: the Collection pages by OFFSET and carries a `total`, the feed and the profile
+   tab page by CURSOR; the feed and the Collection re-arm the skeleton on a filter change and
+   the profile tab deliberately does not (it remounts by key, and says so); the feed and the
+   profile tab carry the C-180 ref-guard and the Collection does not. A hook covering them
+   needs four options, which is what both findings say not to invent — duplication-12's own
+   falsifier and feed-posts-05's brief-4a.4 escape both point here. What WAS shared is the
+   part that is genuinely one rule: `appendUnseen`, now used by all four lists and pinned.
+2. Nothing else was skipped.
+
+**Test pins that went red, and why** (each rode its own commit): B-061 (refuseIfFrozen per
+body) — five Keeper actions reach the freeze through `loadKeeperEdition` now, so it takes
+either spelling AND fails a caller that delegates without a `pausedHint`, which would look
+gated and not be; C-029's orderBy follows the query into the shared Round loader; C-180's
+dedupe takes either spelling; heart.test's five-heart pin as above. **Every one of them was
+mutation-tested** — gut the helper, or the caller, and the suite goes red. Do the same for any
+pin you widen: three of these would have passed on a helper that had quietly lost its guard.
+
+**Owner-visible changes** (his standing rule; all deliberate):
+1. The **answering screen's "not available" card** takes the home's corrected geometry:
+   padding 48px → `var(--space-l)` (~26px), measure 768px → 672px. It missed the owner's own
+   2026-07-25 correction because it was a second copy.
+2. The **answering console's question labels** take the collecting console's wording: "asked
+   by you" → "You" / "You (anonymous)", "asked by {name}" → the name, "asked anonymously" →
+   "Someone in the group". The collecting voice won because it is the only one that tells you
+   whether the question you asked is showing your name.
+3. **Latent, nothing on screen today**: the Catch-up home now prints a song whenever there is
+   a NAME for one, matching the permalink, where it previously needed a URL. No live entry has
+   a song at all (checked: 0 of 133), so this changes nothing until one does.
+
+**Verification**: `npm run check` ✓ green before every commit. `npm run visual` ✓ 23/23, run
+five times; one red `/support` mobile in the middle of the session was a flake and passed on
+re-run — read the diff before ever rebaselining. `npm run verify:crawl` ✓ 17/17.
+Proved rather than asserted, wherever a claim was load-bearing:
+`hoopoe-landing-check` all four arrivals pixel-exact after the flight extraction (dx/dy 0.00,
+two overlap frames, no correction jump); the AuthPanel mobile fly-in sampled frame by frame
+(43 veiled frames, no flash, first visible frame 139px above the viewport, 407px descent);
+all 16 catchups actions resolved through the new helpers and diffed against HEAD for identical
+refusal sentences; 44 photo-row and trust comparisons, byte-identical, refusal messages
+included; thumbnail bytes identical on both intake paths, and an EXIF-rotated image proving
+the `alreadyUpright` flag is really the `.rotate()`; the Catch-up home re-shot 8 pixels off
+1,296,000 and the Round permalink 0; the empty-search moment sampled across 3s (30 distinct
+poses, so the autoplay and solo guard both survive); and a REAL heart driven on the owner's
+own post — single tap, then a double tap in one tick that flipped once — then restored and
+re-checked in the database (11 likes, his like present).
+
+**A gotcha worth knowing**: deleting a tracked file makes `npm run check` CRASH (not fail) in
+the protocol audit until the deletion is staged — it reads `git ls-files`, not the working
+tree. The gate reports "tool crashed" rather than "clean", which is C-190/C-195 working.
+
+**Also found in passing, not fixed**: `verify-shot.mjs` swallows a failed screenshot in a bare
+`try {} catch {}` and still prints `out` as though it wrote one — pass it a path whose parent
+does not exist and it reports success on nothing. Same class as the crawler session 2 fixed.
+
+**Awaiting owner** (unchanged from session 4):
+1. **The public landing still links to no Privacy / Terms / Guidelines** (security audit H12).
+2. Session 1's `gate-coverage.test.mjs` widening is still unsighted.
+
+**Peer traffic**: `rv-connect-da` held brand/logo work uncommitted in this tree all session
+(icons, `lab/glass-edges`, `lab/hoopoe-marks`, `lab/icon-*`, `generate-icons.mjs`,
+`public/images/brand/`, and a new `docs/spec/apple-edge-light.md`); untouched. It asked that
+`peaks-mark.tsx`'s `PEAK_PLANES`/`ridge` exports not be moved without a ping, because two
+importers are uncommitted on disk and a grep will not see them — nothing here moved them.
+`rv-connect-c6` finished phase 3 and left.
+
+**State left**: clean — every file I touched is committed.
+
+**Next session**: phase 4 part 2. The eleven rows left, in the report's order: the report
+preamble + bell variant + ui/skeleton→warm row; **the admin programme** (the biggest single
+row in the phase — act-hook, filter bar, status maps, MAIL_TONE, audit skeleton, hygiene,
+shared `loadThreadWindow`, and the ~24 unread queries per analytics view); the
+`transition-[colors,transform]` sweep across 14 files (a real hover bug, not a cleanup — those
+files animate a property that does not exist); upload guard + toDisplayWebp + cron-secret
+helper; the places transaction helper; the probe/dev-script kits; places/search escapeLike;
+email-queue + instrumentation + prisma.config; the avatar-upload hook; the scripts ledger gate
++ README backfill; and the optional tail. Read the ⚠ rows' `work/verify/` cluster first.
 
 Template:
 ```
