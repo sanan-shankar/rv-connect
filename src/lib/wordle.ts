@@ -13,6 +13,8 @@
  * someone eight steps deep.
  */
 
+import { fnv1a } from "./fnv1a.ts";
+
 const FALLBACK_WORDS = ["crane", "slate", "perch", "robin", "stork"] as const;
 
 /**
@@ -31,16 +33,6 @@ const NYT_TIMEOUT_MS = 3000;
 function istDateKey(date: Date = new Date()): string {
   // en-CA renders YYYY-MM-DD, which is exactly the NYT URL format.
   return date.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-}
-
-/** FNV-1a over the date key, for the offline fallback pick. */
-function hash(input: string): number {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < input.length; i++) {
-    h ^= input.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return h >>> 0;
 }
 
 export async function getWordleAnswer(): Promise<string> {
@@ -64,5 +56,5 @@ export async function getWordleAnswer(): Promise<string> {
   } catch {
     /* fall through to the local pick */
   }
-  return FALLBACK_WORDS[hash(key) % FALLBACK_WORDS.length];
+  return FALLBACK_WORDS[fnv1a(key) % FALLBACK_WORDS.length];
 }
