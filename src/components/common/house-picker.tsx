@@ -13,6 +13,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useWideViewport } from "@/components/common/use-wide-viewport";
 import { MetaDots } from "@/components/common/meta-dots";
 import { HOUSES, normalizeHouse } from "@/lib/houses";
 import { HOUSE_TINTS_HOVER, HOUSE_TINTS_PANEL } from "@/components/profile/houses-chain";
@@ -72,7 +73,7 @@ export function HousePicker({
 }) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const [otherText, setOtherText] = useState("");
-  const [wide, setWide] = useState(false);
+  const wide = useWideViewport();
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   const open = controlledOpen ?? uncontrolledOpen;
@@ -80,19 +81,6 @@ export function HousePicker({
     if (controlledOpen === undefined) setUncontrolledOpen(next);
     onOpenChange?.(next);
   }
-
-  // Side placement (desktop) is decided from the viewport rather than left to
-  // collision flipping: at 390px a "right" panel has nowhere to flip to that
-  // isn't also off-screen. Below the breakpoint we switch shells entirely,
-  // to a bottom sheet, rather than letting a side popover degrade into one
-  // that opens below the trigger and covers the rows under it.
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const sync = () => setWide(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
 
   // Makes the auto-advance jump to the next year VISIBLE: the eye follows the
   // scroll rather than the panel silently reappearing somewhere else. On a

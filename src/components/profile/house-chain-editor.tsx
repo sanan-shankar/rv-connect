@@ -31,7 +31,7 @@
  *  only new thing is that the answer is a pill in a chain.
  * ------------------------------------------------------------------ */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { HouseTrail, HOUSE_INK } from "@/components/profile/houses-chain";
 import { HouseOptions } from "@/components/common/house-picker";
 import {
@@ -44,21 +44,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { academicSpanLabel, parseHouseSpans } from "@/lib/house-spans";
 import { HOUSES, normalizeHouse, type HouseYearEntry } from "@/lib/houses";
 import { cn } from "@/lib/utils";
-
-/* Same test, and the same reasoning, as the shipped HousePicker: the shell is
-   chosen from the viewport rather than left to collision flipping, because at
-   390px a side panel has nowhere to flip to that is not also off-screen. */
-function useWideViewport(): boolean {
-  const [wide, setWide] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const sync = () => setWide(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-  return wide;
-}
+import { useWideViewport } from "@/components/common/use-wide-viewport";
 
 /**
  * Which pill the panel is answering.
