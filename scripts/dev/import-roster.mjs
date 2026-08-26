@@ -2,13 +2,21 @@
  * Consolidate the two office spreadsheets into the RosterEntry table, the
  * one clean roster the trust model matches signups against (Phase 3).
  *
- * Sources (gitignored, in "sanan's stuff/rough databases/"):
- *   - Centenary Alum meet registrations 2026-06-18.xlsx, sheet "Registrations"
- *     (Name / Email / Year of Passing)
- *   - rishivalley.xls, sheets Master + Chennai + TN
- *     (Batch / "Name & initials" / Email; the initials after the comma are
- *     stripped, and Chennai/TN are filtered copies of Master that the dedupe
- *     collapses)
+ * Source (gitignored): "sanan's stuff/rough databases/roster.csv".
+ *
+ * That CSV is the two office spreadsheets flattened into one file on
+ * 2026-08-26, every cell of all four person-sheets carried across and checked
+ * back (44,646 cells, zero differences), with a `source_sheet` column saying
+ * which sheet each row came from:
+ *   - centenary-2026/Registrations  (Name / Email / Year of Passing)
+ *   - rishivalley/Master, /Chennai, /TN  (Batch / "Name & initials" / Email;
+ *     the initials after the comma are stripped, and Chennai/TN are filtered
+ *     copies of Master that the dedupe collapses)
+ *
+ * The workbooks themselves are gone, and with them the `xlsx` dependency: the
+ * owner has no more spreadsheets coming, and that package has been frozen on
+ * npm since 2022 with two advisories only fixable from the vendor's own CDN,
+ * where neither Renovate nor the audit gate could ever see them.
  *
  * Deliberately imports NOTHING beyond name/email/year -- no phones, no
  * addresses, no admission numbers. A roster row is a person who never signed
@@ -30,10 +38,6 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import pg from "pg";
-import { createRequire } from "node:module";
-// xlsx ships CJS-first; namespace-importing it under ESM yields a module
-// object whose functions sit one level down. require() gets the real thing.
-const XLSX = createRequire(import.meta.url)("xlsx");
 import {
   normalizeRosterName,
   stripRosterInitials,
@@ -57,13 +61,44 @@ for (const line of readFileSync(resolve(repoRoot, ".env"), "utf8").split("\n")) 
 }
 
 const DIR = "sanan's stuff/rough databases";
-const CENTENARY = `${DIR}/Centenary Alum meet registrations 2026-06-18.xlsx`;
-const MASTER = `${DIR}/rishivalley.xls`;
-for (const f of [CENTENARY, MASTER]) {
-  if (!existsSync(f)) {
-    console.error(`missing: ${f}`);
-    process.exit(1);
+const ROSTER_CSV = `${DIR}/roster.csv`;
+if (!existsSync(ROSTER_CSV)) {
+  console.error(`missing: ${ROSTER_CSV}`);
+  process.exit(1);
+}
+
+/* A quoted-field CSV parser, ~20 lines, rather than a dependency: this file's
+   whole point now is that reading the roster needs nothing from npm. Handles
+   the two things that actually occur in these sheets -- commas inside
+   addresses and doubled quotes inside names. */
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c !== '"') field += c;
+      else if (text[i + 1] === '"') { field += '"'; i++; }
+      else quoted = false;
+    } else if (c === '"') quoted = true;
+    else if (c === ",") { row.push(field); field = ""; }
+    else if (c === "\n") { row.push(field); rows.push(row); row = []; field = ""; }
+    else if (c !== "\r") field += c;
   }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+/* An empty CSV cell means absent, which is what the workbooks expressed as
+   null. Everything downstream was written against null. */
+const cell = (v) => (typeof v === "string" && v.trim() === "" ? null : v);
+
+function readRoster() {
+  const parsed = parseCsv(readFileSync(resolve(repoRoot, ROSTER_CSV), "utf8"));
+  const header = parsed[0];
+  return parsed.slice(1).map((r) => Object.fromEntries(header.map((h, i) => [h, cell(r[i])])));
 }
 
 /** Clean one raw row into an entry, or null if it has no usable name. */
@@ -73,8 +108,14 @@ function toEntry(rawName, rawEmail, rawYear, source) {
   const normalizedName = normalizeRosterName(fullName);
   if (!normalizedName) return null;
 
+  /* `!email` as well as the pattern, because an empty string is falsy and would
+     otherwise slip past a truthiness guard and out of this function as "".
+     The dedupe key is `e.email ?? name|year`, and "" is not nullish -- every
+     person without an email would collapse onto the one key "". The workbook
+     reader never produced "" (xlsx gave null), so this only ever mattered once
+     the CSV reader did, which is exactly when it was caught. */
   let email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : null;
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) email = null;
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) email = null;
 
   let batchYear = null;
   const y = Number(rawYear);
@@ -85,37 +126,35 @@ function toEntry(rawName, rawEmail, rawYear, source) {
   return { fullName, normalizedName, email, batchYear, source };
 }
 
+/* Which columns carry the name and the year differs by origin sheet, and the
+   `source` recorded against a RosterEntry row is unchanged from the workbook
+   era so the table's existing rows and any new import agree. */
+const SHEETS = {
+  "centenary-2026/Registrations": { name: "Name", year: "Year of Passing", source: "centenary-2026" },
+  "rishivalley/Master": { name: "Name & initials", year: "Batch", source: "master" },
+  "rishivalley/Chennai": { name: "Name & initials", year: "Batch", source: "master" },
+  "rishivalley/TN": { name: "Name & initials", year: "Batch", source: "master" },
+};
+
 const entries = [];
-
-{
-  const wb = XLSX.readFile(CENTENARY);
-  const rows = XLSX.utils.sheet_to_json(wb.Sheets["Registrations"], { defval: null });
-  let kept = 0;
-  for (const r of rows) {
-    const e = toEntry(r["Name"], r["Email"], r["Year of Passing"], "centenary-2026");
-    if (e) {
-      entries.push(e);
-      kept += 1;
-    }
+const tally = new Map();
+for (const r of readRoster()) {
+  const sheet = r["source_sheet"];
+  const spec = SHEETS[sheet];
+  if (!spec) {
+    console.error(`unknown source_sheet in roster.csv: ${JSON.stringify(sheet)}`);
+    process.exit(1);
   }
-  console.log(`centenary-2026: ${rows.length} rows read, ${kept} usable`);
-}
-
-{
-  const wb = XLSX.readFile(MASTER);
-  for (const sheet of ["Master", "Chennai", "TN"]) {
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheet], { defval: null });
-    let kept = 0;
-    for (const r of rows) {
-      const e = toEntry(r["Name & initials"], r["Email"], r["Batch"], "master");
-      if (e) {
-        entries.push(e);
-        kept += 1;
-      }
-    }
-    console.log(`master/${sheet}: ${rows.length} rows read, ${kept} usable`);
+  const t = tally.get(sheet) ?? { read: 0, kept: 0 };
+  t.read += 1;
+  const e = toEntry(r[spec.name], r["Email"], r[spec.year], spec.source);
+  if (e) {
+    entries.push(e);
+    t.kept += 1;
   }
+  tally.set(sheet, t);
 }
+for (const [sheet, t] of tally) console.log(`${sheet}: ${t.read} rows read, ${t.kept} usable`);
 
 /* Dedupe. An email identifies a person outright; without one, the same
    name+year from two sheets is one person. A row that brings an email KEEPS
