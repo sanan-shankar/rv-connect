@@ -78,10 +78,13 @@ test("every lookup by email goes through the canonical form", () => {
      stored value IS the canonical one. Listed rather than detected, with the
      reason, so each is a reviewed decision instead of a silent pass. */
   const FROM_THE_DATABASE = {
-    "src/components/auth/email-actions.ts": [
-      // readToken returns row.user.email, straight off the User row, and the
-      // claim repeats the peek's staleness check against it.
-      "peek.email",
+    "src/lib/auth-tokens.ts": [
+      // claimToken's `sentToEmail`. Its docblock requires the caller to pass
+      // the address readToken read off the User row -- never a submitted one
+      // -- because the claim's job is to repeat the peek's staleness check
+      // against exactly what the peek saw. Moved here from email-actions.ts
+      // on 2026-08-26 when the two inline claims became this one helper.
+      "sentToEmail",
     ],
     "src/lib/roster.ts": ["user.email.toLowerCase()"],
   };
