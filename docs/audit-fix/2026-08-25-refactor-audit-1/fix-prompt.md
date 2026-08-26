@@ -26,8 +26,13 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
       the `docs/audit-fix/` reorganisation). ~6.5 MB out of the tree, 8 packages out of the
       graph, 2 in. One row part-refused on measurement (prisma → devDependencies) and one
       row's CLAUDE.md half is blocked on the owner's uncommitted edit; see session 2.
-- [ ] Phase 2 — placeholders, flags, Groups residue
-- [ ] Phase 3 — dedupe at lib level
+- [x] Phase 2 — placeholders, flags, Groups residue — **done 2026-08-26**, 11 commits.
+      All 8 plan rows executed, plus the two owner-decided items (#11 LogoFact delete, #2
+      tour lazy-load). The owner answered five §4 decisions at session start; see session 3.
+      One row (#10 Profession) had already been executed by the phase-1a session as a
+      one-off while the owner's answer was live — not redone.
+- [ ] Phase 3 — dedupe at lib level — **one row already landed**: lib-tests-02
+      (gate-coverage adopts balancedBody) → `9cee0d5`. Do not redo it.
 - [ ] Phase 4 — dedupe at component/route level (may be two sessions)
 - [ ] Phase 5 — bundle & build (+ before/after measurements vs report §1a)
 - [ ] Phase 6 — schema & architecture (owner-gated throughout)
@@ -280,6 +285,94 @@ report §4 #1 (showcase fate + where the public Privacy/Terms links live now), #
 members), #16/#18 (/donate redirect vs delete), #10 (Profession filter), #11 (LogoFact), #3
 (About page). Note phase 1a deliberately deferred `feed-posts-13`'s `scope`/`groupId`/
 `composerScope`/`FeedScope` half into phase 2's Groups-residue item.
+
+### 2026-08-26 — session 3 (phase 2)
+
+**How this session started, because it matters for the next one**: the board said phase 2,
+but the tree had uncommitted edits hiding the Profession facet, touched three minutes
+earlier, with three peer sessions live in this checkout. I read that as phase 2 already
+being worked and started phase 3 instead. It was not: `rv-connect-ad` (the phase-1a session,
+still alive) had executed the §4 #10 row as a one-off because the owner answered it
+mid-session. **Ask the peers before inferring from the tree** — `ListAgents` + one
+`SendMessage` settled in a minute what the tree could not. One phase-3 commit had already
+landed by then and was kept (below).
+
+**Owner decisions taken at session start** (§4): showcase **decoupled now**, ship-vs-retire
+still his before launch · tour stays **demo-only and lazy-loaded**, not armed for members ·
+About page **keeps the joke** as-is · LogoFact **deleted** · /donate **redirects**.
+
+**Done** (every item pre-flighted at HEAD per rule 4):
+`insensitive` unconditional + 2 copies → `92b28c9` · /donate → proxy redirect → `9714b09` ·
+LogoFact deleted, Brand absorbs its aria-label + nowrap → `76624d1` · landing showcase
+decoupled to showcase.tsx → `a808af8` · tour UI lazy-loaded → `d698bf2` · tour
+catchups-explainer anchor restored → `0419828` · dead group_invite bell glyph → `89ee007` ·
+letters group branches → `1903525` · Groups feed plumbing → `a54d7b9` · skeletons mocking
+retired pages → `34a77b4` · stale-comment batch → `c6057ea` · /notice retirement dated →
+`4219a1d`.
+Phase 3, out of order: gate-coverage adopts balancedBody → `9cee0d5`.
+
+**Where the audit was wrong, or thinner than the tree** (rule 4 outcomes):
+- **lib-tests-02's suggested regex would have re-broken a security sweep.** It says to call
+  `balancedBody(text, /export\s+async\s+function .../)`. Session 1 had *widened* fnBody to
+  make `export` OPTIONAL so the delegation pass can see gates living in private helpers.
+  Hardcoding `export` back would make setTheme's inherited gate invisible and the sweep pass
+  on nothing. Kept `(?:export\s+)?`; proved by injecting an ungated exported action.
+- **The Groups residue is bigger than the row.** The findings name feed/actions.ts,
+  post-feed, feed-column. It also runs through **create-post-form** (a `group` ComposerScope,
+  its placeholder, the formData groupId, the "Posted to the group" toast, and an
+  audience-options branch) and **post-card**'s type. All removed; `authorized` in deletePost
+  had to become a const, which is how ESLint found the tail of it.
+- **The "no cron on this project" claim is not just stale, it is false.** critic-1 said five
+  files; all five said there is NO cron. There are two Vercel crons and three scheduled
+  workflows. The true statement — none of them drains the mail queue — is what each says now.
+- **utils.ts:193's color.md pointer is already gone**, taken out with pickAvatarColor in
+  phase 1a. Nothing to do; recorded so nobody hunts for it.
+- **member-surfaces-05 has no ledger to write to** — no dated-cleanup ledger exists in this
+  repo. Created a "Dated cleanups" section in `docs/planning/bugs.md` and put the note in the
+  file header too, so it is found either way.
+- **landing-mascot-avatars-04's element choice was the whole finding.** GroupFirstGuidance
+  looks like "the explainer" but renders ONLY when a member has no Catch-ups, and the demo's
+  seeded visitor is the first entry in CATCHUP_MEMBERS — so it never renders for the one
+  audience the tour has. The anchor went on the first Catch-up card instead, via a new
+  `TourAnchorSlot` (the card is server-rendered and the registry needs a client ref).
+
+**Verification**: `npm run check` ✓ green before every commit and at session end (TS, ESLint,
+protocol, lab registry 42, unit 75/75). `npm run visual` ✓ **23/23** — the eight
+data-drift failures sessions 1 and 2 both hit are gone; another session masked them in
+`900546f` mid-session. `npm run verify:crawl` ✓ 17/17.
+Proved rather than asserted, where a claim was load-bearing: the showcase move is lossless
+(rendered old-flag-on vs new-showcase-on and diffed the whole 4,701px document — identical
+height, headings, all five shot alts, all ten links); the sidebar rail is pixel-identical
+after LogoFact (0 differing pixels over its full height); the tour anchor registers (one
+match, real 764x91 box); Saved still loads after the loadSavedPosts change (its card renders,
+no console or page errors); /donate answers 307 → /support → /login?next=/support signed out.
+
+**A note on commit messages**: six of this session's exceeded the 150-word ceiling before I
+caught it (159-212). HEAD was amended to 144. **The other five were left over-length
+deliberately**: they sit above two other sessions' commits in a shared tree that took new
+commits twice during this session, and a six-commit rebase there risks clobbering work that
+lands mid-rebase. Worth a `git rebase` at a quiet moment, or leaving. Count words BEFORE
+committing, not after.
+
+**Awaiting owner**:
+1. **The public landing still links to no Privacy / Terms / Guidelines.** They live in
+   LandingFooter, which is inside the showcase and therefore still off. Security audit H12
+   calls these "the documents a stranger should be able to find before an account exists".
+   Decoupling did not change this, and it is the one thing in §4 #1 the audit said to do
+   "immediately" regardless of the showcase's fate. Not done: it is new UI on the public
+   landing, which is his to approve.
+2. Session 1's `gate-coverage.test.mjs` widening is still unsighted.
+3. ~357 MB of unused Puppeteer Chrome in `~/.cache/puppeteer` is still his to delete.
+
+**State left**: clean — every file I touched is committed.
+
+**Next session**: phase 3 (dedupe at lib level). `9cee0d5` already did lib-tests-02; the big
+remaining piece is lib-tests-01, the shared test kit. Two things learned while starting it
+and then backing out: all 38 ROOT/read preamble copies are in `src/lib`, so a kit at
+`src/lib/test-kit.mjs` shares their depth exactly; and the three `hasLoneSurrogate` copies
+agree while the two `decomment` variants do NOT (the weak `[^:]` spelling eats a `//` inside
+a string that the strong one keeps), so converting weak→strong changes what survives
+decommenting and every such file needs its assertions re-run, not just typechecked.
 
 Template:
 ```
