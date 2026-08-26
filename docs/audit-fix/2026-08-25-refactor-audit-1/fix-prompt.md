@@ -21,12 +21,11 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
 ## Status board (update every session)
 
 - [x] Phase 1a — dead code in src — **done 2026-08-26**, 21 commits, 2,320 lines deleted / 268 added (net −2,052 against a ~1,800 estimate). All 16 plan rows executed; see session 1 below for the six places the audit's text was wrong and what was done instead.
-- [ ] Phase 1b — root, docs, assets, dependencies
-      (**partially done 2026-08-26**: the "archive the closed bug audit" item — move,
-      JSON-dump deletion, ledger owner-block into bugs.md — was executed by the
-      `docs/audit-fix/` reorganisation, commit `docs(audit-fix)`. Also already done there:
-      catchups-fixes-brief deletion + its spec banner, docs/README index refresh incl. the
-      spec-list drift. Do NOT redo; the remaining 1b rows stand.)
+- [x] Phase 1b — root, docs, assets, dependencies — **done 2026-08-26**, 18 commits.
+      All 16 rows executed (the "archive the closed bug audit" row had already been done by
+      the `docs/audit-fix/` reorganisation). ~6.5 MB out of the tree, 8 packages out of the
+      graph, 2 in. One row part-refused on measurement (prisma → devDependencies) and one
+      row's CLAUDE.md half is blocked on the owner's uncommitted edit; see session 2.
 - [ ] Phase 2 — placeholders, flags, Groups residue
 - [ ] Phase 3 — dedupe at lib level
 - [ ] Phase 4 — dedupe at component/route level (may be two sessions)
@@ -45,7 +44,6 @@ language, only for that phase's decisions (report §4 has the full wording + rec
 
 | Before | Decisions needed (§4 #) |
 |---|---|
-| 1b | WhatsApp originals delete (#3-adjacent, rd-02); overflow PDF destination; brand 4096 PNG; xlsx path (#14) |
 | 2 | Showcase fate + where the public Privacy/Terms links live NOW (#1); tour for members (#2); /donate redirect-vs-delete (#16/18); Profession filter — #10 is PART-ANSWERED (owner wants the feature long term; only the facet's launch fate is open, see report §4 #10); LogoFact (#11); About page (#3) |
 | 5 | Duplicate TS check on deploys (#5); Vercel Analytics (#7); lab CSS measurement authorisation (#6) |
 | 6 | ALL database drops (#4, incl. the Visit trio and the orphan reverted-Catchup tables); Collection taxonomy SELECT verdict (#16); avatarColor column |
@@ -174,6 +172,102 @@ tree and is **not mine** (the owner's 150-word commit rule).
 first — several 1b rows were already executed by the `docs/audit-fix/` reorganisation and
 must not be redone. 1b needs owner input before it starts: WhatsApp originals, overflow
 PDF destination, brand 4096 PNG, xlsx path (report §4 #14, #3-adjacent).
+
+
+### 2026-08-26 — session 2 (phase 1b)
+
+**Owner decisions taken at session start**: WhatsApp originals, overflow PDF and the 4096
+brand PNG all **moved to `sanan's stuff/moved out of the repo/`** (not deleted), with a note
+file there explaining each and how to recover it. xlsx: **no more spreadsheets are coming**,
+so the workbooks were converted to CSV and the dependency deleted (below).
+
+**Done** (in order; every item pre-flighted at HEAD per rule 4):
+QR pipeline → `01b069d` · asset eviction (WhatsApp + overflow + brand PNG) → `5258628` ·
+dead collection images + gen/ → `77dc9da` · six dead deps out, three borrowed ones listed,
+dev-login via next-auth/jwt → `931a4cd` · prisma family aligned + shadcn/pg/dotenv/@types
+re-sectioned → `fd62729` · next + eslint-config-next to 16.3.3 → `6411d77` · puppeteer
+skipDownload → `cb3709d` · crawl.mjs profile rows → `b97dc24` · tsbuildinfo relocation →
+`4cf744d` · .gitignore trim + .DS_Store sweep → `0a73211` · README + AGENTS.md → `fe57798` ·
+six dead doc pointers + profile.md banner + ROADMAP notes → `3c398a1` · progress.md June/July
+archive → `827e650` · zod/v4 + @types/node 24 + dead vitals CSP → `c85658f` · SECURITY probe
+range + OPERATIONS snapshot.yml section → `0a3b7ef` · drive.mjs dead route → `04faee1` ·
+popover onto menu material (+ tw-animate-css out) → `add8dd2` · roster CSV + xlsx out →
+`938a898`.
+
+**Where the audit was wrong, and what was done instead** (rule 4 outcomes):
+- **dependency-diet-02 (prisma → devDependencies): part re-refuted, NOT executed.**
+  `@prisma/client` declares `prisma` as an **optional peer**, so npm keeps it in the
+  `--omit=dev` graph whichever section lists it — measured with `npm ls prisma --omit=dev`
+  before and after the move, and the audit gate still reports the same allowlisted advisory.
+  The finding's two payoffs (~121 MB out of the production graph; retiring the
+  GHSA-ggr8-5vv4-36mx allowlist entry) therefore do not exist, leaving only deploy risk, so
+  prisma stays in `dependencies`. **Do not retry this, and do not delete the allowlist entry.**
+  The rest of the row stands: shadcn genuinely leaves (~22 MB), as does @types/d3-zoom; pg and
+  dotenv were moved on correctness grounds (nothing under src imports either; pg reaches the
+  runtime through @prisma/adapter-pg) while honestly saving nothing.
+- **dependency-diet-11**: latest is now **16.3.3**, not the 16.3.2 the report names. Bumped
+  both to 16.3.3. The newer eslint-config adds `no-location-assign-relative-destination`,
+  which flags three deliberate hard navigations (demo reset, admin user deletion, password
+  reset); each keeps its behaviour under a disable comment stating why. Note the rule fires on
+  the **literal** relative path, not a computed one.
+- **root-docs-assets-10 is only half done.** `docs/README.md` was already correct (the
+  audit-fix reorganisation fixed it). **CLAUDE.md's spec list still omits `admin`** — left
+  untouched because CLAUDE.md carries the owner's uncommitted one-word edit and staging it
+  would have staged his work. One line for whoever picks it up after he commits.
+- **root-docs-assets-06 (progress.md archive)**: the file is not chronological — lines 1–467
+  are a newest-first head block, then the full chronology. June and July happen to be one
+  contiguous run (468–1348), so only those moved; August is the live month. Proved lossless by
+  rebuilding the original from the three files: all 3,913 non-blank lines identical.
+- **root-docs-assets-14**: the .DS_Store sweep was done with explicit `rm` after a preview —
+  a bare `find -delete` is blocked by a safety hook. The three inside `sanan's stuff/` were
+  left alone. The two stale `public/uploads/2026/03` webps were **not** deleted: local-only,
+  gitignored, 58 KB, and the finding itself says removing them can only inconvenience this
+  machine.
+
+**Beyond the plan, because they were gates reporting success on nothing:**
+- `crawl.mjs` (session 1 flagged this): two hardcoded profile cuids, both users deleted. A
+  missing profile answers **200** with the app shell, so two rows printed `OK 200` for blank
+  pages. Ids now come from the database; each profile row must render that person's name.
+  Negative-tested.
+- `drive.mjs`: the houses and places scenarios drove `/settings`, gone since `22b4b6c`. Both
+  repointed at the member's own profile; the houses scenario now asserts the popover is really
+  on screen. This is what verified the popover change.
+
+**The roster migration is bigger than the plan row.** The owner's answer to #14 was neither
+"CDN" nor "delete the script": convert the workbooks to CSV, keep the script, lose the library.
+Done — `roster.csv` carries every column of all four person-sheets (2,602 rows / 44,646 cells,
+checked back cell by cell, zero differences), the workbooks moved to `moved out of the repo/`,
+`xlsx` deleted. **The CSV reader surfaced a live bug in `toEntry`**: an empty email escaped the
+truthiness guard as `""`, and since the dedupe key is `email ?? name|year` and `""` is not
+nullish, every person without an email collapsed onto one key — 2,134 people became 1,333.
+Caught by diffing both readers' entries; both now produce byte-identical output. **The
+workbooks were never in git** (the folder is ignored), so `moved out of the repo/roster
+spreadsheets/` holds the only copies — its note file says so.
+
+**Verification**: `npm run check` ✓ green before every commit (TS, ESLint, protocol, lab
+registry 42, unit 75/75). `npm run visual` run three times — **the same 8 failures before and
+after everything**, identical to session 1's set, and the diff is content (a new Catch-up
+round, a lit notification bell), not layout. `npm run verify:crawl` ✓ 17/17 routes 200 with the
+fixed crawler. `npm run screenshot:auth` and `verify:shot /feed` ✓ after the dev-login and
+prisma changes. `npm run analyze`'s replacement command verified present in Next 16.3.1's CLI.
+The bundled-Chrome claim was re-proved by launching it (it dies), not taken on trust.
+
+**Awaiting owner**:
+1. Session 1's two are still open: the visual suite's four content routes will keep going red
+   as members post (mask, seed, or accept?), and the `gate-coverage.test.mjs` widening.
+2. **~357 MB of unused Puppeteer Chrome** in `~/.cache/puppeteer` — outside the repo, so his
+   to delete.
+3. CLAUDE.md's spec list needs `admin` once his edit is committed.
+
+**State left**: clean — every file I touched is committed. `CLAUDE.md` is still modified in the
+tree and is **not mine**. `c095f4c fix(lab): ...` landed mid-session from another session in
+this same tree; untouched.
+
+**Next session**: phase 2 (placeholders, flags, Groups residue). It needs owner input first —
+report §4 #1 (showcase fate + where the public Privacy/Terms links live now), #2 (tour for
+members), #16/#18 (/donate redirect vs delete), #10 (Profession filter), #11 (LogoFact), #3
+(About page). Note phase 1a deliberately deferred `feed-posts-13`'s `scope`/`groupId`/
+`composerScope`/`FeedScope` half into phase 2's Groups-residue item.
 
 Template:
 ```
