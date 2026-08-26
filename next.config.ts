@@ -121,7 +121,6 @@ const csp: Record<string, string[]> = {
     "https://lumberjack.razorpay.com",
     "https://*.posthog.com",
     "https://va.vercel-scripts.com", // Vercel Analytics beacon
-    "https://vitals.vercel-insights.com", // Vercel Speed Insights beacon
   ],
   "frame-src": [
     "https://challenges.cloudflare.com",

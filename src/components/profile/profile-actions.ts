@@ -25,7 +25,7 @@ import { FULL_NAME_MAX, batchTypeFromLeaving } from "@/lib/utils";
 import { titleCase, normalizePhone, instagramHandle } from "@/lib/normalize";
 import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
 import { contactMethodsSchema, profileSchema } from "@/lib/validators";
-import type { ZodTypeAny } from "zod";
+import type { ZodTypeAny } from "zod/v4";
 import { yearClashMessage } from "@/lib/batch-year";
 
 import { revalidatePath } from "next/cache";
