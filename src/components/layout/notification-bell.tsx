@@ -243,104 +243,86 @@ export function NotificationBell({
     setUnreadCount(0);
   }
 
-  if (variant === "header") {
-    return (
-      <DropdownMenu open={open} onOpenChange={handleOpenChange}>
-        {/* `state-layer` supplies the surface half of the hover (and keeps the
-            trigger lit while the panel is open, via data-popup-open). Before it
-            the only hover here was the glyph darkening from muted to full ink,
-            which is a change you have to already be looking for on a 40px
-            circle sitting on a paper card. */}
-        <DropdownMenuTrigger
-          className="bell-trigger state-layer relative grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_2px_rgba(30,28,22,0.04)] transition-[color,transform] duration-150 ease-out hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          title="Notifications"
-        >
-          <motion.span
-            key={shakeKey}
-            className="inline-grid place-items-center"
-            style={{ transformOrigin: "50% 12%" }}
-            animate={shakeAnimate}
-            transition={shakeTransition}
-            whileTap={{ scale: 0.9, transition: SPRINGS.snappy }}
-          >
-            {/* The bell's weight sits low (body + clapper are bottom-heavy), so
-                the glyph is nudged up a hair to sit optically centered in the
-                40px circle. A static transform on the icon itself, independent
-                of the parent span's animated rotate / scale. */}
-            <Bell size={18} strokeWidth={1.9} style={{ transform: "translateY(-0.5px)" }} />
-          </motion.span>
-          {unreadCount > 0 && (
-            <motion.span
-              className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full border-2 border-card bg-cinnamon"
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: [0, 1.3, 1], opacity: 1 }}
-              transition={{ duration: 0.42, ease: EASE_POP, times: [0, 0.6, 1] }}
-            />
-          )}
-          <span className="sr-only">
-            {unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
-          </span>
-        </DropdownMenuTrigger>
-        <NotificationPanel
-          notifications={notifications}
-          loaded={loaded}
-          unreadCount={unreadCount}
-          hasMore={hasMore}
-          onLoadMore={handleLoadMore}
-          onMarkAllRead={handleMarkAllRead}
-          onClickNotification={handleClickNotification}
-        />
-      </DropdownMenu>
-    );
-  }
+  /* One tree for the two places a bell lives. They differ in exactly three
+     things -- the trigger's surface, the glyph's size, and whether the unread
+     count is a dot or a number -- and every one of the other ~55 lines was
+     written out twice, including the whole shake wrapper, the sr-only label
+     and the seven props handed to the panel. */
+  const isHeader = variant === "header";
 
   return (
     <DropdownMenu open={open} onOpenChange={handleOpenChange}>
-      {/* This variant lives in exactly one place: the mobile sticky green band
-          (sidebar.tsx). It used to be a `display: block` button with p-2, so
-          the 18px glyph was placed on the button's 24px text baseline and sat
-          3.5px ABOVE the band's centre (measured: 15.5px of band above it,
-          22.5px below) while the hamburger beside it, a real 40px grid box,
-          was dead centre. A fixed 40x40 grid box removes the baseline entirely
-          and matches the hamburger; hover/focus are RAIL colours, never the warm
-          light-surface ones and never `state-layer`, because the rail is the one
-          surface in the app that owns its own state ladder in both themes. The
-          hover was `bg-white/[0.07]`, tuned against the canopy band: on the dark
-          charcoal rail that alpha overshoots the tuned `--sidebar-hover` rung,
-          so it uses the token now and tracks whichever theme is on. */}
+      {/* HEADER: `state-layer` supplies the surface half of the hover (and
+          keeps the trigger lit while the panel is open, via data-popup-open).
+          Before it the only hover here was the glyph darkening from muted to
+          full ink, which is a change you have to already be looking for on a
+          40px circle sitting on a paper card.
+
+          RAIL: this variant lives in exactly one place, the mobile sticky green
+          band (sidebar.tsx). It used to be a `display: block` button with p-2,
+          so the 18px glyph was placed on the button's 24px text baseline and
+          sat 3.5px ABOVE the band's centre (measured: 15.5px of band above it,
+          22.5px below) while the hamburger beside it, a real 40px grid box, was
+          dead centre. A fixed 40x40 grid box removes the baseline entirely and
+          matches the hamburger; hover/focus are RAIL colours, never the warm
+          light-surface ones and never `state-layer`, because the rail is the
+          one surface in the app that owns its own state ladder in both themes.
+          The hover was `bg-white/[0.07]`, tuned against the canopy band: on the
+          dark charcoal rail that alpha overshoots the tuned `--sidebar-hover`
+          rung, so it uses the token now and tracks whichever theme is on. */}
       <DropdownMenuTrigger
-        className="relative grid size-10 shrink-0 place-items-center rounded-xl transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground data-popup-open:bg-sidebar-hover active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring"
+        className={
+          isHeader
+            ? "bell-trigger state-layer relative grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_2px_rgba(30,28,22,0.04)] transition-[color,transform] duration-150 ease-out hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            : "relative grid size-10 shrink-0 place-items-center rounded-xl transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground data-popup-open:bg-sidebar-hover active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring"
+        }
         title="Notifications"
       >
         <motion.span
+          /* Remounting is what restarts the shake, so the header bell -- the
+             one that can be on screen when a notification arrives -- is keyed
+             on it. The rail bell never was. */
+          key={isHeader ? shakeKey : undefined}
           className="inline-grid place-items-center"
           style={{ transformOrigin: "50% 12%" }}
           animate={shakeAnimate}
           transition={shakeTransition}
           whileTap={{ scale: 0.9, transition: SPRINGS.snappy }}
         >
-          {/* Same optical nudge as the header variant: the bell's mass sits low
-              (wide skirt plus the clapper below it), so a geometrically centred
-              glyph reads a hair low. */}
-          <Bell size={19} strokeWidth={1.9} style={{ transform: "translateY(-0.5px)" }} />
+          {/* The bell's weight sits low (wide skirt plus the clapper below it),
+              so a geometrically centred glyph reads a hair low. A static
+              transform on the icon itself, independent of the parent span's
+              animated rotate / scale. */}
+          <Bell size={isHeader ? 18 : 19} strokeWidth={1.9} style={{ transform: "translateY(-0.5px)" }} />
         </motion.span>
-        {unreadCount > 0 && (
-          <motion.span
-            className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-cinnamon px-1 text-[10px] font-bold text-white"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: [0, 1.3, 1], opacity: 1 }}
-            transition={{ duration: 0.42, ease: EASE_POP, times: [0, 0.6, 1] }}
-          >
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </motion.span>
-        )}
-        {/* The same spoken label the other variant carries. Without it this
-            button's accessible name is whatever the badge says -- literally
-            "1" -- or nothing at all when the count is zero, because `title`
-            only fills in when there is no other content. A screen reader
-            announced a bare number and no clue what pressing it does. Found
-            while masking the badge out of the visual suite, which could not
-            find the control by name either. */}
+        {unreadCount > 0 &&
+          /* A dot on the header's paper circle, a counted pill on the rail:
+             the header bell sits beside a New-post button and a search pill,
+             where a number would be a third thing competing for the same
+             corner; the rail band has nothing else in it. */
+          (isHeader ? (
+            <motion.span
+              className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full border-2 border-card bg-cinnamon"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: [0, 1.3, 1], opacity: 1 }}
+              transition={{ duration: 0.42, ease: EASE_POP, times: [0, 0.6, 1] }}
+            />
+          ) : (
+            <motion.span
+              className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-cinnamon px-1 text-[10px] font-bold text-white"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: [0, 1.3, 1], opacity: 1 }}
+              transition={{ duration: 0.42, ease: EASE_POP, times: [0, 0.6, 1] }}
+            >
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </motion.span>
+          ))}
+        {/* Without this the button's accessible name is whatever the badge says
+            -- literally "1" -- or nothing at all when the count is zero,
+            because `title` only fills in when there is no other content. A
+            screen reader announced a bare number and no clue what pressing it
+            does. Found while masking the badge out of the visual suite, which
+            could not find the control by name either. */}
         <span className="sr-only">
           {unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
         </span>
