@@ -14,10 +14,7 @@
  *  real layout can vary, so this gazes at the actual element instead.
  * ------------------------------------------------------------------ */
 
-import { useRef } from "react";
-import { Hoopoe } from "@/components/mascot/hoopoe";
-import { useHoopoe } from "@/components/mascot/use-hoopoe";
-import { useMomentAutoplay, useSoloHoopoe } from "./moment-hoopoe";
+import { MomentStage } from "./moment-hoopoe";
 
 /** Read-only ref shape so any element-typed `useRef` (div, button, ...) can be
  *  passed in without a variance fight over the mutable `current` setter. */
@@ -32,26 +29,19 @@ export function NoSavedHoopoe({
   size?: number;
   className?: string;
 }) {
-  const { ref, ...h } = useHoopoe();
-  const stageRef = useRef<HTMLDivElement>(null);
-  const solo = useSoloHoopoe();
-
-  useMomentAutoplay(stageRef, () => {
-    h.cancel();
-    h.sequence(
-      () => h.gaze(bookmarkRef?.current ?? 0.7),
-      ["express", "sleepy", { hold: 700 }],
-      ["blinkOnce", true],
-      () => h.gaze(0),
-      ["express", "content"]
-    );
-  });
-
-  if (!solo) return null;
-
   return (
-    <div ref={stageRef} aria-hidden className={className}>
-      <Hoopoe ref={ref} size={size} />
-    </div>
+    <MomentStage
+      size={size}
+      className={className}
+      play={(h) =>
+        h.sequence(
+          () => h.gaze(bookmarkRef?.current ?? 0.7),
+          ["express", "sleepy", { hold: 700 }],
+          ["blinkOnce", true],
+          () => h.gaze(0),
+          ["express", "content"]
+        )
+      }
+    />
   );
 }
