@@ -1,8 +1,7 @@
 import { auth } from "./auth";
 import { IS_DEMO } from "./demo";
-import { EMAIL_UNVERIFIED } from "./email-gate-message";
 import { MEMBER_UNVERIFIED } from "./member-gate-message";
-import type { GateResult } from "./email-verification";
+import { requireVerifiedEmail, type GateResult } from "./email-verification";
 
 /* ------------------------------------------------------------------ *
  *  The verified-member gate: the second of the two gates.
@@ -40,25 +39,23 @@ export type { GateResult } from "./email-verification";
  * would only hide a broken flow from the person most able to fix it.
  */
 export async function requireVerifiedMember(): Promise<GateResult> {
+  /* Stage 2 IS Stage 1 plus one fact, and now says so in code rather than in
+     a header. It used to re-implement the session read, the viewer
+     projection, the demo exemption (with its own copy of the justification)
+     and the emailConfirmed check, so the two could be half-fixed apart.
+     `auth()` is cache()d per request, so the second call is free. */
+  const stage1 = await requireVerifiedEmail();
+  if (!stage1.ok) return stage1;
+
+  // The demo's invented visitor passed Stage 1 by exemption, not by
+  // confirming anything, so there is nothing for Stage 2 to check either.
+  if (IS_DEMO) return stage1;
+
   const session = await auth();
-  if (!session?.user?.id) return { ok: false, error: "Not authenticated" };
-
-  const user = {
-    id: session.user.id,
-    name: session.user.name,
-    email: session.user.email,
-    role: session.user.role,
-  };
-
-  // Same exemption, same reason as requireVerifiedEmail: the demo's one
-  // invented visitor can neither confirm a mailbox nor be verified by anyone,
-  // and its own default-deny Prisma allowlist is what keeps it safe.
-  if (IS_DEMO) return { ok: true, user };
-
-  if (!session.user.emailConfirmed) return { ok: false, error: EMAIL_UNVERIFIED };
-  if (session.user.verifyState !== "verified") return { ok: false, error: MEMBER_UNVERIFIED };
-
-  return { ok: true, user };
+  if (session?.user?.verifyState !== "verified") {
+    return { ok: false, error: MEMBER_UNVERIFIED };
+  }
+  return stage1;
 }
 
 /** True when the signed-in viewer may see other members' contact details.
