@@ -46,6 +46,39 @@ function phoneList() {
     .max(5, "Five numbers is the most we will show");
 }
 
+/**
+ * The "other links" repeater, in one place for the same reason `phoneList()`
+ * is: two schemas write the same column. This one was still spelled out twice
+ * and had not drifted yet -- `displayEmail`, the field beside it, already had.
+ *
+ * https only, both to keep the "Find them" pills honest and to rule out a
+ * `javascript:` or `data:` href arriving as "a URL". The `new URL()` parse is
+ * the second half of that: a string can start with https:// and still not be
+ * a URL.
+ */
+function linksList() {
+  return z
+    .array(
+      z.object({
+        label: z.string().trim().min(1).max(60),
+        url: z
+          .string()
+          .trim()
+          .max(300)
+          .refine((v) => /^https:\/\//i.test(v), "Links must start with https://")
+          .refine((v) => {
+            try {
+              new URL(v);
+              return true;
+            } catch {
+              return false;
+            }
+          }, "That doesn't look like a valid URL"),
+      })
+    )
+    .max(10);
+}
+
 // Alumni now give their batch directly ("the year your 12th-grade class
 // graduated, even if you left earlier") plus the two plain years they joined
 // and left. batchYear is written straight through; batchType (the board
@@ -131,30 +164,7 @@ export const profileSchema = z.object({
   instagram: z.string().max(100).optional(),
   linkedin: z.string().max(200).optional(),
   facebook: z.string().max(200).optional(),
-  // "Other links" repeater in Contact: user-defined label + URL rows. https
-  // only, both to keep the "Find them" pills honest and to rule out
-  // javascript:/data: hrefs sneaking through as a "URL".
-  links: z
-    .array(
-      z.object({
-        label: z.string().trim().min(1).max(60),
-        url: z
-          .string()
-          .trim()
-          .max(300)
-          .refine((v) => /^https:\/\//i.test(v), "Links must start with https://")
-          .refine((v) => {
-            try {
-              new URL(v);
-              return true;
-            } catch {
-              return false;
-            }
-          }, "That doesn't look like a valid URL"),
-      })
-    )
-    .max(10)
-    .optional(),
+  links: linksList().optional(),
   accountType: z.enum(["alumnus", "teacher", "ex_teacher"]).optional(),
   // Batch is a direct field now (headline identity). The collapsible "work it
   // out" path still derives it from the three schooling facts server-side.
@@ -176,9 +186,11 @@ export const profileSchema = z.object({
 // first place. Nullable because the action passes explicit nulls for cleared
 // fields; blank rows are dropped by the caller before this runs.
 export const contactMethodsSchema = z.object({
-  displayEmail: z
-    .union([z.literal(""), z.email("Please enter a valid email").max(200)])
-    .nullable(),
+  // The SAME field the profile schema applies to the same column. It was a
+  // bare `z.email().max(200)` here, with no trim and no lowercase, so an
+  // address typed with capitals or a trailing space saved through the contact
+  // editor un-normalised into a column the profile editor normalises.
+  displayEmail: z.union([z.literal(""), emailField()]).nullable(),
   // The SAME rule the profile schema applies to the same column. It used to
   // be spelled out separately here and had no minimum, so a three-character
   // fragment saved through the contact editor and was then rejected by the
@@ -187,26 +199,7 @@ export const contactMethodsSchema = z.object({
   instagram: z.string().max(100).nullable(),
   linkedin: z.string().max(200).nullable(),
   facebook: z.string().max(200).nullable(),
-  links: z
-    .array(
-      z.object({
-        label: z.string().trim().min(1).max(60),
-        url: z
-          .string()
-          .trim()
-          .max(300)
-          .refine((v) => /^https:\/\//i.test(v), "Links must start with https://")
-          .refine((v) => {
-            try {
-              new URL(v);
-              return true;
-            } catch {
-              return false;
-            }
-          }, "That doesn't look like a valid URL"),
-      })
-    )
-    .max(10),
+  links: linksList(),
 });
 
 export const postSchema = z
