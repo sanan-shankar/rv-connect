@@ -120,8 +120,15 @@ test("C-003: no _count.comments filter is hand-rolled", () => {
     }
   }
   /* Counted, not detected: a sweep that merely finds no BAD site also passes
-     against a file where the sites have been renamed away. */
-  assert.equal(seen, 4, `expected 4 comment-count filters, found ${seen}`);
+     against a file where the sites have been renamed away.
+
+     Three, not four, since 2026-08-26. feed/actions.ts had this line twice --
+     once in loadPosts' include and once in loadSavedPosts' -- and the two
+     include-builders became one (`postInclude`), so one site went away rather
+     than one filter. The remaining three are that builder, the letters index
+     and a letter. Lowering this number is the dangerous edit in this file: do
+     it only with the disappeared site named, as here. */
+  assert.equal(seen, 3, `expected 3 comment-count filters, found ${seen}`);
 });
 
 test("C-003: VISIBLE_COMMENT is the fragment the thread query uses too", () => {
