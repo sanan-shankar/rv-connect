@@ -318,6 +318,13 @@ export const REGISTRY: LabEntry[] = [
     note: "The selected two-plane PeaksMark, shown standalone and in its real lockup contexts (sidebar green, light surface, photo overlay). Current reference.",
   },
   {
+    href: "/lab/glass-edges",
+    title: "The line Apple draws inside our icon",
+    group: "Brand",
+    status: "active",
+    note: "Recreating the per-shape edge light iOS puts inside an app icon (bright line on the upper contour, dark on the lower, shadow cast down), measured off a home-screen screenshot and rebuilt as one SVG filter applied per path.",
+  },
+  {
     href: "/lab/hoopoe-marks",
     title: "If the bird were the logo",
     group: "Brand",

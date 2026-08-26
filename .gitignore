@@ -92,3 +92,8 @@ supabase/.temp/
 
 # Local WebKit build for reproducing Safari-only bugs (not committed, ~100MB)
 .pw-browsers/
+
+# Output of the Apple edge-light harness (scripts/dev/apple-edge/). The tools
+# and the write-up are committed; their comparison strips are a few hundred KB
+# that any of them regenerates.
+scripts/dev/apple-edge/*.png

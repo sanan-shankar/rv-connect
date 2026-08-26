@@ -61,6 +61,28 @@ Full runbook in `docs/spec/demo.md`. These four are that pipeline.
 | `generate-icons.mjs` | Generates every raster app icon from the one canonical mark. |
 | `_env.mjs` | Helper: reads `.env` for the scripts in this folder. Seven of them had their own copy of the parser. |
 
+### The Apple edge-light harness (`dev/apple-edge/`)
+
+Built to answer one question: what exactly does iOS 26 draw inside an app
+icon, and can we reproduce it. The answer, the measurements and the three
+constructions that were wrong are written up in
+`docs/spec/apple-edge-light.md`; these are the tools that got there. Kept
+because the fit is not finished (the tile's own gradient is not reproduced
+yet) and because the method — measure, fit, then LOOK — is the part that
+took the longest to learn.
+
+| Script | Does |
+|---|---|
+| `truth.mjs` | Re-derives the ground-truth table from the owner's home-screen screenshot, so no number in the spec is eyeballed. |
+| `truth-profile.mjs` | The same, for one full column through a hill rather than the peak-per-column table. Scoring only the peaks is the trap the spec describes. |
+| `measure.mjs` | The shared sampler. The real icon and ours both go through it, which is the only reason the two are comparable. |
+| `fit.mjs` | Renders our filter at many parameter sets in headless Chrome, scores each against the table, and runs a coordinate descent over the eight parameters. Needs the dev server up. |
+| `compare.mjs` | Writes the real tile and ours side by side at the same size. |
+| `strip.mjs` | Writes all the candidates in a row. The picture that stops a good score from passing for a good result. |
+
+Their PNG output is ignored, not committed: it is a few hundred KB that any
+of them will regenerate.
+
 ## QA and gates (`qa/`)
 
 | Script | Does |

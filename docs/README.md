@@ -21,7 +21,8 @@ Everything else is grouped here:
   older per-topic specs where they overlap.
 - `docs/spec/` — area specs. Exactly: `admin`, `avatars`, `catchups`, `demo`, `directory`,
   `lab-voice`, `letters`, `mascot`, `media`, `profile`, plus `person-row-audit` (an audit
-  note, not an area spec). Some are superseded in part by DESIGN-SYSTEM.md and
+  note, not an area spec) and `apple-edge-light` (a measurement write-up: what iOS draws
+  inside an app icon, and the three reconstructions that were wrong). Some are superseded in part by DESIGN-SYSTEM.md and
   carry a banner at the top pointing there. There is deliberately no second index file here:
   this document is the only index, so the two cannot drift apart.
 - `docs/planning/` — the working backlog: `bugs.md` (the live bug tracker), `FEATURES.md`
