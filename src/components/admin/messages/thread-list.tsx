@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AdminPersonRow } from "@/components/admin/admin-person-row";
+import { AdminPersonRow, type AdminPerson } from "@/components/admin/admin-person-row";
 import { Chip } from "@/components/admin/admin-chip";
 import { ADMIN_GRID } from "@/components/admin/admin-chrome";
 import { kindLabel, threadTitle } from "@/lib/admin-threads";
@@ -12,16 +12,7 @@ export interface ThreadRow {
   status: string;
   adminUnread: boolean;
   lastMessageAt: string;
-  member: {
-    id: string;
-    name: string;
-    email: string;
-    photoUrl: string | null;
-    birdOverride: string | null;
-    accountType: string | null;
-    batchType: string | null;
-    batchYear: number | null;
-  };
+  member: AdminPerson;
   preview: string;
 }
 

@@ -3,9 +3,11 @@ import type { Prisma } from "@/generated/prisma/client";
 import {
   MAX_MESSAGES_PER_HOUR,
   MAX_NEW_THREADS_PER_HOUR,
+  THREAD_MESSAGE_LIMIT,
   deriveSubject,
   previewOf,
 } from "@/lib/admin-threads";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 /**
  * The database half of member <-> admin conversations. Split from
  * admin-threads.ts (which is client-safe) so the composer and the admin queue
@@ -19,6 +21,60 @@ import {
  * Threads are private: a member may only ever touch their own, admins may
  * touch all. Those checks live in the server actions, against the session.
  */
+
+/**
+ * Who a thread belongs to, as the admin panel draws them.
+ *
+ * Exactly the fields `AdminPerson` declares, because `AdminPersonRow` is what
+ * both admin thread surfaces render the member through -- so a field added
+ * here and nowhere else is a field the row cannot draw. It was written out in
+ * the queue page and the thread page, and the matching interface twice more in
+ * their components: four edits to add one column.
+ */
+export const THREAD_MEMBER_SELECT = {
+  ...IDENTITY_SELECT,
+  email: true,
+  accountType: true,
+  batchType: true,
+  batchYear: true,
+} as const;
+
+/**
+ * The most recent window of a conversation, newest first.
+ *
+ * ONE MORE than the limit is deliberate: the extra row is how the page knows
+ * it stopped short without a second count query. `splitThreadWindow` below
+ * takes it off again and puts the rest in reading order. This had no `take`
+ * at all once, so a long thread was an unbounded query on a page render, and
+ * a member may write forty messages an hour (audit Low 86).
+ */
+export const THREAD_MESSAGE_WINDOW = {
+  orderBy: { createdAt: "desc" },
+  take: THREAD_MESSAGE_LIMIT + 1,
+  select: {
+    id: true,
+    body: true,
+    imageUrl: true,
+    fromAdmin: true,
+    createdAt: true,
+    author: { select: IDENTITY_SELECT },
+  },
+} as const;
+
+/**
+ * Turn what THREAD_MESSAGE_WINDOW returned into what a conversation renders:
+ * oldest first, the sentinel row dropped, and a flag saying whether it was
+ * there. Both thread pages wrote this arithmetic out, and getting the
+ * off-by-one wrong in one of them shows up as a message that silently never
+ * appears.
+ */
+export function splitThreadWindow<T>(messages: T[]): { shown: T[]; olderExist: boolean } {
+  const olderExist = messages.length > THREAD_MESSAGE_LIMIT;
+  return {
+    olderExist,
+    shown: (olderExist ? messages.slice(0, THREAD_MESSAGE_LIMIT) : messages).slice().reverse(),
+  };
+}
 
 /** Cheap DB-backed throttle: enough to stop a script, invisible to a person. */
 export async function isThreadRateLimited(memberId: string): Promise<boolean> {

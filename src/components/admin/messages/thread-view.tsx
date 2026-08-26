@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/admin/admin-chip";
-import { AdminPersonRow } from "@/components/admin/admin-person-row";
+import { AdminPersonRow, type AdminPerson } from "@/components/admin/admin-person-row";
 import {
   Conversation,
   type ConversationMessage,
@@ -23,16 +23,7 @@ export interface AdminThreadDetail {
   kind: string;
   status: string;
   lastMessageAt: string;
-  member: {
-    id: string;
-    name: string;
-    email: string;
-    photoUrl: string | null;
-    birdOverride: string | null;
-    accountType: string | null;
-    batchType: string | null;
-    batchYear: number | null;
-  };
+  member: AdminPerson;
   messages: ConversationMessage[];
   /** True when the page loaded only the most recent window of a long
    *  conversation (audit Low 86), so the view can say so. */

@@ -4,11 +4,11 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { markThreadSeenByAdmin } from "@/app/(main)/messages/actions";
 import { ThreadView } from "@/components/admin/messages/thread-view";
-import { IDENTITY_SELECT } from "@/lib/people-select";
-
-/** How many messages of one conversation a page render loads. Its most recent
- *  end: a thread is read for what was said last. */
-const THREAD_MESSAGE_LIMIT = 200;
+import {
+  THREAD_MEMBER_SELECT,
+  THREAD_MESSAGE_WINDOW,
+  splitThreadWindow,
+} from "@/lib/admin-threads-server";
 
 export const metadata: Metadata = {
   title: "Message",
@@ -44,49 +44,14 @@ export default async function AdminThreadPage({
       status: true,
       adminUnread: true,
       lastMessageAt: true,
-      member: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          photoUrl: true,
-          birdOverride: true,
-          accountType: true,
-          batchType: true,
-          batchYear: true,
-        },
-      },
-      messages: {
-        /* The most recent page, newest first, then reversed for reading below.
-           This had no `take` at all, so one long conversation was an unbounded
-           query on a page render -- and a member may write forty messages an
-           hour (audit Low 86). The END of a conversation is the part anybody
-           opens it for, so the window is taken from that end. */
-        orderBy: { createdAt: "desc" },
-        take: THREAD_MESSAGE_LIMIT + 1,
-        select: {
-          id: true,
-          body: true,
-          imageUrl: true,
-          fromAdmin: true,
-          createdAt: true,
-          author: {
-            select: IDENTITY_SELECT,
-          },
-        },
-      },
+      member: { select: THREAD_MEMBER_SELECT },
+      messages: THREAD_MESSAGE_WINDOW,
     },
   });
 
   if (!thread) notFound();
 
-  /* The query above asked for one more than the window so the page can say
-     whether it stopped short, and it read newest-first; the conversation reads
-     oldest-first (audit Low 86). */
-  const olderExist = thread.messages.length > THREAD_MESSAGE_LIMIT;
-  const shown = (olderExist ? thread.messages.slice(0, THREAD_MESSAGE_LIMIT) : thread.messages)
-    .slice()
-    .reverse();
+  const { shown, olderExist } = splitThreadWindow(thread.messages);
 
 
   /* Reading it IS seeing it -- but only through what was actually rendered

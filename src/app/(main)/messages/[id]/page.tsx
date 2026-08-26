@@ -4,14 +4,10 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { threadTitle } from "@/lib/admin-threads";
+import { THREAD_MESSAGE_LIMIT, threadTitle } from "@/lib/admin-threads";
+import { THREAD_MESSAGE_WINDOW, splitThreadWindow } from "@/lib/admin-threads-server";
 import { AdminMark, Conversation } from "@/components/messages/conversation";
 import { MessageComposer } from "@/components/messages/message-composer";
-import { IDENTITY_SELECT } from "@/lib/people-select";
-
-/** How many messages of one conversation a page render loads. Its most recent
- *  end: a thread is read for what was said last. */
-const THREAD_MESSAGE_LIMIT = 200;
 
 export const metadata: Metadata = {
   title: "Messages",
@@ -42,25 +38,7 @@ export default async function ThreadPage({
       subject: true,
       kind: true,
       status: true,
-      messages: {
-        /* The most recent page, newest first, then reversed for reading below.
-           This had no `take` at all, so one long conversation was an unbounded
-           query on a page render -- and a member may write forty messages an
-           hour (audit Low 86). The END of a conversation is the part anybody
-           opens it for, so the window is taken from that end. */
-        orderBy: { createdAt: "desc" },
-        take: THREAD_MESSAGE_LIMIT + 1,
-        select: {
-          id: true,
-          body: true,
-          imageUrl: true,
-          fromAdmin: true,
-          createdAt: true,
-          author: {
-            select: IDENTITY_SELECT,
-          },
-        },
-      },
+      messages: THREAD_MESSAGE_WINDOW,
     },
   });
 
@@ -72,13 +50,7 @@ export default async function ThreadPage({
     notFound();
   }
 
-  /* The query above asked for one more than the window so the page can say
-     whether it stopped short, and it read newest-first; the conversation reads
-     oldest-first (audit Low 86). */
-  const olderExist = thread.messages.length > THREAD_MESSAGE_LIMIT;
-  const shown = (olderExist ? thread.messages.slice(0, THREAD_MESSAGE_LIMIT) : thread.messages)
-    .slice()
-    .reverse();
+  const { shown, olderExist } = splitThreadWindow(thread.messages);
 
 
   /* Marked read only THROUGH what was rendered (audit C-061).
