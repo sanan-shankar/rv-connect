@@ -415,10 +415,11 @@ export default async function ProfilePage({
          itself already refuses to appear on a desktop or on a phone that has
          the app, which are the two rules that are not about who you are. */
       installNode={isAdmin && isOwnProfile ? <InstallAppTile /> : null}
-      /* Only your own sheet gets a pen. `?edit=1` is how /settings hands you
-         one: that route redirects here rather than rendering a form of its
-         own, so "Settings" in the nav lands on your profile and it opens
-         already editable. */
+      /* Only your own sheet gets a pen. `?edit=1` opens it already editable;
+         it used to be how a /settings route handed you one, but there is no
+         /settings any more (a request to it 404s) and the sidebar links
+         straight to /profile/{id} with no param. The parameter is kept because
+         it is still the way to deep-link someone into an open editor. */
       draft={
         isOwnProfile
           ? {

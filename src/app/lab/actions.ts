@@ -21,8 +21,8 @@ export async function setArchived(
   href: string,
   archived: boolean
 ): Promise<{ ok: boolean; error?: string }> {
-  /* /lab is public in production (src/proxy.ts publicPaths), so this write
-     must be gated on the session role exactly like the moderation actions
+  /* This write is gated on the session role exactly like the moderation
+     actions
      (collection/actions.ts), not on an env check. Local dev keeps the old
      frictionless behaviour with no sign-in, because the only person at a dev
      server is the owner and the old NODE_ENV gate was never a complaint. */

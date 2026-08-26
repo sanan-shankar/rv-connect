@@ -34,11 +34,6 @@ export const TOKEN_TTL_MINUTES: Record<TokenKind, number> = {
   verify: 60 * 24,
 };
 
-/** Ceiling on how many links of one kind a single account can trigger inside
- *  the window. Stops this from being used to flood somebody's inbox, and stops
- *  a script from burning the sending quota. Generous enough that a person who
- *  genuinely clicks "resend" a few times because nothing arrived is never the
- *  one who hits it. */
 /**
  * Whether minting a new token of this kind invalidates the outstanding ones.
  *
@@ -53,6 +48,11 @@ const BURNS_ON_MINT: Record<TokenKind, boolean> = {
   verify: false,
 };
 
+/** Ceiling on how many links of one kind a single account can trigger inside
+ *  the window. Stops this from being used to flood somebody's inbox, and stops
+ *  a script from burning the sending quota. Generous enough that a person who
+ *  genuinely clicks "resend" a few times because nothing arrived is never the
+ *  one who hits it. */
 const RATE_LIMIT: Record<TokenKind, { max: number; windowMinutes: number }> = {
   reset: { max: 4, windowMinutes: 30 },
   verify: { max: 5, windowMinutes: 60 },
@@ -97,10 +97,12 @@ export type MintResult =
 /**
  * Create a link token for `userId`, returning the RAW token for the email.
  *
- * Every previously outstanding token of the same kind for this user is burned
- * first. Asking for a second reset link has to invalidate the first, or an old
- * mail sitting in an inbox stays a working key for its full hour after the
- * person has already used a newer one.
+ * Whether previously outstanding tokens of the same kind are burned first is
+ * per-kind, and `BURNS_ON_MINT` is the statement of it: a RESET burns, because
+ * an old mail sitting in an inbox would otherwise stay a working key into the
+ * account for its full hour after the person used a newer one. A VERIFY does
+ * not (audit B-021) -- someone who asks for a second verification link should
+ * not have the first one they eventually find stop working.
  */
 export async function mintToken(
   userId: string,
@@ -142,8 +144,9 @@ export async function mintToken(
   }
   await prisma.$transaction(writes);
 
-  // Opportunistic sweep of anything long dead, so the table cannot grow without
-  // bound on a project that has no cron. Rows are kept a week PAST expiry: the
+  // Opportunistic sweep of anything long dead, so the table cannot grow
+  // without bound: no scheduled job prunes this table (the nightly retention
+  // workflow covers other tables, not these). Rows are kept a week PAST expiry: the
   // row is what lets an expired click say "this link has run out" instead of
   // the unhelpful "we do not recognise this link", and that distinction is
   // worth more than the handful of bytes. Best-effort, so a slow delete never

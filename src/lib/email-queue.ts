@@ -60,11 +60,13 @@ import { isUniqueViolation } from "@/lib/prisma-errors";
  *     incident, where a fresh signup was shown the limit message as the
  *     third email of a ninety-five-email day.
  *
- *  There is no cron on this project. Sends are triggered at enqueue
- *  time (`scheduleDrain`), at first page view (`verificationMailState`),
- *  and by the authenticated layout's `after()` backstop, in that order
- *  of likelihood; the claim in `claimAndSend` is what lets all three
- *  race safely.
+ *  Nothing drains this queue on a schedule. The project does run cron --
+ *  two Vercel crons (the Catch-ups tick, the demo reset) and three GitHub
+ *  workflows (backup, retention, snapshot) -- but none of them touches mail.
+ *  Sends are triggered at enqueue time (`scheduleDrain`), at first page view
+ *  (`verificationMailState`), and by the authenticated layout's `after()`
+ *  backstop, in that order of likelihood; the claim in `claimAndSend` is what
+ *  lets all three race safely.
  * ------------------------------------------------------------------ */
 
 export type { MailKind } from "./mail-policy";

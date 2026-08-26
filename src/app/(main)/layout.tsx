@@ -78,8 +78,10 @@ export default async function MainLayout({
     touchLastSeen(session.user.id, await currentPath()),
   ]);
 
-  // The mail queue's tick. There is no cron on this project, so the queue is
-  // drained by whoever happens to load a page, the same lazy pattern
+  // The mail queue's tick. Nothing on a schedule drains the queue -- the two
+  // Vercel crons run the Catch-ups tick and the demo reset, and the three
+  // GitHub workflows back up, prune and snapshot -- so it is drained by
+  // whoever happens to load a page, the same lazy pattern
   // `advanceDueCatchups` above uses.
   //
   // Inside `after()`, unlike the catch-up advance, because this one makes

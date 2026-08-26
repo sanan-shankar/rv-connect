@@ -104,7 +104,7 @@ export default async function AdminMailPage() {
             month: "short",
             timeZone: "Asia/Kolkata",
           })}{" "}
-          IST. There is no cron here: the queue drains when somebody loads a page.
+          IST. Nothing drains this queue on a schedule: it goes out when somebody loads a page.
         </p>
       )}
 

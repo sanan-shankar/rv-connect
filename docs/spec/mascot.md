@@ -171,32 +171,17 @@ does); reach for `flyIn` when the bird just needs to swoop onto a spot within on
   Also wired: **rare idle behaviours** (`rare-idle-behaviors.ts`) — a ~1% roll, checked once as the
   sidebar's idle-rest bird (`sidebar-hoopoe.tsx`) glides in, to preen/peck/happy-hop before it settles to
   sleep instead of going straight there.
-- **Bell delivery** (`moments/bell-delivery-hoopoe.tsx`, idea #11 off the board): opening the notifications
-  bell (`src/components/layout/notification-bell.tsx`, both the "header" and "sidebar" variants) can pop a
-  hoopoe up to `flyIn` onto the bell carrying a small letter (a Lucide `Mail` glyph), `land()`, drop the
-  letter, and `nod()` before it fades. Owner's two conditions, both enforced: it only offers this when there
-  ARE unread notifications AND at most once per calendar day per browser (`shouldOfferBellDelivery`, a plain
-  localStorage date stamp, not the per-user `one-shot.ts`, since the rule is per-browser not per-account),
-  and the notifications panel is a CONTROLLED dropdown that only actually opens once the delivery's
-  `onDelivered` fires (a `cancel()` on the open attempt defers it) — with a ~6s failsafe timer so a stalled
-  animation can never leave the panel stuck shut (the delivery's own real runtime measured ~3.7-4.1s end to
-  end, so this leaves real headroom rather than racing it). One-hoopoe rule + a narrow, scoped
-  `prefers-reduced-motion` check both gate the offer itself (checked at click time via
-  `anotherHoopoeOnScreen()`); when either blocks it, or the daily stamp is already spent, the panel just
-  opens immediately like any ungated click. This is the one place in the mascot system that reads OS
-  reduced-motion — deliberately narrow to this one blocking-the-UI decision, not a change to the app-wide
-  "motion always runs" policy (`src/components/common/motion.tsx`).
-  **`<BellDeliveryHoopoe>` is mounted unconditionally** by `notification-bell.tsx` for the page's whole life
-  (`anchorRect` starts/returns to `null` between deliveries) rather than only while a delivery is playing —
-  see that file's banner comment for the real bug this fixes: React dev-only Strict Mode double-invokes any
-  effect that mounts in the same commit as another, and a plain `useEffect(() => () => clearTimeout(...), [])`
-  cleanup on a component that mounted fresh alongside its `<Hoopoe>` child was silently clearing the child's
-  just-armed `onReady` timer before it ever got a turn to fire — so `play()` never ran, the letter never
-  delivered, and the bird sat on screen forever (confirmed empirically, then fixed and re-verified: the panel
-  now opens via the real `onDelivered` signal in every trial, the failsafe timer is armed but never fires, and
-  the bird fades and unmounts within ~1s of delivery). Same shape as `sidebar-hoopoe.tsx` and
-  `logo-easter-egg-hoopoe.tsx`, both already structured this way (ref-owning wrapper mounted early, puppet
-  mounted on demand) and unaffected by this hazard.
+- **Bell delivery** — RETIRED. `moments/bell-delivery-hoopoe.tsx` and `shouldOfferBellDelivery` were
+  deleted in 87c054d; opening the notifications bell no longer flies a hoopoe onto it. The 26-line
+  description that stood here described the shipped behaviour of a file that no longer exists.
+  One thing from it is worth keeping, because it still governs two live files: **a ref-owning wrapper
+  is mounted early and its `<Hoopoe>` puppet mounted on demand**, never both in the same commit.
+  React's dev-only Strict Mode double-invokes an effect that mounts alongside another, and a plain
+  `useEffect(() => () => clearTimeout(...), [])` on a freshly-mounted parent silently cleared its
+  child's just-armed `onReady` timer — so `play()` never ran and the bird sat on screen forever.
+  `sidebar-hoopoe.tsx` and `logo-easter-egg-hoopoe.tsx` are both structured this way for this reason.
+  The full postmortem is in git history at 87c054d^.
+
 - **Logo easter egg** (`moments/logo-easter-egg-hoopoe.tsx`, idea #10 off the board): three rapid clicks
   (owner's tweak from the board's original five) on the desktop sidebar's peaks logo pop a small hoopoe up
   from behind it for a `celebrate(3)` + `crest(true)`, then it tucks away. A capture-phase click counter on
