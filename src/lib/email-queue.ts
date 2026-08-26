@@ -97,8 +97,6 @@ const RESET_RESERVE = 20;
  *  small and the next page view picks up where it left off. */
 const BATCH = 8;
 
-
-
 /**
  * True when THIS process is allowed to move mail out of the queue.
  *
@@ -514,15 +512,6 @@ export async function enqueueMail(input: {
 }
 
 /**
- * Run a drain pass without making the caller wait for it.
- *
- * `after()` is the right tool inside a request: the person gets their response
- * and the mail goes out immediately behind it. Outside one (a script, a test,
- * the seed) `after()` throws, so this falls back to firing the promise off
- * directly. Either way nothing here is awaited and nothing here can fail the
- * action that triggered it.
- */
-/**
  * Send one specific queued row without making the caller wait for it.
  *
  * Same guarded shape as scheduleDrain below and for the same reason: `after()`
@@ -544,6 +533,15 @@ function scheduleSend(row: Parameters<typeof claimAndSend>[0]): void {
   }
 }
 
+/**
+ * Run a drain pass without making the caller wait for it.
+ *
+ * `after()` is the right tool inside a request: the person gets their response
+ * and the mail goes out immediately behind it. Outside one (a script, a test,
+ * the seed) `after()` throws, so this falls back to firing the promise off
+ * directly. Either way nothing here is awaited and nothing here can fail the
+ * action that triggered it.
+ */
 function scheduleDrain(): void {
   const run = async () => {
     try {
@@ -918,29 +916,6 @@ export type VerificationMailState =
   | { state: "none" };
 
 /**
- * Has this person's confirmation actually left the building? And if it has
- * not, WHY not - because the answer decides what the banner may claim.
- *
- * This function does not merely report; it repairs. A queued row with budget
- * available is sent HERE, synchronously, before the state is returned. That
- * choice comes from a production incident (2026-08-13): a fresh signup's row
- * sat queued because the fire-and-forget drain never ran on Vercel, and the
- * old version of this function answered "queued" for every unsent row - which
- * the banner then explained as "we've hit today's email limit", to a member
- * who was the third email of a ninety-five-email day. Two lies stacked: the
- * mail had not been deferred, and the limit had nothing to do with it.
- *
- * Sending from the read path makes the invariant structural: by the time an
- * unconfirmed member sees any page, their mail has either really gone (state
- * "sent"), is in another process's hands this second ("imminent"), or the
- * budget is arithmetically exhausted ("queued", the only state whose copy may
- * mention the limit, with the refill time attached). There is no code path
- * that can show the limit message while the day still has budget in it.
- *
- * Cost: one Resend call inside one page load, once, for the member whose mail
- * is pending. Every later read takes the "sent" fast path.
- */
-/**
  * How far off a send may be and still be called "imminent".
  *
  * The banner's imminent copy asserts a completed send, so the word has to mean
@@ -953,6 +928,23 @@ const IMMINENT_WINDOW_MS = 10 * 60 * 1000;
 /**
  * Where a member's confirmation email has got to, and -- when it is due -- the
  * push that sends it.
+ *
+ * This does not merely report; it REPAIRS. A queued row with budget available
+ * is sent here, before the state is returned. That comes from a production
+ * incident (2026-08-13): a fresh signup's row sat queued because the
+ * fire-and-forget drain never ran on Vercel, and this function answered
+ * "queued" for every unsent row -- which the banner explained as "we've hit
+ * today's email limit", to the third email of a ninety-five-email day. Two
+ * lies stacked: the mail had not been deferred, and the limit had nothing to
+ * do with it.
+ *
+ * Sending from the read path makes the invariant structural. By the time an
+ * unconfirmed member sees any page their mail has either really gone ("sent"),
+ * is in another process's hands this second ("imminent"), or the budget is
+ * arithmetically exhausted ("queued", the only state whose copy may mention
+ * the limit, with the refill time attached). No path can show the limit
+ * message while the day still has budget in it. The cost is one Resend call
+ * inside one page load, once; every later read takes the "sent" fast path.
  *
  * `sendInline` decides whether the caller WAITS for the provider.
  *
