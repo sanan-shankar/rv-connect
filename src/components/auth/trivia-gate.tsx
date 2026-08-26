@@ -14,6 +14,15 @@ import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus
 import { getTriviaQuestion, checkTrivia } from "./trivia-actions";
 import { gazeFor } from "@/components/mascot/use-hoopoe";
 
+/**
+ * Ties the last two words together with a non-breaking space, so no line of a
+ * question can ever hold a single word. `text-balance` evens the lines out but
+ * does not promise this; the glue does, at any width and any question length.
+ */
+function noOrphan(text: string): string {
+  return text.replace(/\s+(\S+)$/, "\u00a0$1");
+}
+
 export function TriviaGate({
   hoopoe,
   onPass,
@@ -43,6 +52,23 @@ export function TriviaGate({
   // rig was not yet ready to hear the call. Swallow exactly that first,
   // programmatic focus; every later one is a real visitor.
   const programmaticFocus = useRef(true);
+  // A swap that changes the number of lines used to shunt the answer field and
+  // the button down (or up) in one frame, which read as the page flinching.
+  // The question block's height is animated instead: measure the natural
+  // height of the text, animate the wrapper to it, and everything below rides
+  // the same spring the words do.
+  const questionRef = useRef<HTMLDivElement>(null);
+  const [questionHeight, setQuestionHeight] = useState<number | "auto">("auto");
+  useEffect(() => {
+    const el = questionRef.current;
+    if (!el) return;
+    // ResizeObserver rather than an effect on `question`: the height also
+    // moves when the window is resized or the font finally loads, and neither
+    // of those is a state change here.
+    const observer = new ResizeObserver(() => setQuestionHeight(el.offsetHeight));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     // callAction: a rejected fetch (deploy skew, dropped network) used to be
@@ -117,66 +143,75 @@ export function TriviaGate({
 
   return (
     <div>
-      {/* mt-5 = the same 20px the register step puts between its title and
-          form, now that the subtitle between them is gone. */}
       {/* The swap sits INSIDE the question line as a small circular-arrow
           beside the words (owner, 2026-08-20: the underlined text line read
-          as clutter). A whole extra line of UI for a two-question bank was
-          more furniture than the feature; a quiet glyph the eye finds only
-          when it goes looking is the right weight. The icon rolls half a
-          turn per press — transform only — so the press visibly "turns the
-          question over" while nothing else on the line moves. */}
-      <p className="mt-5 mb-4 min-h-[1.75rem] text-center font-heading text-lg text-foreground">
-        {/* One breath per swap (owner, 2026-08-20: "short and sweet, not
-            exaggerated"): the outgoing words drift up and fade as the new
-            ones rise in — opacity and a 5px translate on the snappy spring,
-            nothing slower. popLayout lifts the leaving text out of flow so
-            the arrow starts gliding to its new seat immediately. */}
-        <AnimatePresence mode="popLayout" initial={false}>
-          <motion.span
-            key={question?.id ?? "loading"}
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -5 }}
-            transition={SPRINGS.snappy}
-            className="inline-block"
-          >
-            {question?.question ?? "..."}
-          </motion.span>
-        </AnimatePresence>
-        {/* Inline in the text flow, not a flex sibling: when the question
-            wraps on a phone the arrow must hug the question mark, not hang
-            centered against two lines out at the margin (caught by the
-            first mobile screenshot round). The wrapper rides the line's
-            re-layout on `layout="position"` -- position only, because the
-            plain `layout` prop scales mid-flight and briefly stretches the
-            glyph (the known Motion gotcha). */}
-        {question && (
-          <motion.span
-            layout="position"
-            transition={SPRINGS.snappy}
-            className="ml-1 inline-flex align-middle"
-          >
-            {/* The 1px optical nudge lives on the BUTTON, not the motion
-                wrapper: motion owns the wrapper's transform during the
-                position glide and would silently drop a static translate. */}
-            <button
-              type="button"
-              onClick={swapQuestion}
-              disabled={checking || passed}
-              aria-label="Try a different question"
-              title="Try a different question"
-              className="inline-flex -translate-y-px rounded-full p-1 text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-40"
-            >
-              <RefreshCw
-                aria-hidden
-                className="size-4 transition-transform duration-500 ease-out"
-                style={{ transform: `rotate(${swaps * 180}deg)` }}
-              />
-            </button>
-          </motion.span>
-        )}
-      </p>
+          as clutter). A whole extra line of UI was more furniture than the
+          feature; a quiet glyph the eye finds only when it goes looking is
+          the right weight. The icon rolls half a turn per press — transform
+          only — so the press visibly "turns the question over" while nothing
+          else on the line moves. */}
+      {/* text-balance so a wrapped question splits into even lines instead of
+          dropping its tail onto a line of its own. */}
+      {/* mt-4 + the inner py-1 is the same 20px the register step puts between
+          its title and form; mb-3 + py-1 is the same 16px below. The padding
+          is not decoration: overflow-hidden is what stops the
+          taller question from spilling over the answer field mid-grow, and
+          without the padding it would crop the swap button's focus ring. */}
+      <motion.div
+        className="mt-4 mb-3 overflow-hidden"
+        animate={{ height: questionHeight }}
+        transition={SPRINGS.snappy}
+        initial={false}
+      >
+        <div ref={questionRef} className="py-1">
+          <p className="min-h-[1.75rem] text-center font-heading text-lg text-balance text-foreground">
+            {/* One breath per swap (owner, 2026-08-20: "short and sweet, not
+                exaggerated"): the outgoing words drift up and fade as the new
+                ones rise in — opacity and a 5px translate on the snappy spring,
+                nothing slower. popLayout lifts the leaving text out of flow so
+                the incoming line does not wait for it. */}
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.span
+                key={question?.id ?? "loading"}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                transition={SPRINGS.snappy}
+                className="inline-block max-w-full"
+              >
+                {question ? noOrphan(question.question) : "..."}
+                {/* The arrow lives INSIDE the text box, glued to the last word by
+                    a non-breaking space. As a sibling of the box it was pushed
+                    onto a line of its own the moment a question wrapped: an
+                    inline-block that has to wrap takes the full width, leaving
+                    the arrow nowhere to sit. Inside, it simply rides the last
+                    line and hugs the question mark at every width. The 1px
+                    optical nudge is on the button, whose transform nothing else
+                    animates. */}
+                {question && (
+                  <>
+                    {"\u00a0"}
+                    <button
+                      type="button"
+                      onClick={swapQuestion}
+                      disabled={checking || passed}
+                      aria-label="Try a different question"
+                      title="Try a different question"
+                      className="inline-flex -translate-y-px align-middle rounded-full p-1 text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-40"
+                    >
+                      <RefreshCw
+                        aria-hidden
+                        className="size-4 transition-transform duration-500 ease-out"
+                        style={{ transform: `rotate(${swaps * 180}deg)` }}
+                      />
+                    </button>
+                  </>
+                )}
+              </motion.span>
+            </AnimatePresence>
+          </p>
+        </div>
+      </motion.div>
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* The same calm material as the register step's FloatFields (56px
             mist, no hairline), built as a plain input on the shared shell
