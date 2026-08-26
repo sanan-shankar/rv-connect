@@ -17,7 +17,8 @@ import { directUploadPut } from "@/lib/upload-client";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
 import { cn, renderRichText } from "@/lib/utils";
 import {
-  FORMAT_SHORTCUTS,
+  applyFormatShortcut,
+  insertPlainTextPaste,
   computeMentionRange,
   serializeEditableToMarkdown,
 } from "@/lib/rich-text-editing";
@@ -677,29 +678,11 @@ export function CreatePostForm({
   // keeps raw "**" off the screen. The phone's native selection bar (Bold /
   // Italic / Underline) reaches the same code path through the browser itself.
   function handleEditorKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
-    if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
-    const command = FORMAT_SHORTCUTS[e.key.toLowerCase()];
-    if (!command) return;
-    e.preventDefault();
-    try {
-      document.execCommand(command, false);
-    } catch {
-      /* no-op: unsupported in this browser */
-    }
-    handleRichInput();
+    if (applyFormatShortcut(e)) handleRichInput();
   }
 
-  // Force plain-text paste: clipboard formatting never bleeds into the editor,
-  // so bold/italic only ever comes from a shortcut, the phone's selection bar,
-  // or markdown the user types by hand (which round-trips via renderRichText).
   function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
-    e.preventDefault();
-    const text = e.clipboardData.getData("text/plain");
-    try {
-      document.execCommand("insertText", false, text);
-    } catch {
-      /* no-op: unsupported in this browser */
-    }
+    insertPlainTextPaste(e);
     handleRichInput();
   }
 
