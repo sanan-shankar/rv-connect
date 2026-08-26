@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
-import { Button } from "@/components/ui/button";
 import { AlmostReady } from "@/components/catchups/almost-ready";
+import { NotAvailableCard } from "@/components/catchups/not-available";
 import { CatchupHomeShell } from "@/components/catchups/home/catchup-home-shell";
 import type { PublishedIssue } from "@/components/catchups/home/console-published";
 import type {
@@ -373,33 +372,6 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
   };
 
   return { kind: "ok", ...data };
-}
-
-function NotAvailableCard({
-  title,
-  body,
-  cta,
-}: {
-  title: string;
-  body: string;
-  cta?: { href: string; label: string };
-}) {
-  return (
-    <div className="mx-auto max-w-2xl text-center">
-      {/* Symmetric padding, one LiftKit token, same as every other Catch-ups
-          tile. It was `p-12`: an arbitrary step, and far bigger than the copy
-          it held (owner review 2026-07-25). */}
-      <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-[var(--space-l)]">
-        <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">{title}</h1>
-        <p className="mt-[var(--space-xs)] text-muted-foreground">{body}</p>
-        {cta && (
-          <Link href={cta.href} className="mt-[var(--space-m)] inline-flex">
-            <Button variant="primary">{cta.label}</Button>
-          </Link>
-        )}
-      </div>
-    </div>
-  );
 }
 
 export default async function CatchupHomePage({

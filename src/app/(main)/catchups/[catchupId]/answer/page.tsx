@@ -20,7 +20,7 @@ import {
 import { promptKind, type EditionStatus, type PromptCategory } from "@/lib/catchups-types";
 import { PageHeader } from "@/components/layout/page-header";
 import { AlmostReady } from "@/components/catchups/almost-ready";
-import { NotAvailableCard } from "@/components/catchups/answer/not-available";
+import { NotAvailableCard } from "@/components/catchups/not-available";
 import { AnswerRedirect } from "@/components/catchups/answer/answer-redirect";
 import { AnswerExperience } from "@/components/catchups/answer/answer-experience";
 import type { AnswerPromptData } from "@/components/catchups/answer/types";
