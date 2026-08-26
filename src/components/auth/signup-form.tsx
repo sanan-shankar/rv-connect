@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { signIn } from "next-auth/react";
-import { Eye, EyeOff, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -25,6 +25,7 @@ import { BOT_CHECK_BLOCKED, TICK_HUMAN_BOX } from "@/lib/bot-check-message";
 import { registerUser } from "./actions";
 import { TurnstileWidget, type TurnstileHandle } from "./turnstile-widget";
 import { MIN_PASSWORD } from "@/lib/password-rule";
+import { PasswordField } from "@/components/auth/password-field";
 import { gazeFor } from "@/components/mascot/use-hoopoe";
 
 // Devices with a real mouse get the info bubble on hover; touch devices (no
@@ -611,34 +612,18 @@ export function SignupForm({
       </motion.div>
 
       <motion.div layout transition={rowTransition}>
-        <FloatField
+        <PasswordField
           id="password"
-        name="password"
-        type={showPw ? "text" : "password"}
-        label="Password"
-        focusHint="8+ characters"
-        autoComplete="new-password"
-        required
-        minLength={MIN_PASSWORD}
-        onChange={(e) => {
-          // the bird follows what you type whether peeking or covered
-          // (its head tracks behind the wings when its eyes are hidden)
-          hoopoe.gaze(gazeFor(e.target.value.length, 16));
-        }}
-        trailing={
-          <button
-            type="button"
-            onClick={() => setShowPw((s) => !s)}
-            aria-label={showPw ? "Hide password" : "Show password"}
-            // state-layer, matching /login's reveal button: an ink darkening
-            // alone is easy to miss on a 32px target, and the same class
-            // carries the press state.
-            className="state-layer grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-[color,transform] duration-150 hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            {showPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-          </button>
-        }
-      />
+          name="password"
+          label="Password"
+          minLength={MIN_PASSWORD}
+          onChange={(v) => {
+            // the bird follows what you type whether peeking or covered
+            // (its head tracks behind the wings when its eyes are hidden)
+            hoopoe.gaze(gazeFor(v.length, 16));
+          }}
+          onRevealChange={setShowPw}
+        />
       </motion.div>
 
       {/* Optional, never verified; the value the server reads. */}
