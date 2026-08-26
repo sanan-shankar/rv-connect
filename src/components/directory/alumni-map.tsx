@@ -8,7 +8,6 @@ import { geoNaturalEarth1, geoPath } from "d3-geo";
 import { select } from "d3-selection";
 import { zoom as d3zoom, zoomIdentity, type ZoomTransform } from "d3-zoom";
 import { feature } from "topojson-client";
-import worldData from "world-atlas/countries-110m.json";
 import type { Feature, Geometry } from "geojson";
 import { IdentityRow } from "@/components/common/identity-row";
 import { batchLine, cn, metaLine } from "@/lib/utils";
@@ -82,11 +81,37 @@ const projection = geoNaturalEarth1().fitExtent(
 );
 const pathGen = geoPath(projection);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const land = feature(worldData as any, (worldData as any).objects.countries) as unknown as {
-  features: Feature<Geometry>[];
-};
-const landPaths = land.features.map((f) => pathGen(f) ?? "");
+/* The world atlas is FETCHED, not imported.
+ *
+ * `import worldData from "world-atlas/countries-110m.json"` compiled 105 KB
+ * of JSON into a JavaScript module and put it in the first load of the
+ * heaviest route in the app -- parsed on the main thread before /directory
+ * could become interactive, and re-downloaded on every deploy because the
+ * chunk hash moves with the build even though the coastlines do not.
+ *
+ * As a static file it is fetched in parallel with hydration, cached hard by
+ * the header in next.config.ts, and costs the JS graph nothing. The map
+ * draws its pins on the first frame and the land a moment later, which it
+ * already coped with: `landPaths` was always mapped over, and an empty
+ * array simply renders no <path>. The pins are the data; the land is the
+ * backdrop.
+ *
+ * To update the atlas, replace public/geo/countries-110m.json AND rename it
+ * -- the cache header is immutable, so a same-named replacement would be
+ * invisible to anyone who had already loaded it. */
+const ATLAS_URL = "/geo/countries-110m.json";
+
+type Topology = Parameters<typeof feature>[0];
+
+async function loadLandPaths(signal: AbortSignal): Promise<string[]> {
+  const res = await fetch(ATLAS_URL, { signal });
+  if (!res.ok) throw new Error(`atlas ${res.status}`);
+  const topo = (await res.json()) as Topology;
+  const land = feature(topo, topo.objects.countries) as unknown as {
+    features: Feature<Geometry>[];
+  };
+  return land.features.map((f) => pathGen(f) ?? "");
+}
 
 const MIN_Z = 1;
 
@@ -163,6 +188,10 @@ export function AlumniMap({
   namesLocked?: boolean;
 }) {
   const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
+  /* Empty until the atlas lands. Rendering no <path> is a frame the map has
+     always been able to draw -- the pins carry the meaning and are painted
+     from props on the first frame. See loadLandPaths above. */
+  const [landPaths, setLandPaths] = useState<string[]>([]);
   /* The place and its headcount are kept APART rather than pre-joined into one
      string. The panel sets them at two different weights either side of a
      middle dot (owner, 2026-08-03: "maybe a middle dot instead of hyphen"),
@@ -171,6 +200,24 @@ export function AlumniMap({
     { title: string; count: number | null; people: PinPerson[]; href?: string } | null
   >(null);
   const [fullscreen, setFullscreen] = useState(false);
+
+  useEffect(() => {
+    const ac = new AbortController();
+    loadLandPaths(ac.signal)
+      .then(setLandPaths)
+      .catch((err) => {
+        if (ac.signal.aborted) return;
+        /* The map still works without land: every pin, the clustering, the
+           zoom and the drilldown are unaffected, so a failed atlas must not
+           take the page down. Logged in development only -- a guard that
+           hides its own breakage is worse than no guard, and in production
+           this is a cosmetic degradation nobody should see an error page for. */
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("[map] world atlas failed to load; drawing pins only", err);
+        }
+      });
+    return () => ac.abort();
+  }, []);
   /** Live geometry of the rendered <svg>: its CSS box plus `s`, the CSS px that
    *  one viewBox unit currently occupies. See MIN_PX_PER_UNIT. */
   const [box, setBox] = useState({ w: 0, h: 0, s: MIN_PX_PER_UNIT });
