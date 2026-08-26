@@ -80,6 +80,13 @@ demo-photos/
 # One-off debugging probes. Throwaway by nature, never referenced by the app.
 .scratch/
 
+# Pre-migration snapshots. A DROP is irreversible and Supabase's free plan has
+# no point-in-time recovery, so every destructive migration writes the rows it
+# is about to destroy here first. Never tracked: these hold real member data
+# (Visit coordinates, among others), which is the whole reason they exist and
+# the whole reason they must not enter git.
+.backups/
+
 # Supabase CLI local link state, written by `supabase link`. Machine-specific.
 supabase/.temp/
 
