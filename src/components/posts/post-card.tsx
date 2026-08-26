@@ -14,6 +14,7 @@ import { callAction } from "@/lib/call-action";
 import { useHeartToggle, useBookmarkToggle } from "./use-engagement";
 import { IdentityRow } from "@/components/common/identity-row";
 import { ImageViewer } from "@/components/common/image-viewer";
+import { photoSrc, photoSrcSet } from "@/lib/image-cdn";
 import { MetaDots } from "@/components/common/meta-dots";
 import { PersonName } from "@/components/common/person-name";
 import { VerifiedMark } from "@/components/common/verified-mark";
@@ -392,9 +393,22 @@ export function PostCard({
                       images.length === 3 && i === 0 ? "col-span-2" : ""
                     }`}
                   >
+                    {/* Served at display size, not stored size: a 728px card was
+                        downloading a 1920px file. See src/lib/image-cdn.ts for the
+                        measurement and for why this is a URL rather than <Image>. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={img}
+                      src={photoSrc(img)}
+                      srcSet={photoSrcSet(img)}
+                      /* Must match the grid below, including the three-photo case
+                         where the FIRST cell spans both columns -- getting this
+                         wrong asks for a half-width file and renders it upscaled
+                         at full width, which is exactly what the first pass did. */
+                      sizes={
+                        images.length === 1 || (images.length === 3 && i === 0)
+                          ? "(max-width: 640px) 100vw, 728px"
+                          : "(max-width: 640px) 50vw, 359px"
+                      }
                       alt=""
                       loading="lazy"
                       className={`w-full object-cover ${

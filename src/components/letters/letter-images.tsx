@@ -5,6 +5,7 @@
  * date ride along so the viewer can say who posted what it is showing. */
 
 import { useState } from "react";
+import { photoSrc, photoSrcSet } from "@/lib/image-cdn";
 import { ImageViewer } from "@/components/common/image-viewer";
 import type { AvatarUser } from "@/components/common/bird-avatar";
 
@@ -32,7 +33,14 @@ export function LetterImages({
             className="block w-full overflow-hidden rounded-[var(--radius-md)] border border-border transition-opacity duration-150 hover:opacity-95 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={img} alt="" loading="lazy" className="w-full object-cover" />
+            <img
+              src={photoSrc(img)}
+              srcSet={photoSrcSet(img)}
+              sizes="(max-width: 640px) 100vw, 728px"
+              alt=""
+              loading="lazy"
+              className="w-full object-cover"
+            />
           </button>
         ))}
       </div>
