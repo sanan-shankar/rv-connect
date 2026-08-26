@@ -61,6 +61,10 @@ export function AdminProfileTools({
         toast.error(result.error);
       } else {
         toast.success("User deleted");
+        /* A hard navigation, not router.push: the profile this component is
+           mounted on has just been deleted, so every cached RSC payload for it
+           is a page about a user who no longer exists. */
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         window.location.href = "/directory";
       }
     } catch {
