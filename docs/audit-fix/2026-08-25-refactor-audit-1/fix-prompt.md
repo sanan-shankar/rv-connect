@@ -1022,6 +1022,29 @@ that test's edit rode in `8314f24`, and I strengthened it: `lastIndexOf` returni
 have silently sliced the wrong text and passed. `CLAUDE.md` is modified in the tree and is
 **not mine**.
 
+**Two corrections to this entry, found AFTER it was written** (both shipped: `b2216d5`):
+
+1. **The first `sizes` I shipped was wrong, and 4K was blurry.** I hardcoded 728px, which
+   is what a feed card measures on a 1440px laptop — but it is not a constant. The feed's
+   content wrapper is `max-w-[1600px]` and the grid gives the column everything except a
+   318px rail, so the card GROWS to 1216px. On a 3840px screen the browser was handed a
+   750px file for a 1216px slot: **0.62x, visibly blurry** — the exact failure the change
+   existed to prevent. The owner asked whether 4K would suffer, which is how it was found.
+   `sizes` now tracks the real column at every breakpoint and lives in `image-cdn.ts` as
+   `PHOTO_SIZES_FULL`/`PHOTO_SIZES_HALF` so the arithmetic sits in one place.
+   **Anyone adding a `sizes` anywhere must derive it from the real column and check it at
+   a wide viewport.** A wrong `sizes` is worse than none.
+2. **Chrome will not downgrade an already-loaded srcset candidate.** Resizing the viewport
+   between measurements hands you the previous, larger file and a falsely bad reading — it
+   cost me one. Use a fresh `isolatedContext` per screen size.
+
+Also worth recording, since it bounds every image finding: **feed and letter photos are
+stored at 1920px max**. `toDisplayWebp` boxes them and the staged original is purged, so
+1920 is the top rung of the ladder and no screen can ever be served more. The Collection is
+the exception — it keeps up to 40 megapixels at quality 90 plus a thumbnail, because it is
+the archive. A 4K retina display therefore reads a feed photo at 1.59x, which is the stored
+file itself and exactly what shipped before this work.
+
 **State left**: clean — every file I touched is committed. Two servers may still be up on
 ports 3000 (dev) and 3100 (`next start`, for the authed production measurements above);
 kill 3100 when done with it.
