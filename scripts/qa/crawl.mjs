@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import pg from 'pg';
 import { config } from 'dotenv';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
@@ -8,14 +9,35 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 process.chdir(repoRoot);
 
 config({ path: '.env' });
-const OWN = 'cmmz0vvws0000ynsg3ueb9scp';
-const OTHER = 'b9d8okmgtb1yp6a58jv3xky1';
+
+/* The two profile rows used to be hardcoded cuids. Both had been deleted from
+   the database by 2026-08-26, and a profile page for a user who does not exist
+   answers 200 with the app shell and no profile in it -- so the crawler had
+   been printing `OK 200` for two pages that rendered nothing, for as long as
+   nobody looked. Ids now come from the database, and each profile row also has
+   to show that person's name before it counts as OK. */
+async function pickProfiles() {
+  const db = new pg.Client({ connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL });
+  await db.connect();
+  try {
+    const own = (await db.query('SELECT id, name FROM "User" WHERE lower(email) = lower($1)', [process.env.ADMIN_EMAIL])).rows[0];
+    if (!own) throw new Error(`No user matches ADMIN_EMAIL (${process.env.ADMIN_EMAIL || 'unset'}).`);
+    const other = (await db.query('SELECT id, name FROM "User" WHERE id <> $1 AND name IS NOT NULL ORDER BY "createdAt" LIMIT 1', [own.id])).rows[0];
+    if (!other) throw new Error('The database holds no second user to crawl.');
+    return { own, other };
+  } finally {
+    await db.end();
+  }
+}
+
+const { own: OWN, other: OTHER } = await pickProfiles();
+const expectedOnPage = new Map([[`/profile/${OWN.id}`, OWN.name], [`/profile/${OTHER.id}`, OTHER.name]]);
 // Every live destination, signed in as the admin. Keep this in step with the
 // sidebar in src/components/layout/sidebar.tsx: a route that 404s here but is
 // still listed is a route somebody deleted without telling the crawler.
 // /donate is deliberately included: it survives only as a redirect to /support
 // for old links, so a 200 here is the redirect working.
-const routes = ['/feed','/directory','/letters','/catchups','/collection','/about','/support','/donate','/admin','/messages','/dark-mode',`/profile/${OWN}`,`/profile/${OTHER}`,'/','/login','/signup','/lab'];
+const routes = ['/feed','/directory','/letters','/catchups','/collection','/about','/support','/donate','/admin','/messages','/dark-mode',`/profile/${OWN.id}`,`/profile/${OTHER.id}`,'/','/login','/signup','/lab'];
 const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
 const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900 });
@@ -34,6 +56,11 @@ for (const r of routes) {
     // detect Next error overlay / app error text
     const hasErr = await page.evaluate(() => document.body && /Application error|Unhandled Runtime Error|This page could not be found/i.test(document.body.innerText||''));
     if (hasErr) errs.push('overlay/text: error visible');
+    const expected = expectedOnPage.get(r);
+    if (expected) {
+      const rendered = await page.evaluate((name) => !!document.body && (document.body.innerText || '').includes(name), expected);
+      if (!rendered) errs.push(`profile did not render "${expected}"`);
+    }
   } catch(e) { status = 'NAV-ERR'; errs.push('nav: '+String(e.message).slice(0,100)); }
   page.off('console', onConsole); page.off('pageerror', onPageErr);
   const tag = (status===200 && errs.length===0) ? 'OK ' : '!! ';
