@@ -12,8 +12,8 @@ Security items are tracked separately in `docs/SECURITY.md` (and live on `npm ru
 
 **Fires:** after any UI change, before committing. `npm run visual`.
 
-10 routes x 2 viewports (1440x900 and 390x844) compared against baselines in
-`e2e/__screenshots__/`. 50 seconds. Fails on a difference of 100 pixels.
+11 routes x 2 viewports (1440x900 and 390x844) compared against baselines in
+`e2e/__screenshots__/`. ~80 seconds. Fails on a difference of 100 pixels.
 
 | Command | Use |
 |---|---|
@@ -31,9 +31,30 @@ changing `/about` from `text-sm` to `text-base` **passed**. It is now an absolut
 `maxDiffPixels: 100`, so the blind spot does not scale with the page.
 
 **What is masked, and why** (`volatileRegions()` in `e2e/visual.spec.ts`): relative
-timestamps from `formatTimeAgo`, the live contribution fill on `/support`, and the hoopoe,
-which idles forever and has no rest state. The mascot keeps its own dedicated checks in
-`scripts/qa/hoopoe-idle-check.mjs`.
+timestamps from `formatTimeAgo`, the live contribution fill on `/support`, the hoopoe,
+which idles forever and has no rest state, and the notification bell's unread dot. The
+mascot keeps its own dedicated checks in `scripts/qa/hoopoe-idle-check.mjs`.
+
+**Four routes photograph a live database, and are masked further** (`LIVE ROUTES` in the
+same file). Feed, directory, letters and catchups were red on every run from 2026-08-25
+because members were posting and signing up — eight failures a session, none caused by a
+commit, which is how a suite stops being read at all. They are not rebaselined against
+today's content, because that baseline is stale tomorrow. Instead:
+
+- **feed, letters, catchups** are shot at viewport height with the content under the page
+  header masked. One new post moves everything below it, so no per-element mask helps.
+  Still compared: the sidebar, the mobile header, the background, and the header band
+  itself — serif title, Canopy pill, spacing — which is where a token change shows first.
+  `spine()` additionally pins the content column's x and width as numbers.
+- **directory** drifts far more narrowly (the headcount, and cluster circles that grow with
+  signups), so only the map drawing and the headcount are masked. The search field, the
+  filter pills, the Map/Batches toggle and the map's container box are still compared, full
+  page. It is the most fragile layout in the app and worth the precision.
+
+`/collection` is deliberately not in that list: photos arrive rarely enough that its picture
+still means something, and it is the one that catches image-sizing regressions. **If full
+coverage of the four is ever wanted back, the answer is seeded content — a database the
+suite owns — not a bigger mask.**
 
 **Adding a route:** one line in `ROUTES`, with its reason. That is the whole procedure.
 

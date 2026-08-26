@@ -205,7 +205,7 @@ heading gap is 24px, should be 16px"). Minimum two rounds, then repeat on mobile
 ## Visual regression: `npm run visual` — run it after every UI change
 
 The above catches what you thought to look at. **`npm run visual` catches what you didn't**: it
-compares 10 routes x 2 viewports against committed baselines in `e2e/__screenshots__/` and fails on
+compares 11 routes x 2 viewports against committed baselines in `e2e/__screenshots__/` and fails on
 a diff of 100 pixels. Takes 50s. Run it before you commit any UI work, not just on the page you
 edited — its whole point is the page you were not looking at.
 
@@ -213,6 +213,7 @@ edited — its whole point is the page you were not looking at.
 |---|---|
 | `npm run visual` | compare every route against its baseline |
 | `npm run visual:update` | **the change was intentional** — rewrite the baselines, and stage the PNGs with the UI change that moved them, not as a `test(visual):` commit of their own |
+| — | Feed, directory, letters and catchups photograph a live database, so they are masked past the page header (directory: just the map and its headcount). A red run on those four is real. See OPERATIONS §1. |
 | `npm run visual:report` | open the three-up expected/actual/diff view of the last failure |
 | `npm run test:e2e` | the above plus the sign-in flow checks |
 
