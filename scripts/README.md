@@ -70,4 +70,3 @@ Full runbook in `docs/spec/demo.md`. These four are that pipeline.
 
 | Script | Does |
 |---|---|
-| `gen-support-qr.mjs` | Generates the scannable UPI QR codes on the Support page, brand-styled. Re-run if the UPI ID changes. |
