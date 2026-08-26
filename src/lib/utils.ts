@@ -238,6 +238,32 @@ const MAX_NATIONAL_DIGITS = 11
 const MAX_BARE_NATIONAL_DIGITS = 10
 
 /**
+ * The ITU arithmetic both phone functions have to agree on: how many leading
+ * digits are the country code, and whether what remains is a plausible
+ * national number.
+ *
+ * Null when it is not: too short or too long a remainder means those leading
+ * digits were never a country code, and each caller has its own answer for
+ * that case -- display shows what was typed, the editor falls back to the
+ * default code.
+ *
+ * The two callers stay separate deliberately (see splitPhoneParts' banner);
+ * only this computation is shared, precisely so they cannot come to different
+ * conclusions about the same number.
+ */
+function splitCountryCode(digits: string): { code: string; rest: string } | null {
+  const codeLength =
+    digits[0] === "1" || digits[0] === "7"
+      ? 1
+      : TWO_DIGIT_CALLING_CODES.has(digits.slice(0, 2))
+        ? 2
+        : 3
+  const rest = digits.slice(codeLength)
+  if (rest.length < MIN_NATIONAL_DIGITS || rest.length > MAX_NATIONAL_DIGITS) return null
+  return { code: digits.slice(0, codeLength), rest }
+}
+
+/**
  * "+919845033712" and "917598975768" both become "+91 9845033712"-style: the
  * country code separated by a space, with the "+" restored if it was missing.
  *
@@ -264,17 +290,11 @@ export function formatPhoneDisplay(raw: string): string {
   // With no "+" to declare one, a short run is the national number itself.
   if (!hadPlus && digits.length <= MAX_BARE_NATIONAL_DIGITS) return trimmed
 
-  const codeLength =
-    digits[0] === "1" || digits[0] === "7"
-      ? 1
-      : TWO_DIGIT_CALLING_CODES.has(digits.slice(0, 2))
-        ? 2
-        : 3
-  const rest = digits.slice(codeLength)
   // If what is left is not a plausible national number, this was not a country
   // code after all. Show what was typed rather than a dangling "+91 ".
-  if (rest.length < MIN_NATIONAL_DIGITS || rest.length > MAX_NATIONAL_DIGITS) return trimmed
-  return `+${digits.slice(0, codeLength)} ${rest}`
+  const split = splitCountryCode(digits)
+  if (!split) return trimmed
+  return `+${split.code} ${split.rest}`
 }
 
 /** The one default this file assumes: most of this school's alumni carry it
@@ -290,7 +310,10 @@ const DEFAULT_PHONE_CODE = "+91"
  * "even now if profile when I delete my phone number I have to enter both
  * in the same box"). Kept independent of formatPhoneDisplay above rather
  * than sharing its body, so this never risks that function's existing,
- * already-relied-on output for a case this split did not anticipate.
+ * already-relied-on output for a case this split did not anticipate. The one
+ * thing they DO share is splitCountryCode, because the ITU arithmetic is a
+ * pure computation both must reach the same answer on: if it ever drifted,
+ * the display and the editor would split the same number two ways.
  *
  * A value with no recognisable code (too short, not a plausible national
  * number once split, or not digits at all -- a pasted landline with an
@@ -321,17 +344,9 @@ export function splitPhoneParts(raw: string): { code: string; rest: string } {
     return { code: DEFAULT_PHONE_CODE, rest: digits }
   }
 
-  const codeLength =
-    digits[0] === "1" || digits[0] === "7"
-      ? 1
-      : TWO_DIGIT_CALLING_CODES.has(digits.slice(0, 2))
-        ? 2
-        : 3
-  const rest = digits.slice(codeLength)
-  if (rest.length < MIN_NATIONAL_DIGITS || rest.length > MAX_NATIONAL_DIGITS) {
-    return { code: DEFAULT_PHONE_CODE, rest: digits }
-  }
-  return { code: `+${digits.slice(0, codeLength)}`, rest }
+  const split = splitCountryCode(digits)
+  if (!split) return { code: DEFAULT_PHONE_CODE, rest: digits }
+  return { code: `+${split.code}`, rest: split.rest }
 }
 
 /** The inverse of splitPhoneParts, for what the editor saves: the same
