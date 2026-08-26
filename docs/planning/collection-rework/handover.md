@@ -1,6 +1,7 @@
 # Collection rework — LIVING HANDOVER
 
-**This file plus [`brief.md`](brief.md) is the entire handover.** A session is started by
+**This file plus [`brief.md`](brief.md) is the entire handover.** [`prior-art.md`](prior-art.md)
+is the research behind the recommendations; read it before arguing with any of them. A session is started by
 @-ing this file. Read `brief.md` **in full, first** — it is the owner's own words and the
 owner asked explicitly that it never be reduced to a summary. This file is an *index into*
 that brief, not a replacement for it. Edit this file before your session ends: status
@@ -41,9 +42,13 @@ that rework.
       not.
 - [x] **Reference gallery identified** — see Findings F2. Pixieset, justified rows.
 - [x] **Crop bug root-caused** — see Findings F3.
-- [ ] **`/lab/crop` room** — in progress, session 1. Six crop policies against a hostile
-      set of real photographs at 1440 / 3840 / 390 widths, so the owner can choose by
-      looking. Must also cover the multi-photo layout question.
+- [x] **`/lab/crop` room** — built, session 1. Six crop rules against six awkward
+      photographs at the three real column widths, plus justified rows against today's post
+      grid and today's masonry. Every control is a URL parameter, so a comparison can be
+      linked: `?mode=six|scroll|many&w=phone|laptop|wide&photo=<key>&policy=<key>&n=2|3|4|6`.
+      The maths is in `src/app/lab/crop/_policies.ts` and `_justified.ts`, written to be
+      lifted into the real components rather than retyped.
+- [x] **Prior art researched** — `prior-art.md`. Owner asked for it directly mid-session.
 - [ ] **Owner picks a crop policy** — blocks the spec, because it determines the justified
       grid maths, the stored derivative sizes and the viewer's framing.
 - [ ] **Write the spec** — one document, `spec.md` in this folder, phased so it can still
@@ -51,7 +56,7 @@ that rework.
 - [ ] **Owner reviews the spec.**
 - [ ] **Implementation plan** (`superpowers:writing-plans`).
 - [ ] **Execute, phase by phase.**
-- [ ] **Close-out**: fold bug #18, #19 and the catch-up items out of `docs/planning/bugs.md`,
+- [ ] **Close-out**: delete `/lab/crop`, `public/lab/crop/` and the registry row; fold bug #18, #19 and the catch-up items out of `docs/planning/bugs.md`,
       update `docs/spec/media.md` (large parts of it are now superseded — see D2, D3),
       delete `/lab/crop` and its registry line, log in `progress.md`.
 
@@ -167,7 +172,7 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | 31 | Keep newest / oldest / most loved | decided |
 | 32 | The pill-plus-dropdown filter pattern is "not a 10 on 10"; do not reuse it just because it is used elsewhere; keep thinking creatively | open — a design instruction |
 | 29 | The search bar is too big and the controls eat a whole row; consider moving them up in line with the title | open |
-| 23 | Study how big archives and photo libraries solve this (he names Imperial's archive); lift from prior art rather than reinventing | open — method instruction |
+| 23 | Study how big archives and photo libraries solve this (he names Imperial's archive); lift from prior art rather than reinventing | **answered** — `prior-art.md` |
 | 24 | The school photographer cannot be invited yet: cannot upload one by one, 100 photos would flood and get lost, cannot tag each one | the motivating use case |
 | 25 | LLM-assisted tagging from descriptions and images, as was done for directory professions | open — he proposed it, likes it |
 | 28 | Design for three audiences: an end user finding photos, a photographer wanting their work seen and sorted, and an uploader wanting it seamless | open — framing instruction |
@@ -258,4 +263,16 @@ Brainstorming session. No application code touched.
 - Got D1, D2, D3 from the owner; D4 and D5 came from the brief itself.
 - Wrote `brief.md` verbatim and this file, at the owner's explicit instruction, before
   building anything, so the campaign survives this session's context filling up.
-- Next: build `/lab/crop`.
+- Built `/lab/crop` (commit below). `npm run check` green: TypeScript clean, ESLint clean,
+  protocol clean, 45 lab routes registered, 78/78 tests. Verified in the browser at 1440 and
+  at 390. Note the gate took **656 seconds** rather than its documented 23, because another
+  session was building at the same time; that is machine load, not a regression.
+- Researched prior art at the owner's request mid-session and wrote `prior-art.md`. The two
+  findings that change the design: X measured real racial and gender bias in exactly the
+  saliency-crop idea our sixth rule uses and withdrew it, which matters much more now that
+  D2 put people in the archive; and Flickr pre-generates justified layout server-side off a
+  viewport-width cookie, which is both a 7x first-photo speedup and the thing that keeps us
+  off the metered Vercel optimiser.
+- **Next: the owner picks a crop rule in `/lab/crop`.** Everything else is blocked on it.
+  While waiting, the next safe piece of work is F4: storing width and height for feed,
+  letter and catch-up images, which every option needs and no option contradicts.
