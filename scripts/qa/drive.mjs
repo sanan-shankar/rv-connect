@@ -39,6 +39,32 @@ mkdirSync(outDir, { recursive: true });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Open your own profile and press "Edit profile".
+ *
+ * Both scenarios below used to go to `/settings`, which stopped existing when
+ * the letterhead profile absorbed the editors (22b4b6c). They 404'd and then
+ * failed on a missing selector, which reads like a broken control rather than
+ * a dead route.
+ */
+async function ownProfileEditing(page) {
+  // `/profile` with no id is a 404; the own-profile link in the sidebar rail
+  // carries the id, so read it rather than hardcoding a cuid that will be
+  // deleted one day (which is exactly how crawl.mjs came to pass two blank
+  // pages for months).
+  await page.goto(`${BASE}/feed`, { waitUntil: "domcontentloaded" });
+  await sleep(2500);
+  const href = await page.evaluate(() => {
+    const a = [...document.querySelectorAll('aside a[href^="/profile/"]')][0];
+    return a ? a.getAttribute("href") : null;
+  });
+  if (!href) throw new Error("no own-profile link in the sidebar");
+  await page.goto(`${BASE}${href}`, { waitUntil: "domcontentloaded" });
+  await sleep(2500);
+  await clickByText(page, "button", "Edit profile");
+  await sleep(1200);
+}
+
 /** Click the first element whose trimmed text matches, within a selector set. */
 async function clickByText(page, selector, text) {
   const handle = await page.evaluateHandle(
@@ -181,32 +207,57 @@ const SCENARIOS = {
 
   /** Houses picker: open a year's panel and confirm it does not cover the year rows. */
   async houses({ page, shot }) {
-    await page.goto(`${BASE}/settings`, { waitUntil: "domcontentloaded" });
-    await sleep(2500);
-    // Scroll the houses editor into view.
+    await ownProfileEditing(page);
+    // Scroll the houses chain into view. The editor is the chain itself now --
+    // "Tap a house to change it" -- so the trigger is a house pill, not a
+    // separate per-year control.
     await page.evaluate(() => {
-      const el = [...document.querySelectorAll("p,label,h2,h3")].find((n) =>
-        (n.textContent || "").includes("Pick a house for each")
+      const el = [...document.querySelectorAll("p,label,h2,h3,div")].find((n) =>
+        /Tap a house to change it/.test(n.textContent || "")
       );
       (el || document.body).scrollIntoView({ block: "center" });
     });
     await sleep(600);
     await shot("houses-closed");
-    const trigger = await page.$('[aria-label^="House(s) for"]');
-    if (!trigger) throw new Error("no house picker trigger found");
-    await trigger.click();
+    const opened = await page.evaluate(() => {
+      // Every editable pill is `<button aria-label="Golden, 2014-15. Change
+      // this.">` (houses-chain.tsx), which survives a copy change better than
+      // matching the visible text, where the house and the years are separate
+      // spans and run together as "Golden2014-15".
+      const pill = document.querySelector('button[aria-label*="Change this."]');
+      if (!pill) return null;
+      pill.click();
+      return pill.getAttribute("aria-label");
+    });
+    if (!opened) throw new Error("no house pill found to open the panel");
+    console.log("opened the panel from:", opened);
     await sleep(700);
     await shot("houses-open");
-    // Pick a house and confirm the panel closes and the next year opens.
-    await clickByText(page, '[role="group"] button', "Neem");
-    await sleep(800);
+    // The panel must actually be on screen, with the menu material on it.
+    const panel = await page.evaluate(() => {
+      const el = document.querySelector('[data-slot="popover-content"]');
+      if (!el) return { present: false };
+      const r = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      return {
+        present: true,
+        w: Math.round(r.width),
+        h: Math.round(r.height),
+        opacity: cs.opacity,
+        radius: cs.borderTopLeftRadius,
+        transition: cs.transitionDuration,
+      };
+    });
+    console.log("panel:", JSON.stringify(panel));
+    if (!panel.present || panel.h < 40 || Number(panel.opacity) < 0.9) {
+      throw new Error(`popover did not render visibly: ${JSON.stringify(panel)}`);
+    }
     await shot("houses-after-pick");
   },
 
   /** Location picker: type, select, and confirm the search box empties. */
   async places({ page, shot }) {
-    await page.goto(`${BASE}/settings`, { waitUntil: "domcontentloaded" });
-    await sleep(2500);
+    await ownProfileEditing(page);
     const input = await page.$('input[role="combobox"]');
     if (!input) throw new Error("no combobox input found");
     await input.click();
