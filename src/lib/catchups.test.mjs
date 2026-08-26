@@ -54,7 +54,7 @@ import {
   shiftPausedInstant,
 } from "./catchups.ts";
 import { PROMPT_CATEGORIES } from "./catchups-types.ts";
-import { decomment } from "./test-kit.mjs";
+import { read, decomment } from "./test-kit.mjs";
 
 // A fixed clock so every case is deterministic.
 const NOW = new Date("2026-03-01T12:00:00.000Z");
@@ -823,17 +823,15 @@ test("C-141: the reminder BUCKET still counts 24-hour blocks", () => {
   assert.equal(valleyDaysLeft(CLOSE, iso("2026-06-13T19:00:00.000Z")), 1);
 });
 
-test("C-141: nothing prints a countdown from a raw millisecond gap any more", async () => {
-  const { readFileSync } = await import("node:fs");
-  const read = (p) => readFileSync(new URL(p, import.meta.url), "utf8");
+test("C-141: nothing prints a countdown from a raw millisecond gap any more", () => {
   // The answer page and the bell both take their words from the shared pair.
   assert.match(
-    read("../app/(main)/catchups/[catchupId]/answer/page.tsx"),
+    read("src/app/(main)/catchups/[catchupId]/answer/page.tsx"),
     /return answersCloseSentence\(at, new Date\(\)\);/
   );
-  assert.match(read("./catchups-notify.ts"), /answerReminderMessage\(ctx\.groupName, ctx\.closesAt/);
+  assert.match(read("src/lib/catchups-notify.ts"), /answerReminderMessage\(ctx\.groupName, ctx\.closesAt/);
   // ...and the deadline actually reaches the bell.
-  assert.match(read("./catchups.ts"), /closesAt: before\.answersCloseAt,/);
+  assert.match(read("src/lib/catchups.ts"), /closesAt: before\.answersCloseAt,/);
 });
 
 test("C-182: a photo removed mid-upload is not resurrected when the upload lands", () => {

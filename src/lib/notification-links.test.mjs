@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { readFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
 
 import { adminThreadLink, postNotificationLink, postNoun } from "./notification-links.ts";
-import { ROOT } from "./test-kit.mjs";
+import { ROOT, decomment, walk } from "./test-kit.mjs";
 
 test("a letter's notification goes to the letter, where its comments are", () => {
   assert.equal(postNotificationLink({ id: "abc", kind: "letter" }), "/letters/abc");
@@ -24,22 +24,12 @@ test("an admin notification goes to the inbox thread, not the retired route", ()
 
 test("nothing anywhere mints a link to the retired /admin?thread= route", () => {
   const offenders = [];
-  const walk = (dir) => {
-    for (const name of readdirSync(dir)) {
-      if (name === "generated" || name === "node_modules") continue;
-      const full = join(dir, name);
-      if (statSync(full).isDirectory()) {
-        walk(full);
-        continue;
-      }
-      if (!/\.(ts|tsx)$/.test(name)) continue;
-      const src = readFileSync(full, "utf8")
-        .replace(/\/\*[\s\S]*?\*\//g, "")
-        .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
-      if (src.includes("/admin?thread=")) offenders.push(full.slice(ROOT.length + 1));
-    }
-  };
-  walk(resolve(ROOT, "src"));
+  const files = walk(resolve(ROOT, "src"));
+  assert.ok(files.length > 300, `swept only ${files.length} files; the sweep has drifted`);
+  for (const full of files) {
+    const src = decomment(readFileSync(full, "utf8"));
+    if (src.includes("/admin?thread=")) offenders.push(relative(ROOT, full));
+  }
   assert.deepEqual(offenders, [], `still linking to the retired route: ${offenders.join(", ")}`);
 });
 
@@ -63,23 +53,12 @@ test("nothing links a member to /settings, which does not exist", () => {
      /lab is excluded: it is the dev index, and its rooms catalogue routes that
      have been retired on purpose. */
   const offenders = [];
-  const walk = (dir) => {
-    for (const name of readdirSync(dir)) {
-      const full = resolve(dir, name);
-      if (statSync(full).isDirectory()) {
-        if (name === "node_modules" || full.endsWith("/src/app/lab")) continue;
-        walk(full);
-        continue;
-      }
-      if (!/\.(ts|tsx)$/.test(name)) continue;
-      const src = readFileSync(full, "utf8")
-        .replace(/\/\*[\s\S]*?\*\//g, "")
-        .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
-      if (/(link:\s*|href=\{?)["'`]\/settings\b/.test(src)) {
-        offenders.push(full.slice(ROOT.length + 1));
-      }
-    }
-  };
-  walk(resolve(ROOT, "src"));
+  const LAB = resolve(ROOT, "src/app/lab");
+  const files = walk(resolve(ROOT, "src"), { skip: ["node_modules", LAB] });
+  assert.ok(files.length > 300, `swept only ${files.length} files; the sweep has drifted`);
+  for (const full of files) {
+    const src = decomment(readFileSync(full, "utf8"));
+    if (/(link:\s*|href=\{?)["'`]\/settings\b/.test(src)) offenders.push(relative(ROOT, full));
+  }
   assert.deepEqual(offenders, [], `linking to the retired /settings: ${offenders.join(", ")}`);
 });

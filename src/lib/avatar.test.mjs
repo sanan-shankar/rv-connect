@@ -1,8 +1,10 @@
 /**
  * Distribution sanity check for the bird-avatar hash (run: `node src/lib/avatar.test.mjs`).
  *
- * No test runner is wired into this project, so this is a standalone assertion script. It mirrors
- * the salted FNV-1a in src/lib/avatar.ts and verifies, over thousands of cuid-shaped ids, that:
+ * The one file in the suite that is not written against `node:test`: it is a top-level script that
+ * throws on failure, which is all `npm run check` needs, since that gate reads the exit code. It
+ * mirrors the salted FNV-1a in src/lib/avatar.ts and verifies, over thousands of cuid-shaped ids,
+ * that:
  *   - every species / colour / pose bucket lands within a generous band of its expected share
  *   - the three axes are decorrelated (no triple is wildly over-represented)
  *   - the two reserved birds stay reserved (see the block at the end)

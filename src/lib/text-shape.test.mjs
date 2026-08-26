@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { hasLoneSurrogate } from "./test-kit.mjs";
 import {
   FULL_NAME_MAX,
   batchTypeFromLeaving,
@@ -19,6 +20,18 @@ const FLAG = "\u{1F1EE}\u{1F1F3}"; // one flag, two regional indicators
 const DEVANAGARI = "नमस्ते"; // namaste
 
 /* --- Cutting text (audit Lows 38, 107) ------------------------------------ */
+
+/* Every other use of hasLoneSurrogate in the suite is a NEGATIVE assertion --
+   six of them across three files, all of the form "this cut left no half a
+   character behind". A detector that always answered false would satisfy every
+   one of them and pin nothing, and now that the detector is shared they would
+   all go quiet together. So it is made to fire once, here, on a string built to
+   be broken. */
+test("the surrogate detector fires on half a character", () => {
+  assert.equal(hasLoneSurrogate(FAMILY.slice(0, 1)), true, "a leading half went unseen");
+  assert.equal(hasLoneSurrogate(FAMILY.slice(1, 2)), true, "a trailing half went unseen");
+  assert.equal(hasLoneSurrogate(FAMILY), false, "a whole character read as broken");
+});
 
 test("a cut lands between characters, never through one", () => {
   const text = `${FAMILY}${FAMILY}${FAMILY}`;
@@ -120,18 +133,3 @@ test("first and last name together cannot exceed the stored ceiling", () => {
   assert.equal(fullNameFits("  Asha  ", "  Menon  "), true, "trimmed before counting");
   assert.equal(FULL_NAME_MAX, 100);
 });
-
-/** True if `s` contains an unpaired UTF-16 surrogate, i.e. half a character. */
-function hasLoneSurrogate(s) {
-  for (let i = 0; i < s.length; i++) {
-    const c = s.charCodeAt(i);
-    if (c >= 0xd800 && c <= 0xdbff) {
-      const next = s.charCodeAt(i + 1);
-      if (!(next >= 0xdc00 && next <= 0xdfff)) return true;
-      i++;
-    } else if (c >= 0xdc00 && c <= 0xdfff) {
-      return true;
-    }
-  }
-  return false;
-}

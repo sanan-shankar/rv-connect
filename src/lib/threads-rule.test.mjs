@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { deriveSubject, previewOf } from "./admin-threads.ts";
 import { DOUBLE_SUBMIT_MS } from "./double-submit.ts";
-import { read, decomment } from "./test-kit.mjs";
+import { read, decomment, hasLoneSurrogate } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Member <-> admin conversations.
@@ -20,13 +20,6 @@ const ACTIONS = decomment(read("src/app/(main)/messages/actions.ts"));
 const NOTICE = decomment(read("src/app/(main)/notice/[id]/page.tsx"));
 
 /* ---- C-059: a cut never lands inside a character ---------------- */
-
-/** Does the string end on (or contain) an unpaired surrogate? */
-const hasLoneSurrogate = (s) =>
-  [...s].some((ch) => {
-    const c = ch.codePointAt(0);
-    return c >= 0xd800 && c <= 0xdfff;
-  });
 
 test("C-059: deriveSubject and previewOf never split a surrogate pair", () => {
   /* Every emoji is a two-code-unit pair and a ZWJ family is several joined

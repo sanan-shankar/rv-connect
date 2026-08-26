@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { read, decomment } from "./test-kit.mjs";
+import { ROOT, read, decomment, walk } from "./test-kit.mjs";
 import { droppedImages } from "./draft-images.ts";
 
 /* ------------------------------------------------------------------ *
@@ -184,21 +184,17 @@ test("C-064: reordering or re-adding a photo drops nothing", () => {
 
 /* ---- C-069/C-152: a delete that fails leaves a worklist behind --- */
 
-import { readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
 
-const SRC = fileURLToPath(new URL("..", import.meta.url));
-
-function walk(dir, acc = []) {
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === "generated" || entry.name === "node_modules") continue;
-    const full = join(dir, entry.name);
-    if (entry.isDirectory()) walk(full, acc);
-    else if (/\.tsx?$/.test(entry.name)) acc.push([relative(SRC, full), readFileSync(full, "utf8")]);
-  }
-  return acc;
-}
+const SRC = resolve(ROOT, "src");
+const sources = () => {
+  const files = walk(SRC);
+  // Counted, not assumed: every assertion below is "no file does X", which an
+  // empty sweep satisfies perfectly.
+  assert.ok(files.length > 300, `swept only ${files.length} files; the sweep has drifted`);
+  return files.map((full) => [relative(SRC, full), readFileSync(full, "utf8")]);
+};
 
 test("C-069: nothing calls delImage directly except the two places allowed to", () => {
   // `delImage` answers false and logs; that boolean was discarded at four
@@ -210,7 +206,7 @@ test("C-069: nothing calls delImage directly except the two places allowed to", 
     "lib/image-purge.ts", // the wrapper that queues on failure
     "lib/account-purge.ts", // the drain itself, which reads the boolean
   ]);
-  const callers = walk(SRC)
+  const callers = sources()
     .filter(([, src]) => /(?<![A-Za-z])delImage\(/.test(decomment(src)))
     .map(([f]) => f)
     .filter((f) => !allowed.has(f));

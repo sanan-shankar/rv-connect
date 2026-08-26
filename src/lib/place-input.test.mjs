@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { resolve, join } from "node:path";
-import { ROOT, decomment } from "./test-kit.mjs";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { ROOT, decomment, walk, SKIP_DIRS } from "./test-kit.mjs";
 import {
   MAX_PLACES,
   formatPlaceLabel,
@@ -181,23 +181,13 @@ test("every place writer mirrors the legacy columns from the one helper", () => 
   /* THREE writers, and the whole bug was that they each mirrored half of it.
      Counted, not detected: a check that "some file calls legacyCityColumns"
      passes on a codebase where two of the three still hand-roll it. */
-  const walk = (dir, out = []) => {
-    for (const name of readdirSync(dir)) {
-      if (name === "generated" || name === "node_modules" || name === "lab") continue;
-      const full = join(dir, name);
-      if (statSync(full).isDirectory()) walk(full, out);
-      else if (/\.tsx?$/.test(name)) out.push(full);
-    }
-    return out;
-  };
   const callers = [];
   const handRolled = [];
   const HELPER = resolve(ROOT, "src/lib/place-input.ts");
-  for (const file of walk(resolve(ROOT, "src"))) {
+  for (const file of walk(resolve(ROOT, "src"), { skip: [...SKIP_DIRS, "lab"] })) {
     // The helper itself is where the rule is allowed to be written out.
     if (file === HELPER) continue;
-    const src = readFileSync(file, "utf8");
-    const code = decomment(src);
+    const code = decomment(readFileSync(file, "utf8"));
     if (/legacyCityColumns\(/.test(code)) callers.push(file);
     // The shape it replaced. Anything writing currentCity off a places list
     // by hand is a fourth copy of the rule.
