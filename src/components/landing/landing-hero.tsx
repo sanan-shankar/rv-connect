@@ -12,7 +12,13 @@ import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import { HoopoeWarmup } from "@/components/mascot/hoopoe-warmup";
 import { SPRINGS, EASE_IN_OUT_SCENE, AUTH_SLIDE_SECONDS } from "@/components/common/motion";
 import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR, AUTH_FORM_VW } from "./hero-photo";
-import { launchFlight, FLIGHT_FLAG, type FlightTarget } from "@/components/mascot/mascot-flight";
+import {
+  launchFlight,
+  FLIGHT_FLAG,
+  AUTH_PREVIEW_FLAG,
+  type FlightTarget,
+} from "@/components/mascot/mascot-flight";
+import { AuthFirstFrame } from "@/components/auth/auth-first-frame";
 
 /**
  * Landing hero. Two coordinated behaviours live here:
@@ -126,6 +132,11 @@ export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean 
   // photo-slide choreography and the same panel geometry, so the only thing that
   // differs is where we push and which flag the destination reads.
   const exitTarget = useRef<FlightTarget>("login");
+  // The same answer as the ref, in state, because the render below needs it
+  // and a ref read during render is not allowed (nor safe). The ref stays: the
+  // push callback fires from an animation that started long before, and wants
+  // the value as it was set at click, not as of the last render.
+  const [exitingTo, setExitingTo] = useState<FlightTarget | null>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const revealed = useRef(false);
   const loaderTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -210,12 +221,17 @@ export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean 
     e.preventDefault();
     if (phase === "exiting") return;
     exitTarget.current = target;
+    setExitingTo(target);
     // Launch the hoopoe from exactly this CTA. Measure it now (it is about to
     // slide out), mark the destination so it keeps its own hoopoe hidden until
     // the flyer hands off, then fire the flight in parallel with the slide.
     const r = e.currentTarget.getBoundingClientRect();
     try {
       window.sessionStorage.setItem(FLIGHT_FLAG, target);
+      // Tells the destination its entrance has already been played here, on
+      // the frame below, so it mounts settled rather than sliding the same
+      // column in a second time.
+      window.sessionStorage.setItem(AUTH_PREVIEW_FLAG, target);
     } catch {
       // storage disabled: the flight still flies; the destination just shows
       // its own hoopoe normally (no handoff), which is a graceful fallback.
@@ -234,6 +250,20 @@ export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean 
       onMouseEnter={() => setHovered(true)}
       onTouchStart={() => setHovered(true)}
     >
+      {/* The destination's own opening frame, drawn a navigation early and
+          parked behind the photo so the slide uncovers it. Same `z-0` as the
+          photo layer and earlier in the DOM, which paints it underneath;
+          a negative z-index instead sent it behind the PAGE background,
+          because this section is not a stacking context of its own. Its column
+          runs the same entrance the destination would have run on mount, at the
+          same moment the cream appears, instead of a beat after the slide
+          has finished. Desktop only, because the slide is. */}
+      {phase === "exiting" && exitingTo && (
+        <div className="absolute inset-y-0 right-0 z-0 hidden w-[41.6667%] lg:block">
+          <AuthFirstFrame target={exitingTo} />
+        </div>
+      )}
+
       {/* Photo layer: fades/rises in on load, slides left on the sign-in exit. */}
       <motion.div
         className="absolute inset-0 z-0"

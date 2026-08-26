@@ -88,8 +88,15 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
   // descent from off-screen on a phone, plus everything that keeps this page's
   // own hoopoe hidden and pixel-aligned until the flyer hands off. /signup and
   // the three email pages run the same hook; the beat above is what differs.
-  const { hoopoeBoxRef, entranceRef, hoopoeShown, preFlightVeil, onHoopoeReady, reportPerchRect } =
-    useFlightArrival({ flightKey: "login", runIntro });
+  const {
+    hoopoeBoxRef,
+    entranceRef,
+    hoopoeShown,
+    preFlightVeil,
+    onHoopoeReady,
+    reportPerchRect,
+    entrancePlayedOnLanding,
+  } = useFlightArrival({ flightKey: "login", runIntro });
 
   // Focus after paint, never during the commit: the `autoFocus` attribute this
   // replaces forced a synchronous layout inside React's commit, which stalled
@@ -211,7 +218,10 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
           ref={entranceRef}
           // 400px, matching /signup, so the two auth pages are one column.
           className="my-auto w-full max-w-[400px] self-center text-center"
-          initial={{ opacity: 0, x: 48 }}
+          // Mounts settled when the landing already slid this column in on
+          // its own frame (auth-first-frame.tsx); the perch report does not
+          // depend on this animation firing. Same call as /signup.
+          initial={entrancePlayedOnLanding ? false : { opacity: 0, x: 48 }}
           animate={{ opacity: 1, x: 0 }}
           transition={SPRINGS.gentle}
           onAnimationComplete={reportPerchRect}
