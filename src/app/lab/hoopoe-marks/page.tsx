@@ -282,6 +282,10 @@ export default function HoopoeMarksLab() {
 .rail-strip { background:${G.canopy}; border-radius:13px; padding:10px 14px;
   display:flex; align-items:center; gap:10px; color:${G.cream};
   font-family:var(--font-display),serif; font-weight:700; font-size:18px; letter-spacing:-.01em; }
+.tips { display:flex; flex-wrap:wrap; gap:22px; align-items:flex-end; }
+.tip { display:flex; flex-direction:column; align-items:center; gap:8px; }
+.tip .sizes { display:flex; align-items:flex-end; gap:8px; }
+.tip em { font-style:normal; font-size:11px; letter-spacing:.03em; color:var(--soft); font-variant-numeric:tabular-nums; }
 .rails { display:flex; flex-wrap:wrap; gap:18px; }
 .rail figcaption { font-size:12px; color:var(--soft); margin-top:8px; max-width:26ch; line-height:1.5; }
 .rail-box { width:248px; border-radius:16px; padding:18px 16px 22px; background:${G.canopy}; }
@@ -313,6 +317,58 @@ export default function HoopoeMarksLab() {
         further before it stops looking like a haircut and starts looking like a
         mark. Most of these run at 130 to 150 degrees.
       </p>
+
+      <h2>The orange point</h2>
+      <p className="sub">
+        Every ray ends in a little cinnamon triangle poking past its dark cap.
+        At icon size it is the thing that makes the crest read as feathers
+        rather than as a scalloped arc, and at 32px it has vanished. Below it
+        is lengthened by moving the dark cap down, which leaves the fan&apos;s
+        outline exactly where it was: the outline is the quill&apos;s point
+        either way. Widening the quill instead would work too and it would
+        blunt the spike, which is the one change that would look wrong.
+      </p>
+      <div className="tips">
+        {[0.073, 0.09, 0.105, 0.125].map((tipOut) => (
+          <span className="tip" key={tipOut}>
+            <span className="sizes">
+              {[132, 64, 40, 26].map((n) => (
+                <Tile size={n} ground={G.ink} view="22 -19 78 78" key={n}>
+                  <Crest n={11} spread={68} len={1.18} taper={0.08} tipOut={tipOut} blunt={0.11} />
+                  <Face eyeS={1.12} billL={0.9} />
+                </Tile>
+              ))}
+            </span>
+            <em>{tipOut === 0.073 ? "0.073, as drawn" : tipOut.toFixed(3)}</em>
+          </span>
+        ))}
+      </div>
+
+      <h2>Blunting the point</h2>
+      <p className="sub">
+        Lengthening the orange also sharpens it, and a fan of needles reads as
+        a cog rather than as a bird. This rounds the quill&apos;s point by
+        splitting its curve near the top and capping it, so the feather is
+        identical everywhere else and the fan reaches exactly as high as
+        before. All four are at the orange point set to 0.105. Past about 0.16
+        the rounding starts eating the orange, which is the thing the tip is
+        there to carry.
+      </p>
+      <div className="tips">
+        {[0, 0.07, 0.11, 0.16].map((blunt) => (
+          <span className="tip" key={blunt}>
+            <span className="sizes">
+              {[132, 64, 40, 26].map((n) => (
+                <Tile size={n} ground={G.ink} view="22 -19 78 78" key={n}>
+                  <Crest n={11} spread={68} len={1.18} taper={0.08} tipOut={0.105} blunt={blunt} />
+                  <Face eyeS={1.12} billL={0.9} />
+                </Tile>
+              ))}
+            </span>
+            <em>{blunt === 0 ? "0, the rig's own point" : blunt.toFixed(2)}</em>
+          </span>
+        ))}
+      </div>
 
       <h2>Seven marks</h2>
       <p className="sub">
