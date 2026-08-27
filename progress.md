@@ -1,5 +1,47 @@
 # Progress Log
 
+## 2026-08-27 — the Collection rework, phase 1: every image gets measured
+
+`docs/planning/collection-rework/spec.md` §13 phase 1, the one everything else sits on.
+Nothing visible changed, deliberately.
+
+**The gap.** `Post.images` and `CatchupEntry.images` are JSON arrays of URL strings, so the
+app knew nothing about a feed, letter or Catch-up photograph except where to fetch it. That
+one absence is under four separate complaints: the page jumps as each photo lands, a
+justified row cannot be solved without every aspect ratio up front, a 20,000-image grid
+cannot be windowed without row heights, and a crop cannot be aimed at anything.
+
+**The table is keyed by URL**, which is the whole trick: no existing row moves, nothing else
+in the schema changes, and a URL with no row is not an error -- the renderer falls back to
+what it did before. That is what made it safe to add mid-flight and to backfill afterwards.
+It holds width, height, a focal point, whether the photograph has any colour, and a 16px
+smear of itself to show while the real thing loads.
+
+**Four numbers, each argued rather than picked.** The probe decodes once at 160px and every
+measurement runs off that raw buffer. The greyscale threshold is 8 of 255, measured: a true
+greyscale copy of one of our own photographs reads 0.01 and the five colour photographs to
+hand read 16.8 to 49.3. The smear is 16px on its longest edge -- compared at 12, 16, 24 and
+32 side by side, 12 is mush and 24 starts showing structure a blur then has to hide -- and
+costs about 140 characters. And the focal probe asks libvips for the image's own shape with
+20% off its height rather than for a square, because a square image asked for a square crop
+is never cropped at all, so no focal point is reported and the column takes a NaN. There is
+a test for exactly that.
+
+**What the focal points actually say, which is worth knowing before phase 2 leans on them.**
+Across the 41 photographs now in the database, 14 land at an extreme edge (within 3% of a
+border) and only 13 fall inside the 15-50% band the tall-photo rule will use. sharp's
+`attention` is a contrast heuristic and it goes for the bright sky. So the clamp in D9 is
+not a nicety, it is doing most of the work, and the uploader override the spec calls a hard
+requirement is what actually makes the aim defensible.
+
+Backfilled 41 images on the main database and 2 on the demo, none failed. Verified at
+runtime rather than by types alone: signed in, posted a photograph through `/api/upload`,
+and the response carried the measurements while the row held the same ones. Then an upload
+that fails partway -- a good photo followed by a file that is not an image -- to prove the
+abort takes back both the bytes and what we learned about them. It does; no row survived.
+
+`npm run check` green: TypeScript, ESLint, protocol, 45 lab routes, 77/77 test files.
+
 ## 2026-08-27 — the guide, made to actually work
 
 Owner on the first cut: "it's done so incredibly poorly ... this is pukeworthy." Five

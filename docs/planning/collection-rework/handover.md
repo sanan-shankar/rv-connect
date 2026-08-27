@@ -82,10 +82,20 @@ that rework.
       splendid contribute room rather than a dialog (§8.2), and an Other bucket (§7.1).
 - [x] **How to write for the next session** — `.claude/skills/writing-for-agents/SKILL.md`,
       wired into CLAUDE.md's skills table. See F14; the owner had raised it twice.
-- [ ] **Execute, phase by phase** — spec §13. **Phase 1 first: stored dimensions.**
-      No separate plan document, deliberately: §13's six phases plus the LOCKED /
-      RECOMMENDED / OPEN marks are the plan at the right altitude, and a task-by-task
-      breakdown would re-introduce exactly the over-constraining the owner objected to.
+- [ ] **Execute, phase by phase** — spec §13. No separate plan document, deliberately:
+      §13's six phases plus the LOCKED / RECOMMENDED / OPEN marks are the plan at the right
+      altitude, and a task-by-task breakdown would re-introduce exactly the over-constraining
+      the owner objected to.
+  - [x] **Phase 1 — dimensions**, session 2, 2026-08-27. The `Image` table, both upload
+        routes recording what they store, both delete paths forgetting it, and
+        `scripts/dev/backfill-image-dimensions.mjs`. Applied to the main and demo databases;
+        41 and 2 rows backfilled, none failed. Nothing visible changed. See D13a and F15/F16
+        for the two places the implementation departs from spec §2, and why.
+  - [ ] **Phase 2 — the layout module and the single-photo rule.** The chopped faces
+        (#35, the urgent one) and the page jumping stop here. `photo-layout.ts`, lifted from
+        `/lab/crop`'s `_policies.ts`; feed, catch-ups and letters.
+  - [ ] **Phase 3** justified rows · **Phase 4** the viewer · **Phase 5** the Collection page
+        · **Phase 6** contributing.
 - [ ] **Close-out**: delete `/lab/crop`, `public/lab/crop/` and the registry row; fold bug #18, #19 and the catch-up items out of `docs/planning/bugs.md`,
       update `docs/spec/media.md` (large parts of it are now superseded — see D2, D3),
       delete `/lab/crop` and its registry line, log in `progress.md`.
@@ -138,6 +148,14 @@ Each is the owner's, given in this session. Do not relitigate these without aski
 - **D13. No free-text tags; six buckets; everything prose stays searchable.** "Part of
   school" becomes **Where**, read by search, never a dropdown. An **Other** bucket exists
   and feeds evidence back into the taxonomy. Spec §7.
+- **D13a. Two departures from spec §2's sketch, both mine, both RECOMMENDED-grade.**
+  The spec drew the table with a `blurhash` column; it ships as **`blurDataUrl`**, a 16px
+  WebP data URI of about 140 characters. Same job, no new dependency, no decoder in the
+  bundle, and it can be handed straight to `next/image`'s `blurDataURL` if we ever want to.
+  And measuring is split from remembering — `describeImage` in `image.ts` (sharp) and
+  `recordImage`/`forgetImages` in `image-record.ts` (Prisma only) — so the account purge and
+  the nightly retention sweep, which forget rows and never measure anything, do not drag a
+  native image decoder into their bundle.
 - **OPEN — the height ceiling** (560 / 700 / 840px). The owner did not pick. Spec assumes
   700. One line. Look at all three in `/lab/crop` before settling it.
 
@@ -298,6 +316,21 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   specific and still leave real room. `spec.md` was rewritten to carry them.
   Also his standing rule on rewriting anything: "rewritten should be pretty exactly the same
   with the grammar tightened up but every single thing still conveyed."
+- **F15. The aim is worse than the idea, and the clamp is carrying it.** Now that every
+  photograph in the database has been measured, the focal points can be counted rather than
+  argued about. Of 41: **14 land within 3% of an edge** of the frame and only **13 fall
+  inside the 15–50% band** the tall-photo rule (D9) will actually use. sharp's `attention` is
+  a contrast heuristic and it goes for the bright sky, exactly as F8 saw on the six specimens.
+  Three things follow. The clamp is not decoration, it is doing most of the work. The
+  uploader override in spec §9 is the part that makes aiming defensible at all, and it is
+  still unbuilt. And phase 2 must not present the aim as cleverness in the UI, because a
+  third of the time it is pointing at a corner.
+- **F16. A square photograph reports no focal point at all**, and it took a synthetic test to
+  see it. Ask libvips for a square crop of a square image and no crop happens, so
+  `attentionX` comes back undefined and the obvious division writes NaN into the column,
+  which then poisons every crop computed from it. The probe now asks for the image's own
+  shape with 20% off its height, which guarantees a crop whatever the aspect ratio and
+  returns both coordinates from the one pass. Pinned by a test named after the case.
 - **F7. A concurrent session is editing this area.** `src/app/(main)/collection/page.tsx`
   changed on disk mid-session (server-side first-page fetch added, `firstPage` prop passed
   to `CollectionClient`). Per CLAUDE.md, work around other sessions' edits, never stash or
@@ -443,3 +476,28 @@ Brainstorming session. No application code touched.
 - Wrote `spec.md`, then rewrote it to carry the LOCKED / RECOMMENDED / OPEN marks after the
   owner's feedback on AI-written specs being too constraining (F14).
 - **Next session: spec §13 phase 1, stored dimensions.** Everything else sits on it.
+
+### Session 2 — 2026-08-27 (Opus)
+
+Read `brief.md` and `spec.md` in full and skimmed `prior-art.md`, in that order, then built
+**phase 1**. Detail in `progress.md` under the same date; the parts that change what the next
+session should do are D13a, F15 and F16 above.
+
+- `Image` (schema + `prisma/migrations-manual/2026-08-27-image-dimensions.sql`, applied to
+  the main and the demo databases), `describeImage` in `src/lib/image.ts`,
+  `recordImage`/`forgetImages` in `src/lib/image-record.ts`, both upload routes recording
+  what they store and returning it, both byte-delete paths forgetting it,
+  `scripts/dev/backfill-image-dimensions.mjs` and its ledger line, twelve tests.
+- Verified at runtime and not only by `tsc` (CLAUDE.md gotcha 3): posted a photograph
+  through `/api/upload` signed in, the response carried the measurements and the row matched;
+  then an upload that fails partway, to prove the abort takes back the row as well as the
+  bytes. `npm run check` green, 77/77.
+- The write-path review was done in this session rather than by the subagent, because this
+  session was told not to spawn agents. All four invariants checked against the diff by hand:
+  auth is unchanged and still precedes every write; no new user input reaches Prisma (the
+  only string written is a URL the server itself minted in `putImage`); `Image` is absent
+  from the demo's `ALLOWED_WRITE_MODELS`, so the demo's default-deny covers it and no closed
+  list needed a new entry; and the schema went through a dated idempotent file applied with
+  `run-sql.mjs`, never `db push`.
+- **Next session: phase 2.** Read this file, then the brief, then §3 of the spec. The height
+  ceiling (560/700/840) is still the owner's to pick and is one line.

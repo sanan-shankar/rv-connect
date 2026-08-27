@@ -50,6 +50,7 @@ Full runbook in `docs/spec/demo.md`. These four are that pipeline.
 | Script | Does |
 |---|---|
 | `run-sql.mjs` | Runs a SQL file against the database. This is how every manual migration in `prisma/migrations-manual/` was applied. |
+| `backfill-image-dimensions.mjs` | Measures every image already posted -- shape, focal point, colour, a 16px smear -- and fills in the `Image` table for it. New uploads record themselves; this is the one-off for everything that predates the table (2026-08-27). Safe to re-run and safe to interrupt: it only looks at urls with no row yet. `--dry` lists, `--env .env.demo` does the demo. |
 | `import-places.mjs` | Imports the GeoNames gazetteer (~235k places) into the `Place` table. Powers the location picker. Run once; keep for a rebuild. |
 | `seed-curated-content.ts` | Seeds the curated WhatsApp stories. Reads `docs/content/whatsapp-curation/picks.json`. |
 | `city-alias-scan.ts` | Step 1 of de-duplicating city names (Bombay vs Mumbai). Read-only; prints candidates for review. |
