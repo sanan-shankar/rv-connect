@@ -51,11 +51,18 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
       JavaScript, now 364 KB. Its second is not JS either: /collection's first
       photographs used to arrive 2.9 s after first paint on a throttled connection and
       now arrive with it. Part 1 is session 7, part 2 session 8.
-- [~] Phase 6 — schema & architecture — **UNGATED 2026-08-27: the owner has approved
-      every drop**, including the seven objects that turned out to hold data. Not yet
-      executed. Pre-flight done and committed: `work/phase6-census.md` (what is in each
-      object) and a snapshot of all 232 doomed rows at
-      `.backups/2026-08-27-phase6-pre-drop-snapshot.json` (gitignored, real member data,
+- [~] Phase 6 — schema & architecture — **most of it done 2026-08-27 (session 9), 7
+      commits. NO DDL HAS RUN, deliberately.** All the code is in: the auth adapter and its
+      three models, GroupInvite, the five dead columns, the Visit geolocation trio, the
+      SearchLog index, four import cycles and the catchups core/engine split. Five dated
+      migration files sit in `prisma/migrations-manual/` **written and unapplied** — see
+      "The DDL gate" in session 9 for why running them today is an outage, not a warning.
+      Three rows are NOT done: the action-gate wrapper (duplication-02), the create-post-form
+      hook split (feed-posts-02), and the avatarColor sweep (shell-primitives-04, which was
+      blocked all session by a peer session holding four of its files). cuid2 →
+      randomUUID stays parked as the plan itself says (quiet-moment item). Pre-flight
+      artefacts still stand: `work/phase6-census.md` and the snapshot of all 232 doomed rows
+      at `.backups/2026-08-27-phase6-pre-drop-snapshot.json` (gitignored, real member data,
       keep until he says otherwise). **READ THE CENSUS BEFORE TOUCHING ANYTHING** — its
       middle section records a diff method that would have dropped every Catch-up in the
       app, and the rule that replaces it.
@@ -1263,3 +1270,123 @@ either executed or consciously declined by the owner.
    shimmer where the showpiece belongs. His call.
 5. The lab CSS measurement, which he correctly asked the point of. It only pays if lab
    gets its own stylesheet.
+
+### 2026-08-27 — session 9 (phase 6, part 1 — all the code, none of the DDL)
+
+**Read this section before you touch anything in phase 6.** Seven of the ten rows are done.
+No DROP has run and none may run until the gate below is cleared.
+
+## The DDL gate, which is the whole shape of this phase
+
+`origin/main` was **165 commits behind local** when this session started: production was
+still serving the pre-campaign build from 2026-08-25. One Supabase database serves
+production and local dev. And Prisma names every column of every model **explicitly** in its
+SELECT list — proved rather than assumed, by logging one `post.findFirst` and reading
+`SELECT "public"."Post"."id", ... "public"."Post"."tag", ...` back.
+
+Put together: **a column dropped while an older build is live is an outage, not a warning.**
+The live feed would 500 for every member the moment `Post.tag` went. So every drop in this
+phase is a dated file in `prisma/migrations-manual/`, written, reviewed, committed, and
+**not applied**. Code first, deploy second, DDL third, in that order, always.
+
+The owner pushed mid-session so the campaign's first 165 commits could deploy and bake. **A
+SECOND push is still owed**, carrying this session's phase-6 code, before any of the five
+files may run. Once that build is live:
+
+```
+node scripts/dev/run-sql.mjs prisma/migrations-manual/2026-08-27-drop-nextauth-adapter-tables.sql
+node scripts/dev/run-sql.mjs prisma/migrations-manual/2026-08-27-drop-group-invite.sql
+node scripts/dev/run-sql.mjs prisma/migrations-manual/2026-08-27-drop-dead-columns.sql
+node scripts/dev/run-sql.mjs prisma/migrations-manual/2026-08-27-drop-visit-geolocation.sql
+node scripts/dev/run-sql.mjs prisma/migrations-manual/2026-08-27-drop-searchlog-query-index.sql
+```
+…and then every one of them again with `--env .env.demo`. **The demo database has still not
+been censused** — do that first; the census file says why a second database with no
+migration path is a second database that will be wrong. Two of the files refuse to run if
+their table has gained rows since the census, which is the check that matters.
+
+**Done** (in order; every item pre-flighted at HEAD per rule 4):
+the `sizes` bug the owner named → `ba9dc1d` · both Dependabot highs → `fe96d89` · auth
+adapter + 3 models → `0399d37` · GroupInvite → `dac7869` · five dead columns → `1798ecd` ·
+Visit geolocation trio → `e065cf8` · SearchLog index → `69d2373` · four import cycles →
+`760ecbb` · catchups core/engine split → `887a95f`.
+
+**Where the audit was wrong, and what was done instead** (rule 4 outcomes):
+
+- **`Post.tag` is NOT writer-less, and the finding would have broken a script.**
+  data-layer-03 says "zero readers and zero writers". `scripts/dev/seed-curated-content.ts:316`
+  writes `tag: piece.tag` from eleven literals, five of them `"campus-memory"` — which is
+  exactly the five tagged rows the census found. The field came out of the script too.
+- **`Comment_postId_isHidden_idx` is re-refuted and KEPT.** data-layer-07 rates it marginal
+  and says to skip it in doubt. `pg_stat_user_indexes` over a **96-day** window shows 13
+  scans, so I am in doubt. `SearchLog_query_idx` (1 scan in the same window) was dropped.
+  Consult that view before believing any "no query can use this" claim — it was never run
+  during the audit.
+- **`npm run test:e2e` does NOT exercise the credentials sign-in.** data-layer-01 names it
+  as the auth gate. `e2e/auth.setup.ts` signs in through `/api/dev-login`, which mints a JWT
+  with `encode()` and never enters NextAuth's sign-in handler. What was done instead: a real
+  wrong-password sign-in driven through the live `/login` form (the handler runs end to end,
+  `authorize()` throws `CredentialsSignin`, the form says "Invalid email or password"), plus
+  the fact that settles it — **63 members, months of sign-ins, and `Account`, `Session` and
+  `VerificationToken` hold zero rows between them.** If the adapter were on the credentials
+  path those tables would not be empty. The success branch was NOT driven with a real
+  password; nothing in the tree can do that without writing to a real account's credentials.
+- **`madge --circular` lies unless you pass `--ts-config tsconfig.json`.** Without it, it
+  cannot resolve the `@/` alias, silently skips 328 files, and reports a flattering zero. The
+  audit's own `raw/madge-circular.txt` was taken correctly (3 warnings); a naive re-run is
+  not comparable. App cycles went 5 → 0; the 39 that remain are all inside Prisma's
+  generated client.
+- **catchups-03's cycle claim is right but its `export *` question is not addressed.**
+  `catchups.ts` re-exports the whole core so the dozen server-side importers did not have to
+  change. The rule is stated in the file: a **client** component must import
+  `./catchups-core` directly or it pulls Prisma into its bundle. The five client and
+  type-only importers were repointed. The prop-drill half of the finding (the re-typed
+  `CADENCE_OPTIONS`, the `cadenceLabels` and `promptLibrary` drills, `CATCHUP_PROMPT_SETS` in
+  the RSC payload) is **not done** and is still worth doing.
+- **Two test pins moved with the code, as rule 2 requires.** `catchup-lifecycle.test.mjs`'s
+  C-149 sweep matched the literal `report(`, so renaming the reporter to `reportSwallowed(`
+  turned it red — the pin working. Fixed, and **widened while there**: its catch pattern
+  required parentheses, so a `catch { }` with no binding was invisible to the sweep.
+
+**NOT done, and why** (three rows):
+1. **avatarColor retirement sweep (shell-primitives-04)** — blocked all session. A peer
+   session held `layout.tsx`, `sidebar.tsx`, `directory/page.tsx` and `letters/page.tsx`
+   uncommitted, and the sweep cannot typecheck if you do part of it. Its
+   `2026-08-27-drop-avatar-color.sql` does not exist yet; write it with the sweep. This is
+   the only remaining object in the owner's approved drop set.
+2. **Action-gate wrapper, one-file pilot (duplication-02) ⚠** — not started. Highest-risk
+   row left: it changes how every server action in a file authenticates.
+3. **create-post-form hook split (feed-posts-02) ⚠** — not started; its file was peer-held
+   for most of the session. Structure only, no user-visible payoff.
+
+**Verification**: `npm run check` ✓ green before every commit (TS, ESLint, protocol, lab
+registry 45, unit 76/76 — the count moved from 78 because a peer session deleted the two
+tour test files, not because anything of mine went). Catch-ups driven for real after the
+split: a published Round rendered for a member of its group with `roundLabel`, the published
+date, the 13-strong bird row, `askerVisible`'s "asked anonymously" and the entry list all
+correct, and a Round belonging to a group the viewer is not in still 404s. `/catchups`,
+`/catchups/new`, both Catch-up homes, the answer page and `/admin/catchups` all render.
+
+**A shared-tree lesson that cost a mistake, now in CLAUDE-adjacent memory.** `git add <my
+files>` followed by a bare `git commit` commits **the whole index**, including what another
+session has staged. It swallowed a peer's twelve staged tour-deletions into a `chore(deps)`
+commit and left HEAD uncompilable. Repaired with `git reset --soft HEAD~1` (restores the
+index exactly, touches no working tree) and a re-commit. **Always `git commit -F - -- <paths>`
+in this repo.** Every commit in this session after that one used a pathspec.
+
+**Peer traffic**: another session worked in this tree throughout, removing the hoopoe tour
+and building the in-app guide. It committed `cba5e25`, `af27a3e`, `ba59e92` and `6f50111`;
+`6f50111` (the tour removal) went out on the owner's push alongside mine. Its half-applied
+state made `npm run visual` and `test:e2e` red for a while with Next's `Cannot find module
+'@/components/tour/tour-provider'` overlay on every authenticated route — read one diff PNG
+before believing a red run in this tree is yours. It also loaded the machine to a load
+average of 16, which took one `npm run check` from 45 s to 1,429 s.
+
+**Still awaiting the owner** (carried forward from session 8, none of it new work):
+1. The public landing still links to no Privacy / Terms / Guidelines (security audit H12).
+2. Session 1's `gate-coverage.test.mjs` widening is still unsighted.
+3. Vercel image transformations are now billed — one look at the usage page.
+4. bundle-build-03 step 2 (dynamic-loading the directory MAP) is deliberately not done.
+5. The lab CSS measurement, which only pays if lab gets its own stylesheet.
+6. **New: the second push, then the DDL.** See "The DDL gate" above.
+
