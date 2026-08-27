@@ -1,5 +1,37 @@
 # Progress Log
 
+## 2026-08-27 — refactor audit, the last two rows: one refused, one done
+
+The campaign's final structure-only pair. The owner left the judgement to this session.
+
+**`duplication-02` — the action-gate wrapper — re-refuted at fix time.** Its two payoffs
+both fail against today's tree. The one the handover called "the payoff that justifies it"
+was that `requireVerifiedMember()` calls `auth()` itself, so 24 actions authenticate twice
+and a wrapper would remove a real per-request cost. `auth()` is `cache()`d
+(`src/lib/auth.ts:455`), so the second call is a cache hit and costs nothing — and phase 3's
+own member-gate rewrite already says so in a comment eight lines from the call
+(`src/lib/member-gate.ts:46`). The verifier proved two session READS and stopped there; the
+cache is what makes that free. The second payoff was structural: forgetting a gate becomes
+impossible when the gate wraps the function. That needs the finding's
+`export const doThing = withMember(async …)` shape, and `gate-coverage.test.mjs`'s C-189
+sweep hard-fails any export that is not `export async function` — on purpose, because
+`export const doThing = async () => {}` is the exact form that once shipped ungated past it.
+Allowing the wrapper means teaching three separate mechanisms a new export form
+(`exportedActions`, the offenders list, `fnBody`) — loosening the tripwire that catches
+ungated actions, in exchange for lines. And the pilot file the handover named has no member
+gate and no rate limit, so it would exercise neither `withMember` nor the options that carry
+the savings, on a file where the wrapper is a net +60 lines. Three reasons, any one of them
+enough.
+
+**What the row actually had to give, taken.** `messages/actions.ts` really did spell the
+same admin check out three times — session read, `role !== "admin"`, `"Not authorized"` —
+and a security check that exists three times can be fixed twice and left wrong once. One
+file-local `actingAdmin()` now holds it. No new lib module, no tripwire edit:
+`gate-coverage`'s delegation pass already credits a caller with a private helper's gate,
+which is what that pass is for. Verified against the live database rather than by reading
+the diff: a thread opened as Jerry, replied to as admin, marked sorted, then read back —
+`status` closed, `adminUnread` false, one `fromAdmin` message with the admin's own id on it.
+
 ## 2026-08-27 — the guide ships, and the hoopoe tour does not
 
 `/guide` is real: an index, six chapters, and two ways in. The tour is gone.
