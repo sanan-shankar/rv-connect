@@ -51,21 +51,20 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
       JavaScript, now 364 KB. Its second is not JS either: /collection's first
       photographs used to arrive 2.9 s after first paint on a throttled connection and
       now arrive with it. Part 1 is session 7, part 2 session 8.
-- [~] Phase 6 — schema & architecture — **most of it done 2026-08-27 (session 9), 7
-      commits. NO DDL HAS RUN, deliberately.** All the code is in: the auth adapter and its
-      three models, GroupInvite, the five dead columns, the Visit geolocation trio, the
-      SearchLog index, four import cycles and the catchups core/engine split. Five dated
-      migration files sit in `prisma/migrations-manual/` **written and unapplied** — see
-      "The DDL gate" in session 9 for why running them today is an outage, not a warning.
-      Three rows are NOT done: the action-gate wrapper (duplication-02), the create-post-form
-      hook split (feed-posts-02), and the avatarColor sweep (shell-primitives-04, which was
-      blocked all session by a peer session holding four of its files). cuid2 →
-      randomUUID stays parked as the plan itself says (quiet-moment item). Pre-flight
-      artefacts still stand: `work/phase6-census.md` and the snapshot of all 232 doomed rows
-      at `.backups/2026-08-27-phase6-pre-drop-snapshot.json` (gitignored, real member data,
-      keep until he says otherwise). **READ THE CENSUS BEFORE TOUCHING ANYTHING** — its
-      middle section records a diff method that would have dropped every Catch-up in the
-      app, and the rule that replaces it.
+- [~] Phase 6 — schema & architecture — **8 of 10 rows done 2026-08-27 (session 9), 9
+      commits, and EVERY DROP IS APPLIED** to both databases: 4 tables, 9 columns and 1
+      index gone from production and demo, verified after with `to_regclass` and
+      `information_schema`, and with the Catch-ups (3 series, 133 entries) and all 63
+      members confirmed intact. Deployed first, then dropped, in that order — see "The DDL
+      gate" in session 9 for why the reverse is an outage. **Two rows remain**: the
+      action-gate wrapper (duplication-02) and the create-post-form hook split
+      (feed-posts-02), both ⚠, both structure-only with no user-visible payoff. cuid2 →
+      randomUUID stays parked as the plan itself says (quiet-moment item).
+      `work/phase6-census.md` is now complete, including the demo census and the
+      `pg_stat_user_indexes` numbers that changed an index decision; its middle section
+      records a diff method that would have dropped every Catch-up in the app, and the rule
+      that replaces it. **Keep `.backups/2026-08-27-phase6-pre-drop-snapshot.json`** — it is
+      the only copy of the 232 rows this phase destroyed.
 - [ ] Close-out: re-measure §1b's table, write the deltas into report §1b, flip this
       audit's row in `../README.md` to Closed, archive per report §7.4.
 
@@ -1348,16 +1347,15 @@ Visit geolocation trio → `e065cf8` · SearchLog index → `69d2373` · four im
   turned it red — the pin working. Fixed, and **widened while there**: its catch pattern
   required parentheses, so a `catch { }` with no binding was invisible to the sweep.
 
-**NOT done, and why** (three rows):
-1. **avatarColor retirement sweep (shell-primitives-04)** — blocked all session. A peer
-   session held `layout.tsx`, `sidebar.tsx`, `directory/page.tsx` and `letters/page.tsx`
-   uncommitted, and the sweep cannot typecheck if you do part of it. Its
-   `2026-08-27-drop-avatar-color.sql` does not exist yet; write it with the sweep. This is
-   the only remaining object in the owner's approved drop set.
-2. **Action-gate wrapper, one-file pilot (duplication-02) ⚠** — not started. Highest-risk
+**NOT done, and why** (two rows):
+1. **Action-gate wrapper, one-file pilot (duplication-02) ⚠** — not started. Highest-risk
    row left: it changes how every server action in a file authenticates.
-3. **create-post-form hook split (feed-posts-02) ⚠** — not started; its file was peer-held
+2. **create-post-form hook split (feed-posts-02) ⚠** — not started; its file was peer-held
    for most of the session. Structure only, no user-visible payoff.
+
+(The avatarColor sweep, listed here as blocked earlier in the session, was unblocked when
+the peer session committed and IS done — `098eff2`, 43 references across 26 files, and its
+column is dropped.)
 
 **Verification**: `npm run check` ✓ green before every commit (TS, ESLint, protocol, lab
 registry 45, unit 76/76 — the count moved from 78 because a peer session deleted the two
@@ -1389,4 +1387,50 @@ average of 16, which took one `npm run check` from 45 s to 1,429 s.
 4. bundle-build-03 step 2 (dynamic-loading the directory MAP) is deliberately not done.
 5. The lab CSS measurement, which only pays if lab gets its own stylesheet.
 6. **New: the second push, then the DDL.** See "The DDL gate" above.
+
+### 2026-08-27 — session 9, part 2: the drops are applied
+
+The gate above described a second push that was owed. It happened, and so did the DDL.
+
+**The push needed fixing first, and the fix is worth knowing.** `origin/main` and local
+`main` had diverged: origin's tip `cba5e25` was an earlier shape of the peer's lab commit
+that also carried twelve tour-file deletions folded in, and locally that had been rewritten
+as `a36cb61` with the deletions moved into their own commit. A merge resolved cleanly and
+was then **rejected by a GitHub ruleset — "this branch must not contain merge commits"**.
+That rule is why the peer rewrote rather than merged, and it means the only resolution on
+this repo is a rebase. `git -c rebase.autostash=true rebase origin/main` did it: git dropped
+`a36cb61` by itself ("patch contents already upstream") and replayed the other 16. The
+autostash was needed because the owner's own uncommitted `CLAUDE.md` edit sat in the tree
+and must not be stashed by hand or committed on his behalf; it was copied out first and its
+checksum compared after. **Remember the ruleset before reaching for a merge here.**
+
+**Order actually followed**, each step verified before the next:
+push → Vercel status on that exact commit reported success → production smoke-tested on the
+new build → scheduled jobs and API routes grepped for every dropped name (none) → **demo
+migrated first** (empty of every target, so it proves the SQL and risks nothing) → demo
+verified → **a fresh `backup.yml` dispatched by hand and confirmed successful**, because the
+nightly one was twelve hours old and this step is irreversible → production migrated, one
+file at a time → verified.
+
+**Result on both databases**: `Account`, `Session`, `VerificationToken`, `GroupInvite` gone;
+`User.openTo`, `User.avatarColor`, `Photo.blurhash`, `Photo.originalUrl`, `Post.tag`,
+`Group.visibility`, `Visit.timezone/lat/lng` gone; `SearchLog_query_idx` and
+`Group_visibility_createdAt_idx` gone. `Comment_postId_isHidden_idx` deliberately kept.
+
+**Verified after**: `to_regclass` and `information_schema` confirm every object is absent;
+`CatchupSeries` still holds 3 and `CatchupEntry` 133 (the trap the census exists to prevent);
+63 members intact; `npm run verify:crawl` 20/20 routes 200 against the migrated database;
+production public routes 200; and `npx tsx scripts/demo/verify-guard.mts` 15/15 — including
+the **new deny canary**, which mints a password-reset token now that forging a Session is no
+longer possible.
+
+**The avatarColor sweep landed too** (`098eff2`): 43 references across 26 files, the JWT
+claim, ten selects, ten component interfaces and the last accepted-and-ignored prop on
+`AvatarUser`. A live JWT minted before it still carries the claim, which is harmless — the
+session callback stops reading it and an unread claim is ignored.
+
+**What is left of this campaign**: two ⚠ structure-only rows (duplication-02's action-gate
+wrapper, feed-posts-02's create-post-form split), the parked cuid2 item, and the close-out
+(re-measure §1b, flip `../README.md` to Closed, archive per §7.4). **Do not flip it closed
+until those two rows are executed or consciously declined by the owner.**
 

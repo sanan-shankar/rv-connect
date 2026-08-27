@@ -4370,3 +4370,26 @@ Verified: `npm run verify:crawl` 20/20 routes 200 with a session minted after th
 and the feed, the rail's directory list, the composer and the sidebar all still draw their
 birds in the bird's own colours.
 
+**And then the drops actually ran.** The code deployed first: pushed, Vercel green on that
+exact commit, production smoke-tested on the new build, and every scheduled job and API
+route grepped for the names about to disappear. Then the demo database — empty of every
+target, so it proved the SQL and risked nothing — then a fresh `backup.yml` dispatched by
+hand because the nightly one was twelve hours old and this step does not come back, then
+production, one file at a time.
+
+Gone from both databases: `Account`, `Session`, `VerificationToken`, `GroupInvite`;
+`User.openTo`, `User.avatarColor`, `Photo.blurhash`, `Photo.originalUrl`, `Post.tag`,
+`Group.visibility`, `Visit.timezone/lat/lng`; `SearchLog_query_idx` and
+`Group_visibility_createdAt_idx`. Verified with `to_regclass` and `information_schema`, and
+— the check that mattered most — `CatchupSeries` still holds 3 and `CatchupEntry` 133, which
+is the disaster the census was written to prevent. 63 members intact, `verify:crawl` 20/20,
+production public routes 200, and the demo write-guard 15/15 including its new canary.
+
+**Getting the push out needed a git fix.** Origin's tip was an earlier shape of a commit
+that had since been rewritten locally, so the two could not fast-forward. A merge resolved
+cleanly and was then rejected by a GitHub ruleset — this branch must not contain merge
+commits — which is exactly why it had been rewritten in the first place. A rebase with
+autostash did it, git dropping the duplicate commit on its own recognisance. The owner's
+uncommitted `CLAUDE.md` edit was copied out and checksum-compared before and after, because
+it is not mine to stash.
+

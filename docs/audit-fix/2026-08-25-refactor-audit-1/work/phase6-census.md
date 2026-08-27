@@ -96,15 +96,27 @@ Exactly six Catch-up tables remain and all six are live: `CatchupSeries`,
 dependency-diet-04's ordering (remove the adapter in code first, then drop)
 carries no data risk at all — it is the cleanest row in the phase.
 
-## Still to census before any DDL
+## Both remaining gaps, closed 2026-08-27
 
-- **The demo database has not been looked at.** It is a separate Supabase project
-  and takes the same migration (`run-sql.mjs --env .env.demo`). Every count above
-  must be repeated there; the whole reason that flag exists is that a second
-  database with no migration path is a second database that will be wrong.
-- The 2–3 indexes proposed for dropping (`Group_visibility_createdAt_idx` and the
-  GroupInvite indexes) have not been checked for use via `pg_stat_user_indexes`.
-- No code has been changed yet. Nothing has been dropped.
+**The demo database is empty of every drop target.** Censused with the same query
+(`run-sql.mjs --env .env.demo`): `Account` 0, `Session` 0, `VerificationToken` 0,
+`GroupInvite` 0, tagged posts 0, geolocated visits 0, `avatarColor` 0, `openTo` 0,
+`blurhash`/`originalUrl` 0. It holds one Group row, the demo Catch-up's roster
+container, whose `visibility` is a default nobody reads. So the demo takes the
+same migration with nothing at stake — which is the opposite of the production
+picture above and worth saying out loud, because it means a clean demo run proves
+nothing about the production run.
+
+**The indexes were checked against `pg_stat_user_indexes`**, over a 96-day
+statistics window, and the numbers changed a decision.
+`SearchLog_query_idx` had **1 scan** and was dropped. `Comment_postId_isHidden_idx`
+had **13**, and data-layer-07 itself rates it marginal and says to skip it in
+doubt — so it is KEPT. `Group_visibility_createdAt_idx` (147) and
+`GroupInvite_inviteeId_status_idx` (385) go regardless, because the column and the
+table they belong to are going; on tables this small those counts are Postgres
+picking a tiny index over a tiny sequential scan, not evidence of a query anyone
+wrote. **Consult that view before believing any "no query can use this" claim: the
+audit never ran it.**
 
 ## The order this has to happen in
 
