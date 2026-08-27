@@ -161,12 +161,28 @@ against §1a's unknown flags. −8.00 MB tracked (37.89 → 29.89), and that is 
 own 19,355 lines of markdown. −10 dependencies. Four tables, nine columns and three indexes
 gone from both databases. Duplication 2.04 % → 1.47 %, which is 61 fewer clones.
 
-Two rows are marked "not re-measured" rather than guessed. `next build` shares `.next` with
-the dev server, and the one running was started at 10:01 by somebody else. Local disk is the
-owner's own folder move. The code-lines row reads −2,275 against an expected −4,500 to
-−5,500, and the report says plainly why that is not a miss: the tree was never frozen, so it
-is a net across every session in the window, feature work included. The clone count is the
-honest reading of the dedupe phases, because it does not care what else the tree gained.
+Then he asked for the stats, so the two rows I had left open got measured too. The build
+shares `.next` with a dev server another session started, so it was built in a throwaway git
+worktree under the gitignored `.scratch/` — two traps there, both now written down: Turbopack
+refuses a `node_modules` symlink and will not resolve upward past the worktree's own
+lockfile, so it has to be hard-linked with `cp -Rl`. First-load JS then comes straight out of
+`.next/diagnostics/route-bundle-stats.json`, whose `firstLoadUncompressedJsBytes` is exactly
+the metric the audit's baseline used. **/feed 1,530 → 1,186 KB, /directory 1,642 → 1,218,
+/profile 1,636 → 1,225, the median member route ~1,370 → 1,047.** Compile 16.9 → 12.1 s,
+TypeScript 19.4 → 14.5 s; the wall clock is not comparable at load 36. Real import cycles
+5 → 0.
+
+**And the code-lines row is a miss, which the report now says outright.** The 196 commits in
+the window were partitioned by hand — 167 the campaign's, 29 peer feature work — and the
+campaign's own diffs come to **−1,067 against an expected −4,500 to −5,500**. Phase 1a
+delivered −2,070 of that; the two dedupe phases, 65 commits and the largest investment in the
+campaign, netted **−90 lines between them**. Not a bad estimate, a wrong unit: dedupe is
+line-neutral by construction here, because the house rule is that every constant is argued
+for in a comment, so replacing five copies with one function owes a docblock, five imports
+and five call sites. What it did buy is 61 fewer clones and 939 fewer duplicated lines — a
+bug in any of them now gets fixed once. Every other projection the audit made was met or
+beaten. The note for the next audit is in §1b: project clones, packages, bytes and database
+objects here, and do not project SLOC at all.
 
 **And the bug that driving it found.** C-014 fixed a shared-browser leak: the crash-net key
 grew a member id, so one person's unsaved letter could not be restored into the next

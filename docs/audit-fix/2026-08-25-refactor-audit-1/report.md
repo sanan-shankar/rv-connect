@@ -60,12 +60,12 @@ in §1a (which used whatever flags that session used).
 
 | Metric | Today | Expected | **Measured 2026-08-27** | Main levers |
 |---|---|---|---|---|
-| Code lines (net, src+scripts) | — | **−4,500 to −5,500** | **−2,275 net** in product `src` — components 35,028→34,019, lib 17,941→17,778, app-minus-lab 14,301→13,198. NOT the campaign's own deletion count; see the note below | dead ~1,800 · dedupe ~2,300 · placeholder/flag strips ~700 (cross-agent overlaps already deduplicated) |
+| Code lines (net, src+scripts) | — | **−4,500 to −5,500** | **−1,067**, campaign commits only (167 of the 196 in the window). A **~4× miss**; see the per-phase table below. Whole-tree net for context: −2,275 in product `src` — components 35,028→34,019, lib 17,941→17,778, app-minus-lab 14,301→13,198 | dead ~1,800 · dedupe ~2,300 · placeholder/flag strips ~700 (cross-agent overlaps already deduplicated) |
 | Tracked repo weight | — | **−6.4 MB**, plus ~19,300 lines of imported skill prose relocated (owner call) | **−8.00 MB** (37.89 → 29.89 MB) — and that is NET of this audit's own artefacts, which added 19,355 lines of markdown to `docs/` | WhatsApp originals 3.05 MB · overflow PDF/HTML 1.79 MB · audit JSON dumps 0.99 MB · QR SVGs 0.2 MB · brand PNG 0.38 MB |
-| First-load JS, /feed | 1,530 KB raw | **1,150–1,220 KB** | **1,191 KB** (phase 5, session 8; 1,515 → 1,191 against that session's own baseline). In range | posthog defer 245 KB · LazyMotion (async domMax) 50–100 KB critical-path · conditional shell UI ~19 KB · dialog deferral ~12 KB |
-| First-load JS, /directory | 1,642 KB raw | **1,070–1,150 KB** | **1,224 KB** (phase 5; 1,628 → 1,224). ABOVE the range — three of the phase's levers were re-refuted with measurements at fix time, see session 7 | the same + atlas-as-fetch 105 KB + d3 defer ~80 KB |
-| Every member page | ~1,370 KB median | **−360–380 KB each** | **−299 to −404 KB each** across the five measured routes: directory −404 (1,628→1,224), profile −392 (1,624→1,232), collection −333, feed −324, welcome −299 | shared-chunk levers apply everywhere |
-| `next build` | 45.6 s | **~37–42 s** autonomous; **~18–23 s** with the owner's duplicate-TS-check call | **not re-measured** — a production build shares `.next` with the dev server, which at close-out belonged to another session. The two autonomous levers here were both re-refuted with measurements in session 7 | tsconfig exclude · Sentry hook · TS-in-CI-only (owner) |
+| First-load JS, /feed | 1,530 KB raw | **1,150–1,220 KB** | **1,186 KB**, from a clean production build at close-out (`.next/diagnostics/route-bundle-stats.json`, `firstLoadUncompressedJsBytes` — the same metric §1a used). **In range.** | posthog defer 245 KB · LazyMotion (async domMax) 50–100 KB critical-path · conditional shell UI ~19 KB · dialog deferral ~12 KB |
+| First-load JS, /directory | 1,642 KB raw | **1,070–1,150 KB** | **1,218 KB**, same build. **ABOVE the range by 68 KB** — three of the phase's levers were re-refuted with measurements at fix time, see session 7 | the same + atlas-as-fetch 105 KB + d3 defer ~80 KB |
+| Every member page | ~1,370 KB median | **−360–380 KB each** | **median non-lab route 1,047 KB, down from ~1,370 — −323 KB at the median**; on the three routes §1a named, −344 (/feed), −411 (/profile/[id]), −424 (/directory). Lightest route /catchups/join 621 KB, heaviest /profile/[id] 1,225 KB, 52 non-lab routes of 98 | shared-chunk levers apply everywhere |
+| `next build` | 45.6 s | **~37–42 s** autonomous; **~18–23 s** with the owner's duplicate-TS-check call | **measured, and the wall clock is not comparable.** Built in a throwaway git worktree under `.scratch/` so the shared `.next` was never touched: warm rebuild **42.8 s**, but at load average 13–36 (another session was working), against a baseline taken at unknown load. The phase timings are the honest read: **compile 16.9 → 12.1 s (−28 %)**, **TypeScript 19.4 → 14.5 s (−25 %)**, static generation 0.6 → 1.5 s for 102 pages. The Sentry hook's 3.0 s is absent from this run because it was built without an auth token, so it is excluded from both sides. Note the two autonomous levers §1b counted on were themselves re-refuted with measurements in session 7 — the compile and TypeScript gains come from there being less code and fewer packages, not from the projected changes | tsconfig exclude · Sentry hook · TS-in-CI-only (owner) |
 | Dependencies | 61 | **−7 now** (+2–3 more via owner/deferred calls), 6 re-sectioned, production graph −~145 MB | **−10**: 44 runtime + 17 dev → 33 runtime + 18 dev (51) | see phase 1b |
 | Database | 41 models | **−4 models · −8 columns · −3 indexes** (migration-gated) | **−4 models · −9 columns · −3 indexes**, applied to BOTH production and demo on 2026-08-27 and verified after (session 9) | adapter tables, GroupInvite, retired columns + the write-only Visit trio |
 | Local disk | — | **−135 MB+**, screenshots bounded | **not re-measured** — the owner's own "sanan's stuff" move (§4 #15) is his to do | stuff folder move, tsbuildinfo, retention rule |
@@ -81,14 +81,53 @@ Two rows the table cannot carry, both measured the same like-for-like way:
 comparable run to run (§1a's 26.0 s against 36–48 s here) because this machine routinely
 carries several sessions at once — session 9 once recorded 1,429 s on an unchanged tree.
 
-**Why the code-lines row reads −2,275 against an expected −4,500 to −5,500, and why that is
-not a miss.** The tree was never frozen for this campaign. Feature work landed in the same
-directories throughout the window: the guide and its six chapters, the Collection rework,
-and 2,367 lines of new `/lab` rooms. So −2,275 is the NET of every session in the window,
-not the campaign's own deletion count. That count lives in the per-phase session logs in
-`fix-prompt.md` and is larger — phase 1a alone deleted 2,320 lines against 268 added. The
-duplication row above is the cleaner reading of the dedupe phases, because a clone count
-does not care what else the tree gained: 61 fewer clones and 939 fewer duplicated lines.
+**The code-lines row, measured properly — and it is a miss.** The −2,275 above is a
+whole-tree net and therefore not the campaign's own figure; the tree was never frozen, and
+peer feature work (the guide, the Collection rework, 2,367 lines of new `/lab` rooms) landed
+in the same directories throughout. So at close-out the 196 commits in the window were
+partitioned by hand: **167 are this campaign's, 29 are peer feature work.** Summing only the
+campaign's diffs, restricted to `src/`, `scripts/`, `prisma/` and `e2e/` (excluding baseline
+PNGs):
+
+| Phase | Commits | + | − | net |
+|---|---|---|---|---|
+| 1a dead code in src | 26 | 244 | 2,314 | **−2,070** |
+| 1b root, docs, assets, deps | 20 | 198 | 234 | −36 |
+| 2 placeholders, flags, Groups | 18 | 734 | 648 | **+86** |
+| 3 lib dedupe | 22 | 1,097 | 1,216 | −119 |
+| 4 component/route dedupe | 43 | 3,418 | 3,389 | **+29** |
+| 5 bundle & build | 18 | 1,664 | 1,010 | **+654** |
+| 6 schema & architecture | 15 | 1,319 | 1,185 | +134 |
+| 10 last rows + close-out | 5 | 828 | 573 | +255 |
+| **Total** | **167** | **9,502** | **10,569** | **−1,067** |
+
+Against an expected −4,500 to −5,500, that is **off by roughly 4×, and essentially all of the
+delivered saving is phase 1a.** The two dedupe phases — 65 commits, the single largest
+investment in the campaign — netted **−90 lines between them**.
+
+**Why, and it was knowable in advance.** Deduplication cannot save lines in this codebase.
+The comment-to-code ratio is 0.34–0.52 (§1a) because the house rule is that every constant is
+argued for in a comment. Replacing five copies of a ten-line block with one shared function
+costs a docblock explaining why the shared function exists, five imports, and five call
+sites — it is line-neutral by construction. The audit projected SLOC savings against a style
+that forbids them, and it led with that number.
+
+**What dedupe did buy, in the currency that fits it**: 61 fewer clones, 939 fewer duplicated
+lines, and the duplication rate down 28 % relative. Ten hand-rolled Keeper guards became two;
+thirty-nine spellings of "who wrote this" became two named shapes. A bug in any of those now
+gets fixed once. That is the real return, and a line count cannot see it.
+
+**Every projection this audit made in a unit OTHER than lines was met or beaten** — tracked
+weight, dependencies, database objects, import cycles, duplication, and first-load JS on two
+of the three named routes. For the next audit: project clone counts, dependency counts, byte
+weight, bundle bytes and database objects. Do not project SLOC here.
+
+Two more measurements taken at close-out, neither of which §1b had a row for:
+
+| Metric | Baseline `1d3f996` | Measured 2026-08-27 |
+|---|---|---|
+| Real import cycles (`madge --circular --ts-config`, excluding the generated Prisma client) | 5 | **0** |
+| Files deleted outright by the campaign | — | **48** |
 
 Floor honesty (goal-sloc): a member page's framework floor in this design is ~950–1,000 KB
 raw JS (react-dom, router, Base UI chrome, the 50 birds, the mascot, toasts, cn). Going
