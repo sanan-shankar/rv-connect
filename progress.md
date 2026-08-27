@@ -4223,3 +4223,12 @@ eleven literals, five of them `"campus-memory"` — which is exactly the five ta
 census found. Left alone it would have thrown on its next run against a column that no
 longer exists. The field is gone from the script's type, its eleven pieces and its create.
 
+**The Visit geolocation trio, and it is the one that deletes personal data.**
+`Visit.timezone`, `Visit.lat` and `Visit.lng` were filled from Vercel's edge headers on
+every page view and read by nothing — not the analytics room, which groups by country,
+city and region and never selects these; not the export; not retention, which deletes whole
+rows by date. 194 of 614 visits carry a real coordinate pair. That is the argument *for*
+removing them rather than against: a field you collect and never use is one you should stop
+collecting. Collection stopped first — `last-seen.ts` no longer reads the three headers at
+all, and `num()`, which existed only to parse the two coordinates, went with them.
+

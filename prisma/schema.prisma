@@ -1074,11 +1074,6 @@ model Visit {
   country  String?
   city     String?
   region   String?
-  timezone String?
-  // Coarse coordinates from the same headers. Enough to put a visit on the
-  // directory's existing map; never a street address.
-  lat      Float?
-  lng      Float?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
