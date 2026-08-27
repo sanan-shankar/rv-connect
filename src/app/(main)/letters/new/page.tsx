@@ -17,5 +17,5 @@ export default async function NewLetterPage() {
   // The writer's own cities feed the "Show to" audience control.
   const cities = await getViewerCities(session.user.id);
 
-  return <LetterDesk userPlaces={cities} />;
+  return <LetterDesk writerId={session.user.id} userPlaces={cities} />;
 }

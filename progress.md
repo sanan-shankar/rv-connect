@@ -32,6 +32,21 @@ which is what that pass is for. Verified against the live database rather than b
 the diff: a thread opened as Jerry, replied to as admin, marked sorted, then read back —
 `status` closed, `adminUnread` false, one `fromAdmin` message with the admin's own id on it.
 
+**And the bug that driving it found.** C-014 fixed a shared-browser leak: the crash-net key
+grew a member id, so one person's unsaved letter could not be restored into the next
+person's composer. The key template was right. The wiring was not. `letter-desk.tsx` never
+passed `currentUser`, and the desk is the ONLY surface where `defaultLetter` is set, so it
+is the only place the crash net runs at all -- meaning every belt this app has ever written
+went to `rv:letter-draft:anon:new`, and the fix has been off for its entire life. Proved by
+signing two accounts into the same browser and reading the keys: both `anon:new` before,
+two distinct ids after.
+
+The shape test could not have caught it, and that is the lesson worth keeping: it greps the
+key template and counts three call sites passing the id, all of which were true while the
+id was undefined at every one of them. The new pin asserts the WIRE -- the desk passes
+`currentUser={{ id: writerId }}` and both letter pages pass `writerId={session.user.id}`.
+Found by driving the machine, not by reading it.
+
 **`feed-posts-02` — the composer's two machines, out into named hooks.** The app's biggest
 client file was 1,685 lines; it is 1,201 now, with `use-letter-persistence.ts` (468) and
 `use-composer-uploads.ts` (225) beside it. A move, not a cut: +209 lines all told, which is

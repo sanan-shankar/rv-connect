@@ -58,6 +58,7 @@ export default async function EditLetterPage({
 
   return (
     <LetterDesk
+      writerId={session.user.id}
       userPlaces={cities}
       postId={letter.id}
       initialTitle={letter.title ?? undefined}
