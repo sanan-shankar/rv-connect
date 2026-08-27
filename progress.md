@@ -4162,3 +4162,19 @@ Measured after: profile photo at 2560×1 drops from the 1456 rung to 750, and at
 from 1456 to 1080. Nothing looks different — `npm run visual` 23/23, and the declared
 widths sit 4px under the real slot so a retina Mac lands on 1456 for a 1464px need
 rather than paying for 1920.
+
+## 2026-08-27 — the two Dependabot highs, closed
+
+Both were transitive and neither was reachable from anything a member touches, but
+`npm audit` is now clean rather than clean-with-an-explanation. `deepmerge-ts`
+(GHSA-ggr8-5vv4-36mx, stack exhaustion) arrives through the Prisma CLI's `@prisma/config`,
+which pins it to an exact `7.1.5`; npm's only offered fix was `prisma@6.12.0`, two majors
+back, so it is an `overrides` entry forcing `^8.0.2` instead, with `prisma validate` and
+`prisma generate` both run against it and OPERATIONS §4 carrying the note to delete the
+override once upstream moves. `extract-zip` (GHSA-jmr9-qjv8-65gv, symlink path traversal
+when unpacking a downloaded Chrome) had no patched version under `puppeteer@24`, so
+puppeteer went to 25.9.0 — a devDependency, and the screenshot toolchain was re-run against
+it: `npm run screenshot` and `npm run verify:crawl` both drive the same bare
+`puppeteer.launch`, and both still launch.
+
+7 high advisories to 0.
