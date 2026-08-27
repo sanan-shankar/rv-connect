@@ -30,6 +30,7 @@ import { EntryLoveButton } from "@/components/catchups/round/entry-love-button";
 import type { CatchupEntryView, CatchupSongView, PromptKind } from "@/lib/catchups-types";
 import { PhotoFrame } from "@/components/common/photo-frame";
 import { PhotoRows } from "@/components/common/photo-rows";
+import { PhotoCarousel } from "@/components/common/photo-carousel";
 import { PHOTO_SIZES_CENTERED_FULL } from "@/lib/image-cdn";
 import type { StoredPhoto } from "@/lib/photo-layout";
 import { cn } from "@/lib/utils";
@@ -63,12 +64,25 @@ function AnswerPhotos({ images, photos }: { images: string[]; photos: (StoredPho
       </div>
     );
   }
-  /* Several photographs: justified rows, each at its true shape. Only legacy
-     rows reach this -- the answer form has taken one photograph per answer
-     since it shipped (`PhotoAttachments max={1}`) -- but they used to tile
+  /* More than two: a carousel, the same rule the feed uses. Only legacy rows
+     reach any of this -- the answer form has taken one photograph per answer
+     since it shipped (`PhotoAttachments max={1}`). */
+  if (images.length > 2) {
+    return (
+      <PhotoCarousel
+        className="mt-[var(--space-s)]"
+        photos={images.map((src, i) => ({ src, photo: photos[i] ?? null }))}
+        sizes={PHOTO_SIZES_CENTERED_FULL}
+        onOpen={() => {}}
+        onPreload={() => {}}
+      />
+    );
+  }
+
+  /* Exactly two: justified rows, each at its true shape. They used to tile
      into squares, which is the same guillotine the lone hero applied, just
-     four ways at once. A row that has not been measured keeps the squares
-     rather than half a layout. */
+     twice at once. A pair that has not been measured keeps the squares rather
+     than half a layout. */
   const shapes = photos.length === images.length && photos.every(Boolean) ? photos : null;
   if (!shapes) {
     return (
@@ -96,7 +110,11 @@ function AnswerPhotos({ images, photos }: { images: string[]; photos: (StoredPho
           loading="lazy"
           decoding="async"
           className="h-full w-full rounded-[var(--radius-md)] border border-border object-cover"
-          style={{ aspectRatio: cell.aspectRatio, objectPosition: cell.objectPosition }}
+          style={{
+            aspectRatio: cell.aspectRatio,
+            objectPosition: cell.objectPosition,
+            maxHeight: cell.maxHeight,
+          }}
         />
       )}
     </PhotoRows>

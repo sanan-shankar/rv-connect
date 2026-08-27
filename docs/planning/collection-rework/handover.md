@@ -256,6 +256,32 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   numbers are `PHOTO_ROW_TARGET = 150` for a card and `min(190px, 30%)` for the grid, both
   measured (F24).
 
+- **D19. Up to a fifth of a photograph may be cut to spare it a blurred bed.**
+  The owner's, 2026-08-28, looking at two landscapes in his own feed: *"i'll allow you to crop
+  20% of an image to have fewer blur bars. so we don't have bars on these types of things.
+  obviously any time there's crop you use sharp to crop decently well."* A photograph square
+  or wider is never cut, so the 500px ceiling could only be obeyed by NARROWING it -- which is
+  why anything between about 1:1 and 1.46:1 stopped short of its column with blur down both
+  sides. `max-width` now carries the budget, `max-height` the ceiling, `object-fit: cover`
+  takes the difference off the top and bottom, and the window is aimed at sharp's focal point
+  and braked symmetrically (F27). **Two things it deliberately does not touch**: a tall
+  photograph, which is already at 3:4 on a bed and where the budget would start cutting the
+  commonest portrait anybody posts (D7's whole reason); and anything from 1.8:1 up, where the
+  900px cap binds before the ceiling and nothing is ever cut.
+- **D20. More than two photographs in a post is a carousel.** The owner's, same message:
+  *"I think if there's more than two images we use a carousel. and make sure it's a beautiful
+  transition and just done really well. lot of carousels are super basic and not much thought
+  and it's not smooth. let's make ours amazing."* One photograph at a time; exactly two stays
+  a justified row; one stays one. `src/components/common/photo-carousel.tsx`, and F28 is what
+  makes it not-basic.
+- **D21. A carousel's photographs share ONE shape, and it is the median of the set.** Mine.
+  A carousel has to pick a shape or the card changes height under the reader's thumb, and the
+  obvious pick -- the tallest photograph -- reintroduced D19's own complaint one component
+  over: two landscapes and a portrait made a 421px frame on a phone, so both landscapes sat in
+  121px of bed. The median means the shape most of them already are is the shape they are all
+  drawn in; the odd one out is the only one bedded. Clamped to 3:4 and 1.8:1, so a carousel is
+  never a shape a single photograph could not be.
+
 ## Findings from reading the code (2026-08-26, session 1)
 
 - **F1. The Vercel billing question, answered.** `/_next/image` is Vercel's *metered*
@@ -528,6 +554,35 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   A fixture set of real photographs at every ratio -- spec §12 asks for one, including a
   deliberately low-resolution frame -- is still owed, and is the thing that would let the
   visual suite cover any of this.
+- **F27. The bars were the ceiling being paid for in width.** Worth stating plainly because
+  it is not obvious from the rule as written. A photograph square or wider is never cut (D6),
+  so the only way it can obey a 500px height ceiling is to be drawn narrower than its column
+  -- and everything between about 1:1 and 1.46:1 is. Measured on the owner's own two posts:
+  27px of bed a side on a 1.34:1, 82px on a 1.18:1. Under D19 both reach both edges, losing
+  9% and 19%. The aim for a wide photograph is a SYMMETRIC band (0.25-0.75), where the tall
+  one is floored at 50%: a portrait's heads live in the upper half, so the worst case of a bad
+  guess there is the centre crop, but a landscape has no such rule and sharp's `attention` goes
+  for the bright sky -- which on a landscape is the half worth losing. The window can travel at
+  most a tenth of the frame from centre anyway, because the crop is at most a fifth.
+  **One case is a bad trade and the owner has not seen it**: a square in a card wider than
+  625px spends the whole fifth and keeps a smaller bed, a full price for a partial win.
+  Avoiding it means knowing the real column width, which means measuring after paint, which is
+  the page-jump this campaign exists to end. Flagged, not solved.
+- **F28. What makes a carousel not-basic is all gesture, and none of it is a library.**
+  Three things, and each replaced something that felt wrong. **The scrolling is the browser's**
+  -- a native scroll-snap track follows a finger with the platform's own momentum and
+  rubber-band, which no JavaScript drag handler reproduces, and `scroll-snap-stop: always` is
+  what stops a fast flick skidding past three photographs. **The arrows use our curve**:
+  `behavior: "smooth"` is whatever the engine feels like and is usually flat, so a press
+  animates `scrollLeft` on a rAF through `EASE_OUT_SMOOTH` with snapping switched off for the
+  460ms, because a scripted scroll and a snapping engine fight each other. **The indicator is
+  scroll-linked**, reading the real offset every frame and writing a transform straight to the
+  element rather than to state -- so it travels with a thumb mid-swipe instead of jumping when
+  the slide lands, and a re-render per scroll frame (which is how a carousel starts dropping
+  them) never happens.
+- **F29. `<PhotoBed>` is now shared.** The blur beside a photograph was inline in
+  `<PhotoFrame>`; the carousel needs the identical thing, and a second copy of a filter nobody
+  would remember to keep in step is how the two drift. One component, both callers.
 - **F7. A concurrent session is editing this area.** `src/app/(main)/collection/page.tsx`
   changed on disk mid-session (server-side first-page fetch added, `firstPage` prop passed
   to `CollectionClient`). Per CLAUDE.md, work around other sessions' edits, never stash or
@@ -601,7 +656,7 @@ reading the brief** — the wording in the brief carries nuance this table does 
 
 | # | Ask | Status |
 |---|---|---|
-| 33 | Feed images stretch on widescreen monitors; low-resolution images go grainy; there is no real limit on feed width | partly addressed by the 2026-08-26 `sizes` fix (commit b2216d5), **not fully** |
+| 33 | Feed images stretch on widescreen monitors; low-resolution images go grainy; there is no real limit on feed width | **fixed** — the 900px cap (D10) and the 500px ceiling (D15) |
 | 34 | Automatic cropping removes the part that matters | open — F3 |
 | 37 | Multi-image layouts are more complicated and he does not know whether the logic works | open |
 | 38 | Avoid a wall of black bars, but find the right way to crop | open — **D6, the gating decision** |
@@ -752,3 +807,17 @@ next session should do is D16 to D18 and F22 to F26 above.
   Both are worth putting in front of him at `/lab/crop?mode=many&n=34`.
 - **Next session: phase 4, the viewer.** Read this file, then `brief.md` in full, then spec
   §5. Nothing in phases 4 to 6 is blocked -- the layout work is finished.
+
+### Session 3, second round — 2026-08-28 (Opus)
+
+The owner looked at phase 3 in his own feed and asked for two things. Both shipped; detail in
+`progress.md` under 2026-08-28, and the decisions are D19 to D21 with F27 to F29 behind them.
+
+- **A 20% crop budget** on every photograph square or wider, which is what was producing the
+  blurred bars he objected to: the ceiling could only be obeyed by narrowing, and now it is
+  obeyed by cutting instead. `framePhoto` gained `maxHeight`, and every row cell carries it.
+- **A carousel past two photographs** (`photo-carousel.tsx`), with the set agreeing on one
+  shape. `<PhotoBed>` came out of `<PhotoFrame>` so both use one blur.
+- `npm run check` 81/81, `npm run visual` 23/23 with no baseline moved, `verify:crawl` 20/20.
+- **Unresolved, and his to call**: the square case in F27, and the fact that a mixed-orientation
+  carousel always beds somebody -- the odd shape out. Both are stated rather than smoothed over.

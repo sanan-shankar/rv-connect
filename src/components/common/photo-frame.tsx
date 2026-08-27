@@ -20,6 +20,60 @@
 import { framePhoto, photoSizes, type StoredPhoto } from "@/lib/photo-layout";
 import { cn } from "@/lib/utils";
 
+/**
+ * What fills a card either side of, or above and below, a photograph that
+ * does not span its frame.
+ *
+ * The owner reversed himself on blur and was right both times. As the whole
+ * rule it squashes every photo into one landscape box and is "a cop out"; as
+ * the filler beside a photo already shown at a proper size it is simply a
+ * better background than a flat colour. The filter is the one he approved in
+ * /lab/crop, to the number.
+ *
+ * THE PHOTOGRAPH ITSELF, not the 16px smear stored beside it. The first
+ * version used the smear on the theory that a 26px blur destroys the
+ * difference. It does not: `object-cover` stretches a 16px source across
+ * 350px of card, so every source pixel becomes a 20px block and the blur
+ * smears those into streaks. The owner, looking at his own feed: "very
+ * distracting and not smooth and just yucky blur bars." He was right. Same
+ * `src` and `sizes` as the photograph in front of it, so the browser resolves
+ * the same URL and this costs no second download.
+ *
+ * Always rendered, even on a phone where a photograph often spans its column
+ * and the bed cannot be seen. Hiding it below a 456px viewport was tried, to
+ * save a phone a blurred full-size layer per card, and it broke something
+ * worse than it saved: a `display: none` image with `loading="lazy"` never
+ * loads, so `img.complete` stays false forever and anything waiting on
+ * `document.images` waits for good -- which is what `e2e/visual.spec.ts`'s
+ * settle() does, and it hung on it. The saving was never measured; this cost
+ * was real within a minute.
+ */
+export function PhotoBed({
+  src,
+  srcSet,
+  sizes,
+  loading,
+}: {
+  src: string;
+  srcSet?: string;
+  sizes?: string;
+  loading?: "lazy";
+}) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      srcSet={srcSet}
+      sizes={sizes}
+      alt=""
+      aria-hidden
+      loading={loading}
+      decoding="async"
+      className="pointer-events-none absolute inset-0 h-full w-full scale-[1.12] object-cover blur-[26px] brightness-[0.68] saturate-[1.1]"
+    />
+  );
+}
+
 export function PhotoFrame({
   src,
   srcSet,
@@ -90,42 +144,7 @@ export function PhotoFrame({
 
   return (
     <div className={cn("relative flex justify-center overflow-hidden bg-mist", className)}>
-      {/* The bed: what fills the card either side of a photograph that does not
-          span its column.
-
-          The owner reversed himself on blur and was right both times. As the
-          whole rule it squashes every photo into one landscape box and is "a
-          cop out"; as the filler beside a photo already shown at a proper size
-          it is simply a better background than a flat colour. The filter is
-          the one he approved in /lab/crop, to the number.
-
-          THE PHOTOGRAPH ITSELF, not the 16px smear stored beside it. The first
-          version used the smear on the theory that a 26px blur destroys the
-          difference. It does not: `object-cover` stretches a 16px source
-          across 350px of card, so every source pixel becomes a 20px block and
-          the blur smears those into streaks. The owner, looking at his own
-          feed: "very distracting and not smooth and just yucky blur bars." He
-          was right. Same `src` and `sizes` as the photograph below, so the
-          browser resolves the same URL and this costs no second download. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        srcSet={srcSet}
-        sizes={srcSet ? photoSizes(sizes, frame) : undefined}
-        alt=""
-        aria-hidden
-        loading={loading}
-        decoding="async"
-        /* Always rendered, even on a phone where a photograph always spans its
-           column and the bed cannot be seen. Hiding it below a 456px viewport
-           was tried, to save a phone a blurred full-size layer per card, and it
-           broke something worse than it saved: a `display: none` image with
-           `loading="lazy"` never loads, so `img.complete` stays false forever
-           and anything waiting on `document.images` waits for good -- which is
-           what `e2e/visual.spec.ts`'s settle() does, and it hung on it. The
-           saving was never measured; this cost was real within a minute. */
-        className="pointer-events-none absolute inset-0 h-full w-full scale-[1.12] object-cover blur-[26px] brightness-[0.68] saturate-[1.1]"
-      />
+      <PhotoBed src={src} srcSet={srcSet} sizes={srcSet ? photoSizes(sizes, frame) : undefined} loading={loading} />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
@@ -143,6 +162,11 @@ export function PhotoFrame({
         className="relative h-auto w-full object-cover"
         style={{
           maxWidth: frame.maxWidth,
+          /* The ceiling, and the reason a landscape stops having blurred bars
+             down its sides: it is allowed to fill the column and lose up to
+             20% off its top and bottom instead of being narrowed to fit under
+             500px. See CROP_BUDGET. */
+          maxHeight: frame.maxHeight,
           aspectRatio: frame.aspectRatio,
           objectPosition: frame.objectPosition,
         }}
