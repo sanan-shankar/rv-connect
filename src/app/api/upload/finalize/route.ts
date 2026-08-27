@@ -8,7 +8,8 @@ import {
   keyBelongsTo,
   ownerPrefix,
 } from "@/lib/storage";
-import { countImageFrames, toDisplayWebp } from "@/lib/image";
+import { countImageFrames, describeImage, toDisplayWebp, type ImageFacts } from "@/lib/image";
+import { recordImage } from "@/lib/image-record";
 import { purgeImageKey, purgeImageUrls } from "@/lib/image-purge";
 import {
   MAX_UPLOAD_BYTES,
@@ -70,6 +71,10 @@ export async function POST(request: Request) {
   }
 
   const urls: string[] = [];
+  /** What each stored image turned out to look like -- same shape and the same
+   *  reason as the classic route's, because the composer reads both the same
+   *  way. */
+  const images: (ImageFacts & { url: string })[] = [];
   /** Anything we changed about the file, said out loud -- same shape as the
    *  classic route's response, because the composer shows both the same way. */
   const notices: string[] = [];
@@ -118,6 +123,11 @@ export async function POST(request: Request) {
       const webp = await toDisplayWebp(original);
       const url = await putImage(webp, ownerPrefix("uploads", vet.userId), `${createId()}.webp`);
       urls.push(url);
+      const facts = await describeImage(webp);
+      if (facts) {
+        images.push({ url, ...facts });
+        await recordImage(url, facts);
+      }
     } catch (error) {
       console.error("Finalize processing error:", error);
       return abort({ error: describeProcessingError(error) }, 422, i);
@@ -128,5 +138,5 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json(notices.length > 0 ? { urls, notices } : { urls });
+  return NextResponse.json(notices.length > 0 ? { urls, images, notices } : { urls, images });
 }

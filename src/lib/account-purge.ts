@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { forgetImages } from "./image-record";
 import { delImage } from "./storage";
 import { chooseGroupSuccessor } from "./group-succession";
 import type { Prisma } from "@/generated/prisma/client";
@@ -388,9 +389,16 @@ export async function drainPendingImagePurges(
 
   let deleted = 0;
   let failed = 0;
+  /* The `Image` rows for whatever actually goes. This is the second of the two
+     places bytes are deleted (the other is `purgeImageUrls`), and it is the one
+     that finishes the job for a post or an account, whose urls are queued
+     inside a transaction rather than handed over directly. Collected and
+     forgotten in one statement after the loop rather than one at a time. */
+  const gonePermanently: string[] = [];
   for (const row of rows) {
     const gone = await delImage(row.url);
     if (gone) {
+      gonePermanently.push(row.url);
       await prisma.pendingImagePurge.delete({ where: { id: row.id } }).catch(() => {
         // Row already taken by a concurrent drain; the object is gone either
         // way, which is the part that matters.
@@ -410,5 +418,6 @@ export async function drainPendingImagePurges(
       });
     }
   }
+  await forgetImages(gonePermanently);
   return { deleted, failed };
 }

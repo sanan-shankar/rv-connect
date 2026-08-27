@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { forgetImages } from "@/lib/image-record";
 import { delImage, delImageByKey, publicUrlForKey } from "@/lib/storage";
 
 /**
@@ -59,6 +60,12 @@ export async function purgeImageUrls(
     present.filter((_, i) => !results[i]),
     reason
   );
+  /* What we knew about those images goes with them, including the 16px smear
+     of each one that `Image.blurDataUrl` holds. For every url, not only the
+     ones storage let go of: the intent here is that these bytes are leaving,
+     and anything storage refused is already queued for a retry that will not
+     need the row. */
+  await forgetImages(present);
 }
 
 /**

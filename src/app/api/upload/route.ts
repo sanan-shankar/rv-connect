@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { createId } from "@paralleldrive/cuid2";
 import { putImage, ownerPrefix } from "@/lib/storage";
-import { countImageFrames, toDisplayWebp } from "@/lib/image";
+import { countImageFrames, describeImage, toDisplayWebp, type ImageFacts } from "@/lib/image";
+import { recordImage } from "@/lib/image-record";
 import { purgeImageUrls } from "@/lib/image-purge";
 import {
   MAX_UPLOAD_BYTES,
@@ -51,6 +52,11 @@ export async function POST(request: Request) {
   }
 
   const urls: string[] = [];
+  /** What each stored image turned out to look like -- shape, focal point, a
+   *  smear to hold its place. Recorded server-side against the URL either way;
+   *  handed back as well so a composer can reserve the right space for a photo
+   *  it is about to show, without a second round trip to read it again. */
+  const images: (ImageFacts & { url: string })[] = [];
   /** Things the member should know about what we did to their file. See the
    *  animated-GIF branch below; the response omits this key entirely when
    *  there is nothing to say. */
@@ -123,11 +129,16 @@ export async function POST(request: Request) {
 
       const url = await putImage(webpBuffer, ownerPrefix("uploads", vet.userId), `${id}.webp`);
       urls.push(url);
+      const facts = await describeImage(webpBuffer);
+      if (facts) {
+        images.push({ url, ...facts });
+        await recordImage(url, facts);
+      }
     } catch (error) {
       console.error("Upload processing error:", error);
       return abort({ error: describeProcessingError(error) }, 422);
     }
   }
 
-  return NextResponse.json(notices.length > 0 ? { urls, notices } : { urls });
+  return NextResponse.json(notices.length > 0 ? { urls, images, notices } : { urls, images });
 }

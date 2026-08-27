@@ -162,6 +162,65 @@ model User {
   contributions   Contribution[]     @relation("Contributions")
 }
 
+/// What we know about the bytes at one stored image URL: its true shape, where
+/// the interesting part of it is, and a 16px smear of it to show while the real
+/// thing arrives.
+///
+/// Why this exists at all. `Post.images` and `CatchupEntry.images` are JSON
+/// arrays of URL STRINGS, so until now the app knew nothing about a feed,
+/// letter or Catch-up photograph except where to fetch it. That single gap is
+/// why the page jumps as each photo lands (nothing can reserve the space), why
+/// `image-cdn.ts` had to be a URL helper rather than a real component, why a
+/// justified row cannot be solved (the algorithm needs every aspect ratio up
+/// front) and why a 20,000-image grid cannot be windowed (a scrollbar needs row
+/// heights). See docs/planning/collection-rework/spec.md §2.
+///
+/// Keyed by URL, not by a foreign key to Post. That is the whole trick: nothing
+/// else in the schema moves, no existing row is migrated, and a caller looks up
+/// the URLs it is already holding. A URL with no row here is not an error --
+/// the renderer falls back to what it did before -- which is what makes the
+/// backfill lazy and this table safe to add mid-flight.
+///
+/// `Photo` (the Collection) keeps its own width/height and does not need a row
+/// here; it has carried dimensions since the day it was written.
+model Image {
+  /// The public URL the bytes serve from, which is already unique: every stored
+  /// object gets a fresh cuid filename.
+  url         String   @id
+
+  /// The stored image's own pixels, after EXIF rotation and after the 1920 box
+  /// `toDisplayWebp` puts it in -- the shape the browser will actually receive,
+  /// not the shape that left the camera.
+  width       Int
+  height      Int
+
+  /// Where the interesting part is, 0..1 from the top-left, from sharp's
+  /// `attention` strategy at upload. 0.5/0.5 means "we could not tell", which is
+  /// also the default, so a consumer never has to special-case a missing guess.
+  ///
+  /// Stored RAW and unclamped. The clamp that keeps a bad guess from doing
+  /// damage (a tall photo's window may travel between 15% and 50% down the
+  /// frame, and no further) belongs to the layout rule, not to the measurement,
+  /// so it can be retuned without re-reading twenty thousand files. X withdrew
+  /// its own saliency crop after measuring real bias in it, so this number is
+  /// only ever a nudge inside a clamp, and the uploader can overrule it.
+  focalX      Float    @default(0.5)
+  focalY      Float    @default(0.5)
+
+  /// True for a photograph with no colour in it, measured rather than declared
+  /// (spec §7.4: a filter nobody has to tag for). Sepia and faded prints read as
+  /// colour here, which is honest -- they have a hue.
+  greyscale   Boolean  @default(false)
+
+  /// A 16px-longest-edge WebP of the image as a data URI, about 160 bytes: the
+  /// thing to show in the reserved space while the real photograph loads. Same
+  /// convention as `next/image`'s `blurDataURL`, so it can be handed straight to
+  /// one. Null when the smear could not be made, which is not worth failing for.
+  blurDataUrl String?
+
+  createdAt   DateTime @default(now())
+}
+
 model Photo {
   id           String    @id @default(cuid())
   uploaderId   String
