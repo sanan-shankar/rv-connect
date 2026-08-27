@@ -51,7 +51,7 @@ that rework.
       after the first pass, because the numbers showed the six rules were not the whole
       decision: **portrait floor** (4:5 / 1:1 / 5:4) and **photo width cap** (full column /
       900px / 720px), then a seventh rule and a **tall-photo height ceiling** (560 / 700 /
-      840px). See F8 and F9.
+      840px), then an eighth rule of the owner's own and a fill control. See F8, F9 and F10.
 - [x] **Prior art researched** — `prior-art.md`. Owner asked for it directly mid-session.
 - [ ] **Owner picks a crop policy** — blocks the spec, because it determines the justified
       grid maths, the stored derivative sizes and the viewer's framing.
@@ -171,6 +171,22 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   Still open on this rule: at the 1216px wide column a SQUARE is 1216px tall, which the
   ceiling does not touch because it only governs r < 1. That is what the photo-width cap
   control is for, so on a 4K screen the two controls are needed together.
+- **F10. The owner's own rule, and it is a good one.** Asked to choose between cutting and
+  narrowing, he proposed a third thing: bring every tall photo to **2:3** and fill the space
+  beside it with a blurred copy rather than plain paper. Worth keeping because the numbers
+  are better than they look. Cutting a 9:16 to SQUARE costs 44% of the frame; cutting it to
+  2:3 costs **16%**, and a 4:5 loses a comparable 17% off its sides going the other way. So
+  the damage is small and, unlike the square floor, even in both directions. What it buys
+  over plain narrowing is rhythm: every tall card comes out at exactly the same size
+  (467 x 700 at the 728px column, 700px ceiling), where narrowing leaves them ragged.
+  He also reversed his earlier position on blur, correctly. Blur as the WHOLE rule squashes
+  every photo into one landscape box and is a cop out. Blur as the filler beside a photo
+  that is already being shown at a proper size is just a better background than a flat
+  colour. Those are different things and the room now separates them: the fill is a control
+  ("Beside a tall photo": blurred copy / plain paper) shared by both narrowing rules.
+  The **photo width cap now defaults to 900px** at his instruction, so the recommendation
+  includes it rather than leaving it as an extra. Without it a square photo is 1216px tall
+  on a 4K screen, which no height ceiling touches, because the ceiling only governs r < 1.
 - **F7. A concurrent session is editing this area.** `src/app/(main)/collection/page.tsx`
   changed on disk mid-session (server-side first-page fetch added, `firstPage` prop passed
   to `CollectionClient`). Per CLAUDE.md, work around other sessions' edits, never stash or

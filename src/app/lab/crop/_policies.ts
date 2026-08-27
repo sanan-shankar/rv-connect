@@ -12,7 +12,7 @@
  *  Every function here is pure. Nothing reaches for the DOM.
  * ------------------------------------------------------------------ */
 
-export type PolicyKey = "narrow" | "free" | "today" | "bounds" | "snap" | "fill" | "focal";
+export type PolicyKey = "twothirds" | "narrow" | "free" | "today" | "bounds" | "snap" | "fill" | "focal";
 
 export interface Specimen {
   key: string;
@@ -90,6 +90,29 @@ export const TALL_CEILINGS = [
 /** Policy "fill": the one box everything is poured into. */
 export const FILL_RATIO = 3 / 2;
 
+/**
+ * Policy "twothirds": the one shape every tall photograph is brought to.
+ *
+ * The owner's idea, and it is a good one. Cutting a tall photo to SQUARE
+ * costs a 9:16 frame 44% of itself. Cutting it to 2:3 costs about 16%, and a
+ * 4:5 loses a similar 17% off its sides in the other direction, so the damage
+ * is small and even. What it buys is that every tall card in the feed is
+ * exactly the same height, which is the rhythm that "narrow" gives up.
+ */
+export const TALL_TARGET = 2 / 3;
+
+/**
+ * What goes in the space beside a photo that does not fill its card.
+ *
+ * "paper" is the card's own surface. "blur" is a blown-up, blurred, dimmed
+ * copy of the photo itself. The owner called blur a cop out when it was the
+ * whole rule, then asked for it here, and both positions are right: as a rule
+ * of its own it squashes every photo into a landscape box, but as the filler
+ * beside a photo that is already being shown properly it is just a nicer
+ * background than a flat colour.
+ */
+export type FillKind = "none" | "paper" | "blur";
+
 export interface Frame {
   /** How tall the card's photo area comes out, in px. */
   height: number;
@@ -105,8 +128,8 @@ export interface Frame {
   position: string;
   /** How much of the original photograph survives, 0 to 1. */
   kept: number;
-  /** Whether a blurred copy of the same photo fills the leftover space. */
-  blurBehind: boolean;
+  /** What fills the card either side of a photo narrower than its column. */
+  fill: FillKind;
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -131,7 +154,8 @@ export function frameFor(
   photo: Specimen,
   width: number,
   floor: number = MIN_RATIO,
-  ceiling: number = 700
+  ceiling: number = 700,
+  gap: FillKind = "blur"
 ): Frame {
   const r = photo.w / photo.h;
   const trueHeight = width / r;
@@ -163,19 +187,52 @@ export function frameFor(
          it obeys it by narrowing rather than by being cut. */
       const trueH = width / r;
       const height = r >= 1 ? trueH : Math.min(trueH, ceiling);
+      const shown = height * r >= width ? width : height * r;
       return {
         height,
-        width: height * r >= width ? width : height * r,
+        width: shown,
         fit: "cover", // the box is the photo's exact shape, so nothing is cut either way
         position: "50% 50%",
         kept: 1,
-        blurBehind: false,
+        fill: shown < width - 1 ? gap : "none",
+      };
+    }
+
+    /* ---------------------------------------------------------------- *
+     *  Tall to 2:3, wide runs free.
+     *
+     *  Wide behaves exactly as it does above: full column, true shape, a
+     *  21:9 is a thin strip. Tall is brought to one shape, 2:3, so every
+     *  tall card in the feed is the same height. The photo is drawn as
+     *  large as the ceiling allows and whatever is left beside it is
+     *  filled, blurred or plain.
+     *
+     *  On a narrow screen the ceiling is never the binding constraint --
+     *  a 2:3 photo at 700px tall wants 467px of width and a phone column
+     *  is 358 -- so the photo simply fills the width and nothing is
+     *  filled beside it. That fallback is why the min() is here.
+     * ---------------------------------------------------------------- */
+    case "twothirds": {
+      if (r >= 1) {
+        return { height: trueHeight, width, fit: "cover", position: "50% 50%", kept: 1, fill: "none" };
+      }
+      const shown = Math.min(ceiling * TALL_TARGET, width);
+      return {
+        height: shown / TALL_TARGET,
+        width: shown,
+        fit: "cover",
+        // Taller than 2:3 loses top and bottom, so bias to the top where
+        // heads are. Shallower than 2:3 loses its sides, where nothing
+        // systematic lives, so centre it.
+        position: r < TALL_TARGET ? "50% 30%" : "50% 50%",
+        kept: keptAt(r, TALL_TARGET),
+        fill: shown < width - 1 ? gap : "none",
       };
     }
 
     /* Every photograph at its real shape, however tall that turns out. */
     case "free":
-      return { height: trueHeight, width, fit: "cover", position: "50% 50%", kept: 1, blurBehind: false };
+      return { height: trueHeight, width, fit: "cover", position: "50% 50%", kept: 1, fill: "none" };
 
     /* What ships today: fill the width, guillotine at 384px, take the
        middle. This is the one that eats faces. */
@@ -187,7 +244,7 @@ export function frameFor(
         fit: "cover",
         position: "50% 50%",
         kept: height / trueHeight,
-        blurBehind: false,
+        fill: "none",
       };
     }
 
@@ -202,7 +259,7 @@ export function frameFor(
         fit: "cover",
         position: r < box ? "50% 25%" : "50% 50%",
         kept: keptAt(r, box),
-        blurBehind: false,
+        fill: "none",
       };
     }
 
@@ -217,7 +274,7 @@ export function frameFor(
         fit: "cover",
         position: r < box ? "50% 30%" : "50% 50%",
         kept: keptAt(r, box),
-        blurBehind: false,
+        fill: "none",
       };
     }
 
@@ -230,7 +287,7 @@ export function frameFor(
         fit: "contain",
         position: "50% 50%",
         kept: 1,
-        blurBehind: true,
+        fill: "blur",
       };
 
     /* The same box as "bounds", but the visible window is pulled towards
@@ -243,13 +300,14 @@ export function frameFor(
         fit: "cover",
         position: `${Math.round(photo.focal.x * 100)}% ${Math.round(photo.focal.y * 100)}%`,
         kept: keptAt(r, box),
-        blurBehind: false,
+        fill: "none",
       };
     }
   }
 }
 
 export const POLICIES: { key: PolicyKey; name: string; line: string }[] = [
+  { key: "twothirds", name: "Tall to 2:3, wide runs free", line: "Every tall photo becomes 2:3, so all tall cards match. Costs about 16% of the frame." },
   { key: "narrow", name: "Tall narrows, wide runs free", line: "Nothing is ever cut. Wide photos fill the column; tall ones stop growing and narrow instead." },
   { key: "free", name: "Free height", line: "True shape, no cap. Nothing is ever cropped." },
   { key: "today", name: "What ships today", line: "Fill the width, cut at 384px, keep the middle." },
@@ -265,7 +323,8 @@ export function stackHeight(
   photos: Specimen[],
   width: number,
   floor?: number,
-  ceiling?: number
+  ceiling?: number,
+  gap?: FillKind
 ): number {
-  return photos.reduce((sum, p) => sum + frameFor(policy, p, width, floor, ceiling).height, 0);
+  return photos.reduce((sum, p) => sum + frameFor(policy, p, width, floor, ceiling, gap).height, 0);
 }

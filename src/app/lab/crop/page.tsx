@@ -1,10 +1,10 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  Six ways to hold a photograph.
+ *  Eight ways to hold a photograph.
  *
  *  The owner asked to decide the crop rule by looking rather than by
- *  reading a list of three options, so this room renders all six answers
+ *  reading a list of three options, so this room renders all eight answers
  *  against six deliberately awkward photographs, at the three column
  *  widths the app really uses. Whatever he picks becomes the rule for
  *  post-card, the catch-up answer card, the letter page and the
@@ -24,6 +24,7 @@ import {
   FLOORS,
   POLICIES,
   TALL_CEILINGS,
+  type FillKind,
   WIDTHS,
   frameFor,
   stackHeight,
@@ -41,27 +42,30 @@ function Frame({
   width,
   floor,
   ceiling,
+  gap,
 }: {
   photo: Specimen;
   policy: PolicyKey;
   width: number;
   floor: number;
   ceiling: number;
+  gap: FillKind;
 }) {
-  const f = frameFor(policy, photo, width, floor, ceiling);
+  const f = frameFor(policy, photo, width, floor, ceiling, gap);
   return (
-    <div className="cr-centre" style={{ width }}>
-    <div className="cr-frame" style={{ width: f.width, height: f.height }}>
-      {f.blurBehind && (
-        <img src={photo.src} alt="" aria-hidden className="cr-blur" />
-      )}
-      <img
-        src={photo.src}
-        alt={photo.note}
-        className="cr-img"
-        style={{ objectFit: f.fit, objectPosition: f.position }}
-      />
-    </div>
+    /* The column-wide stage. The photograph sits centred on it at whatever
+       width its rule allows, and the stage behind it is either the card's own
+       paper or a blurred copy of the same photograph. */
+    <div className={`cr-stagebox${f.fill === "blur" ? " blurred" : ""}`} style={{ width, height: f.height }}>
+      {f.fill === "blur" && <img src={photo.src} alt="" aria-hidden className="cr-blur" />}
+      <div className="cr-frame" style={{ width: f.width, height: f.height }}>
+        <img
+          src={photo.src}
+          alt={photo.note}
+          className="cr-img"
+          style={{ objectFit: f.fit, objectPosition: f.position }}
+        />
+      </div>
     </div>
   );
 }
@@ -80,11 +84,11 @@ function Kept({ kept }: { kept: number }) {
 /* ------------------------------------------------------------------ *
  *  Mode one: one photograph, all six policies, stacked at true size.
  * ------------------------------------------------------------------ */
-function SixWays({ photo, width, floor, ceiling }: { photo: Specimen; width: number; floor: number; ceiling: number }) {
+function SixWays({ photo, width, floor, ceiling, gap }: { photo: Specimen; width: number; floor: number; ceiling: number; gap: FillKind }) {
   return (
     <div className="cr-stack">
       {POLICIES.map((p) => {
-        const f = frameFor(p.key, photo, width, floor, ceiling);
+        const f = frameFor(p.key, photo, width, floor, ceiling, gap);
         return (
           <div key={p.key} className="cr-row">
             <div className="cr-row-head" style={{ width }}>
@@ -100,7 +104,7 @@ function SixWays({ photo, width, floor, ceiling }: { photo: Specimen; width: num
                 <Kept kept={f.kept} />
               </div>
             </div>
-            <Frame photo={photo} policy={p.key} width={width} floor={floor} ceiling={ceiling} />
+            <Frame photo={photo} policy={p.key} width={width} floor={floor} ceiling={ceiling} gap={gap} />
           </div>
         );
       })}
@@ -113,9 +117,9 @@ function SixWays({ photo, width, floor, ceiling }: { photo: Specimen; width: num
  *  This is the mode that answers "definitely don't want some huge ass
  *  pictures to keep scrolling past".
  * ------------------------------------------------------------------ */
-function ScrollIt({ policy, width, floor, ceiling }: { policy: PolicyKey; width: number; floor: number; ceiling: number }) {
+function ScrollIt({ policy, width, floor, ceiling, gap }: { policy: PolicyKey; width: number; floor: number; ceiling: number; gap: FillKind }) {
   const [screens, setScreens] = useState<number | null>(null);
-  const total = stackHeight(policy, SPECIMENS, width, floor, ceiling);
+  const total = stackHeight(policy, SPECIMENS, width, floor, ceiling, gap);
 
   useEffect(() => {
     setScreens(total / window.innerHeight);
@@ -136,7 +140,7 @@ function ScrollIt({ policy, width, floor, ceiling }: { policy: PolicyKey; width:
               <span className="cr-when">2 days ago</span>
             </header>
             <p className="cr-body">{photo.note}</p>
-            <Frame photo={photo} policy={policy} width={width} floor={floor} ceiling={ceiling} />
+            <Frame photo={photo} policy={policy} width={width} floor={floor} ceiling={ceiling} gap={gap} />
             <footer>
               <span>12 loves</span>
               <span>3 replies</span>
@@ -237,7 +241,8 @@ export default function CropRoom() {
      1216px tall. Capping the PHOTO rather than the card is the other lever,
      and the two together are what actually decide whether the feed is a
      chore. Kept separate so each can be judged on its own. */
-  const [cap, setCap] = useState<number>(0);
+  const [cap, setCap] = useState<number>(900);
+  const [gap, setGap] = useState<FillKind>("blur");
   const [ceiling, setCeiling] = useState<number>(TALL_CEILINGS[1].v);
   const stageRef = useRef<HTMLDivElement>(null);
 
@@ -261,8 +266,12 @@ export default function CropRoom() {
     if (c === "2" || c === "3" || c === "4" || c === "6") setCount(c);
     const fl = Number(q.get("floor"));
     if (FLOORS.some((f) => f.v === fl)) setFloor(fl);
-    const cp = Number(q.get("cap"));
-    if (cp === 0 || cp === 720 || cp === 900) setCap(cp);
+    if (q.has("cap")) {
+      const cp = Number(q.get("cap"));
+      if (cp === 0 || cp === 720 || cp === 900) setCap(cp);
+    }
+    const g = q.get("gap");
+    if (g === "paper" || g === "blur") setGap(g);
     const ce = Number(q.get("ceiling"));
     if (TALL_CEILINGS.some((c) => c.v === ce)) setCeiling(ce);
   }, []);
@@ -274,8 +283,8 @@ export default function CropRoom() {
 
   return (
     <DelightShell
-      title="Six ways to hold a photograph"
-      lede="The same awkward photo, six crop rules, at the three widths this app really uses."
+      title="Eight ways to hold a photograph"
+      lede="The same awkward photo, eight rules, at the three widths this app really uses. The top two never cut a face."
       css={CSS}
     >
       <DemoCard
@@ -324,6 +333,22 @@ export default function CropRoom() {
           </p>
 
           <label className="cr-ctl">
+            <span>Beside a tall photo</span>
+            <Seg
+              options={[
+                { v: "blur" as FillKind, label: "Blurred copy" },
+                { v: "paper" as FillKind, label: "Plain paper" },
+              ]}
+              value={gap}
+              onChange={setGap}
+            />
+          </label>
+          <p className="cr-ctl-note">
+            What fills the card either side of a photo that does not span it. Only the two
+            rules that narrow a tall photo use this.
+          </p>
+
+          <label className="cr-ctl">
             <span>Photo width</span>
             <Seg
               options={[
@@ -345,7 +370,7 @@ export default function CropRoom() {
             <span>Looking at</span>
             <Seg
               options={[
-                { v: "six" as Mode, label: "One photo, six ways" },
+                { v: "six" as Mode, label: "One photo, every rule" },
                 { v: "scroll" as Mode, label: "Scroll a feed" },
                 { v: "many" as Mode, label: "Several at once" },
               ]}
@@ -358,7 +383,7 @@ export default function CropRoom() {
 
       {mode === "six" && (
         <DemoCard
-          title="One photograph, six rules"
+          title="One photograph, every rule"
           note="Pick an awkward one. The percentage is how much of the photographer's frame survives."
           pad={false}
         >
@@ -378,7 +403,7 @@ export default function CropRoom() {
           </div>
           <p className="cr-caption">{photo.note}</p>
           <div className="cr-stage" ref={stageRef}>
-            <SixWays photo={photo} width={width} floor={floor} ceiling={ceiling} />
+            <SixWays photo={photo} width={width} floor={floor} ceiling={ceiling} gap={gap} />
           </div>
           </div>
         </DemoCard>
@@ -404,7 +429,7 @@ export default function CropRoom() {
             ))}
           </div>
           <div className="cr-stage">
-            <ScrollIt policy={policy} width={width} floor={floor} ceiling={ceiling} />
+            <ScrollIt policy={policy} width={width} floor={floor} ceiling={ceiling} gap={gap} />
           </div>
           </div>
         </DemoCard>
@@ -489,7 +514,11 @@ const CSS = `
 .cr-pill:active { transform: scale(.97); }
 .cr-pill.on { background: var(--leaf, #235C49); color: #fff; border-color: transparent; }
 
-.cr-centre { display: flex; justify-content: center; }
+.cr-stagebox {
+  position: relative; display: flex; justify-content: center; align-items: center;
+  overflow: hidden; border-radius: 10px; flex: 0 0 auto;
+}
+.cr-stagebox.blurred { background: var(--mist, #F0EDE6); }
 .cr-caption { font-size: 13px; opacity: .62; padding: 6px 18px 12px; max-width: 62ch; }
 .cr-h4 { font-size: 15px; font-weight: 700; padding: 22px 18px 0; }
 .cr-stage { padding: 4px 18px 22px; overflow-x: auto; }
