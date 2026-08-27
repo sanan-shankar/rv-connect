@@ -66,10 +66,66 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
       that replaces it. **Keep `.backups/2026-08-27-phase6-pre-drop-snapshot.json`** — it is
       the only copy of the 232 rows this phase destroyed.
 - [ ] Close-out: re-measure §1b's table, write the deltas into report §1b, flip this
-      audit's row in `../README.md` to Closed, archive per report §7.4.
+      audit's row in `../README.md` to Closed, archive per report §7.4. **Third of the three
+      things in "NEXT SESSION" below — not before the other two.**
 
 Within a phase, mark finished items inline in the session log with their commit SHA.
 Phases 1–4 are mutually independent; 5 after 1–2; 6 needs owner approvals.
+
+## NEXT SESSION: do exactly this
+
+The owner has asked for the campaign to be finished and has left the judgement to the
+fix session. **Three things, in this order. Do not ask him first — he has already said yes.**
+
+**1. `duplication-02` — the action-gate wrapper, ONE-FILE PILOT ONLY.**
+Build `src/lib/action-gate.ts` with `withAuth` / `withMember` / `withAdmin` exactly as the
+finding specifies, and convert **`src/app/(main)/messages/actions.ts` and nothing else** —
+5 actions, shape-complete including its demo refusals, and it is the pilot precisely because
+it is small. Do NOT sweep the other ~96 actions; that is a later decision the owner has not
+been asked for, and a 101-action rewrite is not what this row says.
+The payoff that justifies it: `requireVerifiedMember()` calls `auth()` itself and returns the
+user, so **24 actions currently authenticate twice** — this removes a real per-request cost,
+not just lines. Keep every "why this action is gated/metered" comment; they move to sit above
+the wrapper call. Gate: `npm run check`, then drive the messages surface for real (send,
+admin reply, the demo's refusal).
+
+**2. `feed-posts-02` — the create-post-form hook split.**
+Extract the two self-contained machines the finding names, verbatim, comments included:
+`use-letter-persistence.ts` (the localStorage crash net + autosave + exit-save, ~310 lines
+that interlock through four refs and nothing else) and `use-composer-uploads.ts` (~150 lines
+whose only contract is `images`/`previews`/`uploading`/`uploadProgress`). Do NOT touch the
+editor-body JSX and do NOT introduce a second editor — the ROADMAP decision that this is ONE
+composer stands.
+**This is the riskier of the two and the reason is worth stating: it is the draft crash net.
+A mistake here loses somebody's half-written letter.** `composer-rule.test.mjs` reads
+`create-post-form.tsx` BY PATH and asserts on `onAutosaveState?.("failed")`, `localStorage`,
+`clearLocalDraft`, `revokeObjectURL`, `pagehide` — repoint those reads at the new hook files
+**in the same commit**, per rule 2. It already reads six files, so two more is its normal
+shape. Then drive it for real in the browser: write a letter, watch it autosave, reload
+mid-draft and take the restore offer, attach and remove a photo, and leave the page with
+unsaved text.
+
+**3. Close out.** Re-measure §1b's table into report §1b, flip this audit's row in
+`../README.md` to Closed, archive per report §7.4. Only after 1 and 2 are done or
+consciously refused with a reason in the session log.
+
+### Four things this tree will do to you
+
+- **This repo's GitHub ruleset forbids merge commits.** A diverged `main` can only be
+  reconciled by rebase — a merge resolves cleanly, then gets rejected at push. Session 9
+  spent a merge finding that out. `git -c rebase.autostash=true rebase origin/main`.
+- **`git commit` must carry a pathspec.** `git add <my files>` then a bare `git commit`
+  commits the WHOLE index, including whatever another session has staged. That swallowed a
+  peer's twelve staged deletions in session 9 and left HEAD uncompilable. Always
+  `git commit -F - -- <path> <path>`. Repair, if it happens and nothing is pushed:
+  `git reset --soft HEAD~1` restores the index exactly and touches no working tree.
+- **Another session is usually working in this checkout.** Uncommitted files that are not
+  yours are somebody's work in progress: never stash, revert or commit them, and if a file
+  you need is dirty, reorder around it and say so. A red `npm run visual` in this tree is
+  very often theirs — open the diff PNG before believing it is yours.
+- **`npm run check` took 1,429 s once in session 9**, against 45 s normally, purely because
+  a peer session had the machine at load average 16. Check `uptime` before concluding the
+  gate has hung, and never run two gates at once.
 
 ## Owner input map
 
