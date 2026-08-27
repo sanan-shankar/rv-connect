@@ -25,8 +25,7 @@
  *
  *  It is NOT a modal, and it does not open itself. An interstitial
  *  between a hiring manager and the work is the worst possible first
- *  frame, and the hoopoe tour is already introducing the place: two
- *  things explaining themselves at once is just noise.
+ *  frame.
  * ------------------------------------------------------------------ */
 
 import { useEffect, useState } from "react";
@@ -37,22 +36,24 @@ import { markOnboardingSeen } from "@/lib/onboarding-local";
 import { cn } from "@/lib/utils";
 
 export function DemoBar({ userId }: { userId: string }) {
-  // Starts closed, always. The hoopoe tour auto-offers itself on arrival in
-  // demo mode (see the (main) layout), and two things explaining themselves
-  // over the same first frame is clutter on top of the exact design this
-  // deployment exists to show off. The tour is the better introduction, so
-  // this yields to it and says its essential piece on the pill instead.
+  // Starts closed, always. Nothing should stand between a visitor and the
+  // design this deployment exists to show off, so the pill says its one
+  // essential thing and waits to be asked for the rest.
+  //
+  // The hoopoe tour used to auto-offer itself here and was the demo's real
+  // introduction; it was removed on 2026-08-27 along with the rest of the
+  // tour. If the demo turns out to need an opening move again, this default
+  // is the place to reconsider, not a new interstitial.
   const [expanded, setExpanded] = useState(false);
   const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
-    // The tour only auto-offers to someone who has finished onboarding
-    // (shouldAutoOfferTour, src/lib/tour-auto-offer.ts). A demo visitor
-    // never can: /onboarding is one of the routes the demo closes, and the
-    // persona's account is already complete. Recording that fact here is
-    // what lets the walkthrough offer itself on arrival, which is the
-    // shortest path from "a stranger opened a link" to "they have seen the
-    // four surfaces worth seeing".
+    // Kept after the tour's removal, because this flag is not only the
+    // tour's. `hasSeenOnboarding` also gates the onboarding flow itself
+    // (onboarding-flow.tsx), and the demo's persona arrives with a complete
+    // account on a deployment where /onboarding is closed. Marking it seen
+    // is what keeps a first-run flow from ambushing a visitor who has
+    // nothing to fill in.
     markOnboardingSeen(userId);
   }, [userId]);
 

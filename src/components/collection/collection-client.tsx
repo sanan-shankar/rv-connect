@@ -17,7 +17,6 @@ import { appendUnseen } from "@/lib/append-page";
 import { WHEN_OPTIONS, COLLECTION_SORT_OPTIONS } from "@/lib/collection-facets";
 import { loadPhotos, type PhotoData } from "@/app/(main)/collection/actions";
 import { formatDisplayDate } from "@/lib/utils";
-import { useTourAnchor } from "@/components/tour/tour-anchors";
 
 /* ------------------------------------------------------------------ *
  *  Both open on a press and neither has any presence on the page until
@@ -127,15 +126,6 @@ export function CollectionClient({
     () => (viewer?.list === "pending" ? pending : photos).map(toViewerImage),
     [viewer?.list, pending, photos]
   );
-  // Two different Buttons share this one ref/key: the compact toolbar
-  // "Contribute" (shown while photos/pending exist) and the empty-state
-  // card's "Contribute a photo" (shown when `trulyEmpty`, resolved from the
-  // server-side `hasApprovedPhotos` prop, so it's already settled on first
-  // render -- see `trulyEmpty` below). Gating on `!loading` just keeps
-  // registration off the very first tick so useTourAnchor's mount-time
-  // effect binds to whichever of the two is actually rendered rather than
-  // an about-to-be-replaced one.
-  const tourAnchorRef = useTourAnchor<HTMLButtonElement>("collection-contribute", !loading);
 
   const [area, setArea] = useState("");
   const [era, setEra] = useState("");
@@ -344,8 +334,6 @@ export function CollectionClient({
             duplicating it here. */}
         {!trulyEmpty && (
           <Button
-            ref={tourAnchorRef}
-            data-tour="collection-contribute"
             variant="primary"
             className="hidden rounded-full lg:inline-flex"
             onClick={() => {
@@ -428,8 +416,6 @@ export function CollectionClient({
             birds, the light. Add the first one.
           </p>
           <Button
-            ref={tourAnchorRef}
-            data-tour="collection-contribute"
             variant="primary"
             className="mt-5 rounded-full"
             onClick={() => {

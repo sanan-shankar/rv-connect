@@ -76,7 +76,7 @@ export type Level = 1 | 2 | 3;
 // Off-canvas entry edge for `flyIn`: the two side edges, the top of the rig's
 // own box (default), or "sky" — above the VIEWPORT. "top" spawns just above
 // the bird's own rendered box, which is right when the rig already sits near
-// the top of what the viewer sees (the tour offer's card, the sidebar perch);
+// the top of what the viewer sees (the sidebar perch);
 // "sky" spawns fully above the viewport so the entrance is a genuine descent
 // from off-screen (the mobile auth pages, whose rig sits mid-viewport — a
 // box-relative start point there was still visibly inside the viewport, so
