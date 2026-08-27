@@ -11,7 +11,7 @@ import { LocationPicker, type PlaceSelection } from "@/components/common/locatio
 import { TagInput } from "@/components/common/tag-input";
 import { titleCase } from "@/lib/normalize";
 import { saveOnboardingRegister } from "../actions";
-import type { OnboardingUser } from "../onboarding-flow";
+import type { OnboardingUser } from "../types";
 
 /**
  * Rishi Valley itself, as the location picker's gazetteer knows it. The row is

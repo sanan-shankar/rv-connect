@@ -39,32 +39,14 @@ import { AnimatePresence, m } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 import { hasSeenOnboarding, markOnboardingSeen } from "@/lib/onboarding-local";
-import type { PlaceSelection } from "@/components/common/location-picker";
+import type { OnboardingStepId, OnboardingUser } from "./types";
 import { WelcomeStep } from "./steps/welcome-step";
 import { RegisterStep } from "./steps/register-step";
 import { HousesStep } from "./steps/houses-step";
 import { PhotoStep } from "./steps/photo-step";
 import { DoneStep } from "./steps/done-step";
 
-export type OnboardingStepId = "welcome" | "register" | "houses" | "photo" | "done";
-
 const STEP_ORDER: OnboardingStepId[] = ["welcome", "register", "houses", "photo", "done"];
-
-export interface OnboardingUser {
-  id: string;
-  name: string;
-  photoUrl: string | null;
-  avatarColor: string | null;
-  birdOverride: string | null;
-  accountType: string; // "alumnus" | "teacher" | "ex_teacher"
-  admissionNumber: number | null;
-  subjects: string | null;
-  places: PlaceSelection[];
-  workplace: string | null;
-  jobTitle: string | null;
-  yearJoined: number | null;
-  yearLeft: number | null;
-}
 
 export function OnboardingFlow({
   user,

@@ -9,7 +9,7 @@ import { HouseChainEditor } from "@/components/profile/house-chain-editor";
 import type { HouseYearEntry } from "@/lib/houses";
 import { parseHouseYearEntries } from "@/lib/house-spans";
 import { getOnboardingHouses, saveOnboardingHouses } from "../actions";
-import type { OnboardingUser } from "../onboarding-flow";
+import type { OnboardingUser } from "../types";
 
 /* ------------------------------------------------------------------ *
  *  Step 3: Houses.

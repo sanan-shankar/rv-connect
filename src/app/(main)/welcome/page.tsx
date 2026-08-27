@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { CelebrationSignals } from "@/components/mascot/moments/celebration-signals";
-import { OnboardingFlow, type OnboardingStepId } from "@/components/onboarding/onboarding-flow";
+import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
+import type { OnboardingStepId } from "@/components/onboarding/types";
 import { safeNextPath } from "@/lib/next-path";
 
 export const metadata: Metadata = {

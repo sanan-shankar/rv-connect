@@ -8,7 +8,7 @@ import { speciesNameFor, resolveBirdOverride } from "@/components/common/bird-av
 import { AttachImageDialog } from "@/components/common/attach-image-dialog";
 import { AvatarCropDialog } from "@/components/settings/avatar-crop-dialog";
 import { useAvatarUpload } from "@/components/settings/avatar-upload";
-import type { OnboardingUser } from "../onboarding-flow";
+import type { OnboardingUser } from "../types";
 
 /**
  * Step 4: Photo. Reuses the exact settings upload action (Sharp/WebP, R2)
