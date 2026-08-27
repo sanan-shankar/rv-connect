@@ -1,5 +1,78 @@
 # Progress Log
 
+## 2026-08-28 — a fifth of a photograph, and a carousel worth swiping
+
+Two asks from the owner, both looking at his own feed. First, two landscapes
+sitting on blurred beds: *"i'll allow you to crop 20% of an image to have fewer
+blur bars. so we don't have bars on these types of things. obviously any time
+there's crop you use sharp to crop decently well."* Second: *"I think if there's
+more than two images we use a carousel. and make sure it's a beautiful transition
+and just done really well. lot of carousels are super basic and not much thought
+and it's not smooth. let's make ours amazing."*
+
+**The budget, and why the bars were there at all.** A photograph square or wider
+is never cut, so the 500px ceiling could only be obeyed by NARROWING it — which
+is why a landscape between about 1:1 and 1.46:1 stopped short of its column with
+blur down both sides. It now spends up to a fifth of itself instead: `max-width`
+carries the budget (`500 / 0.8 × ratio`), `max-height` carries the ceiling, and
+`object-fit: cover` takes the difference off the top and bottom. Both numbers are
+known before a byte arrives, so the space is still reserved and the page still
+does not jump. His two posts measured 27px and 82px of bed a side; both now reach
+both edges, losing 9% and 19%. The crop is aimed at sharp's focal point and
+braked — symmetrically, unlike the tall band, because on a landscape the guess
+goes for the bright sky, which is the half worth losing.
+
+**What the budget deliberately does not touch.** A tall photograph. It is already
+brought to 3:4 and already keeps a bed, and 3:4 was chosen precisely because a
+phone's own portrait passes through it untouched; spending the budget there would
+start cutting the commonest portrait anybody posts to buy back 46px of bed. And
+from 1.8:1 up — the 900px cap over the 500px ceiling — the cap binds first, so a
+16:9 and a 21:9 keep every pixel at every column width.
+
+**The carousel.** More than two photographs in one post, one at a time. Three
+decisions separate it from a basic one, and all three are about the gesture:
+
+- **The scrolling is the browser's.** A native scroll-snap track follows a finger
+  with the platform's own momentum, which no drag handler reproduces, and
+  `scroll-snap-stop: always` means a fast flick advances ONE photograph rather
+  than skidding past three — the single most common thing carousels get wrong.
+- **The arrows use our curve.** `behavior: "smooth"` is whatever the engine feels
+  like. A press animates `scrollLeft` on a rAF through `EASE_OUT_SMOOTH`, the
+  curve every other panel in this app slides on, with snapping turned off for the
+  460ms so the two do not fight.
+- **The indicator is scroll-linked, not state-linked.** It reads the real scroll
+  offset every frame and writes a transform, so it travels *with* a thumb instead
+  of jumping when a slide finally settles. Written to the element rather than to
+  state: a re-render per scroll frame is how a carousel starts dropping them.
+
+**The set agrees on one shape**, which took two attempts. Letting the tallest
+photograph decide — the obvious answer — made a frame 421px high on a phone for
+two landscapes and a portrait, so both landscapes sat in 121px of blurred bed:
+exactly the complaint that started the session, reintroduced one component over.
+It is the MEDIAN of the set now, clamped to the app's own two ends (3:4 and
+1.8:1), so the shape most of them already are is the shape they are all drawn in.
+The same three become a 178px frame on that phone, the landscapes filling it
+exactly and the portrait the one that is bedded. Each photograph fills the frame
+if it can do so within the same 20% budget, and sits on its own blurred copy if
+it cannot — the budget is a ceiling on what may be cut, never a floor on what
+must be. Ratios go in already framed, which took a third attempt to get right: a
+9:20 screenshot placed raw came out 229px wide in a 730px carousel, the very
+strip the framing rule exists to prevent.
+
+`<PhotoBed>` came out of `<PhotoFrame>` so the carousel does not carry a second
+copy of the blur nobody would remember to keep in step.
+
+Three new tests and two rewritten, at 81 total: every ordered triple of nine
+aspect ratios is checked to fill one axis of its carousel and overflow neither,
+and to lose no more than the framing rule plus the budget. `npm run check` 81/81,
+`npm run visual` 23/23 with no baseline moved, `verify:crawl` 20/20.
+
+**Still open, and the owner should see it.** A square in a card wider than 625px
+spends the whole fifth and keeps a smaller bed — a full price for a partial win.
+Avoiding that means knowing the real column width, which means measuring after
+paint, which is the page-jump this whole campaign exists to end. Flagged rather
+than solved.
+
 ## 2026-08-27 — the Collection rework, phase 3: rows that line up
 
 The third of the campaign's six phases (`docs/planning/collection-rework/spec.md` §3.2), and

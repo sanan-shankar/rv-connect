@@ -113,6 +113,44 @@ export const PHOTO_MAX_HEIGHT = 500;
 export const AIM_Y = { lo: 0.15, hi: 0.5 };
 export const AIM_X = { lo: 0.25, hi: 0.75 };
 
+/**
+ * The same brakes for a WIDE photograph, whose window travels up and down
+ * because what it loses is its top and bottom.
+ *
+ * Symmetric, where the tall band is not, and for a reason: the tall band is
+ * floored at 50% because heads live in the upper half of a portrait, so the
+ * worst case of a bad guess is the centre crop. A landscape has no such rule
+ * -- sharp's `attention` goes for the bright sky, which on a landscape is the
+ * boring half -- so the window has to be free to move down as well as up. It
+ * is a small movement either way: the crop below is at most 20% of the frame,
+ * so the window can travel at most a tenth of it from centre.
+ */
+export const AIM_WIDE_Y = { lo: 0.25, hi: 0.75 };
+
+/**
+ * How much of a photograph we may cut to spare it a blurred bed.
+ *
+ * The owner's number and his own reversal, 2026-08-28, looking at two
+ * landscapes in his feed with blur down both sides: *"i'll allow you to crop
+ * 20% of an image to have fewer blur bars. so we don't have bars on these
+ * types of things. obviously any time there's crop you use sharp to crop
+ * decently well."*
+ *
+ * It buys exactly one thing, and only for a photograph SQUARE OR WIDER. Such
+ * a photograph is never cut, so the 500px ceiling could only be obeyed by
+ * NARROWING it, and a landscape between about 1:1 and 1.46:1 therefore came
+ * out short of its column with blurred bed either side -- 27px a side on a
+ * 4:3 in a 728px card, 82px on a 1.18:1. Twenty per cent of the frame is
+ * enough to let almost all of them fill the column instead: at a 728px column
+ * a photograph down to 1.18:1 now reaches both edges, where before it stopped
+ * at 590. What it does NOT do is touch the tall rule. A tall photograph is
+ * already brought to 3:4 and already keeps a bed, and 3:4 was chosen because
+ * a phone's own portrait passes through it untouched (D7); spending this
+ * budget there would start cutting the commonest portrait anybody posts to
+ * buy back 46px of bed.
+ */
+export const CROP_BUDGET = 0.2;
+
 /** A photograph's shape, and nothing else. It is all justified rows ever
  *  need, because they never crop: no focal point, because nothing is aimed. */
 export type PhotoShape = { width: number; height: number };
@@ -133,6 +171,13 @@ export type PhotoFrame = {
   /** `max-width` for the photograph, in px. Under it, the photo fills its
    *  column: the frame is `width: 100%` and this bounds it. */
   maxWidth: number;
+  /** `max-height` for the photograph, in px. What actually enforces the 500px
+   *  ceiling now that a wide photograph is allowed to fill its column: the
+   *  aspect-ratio below asks for the photograph's true height, this clamps it,
+   *  and `object-fit: cover` takes the difference off the top and bottom.
+   *  Both are known before a byte arrives, so the space is still reserved and
+   *  the page still does not jump. */
+  maxHeight: number;
   /** `aspect-ratio`, as CSS. The photo's own shape when it is square or
    *  wider; 3/4 when it is taller than wide. This is what reserves the
    *  space, so the page stops jumping as each photograph lands. */
@@ -170,11 +215,27 @@ export function framePhoto(facts: PhotoFacts): PhotoFrame {
      as the width that produces it. For anything wider than about 1.29:1 the
      cap is the binding one and the ceiling never comes into it. */
   if (r >= 1) {
+    /* The widest it can be drawn without losing anything: the 900px cap, or
+       the width at which its true height is exactly the ceiling. Under this
+       it is whole. */
+    const whole = Math.min(PHOTO_MAX_WIDTH, Math.round(PHOTO_MAX_HEIGHT * r));
+    /* And the widest it may be drawn at all, which is the same thing with the
+       crop budget spent: 20% off the frame buys 25% more width. For anything
+       from about 1.46:1 up the 900px cap binds first and nothing is ever cut. */
+    const filled = Math.min(
+      PHOTO_MAX_WIDTH,
+      Math.round((PHOTO_MAX_HEIGHT / (1 - CROP_BUDGET)) * r)
+    );
     return {
-      maxWidth: Math.min(PHOTO_MAX_WIDTH, Math.round(PHOTO_MAX_HEIGHT * r)),
+      maxWidth: filled,
+      maxHeight: PHOTO_MAX_HEIGHT,
       aspectRatio: `${width} / ${height}`,
-      objectPosition: "50% 50%",
-      kept: 1,
+      /* Only moves once the ceiling is actually cutting, and then only up and
+         down, because that is the axis being cut. */
+      objectPosition: `50% ${pct(clamp(focalY, AIM_WIDE_Y.lo, AIM_WIDE_Y.hi))}`,
+      /* The worst case, at a column wide enough for the cap to bind. On a
+         phone no column is, so nothing is cut at all. */
+      kept: whole / filled,
     };
   }
 
@@ -186,6 +247,7 @@ export function framePhoto(facts: PhotoFacts): PhotoFrame {
     // Same ceiling, same conversion: it is a HEIGHT, and the shape is fixed,
     // so it reaches CSS as the width that produces it. 500px at 3:4 is 375.
     maxWidth: Math.min(PHOTO_MAX_WIDTH, Math.round(PHOTO_MAX_HEIGHT * TALL_TARGET)),
+    maxHeight: PHOTO_MAX_HEIGHT,
     aspectRatio: "3 / 4",
     /* Taller than the target loses its top and bottom, so the window travels
        vertically; shallower than it (a 4:5, say) loses its sides, so the
@@ -197,6 +259,81 @@ export function framePhoto(facts: PhotoFacts): PhotoFrame {
         ? `50% ${pct(clamp(focalY, AIM_Y.lo, AIM_Y.hi))}`
         : `${pct(clamp(focalX, AIM_X.lo, AIM_X.hi))} 50%`,
     kept: keptAt(r, TALL_TARGET),
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ *  A SET of photographs sharing one frame: the carousel.
+ * ------------------------------------------------------------------ */
+
+/**
+ * The one shape a carousel draws every photograph into.
+ *
+ * A carousel has to pick a shape, because the alternative is a card that
+ * changes height under the reader's thumb. The first version let the tallest
+ * photograph decide and it was wrong in the way the owner had just finished
+ * objecting to: a 3:4 portrait among two landscapes made the frame 421px tall
+ * on a phone, so both landscapes sat in 121px of blurred bed, top and bottom.
+ *
+ * The MEDIAN of the set instead, so the shape most of the photographs already
+ * are is the shape they are all drawn in. The same three become a 178px frame
+ * on that phone: the landscapes fill it exactly and the portrait is the one
+ * that is bedded. Clamped to the app's two ends -- 3:4, which is the tall
+ * target, and 1.8:1, which is the 900px cap over the 500px ceiling -- so a
+ * carousel is never a shape a single photograph could not be.
+ *
+ * Ratios come in ALREADY FRAMED (`drawnRatio(framePhoto(p))`), so a 9:16
+ * screenshot arrives as 3:4 and does not drag the whole set upright.
+ */
+export function carouselBox(ratios: number[]): number {
+  const sorted = [...ratios].sort((a, b) => a - b);
+  const mid = sorted.length >> 1;
+  const median =
+    sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  return clamp(median, TALL_TARGET, PHOTO_MAX_WIDTH / PHOTO_MAX_HEIGHT);
+}
+
+/**
+ * Where one photograph sits inside that shared box, as two percentages of it.
+ *
+ * The box is `boxRatio`; the photograph is `r`. If the two are within the crop
+ * budget of each other the photograph fills the box and loses up to a fifth of
+ * itself to `object-fit: cover`. If they are further apart than that, it is
+ * drawn at the largest box the budget allows and its own blurred copy fills
+ * what is left -- so the budget is a ceiling on what may be cut, never a floor
+ * on what must be.
+ *
+ * Both numbers are percentages of the SAME box, which is what makes this pure
+ * CSS: the carousel gives its track a fixed `aspect-ratio`, so a percentage
+ * width and a percentage height describe a real rectangle without anything
+ * having to measure a column.
+ */
+export function placeInBox(
+  facts: PhotoFacts,
+  boxRatio: number
+): { width: string; height: string; objectPosition: string; kept: number } {
+  /* The FRAMED shape, not the file's. A 9:20 screenshot is a 3:4 photograph
+     everywhere else in the app, and placing it raw made it 229px wide in a
+     730px carousel -- the strip the framing rule exists to prevent. */
+  const frame = framePhoto(facts);
+  const r = drawnRatio(frame);
+  /* The widest and narrowest the drawn box may be for this photograph. Wider
+     than `r` cuts its top and bottom; narrower cuts its sides. */
+  const widest = r / (1 - CROP_BUDGET);
+  const narrowest = r * (1 - CROP_BUDGET);
+  const drawn = clamp(boxRatio, narrowest, widest);
+  return {
+    /* Whichever direction the box had to be pulled back in, the photograph
+       shrinks along that axis only, and stays centred. */
+    width: `${Math.min(100, (drawn / boxRatio) * 100)}%`,
+    height: `${Math.min(100, (boxRatio / drawn) * 100)}%`,
+    objectPosition:
+      drawn > r
+        ? `50% ${pct(clamp(facts.focalY, AIM_WIDE_Y.lo, AIM_WIDE_Y.hi))}`
+        : `${pct(clamp(facts.focalX, AIM_X.lo, AIM_X.hi))} 50%`,
+    /* Both crops, because they compound: what the framing rule already took
+       off a tall photograph, times what the box takes off what is left. */
+    kept: frame.kept * keptAt(r, drawn),
   };
 }
 
@@ -251,7 +388,9 @@ export function drawnSize(
 ): { width: number; height: number } {
   const width = Math.min(columnWidth, frame.maxWidth);
   const [w, h] = frame.aspectRatio.split("/").map((n) => Number(n.trim()));
-  return { width, height: width * (h / w) };
+  /* `max-height` beside `aspect-ratio`: the shape asks for a height, the
+     ceiling clamps it, and the difference is what `object-fit: cover` cuts. */
+  return { width, height: Math.min(frame.maxHeight, width * (h / w)) };
 }
 
 /* ================================================================== *
@@ -427,7 +566,12 @@ export function drawnRows(
   caps: number[],
   containerWidth: number,
   gap: number,
-  targetHeight: number
+  targetHeight: number,
+  /** The ceiling, where the surface has one. A card does: a photograph alone
+   *  on a row would otherwise be drawn 625px tall, since its width cap now
+   *  carries the crop budget. The grid does not -- it crops nothing, so a
+   *  row's own arithmetic is the only thing bounding it. */
+  maxHeight = Infinity
 ): { height: number; widths: number[]; capped: boolean }[] {
   const lines: { r: number; cap: number }[][] = [];
   let line: { r: number; cap: number }[] = [];
@@ -450,10 +594,19 @@ export function drawnRows(
     /* Every photograph in a row reaches its cap at the same height when the
        caps are all `ratio x something`, which is how both callers set them --
        so a capped row is still a row. */
-    const height = Math.min(free, ...row.map((c) => c.cap / c.r));
-    /* A capped row is narrower than its container and is centred rather than
-       ragged. That is not the layout failing: it is the 500px ceiling being
-       paid for in width, because nothing here may be cut to pay for it. */
-    return { height, widths: row.map((c) => c.r * height), capped: height < free - 0.01 };
+    /* Width is settled first, because that is what flexbox settles: the row
+       grows until it fills, or until a photograph reaches its own width cap. */
+    const box = Math.min(free, ...row.map((c) => c.cap / c.r));
+    /* Then the ceiling clamps what is DRAWN, and `object-fit: cover` takes the
+       difference off the top and bottom. It does not narrow anything, so the
+       row still spans what it spanned. */
+    return {
+      height: Math.min(box, maxHeight),
+      widths: row.map((c) => c.r * box),
+      /* A capped row is narrower than its container and is centred rather than
+         ragged. Not the layout failing: it is a photograph refusing to be
+         drawn larger than the rule allows. */
+      capped: box < free - 0.01,
+    };
   });
 }

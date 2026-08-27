@@ -2,12 +2,16 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   AIM_Y,
+  AIM_WIDE_Y,
+  CROP_BUDGET,
+  carouselBox,
   drawnRatio,
   drawnRows,
   drawnSize,
   framePhoto,
   photoRatio,
   photoSizes,
+  placeInBox,
   PHOTO_MAX_WIDTH,
   PHOTO_MAX_HEIGHT,
   PHOTO_ROW_TARGET,
@@ -70,21 +74,74 @@ test("nothing is ever stretched", () => {
     const isTrueShape = Math.abs(framed - real) < 0.001;
     const isTallBox = Math.abs(framed - TALL_TARGET) < 0.001;
     assert.ok(isTrueShape || isTallBox, `${shape.name} framed at ${frame.aspectRatio}`);
+    // And the height clamp cuts rather than squashes: `object-fit: cover`
+    // against a box the aspect-ratio and the ceiling decide between them.
   }
 });
 
-test("square or wider runs free: full width, true shape, nothing cut", () => {
+test("square or wider runs free, and a panorama is never cut at all", () => {
   for (const shape of SHAPES.filter((s) => s.w >= s.h)) {
     const frame = frameOf(shape);
-    assert.equal(frame.kept, 1, `${shape.name} lost some of itself`);
-    assert.equal(frame.objectPosition, "50% 50%");
-    // Bounded by the 900px cap, or by the ceiling for a near-square photo --
-    // whichever binds first. Never wider than the cap.
+    // Bounded by the 900px cap, or by the ceiling plus the crop budget for a
+    // near-square photo -- whichever binds first. Never wider than the cap.
     assert.ok(frame.maxWidth <= PHOTO_MAX_WIDTH);
-    // A 21:9 is a thin strip and that is correct -- no bars, top or bottom.
-    const { width, height } = drawnSize(frame, 728);
-    assert.ok(Math.abs(width / height - shape.w / shape.h) < 0.001);
   }
+  /* From 1.8:1 up -- the 900px cap over the 500px ceiling -- the cap binds
+     first, so the budget is never spent and the photograph keeps every pixel
+     at every column width. That is the shape the owner was most explicit
+     about: "we should just let it be a thin photo." */
+  for (const shape of SHAPES.filter((s) => s.w / s.h >= PHOTO_MAX_WIDTH / PHOTO_MAX_HEIGHT)) {
+    const frame = frameOf(shape);
+    assert.equal(frame.kept, 1, `${shape.name} lost some of itself`);
+    for (const column of COLUMNS) {
+      const { width, height } = drawnSize(frame, column);
+      assert.ok(
+        Math.abs(width / height - shape.w / shape.h) < 0.002,
+        `${shape.name} was cut at ${column}`
+      );
+    }
+  }
+});
+
+test("a landscape fills its column rather than sitting on a bed", () => {
+  /* The owner's complaint on 2026-08-28, looking at two of his own posts:
+     "i'll allow you to crop 20% of an image to have fewer blur bars. so we
+     don't have bars on these types of things." Both were landscapes between
+     1:1 and 1.46:1, the band where the 500px ceiling could only be obeyed by
+     narrowing the photograph. It is now obeyed by cutting up to a fifth off
+     the top and bottom instead. */
+  for (const r of [1.18, 1.28, 1.34, 1.456]) {
+    const frame = frameOf({ w: r * 1000, h: 1000 });
+    assert.equal(drawnSize(frame, 728).width, 728, `${r}:1 was bedded in a 728px card`);
+  }
+  /* The budget is a fifth and no more, so it does not reach every shape at
+     every width -- a square in a card wider than 625px keeps a bed, a smaller
+     one. What it must never do is leave the bed WIDER than it was. */
+  const square = frameOf({ w: 1000, h: 1000 });
+  assert.equal(drawnSize(square, 728).width, 625);
+});
+
+test("no photograph is ever cut by more than the budget", () => {
+  // The other half of the same decision: the budget is a ceiling, not a
+  // licence. A square keeps its bed rather than losing a third of itself.
+  for (const shape of SHAPES.filter((s) => s.w >= s.h)) {
+    const frame = frameOf(shape);
+    assert.ok(frame.kept >= 1 - CROP_BUDGET - 0.001, `${shape.name} kept only ${frame.kept}`);
+    for (const column of COLUMNS) {
+      const { width, height } = drawnSize(frame, column);
+      const kept = Math.min(shape.w / shape.h, width / height) / Math.max(shape.w / shape.h, width / height);
+      assert.ok(kept >= 1 - CROP_BUDGET - 0.001, `${shape.name} at ${column} kept ${kept}`);
+    }
+  }
+});
+
+test("a wide photograph is aimed up and down, and braked both ways", () => {
+  // What it loses is its top and bottom, so that is the axis the window
+  // travels on -- and symmetrically, because sharp's guess on a landscape
+  // goes for the bright sky, which is the half worth losing.
+  const wide = SHAPES.find((s) => s.name.startsWith("4:3"));
+  assert.equal(frameOf(wide, { focalX: 0.5, focalY: 0 }).objectPosition, `50% ${AIM_WIDE_Y.lo * 100}%`);
+  assert.equal(frameOf(wide, { focalX: 0.5, focalY: 1 }).objectPosition, `50% ${AIM_WIDE_Y.hi * 100}%`);
 });
 
 test("a phone's own portrait passes through untouched, which is why 3:4", () => {
@@ -245,7 +302,7 @@ test("nothing in a card is ever drawn taller than the ceiling", () => {
   for (const width of COLUMNS) {
     for (const combo of [...combinations(2), ...combinations(3)]) {
       const { ratios, caps } = asRow(combo);
-      for (const row of drawnRows(ratios, caps, Math.min(width, PHOTO_MAX_WIDTH), GAP, PHOTO_ROW_TARGET)) {
+      for (const row of drawnRows(ratios, caps, Math.min(width, PHOTO_MAX_WIDTH), GAP, PHOTO_ROW_TARGET, PHOTO_MAX_HEIGHT)) {
         assert.ok(
           row.height <= PHOTO_MAX_HEIGHT + 0.5,
           `${combo.map((s) => s.name)} at ${width}: ${row.height}px`
@@ -288,5 +345,54 @@ test("the grid never crops, and its rows line up", () => {
         assert.ok(Math.abs(w / ratios[j] - row.height) < 0.01, `row ${i} height not shared`);
       });
     });
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ *  A carousel: one shape, agreed on by the set.
+ * ------------------------------------------------------------------ */
+
+const framedRatio = (shape) => drawnRatio(frameOf(shape));
+
+test("the carousel takes the shape most of its photographs already are", () => {
+  const wide = SHAPES.find((s) => s.name.startsWith("16:9"));
+  const pano = SHAPES.find((s) => s.name.startsWith("21:9"));
+  const tall = SHAPES.find((s) => s.name.startsWith("9:16"));
+  /* The measured failure this replaced: letting the TALLEST photograph decide
+     made a frame 421px high on a phone for two landscapes and one portrait,
+     so both landscapes sat in 121px of bed. The median gives them the frame
+     instead, and beds the portrait. */
+  assert.equal(carouselBox([wide, pano, tall].map(framedRatio)), framedRatio(wide));
+  // Never a shape a single photograph could not be: 3:4 at one end, the
+  // 900-over-500 cap at the other.
+  assert.equal(carouselBox([tall, tall, tall].map(framedRatio)), TALL_TARGET);
+  assert.equal(carouselBox([pano, pano, pano].map(framedRatio)), PHOTO_MAX_WIDTH / PHOTO_MAX_HEIGHT);
+});
+
+test("every photograph fills one axis of the carousel and overflows neither", () => {
+  for (const combo of combinations(3)) {
+    const box = carouselBox(combo.map(framedRatio));
+    for (const shape of combo) {
+      const placed = placeInBox({ width: shape.w, height: shape.h, ...centred }, box);
+      const w = Number(placed.width.replace("%", ""));
+      const h = Number(placed.height.replace("%", ""));
+      assert.ok(w <= 100.01 && h <= 100.01, `${shape.name} overflows a ${box} box`);
+      // One of the two is always the full box; the other is where the bed goes.
+      assert.ok(Math.abs(Math.max(w, h) - 100) < 0.01, `${shape.name} fills neither axis`);
+    }
+  }
+});
+
+test("the carousel never cuts more than the framing rule plus the budget", () => {
+  for (const combo of combinations(3)) {
+    const box = carouselBox(combo.map(framedRatio));
+    for (const shape of combo) {
+      const facts = { width: shape.w, height: shape.h, ...centred };
+      const floor = frameOf(shape).kept * (1 - CROP_BUDGET);
+      assert.ok(
+        placeInBox(facts, box).kept >= floor - 0.001,
+        `${shape.name} in a ${box} box kept ${placeInBox(facts, box).kept}`
+      );
+    }
   }
 });

@@ -22,6 +22,7 @@ import {
 } from "@/lib/image-cdn";
 import { PhotoFrame } from "@/components/common/photo-frame";
 import { PhotoRows } from "@/components/common/photo-rows";
+import { PhotoCarousel } from "@/components/common/photo-carousel";
 import type { StoredPhoto } from "@/lib/photo-layout";
 import { MetaDots } from "@/components/common/meta-dots";
 import { PersonName } from "@/components/common/person-name";
@@ -500,7 +501,23 @@ export function PostCard({
                     Served at display size, not stored size: a 728px card was
                     downloading a 1920px file. See src/lib/image-cdn.ts for the
                     measurement and for why this is a URL rather than <Image>. */}
-                {images.length === 1 || !rowPhotos ? (
+                {images.length > 2 ? (
+                  /* More than two: a carousel, one photograph at a time, each
+                     drawn exactly as it would be if it were the only one.
+                     Owner, 2026-08-28: "if there's more than two images we use
+                     a carousel." Three side by side in a 316px phone card is a
+                     contact sheet, and three stacked is 760px of scrolling. */
+                  <PhotoCarousel
+                    photos={images.map((img, i) => ({
+                      src: photoSrc(img),
+                      srcSet: photoSrcSet(img),
+                      photo: post.photos?.[i] ?? null,
+                    }))}
+                    sizes={columnSizes}
+                    onOpen={openViewerAt}
+                    onPreload={preloadViewer}
+                  />
+                ) : images.length === 1 || !rowPhotos ? (
                   images.map((img, i) => (
                     <PhotoButton
                       key={i}
@@ -520,11 +537,11 @@ export function PostCard({
                     </PhotoButton>
                   ))
                 ) : (
-                  /* Two or three photographs: justified rows, uncropped, each
-                     at its true shape and all of them the same height (D12).
-                     They used to be tiled into half-width `max-h-48` cells,
-                     which was the app's second source of the chopped-faces
-                     complaint after the Catch-up letterbox. */
+                  /* Exactly two: justified rows, so they sit side by side at
+                     one height on a laptop and stack on a phone. They used to
+                     be tiled into half-width `max-h-48` cells, which was the
+                     app's second source of the chopped-faces complaint after
+                     the Catch-up letterbox. */
                   <PhotoRows photos={rowPhotos} columnSizes={columnSizes}>
                     {(photo, i, cell) => (
                       <PhotoButton index={i} count={images.length} onOpen={openViewerAt} onPreload={preloadViewer} className="h-full">
@@ -540,6 +557,7 @@ export function PostCard({
                           style={{
                             aspectRatio: cell.aspectRatio,
                             objectPosition: cell.objectPosition,
+                            maxHeight: cell.maxHeight,
                           }}
                         />
                       </PhotoButton>

@@ -209,6 +209,7 @@ function ShippedPost({ photos, width }: { photos: Specimen[]; width: number }) {
               objectFit: "cover",
               aspectRatio: cell.aspectRatio,
               objectPosition: cell.objectPosition,
+              maxHeight: cell.maxHeight,
               height: "100%",
             }}
           />

@@ -64,9 +64,14 @@ export type PhotoCell = {
    *  on the cell -- a photo wall's cell is the photograph AND its caption, so
    *  the two have different heights. */
   aspectRatio: string;
-  /** `object-position`, which only ever moves for a photograph the row rule
-   *  has brought to 3:4. Put it on the image beside the aspect-ratio. */
+  /** `object-position`. Put it on the image beside the aspect-ratio. */
   objectPosition: string;
+  /** `max-height` in px: the 500px ceiling, which a photograph pays for by
+   *  losing up to 20% off its top and bottom rather than by narrowing. Goes
+   *  on the image with the aspect-ratio; without it a photograph alone on a
+   *  row can be drawn 625px tall. Absent in a stream, which crops nothing at
+   *  all and lets a row's own arithmetic bound its height. */
+  maxHeight?: number;
   /** The `sizes` promise for this photograph, when the surface passed a column
    *  measure to build one from. Absent where a surface serves one file with no
    *  `srcset`, where `sizes` means nothing. */
@@ -131,6 +136,7 @@ export function PhotoRows<T extends PhotoFacts>({
             {children(photo, i, {
               aspectRatio: frame.aspectRatio,
               objectPosition: frame.objectPosition,
+              maxHeight: frame.maxHeight,
               /* Honest but coarse. How much of the column a cell gets depends
                  on where the browser broke the line, which no `sizes` string
                  can express, so this promises the most it could be: the whole
