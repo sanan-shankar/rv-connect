@@ -4884,3 +4884,30 @@ autostash did it, git dropping the duplicate commit on its own recognisance. The
 uncommitted `CLAUDE.md` edit was copied out and checksum-compared before and after, because
 it is not mine to stash.
 
+
+## 2026-08-27 — a letter's blank lines, doubled by the round trip
+
+The owner: "sometimes letter drafts when I come back to them the paragraphs which I spaced
+with one empty line for spacing now have two empty lines between each."
+
+It was the composer's serializer, and the doubling happened in storage rather than on
+screen — which is why it was invisible while writing and only showed on reopening. An empty
+line inside a contentEditable is `<div><br></div>`: the `<br>` is the browser's filler,
+there to give an empty block height, not a line break anyone typed. `serializeNode` counted
+both, so one blank line was written to the row as `\n\n\n` and came back as two.
+
+Read off Chrome rather than guessed. Typing "para one", Enter, Enter, "para two" into a
+contentEditable with the letter sheet's own styles builds exactly
+`para one<div><br></div><div>para two</div>`, and the old walk turned that into
+`"para one\n\n\npara two"`. The fix drops a trailing `<br>` from a block's children before
+serializing it; a `<br>` anywhere else in the block is a real Shift+Enter break and still
+counts, so `<div>a<br>b</div>` is still two lines. `src/lib/rich-text-editing.test.mjs`
+pins all of it against the DOM shapes the browser actually builds — no jsdom, just the five
+node fields the serializer reads.
+
+**Drafts saved before this keep their extra line.** The doubling is already in the rows and
+nothing can tell an accidental blank line from a wanted one, so there is no migration: the
+extra spacing has to be deleted by hand in the drafts it bothers.
+
+The fix is in the shared serializer, so it lands in every writing surface at once — the
+letter desk, the feed composer, the catch-up answer card and the edit dialog.

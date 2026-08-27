@@ -310,6 +310,17 @@ blocks anything; each is a choice the code cannot make for itself.
 Earlier feedback that was addressed, and in a few cases changed again by a later owner decision. Listed
 so a future session does not "fix" one of these back to a state the owner deliberately moved away from.
 
+### Owner-reported, 2026-08-27
+
+- **A letter draft's blank lines doubled between sessions.** "The paragraphs which I spaced with one
+  empty line for spacing now have two empty lines between each." The composer's DOM-to-markdown walk
+  counted a block AND the filler `<br>` the browser puts inside an empty one, so a blank line was
+  stored as `\n\n\n`. Nothing was wrong on screen while writing; the extra line was written to the
+  row and only appeared on reopening. Fixed in `src/lib/rich-text-editing.ts` (a trailing `<br>` in a
+  block is the browser's, not the writer's) and pinned in `rich-text-editing.test.mjs`. Drafts saved
+  before the fix keep the extra line — no migration can tell an accidental blank line from a wanted
+  one, so those are edited by hand.
+
 ### From the pre-release hardening, 2026-08-21
 
 A formal bug and stability review ran over four sessions and every one of its findings is closed.
