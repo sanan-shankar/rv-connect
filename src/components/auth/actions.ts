@@ -250,7 +250,6 @@ async function joinBatchGroup(userId: string, batchYear: number) {
         data: {
           name: `Batch of ${batchYear}`,
           description: `Everyone from the batch of ${batchYear}.`,
-          visibility: "public",
           batchYear,
           creatorId: null,
         },

@@ -627,7 +627,7 @@ export async function declinePhoto(photoId: string) {
 
   const photo = await prisma.photo.findUnique({
     where: { id: photoId },
-    select: { thumbUrl: true, url: true, originalUrl: true, uploaderId: true },
+    select: { thumbUrl: true, url: true, uploaderId: true },
   });
   if (!photo) return { error: "Photo not found" };
 
@@ -638,7 +638,7 @@ export async function declinePhoto(photoId: string) {
      delete makes the pair atomic: either the photo is gone and its files are
      booked for removal, or nothing happened. Same invariant, and the same
      mechanism, the account purge already uses (B-011). */
-  const urls = [photo.thumbUrl, photo.url, photo.originalUrl].filter(
+  const urls = [photo.thumbUrl, photo.url].filter(
     (u): u is string => typeof u === "string" && u.length > 0
   );
   try {
@@ -697,7 +697,7 @@ export async function adminRemovePhoto(photoId: string, note?: string) {
 
   const photo = await prisma.photo.findUnique({
     where: { id: photoId },
-    select: { uploaderId: true, thumbUrl: true, url: true, originalUrl: true },
+    select: { uploaderId: true, thumbUrl: true, url: true },
   });
   if (!photo) return { error: "Photo not found" };
 
@@ -706,7 +706,7 @@ export async function adminRemovePhoto(photoId: string, note?: string) {
   // The row survives (structure + note); the retrievable bytes do not. A
   // delete storage refuses is queued for the nightly drain rather than logged
   // and forgotten -- "removed by a moderator" has to mean it (audit C-069).
-  await purgeImageUrls([photo.thumbUrl, photo.url, photo.originalUrl], "moderation");
+  await purgeImageUrls([photo.thumbUrl, photo.url], "moderation");
 
   const trimmedNote = note?.trim();
   if (trimmedNote) await notifyAdminNote(photo.uploaderId, trimmedNote);

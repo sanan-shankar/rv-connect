@@ -106,7 +106,7 @@ async function collectImageUrls(db: Db, userId: string): Promise<string[]> {
     db.post.findMany({ where: { authorId: userId }, select: { images: true } }),
     db.photo.findMany({
       where: { uploaderId: userId },
-      select: { thumbUrl: true, url: true, originalUrl: true },
+      select: { thumbUrl: true, url: true },
     }),
     db.catchupEntry.findMany({ where: { authorId: userId }, select: { images: true } }),
     // EVERY message in the member's own admin threads, not just the ones they
@@ -123,7 +123,6 @@ async function collectImageUrls(db: Db, userId: string): Promise<string[]> {
   if (user?.photoUrl) urls.push(user.photoUrl);
   for (const p of photos) {
     urls.push(p.thumbUrl, p.url);
-    if (p.originalUrl) urls.push(p.originalUrl);
   }
   for (const m of adminMessages) {
     if (m.imageUrl) urls.push(m.imageUrl);

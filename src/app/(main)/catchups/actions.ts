@@ -454,7 +454,6 @@ export async function createCatchupWithPeople(input: {
       const group = await tx.group.create({
         data: {
           name,
-          visibility: "private",
           creatorId,
           members: { create: memberRows },
         },
