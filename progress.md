@@ -1,5 +1,97 @@
 # Progress Log
 
+## 2026-08-28 — the viewer, edge to edge, and the caption that is not a panel
+
+Collection rework phase 4 (spec sec. 5). The owner's verdict on the viewer he had
+was the sharpest thing in the whole brief: *"You click caption. And then in this
+extremely low frame rate, you get this bottom bar pop up and there is no way to
+make it disappear except click a very exact small pill to get it to go. It's so,
+so hard to use... It's like the worst design ever."* And what he wanted instead:
+*"I really wanted the image to go from edge to edge... I know that people have
+figured a way to get it more full screen and more whatever ratio of photo to
+white space than we do."*
+
+**The photograph takes the whole glass.** The inset is gone -- `sm:p-14` plus two
+64px bands -- so the frame is the viewport. A 1600x1067 photograph on a 1440x900
+screen went from 1258x839 to 1350x900, and it now touches the top and bottom
+edges; a portrait touches the sides. What it will not do is ENLARGE a photograph
+past its own file, because that is the graininess the owner has objected to twice,
+and a 980px panorama stretched across 1440px is that complaint arriving in the one
+place a picture should look its best. A file too small to fill sits at its true
+size on the wash, sharp, with a shadow under it so it reads as a print rather than
+as something that failed to load. The answer to a small file is a bigger
+derivative, which is spec sec. 4.
+
+**The chrome floats and then leaves.** Icons and words sit on warm-ink gradient
+scrims over the picture instead of in bands beside it, and after 3.6 seconds of
+stillness they fade out entirely: at rest there is nothing on screen but the
+photograph. Any mouse movement brings them back. A press on the photograph puts
+them away deliberately, and movement does NOT undo that -- "withdrawn on its own"
+and "dismissed by you" are two different states, which is what stops a twitch of
+the mouse re-drawing chrome somebody just cleared.
+
+**The caption is always there and is never a panel.** Two lines over the bottom
+scrim; the whole caption is the button, and pressing it opens the rest of the
+words, the Where line and the buckets in place. Pressing it again puts them back,
+and so does Esc. There is no fold-up panel and no dismiss pill anywhere in the
+component: the smallest target in it is a 40px icon.
+
+**/collection/[id] stops being a page.** The owner: *"I don't know if we even need
+that page... Can't we just have the heart and the tags over here? That another
+page isn't even pretty."* The route stays, so a photograph still has an address to
+send somebody, and it now renders the Collection with the viewer already open on
+that photograph. Everything the page had is in the viewer: the heart (the app's
+one shared `LoveButton`, on the app's one shared optimistic toggle, writing back
+into the grid behind so the tile agrees when the viewer closes), the buckets, the
+Where line, the admin's remove-with-a-note, and one thing it never had.
+
+**A member can take down their own photograph.** Until today nobody could: both
+removal paths were `role === "admin"`, which made the Collection the only place in
+the product where you could publish something and then not unpublish it (owner,
+2026-08-27, and handover F11). `deleteOwnPhoto` is uploader-or-admin, the same gate
+`deletePost` uses, behind a confirm. It shares one `erasePhoto` helper with the
+admin's decline rather than copying it, so audit M17's ordering -- the row and the
+byte-purge rows in ONE transaction, the drain after the commit -- exists once.
+
+**The date is when the photograph was taken.** *"You are showing the date it was
+uploaded. So we are actually not seeing the date that people are saying this photo
+was taken."* `takenLabel` reads the three columns the contributor actually filled
+in and prints at their precision and no finer: "May 1978", "1978", "the 1970s",
+and nothing at all when they gave nothing, because a 1978 photograph stamped with
+the day somebody scanned it is worse than no date. Seven tests, including the case
+where the form leaves a month behind in state after the contributor drops back to
+a year.
+
+**Catch-up photographs can be opened.** Brief #36, and #41's "every image is
+clickable". They were the last surface where they were not, and the carousel there
+had the seam already, wired to an empty function. A press on a wall photograph
+opens the viewer on the WHOLE wall, so a Round is something you can sit and step
+through.
+
+Three things this found on the way, each of which would have shipped:
+
+- **The overlay was under the mobile header.** `fixed inset-0` at the overlay
+  z-index is only above what its own ancestors are, and the sidebar's `sticky
+  z-40` header painted straight over the top of the viewer, close button included.
+  z-index cannot reach across a stacking context; a portal onto `document.body`
+  can, which is also what `aria-modal` has been claiming all along.
+- **The caption measured itself once, against nothing.** "More" appears only when
+  the words are actually cut off, which is measured. The measurement ran on the
+  first render, when the portal was still null and the component returned null,
+  and with every other dependency already settled it never ran again: a caption
+  clamped at 45px around 90px of text, with no way to open it. Exactly the bug the
+  phase exists to fix, arriving through the front door.
+- **A heart and a share button on a near-black wash.** Both shared primitives paint
+  the app's ink `state-layer` on hover, which has nothing to darken here, and both
+  send their label to dark ink. Each grew one `onDark` variant rather than a
+  private copy in the viewer.
+
+`npm run check` 82/82. `npm run visual` 23/23 with no baseline moved. Verified in a
+real browser at 1440x900 and 390x844 on /lab/viewer, /collection, /collection/[id]
+and a live Round: the geometry above, Tab wrapping inside the dialog, Esc taking
+the caption before the viewer, the arrows stepping, and the press-to-dismiss chrome
+surviving a mouse move.
+
 ## 2026-08-28 — a fifth of a photograph, and a carousel worth swiping
 
 Two asks from the owner, both looking at his own feed. First, two landscapes

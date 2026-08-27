@@ -15,6 +15,7 @@ import { countImageFrames, sharpImage, storedResizeBox } from "@/lib/image";
 import { purgeImageKey, purgeImageUrls, putAllOrNone } from "@/lib/image-purge";
 import { drainPendingImagePurges } from "@/lib/account-purge";
 import { escapeLike, insensitive } from "@/lib/db-text";
+import { takenLabel } from "@/lib/collection";
 import {
   MAX_UPLOAD_BYTES,
   MAX_PHOTOS_PER_ACCOUNT,
@@ -65,6 +66,11 @@ export type PhotoData = {
   area: string | null;
   era: string;
   freeTags: string[];
+  /** When the photograph was TAKEN, in the contributor's own precision --
+   *  "May 1978", "1978", "the 1970s" -- or null when they gave nothing. The
+   *  viewer shows this and never `createdAt`, which is the day somebody
+   *  scanned it (brief #21). */
+  takenLabel: string | null;
   approved: boolean;
   loveCount: number;
   loved: boolean;
@@ -78,6 +84,7 @@ function shape(
     id: string; thumbUrl: string; url: string; width: number; height: number;
     caption: string | null; subject: string; area: string | null; era: string;
     freeTags: string | null; approved: boolean; uploaderId: string; createdAt: Date;
+    photoYear: number | null; photoMonth: number | null; datePrecision: string | null;
     uploader: { id: string; name: string };
     _count: { loves: number }; loves: { id: string }[];
   },
@@ -94,6 +101,7 @@ function shape(
     area: p.area,
     era: p.era,
     freeTags: p.freeTags ? p.freeTags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+    takenLabel: takenLabel(p),
     approved: p.approved,
     loveCount: p._count.loves,
     loved: p.loves.length > 0,
@@ -557,6 +565,24 @@ export async function loadPhotos(opts?: {
 
 
 
+/** One photograph, for a link straight to it. Same visibility rules as the
+ *  grid: a hidden photograph is nothing to anybody, and one still awaiting
+ *  review is visible only to whoever uploaded it and to an admin. Returns the
+ *  same shape the grid uses, because /collection/[id] is now that grid with
+ *  the viewer already open (spec sec. 5). */
+export async function loadPhoto(id: string): Promise<PhotoData | null> {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+  const row = await prisma.photo.findUnique({
+    where: { id },
+    include: includeFor(session.user.id),
+  });
+  if (!row || row.isHidden) return null;
+  const isOwn = row.uploaderId === session.user.id;
+  if (!row.approved && !isOwn && session.user.role !== "admin") return null;
+  return shape(row, session.user.id);
+}
+
 export async function myPendingPhotos(): Promise<PhotoData[]> {
   const session = await auth();
   if (!session?.user?.id) return [];
@@ -616,28 +642,33 @@ export async function approvePhoto(photoId: string) {
   return { success: true };
 }
 
-/** Thrown to roll back a decline whose row somebody else already removed.
- *  A sentinel rather than a flag, because the only way out of a Prisma
+/** Thrown to roll back a removal whose row somebody else already took. A
+ *  sentinel rather than a flag, because the only way out of a Prisma
  *  interactive transaction without committing is to throw. */
-class AlreadyDeclined extends Error {}
+class AlreadyGone extends Error {}
 
-export async function declinePhoto(photoId: string) {
-  const session = await auth();
-  if (session?.user?.role !== "admin") return { error: "Not authorized" };
-
+/** Delete a photograph's row and book its stored bytes for removal, as one
+ *  atomic step. Shared by the admin's decline of something in the queue and by
+ *  a member's delete of their own photograph, because both are the same
+ *  irreversible act and the ordering inside is audit M17's, not a detail: the
+ *  row goes first and the urls are queued in the SAME transaction, so either
+ *  the photo is gone and its files are booked for removal or nothing happened.
+ *  The three byte-deletes used to run before the row delete, and a failure on
+ *  that line left a photograph in the Collection whose every image 404'd for
+ *  ever, with no retry able to put them back.
+ *
+ *  Returns the uploader's id so a caller can tell them, or an error string
+ *  that is already fit to show a person. */
+async function erasePhoto(
+  photoId: string,
+  reason: string
+): Promise<{ error: string } | { uploaderId: string }> {
   const photo = await prisma.photo.findUnique({
     where: { id: photoId },
     select: { thumbUrl: true, url: true, uploaderId: true },
   });
   if (!photo) return { error: "Photo not found" };
 
-  /* The row first, then the bytes (audit M17). These three deletes used to run
-     BEFORE the delete below, so a failure on that line left the photo in the
-     Collection with all three of its images permanently 404ing, and no retry
-     could put them back. Queuing the urls inside the same transaction as the
-     delete makes the pair atomic: either the photo is gone and its files are
-     booked for removal, or nothing happened. Same invariant, and the same
-     mechanism, the account purge already uses (B-011). */
   const urls = [photo.thumbUrl, photo.url].filter(
     (u): u is string => typeof u === "string" && u.length > 0
   );
@@ -645,31 +676,40 @@ export async function declinePhoto(photoId: string) {
     await prisma.$transaction(async (tx) => {
       if (urls.length > 0) {
         await tx.pendingImagePurge.createMany({
-          data: urls.map((url) => ({ url, reason: "declined" })),
+          data: urls.map((url) => ({ url, reason })),
         });
       }
-      /* deleteMany for the same reason as approvePhoto above (audit C-130): a
-         second admin declining the same photo in the same moment would
-         otherwise throw P2025 out of the transaction, and the purge rows just
-         written would roll back with it. */
+      /* deleteMany rather than delete, for the same reason as approvePhoto
+         above (audit C-130): two people acting on the same photograph in the
+         same moment would otherwise throw P2025 out of the transaction, and
+         the purge rows just written would roll back with it. */
       const gone = await tx.photo.deleteMany({ where: { id: photoId } });
       if (gone.count === 0) {
-        // Somebody else got there first. Rolling this transaction back is
-        // correct: whoever won the race queued the same urls.
-        throw new AlreadyDeclined();
+        // Somebody else got there first. Rolling back is correct: whoever won
+        // the race queued the same urls.
+        throw new AlreadyGone();
       }
     });
   } catch (err) {
-    if (!(err instanceof AlreadyDeclined)) throw err;
+    if (!(err instanceof AlreadyGone)) throw err;
     return { error: "That photo is no longer here." };
   }
   // After the commit, so a slow R2 cannot hold the transaction open. Anything
   // it cannot reach is retried by the nightly sweep.
   await drainPendingImagePurges(urls);
+  return { uploaderId: photo.uploaderId };
+}
+
+export async function declinePhoto(photoId: string) {
+  const session = await auth();
+  if (session?.user?.role !== "admin") return { error: "Not authorized" };
+
+  const erased = await erasePhoto(photoId, "declined");
+  if ("error" in erased) return erased;
 
   await prisma.notification.create({
     data: {
-      userId: photo.uploaderId,
+      userId: erased.uploaderId,
       type: "admin",
       message:
         "A photo you shared was not added to the Collection. This space is for the place itself; please share people-shots on the feed or your profile instead.",
@@ -678,6 +718,42 @@ export async function declinePhoto(photoId: string) {
   });
 
   revalidatePath("/admin");
+  return { success: true };
+}
+
+/**
+ * A member takes down their own photograph.
+ *
+ * Until now nobody could: both removal paths were gated on `role === "admin"`,
+ * which made the Collection the one place in the product where you could
+ * publish something and then not unpublish it (spec sec. 9, handover F11). The
+ * owner, 2026-08-27: "there's no easy intuitive way for me to take down a
+ * photo that i've uploaded now? apart from using the admin thing." It matters
+ * more, not less, once trusted contributors publish with no queue in front of
+ * them, because then a delete is the ONLY correction available.
+ *
+ * Uploader or admin, which is exactly the gate `deletePost` uses for the same
+ * act on a post. An admin removing SOMEONE ELSE'S approved photograph should
+ * still reach for `adminRemovePhoto` below, which keeps the row and relays a
+ * warm note; this is the plain hard delete, and it takes the bytes with it.
+ */
+export async function deleteOwnPhoto(photoId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+
+  const photo = await prisma.photo.findUnique({
+    where: { id: photoId },
+    select: { uploaderId: true },
+  });
+  if (!photo) return { error: "Photo not found" };
+  if (photo.uploaderId !== session.user.id && session.user.role !== "admin") {
+    return { error: "Not authorized" };
+  }
+
+  const erased = await erasePhoto(photoId, "uploader-deleted");
+  if ("error" in erased) return erased;
+
+  revalidatePath("/collection");
   return { success: true };
 }
 

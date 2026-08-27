@@ -258,8 +258,11 @@ test("C-074/C-130: concurrent moderation is answered, not thrown at", () => {
   // Both admin writes on a possibly-stale row.
   assert.match(code, /const approved = await prisma\.photo\.updateMany\(/, "approvePhoto still throws P2025");
   assert.match(code, /approved\.count === 0/, "approvePhoto ignores having matched nothing");
-  assert.match(code, /const gone = await tx\.photo\.deleteMany\(/, "declinePhoto's delete still throws P2025");
-  assert.match(code, /err instanceof AlreadyDeclined/, "the rolled-back decline is not mapped to a sentence");
+  assert.match(code, /const gone = await tx\.photo\.deleteMany\(/, "the row delete still throws P2025");
+  // `AlreadyGone` was `AlreadyDeclined` until the same transaction started
+  // serving a member's own delete as well (spec sec. 9); the sentinel is the
+  // invariant, its name is not.
+  assert.match(code, /err instanceof AlreadyGone/, "the rolled-back removal is not mapped to a sentence");
 });
 
 test("C-159: the Collection intake keeps its resolve-always promise", () => {

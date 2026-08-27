@@ -13,11 +13,19 @@ import { FilterSheet } from "@/components/common/filters/filter-sheet";
 import { ResultCount } from "@/components/common/filters/result-count";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
+import { useHeartToggle } from "@/components/posts/use-engagement";
 import { appendUnseen } from "@/lib/append-page";
 import { WHEN_OPTIONS, COLLECTION_SORT_OPTIONS } from "@/lib/collection-facets";
 import { PhotoStream, type PhotoCell } from "@/components/common/photo-rows";
-import { loadPhotos, type PhotoData } from "@/app/(main)/collection/actions";
-import { formatDisplayDate } from "@/lib/utils";
+import type { ViewerImage } from "@/components/common/image-viewer";
+import {
+  adminRemovePhoto,
+  deleteOwnPhoto,
+  loadPhotos,
+  togglePhotoLove,
+  type PhotoData,
+} from "@/app/(main)/collection/actions";
+import { areaLabel, subjectLabel } from "@/lib/collection";
 
 /* ------------------------------------------------------------------ *
  *  Both open on a press and neither has any presence on the page until
@@ -33,14 +41,36 @@ const ContributeDialog = dynamic(
   () => import("./contribute-dialog").then((m) => m.ContributeDialog),
   { ssr: false }
 );
+const ConfirmDialog = dynamic(
+  () => import("@/components/common/confirm-dialog").then((m) => m.ConfirmDialog),
+  { ssr: false }
+);
+const ModerationDialog = dynamic(
+  () => import("@/components/admin/moderation-dialog").then((m) => m.ModerationDialog),
+  { ssr: false }
+);
+
+/* The viewer is the heaviest thing this page can open and it is fetched on a
+   press, so the first press used to WAIT for it -- the owner, clicking a
+   photograph during the brief: "Oh, wow. This doesn't even load. What? I
+   clicked on picture. Okay. Loaded." Warming the chunk when the pointer
+   arrives on a tile, and when one takes focus, means the press has nothing
+   left to fetch. The post card has done this since it shipped. */
+const preloadViewer = () => void import("@/components/common/image-viewer");
 
 type SortBy = "newest" | "oldest" | "loved" | "wander";
+
+/** The three strips a viewer can be browsing: the member's own queue, the
+ *  approved grid, and the single photograph a shared link landed on. */
+type ViewerList = "pending" | "main" | "linked";
 
 function Tile({ photo, cell, onOpen }: { photo: PhotoData; cell: PhotoCell; onOpen: () => void }) {
   return (
     <button
       type="button"
       onClick={onOpen}
+      onPointerEnter={preloadViewer}
+      onFocus={preloadViewer}
       aria-label={photo.caption ?? `Photograph by ${photo.uploader.name}`}
       // Hover is the caption scrim below, so no state-layer here (a tint over
       // a photograph is noise). The press only needed an answer: opacity, not
@@ -83,17 +113,31 @@ function Tile({ photo, cell, onOpen }: { photo: PhotoData; cell: PhotoCell; onOp
   );
 }
 
-/** Map a Collection photo onto the shared viewer's shape. The permalink page
- *  (love, moderation, tags) stays one press away via the viewer's open-page
- *  action. */
-function toViewerImage(p: PhotoData) {
+/** Map a Collection photograph onto the shared viewer's shape.
+ *
+ *  Everything /collection/[id] used to be a separate page for is in here now:
+ *  the love, the buckets, the Where line and the uploader's own delete. The
+ *  owner on that page: "I don't know if we even need that page. Do we need
+ *  that page? Can't we just have the heart and the tags over here?... That
+ *  another page isn't even pretty."
+ *
+ *  The date is when the photograph was TAKEN, at whatever precision the
+ *  contributor gave, and nothing at all when they gave none -- never
+ *  `createdAt`, which is the day somebody scanned it. */
+function toViewerImage(p: PhotoData, isAdmin: boolean): ViewerImage {
   return {
     src: p.url,
     alt: p.caption ?? undefined,
     caption: p.caption,
     author: { id: p.uploader.id, name: p.uploader.name },
-    date: formatDisplayDate(p.createdAt),
+    date: p.takenLabel,
+    where: p.area ? areaLabel(p.area) : null,
+    tags: [...p.subject.map(subjectLabel), ...p.freeTags],
     href: `/collection/${p.id}`,
+    loved: p.loved,
+    loveCount: p.loveCount,
+    canRemove: p.isOwn || isAdmin,
+    removeLabel: p.isOwn ? "Delete this photo" : "Remove this photo",
   };
 }
 
@@ -102,16 +146,35 @@ export function CollectionClient({
   areaOptions,
   hasApprovedPhotos,
   firstPage,
+  isAdmin = false,
+  openPhoto = null,
 }: {
   pending: PhotoData[];
   areaOptions: string[];
   hasApprovedPhotos: boolean;
+  /** Site moderation. An admin gets the remove-with-a-note flow on somebody
+   *  else's photograph, which is what /collection/[id] used to carry. */
+  isAdmin?: boolean;
+  /** One photograph to open the viewer on at mount: /collection/[id] is no
+   *  longer a page of its own, it is this page with the viewer already open
+   *  (spec sec. 5). Null on /collection itself. */
+  openPhoto?: PhotoData | null;
   /** Page 0 of the default view, queried on the server (see the page's own
    *  comment for why). Every later page, and every page under a filter, still
    *  comes from the action. */
   firstPage: { photos: PhotoData[]; hasMore: boolean; total: number };
 }) {
   const [photos, setPhotos] = useState<PhotoData[]>(firstPage.photos);
+  /* The pending strip arrives as a prop but is edited here (a love, a
+     delete), so it is held in state and re-seeded whenever the server sends a
+     different set -- adjust-during-render, React's own pattern, rather than an
+     effect that would paint the stale strip for a frame first. */
+  const [pendingPhotos, setPendingPhotos] = useState<PhotoData[]>(pending);
+  const [prevPending, setPrevPending] = useState(pending);
+  if (pending !== prevPending) {
+    setPrevPending(pending);
+    setPendingPhotos(pending);
+  }
   const [total, setTotal] = useState(firstPage.total);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(firstPage.hasMore);
@@ -121,17 +184,83 @@ export function CollectionClient({
   /* True from the first open onward, never back to false: see the note above
      the two dynamic imports. */
   const [dialogMounted, setDialogMounted] = useState(false);
-  const [viewerMounted, setViewerMounted] = useState(false);
+  const [viewerMounted, setViewerMounted] = useState(Boolean(openPhoto));
   const [sheetOpen, setSheetOpen] = useState(false);
   // Which strip the full-screen viewer is browsing (the pending strip and the
   // approved grid are separate sets), and where in it.
-  const [viewer, setViewer] = useState<{ list: "pending" | "main"; index: number } | null>(null);
+  const [viewer, setViewer] = useState<{ list: ViewerList; index: number } | null>(
+    /* A shared link lands here with the viewer already open on its
+       photograph, which is the whole of what /collection/[id] now does. It
+       rides at the head of its own one-photograph list rather than being
+       hunted for in the grid: the grid is page 0 of "newest", and a
+       photograph somebody linked to is as likely to be four hundred rows
+       down it. */
+    openPhoto ? { list: "linked", index: 0 } : null
+  );
+  const [linked, setLinked] = useState<PhotoData[]>(openPhoto ? [openPhoto] : []);
+  /** Whichever strip the viewer is browsing. The three are separate sets. */
+  const listFor = useCallback(
+    (list: ViewerList) => (list === "pending" ? pendingPhotos : list === "linked" ? linked : photos),
+    [pendingPhotos, linked, photos]
+  );
+  const setListFor = useCallback(
+    (list: ViewerList, next: (prev: PhotoData[]) => PhotoData[]) => {
+      if (list === "pending") setPendingPhotos(next);
+      else if (list === "linked") setLinked(next);
+      else setPhotos(next);
+    },
+    []
+  );
   // Memoized so the whole (paginated, unbounded) photo list isn't re-mapped
   // on every unrelated re-render while the viewer sits closed.
+  const viewerList = viewer ? listFor(viewer.list) : photos;
   const viewerImages = useMemo(
-    () => (viewer?.list === "pending" ? pending : photos).map(toViewerImage),
-    [viewer?.list, pending, photos]
+    () => viewerList.map((p) => toViewerImage(p, isAdmin)),
+    [viewerList, isAdmin]
   );
+  const [removing, setRemoving] = useState<PhotoData | null>(null);
+
+  /** Rewrite one photograph in whichever strip it belongs to. */
+  const patch = useCallback(
+    (list: ViewerList, id: string, change: (p: PhotoData) => PhotoData) => {
+      setListFor(list, (prev) => prev.map((p) => (p.id === id ? change(p) : p)));
+    },
+    [setListFor]
+  );
+
+  /* The heart runs on the app's one optimistic toggle (`useHeartToggle`),
+     which carries the three things a hand-rolled flip keeps forgetting: a ref
+     that refuses a double tap in the same tick `disabled` would only catch on
+     the next render (C-010/C-178), a rollback to where the count BEGAN, and
+     adopting what the row actually says over what the tap assumed (C-133).
+     The hook binds one action, and this heart moves between photographs as the
+     viewer steps, so the id it acts on is read from a ref at fire time. */
+  const loveTarget = useRef<{ list: ViewerList; photo: PhotoData } | null>(null);
+  const fireLove = useHeartToggle(() => togglePhotoLove(loveTarget.current!.photo.id));
+
+  function handleToggleLove(index: number) {
+    if (!viewer) return;
+    const photo = listFor(viewer.list)[index];
+    if (!photo) return;
+    loveTarget.current = { list: viewer.list, photo };
+    /* Written back into the strip the photograph came from, so the grid behind
+       the viewer holds the same fact: a heart pressed full-screen is already
+       lit on the tile when the viewer closes. */
+    void fireLove({ liked: photo.loved, count: photo.loveCount }, ({ liked, count }) =>
+      patch(viewer.list, photo.id, (p) => ({ ...p, loved: liked, loveCount: count }))
+    );
+  }
+
+  /** A photograph is gone: out of every strip that holds it, and out of the
+   *  viewer, which was showing the thing that no longer exists. */
+  function forget(id: string) {
+    setPhotos((prev) => prev.filter((p) => p.id !== id));
+    setPendingPhotos((prev) => prev.filter((p) => p.id !== id));
+    setLinked((prev) => prev.filter((p) => p.id !== id));
+    setTotal((t) => Math.max(0, t - 1));
+    setViewer(null);
+    setRemoving(null);
+  }
 
   const [area, setArea] = useState("");
   const [era, setEra] = useState("");
@@ -252,7 +381,7 @@ export function CollectionClient({
   // mount, so gating this on it flashed the toolbar in on first paint, then
   // hid it once the fetch resolved to zero. This is knowable before first
   // paint instead, so there's nothing to flash.
-  const trulyEmpty = !hasFilter && pending.length === 0 && !hasApprovedPhotos;
+  const trulyEmpty = !hasFilter && pendingPhotos.length === 0 && !hasApprovedPhotos;
   const noMatches = !loading && hasFilter && photos.length === 0;
 
   const activeChips: ActiveChip[] = [];
@@ -453,13 +582,13 @@ export function CollectionClient({
         </div>
       ) : (
         <>
-          {pending.length > 0 && (
+          {pendingPhotos.length > 0 && (
             <div className="mb-5">
               <h2 className="mb-2 text-[11px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
                 Awaiting review
               </h2>
               <PhotoStream
-                photos={pending}
+                photos={pendingPhotos}
                 keyOf={(p) => p.id}
               >
                 {(p, i, cell) => (
@@ -496,14 +625,6 @@ export function CollectionClient({
             )}
           </PhotoStream>
 
-          {viewerMounted && (
-            <ImageViewer
-              images={viewerImages}
-              initialIndex={viewer?.index ?? 0}
-              open={viewer !== null}
-              onClose={() => setViewer(null)}
-            />
-          )}
           {hasMore && (
             <div className="flex justify-center pt-4">
               <Button
@@ -517,6 +638,56 @@ export function CollectionClient({
             </div>
           )}
         </>
+      )}
+
+      {/* Outside the grid's branches: a shared link opens the viewer on a
+          photograph that may not be in this page of the grid at all, and an
+          empty or filtered grid must not swallow it. */}
+      {viewerMounted && (
+        <ImageViewer
+          images={viewerImages}
+          initialIndex={viewer?.index ?? 0}
+          open={viewer !== null}
+          onClose={() => setViewer(null)}
+          /* "2 of 24" is a fact about a post and noise about an archive:
+             the owner, on this counter, "I don't know if showing that two of
+             two thing is important, at least in collection". */
+          showCount={false}
+          onToggleLove={handleToggleLove}
+          onRemove={(i) => setRemoving(viewerList[i] ?? null)}
+        />
+      )}
+
+      {/* Taking a photograph down. The member's own is a plain confirm; an
+          admin removing somebody else's takes the warm note, which is the
+          same flow /collection/[id] carried and the same one the feed uses. */}
+      {removing?.isOwn && (
+        <ConfirmDialog
+          open
+          onClose={() => setRemoving(null)}
+          title="Delete this photograph?"
+          description="It leaves the Collection for everyone, and the file itself is deleted. This cannot be undone."
+          actionLabel="Delete"
+          onConfirm={async () => {
+            const res = await callAction(() => deleteOwnPhoto(removing.id));
+            if ("error" in res && res.error) return { error: res.error };
+            forget(removing.id);
+            toast.success("The photograph has been taken down.");
+          }}
+        />
+      )}
+      {removing && !removing.isOwn && (
+        <ModerationDialog
+          open
+          onClose={() => setRemoving(null)}
+          itemLabel="photo"
+          onConfirm={async (note) => {
+            const res = await callAction(() => adminRemovePhoto(removing.id, note || undefined));
+            if ("error" in res && res.error) return { error: res.error };
+            forget(removing.id);
+            return {};
+          }}
+        />
       )}
 
       {dialogMounted && <ContributeDialog open={dialogOpen} onOpenChange={setDialogOpen} />}

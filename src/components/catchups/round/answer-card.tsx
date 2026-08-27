@@ -28,98 +28,10 @@ import { IdentityRow } from "@/components/common/identity-row";
 import { SpotifyCard } from "@/components/catchups/round/spotify-card";
 import { EntryLoveButton } from "@/components/catchups/round/entry-love-button";
 import type { CatchupEntryView, CatchupSongView, PromptKind } from "@/lib/catchups-types";
-import { PhotoFrame } from "@/components/common/photo-frame";
-import { PhotoRows } from "@/components/common/photo-rows";
-import { PhotoCarousel } from "@/components/common/photo-carousel";
-import { PHOTO_SIZES_CENTERED_FULL } from "@/lib/image-cdn";
-import type { StoredPhoto } from "@/lib/photo-layout";
-import { cn } from "@/lib/utils";
+import { AnswerPhotos } from "@/components/catchups/round/answer-photos";
 import { renderRichText } from "@/lib/rich-text";
 
 export type RoundEntry = CatchupEntryView & { authorMeta: string };
-
-function AnswerPhotos({ images, photos }: { images: string[]; photos: (StoredPhoto | null)[] }) {
-  /* A lone photograph used to be a "near-full-bleed hero": aspect-[16/10] on a
-     phone, aspect-[21/9] above it, object-cover, centred. Which is to say a
-     portrait of four friends was cut down to a letterbox of their shoulders --
-     the owner, watching his own Catch-up: "all of their faces are cropped out
-     and you can't see them... sometimes the catch up just shows a bunch of
-     shoulders. Like, why?" It now gets the same rule as the feed and letters:
-     true shape if it is square or wider, 3:4 on a bed of itself if it is
-     taller, nothing cut off the sides of a face. */
-  if (images.length === 1) {
-    return (
-      <div className="mt-[var(--space-s)]">
-        {/* The bucket's own url, not an optimiser transform. A Catch-up is a
-            newsletter: everyone opens the same Round within a day of each
-            other, so a cold transform is not amortised across viewers the way
-            a feed photo's is -- it is paid by nearly all of them at once. */}
-        <PhotoFrame
-          src={images[0]}
-          photo={photos[0] ?? null}
-          sizes={PHOTO_SIZES_CENTERED_FULL}
-          fallbackClassName="aspect-[16/10] sm:aspect-[21/9]"
-          className="rounded-[var(--radius-md)] border border-border"
-        />
-      </div>
-    );
-  }
-  /* More than two: a carousel, the same rule the feed uses. Only legacy rows
-     reach any of this -- the answer form has taken one photograph per answer
-     since it shipped (`PhotoAttachments max={1}`). */
-  if (images.length > 2) {
-    return (
-      <PhotoCarousel
-        className="mt-[var(--space-s)]"
-        photos={images.map((src, i) => ({ src, photo: photos[i] ?? null }))}
-        sizes={PHOTO_SIZES_CENTERED_FULL}
-        onOpen={() => {}}
-        onPreload={() => {}}
-      />
-    );
-  }
-
-  /* Exactly two: justified rows, each at its true shape. They used to tile
-     into squares, which is the same guillotine the lone hero applied, just
-     twice at once. A pair that has not been measured keeps the squares rather
-     than half a layout. */
-  const shapes = photos.length === images.length && photos.every(Boolean) ? photos : null;
-  if (!shapes) {
-    return (
-      <div className={cn("mt-[var(--space-s)] grid gap-2", images.length === 2 ? "grid-cols-2" : "grid-cols-3")}>
-        {images.map((src, i) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={i}
-            src={src}
-            alt=""
-            loading="lazy"
-            className="aspect-square w-full rounded-[var(--radius-md)] border border-border object-cover"
-          />
-        ))}
-      </div>
-    );
-  }
-  return (
-    <PhotoRows photos={shapes as StoredPhoto[]} className="mt-[var(--space-s)]">
-      {(photo, i, cell) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={images[i]}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          className="h-full w-full rounded-[var(--radius-md)] border border-border object-cover"
-          style={{
-            aspectRatio: cell.aspectRatio,
-            objectPosition: cell.objectPosition,
-            maxHeight: cell.maxHeight,
-          }}
-        />
-      )}
-    </PhotoRows>
-  );
-}
 
 export function AnswerCard({ entry, kind = "text" }: { entry: RoundEntry; kind?: PromptKind }) {
   const bodyText = entry.body?.trim() ?? "";
@@ -172,7 +84,15 @@ export function AnswerCard({ entry, kind = "text" }: { entry: RoundEntry; kind?:
               dangerouslySetInnerHTML={{ __html: renderRichText(entry.body ?? "") }}
             />
           )}
-          {hasPhotos && <AnswerPhotos images={entry.images} photos={entry.photos} />}
+          {hasPhotos && (
+            <AnswerPhotos
+              images={entry.images}
+              photos={entry.photos}
+              author={entry.author}
+              body={entry.body}
+              createdAt={entry.createdAt}
+            />
+          )}
           {song && <SpotifyCard song={song} />}
         </>
       )}
