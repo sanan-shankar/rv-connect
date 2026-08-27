@@ -307,13 +307,29 @@ const CHECKS = [
       // the write paths. Correctness beyond shape is scripts/qa/phase3-probe.mjs.
       const gate = decomment(read("src/lib/member-gate.ts"));
       if (!/verifyState !== "verified"/.test(gate)) return open("no member-tier gate; verifyState still unread by any permission");
-      const feed = decomment(read("src/app/(main)/feed/actions.ts"));
-      const upload = decomment(read("src/app/api/upload/route.ts"));
+      /* Follow the indirection. "one door per kind of route" (60e8ee0) moved the
+         gate into src/lib/api-gate.ts, so grepping a route for the literal call
+         reported a gate that was very much still applied -- and failed CI on
+         main for a day. A route counts as gated if it calls
+         requireVerifiedMember itself, OR calls a vetter that does. Splitting on
+         the export keeps each vetter's body to itself, so a gated neighbour
+         cannot vouch for an ungated one. */
+      const apiGate = decomment(read("src/lib/api-gate.ts"));
+      const vetters = apiGate
+        .split(/\bexport async function /)
+        .slice(1)
+        .map((body) => ({ name: (body.match(/^(\w+)/) ?? [])[1], body }))
+        .filter((v) => v.name && /requireVerifiedMember\(/.test(v.body))
+        .map((v) => v.name);
+      const gated = (src) =>
+        /requireVerifiedMember\(\)/.test(src) ||
+        vetters.some((v) => new RegExp(`\\b${v}\\(`).test(src));
       const missing = [];
-      if (!/requireVerifiedMember\(\)/.test(feed)) missing.push("feed actions");
-      if (!/requireVerifiedMember\(\)/.test(upload)) missing.push("upload route");
+      if (!gated(decomment(read("src/app/(main)/feed/actions.ts")))) missing.push("feed actions");
+      if (!gated(decomment(read("src/app/api/upload/route.ts")))) missing.push("upload route");
       if (missing.length) return open(`gate exists but unused in: ${missing.join(", ")}`);
-      return ok("requireVerifiedMember read in the write paths; run phase3-probe for behaviour");
+      if (!vetters.length) return open("api-gate.ts defines no vetter that calls requireVerifiedMember");
+      return ok(`requireVerifiedMember reaches the write paths (via ${vetters.join(", ")}); run phase3-probe for behaviour`);
     }},
   { id: "H22", sev: "high", title: "No bot defence on any public entry point", probe: () => {
       // Verified at all three doors, or it is not closed: login (inside

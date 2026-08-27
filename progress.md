@@ -1,5 +1,26 @@
 # Progress Log
 
+## 2026-08-27 — CI was red on main for a day, and the gate it named was fine
+
+`audit-status --fail-on-open=critical,high` had been failing every push since the morning,
+across three commits by two sessions, on H21: "verifyState gates nothing". The gate was
+never gone. "One door per kind of route" (60e8ee0) moved it into `src/lib/api-gate.ts`, so
+`/api/upload` calls `vetUploadRequest`, which calls `requireVerifiedMember` on its second
+check. The probe grepped each route for the literal call and reported a gate that was very
+much applied.
+
+The probe now follows the indirection: a route counts as gated if it calls
+`requireVerifiedMember` itself, or calls a vetter in api-gate that does. It splits api-gate
+on the export so each vetter's body stays its own, which matters because `vetLookupRequest`
+sits right next to `vetUploadRequest` and deliberately does NOT gate on membership -- a
+sloppier match would have let it vouch for an ungated route. Checked both ways before
+committing: the real route passes, a route with no gate fails, and a route calling
+`vetLookupRequest` fails.
+
+Worth remembering about this class of check: a probe that proves the SHAPE of a fix goes
+stale the moment the shape is refactored, and it goes stale by crying wolf, which is the
+expensive direction. It cost a day of red CI on main that everyone learned to scroll past.
+
 ## 2026-08-27 — the line Apple draws inside our icon, and the crest that carries it
 
 The owner had noticed his own home screen doing something to our icon that Android does
