@@ -116,7 +116,6 @@ export async function seedDemo(
     await tx.catchupPref.deleteMany({});
     await tx.catchup.deleteMany({});
     await tx.groupMember.deleteMany({});
-    await tx.groupInvite.deleteMany({});
     await tx.group.deleteMany({});
     await tx.userPlace.deleteMany({});
     // The gazetteer slice (see places.ts). Nothing sets a UserPlace.placeId

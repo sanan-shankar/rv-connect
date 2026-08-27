@@ -77,7 +77,7 @@ const ALLOWED_WRITE_MODELS: ReadonlySet<string> = new Set([
      succeed: the first write in the creating transaction is `group.create`,
      so the flagship flow died on the guard and told the visitor "Something
      went wrong. Please try again." for ever (audit C-113). The reset wipes
-     groupMember, groupInvite and group along with everything else, so a
+     groupMember and group along with everything else, so a
      visitor-made Catch-up lasts exactly as long as their session's data. */
   "Group",
   "GroupMember",
