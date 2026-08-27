@@ -1,0 +1,28 @@
+-- Remove SearchLog_query_idx, a btree no query in this app can use
+-- (refactor audit 1, data-layer-07).
+--
+-- Every read of SearchLog was checked: search-log.ts:63 filters (userId, scope,
+-- createdAt), :77 updates by id, :88 inserts; retention.ts deletes on createdAt;
+-- admin-analytics.ts's five reads all filter `createdAt >= since` first, and its
+-- two `groupBy(["query"])` hash-aggregate AFTER that filter, which a btree on
+-- `query` serves in no plan. Nothing sorts or ranges on the column.
+--
+-- pg_stat_user_indexes agrees, and was consulted rather than assumed: ONE scan
+-- in a 96-day statistics window. The index is not free -- SearchLog is written
+-- on a debounced keystroke path, so it is write amplification on the hottest
+-- insert in the app, forever, for a lookup nobody performs.
+--
+-- Its sibling in the same finding, Comment_postId_isHidden_idx, is deliberately
+-- NOT dropped here. See the commit: 13 scans in the same window, the finding
+-- itself rates it marginal and says to skip it in doubt, and dropping an index
+-- to save 16 kB is not worth being wrong about.
+--
+-- Safe in a way the rest of this phase is not: an index can only ever cost
+-- speed, never correctness, so this one does not have to wait behind a deploy.
+-- It is held with the others anyway, so the phase lands as one decision.
+--
+-- Idempotent, per CLAUDE.md: never `prisma db push` against this database.
+-- Apply: node scripts/dev/run-sql.mjs prisma/migrations-manual/2026-08-27-drop-searchlog-query-index.sql
+--   and: node scripts/dev/run-sql.mjs --env .env.demo prisma/migrations-manual/2026-08-27-drop-searchlog-query-index.sql
+
+DROP INDEX IF EXISTS "SearchLog_query_idx";
