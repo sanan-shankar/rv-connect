@@ -20,6 +20,7 @@ import { CreatePostForm } from "@/components/posts/create-post-form";
  * ------------------------------------------------------------------ */
 
 export function LetterDesk({
+  writerId,
   userPlaces,
   postId,
   initialTitle,
@@ -28,6 +29,12 @@ export function LetterDesk({
   initialCityScope,
   initialUpdatedAt,
 }: {
+  /** The signed-in writer. Not decoration: it is half of the crash-net key
+   *  (audit C-014), so an unsaved letter on a shared browser cannot be
+   *  restored into the next person's composer. This desk is the ONLY surface
+   *  that writes letter drafts, so an id missing here means the fix is off
+   *  everywhere -- which is exactly what it was until 2026-08-27. */
+  writerId: string;
   userPlaces: string[];
   /** Present when resuming an existing draft (/letters/[id]/edit). */
   postId?: string;
@@ -87,6 +94,10 @@ export function LetterDesk({
         <CreatePostForm
           defaultLetter
           immersive
+          /* Only the id: this shell draws no avatar (see the `!immersive`
+             guard in CreatePostForm), and the composer wants the identity for
+             the draft key, not for a bird. */
+          currentUser={{ id: writerId }}
           userPlaces={userPlaces}
           postId={postId}
           initialTitle={initialTitle}

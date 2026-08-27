@@ -129,6 +129,24 @@ test("C-014: the crash-net key names the account it belongs to", () => {
   assert.equal(calls.length, 3, `${calls.length} of the 3 call sites scope the key`);
 });
 
+test("C-014: the one surface that writes letter drafts actually supplies an id", () => {
+  /* The shape above was right and the fix was off anyway, for as long as it
+     had shipped: the letters desk -- the ONLY surface where `defaultLetter`
+     is set, and so the only one where the crash net runs at all -- never
+     passed `currentUser`, so every belt went to `rv:letter-draft:anon:new`
+     and two members on one browser shared it. Found by driving it on
+     2026-08-27, not by reading it, which is what a shape test cannot do.
+     So this pins the WIRE, not the template. */
+  const desk = read("src/components/letters/letter-desk.tsx");
+  assert.match(desk, /currentUser=\{\{ id: writerId \}\}/, "the desk composes anonymously again");
+  for (const page of [
+    "src/app/(main)/letters/new/page.tsx",
+    "src/app/(main)/letters/[id]/edit/page.tsx",
+  ]) {
+    assert.match(read(page), /writerId=\{session\.user\.id\}/, `${page} does not name the writer`);
+  }
+});
+
 /* ---- C-008: an author keeps sight of their own letter ----------- */
 
 test("C-008: the letters index uses the shared audience builder", () => {
