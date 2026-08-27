@@ -321,6 +321,15 @@ so a future session does not "fix" one of these back to a state the owner delibe
   before the fix keep the extra line — no migration can tell an accidental blank line from a wanted
   one, so those are edited by hand.
 
+- **A stray up/down stepper beside member names, on Android.** Reported as "two of the toggle
+  things ... it doesn't have any function", on the sidebar profile pill and the feed rail's "New in
+  the directory" card; tapping it shifted the text a pixel. It was a real scrollbar on a real
+  overflow: `IdentityRow` paired `overflow-y-visible` (for the descenders `leading-none` pushes below
+  the line box) with the `overflow: hidden` that a caller's `truncate` brings, and CSS computes the
+  visible axis to `auto` in that pairing. Fixed with `overflow-x-clip`, which is exempt from that
+  rule and still fires `text-overflow`, and pinned repo-wide in `identity-row-overflow-rule.test.mjs`.
+  Not reproducible on macOS, which draws overlay scrollbars rather than stepper ones.
+
 ### From the pre-release hardening, 2026-08-21
 
 A formal bug and stability review ran over four sessions and every one of its findings is closed.

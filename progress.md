@@ -4911,3 +4911,39 @@ extra spacing has to be deleted by hand in the drafts it bothers.
 
 The fix is in the shared serializer, so it lands in every writing surface at once — the
 letter desk, the feed composer, the catch-up answer card and the edit dialog.
+
+## 2026-08-27 — the toggle nobody built, next to everybody's name
+
+A friend of the owner's, on Android: "two of the toggle things" beside a member's name, on
+the sidebar profile button and again in the feed rail's "New in the directory" card. "It
+doesn't have any function... you click the lower button it moves the spacing up, you click
+the upper button it moves the spacing down."
+
+It was a scrollbar. `IdentityRow` carried `overflow-y-visible` to stop `leading-none` from
+clipping the descenders in a name (the owner's own 2026-08-22 report: "the bottom half of
+some people's emails getting cut off"), beside the `overflow: hidden` that `truncate`
+brings for the ellipsis. That pair is not a state CSS has. Per CSS Overflow 3 section 3, a
+`visible` axis beside anything that is not `visible` or `clip` computes to **auto** — so
+every name and every byline in the app became a scroll container, one pixel taller than
+itself, and on an engine that draws classic scrollbars instead of overlay ones that painted
+a stepper inside the row. Tapping it scrolled the text a pixel: the "spacing" moving.
+
+Measured, not inferred. On the byline's own type the pair reported `overflow-y: auto`,
+scrollHeight 12 against clientHeight 11, and accepted a `scrollTop` of 1. With
+`overflow-x: clip` in place of the inherited hidden, the same element reports `overflow-y:
+visible`, `text-overflow: ellipsis` still applies, and `scrollTop` stays 0. `clip` is the
+exemption named in that same sentence of the spec, and it fires text-overflow exactly as
+`hidden` does, so the truncation and the descender fix both survive.
+
+Pinned repo-wide rather than in the one component, because the next person to reach for
+`overflow-y-visible` will reach for it for the same reason somewhere else. The first
+spelling of that pin asked "is the other axis clipped on this line?" and passed against the
+broken file — identity-row's clip arrives from the caller, inside `nameClassName` — so the
+rule is now the unconditional one: `visible` is already the initial value, so writing the
+class at all means overriding somebody's clip, and every reason to need it is a reason to
+need its partner.
+
+`npm run visual` is 23/23 green: the fix removes a phantom scrollbar, not a pixel of layout.
+It could not be confirmed on a real Android device here — macOS draws overlay scrollbars, so
+the stepper never paints locally — but the scroll container it needs was measured directly,
+before and after.
