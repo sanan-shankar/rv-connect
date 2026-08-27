@@ -105,10 +105,10 @@ in the same commit as the work it describes.
 ## "kowalski"
 
 When the owner says `kowalski` (any casing, on its own or inline), reply immediately with a
-compact progress report and nothing else: what is happening right now; percent through the
+compact progress report: what is happening right now; percent through the
 current item list (n of m, name the current item); percent of effort remaining; percent of
 estimated wall-clock remaining; anything blocked or waiting on him. No preamble, no
-re-planning, and no tool calls beyond what counting requires.
+re-planning, and no tool calls beyond what counting requires. Continue your work, don't stop after reporting
 
 # Tooling
 
