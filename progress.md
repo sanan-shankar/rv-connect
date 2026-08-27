@@ -25,11 +25,18 @@ their real lengths is a shape. Named questions against always-named answers is a
 comparison, and it is the rule people get wrong. The Round card and the holding shimmer
 only showed what the real page already shows, so they went.
 
-**The placement is two doors, because one control cannot be both findable and invisible.**
-The sidebar's `/about` row, repointed at `/guide`, is the findable one and costs no new
-pixel anywhere. The page title is the other, and adds nothing because it adds nothing: a
-word already on the page does a second job. On desktop the mark fades in on hover. On a
-phone, his idea: one tap reveals it, the next one goes.
+**The placement is one door: the page title.** It adds nothing to any page because it adds
+nothing, a word already there doing a second job. On desktop the mark fades in on hover.
+On a phone, his idea: one tap reveals it, the next one goes.
+
+A second door shipped first, the sidebar's `/about` row repointed at `/guide`, on the
+argument that a lost member looks at the menu rather than at the page. He reverted it the
+same day: "It's fine if it's not reachable like that. The page title thing is enough." So
+nothing in the navigation links to `/guide`. It is reachable by URL, by the back-link on a
+standalone chapter, and by any link mailed to somebody, and a member who has not worked
+out that the heading is pressable will not find it by browsing. That is the trade he
+chose: no clutter anywhere, at the cost of discovery. `/about` is unchanged and still says
+"indefinitely procrastinated".
 
 **Three things only measurement caught.** The heading's tap target was 30px, under the 44
 everyone agrees on; padding plus equal negative margin bought the height back without
@@ -52,7 +59,24 @@ reason that matters is Letters: the working assumption was that a letter is priv
 person, which is the opposite of true. `/about` is now an orphan still reading
 "indefinitely procrastinated".
 
-Gates green, and the /about baseline moved on purpose: that row says Guide now.
+**The overlay was hand-rolled first, and the protocol audit was right to fail it.** This
+app has one dialog material and `ui/sheet` is its edge-anchored variant. Rebuilt on
+`side="bottom"`, it came out better than the hand-rolled version in five ways it did not
+have to think about: the warm-ink scrim, the focus trap, escape, the aria wiring and the
+scroll lock. It also sizes to its content, which quietly fixed the empty page under the
+shortest chapter. `src/lib/guide-scroll.ts`, written to hand the scroll position from the
+door to the overlay, is deleted: the primitive keeps the position on its own, measured at
+40 in and 40 out.
+
+One diagnosis in here was wrong and worth recording. A tap on the heading appeared not to
+arm the mark, and the theory was that focusing the link scrolled it into view and tripped
+the disarm. The real answer was the test: at 40px of scroll the sticky mobile header covers
+the title, so the tap was landing on the header. `elementFromPoint` said so in one line.
+The speculative fix, a frame delay and an 8px threshold, was reverted rather than left in
+wearing a plausible comment.
+
+Gates green. The /about baseline moved to say Guide and then moved back; the regenerated
+file differs from the original by two antialiasing pixels, checked rather than assumed.
 
 
 ## 2026-08-27 — a room to choose where the in-app guide lives
