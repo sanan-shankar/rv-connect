@@ -312,8 +312,19 @@ export function bodyPrims({ flat }: { flat?: string } = {}): Prim[] {
 
 /* ---- the shipped mark ---------------------------------------------- */
 
-/** The window the peeking mark was chosen in, in the rig's 120 space. */
-export const PEEK_VIEW = { x: 22, y: -19, size: 78 };
+/** The x every part of the bird is symmetric about: the crest's pivot, the
+    head's centre, the bill, and the two eyes at 60 +/- 9. Only the catchlights
+    break it, and they are interior white dots on a dark eye, so they move no
+    edge. Any window onto this mark must be centred here or the bird sits off
+    to one side -- which it did, by a whole unit, until the owner spotted it. */
+export const PEEK_AXIS = 60;
+
+/** The window the peeking mark was chosen in, in the rig's 120 space.
+    x is PEEK_AXIS - size / 2, never a hand-typed number. */
+export const PEEK_VIEW = { x: PEEK_AXIS - 78 / 2, y: -19, size: 78 };
+
+/** The same window as a viewBox string, so no room retypes it and drifts. */
+export const PEEK_VIEW_BOX = `${PEEK_VIEW.x} ${PEEK_VIEW.y} ${PEEK_VIEW.size} ${PEEK_VIEW.size}`;
 
 /** The two crest settings picked in /lab/hoopoe-marks: a longer cinnamon point
     so it survives 26px, and its tip rounded so the fan reads soft. */

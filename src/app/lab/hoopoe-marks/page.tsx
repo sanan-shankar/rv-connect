@@ -13,6 +13,7 @@
 
 import type { ReactNode } from "react";
 import { Body, Crest, Face, G } from "./_parts";
+import { PEEK_VIEW_BOX } from "@/lib/hoopoe-geometry";
 
 function Tile({
   size,
@@ -79,7 +80,7 @@ const MARKS: Mark[] = [
   {
     key: "fan-bled",
     name: "The fan, run off the sides",
-    view: "24 -26 68 68",
+    view: "26 -26 68 68",
     railView: [26, -6, 68, 40],
     why: "The same fan with the outer feathers leaving the tile. Everything comes out about a third bigger, which is the only thing that ever helps at 16px, and the cut edges make the mark feel like a window onto something larger rather than a badge sitting in the middle of a square.",
     art: <Crest n={13} spread={76} len={1.32} w={1.02} taper={0.1} />,
@@ -90,7 +91,7 @@ const MARKS: Mark[] = [
   {
     key: "peek",
     name: "Peeking",
-    view: "22 -19 78 78",
+    view: PEEK_VIEW_BOX,
     railView: [24, -6, 72, 62],
     why: "The one you spotted by accident. The head comes up from the bottom edge, the eyes are cut by it, and the fan does the rest. It is the only mark here with any suspense in it, and the cut is doing the work: a whole face is a picture, two thirds of a face looking at you is a character.",
     art: (
@@ -333,7 +334,7 @@ export default function HoopoeMarksLab() {
           <span className="tip" key={tipOut}>
             <span className="sizes">
               {[132, 64, 40, 26].map((n) => (
-                <Tile size={n} ground={G.ink} view="22 -19 78 78" key={n}>
+                <Tile size={n} ground={G.ink} view={PEEK_VIEW_BOX} key={n}>
                   <Crest n={11} spread={68} len={1.18} taper={0.08} tipOut={tipOut} blunt={0.11} />
                   <Face eyeS={1.12} billL={0.9} />
                 </Tile>
@@ -359,7 +360,7 @@ export default function HoopoeMarksLab() {
           <span className="tip" key={blunt}>
             <span className="sizes">
               {[132, 64, 40, 26].map((n) => (
-                <Tile size={n} ground={G.ink} view="22 -19 78 78" key={n}>
+                <Tile size={n} ground={G.ink} view={PEEK_VIEW_BOX} key={n}>
                   <Crest n={11} spread={68} len={1.18} taper={0.08} tipOut={0.105} blunt={blunt} />
                   <Face eyeS={1.12} billL={0.9} />
                 </Tile>

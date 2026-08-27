@@ -45,6 +45,7 @@ import type { ReactNode } from "react";
 import { PEAK_PLANES as P } from "@/components/layout/peaks-mark";
 import { Crest, Face } from "../hoopoe-marks/_parts";
 import { edgeLightFilter } from "@/lib/edge-light";
+import { PEEK_VIEW_BOX } from "@/lib/hoopoe-geometry";
 
 /**
  * The shipped filter, dropped into a live <svg>.
@@ -70,6 +71,12 @@ function RimDefs({
     />
   );
 }
+
+/* The hills' drawn extent is -98..1008, so their centre is 455. Multiplied by
+   the 0.38 the mark is drawn at, centring them in the 512 box puts the
+   translate at 256 - 455 * 0.38. It was a hand-typed 85, which is 1.9px right
+   of centre. */
+const HILLS_X = +(256 - 455 * 0.38).toFixed(2);
 
 const C = {
   sky: "#3F7CA6",
@@ -152,7 +159,7 @@ function Tile({
 
 function Hills() {
   return (
-    <g transform="translate(85 190) scale(0.38)">
+    <g transform={`translate(${HILLS_X} 190) scale(0.38)`}>
       <path d={P.silhouette} fill={C.sky} />
       <path d={P.middle} fill={C.cream} />
       <path d={P.rishi} fill={C.cinnamon} />
@@ -188,7 +195,7 @@ type Spec = { key: string; name: string; view: string; u: number; render: () => 
 
 const SPECS: Spec[] = [
   { key: "hills", name: "The hills", view: "0 0 512 512", u: 5, render: () => <Hills /> },
-  { key: "peek", name: "The hoopoe", view: "22 -19 78 78", u: 0.85, render: () => <Peek /> },
+  { key: "peek", name: "The hoopoe", view: PEEK_VIEW_BOX, u: 0.85, render: () => <Peek /> },
 ];
 
 type Build = { key: string; label: string; kind: "none" | "rim" | "tone"; w?: number; s?: number };
@@ -328,7 +335,7 @@ export default function GlassEdgesLab() {
           const fid = `f-crest-${c.key}`;
           return (
             <span className="cell" key={c.key}>
-              <Tile size={148} ground={C.ink} view="22 -19 78 78" filterId={fid}>
+              <Tile size={148} ground={C.ink} view={PEEK_VIEW_BOX} filterId={fid}>
                 <RimDefs id={fid} u={0.85} />
                 <Peek tipOut={c.tipOut} blunt={c.blunt} />
               </Tile>
@@ -341,7 +348,7 @@ export default function GlassEdgesLab() {
         <span className="tag">light off</span>
         {CRESTS.map((c) => (
           <span className="cell" key={c.key}>
-            <Tile size={148} ground={C.ink} view="22 -19 78 78">
+            <Tile size={148} ground={C.ink} view={PEEK_VIEW_BOX}>
               <Peek tipOut={c.tipOut} blunt={c.blunt} />
             </Tile>
             <em>{c.label}</em>
