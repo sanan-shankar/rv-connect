@@ -4232,3 +4232,13 @@ removing them rather than against: a field you collect and never use is one you 
 collecting. Collection stopped first — `last-seen.ts` no longer reads the three headers at
 all, and `num()`, which existed only to parse the two coordinates, went with them.
 
+**One index dropped, one kept, and the counters are why.** The audit named three indexes no
+query can use. `Group_visibility_createdAt_idx` went with its column above.
+`SearchLog_query_idx` goes here: every SearchLog read filters `createdAt` first and the two
+`groupBy(["query"])` hash-aggregate after it, which a btree on `query` serves in no plan —
+and `pg_stat_user_indexes`, consulted rather than assumed, shows **one scan in a 96-day
+window**. It is write amplification on a debounced-keystroke insert path, forever, for a
+lookup nobody performs. `Comment_postId_isHidden_idx` is **kept**: 13 scans in the same
+window, and the finding itself rates it marginal and says to skip it in doubt. Dropping an
+index to save 16 kB is not worth being wrong about.
+
