@@ -14,9 +14,32 @@
 3. **Skim [`prior-art.md`](prior-art.md)** — how Instagram, X, Flickr and Google Photos
    solved these same problems. Read it before disagreeing with a recommendation; the
    disagreement may already be answered.
-4. **Then start spec §13, phase 1**: store width and height for every image. It is
-   invisible to the user, it unblocks everything else, and nothing in phases 2 to 6 can be
-   done well without it.
+4. **Then start spec §13, phase 3: justified rows.** Phases 1 and 2 are done and committed
+   (dimensions are stored; one photograph in a column has one rule). What is left of the
+   layout work is **several** photographs together: a post with two or three, the Catch-up
+   photo wall, and the Collection grid, all of which still crop to squares or to a mosaic.
+   `src/app/lab/crop/_justified.ts` is the maths, written to be lifted. The dimensions it
+   needs now exist for every image in the database.
+
+   If you would rather do a different phase first, say so and do it — §13's order is
+   RECOMMENDED, not LOCKED. But phases 1 and 2 were the ones the owner was actually looking
+   at, and phase 3 is the last piece of the "photographs are laid out badly" complaint.
+
+**Operational context is spec §15** — repo, branch, the gate, screenshots, the test account,
+the one database behind both production and local dev, and the rule that a push is a deploy.
+Read it before you run anything. Two things this session learned that are not in it:
+
+- **The chrome-devtools MCP cannot sign in.** Every page worth looking at needs a session,
+  including `/lab`, and `scripts/qa/_dev-login.mjs` exists precisely because the secret must
+  not enter page JavaScript — it signs in from Node and copies the cookie into the browser.
+  CLAUDE.md still says to POST the secret from `evaluate_script`; do not. Use
+  `npm run verify:shot <route> <name.png> [mobile]` for a shot plus a console check, or a
+  short scratch probe built on `_probe-kit.mjs` + `_dev-login.mjs` when you need geometry.
+  Delete the scratch probe before you commit.
+- **The machine is often shared with another Claude session building at the same time.**
+  `npm run check` took 556 seconds one run and 24 the next, on the same tree. That is load,
+  not a regression. Do not start a browser fleet; one page at a time (the owner's Mac has
+  hung).
 
 `.claude/skills/writing-for-agents/SKILL.md` governs how you edit this file and anything
 else you write for the session after you.
@@ -71,8 +94,9 @@ that rework.
       900px / 720px), then a seventh rule and a **tall-photo height ceiling** (560 / 700 /
       840px), then an eighth rule of the owner's own and a fill control. See F8, F9 and F10.
 - [x] **Prior art researched** — `prior-art.md`. Owner asked for it directly mid-session.
-- [ ] **Owner picks a crop policy** — blocks the spec, because it determines the justified
-      grid maths, the stored derivative sizes and the viewer's framing.
+- [x] **Owner picked a crop policy** — 2026-08-27, over several rounds in `/lab/crop`.
+      D6 to D12 are the rule, F8 to F13 the reasoning, D15 the height it settled at after he
+      had lived with the shipped version.
 - [x] **Write the spec** — [`spec.md`](spec.md), 2026-08-27. Fifteen sections, six phases,
       and a table in §14 mapping all 55 ledger asks to where each is answered. Two are
       deliberately out of scope with reasons in §15 (Letters' use of space, and renaming
@@ -94,14 +118,27 @@ that rework.
   - [x] **Phase 2 — the layout module and the single-photo rule**, session 2, 2026-08-27.
         `src/lib/photo-layout.ts` and `<PhotoFrame>`, used by the feed, the Catch-up answer
         card and letters. The chopped faces (#35) and the page jumping (#18) stop here.
-        Measured at both viewports: a tall Catch-up photo is 525x700 with 151px of bed each
-        side at 1440 and 314x419 with none at 390; a 4:3 feed photo went from 728x384 cropped
-        to 728x546 whole; CLS 0.0000. See D14 for the one place the rule had to be extended.
-  - [ ] **Phase 3 — justified rows.** Several photographs in one post still use the old
-        mosaic (`post-card.tsx`, `answer-card.tsx`) and the Collection grid is still CSS
-        columns. `_justified.ts` in `/lab/crop` is the maths, ready to lift. The dimensions
-        it needs are now stored, so this is unblocked.
+        Measured at both viewports, at the 500px ceiling it ended on: a tall Catch-up photo
+        is 375x500 with 226px of bed each side at 1440 and 314x419 with none at 390; a 4:3
+        feed photo went from 728x384 cropped to 728x546 whole; CLS 0.0000. See D14 and D15
+        for the two places the rule moved after the spec was written.
+  - [ ] **Phase 3 — justified rows. START HERE.** Three surfaces still crop several
+        photographs into fixed boxes, and each is a live complaint:
+        a post with two or three photos tiles them into half-width `max-h-48` cells
+        (`post-card.tsx`); a Catch-up answer with more than one tiles squares, and the
+        photo wall for a `photo-wall` question is a grid of `aspect-square`
+        (`answer-card.tsx`, `question-section.tsx`); the Collection grid is CSS-column
+        masonry, which is why its rows do not line up the way the owner's reference gallery
+        does (F2, F6). `src/app/lab/crop/_justified.ts` is the algorithm, ~30 lines, written
+        to be lifted rather than retyped. Spec §3.2 has the two guard numbers and both are
+        marked **OPEN** on purpose: tune them against real photographs and trust what you
+        see over what is written.
+        **What good looks like:** open a Round with 34 photographs of mixed shape at 1440
+        and at 390, and no row is ragged, nothing is cropped, gutters are even, and no
+        photograph is a stamp beside a panorama. Then the Collection at both viewports.
   - [ ] **Phase 4** the viewer · **Phase 5** the Collection page · **Phase 6** contributing.
+        Read spec §5, §6 and §8 before starting any of them; §6 and §8.2 are the two most
+        open sections in the whole campaign and the owner has said so in the plainest terms.
 - [ ] **Close-out**: delete `/lab/crop`, `public/lab/crop/` and the registry row; fold bug #18, #19 and the catch-up items out of `docs/planning/bugs.md`,
       update `docs/spec/media.md` (large parts of it are now superseded — see D2, D3),
       delete `/lab/crop` and its registry line, log in `progress.md`.
@@ -131,8 +168,9 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   none of it. Revisit once the thing works, if ever. Reasoning in spec §16.
 - **D6. Crop policy — DECIDED, after eight rules in `/lab/crop`.** Square or wider fills the
   column at true shape, never cut, never barred, so a 21:9 is a thin strip. Taller than wide
-  becomes **3:4** on a blurred bed of itself. See D7 to D11 for the rest, and F8 to F13 for
-  why each number is what it is.
+  becomes **3:4** on a blurred bed of itself. See D7 to D11 for the rest, D14 and D15 for
+  where it moved once it was shipped and looked at, and F8 to F13 for why each number is
+  what it is. **All of it is built** — `src/lib/photo-layout.ts`, eleven tests.
 - **D7. 3:4, not 2:3 or 4:5.** A phone sensor is 4:3, so held upright it shoots 3:4, which
   makes it the most common portrait anyone will post and one that then passes through
   untouched. Also draws the photo wider with less blur beside it. See F12.
@@ -170,8 +208,15 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   open. A wide photograph now obeys the ceiling the way a tall one does: by narrowing, never
   by being cut. It touches nothing but shapes between 1:1 and about 1.29:1, and only on a
   column wider than 700px. Say so if you disagree; it is one `Math.min`.
-- **OPEN — the height ceiling** (560 / 700 / 840px). The owner did not pick. Spec assumes
-  700. One line. Look at all three in `/lab/crop` before settling it.
+- **D15. The height ceiling is 500px, and it governs every photograph.** He picked 560 from
+  `/lab/crop`'s three (560 / 700 / 840), shipped it, looked at it and went lower, verbatim:
+  *"also make it 500 instead of 560. 560 makes one post take up my entire desktop screen
+  which shouldn't happen."* Worth keeping the reason, because the room could not have shown
+  it: the room draws PHOTOGRAPHS and he was judging POSTS. A card is the photograph plus a
+  byline, the words and the actions -- about 120px -- so on a 900px-tall laptop window a
+  560px photograph leaves nothing else on screen. At 500, nothing anywhere is drawn taller
+  than 500px: a tall photo is 375x500, a square 500x500, a 4:3 667x500, a 21:9 900x386.
+  It is one constant, `PHOTO_MAX_HEIGHT` in `src/lib/photo-layout.ts`.
 
 ## Findings from reading the code (2026-08-26, session 1)
 
@@ -358,6 +403,38 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   bug: when an image is chosen from a `srcset` with `w` descriptors, `naturalWidth` is the
   intrinsic size divided by the candidate's effective density, so it tracks the SLOT rather
   than the file. Read `currentSrc` for what was actually fetched.
+- **F19. Do not put a surface onto `/_next/image` without knowing it was there before.**
+  `<PhotoFrame>` called `photoSrc()` internally, which looks harmless and quietly moved a
+  whole surface onto Vercel's metered optimiser: Catch-up photographs had been served
+  straight off the bucket since the day they shipped. The owner noticed within the hour --
+  *"for some reason the photos don't load until I wait on them for a second. it wasn't like
+  this a few days ago. I can't have the user waiting for anything wtf"* -- and he was right.
+  Measured in dev: a cold transform is **878ms**, the same bytes from the bucket's own edge
+  are **264ms**, a warm transform is 2ms. A Catch-up is the worst possible case for that,
+  because a Round is a newsletter: everyone opens it within a day of each other, so the
+  first transform is paid by nearly all of them rather than amortised the way a feed photo's
+  is. The component no longer decides -- the caller passes the url it wants. **The real fix
+  is still owed and it is spec §4:** precomputed derivatives on R2, no optimiser anywhere,
+  which also settles F1's billing question for good. Until then the feed and letters keep
+  the optimiser they already had (a deliberate 2026-08-26 change, with measurements, commit
+  b2216d5) and Catch-ups have their bucket urls back.
+- **F20. The blurred bed has to be the photograph, not its thumbnail.** The first version
+  used the 16px smear stored on the `Image` row, reasoning that a 26px blur destroys the
+  difference anyway. It does not, and the reason is arithmetic: `object-cover` stretches a
+  16px source across ~350px of card, so every source pixel becomes a 20px block and the blur
+  smears those into streaks. The owner, looking at his own Round: *"I feel like the blur is
+  quite shabbily done... very distracting and not smooth and just yucky blur bars."* It is
+  the photograph itself now, with the same `src` and `sizes`, so the browser resolves the
+  same URL and it costs no second download -- which is exactly what `/lab/crop` did. The
+  smear is still stored and still worth having; it is a placeholder, and the Collection grid
+  in phase 5 is where it earns its keep.
+- **F21. A `display: none` image with `loading="lazy"` never loads, so it never completes.**
+  Hiding the bed below a 456px viewport, to spare a phone a blurred layer it can never see,
+  hung `npm run visual` outright: `e2e/visual.spec.ts`'s `settle()` waits for every
+  `document.images` entry to be `complete`, and a hidden lazy image never is. Ninety-second
+  timeout, no pixel diff, nothing wrong with the picture. Two things worth taking from it --
+  the trick itself, and that the saving was never measured while the cost arrived inside a
+  minute.
 - **F7. A concurrent session is editing this area.** `src/app/(main)/collection/page.tsx`
   changed on disk mid-session (server-side first-page fetch added, `firstPage` prop passed
   to `CollectionClient`). Per CLAUDE.md, work around other sessions' edits, never stash or
@@ -410,6 +487,9 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | 57 | "how do we make a really splendid ui for them to do so? isntead of a dialog maybe a more expansive thing... big bucket touch targets so they'll want to do it... just be fresh and creative and create something splendid" | open — spec §8.2, deliberately left OPEN |
 | 58 | "should include an other bucket also" | open — spec §7.1, and it feeds the taxonomy back |
 | 59 | Specs and prompts written by AI for AI are too distilled and too constraining; make it a skill so he stops repeating it | **done** — `.claude/skills/writing-for-agents/SKILL.md`, wired into CLAUDE.md's skills table |
+| 60 | Catch-up photographs made the reader wait about a second each. "I can't have the user waiting for anything wtf how can we not have the photos ready for them to look at" | **fixed** — F19, they are back on the bucket's own urls. The lasting answer is spec §4 |
+| 61 | The blurred bed was "quite shabbily done... yucky blur bars" | **fixed** — F20, the bed is the photograph rather than its 16px thumbnail |
+| 62 | "560 makes one post take up my entire desktop screen which shouldn't happen" | **decided** — D15, the ceiling is 500 |
 | 54 | **No way for a member to take down a photo they uploaded**, short of asking an admin. Owner, 2026-08-27: "there's no easy intuitive way for me to take down a photo that i've uploaded now? apart from using the admin thing" | open — **verified, F11** |
 
 ### The image viewer
@@ -535,7 +615,16 @@ session should do are D13a, F15 and F16 above.
   page JavaScript, so it signs in from Node and copies the cookie into the browser. CLAUDE.md
   still tells you to POST the secret from `evaluate_script`; do not, and see F18 for the
   measurement trap that wastes the time you save.
-- **Next session: phase 3, justified rows.** Read this file, then the brief, then spec §3.2.
-  Everything it needs is stored. The height ceiling (560/700/840) is still the owner's to
-  pick and is one line in `photo-layout.ts`; D14 is worth putting in front of him at the same
-  time, since both are about how tall a card is allowed to be.
+- **Then three corrections, all from the owner looking at the real thing** (commit
+  `91713f0`): the ceiling went to 500 (D15), Catch-ups came back off the image optimiser
+  (F19), and the blurred bed became the photograph rather than its 16px thumbnail (F20).
+  One bug of my own on the way, caught by `npm run visual` rather than by me (F21).
+- **State at the end of this session.** Phases 1 and 2 shipped in four commits: `a9e0c5c`
+  (the `Image` table, both upload paths, the backfill), `07f4bdc` (`photo-layout.ts`,
+  `<PhotoFrame>`, three surfaces), `91713f0` (the three corrections). `npm run check` green
+  at 78/78, `npm run visual` 23/23, nothing pushed. Uncommitted work in the tree belonging
+  to another session: `/lab/glass-edges`, `/lab/hoopoe-marks`, `scripts/dev/apple-edge/*`
+  and `docs/spec/apple-edge-light.md`. **Leave all of it alone** and commit with an explicit
+  pathspec (`git commit -F - -- path/one path/two`), or it rides along with yours.
+- **Next session: phase 3, justified rows.** Read this file, then `brief.md` in full, then
+  spec §3.2. Everything it needs is stored.
