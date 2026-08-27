@@ -117,9 +117,16 @@ await refused("delete every post", () => prisma.post.deleteMany({}));
 await refused("create an account", () =>
   prisma.user.create({ data: { id: "guardtest-u", name: "New", email: "n@demo.invalid" } }),
 );
-await refused("forge a session", () =>
-  prisma.session.create({
-    data: { id: "guardtest-s", sessionToken: "x", userId: DEMO_USER_ID, expires: new Date() },
+await refused("mint a password-reset token", () =>
+  prisma.authToken.create({
+    data: {
+      id: "guardtest-t",
+      userId: DEMO_USER_ID,
+      kind: "reset",
+      tokenHash: "guardtest",
+      expiresAt: new Date(),
+      sentTo: "n@demo.invalid",
+    },
   }),
 );
 await refused("write raw SQL", () =>

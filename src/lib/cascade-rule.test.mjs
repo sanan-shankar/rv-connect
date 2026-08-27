@@ -97,7 +97,6 @@ const COMMUNAL = ["Group", "Catchup", "CatchupEdition", "CatchupPrompt"];
  * really this one member's to lose.
  */
 const OWN_CONTENT = {
-  Account: "their OAuth link",
   AdminMessage: "lines inside their own admin thread; the thread itself goes below",
   AdminThread: "their private conversation with the admins, which the purge exists to remove",
   AuthToken: "their unused password-reset and email-confirmation tokens",
@@ -119,7 +118,6 @@ const OWN_CONTENT = {
   PollVote: "their votes; the tallies are counts of rows, so everyone else's stands",
   Post: "their own writing",
   Report: "reports filed against them, which end with the account (their FILED reports go by the reporter edge, not Cascade)",
-  Session: "their signed-in devices",
   UserPlace: "the pins on their own map",
   Visit: "their own visit rows",
 };

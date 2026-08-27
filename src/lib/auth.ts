@@ -1,7 +1,6 @@
 import NextAuth, { CredentialsSignin, type Session } from "next-auth";
 import { cache } from "react";
 import { IS_DEMO, DEMO_USER_ID } from "./demo";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { recordLoginAttempt } from "@/lib/login-attempt";
@@ -54,8 +53,11 @@ const DUMMY_PASSWORD_HASH =
   "$2b$12$i80egBbL/FYVUTbemVUv4uMONfzeXjEd2dwV1Ssq8TIAOTKKpCWrW";
 
 const nextAuth = NextAuth({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  adapter: PrismaAdapter(prisma as any),
+  // No adapter. Sessions are JWTs (`strategy: "jwt"` below) and the only
+  // provider is Credentials, so NextAuth never had an adapter method to call:
+  // the adapter path is reached only by OAuth account linking, the email
+  // provider's VerificationToken flow, and database sessions. Revocation is
+  // `User.credentialVersion` (audits M4/M5/H4), not Session rows.
   providers: [
     Credentials({
       credentials: {

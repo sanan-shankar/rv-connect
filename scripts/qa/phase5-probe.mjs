@@ -67,7 +67,6 @@ async function cleanup() {
   await del("Like", "userId");
   await del("Post", "authorId");
   await del("AuthToken", "userId");
-  await del("Session", "userId");
   await db.query(`DELETE FROM "User" WHERE id = ANY($1)`, [ids]);
 }
 await cleanup();
