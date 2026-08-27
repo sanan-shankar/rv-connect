@@ -99,16 +99,27 @@ export function IdentityRow({
             emails containing one of those letters and nothing else (owner,
             2026-08-22: "the bottom half of some people's emails getting cut
             off ... it's as if there's a rectangle put over it"). Splitting
-            the axis keeps the ellipsis: text-overflow only ever needed
-            overflow-x hidden to fire, and every current truncate caller sets
-            that; overflow-y-visible only lets the vertical bleed the tight
-            line-height already produces render instead of clip. */}
-        <div className={cn(nameClassName, "min-w-0 overflow-y-visible leading-none")}>
+            the axis keeps the ellipsis: text-overflow only ever needed the
+            horizontal axis clipped to fire.
+
+            CLIP, not hidden, and that is the whole of it. `overflow-y:
+            visible` beside `overflow-x: hidden` is not a state CSS has: one
+            axis visible and the other hidden computes the visible one to
+            AUTO (CSS Overflow 3, section 3). So every name and byline in the
+            app became a scroll container one pixel taller than itself -- and
+            an engine that draws classic scrollbars rather than overlay ones
+            painted a stepper inside the row. Reported on Android as "two
+            toggle things ... click the lower button it moves the spacing up"
+            (2026-08-27): a real scrollbar, scrolling a real 1px overflow.
+            `clip` is exempt from that rule, so the pair survives as written
+            and nothing scrolls. Measured before and after in
+            chrome-devtools; pinned by identity-row-overflow-rule.test.mjs. */}
+        <div className={cn(nameClassName, "min-w-0 overflow-x-clip overflow-y-visible leading-none")}>
           {name}
         </div>
         {meta ? (
           <div
-            className={cn(META_CLASS, metaClassName, "min-w-0 overflow-y-visible leading-none")}
+            className={cn(META_CLASS, metaClassName, "min-w-0 overflow-x-clip overflow-y-visible leading-none")}
           >
             {meta}
           </div>
