@@ -3,16 +3,49 @@
 **2026-08-27.** One spec, at the owner's choice, covering the archive, the way photographs
 are laid out everywhere in the app, the viewer, and the contribution flow.
 
-Read [`brief.md`](brief.md) first — it is the owner's own words and the reason for most of
-what follows. [`handover.md`](handover.md) indexes it as 55 numbered asks; §14 below maps
-every one of them to a section here, so nothing in that brief is left unanswered.
-[`prior-art.md`](prior-art.md) is the research the recommendations lean on.
+## How to read this, and how much room you have
+
+**Open [`brief.md`](brief.md) and read all of it before you read any further here.** It is
+the owner's spoken brief, transcribed word for word, reversals included. This document is an
+answer to it, not a replacement for it, and it is deliberately the shorter of the two. Every
+time a session has worked from a summary of that brief instead of the brief, the result has
+been worse than if the owner had stayed in the original conversation. He has said so
+directly, twice.
+
+[`handover.md`](handover.md) indexes the brief as 55 numbered asks with a status each; §14
+below maps every one to a section here. [`prior-art.md`](prior-art.md) is the research the
+recommendations lean on — read it before disagreeing with one, because the disagreement may
+already be in there.
+
+**Every decision in this document carries one of three marks.** They are the difference
+between a spec and a set of orders, and the owner asked for them in these words: *"some
+decisions should be left to the implementer. freedom should be given."*
+
+| Mark | Means | What you do |
+|---|---|---|
+| **LOCKED** | The owner decided it, in conversation, with reasons. | Build it. Do not relitigate. If it turns out to be impossible, say so rather than quietly doing something else. |
+| **RECOMMENDED** | My judgment, with reasoning attached. | You may do better. If you do, say what you did instead and why. |
+| **OPEN** | Nobody has decided. | It is yours. Use taste and the iteration loop. |
+
+**The sections that are most yours: §6 (what the Collection page looks like), §7.1 (the
+buckets themselves) and §8 (the contribute room).** Those are design problems with a shape
+sketched, not a solution specified. The owner's instruction on this was *"just be fresh and
+creative and create something splendid"*, and a session that builds exactly what is written
+below and stops has not done the job. Bring back something better than this document.
+
+**What "good" looks like, so the loop has a target.** Screenshot at 1440 and at 390 with
+real photographs, look at the PNG, name the problem in numbers, fix, look again — minimum
+two rounds, per CLAUDE.md. `npm run check` green. `npm run visual` before committing any UI.
+The specific bar for this work: a stranger who has never used the site should open
+`/collection`, immediately want to look at a photograph, and never once see a control that
+looks like a file manager.
 
 ---
 
-## 1. What is already settled
+## 1. LOCKED — settled in conversation
 
-Decided in conversation, not up for relitigation:
+Every item here was decided by the owner during the 2026-08-26/27 session, most of them
+after looking at `/lab/crop`. Reasons are in `handover.md` F8 to F13. Do not relitigate.
 
 - **Wide photographs run free.** Square or wider: full column width, true shape, never cut,
   never barred. A 21:9 is a thin strip and that is correct.
@@ -27,14 +60,25 @@ Decided in conversation, not up for relitigation:
 - **Several photographs in one post use justified rows**, uncropped, because the row height
   already bounds them and cropping would buy nothing.
 - **Trusted contributors auto-approve.** **The archive covers the school's whole visual
-  memory**, people included. **"A wander" goes.**
+  memory**, people included. **"A wander" goes** — *"can you please delete that a wander
+  that's not great."*
 
-The one number still loose is the height ceiling (560 / 700 / 840px). This spec assumes
-**700px** and it is a one-line change afterwards.
+His own words on the wide half, which is the half that was never in doubt:
+
+> "for very wide images like 21:9, our solution should definitely not add bars above and
+> below it. we should just let it be a thin photo. it's only the tall ones that are tricky."
+
+And on the tall half, the constraint that ruled out simply never cropping:
+
+> "definitely don't want some huge ass pictures to keep scrolling past"
+
+**OPEN — the height ceiling.** 560, 700 or 840px. This spec assumes 700. It is one line, it
+is a taste call about how long the feed feels, and the owner did not pick. Look at all three
+in `/lab/crop` with real photographs before you settle it.
 
 ---
 
-## 2. The root cause, and the first thing to build
+## 2. LOCKED that it must be solved, RECOMMENDED how — the root cause
 
 **We do not store the width and height of feed, letter or catch-up images.** `Post.images`
 is a JSON array of URL strings; only `Photo` rows carry dimensions. That single gap is why:
@@ -79,7 +123,7 @@ Touches a write path and the schema, so: `write-path-reviewer`, and a dated file
 
 ---
 
-## 3. How a photograph is laid out, everywhere
+## 3. LOCKED — how a photograph is laid out, everywhere
 
 The rules live in one module, `src/lib/photo-layout.ts`, lifted from
 `src/app/lab/crop/_policies.ts` and `_justified.ts` where they already exist and are proven.
@@ -115,6 +159,9 @@ cut, gutters are even, rows line up.
 Two guards, because this layout has one failure mode — a 9:16 beside a 21:9 solves to a row
 249px high, making the portrait a 140px stamp:
 
+**OPEN — both guard numbers below.** They are starting points, not findings. Tune them
+against the fixture set in §12 and trust what you see over what is written here.
+
 - **at most 3 per row**, and
 - **a minimum row height of 60% of the target**, below which the row breaks early rather
   than squeezing. Starting numbers, to be tuned against the fixture set in §12: target
@@ -134,7 +181,7 @@ edge — invisible on paper, a white outline over a blurred bed.
 
 ---
 
-## 4. Serving the bytes without a bill
+## 4. LOCKED — serving the bytes without a bill
 
 **The constraint.** `/_next/image` is Vercel's metered optimiser. The feed and letters use
 it today; the Collection does not. The textbook way to build a justified grid is
@@ -164,11 +211,26 @@ removes the metered dependency from the app entirely.
 
 ---
 
-## 5. The viewer
+## 5. LOCKED what is wrong, OPEN how to fix it — the viewer
 
 The owner's verdict on the current one was unambiguous, and the caption panel in particular:
 *"there is no way to make it disappear except click a very exact small pill... It's like the
 worst design ever."*
+
+Everything in the list below is **LOCKED as a complaint** — the owner said each of these,
+looking at the real viewer — and **OPEN as a solution.** The bullets describe an outcome; how
+you reach it is yours. On the caption panel in particular he was unambiguous, and it is worth
+having his actual words rather than my tidy version:
+
+> "You click caption. And then in this extremely low frame rate, you get this bottom bar pop
+> up and there is no way to make it disappear except click a very exact small pill to get it
+> to go. It's so, so hard to use. It's, it's just so off putting and it's not at all pretty.
+> It's like the worst design ever."
+
+And on what he is reaching for:
+
+> "I really wanted the image to go from edge to edge... I know that people have figured a way
+> to get it more full screen and more whatever ratio of photo to white space than we do."
 
 Rebuilt, same component, still shared by feed, letters and Collection:
 
@@ -200,7 +262,7 @@ control**, since the chrome is real buttons.
 
 ---
 
-## 6. The Collection: what you actually see
+## 6. RECOMMENDED, and the most open section here — what you actually see
 
 The owner's own framing of the problem: folders would be the most organised and *"also that
 is the most boring"*, most people visit rarely and *"just want to see some nice pictures"*,
@@ -242,15 +304,24 @@ The owner argued himself both into and out of tags and did not settle it. The se
 answer, from the archive literature in `prior-art.md`: **a small controlled spine for
 browsing, free text underneath it for searching, and the machine filling the spine.**
 
-### 7.1 Five buckets
+### 7.1 RECOMMENDED — five buckets and an Other
 
 Every photograph carries at least one; several are allowed, since a photograph of the banyan
 is both.
 
-**People** · **Birds** · **Nature** · **Campus** · **School life**
+**People** · **Birds** · **Nature** · **Campus** · **School life** · **Other**
 
-Five is small enough to pick from without thinking and to lay across a title line, and wide
-enough that nothing has nowhere to go. Class photographs and portraits are People. Sports
+Five, plus a pressure valve. Small enough to pick from without thinking and to lay across a
+title line, and wide enough that nothing has nowhere to go.
+
+**Other exists because the owner asked for it, and it is not a dumping ground — it is a
+sensor.** Every archive taxonomy is wrong on the day it ships, and the useful question is
+how you find out. So Other is deliberately included, and the admin side gets a view of what
+is accumulating in it. If two hundred photographs land in Other with "sports day" in their
+captions, that is not a mess, that is the evidence for a sixth bucket, arriving without
+anyone having to guess in advance. Review it; promote what earns a bucket; leave the genuine
+oddments where they are. **This feedback loop is the point of Other. Build it or the bucket
+becomes a hole.** Class photographs and portraits are People. Sports
 day, assembly, dining, plays and reunions are School life. Birds get their own, out of
 proportion to their number, because the school's identity is a bird sanctuary and it is the
 highest-value index the archive will have.
@@ -259,7 +330,7 @@ This **replaces** the fourteen-value `SUBJECTS` list in `src/lib/collection.ts`,
 built on the old "the place, not people" frame and has no bucket a class photograph could go
 in. Existing rows are remapped by the pass in §8.3.
 
-### 7.2 No free-text tags. Deliberately.
+### 7.2 LOCKED — no free-text tags, and search reads everything
 
 The owner reasoned his own way to this: *"it is kind of easier for people to just write big
 banyan tree than it is to scroll and find the big banyan tree tag."* He is right, and the
@@ -267,10 +338,23 @@ existing "Part of school" field proves the failure mode — it is free text feed
 dropdown, so at 2,000 photographs it becomes a menu of 2,000 near-duplicates.
 
 So: **"Part of school" stops being a filter and becomes part of what search reads.** It is
-renamed **Where** and sits beside the caption. Search covers caption, where, and the
-contributor's name in one box. Nothing that is free text is ever offered as a dropdown.
+renamed **Where** and sits beside the caption.
 
-### 7.3 When, unchanged
+**To answer the question directly: yes, everything written in prose is searchable.** The one
+search box reads the caption, the Where line, and the contributor's name, together. Nothing
+a person types is thrown away — it stops being a *dropdown* and becomes *searchable text*,
+which is the whole trade. Someone who types "big banyan tree" into a caption is findable by
+"banyan" without anyone ever having created a banyan tag, which is exactly the argument the
+owner made himself:
+
+> "it is kind of easier for people to just write big banyan tree than it is to scroll and
+> find the big banyan tree tag. Or create a big banyan tree tag."
+
+The rule that follows from this, and it is absolute: **nothing that is free text is ever
+offered as a dropdown.** That is the bug in the current filter and it is the one thing that
+must not be rebuilt.
+
+### 7.3 LOCKED — When, unchanged
 
 The existing year → month, or decade-if-unsure control stays exactly as it is. The owner
 looked at it during the brief and said *"that's pretty smart, actually."* It is the one part
@@ -304,18 +388,70 @@ that already exists in `src/lib/upload-client.ts`, so they never touch a serverl
 or its 4.5MB body cap, and they upload in parallel with per-file progress. Failures are
 retried individually and never lose the batch.
 
-### 8.2 Reviewing a batch as a batch
+### 8.2 OPEN — the contribute room
 
-The uploaded photographs appear as a grid of thumbnails with their suggested fields already
-filled in. The contributor works on the **selection**, not on each photograph: rubber-band or
-shift-click a run of forty, and set the year, the bucket, or the place for all of them at
-once. Anything already correct needs no action at all.
+**This is the most open part of the spec and the owner said so in the plainest terms:**
 
-That is the whole difference between a hundred photographs being a chore and being a
-five-minute job, and it is why the suggestions in §8.3 matter more than their accuracy: they
-only have to be right often enough that correcting them is faster than typing.
+> "how do we make a really splendid ui for them to do so? isntead of a dialog maybe a more
+> expansive thing where they're encouraged to and maybe the what best describes this photo
+> and then some big bucket touch targets so they'll want to do it... idk just be fresh and
+> creative and create something splendid."
 
-### 8.3 The suggestions
+So what follows is a **sketch of intent, not a specification**. Take the intent, ignore the
+particulars if you find better ones, and iterate against real photographs on a real screen.
+
+**Not a dialog.** Today it is `contribute-dialog.tsx`, a modal, and a modal is the wrong
+container for something you might spend twenty minutes on with two hundred photographs. It
+becomes a room of its own with an address: `/collection/add`.
+
+**The intent, in one line:** filing a photograph should feel like *placing* it somewhere,
+not like completing a form. Everything below is downstream of that.
+
+Four moments, and what each has to achieve:
+
+**The drop.** The whole page is the target. Nearly empty, warm, one line of invitation.
+When photographs land they must not turn into a list of filenames with progress bars —
+**they animate into a justified grid, the same grid they will live in**, so the first thing
+a contributor sees is their own photographs already looking like the archive. That is the
+moment that makes someone want to add more. Transform and opacity only.
+
+**The question.** One field, large, no label, asking in plain words rather than in
+form-speak. "What is this?" with a placeholder that gives permission to be vague, because a
+half-remembered caption beats an empty one. The caption *is* the description; there is not a
+second overlapping field, which resolves the owner's *"caption and description kind of
+overlaps."*
+
+**The buckets, as things you want to press.** Not checkboxes and not a dropdown. Six large
+tiles, each with its Phosphor duotone glyph and its word, big enough to be a genuine
+pleasure to tap on a phone. Pressed, a tile fills with Canopy and stays lit; several can be
+lit at once. This is the single most important interaction in the flow, because it is the
+one thing we are asking of every contributor and the one thing they can silently refuse to
+do. **If pressing these does not feel good, the taxonomy does not get filled in and none of
+§7 works.** Spend the time here.
+
+Then When (the existing control, untouched, §7.3) and Where (one optional line, with a
+quiet suggestion list drawn from what others have already typed — which nudges people
+towards each other's wording without ever becoming a dropdown).
+
+**The batch.** For a large drop the grid *is* the interface. Drag a box across a run of
+photographs, or shift-click, and the same questions appear against the selection with an
+honest count: "38 photographs selected." One press on **School life** files all 38.
+**That press is the difference between your photographer's hundred photographs being a chore
+and being a five-minute job**, and it is the thing to get right before anything decorative.
+
+**The finish.** A count in the house voice rather than a toast: "You have added 12
+photographs to the valley's memory." The hoopoe belongs here — this is a genuine moment of
+gladness and the mascot has an established easter-egg template for exactly that
+(`docs/spec/mascot.md`, and it already uncovers its eyes on the login form). One appearance,
+never twice, never cringe.
+
+**Before building any of this**, read `docs/spec/DESIGN-SYSTEM.md` and the liftkit spacing
+skill, look at `/lab` for rooms that have already explored adjacent ground, and build it in
+`/lab` first so the owner can press the buckets before they ship. Registering a lab room is
+required in the same change (`src/app/lab/_registry.ts`), and lab rooms have a house voice
+of their own: `docs/spec/lab-voice.md`.
+
+### 8.3 RECOMMENDED — the suggestions
 
 The owner's own proposal, and the same shape as the directory's professions: *"pass the
 descriptions and maybe the images through an LLM... it assigns the tags."*
@@ -355,16 +491,15 @@ dollars, and afterwards it is a few hundredths of a cent per upload. **Recommend
 the difference is under $25 once, and the whole point is that the suggestions are good
 enough to accept without checking.
 
-### 8.4 The form itself
+### 8.4 The fields, for the record
 
 Caption ("what is this?"), **Where** (free text, searched not filtered), **When**
-(unchanged), **buckets** (five, prefilled). The caption is the description; there is no
-second overlapping field, which resolves the owner's *"caption and description kind of
-overlaps."*
+(unchanged), **buckets** (six, prefilled from §8.3). That is the whole set. Anything you are
+tempted to add, check against §7.2 first: if it is free text, it must not become a filter.
 
 ---
 
-## 9. Control, and moderation
+## 9. LOCKED — control, and moderation
 
 **A member can delete their own photograph.** Today nobody can: both removal paths in
 `collection/actions.ts` are gated on `role === "admin"`, so the Collection is the only place
@@ -442,7 +577,7 @@ aspect ratios in the same post."*
 
 ---
 
-## 13. Phases
+## 13. RECOMMENDED — phases
 
 Each ships on its own and leaves the app working.
 
@@ -510,20 +645,51 @@ Phases 1 and 2 are the urgent ones: they are the bugs the owner is actually look
 | 43 | Casual visitors want nice pictures | §6 |
 | 44 | Pictures on the landing page | §6 |
 | 45 | Beautiful foldering and transitions | §6 |
-| 46 | Letters wastes space | **§15 — not covered here** |
+| 46 | Letters wastes space | **§16 — not covered here** |
 | 47 | Not a file manager | §6 |
 | 48 | Which buckets to keep | §7.1 |
 | 49 | Lazy loading in batches | §10 |
 | 50 | Justified grid, no crops, even gutters | §3.2 |
 | 51 | The reference viewer is simple | §5 |
-| 52 | Free to rename Collection | **§15 — recommend keeping the name** |
+| 52 | Free to rename Collection | **§16 — recommend keeping the name** |
 | 53 | Consider all options, do not ship the first idea | The whole campaign |
 | 54 | No way to delete your own photo | §9 |
 | 55 | The white outline over a blurred bed | §3.3 — fixed |
+| 56 | Can search still read the descriptions | §7.2 — yes, caption, Where and contributor together |
+| 57 | A splendid contribute UI, not a dialog, big bucket targets | §8.2 |
+| 58 | Include an Other bucket | §7.1 — and it feeds back into the taxonomy |
 
 ---
 
-## 15. What this does not cover, and why
+## 15. Operational context
+
+So none of it is explained twice.
+
+- **Repo** `/Users/sanan/Documents/rv-connect`, branch `main`, no feature branches. Commit
+  as each coherent piece lands; **do not push** without asking, because a push is a deploy.
+- **Several Claude sessions run against this one checkout.** Uncommitted changes you did not
+  make are someone's work in progress. Stage your files by name; never `git add -A`, never
+  `git commit -a`, and never stash, reset or revert anything you did not author. A plain
+  `git commit` takes the whole index, so if someone else has staged work, commit with an
+  explicit pathspec: `git commit -F - -- path/one path/two`.
+- **The gate** is `npm run check` (about 25s idle, several minutes if another session is
+  building). `npm run visual` before committing any UI change, and read the diff before
+  ever running `visual:update`.
+- **Screenshots**: `npm run screenshot:auth -- "<url>"` for signed-in pages, `--mobile` for
+  390x844. Note the `--` — npm swallows the flag without it.
+- **Test account is Jerry Maguire** (`sanan.shankar@gmail.com`) when a profile that is not
+  the owner's is needed. Never sign in as a real alumnus; dev-login writes presence
+  telemetry against whoever it signs in as.
+- **The database is one Supabase instance behind both production and local dev.** Never
+  `prisma db push` — it will offer to drop tables. Schema changes go in a dated file in
+  `prisma/migrations-manual/`, applied with `node scripts/dev/run-sql.mjs`.
+- **Never run any Vercel CLI command.** Deploys are git-only.
+- **`chrome-devtools` MCP finds the answer; Playwright remembers it.** Never debug by
+  re-running a spec.
+
+---
+
+## 16. What this does not cover, and why
 
 **Letters wasting space (#46).** The owner is right that one narrow column holding three
 posts with heavy whitespace is a poor use of the screen. It is a real problem and it is not

@@ -235,6 +235,23 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   cent, because they are landscapes with no single subject. The owner saw this himself and
   called it marginal. It earns its keep on a photograph of a person standing off to one
   side, which is the case the archive is about to fill up with.
+- **F14. How to write for the next session, which is now a skill.** The owner has raised
+  this twice in two different forms and asked that it stop being something he repeats:
+  `.claude/skills/writing-for-agents/SKILL.md`, triggered from CLAUDE.md's skills table.
+  Two failure modes, both his words. **Distilling**: "I've told you many tiny things and
+  many things we have to beat, and many of my opinions, and you have only distilled them
+  down to the most important things... Do not lose any important information because that's
+  when you get a lower quality result than if you just use the session that we're using
+  right now." And **over-directing**: "you're giving such direct instructions that you're
+  not going to allow that session to be creative enough. You've completely constrained it...
+  If I just needed one solution, then it's fine to be direct. But we don't know what we
+  want, so we need a level of creativity for it to iterate and decide what's best."
+  The mechanism that resolves the second one, and the reason the skill is worth having
+  rather than being a note: **every decision gets marked LOCKED, RECOMMENDED or OPEN.**
+  Without those marks a long document reads as orders throughout; with them it can be
+  specific and still leave real room. `spec.md` was rewritten to carry them.
+  Also his standing rule on rewriting anything: "rewritten should be pretty exactly the same
+  with the grammar tightened up but every single thing still conveyed."
 - **F7. A concurrent session is editing this area.** `src/app/(main)/collection/page.tsx`
   changed on disk mid-session (server-side first-page fetch added, `firstPage` prop passed
   to `CollectionClient`). Per CLAUDE.md, work around other sessions' edits, never stash or
@@ -283,6 +300,10 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | 36 | Catch-up images cannot be clicked to expand | open — **bug** |
 | 35 | Catch-up photos crop friends' faces out; "sometimes the catch up just shows a bunch of shoulders" | open — **urgent**, F3 |
 | 55 | The white outline around a photo on its blurred bed. Fractional widths (a 2:3 photo is 466.67px in a 728px column) let the frame's own light background show as a hairline down the edge, invisible on paper and obvious over blur | **fixed** — dimensions round to whole pixels, and a photo on a bed carries no background or border of its own |
+| 56 | Search must still read the descriptions | **answered** — spec §7.2, yes |
+| 57 | "how do we make a really splendid ui for them to do so? isntead of a dialog maybe a more expansive thing... big bucket touch targets so they'll want to do it... just be fresh and creative and create something splendid" | open — spec §8.2, deliberately left OPEN |
+| 58 | "should include an other bucket also" | open — spec §7.1, and it feeds the taxonomy back |
+| 59 | Specs and prompts written by AI for AI are too distilled and too constraining; make it a skill so he stops repeating it | **done** — `.claude/skills/writing-for-agents/SKILL.md`, wired into CLAUDE.md's skills table |
 | 54 | **No way for a member to take down a photo they uploaded**, short of asking an admin. Owner, 2026-08-27: "there's no easy intuitive way for me to take down a photo that i've uploaded now? apart from using the admin thing" | open — **verified, F11** |
 
 ### The image viewer
