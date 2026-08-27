@@ -1,16 +1,33 @@
 # Collection rework — LIVING HANDOVER
 
-**[`spec.md`](spec.md) is the design. This file plus [`brief.md`](brief.md) is the entire
-handover.** [`prior-art.md`](prior-art.md)
-is the research behind the recommendations; read it before arguing with any of them. A session is started by
-@-ing this file. Read `brief.md` **in full, first** — it is the owner's own words and the
-owner asked explicitly that it never be reduced to a summary. This file is an *index into*
-that brief, not a replacement for it. Edit this file before your session ends: status
-board updated, session log appended, so the next session can be started by @-ing it alone.
+## Start here
 
-Follows the `docs/audit-fix/*/fix-prompt.md` convention (see that folder's README). It
-lives under `docs/planning/` rather than `docs/audit-fix/` because this is a design and
-rework campaign, not an audit and its fixes.
+**@ this file and nothing else.** Then, in this order:
+
+1. **Read [`brief.md`](brief.md) in full.** Not skimmed, not summarised. It is the owner's
+   spoken brief transcribed word for word, and he has asked twice that no session work from
+   a condensed version of it. Roughly ten minutes.
+2. **Read [`spec.md`](spec.md).** The design. Every decision in it is marked **LOCKED**
+   (build it), **RECOMMENDED** (you may do better, say so) or **OPEN** (yours to decide).
+   §6, §7.1 and §8 are deliberately yours — the owner asked for something better than what
+   is written there, not a faithful transcription of it.
+3. **Skim [`prior-art.md`](prior-art.md)** — how Instagram, X, Flickr and Google Photos
+   solved these same problems. Read it before disagreeing with a recommendation; the
+   disagreement may already be answered.
+4. **Then start spec §13, phase 1**: store width and height for every image. It is
+   invisible to the user, it unblocks everything else, and nothing in phases 2 to 6 can be
+   done well without it.
+
+`.claude/skills/writing-for-agents/SKILL.md` governs how you edit this file and anything
+else you write for the session after you.
+
+**Before your session ends**, edit this file: status board, decisions, session log. The
+next session starts by @-ing it alone, so whatever is not written here is lost.
+
+This file is an *index into* `brief.md`, never a replacement for it. It follows the
+`docs/audit-fix/*/fix-prompt.md` living-handover convention (see that folder's README), but
+lives under `docs/planning/` because this is a design and rework campaign rather than an
+audit and its fixes.
 
 ## What this campaign is
 
@@ -60,9 +77,15 @@ that rework.
       and a table in §14 mapping all 55 ledger asks to where each is answered. Two are
       deliberately out of scope with reasons in §15 (Letters' use of space, and renaming
       the Collection).
-- [ ] **Owner reviews the spec.**
-- [ ] **Implementation plan** (`superpowers:writing-plans`).
-- [ ] **Execute, phase by phase.**
+- [x] **Owner reviewed the spec** — 2026-08-27, "I read your spec and it's mostly fine",
+      plus the three changes now folded in: search must still read descriptions (§7.2), a
+      splendid contribute room rather than a dialog (§8.2), and an Other bucket (§7.1).
+- [x] **How to write for the next session** — `.claude/skills/writing-for-agents/SKILL.md`,
+      wired into CLAUDE.md's skills table. See F14; the owner had raised it twice.
+- [ ] **Execute, phase by phase** — spec §13. **Phase 1 first: stored dimensions.**
+      No separate plan document, deliberately: §13's six phases plus the LOCKED /
+      RECOMMENDED / OPEN marks are the plan at the right altitude, and a task-by-task
+      breakdown would re-introduce exactly the over-constraining the owner objected to.
 - [ ] **Close-out**: delete `/lab/crop`, `public/lab/crop/` and the registry row; fold bug #18, #19 and the catch-up items out of `docs/planning/bugs.md`,
       update `docs/spec/media.md` (large parts of it are now superseded — see D2, D3),
       delete `/lab/crop` and its registry line, log in `progress.md`.
@@ -86,14 +109,37 @@ Each is the owner's, given in this session. Do not relitigate these without aski
 - **D4. "A wander" sort is deleted.** Owner, verbatim: "can you please delete that a
   wander that's not great". It is in `COLLECTION_SORT_OPTIONS`
   (`src/lib/collection-facets.ts`) and in the `loadPhotos` sort switch.
-- **D5. The name may change.** The owner explicitly granted this: "If you wanna call it
-  something totally different, that's fine. That's how much autonomy I'm giving you."
-  No decision yet. Default is to keep "The Valley Collection" unless a rename earns itself.
-- **D6. Crop policy: undecided, and it is the gating decision.** The owner declined to pick
-  from a written list and asked to see the options rendered: "this is a big decision i'd
-  like to see it done different ways so I can decide. think of all the ways it can be done."
-  One firm constraint inside that: "definitely don't want some huge ass pictures to keep
-  scrolling past" — which rules out uncapped free-height as the winner.
+- **D5. The name stays "The Valley Collection".** The owner granted a free hand to rename
+  it. Declined, and he did not object: every complaint in the brief is about behaviour, and
+  a rename costs the route, the sidebar, the specs and the visual baselines while buying
+  none of it. Revisit once the thing works, if ever. Reasoning in spec §16.
+- **D6. Crop policy — DECIDED, after eight rules in `/lab/crop`.** Square or wider fills the
+  column at true shape, never cut, never barred, so a 21:9 is a thin strip. Taller than wide
+  becomes **3:4** on a blurred bed of itself. See D7 to D11 for the rest, and F8 to F13 for
+  why each number is what it is.
+- **D7. 3:4, not 2:3 or 4:5.** A phone sensor is 4:3, so held upright it shoots 3:4, which
+  makes it the most common portrait anyone will post and one that then passes through
+  untouched. Also draws the photo wider with less blur beside it. See F12.
+- **D8. Blur, not plain paper, beside a tall photo.** The owner's own reversal, and correct:
+  blur as the whole rule squashes every photo into one landscape box and is "a cop out";
+  blur as the bed beside a photo already shown properly is just a better background than a
+  flat colour. Different things.
+- **D9. The crop is aimed at the subject and clamped.** Sharp's `attention` gives a focal
+  point at upload; a tall photo's window travels between 15% and 50% down the frame and no
+  further. The clamp is not decoration — see F13 and the X precedent in `prior-art.md`.
+  **The uploader must be able to override it.** That is a hard requirement, not a nicety.
+- **D10. The photograph caps at 900px wide** however wide the card grows. Fixes the
+  wide-screen bloat and the graininess of a small file stretched across a 1216px slot.
+- **D11. Feed and catch-ups crop; the Collection grid does not.** The grid uses justified
+  rows, uncropped. The viewer always shows the true full frame. Owner: "I agree with your
+  feed catch ups and collection thing."
+- **D12. Several photos in one post use justified rows, uncropped**, at most three per row.
+  The row height already bounds them, so cropping buys nothing.
+- **D13. No free-text tags; six buckets; everything prose stays searchable.** "Part of
+  school" becomes **Where**, read by search, never a dropdown. An **Other** bucket exists
+  and feeds evidence back into the taxonomy. Spec §7.
+- **OPEN — the height ceiling** (560 / 700 / 840px). The owner did not pick. Spec assumes
+  700. One line. Look at all three in `/lab/crop` before settling it.
 
 ## Findings from reading the code (2026-08-26, session 1)
 
@@ -392,6 +438,8 @@ Brainstorming session. No application code touched.
   D2 put people in the archive; and Flickr pre-generates justified layout server-side off a
   viewport-width cookie, which is both a 7x first-photo speedup and the thing that keeps us
   off the metered Vercel optimiser.
-- **Next: the owner picks a crop rule in `/lab/crop`.** Everything else is blocked on it.
-  While waiting, the next safe piece of work is F4: storing width and height for feed,
-  letter and catch-up images, which every option needs and no option contradicts.
+- The owner picked the crop rule over several rounds in `/lab/crop`; D6 to D12 are the
+  result, F8 to F13 the reasoning.
+- Wrote `spec.md`, then rewrote it to carry the LOCKED / RECOMMENDED / OPEN marks after the
+  owner's feedback on AI-written specs being too constraining (F14).
+- **Next session: spec §13 phase 1, stored dimensions.** Everything else sits on it.
