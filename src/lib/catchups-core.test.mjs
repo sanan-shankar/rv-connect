@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------ *
  *  Unit tests for the pure Catch-ups engine. NO database, NO network.
  *
- *  Run: node --test src/lib/catchups.test.mjs
+ *  Run: node --test src/lib/catchups-core.test.mjs
  *
  *  These exercise the state machine at every boundary, the reminder
  *  bitmask + auto-extend-once idempotency, cadence math, the Spotify
@@ -53,7 +53,7 @@ import {
   REMINDER_QUESTIONS_EXTENDED,
   shiftEditionPatch,
   shiftPausedInstant,
-} from "./catchups.ts";
+} from "./catchups-core.ts";
 import { PROMPT_CATEGORIES } from "./catchups-types.ts";
 import { read, decomment } from "./test-kit.mjs";
 

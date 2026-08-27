@@ -4255,3 +4255,26 @@ tsconfig.json` it resolves all but two, and the count is 40 — 39 of them insid
 generated client, and one of ours: `lib/catchups.ts > lib/catchups-notify.ts`, which is
 catchups-03's row and is not done.
 
+**The Catch-ups engine, split in two, and the app's last import cycle with it.**
+`lib/catchups.ts` held both the pure state machine and the Prisma drivers, and that one fact
+paid for a lot: `catchups-notify.ts` imported `answerReminderMessage` from it while it
+imported notify back, so the two were a cycle; and because the pure half has to load under
+bare `node --test` with no Prisma client in its graph, prisma and notify had to arrive
+through lazy singletons (`getPrisma`, `getNotify`, `PrismaLike`, `NotifyModule`) with a
+dynamic `report()` beside them. 900 lines moved to `catchups-core.ts`; the 443 that remain
+import prisma, notify and `reportSwallowed` as plain static imports. Notify takes its one
+helper from the core, and the cycle is gone — `madge --circular --ts-config tsconfig.json`
+now reports 39, every one of them inside Prisma's generated client and none of them ours.
+
+Two things the split surfaced rather than caused. `catchup-lifecycle.test.mjs`'s C-149 sweep
+— every catch that swallows must report — matched on the literal `report(`, so renaming the
+call to `reportSwallowed(` turned it red, which is a pin doing its job. While fixing it: its
+catch pattern required parentheses, so a `catch { }` written without a binding was invisible
+to the sweep. Widened. And `catchups.test.mjs` is now `catchups-core.test.mjs`, because that
+is what it tests.
+
+Verified beyond the gate: a real published Round rendered for a member of its group, with
+`roundLabel`, the published date, the 13-strong bird row, `askerVisible`'s "asked
+anonymously" and the entry list all correct — and a Round belonging to a group the viewer is
+NOT in still 404s, which is the same audience rule as before.
+

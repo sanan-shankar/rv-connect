@@ -16,7 +16,7 @@
  * ------------------------------------------------------------------ */
 
 import type { Cadence, CatchupStatus, EditionStatus, ReminderMode } from "@/lib/catchups-types";
-import type { CatchupPromptSet } from "@/lib/catchups";
+import type { CatchupPromptSet } from "@/lib/catchups-core";
 
 export type HomePersonRef = {
   id: string;

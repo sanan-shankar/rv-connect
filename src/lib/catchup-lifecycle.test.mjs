@@ -7,7 +7,7 @@ import { read, decomment, balancedBody } from "./test-kit.mjs";
  *  B-060/B-061/B-062).
  *
  *  The behaviour of the pure engine is tested properly in
- *  catchups.test.mjs -- these are the pins for the parts that only exist
+ *  catchups-core.test.mjs -- these are the pins for the parts that only exist
  *  as a call into Prisma, in the security-regressions.test.mjs style:
  *  read the real source and fail the moment the guard goes missing.
  *  Written this way rather than as an integration test because the only
@@ -363,7 +363,10 @@ test("C-149: every swallowed failure on the clock is reported, not just logged",
      Swept rather than pinned to one function: every catch in this file that
      swallows (does not re-throw) has to report. */
   const src = decomment(read("src/lib/catchups.ts"));
-  const catches = [...src.matchAll(/\}\s*catch\s*\([^)]*\)\s*\{/g)];
+  /* `catch (err)` AND the parenless `catch {`. The old pattern required
+     parentheses, so a swallowing block written without a binding was
+     invisible to this sweep -- a gap, not a decision. */
+  const catches = [...src.matchAll(/\}\s*catch\s*(?:\([^)]*\)\s*)?\{/g)];
   assert.ok(catches.length >= 3, `only found ${catches.length} catch blocks; the sweep has drifted`);
 
   for (const m of catches) {
@@ -384,13 +387,13 @@ test("C-149: every swallowed failure on the clock is reported, not just logged",
     if (/isMissingCatchupTable/.test(block) && !/console\.error/.test(block)) {
       assert.match(
         block,
-        /report\(/,
+        /reportSwallowed\(/,
         `a catch in catchups.ts swallows a failure without reporting it:\n${block.slice(0, 200)}`
       );
       continue;
     }
     assert.ok(
-      /report\(/.test(block),
+      /reportSwallowed\(/.test(block),
       `a catch in catchups.ts swallows a failure with console alone, which on Vercel reaches ` +
         `nobody (C-149):\n${block.slice(0, 200)}`
     );

@@ -29,7 +29,7 @@
  * ------------------------------------------------------------------ */
 
 import { prisma } from "@/lib/prisma";
-import { askerVisible } from "@/lib/catchups";
+import { askerVisible } from "@/lib/catchups-core";
 import type {
   CatchupPersonRef,
   CatchupPromptView,

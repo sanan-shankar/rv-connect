@@ -6,7 +6,7 @@
  * ------------------------------------------------------------------ */
 
 import Link from "next/link";
-import { roundLabel } from "@/lib/catchups";
+import { roundLabel } from "@/lib/catchups-core";
 import { metaLine, VALLEY_TIME_ZONE } from "@/lib/utils";
 
 export type FreshRoundItem = {
