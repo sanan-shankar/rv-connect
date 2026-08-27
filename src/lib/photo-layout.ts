@@ -43,13 +43,23 @@ export const PHOTO_MAX_WIDTH = 900;
  * portrait anybody will ever post here, and at this target it passes through
  * completely untouched. 2:3 is the 35mm shape: right for the school
  * photographer's camera, wrong for everyone else, and it draws the picture
- * narrower with more blur beside it (525px wide against 467px at the 728px
- * column). A 9:16 screenshot keeps 75% of itself, which is the cost.
+ * narrower with more blur beside it (375px wide against 333px at the 500px
+ * ceiling). A 9:16 screenshot keeps 75% of itself, which is the cost.
  */
 export const TALL_TARGET = 3 / 4;
 
 /**
- * The tallest a photograph may be drawn, in pixels. EVERY photograph.
+ * The tallest a photograph is ever drawn, in pixels. EVERY photograph.
+ *
+ * 500, the owner's number on 2026-08-27. `/lab/crop` offered 560, 700 and 840;
+ * he picked 560 from the room and then went lower after living with it, for a
+ * reason the room could not show because the room drew photographs rather than
+ * posts: "560 makes one post take up my entire desktop screen which shouldn't
+ * happen." A card is the photograph plus a byline, the words and the actions --
+ * about 120px of it -- so the number that matters is the card's height, and on
+ * a 900px-tall laptop window 560 leaves nothing else on screen. 500 does.
+ * Which is the same constraint he opened with: "definitely don't want some
+ * huge ass pictures to keep scrolling past."
  *
  * An absolute number and not a share of the column, which the lab room got
  * wrong first time: tying the ceiling to the column drew a 9:16 photo 201px
@@ -60,21 +70,22 @@ export const TALL_TARGET = 3 / 4;
  * It governs wide photographs too, which is a small extension of what spec
  * §3.1 says and the reason is arithmetic the spec did not do. Written
  * literally -- ceiling for tall, 900px cap for everything else -- a SQUARE
- * photograph comes out 728px tall in a laptop column and 900px on a wide
- * screen, so the shape the rule was built to bound (a portrait, 700px) ends up
- * SHORTER than one it was not. The handover's F9 saw this coming and left it
- * open: "at the 1216px wide column a SQUARE is 1216px tall, which the ceiling
- * does not touch because it only governs r < 1." So the ceiling applies to
- * everything, and a wide photograph obeys it the way a tall one does: by
- * narrowing, never by being cut. Only shapes between 1:1 and about 1.29:1 are
- * affected at all, and only on a column wider than 700px.
+ * photograph comes out 728px tall in a laptop column, so the shape the rule
+ * was built to bound (a portrait, 420px x 560) ends up a third SHORTER than
+ * one it was not. The handover's F9 saw this coming and left it open. So the
+ * ceiling applies to everything, and a wide photograph obeys it the way a tall
+ * one does: by narrowing, never by being cut.
  *
- * The NUMBER is still open. 560, 700 and 840 were all built in `/lab/crop` and
- * none was picked; 700 is about three quarters of a laptop screen and is the
- * spec's assumption. It is this line and nothing else, so look at all three
- * with real photographs before settling it.
+ * The lower the ceiling, the further that reaches, and at 500 it is worth
+ * knowing where. A shape is narrowed only when `500 x ratio` is less than both
+ * the column and the 900px cap, so: nothing at all on a phone; on a laptop
+ * 1.46:1 and squarer, which is a small bed on an ordinary 4:3 (667 x 500, 30px
+ * a side in a 728px column) and a wide one on a square (500 x 500, 114px a
+ * side); on a wide screen everything up to 1.8:1, so all but a panorama.
+ * Blurred beds are common by design -- they are what a bounded height costs
+ * when nothing may ever be cut.
  */
-export const TALL_CEILING = 700;
+export const PHOTO_MAX_HEIGHT = 500;
 
 /**
  * How far the visible window may travel when a tall photograph is cut.
@@ -158,7 +169,7 @@ export function framePhoto(facts: PhotoFacts): PhotoFrame {
      cap is the binding one and the ceiling never comes into it. */
   if (r >= 1) {
     return {
-      maxWidth: Math.min(PHOTO_MAX_WIDTH, Math.round(TALL_CEILING * r)),
+      maxWidth: Math.min(PHOTO_MAX_WIDTH, Math.round(PHOTO_MAX_HEIGHT * r)),
       aspectRatio: `${width} / ${height}`,
       objectPosition: "50% 50%",
       kept: 1,
@@ -167,12 +178,12 @@ export function framePhoto(facts: PhotoFacts): PhotoFrame {
 
   /* Taller than wide: one shape, so every tall card in the feed matches, and
      as large as the ceiling allows. At the 728px laptop column that is
-     525 x 700 with 102px of bed each side; on a phone the ceiling never
+     375 x 500 with 177px of bed each side; on a phone the ceiling never
      binds, the photo simply fills the width and no bed shows at all. */
   return {
     // Same ceiling, same conversion: it is a HEIGHT, and the shape is fixed,
-    // so it reaches CSS as the width that produces it. 700px at 3:4 is 525.
-    maxWidth: Math.min(PHOTO_MAX_WIDTH, Math.round(TALL_CEILING * TALL_TARGET)),
+    // so it reaches CSS as the width that produces it. 500px at 3:4 is 375.
+    maxWidth: Math.min(PHOTO_MAX_WIDTH, Math.round(PHOTO_MAX_HEIGHT * TALL_TARGET)),
     aspectRatio: "3 / 4",
     /* Taller than the target loses its top and bottom, so the window travels
        vertically; shallower than it (a 4:5, say) loses its sides, so the
@@ -195,7 +206,7 @@ export function framePhoto(facts: PhotoFacts): PhotoFrame {
  * off the srcset, and a wrong one is worse than none (image-cdn.ts spells out
  * what each surface's own measurement is). The rule above puts a hard cap on
  * top of every one of those: whatever the column does, the photograph stops
- * at 900px, or at 525px if it is tall. So the honest promise is the smaller
+ * at 900px, or at 375px if it is tall. So the honest promise is the smaller
  * of the two, which is what `min()` says.
  */
 export function photoSizes(columnSizes: string, frame: PhotoFrame): string {

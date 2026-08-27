@@ -17,12 +17,12 @@
  *  directly and a client card can wrap it in a button.
  * ------------------------------------------------------------------ */
 
-import { photoSrc, photoSrcSet } from "@/lib/image-cdn";
 import { framePhoto, photoSizes, type StoredPhoto } from "@/lib/photo-layout";
 import { cn } from "@/lib/utils";
 
 export function PhotoFrame({
   src,
+  srcSet,
   photo,
   sizes,
   alt = "",
@@ -30,8 +30,21 @@ export function PhotoFrame({
   fallbackClassName,
   eager = false,
 }: {
-  /** The stored image url. */
+  /** The url to actually fetch, and how this component stays out of a decision
+   *  that is not its own.
+   *
+   *  It used to call `photoSrc()` itself, which quietly put Catch-up
+   *  photographs -- served straight off R2 since the day they shipped --
+   *  through Vercel's image optimiser. A transform nobody has asked for before
+   *  takes about 880ms against 260ms for the same bytes from the bucket's own
+   *  edge, so every photograph in a Round made the reader wait on it. Measured
+   *  2026-08-27 after the owner reported exactly that. Whether a surface wants
+   *  the optimiser is the surface's call; see image-cdn.ts, and spec §4 for
+   *  where all of this is meant to end up (precomputed derivatives on R2, no
+   *  optimiser anywhere). */
   src: string;
+  /** The rungs, when the surface has any. Absent means one file, as-is. */
+  srcSet?: string;
   /** What we know about it, or null when we know nothing -- an image that
    *  predates the `Image` table and has not been backfilled, or one whose
    *  measurement failed. Null is a supported state, not an error. */
@@ -62,11 +75,12 @@ export function PhotoFrame({
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={photoSrc(src)}
-        srcSet={photoSrcSet(src)}
-        sizes={sizes}
+        src={src}
+        srcSet={srcSet}
+        sizes={srcSet ? sizes : undefined}
         alt={alt}
         loading={loading}
+        decoding="async"
         className={cn("w-full object-cover", fallbackClassName, className)}
       />
     );
@@ -76,33 +90,50 @@ export function PhotoFrame({
 
   return (
     <div className={cn("relative flex justify-center overflow-hidden bg-mist", className)}>
-      {/* The bed, and the placeholder, and the same object either way.
-          It is the 16px smear stored with the image (about 140 bytes), blown
-          up and blurred: it holds the space with something photograph-shaped
-          while the real file arrives, and it is what fills the card beside a
-          photograph too tall or too large to span its column.
+      {/* The bed: what fills the card either side of a photograph that does not
+          span its column.
 
           The owner reversed himself on blur and was right both times. As the
           whole rule it squashes every photo into one landscape box and is "a
-          cop out"; as the filler beside a photo already shown at a proper
-          size it is simply a better background than a flat colour. The filter
-          is the one he approved in /lab/crop, to the number. */}
-      {photo.blurDataUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={photo.blurDataUrl}
-          alt=""
-          aria-hidden
-          className="pointer-events-none absolute inset-0 h-full w-full scale-[1.12] object-cover blur-[26px] brightness-[0.68] saturate-[1.1]"
-        />
-      )}
+          cop out"; as the filler beside a photo already shown at a proper size
+          it is simply a better background than a flat colour. The filter is
+          the one he approved in /lab/crop, to the number.
+
+          THE PHOTOGRAPH ITSELF, not the 16px smear stored beside it. The first
+          version used the smear on the theory that a 26px blur destroys the
+          difference. It does not: `object-cover` stretches a 16px source
+          across 350px of card, so every source pixel becomes a 20px block and
+          the blur smears those into streaks. The owner, looking at his own
+          feed: "very distracting and not smooth and just yucky blur bars." He
+          was right. Same `src` and `sizes` as the photograph below, so the
+          browser resolves the same URL and this costs no second download. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={photoSrc(src)}
-        srcSet={photoSrcSet(src)}
-        sizes={photoSizes(sizes, frame)}
+        src={src}
+        srcSet={srcSet}
+        sizes={srcSet ? photoSizes(sizes, frame) : undefined}
+        alt=""
+        aria-hidden
+        loading={loading}
+        decoding="async"
+        /* Always rendered, even on a phone where a photograph always spans its
+           column and the bed cannot be seen. Hiding it below a 456px viewport
+           was tried, to save a phone a blurred full-size layer per card, and it
+           broke something worse than it saved: a `display: none` image with
+           `loading="lazy"` never loads, so `img.complete` stays false forever
+           and anything waiting on `document.images` waits for good -- which is
+           what `e2e/visual.spec.ts`'s settle() does, and it hung on it. The
+           saving was never measured; this cost was real within a minute. */
+        className="pointer-events-none absolute inset-0 h-full w-full scale-[1.12] object-cover blur-[26px] brightness-[0.68] saturate-[1.1]"
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        srcSet={srcSet}
+        sizes={srcSet ? photoSizes(sizes, frame) : undefined}
         alt={alt}
         loading={loading}
+        decoding="async"
         width={photo.width}
         height={photo.height}
         /* `h-auto` explicitly, not on the strength of Tailwind's preflight:
