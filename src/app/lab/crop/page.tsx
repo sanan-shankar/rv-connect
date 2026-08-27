@@ -23,6 +23,7 @@ import { justifiedRows } from "./_justified";
 import {
   FLOORS,
   POLICIES,
+  TALL_CEILINGS,
   WIDTHS,
   frameFor,
   stackHeight,
@@ -39,15 +40,18 @@ function Frame({
   policy,
   width,
   floor,
+  ceiling,
 }: {
   photo: Specimen;
   policy: PolicyKey;
   width: number;
   floor: number;
+  ceiling: number;
 }) {
-  const f = frameFor(policy, photo, width, floor);
+  const f = frameFor(policy, photo, width, floor, ceiling);
   return (
-    <div className="cr-frame" style={{ width, height: f.height }}>
+    <div className="cr-centre" style={{ width }}>
+    <div className="cr-frame" style={{ width: f.width, height: f.height }}>
       {f.blurBehind && (
         <img src={photo.src} alt="" aria-hidden className="cr-blur" />
       )}
@@ -57,6 +61,7 @@ function Frame({
         className="cr-img"
         style={{ objectFit: f.fit, objectPosition: f.position }}
       />
+    </div>
     </div>
   );
 }
@@ -75,11 +80,11 @@ function Kept({ kept }: { kept: number }) {
 /* ------------------------------------------------------------------ *
  *  Mode one: one photograph, all six policies, stacked at true size.
  * ------------------------------------------------------------------ */
-function SixWays({ photo, width, floor }: { photo: Specimen; width: number; floor: number }) {
+function SixWays({ photo, width, floor, ceiling }: { photo: Specimen; width: number; floor: number; ceiling: number }) {
   return (
     <div className="cr-stack">
       {POLICIES.map((p) => {
-        const f = frameFor(p.key, photo, width, floor);
+        const f = frameFor(p.key, photo, width, floor, ceiling);
         return (
           <div key={p.key} className="cr-row">
             <div className="cr-row-head" style={{ width }}>
@@ -88,11 +93,14 @@ function SixWays({ photo, width, floor }: { photo: Specimen; width: number; floo
                 <p>{p.line}</p>
               </div>
               <div className="cr-row-nums">
-                <span className="cr-h">{Math.round(f.height)}px tall</span>
+                <span className="cr-h">
+                  {Math.round(f.width)} x {Math.round(f.height)}
+                  {f.width < width - 1 && ", narrowed"}
+                </span>
                 <Kept kept={f.kept} />
               </div>
             </div>
-            <Frame photo={photo} policy={p.key} width={width} floor={floor} />
+            <Frame photo={photo} policy={p.key} width={width} floor={floor} ceiling={ceiling} />
           </div>
         );
       })}
@@ -105,9 +113,9 @@ function SixWays({ photo, width, floor }: { photo: Specimen; width: number; floo
  *  This is the mode that answers "definitely don't want some huge ass
  *  pictures to keep scrolling past".
  * ------------------------------------------------------------------ */
-function ScrollIt({ policy, width, floor }: { policy: PolicyKey; width: number; floor: number }) {
+function ScrollIt({ policy, width, floor, ceiling }: { policy: PolicyKey; width: number; floor: number; ceiling: number }) {
   const [screens, setScreens] = useState<number | null>(null);
-  const total = stackHeight(policy, SPECIMENS, width, floor);
+  const total = stackHeight(policy, SPECIMENS, width, floor, ceiling);
 
   useEffect(() => {
     setScreens(total / window.innerHeight);
@@ -128,7 +136,7 @@ function ScrollIt({ policy, width, floor }: { policy: PolicyKey; width: number; 
               <span className="cr-when">2 days ago</span>
             </header>
             <p className="cr-body">{photo.note}</p>
-            <Frame photo={photo} policy={policy} width={width} floor={floor} />
+            <Frame photo={photo} policy={policy} width={width} floor={floor} ceiling={ceiling} />
             <footer>
               <span>12 loves</span>
               <span>3 replies</span>
@@ -230,6 +238,7 @@ export default function CropRoom() {
      and the two together are what actually decide whether the feed is a
      chore. Kept separate so each can be judged on its own. */
   const [cap, setCap] = useState<number>(0);
+  const [ceiling, setCeiling] = useState<number>(TALL_CEILINGS[1].v);
   const stageRef = useRef<HTMLDivElement>(null);
 
   /* Every control is in the URL, so a particular comparison can be linked,
@@ -254,6 +263,8 @@ export default function CropRoom() {
     if (FLOORS.some((f) => f.v === fl)) setFloor(fl);
     const cp = Number(q.get("cap"));
     if (cp === 0 || cp === 720 || cp === 900) setCap(cp);
+    const ce = Number(q.get("ceiling"));
+    if (TALL_CEILINGS.some((c) => c.v === ce)) setCeiling(ce);
   }, []);
 
   const column = WIDTHS[widthKey].px;
@@ -285,6 +296,19 @@ export default function CropRoom() {
             />
           </label>
           <p className="cr-ctl-note">{WIDTHS[widthKey].note}</p>
+
+          <label className="cr-ctl">
+            <span>Tallest a photo may be</span>
+            <Seg
+              options={TALL_CEILINGS.map((c) => ({ v: String(c.v), label: c.label }))}
+              value={String(ceiling)}
+              onChange={(v) => setCeiling(Number(v))}
+            />
+          </label>
+          <p className="cr-ctl-note">
+            {TALL_CEILINGS.find((c) => c.v === ceiling)?.note} Used by the first rule, which
+            narrows a tall photo rather than cutting it.
+          </p>
 
           <label className="cr-ctl">
             <span>Portrait floor</span>
@@ -354,7 +378,7 @@ export default function CropRoom() {
           </div>
           <p className="cr-caption">{photo.note}</p>
           <div className="cr-stage" ref={stageRef}>
-            <SixWays photo={photo} width={width} floor={floor} />
+            <SixWays photo={photo} width={width} floor={floor} ceiling={ceiling} />
           </div>
           </div>
         </DemoCard>
@@ -380,7 +404,7 @@ export default function CropRoom() {
             ))}
           </div>
           <div className="cr-stage">
-            <ScrollIt policy={policy} width={width} floor={floor} />
+            <ScrollIt policy={policy} width={width} floor={floor} ceiling={ceiling} />
           </div>
           </div>
         </DemoCard>
@@ -465,6 +489,7 @@ const CSS = `
 .cr-pill:active { transform: scale(.97); }
 .cr-pill.on { background: var(--leaf, #235C49); color: #fff; border-color: transparent; }
 
+.cr-centre { display: flex; justify-content: center; }
 .cr-caption { font-size: 13px; opacity: .62; padding: 6px 18px 12px; max-width: 62ch; }
 .cr-h4 { font-size: 15px; font-weight: 700; padding: 22px 18px 0; }
 .cr-stage { padding: 4px 18px 22px; overflow-x: auto; }

@@ -50,7 +50,8 @@ that rework.
       lifted into the real components rather than retyped. Two extra controls were added
       after the first pass, because the numbers showed the six rules were not the whole
       decision: **portrait floor** (4:5 / 1:1 / 5:4) and **photo width cap** (full column /
-      900px / 720px). See F8.
+      900px / 720px), then a seventh rule and a **tall-photo height ceiling** (560 / 700 /
+      840px). See F8 and F9.
 - [x] **Prior art researched** — `prior-art.md`. Owner asked for it directly mid-session.
 - [ ] **Owner picks a crop policy** — blocks the spec, because it determines the justified
       grid maths, the stored derivative sizes and the viewer's framing.
@@ -152,6 +153,24 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   are the portrait floor and whether the photograph is allowed to grow with the card at all
   (brief #39). Both are now controls in the room. The whole-feed heights at 728px with a 4:5
   floor: free 4,587px, bounds/focal 4,089px, snap 4,095px, fill 2,912px, today 2,232px.
+- **F9. A seventh rule, and the owner's own split.** Asked for advice, he gave the shape
+  himself: a 21:9 should be a thin photo at full width with no bars, blurred fill is "a cop
+  out" and not what a professional product would do, and "it's only the tall ones that are
+  tricky". Correct on all three. The useful framing to keep: for a tall photo, **displayed
+  width, final height and how much you cut are three quantities locked together and you may
+  pick two.** So there are exactly three ways to stop a tall photo running down the page --
+  cut it (Instagram), narrow it (Reddit, Slack, Mastodon) or blur-fill it (Apple, WhatsApp)
+  -- and no fourth. Rule seven, "tall narrows, wide runs free", picks height and no-cut and
+  pays in width.
+  Two things it is worth not relearning. **The height ceiling must be an absolute pixel
+  number, not a share of the column**: tying it to the column drew a 9:16 photo 201px wide
+  on a phone, smaller than what ships today, on the device where portraits matter most. At
+  700px absolute a phone narrows nothing at all. And **narrow is not blurred fill minus the
+  blur**: blurred fill fixes the box at 3:2 so a tall photo comes out 273x485 in a 728px
+  column, where narrow gives the same photo 394x700, about twice the picture.
+  Still open on this rule: at the 1216px wide column a SQUARE is 1216px tall, which the
+  ceiling does not touch because it only governs r < 1. That is what the photo-width cap
+  control is for, so on a 4K screen the two controls are needed together.
 - **F7. A concurrent session is editing this area.** `src/app/(main)/collection/page.tsx`
   changed on disk mid-session (server-side first-page fetch added, `firstPage` prop passed
   to `CollectionClient`). Per CLAUDE.md, work around other sessions' edits, never stash or

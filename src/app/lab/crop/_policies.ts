@@ -12,7 +12,7 @@
  *  Every function here is pure. Nothing reaches for the DOM.
  * ------------------------------------------------------------------ */
 
-export type PolicyKey = "free" | "today" | "bounds" | "snap" | "fill" | "focal";
+export type PolicyKey = "narrow" | "free" | "today" | "bounds" | "snap" | "fill" | "focal";
 
 export interface Specimen {
   key: string;
@@ -72,12 +72,33 @@ export const FLOORS = [
 /** Policy "snap": the only four shapes a card may take. */
 export const SNAP_RATIOS = [16 / 9, 3 / 2, 1, 4 / 5];
 
+/**
+ * Policy "narrow": the tallest a photograph may be drawn, in pixels.
+ *
+ * An absolute number, NOT a share of the column, and the first pass got this
+ * wrong. Tying the ceiling to the column width meant a phone, whose column is
+ * 358px, drew a 9:16 photograph 201px wide -- smaller than anything shipping
+ * today, on the device where portraits matter most. A ceiling is about the
+ * SCREEN's height, which has nothing to do with how wide the card is.
+ */
+export const TALL_CEILINGS = [
+  { v: 560, label: "560px", note: "Tight. Roughly two thirds of a laptop screen." },
+  { v: 700, label: "700px", note: "About three quarters of a laptop screen." },
+  { v: 840, label: "840px", note: "Roomy. A tall photo owns the screen." },
+] as const;
+
 /** Policy "fill": the one box everything is poured into. */
 export const FILL_RATIO = 3 / 2;
 
 export interface Frame {
   /** How tall the card's photo area comes out, in px. */
   height: number;
+  /**
+   * How WIDE the photograph is drawn. The same as the column for every rule
+   * but "narrow", which is the whole point of that rule: it buys a bounded
+   * height by spending width rather than by cutting the picture.
+   */
+  width: number;
   /** cover crops to fill; contain fits the whole frame inside. */
   fit: "cover" | "contain";
   /** CSS object-position. */
@@ -109,15 +130,52 @@ export function frameFor(
   policy: PolicyKey,
   photo: Specimen,
   width: number,
-  floor: number = MIN_RATIO
+  floor: number = MIN_RATIO,
+  ceiling: number = 700
 ): Frame {
   const r = photo.w / photo.h;
   const trueHeight = width / r;
 
   switch (policy) {
+    /* ---------------------------------------------------------------- *
+     *  Tall narrows, wide runs free.
+     *
+     *  The owner's own split, and the one rule here that never cuts a
+     *  photograph anywhere. Square or wider: full column width, true
+     *  shape, so a 21:9 is a thin strip and that is correct (owner: "for
+     *  very wide images like 21:9, our solution should definitely not add
+     *  bars above and below it. we should just let it be a thin photo").
+     *
+     *  Taller than wide: the SAME ceiling the bounds rule uses, obeyed a
+     *  different way. Rather than cutting the picture to fill a box of
+     *  that shape, the picture keeps its shape and stops growing, so it
+     *  narrows and sits centred on the card. The space beside it is the
+     *  card's own paper. Not a bar, not a blur.
+     *
+     *  Width, height and how much you cut are three quantities locked
+     *  together and you may pick two. This rule picks height and no cut,
+     *  and pays in width. Everything else here picks width and pays in
+     *  cut.
+     * ---------------------------------------------------------------- */
+    case "narrow": {
+      /* Square or wider always fills the column, whatever height that makes;
+         a thin strip is the point. Only a tall photo meets the ceiling, and
+         it obeys it by narrowing rather than by being cut. */
+      const trueH = width / r;
+      const height = r >= 1 ? trueH : Math.min(trueH, ceiling);
+      return {
+        height,
+        width: height * r >= width ? width : height * r,
+        fit: "cover", // the box is the photo's exact shape, so nothing is cut either way
+        position: "50% 50%",
+        kept: 1,
+        blurBehind: false,
+      };
+    }
+
     /* Every photograph at its real shape, however tall that turns out. */
     case "free":
-      return { height: trueHeight, fit: "cover", position: "50% 50%", kept: 1, blurBehind: false };
+      return { height: trueHeight, width, fit: "cover", position: "50% 50%", kept: 1, blurBehind: false };
 
     /* What ships today: fill the width, guillotine at 384px, take the
        middle. This is the one that eats faces. */
@@ -125,6 +183,7 @@ export function frameFor(
       const height = Math.min(trueHeight, TODAY_MAX_H);
       return {
         height,
+        width,
         fit: "cover",
         position: "50% 50%",
         kept: height / trueHeight,
@@ -139,6 +198,7 @@ export function frameFor(
       const box = clamp(r, floor, MAX_RATIO);
       return {
         height: width / box,
+        width,
         fit: "cover",
         position: r < box ? "50% 25%" : "50% 50%",
         kept: keptAt(r, box),
@@ -153,6 +213,7 @@ export function frameFor(
       const box = nearestSnap(r, floor);
       return {
         height: width / box,
+        width,
         fit: "cover",
         position: r < box ? "50% 30%" : "50% 50%",
         kept: keptAt(r, box),
@@ -165,6 +226,7 @@ export function frameFor(
     case "fill":
       return {
         height: width / FILL_RATIO,
+        width,
         fit: "contain",
         position: "50% 50%",
         kept: 1,
@@ -177,6 +239,7 @@ export function frameFor(
       const box = clamp(r, floor, MAX_RATIO);
       return {
         height: width / box,
+        width,
         fit: "cover",
         position: `${Math.round(photo.focal.x * 100)}% ${Math.round(photo.focal.y * 100)}%`,
         kept: keptAt(r, box),
@@ -187,6 +250,7 @@ export function frameFor(
 }
 
 export const POLICIES: { key: PolicyKey; name: string; line: string }[] = [
+  { key: "narrow", name: "Tall narrows, wide runs free", line: "Nothing is ever cut. Wide photos fill the column; tall ones stop growing and narrow instead." },
   { key: "free", name: "Free height", line: "True shape, no cap. Nothing is ever cropped." },
   { key: "today", name: "What ships today", line: "Fill the width, cut at 384px, keep the middle." },
   { key: "bounds", name: "Aspect bounds", line: "4:5 to 1.91:1 pass untouched. Extremes trim, portraits keep their top." },
@@ -200,7 +264,8 @@ export function stackHeight(
   policy: PolicyKey,
   photos: Specimen[],
   width: number,
-  floor?: number
+  floor?: number,
+  ceiling?: number
 ): number {
-  return photos.reduce((sum, p) => sum + frameFor(policy, p, width, floor).height, 0);
+  return photos.reduce((sum, p) => sum + frameFor(policy, p, width, floor, ceiling).height, 0);
 }
