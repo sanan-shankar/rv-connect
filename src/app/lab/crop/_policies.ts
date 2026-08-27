@@ -99,6 +99,13 @@ export const FILL_RATIO = 3 / 2;
  * is small and even. What it buys is that every tall card in the feed is
  * exactly the same height, which is the rhythm that "narrow" gives up.
  */
+export const TALL_SHAPES = [
+  { v: 4 / 5, label: "4:5", note: "Widest. Least blur beside it, hardest on a very tall photo." },
+  { v: 3 / 4, label: "3:4", note: "What a phone camera shoots by default, held upright." },
+  { v: 2 / 3, label: "2:3", note: "What a real camera shoots. Gentlest on very tall photos." },
+] as const;
+
+/** Kept as the default so existing links behave; the room makes it a control. */
 export const TALL_TARGET = 2 / 3;
 
 /**
@@ -132,7 +139,51 @@ export interface Frame {
   fill: FillKind;
 }
 
+export interface FrameOpts {
+  /** The shallowest shape a card may be, for the bounds/snap/aimed rules. */
+  floor?: number;
+  /** The tallest a photo may be drawn, in px, for the two narrowing rules. */
+  ceiling?: number;
+  /** What fills the card beside a photo that does not span it. */
+  gap?: FillKind;
+  /** The one shape every tall photo is brought to, for the "twothirds" rule. */
+  tall?: number;
+  /** Nudge the visible window towards sharp's guess at the subject. */
+  aim?: boolean;
+}
+
+/* ------------------------------------------------------------------ *
+ *  Aiming a crop, with the brakes on.
+ *
+ *  The owner is right that a free improvement is worth taking. The
+ *  brakes are here because of what X published in 2021: they cropped
+ *  timeline previews with a saliency model from 2018, audited it, found
+ *  it favoured white faces over Black faces and women over men, and
+ *  withdrew it. See prior-art.md.
+ *
+ *  Three things make this a different proposition from theirs, and all
+ *  three have to hold or it is not worth doing.
+ *
+ *  It only ever NUDGES. The crop here is small -- a 3:4 target takes 25%
+ *  off a 9:16 frame and nothing at all off a phone's own 3:4 -- where X
+ *  was cutting an arbitrary image down to a small 16:9 preview, so their
+ *  model chose which of several people you saw and this one cannot.
+ *
+ *  It is CLAMPED, below, so a bad guess moves the window a little and
+ *  never to an extreme. A tall photo's window can travel between 15% and
+ *  50% down: heads live in the upper half, so the floor at 50% means the
+ *  worst case is the plain centre crop we would have done anyway.
+ *
+ *  And the uploader must be able to OVERRIDE it. That is X's own
+ *  replacement -- show the person the crop and let them move it -- and it
+ *  is the part that makes the rest defensible. Not built here; the room
+ *  is about the rule. It belongs in the spec.
+ * ------------------------------------------------------------------ */
+const AIM_Y = { lo: 0.15, hi: 0.5 };
+const AIM_X = { lo: 0.25, hi: 0.75 };
+
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+const pct = (v: number) => `${Math.round(v * 100)}%`;
 
 /** Overlap between a photo of ratio `r` and a box of ratio `box`, 0 to 1. */
 function keptAt(r: number, box: number): number {
@@ -149,13 +200,32 @@ function nearestSnap(r: number, floor: number): number {
   );
 }
 
+/* ------------------------------------------------------------------ *
+ *  Whole pixels only.
+ *
+ *  A tall photo at 2:3 in a 728px column wants to be 466.67px wide. The
+ *  browser rounds the box one way and the image inside it the other, so a
+ *  sliver of whatever is BEHIND the image shows down its edge. On a warm
+ *  page nobody notices. On a blurred bed it reads as a white outline
+ *  around the photograph, which is exactly what the owner saw on
+ *  2026-08-27. Rounding here removes the cause rather than papering over
+ *  it; the frame also stops carrying a background of its own, below.
+ * ------------------------------------------------------------------ */
 export function frameFor(
   policy: PolicyKey,
   photo: Specimen,
   width: number,
-  floor: number = MIN_RATIO,
-  ceiling: number = 700,
-  gap: FillKind = "blur"
+  opts: FrameOpts = {}
+): Frame {
+  const f = rawFrame(policy, photo, width, opts);
+  return { ...f, width: Math.round(f.width), height: Math.round(f.height) };
+}
+
+function rawFrame(
+  policy: PolicyKey,
+  photo: Specimen,
+  width: number,
+  { floor = MIN_RATIO, ceiling = 700, gap = "blur", tall = TALL_TARGET, aim = true }: FrameOpts = {}
 ): Frame {
   const r = photo.w / photo.h;
   const trueHeight = width / r;
@@ -216,16 +286,21 @@ export function frameFor(
       if (r >= 1) {
         return { height: trueHeight, width, fit: "cover", position: "50% 50%", kept: 1, fill: "none" };
       }
-      const shown = Math.min(ceiling * TALL_TARGET, width);
+      const shown = Math.min(ceiling * tall, width);
       return {
-        height: shown / TALL_TARGET,
+        height: shown / tall,
         width: shown,
         fit: "cover",
-        // Taller than 2:3 loses top and bottom, so bias to the top where
-        // heads are. Shallower than 2:3 loses its sides, where nothing
-        // systematic lives, so centre it.
-        position: r < TALL_TARGET ? "50% 30%" : "50% 50%",
-        kept: keptAt(r, TALL_TARGET),
+        /* Taller than the target loses top and bottom, so the window
+           travels vertically; shallower loses its sides, so it travels
+           horizontally. Either way it starts from the sensible default
+           (30% down for a tall photo, because heads are up there) and
+           moves towards sharp's guess only as far as the clamp allows. */
+        position:
+          r < tall
+            ? `50% ${pct(aim ? clamp(photo.focal.y, AIM_Y.lo, AIM_Y.hi) : 0.3)}`
+            : `${pct(aim ? clamp(photo.focal.x, AIM_X.lo, AIM_X.hi) : 0.5)} 50%`,
+        kept: keptAt(r, tall),
         fill: shown < width - 1 ? gap : "none",
       };
     }
@@ -307,7 +382,7 @@ export function frameFor(
 }
 
 export const POLICIES: { key: PolicyKey; name: string; line: string }[] = [
-  { key: "twothirds", name: "Tall to 2:3, wide runs free", line: "Every tall photo becomes 2:3, so all tall cards match. Costs about 16% of the frame." },
+  { key: "twothirds", name: "Tall to one shape, wide runs free", line: "Every tall photo becomes the same shape, so all tall cards match. The window is nudged towards the subject." },
   { key: "narrow", name: "Tall narrows, wide runs free", line: "Nothing is ever cut. Wide photos fill the column; tall ones stop growing and narrow instead." },
   { key: "free", name: "Free height", line: "True shape, no cap. Nothing is ever cropped." },
   { key: "today", name: "What ships today", line: "Fill the width, cut at 384px, keep the middle." },
@@ -322,9 +397,7 @@ export function stackHeight(
   policy: PolicyKey,
   photos: Specimen[],
   width: number,
-  floor?: number,
-  ceiling?: number,
-  gap?: FillKind
+  opts?: FrameOpts
 ): number {
-  return photos.reduce((sum, p) => sum + frameFor(policy, p, width, floor, ceiling, gap).height, 0);
+  return photos.reduce((sum, p) => sum + frameFor(policy, p, width, opts).height, 0);
 }
