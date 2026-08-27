@@ -24,6 +24,7 @@ import {
   FLOORS,
   POLICIES,
   TALL_CEILINGS,
+  TALL_SHAPES,
   type FillKind,
   WIDTHS,
   frameFor,
@@ -43,6 +44,8 @@ function Frame({
   floor,
   ceiling,
   gap,
+  tall,
+  aim,
 }: {
   photo: Specimen;
   policy: PolicyKey;
@@ -50,13 +53,18 @@ function Frame({
   floor: number;
   ceiling: number;
   gap: FillKind;
+  tall: number;
+  aim: boolean;
 }) {
-  const f = frameFor(policy, photo, width, floor, ceiling, gap);
+  const f = frameFor(policy, photo, width, { floor, ceiling, gap, tall, aim });
   return (
     /* The column-wide stage. The photograph sits centred on it at whatever
        width its rule allows, and the stage behind it is either the card's own
        paper or a blurred copy of the same photograph. */
-    <div className={`cr-stagebox${f.fill === "blur" ? " blurred" : ""}`} style={{ width, height: f.height }}>
+    <div
+      className={`cr-stagebox${f.fill === "blur" ? " blurred bedded" : ""}${f.fill === "paper" ? " bedded" : ""}`}
+      style={{ width, height: f.height }}
+    >
       {f.fill === "blur" && <img src={photo.src} alt="" aria-hidden className="cr-blur" />}
       <div className="cr-frame" style={{ width: f.width, height: f.height }}>
         <img
@@ -84,11 +92,11 @@ function Kept({ kept }: { kept: number }) {
 /* ------------------------------------------------------------------ *
  *  Mode one: one photograph, all six policies, stacked at true size.
  * ------------------------------------------------------------------ */
-function SixWays({ photo, width, floor, ceiling, gap }: { photo: Specimen; width: number; floor: number; ceiling: number; gap: FillKind }) {
+function SixWays({ photo, width, floor, ceiling, gap, tall, aim }: { photo: Specimen; width: number; floor: number; ceiling: number; gap: FillKind; tall: number; aim: boolean }) {
   return (
     <div className="cr-stack">
       {POLICIES.map((p) => {
-        const f = frameFor(p.key, photo, width, floor, ceiling, gap);
+        const f = frameFor(p.key, photo, width, { floor, ceiling, gap, tall, aim });
         return (
           <div key={p.key} className="cr-row">
             <div className="cr-row-head" style={{ width }}>
@@ -104,7 +112,7 @@ function SixWays({ photo, width, floor, ceiling, gap }: { photo: Specimen; width
                 <Kept kept={f.kept} />
               </div>
             </div>
-            <Frame photo={photo} policy={p.key} width={width} floor={floor} ceiling={ceiling} gap={gap} />
+            <Frame photo={photo} policy={p.key} width={width} floor={floor} ceiling={ceiling} gap={gap} tall={tall} aim={aim} />
           </div>
         );
       })}
@@ -117,9 +125,9 @@ function SixWays({ photo, width, floor, ceiling, gap }: { photo: Specimen; width
  *  This is the mode that answers "definitely don't want some huge ass
  *  pictures to keep scrolling past".
  * ------------------------------------------------------------------ */
-function ScrollIt({ policy, width, floor, ceiling, gap }: { policy: PolicyKey; width: number; floor: number; ceiling: number; gap: FillKind }) {
+function ScrollIt({ policy, width, floor, ceiling, gap, tall, aim }: { policy: PolicyKey; width: number; floor: number; ceiling: number; gap: FillKind; tall: number; aim: boolean }) {
   const [screens, setScreens] = useState<number | null>(null);
-  const total = stackHeight(policy, SPECIMENS, width, floor, ceiling, gap);
+  const total = stackHeight(policy, SPECIMENS, width, { floor, ceiling, gap, tall, aim });
 
   useEffect(() => {
     setScreens(total / window.innerHeight);
@@ -140,7 +148,7 @@ function ScrollIt({ policy, width, floor, ceiling, gap }: { policy: PolicyKey; w
               <span className="cr-when">2 days ago</span>
             </header>
             <p className="cr-body">{photo.note}</p>
-            <Frame photo={photo} policy={policy} width={width} floor={floor} ceiling={ceiling} gap={gap} />
+            <Frame photo={photo} policy={policy} width={width} floor={floor} ceiling={ceiling} gap={gap} tall={tall} aim={aim} />
             <footer>
               <span>12 loves</span>
               <span>3 replies</span>
@@ -243,6 +251,8 @@ export default function CropRoom() {
      chore. Kept separate so each can be judged on its own. */
   const [cap, setCap] = useState<number>(900);
   const [gap, setGap] = useState<FillKind>("blur");
+  const [tall, setTall] = useState<number>(TALL_SHAPES[1].v);
+  const [aim, setAim] = useState(true);
   const [ceiling, setCeiling] = useState<number>(TALL_CEILINGS[1].v);
   const stageRef = useRef<HTMLDivElement>(null);
 
@@ -272,6 +282,9 @@ export default function CropRoom() {
     }
     const g = q.get("gap");
     if (g === "paper" || g === "blur") setGap(g);
+    const tl = Number(q.get("tall"));
+    if (TALL_SHAPES.some((t) => t.v === tl)) setTall(tl);
+    if (q.get("aim") === "0") setAim(false);
     const ce = Number(q.get("ceiling"));
     if (TALL_CEILINGS.some((c) => c.v === ce)) setCeiling(ce);
   }, []);
@@ -330,6 +343,39 @@ export default function CropRoom() {
           <p className="cr-ctl-note">
             {FLOORS.find((f) => f.v === floor)?.note} A tall photo comes out{" "}
             {Math.round(width / floor)}px high in this column.
+          </p>
+
+          <label className="cr-ctl">
+            <span>Tall photos become</span>
+            <Seg
+              options={TALL_SHAPES.map((t) => ({ v: String(t.v), label: t.label }))}
+              value={String(tall)}
+              onChange={(v) => setTall(Number(v))}
+            />
+          </label>
+          <p className="cr-ctl-note">
+            {TALL_SHAPES.find((t) => t.v === tall)?.note} At this ceiling the photo is drawn{" "}
+            {Math.round(Math.min(ceiling * tall, width))}px wide.
+          </p>
+
+          <label className="cr-ctl">
+            <span>Aim the crop</span>
+            <Seg
+              options={[
+                { v: "on", label: "At the subject" },
+                { v: "off", label: "Fixed, top-biased" },
+              ]}
+              value={aim ? "on" : "off"}
+              onChange={(v) => setAim(v === "on")}
+            />
+          </label>
+          <p className="cr-ctl-note">
+            Sharp guesses where the subject is at upload and the window moves towards it,
+            clamped so a bad guess can only ever land on the plain centre crop. It only
+            touches tall photos, since this rule never cuts a wide one, and on these six
+            specimens it moves the window by two or three percent. That is honest: they are
+            landscapes with no one subject. It earns its keep on a photo of a person
+            standing off to one side.
           </p>
 
           <label className="cr-ctl">
@@ -403,7 +449,7 @@ export default function CropRoom() {
           </div>
           <p className="cr-caption">{photo.note}</p>
           <div className="cr-stage" ref={stageRef}>
-            <SixWays photo={photo} width={width} floor={floor} ceiling={ceiling} gap={gap} />
+            <SixWays photo={photo} width={width} floor={floor} ceiling={ceiling} gap={gap} tall={tall} aim={aim} />
           </div>
           </div>
         </DemoCard>
@@ -429,7 +475,7 @@ export default function CropRoom() {
             ))}
           </div>
           <div className="cr-stage">
-            <ScrollIt policy={policy} width={width} floor={floor} ceiling={ceiling} gap={gap} />
+            <ScrollIt policy={policy} width={width} floor={floor} ceiling={ceiling} gap={gap} tall={tall} aim={aim} />
           </div>
           </div>
         </DemoCard>
@@ -519,6 +565,9 @@ const CSS = `
   overflow: hidden; border-radius: 10px; flex: 0 0 auto;
 }
 .cr-stagebox.blurred { background: var(--mist, #F0EDE6); }
+/* On a bed, the photo must not carry a light background or a hairline of its
+   own: either one shows down its edge as a pale outline. The bed defines it. */
+.cr-stagebox.bedded .cr-frame { border: none; background: transparent; }
 .cr-caption { font-size: 13px; opacity: .62; padding: 6px 18px 12px; max-width: 62ch; }
 .cr-h4 { font-size: 15px; font-weight: 700; padding: 22px 18px 0; }
 .cr-stage { padding: 4px 18px 22px; overflow-x: auto; }

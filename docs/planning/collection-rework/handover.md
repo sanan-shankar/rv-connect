@@ -187,6 +187,51 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   The **photo width cap now defaults to 900px** at his instruction, so the recommendation
   includes it rather than leaving it as an extra. Without it a square photo is 1216px tall
   on a 4K screen, which no height ceiling touches, because the ceiling only governs r < 1.
+- **F11. A member cannot delete their own photograph. At all.** Verified by reading
+  `src/app/(main)/collection/actions.ts`: the file exports `contributePhoto`,
+  `contributePhotoDirect`, `loadPhotos`, `myPendingPhotos`, `togglePhotoLove`,
+  `approvePhoto`, `declinePhoto` and `adminRemovePhoto`. There is no member-facing delete
+  of any kind. Both removal paths are gated on `session.user.role !== "admin"` and return
+  "Not authorized" otherwise (`declinePhoto`, line 626).
+  This is bigger than a missing button. It is the only place in the product where a member
+  can publish something and then cannot unpublish it, and it lands badly against work
+  already done elsewhere: the security overhaul built account deletion and image purging
+  precisely so people keep control of what they have put here. A contributor who uploads
+  the wrong photo, or a photo of someone who then objects, currently has to find an admin.
+  It also makes the D3 trusted-contributor decision sharper rather than softer: once a
+  trusted person's uploads go live instantly with no queue in front of them, the ONLY
+  correction available is a delete, and they do not have one.
+  Needs: a delete on the photo's own controls for its uploader, reusing `declinePhoto`'s
+  existing purge machinery (which is already correct -- row first, then bytes, atomic, per
+  audit M17) behind an uploader-or-admin check rather than an admin-only one. This touches
+  a server action, so it wants `write-path-reviewer` before it ships.
+- **F12. 3:4, not 2:3, and the reason is the phone.** The owner asked whether 2:3 was too
+  tall. It is, for the feed. A phone camera's sensor is 4:3, so held upright it produces a
+  3:4 photograph, which makes 3:4 the most common portrait shape any member will ever post
+  and, at a 3:4 target, one that passes through completely untouched. 2:3 is the 35mm
+  shape: right for the school photographer's DSLR, wrong for everyone else. At the 728px
+  column with a 700px ceiling, 3:4 also draws the photo **525px wide with 102px of blur
+  each side**, against 467px and 131px at 2:3 -- a bigger picture and less of the blur he
+  dislikes. The cost is that a 9:16 keeps 75% rather than 84%, and 9:16 is a screenshot or
+  a video still, not a framed photograph. The cross-loss is symmetric and so decides
+  nothing: a 3:4 photo loses 11% to a 2:3 target and a 2:3 photo loses 11% to a 3:4 one.
+  **The room now defaults to 3:4** and offers 4:5 / 3:4 / 2:3 as a control.
+- **F13. Aiming the crop, with brakes.** Owner: "make sure the crop does detect subject
+  though ... if there's no downside to it might as well get a slightly better position."
+  Agreed and done, but clamped, and the clamp is the whole point given F2's X precedent.
+  A tall photo's window may travel only between **15% and 50%** down the frame; heads live
+  in the upper half, so the worst case of a bad guess is the plain centre crop we would
+  have done anyway. A wide photo's window travels between 25% and 75% across.
+  Three things make this a different proposition from the one X withdrew, and **all three
+  must hold or it is not worth shipping**: it only nudges (the crop is 25% at most, where X
+  cut arbitrary images down to a small 16:9 preview and so chose which of several people
+  you saw); it is clamped; and **the uploader must be able to override it**, which is X's
+  own replacement and is not built yet. That override belongs in the spec as a hard
+  requirement, not a nice-to-have.
+  Honest measurement: on the six specimens, aiming moves the window by two or three per
+  cent, because they are landscapes with no single subject. The owner saw this himself and
+  called it marginal. It earns its keep on a photograph of a person standing off to one
+  side, which is the case the archive is about to fill up with.
 - **F7. A concurrent session is editing this area.** `src/app/(main)/collection/page.tsx`
   changed on disk mid-session (server-side first-page fetch added, `firstPage` prop passed
   to `CollectionClient`). Per CLAUDE.md, work around other sessions' edits, never stash or
@@ -234,6 +279,8 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | 21 | The viewer shows the *upload* date, not the date the photo was taken | open — **bug/gap** |
 | 36 | Catch-up images cannot be clicked to expand | open — **bug** |
 | 35 | Catch-up photos crop friends' faces out; "sometimes the catch up just shows a bunch of shoulders" | open — **urgent**, F3 |
+| 55 | The white outline around a photo on its blurred bed. Fractional widths (a 2:3 photo is 466.67px in a 728px column) let the frame's own light background show as a hairline down the edge, invisible on paper and obvious over blur | **fixed** — dimensions round to whole pixels, and a photo on a bed carries no background or border of its own |
+| 54 | **No way for a member to take down a photo they uploaded**, short of asking an admin. Owner, 2026-08-27: "there's no easy intuitive way for me to take down a photo that i've uploaded now? apart from using the admin thing" | open — **verified, F11** |
 
 ### The image viewer
 
