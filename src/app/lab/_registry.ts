@@ -174,10 +174,10 @@ export const REGISTRY: LabEntry[] = [
   },
   {
     href: "/lab/viewer",
-    title: "The image viewer",
+    title: "The photograph owns the screen",
     group: "Delight",
     status: "archived", // owner archive choice, folded in from archive-overrides.json
-    note: "Exercises the real shared ImageViewer against Collection photographs: multi-image navigation, captions folded and unfolded, an author chip, single-image sets, keyboard and drag input.",
+    note: "The rebuilt viewer, live. Edge to edge, chrome that leaves when you stop moving, and a caption you press open where the separate photo page used to be. Archive photographs with buckets, a heart and a delete; a post's three with its counter.",
   },
 
   /* ---------------------------------------------------------------- *

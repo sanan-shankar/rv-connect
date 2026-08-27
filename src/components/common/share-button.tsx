@@ -19,11 +19,17 @@ export function ShareButton({
   href,
   className = "",
   label = "Copy link",
+  onDark = false,
 }: {
   /** Relative path (may include a `#hash`) appended to `window.location.origin`. */
   href: string;
   className?: string;
   label?: string;
+  /** Floating over a photograph in the full-screen viewer, which is the one
+   *  region in the app whose surface does not follow the theme: the ink
+   *  `state-layer` has nothing to darken on a near-black wash, and the ink
+   *  hover would put the arrow into the picture. See {@link LoveButton}. */
+  onDark?: boolean;
 }) {
   const [shared, setShared] = useState(false);
 
@@ -49,7 +55,11 @@ export function ShareButton({
       // that share a post card's footer, so it takes the same hover as the other
       // two (see love-button.tsx for the -4.50 vs +2.06 dL* measurement). The
       // icon still lifts from muted to full ink on top of it.
-      className={`state-layer flex items-center rounded-full px-2.5 py-1.5 text-sm hover:text-foreground ${className} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
+      className={`flex items-center rounded-full px-2.5 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 ${
+        onDark
+          ? "text-white/80 transition-colors duration-150 hover:bg-white/12 hover:text-white focus-visible:outline-white"
+          : "state-layer hover:text-foreground focus-visible:outline-ring"
+      } ${className}`}
     >
       <span className="relative inline-flex h-[18px] w-[18px] items-center justify-center">
         {/* Clean crossfade to a check, no spring overshoot (that read as a forced wiggle). */}

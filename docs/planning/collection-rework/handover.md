@@ -14,16 +14,17 @@
 3. **Skim [`prior-art.md`](prior-art.md)** — how Instagram, X, Flickr and Google Photos
    solved these same problems. Read it before disagreeing with a recommendation; the
    disagreement may already be answered.
-4. **Then start spec §13, phase 4: the viewer.** Phases 1, 2 and 3 are done and committed —
-   dimensions are stored, one photograph in a column has one rule, and several photographs
-   together are justified rows everywhere. **All the layout work is finished**; what is left
-   is the viewer (§5), the Collection page itself (§6) and contributing (§8), and those are
-   the three most OPEN sections in the whole spec.
+4. **Then start spec §13, phase 5: the Collection page.** Phases 1 to 4 are done and
+   committed — dimensions are stored, one photograph in a column has one rule, several
+   photographs together are justified rows everywhere, and the viewer is rebuilt. What is
+   left is the Collection page itself (§6) and contributing (§8), **the two most OPEN
+   sections in the whole spec**, and the owner has said so in the plainest terms: *"just be
+   fresh and creative and create something splendid."*
 
-   Phase 4 is the viewer, and it is the right next one for the same reason phases 1–3 were:
-   it is what the owner was looking at when he dictated the brief. His verdict on the caption
-   panel — *"it's like the worst design ever"* — is the single sharpest thing he said. §5
-   lists what is wrong as LOCKED and leaves every solution OPEN.
+   Phase 5 is the river, the buckets on the title line, search, the time scrubber, keyset
+   pagination and windowing. It is also where the taxonomy in §7.1 lands, which the viewer
+   is already drawing (it shows whatever buckets a photograph carries, so the day `SUBJECTS`
+   is replaced the viewer follows with no change). Read §6 and §7 before anything.
 
    If you would rather do a different phase first, say so and do it — §13's order is
    RECOMMENDED, not LOCKED.
@@ -136,10 +137,16 @@ that rework.
         for the measurements behind them. **D17 is the one the owner should be told about**:
         a tall photograph inside a row is brought to 3:4 exactly as it is when alone, which
         the spec's D12 said would not be necessary.
-  - [ ] **Phase 4 — the viewer. START HERE.** · **Phase 5** the Collection page ·
-        **Phase 6** contributing. Read spec §5, §6 and §8 before starting any of them; §6
-        and §8.2 are the two most open sections in the whole campaign and the owner has said
-        so in the plainest terms. All the layout work is done, so nothing below is blocked.
+  - [x] **Phase 4 — the viewer**, session 4, 2026-08-28. Edge to edge, chrome that
+        withdraws on stillness, the caption panel deleted, the date taken instead of the date
+        uploaded, the heart and the buckets folded in, a member's own delete, and
+        `/collection/[id]` reduced to the route. Catch-up photographs open too (#36, #41),
+        which was the last surface where a photograph was not clickable. See D22 to D25 and
+        F30 to F33.
+  - [ ] **Phase 5 — the Collection page. START HERE.** · **Phase 6** contributing.
+        Read spec §6 and §8 before starting either; they are the two most open sections in
+        the whole campaign and the owner has said so in the plainest terms. Nothing is
+        blocked: the layout work and the viewer are both done.
 - [ ] **Close-out**: delete `/lab/crop`, `public/lab/crop/` and the registry row (its
       "several at once" mode now renders the SHIPPED components beside what each surface did
       before, so it is worth keeping until the owner has looked at phase 3);
@@ -281,6 +288,39 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   121px of bed. The median means the shape most of them already are is the shape they are all
   drawn in; the odd one out is the only one bedded. Clamped to 3:4 and 1.8:1, so a carousel is
   never a shape a single photograph could not be.
+
+- **D22. The viewer never enlarges a photograph past its own file.** Mine, and it is the
+  one place where "edge to edge" is not taken literally. Removing the inset makes a 1600px
+  photograph fill a 1440x900 laptop (1350x900 against the old 1258x839), which is the ask.
+  Making a 980px one fill it as well means painting 1.5x on a 1x screen and 2.9x on his, and
+  that is the complaint he has already made twice about the feed -- *"particularly when the
+  images are themselves not the highest resolution... we get extremely grainy things"*. So a
+  file too small to fill sits at its true size on the wash, sharp, with a shadow under it so
+  it reads as a print rather than as a failed load. **The real fix is spec §4's ladder**: a
+  bigger derivative, not a bigger box. Worth putting to him if he ever says the viewer looks
+  small on a wide screen, because the answer is the ladder and not this rule.
+- **D23. The whole caption is the control, in both directions.** Mine, and it is the direct
+  answer to *"there is no way to make it disappear except click a very exact small pill"*.
+  Pressing the words opens them; pressing them again closes them; so does Esc, which takes
+  the caption before it takes the viewer. The smallest target anywhere in the component is a
+  40px icon button. What opens with the words is everything the resting state has no room
+  for -- the rest of a long caption, the Where line, the buckets -- which is what let the
+  separate photo page go.
+- **D24. "Withdrawn on its own" and "put away by you" are different states.** Mine. The
+  chrome fades after 3.6s of stillness and any movement brings it back; a press on the
+  photograph dismisses it and movement does NOT undo that, only another press. One state for
+  both would mean a twitch of the mouse re-drawing chrome somebody had just cleared. 3.6s
+  rather than the 2.6 it was first built at: on a phone no mouse ever moves, so the press on
+  the photograph is the only way back, and a first-time reader needs long enough to find the
+  close button.
+- **D25. A member's own delete is uploader-or-admin, and shares the admin's machinery.**
+  Mine, following `deletePost`, which is the same act on a post and already has that gate.
+  An admin removing somebody ELSE'S approved photograph still goes through
+  `adminRemovePhoto` and its warm note; this is the plain hard delete. Both now call one
+  `erasePhoto`, so audit M17's ordering -- the row and the purge rows in ONE transaction, the
+  R2 drain after the commit -- exists once rather than twice. `Photo` is not on the demo's
+  `ALLOWED_WRITE_MODELS`, so the demo's default-deny already covers the new action and no
+  closed list needed an entry.
 
 ## Findings from reading the code (2026-08-26, session 1)
 
@@ -583,6 +623,34 @@ Each is the owner's, given in this session. Do not relitigate these without aski
 - **F29. `<PhotoBed>` is now shared.** The blur beside a photograph was inline in
   `<PhotoFrame>`; the carousel needs the identical thing, and a second copy of a filter nobody
   would remember to keep in step is how the two drift. One component, both callers.
+- **F30. A full-screen overlay in the page tree is not on top of the page.** The viewer has
+  been `fixed inset-0` at `--z-overlay` since it shipped, and on a phone the sidebar's
+  `sticky z-40` header painted straight over it -- the close button included. z-index only
+  orders siblings within a stacking context, and an ancestor of the viewer had already
+  opened one. It renders through a portal on `document.body` now, which is what `aria-modal`
+  had been claiming all along. Anything else in this app that is "above everything" and is
+  NOT portalled is worth checking for the same thing.
+- **F31. A measurement that runs once can run against nothing.** "More" appears only when
+  the caption is really cut off, which is measured (`scrollHeight` against `clientHeight`)
+  rather than guessed from a character count, because the answer depends on the glyphs and
+  the width. The layout effect ran on the first render -- when the portal ref was still null
+  and the component returned null -- and with every other dependency already settled it never
+  ran again. Result: a caption clamped at 45px around 90px of text, with no way to open it,
+  which is the exact bug this phase exists to end. `portal` is in the dependency list now.
+  The general shape: **when a component can return null before its DOM exists, whatever
+  gates that render belongs in the deps of every effect that measures.**
+- **F32. Two shared primitives had a light-surface hover baked in.** `LoveButton` and
+  `ShareButton` both paint the app's ink `state-layer` and send their label to
+  `text-foreground` on hover. Over a near-black wash the ink tint has nothing to darken and
+  the label walks into the picture. Each grew one `onDark` prop rather than the viewer
+  keeping a private copy; the heart, its colour and its pop are untouched.
+- **F33. There is still almost nothing real to look at.** Two approved Collection
+  photographs, and both are test rows with "asdf" in the caption; the older of them is a
+  980x240 panorama, which is how D22 got measured at all. `/lab/viewer` is the room that
+  exercises the states (a long caption, Where, buckets, a heart, a delete, a set with its
+  counter), but its own specimens are 800-1300px, so the room CANNOT show what edge to edge
+  looks like on a laptop -- judge that on `/collection` or on a Round, where the files are
+  the real ones. The fixture set spec §12 asks for is still owed and is now overdue twice.
 - **F7. A concurrent session is editing this area.** `src/app/(main)/collection/page.tsx`
   changed on disk mid-session (server-side first-page fetch added, `firstPage` prop passed
   to `CollectionClient`). Per CLAUDE.md, work around other sessions' edits, never stash or
@@ -626,9 +694,9 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | # | Ask | Status |
 |---|---|---|
 | 15 | A newly uploaded photo does not appear until the page is reloaded | open — **bug** |
-| 17 | Clicking a photo did not open the viewer the first time ("this doesn't even load... Okay. Loaded") | open — **bug**, suspect the `dynamic()` import latency in `collection-client.tsx:28` |
-| 21 | The viewer shows the *upload* date, not the date the photo was taken | open — **bug/gap** |
-| 36 | Catch-up images cannot be clicked to expand | open — **bug** |
+| 17 | Clicking a photo did not open the viewer the first time ("this doesn't even load... Okay. Loaded") | **fixed** — phase 4. It was the `dynamic()` import; every tile now warms it on pointer enter and on focus, as the post card already did |
+| 21 | The viewer shows the *upload* date, not the date the photo was taken | **fixed** — phase 4, `takenLabel` in `src/lib/collection.ts`. "May 1978", "1978", "the 1970s", or nothing |
+| 36 | Catch-up images cannot be clicked to expand | **fixed** — phase 4. A wall photograph opens the viewer on the WHOLE wall |
 | 35 | Catch-up photos crop friends' faces out; "sometimes the catch up just shows a bunch of shoulders" | **fixed** — phase 2 for one photograph, phase 3 for the wall and the legacy multi-photo answer |
 | 55 | The white outline around a photo on its blurred bed. Fractional widths (a 2:3 photo is 466.67px in a 728px column) let the frame's own light background show as a hairline down the edge, invisible on paper and obvious over blur | **fixed** — dimensions round to whole pixels, and a photo on a bed carries no background or border of its own |
 | 56 | Search must still read the descriptions | **answered** — spec §7.2, yes |
@@ -638,18 +706,18 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | 60 | Catch-up photographs made the reader wait about a second each. "I can't have the user waiting for anything wtf how can we not have the photos ready for them to look at" | **fixed** — F19, they are back on the bucket's own urls. The lasting answer is spec §4 |
 | 61 | The blurred bed was "quite shabbily done... yucky blur bars" | **fixed** — F20, the bed is the photograph rather than its 16px thumbnail |
 | 62 | "560 makes one post take up my entire desktop screen which shouldn't happen" | **decided** — D15, the ceiling is 500 |
-| 54 | **No way for a member to take down a photo they uploaded**, short of asking an admin. Owner, 2026-08-27: "there's no easy intuitive way for me to take down a photo that i've uploaded now? apart from using the admin thing" | open — **verified, F11** |
+| 54 | **No way for a member to take down a photo they uploaded**, short of asking an admin. Owner, 2026-08-27: "there's no easy intuitive way for me to take down a photo that i've uploaded now? apart from using the admin thing" | **fixed** — phase 4, `deleteOwnPhoto`, uploader-or-admin, behind a confirm. D25 |
 
 ### The image viewer
 
 | # | Ask | Status |
 |---|---|---|
-| 18 | Edge to edge; more immersive; a better photo-to-whitespace ratio. He recalls Dropbox or Google Drive doing it "all the way" | open |
-| 19 | The caption panel is the worst of it: low frame rate, a bottom bar that pops up, dismissible only by hitting one small exact pill. "It's like the worst design ever" | open — **redesign** |
-| 20 | The "2 of 2" counter may not be needed, at least in the Collection | open |
+| 18 | Edge to edge; more immersive; a better photo-to-whitespace ratio. He recalls Dropbox or Google Drive doing it "all the way" | **done** — phase 4, with the one limit in D22 (never enlarged past its own file) |
+| 19 | The caption panel is the worst of it: low frame rate, a bottom bar that pops up, dismissible only by hitting one small exact pill. "It's like the worst design ever" | **done** — phase 4. The panel is deleted; the caption is always on screen and the whole of it is the control. D23 |
+| 20 | The "2 of 2" counter may not be needed, at least in the Collection | **done** — phase 4. Gone in the Collection (`showCount={false}`), kept where a count is a real fact: a post, a letter, a Catch-up wall |
 | 21 | Show the person and the date the photo was taken | open |
-| 22 | `/collection/[id]` probably should not exist; fold the heart and the tags into the viewer. "That another page isn't even pretty" | open — recommend keeping the *route* for shareable links but deleting the separate page design |
-| 27 | The caption and its surroundings can be much prettier | open |
+| 22 | `/collection/[id]` probably should not exist; fold the heart and the tags into the viewer. "That another page isn't even pretty" | **done** — phase 4. The route renders the grid with the viewer open on that photograph; the page design is deleted, and `photo-love-button.tsx` and `photo-moderation-control.tsx` went with it |
+| 27 | The caption and its surroundings can be much prettier | **done** — phase 4, and **his to judge**. Two lines on a warm-ink scrim, the buckets and the Where line one press behind them |
 | 51 | The reference viewer is simple, intuitive, few elements, though its animations are choppy; ours will have more elements | reference |
 
 ### Image display across the app
@@ -662,7 +730,7 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | 38 | Avoid a wall of black bars, but find the right way to crop | open — **D6, the gating decision** |
 | 39 | Consider rules for how wide the feed may be | open — **now a control in `/lab/crop`**, and F8 says it is half the answer |
 | 40 | **Thorough testing across every aspect ratio, and combinations of ratios within one post**, across feed, catch-ups and Collection | **partly** — every ordered pair and triple of nine ratios at all three column widths is asserted in `photo-layout.test.mjs`. The fixture set of real photographs (spec §12) is still owed, F26 |
-| 41 | Every image clickable, opening in our viewer | open |
+| 41 | Every image clickable, opening in our viewer | **done** — phase 4. Catch-ups were the last surface; the feed, letters and the Collection already were |
 
 ### The Collection's aesthetics and landing page
 
@@ -694,8 +762,13 @@ reading the brief** — the wording in the brief carries nuance this table does 
 
 ## Open questions for the owner
 
-1. **The crop policy** (D6). Blocked on the `/lab/crop` room.
-2. **The multi-photo layout** — same room, same decision point.
+1. **The viewer, all of it** (phase 4). It is built and he has not seen it. The three worth
+   naming: the photograph is never enlarged past its own file, so a small old scan does not
+   fill a wide screen (D22); the chrome disappears after 3.6s of stillness, which is
+   deliberate and is the only way "nothing on screen but the photograph" happens (D24); and
+   the counter is gone in the Collection but kept on a post (#20).
+2. **The two he already owns, unresolved from the session before this one**: the square case
+   in F27, and a mixed-orientation carousel always bedding the odd shape out (D21).
 3. **The landing shape** (#42/#44) — folders, a flowing grid, or a hybrid. Approaches to
    be proposed with a recommendation, not asked cold.
 4. **The bucket vocabulary** (#5/#48) — to be proposed, not asked. He has said twice he
@@ -821,3 +894,43 @@ The owner looked at phase 3 in his own feed and asked for two things. Both shipp
 - `npm run check` 81/81, `npm run visual` 23/23 with no baseline moved, `verify:crawl` 20/20.
 - **Unresolved, and his to call**: the square case in F27, and the fact that a mixed-orientation
   carousel always beds somebody -- the odd shape out. Both are stated rather than smoothed over.
+
+### Session 4 — 2026-08-28 (Opus)
+
+Read `brief.md` and `spec.md` in full and `prior-art.md`, then built **phase 4: the viewer**.
+Detail in `progress.md` under the same date; what changes what the next session should do is
+D22 to D25 and F30 to F33 above.
+
+- `src/components/common/image-viewer.tsx`, rebuilt. Edge to edge with no inset, chrome on
+  warm-ink scrims that withdraws after 3.6s of stillness, the fold-up caption panel and its
+  dismiss pill deleted, a Tab trap, Esc taking the caption before the viewer, the date taken
+  rather than the date uploaded, and the heart, the buckets, the Where line and a delete all
+  in the bottom row. `showCount` turns the counter off for the Collection.
+- `takenLabel` and `eraPhrase` in `src/lib/collection.ts` with seven tests;
+  `PhotoData.takenLabel`; `deleteOwnPhoto` and the shared `erasePhoto` in
+  `collection/actions.ts`; `loadPhoto` for a permalink; `collection-data.ts` so
+  `/collection` and `/collection/[id]` fetch through one function.
+- `/collection/[id]` is the grid with the viewer open on that photograph.
+  `photo-love-button.tsx` and `photo-moderation-control.tsx` are deleted with the page they
+  were the only callers of, and `src/lib/heart.test.mjs` repointed at the grid, which is
+  where the Collection's heart lives now.
+- Catch-ups: `answer-photos.tsx` and `photo-wall.tsx`, both new client components, so every
+  photograph in a Round opens (#36, #41). A wall photograph opens the viewer on the whole
+  wall.
+- `LoveButton` and `ShareButton` each grew one `onDark` prop (F32). `/lab/viewer` rewritten
+  to exercise the new states, and its registry note with it.
+- `npm run check` 82/82, `npm run visual` 23/23 with no baseline moved. Measured in a real
+  browser at 1440x900 and 390x844 on `/lab/viewer`, `/collection`, a real
+  `/collection/[id]` and a live Round.
+- **The write-path review was done in this session by hand** rather than by the subagent,
+  the same way session 2 did it. `deleteOwnPhoto`: auth precedes the write and the row is
+  re-read for its uploader before the gate; no user input reaches Prisma beyond the id;
+  `Photo` is absent from the demo's `ALLOWED_WRITE_MODELS`, so default-deny covers it and no
+  closed list needed an entry; no schema change. The one thing a reviewer should look at
+  again is that an ADMIN can now hard-delete somebody else's photograph through this action
+  (D25 argues why, following `deletePost`) -- the UI always sends them to the note flow
+  instead, but the action allows it.
+- **What the owner has not seen.** All of it. The three to put in front of him are in Open
+  questions 1 above.
+- **Next session: phase 5, the Collection page.** Read this file, then `brief.md` in full,
+  then spec §6 and §7. Nothing is blocked.

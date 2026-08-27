@@ -58,3 +58,51 @@ export function eraFromYear(year: number): string {
   const bucket = `${decade}s`;
   return (ERA_VALUES as readonly string[]).includes(bucket) ? bucket : "unknown";
 }
+
+/* ------------------------------------------------------------------ *
+ *  When a photograph was TAKEN, in words.
+ *
+ *  The owner, looking at the viewer during the 2026-08-26 brief: "It's
+ *  important to show the person and the date or wait, what you are
+ *  showing the date it was uploaded. So we are actually not seeing the
+ *  date that people are saying this photo was taken." A photograph of
+ *  1978 stamped with the day somebody scanned it in 2026 is worse than
+ *  no date at all, so this reads the three columns the contributor
+ *  actually filled in and says only what they said.
+ *
+ *  It prints at the precision it was given and no finer: a month if
+ *  there is one, a year if there is one, a decade if the contributor
+ *  wasn't sure, and NOTHING when they gave nothing. `datePrecision` is
+ *  the contributor's own answer to which of those they meant, but rows
+ *  predating that column carry only `photoYear`/`era`, so the fields
+ *  themselves decide and the precision only narrows.
+ * ------------------------------------------------------------------ */
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/** "the 1970s", "before 1960" -- an era value as it reads in a sentence. */
+export function eraPhrase(era: string): string | null {
+  if (!era || era === "unknown") return null;
+  if (era === "pre-1960s") return "before 1960";
+  return /^\d{4}s$/.test(era) ? `the ${era}` : eraLabel(era);
+}
+
+export function takenLabel(photo: {
+  photoYear?: number | null;
+  photoMonth?: number | null;
+  datePrecision?: string | null;
+  era?: string | null;
+}): string | null {
+  const { photoYear, photoMonth, datePrecision } = photo;
+  if (photoYear) {
+    const month =
+      datePrecision !== "year" && photoMonth && photoMonth >= 1 && photoMonth <= 12
+        ? MONTHS[photoMonth - 1]
+        : null;
+    return month ? `${month} ${photoYear}` : String(photoYear);
+  }
+  return eraPhrase(photo.era ?? "");
+}

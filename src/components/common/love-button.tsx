@@ -56,6 +56,7 @@ export function LoveButton({
   className = "",
   label,
   size = "md",
+  onDark = false,
 }: {
   liked: boolean;
   count: number;
@@ -64,6 +65,13 @@ export function LoveButton({
   showCount?: boolean;
   className?: string;
   label?: string;
+  /** Floating over a photograph rather than sitting on a warm surface. The
+   *  full-screen viewer is the one region in the app whose background does not
+   *  follow the theme: `state-layer` paints an INK tint, which has nothing
+   *  left to darken on a near-black wash, and `hover:text-foreground` would
+   *  send the label to dark ink over the picture. Same button, same heart,
+   *  two hovers. */
+  onDark?: boolean;
   /** Named variants only (see HEART above): `md` for post rows, `sm` for dense meta lines. */
   size?: keyof typeof HEART;
 }) {
@@ -93,8 +101,12 @@ export function LoveButton({
       // same weight in the photo viewer and the Collection, which sit on
       // different surfaces. It paints a background-IMAGE, so it composites
       // over the card instead of replacing it, and it cannot touch the heart.
-      className={`state-layer inline-flex items-center ${gap} rounded-full ${padding} ${text} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
-        liked ? "text-heart" : "hover:text-foreground"
+      className={`inline-flex items-center ${gap} rounded-full ${padding} ${text} focus-visible:outline-2 focus-visible:outline-offset-2 ${
+        onDark
+          ? "text-white/85 transition-colors duration-150 hover:bg-white/12 focus-visible:outline-white"
+          : "state-layer focus-visible:outline-ring"
+      } ${
+        liked ? "text-heart" : onDark ? "hover:text-white" : "hover:text-foreground"
       } ${className}`}
     >
       <span className="relative inline-flex">

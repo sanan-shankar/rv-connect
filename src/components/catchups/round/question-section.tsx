@@ -23,62 +23,8 @@
 import Link from "next/link";
 import { IdentityRow } from "@/components/common/identity-row";
 import { AnswerCard, type RoundEntry } from "@/components/catchups/round/answer-card";
-import { EntryLoveButton } from "@/components/catchups/round/entry-love-button";
+import { PhotoWall } from "@/components/catchups/round/photo-wall";
 import { promptKind, type CatchupPromptView } from "@/lib/catchups-types";
-import { PhotoStream } from "@/components/common/photo-rows";
-
-/* A wall is many photographs of many shapes, so it is justified rows rather
-   than a grid of squares -- the square was the wall's own version of the crop
-   that cost the Catch-up its faces, and a wall of them is the one place the
-   damage repeats twenty times over. A photograph nobody has measured keeps the
-   square it has always had, which is what the 1:1 below is. */
-const UNMEASURED = { width: 1, height: 1 };
-
-function PhotoWall({ entries }: { entries: RoundEntry[] }) {
-  const cells = entries.map((entry) => ({
-    entry,
-    ...(entry.photos[0] ?? UNMEASURED),
-  }));
-  return (
-    <PhotoStream photos={cells} gap={16} as="ul" keyOf={(c) => c.entry.id}>
-      {({ entry }, _i, cell) => (
-        <div id={`entry-${entry.id}`} className="min-w-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={entry.images[0]}
-            alt={`Added by ${entry.author.name}`}
-            loading="lazy"
-            decoding="async"
-            className="w-full rounded-[var(--radius-md)] border border-border object-cover"
-            style={{ aspectRatio: cell.aspectRatio }}
-          />
-          {entry.body?.trim() && (
-            <p className="mt-[var(--space-xs)] whitespace-pre-wrap text-[13.5px] leading-[1.55] text-foreground">
-              {entry.body}
-            </p>
-          )}
-          <div className="mt-[var(--space-xs)] flex items-center justify-between gap-1">
-            <Link
-              href={`/profile/${entry.author.id}`}
-              className="min-w-0 truncate rounded-md text-[13px] font-semibold text-muted-foreground hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-              {entry.author.name}
-            </Link>
-            {/* Cancels the LoveButton's own px-2.5 so the heart sits flush
-                with the picture's right edge. */}
-            <div className="-mr-2.5 shrink-0">
-              <EntryLoveButton
-                entryId={entry.id}
-                initialLoved={entry.lovedByViewer}
-                initialCount={entry.loveCount}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-    </PhotoStream>
-  );
-}
 
 export function QuestionSection({
   id,
