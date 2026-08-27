@@ -35,12 +35,25 @@ function serializeNode(node: ChildNode): string {
   if (node.nodeType !== Node.ELEMENT_NODE) return "";
   const el = node as HTMLElement;
   if (el.tagName === "BR") return "\n";
-  let inner = Array.from(el.childNodes).map(serializeNode).join("");
+  const isBlock = el.tagName === "DIV" || el.tagName === "P";
+  const children = Array.from(el.childNodes);
+  /* The browser's filler <br>, which is not a line break anyone typed.
+     A blank line in a contentEditable is `<div><br></div>`: the <br> exists
+     only to give an empty block height. Counting it as well as the block
+     emitted TWO newlines for ONE blank line, so a letter written with a blank
+     line between paragraphs was STORED with two and came back from Drafts
+     spaced double (owner, 2026-08-27). The doubling never showed while
+     writing, because the sheet was rendering the DOM rather than the
+     serialized text -- it only appeared on reopening.
+     A <br> anywhere else in the block is real: `<div>a<br>b</div>` is two
+     lines and still serializes as two. */
+  if (isBlock && (children.at(-1) as HTMLElement | undefined)?.tagName === "BR") children.pop();
+  let inner = children.map(serializeNode).join("");
   if (inner && isBoldNode(el)) inner = `**${inner}**`;
   if (inner && isItalicNode(el)) inner = `*${inner}*`;
   if (inner && isUnderlineNode(el)) inner = `__${inner}__`;
   if (inner && isStrikeNode(el)) inner = `~~${inner}~~`;
-  if (el.tagName === "DIV" || el.tagName === "P") return "\n" + inner;
+  if (isBlock) return "\n" + inner;
   return inner;
 }
 
