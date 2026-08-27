@@ -74,7 +74,7 @@ language, only for that phase's decisions (report §4 has the full wording + rec
 |---|---|
 | 2 | Showcase fate + where the public Privacy/Terms links live NOW (#1); tour for members (#2); /donate redirect-vs-delete (#16/18); Profession filter — #10 is PART-ANSWERED (owner wants the feature long term; only the facet's launch fate is open, see report §4 #10); LogoFact (#11); About page (#3) |
 | 5 | Duplicate TS check on deploys (#5); Vercel Analytics (#7); lab CSS measurement authorisation (#6) |
-| 6 | ALL database drops (#4, incl. the Visit trio and the orphan reverted-Catchup tables); Collection taxonomy SELECT verdict (#16); avatarColor column |
+| 6 | **ANSWERED 2026-08-27 — do not ask again.** All database drops approved, incl. the Visit trio and `avatarColor`, in his words: "these are all useless you can drop". The reverted-Catchup tables need no decision: all six were already dropped. Collection taxonomy SELECT (#16) is the ONLY §4 item still open here, and it gates nothing in the drop set. |
 | any time | Skills/agents relocation after the campaign (#8); probe retirement (#9); email queue (#12, post-launch); birds sprite (#13, quiet week); "sanan's stuff" move (#15, owner does it himself); §7 CLAUDE.md wording sign-off |
 
 If a decision hasn't arrived, do the phase's autonomous items, skip the gated ones, and
