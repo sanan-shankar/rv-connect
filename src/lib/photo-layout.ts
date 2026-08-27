@@ -113,11 +113,13 @@ export const PHOTO_MAX_HEIGHT = 500;
 export const AIM_Y = { lo: 0.15, hi: 0.5 };
 export const AIM_X = { lo: 0.25, hi: 0.75 };
 
+/** A photograph's shape, and nothing else. It is all justified rows ever
+ *  need, because they never crop: no focal point, because nothing is aimed. */
+export type PhotoShape = { width: number; height: number };
+
 /** What the renderer needs to know about a photograph. The subset of the
  *  `Image` row that decides layout, so a caller can pass a row straight in. */
-export type PhotoFacts = {
-  width: number;
-  height: number;
+export type PhotoFacts = PhotoShape & {
   focalX: number;
   focalY: number;
 };
@@ -210,17 +212,25 @@ export function framePhoto(facts: PhotoFacts): PhotoFrame {
  * of the two, which is what `min()` says.
  */
 export function photoSizes(columnSizes: string, frame: PhotoFrame): string {
+  return mapSizes(columnSizes, (slot) => `min(${slot}, ${frame.maxWidth}px)`);
+}
+
+/**
+ * Rewrite every slot in a `sizes` list, leaving the media conditions alone.
+ *
+ * A `sizes` clause is an optional media condition and then a length. The
+ * condition is the parenthesised group at the START, which is the only
+ * reliable way to split it: the length itself is often a `calc()` and may hold
+ * parentheses of its own, so looking for the last `") "` cuts
+ * `calc((100vw - 104px) / 2)` in half.
+ */
+function mapSizes(columnSizes: string, slotFn: (slot: string) => string): string {
   return columnSizes
     .split(",")
     .map((clause) => {
-      /* A `sizes` clause is an optional media condition and then a length. The
-         condition is the parenthesised group at the START, which is the only
-         reliable way to split it: the length itself is often a `calc()` and
-         may hold parentheses of its own, so looking for the last `") "` cuts
-         `calc((100vw - 104px) / 2)` in half. */
       const [, condition = "", slot = clause.trim()] =
         /^(\([^)]*\))\s+(.+)$/.exec(clause.trim()) ?? [];
-      return `${condition ? `${condition} ` : ""}min(${slot}, ${frame.maxWidth}px)`;
+      return `${condition ? `${condition} ` : ""}${slotFn(slot)}`;
     })
     .join(", ");
 }
@@ -242,4 +252,208 @@ export function drawnSize(
   const width = Math.min(columnWidth, frame.maxWidth);
   const [w, h] = frame.aspectRatio.split("/").map((n) => Number(n.trim()));
   return { width, height: width * (h / w) };
+}
+
+/* ================================================================== *
+ *  SEVERAL photographs together: a post with two or three, a Catch-up
+ *  photo wall, the Collection grid.
+ *
+ *  Justified rows, which is what the owner's reference gallery does
+ *  (<https://gallery.alekziol.com/mechsoc-banquet/>, Pixieset, measured
+ *  on 2026-08-26) and what Flickr, Google Photos and Unsplash all do.
+ *  Every photograph keeps the shape it is drawn at, the gutters stay
+ *  even, and the rows line up -- spec §3.2, D11 and D12. The arithmetic
+ *  is one line: for a row of ratios r1..rn with n-1 gaps of g,
+ *
+ *      height = (containerWidth - g * (n - 1)) / (r1 + ... + rn)
+ *
+ *  because each photograph's width is its ratio times the shared height,
+ *  and those widths plus the gaps have to come to the container width.
+ *
+ *  IT IS BUILT AS FLEXBOX, NOT AS MEASURED PIXELS, and that is the one
+ *  departure from `/lab/crop`'s model worth stating out loud. The lab
+ *  room measured its stage with a ref and computed every rectangle in
+ *  JavaScript, which is right for a room whose whole subject is the
+ *  arithmetic. In the app it would be wrong for the same reason the
+ *  single-photograph rule above is pure CSS: a layout that has to
+ *  measure its container can only run after the first paint, so the
+ *  photographs would land in the wrong places and then jump -- the
+ *  complaint (#18) this phase exists to end, not to relocate.
+ *
+ *  So the browser solves it. Every photograph gets a flex-basis of
+ *  `ratio x targetHeight` -- its natural width at the height we are
+ *  aiming for -- and a flex-grow of `ratio`. `flex-wrap` then breaks the
+ *  line in the same place the greedy justified walk would, and the grow
+ *  justifies whatever landed there: free space is shared in proportion
+ *  to ratio, so every photograph on the line comes out the same height
+ *  and the widths add up to the container exactly.
+ *
+ *  THE ROW COUNT FOLLOWS THE COLUMN, which is the reason it is done this
+ *  way and not by deciding "three per row" in JavaScript. That was the
+ *  first attempt and the phone killed it: three photographs balanced
+ *  into one row are 267, 334 and 113px wide in a 730px feed card, which
+ *  is right, and 112, 140 and 47px wide in a 316px one, which is a
+ *  contact sheet. A basis in real pixels wraps on its own -- three
+ *  across a laptop, one across a phone, and each of those photographs
+ *  then drawn exactly as a single photograph would be.
+ *
+ *  `drawnRows` at the bottom is the same arithmetic written out, so the
+ *  tests can assert what the browser is going to do.
+ * ================================================================== */
+
+/** A photograph's aspect ratio. Everything below is a function of this. */
+export function photoRatio(p: PhotoShape): number {
+  return p.width / p.height;
+}
+
+/**
+ * The ratio a framed photograph is actually DRAWN at, which is its own except
+ * where the single-photograph rule has brought it to 3:4.
+ *
+ * This is what a row of photographs in a feed card or a Catch-up answer is
+ * solved from, and the reason is a measurement rather than a preference. A
+ * real post in the feed on 2026-08-27 holds a 1.77, a 2.21 and a 0.45 -- two
+ * wide frames and a screenshot -- and solving that row at true shapes drew the
+ * screenshot **72px wide** beside a 357px neighbour. Justified rows give every
+ * photograph in a row the same height, so the width disparity is the ratio
+ * disparity, and 2.21 against 0.45 is five to one.
+ *
+ * Bringing the tall one to 3:4 first is not a new rule; it is the LOCKED rule
+ * from §3.1 applied where it was already going to apply. A tall photograph
+ * posted ON ITS OWN is drawn 3:4 on a blurred bed, aimed and clamped. There is
+ * no reading of that decision under which the same photograph, posted beside
+ * two others, should instead be a strip. It also lands exactly where D11 put
+ * the line: the feed and Catch-ups crop, the Collection grid does not -- and
+ * the grid is the other component, which never calls this.
+ *
+ * The wide side is deliberately left alone. Clamping a 21:9 to 16:9 would cut
+ * a quarter off a panorama to buy about 20px for its neighbours, and the owner
+ * was unambiguous: "for very wide images like 21:9... we should just let it be
+ * a thin photo." A wide photograph in a row makes the whole row shorter, which
+ * is uniform, and uniform is not a bug.
+ */
+export function drawnRatio(frame: PhotoFrame): number {
+  const [w, h] = frame.aspectRatio.split("/").map((n) => Number(n.trim()));
+  return w / h;
+}
+
+/**
+ * The height a row of photographs in a CARD aims for, in px.
+ *
+ * Not a taste number, a packing number: it is what decides how many
+ * photographs share a row at each column width, because a photograph's
+ * flex-basis is this times its ratio. Measured against the real columns:
+ *
+ *   730px laptop card   three ordinary frames on one row, 151px high
+ *   358px phone card    one wide frame per row, or two portraits
+ *   900px wide card     three on a row, 189px high
+ *
+ * Raise it and a laptop drops to two per row; lower it and a phone starts
+ * putting three across, which is the contact sheet this number exists to
+ * prevent. Spec §3.2 marked the row guards OPEN and named a target of
+ * `columnWidth / 2.2`; a fraction of the column cannot do this job at all,
+ * because it packs the same number of photographs into a phone as into a
+ * 27-inch monitor, which is exactly the failure.
+ */
+export const PHOTO_ROW_TARGET = 150;
+
+/**
+ * The height a row of the COLLECTION GRID aims for, as CSS rather than a
+ * number, because the right target is not a constant: 220px suits a 1112px
+ * Collection column and would put one photograph on a row of a 358px phone.
+ *
+ * A percentage of the CONTAINER rather than of the viewport, which matters
+ * here: the sidebar appears at a breakpoint, so the column does not change
+ * width at the same places the viewport does. 30% is two ordinary frames
+ * across a phone and three or four across a laptop.
+ *
+ * Aimed a little UNDER where the rows should land, and that is deliberate.
+ * flex-wrap breaks a line the moment the next photograph's basis does not
+ * fit, so a row can only ever grow past this number, never settle below it --
+ * where the greedy justified walk is free to do either, and Flickr's own
+ * refinement is to take whichever is CLOSER to the target. Aiming low
+ * recovers most of that. Measured on the Collection with its two
+ * photographs: a 4:1 panorama and a 5:4 print aiming at 220 could not share
+ * a 1112px row, so the panorama took a row to itself at full width, and the
+ * row they would have shared was 207px high -- nearer 220 than the layout
+ * that rejected it. At 190 they sit together.
+ */
+export const PHOTO_GRID_TARGET = "min(190px, 30%)";
+
+/**
+ * A photograph's flex-basis: its natural width at the height the row is
+ * aiming for. `flex-wrap` breaks the line where the greedy justified walk
+ * would, and `flex-grow` justifies what landed there.
+ */
+export function photoBasis(ratio: number, targetHeight: string): string {
+  return `calc(${targetHeight} * ${ratio.toFixed(4)})`;
+}
+
+/**
+ * A photograph's flex-grow. Its ratio, scaled -- and the scale is the whole
+ * reason this is a function rather than the ratio itself.
+ *
+ * **A flex line whose grow factors sum to LESS THAN ONE does not fill.** The
+ * spec says so: below one, the factors are treated as fractions of the free
+ * space rather than as shares of it, and the remainder is simply left over.
+ * Ratio is a natural grow factor -- free space shared in proportion to ratio
+ * is exactly what makes every photograph in a row the same height -- but a
+ * lone 3:4 photograph on a row has a grow of 0.75, so it took three quarters
+ * of the space and stopped: measured 265px wide in a 316px phone card on
+ * 2026-08-27, with 51px of nothing beside it. Scaling every factor by the same
+ * number changes no proportion and puts every plausible row safely over one.
+ */
+export function photoGrow(ratio: number): number {
+  return ratio * 1000;
+}
+
+/**
+ * What the browser will draw: where flex-wrap breaks each line, and what
+ * height each line settles at. The same arithmetic as the flexbox above,
+ * written out so it can be asserted at the real column widths rather than
+ * eyeballed (spec §12).
+ *
+ * A line takes the next photograph if its basis still fits, which is what
+ * flexbox does with `flex-wrap` and a definite basis. Then the line grows to
+ * fill the width -- never shrinks, since a line that overflowed would have
+ * wrapped instead -- up to whatever caps its photographs. `caps` is that, per
+ * photograph, in the same order: a card passes each photograph's own
+ * single-photograph max width, so a lone one on the last row is drawn exactly
+ * as it would have been had it been posted alone; the grid passes a multiple
+ * of the target instead.
+ */
+export function drawnRows(
+  ratios: number[],
+  caps: number[],
+  containerWidth: number,
+  gap: number,
+  targetHeight: number
+): { height: number; widths: number[]; capped: boolean }[] {
+  const lines: { r: number; cap: number }[][] = [];
+  let line: { r: number; cap: number }[] = [];
+  let basis = 0;
+  ratios.forEach((r, i) => {
+    const next = r * targetHeight;
+    if (line.length && basis + gap * line.length + next > containerWidth) {
+      lines.push(line);
+      line = [];
+      basis = 0;
+    }
+    line.push({ r, cap: caps[i] });
+    basis += next;
+  });
+  if (line.length) lines.push(line);
+
+  return lines.map((row) => {
+    const sum = row.reduce((a, c) => a + c.r, 0);
+    const free = (containerWidth - gap * (row.length - 1)) / sum;
+    /* Every photograph in a row reaches its cap at the same height when the
+       caps are all `ratio x something`, which is how both callers set them --
+       so a capped row is still a row. */
+    const height = Math.min(free, ...row.map((c) => c.cap / c.r));
+    /* A capped row is narrower than its container and is centred rather than
+       ragged. That is not the layout failing: it is the 500px ceiling being
+       paid for in width, because nothing here may be cut to pay for it. */
+    return { height, widths: row.map((c) => c.r * height), capped: height < free - 0.01 };
+  });
 }

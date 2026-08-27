@@ -106,6 +106,13 @@ export function photoSrcSet(url: string): string | undefined {
  *  most likely to open from a link. Hence WIDE_ / CENTERED_ / LETTER below;
  *  the column is now in the name, so the next call site has to choose.
  *
+ *  The HALF variants are gone (2026-08-27). A post with more than one
+ *  photograph no longer tiles them into half-width cells -- it lays them out
+ *  in justified rows, where a photograph's share of the row is its ratio over
+ *  the row's, and how many share a row depends on how wide the column turned
+ *  out to be. "Half" stopped describing any real slot. What a photograph in a
+ *  row promises instead is in photo-layout.ts, under `rowPhotoSizes`.
+ *
  *  Shared arithmetic, since every number below is built from it. The shell
  *  (app-shell.tsx) is `p-5 sm:p-7 lg:p-10` -- 20 / 28 / 40px a side -- beside
  *  a 248px sidebar that appears at md. So the centered column is
@@ -131,10 +138,6 @@ export function photoSrcSet(url: string): string | undefined {
 export const PHOTO_SIZES_WIDE_FULL =
   "(max-width: 767px) 100vw, (max-width: 1179px) calc(100vw - 96px), (max-width: 1927px) calc(100vw - 712px), 1216px";
 
-/** The same column split in two, for a post with more than one photo. */
-export const PHOTO_SIZES_WIDE_HALF =
-  "(max-width: 767px) 50vw, (max-width: 1179px) calc((100vw - 104px) / 2), (max-width: 1927px) calc((100vw - 720px) / 2), 604px";
-
 /**
  * The same post card standing in the CENTERED column: a member's profile.
  *
@@ -151,10 +154,6 @@ export const PHOTO_SIZES_WIDE_HALF =
  */
 export const PHOTO_SIZES_CENTERED_FULL =
   "(max-width: 639px) calc(100vw - 80px), (max-width: 767px) calc(100vw - 96px), (max-width: 1023px) calc(100vw - 344px), (max-width: 1095px) calc(100vw - 368px), 728px";
-
-/** The same, split in two across the card's 8px grid gap. */
-export const PHOTO_SIZES_CENTERED_HALF =
-  "(max-width: 639px) calc((100vw - 88px) / 2), (max-width: 767px) calc((100vw - 104px) / 2), (max-width: 1023px) calc((100vw - 352px) / 2), (max-width: 1095px) calc((100vw - 376px) / 2), 360px";
 
 /**
  * A photograph in a letter, which is neither of the above: the letter reader

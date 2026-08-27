@@ -1,5 +1,84 @@
 # Progress Log
 
+## 2026-08-27 — the Collection rework, phase 3: rows that line up
+
+The third of the campaign's six phases (`docs/planning/collection-rework/spec.md` §3.2), and
+the last of the "photographs are laid out badly" complaint. Phase 2 fixed one photograph in a
+column; this is several of them together — a post with two or three, a Catch-up photo wall,
+and the Collection grid, all of which still tiled into fixed boxes or into CSS-column masonry.
+
+**Justified rows, and they are flexbox rather than measured pixels.** The maths is the one
+the owner's reference gallery uses and Flickr open-sourced: a row's height is the container
+width over the sum of its photographs' aspect ratios. `/lab/crop/_justified.ts` computed that
+in JavaScript against a measured stage, which is right for a room whose subject IS the
+arithmetic and wrong in the app for the same reason the single-photograph rule is pure CSS —
+a layout that measures its container can only run after first paint, so the photographs would
+land and then jump, which is the bug (#18) this phase is meant to end. So every photograph
+gets `flex-basis: ratio x targetHeight` and `flex-grow: ratio`, and the browser breaks the
+line where the greedy walk would and shares the free space in proportion to ratio, which puts
+every photograph on the line at the same height and the widths at exactly the container.
+`_justified.ts` is deleted; there is no second implementation.
+
+**Three numbers were measured rather than chosen**, and two of them replaced something the
+spec had sketched:
+
+- **The row count follows the column, not a rule.** The first attempt balanced photographs
+  into rows of at most three in JavaScript. On a laptop that is right — a real feed post
+  holding a 1.77, a 2.21 and a 0.45 came out 267, 334 and 113px wide at 151px high. In the
+  same post on a phone it came out **47, 112 and 140px wide at 64px high**, a contact sheet.
+  A basis in real pixels wraps by itself: three across a laptop card, one across a phone, and
+  each of those then drawn exactly as a single photograph would have been.
+- **A tall photograph in a row is brought to 3:4 first.** Solved at true shapes, that same
+  post drew its 9:20 screenshot **72px wide** beside a 357px neighbour, because equal heights
+  mean the width disparity IS the ratio disparity. This is not a new rule, it is §3.1 applied
+  where it was already going to apply: there is no reading of "a tall photograph alone is
+  drawn 3:4 on a bed" under which the same photograph beside two others should be a strip.
+  It also lands where D11 drew the line — the feed and Catch-ups crop, the Collection grid
+  does not, and the grid is the other component. The wide side is left alone: clamping a 21:9
+  would cut a quarter off a panorama to buy its neighbours 20px.
+- **The grid aims a little under where its rows should land.** flex-wrap breaks the moment
+  the next basis does not fit, so a row can only grow past the target, never settle below it,
+  where the greedy walk takes whichever is closer. Aiming at 190 rather than 220 recovers
+  most of that: the Collection's two photographs could not share a 1112px row at 220 and now
+  do, at 193px high.
+
+**Two things about flexbox that cost time and are worth not relearning.** A flex line whose
+grow factors sum to **less than one** does not fill — below one the spec treats them as
+fractions of the free space rather than shares of it. Ratio is the natural grow factor, so a
+lone 3:4 photograph has a grow of 0.75 and took three quarters of its row: measured 265px
+wide in a 316px phone card, with 51px of nothing beside it. Every factor is scaled by 1000
+now, which changes no proportion. And React collapses `flexGrow`/`flexShrink`/`flexBasis`
+into the `flex` shorthand in the style attribute, so a probe selecting on `[style*=flex-basis]`
+finds nothing at all.
+
+**The trailing row gets its own mechanism, not a width cap.** A justified layout has exactly
+one ugly failure — the last row holds whatever is left, so solving it to full width blows one
+leftover photograph up to the width of the page. Capping every cell fixes that and breaks
+something worse: a row in the MIDDLE then runs short too, and rows lining up is the entire
+reason for the layout. The grid instead ends with an empty zero-width cell of large flex-grow,
+which can only ever join the last row and takes nearly all of its free space. Mid rows fill to
+the pixel; the last one sits at the target height and runs short, which is what Flickr, Google
+Photos and the reference gallery all do.
+
+Measured at 1440 and 390 with the repo's own probes. At the 1216px column a wall of mixed
+shapes lays out in rows of four and five at 210–241px, every row spanning 1216 exactly — the
+reference gallery measured 230–268 at 1170. At 728 a three-photograph post is one level row;
+at 316 it is three full-width photographs. The Collection's own two photographs now share a
+row at 193px instead of hanging in a 4-column masonry that never lined up.
+
+Seventeen tests on `photo-layout.ts`, six of them new and three of those running **every
+ordered pair and triple of nine aspect ratios** from 9:16 to 21:9 at all three column widths —
+which is the brief's "all kinds of combinations of aspect ratios in the same post", asserted
+rather than eyeballed. They caught a real case on the way: a 21:9 beside two 4:3s at 728 puts
+the second 4:3 alone on a row where the 500px ceiling binds, so the row is 667 of 728 wide and
+centred. `npm run check` 78/78, `npm run visual` 23/23 with the Collection's two baselines
+deliberately moved, `verify:crawl` 20/20.
+
+`PHOTO_SIZES_WIDE_HALF` and `PHOTO_SIZES_CENTERED_HALF` are deleted: "half a card" stopped
+describing any real slot the moment a photograph's share of its row became its ratio over the
+row's. `/lab/crop`'s "several at once" mode now renders the shipped components beside what
+each surface did before, so the change can be looked at rather than described.
+
 ## 2026-08-27 — CI was red on main for a day, and the gate it named was fine
 
 `audit-status --fail-on-open=critical,high` had been failing every push since the morning,

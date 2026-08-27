@@ -14,16 +14,19 @@
 3. **Skim [`prior-art.md`](prior-art.md)** — how Instagram, X, Flickr and Google Photos
    solved these same problems. Read it before disagreeing with a recommendation; the
    disagreement may already be answered.
-4. **Then start spec §13, phase 3: justified rows.** Phases 1 and 2 are done and committed
-   (dimensions are stored; one photograph in a column has one rule). What is left of the
-   layout work is **several** photographs together: a post with two or three, the Catch-up
-   photo wall, and the Collection grid, all of which still crop to squares or to a mosaic.
-   `src/app/lab/crop/_justified.ts` is the maths, written to be lifted. The dimensions it
-   needs now exist for every image in the database.
+4. **Then start spec §13, phase 4: the viewer.** Phases 1, 2 and 3 are done and committed —
+   dimensions are stored, one photograph in a column has one rule, and several photographs
+   together are justified rows everywhere. **All the layout work is finished**; what is left
+   is the viewer (§5), the Collection page itself (§6) and contributing (§8), and those are
+   the three most OPEN sections in the whole spec.
+
+   Phase 4 is the viewer, and it is the right next one for the same reason phases 1–3 were:
+   it is what the owner was looking at when he dictated the brief. His verdict on the caption
+   panel — *"it's like the worst design ever"* — is the single sharpest thing he said. §5
+   lists what is wrong as LOCKED and leaves every solution OPEN.
 
    If you would rather do a different phase first, say so and do it — §13's order is
-   RECOMMENDED, not LOCKED. But phases 1 and 2 were the ones the owner was actually looking
-   at, and phase 3 is the last piece of the "photographs are laid out badly" complaint.
+   RECOMMENDED, not LOCKED.
 
 **Operational context is spec §15** — repo, branch, the gate, screenshots, the test account,
 the one database behind both production and local dev, and the rule that a push is a deploy.
@@ -122,24 +125,25 @@ that rework.
         is 375x500 with 226px of bed each side at 1440 and 314x419 with none at 390; a 4:3
         feed photo went from 728x384 cropped to 728x546 whole; CLS 0.0000. See D14 and D15
         for the two places the rule moved after the spec was written.
-  - [ ] **Phase 3 — justified rows. START HERE.** Three surfaces still crop several
-        photographs into fixed boxes, and each is a live complaint:
-        a post with two or three photos tiles them into half-width `max-h-48` cells
-        (`post-card.tsx`); a Catch-up answer with more than one tiles squares, and the
-        photo wall for a `photo-wall` question is a grid of `aspect-square`
-        (`answer-card.tsx`, `question-section.tsx`); the Collection grid is CSS-column
-        masonry, which is why its rows do not line up the way the owner's reference gallery
-        does (F2, F6). `src/app/lab/crop/_justified.ts` is the algorithm, ~30 lines, written
-        to be lifted rather than retyped. Spec §3.2 has the two guard numbers and both are
-        marked **OPEN** on purpose: tune them against real photographs and trust what you
-        see over what is written.
-        **What good looks like:** open a Round with 34 photographs of mixed shape at 1440
-        and at 390, and no row is ragged, nothing is cropped, gutters are even, and no
-        photograph is a stamp beside a panorama. Then the Collection at both viewports.
-  - [ ] **Phase 4** the viewer · **Phase 5** the Collection page · **Phase 6** contributing.
-        Read spec §5, §6 and §8 before starting any of them; §6 and §8.2 are the two most
-        open sections in the whole campaign and the owner has said so in the plainest terms.
-- [ ] **Close-out**: delete `/lab/crop`, `public/lab/crop/` and the registry row; fold bug #18, #19 and the catch-up items out of `docs/planning/bugs.md`,
+  - [x] **Phase 3 — justified rows**, session 3, 2026-08-27. `<PhotoRows>` and
+        `<PhotoStream>` in `src/components/common/photo-rows.tsx`, the maths in
+        `photo-layout.ts` beside the single-photograph rule, and all four surfaces on them:
+        the post card, the Catch-up answer card, the Catch-up photo wall and the Collection
+        grid. Built as **flexbox rather than measured pixels** (F22), so the row count
+        follows the column instead of a rule (F23) and nothing has to run after first paint.
+        `/lab/crop/_justified.ts` is deleted -- it was the second implementation. See D16 to
+        D18 for the three places this departs from what the spec wrote down, and F22 to F25
+        for the measurements behind them. **D17 is the one the owner should be told about**:
+        a tall photograph inside a row is brought to 3:4 exactly as it is when alone, which
+        the spec's D12 said would not be necessary.
+  - [ ] **Phase 4 — the viewer. START HERE.** · **Phase 5** the Collection page ·
+        **Phase 6** contributing. Read spec §5, §6 and §8 before starting any of them; §6
+        and §8.2 are the two most open sections in the whole campaign and the owner has said
+        so in the plainest terms. All the layout work is done, so nothing below is blocked.
+- [ ] **Close-out**: delete `/lab/crop`, `public/lab/crop/` and the registry row (its
+      "several at once" mode now renders the SHIPPED components beside what each surface did
+      before, so it is worth keeping until the owner has looked at phase 3);
+      fold bug #18, #19, #35 and #37 out of `docs/planning/bugs.md`,
       update `docs/spec/media.md` (large parts of it are now superseded — see D2, D3),
       delete `/lab/crop` and its registry line, log in `progress.md`.
 
@@ -217,6 +221,40 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   560px photograph leaves nothing else on screen. At 500, nothing anywhere is drawn taller
   than 500px: a tall photo is 375x500, a square 500x500, a 4:3 667x500, a 21:9 900x386.
   It is one constant, `PHOTO_MAX_HEIGHT` in `src/lib/photo-layout.ts`.
+
+- **D16. Justified rows are CSS, not arithmetic in JavaScript.** Mine, and it is the shape
+  of the whole phase rather than a detail. `/lab/crop/_justified.ts` measured its stage with
+  a ref and computed every rectangle; the app gives each photograph
+  `flex-basis: ratio x targetHeight` and `flex-grow: ratio` and lets the browser do it.
+  Flexbox breaks the line where the greedy walk would, and sharing free space in proportion
+  to ratio is exactly what puts every photograph on a line at the same height. The reason it
+  matters: a layout that has to MEASURE its container can only run after the first paint, so
+  the photographs land and then jump -- which is bug #18, the thing this campaign exists to
+  end, not to relocate. It also renders on the server and survives a resize with no
+  JavaScript at all. `_justified.ts` is deleted: one implementation, per spec §3.
+- **D17. A tall photograph inside a row is brought to 3:4, exactly as it is when alone.**
+  Mine, and **the one thing in phase 3 the owner should be asked about**, because spec §3.2
+  and D12 both say several photographs are laid out "uncropped". They are, on the wide side.
+  On the tall side the measurement refuses: a real post in his own feed holds a 1.77, a 2.21
+  and a 0.45, and solving that row at true shapes drew the 0.45 -- a screenshot -- **72px
+  wide beside a 357px neighbour**. Justified rows give every photograph in a row the same
+  height, so the width disparity IS the ratio disparity, and 2.21 against 0.45 is five to
+  one. Framing first bounds it: the narrowest a row can hold is 3:4 and the same photograph
+  posted alone would have been drawn 3:4 anyway, aimed and clamped, on a blurred bed. There
+  is no reading of D6 under which a tall photograph alone is 3:4 and the same photograph
+  beside two others is a strip. It also sits exactly where **D11** drew the line -- the feed
+  and Catch-ups crop, the Collection grid does not -- and the grid is the other component,
+  which never does this. The wide side is deliberately untouched: clamping a 21:9 to 16:9
+  would cut a quarter off a panorama to buy its neighbours about 20px, against his own "we
+  should just let it be a thin photo".
+- **D18. The row count follows the column; there is no "three per row".** Mine, and it
+  replaces spec §3.2's two guard numbers, both of which were marked OPEN. A count decided in
+  JavaScript cannot be right at two column widths at once (F23), and a target expressed as a
+  fraction of the column -- which is what §3.2 proposed -- packs the same number of
+  photographs into a phone as into a 27-inch monitor, which is the same failure. A basis in
+  real pixels wraps on its own: three across a 728px card, one across a 316px one. The
+  numbers are `PHOTO_ROW_TARGET = 150` for a card and `min(190px, 30%)` for the grid, both
+  measured (F24).
 
 ## Findings from reading the code (2026-08-26, session 1)
 
@@ -435,6 +473,61 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   timeout, no pixel diff, nothing wrong with the picture. Two things worth taking from it --
   the trick itself, and that the saving was never measured while the cost arrived inside a
   minute.
+- **F22. Flexbox has two traps in it and both cost time.** First, **a flex line whose grow
+  factors sum to less than one does not fill**: below one the spec treats them as fractions
+  of the free space rather than as shares of it, and the remainder is simply left over.
+  Ratio is the natural grow factor here -- free space shared in proportion to ratio is what
+  makes a row one height -- but a lone 3:4 photograph has a grow of 0.75, so it took three
+  quarters of its row and stopped: 265px wide in a 316px phone card with 51px of nothing
+  beside it. Every factor is scaled by 1000 now (`photoGrow`), which changes no proportion.
+  Second, and only a diagnostic problem: **React collapses `flexGrow`/`flexShrink`/
+  `flexBasis` into the `flex` shorthand** in the style attribute, so a probe selecting on
+  `[style*="flex-basis"]` finds nothing and looks like the layout never rendered.
+- **F23. The row count is the decision, not the row.** The first implementation balanced
+  photographs into rows of at most three in JavaScript -- 4 goes 2+2, 5 goes 3+2 -- and
+  solved each row to the full width. It measured beautifully on a laptop and was wrong on a
+  phone by a factor of three: a real feed post's three photographs came out 267, 334 and
+  113px wide at 151px high in a 730px card, and **47, 112 and 140px wide at 64px high** in a
+  316px one. A contact sheet. The fix is not a breakpoint, it is to stop deciding: a
+  flex-basis in real pixels wraps by itself, so the same markup is three across a laptop and
+  one across a phone, and a photograph that ends up alone on a row is then drawn exactly as
+  a single photograph would have been -- same rule, same cap, no second answer.
+- **F24. Three measured numbers, and why each is what it is.**
+  `PHOTO_ROW_TARGET = 150` is a packing number, not a taste one: it is what decides how many
+  photographs share a row, because a photograph's basis is this times its ratio. At 150 a
+  730px card takes three ordinary frames at 151px high and a 358px one takes a single wide
+  frame or two portraits; raise it and a laptop drops to two, lower it and a phone starts
+  putting three across.
+  The grid's `min(190px, 30%)` is a percentage of the CONTAINER rather than the viewport,
+  because the sidebar appears at a breakpoint and the column does not change width where the
+  viewport does. It is aimed **under** where the rows should land, deliberately: flex-wrap
+  breaks the moment the next basis does not fit, so a row can only ever grow past the target,
+  never settle below it, where the greedy walk is free to take whichever is CLOSER (Flickr's
+  own refinement). At 220 the Collection's 4:1 panorama and 5:4 print could not share a
+  1112px row -- and the row they would have shared was 207px, nearer 220 than the layout that
+  rejected it. At 190 they sit together, at 193px high.
+  Measured after: a wall of mixed shapes at a 1216px column lays out in rows of four and five
+  at 210-241px, every row spanning 1216 exactly. The reference gallery measured 230-268 at
+  1170 (F2).
+- **F25. The trailing row needs its own mechanism, and a width cap is not it.** A justified
+  layout has exactly one ugly failure: the last row holds whatever is left, so solving it to
+  the full width blows a single leftover photograph up to the width of the page. Capping
+  every cell fixes that and breaks something worse -- a row in the MIDDLE then runs short
+  too, and rows lining up is the entire reason for the layout. Measured: with the cap at
+  1.5x the target, one row in twelve on a phone ran to 289px of 358. The grid instead ends
+  with an empty zero-width cell of large flex-grow, which can only ever join the last row and
+  takes nearly all of its free space, so mid rows fill to the pixel and the last one sits at
+  the target height and runs short -- what Flickr, Google Photos and the reference gallery
+  all do. A CARD has no ghost: there the last row is usually the only row, and a short one
+  reads as a rendering fault.
+- **F26. There is almost nothing in the database to test this against.** Two approved
+  Collection photographs, one post with three images, no `photo`-category Catch-up prompt at
+  all, so the photo wall does not exist in real data. That is why `/lab/crop`'s "several at
+  once" mode now renders the SHIPPED components, with a wall of 34 (the six specimens
+  repeated) beside what each surface did before. Judge phase 3 there, not on `/collection`.
+  A fixture set of real photographs at every ratio -- spec §12 asks for one, including a
+  deliberately low-resolution frame -- is still owed, and is the thing that would let the
+  visual suite cover any of this.
 - **F7. A concurrent session is editing this area.** `src/app/(main)/collection/page.tsx`
   changed on disk mid-session (server-side first-page fetch added, `firstPage` prop passed
   to `CollectionClient`). Per CLAUDE.md, work around other sessions' edits, never stash or
@@ -481,7 +574,7 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | 17 | Clicking a photo did not open the viewer the first time ("this doesn't even load... Okay. Loaded") | open — **bug**, suspect the `dynamic()` import latency in `collection-client.tsx:28` |
 | 21 | The viewer shows the *upload* date, not the date the photo was taken | open — **bug/gap** |
 | 36 | Catch-up images cannot be clicked to expand | open — **bug** |
-| 35 | Catch-up photos crop friends' faces out; "sometimes the catch up just shows a bunch of shoulders" | open — **urgent**, F3 |
+| 35 | Catch-up photos crop friends' faces out; "sometimes the catch up just shows a bunch of shoulders" | **fixed** — phase 2 for one photograph, phase 3 for the wall and the legacy multi-photo answer |
 | 55 | The white outline around a photo on its blurred bed. Fractional widths (a 2:3 photo is 466.67px in a 728px column) let the frame's own light background show as a hairline down the edge, invisible on paper and obvious over blur | **fixed** — dimensions round to whole pixels, and a photo on a bed carries no background or border of its own |
 | 56 | Search must still read the descriptions | **answered** — spec §7.2, yes |
 | 57 | "how do we make a really splendid ui for them to do so? isntead of a dialog maybe a more expansive thing... big bucket touch targets so they'll want to do it... just be fresh and creative and create something splendid" | open — spec §8.2, deliberately left OPEN |
@@ -513,7 +606,7 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | 37 | Multi-image layouts are more complicated and he does not know whether the logic works | open |
 | 38 | Avoid a wall of black bars, but find the right way to crop | open — **D6, the gating decision** |
 | 39 | Consider rules for how wide the feed may be | open — **now a control in `/lab/crop`**, and F8 says it is half the answer |
-| 40 | **Thorough testing across every aspect ratio, and combinations of ratios within one post**, across feed, catch-ups and Collection | open — a testing requirement, not optional |
+| 40 | **Thorough testing across every aspect ratio, and combinations of ratios within one post**, across feed, catch-ups and Collection | **partly** — every ordered pair and triple of nine ratios at all three column widths is asserted in `photo-layout.test.mjs`. The fixture set of real photographs (spec §12) is still owed, F26 |
 | 41 | Every image clickable, opening in our viewer | open |
 
 ### The Collection's aesthetics and landing page
@@ -535,7 +628,7 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | # | Ask | Status |
 |---|---|---|
 | 49 | Lazy loading in batches as you reach the bottom | open — F2 confirms; current Collection paginates at 24 |
-| 50 | A justified grid: mixed aspect ratios, even gutters, no black bars, no cropping | open — F2 gives the algorithm |
+| 50 | A justified grid: mixed aspect ratios, even gutters, no black bars, no cropping | **done** — phase 3, `<PhotoStream>` |
 
 ### Meta
 
@@ -628,3 +721,34 @@ session should do are D13a, F15 and F16 above.
   pathspec (`git commit -F - -- path/one path/two`), or it rides along with yours.
 - **Next session: phase 3, justified rows.** Read this file, then `brief.md` in full, then
   spec §3.2. Everything it needs is stored.
+
+### Session 3 — 2026-08-27 (Opus)
+
+Read `brief.md` and `spec.md` in full and `prior-art.md`, then built **phase 3**: justified
+rows on all four surfaces. Detail in `progress.md` under the same date; what changes what the
+next session should do is D16 to D18 and F22 to F26 above.
+
+- `src/components/common/photo-rows.tsx` -- `<PhotoRows>` for a card's handful and
+  `<PhotoStream>` for an archive's stream -- plus the maths in `photo-layout.ts` beside the
+  single-photograph rule. Wired to `post-card.tsx`, `answer-card.tsx`,
+  `question-section.tsx`'s photo wall and `collection-client.tsx`.
+  `src/app/lab/crop/_justified.ts` deleted, and `PHOTO_SIZES_*_HALF` with it: "half a card"
+  stopped describing any real slot once a photograph's share of its row became its ratio over
+  the row's.
+- Six new tests, three of which run **every ordered pair and triple of nine aspect ratios**
+  at all three column widths -- the brief's "all kinds of combinations of aspect ratios in
+  the same post", asserted rather than eyeballed. They found a real case: a 21:9 beside two
+  4:3s at 728 leaves the second 4:3 alone on a row where the 500px ceiling binds, so that row
+  is 667 of 728 and centred. `drawnRows` reports `capped` so a short row can be told apart
+  from a broken one.
+- `npm run check` 78/78, `npm run visual` 23/23 with the Collection's two baselines
+  deliberately moved (read the diff first -- it is masonry becoming rows),
+  `verify:crawl` 20/20.
+- **What the owner has not seen yet.** D17, the tall-photograph clamp inside a row, which is
+  a departure from D12's "uncropped" and has a measured reason. And the phone behaviour of a
+  three-photograph post: three full-width photographs stacked, about 760px in total, where it
+  used to be 456px of hard-cropped cells. That is longer, and every photograph in it is
+  legible; if he wants it shorter the honest answer is a carousel, not a smaller crop.
+  Both are worth putting in front of him at `/lab/crop?mode=many&n=34`.
+- **Next session: phase 4, the viewer.** Read this file, then `brief.md` in full, then spec
+  §5. Nothing in phases 4 to 6 is blocked -- the layout work is finished.
