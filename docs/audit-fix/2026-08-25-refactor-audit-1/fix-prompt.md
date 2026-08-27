@@ -79,9 +79,11 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
       measured by the SAME tool invocation, so the comparisons are like-for-like. Headlines:
       **−8.00 MB tracked** (37.89 → 29.89, net of this audit's own 19,355 lines of markdown),
       **−10 dependencies**, **−4 models / −9 columns / −3 indexes** live on both databases,
-      **duplication 2.04 % → 1.47 %** (235 clones → 174). Two rows honestly not re-measured
-      and labelled as such: `next build`, because a production build shares `.next` with a
-      dev server another session owned, and local disk, which is the owner's own move.
+      **duplication 2.04 % → 1.47 %** (235 clones → 174), **real import cycles 5 → 0**, and
+      first-load JS from a clean production build (**/feed 1,186 KB**, median member route
+      **1,047**, down ~323). One row missed and it is the one the report led with: **code
+      lines, −1,067 against an expected −4,500 to −5,500** — see §1b's per-phase table.
+      Only local disk is unmeasured; that is the owner's own folder move.
       `../README.md` flipped to Closed. §7.4's archive convention needed no move — the
       folder is already at the path the convention names, and bug audit 2 kept its `work/`
       after closing, so this one does too.
@@ -1571,7 +1573,15 @@ was `undefined` at every one of them. A marker proves the shape, not the value. 
 asserts the WIRE — the desk passes `currentUser={{ id: writerId }}` and both letter pages
 pass `writerId={session.user.id}`.
 
-**4. Close-out.** Report §1b now carries a measured column. The method matters: the baseline
+**4. Close-out.** Report §1b now carries a measured column, including a production build.
+The build was the awkward part: it shares `.next` with the dev server, and the one running
+was started at 10:01 by another session. The solution is worth reusing — **build in a
+throwaway git worktree under the gitignored `.scratch/`**. Two traps in doing that:
+Turbopack refuses a `node_modules` SYMLINK ("points out of the filesystem root"), so
+hard-link it with `cp -Rl`; and it will not resolve upward past the worktree's own lockfile,
+so removing node_modules entirely does not work either. The numbers then come straight out
+of `.next/diagnostics/route-bundle-stats.json`, whose `firstLoadUncompressedJsBytes` is
+exactly the metric §1a recorded — no `experimental-analyze` run needed. The method matters: the baseline
 commit `1d3f996` was extracted to a scratch tree with `git archive` and measured by the SAME
 tool invocation as the tree at `033ea43`, so nothing is compared against §1a's unknown flags.
 Two rows are marked not-re-measured rather than guessed — `next build`, because a production
@@ -1596,4 +1606,31 @@ and was never staged, stashed or touched. Every commit used a pathspec.
 6. §4 #8 (skills/agents relocation), #9 (probe retirement), #12 (email queue, post-launch),
    #13 (birds sprite), #15 ("sanan's stuff" move) — all his calls, none blocking.
 7. cuid2 → randomUUID stays parked, as the plan itself says: a quiet-moment item.
-8. `next build` and local-disk numbers were not re-measured; say the word and they will be.
+8. Local-disk numbers are the only unmeasured row left; it is his own folder move.
+
+---
+
+### The verdict, now that everything is measured
+
+Every projection this audit made in a unit other than lines was met or beaten: tracked weight
+(−8.00 MB against −6.4), dependencies (−10 against −7), database objects (−4 models, −9
+columns, −3 indexes, as planned), import cycles (5 → 0), duplication (2.04 % → 1.47 %), and
+first-load JS (/feed 1,186 KB, inside its 1,150–1,220 range; the median member route −323 KB;
+/directory 1,218, above its range by 68 KB and honestly so).
+
+One row missed, and it is the row the report led with: **code lines, −1,067 against an
+expected −4,500 to −5,500**, essentially all of it delivered by phase 1a. The two dedupe
+phases were **65 commits for a net −90 lines**.
+
+That is not a bad estimate; it is the wrong unit. Deduplication is line-neutral by
+construction in a codebase whose house rule is that every constant is argued for in a comment
+— replacing five copies with one shared function owes a docblock, five imports and five call
+sites. What dedupe actually bought is 61 fewer clones and 939 fewer duplicated lines: a bug
+in any of them now gets fixed once. **A future audit of this repo should project clone
+counts, dependency counts, byte weight, bundle bytes and database objects, and should not
+project SLOC at all.**
+
+The other thing to carry forward: **rule 4** (pre-flight every item, check its own falsifier)
+killed roughly eight rows at fix time with measurements, including this campaign's flagship
+structural item, whose stated payoff turned out to be free. An audit that cannot be refuted
+by its own fix sessions is not being checked.
