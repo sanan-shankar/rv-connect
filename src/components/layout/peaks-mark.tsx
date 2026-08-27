@@ -24,6 +24,15 @@ const WORDMARK_FONT_SIZE = 18;
 
 const VIEWBOX_WIDTH = 1140;
 const VIEWBOX_HEIGHT = 350;
+
+/* The ridge is drawn from -98 to 1008, so its centre is 455. The viewBox's x
+   is derived from that rather than typed: it used to read -110, which put the
+   window's centre at 460 and hung the mark five units left of true. That is
+   0.44% of its width -- invisible on its own and not invisible once the same
+   habit had also moved the favicon and the app icon. */
+export const PEAK_SPAN = { left: -98, right: 1008 } as const;
+export const PEAK_CENTRE = (PEAK_SPAN.left + PEAK_SPAN.right) / 2;
+const VIEWBOX_X = PEAK_CENTRE - VIEWBOX_WIDTH / 2;
 const RIDGE =
   "M-70 348 " +
   "C6 346 82 248 190 198 " +
@@ -99,7 +108,7 @@ export function PeaksMark({
     <svg
       width={w}
       height={size}
-      viewBox="-110 40 1140 350"
+      viewBox={`${VIEWBOX_X} 40 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
       fill="none"
       className={className}
       aria-hidden

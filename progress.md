@@ -79,6 +79,45 @@ describing any real slot the moment a photograph's share of its row became its r
 row's. `/lab/crop`'s "several at once" mode now renders the shipped components beside what
 each surface did before, so the change can be looked at rather than described.
 
+## 2026-08-27 — every mark is centred now, and none of them were
+
+The owner, looking at the app icon: "the bird isn't perfectly centred is it?" He was right,
+and measuring the rest found the same habit in two more places. All three from one cause: a
+window's origin typed by eye instead of derived from the art it frames.
+
+| mark | was | off by |
+|---|---|---|
+| app icon | window `22 -19 78 78`, centre x=61, bird symmetric about x=60 | 1 unit, **1.28%** |
+| favicon | `translate(85) scale(0.38)`, ridge centre 455 lands at 257.94 in a 512 box | **1.94px, 0.38%** |
+| sidebar mark | `viewBox="-110 40 1140 350"`, centre 460 against a ridge centred on 455 | 5 units, **0.44%** |
+
+Each is invisible alone, which is why all three survived. Together they meant no two marks
+agreed on where the middle was. The ridge's drawn extent was verified rather than read off
+the path: rendering the shipped favicon at 4096px and inverting its transform gives
+-98.03..1008.22, the hundredths being antialiasing past the path's own endpoints of -98 and
+1008, so the centre is 455.
+
+Every origin is now derived. `PEEK_VIEW.x` is `PEEK_AXIS - size / 2`; the favicon's translate
+is `256 - 455 * 0.38` with the arithmetic written into the file; `peaks-mark` computes its
+viewBox x from `PEAK_CENTRE - VIEWBOX_WIDTH / 2`. The two lab rooms had retyped the hoopoe's
+window six times between them and now import `PEEK_VIEW_BOX`, which is how one of them was
+already carrying a different number. Measured after: 0px off on all three, at 180, 512 and
+2048px.
+
+`src/lib/mark-centring.test.mjs` pins it, including the thing the centring depends ON -- that
+the crest's feather angles are a mirrored set and the head sits on the axis. If the bird ever
+stops being symmetric, centring a window on x=60 would be centring on nothing, and the test
+says so before the icon ships. The angles are compared with a tolerance, not deepEqual: they
+come out of `(i / (n - 1)) * 2 - 1` and mirror to about 1e-14.
+
+One thing this cost an hour of: `npm run visual` failed on feed desktop, and the diff looked
+like a real regression -- the masked content band ended three-quarters down with page
+background below it. It was not. Re-shooting it passed and moved no baseline. The feed
+photographs a live database, and while the band is masked, its HEIGHT is not: fewer posts, or
+one shorter card, and the pixels below the mask differ. OPERATIONS §1 warns that a red run on
+those four is real; this is the case where it is not, and the tell is that a re-run is green
+with no baseline written.
+
 ## 2026-08-27 — CI was red on main for a day, and the gate it named was fine
 
 `audit-status --fail-on-open=critical,high` had been failing every push since the morning,
