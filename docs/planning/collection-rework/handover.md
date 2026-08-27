@@ -91,11 +91,17 @@ that rework.
         `scripts/dev/backfill-image-dimensions.mjs`. Applied to the main and demo databases;
         41 and 2 rows backfilled, none failed. Nothing visible changed. See D13a and F15/F16
         for the two places the implementation departs from spec §2, and why.
-  - [ ] **Phase 2 — the layout module and the single-photo rule.** The chopped faces
-        (#35, the urgent one) and the page jumping stop here. `photo-layout.ts`, lifted from
-        `/lab/crop`'s `_policies.ts`; feed, catch-ups and letters.
-  - [ ] **Phase 3** justified rows · **Phase 4** the viewer · **Phase 5** the Collection page
-        · **Phase 6** contributing.
+  - [x] **Phase 2 — the layout module and the single-photo rule**, session 2, 2026-08-27.
+        `src/lib/photo-layout.ts` and `<PhotoFrame>`, used by the feed, the Catch-up answer
+        card and letters. The chopped faces (#35) and the page jumping (#18) stop here.
+        Measured at both viewports: a tall Catch-up photo is 525x700 with 151px of bed each
+        side at 1440 and 314x419 with none at 390; a 4:3 feed photo went from 728x384 cropped
+        to 728x546 whole; CLS 0.0000. See D14 for the one place the rule had to be extended.
+  - [ ] **Phase 3 — justified rows.** Several photographs in one post still use the old
+        mosaic (`post-card.tsx`, `answer-card.tsx`) and the Collection grid is still CSS
+        columns. `_justified.ts` in `/lab/crop` is the maths, ready to lift. The dimensions
+        it needs are now stored, so this is unblocked.
+  - [ ] **Phase 4** the viewer · **Phase 5** the Collection page · **Phase 6** contributing.
 - [ ] **Close-out**: delete `/lab/crop`, `public/lab/crop/` and the registry row; fold bug #18, #19 and the catch-up items out of `docs/planning/bugs.md`,
       update `docs/spec/media.md` (large parts of it are now superseded — see D2, D3),
       delete `/lab/crop` and its registry line, log in `progress.md`.
@@ -156,6 +162,14 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   `recordImage`/`forgetImages` in `image-record.ts` (Prisma only) — so the account purge and
   the nightly retention sweep, which forget rows and never measure anything, do not drag a
   native image decoder into their bundle.
+- **D14. The height ceiling governs every photograph, not only tall ones.** Mine, and it is
+  a small extension of spec §3.1 rather than a departure from it. Written literally -- ceiling
+  for `r < 1`, 900px cap for everything else -- a SQUARE photograph comes out 728px tall in a
+  laptop column and 900px on a wide screen, so the shape the ceiling exists to bound (a
+  portrait at 700px) ends up SHORTER than one it does not. F9 saw this coming and left it
+  open. A wide photograph now obeys the ceiling the way a tall one does: by narrowing, never
+  by being cut. It touches nothing but shapes between 1:1 and about 1.29:1, and only on a
+  column wider than 700px. Say so if you disagree; it is one `Math.min`.
 - **OPEN — the height ceiling** (560 / 700 / 840px). The owner did not pick. Spec assumes
   700. One line. Look at all three in `/lab/crop` before settling it.
 
@@ -331,6 +345,19 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   which then poisons every crop computed from it. The probe now asks for the image's own
   shape with 20% off its height, which guarantees a crop whatever the aspect ratio and
   returns both coordinates from the one pass. Pinned by a test named after the case.
+- **F17. The blur bed and the loading placeholder are the same object.** The 16px smear
+  stored on every `Image` row (about 140 characters) is blown up and blurred with the filter
+  the owner approved in `/lab/crop` -- `scale(1.12) blur(26px) brightness(.68) saturate(1.1)`
+  -- and it does both jobs: it holds the reserved space with something photograph-shaped
+  while the real file arrives, and it is what fills the card beside a tall photograph. The
+  alternative, a second `<img>` of the full-size file behind the first, is what the lab room
+  did; it costs a large blurred layer per card for a difference nobody can see once a 26px
+  blur has been applied. Worth knowing before phase 3 draws a grid of them.
+- **F18. `naturalWidth` lies, and it cost twenty minutes.** Measuring a photograph in the
+  browser, the same file reported 680px wide on a laptop and 350px on a phone. It is not a
+  bug: when an image is chosen from a `srcset` with `w` descriptors, `naturalWidth` is the
+  intrinsic size divided by the candidate's effective density, so it tracks the SLOT rather
+  than the file. Read `currentSrc` for what was actually fetched.
 - **F7. A concurrent session is editing this area.** `src/app/(main)/collection/page.tsx`
   changed on disk mid-session (server-side first-page fetch added, `firstPage` prop passed
   to `CollectionClient`). Per CLAUDE.md, work around other sessions' edits, never stash or
@@ -499,5 +526,16 @@ session should do are D13a, F15 and F16 above.
   from the demo's `ALLOWED_WRITE_MODELS`, so the demo's default-deny covers it and no closed
   list needed a new entry; and the schema went through a dated idempotent file applied with
   `run-sql.mjs`, never `db push`.
-- **Next session: phase 2.** Read this file, then the brief, then §3 of the spec. The height
-  ceiling (560/700/840) is still the owner's to pick and is one line.
+- Then **phase 2** in the same session: `src/lib/photo-layout.ts` (the rule, pure, eleven
+  tests across nine aspect ratios at the three real column widths), `<PhotoFrame>`, and the
+  three surfaces wired to it. `image-record.ts` grew the read side. The one surprise is D14.
+- Measured live at both viewports with the repo's own probe helpers rather than the
+  chrome-devtools MCP: **`/lab` and every signed-in page need a session, and the MCP cannot
+  get one** -- `scripts/qa/_dev-login.mjs` exists precisely because the secret must not enter
+  page JavaScript, so it signs in from Node and copies the cookie into the browser. CLAUDE.md
+  still tells you to POST the secret from `evaluate_script`; do not, and see F18 for the
+  measurement trap that wastes the time you save.
+- **Next session: phase 3, justified rows.** Read this file, then the brief, then spec §3.2.
+  Everything it needs is stored. The height ceiling (560/700/840) is still the owner's to
+  pick and is one line in `photo-layout.ts`; D14 is worth putting in front of him at the same
+  time, since both are about how tall a card is allowed to be.

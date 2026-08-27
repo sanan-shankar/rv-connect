@@ -9,6 +9,7 @@ import { IdentityRow } from "@/components/common/identity-row";
 import { LetterTitle } from "@/components/letters/letter-title";
 import { LetterEngagement } from "@/components/letters/letter-engagement";
 import { LetterImages } from "@/components/letters/letter-images";
+import { photoFactsFor } from "@/lib/image-record";
 import { canViewPost } from "@/lib/post-visibility";
 import { VISIBLE_COMMENT } from "@/lib/posts";
 import { batchLine, formatDisplayDate, letterTitle, metaLine, parseJsonArray, readMinutes, VALLEY_TIME_ZONE } from "@/lib/utils";
@@ -119,6 +120,9 @@ export default async function LetterPage({
   after(() => recordView(session.user.id, "letter", letter.id));
 
   const images = parseJsonArray(letter.images);
+  /* Shape, focal point and the smear that holds each photograph's place, so
+     the page reserves the right space before a byte of them arrives. */
+  const photos = await photoFactsFor(images);
   const minutes = readMinutes(letter.content);
 
   return (
@@ -206,6 +210,7 @@ export default async function LetterPage({
 
       <LetterImages
         images={images}
+        photos={images.map((url) => photos.get(url) ?? null)}
         author={{
           id: letter.author.id,
           name: letter.author.name,

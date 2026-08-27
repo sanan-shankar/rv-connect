@@ -28,17 +28,39 @@ import { IdentityRow } from "@/components/common/identity-row";
 import { SpotifyCard } from "@/components/catchups/round/spotify-card";
 import { EntryLoveButton } from "@/components/catchups/round/entry-love-button";
 import type { CatchupEntryView, CatchupSongView, PromptKind } from "@/lib/catchups-types";
+import { PhotoFrame } from "@/components/common/photo-frame";
+import { PHOTO_SIZES_CENTERED_FULL } from "@/lib/image-cdn";
+import type { StoredPhoto } from "@/lib/photo-layout";
 import { cn } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
 
 export type RoundEntry = CatchupEntryView & { authorMeta: string };
 
-function AnswerPhotos({ images }: { images: string[] }) {
-  const cols = images.length === 1 ? "grid-cols-1" : images.length === 2 ? "grid-cols-2" : "grid-cols-3";
-  // A lone photo is the near-full-bleed hero (spec polish): a wide landscape
-  // crop reads as "a photo shared" rather than a cropped thumbnail. Multiple
-  // photos stay square so the grid tiles evenly.
-  const heroAspect = images.length === 1 ? "aspect-[16/10] sm:aspect-[21/9]" : "aspect-square";
+function AnswerPhotos({ images, photos }: { images: string[]; photos: (StoredPhoto | null)[] }) {
+  /* A lone photograph used to be a "near-full-bleed hero": aspect-[16/10] on a
+     phone, aspect-[21/9] above it, object-cover, centred. Which is to say a
+     portrait of four friends was cut down to a letterbox of their shoulders --
+     the owner, watching his own Catch-up: "all of their faces are cropped out
+     and you can't see them... sometimes the catch up just shows a bunch of
+     shoulders. Like, why?" It now gets the same rule as the feed and letters:
+     true shape if it is square or wider, 3:4 on a bed of itself if it is
+     taller, nothing cut off the sides of a face. */
+  if (images.length === 1) {
+    return (
+      <div className="mt-[var(--space-s)]">
+        <PhotoFrame
+          src={images[0]}
+          photo={photos[0] ?? null}
+          sizes={PHOTO_SIZES_CENTERED_FULL}
+          fallbackClassName="aspect-[16/10] sm:aspect-[21/9]"
+          className="rounded-[var(--radius-md)] border border-border"
+        />
+      </div>
+    );
+  }
+  /* Several photographs still tile square. Justified rows replace this in
+     phase 3 of the Collection rework (spec §3.2). */
+  const cols = images.length === 2 ? "grid-cols-2" : "grid-cols-3";
   return (
     <div className={cn("mt-[var(--space-s)] grid gap-2", cols)}>
       {images.map((src, i) => (
@@ -48,7 +70,7 @@ function AnswerPhotos({ images }: { images: string[] }) {
           src={src}
           alt=""
           loading="lazy"
-          className={cn("w-full rounded-[var(--radius-md)] border border-border object-cover", heroAspect)}
+          className="aspect-square w-full rounded-[var(--radius-md)] border border-border object-cover"
         />
       ))}
     </div>
@@ -106,7 +128,7 @@ export function AnswerCard({ entry, kind = "text" }: { entry: RoundEntry; kind?:
               dangerouslySetInnerHTML={{ __html: renderRichText(entry.body ?? "") }}
             />
           )}
-          {hasPhotos && <AnswerPhotos images={entry.images} />}
+          {hasPhotos && <AnswerPhotos images={entry.images} photos={entry.photos} />}
           {song && <SpotifyCard song={song} />}
         </>
       )}

@@ -13,6 +13,7 @@
  * ------------------------------------------------------------------ */
 
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
+import type { StoredPhoto } from "@/lib/photo-layout";
 
 // ─── String-literal unions (mirror the free-string columns in schema) ────────
 
@@ -144,6 +145,9 @@ export type CatchupEntryView = {
   author: CatchupPersonRef;
   body: string | null;
   images: string[];
+  /** What each of those photographs looks like, in the same order, from the
+   *  `Image` table. A null entry is one we have never measured. */
+  photos: (StoredPhoto | null)[];
   song: CatchupSongView | null;
   loveCount: number;
   lovedByViewer: boolean;

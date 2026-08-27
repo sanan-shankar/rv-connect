@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------ */
 
 import { prisma } from "@/lib/prisma";
+import { photoFactsFor } from "@/lib/image-record";
 import { askerVisible } from "@/lib/catchups-core";
 import type {
   CatchupPersonRef,
@@ -120,6 +121,14 @@ export async function loadPublishedRoundView(
   });
   if (!round) return null;
 
+  /* Every photograph in the Round, measured in one query rather than one per
+     answer: shape, focal point, and the smear that holds its place. Without
+     these a single Catch-up photograph was letterboxed to 21:9 and a portrait
+     of a group of friends came out as a row of shoulders. */
+  const photos = await photoFactsFor(
+    round.prompts.flatMap((p) => p.entries.flatMap((e) => parseJsonArray(e.images)))
+  );
+
   const sections = round.prompts.map((p) => {
     /* Not `p.showAsker || keeper`, which is what the permalink said until
        2026-08-21: a Keeper saw the name behind every anonymous question, in
@@ -157,13 +166,15 @@ export async function loadPublishedRoundView(
       // naming the `CatchupEntry.songs Json?` column that would lift it to
       // five). AnswerCard reads `kind` and prints that body as a song row.
       const songTitle = e.songTitle?.trim() || e.songUrl?.trim() || null;
+      const images = parseJsonArray(e.images);
       return {
         id: e.id,
         promptId: e.promptId,
         author: toPersonRef(e.author),
         authorMeta: batchLine(e.author),
         body: e.body,
-        images: parseJsonArray(e.images),
+        images,
+        photos: images.map((url) => photos.get(url) ?? null),
         song: songTitle ? { url: e.songUrl ?? "", title: songTitle, art: e.songArt } : null,
         loveCount: e._count.loves,
         lovedByViewer: e.loves.length > 0,

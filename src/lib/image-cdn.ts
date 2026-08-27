@@ -9,14 +9,25 @@
  *  JavaScript saving in the 2026-08-25 bundle audit put together.
  *
  *  Why a URL and not <Image>. next/image's component form needs the
- *  intrinsic width and height, and this app does not store them (that gap
- *  is bugs.md #18, the reason feed photos have no reserved space and the
- *  page jumps as each one loads). Passing a guessed aspect ratio would
+ *  intrinsic width and height, and this app did not store them (that gap
+ *  was bugs.md #18, the reason feed photos had no reserved space and the
+ *  page jumped as each one loaded). Passing a guessed aspect ratio would
  *  change every card's height. Pointing `src` at the optimizer instead
  *  changes nothing about layout: the returned image keeps its own aspect
  *  ratio, so `w-full object-cover max-h-*` lays it out exactly as before.
- *  When dimensions are stored and #18 is fixed, this should become the
- *  real <Image> component.
+ *
+ *  THAT GAP IS NOW CLOSED and the conclusion this comment used to draw
+ *  from it is the wrong one. Dimensions are stored, in `Image` (2026-08-27),
+ *  and `<PhotoFrame>` reserves the space from them -- but this must NOT
+ *  become the <Image> component. The Collection rework spec locks the
+ *  opposite (§4): the textbook justified grid is built on next/image, and
+ *  building it that way would route all 20,000 archive photographs through
+ *  Vercel's METERED optimiser, which is the one thing the owner asked to
+ *  avoid ("I don't want to be billed by myself for images"). The Collection
+ *  has never used it -- it serves precomputed derivatives straight off R2 at
+ *  zero egress -- and the direction of travel is for the feed and letters to
+ *  join it there, not the other way round. Until that ladder exists, this
+ *  file stays as it is.
  *
  *  1920 is the top rung because 1920 is where the file STOPS: toDisplayWebp
  *  boxes every feed/letter upload to 1920 on the long edge (image.ts) and the

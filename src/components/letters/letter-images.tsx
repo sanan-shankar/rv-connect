@@ -6,7 +6,9 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { photoSrc, photoSrcSet, PHOTO_SIZES_LETTER } from "@/lib/image-cdn";
+import { PHOTO_SIZES_LETTER } from "@/lib/image-cdn";
+import { PhotoFrame } from "@/components/common/photo-frame";
+import type { StoredPhoto } from "@/lib/photo-layout";
 import type { AvatarUser } from "@/components/common/bird-avatar";
 
 /* The viewer opens on a press and is 444 lines carrying the app's only drag
@@ -20,10 +22,14 @@ const ImageViewer = dynamic(
 
 export function LetterImages({
   images,
+  photos,
   author,
   date,
 }: {
   images: string[];
+  /** What each photograph looks like, in the same order. A null entry is one
+   *  we have never measured; it draws the way it always did. */
+  photos?: (StoredPhoto | null)[];
   author: AvatarUser & { name: string };
   date: string;
 }) {
@@ -46,15 +52,13 @@ export function LetterImages({
             aria-label={`View photo ${i + 1} of ${images.length} full screen`}
             className="block w-full overflow-hidden rounded-[var(--radius-md)] border border-border transition-opacity duration-150 hover:opacity-95 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={photoSrc(img)}
-              srcSet={photoSrcSet(img)}
-              sizes={PHOTO_SIZES_LETTER}
-              alt=""
-              loading="lazy"
-              className="w-full object-cover"
-            />
+            {/* The same rule the feed and the Catch-ups use: true shape when
+                the photograph is square or wider, 3:4 on a bed of itself when
+                it is taller, capped at 900px. Letters were never the surface
+                that cut faces off -- an unbounded object-cover crops nothing --
+                but they did jump as each photograph loaded, and a 1216px-wide
+                reader stretched a phone photo soft. */}
+            <PhotoFrame src={img} photo={photos?.[i] ?? null} sizes={PHOTO_SIZES_LETTER} />
           </button>
         ))}
       </div>

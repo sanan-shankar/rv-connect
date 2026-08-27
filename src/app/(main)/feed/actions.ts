@@ -7,6 +7,7 @@ import { postContentMax } from "@/lib/post-caps";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { drainPendingImagePurges } from "@/lib/account-purge";
+import { withPhotoFacts } from "@/lib/image-record";
 import { droppedImages } from "@/lib/draft-images";
 import { copyPostImagesToCollection } from "@/lib/collection-intake";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
@@ -1269,7 +1270,12 @@ export async function loadPosts(opts?: {
   }
 
   return {
-    posts: rows.map((p) => serializePost(p, { userId: session.user.id, isAdmin })),
+    /* Each post's photographs carry what we know about them -- shape, focal
+       point, the smear that holds their place -- so the card can lay them out
+       without measuring anything. One query for the page. */
+    posts: await withPhotoFacts(
+      rows.map((p) => serializePost(p, { userId: session.user.id, isAdmin }))
+    ),
     hasMore: nextCursor !== null,
     nextCursor,
   };
@@ -1328,7 +1334,7 @@ export async function loadSavedPosts() {
     /* True when there are older saved posts this page did not load, so the
        shelf can say so rather than end silently (audit Low 76). */
     capped,
-    posts: page.map(({ post: p }) => serializePost(p, { userId, isAdmin })),
+    posts: await withPhotoFacts(page.map(({ post: p }) => serializePost(p, { userId, isAdmin }))),
   };
 }
 
