@@ -1,5 +1,48 @@
 # Progress Log
 
+## 2026-08-27 — the guide, made smooth by taking the route out of the way
+
+Owner, on three successive versions: "so incredibly lazy", "this is so horrible", "why
+can't it be as smooth as option D looked in the lab". The last question had a real answer
+and finding it is what fixed the rest.
+
+**The lab's D was smooth because it was fake.** A useState flip with nothing in the path.
+The shipped version routed instead, and a route navigation measured **404 to 444ms in dev
+before the sheet existed to animate**, with the route already compiled. That is 400ms of
+nothing followed by an animation, and no easing curve survives it.
+
+**Two attempts to keep the URL and the smoothness, both measured, both abandoned.**
+Intercepting routes were correct about addresses and cost the 400ms. `history.pushState`
+behind a client-state open was instant and fought Next's router: `usePathname` moves with a
+pushState, so the layer's own "navigated away" effect fired one tick after every open and
+closed the chapter before it appeared, and Next rewrote `history.state` so the address
+never came back on close. Both diagnosed by instrumenting the store rather than guessing:
+`listeners: 1, current: null` said the subscriber was fine and something had reset it.
+
+**So the chapter is plain UI state and does not touch the address.** `/guide/[area]` is
+still a real page for a mailed link, a refresh, or the index. What is given up is linking
+to "the overlay, over the feed", which nobody asked for and which cost all the smoothness
+that was asked for. One history entry is pushed with the same URL so back still closes it,
+which Next ignores because the route has not changed. Click to painted sheet is now 91 to
+276ms in dev.
+
+**Everything else in that round.** The mark went 0.58em to 0.42em to 0.5em, twice too far
+in each direction before landing. The panel was starting 14% down the screen and now sits
+32px from the top. The close button moved into a zero-height sticky row, so it stops
+pushing every chapter title down: 45px above the title became 37px. The nested
+flex-plus-inner-scroller became one element that is itself the scroller, because a shape
+with several ways to end up zero-height is a shape that will one day not scroll. `svh`
+replaced `dvh`, since iOS resizes a dvh-tall sheet under the finger scrolling it.
+
+**Two things fixed blind, and said so.** The layout shifting as the overlay opens did not
+reproduce here in headless or headful: `main.x` is identical on every frame through the
+transition, and macOS hands out overlay scrollbars so there is no gutter to lose.
+`scrollbar-gutter: stable` went onto `html` anyway, because it is the correct fix for
+exactly that symptom on any machine where scroll bars are always shown, and because a modal
+putting `overflow: hidden` on the document is a whole-app pattern rather than this
+feature's problem. Whether it was the right fix is still his to confirm.
+
+
 ## 2026-08-27 — the Collection rework, phase 1: every image gets measured
 
 `docs/planning/collection-rework/spec.md` §13 phase 1, the one everything else sits on.

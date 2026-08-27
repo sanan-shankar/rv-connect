@@ -28,9 +28,9 @@
  * ------------------------------------------------------------------ */
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { closeGuide } from "@/lib/guide-open";
 
 /** Matches ui/sheet's own transition. Kept as a named constant because two
  *  things depend on it agreeing: the exit animation and the navigation. */
@@ -43,7 +43,6 @@ export function GuideOverlay({
   title: string;
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
 
   // Shut on the first paint, open on the next frame. Without this there is no
@@ -53,14 +52,15 @@ export function GuideOverlay({
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  /* Close, then navigate. router.back() is still what actually closes it, so
-     the URL remains the single source of truth and the browser's own back
-     button needs no special case: it simply unmounts this, which is the same
+  /* Close, then put the address back. The browser's own back button needs no
+     special case: it fires popstate, the store syncs, and this unmounts. Same
      end state by a different road. */
   const close = useCallback(() => {
     setOpen(false);
-    window.setTimeout(() => router.back(), SHEET_MS);
-  }, [router]);
+    // The address goes back only once the sheet has finished leaving, so the
+    // exit gets its frames instead of being unmounted mid-flight.
+    window.setTimeout(closeGuide, SHEET_MS);
+  }, []);
 
   return (
     <Sheet open={open} onOpenChange={(next) => { if (!next) close(); }}>
@@ -71,31 +71,43 @@ export function GuideOverlay({
            does the same job without ever crossing a bar chart. */
         showCloseButton={false}
         /* data-[side=bottom]: matters. ui/sheet sets `data-[side=bottom]:h-auto`,
-           and a plain `h-[86dvh]` loses to it every time: tailwind-merge keeps
-           both because they are different variant groups, and the attribute
-           selector then wins on specificity. Measured before this: the Catch-ups
-           panel opened 1406px tall inside a 900px window, anchored to the bottom,
-           so its top 500px were simply off the screen. */
-        className="mx-auto flex w-full max-w-3xl flex-col gap-0 overflow-hidden rounded-t-[1.75rem] bg-card p-0 data-[side=bottom]:h-[86dvh]"
+           and a plain height loses to it every time: tailwind-merge keeps both
+           because they are different variant groups, and the attribute selector
+           then wins on specificity. Measured before this was fixed: the
+           Catch-ups panel opened 1406px tall inside a 900px window.
+
+           svh, not dvh. On iOS the dynamic viewport unit changes as the browser
+           toolbar shows and hides, so a dvh-tall sheet resizes underneath the
+           finger that is scrolling it. svh is the stable one.
+
+           The sheet IS the scroller. It used to be a flex column with a
+           separate `flex-1 min-h-0 overflow-y-auto` child, which is a shape
+           with several ways to end up zero-height, and one of them is somebody
+           reporting they cannot scroll. One element, one scrollbar, nothing to
+           get wrong. */
+        className="mx-auto w-full max-w-3xl overflow-y-auto overscroll-contain rounded-t-[1.75rem] bg-card p-0 data-[side=bottom]:h-[calc(100svh-2rem)] data-[side=bottom]:duration-300 ease-out-smooth"
       >
         {/* The sheet's accessible name. The chapter's own <h1> says it on
             screen, so this one is for screen readers only. */}
         <SheetTitle className="sr-only">{title}</SheetTitle>
 
-        <div className="sticky top-0 z-10 flex shrink-0 justify-end bg-card px-3 pt-3">
+        {/* Sticky in a zero-height row, so the button floats at the top right
+            without pushing the chapter down. A sticky strip that occupied its
+            own height put about 50px of nothing above every chapter title
+            (owner: "why so much padding above Feed"). It carries its own
+            backing so a diagram scrolling under it stays legible. */}
+        <div className="sticky top-0 z-10 h-0">
           <button
             type="button"
             onClick={close}
             aria-label="Close the guide"
-            className="state-layer grid size-9 place-items-center rounded-full text-muted-foreground outline-none hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
+            className="absolute end-3 top-3 grid size-9 place-items-center rounded-full bg-card/85 text-muted-foreground backdrop-blur-sm outline-none transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
           >
             <X className="size-[18px]" aria-hidden="true" />
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-12 sm:px-9">
-          {children}
-        </div>
+        <div className="px-6 pb-14 pt-5 sm:px-9">{children}</div>
       </SheetContent>
     </Sheet>
   );

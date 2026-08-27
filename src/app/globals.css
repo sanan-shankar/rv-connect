@@ -385,6 +385,21 @@
        intact. Real overflow is fixed at the component level; this only guards
        against future regressions. */
     overflow-x: clip;
+    /* Reserve the scrollbar's column permanently.
+
+       Any modal in the app locks the page by putting `overflow: hidden` on
+       this element. On a machine with overlay scrollbars (macOS out of the
+       box) that costs nothing. On a machine where scroll bars are always
+       shown, and on Windows, the scrollbar vanishes at that moment and every
+       centred thing on the page jumps sideways by its width while the modal
+       is opening (owner, 2026-08-27: "you can see the momentarily shifted ui
+       when I click on it"). It is a whole-page flinch on exactly the frame
+       that should be calm.
+
+       `stable` keeps the column reserved whether or not the scrollbar is
+       being drawn, so hiding it changes nothing. Where scrollbars are overlay
+       it reserves nothing and is a no-op. */
+    scrollbar-gutter: stable;
   }
   /* Belt-and-suspenders: kill the native up/down spinner on any stray
      type="number" input app-wide. Year fields (batch, joined/left, houses)
