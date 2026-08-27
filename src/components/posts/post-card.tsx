@@ -14,7 +14,14 @@ import {
 import { callAction } from "@/lib/call-action";
 import { useHeartToggle, useBookmarkToggle } from "./use-engagement";
 import { IdentityRow } from "@/components/common/identity-row";
-import { photoSrc, photoSrcSet, PHOTO_SIZES_FULL, PHOTO_SIZES_HALF } from "@/lib/image-cdn";
+import {
+  photoSrc,
+  photoSrcSet,
+  PHOTO_SIZES_WIDE_FULL,
+  PHOTO_SIZES_WIDE_HALF,
+  PHOTO_SIZES_CENTERED_FULL,
+  PHOTO_SIZES_CENTERED_HALF,
+} from "@/lib/image-cdn";
 import { MetaDots } from "@/components/common/meta-dots";
 import { PersonName } from "@/components/common/person-name";
 import { VerifiedMark } from "@/components/common/verified-mark";
@@ -108,11 +115,19 @@ export interface PostData {
 export function PostCard({
   post,
   variant = "card",
+  column = "wide",
   demo = false,
   onBookmarkChange,
 }: {
   post: PostData;
   variant?: "card" | "sheet";
+  /**
+   * Which of `ContentColumn`'s two modes the card is standing in. It changes
+   * nothing visual -- it is the `sizes` promise, and the two columns are 484px
+   * apart at the top end, so a card that guesses wrong downloads a file two
+   * rungs too big. The feed is wide; a profile is centered.
+   */
+  column?: "wide" | "centered";
   /**
    * Concept/lab pages (src/app/lab/**) render this card against a mock
    * payload whose ids exist in no table. `demo` keeps every action local: the
@@ -451,8 +466,12 @@ export function PostCard({
                          at full width, which is exactly what the first pass did. */
                       sizes={
                         images.length === 1 || (images.length === 3 && i === 0)
-                          ? PHOTO_SIZES_FULL
-                          : PHOTO_SIZES_HALF
+                          ? column === "wide"
+                            ? PHOTO_SIZES_WIDE_FULL
+                            : PHOTO_SIZES_CENTERED_FULL
+                          : column === "wide"
+                            ? PHOTO_SIZES_WIDE_HALF
+                            : PHOTO_SIZES_CENTERED_HALF
                       }
                       alt=""
                       loading="lazy"

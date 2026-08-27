@@ -164,7 +164,12 @@ export function ProfileAuthorFeed({
         }
       >
         {posts.map((post) => (
-          <PostCard key={post.id} post={post} variant={asCards ? "card" : "sheet"} />
+          <PostCard
+            key={post.id}
+            post={post}
+            variant={asCards ? "card" : "sheet"}
+            column="centered"
+          />
         ))}
       </div>
       {hasMore && (

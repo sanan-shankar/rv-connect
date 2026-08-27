@@ -85,20 +85,73 @@ export function photoSrcSet(url: string): string | undefined {
  *  file for a 1216px slot. 0.62x. Visibly blurry, which is exactly the failure
  *  the whole change was supposed to avoid.
  *
- *  The arithmetic, once: 248px sidebar + 80px of main padding + 318px rail +
- *  30px gap + 32px card padding = 708, rounded to 712 to sit a hair UNDER the
- *  true width. Under is the safe direction: the rungs are coarse, so a small
- *  underestimate still lands on the rung above, while an overestimate wastes a
- *  whole rung. Past a 1928px viewport the 1600px cap binds and the card is a
- *  flat 1216px.
+ *  THERE ARE THREE SLOTS, NOT ONE, because `ContentColumn` has two modes and
+ *  the letter reader sets a third measure inside one of them. The first pass
+ *  shipped a single pair of constants named FULL/HALF -- a name that says
+ *  which half of a card, and nothing about which column -- and both the letter
+ *  page and a member's profile took the FEED's promise while rendering in the
+ *  centered column. On a 3840px screen both asked for 1216px and got a 1456px
+ *  file for a 732px slot: two rungs of waste, on the two pages a member is
+ *  most likely to open from a link. Hence WIDE_ / CENTERED_ / LETTER below;
+ *  the column is now in the name, so the next call site has to choose.
  *
- *  If the feed's column arithmetic ever changes, this changes with it. That is
- *  the cost of sizes and there is no way to avoid it short of a sizes="auto",
- *  which Safari does not support.
+ *  Shared arithmetic, since every number below is built from it. The shell
+ *  (app-shell.tsx) is `p-5 sm:p-7 lg:p-10` -- 20 / 28 / 40px a side -- beside
+ *  a 248px sidebar that appears at md. So the centered column is
+ *  `min(768, 100vw - sidebar - 2 x padding)`, which reaches its 768px cap at
+ *  a 1096px viewport. Every figure here was measured against a running page,
+ *  not derived on paper: 500 -> 424, 768 -> 428, 1024 -> 660, 1096 -> 732.
+ *
+ *  Under is the safe direction: the rungs are coarse, so a small underestimate
+ *  still lands on the rung above, while an overestimate wastes a whole rung.
+ *
+ *  If any of these columns' arithmetic ever changes, these change with it.
+ *  That is the cost of sizes and there is no way to avoid it short of a
+ *  sizes="auto", which Safari does not support.
  * ------------------------------------------------------------------ */
-export const PHOTO_SIZES_FULL =
+
+/**
+ * A post card standing in the WIDE column: /feed.
+ *
+ * 248px sidebar + 80px of main padding + 318px rail + 30px gap + 32px card
+ * padding = 708, rounded to 712 to sit a hair under. Past a 1928px viewport
+ * the 1600px cap binds and the card is a flat 1216px.
+ */
+export const PHOTO_SIZES_WIDE_FULL =
   "(max-width: 767px) 100vw, (max-width: 1179px) calc(100vw - 96px), (max-width: 1927px) calc(100vw - 712px), 1216px";
 
 /** The same column split in two, for a post with more than one photo. */
-export const PHOTO_SIZES_HALF =
+export const PHOTO_SIZES_WIDE_HALF =
   "(max-width: 767px) 50vw, (max-width: 1179px) calc((100vw - 104px) / 2), (max-width: 1927px) calc((100vw - 720px) / 2), 604px";
+
+/**
+ * The same post card standing in the CENTERED column: a member's profile.
+ *
+ * Card inset is 36px (16px padding + 1px border a side, plus the photo
+ * button's own 1px), so the slot is the column minus 36 and flat at 732 from
+ * a 1096px viewport up. Declared 4px under throughout, which is what turns a
+ * retina Mac's 1464px request into the 1456 rung instead of the 1920 one --
+ * 1.99x on a 732px slot, and a whole rung of bytes saved.
+ *
+ * The `sheet` variant of the card (`px-5` inside a bordered wrapper) is 8px
+ * narrower again. No route renders it -- letterhead-profile.tsx is the only
+ * caller and passes layout="cards" -- so these are written for `card`; the
+ * 4px shave happens to sit between the two if it ever comes back.
+ */
+export const PHOTO_SIZES_CENTERED_FULL =
+  "(max-width: 639px) calc(100vw - 80px), (max-width: 767px) calc(100vw - 96px), (max-width: 1023px) calc(100vw - 344px), (max-width: 1095px) calc(100vw - 368px), 728px";
+
+/** The same, split in two across the card's 8px grid gap. */
+export const PHOTO_SIZES_CENTERED_HALF =
+  "(max-width: 639px) calc((100vw - 88px) / 2), (max-width: 767px) calc((100vw - 104px) / 2), (max-width: 1023px) calc((100vw - 352px) / 2), (max-width: 1095px) calc((100vw - 376px) / 2), 360px";
+
+/**
+ * A photograph in a letter, which is neither of the above: the letter reader
+ * sets a 680px READING measure inside the centered column (a typographic
+ * choice, documented in content-column.tsx), so the article stops growing at
+ * a 984px viewport, well before the column does. Measured: 900 -> 596,
+ * 1096 -> 680. The photo button's 1px borders make the real slot 678; 2px is
+ * below the resolution of the ladder and is not worth a second number.
+ */
+export const PHOTO_SIZES_LETTER =
+  "(max-width: 639px) calc(100vw - 40px), (max-width: 767px) calc(100vw - 56px), (max-width: 983px) calc(100vw - 304px), 680px";
