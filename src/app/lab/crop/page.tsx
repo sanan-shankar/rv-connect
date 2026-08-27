@@ -19,7 +19,7 @@
 import { useEffect, useRef, useState } from "react";
 import { DelightShell, DemoCard, Seg } from "../_kit";
 import { SPECIMENS } from "./_specimens";
-import { justifiedRows } from "./_justified";
+import { PhotoRows, PhotoStream } from "@/components/common/photo-rows";
 import {
   FLOORS,
   POLICIES,
@@ -179,7 +179,7 @@ function TodaysGrid({ photos, width }: { photos: Specimen[]; width: number }) {
         const h = photos.length === 1 ? 384 : span ? 256 : 192;
         return (
           <div
-            key={p.key}
+            key={i}
             className="cr-frame"
             style={{ height: h, gridColumn: span ? "span 2" : undefined, width: span ? width : cell }}
           >
@@ -191,31 +191,46 @@ function TodaysGrid({ photos, width }: { photos: Specimen[]; width: number }) {
   );
 }
 
-function Justified({
-  photos,
-  width,
-  target,
-}: {
-  photos: Specimen[];
-  width: number;
-  target: number;
-}) {
-  const rows = justifiedRows(photos, width, target, GAP);
+/** The shipped components, given the room's specimens. They take a shape and
+ *  a render function; everything else is theirs. */
+const shaped = (photos: Specimen[]) =>
+  photos.map((p) => ({ ...p, width: p.w, height: p.h, focalX: p.focal.x, focalY: p.focal.y }));
+
+function ShippedPost({ photos, width }: { photos: Specimen[]; width: number }) {
   return (
-    <div className="cr-just" style={{ width, gap: GAP }}>
-      {rows.map((row, ri) => (
-        <div key={ri} className="cr-just-row" style={{ gap: GAP }}>
-          {row.map((placed) => (
-            <div
-              key={placed.item.key}
-              className="cr-frame"
-              style={{ width: placed.width, height: placed.height }}
-            >
-              <img src={placed.item.src} alt="" className="cr-img" style={{ objectFit: "cover" }} />
-            </div>
-          ))}
-        </div>
-      ))}
+    <div style={{ width }}>
+      <PhotoRows photos={shaped(photos)} gap={GAP}>
+        {(p, _i, cell) => (
+          <img
+            src={p.src}
+            alt=""
+            className="cr-img"
+            style={{
+              objectFit: "cover",
+              aspectRatio: cell.aspectRatio,
+              objectPosition: cell.objectPosition,
+              height: "100%",
+            }}
+          />
+        )}
+      </PhotoRows>
+    </div>
+  );
+}
+
+function ShippedGrid({ photos, width }: { photos: Specimen[]; width: number }) {
+  return (
+    <div style={{ width }}>
+      <PhotoStream photos={shaped(photos)} gap={GAP} keyOf={(_p, i) => i}>
+        {(p, _i, cell) => (
+          <img
+            src={p.src}
+            alt=""
+            className="cr-img"
+            style={{ objectFit: "cover", aspectRatio: cell.aspectRatio, width: "100%" }}
+          />
+        )}
+      </PhotoStream>
     </div>
   );
 }
@@ -224,8 +239,8 @@ function Justified({
 function Masonry({ photos, width }: { photos: Specimen[]; width: number }) {
   return (
     <div className="cr-masonry" style={{ width }}>
-      {photos.map((p) => (
-        <div key={p.key} className="cr-mas-item">
+      {photos.map((p, i) => (
+        <div key={i} className="cr-mas-item">
           <img src={p.src} alt="" className="cr-img-flow" />
         </div>
       ))}
@@ -237,12 +252,19 @@ function Masonry({ photos, width }: { photos: Specimen[]; width: number }) {
 
 type Mode = "six" | "scroll" | "many";
 
+/* How many photographs the "several at once" mode draws. Two to six is a
+   POST (the composer stops at three, so four and six are the Catch-up's
+   legacy rows and the future). 34 is a WALL: enough that the rows have to
+   break several times, which is the only way to see whether they line up. */
+const COUNTS = ["2", "3", "4", "6", "34"] as const;
+type CountKey = (typeof COUNTS)[number];
+
 export default function CropRoom() {
   const [mode, setMode] = useState<Mode>("six");
   const [widthKey, setWidthKey] = useState<WidthKey>("laptop");
   const [photoKey, setPhotoKey] = useState(SPECIMENS[0].key);
   const [policy, setPolicy] = useState<PolicyKey>("bounds");
-  const [count, setCount] = useState<"2" | "3" | "4" | "6">("3");
+  const [count, setCount] = useState<CountKey>("3");
   const [floor, setFloor] = useState<number>(FLOORS[0].v);
   /* Brief #39, "rules for how wide the feed can be". A ratio floor cannot
      save a wide screen on its own: at a 1216px column even a square photo is
@@ -273,7 +295,7 @@ export default function CropRoom() {
     const po = q.get("policy");
     if (po && POLICIES.some((p) => p.key === po)) setPolicy(po as PolicyKey);
     const c = q.get("n");
-    if (c === "2" || c === "3" || c === "4" || c === "6") setCount(c);
+    if (COUNTS.includes(c as CountKey)) setCount(c as CountKey);
     const fl = Number(q.get("floor"));
     if (FLOORS.some((f) => f.v === fl)) setFloor(fl);
     if (q.has("cap")) {
@@ -292,7 +314,10 @@ export default function CropRoom() {
   const column = WIDTHS[widthKey].px;
   const width = cap ? Math.min(column, cap) : column;
   const photo = SPECIMENS.find((s) => s.key === photoKey) ?? SPECIMENS[0];
-  const many = SPECIMENS.slice(0, Number(count));
+  /* Past six, the six specimens repeat. The subject is the layout, not the
+     pictures, and a wall of 34 is the only way to see a row break. */
+  const wanted = Number(count);
+  const many = Array.from({ length: wanted }, (_, i) => SPECIMENS[i % SPECIMENS.length]);
 
   return (
     <DelightShell
@@ -489,32 +514,43 @@ export default function CropRoom() {
         >
           <div className="cr-panel">
           <div className="cr-picker wrap">
-            {(["2", "3", "4", "6"] as const).map((c) => (
+            {COUNTS.map((c) => (
               <button
                 key={c}
                 type="button"
                 className={`cr-pill${c === count ? " on" : ""}`}
                 onClick={() => setCount(c)}
               >
-                {c} photos
+                {c === "34" ? "a wall of 34" : `${c} photos`}
               </button>
             ))}
           </div>
           <div className="cr-stage">
-            <h4 className="cr-h4">Justified rows, the same photographs</h4>
+            <h4 className="cr-h4">A post, as it ships now</h4>
             <p className="cr-caption">
-              Every frame whole, gutters even, rows level. This is the reference gallery&rsquo;s
-              layout, and the arithmetic is one line.
+              Justified rows: gutters even, rows level, every row filling its width. How many
+              share a row follows the column rather than a rule -- three across a laptop card,
+              one across a phone, so a photograph never comes out a stamp. A tall one is brought
+              to 3:4 first, exactly as it would be if it were posted on its own; otherwise a
+              9:20 screenshot beside a panorama is drawn 72px wide.
             </p>
-            <Justified photos={many} width={width} target={width / 3.2} />
+            <ShippedPost photos={many} width={width} />
 
-            <h4 className="cr-h4">What a post does today</h4>
+            <h4 className="cr-h4">The Collection grid, as it ships now</h4>
+            <p className="cr-caption">
+              The same wrap, aiming at a taller row, and nothing cropped at all -- an archive
+              shows the true frame. The last row runs short at the target height rather than
+              blowing one leftover photograph up to the width of the page. Try the wall of 34.
+            </p>
+            <ShippedGrid photos={many} width={width} />
+
+            <h4 className="cr-h4">What a post did before</h4>
             <p className="cr-caption">
               Fixed square-ish cells with a hard pixel cap. The 9:16 phone photo is the one to look at.
             </p>
             <TodaysGrid photos={many} width={width} />
 
-            <h4 className="cr-h4">The Collection grid today, for comparison</h4>
+            <h4 className="cr-h4">What the Collection grid did before</h4>
             <p className="cr-caption">
               CSS columns. Nothing is cropped, which is right, but the rows never line up, which is
               the difference he noticed.

@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { appendUnseen } from "@/lib/append-page";
 import { WHEN_OPTIONS, COLLECTION_SORT_OPTIONS } from "@/lib/collection-facets";
+import { PhotoStream, type PhotoCell } from "@/components/common/photo-rows";
 import { loadPhotos, type PhotoData } from "@/app/(main)/collection/actions";
 import { formatDisplayDate } from "@/lib/utils";
 
@@ -35,7 +36,7 @@ const ContributeDialog = dynamic(
 
 type SortBy = "newest" | "oldest" | "loved" | "wander";
 
-function Tile({ photo, onOpen }: { photo: PhotoData; onOpen: () => void }) {
+function Tile({ photo, cell, onOpen }: { photo: PhotoData; cell: PhotoCell; onOpen: () => void }) {
   return (
     <button
       type="button"
@@ -44,7 +45,12 @@ function Tile({ photo, onOpen }: { photo: PhotoData; onOpen: () => void }) {
       // Hover is the caption scrim below, so no state-layer here (a tint over
       // a photograph is noise). The press only needed an answer: opacity, not
       // a transform, because the tile must not move under the cursor.
-      className="group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-[var(--radius-md)] border border-border bg-paper text-left transition-opacity duration-150 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      className="group relative block w-full overflow-hidden rounded-[var(--radius-md)] bg-paper text-left transition-opacity duration-150 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      /* The photograph's OWN shape, which is what makes the row justified:
+         PhotoStream has already solved the width, and the height follows from
+         the ratio, so every tile in a row comes out the same height with
+         nothing cropped to get there. */
+      style={{ aspectRatio: cell.aspectRatio }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -54,7 +60,7 @@ function Tile({ photo, onOpen }: { photo: PhotoData; onOpen: () => void }) {
         height={photo.height}
         loading="lazy"
         decoding="async"
-        className="w-full rounded-[var(--radius-md)]"
+        className="h-full w-full object-cover"
       />
       {!photo.approved && (
         <span className="absolute left-2 top-2 rounded-full bg-foreground/80 px-2 py-0.5 text-[10.5px] font-semibold text-background">
@@ -452,24 +458,43 @@ export function CollectionClient({
               <h2 className="mb-2 text-[11px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
                 Awaiting review
               </h2>
-              <div className="[column-gap:0.75rem] columns-2 sm:columns-3 lg:columns-4">
-                {pending.map((p, i) => (
-                  <Tile key={p.id} photo={p} onOpen={() => {
-                    setViewerMounted(true);
-                    setViewer({ list: "pending", index: i });
-                  }} />
-                ))}
-              </div>
+              <PhotoStream
+                photos={pending}
+                keyOf={(p) => p.id}
+              >
+                {(p, i, cell) => (
+                  <Tile
+                    photo={p}
+                    cell={cell}
+                    onOpen={() => {
+                      setViewerMounted(true);
+                      setViewer({ list: "pending", index: i });
+                    }}
+                  />
+                )}
+              </PhotoStream>
             </div>
           )}
-          <div className="[column-gap:0.75rem] columns-2 sm:columns-3 lg:columns-4">
-            {photos.map((p, i) => (
-              <Tile key={p.id} photo={p} onOpen={() => {
-                setViewerMounted(true);
-                setViewer({ list: "main", index: i });
-              }} />
-            ))}
-          </div>
+          {/* Justified rows, which is what the owner's reference gallery does
+              and what CSS-column masonry could never do: "everything has just
+              even spacing between photos. And somehow he fits weird aspect
+              ratios together and still he doesn't need to crop any of the
+              photos to make that happen. Like, we are doing right now." */}
+          <PhotoStream
+            photos={photos}
+            keyOf={(p) => p.id}
+          >
+            {(p, i, cell) => (
+              <Tile
+                photo={p}
+                cell={cell}
+                onOpen={() => {
+                  setViewerMounted(true);
+                  setViewer({ list: "main", index: i });
+                }}
+              />
+            )}
+          </PhotoStream>
 
           {viewerMounted && (
             <ImageViewer

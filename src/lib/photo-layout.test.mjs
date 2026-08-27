@@ -2,13 +2,20 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   AIM_Y,
+  drawnRatio,
+  drawnRows,
   drawnSize,
   framePhoto,
+  photoRatio,
   photoSizes,
   PHOTO_MAX_WIDTH,
   PHOTO_MAX_HEIGHT,
+  PHOTO_ROW_TARGET,
   TALL_TARGET,
 } from "./photo-layout.ts";
+
+/** The gutter a post and a Catch-up answer use between photographs. */
+const GAP = 8;
 
 /* ------------------------------------------------------------------ *
  *  One photograph in a column. The rule the owner picked in /lab/crop,
@@ -167,4 +174,119 @@ test("the sizes promise carries the cap, and survives a nested calc", () => {
     out,
     "(max-width: 767px) min(50vw, 900px), min(calc((100vw - 104px) / 2), 900px)"
   );
+});
+
+/* ------------------------------------------------------------------ *
+ *  Several photographs together. The brief asked for this by name:
+ *  "all kinds of combinations of aspect ratios in the same post."
+ *
+ *  These assert what the BROWSER will do, because the layout is flexbox
+ *  rather than measured pixels -- `drawnRows` is the same arithmetic
+ *  flex-basis and flex-grow perform, written out so it can be checked.
+ * ------------------------------------------------------------------ */
+
+/** A card lays a row out from the FRAMED ratio and the single-photo cap. */
+const asRow = (shapes) => {
+  const frames = shapes.map((s) => frameOf(s));
+  return { ratios: frames.map(drawnRatio), caps: frames.map((f) => f.maxWidth) };
+};
+
+/** The grid crops nothing, so its ratio is the file's own; the cap is the
+ *  trailing-row guard, 2.5x the target. */
+const asGrid = (shapes, target) => ({
+  ratios: shapes.map(photoRatio),
+  caps: shapes.map((s) => (s.w / s.h) * target * 2.5),
+});
+
+/** Every ordered pair and triple of the nine shapes, which is the "all kinds
+ *  of combinations" the brief asked for: 81 pairs and 729 triples. */
+function combinations(n) {
+  if (n === 1) return SHAPES.map((s) => [s]);
+  return combinations(n - 1).flatMap((rest) => SHAPES.map((s) => [...rest, s]));
+}
+
+test("every row fills its container exactly, at every column width", () => {
+  for (const width of COLUMNS) {
+    const container = Math.min(width, PHOTO_MAX_WIDTH);
+    for (const combo of [...combinations(2), ...combinations(3)]) {
+      const { ratios, caps } = asRow(combo);
+      const rows = drawnRows(ratios, caps, container, GAP, PHOTO_ROW_TARGET);
+      rows.forEach((row, i) => {
+        const span = row.widths.reduce((a, b) => a + b, 0) + GAP * (row.widths.length - 1);
+        /* A row that runs short did so because every photograph on it hit its
+           own cap -- which is the single-photograph rule, so it is drawn
+           exactly as it would have been posted alone. Anything else is the
+           rows failing to line up, which is the whole point of the layout. */
+        assert.ok(
+          Math.abs(span - container) < 1 || row.capped,
+          `${combo.map((s) => s.name).join(" + ")} at ${container}: row ${i} spans ${span} of ${container}`
+        );
+      });
+    }
+  }
+});
+
+test("no photograph in a row is ever a stamp beside its neighbour", () => {
+  /* The measured failure this rule exists for: a real post holding a 1.77, a
+     2.21 and a 0.45 drew the last one 72px wide beside a 357px neighbour.
+     Framing first bounds the disparity, because the narrowest shape a row can
+     hold is 3:4 and the widest that keeps its own shape is the panorama. */
+  for (const combo of combinations(3)) {
+    const { ratios, caps } = asRow(combo);
+    for (const row of drawnRows(ratios, caps, 728, GAP, PHOTO_ROW_TARGET)) {
+      if (row.widths.length < 2) continue;
+      const ratio = Math.max(...row.widths) / Math.min(...row.widths);
+      assert.ok(ratio <= 21 / 9 / TALL_TARGET + 0.01, `${combo.map((s) => s.name)} disparity ${ratio}`);
+    }
+  }
+});
+
+test("nothing in a card is ever drawn taller than the ceiling", () => {
+  for (const width of COLUMNS) {
+    for (const combo of [...combinations(2), ...combinations(3)]) {
+      const { ratios, caps } = asRow(combo);
+      for (const row of drawnRows(ratios, caps, Math.min(width, PHOTO_MAX_WIDTH), GAP, PHOTO_ROW_TARGET)) {
+        assert.ok(
+          row.height <= PHOTO_MAX_HEIGHT + 0.5,
+          `${combo.map((s) => s.name)} at ${width}: ${row.height}px`
+        );
+      }
+    }
+  }
+});
+
+test("a phone gives a wide photograph its own row, a laptop packs three", () => {
+  // The number PHOTO_ROW_TARGET exists to produce, and the reason the row
+  // count is left to the browser rather than decided in JavaScript.
+  const wide = SHAPES.find((s) => s.name.startsWith("3:2"));
+  const three = asRow([wide, wide, wide]);
+  assert.equal(drawnRows(three.ratios, three.caps, 358, GAP, PHOTO_ROW_TARGET).length, 3);
+  assert.equal(drawnRows(three.ratios, three.caps, 728, GAP, PHOTO_ROW_TARGET).length, 1);
+});
+
+test("a photograph alone on a row is drawn exactly as if it were posted alone", () => {
+  // What the per-photograph cap buys: a phone stacks them, and each one then
+  // obeys the rule it would have obeyed on its own -- no second answer.
+  for (const shape of SHAPES) {
+    const frame = frameOf(shape);
+    const [row] = drawnRows([drawnRatio(frame)], [frame.maxWidth], 358, GAP, PHOTO_ROW_TARGET);
+    assert.equal(Math.round(row.widths[0]), Math.round(drawnSize(frame, 358).width), shape.name);
+  }
+});
+
+test("the grid never crops, and its rows line up", () => {
+  const TARGET = 220;
+  for (const width of [358, 1112]) {
+    const many = Array.from({ length: 34 }, (_, i) => SHAPES[i % SHAPES.length]);
+    const { ratios, caps } = asGrid(many, TARGET);
+    const rows = drawnRows(ratios, caps, width, 12, TARGET);
+    rows.slice(0, -1).forEach((row, i) => {
+      const span = row.widths.reduce((a, b) => a + b, 0) + 12 * (row.widths.length - 1);
+      assert.ok(Math.abs(span - width) < 1, `row ${i} at ${width} spans ${span}`);
+      // Equal heights within a row is what "nothing is cropped" costs and buys.
+      row.widths.forEach((w, j) => {
+        assert.ok(Math.abs(w / ratios[j] - row.height) < 0.01, `row ${i} height not shared`);
+      });
+    });
+  }
 });

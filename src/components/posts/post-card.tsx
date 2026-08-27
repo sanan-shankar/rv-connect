@@ -18,11 +18,10 @@ import {
   photoSrc,
   photoSrcSet,
   PHOTO_SIZES_WIDE_FULL,
-  PHOTO_SIZES_WIDE_HALF,
   PHOTO_SIZES_CENTERED_FULL,
-  PHOTO_SIZES_CENTERED_HALF,
 } from "@/lib/image-cdn";
 import { PhotoFrame } from "@/components/common/photo-frame";
+import { PhotoRows } from "@/components/common/photo-rows";
 import type { StoredPhoto } from "@/lib/photo-layout";
 import { MetaDots } from "@/components/common/meta-dots";
 import { PersonName } from "@/components/common/person-name";
@@ -76,6 +75,45 @@ const ModerationDialog = dynamic(
 );
 const preloadComments = () => void import("./comments-section");
 const preloadViewer = () => void import("@/components/common/image-viewer");
+
+/**
+ * One photograph in a post, as a button that opens the shared viewer at it
+ * (owner, 2026-07-30: "when something is posted, people do like to click on it
+ * and zoom in"). Pulled out of the markup below because a post now draws its
+ * photographs two ways -- one on its own, or two or three in a justified row --
+ * and the press behaviour, the label and the focus ring are the same in both.
+ */
+function PhotoButton({
+  index,
+  count,
+  onOpen,
+  onPreload,
+  className,
+  children,
+}: {
+  index: number;
+  count: number;
+  onOpen: (index: number) => void;
+  onPreload: () => void;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(index)}
+      onPointerEnter={onPreload}
+      onFocus={onPreload}
+      aria-label={`View photo ${index + 1} of ${count} full screen`}
+      className={cn(
+        "block w-full overflow-hidden rounded-[var(--radius-md)] border border-border transition-opacity duration-150 hover:opacity-95 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        className
+      )}
+    >
+      {children}
+    </button>
+  );
+}
 
 /* "Read more" reveals text beyond this many raw characters. Kept as a module
    constant (not a magic number inline) since it is read in two places below. */
@@ -162,6 +200,10 @@ export function PostCard({
      but it must not mount before the first open or the deferred chunk would be
      fetched by every card on the page. True once, then true forever. */
   const [viewerMounted, setViewerMounted] = useState(false);
+  const openViewerAt = (index: number) => {
+    setViewerMounted(true);
+    setViewerAt(index);
+  };
   // What the member last saved from the edit dialog, when they have.
   //
   // Every surface that renders a PostCard -- the feed, a group feed, the
@@ -177,6 +219,15 @@ export function PostCard({
   const title = edited ? edited.title : post.title;
 
   const images = parseJsonArray(post.images);
+  const columnSizes = column === "wide" ? PHOTO_SIZES_WIDE_FULL : PHOTO_SIZES_CENTERED_FULL;
+  /* Justified rows need every shape up front, so a post whose photographs have
+     not all been measured keeps the old stack rather than half a layout. Null
+     is a supported state here exactly as it is in <PhotoFrame>: an image that
+     predates the `Image` table, or one whose measurement failed. */
+  const rowPhotos =
+    images.length > 1 && post.photos?.length === images.length && post.photos.every(Boolean)
+      ? (post.photos as StoredPhoto[])
+      : null;
   // Built once per post payload, not on every like/comment re-render.
   const viewerImages = useMemo(
     () =>
@@ -440,71 +491,61 @@ export function PostCard({
                 (owner, 2026-07-30: "when something is posted, people do like
                 to click on it and zoom in"). */}
             {images.length > 0 && (
-              <div
-                className={`mt-3 gap-2 ${
-                  images.length === 1 ? "grid grid-cols-1" : "grid grid-cols-2"
-                }`}
-              >
-                {images.map((img, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => {
-                      setViewerMounted(true);
-                      setViewerAt(i);
-                    }}
-                    onPointerEnter={preloadViewer}
-                    onFocus={preloadViewer}
-                    aria-label={`View photo ${i + 1} of ${images.length} full screen`}
-                    className={`block w-full overflow-hidden rounded-[var(--radius-md)] border border-border transition-opacity duration-150 hover:opacity-95 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
-                      images.length === 3 && i === 0 ? "col-span-2" : ""
-                    }`}
-                  >
-                    {/* Served at display size, not stored size: a 728px card was
-                        downloading a 1920px file. See src/lib/image-cdn.ts for the
-                        measurement and for why this is a URL rather than <Image>. */}
-                    {images.length === 1 ? (
-                      /* One photograph gets the shared rule: true shape if it is
-                         square or wider, 3:4 on a bed of itself if it is taller,
-                         capped at 900px however wide the card grows, and its
-                         space reserved before it loads. See photo-layout.ts. */
+              <div className="mt-3">
+                {/* One photograph gets the shared rule: true shape if it is
+                    square or wider, 3:4 on a bed of itself if it is taller,
+                    capped at 900px however wide the card grows, and its space
+                    reserved before it loads. See photo-layout.ts.
+
+                    Served at display size, not stored size: a 728px card was
+                    downloading a 1920px file. See src/lib/image-cdn.ts for the
+                    measurement and for why this is a URL rather than <Image>. */}
+                {images.length === 1 || !rowPhotos ? (
+                  images.map((img, i) => (
+                    <PhotoButton
+                      key={i}
+                      index={i}
+                      count={images.length}
+                      onOpen={openViewerAt}
+                      onPreload={preloadViewer}
+                      className={!rowPhotos && images.length > 1 ? "mb-2 last:mb-0" : undefined}
+                    >
                       <PhotoFrame
                         src={photoSrc(img)}
                         srcSet={photoSrcSet(img)}
                         photo={post.photos?.[i] ?? null}
-                        sizes={column === "wide" ? PHOTO_SIZES_WIDE_FULL : PHOTO_SIZES_CENTERED_FULL}
+                        sizes={columnSizes}
                         fallbackClassName="max-h-96"
                       />
-                    ) : (
-                      /* Several photographs still use the old mosaic. Justified
-                         rows replace it in phase 3 of the Collection rework
-                         (spec §3.2); until then this is what shipped. */
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={photoSrc(img)}
-                        srcSet={photoSrcSet(img)}
-                        /* Must match the grid below, including the three-photo case
-                           where the FIRST cell spans both columns -- getting this
-                           wrong asks for a half-width file and renders it upscaled
-                           at full width, which is exactly what the first pass did. */
-                        sizes={
-                          images.length === 3 && i === 0
-                            ? column === "wide"
-                              ? PHOTO_SIZES_WIDE_FULL
-                              : PHOTO_SIZES_CENTERED_FULL
-                            : column === "wide"
-                              ? PHOTO_SIZES_WIDE_HALF
-                              : PHOTO_SIZES_CENTERED_HALF
-                        }
-                        alt=""
-                        loading="lazy"
-                        className={`w-full object-cover ${
-                          images.length === 3 && i === 0 ? "max-h-64" : "max-h-48"
-                        }`}
-                      />
+                    </PhotoButton>
+                  ))
+                ) : (
+                  /* Two or three photographs: justified rows, uncropped, each
+                     at its true shape and all of them the same height (D12).
+                     They used to be tiled into half-width `max-h-48` cells,
+                     which was the app's second source of the chopped-faces
+                     complaint after the Catch-up letterbox. */
+                  <PhotoRows photos={rowPhotos} columnSizes={columnSizes}>
+                    {(photo, i, cell) => (
+                      <PhotoButton index={i} count={images.length} onOpen={openViewerAt} onPreload={preloadViewer} className="h-full">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={photoSrc(images[i])}
+                          srcSet={photoSrcSet(images[i])}
+                          sizes={cell.sizes}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover"
+                          style={{
+                            aspectRatio: cell.aspectRatio,
+                            objectPosition: cell.objectPosition,
+                          }}
+                        />
+                      </PhotoButton>
                     )}
-                  </button>
-                ))}
+                  </PhotoRows>
+                )}
               </div>
             )}
           </>

@@ -29,6 +29,7 @@ import { SpotifyCard } from "@/components/catchups/round/spotify-card";
 import { EntryLoveButton } from "@/components/catchups/round/entry-love-button";
 import type { CatchupEntryView, CatchupSongView, PromptKind } from "@/lib/catchups-types";
 import { PhotoFrame } from "@/components/common/photo-frame";
+import { PhotoRows } from "@/components/common/photo-rows";
 import { PHOTO_SIZES_CENTERED_FULL } from "@/lib/image-cdn";
 import type { StoredPhoto } from "@/lib/photo-layout";
 import { cn } from "@/lib/utils";
@@ -62,22 +63,43 @@ function AnswerPhotos({ images, photos }: { images: string[]; photos: (StoredPho
       </div>
     );
   }
-  /* Several photographs still tile square. Justified rows replace this in
-     phase 3 of the Collection rework (spec §3.2). */
-  const cols = images.length === 2 ? "grid-cols-2" : "grid-cols-3";
+  /* Several photographs: justified rows, each at its true shape. Only legacy
+     rows reach this -- the answer form has taken one photograph per answer
+     since it shipped (`PhotoAttachments max={1}`) -- but they used to tile
+     into squares, which is the same guillotine the lone hero applied, just
+     four ways at once. A row that has not been measured keeps the squares
+     rather than half a layout. */
+  const shapes = photos.length === images.length && photos.every(Boolean) ? photos : null;
+  if (!shapes) {
+    return (
+      <div className={cn("mt-[var(--space-s)] grid gap-2", images.length === 2 ? "grid-cols-2" : "grid-cols-3")}>
+        {images.map((src, i) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={i}
+            src={src}
+            alt=""
+            loading="lazy"
+            className="aspect-square w-full rounded-[var(--radius-md)] border border-border object-cover"
+          />
+        ))}
+      </div>
+    );
+  }
   return (
-    <div className={cn("mt-[var(--space-s)] grid gap-2", cols)}>
-      {images.map((src, i) => (
+    <PhotoRows photos={shapes as StoredPhoto[]} className="mt-[var(--space-s)]">
+      {(photo, i, cell) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          key={i}
-          src={src}
+          src={images[i]}
           alt=""
           loading="lazy"
-          className="aspect-square w-full rounded-[var(--radius-md)] border border-border object-cover"
+          decoding="async"
+          className="h-full w-full rounded-[var(--radius-md)] border border-border object-cover"
+          style={{ aspectRatio: cell.aspectRatio, objectPosition: cell.objectPosition }}
         />
-      ))}
-    </div>
+      )}
+    </PhotoRows>
   );
 }
 

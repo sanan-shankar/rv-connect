@@ -25,18 +25,32 @@ import { IdentityRow } from "@/components/common/identity-row";
 import { AnswerCard, type RoundEntry } from "@/components/catchups/round/answer-card";
 import { EntryLoveButton } from "@/components/catchups/round/entry-love-button";
 import { promptKind, type CatchupPromptView } from "@/lib/catchups-types";
+import { PhotoStream } from "@/components/common/photo-rows";
+
+/* A wall is many photographs of many shapes, so it is justified rows rather
+   than a grid of squares -- the square was the wall's own version of the crop
+   that cost the Catch-up its faces, and a wall of them is the one place the
+   damage repeats twenty times over. A photograph nobody has measured keeps the
+   square it has always had, which is what the 1:1 below is. */
+const UNMEASURED = { width: 1, height: 1 };
 
 function PhotoWall({ entries }: { entries: RoundEntry[] }) {
+  const cells = entries.map((entry) => ({
+    entry,
+    ...(entry.photos[0] ?? UNMEASURED),
+  }));
   return (
-    <ul className="grid grid-cols-2 gap-[var(--space-m)] sm:grid-cols-3">
-      {entries.map((entry) => (
-        <li key={entry.id} id={`entry-${entry.id}`} className="min-w-0">
+    <PhotoStream photos={cells} gap={16} as="ul" keyOf={(c) => c.entry.id}>
+      {({ entry }, _i, cell) => (
+        <div id={`entry-${entry.id}`} className="min-w-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={entry.images[0]}
             alt={`Added by ${entry.author.name}`}
             loading="lazy"
-            className="aspect-square w-full rounded-[var(--radius-md)] border border-border object-cover"
+            decoding="async"
+            className="w-full rounded-[var(--radius-md)] border border-border object-cover"
+            style={{ aspectRatio: cell.aspectRatio }}
           />
           {entry.body?.trim() && (
             <p className="mt-[var(--space-xs)] whitespace-pre-wrap text-[13.5px] leading-[1.55] text-foreground">
@@ -60,9 +74,9 @@ function PhotoWall({ entries }: { entries: RoundEntry[] }) {
               />
             </div>
           </div>
-        </li>
-      ))}
-    </ul>
+        </div>
+      )}
+    </PhotoStream>
   );
 }
 
