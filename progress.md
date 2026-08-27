@@ -1,5 +1,47 @@
 # Progress Log
 
+## 2026-08-27 — the Collection rework, phase 2: one rule for one photograph
+
+Spec §13 phase 2, and the fix for the complaint the owner actually looks at: "all of their
+faces are cropped out and you can't see them... sometimes the catch up just shows a bunch of
+shoulders. Like, why?"
+
+**Three surfaces, three different rules, none of them written down.** The feed guillotined a
+photograph at a fixed 384px, whatever shape it was and whatever width the card had grown to
+-- at 1216px that is a 3.2:1 letterbox applied to everything. A single Catch-up photograph
+was forced into `aspect-[16/10] sm:aspect-[21/9]` and centre-cropped, which is what turned a
+portrait of four friends into a row of shoulders. Letters had no bound at all. They now share
+`src/lib/photo-layout.ts`, which is the rule the owner picked in `/lab/crop`: square or wider
+runs free at true shape, taller than wide comes to 3:4 on a blurred bed of itself, aimed at
+the subject and clamped, and nothing is ever drawn wider than 900px or taller than 700.
+
+**Expressed as CSS, not as a measurement.** A max-width and an aspect-ratio the browser
+resolves for itself, so nothing waits for layout to know how big a photograph will be -- which
+is what reserves the space and stops the page jumping (bug #18). Measured on the feed after
+the change: CLS 0.0000 at 1440x900 and at 390x844. The old markup gave the image no height at
+all until its file arrived.
+
+**A square photograph was coming out taller than a portrait**, which the tests caught rather
+than my eye. Written literally, the spec bounds tall photos at 700px and everything else at
+900px wide, so a 1:1 lands at 728px tall in a laptop column and 900 on a wide screen -- taller
+than the shape the ceiling exists to bound. Handover F9 had seen it coming and left it open.
+The ceiling now applies to every photograph, and a wide one obeys it by narrowing rather than
+by being cut, which changes nothing except shapes between 1:1 and about 1.29:1 on a column
+wider than 700px.
+
+**The smear earns its keep twice.** The 16px placeholder stored with each image is also what
+fills the card beside a tall photograph: same 140 bytes, no second decode of a full-size file,
+and it is already there before the photograph arrives. The filter is the one approved in
+`/lab/crop`, to the number.
+
+Measured live at both viewports rather than eyeballed: a tall Catch-up photo draws exactly
+525x700 with 151px of bed each side at 1440, and 314x419 with no bed at all at 390; a 4:3 feed
+photograph went from 728x384 cropped to 728x546 whole; a letter photograph is 678x452 at true
+shape. Eleven tests pin the rule across nine aspect ratios from 9:16 to 21:9 at the three real
+column widths. `npm run check` green, 78/78. `npm run visual` 23/23.
+
+Several photographs in one post still use the old mosaic; justified rows are phase 3.
+
 ## 2026-08-27 — the guide, made smooth by taking the route out of the way
 
 Owner, on three successive versions: "so incredibly lazy", "this is so horrible", "why

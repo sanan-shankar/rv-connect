@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { ImageFacts } from "@/lib/image";
+import type { StoredPhoto } from "@/lib/photo-layout";
+import { parseJsonArray } from "@/lib/utils";
 
 /**
  * The database half of "we know what this image looks like".
@@ -72,4 +74,55 @@ export async function forgetImages(urls: (string | null | undefined)[]): Promise
       err instanceof Error ? err.message : err
     );
   }
+}
+
+/**
+ * What we know about a set of urls, as a map. One query however many photos
+ * are on the page, and a url with no row is simply absent -- the caller draws
+ * it the way it drew everything before this table existed.
+ *
+ * `greyscale` is deliberately not selected. It is a filter for the Collection
+ * (spec §7.4), not something a card needs in order to lay a photograph out,
+ * and every byte here rides in the server component's payload.
+ */
+export async function photoFactsFor(
+  urls: (string | null | undefined)[]
+): Promise<Map<string, StoredPhoto>> {
+  const wanted = [...new Set(urls.filter((u): u is string => !!u))];
+  if (wanted.length === 0) return new Map();
+  try {
+    const rows = await prisma.image.findMany({
+      where: { url: { in: wanted } },
+      select: { url: true, width: true, height: true, focalX: true, focalY: true, blurDataUrl: true },
+    });
+    return new Map(rows.map(({ url, ...facts }) => [url, facts]));
+  } catch (err) {
+    console.error(
+      "[image-record] could not read image facts:",
+      err instanceof Error ? err.message : err
+    );
+    return new Map();
+  }
+}
+
+/**
+ * Attach each row's photographs to it, in the order its `images` column lists
+ * them, so a card can reach `post.photos[i]` beside `images[i]` without
+ * knowing this table exists.
+ *
+ * Per row rather than one shared map, because a feed page's posts are held in
+ * component state and appended to as more pages arrive: carrying the facts on
+ * the post means every existing feed keeps working untouched, where a map
+ * would have to be threaded through three components and merged across pages.
+ * A url on two posts is fetched once and stored twice, which is a few dozen
+ * bytes.
+ */
+export async function withPhotoFacts<T extends { images: string | null }>(
+  rows: T[]
+): Promise<(T & { photos: (StoredPhoto | null)[] })[]> {
+  const facts = await photoFactsFor(rows.flatMap((r) => parseJsonArray(r.images)));
+  return rows.map((row) => ({
+    ...row,
+    photos: parseJsonArray(row.images).map((url) => facts.get(url) ?? null),
+  }));
 }

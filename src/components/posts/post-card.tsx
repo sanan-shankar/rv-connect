@@ -22,6 +22,8 @@ import {
   PHOTO_SIZES_CENTERED_FULL,
   PHOTO_SIZES_CENTERED_HALF,
 } from "@/lib/image-cdn";
+import { PhotoFrame } from "@/components/common/photo-frame";
+import type { StoredPhoto } from "@/lib/photo-layout";
 import { MetaDots } from "@/components/common/meta-dots";
 import { PersonName } from "@/components/common/person-name";
 import { VerifiedMark } from "@/components/common/verified-mark";
@@ -85,6 +87,11 @@ export interface PostData {
   title?: string | null;
   content: string;
   images: string | null;
+  /** What each of those images looks like -- shape, focal point, a smear to
+   *  hold its place -- in the same order, from the `Image` table. Absent, or a
+   *  null entry, means we have never measured that one: the card then draws it
+   *  the way it did before the table existed. */
+  photos?: (StoredPhoto | null)[];
   /** Null = everyone; otherwise the city short-name this post is limited to. */
   cityScope?: string | null;
   createdAt: string;
@@ -456,33 +463,45 @@ export function PostCard({
                     {/* Served at display size, not stored size: a 728px card was
                         downloading a 1920px file. See src/lib/image-cdn.ts for the
                         measurement and for why this is a URL rather than <Image>. */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={photoSrc(img)}
-                      srcSet={photoSrcSet(img)}
-                      /* Must match the grid below, including the three-photo case
-                         where the FIRST cell spans both columns -- getting this
-                         wrong asks for a half-width file and renders it upscaled
-                         at full width, which is exactly what the first pass did. */
-                      sizes={
-                        images.length === 1 || (images.length === 3 && i === 0)
-                          ? column === "wide"
-                            ? PHOTO_SIZES_WIDE_FULL
-                            : PHOTO_SIZES_CENTERED_FULL
-                          : column === "wide"
-                            ? PHOTO_SIZES_WIDE_HALF
-                            : PHOTO_SIZES_CENTERED_HALF
-                      }
-                      alt=""
-                      loading="lazy"
-                      className={`w-full object-cover ${
-                        images.length === 3 && i === 0
-                          ? "max-h-64"
-                          : images.length === 1
-                            ? "max-h-96"
-                            : "max-h-48"
-                      }`}
-                    />
+                    {images.length === 1 ? (
+                      /* One photograph gets the shared rule: true shape if it is
+                         square or wider, 3:4 on a bed of itself if it is taller,
+                         capped at 900px however wide the card grows, and its
+                         space reserved before it loads. See photo-layout.ts. */
+                      <PhotoFrame
+                        src={img}
+                        photo={post.photos?.[i] ?? null}
+                        sizes={column === "wide" ? PHOTO_SIZES_WIDE_FULL : PHOTO_SIZES_CENTERED_FULL}
+                        fallbackClassName="max-h-96"
+                      />
+                    ) : (
+                      /* Several photographs still use the old mosaic. Justified
+                         rows replace it in phase 3 of the Collection rework
+                         (spec §3.2); until then this is what shipped. */
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={photoSrc(img)}
+                        srcSet={photoSrcSet(img)}
+                        /* Must match the grid below, including the three-photo case
+                           where the FIRST cell spans both columns -- getting this
+                           wrong asks for a half-width file and renders it upscaled
+                           at full width, which is exactly what the first pass did. */
+                        sizes={
+                          images.length === 3 && i === 0
+                            ? column === "wide"
+                              ? PHOTO_SIZES_WIDE_FULL
+                              : PHOTO_SIZES_CENTERED_FULL
+                            : column === "wide"
+                              ? PHOTO_SIZES_WIDE_HALF
+                              : PHOTO_SIZES_CENTERED_HALF
+                        }
+                        alt=""
+                        loading="lazy"
+                        className={`w-full object-cover ${
+                          images.length === 3 && i === 0 ? "max-h-64" : "max-h-48"
+                        }`}
+                      />
+                    )}
                   </button>
                 ))}
               </div>
