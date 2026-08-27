@@ -1,6 +1,7 @@
 # Collection rework — LIVING HANDOVER
 
-**This file plus [`brief.md`](brief.md) is the entire handover.** [`prior-art.md`](prior-art.md)
+**[`spec.md`](spec.md) is the design. This file plus [`brief.md`](brief.md) is the entire
+handover.** [`prior-art.md`](prior-art.md)
 is the research behind the recommendations; read it before arguing with any of them. A session is started by
 @-ing this file. Read `brief.md` **in full, first** — it is the owner's own words and the
 owner asked explicitly that it never be reduced to a summary. This file is an *index into*
@@ -55,8 +56,10 @@ that rework.
 - [x] **Prior art researched** — `prior-art.md`. Owner asked for it directly mid-session.
 - [ ] **Owner picks a crop policy** — blocks the spec, because it determines the justified
       grid maths, the stored derivative sizes and the viewer's framing.
-- [ ] **Write the spec** — one document, `spec.md` in this folder, phased so it can still
-      ship incrementally.
+- [x] **Write the spec** — [`spec.md`](spec.md), 2026-08-27. Fifteen sections, six phases,
+      and a table in §14 mapping all 55 ledger asks to where each is answered. Two are
+      deliberately out of scope with reasons in §15 (Letters' use of space, and renaming
+      the Collection).
 - [ ] **Owner reviews the spec.**
 - [ ] **Implementation plan** (`superpowers:writing-plans`).
 - [ ] **Execute, phase by phase.**
