@@ -172,12 +172,6 @@ export async function refuseSelfOrLastAdmin(
 
 class LastAdminError extends Error {}
 
-/** True only for the one configured owner, who gets the hoopoe tour trigger. */
-export function isOwner(email: string): boolean {
-  const ownerEmail = process.env.ADMIN_EMAIL;
-  return Boolean(ownerEmail) && email === ownerEmail;
-}
-
 /* ---------------------------------------------------------------- *
  *  The rail counts
  * ---------------------------------------------------------------- */

@@ -1,11 +1,11 @@
 /**
  * localStorage that cannot throw.
  *
- * Four modules kept their own SSR-guarded, try/caught pair of accessors: the
- * onboarding wizard's "seen" flag, the tour's settled state, the mascot's
- * one-shot moments and the letter composer's draft. All four wrote the same
- * eleven lines and the same reasoning in their comments, which is the sign
- * that the reasoning belongs in one place.
+ * Several modules kept their own SSR-guarded, try/caught pair of accessors: the
+ * onboarding wizard's "seen" flag, the mascot's one-shot moments and the
+ * letter composer's draft. Each wrote the same eleven lines and the same
+ * reasoning in its comments, which is the sign that the reasoning belongs in
+ * one place.
  *
  * Two things go wrong here and neither is worth an error page.
  *

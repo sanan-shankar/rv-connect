@@ -19,7 +19,6 @@ import { callAction } from "@/lib/call-action";
 import { ProfileCard } from "./profile-card";
 import { AlumniMap, type CityPin, type PinPerson } from "./alumni-map";
 import { loadDirectoryPage } from "@/app/(main)/directory/actions";
-import { useTourAnchor } from "@/components/tour/tour-anchors";
 import { NoResultsHoopoe } from "@/components/mascot/moments/no-results-hoopoe";
 
 interface User {
@@ -95,7 +94,6 @@ export function DirectoryClient({
 }: DirectoryClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tourAnchorRef = useTourAnchor<HTMLDivElement>("directory-search");
   const [query, setQuery] = useState(initialFilters.q);
   /* One panel, two presentations: `panelOpen` is the desktop popover,
      `sheetOpen` the mobile bottom sheet. Separate flags rather than one,
@@ -420,7 +418,7 @@ export function DirectoryClient({
           places at once: a facet pill on the toolbar, a chip in the mobile
           strip, and a tally on the More-filters button, and opening that
           disclosure pushed the entire page down. */}
-      <div ref={tourAnchorRef} data-tour="directory-search" className="mb-4 space-y-2.5">
+      <div className="mb-4 space-y-2.5">
         <div className="flex flex-nowrap items-center gap-2">
           {renderBackButton()}
           {renderSearchBox("relative min-w-0 flex-1")}

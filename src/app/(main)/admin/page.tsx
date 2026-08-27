@@ -16,7 +16,7 @@ import {
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
 import { CONTRIBUTION_SUM, netPaise } from "@/lib/contribution-state";
-import { isOwner, requireAdminPage } from "@/lib/admin";
+import { requireAdminPage } from "@/lib/admin";
 import { mailHealth } from "@/lib/email-queue";
 import { loadWorklist, worklistIsCapped } from "@/lib/admin-worklist-query";
 import { QUEUE_LABEL, QUEUE_TONE, type WorkItem } from "@/lib/admin-worklist";
@@ -29,7 +29,6 @@ import {
   StatTile,
 } from "@/components/admin/admin-chrome";
 import { ADMIN_NAV } from "@/components/admin/admin-nav";
-import { TakeTourAgainButton } from "@/components/tour/take-tour-again-button";
 import { formatPaise, formatTimeAgo, valleyDayKey, valleyMidnight } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -60,7 +59,7 @@ const QUEUE_ICON = {
  * after, and every one of them is a link into the section that owns it.
  */
 export default async function AdminOverviewPage() {
-  const session = await requireAdminPage();
+  await requireAdminPage();
 
   // One clock read for the whole render. `Date.now()` inline in the query
   // tripped the react-hooks/purity rule, and it was also two different "now"s
@@ -91,10 +90,7 @@ export default async function AdminOverviewPage() {
 
   return (
     <div className={`flex flex-col gap-6 ${ADMIN_MEASURE}`}>
-      <PageHeader
-        title="Admin"
-        actions={isOwner(session.email) ? <TakeTourAgainButton /> : undefined}
-      />
+      <PageHeader title="Admin" />
 
       <AdminSection label="Waiting on you" count={work.length}>
         {work.length === 0 ? (

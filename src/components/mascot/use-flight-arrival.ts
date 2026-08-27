@@ -203,8 +203,8 @@ export function useFlightArrival({
   }, [arrivedViaFlight]);
 
   // Report the perch EARLY — before this page's first paint, while the flyer
-  // is still mid-cruise — and keep it fresh (ResizeObserver + resize + scroll,
-  // the tour-spotlight measuring pattern) until the handoff makes it moot. The
+  // is still mid-cruise — and keep it fresh (ResizeObserver + resize + scroll)
+  // until the handoff makes it moot. The
   // flight bus explicitly supports repeated reports and the flyer retargets
   // smoothly every frame, so the bird is never aiming at a stale rect.
   // `perchWatchStop` lets the handoff reveal below drop the listeners the

@@ -23,7 +23,6 @@ import {
   computeMentionRange,
   serializeEditableToMarkdown,
 } from "@/lib/rich-text-editing";
-import { useTourAnchor } from "@/components/tour/tour-anchors";
 import { safeGet, safeSet, safeRemove } from "@/lib/local-storage";
 
 /* ------------------------------------------------------------------ *
@@ -192,10 +191,6 @@ export function CreatePostForm({
   // retired 2026-07-25 and nothing ever passed the explicit `scope` prop).
   const resolvedScope: ComposerScope = defaultLetter ? "letter" : "post";
   const collapsedPlaceholder = placeholder ?? SCOPE_PLACEHOLDER[resolvedScope];
-  // Tour spotlight target (walkthrough spec sec 2): only the feed's own
-  // top-level composer, never a group's or a letter's.
-  const isFeedComposer = resolvedScope === "post";
-  const tourAnchorRef = useTourAnchor<HTMLButtonElement>("feed-composer", isFeedComposer);
   // An unconfirmed address is refused by createPost/editPost/publishDraft on
   // the server. This turns that refusal into a dialog with the fix in it,
   // instead of a toast that slides away while you are still reading it.
@@ -1656,9 +1651,7 @@ export function CreatePostForm({
               rounded-full stays: the composer's inline post box is the app's
               one sanctioned pill-shaped input. */}
           <m.button
-            ref={tourAnchorRef}
             type="button"
-            data-tour={isFeedComposer ? "feed-composer" : undefined}
             onClick={() => expand("post")}
             aria-hidden={expanded}
             tabIndex={expanded ? -1 : 0}
