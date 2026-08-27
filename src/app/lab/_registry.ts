@@ -167,10 +167,10 @@ export const REGISTRY: LabEntry[] = [
   },
   {
     href: "/lab/crop",
-    title: "Six ways to hold a photograph",
+    title: "Eight ways to hold a photograph",
     group: "Delight",
     status: "active",
-    note: "A decision room. Six crop rules against six awkward photographs at the three column widths the app really uses, plus justified rows against today's grid. Throwaway: delete it, public/lab/crop/ and this row once the rule is picked.",
+    note: "A decision room. Eight crop rules against six awkward photographs at the three column widths the app really uses, plus justified rows against today's grid. Throwaway: delete it, public/lab/crop/ and this row once the rule is picked.",
   },
   {
     href: "/lab/viewer",
