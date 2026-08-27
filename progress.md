@@ -32,6 +32,34 @@ which is what that pass is for. Verified against the live database rather than b
 the diff: a thread opened as Jerry, replied to as admin, marked sorted, then read back —
 `status` closed, `adminUnread` false, one `fromAdmin` message with the admin's own id on it.
 
+**`feed-posts-02` — the composer's two machines, out into named hooks.** The app's biggest
+client file was 1,685 lines; it is 1,201 now, with `use-letter-persistence.ts` (468) and
+`use-composer-uploads.ts` (225) beside it. A move, not a cut: +209 lines all told, which is
+what the two named boundaries cost, and the honest price of the letter machine — the most
+audit-scarred code in the repo, C-014, C-175, C-176, C-177, B-043 and M66 — being one unit
+with an API instead of 310 lines in the middle of a component. The editor body stayed put:
+it closes over twenty pieces of state and prop-drilling them is worse than the length.
+
+The persistence hook's API is eight things in, five out, and that matters: the finding's own
+falsifier was "if the refs cannot cross a hook boundary without a 15-parameter API, stop and
+keep the file whole". Grouping is what avoided it — `draft` and `initial` are the five-value
+bundles the exit save already kept in one ref, and the four pieces of restore plumbing
+(setContent, setTitle, the contentEditable, the hydration latch) collapse into one
+`onRestore` callback, because putting words back on the sheet is the editor's business.
+
+**Four pinned test files moved with it, in the same commit**: composer-rule (six anchors),
+rich-truncate (C-183's exact count of two blob releases, C-014's three key call sites),
+upload-shared (C-073's two notices) and upload-size-rule's SENDERS list. The counts all
+survive the move to the digit, which is the useful part: two releases are still two, three
+call sites still three.
+
+**Driven, not read.** Typed a letter and watched the device copy appear after the 2.5s idle;
+reloaded and took the "Picked up where you left off" offer; left the page mid-sentence and
+watched "Saved to your drafts"; resumed the draft and watched the desk go Saving... → Saved
+with the local copy cleared on success; attached a photograph on the feed (presign 200,
+finalize 200, blob preview, Post enabled only after) and removed it again. `npm run visual`
+is 23/23 — the split is invisible, which is the whole point.
+
 ## 2026-08-27 — the guide ships, and the hoopoe tour does not
 
 `/guide` is real: an index, six chapters, and two ways in. The tour is gone.
