@@ -34,7 +34,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { markGuideReturn } from "@/lib/guide-scroll";
 
 /** How long a revealed mark stays armed before it fades back out. */
 const ARMED_MS = 4000;
@@ -90,11 +89,7 @@ export function GuideDoor({ area, children }: { area: string; children: React.Re
         if (usedTouch.current && !armed) {
           e.preventDefault();
           setArmed(true);
-          return;
         }
-        /* Recorded here, not in the overlay: this is the last moment at which
-           the page behind is still where the reader left it. */
-        markGuideReturn();
       }}
     >
       {children}
