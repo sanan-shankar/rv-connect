@@ -20,6 +20,12 @@ import { read, decomment } from "./test-kit.mjs";
 
 const card = decomment(read("src/components/posts/post-card.tsx"));
 const composer = decomment(read("src/components/posts/create-post-form.tsx"));
+/* The composer's two self-contained machines live in their own files
+   (audit feed-posts-02): the letter's persistence engine -- crash net,
+   autosave, read-back, exit save -- and the photograph pipeline. The pins
+   below follow the code into them; what stayed in the composer is the editor
+   body, the submit, and the buttons. */
+const persistence = decomment(read("src/components/posts/use-letter-persistence.ts"));
 const editDialog = decomment(read("src/components/posts/edit-post-dialog.tsx"));
 const rail = decomment(read("src/components/feed/rail/letters-module.tsx"));
 const desk = decomment(read("src/components/letters/letter-desk.tsx"));
@@ -67,11 +73,11 @@ test("an edited post shows the new words without a reload", () => {
 
 test("a failing autosave says so instead of sitting on 'Saving...'", () => {
   assert.ok(
-    /onAutosaveState\?\.\("failed"\)/.test(composer),
+    /onAutosaveState\?\.\("failed"\)/.test(persistence),
     "the autosave failure path is empty again; the desk chrome will sit on " +
       "'Saving...' while every later save fails too (B-043)"
   );
-  assert.ok(/catch/.test(composer), "the autosave await has no try/catch");
+  assert.ok(/catch/.test(persistence), "the autosave await has no try/catch");
   assert.ok(
     /"failed"/.test(desk),
     "the letters desk has nothing to render for a failed save"
@@ -83,12 +89,12 @@ test("a letter with nowhere else to live is kept on the device", () => {
      .ts). What is pinned is that the draft reaches the device at all -- the
      spelling moved once already and a name-only grep went red for it. */
   assert.ok(
-    /localStorage|safeSet\(/.test(composer),
+    /localStorage|safeSet\(/.test(persistence),
     "there is no crash net: a fresh letter has no row until the first explicit " +
       "save, so navigating away loses the whole thing (B-043)"
   );
   assert.ok(
-    /clearLocalDraft/.test(composer),
+    /clearLocalDraft/.test(persistence),
     "nothing clears the local copy, so a stale one can shadow a good server copy"
   );
 });
@@ -180,7 +186,7 @@ test("removing a contact row saves the list without it", () => {
  * edited somewhere else. */
 
 test("a Publish cannot be raced by the autosave it armed", () => {
-  const armed = composer.slice(composer.indexOf("autosaveTimer.current = setTimeout"));
+  const armed = persistence.slice(persistence.indexOf("autosaveTimer.current = setTimeout"));
   const body = armed.slice(0, armed.indexOf("}, 2500)"));
   assert.ok(
     /submittingRef\.current/.test(body),
@@ -194,7 +200,7 @@ test("a Publish cannot be raced by the autosave it armed", () => {
   );
 
   const submit = fnBody(composer, "async function handleSubmit");
-  const disarm = submit.indexOf("clearTimeout(autosaveTimer.current)");
+  const disarm = submit.indexOf("disarmAutosave()");
   assert.ok(disarm > -1, "handleSubmit no longer disarms the pending autosave (C-175)");
   assert.ok(
     disarm < submit.indexOf("await autosaveRunRef.current"),
@@ -208,7 +214,7 @@ test("a Publish cannot be raced by the autosave it armed", () => {
  * armed earlier wrote the OLD scope back from its stale closure. */
 
 test("everything the autosave sends is something it watches", () => {
-  const effect = composer.slice(composer.indexOf("const autosaveTimer = useRef"));
+  const effect = persistence.slice(persistence.indexOf("const autosaveTimer = useRef"));
   const runStart = effect.indexOf("async function runAutosave");
   assert.ok(runStart > -1, "runAutosave is gone");
   const deps = /\}, \[([^\]]*)\]\);/.exec(effect.slice(runStart));
@@ -244,17 +250,17 @@ test("everything the autosave sends is something it watches", () => {
 
 test("closing the tab mid-sentence keeps the words", () => {
   assert.ok(
-    /addEventListener\("pagehide"/.test(composer),
+    /addEventListener\("pagehide"/.test(persistence),
     "nothing persists the letter on a real unload; an unmount cleanup never " +
       "runs for a closed tab (C-177)"
   );
   assert.ok(
-    /visibilityState === "hidden"/.test(composer),
+    /visibilityState === "hidden"/.test(persistence),
     "a phone locked mid-sentence is not covered"
   );
   // The flush must be a synchronous localStorage write. An unload gives no
   // time for a server round trip, so anything awaited here is theatre.
-  const flush = composer.slice(composer.indexOf("const flush = ()"));
+  const flush = persistence.slice(persistence.indexOf("const flush = ()"));
   assert.ok(
     /stashLocalDraft\(/.test(flush.slice(0, flush.indexOf("};"))),
     "the unload flush does not write the local belt"
@@ -262,7 +268,7 @@ test("closing the tab mid-sentence keeps the words", () => {
 });
 
 test("a resumed draft's local copy is read back, not just written", () => {
-  const restore = composer.slice(composer.indexOf("const restoredRef = useRef"));
+  const restore = persistence.slice(persistence.indexOf("const restoredRef = useRef"));
   const effect = restore.slice(0, restore.indexOf("}, []);"));
   assert.ok(
     !/if\s*\([^)]*initialContent[^)]*\)\s*return;/.test(effect.split("\n")[2] ?? ""),

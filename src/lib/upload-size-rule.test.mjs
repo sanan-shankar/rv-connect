@@ -27,7 +27,9 @@ const SENDERS = [
   "src/components/catchups/answer/photo-attachments.tsx",
   "src/components/messages/message-composer.tsx",
   "src/components/collection/contribute-dialog.tsx",
-  "src/components/posts/create-post-form.tsx",
+  /* The composer sends through its uploads hook (feed-posts-02), which is
+     where the fallback's downscale lives now. */
+  "src/components/posts/use-composer-uploads.ts",
   /* The profile letterhead was missing from this list and from the guard:
      the same HEIC off the same phone shrank during onboarding and died at
      the platform cap from the profile. Both go through useAvatarUpload now. */

@@ -208,7 +208,7 @@ test("C-073: every path that re-encodes counts the frames and says the same sent
   assert.equal([...collection.matchAll(/countImageFrames\(/g)].length, 2);
 
   // ...and both surfaces show what comes back.
-  const composer = readFileSync(new URL("../components/posts/create-post-form.tsx", import.meta.url), "utf8");
+  const composer = readFileSync(new URL("../components/posts/use-composer-uploads.ts", import.meta.url), "utf8");
   assert.equal([...composer.matchAll(/toast\.info\(notice\)/g)].length, 2, "the direct path drops the notice");
   const dialog = readFileSync(new URL("../components/collection/contribute-dialog.tsx", import.meta.url), "utf8");
   assert.match(dialog, /result\.notice/);

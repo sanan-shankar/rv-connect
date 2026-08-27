@@ -12,18 +12,16 @@ import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { createPost, editPost, publishDraft } from "@/app/(main)/feed/actions";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
-import { downscaleImage } from "@/lib/image-downscale";
-import { directUploadPut } from "@/lib/upload-client";
-import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
 import { cn } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
+import { useComposerUploads } from "./use-composer-uploads";
+import { useLetterPersistence } from "./use-letter-persistence";
 import {
   applyFormatShortcut,
   insertPlainTextPaste,
   computeMentionRange,
   serializeEditableToMarkdown,
 } from "@/lib/rich-text-editing";
-import { safeGet, safeSet, safeRemove } from "@/lib/local-storage";
 
 /* ------------------------------------------------------------------ *
  *  The composer itself stays static -- its collapsed pill is the first
@@ -82,8 +80,6 @@ const COLLAPSED_H = 44;
 // counted down. No red numbers, no limits messaging: just a hint.
 const LETTER_NUDGE_LEN = 600;
 
-const UPLOAD_TIMEOUT_MS = 60_000;
-
 const SCOPE_PLACEHOLDER: Record<ComposerScope, string> = {
   // Owner's wording, 2026-08-04: no "sighting", and the community rather than
   // the valley. Two things offered instead of three reads as an invitation
@@ -91,56 +87,6 @@ const SCOPE_PLACEHOLDER: Record<ComposerScope, string> = {
   post: "Share a memory or a note with the community...",
   letter: "Write your letter to the valley. Take your time.",
 };
-
-/* The device-side copy of a letter in progress, and the fingerprint of what
-   the server was last told. Both live out here, taking their values as
-   arguments, because the leave-the-page save below runs from an unmount
-   cleanup and cannot read a hook's closure. */
-/**
- * The crash-net key, scoped to the ACCOUNT as well as the row.
- *
- * It used to be `rv:letter-draft:${postId ?? "new"}`, with no member in it.
- * Signing out clears cookies, not localStorage, and the ":new" key is only
- * cleared by a successful save -- so on a shared browser (a family laptop, a
- * library machine, the one the owner demos on) the next person to open
- * /letters/new had the previous member's unsaved letter restored silently into
- * their composer, under their own name (audit C-014).
- *
- * A key with nobody's id in it simply does not match anybody else's, so the
- * old rows are unreachable rather than wrong. They expire with the browser.
- */
-/**
- * Release the `blob:` previews this composer minted, leaving stored urls alone.
- *
- * `URL.createObjectURL` pins the whole file in memory for the document's life
- * unless it is revoked, and only `removeImage` revoked -- so every photograph
- * actually POSTED stayed pinned, and so did every preview on an unmount that
- * was not a post (navigating away from the letters desk). A resumed draft's
- * previews are R2 urls, which own nothing and revoke to nothing (audit C-183).
- */
-function revokeBlobPreviews(urls: string[]): void {
-  for (const u of urls) {
-    if (u.startsWith("blob:")) URL.revokeObjectURL(u);
-  }
-}
-
-const localDraftKey = (userId: string | null | undefined, postId?: string) =>
-  `rv:letter-draft:${userId ?? "anon"}:${postId ?? "new"}`;
-
-/* Private mode or a full quota loses the draft silently, which is the right
-   trade: the editor still has the text on screen and this was only ever the
-   belt. See src/lib/local-storage.ts. */
-function stashLocalDraft(key: string, content: string, title: string) {
-  safeSet(key, JSON.stringify({ content, title, at: Date.now() }));
-}
-
-function dropLocalDraft(key: string) {
-  safeRemove(key);
-}
-
-/** Everything a save would send, in one comparable string. */
-const draftSnapshot = (content: string, title: string, images: string[], city: string | null) =>
-  JSON.stringify([content.trim(), title.trim(), images, city ?? ""]);
 
 export function CreatePostForm({
   placeholder,
@@ -198,19 +144,28 @@ export function CreatePostForm({
   const [content, setContent] = useState(initialContent ?? "");
   const [kind, setKind] = useState<"post" | "letter">(defaultLetter ? "letter" : "post");
   const [title, setTitle] = useState(initialTitle ?? "");
-  // A resumed draft's images are already-public URLs, so they serve as their
-  // own previews; fresh uploads append object URLs as before.
-  const [images, setImages] = useState<string[]>(initialImages ?? []);
-  const [previews, setPreviews] = useState<string[]>(initialImages ?? []);
   /* "Also add to the Collection". Off by default and never remembered between
      posts: it is an offer, and an offer that quietly stays ticked would put
      photographs in the archive nobody chose to put there. */
   const [toCollection, setToCollection] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  // Determinate-feeling progress for the "Photo" button label while a batch
-  // uploads one file at a time (no byte-level progress events on a plain
-  // fetch, but "uploading 2 of 3" reads as real progress).
-  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+  /* The photograph pipeline, in its own file (audit feed-posts-02): the
+     uploads, the previews and the blob-url bookkeeping, whose whole contract
+     with this editor is the four values it hands back. */
+  const {
+    images,
+    previews,
+    uploading,
+    uploadProgress,
+    handleImageFiles,
+    removeImage,
+    resetImages,
+  } = useComposerUploads({
+    initialImages,
+    // Taking the last photograph out takes the offer with it, so adding a
+    // different one later starts from "no" rather than from a tick the writer
+    // left on for a picture they since deleted.
+    onEmptied: () => setToCollection(false),
+  });
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   /* A ref as well as the two flags, because `disabled` only takes effect on
@@ -220,29 +175,6 @@ export function CreatePostForm({
      so the second call in the same frame sees it. Covers Save-as-draft too --
      they write the same row and must not overlap either. */
   const submittingRef = useRef(false);
-  /* The version of the draft row this desk last saw, sent with every save so a
-     stale tab cannot overwrite newer writing from another one (audit M66).
-     A ref, not state: it must be read and advanced inside the autosave
-     callback without re-arming the effect that scheduled it. */
-  const baseUpdatedAtRef = useRef<string | null>(initialUpdatedAt ?? null);
-  /* What the server was last told, so leaving can tell whether there is
-     anything new to write. Stamped by every successful save; compared by the
-     unmount save below, which is what stops a Publish or a Save-as-draft --
-     both of which navigate, and so unmount this editor -- from being written
-     a second time on the way out. */
-  const savedSnapshotRef = useRef(
-    draftSnapshot(
-      initialContent ?? "",
-      initialTitle ?? "",
-      initialImages ?? [],
-      initialCityScope ?? null
-    )
-  );
-  /* The autosave currently in flight, if any. An explicit Save or Publish
-     waits for it before sending its own version token -- otherwise the
-     member's own autosave could land first, move the row, and make their
-     Publish look like somebody else's edit. */
-  const autosaveRunRef = useRef<Promise<void> | null>(null);
   const [expanded, setExpanded] = useState(defaultLetter);
   const [pollOptions, setPollOptions] = useState<string[] | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -301,310 +233,40 @@ export function CreatePostForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* ---- The crash net (bug audit B-043) --------------------------------- *
-   *
-   * A letter is a 20,000-character composition and the owner's own chaos
-   * question about it was "is the half-written letter lost?". It was: a fresh
-   * letter has no row until the first explicit "Save as draft", and a resumed
-   * draft whose autosave was failing had nothing but the DOM holding the words.
-   *
-   * So the browser keeps a copy. Written only when there is genuinely nothing
-   * else holding the text -- a letter with no row yet, or one whose last save
-   * failed -- and cleared the moment a save lands, so a stale local copy can
-   * never shadow a good server one. Restored silently on mount, because in both
-   * of those cases the local copy is unambiguously the newest thing there is.
-   */
-  /* The freshest preview list, for the two places that must read it OUTSIDE a
-     render: the post-success revoke and the unmount cleanup, neither of which
-     can close over state and be right. */
-  const previewsRef = useRef<string[]>([]);
-  useEffect(() => {
-    previewsRef.current = previews;
-  }, [previews]);
-  useEffect(
-    () => () => {
-      revokeBlobPreviews(previewsRef.current);
-    },
-    []
-  );
-
-  const draftKey = localDraftKey(currentUser?.id, postId);
-  const writeLocalDraft = useCallback(
-    () => stashLocalDraft(draftKey, content, title),
-    [draftKey, content, title]
-  );
-  const clearLocalDraft = useCallback(() => dropLocalDraft(draftKey), [draftKey]);
-
-  /* A letter's words, on this device, on the same idle rhythm autosave uses.
-     
-     For a fresh letter this is the only thing holding them until the first
-     save. For a RESUMED draft it used to run only in autosave's failure
-     branch, so writing fluently -- keystrokes closer together than the 2.5s
-     idle -- and then closing the tab discarded every word since the last pause
-     while the chrome still said "Saved" (audit C-177). It runs for both now.
-
-     Still only the idle timer here, and deliberately: this effect re-runs on
-     every keystroke, so flushing in its cleanup would write the whole letter
-     to localStorage on every character and the debounce would mean nothing.
-     The two teardowns that matter are covered elsewhere -- a client-side
-     navigation by the exit save below, and a real unload by the handler after
-     this one. */
-  useEffect(() => {
-    if (!defaultLetter || !content.trim()) return;
-    const t = setTimeout(writeLocalDraft, 2500);
-    return () => clearTimeout(t);
-  }, [defaultLetter, content, writeLocalDraft]);
-
-  /* And the case no cleanup ever reaches: the tab closed, the browser killed,
-     a link off the site. `pagehide` is the one event that fires for all of
-     them on iOS Safari as well as everywhere else, and `visibilitychange` to
-     hidden covers a phone being locked mid-sentence. Both handlers do nothing
-     but a synchronous localStorage write, which is the only kind of work that
-     survives an unload. */
-  useEffect(() => {
-    if (!defaultLetter) return;
-    const flush = () => {
-      if (!exitRef.current.content.trim()) return;
-      stashLocalDraft(
-        localDraftKey(currentUser?.id, exitRef.current.postId),
-        exitRef.current.content,
-        exitRef.current.title
-      );
-    };
-    const onHidden = () => {
-      if (document.visibilityState === "hidden") flush();
-    };
-    window.addEventListener("pagehide", flush);
-    document.addEventListener("visibilitychange", onHidden);
-    return () => {
-      window.removeEventListener("pagehide", flush);
-      document.removeEventListener("visibilitychange", onHidden);
-    };
-    // currentUser?.id is in the key these handlers write to (audit C-014); it
-    // cannot change without this component remounting, but the linter cannot
-    // know that and re-registering two listeners costs nothing.
-  }, [defaultLetter, currentUser?.id]);
-
-  const restoredRef = useRef(false);
-  useEffect(() => {
-    if (restoredRef.current || !defaultLetter || !richRef.current) return;
-    restoredRef.current = true;
-    let saved: { content?: string; title?: string } | null = null;
-    try {
-      // The try is still needed: safeGet cannot throw, but a draft written by
-      // an older shape (or half-written) makes JSON.parse throw.
-      const raw = safeGet(draftKey);
-      saved = raw ? JSON.parse(raw) : null;
-    } catch {
-      saved = null;
-    }
-    if (!saved?.content?.trim()) return;
-
-    const restore = (local: { content: string; title?: string }) => {
-      setContent(local.content);
-      if (local.title) setTitle(local.title);
-      if (richRef.current) richRef.current.innerHTML = renderRichText(local.content);
-      hydratedRef.current = true;
-    };
-
-    /* A fresh letter has no row anywhere, so the local copy is unambiguously
-       the newest thing there is and goes straight onto the sheet. */
-    if (!initialContent) {
-      restore({ content: saved.content, title: saved.title });
-      toast("Picked up where you left off", {
-        description: "This letter was still on this device from last time.",
-      });
-      return;
-    }
-
-    /* A RESUMED draft is the case this used to walk away from. The belt was
-       written -- on a failed autosave, and now on every unload -- and then
-       never read, because this effect returned the moment initialContent
-       existed. So the words a dropped connection or a closed tab left on the
-       device were kept and never offered back (audit C-177).
-       
-       Offered, not applied. The row on the server may have been written from
-       another device since, and comparing this device's clock against the
-       server's is not a fact either -- so the writer decides, which is the
-       only honest answer when two copies disagree and nothing can rank them. */
-    if (saved.content.trim() === initialContent.trim()) {
-      dropLocalDraft(draftKey);
-      return;
-    }
-    const local = { content: saved.content, title: saved.title };
-    toast("There is a newer copy of this letter on this device", {
-      description: "It was kept when a save did not go through, or the tab closed mid-sentence.",
-      duration: Infinity,
-      action: {
-        label: "Use it",
-        onClick: () => restore(local),
-      },
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  /* Putting a recovered draft back on the sheet. This stays here rather than
+     inside the persistence hook because it is the same uncontrolled-DOM write
+     the hydration above does: the words go into state AND into the
+     contentEditable, and only the editor knows about the second half. */
+  const applyRestoredDraft = useCallback((local: { content: string; title?: string }) => {
+    setContent(local.content);
+    if (local.title) setTitle(local.title);
+    if (richRef.current) richRef.current.innerHTML = renderRichText(local.content);
+    hydratedRef.current = true;
   }, []);
 
-  /* Quiet autosave, resumed drafts only (a fresh letter has no row to update
-     until the first explicit "Save as draft"). 2.5s of idle after the last
-     keystroke; skipped while a real submit is in flight and when the body is
-     empty (editPost requires content, and an emptied draft should not be
-     "saved" out from under the writer). */
-  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const autosaveSkipFirst = useRef(true);
-  // Toast once per run of failures, not once per attempt: a dropped connection
-  // fails every 2.5 seconds and a stack of identical toasts helps nobody.
-  const autosaveToldRef = useRef(false);
-  useEffect(() => {
-    if (!postId) return;
-    /* Captured so runAutosave below, which TypeScript sees as a nested
-       function, keeps the narrowing the guard above just established. */
-    const draftId = postId;
-    if (autosaveSkipFirst.current) {
-      // The hydration pass itself sets content/title; that is not an edit.
-      autosaveSkipFirst.current = false;
-      return;
-    }
-    if (!content.trim()) return;
-    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
-    autosaveTimer.current = setTimeout(() => {
-      /* The REF, not the `submitting` state. This effect's deps do not include
-         it, so setSubmitting(true) inside handleSubmit re-renders without
-         re-running this effect: an already-armed timer's closure still saw
-         `submitting === false` and fired mid-publish, sending a second
-         editPost carrying the same baseUpdatedAt as the publish's own. One of
-         the two then lost the version race and the writer was told their
-         letter had been edited elsewhere (audit C-175). handleSubmit also
-         disarms this timer outright, so the guard is the second line rather
-         than the only one. */
-      if (submittingRef.current) return;
-      autosaveRunRef.current = runAutosave().finally(() => {
-        autosaveRunRef.current = null;
-      });
-    }, 2500);
-
-    async function runAutosave() {
-      onAutosaveState?.("saving");
-      const fd = new FormData();
-      fd.set("content", content);
-      if (title.trim()) fd.set("title", title.trim());
-      fd.set("images", JSON.stringify(images));
-      // Unconditionally, because an absent field cannot express "Everyone"
-      // (bug audit B-048). Empty string is the clear.
-      fd.set("cityScope", audienceCity ?? "");
-      if (baseUpdatedAtRef.current) fd.set("baseUpdatedAt", baseUpdatedAtRef.current);
-      /* The failure path used to be genuinely empty: on `result.error` -- which
-         the app's own credentialVersion mechanism produces the instant a
-         password is reset or a deletion requested on another device -- nothing
-         happened at all. No toast, no state change, and the desk chrome sat on
-         "Saving..." while every later autosave failed the same way. Somebody
-         could write for an hour believing the letter was persisting and lose
-         all of it by navigating away (bug audit B-043). A rejected action (a
-         network drop, version skew right after a deploy) was not caught either. */
-      let failed: string | null = null;
-      try {
-        const result = await editPost(draftId, fd);
-        if (result.error) failed = result.error;
-        else if (result.updatedAt) baseUpdatedAtRef.current = result.updatedAt;
-      } catch {
-        failed = "That did not save. Check your connection.";
-      }
-      if (!failed) {
-        autosaveToldRef.current = false;
-        savedSnapshotRef.current = draftSnapshot(content, title, images, audienceCity);
-        clearLocalDraft();
-        onAutosaveState?.("saved");
-        return;
-      }
-      // Keep the words somewhere the browser owns, so a close or a crash
-      // during an outage does not take them.
-      writeLocalDraft();
-      onAutosaveState?.("failed");
-      if (!autosaveToldRef.current) {
-        autosaveToldRef.current = true;
-        toast.error(failed, {
-          description: "Your writing is kept on this device until it saves.",
-        });
-      }
-    }
-    return () => {
-      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
-    };
-    /* `audienceCity` is a dep because runAutosave SENDS it. Without it,
-       choosing or clearing an audience and then not typing never armed a
-       timer -- the desk went on saying "Saved" over an unsaved choice, and
-       leaving lost it -- and a timer armed by an earlier keystroke fired with
-       the stale closure value and wrote the OLD scope back (audit C-176). */
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [content, title, images, postId, audienceCity]);
-
-  /* ---- Leaving with a letter half-written (owner, 2026-08-24) ---------- *
-   *
-   * "Save as draft" is a button somebody has to remember to press, and the
-   * moment they forget it is exactly the moment they click away. So leaving
-   * saves: navigate anywhere else in the app with words on the sheet and the
-   * letter is written to Drafts on the way out. Nothing is lost by leaving,
-   * and a draft nobody wanted is one menu away from deleted on /letters.
-   *
-   * An unmount cleanup IS the client-side navigation: the page's JavaScript is
-   * still running, so the action call finishes long after this editor is gone.
-   * A real unload (tab closed, hard refresh, a link off the site) never gets
-   * here -- that case is what the localStorage net above is for.
-   *
-   * Values come from a ref because this effect runs once and its closure would
-   * hold the empty first render. The snapshot check is what keeps it honest:
-   * unmounting because a save or a publish just navigated writes nothing, and
-   * React's dev double-mount is a no-op.
-   */
-  const exitRef = useRef({ content, title, images, audienceCity, isLetter, postId });
-  exitRef.current = { content, title, images, audienceCity, isLetter, postId };
-  useEffect(() => {
-    return () => {
-      const s = exitRef.current;
-      // Only letters have drafts at all, and a save in flight is already
-      // writing this row -- adding a second write is how you get two of them.
-      if (!s.isLetter || !s.content.trim() || submittingRef.current) return;
-      if (draftSnapshot(s.content, s.title, s.images, s.audienceCity) === savedSnapshotRef.current) {
-        return;
-      }
-      const key = localDraftKey(currentUser?.id, s.postId);
-      const fd = new FormData();
-      fd.set("content", s.content);
-      fd.set("kind", "letter");
-      if (s.title.trim()) fd.set("title", s.title.trim());
-      fd.set("images", JSON.stringify(s.images));
-
-      const finish = (error?: string) => {
-        if (error) {
-          // The desk is gone, so a toast is the only way the writer hears
-          // about this at all -- and the words go back on the device, since
-          // there is nowhere else left to put them.
-          stashLocalDraft(key, s.content, s.title);
-          toast.error("That letter did not save.", {
-            description: "It is kept on this device. Open the letters desk again to retry.",
-          });
-          return;
-        }
-        dropLocalDraft(key);
-        toast("Saved to your drafts", {
-          description: "An unfinished letter keeps itself. Delete it from Letters if you would rather not.",
-        });
-      };
-
-      if (s.postId) {
-        // A resumed draft: in place, with the version token, exactly as
-        // autosave would have done had the writer paused instead of left.
-        fd.set("cityScope", s.audienceCity ?? "");
-        if (baseUpdatedAtRef.current) fd.set("baseUpdatedAt", baseUpdatedAtRef.current);
-        void callAction(() => editPost(s.postId!, fd)).then((r) => finish(r.error));
-      } else {
-        if (s.audienceCity) fd.set("cityScope", s.audienceCity);
-        fd.set("saveAsDraft", "true");
-        void callAction(() => createPost(fd)).then((r) => finish(r.error));
-      }
-    };
-    // Mount/unmount only -- everything this reads comes off `exitRef`, which is
-    // kept current by its own effect. currentUser?.id is named because the
-    // draft key now includes it (audit C-014).
-  }, [currentUser?.id]);
+  /* Everything that keeps a letter from being lost -- the device-side crash
+     net, the idle autosave, the read-back of a local copy, and the save that
+     fires when somebody navigates away mid-sentence -- in its own file (audit
+     feed-posts-02). C-014, C-175, C-176, C-177, B-043 and M66 all live in
+     there, with their reasoning. */
+  const { baseUpdatedAtRef, autosaveRunRef, disarmAutosave, markSaved, clearLocalDraft } =
+    useLetterPersistence({
+      userId: currentUser?.id,
+      postId,
+      defaultLetter,
+      draft: { content, title, images, audienceCity, isLetter },
+      initial: {
+        content: initialContent,
+        title: initialTitle,
+        images: initialImages,
+        cityScope: initialCityScope,
+        updatedAt: initialUpdatedAt,
+      },
+      submittingRef,
+      editorRef: richRef,
+      onAutosaveState,
+      onRestore: applyRestoredDraft,
+    });
 
   // Collapse back to the resting pill, closing any open popovers. Letters
   // default to expanded, so they never retract to a pill. Only ever called
@@ -735,142 +397,6 @@ export function CreatePostForm({
     mentionRangeRef.current = null;
   }
 
-  /**
-   * Preferred upload path: presigned PUT straight to R2 (the shared
-   * `directUploadPut` helper), then a finalize call that turns the staged
-   * FULL-RESOLUTION original into the display WebP server-side. No bytes
-   * pass through a serverless function, so Vercel's ~4.5MB request cap
-   * never applies and nothing needs shrinking in the browser (owner,
-   * 2026-07-30: client-side downscaling defeats the point of a 20MB limit).
-   *
-   * Falls back to the classic proxied POST when the direct path is
-   * unavailable; only that fallback still browser-downscales, since it is
-   * the path the platform cap can actually bite.
-   */
-  async function uploadViaPresign(original: File): Promise<string> {
-    const staged = await directUploadPut(original, "post");
-    if (staged) {
-      const fin = await fetch("/api/upload/finalize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keys: [staged.key] }),
-      });
-      const data = await fin.json().catch(() => ({}));
-      if (fin.ok && data.urls?.[0]) {
-        // Same as the classic path below: anything the server changed about
-        // the file is said out loud (audit M15/C-073).
-        for (const notice of (data.notices ?? []) as string[]) toast.info(notice);
-        return data.urls[0] as string;
-      }
-      throw new Error(data.error || `"${original.name}" failed to upload`);
-    }
-    const shrunk = await downscaleImage(original);
-    return uploadOneFile(shrunk);
-  }
-
-  async function uploadOneFile(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append("files", file);
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
-    let res: Response;
-    try {
-      res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-        signal: controller.signal,
-      });
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        throw new Error(`"${file.name}" timed out. Check your connection and try again.`);
-      }
-      throw new Error(`"${file.name}" failed to upload. Check your connection and try again.`);
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({ error: null }));
-      throw new Error(data.error || `"${file.name}" failed to upload`);
-    }
-
-    const { urls, notices } = await res.json();
-    // Anything the server changed about the file, said out loud (audit M15).
-    // A toast rather than inline copy: it is information about one upload that
-    // has already succeeded, not a condition to fix before carrying on.
-    for (const notice of (notices ?? []) as string[]) toast.info(notice);
-    return urls[0] as string;
-  }
-
-  async function handleImageFiles(files: File[]) {
-    if (files.length === 0) return;
-
-    const remaining = 3 - images.length;
-    if (files.length > remaining) {
-      toast.error(`You can add ${remaining} more image${remaining !== 1 ? "s" : ""}`);
-      return;
-    }
-
-    // Validate the ORIGINAL size up front (skip oversized files individually
-    // rather than aborting the whole batch on the first one). 20MB is the
-    // real ceiling now that the direct path PUTs originals straight to
-    // storage; only the proxied fallback still shrinks in the browser.
-    const candidates = files.slice(0, remaining);
-    const valid: File[] = [];
-    for (const file of candidates) {
-      if (file.size > MAX_UPLOAD_BYTES) {
-        toast.error(`"${file.name}" is over the 20MB limit`);
-        continue;
-      }
-      valid.push(file);
-    }
-    if (valid.length === 0) return;
-
-    setUploading(true);
-    const uploadedUrls: string[] = [];
-    const uploadedPreviews: string[] = [];
-
-    // One file at a time (sequential): gives a real "uploading N of M"
-    // state and means one bad file doesn't sink the others.
-    for (let i = 0; i < valid.length; i++) {
-      const original = valid[i];
-      setUploadProgress({ done: i, total: valid.length });
-      try {
-        const url = await uploadViaPresign(original);
-        uploadedUrls.push(url);
-        // Preview from the original file: higher quality than the re-encode,
-        // and it is only ever shown locally in the composer.
-        uploadedPreviews.push(URL.createObjectURL(original));
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Upload failed");
-      }
-    }
-
-    if (uploadedUrls.length > 0) {
-      setImages((prev) => [...prev, ...uploadedUrls]);
-      setPreviews((prev) => [...prev, ...uploadedPreviews]);
-    }
-
-    setUploading(false);
-    setUploadProgress(null);
-  }
-
-  function removeImage(index: number) {
-    setImages((prev) => {
-      const next = prev.filter((_, i) => i !== index);
-      // Taking the last photograph out takes the offer with it, so adding a
-      // different one later starts from "no" rather than from a tick the
-      // writer left on for a picture they since deleted.
-      if (next.length === 0) setToCollection(false);
-      return next;
-    });
-    setPreviews((prev) => {
-      URL.revokeObjectURL(prev[index]);
-      return prev.filter((_, i) => i !== index);
-    });
-  }
-
   async function handleSubmit(saveAsDraft = false) {
     if (!content.trim()) return;
     if (submittingRef.current) return;
@@ -880,10 +406,7 @@ export function CreatePostForm({
        save is in flight, and both writes would carry the same baseUpdatedAt --
        editPost's version precondition lets exactly one through and tells the
        writer the other was edited somewhere else (audit C-175). */
-    if (autosaveTimer.current) {
-      clearTimeout(autosaveTimer.current);
-      autosaveTimer.current = null;
-    }
+    disarmAutosave();
     /* Let an autosave that is already in the air finish first, so this save
        sends the version it produced rather than the one before it (audit
        M66). It cannot throw -- runAutosave catches its own failures. */
@@ -935,7 +458,7 @@ export function CreatePostForm({
           // rather than a toast that slides away mid-sentence.
           if (!emailGate.handled(editResult.error)) toast.error(editResult.error);
         } else if (saveAsDraft) {
-          savedSnapshotRef.current = draftSnapshot(content, title, images, audienceCity);
+          markSaved();
           clearLocalDraft();
           toast.success("Draft saved");
           onAutosaveState?.("saved");
@@ -944,7 +467,7 @@ export function CreatePostForm({
           if ("error" in pub && pub.error) {
             if (!emailGate.handled(pub.error)) toast.error(pub.error);
           } else {
-            savedSnapshotRef.current = draftSnapshot(content, title, images, audienceCity);
+            markSaved();
             clearLocalDraft();
             toast.success("Your letter is published");
             onPosted?.();
@@ -962,7 +485,7 @@ export function CreatePostForm({
            route) and leave the editor exactly as the writer left it. The old
            behaviour - wiping the screen to a toast - is the exact failure the
            owner reported. */
-        savedSnapshotRef.current = draftSnapshot(content, title, images, audienceCity);
+        markSaved();
         /* The device copy has served its purpose the moment the row exists.
            Left behind, /letters/new would restore it next time as a brand new
            letter -- and now that leaving saves, that ghost would become a
@@ -980,16 +503,9 @@ export function CreatePostForm({
         setContent("");
         setTitle("");
         setKind(defaultLetter ? "letter" : "post");
-        setImages([]);
-        /* The blob URLs this composer minted are released before the list is
-           dropped (audit C-183). `URL.createObjectURL` pins the whole file in
-           memory until it is revoked or the document unloads, and only
-           removeImage revoked -- so every photograph actually POSTED stayed
-           pinned for the rest of the session, and on the immersive letters
-           desk that session is long. R2 urls (a resumed draft's existing
-           images) are left alone; revoking one of those does nothing. */
-        revokeBlobPreviews(previewsRef.current);
-        setPreviews([]);
+        // Drops the list and releases the blob urls this composer minted
+        // (audit C-183); see the hook.
+        resetImages();
         setToCollection(false);
         setPollOptions(null);
         setMore(false);

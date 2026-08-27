@@ -104,7 +104,9 @@ test("C-180: both Load-more handlers guard synchronously and dedupe by id", () =
 /* ---- C-183/C-014: the composer's own two -------------------------- */
 
 test("C-183: every preview this composer mints is released", () => {
-  const src = read("src/components/posts/create-post-form.tsx");
+  // The pipeline moved out of the composer into its own hook (feed-posts-02);
+  // the pin follows the code, not the filename.
+  const src = read("src/components/posts/use-composer-uploads.ts");
   assert.match(src, /function revokeBlobPreviews\(/, "there is no revoker");
   // Both exits: the successful post, and an unmount that was not a post.
   const calls = [...src.matchAll(/revokeBlobPreviews\(previewsRef\.current\)/g)];
@@ -113,7 +115,9 @@ test("C-183: every preview this composer mints is released", () => {
 });
 
 test("C-014: the crash-net key names the account it belongs to", () => {
-  const src = read("src/components/posts/create-post-form.tsx");
+  // Likewise: the crash net is `use-letter-persistence.ts` now, and the id it
+  // scopes the key with arrives as `userId` rather than off the session prop.
+  const src = read("src/components/posts/use-letter-persistence.ts");
   assert.match(
     src,
     /`rv:letter-draft:\$\{userId \?\? "anon"\}:\$\{postId \?\? "new"\}`/,
@@ -121,7 +125,7 @@ test("C-014: the crash-net key names the account it belongs to", () => {
   );
   /* Counted: three call sites, and two of three passing the id is not the fix
      -- the ":new" key is the one that is never cleared by a save. */
-  const calls = [...src.matchAll(/localDraftKey\(currentUser\?\.id/g)];
+  const calls = [...src.matchAll(/localDraftKey\(userId/g)];
   assert.equal(calls.length, 3, `${calls.length} of the 3 call sites scope the key`);
 });
 
