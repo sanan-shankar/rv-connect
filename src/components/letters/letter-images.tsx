@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { photoSrc, photoSrcSet, PHOTO_SIZES_FULL } from "@/lib/image-cdn";
+import { photoSrc, photoSrcSet, PHOTO_SIZES_LETTER } from "@/lib/image-cdn";
 import type { AvatarUser } from "@/components/common/bird-avatar";
 
 /* The viewer opens on a press and is 444 lines carrying the app's only drag
@@ -50,7 +50,7 @@ export function LetterImages({
             <img
               src={photoSrc(img)}
               srcSet={photoSrcSet(img)}
-              sizes={PHOTO_SIZES_FULL}
+              sizes={PHOTO_SIZES_LETTER}
               alt=""
               loading="lazy"
               className="w-full object-cover"

@@ -4140,3 +4140,25 @@ Root directory, for the record since the owner asked: the audit's verdict stands
 tracked root files are tool-required (verified against each tool's own docs or code); the
 real root cleanups are in fix phase 1b (tsbuildinfo relocation, progress.md monthly
 archive, the personal folders he moves himself).
+
+## 2026-08-27 — the `sizes` promise now names its column, and two pages stop over-fetching
+
+`PHOTO_SIZES_FULL` said which half of a card a photo fills and nothing about which
+column the card is standing in, so `/letters/[id]` and `/profile/[id]` — both centered,
+both capped well under the feed's width — inherited the FEED's promise. On a 2560px
+screen the profile's photo slot is 732px and it was asking for 1216px; a phone's slot is
+314px and the mobile clause said `100vw`, i.e. 390. Measured against a running page:
+500 → 424, 768 → 428, 900 → 596 (letter article), 1024 → 660, 1096 → 732, and the
+centered column reaches its 768px cap at a 1096px viewport.
+
+Three slots now, named for their column: `PHOTO_SIZES_WIDE_*` (unchanged, the feed),
+`PHOTO_SIZES_CENTERED_*` (a post card in the centered column) and `PHOTO_SIZES_LETTER`
+(the letter reader's 680px reading measure, which stops growing at a 984px viewport,
+well before the column does). `PostCard` takes a `column` prop — `"wide"` by default,
+`"centered"` from the two profile feeds — because the card cannot see the column it is
+in and the two are 484px apart at the top end.
+
+Measured after: profile photo at 2560×1 drops from the 1456 rung to 750, and at 390×3
+from 1456 to 1080. Nothing looks different — `npm run visual` 23/23, and the declared
+widths sit 4px under the real slot so a retina Mac lands on 1456 for a 1464px need
+rather than paying for 1920.

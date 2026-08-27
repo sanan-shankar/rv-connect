@@ -79,6 +79,7 @@ function MasonryColumn({
           key={post.id}
           post={post}
           variant="card"
+          column="centered"
           onBookmarkChange={(saved) => {
             if (!saved) onUnsave(post.id);
           }}
