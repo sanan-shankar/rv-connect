@@ -7,7 +7,6 @@ import { batchLine } from "@/lib/utils";
 interface MentionUser {
   id: string;
   name: string;
-  avatarColor: string | null;
   photoUrl?: string | null;
   birdOverride?: string | null;
   /* Nullable, because the COLUMN is. Typing it `number` did not make it one:
@@ -95,7 +94,6 @@ export function MentionDropdown({ query, onSelect }: MentionDropdownProps) {
               user={{
                 id: user.id,
                 name: user.name,
-                avatarColor: user.avatarColor,
                 photoUrl: user.photoUrl,
                 birdOverride: user.birdOverride,
               }}

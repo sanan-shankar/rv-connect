@@ -10,7 +10,6 @@ const PAGE_SIZE = 60;
 export type DirectoryUser = {
   id: string;
   name: string;
-  avatarColor: string | null;
   photoUrl: string | null;
   birdOverride: string | null;
   accountType: string | null;

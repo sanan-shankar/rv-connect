@@ -33,9 +33,10 @@ import { decodeKeyset, encodeKeyset, keysetWhere } from "@/lib/keyset";
 import { isLetterDraft } from "@/lib/draft-rule";
 import { AUTHOR_CARD_SELECT } from "@/lib/people-select";
 
-/** The author fields a rendered comment needs: the shared byline shape, plus
- *  the `avatarColor` the comment row's own type still declares. */
-const COMMENT_AUTHOR_SELECT = { ...AUTHOR_CARD_SELECT, avatarColor: true } as const;
+/** The author fields a rendered comment needs. The shared byline shape is all
+ *  of them now that `avatarColor` is gone; kept as a named const because three
+ *  queries reference it and a rename should touch one line. */
+const COMMENT_AUTHOR_SELECT = { ...AUTHOR_CARD_SELECT } as const;
 
 /**
  * Delete a post and its stored images, in the order that cannot leave a live
@@ -1447,7 +1448,7 @@ export async function loadComments(
     },
     include: {
       author: {
-        select: { ...AUTHOR_CARD_SELECT, avatarColor: true },
+        select: { ...AUTHOR_CARD_SELECT },
       },
       _count: { select: { commentLikes: true } },
       commentLikes: { where: { userId }, select: { id: true } },

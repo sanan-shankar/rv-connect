@@ -48,7 +48,6 @@ export interface SidebarUser {
   name: string;
   email: string;
   role: string;
-  avatarColor: string | null;
   photoUrl?: string | null;
   birdOverride?: string | null;
   batchType?: string | null;

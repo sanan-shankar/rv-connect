@@ -125,7 +125,6 @@ export default async function MainLayout({
           name: session.user.name,
           email: session.user.email,
           role: session.user.role,
-          avatarColor: session.user.avatarColor,
           photoUrl: session.user.photoUrl,
           birdOverride: session.user.birdOverride,
           batchType: session.user.batchType,

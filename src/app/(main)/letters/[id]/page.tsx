@@ -64,7 +64,6 @@ export default async function LetterPage({
            a verified leaf, so the column would be fetched and dropped. */
         select: {
           ...IDENTITY_SELECT,
-          avatarColor: true,
           accountType: true,
           batchType: true,
           batchYear: true,

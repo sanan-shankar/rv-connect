@@ -12,10 +12,11 @@ import { BirdGlyphV2, BG_MODE, resolveBirdOverride } from "@/components/common/b
  * BirdGlyphV2 — the set of 50 Rishi Valley birds in real colours (see bird-avatar-v2.tsx),
  * whose background treatment is controlled by BG_MODE there ("none" = no disc, the chosen
  * look). There is no avatarColor override: the bird always drives its own colour from src/lib/avatar.ts,
- * so removing a photo returns the same deterministic bird (never a new random one). `avatarColor`
- * is accepted on the type for source compatibility with existing callers but is intentionally
- * ignored here. `avatarSpecies` is likewise accepted for source compatibility with older preview
- * mocks but no longer takes part in the real precedence chain — use `birdOverride` instead.
+ * so removing a photo returns the same deterministic bird (never a new random one). The
+ * `avatarColor` prop that used to be accepted-and-ignored here is gone, along with the column and
+ * the twenty-odd selects, types and JWT claims that fed it (2026-08-27). `avatarSpecies` is still
+ * accepted for source compatibility with older preview mocks but no longer takes part in the real
+ * precedence chain — use `birdOverride` instead.
  *
  * Sizes: 28 (xs / inline + comments + mentions), 40 (sm / post header + composer + rails),
  * 64 (md / directory cards), 104 (lg / profile cover).
@@ -25,8 +26,6 @@ export interface AvatarUser {
   id?: string | null;
   name?: string | null;
   photoUrl?: string | null;
-  /** @deprecated unused — the bird always drives its own colour. Kept only so existing callers still typecheck. */
-  avatarColor?: string | null;
   /** @deprecated unused in the real precedence chain — kept for older preview-mock callers. Use `birdOverride`. */
   avatarSpecies?: number | null;
   /** Manual per-user species override (DB column `User.birdOverride`), a slug like "peregrine-falcon". */

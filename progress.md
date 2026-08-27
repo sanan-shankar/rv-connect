@@ -4357,3 +4357,16 @@ Verified beyond the gate: a real published Round rendered for a member of its gr
 anonymously" and the entry list all correct — and a Round belonging to a group the viewer is
 NOT in still 404s, which is the same audience rule as before.
 
+**avatarColor, retired in name for months and in fact only now.** `bird-avatar.tsx` has
+said in its own banner since July that "there is no avatarColor override — the bird always
+drives its own colour", and the prop carried `@deprecated unused`. What survived was the
+plumbing: stamped into every JWT, re-read from the row on every session refresh, selected in
+ten queries, declared in ten component interfaces — about 25 files carrying a value
+discarded on arrival. 43 references gone. A live JWT minted before this still carries the
+claim, which is harmless: the session callback stops reading it, and an unread claim is
+ignored rather than an error.
+
+Verified: `npm run verify:crawl` 20/20 routes 200 with a session minted after the change,
+and the feed, the rail's directory list, the composer and the sidebar all still draw their
+birds in the bird's own colours.
+

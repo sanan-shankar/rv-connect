@@ -239,7 +239,6 @@ const nextAuth = NextAuth({
             role: user.role,
             batchType: user.batchType,
             batchYear: user.batchYear,
-            avatarColor: user.avatarColor,
             /* MUST be carried, or the epoch check below rejects the very token
                this call is minting. Anyone who had ever reset their password
                would sign in successfully, receive a token stamped 0, be compared
@@ -297,7 +296,6 @@ const nextAuth = NextAuth({
         token.role = user.role;
         token.batchType = user.batchType;
         token.batchYear = user.batchYear;
-        token.avatarColor = user.avatarColor;
         /* Stamped at sign-in and compared on every session read. Tokens minted
            before this claim existed carry undefined, which reads as 0 below --
            the same value every existing row was backfilled with -- so shipping
@@ -323,7 +321,6 @@ const nextAuth = NextAuth({
             batchType: true,
             batchYear: true,
             name: true,
-            avatarColor: true,
             photoUrl: true,
             birdOverride: true,
           },
@@ -357,7 +354,6 @@ const nextAuth = NextAuth({
           session.user.batchType = dbUser.batchType;
           session.user.batchYear = dbUser.batchYear;
           session.user.name = dbUser.name;
-          session.user.avatarColor = dbUser.avatarColor;
           session.user.photoUrl = dbUser.photoUrl;
           session.user.birdOverride = dbUser.birdOverride;
         }
@@ -409,7 +405,6 @@ async function demoSession(): Promise<Session | null> {
       accountType: true,
       batchType: true,
       batchYear: true,
-      avatarColor: true,
       photoUrl: true,
       birdOverride: true,
     },
