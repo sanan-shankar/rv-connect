@@ -32,6 +32,20 @@ which is what that pass is for. Verified against the live database rather than b
 the diff: a thread opened as Jerry, replied to as admin, marked sorted, then read back —
 `status` closed, `adminUnread` false, one `fromAdmin` message with the admin's own id on it.
 
+**Closed out.** Report §1b has a measured column now, taken the only way a measurement like
+this is worth anything: the campaign's baseline commit extracted to a scratch tree with
+`git archive` and put through the SAME tool invocation as today's, so nothing is compared
+against §1a's unknown flags. −8.00 MB tracked (37.89 → 29.89), and that is net of the audit's
+own 19,355 lines of markdown. −10 dependencies. Four tables, nine columns and three indexes
+gone from both databases. Duplication 2.04 % → 1.47 %, which is 61 fewer clones.
+
+Two rows are marked "not re-measured" rather than guessed. `next build` shares `.next` with
+the dev server, and the one running was started at 10:01 by somebody else. Local disk is the
+owner's own folder move. The code-lines row reads −2,275 against an expected −4,500 to
+−5,500, and the report says plainly why that is not a miss: the tree was never frozen, so it
+is a net across every session in the window, feature work included. The clone count is the
+honest reading of the dedupe phases, because it does not care what else the tree gained.
+
 **And the bug that driving it found.** C-014 fixed a shared-browser leak: the crash-net key
 grew a member id, so one person's unsaved letter could not be restored into the next
 person's composer. The key template was right. The wiring was not. `letter-desk.tsx` never
