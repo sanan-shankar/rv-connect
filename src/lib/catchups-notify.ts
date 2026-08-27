@@ -21,7 +21,7 @@
  *  All copy is placeholder. The owner rewrites it later (spec section 5).
  * ------------------------------------------------------------------ */
 
-import { answerReminderMessage } from "@/lib/catchups";
+import { answerReminderMessage } from "@/lib/catchups-core";
 import type {
   CatchupDb,
   NotifyAnswersOpenFn,

@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button, type buttonVariants } from "@/components/ui/button";
 import type { VariantProps } from "class-variance-authority";
-import type { CatchupPromptSet } from "@/lib/catchups";
+import type { CatchupPromptSet } from "@/lib/catchups-core";
 
 export function LibraryPickerDialog({
   sets,

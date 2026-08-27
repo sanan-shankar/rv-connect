@@ -11,7 +11,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { describeEditionStatus, roundLabel } from "@/lib/catchups";
+import { describeEditionStatus, roundLabel } from "@/lib/catchups-core";
 import type { EditionStatus } from "@/lib/catchups-types";
 
 export function NotYetPublished({

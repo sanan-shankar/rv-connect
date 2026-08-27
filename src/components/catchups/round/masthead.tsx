@@ -16,7 +16,7 @@
 
 import Link from "next/link";
 import { BirdAvatar } from "@/components/common/bird-avatar";
-import { roundLabel } from "@/lib/catchups";
+import { roundLabel } from "@/lib/catchups-core";
 import { formatDisplayDateLong, metaLine } from "@/lib/utils";
 import type { CatchupPersonRef } from "@/lib/catchups-types";
 
