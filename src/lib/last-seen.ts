@@ -34,9 +34,6 @@ type VisitFacts = {
   country: string | null;
   cityName: string | null;
   region: string | null;
-  timezone: string | null;
-  lat: number | null;
-  lng: number | null;
 };
 
 /**
@@ -58,7 +55,7 @@ async function recordVisit(
   path: string | null | undefined,
   facts: VisitFacts
 ): Promise<void> {
-  const { referrer, device, os, browser, language, country, cityName, region, timezone, lat, lng } = facts;
+  const { referrer, device, os, browser, language, country, cityName, region } = facts;
 
   const touched = await prisma.visit.updateMany({
     where: { id: visitId, userId },
@@ -78,9 +75,6 @@ async function recordVisit(
       country: country ?? undefined,
       city: cityName ?? undefined,
       region: region ?? undefined,
-      timezone: timezone ?? undefined,
-      lat: lat ?? undefined,
-      lng: lng ?? undefined,
     },
   });
   if (touched.count > 0) return;
@@ -111,9 +105,6 @@ async function recordVisit(
         country,
         city: cityName,
         region,
-        timezone,
-        lat,
-        lng,
       },
     });
   } catch (err) {
@@ -205,9 +196,6 @@ export async function touchLastSeen(userId: string, path?: string): Promise<void
      * must not take the page down. */
     const cityName = safeDecode(h.get("x-vercel-ip-city"));
     const region = safeDecode(h.get("x-vercel-ip-country-region"));
-    const timezone = h.get("x-vercel-ip-timezone");
-    const lat = num(h.get("x-vercel-ip-latitude"));
-    const lng = num(h.get("x-vercel-ip-longitude"));
 
     /* Host only. The full referring URL carries query strings -- somebody
      * else's search terms and tracking ids -- which are not ours to keep, and
@@ -231,7 +219,7 @@ export async function touchLastSeen(userId: string, path?: string): Promise<void
 
     await Promise.all([
       visitId ? recordVisit(visitId, userId, now, path, {
-        referrer, device, os, browser, language, country, cityName, region, timezone, lat, lng,
+        referrer, device, os, browser, language, country, cityName, region,
       }) : Promise.resolve(),
 
       /* Still worth keeping alongside Visit: it is one indexed column on User,
@@ -264,12 +252,6 @@ function safeDecode(v: string | null): string | null {
   } catch {
     return v;
   }
-}
-
-function num(v: string | null): number | null {
-  if (!v) return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
 }
 
 /** The referring host, or null for same-origin and unparseable values. */
