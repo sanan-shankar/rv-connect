@@ -79,7 +79,6 @@ export function PhotoStep({
             id: user.id,
             name: user.name,
             photoUrl,
-            avatarColor: user.avatarColor,
             birdOverride: user.birdOverride,
           }}
           size="lg"

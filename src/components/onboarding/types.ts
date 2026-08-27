@@ -16,7 +16,6 @@ export interface OnboardingUser {
   id: string;
   name: string;
   photoUrl: string | null;
-  avatarColor: string | null;
   birdOverride: string | null;
   accountType: string; // "alumnus" | "teacher" | "ex_teacher"
   admissionNumber: number | null;

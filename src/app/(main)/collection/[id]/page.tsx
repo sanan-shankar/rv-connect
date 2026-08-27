@@ -50,7 +50,7 @@ export default async function PhotoPage({
     where: { id },
     include: {
       uploader: {
-        select: { ...IDENTITY_SELECT, avatarColor: true, batchType: true, batchYear: true },
+        select: { ...IDENTITY_SELECT, batchType: true, batchYear: true },
       },
       _count: { select: { loves: true } },
       loves: { where: { userId: session.user.id }, select: { id: true } },

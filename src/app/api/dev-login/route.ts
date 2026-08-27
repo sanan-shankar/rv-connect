@@ -121,7 +121,6 @@ export async function POST(req: NextRequest) {
       credentialVersion: user.credentialVersion,
       batchType: user.batchType,
       batchYear: user.batchYear,
-      avatarColor: user.avatarColor,
     },
     secret: authSecret,
     salt: cookieName,

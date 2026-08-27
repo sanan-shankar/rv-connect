@@ -16,7 +16,6 @@ export const PERSON_SELECT = {
   ...AUTHOR_CARD_SELECT,
   // BirdAvatar ignores this (see its banner) but DirectoryUser still declares
   // it, so the column is fetched to satisfy a type rather than a pixel.
-  avatarColor: true,
   currentCity: true,
   jobTitle: true,
   workplace: true,
@@ -35,7 +34,6 @@ export const PERSON_SELECT = {
  */
 export const PIN_SELECT = {
   ...AUTHOR_CARD_SELECT,
-  avatarColor: true,
   jobTitle: true,
   places: {
     select: { city: true, lat: true, lng: true },

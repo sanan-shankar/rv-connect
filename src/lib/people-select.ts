@@ -43,13 +43,10 @@ export const IDENTITY_SELECT = {
  * Identity plus everything a byline draws: the verified leaf (`verifyState`
  * with `accountType`) and the batch line (`batchType`, `batchYear`).
  *
- * No `avatarColor`. Several of the shapes this replaces carried it, and
- * BirdAvatar's own banner says it "is accepted on the type for source
- * compatibility with existing callers but is intentionally ignored" -- the
- * bird drives its own colour. So it is a column read and passed down and never
- * drawn. The sites whose downstream types still demand it add it themselves,
- * where the addition is at least visible; whether the column lives at all is
- * the schema pass's question, not a dedupe's.
+ * No `avatarColor`, and no longer any such column: the shapes this replaced
+ * carried a value BirdAvatar accepted and pointedly ignored, so it was read
+ * from the database and passed down and never drawn. The schema pass this note
+ * used to defer to happened on 2026-08-27 and removed it everywhere.
  */
 export const AUTHOR_CARD_SELECT = {
   ...IDENTITY_SELECT,

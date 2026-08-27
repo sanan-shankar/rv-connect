@@ -65,7 +65,6 @@ export async function GET(req: NextRequest) {
     select: {
       id: true,
       name: true,
-      avatarColor: true,
       photoUrl: true,
       birdOverride: true,
       batchYear: true,

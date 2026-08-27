@@ -60,7 +60,6 @@ const PREVIEW_VIEWER = {
   name: "Sanan Shankar",
   email: "sanan@example.com",
   role: "member",
-  avatarColor: null,
   photoUrl: null,
   birdOverride: null,
 };

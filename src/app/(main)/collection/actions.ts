@@ -69,7 +69,7 @@ export type PhotoData = {
   loveCount: number;
   loved: boolean;
   isOwn: boolean;
-  uploader: { id: string; name: string; avatarColor: string | null };
+  uploader: { id: string; name: string };
   createdAt: string;
 };
 
@@ -78,7 +78,7 @@ function shape(
     id: string; thumbUrl: string; url: string; width: number; height: number;
     caption: string | null; subject: string; area: string | null; era: string;
     freeTags: string | null; approved: boolean; uploaderId: string; createdAt: Date;
-    uploader: { id: string; name: string; avatarColor: string | null };
+    uploader: { id: string; name: string };
     _count: { loves: number }; loves: { id: string }[];
   },
   userId: string
@@ -104,7 +104,7 @@ function shape(
 }
 
 const includeFor = (userId: string) => ({
-  uploader: { select: { id: true, name: true, avatarColor: true } },
+  uploader: { select: { id: true, name: true } },
   _count: { select: { loves: true } },
   loves: { where: { userId }, select: { id: true } },
 });

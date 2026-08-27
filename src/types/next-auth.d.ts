@@ -30,7 +30,6 @@ declare module "next-auth" {
       emailConfirmed: boolean;
       batchType: string | null;
       batchYear: number | null;
-      avatarColor: string | null;
       photoUrl: string | null;
       birdOverride: string | null;
     };
@@ -45,7 +44,6 @@ declare module "next-auth" {
     verifyState?: string;
     batchType?: string | null;
     batchYear?: number | null;
-    avatarColor?: string | null;
     photoUrl?: string | null;
     birdOverride?: string | null;
   }
@@ -58,6 +56,5 @@ declare module "next-auth/jwt" {
     credentialVersion?: number;
     batchType?: string | null;
     batchYear?: number | null;
-    avatarColor?: string | null;
   }
 }

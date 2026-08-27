@@ -147,7 +147,6 @@ const EDITABLE_PROFILE_FIELDS: ReadonlySet<string> = new Set([
   "phones",
   "admissionNumber",
   "birdOverride",
-  "avatarColor",
   "workplace",
   "jobTitle",
   "instagram",

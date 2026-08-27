@@ -1,0 +1,32 @@
+-- Remove User.avatarColor, the last object in phase 6's approved drop set
+-- (refactor audit 1, shell-primitives-04).
+--
+-- It was retired as a FEATURE long before this: `bird-avatar.tsx` has said in
+-- its own banner for months that "there is no avatarColor override -- the bird
+-- always drives its own colour from src/lib/avatar.ts", and the prop carried an
+-- `@deprecated unused` tag. DESIGN-SYSTEM section 9 says the same. What survived
+-- was the plumbing: the value was stamped into every JWT, re-read from the row
+-- on every session refresh, selected in ten queries and threaded through ten
+-- component interfaces -- roughly 25 files carrying a value that was discarded
+-- the moment it arrived. The code sweep removing all of that shipped first.
+--
+-- One row holds a non-NULL value: one member's chosen colour, from before the
+-- feature was retired, which has not been drawn since. The owner approved the
+-- removal on 2026-08-27 with that count in front of him, and the row is in
+-- .backups/2026-08-27-phase6-pre-drop-snapshot.json (gitignored, real member
+-- data, kept until he says otherwise).
+--
+-- A live JWT minted before the sweep still carries an `avatarColor` claim. That
+-- is harmless and needs no migration: the session callback simply stops reading
+-- it, and an unread claim is ignored, not an error.
+--
+-- ORDER MATTERS AND THIS FILE IS THE SECOND HALF: the field came out of
+-- schema.prisma first, and this may only run once a build without it is live.
+-- See 2026-08-27-drop-nextauth-adapter-tables.sql for why that is an outage and
+-- not a warning.
+--
+-- Idempotent, per CLAUDE.md: never `prisma db push` against this database.
+-- Apply: node scripts/dev/run-sql.mjs prisma/migrations-manual/2026-08-27-drop-avatar-color.sql
+--   and: node scripts/dev/run-sql.mjs --env .env.demo prisma/migrations-manual/2026-08-27-drop-avatar-color.sql
+
+ALTER TABLE "User" DROP COLUMN IF EXISTS "avatarColor";

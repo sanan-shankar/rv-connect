@@ -23,7 +23,6 @@ const PAGE_SIZE = 60;
 type PinRow = {
   id: string;
   name: string;
-  avatarColor: string | null;
   photoUrl: string | null;
   birdOverride: string | null;
   accountType: string | null;
@@ -78,7 +77,6 @@ function buildPins(
     const base = {
       id: u.id,
       name: u.name,
-      avatarColor: u.avatarColor,
       photoUrl: u.photoUrl,
       birdOverride: u.birdOverride,
       accountType: u.accountType,
