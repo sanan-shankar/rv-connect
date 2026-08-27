@@ -28,6 +28,7 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import sharp from "sharp";
+import { edgeLightFilter } from "../../src/lib/edge-light.ts";
 
 /** the browser tab's mark; favicon.ico is the only thing cut from it */
 const tabSource = readFileSync("src/app/icon.svg", "utf8");
@@ -37,6 +38,43 @@ const source = readFileSync("public/images/brand/app-icon.svg", "utf8");
 /** The rounded corner is ours; the platform masks these itself. */
 const fullBleed = source.replace(' rx="96"', "");
 
+/* ---- Apple's edge light, and who gets it -------------------------------
+ *
+ * iOS 26 and macOS 26 add their own specular pass to an app icon, and Apple
+ * says plainly not to bake highlights in because of it. Android adds nothing,
+ * which is why the owner noticed our icon looking flatter there. So the light
+ * is baked into the Android build and left off the Apple one.
+ *
+ * The catch is that a web manifest has no per-OS selector: `icons` entries
+ * carry src, sizes, type and purpose, and nothing else. The only platform the
+ * manifest can positively identify is Android, via purpose "maskable", which
+ * only an adaptive launcher reads. Everything else -- macOS Safari's Add to
+ * Dock, a Chrome install on any desktop -- reads the plain "any" icons.
+ *
+ * So: maskable is lit, and every "any" icon stays flat. That gets iOS and
+ * macOS right, which is where doubling up would actually show, and costs a
+ * Windows or Linux PWA install the light it could have had. That trade is
+ * deliberate: a slightly flatter icon on a desktop install nobody has asked
+ * for is a smaller failure than a double-lit one in his own dock. If a lit
+ * "any" icon is ever wanted, it is one more line in `targets`.
+ */
+const U = 0.85 * (512 / 78); // see /lab/glass-edges: that tile is 78 units at u = 0.85
+
+function lit(svg) {
+  const withFilter = svg
+    .replace('<defs id="fx"></defs>', `<defs id="fx">${edgeLightFilter({ id: "edge", u: U })}</defs>`)
+    .replace('<g id="lit">', '<g id="lit" filter="url(#edge)">');
+  /* Both seams are in the generated source. If either stops matching, the icon
+     would ship silently flat, which is exactly the bug this is fixing. */
+  if (!withFilter.includes('id="fx"><filter') || !withFilter.includes('filter="url(#edge)"')) {
+    throw new Error(
+      "generate-icons: could not find the <defs id=\"fx\"> / <g id=\"lit\"> seams in app-icon.svg. " +
+        "Regenerate it with scripts/dev/build-app-icon.mjs.",
+    );
+  }
+  return withFilter;
+}
+
 /* Wrap the art group in a 0.8 scale, about the BOTTOM CENTRE rather than the
    canvas centre. The bird is peeking over the bottom edge, so shrinking it
    about the middle would lift the head clear of that edge and leave a band of
@@ -44,12 +82,18 @@ const fullBleed = source.replace(' rx="96"', "");
    Scaling toward (256, 512) keeps the head against the bottom and pulls the
    crest down into the adaptive launcher's safe circle, which is what the
    maskable icon is for. */
-const maskable = fullBleed
-  .replace("<g transform=", '<g transform="translate(256 512) scale(0.8) translate(-256 -512)"><g transform=')
+const maskable = lit(fullBleed)
+  .replace('<g id="lit"', '<g transform="translate(256 512) scale(0.8) translate(-256 -512)"><g id="lit"')
   .replace("</svg>", "</g></svg>");
+/* The 0.8 wrapper sits OUTSIDE the filtered group on purpose. An ancestor
+   transform scales every length inside a filter along with the art it is
+   lighting, which here is exactly right: the band should shrink with the bird
+   so the edge reads the same. Putting the scale on the filtered element itself
+   is the trap in docs/spec/apple-edge-light.md. */
 
 const targets = [
   // iOS home screen. 180 is the size Apple asks for; it downsamples from here.
+  // Flat: iOS 26 lights it itself.
   { svg: fullBleed, size: 180, out: "src/app/apple-icon.png" },
   { svg: source, size: 192, out: "public/images/icons/icon-192.png" },
   { svg: source, size: 512, out: "public/images/icons/icon-512.png" },

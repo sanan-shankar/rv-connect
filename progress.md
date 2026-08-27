@@ -1,5 +1,88 @@
 # Progress Log
 
+## 2026-08-27 — the line Apple draws inside our icon, and the crest that carries it
+
+The owner had noticed his own home screen doing something to our icon that Android does
+not: a bright edge on the black crest tips, so they stop sinking into the tile. Four
+earlier attempts at reproducing it were wrong in the same way, and the measurement that
+settles it is one row of pixels across the join between the blue hill and the cream one:
+`117 118 117 116 119 | 144 | 236 244 242 242 242`. One pixel of antialiasing and nothing
+else. **Apple puts no line between two colours that touch.** Every previous build lit a
+tonal step, which by construction draws a line down the cream/orange join and around each of
+the eleven cinnamon quill rays in the crest. The height field is the union alpha of the whole
+picture, so the filter hangs on the art group and never on a path.
+
+**A bug, not a taste call, was why it kept coming out thin.** The filter was on the same `<g>`
+as `transform="scale(0.38)"`, and a transform on the filtered element rescales every length
+inside the filter with it, so a 4.5 unit blur was silently rendering as 1.7. Three rounds of
+"make it wider" were fighting that. It also invalidated two harness scripts, `fit.mjs` and
+`strip.mjs`, which are deleted rather than corrected: every number they ever produced was
+measured at 38% of the size it claimed.
+
+With that fixed, the fit is four numbers off his screenshot -- left flank +87, top +78,
+bottom +20, right +19, each peaking three pixels inside the contour and back to the fill by
+nine. Left beating top puts the light at azimuth 215, further round to the left than up. The
+dark side holding at 22% rather than falling to nothing is what lights the right of things,
+and it needs almost no ambient: one distant light at the right elevation lands on 22% by
+itself. Ours reproduces all four within 3 of 255.
+
+**Width ships at 0.7, not the fitted 1**, and that is a correction to the measurement rather
+than taste overruling it. The screenshot is a downscaled Retina capture and resampling smears
+a three pixel band a pixel or two wider than it is, so fitting the profile fitted the smear.
+The owner called it at "about 30% too thick consistently", which is the order of error a 2x
+downsample produces.
+
+**The crest gained a longer cinnamon point and a rounded tip.** The point was vanishing by
+26px; it is lengthened by moving the dark cap down, which leaves the fan's outline exactly
+where it was because the outline is the quill's point either way. Rounding took two goes: the
+first capped the tip with a quadratic whose control sat ABOVE the apex to hold the tip's
+height, and a quadratic control above the apex is what makes a point in the first place, so
+four settings rendered identical. It is a cubic with its controls on the tangents now, and
+the quill is drawn from a length chosen to give back exactly what the rounding costs.
+
+Together those two put visibly more light on the orange, which he caught. Measured, the peak
+brightness had not moved -- 212 before, 211 after. What grew was the lit area: the point used
+to be a sliver with nowhere for a highlight to sit.
+
+**The icons ship as two builds from one source.** iOS 26 and macOS 26 add their own specular
+pass and Apple says plainly not to bake highlights in, so `apple-icon.png` is flat. Android
+adds nothing, which is why he noticed our icon looking duller there, so the maskable icon has
+the light baked in. The catch is that a web manifest has no per-OS selector -- an icon entry
+carries src, sizes, type and purpose and nothing else -- so the only platform it can
+positively identify is Android, via `purpose: "maskable"`. Every plain "any" icon stays flat,
+because macOS Safari's Add to Dock reads those. That costs a Windows PWA install the light it
+could have had, deliberately: a flatter icon on a desktop install nobody has asked for is a
+smaller failure than a double-lit one in the owner's own dock.
+
+**The icon's geometry moved out of the lab** into `src/lib/hoopoe-geometry.ts`, as data
+rather than JSX. It had been defined inside a lab page, which meant the shipped mark and the
+character it came from could drift apart the first time anyone touched either. Both rooms and
+the build script now render the identical `Prim[]`. The first attempt was a route handler
+calling `renderToStaticMarkup`, which Next refuses to compile inside `app/`; the refusal was
+right, and this version needs no dev server, no sign-in and no browser.
+
+**The favicon is one cream range on pine.** The three planes carried three tints, which is a
+separation that survives at 512 and turns to mud by 16. The two inner planes sat entirely
+inside the silhouette, so painting them the same cream changes nothing but the file size.
+
+**A dark app icon does not exist and now says so.** The source SVG carried a
+`prefers-color-scheme` rule swapping the tile to ink, which did nothing: sharp rasterises
+without a colour scheme, so every PNG came out canopy anyway. Nor could it work downstream --
+a home screen icon is one flat PNG on both platforms. A rule that quietly does nothing is
+worse than no rule, so it is gone, with the reason written into the file so nobody re-adds it.
+
+Three smaller things worth the ink. `look.mjs` built filenames with
+`[stem, i, tag].filter(Boolean)` and index **0** is falsy, so row 0 kept overwriting a
+different file and I read back a stale image twice before noticing. The generated icon's own
+comment spelled out the two seam tags the generator finds by string replace, so the
+substitution went into the comment instead of the markup. And an XML comment cannot contain a
+double hyphen, which sharp rejects outright -- that is how the favicon build first broke.
+Both scripts now assert their seams and fail loudly, because a silently flat Android icon is
+the exact failure this whole path exists to prevent.
+
+Full working, the four wrong constructions and the traps: `docs/spec/apple-edge-light.md`.
+The rooms are `/lab/glass-edges` and `/lab/hoopoe-marks`.
+
 ## 2026-08-27 — 500px, the bucket's own url, and a blur that is actually a blur
 
 Three corrections to the same afternoon's work, all of them the owner looking at the real
