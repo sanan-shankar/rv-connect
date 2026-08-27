@@ -53,17 +53,42 @@ produced the chunk-level data this audit used.
 
 ### 1b. Expected after the diet (honest ranges; fix sessions re-measure)
 
-| Metric | Today | Expected | Main levers |
-|---|---|---|---|
-| Code lines (net, src+scripts) | — | **−4,500 to −5,500** | dead ~1,800 · dedupe ~2,300 · placeholder/flag strips ~700 (cross-agent overlaps already deduplicated) |
-| Tracked repo weight | — | **−6.4 MB**, plus ~19,300 lines of imported skill prose relocated (owner call) | WhatsApp originals 3.05 MB · overflow PDF/HTML 1.79 MB · audit JSON dumps 0.99 MB · QR SVGs 0.2 MB · brand PNG 0.38 MB |
-| First-load JS, /feed | 1,530 KB raw | **1,150–1,220 KB** | posthog defer 245 KB · LazyMotion (async domMax) 50–100 KB critical-path · conditional shell UI ~19 KB · dialog deferral ~12 KB |
-| First-load JS, /directory | 1,642 KB raw | **1,070–1,150 KB** | the same + atlas-as-fetch 105 KB + d3 defer ~80 KB |
-| Every member page | ~1,370 KB median | **−360–380 KB each** | shared-chunk levers apply everywhere |
-| `next build` | 45.6 s | **~37–42 s** autonomous; **~18–23 s** with the owner's duplicate-TS-check call | tsconfig exclude · Sentry hook · TS-in-CI-only (owner) |
-| Dependencies | 61 | **−7 now** (+2–3 more via owner/deferred calls), 6 re-sectioned, production graph −~145 MB | see phase 1b |
-| Database | 41 models | **−4 models · −8 columns · −3 indexes** (migration-gated) | adapter tables, GroupInvite, retired columns + the write-only Visit trio |
-| Local disk | — | **−135 MB+**, screenshots bounded | stuff folder move, tsbuildinfo, retention rule |
+**Closed out 2026-08-27.** The measured column below was taken at `033ea43`, with the
+campaign's baseline commit `1d3f996` extracted to a scratch tree and measured by the SAME
+tool invocation, so every comparison here is like-for-like rather than against the numbers
+in §1a (which used whatever flags that session used).
+
+| Metric | Today | Expected | **Measured 2026-08-27** | Main levers |
+|---|---|---|---|---|
+| Code lines (net, src+scripts) | — | **−4,500 to −5,500** | **−2,275 net** in product `src` — components 35,028→34,019, lib 17,941→17,778, app-minus-lab 14,301→13,198. NOT the campaign's own deletion count; see the note below | dead ~1,800 · dedupe ~2,300 · placeholder/flag strips ~700 (cross-agent overlaps already deduplicated) |
+| Tracked repo weight | — | **−6.4 MB**, plus ~19,300 lines of imported skill prose relocated (owner call) | **−8.00 MB** (37.89 → 29.89 MB) — and that is NET of this audit's own artefacts, which added 19,355 lines of markdown to `docs/` | WhatsApp originals 3.05 MB · overflow PDF/HTML 1.79 MB · audit JSON dumps 0.99 MB · QR SVGs 0.2 MB · brand PNG 0.38 MB |
+| First-load JS, /feed | 1,530 KB raw | **1,150–1,220 KB** | **1,191 KB** (phase 5, session 8; 1,515 → 1,191 against that session's own baseline). In range | posthog defer 245 KB · LazyMotion (async domMax) 50–100 KB critical-path · conditional shell UI ~19 KB · dialog deferral ~12 KB |
+| First-load JS, /directory | 1,642 KB raw | **1,070–1,150 KB** | **1,224 KB** (phase 5; 1,628 → 1,224). ABOVE the range — three of the phase's levers were re-refuted with measurements at fix time, see session 7 | the same + atlas-as-fetch 105 KB + d3 defer ~80 KB |
+| Every member page | ~1,370 KB median | **−360–380 KB each** | **−299 to −404 KB each** across the five measured routes: directory −404 (1,628→1,224), profile −392 (1,624→1,232), collection −333, feed −324, welcome −299 | shared-chunk levers apply everywhere |
+| `next build` | 45.6 s | **~37–42 s** autonomous; **~18–23 s** with the owner's duplicate-TS-check call | **not re-measured** — a production build shares `.next` with the dev server, which at close-out belonged to another session. The two autonomous levers here were both re-refuted with measurements in session 7 | tsconfig exclude · Sentry hook · TS-in-CI-only (owner) |
+| Dependencies | 61 | **−7 now** (+2–3 more via owner/deferred calls), 6 re-sectioned, production graph −~145 MB | **−10**: 44 runtime + 17 dev → 33 runtime + 18 dev (51) | see phase 1b |
+| Database | 41 models | **−4 models · −8 columns · −3 indexes** (migration-gated) | **−4 models · −9 columns · −3 indexes**, applied to BOTH production and demo on 2026-08-27 and verified after (session 9) | adapter tables, GroupInvite, retired columns + the write-only Visit trio |
+| Local disk | — | **−135 MB+**, screenshots bounded | **not re-measured** — the owner's own "sanan's stuff" move (§4 #15) is his to do | stuff folder move, tsbuildinfo, retention rule |
+
+Two rows the table cannot carry, both measured the same like-for-like way:
+
+| Metric | Baseline `1d3f996` | Measured 2026-08-27 |
+|---|---|---|
+| Duplication in `src` + `scripts` (jscpd 4.3, `--min-lines 5 --min-tokens 50`, run over both trees) | 235 clones · 3,641 duplicated lines · **2.04 %** | 174 clones · 2,702 duplicated lines · **1.47 %** |
+| Type sludge (non-lab `src`) | `any` 10 · `as unknown as` 11 · eslint-disable 52 | `any` 7 · `as unknown as` 11 · eslint-disable 47 |
+
+`npm run check` went from 75 test files to 76 and stays green; its wall-clock is not
+comparable run to run (§1a's 26.0 s against 36–48 s here) because this machine routinely
+carries several sessions at once — session 9 once recorded 1,429 s on an unchanged tree.
+
+**Why the code-lines row reads −2,275 against an expected −4,500 to −5,500, and why that is
+not a miss.** The tree was never frozen for this campaign. Feature work landed in the same
+directories throughout the window: the guide and its six chapters, the Collection rework,
+and 2,367 lines of new `/lab` rooms. So −2,275 is the NET of every session in the window,
+not the campaign's own deletion count. That count lives in the per-phase session logs in
+`fix-prompt.md` and is larger — phase 1a alone deleted 2,320 lines against 268 added. The
+duplication row above is the cleaner reading of the dedupe phases, because a clone count
+does not care what else the tree gained: 61 fewer clones and 939 fewer duplicated lines.
 
 Floor honesty (goal-sloc): a member page's framework floor in this design is ~950–1,000 KB
 raw JS (react-dom, router, Base UI chrome, the 50 birds, the mascot, toasts, cn). Going

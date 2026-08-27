@@ -1,6 +1,12 @@
 # Refactor audit 1 — fix campaign (LIVING HANDOVER)
 
-**This file is the entire handover.** The owner starts a fix session by @-ing it and
+> **CLOSED 2026-08-27 (session 10).** All six phases are executed and the close-out is
+> done: report §1b carries its measured column, `../README.md` reads Closed, and §7.4's
+> archive convention was already satisfied by this folder's own path. Nothing here is
+> waiting for a fix session. What remains is a short list of things only the owner can do,
+> at the very bottom of this file. Everything below is kept as the campaign's record.
+
+**This file was the entire handover.** The owner started a fix session by @-ing it and
 nothing else. You (the fix session, running on Opus, max effort) read it top to bottom,
 execute the next unfinished work, and **edit this same file before your session ends** —
 status board updated, session log appended — so the next session can be started by @-ing
@@ -51,7 +57,7 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
       JavaScript, now 364 KB. Its second is not JS either: /collection's first
       photographs used to arrive 2.9 s after first paint on a throttled connection and
       now arrive with it. Part 1 is session 7, part 2 session 8.
-- [~] Phase 6 — schema & architecture — **8 of 10 rows done 2026-08-27 (session 9), 9
+- [x] Phase 6 — schema & architecture — **done 2026-08-27**. Session 9 took 8 of 10 rows in 9
       commits, and EVERY DROP IS APPLIED** to both databases: 4 tables, 9 columns and 1
       index gone from production and demo, verified after with `to_regclass` and
       `information_schema`, and with the Catch-ups (3 series, 133 entries) and all 63
@@ -65,49 +71,29 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
       records a diff method that would have dropped every Catch-up in the app, and the rule
       that replaces it. **Keep `.backups/2026-08-27-phase6-pre-drop-snapshot.json`** — it is
       the only copy of the 232 rows this phase destroyed.
-- [ ] Close-out: re-measure §1b's table, write the deltas into report §1b, flip this
-      audit's row in `../README.md` to Closed, archive per report §7.4. **Third of the three
-      things in "NEXT SESSION" below — not before the other two.**
+      **The last two rows closed in session 10**: `feed-posts-02` executed, `duplication-02`
+      re-refuted at fix time with three reasons (see session 10). cuid2 → randomUUID stays
+      parked as the plan itself says.
+- [x] Close-out — **done 2026-08-27 (session 10)**. Report §1b carries a measured column
+      taken at `033ea43` against the baseline commit extracted to a scratch tree and
+      measured by the SAME tool invocation, so the comparisons are like-for-like. Headlines:
+      **−8.00 MB tracked** (37.89 → 29.89, net of this audit's own 19,355 lines of markdown),
+      **−10 dependencies**, **−4 models / −9 columns / −3 indexes** live on both databases,
+      **duplication 2.04 % → 1.47 %** (235 clones → 174). Two rows honestly not re-measured
+      and labelled as such: `next build`, because a production build shares `.next` with a
+      dev server another session owned, and local disk, which is the owner's own move.
+      `../README.md` flipped to Closed. §7.4's archive convention needed no move — the
+      folder is already at the path the convention names, and bug audit 2 kept its `work/`
+      after closing, so this one does too.
 
 Within a phase, mark finished items inline in the session log with their commit SHA.
 Phases 1–4 are mutually independent; 5 after 1–2; 6 needs owner approvals.
 
-## NEXT SESSION: do exactly this
+## NEXT SESSION: nothing
 
-The owner has asked for the campaign to be finished and has left the judgement to the
-fix session. **Three things, in this order. Do not ask him first — he has already said yes.**
-
-**1. `duplication-02` — the action-gate wrapper, ONE-FILE PILOT ONLY.**
-Build `src/lib/action-gate.ts` with `withAuth` / `withMember` / `withAdmin` exactly as the
-finding specifies, and convert **`src/app/(main)/messages/actions.ts` and nothing else** —
-5 actions, shape-complete including its demo refusals, and it is the pilot precisely because
-it is small. Do NOT sweep the other ~96 actions; that is a later decision the owner has not
-been asked for, and a 101-action rewrite is not what this row says.
-The payoff that justifies it: `requireVerifiedMember()` calls `auth()` itself and returns the
-user, so **24 actions currently authenticate twice** — this removes a real per-request cost,
-not just lines. Keep every "why this action is gated/metered" comment; they move to sit above
-the wrapper call. Gate: `npm run check`, then drive the messages surface for real (send,
-admin reply, the demo's refusal).
-
-**2. `feed-posts-02` — the create-post-form hook split.**
-Extract the two self-contained machines the finding names, verbatim, comments included:
-`use-letter-persistence.ts` (the localStorage crash net + autosave + exit-save, ~310 lines
-that interlock through four refs and nothing else) and `use-composer-uploads.ts` (~150 lines
-whose only contract is `images`/`previews`/`uploading`/`uploadProgress`). Do NOT touch the
-editor-body JSX and do NOT introduce a second editor — the ROADMAP decision that this is ONE
-composer stands.
-**This is the riskier of the two and the reason is worth stating: it is the draft crash net.
-A mistake here loses somebody's half-written letter.** `composer-rule.test.mjs` reads
-`create-post-form.tsx` BY PATH and asserts on `onAutosaveState?.("failed")`, `localStorage`,
-`clearLocalDraft`, `revokeObjectURL`, `pagehide` — repoint those reads at the new hook files
-**in the same commit**, per rule 2. It already reads six files, so two more is its normal
-shape. Then drive it for real in the browser: write a letter, watch it autosave, reload
-mid-draft and take the restore offer, attach and remove a photo, and leave the page with
-unsaved text.
-
-**3. Close out.** Re-measure §1b's table into report §1b, flip this audit's row in
-`../README.md` to Closed, archive per report §7.4. Only after 1 and 2 are done or
-consciously refused with a reason in the session log.
+The campaign is finished. Session 10 executed the last two rows and the close-out; see its
+log at the bottom. If you have been handed this file, read the owner list at the very end
+and then ask him what he wants next — do not invent work from this document.
 
 ### Four things this tree will do to you
 
@@ -1490,3 +1476,124 @@ wrapper, feed-posts-02's create-post-form split), the parked cuid2 item, and the
 (re-measure §1b, flip `../README.md` to Closed, archive per §7.4). **Do not flip it closed
 until those two rows are executed or consciously declined by the owner.**
 
+---
+
+### 2026-08-27 — session 10: the last two rows, and the close-out
+
+Three things were asked for. Two were done, one was refused with its reasons, and driving
+the second one found a live privacy bug that had been shipped and ineffective all along.
+
+**1. `duplication-02` — the action-gate wrapper — RE-REFUTED AT FIX TIME. Do not retry it
+without reading this.** Three independent reasons, each checked at HEAD before any code was
+written, which is what rule 4 is for:
+
+- **Its stated payoff does not exist.** The handover called the double-`auth()` "the payoff
+  that justifies it": `requireVerifiedMember()` calls `auth()` itself, so 24 actions
+  authenticate twice, and a wrapper removes a real per-request cost. `auth()` is
+  `cache()`d — `src/lib/auth.ts:455`, with the comment right above it saying exactly why
+  ("one DB read instead of ~3"). The second call is a cache hit. Worse, phase 3's OWN
+  member-gate rewrite already documents this eight lines from the call
+  (`src/lib/member-gate.ts:46`: "`auth()` is cache()d per request, so the second call is
+  free"). The verifier proved two session READS and stopped; the cache is what makes them
+  free.
+- **Its specified shape collides with a security tripwire.** The finding says three
+  factories that RETURN async functions — `export const doThing = withMember(async …)`.
+  `gate-coverage.test.mjs`'s C-189 sweep ("no action file exports a shape this sweep cannot
+  see") hard-fails every export that is not `export async function`, ON PURPOSE, because
+  `export const doThing = async () => {}` is the exact form that once shipped ungated past
+  it. Making the wrapper legal means teaching three separate mechanisms a new export form —
+  `exportedActions`'s regex, the offenders allowlist, and `fnBody`'s `balancedBody`
+  pattern — i.e. loosening the tripwire that catches ungated actions, in exchange for
+  lines. (`work/verify/v-pinned-safety.md` §3 reads the finding as plain-call style and
+  approves it on that basis; the finding's own text says otherwise. The verifier's reading
+  is the safe one, and a plain-call `withAuth()` is just another `requireX()` helper, which
+  removes the structural payoff entirely.)
+- **The pilot file proves almost nothing.** `messages/actions.ts` is 5 actions with **zero**
+  member gates and **zero** rate limits, so it exercises neither `withMember` nor the
+  options that carry the savings — and against a ~70-line new lib module it is a net **+60
+  lines** on a file the handover forbids following up with a sweep.
+
+**What the row did have, taken instead** (`0a973bc`). The file really did spell the same
+admin check out three times — session read, `role !== "admin"`, `"Not authorized"` — and a
+security check written three times can be fixed twice and left wrong once. One file-local
+`actingAdmin()` holds it, returning the acting admin so the reply path still has an id for
+`authorId`. No new lib module, no tripwire edit: `gate-coverage`'s delegation pass already
+credits a caller with a private helper's gate, which is what that pass is for. Verified
+against the live database, not the diff: a thread opened as Jerry, replied to as admin,
+marked sorted, then read back — `status` closed, `adminUnread` false, one `fromAdmin`
+message carrying the admin's own id. (That thread, `cmtb8zcfd000f52sgu6h8sdln`, is still
+there, closed. It is Jerry's; delete it if it bothers you.)
+
+**2. `feed-posts-02` — the composer split — DONE** (`3527e55`). 1,685 lines → 1,201, with
+`use-letter-persistence.ts` (468) and `use-composer-uploads.ts` (225) beside it. +209 net,
+which is the honest price of two named boundaries; this was always a move, not a cut.
+
+- **The finding's own falsifier was the thing to watch** — "if the refs cannot cross a hook
+  boundary without a 15-parameter API, stop and keep the file whole." A flat list came to
+  19 in / 6 out. Grouping brought it to 8 in / 5 out, and the grouping is not a dodge:
+  `draft` and `initial` are the five-value bundles the exit save ALREADY kept in one ref,
+  and the four pieces of restore plumbing (setContent, setTitle, the contentEditable, the
+  hydration latch) collapse into one `onRestore`, because putting words back on the sheet is
+  the editor's business and not the persistence machine's.
+- **The editor body stayed put**, as the finding says: it closes over twenty pieces of state
+  and drilling them costs more than the length. No second composer; the ROADMAP decision
+  stands.
+- **All four pinned files moved in the same commit**, not just the one the finding named:
+  `composer-rule` (six anchors, plus the C-175 disarm which is now `disarmAutosave()` with
+  its ordering assertion intact), `rich-truncate` (C-183's exact count of two blob releases,
+  C-014's three key call sites), `upload-shared` (C-073's two notices) and
+  `upload-size-rule`'s SENDERS entry. **Every pinned count survives the move to the digit** —
+  two releases still two, three call sites still three — which is the real evidence that
+  nothing was dropped in transit.
+- **Two lint warnings appeared and were fixed properly, not silenced.** `submittingRef` is a
+  parameter now rather than a local `useRef`, so the exit-save cleanup reading
+  `submittingRef.current` newly trips `react-hooks/exhaustive-deps`. Aliasing the ref OBJECT
+  inside the effect is the correct fix; copying `.current`, which the lint message literally
+  suggests, would break the thing the ref exists for.
+- **Driven, not read.** Typed a letter and watched the device copy land after the 2.5 s idle;
+  reloaded and took the "Picked up where you left off" offer; left the page mid-sentence and
+  watched "Saved to your drafts"; resumed the draft and watched Saving… → Saved with the
+  local copy cleared on success; attached a photograph on the feed (presign 200, finalize
+  200, blob preview, Post enabled only once uploading finished) and removed it again.
+  `npm run visual` 23/23 — the split is invisible, which is the point.
+
+**3. The bug that only driving it could find** (`033ea43`). The crash-net key printed
+`rv:letter-draft:anon:new`. Audit C-014 put a member id in that key precisely so a shared
+browser could not restore one person's unsaved letter into the next person's composer. The
+template was right; **the wiring was never done.** `letter-desk.tsx` did not pass
+`currentUser`, and the desk is the ONLY surface that sets `defaultLetter` — so it is the only
+place the crash net runs at all, and the fix has been off for its entire life. Proved by
+signing two accounts into one browser: both `anon:new` before, two distinct ids after.
+
+The lesson is the useful part. **The shape test could not have caught it**: it greps the key
+template and counts three call sites passing the id, and all of that was true while the id
+was `undefined` at every one of them. A marker proves the shape, not the value. The new pin
+asserts the WIRE — the desk passes `currentUser={{ id: writerId }}` and both letter pages
+pass `writerId={session.user.id}`.
+
+**4. Close-out.** Report §1b now carries a measured column. The method matters: the baseline
+commit `1d3f996` was extracted to a scratch tree with `git archive` and measured by the SAME
+tool invocation as the tree at `033ea43`, so nothing is compared against §1a's unknown flags.
+Two rows are marked not-re-measured rather than guessed — `next build`, because a production
+build shares `.next` with a dev server started at 10:01 by another session, and local disk,
+which is the owner's own move. §7.4 needed no file move: the folder already sits at the path
+the convention names, and bug audit 2 kept its `work/` after closing.
+
+**Verification**: `npm run check` green before every commit (TS, ESLint, protocol, lab
+registry 45, unit 76/76). `npm run visual` 23/23 after the composer split. Desktop and mobile
+shots of `/letters/new` after the desk change — no visual difference, as expected from a prop
+that renders nothing on the immersive shell.
+
+**Peer traffic**: the owner's uncommitted `CLAUDE.md` edit was in the tree the whole session
+and was never staged, stashed or touched. Every commit used a pathspec.
+
+**Left for the owner — the whole remaining list for this campaign:**
+1. The public landing still links to no Privacy / Terms / Guidelines (security audit H12).
+2. Session 1's `gate-coverage.test.mjs` widening is still unsighted.
+3. Vercel image transformations are now billed — one look at the usage page.
+4. `CRON_SECRET` is still owed (carried from the security overhaul).
+5. §4 #16, the Collection taxonomy SELECT, is the one open decision from the audit's §4.
+6. §4 #8 (skills/agents relocation), #9 (probe retirement), #12 (email queue, post-launch),
+   #13 (birds sprite), #15 ("sanan's stuff" move) — all his calls, none blocking.
+7. cuid2 → randomUUID stays parked, as the plan itself says: a quiet-moment item.
+8. `next build` and local-disk numbers were not re-measured; say the word and they will be.
