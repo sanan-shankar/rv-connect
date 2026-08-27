@@ -57,7 +57,6 @@ async function cleanup() {
   if (ids.length) {
     await db.query(`DELETE FROM "AuditLog" WHERE "actorId" = ANY($1) OR "targetId" = ANY($1)`, [ids]).catch(() => {});
     await db.query(`DELETE FROM "Report" WHERE "reporterId" = ANY($1) OR "reportedUserId" = ANY($1)`, [ids]).catch(() => {});
-    await db.query(`DELETE FROM "Session" WHERE "userId" = ANY($1)`, [ids]).catch(() => {});
     await db.query(`DELETE FROM "User" WHERE id = ANY($1)`, [ids]);
   }
   await db.query(`DELETE FROM "LoginAttempt" WHERE email LIKE '%${P}'`).catch(() => {});

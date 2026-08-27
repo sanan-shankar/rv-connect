@@ -123,8 +123,6 @@ export async function seedDemo(
     // in this seed, so no foreign key ever points at these rows -- they can
     // be cleared and rewritten in any order relative to UserPlace above.
     await tx.place.deleteMany({});
-    await tx.session.deleteMany({});
-    await tx.account.deleteMany({});
     await tx.user.deleteMany({});
 
     // ── 2. People ──

@@ -4178,3 +4178,27 @@ it: `npm run screenshot` and `npm run verify:crawl` both drive the same bare
 `puppeteer.launch`, and both still launch.
 
 7 high advisories to 0.
+
+## 2026-08-27 — refactor audit 1, phase 6: schema and architecture
+
+The last phase of the campaign. Its shape was decided before any code moved, by a fact
+worth stating plainly: **`origin/main` was 165 commits behind local**, so production was
+still running the pre-campaign build, and one Supabase database serves production and
+local dev. Prisma names every column of every model explicitly in its SELECT list —
+proved, not assumed, by logging one `post.findFirst` and reading
+`SELECT ... "Post"."tag" ...` back — so a column dropped under a running old build is an
+outage, not a warning. Every DROP in this phase is therefore written as a dated file and
+left unapplied until a build without the column is live. Code, then deploy, then DDL,
+never the reverse. The owner pushed so the deploy could bake.
+
+**The NextAuth adapter and its three tables.** `adapter: PrismaAdapter(prisma as any)` sat
+in `auth.ts` doing nothing: `strategy: "jwt"` is explicit and the only provider is
+Credentials, and @auth/core reaches an adapter from four places only — OAuth account
+linking, the email provider's VerificationToken flow, WebAuthn, and database sessions —
+none of which exist here. The audit traced that through the installed dist; the database
+settles it: 63 members have been signing in for months and `Account`, `Session` and
+`VerificationToken` hold **zero rows between them**. Gone from `auth.ts` (taking one of the
+repo's few `any` casts with it), from the schema, from `package.json`, from the demo seed's
+reset, and from the two probe scripts that deleted from `Session` as cleanup. The demo's
+deny canary — which forged a Session to prove the demo refuses writes — now mints a
+password-reset token instead, a model the policy still denies by name.
