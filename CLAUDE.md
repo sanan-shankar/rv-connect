@@ -187,6 +187,7 @@ for an ambiguous product or design call the specs do not already answer.
 | Screenshotting authenticated pages | `.claude/skills/screenshot-auth/SKILL.md` |
 | Reviewing existing pages retroactively | `.claude/skills/ui-audit/SKILL.md` |
 | A bug that survived two attempts | superpowers systematic debugging |
+| Writing a prompt, spec, plan or handover another session works from | `.claude/skills/writing-for-agents/SKILL.md` |
 
 # Screenshots
 
