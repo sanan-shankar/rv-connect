@@ -216,6 +216,13 @@ this site has. Security fixes ignore the schedule.
 
 **A Playwright bump means re-running `npm run visual`** — the PR carries a label saying so.
 
+**One `overrides` entry lives in `package.json`, and it is not permanent.** `@prisma/config`
+pins `deepmerge-ts` to an exact `7.1.5`, which carries GHSA-ggr8-5vv4-36mx (stack exhaustion
+on recursive object graphs), and npm's only offered fix was downgrading the Prisma CLI two
+majors. The override forces `^8.0.2` instead; `prisma validate` and `prisma generate` were
+both run against it. Delete the entry the moment `@prisma/config` ships depending on 8 —
+an override that outlives its reason is a pin nobody remembers making.
+
 ---
 
 ## 5. Bundle analyzer
