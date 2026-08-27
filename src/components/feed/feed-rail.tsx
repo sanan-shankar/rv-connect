@@ -2,6 +2,7 @@ import { LettersModule } from "./rail/letters-module";
 import { CollectionModule } from "./rail/collection-module";
 import { DirectoryModule } from "./rail/directory-module";
 import { PulseModule } from "./rail/pulse-module";
+import type { RailViewer } from "./rail/rail-viewer";
 
 /**
  * FeedRail: the right-hand companion column on the feed. Fixed module
@@ -14,20 +15,6 @@ import { PulseModule } from "./rail/pulse-module";
  *   3. New in the directory
  *   4. Signs of life (last, and only when the week is genuinely alive)
  */
-/**
- * Who is looking. The rail's modules are server components that show real
- * content, so anything audience-scoped has to be scoped HERE too -- a teaser
- * is a disclosure (bug audit B-045).
- */
-export type RailViewer = {
-  /** UserPlace cities, for cityScope matching. */
-  cities: string[];
-  /** e.g. "ISC-2017", for targetBatches matching; null if they have no batch. */
-  batch: string | null;
-  /** Admins read everything, so they skip both filters. */
-  isAdmin: boolean;
-};
-
 export async function FeedRail({ userId, viewer }: { userId: string; viewer: RailViewer }) {
   return (
     /* The sticky box is a DIRECT child of the <aside> grid cell on purpose.

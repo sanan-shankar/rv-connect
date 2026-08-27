@@ -4242,3 +4242,16 @@ lookup nobody performs. `Comment_postId_isHidden_idx` is **kept**: 13 scans in t
 window, and the finding itself rates it marginal and says to skip it in doubt. Dropping an
 index to save 16 kB is not worth being wrong about.
 
+**Four of the app's five real import cycles, gone.** All four were `import type` edges —
+erased at compile time, harmless at runtime, and 80% of the cycle count every future audit
+would have to re-triage. `OnboardingStepId`/`OnboardingUser` moved to
+`components/onboarding/types.ts` (the flow imported its three steps while all three imported
+a type back, three cycles; and `welcome/page.tsx`, a server component, had been reaching
+into a client module for a string union). `RailViewer` moved to
+`components/feed/rail/rail-viewer.ts`, beside the modules that share it. Measured with madge
+**after fixing the run itself**: the obvious invocation silently skipped 328 files because it
+could not resolve the `@/` alias and reported a flattering zero. With `--ts-config
+tsconfig.json` it resolves all but two, and the count is 40 — 39 of them inside Prisma's
+generated client, and one of ours: `lib/catchups.ts > lib/catchups-notify.ts`, which is
+catchups-03's row and is not done.
+

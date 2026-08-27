@@ -9,7 +9,7 @@ import { batchLine, letterTitle, metaLine, plainExcerpt, readMinutes } from "@/l
 import { RailCard } from "./rail-card";
 import { AUTHOR_IN_GOOD_STANDING, PUBLISHED_ONLY, batchScopeWhere } from "@/lib/posts";
 import { cityScopeWhere } from "@/lib/city-scope";
-import type { RailViewer } from "../feed-rail";
+import type { RailViewer } from "./rail-viewer";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
