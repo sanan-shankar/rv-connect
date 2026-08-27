@@ -107,7 +107,6 @@ const OWN_CONTENT = {
   Comment: "reachable only THROUGH their own posts; the direct User edge is SetNull (M34)",
   CommentLike: "hearts they gave on comments",
   ContentView: "their own read receipts",
-  GroupInvite: "invites they sent or hold; a dead invite helps nobody",
   GroupMember: "their membership rows; the Group itself is communal and stays",
   Like: "hearts they gave on posts",
   Notification: "their bell; nobody else reads it",

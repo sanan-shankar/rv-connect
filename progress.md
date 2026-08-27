@@ -4202,3 +4202,10 @@ repo's few `any` casts with it), from the schema, from `package.json`, from the 
 reset, and from the two probe scripts that deleted from `Session` as cleanup. The demo's
 deny canary — which forged a Session to prove the demo refuses writes — now mints a
 password-reset token instead, a model the policy still denies by name.
+
+**GroupInvite.** A table the Groups feature left behind: no reader, no writer, no invite
+UI, and the only line naming it was the demo reset wiping a table nothing fills. It holds
+two rows — both `pending`, both sent by the owner on 2026-07-21 a minute apart, both
+un-acceptable because nothing accepts an invite. Model, three back-relations, seed line and
+cascade-map entry gone; the table's DROP is dated and waiting on the deploy.
+
