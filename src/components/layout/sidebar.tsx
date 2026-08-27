@@ -70,7 +70,7 @@ const NAV = [
   // /donate still exists as a redirect to this route (kept for old links);
   // this is the canonical live page with the real content.
   { href: "/support", label: "Support", icon: PhosphorTree },
-  { href: "/about", label: "About", icon: Info },
+  { href: "/guide", label: "Guide", icon: Info },
 ];
 
 function isActive(pathname: string, href: string) {

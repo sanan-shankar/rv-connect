@@ -297,7 +297,8 @@ export default async function CatchupsPage() {
   if (!data) {
     return (
       <div>
-        <PageHeader title="Catch-ups" />
+        <PageHeader
+        guide="catchups" title="Catch-ups" />
         <AlmostReady />
       </div>
     );

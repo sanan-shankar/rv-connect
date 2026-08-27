@@ -71,6 +71,7 @@ export default async function FeedPage({
               over the rail. */}
           {/* No subtitle (owner, 2026-08-22): the feed says what it is. */}
           <PageHeader
+        guide="feed"
             title="Feed"
             showSearch
             unreadCount={unreadCount}

@@ -1,0 +1,53 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { GUIDE_AREAS, findGuideArea } from "@/lib/guide-areas";
+import { CHAPTERS } from "@/components/guide/chapters";
+
+/* Static, so a chapter costs nothing to serve and nothing to render. There is
+   no per-member state anywhere in the guide by design (docs/spec/guide.md
+   section 8): no "you have read this", no dismissal, no badge. */
+export function generateStaticParams() {
+  return GUIDE_AREAS.map((a) => ({ area: a.slug }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ area: string }>;
+}): Promise<Metadata> {
+  const { area } = await params;
+  const found = findGuideArea(area);
+  if (!found) return { title: "Guide" };
+  return { title: found.title, description: found.blurb };
+}
+
+export default async function GuideChapterPage({
+  params,
+}: {
+  params: Promise<{ area: string }>;
+}) {
+  const { area } = await params;
+  const found = findGuideArea(area);
+  const Chapter = found ? CHAPTERS[found.slug] : undefined;
+  /* A row in GUIDE_AREAS with no component is a link to nowhere, so it 404s
+     loudly here rather than rendering an empty page. */
+  if (!found || !Chapter) notFound();
+
+  /* No ContentColumn here: AppShell already puts every (main) child inside the
+     one spine (app-shell.tsx:74), and wrapping again would nest max-w-3xl in
+     max-w-3xl for nothing. */
+  return (
+    <>
+      <Link
+        href="/guide"
+        className="state-layer -ms-2 mb-6 inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[13px] text-muted-foreground outline-none hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
+      >
+        <ArrowLeft className="size-3.5" aria-hidden="true" />
+        Guide
+      </Link>
+      <Chapter />
+    </>
+  );
+}
