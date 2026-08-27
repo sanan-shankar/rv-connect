@@ -28,6 +28,18 @@ type ActionResult =
   | { error: string; threadId?: undefined }
   | { threadId: string; error?: undefined };
 
+/** The admin half of the rule above, in one place instead of three.
+ *  Returns the acting admin, or null for everybody else. Each of the three
+ *  admin actions below spelled this same session read and role compare out for
+ *  itself; a security check that exists three times is one that can be fixed
+ *  twice and left wrong once. `auth()` is cache()d per request, so pulling it
+ *  into a helper costs nothing. */
+async function actingAdmin() {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== "admin") return null;
+  return session.user;
+}
+
 type ParsedPayload =
   | { ok: false; error: string }
   | { ok: true; body: string; kind?: "bug" | "idea" | "message"; imageUrl?: string };
@@ -207,12 +219,10 @@ export async function adminReplyToThread(
   threadId: string,
   input: { body: string; imageUrl?: string }
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user?.id || session.user.role !== "admin") {
-    return { error: "Not authorized" };
-  }
+  const admin = await actingAdmin();
+  if (!admin) return { error: "Not authorized" };
 
-  const parsed = parsePayload(input, session.user.id);
+  const parsed = parsePayload(input, admin.id);
   if (!parsed.ok) return { error: parsed.error };
   const { body, imageUrl } = parsed;
 
@@ -224,7 +234,7 @@ export async function adminReplyToThread(
 
   await prisma.$transaction([
     prisma.adminMessage.create({
-      data: { threadId, authorId: session.user.id, fromAdmin: true, body, imageUrl },
+      data: { threadId, authorId: admin.id, fromAdmin: true, body, imageUrl },
     }),
     prisma.adminThread.update({
       where: { id: threadId },
@@ -255,10 +265,7 @@ export async function setThreadStatus(
   threadId: string,
   status: "open" | "closed"
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user?.id || session.user.role !== "admin") {
-    return { error: "Not authorized" };
-  }
+  if (!(await actingAdmin())) return { error: "Not authorized" };
   if (status !== "open" && status !== "closed") return { error: "Unknown status" };
 
   const thread = await prisma.adminThread.findUnique({
@@ -290,10 +297,7 @@ export async function markThreadSeenByAdmin(
   /** The newest message the caller had rendered, if it knows. */
   seenThrough?: Date
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user?.id || session.user.role !== "admin") {
-    return { error: "Not authorized" };
-  }
+  if (!(await actingAdmin())) return { error: "Not authorized" };
   /* Only when nothing has arrived since the page was built (audit C-061).
      `seenThrough` is the newest message the admin actually had on screen. A
      reply committing between that query and this write used to have its
