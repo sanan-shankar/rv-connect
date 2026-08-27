@@ -127,7 +127,6 @@ const MURAL_IMAGES = [
 type SeedPiece = {
   id: string;
   kind: "post" | "letter";
-  tag: string | null;
   createdAt: Date;
   pick: Pick;
   bodyOverride?: (body: string) => string;
@@ -138,28 +137,24 @@ const PIECES: SeedPiece[] = [
   {
     id: "seed-wa-what-a-small-world",
     kind: "letter",
-    tag: null,
     createdAt: noonIST(2025, 9, 13),
     pick: findPick({ title: "What a Small World" }),
   },
   {
     id: "seed-wa-a-story-about-rv-and-nicobar",
     kind: "letter",
-    tag: null,
     createdAt: noonIST(2025, 10, 9),
     pick: findPick({ title: "A story about RV. And Nicobar." }),
   },
   {
     id: "seed-wa-my-own-self-created-mt-kailash",
     kind: "letter",
-    tag: null,
     createdAt: noonIST(2025, 12, 26),
     pick: findPick({ title: "My Own Self-Created Mt Kailash" }),
   },
   {
     id: "seed-wa-that-beautiful-walk-in-the-darkness",
     kind: "letter",
-    tag: null,
     createdAt: noonIST(2026, 5, 29),
     pick: findPick({ title: "That Beautiful Walk in the Darkness" }),
   },
@@ -167,7 +162,6 @@ const PIECES: SeedPiece[] = [
     // json title is "" (format: post); picks.md calls this "June 12, 1966".
     id: "seed-wa-june-12-1966",
     kind: "post",
-    tag: "campus-memory",
     createdAt: noonIST(2026, 6, 12),
     pick: findPick({ bodyStartsWith: "Today, June 12th, happens to be the exact date" }),
   },
@@ -175,7 +169,6 @@ const PIECES: SeedPiece[] = [
     // json title is "" (format: post); picks.md calls this "The Hippy Rebellion".
     id: "seed-wa-the-hippy-rebellion",
     kind: "post",
-    tag: "campus-memory",
     createdAt: noonIST(2025, 11, 29),
     pick: findPick({ bodyStartsWith: 'One more "Chinna Katha" to post from my memory bank' }),
   },
@@ -183,14 +176,12 @@ const PIECES: SeedPiece[] = [
     // json has no title key (format: post); picks.md calls this "The Dispensary Window & the Cobra".
     id: "seed-wa-the-dispensary-window-and-the-cobra",
     kind: "post",
-    tag: "campus-memory",
     createdAt: noonIST(2025, 11, 29),
     pick: findPick({ bodyStartsWith: "Mine is this: a friend (who shall remain nameless)" }),
   },
   {
     id: "seed-wa-the-banyan-tree",
     kind: "letter",
-    tag: null,
     createdAt: noonIST(2025, 11, 22),
     pick: findPick({ title: "The Banyan Tree" }),
   },
@@ -199,7 +190,6 @@ const PIECES: SeedPiece[] = [
     // sourceNote spans 07/07/2026-08/07/2026; createdAt uses the first (start) date.
     id: "seed-wa-the-big-banyan-tree-mural",
     kind: "post",
-    tag: "campus-memory",
     createdAt: noonIST(2026, 7, 7),
     pick: findPick({ bodyStartsWith: "There is a mind-boggling 3D mural" }),
     attachMuralImages: true,
@@ -208,14 +198,12 @@ const PIECES: SeedPiece[] = [
     // json title is "" (format: post); picks.md calls this "Going to Rishi Valley".
     id: "seed-wa-going-to-rishi-valley",
     kind: "post",
-    tag: "campus-memory",
     createdAt: noonIST(2025, 5, 24),
     pick: findPick({ bodyStartsWith: "Going to Rishi Valley is like going home." }),
   },
   {
     id: "seed-wa-gerry-balcombe",
     kind: "letter",
-    tag: null,
     createdAt: noonIST(2025, 5, 23),
     pick: findPick({ title: "Gerry Balcombe" }),
     bodyOverride: trimGerryBalcombe,
@@ -313,7 +301,6 @@ async function main() {
         kind: piece.kind,
         title,
         content,
-        tag: piece.tag,
         images,
         isHidden: false,
         createdAt: piece.createdAt,

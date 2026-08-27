@@ -4209,3 +4209,17 @@ two rows — both `pending`, both sent by the owner on 2026-07-21 a minute apart
 un-acceptable because nothing accepts an invite. Model, three back-relations, seed line and
 cascade-map entry gone; the table's DROP is dated and waiting on the deploy.
 
+**Five dead columns.** `User.openTo` and `Post.tag` had carried a schema comment promising
+"a future cleanup migration" since July; this is it. With them: `Photo.blurhash` and
+`Photo.originalUrl` (both 0 non-NULL — and `originalUrl` is *not* the full-size download,
+which is `Photo.url`; it was a second, always-empty promise of the same thing, read only by
+three defensive purge sites that could never see a value), and `Group.visibility`, written
+with three constants and read by nothing at all, describing a browsing experience that no
+longer exists now that a Group row survives only as a Catch-up's membership container.
+
+**Where the audit was wrong: `Post.tag` has a writer.** The finding says "zero readers and
+zero writers", and `scripts/dev/seed-curated-content.ts:316` writes `tag: piece.tag` from
+eleven literals, five of them `"campus-memory"` — which is exactly the five tagged rows the
+census found. Left alone it would have thrown on its next run against a column that no
+longer exists. The field is gone from the script's type, its eleven pieces and its create.
+

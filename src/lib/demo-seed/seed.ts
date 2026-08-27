@@ -341,9 +341,6 @@ export async function seedDemo(
         id: "demo-group",
         name: CATCHUP_META.groupName,
         description: CATCHUP_META.intro,
-        // Groups are no longer user-facing; the row survives only as the
-        // membership container under a Catch-up, so it is never browseable.
-        visibility: "private",
         creatorId: uid(CATCHUP_KEEPER),
         createdAt: daysAgo(120),
       },
