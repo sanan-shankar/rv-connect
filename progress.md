@@ -1,5 +1,42 @@
 # Progress Log
 
+## 2026-08-27 — the guide, made to actually work
+
+Owner on the first cut: "it's done so incredibly poorly ... this is pukeworthy." Five
+things, all real, all found by looking at it rather than at the code.
+
+**The door was missing on Catch-ups**, the one page he named as needing it most. The script
+that added `guide=` to six page headers inserted at the first `<PageHeader` it found, and
+`catchups/page.tsx` has two: the "almost ready" fallback got the door and the real header
+did not. A count of headers against doors per file would have caught it in one line, and
+that check now exists as a habit rather than a script.
+
+**No entrance.** This component is rendered by a route, so it mounts with the sheet already
+open, and a sheet born open has no closed-to-open transition to run. Traced at 30ms
+intervals it went from absent to fully opaque in a single sample. It now mounts shut and
+opens on the next frame: 40px of rise against a fade, over 190ms, measured.
+
+**No exit.** Closing was `router.back()`, which unmounts the tree on the spot, so the exit
+styles never got a frame either. The sheet now closes first and the navigation follows.
+Traced: y 126 to 165 while opacity goes 1 to 0.01, then the URL returns.
+
+**Every panel a different height**, which is the one that made it look unowned. `ui/sheet`
+sets `data-[side=bottom]:h-auto`, and a plain `h-[86dvh]` loses to it every time:
+tailwind-merge keeps both, because they are different variant groups, and the attribute
+selector then wins on specificity. Setting a height and never checking it applied is the
+whole mistake. Before: 703 to 1406px across six chapters, with Catch-ups opening 1406px
+tall inside a 900px window so its top 500px sat off the screen. After: 774 desktop and 726
+mobile, identical on all six.
+
+**The page behind, and the flicker.** Neither reproduced headlessly. `main.x` never moves,
+and no scroll happens during the open. Two fixes went in anyway because both are correct
+for a modal route regardless of who is right: `scroll={false}`, since Next scrolls to the
+top on navigation by default and doing that under an overlay moves the page while the
+reader watches, and `prefetch`, since the delay before the sheet appeared was the chapter
+route compiling. Warmed, it arrives with the press. Next disables prefetch in development,
+so that half only shows on the deployed site, and the dev delay will stay.
+
+
 ## 2026-08-27 — refactor audit, the last two rows: one refused, one done
 
 The campaign's final structure-only pair. The owner left the judgement to this session.

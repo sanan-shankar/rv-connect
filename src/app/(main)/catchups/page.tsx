@@ -297,8 +297,7 @@ export default async function CatchupsPage() {
   if (!data) {
     return (
       <div>
-        <PageHeader
-        guide="catchups" title="Catch-ups" />
+        <PageHeader guide="catchups" title="Catch-ups" />
         <AlmostReady />
       </div>
     );
@@ -319,6 +318,7 @@ export default async function CatchupsPage() {
               the empty-state repeat of the one thing this header always offers. */}
           <PageHeader
             title="Catch-ups"
+            guide="catchups"
             actions={
               <>
                 {/* The admin's way into every Catch-up on the site, not just

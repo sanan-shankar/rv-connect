@@ -67,6 +67,16 @@ export function GuideDoor({ area, children }: { area: string; children: React.Re
     <Link
       ref={ref}
       href={`/guide/${area}`}
+      /* scroll={false} because this navigation is not a page change. Next's
+         router scrolls to the top on navigation by default, and doing that
+         under an overlay moves the page the reader was looking at while they
+         watch. The chapter is a layer over that page, not a replacement. */
+      scroll={false}
+      /* The chapter is static and the RSC payload for it is small. Fetching it
+         on hover is the difference between the sheet arriving with the press
+         and arriving after a round trip. (Next disables prefetch in dev, so
+         this only shows up on the deployed site.) */
+      prefetch
       /* The heading is the link, so it must not look like one until asked.
          No underline, no colour change, inherits the h1 entirely. */
       className={cn(
