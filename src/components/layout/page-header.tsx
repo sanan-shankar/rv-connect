@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { SearchPill } from "./search-pill";
 import { NotificationBell } from "./notification-bell";
+import { GuideDoor } from "@/components/guide/guide-door";
 
 /**
  * PageHeader: the title block at the top of every main surface.
@@ -12,8 +13,14 @@ import { NotificationBell } from "./notification-bell";
  *
  * Pass `showSearch` to mount the search pill, `unreadCount` to mount the bell,
  * and `actions` for the page's primary call to action (e.g. "New post").
+ *
  * The search pill only ever searches posts (see `SearchPill`); searching for
  * people is the directory's job.
+ *
+ * `guide` is the second, quiet half of the guide's door: pass a slug from
+ * src/lib/guide-areas.ts and the title itself opens that chapter. It adds
+ * nothing to the page at rest, which is the whole reason it lives on the
+ * title and not in a corner (docs/spec/guide.md section 4).
  */
 export function PageHeader({
   title,
@@ -21,11 +28,14 @@ export function PageHeader({
   showSearch = false,
   unreadCount,
   actions,
+  guide,
   children,
 }: {
   title: string;
   subtitle?: string;
   showSearch?: boolean;
+  /** Slug from GUIDE_AREAS. Turns the title into the way into that chapter. */
+  guide?: string;
   unreadCount?: number;
   actions?: React.ReactNode;
   children?: React.ReactNode;
@@ -69,7 +79,7 @@ export function PageHeader({
             the face's own regular, NOT font-bold: owner, 2026-07-30, on a bolded
             trial, "it's all a bit thicker, this is way too overpowering". */}
         <h1 className="font-heading text-[30px] leading-none tracking-[-0.02em] text-foreground">
-          {title}
+          {guide ? <GuideDoor area={guide}>{title}</GuideDoor> : title}
         </h1>
         {subtitle && (
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">

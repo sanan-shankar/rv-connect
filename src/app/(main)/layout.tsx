@@ -16,8 +16,14 @@ import { DemoBar } from "@/components/demo/demo-bar";
 
 export default async function MainLayout({
   children,
+  guide,
 }: {
   children: React.ReactNode;
+  /* The @guide parallel slot. Empty on every ordinary page view (see
+     @guide/default.tsx); holds a chapter when somebody has opened one from
+     inside the app, which is what lets it float over whatever they were
+     reading with its own real URL. */
+  guide: React.ReactNode;
 }) {
   const session = await auth();
 
@@ -149,6 +155,7 @@ export default async function MainLayout({
         {children}
         {IS_DEMO && <DemoBar userId={session.user.id} />}
       </AppShell>
+      {guide}
     </>
   );
 }

@@ -115,6 +115,7 @@ export default async function LettersPage({
     <div>
       {/* No subtitle (owner, 2026-08-22): the letters below say what the page is. */}
       <PageHeader
+        guide="letters"
         title="Letters"
         actions={
           /* Writing happens on its own page now (owner: "a whole page, so

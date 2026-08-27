@@ -52,7 +52,8 @@ no answer to "what even is a Catch-up" asked from the Feed.
 other. A lost person must find it; everyone else must never see it. One control cannot do
 both without becoming the circle he rejected. Split them and both get easy. See section 4.
 
-**2.4 It replaces the hoopoe tour, probably.** Open question, see section 7.
+**2.4 It replaces the hoopoe tour.** Removed entirely on 2026-08-27, demo included, at
+his instruction. See section 7.
 
 ---
 
@@ -117,11 +118,22 @@ Owner's pick from three, 2026-08-27.
 client component, something like `<GuideDoor area="catchups">`, so the header itself does
 not have to become one.
 
-**On a phone there is no signal, and that is the design.** Layer 2 is a shortcut, not the
-entrance. Shortcuts are allowed to be invisible; that is what makes them shortcuts. The
-phone path is the Guide row in the drawer, which is two taps and entirely conventional.
-Putting a permanent mark beside every title to fix this would rebuild exactly the clutter
-this whole exercise exists to avoid.
+**On a phone, one tap reveals and the next one goes.** His idea, 2026-08-27, and better
+than the permanent mark this was going to carry. A permanent mark would have rebuilt the
+clutter the whole exercise exists to avoid; this keeps every page clean, teaches what the
+heading does at the moment somebody pokes it, and makes a stray tap while scrolling cost a
+fade rather than a navigation.
+
+Pointer type is read off the event, not from a `hover:` media query, because a laptop with
+a touchscreen is both and the query has to guess. Whichever device the person actually
+used decides. Mouse and keyboard skip the two-step entirely.
+
+Four details, because these are what make a touch control feel wrong. The tap target is
+padded to 44px and given the height straight back as negative margin, so it grows while
+the heading stays 30px and does not move (measured). `-webkit-tap-highlight-color` is off,
+so there is no grey flash. An armed mark disarms on scroll, on a touch anywhere else, and
+after four seconds, so no page is left wearing a stray question mark. And only opacity
+animates.
 
 ### Not doing
 
@@ -175,30 +187,26 @@ Catch-ups is done and is the reference for the other four.
 
 ---
 
-## 7. Open: what happens to the hoopoe tour
+## 7. The hoopoe tour is gone
 
-He is inclined to drop it:
+Removed on 2026-08-27, in full. His reason:
 
 > "I don't think I can get the hoopoe to be really great, and I don't think the effort is
 > worth it. If people need to reference it later they'd have to go through the door, which
 > is a bit weird."
 
-The guide answers that complaint directly, since a chapter can be re-read any time from
-two places. But retiring the tour is not free and the decision is his:
+And on the demo, when told it was the only thing introducing that deployment: "nah we can
+kill the tour. remove it from demo."
 
-- It is about 977 lines under `src/components/tour/`, plus `TourAnchorSlot` mounts inside
-  `catchups/page.tsx`, `collection-client.tsx`, `directory-client.tsx` and
-  `create-post-form.tsx`, plus `tour-local.ts`, `tour-auto-offer.ts` and two test files.
-- **The public demo uses it.** `(main)/layout.tsx` passes `autoOffer={IS_DEMO}`, so a
-  stranger with no stake in the place is offered the walkthrough automatically. That is
-  the demo's fastest path to showing someone the four surfaces worth seeing, and the
-  guide does not replace it: a guide waits to be opened, a tour offers itself.
+So `src/components/tour/`, `tour-local.ts`, `tour-auto-offer.ts` and the anchors in the
+composer, directory, collection and Catch-ups index are all gone, along with `isOwner`,
+whose only caller was the admin page's tour button.
 
-So the likely answer is not "delete it" but "keep it on the demo, drop it on the real
-site". That is a smaller change than a removal and it keeps the demo's opening move.
-Needs his call before anything is deleted.
-
----
+**One consequence to keep in view.** The demo now has no opening move at all. Its bar
+still starts closed, because the argument for that (an interstitial between a hiring
+manager and the work is the worst possible first frame) never depended on the tour. If the
+demo turns out to need an introduction again, that default is where to reconsider, not a
+new interstitial.
 
 ## 8. Scope fences
 
@@ -211,15 +219,33 @@ Out of this build:
 
 ---
 
-## 9. Build order
+## 9. What is built, and what is not
 
-1. `/guide/[area]` as plain pages, plus the index, with the Catch-ups chapter lifted from
-   the lab room. Reachable by typing the URL. Nothing links to it yet.
-2. The remaining four chapters. Content is the long pole, not code.
-3. Layer 1: the sidebar row, and the `/about` placeholder's fate. Rebaseline `/about`.
-4. Layer 2: `GuideDoor` in `PageHeader`, and the hover reveal.
-5. The interception, so it opens over the page. Falls back to step 1 if it fights back.
-6. The tour's fate, once he has answered section 7.
+Shipped 2026-08-27:
 
-Steps 1 and 2 ship value on their own: the chapters exist and are linkable even before
-anything opens them.
+- `/guide`, the index, and the sidebar row (the old `/about` row, repointed).
+- `/guide/[area]` as real pages.
+- The interception, so a press from inside the app opens the chapter over the page.
+- `GuideDoor` on the title of all six pages that have a chapter.
+- Six chapters: Feed, Directory, Collection, Letters, Catch-ups, Birds.
+
+Verified in a browser rather than claimed: the mark is at opacity 0 at rest and 1 on
+hover with the heading's rect unchanged to the pixel; a press opens the overlay with the
+address bar at `/guide/birds` and the page still mounted behind it; escape returns to the
+page at exactly the scroll position it was left at; a cold load of the same URL renders
+the standalone page with no overlay; and on touch the first tap arms the mark without
+navigating while the second one opens it.
+
+**Not built.** Four pages still have no chapter: Reach out, Profile, Notifications,
+Support. They were left rather than guessed at. Every chapter here describes behaviour
+that was read out of the code first, and the reason that matters is Letters: the working
+assumption going in was that a letter is private to one person, which is the opposite of
+true. A chapter written from a guess is worse than a missing one.
+
+**Also outstanding.**
+
+- `/about` still exists and still says "indefinitely procrastinated". Nothing links to it
+  now. Either delete the route or give it something to say.
+- The overlay panel is full height, which is what the lab room showed and what was picked.
+  On the shortest chapter (Birds) that leaves a lot of empty page below the text. Worth
+  looking at before it is called finished.

@@ -27,7 +27,7 @@ export default function Page() {
   return (
     <DelightShell
       title="The same words, four containers"
-      lede="One chapter, Catch-ups, shown four ways. It is built out of the product's own things rather than written out as a document: a Round card, the four windows drawn to their real lengths, the holding state you get on the quiet day, one answer with a bird on it. Identical in all four stages, so what changes between them is only the container and the room it gives you."
+      lede="One chapter, four containers. Open each and watch the address bar."
       css={GUIDE_CSS}
     >
       <div className="gd-viewswitch">
@@ -215,43 +215,17 @@ const GUIDE_CSS = `
 
 /* ---- the chapter itself. identical markup everywhere it lands. ---- */
 .gd-doc { color:var(--ink); }
-.gd-doc p { font-size:15px; line-height:1.65; margin:12px 0 0;
+.gd-doc h1 { font-family:var(--font-display),Georgia,serif; font-size:32px; font-weight:700;
+  line-height:1.1; letter-spacing:-.028em; margin:0; }
+.gd-doc h2 { font-family:var(--font-display),Georgia,serif; font-size:20px; font-weight:700;
+  letter-spacing:-.02em; margin:0; }
+.gd-doc section { margin-top:38px; }
+.gd-doc p { font-size:15px; line-height:1.65; margin:11px 0 0;
   color:color-mix(in srgb, var(--ink) 88%, transparent); }
-.gd-doc .gd-quiet { color:var(--ink-soft); }
-.gd-doc h1 { font-family:var(--font-display),Georgia,serif; font-size:36px; font-weight:700;
-  line-height:1.08; letter-spacing:-.03em; margin:0; text-wrap:balance; }
-.gd-doc h2 { font-family:var(--font-display),Georgia,serif; font-size:23px; font-weight:700;
-  letter-spacing:-.02em; margin:0; }
-.gd-doc h3 { font-family:var(--font-display),Georgia,serif; font-size:17px; font-weight:700;
-  letter-spacing:-.02em; margin:0; }
-.gd-foot { font-size:13px; color:var(--ink-soft); margin-top:15px; }
+.gd-lede { font-size:17px !important; line-height:1.55 !important; margin-top:16px !important; }
 
-/* opening spread */
-.gd-open { display:flex; gap:34px; align-items:flex-start; flex-wrap:wrap; }
-.gd-open-words { flex:1 1 290px; min-width:0; }
-.gd-open-words h1 + p { margin-top:17px; }
-.gd-open-thing { flex:1 1 260px; min-width:0; }
-
-.gd-spread { margin-top:46px; }
-.gd-two { display:flex; gap:30px; align-items:center; flex-wrap:wrap; }
-.gd-two > * { flex:1 1 250px; min-width:0; }
-.gd-ends { display:flex; gap:30px; flex-wrap:wrap; }
-.gd-ends > div { flex:1 1 230px; min-width:0; }
-
-/* a Round, as it sits on the page */
-.gd-round { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-card);
-  padding:16px 17px; display:grid; gap:5px; box-shadow:0 14px 32px -24px rgba(20,26,20,.65); }
-.gd-round-k { font-size:10.5px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.1em; color:var(--primary); }
-.gd-round strong { font-family:var(--font-display),Georgia,serif; font-size:18px; font-weight:600; }
-.gd-round-s { font-size:13px; color:var(--ink-soft); }
-.gd-round-faces { display:flex; align-items:center; margin-top:9px; }
-.gd-round-faces > *:not(i) { margin-right:-7px; border-radius:999px;
-  box-shadow:0 0 0 3px var(--surface); }
-.gd-round-faces i { margin-left:19px; font-style:normal; font-size:12px; color:var(--ink-soft); }
-
-/* the four windows, to scale */
-.gd-band { margin-top:22px; }
+/* graphic one: the windows at their real lengths */
+.gd-band { margin:22px 0 0; padding:0; }
 .gd-band-track { display:flex; gap:4px; height:38px; }
 .gd-seg { border-radius:8px; min-width:6px; }
 .gd-seg-ask { background:color-mix(in srgb, var(--primary) 24%, var(--surface)); }
@@ -259,12 +233,13 @@ const GUIDE_CSS = `
 .gd-seg-quiet { background:color-mix(in srgb, var(--cinnamon) 13%, var(--surface));
   box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--cinnamon) 26%, transparent); }
 .gd-seg-out { flex:0 0 10px; background:var(--cinnamon); }
-.gd-band-list { list-style:none; margin:14px 0 0; padding:0;
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(126px,1fr)); gap:12px 18px; }
-.gd-band-list li { display:grid; grid-template-columns:9px 1fr; gap:2px 10px; align-items:baseline; }
+.gd-band-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(126px,1fr));
+  gap:12px 18px; margin:14px 0 0; }
+.gd-band-list > span { display:grid; grid-template-columns:9px 1fr; gap:2px 10px;
+  align-items:baseline; }
 .gd-band-list b { font-size:13px; font-weight:700; }
 .gd-band-list em { font-style:normal; font-weight:500; font-size:12px; color:var(--ink-soft); }
-.gd-band-list span { font-size:12px; line-height:1.4; color:var(--ink-soft); }
+.gd-band-list > span > span { font-size:12px; line-height:1.4; color:var(--ink-soft); }
 .gd-dot { grid-row:span 2; width:9px; height:9px; border-radius:999px;
   align-self:start; margin-top:5px; }
 .gd-dot-ask { background:color-mix(in srgb, var(--primary) 34%, var(--surface)); }
@@ -273,45 +248,30 @@ const GUIDE_CSS = `
   box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--cinnamon) 40%, transparent); }
 .gd-dot-out { background:var(--cinnamon); }
 
-/* the quiet day, as it really looks */
-.gd-holding { background:var(--surface); border:1px solid var(--border);
-  border-radius:var(--r-card); padding:22px 20px; display:grid; gap:10px;
-  align-content:center; min-height:158px; }
-.gd-shimmer { height:11px; border-radius:999px;
-  background:color-mix(in srgb, var(--primary) 14%, var(--surface-2));
-  animation:gdpulse 2.6s ease-in-out infinite; }
-.gd-shimmer.short { width:58%; animation-delay:.35s; }
-.gd-holding p { margin-top:10px; text-align:center; font-size:13px; color:var(--ink-soft);
-  font-family:var(--font-display),Georgia,serif; }
-@keyframes gdpulse { 0%,100% { opacity:.45; } 50% { opacity:1; } }
+/* graphic two: whose name is on what */
+.gd-naming { margin:20px 0 0; padding:0; display:grid; gap:1px;
+  background:var(--border); border:1px solid var(--border); border-radius:14px;
+  overflow:hidden; }
+.gd-naming-row { background:var(--surface); padding:14px 16px; display:flex;
+  align-items:center; gap:13px; }
+.gd-naming-row > div { min-width:0; display:grid; gap:2px; }
+.gd-naming-row b { font-size:13.5px; font-weight:700; }
+.gd-naming-row span { font-size:12.5px; line-height:1.45; color:var(--ink-soft); }
+.gd-naming-face { width:34px; height:34px; border-radius:999px; flex:none;
+  background:var(--surface-2); box-shadow:inset 0 0 0 1px var(--border); }
 
-/* one answer from a published Round */
-.gd-answer { margin-top:22px; background:var(--surface); border:1px solid var(--border);
-  border-radius:var(--r-card); overflow:hidden; }
-.gd-answer-q { display:block; padding:12px 18px; background:var(--surface-2);
-  border-bottom:1px solid var(--border); font-family:var(--font-display),Georgia,serif;
-  font-size:14.5px; color:var(--ink); }
-.gd-answer-body { display:flex; gap:13px; padding:16px 18px 18px; }
-.gd-answer-who { display:block; font-size:13.5px; font-weight:700; }
-.gd-answer-who i { margin-left:7px; font-style:normal; font-weight:500;
-  font-size:12.5px; color:var(--ink-soft); }
-.gd-answer-body p { margin-top:6px; font-size:14.5px; line-height:1.6; }
-
-/* the chapter lands, and hands you back to the product */
-.gd-close { margin-top:46px; padding-top:22px; border-top:1px solid var(--border);
-  display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
-.gd-close > span { font-size:13.5px; color:var(--ink-soft); }
-.gd-go { background:var(--primary); color:var(--primary-ink); text-decoration:none;
-  border-radius:999px; padding:10px 20px; font-size:13.5px; font-weight:600;
-  transition:transform .16s var(--ease-pop); }
+/* the way back into the product */
+.gd-close { margin-top:40px; padding-top:22px; border-top:1px solid var(--border); }
+.gd-go { display:inline-block; background:var(--primary); color:var(--primary-ink);
+  text-decoration:none; border-radius:999px; padding:11px 21px; font-size:13.5px;
+  font-weight:600; transition:transform .16s var(--ease-pop); }
 .gd-go:hover { transform:translateY(-1px); }
 .gd-go:active { transform:translateY(0); }
-.delight.reduce .gd-go { transition:none; }
 
 /* reduced motion: the two-tier contract. position still changes, it just stops travelling. */
 .delight.reduce .gd-panel,
 .delight.reduce .gd-over,
 .delight.reduce .gd-scrim,
 .delight.reduce .gd-trigger button { transition:none; }
-.delight.reduce .gd-shimmer { animation:none; opacity:.7; }
+.delight.reduce .gd-go { transition:none; }
 `;

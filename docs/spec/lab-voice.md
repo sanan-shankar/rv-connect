@@ -82,6 +82,23 @@ side by side, at the size it really renders. A live specimen beats a paragraph
 describing a specimen. If a room is nothing but text, it probably wanted to be a
 markdown file in `docs/`.
 
+## The lede is one line
+
+Owner, 2026-08-27, on a room whose lede ran to five lines: "can you not have
+subtitles for labs, they're so annoying ... takes up half the page."
+
+`<DelightShell lede>` is a caption, not an abstract. **One sentence, and under
+about 120 characters.** Say what the room holds and what to do in it. Nothing
+else: not the background, not the reasoning, not a list of what is on show. The
+room is right underneath and can speak for itself.
+
+If a sentence is doing work the lede cannot hold, it belongs next to the
+specimen it is about, where the reader can see the thing while reading it.
+
+The offending room was 365 characters, the longest in the lab. The median at the
+time was 231, which is also too long. When in doubt, cut it entirely: a room
+with a good name does not need a lede at all.
+
 ## The stats block is opt-in
 
 `<Tell stats={...}>` exists because the craft room genuinely had a scoreboard:

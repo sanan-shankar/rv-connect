@@ -1,5 +1,60 @@
 # Progress Log
 
+## 2026-08-27 — the guide ships, and the hoopoe tour does not
+
+`/guide` is real: an index, six chapters, and two ways in. The tour is gone.
+
+**The destination was chosen by building all four.** `/lab/guide` renders one Catch-ups
+chapter as a page, a side panel, a section of one long document, and a page floating over
+the app, from a single component, so only the container differed. He picked the last one.
+Two things the specimens decided that prose could not: the chapter's diagrams stop being
+pictures at a panel's 404px, and a panel can only be opened from the page it describes, so
+it has no answer to "what even is a Catch-up" asked from the feed.
+
+**Two rejections, both worth keeping.** The first chapter draft sat in the policy pages'
+shell because he had praised those pages: "this is so boring." Those pages are plain
+because a legal document should be. The second earned it with charm instead: "I do like the
+straightforward tone of the T&C instead of your try hard cringe cute tone." So the voice is
+the community guidelines' and the form is not a document. Cut in the rewrite: an invented
+anecdote, three aphorisms, a closing send-off, and a sentence that said what a Catch-up is
+not before saying what it is, which `AI-WRITING-TELLS.md` bans outright.
+
+**Half the graphics did not earn their place** and he said so. The rule now: a graphic
+belongs when the fact is a shape or a comparison. The four windows of a Round drawn to
+their real lengths is a shape. Named questions against always-named answers is a
+comparison, and it is the rule people get wrong. The Round card and the holding shimmer
+only showed what the real page already shows, so they went.
+
+**The placement is two doors, because one control cannot be both findable and invisible.**
+The sidebar's `/about` row, repointed at `/guide`, is the findable one and costs no new
+pixel anywhere. The page title is the other, and adds nothing because it adds nothing: a
+word already on the page does a second job. On desktop the mark fades in on hover. On a
+phone, his idea: one tap reveals it, the next one goes.
+
+**Three things only measurement caught.** The heading's tap target was 30px, under the 44
+everyone agrees on; padding plus equal negative margin bought the height back without
+moving the heading a pixel. Reading the scroll position in the overlay's own effect
+returned a reader 600px down to 5041, because by then the navigation had already happened;
+the door records it before it leaves. And reserving layout space for the mark pushed "The
+Birds of the Valley" onto a second line at 390px and shoved the whole page down 30px. The
+visual suite caught that last one on the page nobody was looking at, which is the entire
+argument for running it. The mark is zero-width now and paints outside its own box.
+
+Verified in a browser, not claimed: opacity 0 at rest and 1 on hover with the heading rect
+unchanged; the overlay opens with the address bar at /guide/birds and the page still
+mounted behind it; escape returns to exactly the scroll position it left; a cold load of
+the same URL renders the standalone page with no overlay; and on touch the first tap arms
+without navigating.
+
+**Not done, and named rather than faked.** Reach out, Profile, Notifications and Support
+have no chapter. Every chapter here describes behaviour read out of the code first, and the
+reason that matters is Letters: the working assumption was that a letter is private to one
+person, which is the opposite of true. `/about` is now an orphan still reading
+"indefinitely procrastinated".
+
+Gates green, and the /about baseline moved on purpose: that row says Guide now.
+
+
 ## 2026-08-27 — a room to choose where the in-app guide lives
 
 The owner wants a guide chapter per area, reachable from an affordance so quiet that
