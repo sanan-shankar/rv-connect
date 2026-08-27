@@ -115,6 +115,7 @@ const HEX_ALLOW = new Map([
   ["src/components/common/bird-avatar-v2.tsx", "50 species' real plumage - fixed art, never theme-flipped"],
   ["src/components/mascot/hoopoe.tsx", "mascot plumage - fixed art"],
   ["src/lib/hoopoe-geometry.ts", "the same mascot plumage, as the app icon's geometry"],
+  ["src/lib/edge-light.ts", "white light and black shadow: the filter's physics, not brand colour"],
   ["src/components/mascot/mascot-flight-layer.tsx", "mascot plumage duplicate rig"],
   ["src/components/landing/perching-birds.tsx", "landing plumage art"],
   ["src/components/landing/ambient-leaves.tsx", "landing foliage art"],
