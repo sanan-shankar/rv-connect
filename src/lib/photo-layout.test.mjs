@@ -6,7 +6,7 @@ import {
   framePhoto,
   photoSizes,
   PHOTO_MAX_WIDTH,
-  TALL_CEILING,
+  PHOTO_MAX_HEIGHT,
   TALL_TARGET,
 } from "./photo-layout.ts";
 
@@ -44,7 +44,7 @@ test("no photograph is ever drawn taller than the ceiling", () => {
     for (const column of COLUMNS) {
       const { height } = drawnSize(frameOf(shape), column);
       assert.ok(
-        height <= TALL_CEILING + 0.5,
+        height <= PHOTO_MAX_HEIGHT + 0.5,
         `${shape.name} at ${column}px came out ${Math.round(height)}px tall`
       );
     }
@@ -108,9 +108,9 @@ test("every tall card is the same size, which is the point of one shape", () => 
     JSON.stringify(drawnSize(frameOf(s), 728))
   );
   assert.equal(new Set(sizes).size, 1, "tall cards came out ragged");
-  // 700px tall at 3:4 is 525 wide, leaving 101.5px of bed each side of a
-  // 728px column. Both numbers are load-bearing enough to write down.
-  assert.deepEqual(JSON.parse(sizes[0]), { width: 525, height: 700 });
+  // 500px tall at 3:4 is 375 wide, leaving 177px of bed each side of a 728px
+  // column. Both numbers are load-bearing enough to write down.
+  assert.deepEqual(JSON.parse(sizes[0]), { width: 375, height: 500 });
 });
 
 test("on a phone nothing narrows and no bed shows", () => {
@@ -161,7 +161,8 @@ test("the sizes promise carries the cap, and survives a nested calc", () => {
   // ask for a 1456px file. The split has to survive a calc with parentheses
   // of its own, which a naive one cuts in half.
   const half = "(max-width: 767px) 50vw, calc((100vw - 104px) / 2)";
-  const out = photoSizes(half, frameOf(SHAPES.find((s) => s.name.startsWith("16:9"))));
+  // A panorama: wide enough that the 900px cap binds rather than the ceiling.
+  const out = photoSizes(half, frameOf(SHAPES.find((s) => s.name.startsWith("21:9"))));
   assert.equal(
     out,
     "(max-width: 767px) min(50vw, 900px), min(calc((100vw - 104px) / 2), 900px)"

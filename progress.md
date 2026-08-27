@@ -1,5 +1,44 @@
 # Progress Log
 
+## 2026-08-27 — 500px, the bucket's own url, and a blur that is actually a blur
+
+Three corrections to the same afternoon's work, all of them the owner looking at the real
+thing and being right.
+
+**The ceiling is 500, not 700 or 560.** He picked 560 from `/lab/crop` and then went lower
+after living with it, for a reason the room could not show because the room draws
+photographs rather than posts: "560 makes one post take up my entire desktop screen which
+shouldn't happen." A card is the photograph plus a byline, the words and the actions, about
+120px of it, so on a 900px laptop window 560 leaves nothing else on screen. At 500 nothing is
+ever drawn taller than 500px anywhere: a tall photo is 375x500, a square 500x500, a 4:3
+667x500, a panorama 900x386.
+
+**Catch-up photographs were going through Vercel's image optimiser, and I put them there.**
+They had been served straight off R2 since the day they shipped; `<PhotoFrame>` called
+`photoSrc()` internally, which quietly changed that for a whole surface. Measured after he
+reported it: a cold transform is 878ms against 264ms for the same bytes from the bucket's own
+edge, and a Catch-up is the worst case for it -- everyone opens the same Round within a day,
+so nobody amortises the first transform. The component no longer decides: the caller passes
+the url it wants, the feed and letters keep the optimiser they already used, and Catch-ups
+have their bucket urls back. Which is also the direction spec §4 locks: off the metered
+optimiser entirely, onto precomputed R2 derivatives.
+
+**The blur was shabby, and for a specific reason.** The bed was the 16px smear stored with
+each image, on the theory that a 26px blur destroys the difference anyway. It does not:
+`object-cover` stretches a 16px source across 350px of card, so every source pixel becomes a
+20px block and the blur smears those into streaks. Owner, looking at his own Round: "very
+distracting and not smooth and just yucky blur bars." It is the photograph itself now, same
+`src` and `sizes` so the browser resolves the same URL and it costs no second download --
+which is what `/lab/crop` did in the first place.
+
+**And one bug of my own, caught by a gate rather than by me.** Hiding the bed below a 456px
+viewport, to save a phone a blurred layer it can never see, hung `npm run visual`: a
+`display: none` image with `loading="lazy"` never loads, so `img.complete` stays false
+forever and the spec's settle() waits on `document.images` for good. The saving was never
+measured; the cost was real inside a minute. Reverted, with the reason written down.
+
+`npm run check` green, 78/78. `npm run visual` 23/23.
+
 ## 2026-08-27 — the Collection rework, phase 2: one rule for one photograph
 
 Spec §13 phase 2, and the fix for the complaint the owner actually looks at: "all of their

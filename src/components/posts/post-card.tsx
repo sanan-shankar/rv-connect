@@ -469,7 +469,8 @@ export function PostCard({
                          capped at 900px however wide the card grows, and its
                          space reserved before it loads. See photo-layout.ts. */
                       <PhotoFrame
-                        src={img}
+                        src={photoSrc(img)}
+                        srcSet={photoSrcSet(img)}
                         photo={post.photos?.[i] ?? null}
                         sizes={column === "wide" ? PHOTO_SIZES_WIDE_FULL : PHOTO_SIZES_CENTERED_FULL}
                         fallbackClassName="max-h-96"

@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { PHOTO_SIZES_LETTER } from "@/lib/image-cdn";
+import { photoSrc, photoSrcSet, PHOTO_SIZES_LETTER } from "@/lib/image-cdn";
 import { PhotoFrame } from "@/components/common/photo-frame";
 import type { StoredPhoto } from "@/lib/photo-layout";
 import type { AvatarUser } from "@/components/common/bird-avatar";
@@ -58,7 +58,12 @@ export function LetterImages({
                 that cut faces off -- an unbounded object-cover crops nothing --
                 but they did jump as each photograph loaded, and a 1216px-wide
                 reader stretched a phone photo soft. */}
-            <PhotoFrame src={img} photo={photos?.[i] ?? null} sizes={PHOTO_SIZES_LETTER} />
+            <PhotoFrame
+              src={photoSrc(img)}
+              srcSet={photoSrcSet(img)}
+              photo={photos?.[i] ?? null}
+              sizes={PHOTO_SIZES_LETTER}
+            />
           </button>
         ))}
       </div>

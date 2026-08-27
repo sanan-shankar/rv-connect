@@ -48,6 +48,10 @@ function AnswerPhotos({ images, photos }: { images: string[]; photos: (StoredPho
   if (images.length === 1) {
     return (
       <div className="mt-[var(--space-s)]">
+        {/* The bucket's own url, not an optimiser transform. A Catch-up is a
+            newsletter: everyone opens the same Round within a day of each
+            other, so a cold transform is not amortised across viewers the way
+            a feed photo's is -- it is paid by nearly all of them at once. */}
         <PhotoFrame
           src={images[0]}
           photo={photos[0] ?? null}
