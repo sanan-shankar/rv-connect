@@ -1272,16 +1272,29 @@ function Finish({
     "Eleven", "Twelve",
   ];
   const said = count <= 12 ? WORDS[count] : count.toLocaleString();
+  const many = count !== 1;
   return (
     <div className="flex min-h-[58vh] flex-col items-center justify-center px-6 text-center">
-      <ContributedHoopoe className="mb-1" />
-      <p className="max-w-lg font-heading text-[26px] leading-snug tracking-[-0.02em] text-foreground">
-        {said} {count === 1 ? "photograph" : "photographs"}, added to the valley&rsquo;s memory.
+      {/* `mb-6`, not `mb-1`: the bird was sitting on the heading. It needs
+          room to hop in, and a celebration that lands on the words it is
+          celebrating reads as a collision (owner, 2026-08-29: "move the
+          hoopoe slightly higher, it's sitting too close to the title"). */}
+      <ContributedHoopoe className="mb-6" />
+      {/* The thanks is the heading now. It used to be "Three photographs,
+          added to the valley's memory" -- an accurate receipt, and a receipt
+          is not what this screen is for. The count is still said, one line
+          down, where it belongs: it is the detail, not the point. */}
+      {/* Balanced, both of them. Left alone the count broke as "Three
+          photographs are in the Collection / now." -- a two-word runt, which
+          is the same ragged wrap the owner threw out of the (i) note. */}
+      <p className="max-w-lg text-balance font-heading text-[26px] leading-snug tracking-[-0.02em] text-foreground">
+        Thank you for your contribution.
       </p>
-      <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+      <p className="mt-2 max-w-sm text-balance text-[15px] leading-relaxed text-muted-foreground">
+        {said} {many ? "photographs" : "photograph"}{" "}
         {autoApproved
-          ? "They are in the Collection now."
-          : "An admin will look at them shortly, and then they are in the Collection."}
+          ? `${many ? "are" : "is"} in the Collection now.`
+          : `${many ? "are" : "is"} with an admin to look at, and then in the Collection.`}
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
         {/* Closing the pop-up IS seeing them: the Collection is the page

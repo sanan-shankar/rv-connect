@@ -6585,3 +6585,33 @@ Four smaller things the owner caught while it was being built, each measured rat
 One regression to be honest about: a decade used to be one tap and is now three keystrokes. On a
 number pad with the label confirming what it understood, that is a trade worth making for losing
 eleven controls -- but it is a trade, not a free win.
+
+
+## 2026-08-29 — the last screen thanks you rather than filing a receipt
+
+*"Three photographs, added to the valley's memory"* was accurate and it was a receipt, which is not
+what the one screen in this app that exists purely to be glad is for. The owner: *"make this thank
+you for your contribution. make the hoopoe on that page a bit bigger and have a big celebration
+reaction, and move the hoopoe slightly higher, it's sitting too close to the title."*
+
+So the thanks is the heading and the count moved one line down, where it is the detail rather than
+the point. The bird went 76px to 104px, from `celebrate(2)` to `celebrate(3)` -- "everything at
+once", a 38px hop over 1.3s against 24px over 0.85s -- with two hops out of the cheer so the
+gladness has somewhere to go instead of stopping dead on the last frame. `mb-1` became `mb-6`: it
+was landing its celebration on the words it was celebrating.
+
+Both lines are `text-balance` now. Left alone the count broke as "Three photographs are in the
+Collection / now.", a two-word runt of exactly the kind thrown out of the (i) note earlier the same
+day.
+
+Verified without touching the archive. The finish screen only exists after a contribution, and this
+database is the production one, so reaching it honestly would have meant three junk gradients in the
+live Collection. A one-line local change to the initial state (`added` starting at 3) renders it
+with no writes at all, and was reverted before committing. Worth remembering as the general move:
+the cheapest way to see a post-submit screen is usually to fake its state, not its data.
+
+The `/collection` baselines moved in the same commit, and NOT because of this work: three real
+photographs of the valley arrived in the archive while it was being built, so the page genuinely has
+four now and a decade rail where it had none. The suite deliberately leaves `/collection` unmasked
+(visual.spec.ts: photos arrive rarely enough that its picture still means something), so this is the
+suite working as designed rather than a reason to widen the mask.

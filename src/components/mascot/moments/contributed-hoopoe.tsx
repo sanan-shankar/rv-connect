@@ -18,7 +18,13 @@
 import { MomentStage } from "./moment-hoopoe";
 
 export function ContributedHoopoe({
-  size = 76,
+  /* Bigger than the other moments', and deliberately: those are ambient
+     companions inside an empty state, where the bird is secondary to the
+     copy. This one IS the moment -- somebody has just given the valley
+     photographs it did not have -- and the owner asked for it (2026-08-29):
+     "make the hoopoe on that page a bit bigger and have a big celebration
+     reaction." */
+  size = 104,
   className = "",
 }: {
   size?: number;
@@ -30,12 +36,18 @@ export function ContributedHoopoe({
       className={className}
       play={(h) =>
         h.sequence(
-          // Up at the line that just told you how many.
+          // Up at the line that just thanked you.
           () => h.gaze(-0.5),
-          ["express", "surprise", { hold: 380 }],
-          ["celebrate", 2],
+          ["express", "surprise", { hold: 320 }],
+          /* Level 3, "everything at once": a 38px hop over 1.3s against
+             level 2's 24px over 0.85s. This is the one screen in the app
+             that exists purely to be glad, so it gets the whole thing. */
+          ["celebrate", 3],
+          // Two hops out of the cheer, so the gladness has somewhere to go
+          // rather than stopping dead on the last frame of it.
+          ["hop", 2],
+          ["express", "proud", { hold: 1000 }],
           () => h.gaze(0),
-          ["express", "proud", { hold: 900 }],
           ["express", "content"]
         )
       }
