@@ -158,6 +158,19 @@ own deletion, silently and for ever, and nothing anywhere reports it.
 domains. That is why the Download button could not work before the move however the policy was
 written.
 
+**An R2 lifecycle rule matches a PREFIX, so temporary files must not share a folder with
+permanent ones.** A Collection contribution PUTs the untouched original to storage the instant a
+file is dropped and deletes it once the display copy exists; an abandoned drop never reaches that
+delete. Those originals used to be minted under `collection/<userId>/...`, beside the archive's own
+photographs, which made them **unreachable by any cleanup**: nothing in this app can enumerate the
+bucket (audit C-063, deliberate), and the one mechanism that could -- a lifecycle rule -- would have
+taken the real photographs with it. Sixty were found stranded on 2026-08-28 from a single day of
+use, and it was not only wasted bytes: an untouched phone photograph still carries the GPS
+coordinates written into it, which is the whole reason the successful path deletes it (M12), and one
+was fetched over the open internet returning **HTTP 200**. They stage under `staging/` now.
+**The general rule: if a folder can hold something permanent, no expiry rule can ever be pointed at
+it.** Decide where temporary bytes live before writing the first one.
+
 **The direct-upload PUT goes to `<account>.r2.cloudflarestorage.com`, not to the public host.** It
 needs its own `connect-src` entry. Without one the browser refuses the PUT, the client catches it,
 and every upload silently falls back through the server and its ~4.5MB body cap -- which is the one
