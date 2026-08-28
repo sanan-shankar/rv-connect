@@ -1,5 +1,30 @@
 # Progress Log
 
+## 2026-08-28 — the demo database catches up, before the push rather than after
+
+Both profession migrations applied to the demo project: the column plus its GIN index, and
+the studying -> student rename (0 rows there, as expected -- nothing had been tagged yet, but
+running it keeps the two databases' history aligned rather than leaving a gap somebody has to
+reason about later).
+
+**The urgency was not the seeder, it was the deploy.** The facet histogram in
+`directory/page.tsx` is `unnest("professionTags")` in raw SQL, unconditional, inside the
+page's `Promise.all` with no demo guard -- so on a database without the column it is a
+Postgres error and `/directory` returns 500. Both Vercel projects autodeploy from one push, so
+the window was "before the next push", not "before the next reset". The seeder was the milder
+half: `seedDemo()` runs in one transaction, so it would have rolled back and left the demo on
+yesterday's world.
+
+This is the shape `User.showEmail` had in the audit -- shipped to one database, never applied
+to the other, and every query selecting it failed there. Worth stating as a rule while it is
+fresh: **a migration for a column any page reads unconditionally is due on BOTH databases
+before the code that reads it is pushed.**
+
+Verified after: the histogram query runs clean against the demo (0 rows, 40 users). No manual
+re-seed needed -- `POST /api/demo/reset` rewrites everything from `src/lib/demo-seed/` nightly
+at 20:00 UTC, so the seeded tags arrive on their own. Nine tags will clear the floor of two
+there, against four on the live database.
+
 ## 2026-08-28 — "studying" becomes "student", and a hole in the rename story
 
 *"why is it studying. it should be student."* He is right, and the reason generalises past
