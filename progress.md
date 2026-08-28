@@ -1,5 +1,25 @@
 # Progress Log
 
+## 2026-08-28 — the Collection's plus, off centre in a button that was not a circle
+
+*"in collection mobile the plus icon isn't not centered in the button. it's not a circles."*
+Both halves of that were one cause. The Contribute control was a single Button holding
+`<Plus/>` plus `<span className="hidden sm:inline">Contribute</span>`, and a hidden label is
+still a React child: `detectIconSides` in `button.tsx` counted two children, saw a leading
+icon with a non-icon sibling, and set `data-leading-icon` -- which shaves 4px off the left for
+optical centring. On a phone the word was not painted, so what shipped was a 44x40 rounded
+rectangle with the plus 2px left of centre, sitting beside a search pill that is a true 40px
+circle.
+
+**The optical correction is right; it just cannot see CSS.** So the split moved to where it is
+visible: below `sm` a `size="icon"` circle with an `aria-label`, at `sm` and up the labelled
+pill, one action either side of the breakpoint. Not a viewport hook -- `useWideViewport` starts
+false, which would flash an icon-only primary CTA on every desktop load.
+
+Collection is the one live-data route the visual suite deliberately leaves unmasked, so its two
+baselines also absorbed a photograph count that has gone 2 -> 1 in the database since they were
+last written. The button diff is the header; the rest of that diff is data.
+
 ## 2026-08-28 — the demo database catches up, before the push rather than after
 
 Both profession migrations applied to the demo project: the column plus its GIN index, and
