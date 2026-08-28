@@ -80,136 +80,6 @@ const projection = geoNaturalEarth1().fitExtent(
 );
 const pathGen = geoPath(projection);
 
-/**
- * The default framing.
- *
- * The map used to be drawn with `viewBox="0 0 900 460"` in a box capped at
- * `min(72vh, 640px)`, which is two problems in one line: the card stopped
- * short of the window (owner, 2026-08-28: "the map window now doesn't fill
- * the screen there's a gap at the bottom"), and inside it the whole sphere --
- * both ice caps and the empty Pacific margins -- was fitted into a box with a
- * different aspect, so the world sat small in the middle of its own frame
- * ("by default it's unnecessarily zoomed out").
- *
- * So the viewBox is computed from the box the map is actually in. CORE is what
- * must always be in frame: the inhabited world, the ice trimmed off both ends.
- * FLOOR is the tightest crop we will ever take to reach the container's aspect
- * -- it still holds every place anybody in this directory could plausibly live
- * (the Americas' west coast to New Zealand), so filling the frame can never
- * push a real pin off the edge.
- *
- * Sampled on a grid rather than projected at the four corners: Natural Earth 1
- * is pseudo-cylindrical, so a parallel bows and the extreme x of a lat/lng box
- * is not at any corner of it.
- */
-function projectedBounds(lng0: number, lng1: number, lat0: number, lat1: number) {
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (let i = 0; i <= 12; i++) {
-    for (let j = 0; j <= 12; j++) {
-      const p = projection([lng0 + ((lng1 - lng0) * i) / 12, lat0 + ((lat1 - lat0) * j) / 12]);
-      if (!p) continue;
-      x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]);
-      y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]);
-    }
-  }
-  return { x0, y0, x1, y1 };
-}
-
-type Bounds = { x0: number; y0: number; x1: number; y1: number };
-
-/** What we would frame with no data at all: the inhabited world, both ice caps
- *  trimmed off. Members are never in either of them, and they are what made the
- *  world sit small in the middle of its own card. The east edge stops around
- *  Japan and the west at the American coast on purpose: the frame is widened
- *  from here by the pins themselves (see frameFor), so every ocean it does not
- *  need is ocean the land gets to use instead.
- *
- *  The east edge is 158E rather than anything tighter for one reason: a crop
- *  has to land in water. Pulling it to ~116E gained another 5% of scale and
- *  sliced Australia and Japan down the middle, which reads as a broken map
- *  rather than a framed one. 158E cuts east of Australia, through empty
- *  Pacific, and New Zealand -- the only land past it -- comes back into frame
- *  the day somebody there joins, because the pins widen this. */
-/** A modest trim of the two emptiest edges of the sphere, and nothing more.
- *  Not a crop of the world: see frameFor, which will give this back the moment
- *  the card is short enough that keeping it would cut a pole off. */
-const AESTHETIC = projectedBounds(-168, 168, -60, 82);
-/** Clear water between the sphere and the edge of the card, in map units. The
- *  world has to sit IN something (owner, 2026-08-28: "it's nice to have some
- *  borders and really look at it and feel dang that's the whole world"). */
-const FRAME_BORDER = 24;
-/** Clearance between the outermost pin and the edge of the frame, in map units
- *  (a big pin is about 20 across). */
-const PIN_PAD = 22;
-
-/**
- * How far a pin may sit from its nearest neighbour before the frame stops
- * widening to hold it: about 50 degrees of longitude at the equator.
- *
- * One member in Nuku'alofa pulled the west edge of the default view out to the
- * antimeridian, and everyone paid for it with a band of empty Pacific down the
- * left of the map (owner, 2026-08-28: "there's a lot of space on the left which
- * I assume you left for Nuku'alofa"). A pin that isolated is not framing
- * information -- it is one person, and the map still holds them: they are one
- * drag away, and the moment a second pin appears anywhere near them the pair
- * stops being isolated and the frame goes and gets them.
- */
-const OUTLIER_GAP = 120;
-
-/**
- * The viewBox for a card of this size, given where the pins are.
- *
- * One rule, and it is a rule about SCALE rather than about cropping: the whole
- * sphere, plus a border, must fit in the card's height. Whatever zoom is left
- * over after that gets spent on the width, trimming the emptiest ocean at the
- * two edges -- and if there is none left over, the trim is given back and the
- * map draws exactly the world it always did.
- *
- * This is the third try. Fitting the pins alone punched a hole through the
- * middle of the Pacific and read as a zoomed-in map rather than a world; taking
- * the aspect from the card cropped a pole off on a short window, which is the
- * one thing a world map must never do. What the owner asked for is the modest
- * version of both: "a bit more than none at all to get rid of truly useless
- * space", with the world still whole and sitting in some water.
- */
-function frameFor(cardW: number, cardH: number, data: Bounds | null): { x: number; y: number; w: number; h: number } {
-  let x0 = AESTHETIC.x0, y0 = AESTHETIC.y0, x1 = AESTHETIC.x1, y1 = AESTHETIC.y1;
-  if (data) {
-    x0 = Math.min(x0, data.x0 - PIN_PAD); x1 = Math.max(x1, data.x1 + PIN_PAD);
-    y0 = Math.min(y0, data.y0 - PIN_PAD); y1 = Math.max(y1, data.y1 + PIN_PAD);
-  }
-  x0 = Math.max(0, x0); y0 = Math.max(0, y0); x1 = Math.min(W, x1); y1 = Math.min(H, y1);
-
-  if (cardW <= 0 || cardH <= 0) return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
-
-  // The zoom the trimmed frame would like, and the most the card's height can
-  // take with the whole globe and its border still inside it.
-  const wanted = cardW / (x1 - x0);
-  const ceiling = cardH / (H + FRAME_BORDER * 2);
-  const scale = Math.min(wanted, ceiling);
-
-  // Re-cut the frame at that scale, centred on where the interesting half of
-  // the world is, and slid back inside the sphere's own bounds when it hangs
-  // off an edge.
-  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-  const w = cardW / scale, h = cardH / scale;
-  let fx = cx - w / 2, fy = cy - h / 2;
-  if (w <= W) fx = Math.min(Math.max(fx, -FRAME_BORDER), W - w + FRAME_BORDER);
-  else fx = (W - w) / 2;
-  if (h <= H) fy = Math.min(Math.max(fy, -FRAME_BORDER), H - h + FRAME_BORDER);
-  else fy = (H - h) / 2;
-  return { x: fx, y: fy, w, h };
-}
-
-/** Card height. From sm up the map runs to the bottom of the window (the gap
- *  the owner asked to close); on a phone that would be a 0.6-aspect box with
- *  two thick bands of sea, so it takes a fixed share of the screen instead. */
-const MAP_MIN_H = 360;
-/* 32, measured: the shell's own bottom padding plus the rounding on the
-   card's border box. At 16 the page grew a 16px scrollbar of nothing. */
-const MAP_BOTTOM_GUTTER = 32;
-const PHONE_MAP_VH = 0.62;
-
 /* The world atlas is FETCHED, not imported.
  *
  * `import worldData from "world-atlas/countries-110m.json"` compiled 105 KB
@@ -281,6 +151,24 @@ const FIT_PAD = 0.72;
  */
 const MIN_PX_PER_UNIT = 1;
 
+/* The inline card runs to the bottom of the window rather than stopping at
+   `min(72vh, 640px)`, which left a dead band of page under it (owner,
+   2026-08-28: "the map window now doesn't fill the screen there's a gap at the
+   bottom can you make it extend"). Measured rather than declared: everything
+   above it -- the header, the one chrome row -- can change height when a filter
+   token wraps, so a vh figure would be wrong by 30px half the time.
+
+   The FRAMING that shipped alongside this was reverted the same day ("just make
+   it look like how it looked before"): the viewBox is the whole sphere again,
+   so a taller card simply shows more sea, and every pin is exactly the size it
+   was. That is the point of keeping only this half -- the marker layer
+   counter-scales against `box.s`, so touching the viewBox resizes every pin,
+   and touching the card height does not. */
+const MAP_MIN_H = 360;
+/* 32, measured: the shell's own bottom padding plus the rounding on the card's
+   border box. At 16 the page grew a 16px scrollbar of nothing. */
+const MAP_BOTTOM_GUTTER = 32;
+
 /** Every marker is a button: hover, focus-visible and active all read. Opacity
  *  only, per the motion rule (the group's transform is doing map work). */
 const MARKER_CLASS =
@@ -349,33 +237,24 @@ export function AlumniMap({
   }, []);
   /** Live geometry of the rendered <svg>: its CSS box plus `s`, the CSS px that
    *  one viewBox unit currently occupies. See MIN_PX_PER_UNIT. */
-  const [box, setBox] = useState<{ w: number; h: number; s: number; f: { x: number; y: number; w: number; h: number } }>(
-    { w: 0, h: 0, s: MIN_PX_PER_UNIT, f: frameFor(0, 0, null) }
-  );
+  const [box, setBox] = useState({ w: 0, h: 0, s: MIN_PX_PER_UNIT });
   const [coarsePointer, setCoarsePointer] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
-  /* How tall the inline card is: from its own top to the bottom of the window,
-     less the shell's gutter. Measured on mount and on every resize, because
-     the chrome above it is not a constant -- a wrapped filter token or a
-     second line of tokens moves this by 30px. */
+  /** How tall the inline card is: its own top to the bottom of the window, less
+   *  the shell's gutter. See MAP_MIN_H. */
   const [fillHeight, setFillHeight] = useState<number>(MAP_MIN_H);
   useLayoutEffect(() => {
     const el = cardRef.current;
     if (!el) return;
     const measure = () => {
-      const phone = window.innerWidth < 640;
-      if (phone) {
-        setFillHeight(Math.round(window.innerHeight * PHONE_MAP_VH));
-        return;
-      }
       const top = el.getBoundingClientRect().top + window.scrollY;
       const avail = window.innerHeight - top + window.scrollY - MAP_BOTTOM_GUTTER;
       setFillHeight(Math.max(MAP_MIN_H, Math.round(avail)));
     };
     measure();
     window.addEventListener("resize", measure);
-    /* The row above can grow without the window changing size at all (a filter
-       token wraps), so watch the document too. */
+    /* The row above can grow without the window resizing at all (a filter token
+       wraps onto a second line), so watch the column too. */
     const ro = new ResizeObserver(measure);
     if (el.parentElement) ro.observe(el.parentElement);
     return () => {
@@ -408,42 +287,6 @@ export function AlumniMap({
       }),
     [pins]
   );
-
-  /* Where the pins are, in map units, so the frame can promise never to crop
-     one off. Held in a ref and only ever GROWN: `geom` is the FILTERED set, and
-     a frame that re-fitted itself every time a filter landed would zoom the map
-     under the member's hands -- the opposite of the still frame this page was
-     just rebuilt for. */
-  const dataBoundsRef = useRef<Bounds | null>(null);
-  useLayoutEffect(() => {
-    const all = geom.filter((g) => Number.isFinite(g.x) && Number.isFinite(g.y));
-    if (all.length === 0) return;
-    /* Outliers do not get to re-frame the map (see OUTLIER_GAP). Only applied
-       once there are enough pins for "isolated" to mean anything: with three
-       cities on the board every one of them is isolated. */
-    const pts =
-      all.length >= 4
-        ? all.filter((p) =>
-            all.some((q) => q !== p && Math.hypot(q.x - p.x, q.y - p.y) <= OUTLIER_GAP)
-          )
-        : all;
-    if (pts.length === 0) return;
-    const next = {
-      x0: Math.min(...pts.map((p) => p.x)),
-      x1: Math.max(...pts.map((p) => p.x)),
-      y0: Math.min(...pts.map((p) => p.y)),
-      y1: Math.max(...pts.map((p) => p.y)),
-    };
-    const prev = dataBoundsRef.current;
-    dataBoundsRef.current = prev
-      ? {
-          x0: Math.min(prev.x0, next.x0),
-          x1: Math.max(prev.x1, next.x1),
-          y0: Math.min(prev.y0, next.y0),
-          y1: Math.max(prev.y1, next.y1),
-        }
-      : next;
-  }, [geom]);
 
   // Everything the pin geometry depends on. Touch gets a 44px hit disc behind
   // the dot; fine pointers keep exactly today's hit area (the halo circle), so
@@ -479,13 +322,8 @@ export function AlumniMap({
     const measure = () => {
       const b = el.getBoundingClientRect();
       if (!b.width || !b.height) return;
-      /* The viewBox is now the frame computed for THIS box (see frameFor), so
-         its aspect matches the box's and `meet` neither letterboxes nor crops:
-         both ratios are the same number and either would do. It is still
-         written as a min so the day something puts a stale frame on screen for
-         a frame or two, the markers under-scale rather than over-scale. */
-      const f = frameFor(b.width, b.height, dataBoundsRef.current);
-      setBox({ w: b.width, h: b.height, s: Math.min(b.width / f.w, b.height / f.h), f });
+      // preserveAspectRatio "xMidYMid meet": the smaller ratio wins.
+      setBox({ w: b.width, h: b.height, s: Math.min(b.width / W, b.height / H) });
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -611,7 +449,7 @@ export function AlumniMap({
     >
       <svg
         ref={svgRef}
-        viewBox={`${box.f.x} ${box.f.y} ${box.f.w} ${box.f.h}`}
+        viewBox={`0 0 ${W} ${H}`}
         className="block h-full w-full touch-none select-none"
         style={{ cursor: "grab" }}
         // Not role="img": that would hide the markers below from assistive tech,
@@ -844,11 +682,7 @@ export function AlumniMap({
 
   return (
     <>
-      {/* Inline map. The height is measured rather than declared: everything
-          above it (the header, the one chrome row) can change height with a
-          filter token or a wrapped title, and a fixed `min(72vh, 640px)` left
-          a dead band under the card on every desktop window (owner,
-          2026-08-28). See fillHeight. */}
+      {/* Inline map. Height measured, not declared -- see MAP_MIN_H. */}
       <div
         ref={cardRef}
         className="card-elevated relative overflow-hidden rounded-[var(--radius)] border border-border"
