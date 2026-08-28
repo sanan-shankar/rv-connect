@@ -45,32 +45,24 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        // items-center, not items-start: the 30px title top-aligned against
-        // the 40px action row used to leave 10px of dead space under the
-        // title before mb-6 even started, which read as the title floating
-        // too far from whatever sat below the header (owner, 2026-08-22, on
-        // Feed: "feed is very separated from the blue bird ... quite loose
-        // and visually unbalanced"). mb-6 itself is untouched -- it already
-        // matches --space-l, the deliberate token for this nav-to-content
-        // relationship; the asymmetry was accidental, not the spacing value.
-        "mb-6 flex flex-nowrap items-center justify-between gap-4",
-        // Centering the row (above) is correct for every page, but it has a
-        // side effect ONLY on a page with a right cluster: the 30px title,
-        // centered against the 40px action row beside it, sits 5px below the
-        // row's own top edge -- which is otherwise flush with the shell's
-        // padding, so the title ends up 5px further from that padding than
-        // its own left edge is (owner, 2026-08-22: "Feed has equal margin on
-        // top as the left, right now it's 10% more on top ... move feed,
-        // notification and new post cta all up a bit"). -mt-[5px] cancels
-        // exactly that, pulling the whole row (title AND buttons together,
-        // as asked) up by the amount centering pushed the title down.
-        // Conditional on hasRight, not a flat correction: a page with no
-        // right cluster (Directory, Collection) has nothing to center the
-        // title against, so its top edge already sits flush with the
-        // padding on its own -- shifting it too was measured and wrong
-        // (overshot 5px past the left-edge baseline the first time this
-        // landed).
-        hasRight && "-mt-[5px]"
+        "mb-6 flex flex-nowrap items-start justify-between gap-4",
+        /* items-START, not items-center (owner, 2026-08-28: "the search icon
+           and filters sits higher than the directory text. make sure the top
+           of the D aligns with the top of the pills").
+           Centred, the 30px title sat in the middle of the 40px action row, so
+           the two things at either end of this header began at different
+           heights -- the pills 5px above the title's box, and 6px above the
+           ink of its first capital. Aligning the TOPS is what the eye actually
+           reads across a wide row, and it is also what the shell's own left
+           padding does with the title's left edge.
+
+           The -mt-[5px] that used to hang off `hasRight` went with it, and had
+           to: it existed only to cancel the downward push centring gave the
+           title (owner, 2026-08-22: "Feed has equal margin on top as the
+           left"). With nothing pushed, there is nothing to cancel, and the
+           title lands on exactly the same pixel it did before -- measured at
+           1440: h1 box top 40 both ways. What moves is the action cluster,
+           down 5px, which is the half the owner was pointing at. */
       )}
     >
       <div className="min-w-0">
@@ -88,7 +80,11 @@ export function PageHeader({
         )}
       </div>
       {hasRight && (
-        <div className="flex flex-nowrap items-center justify-end gap-2.5 shrink-0">
+        /* mt-px: the cap of a Libre Baskerville capital starts one pixel below
+           its own line box at 30px/leading-none (measured off the rendered
+           pixels, not the metrics), so a pill flush with the box top reads one
+           pixel high against the letter beside it. */
+        <div className="mt-px flex flex-nowrap items-center justify-end gap-2.5 shrink-0">
           {showSearch && (
             <div className="hidden sm:block">
               <SearchPill />
