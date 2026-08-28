@@ -202,7 +202,7 @@ DNS-only and Pre-Clearance is not available to us.
 The widget's Cloudflare hostname list now contains **`vercel.app`** as well as `rishivalley.space`.
 
 The reason is the owner's habit of opening past deployments to see how the site used to look. Every
-one of them lives at its own `rv-connect-<hash>-….vercel.app` URL, generated per deployment and
+one of them lives at its own `rv-alumni-<hash>-….vercel.app` URL, generated per deployment and
 unknowable in advance, so none were on the list; Turnstile answered 110200 ("domain not allowed"),
 and because the widget is `interaction-only` there was no visible box to hint at it — just "We
 couldn't confirm you're human", with no way through and nothing in the console, since the

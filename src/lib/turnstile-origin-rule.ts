@@ -12,7 +12,7 @@
  *  That list is the whole of the origin enforcement.
  *
  *  On 2026-08-28 the list had to be widened. Every past deployment lives
- *  at its own `rv-connect-<hash>.vercel.app` URL, unknowable in advance,
+ *  at its own `rv-alumni-<hash>.vercel.app` URL, unknowable in advance,
  *  and none of them were on the list, so the widget refused to run
  *  (Cloudflare's 110200) and the owner could not sign in to any of them
  *  to see how the site used to look. The only entry that covers them is

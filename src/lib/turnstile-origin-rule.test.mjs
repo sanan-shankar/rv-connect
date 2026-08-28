@@ -8,7 +8,7 @@ import { normaliseHost, sameOrigin } from "./turnstile-origin-rule.ts";
  *
  *  Context: on 2026-08-28 the Turnstile widget's hostname list was
  *  widened to `vercel.app`, so the owner could sign in to past
- *  deployments (each at its own unguessable `rv-connect-<hash>` URL).
+ *  deployments (each at its own unguessable `rv-alumni-<hash>` URL).
  *  Turnstile matches subdomains, so that entry hands our public site key
  *  to every site on vercel.app. These tests are the narrowing that makes
  *  the widening safe, and they are why it must not be quietly deleted.
@@ -21,7 +21,7 @@ test("a token farmed on another vercel.app site is refused at the real site", ()
 test("a token solved on one past deployment is refused at another", () => {
   // The widened list lets both render the widget; only this stops a token
   // from one being replayed at the other.
-  assert.equal(sameOrigin("rv-connect-aaa111.vercel.app", "rv-connect-bbb222.vercel.app"), false);
+  assert.equal(sameOrigin("rv-alumni-aaa111.vercel.app", "rv-alumni-bbb222.vercel.app"), false);
 });
 
 test("the real site still signs its own members in", () => {
@@ -29,7 +29,7 @@ test("the real site still signs its own members in", () => {
 });
 
 test("a past deployment signs the owner in on itself", () => {
-  assert.equal(sameOrigin("rv-connect-aaa111.vercel.app", "rv-connect-aaa111.vercel.app"), true);
+  assert.equal(sameOrigin("rv-alumni-aaa111.vercel.app", "rv-alumni-aaa111.vercel.app"), true);
 });
 
 test("www and the apex are one site, not a lockout", () => {
