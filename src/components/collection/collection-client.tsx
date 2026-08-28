@@ -452,10 +452,32 @@ export function CollectionClient({
               /* A room with an address, not a modal. Twenty minutes with two
                  hundred photographs is not something to do inside a dialog
                  (spec sec. 8.2). */
-              <Button variant="primary" className="rounded-full" onClick={openContribute}>
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Contribute</span>
-              </Button>
+              <>
+                {/* One action, two controls, split at the breakpoint instead of
+                    one pill with the word hidden inside it. A hidden label is
+                    still a child, so the Button's optical centring saw a
+                    leading icon and shaved 4px off the left: the phone got a
+                    44x40 rounded rectangle with the plus off centre, next to a
+                    search pill that is a true 40px circle. Below sm this is now
+                    that same circle. */}
+                <Button
+                  variant="primary"
+                  size="icon"
+                  className="sm:hidden"
+                  aria-label="Contribute a photograph"
+                  onClick={openContribute}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="primary"
+                  className="hidden sm:inline-flex"
+                  onClick={openContribute}
+                >
+                  <Plus className="h-4 w-4" />
+                  Contribute
+                </Button>
+              </>
             )}
           </>
         }
