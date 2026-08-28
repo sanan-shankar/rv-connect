@@ -36,7 +36,7 @@ Legend: [have] exists today · [ask] you asked for · [idea] my suggestion · (s
   `.claude/skills/tag-professions/SKILL.md`) on the owner's own subscription. The vocabulary,
   the rules for creating a tag and the three caps are in `src/lib/profession-tags.ts`.
   Multi-tag, so a status and a field share one column: the medical student is
-  `["studying","healthcare"]` -- the owner's call, against a "student" boolean, *"not that
+  `["student","healthcare"]` -- the owner's call, against a "student" boolean, *"not that
   scalable"*. Built at 63 members rather than the 150 first guessed, because the display
   floor makes an early run safe: a tag is offered only at five people and only the twelve
   largest are offered, so today exactly one clears and the control hides itself rather than

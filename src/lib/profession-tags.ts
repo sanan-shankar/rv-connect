@@ -17,7 +17,7 @@
  *
  *  TAGS, PLURAL, AND NEVER A BOOLEAN. The owner, 2026-08-28: "student
  *  boolean isn't scalable." A person holds several, so the medical
- *  student is ["studying", "healthcare"] -- the field and the status in
+ *  student is ["student", "healthcare"] -- the field and the status in
  *  one column, with no second axis and no schema change when a third
  *  kind of thing turns up. Anything the vocabulary needs to say later
  *  is another string in this array.
@@ -44,7 +44,7 @@ export const PROFESSION_TAGS = [
   { value: "healthcare", label: "Healthcare", parent: null,
     hint: "Medicine, nursing, public health, veterinary, mental health. Practising or training for it." },
   { value: "law", label: "Law", parent: null,
-    hint: "Practice, judiciary, legal academia. A law school reads as Law and Studying both." },
+    hint: "Practice, judiciary, legal academia. A law school reads as Law and Student both." },
   { value: "finance", label: "Finance", parent: null,
     hint: "Banking, investing, accountancy, insurance, financial research." },
   { value: "business", label: "Business", parent: null,
@@ -72,10 +72,17 @@ export const PROFESSION_TAGS = [
   /* A status, in the same column as the fields, on purpose (rule 9). It
      is 25 of the 34 people who have said anything at all, so a "student"
      boolean would have been the largest and least useful fact in the
-     directory; as a tag it combines -- ["studying", "law"] is the GNLU
-     student, and ["studying"] alone is the honest answer for somebody at
-     a general university whose field nothing has said yet. */
-  { value: "studying", label: "Studying", parent: null,
+     directory; as a tag it combines -- ["student", "law"] is the GNLU
+     student, and ["student"] alone is the honest answer for somebody at
+     a general university whose field nothing has said yet.
+
+     It was "studying" for one evening. The owner: "why is it studying. it
+     should be student." He is right, and the reason generalises: every
+     other value here is a field, so a gerund is the one odd word in the
+     list -- and when Retired arrives it will sit beside Student naturally
+     and beside Studying awkwardly. Renamed properly rather than relabelled,
+     see LEGACY_TAGS. */
+  { value: "student", label: "Student", parent: null,
     hint: "Still in full-time education. Combine with the field where the course or institution names one." },
 ] as const;
 
@@ -93,7 +100,7 @@ export const TAG_VALUES: readonly string[] = PROFESSION_TAGS.map((t) => t.value)
  *
  * IT WAS FIVE FIRST, and five was wrong -- worth recording because the
  * reasoning sounded fine and the data settled it. Measured on the live
- * database the day the tags landed: "Studying" 25, then Education, Healthcare
+ * database the day the tags landed: Student 25, then Education, Healthcare
  * and Law on 2 each and six tags on 1. A floor of five admitted exactly one
  * option, so the Profession control was a dropdown with nothing to choose
  * between, and the owner came back the same evening: "there's no real filters
@@ -171,7 +178,28 @@ export const VOCAB_MAX = 18;
  * free text, never written to a column -- so there is nothing to carry
  * over.
  */
-const LEGACY_TAGS: Record<string, TagValue[]> = {};
+const LEGACY_TAGS: Record<string, TagValue[]> = {
+  // "Studying" for one evening, 2026-08-28 -- see the note on the Student
+  // entry above. Kept although the rows were rewritten by
+  // prisma/migrations-manual/2026-08-28-profession-student-rename.sql,
+  // because the demo database seeds its own people and a browser can hold a
+  // page built before the deploy.
+  studying: ["student"],
+};
+
+/* WHAT LEGACY_TAGS DOES NOT COVER, learned by renaming one value.
+ *
+ * `tagsOf` maps a dead value on READ, and the directory's filter arm matches
+ * the stored string directly, so both survive a rename. The FACET OPTIONS do
+ * not: the histogram behind them is `unnest("professionTags")` in raw SQL
+ * (directory/page.tsx), which never passes through this file -- so a renamed
+ * value goes on being counted, and labelled, under its old name until the
+ * rows themselves are rewritten.
+ *
+ * So: ADDING, REMOVING or SPLITTING a tag needs no SQL, which is the promise
+ * this design was built on. RENAMING a stored value needs a migration as
+ * well, and it is worth doing properly rather than leaving the label and the
+ * value saying two different words. */
 
 const TAG_LABELS: Record<string, string> = Object.fromEntries(
   PROFESSION_TAGS.map((t) => [t.value, t.label])
@@ -295,10 +323,10 @@ someone whose text says nothing gets nothing, and the pick script prints that pi
 of people landing there with the same kind of work in them is the evidence for the next tag,
 arriving without anyone having had to guess in advance.
 
-Status is a tag too. Studying belongs in the same column as the fields and combines with them:
-["studying", "healthcare"] for a medical student, ["studying"] alone where the institution is
+Status is a tag too. Student belongs in the same column as the fields and combines with them:
+["student", "healthcare"] for a medical student, ["student"] alone where the institution is
 general and nothing has said the field. Retired and the rest, when they turn up, work the same way.
 
 Work only from what the pair says. "Student" at Ashoka, NYU or Edinburgh names no field -- that is
-Studying and nothing else, and guessing a field from a general university is the single easiest
+Student and nothing else, and guessing a field from a general university is the single easiest
 mistake to make here.`;

@@ -439,7 +439,7 @@ export function DirectoryClient({
             filters? bring it back"), and a filter that comes and goes on its
             own is the worse of the two surprises.
             What fills or empties it is TAG_FLOOR, and the floor came down to
-            two the same evening: at five it admitted only "Studying" (25,
+            two the same evening: at five it admitted only Student (25,
             against Education, Healthcare and Law on 2 each) and he came back
             with "there's no real filters for profession now". At two it admits
             those four. How thin the list is stays a question about the floor
