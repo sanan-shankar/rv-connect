@@ -39,7 +39,16 @@ const PILL_BASE =
    on the sheet's own surface on mobile, and one opaque hover hex cannot serve
    both: --accent measured +8.12 dL* on the page against +2.06 on a card. The
    translucent ladder lands at -4.30 against `--secondary` wherever the bar sits. */
-const PILL_IDLE = "border-border bg-secondary text-foreground state-layer";
+/* No fill at rest. It was `--secondary`, a warm cream, and the owner's verdict
+   on 2026-08-28 was blunt: "I don't like the colours of the filtering pills.
+   it's that brown cream thing. it doesn't look good ... it's not beautiful and
+   delightful and fun and dopamine inducing enough yet."
+   He is right about more than the hue. These pills sit on the Float-white
+   filter panel, so a cream fill made four warm boxes on white -- four objects
+   competing before you have chosen anything -- when what the panel wants at
+   rest is a quiet list. An outline holds the shape and nothing else, which
+   leaves the whole of the colour budget for the ON state below. */
+const PILL_IDLE = "border-border bg-transparent text-foreground state-layer";
 
 /* Set KEEPS a canopy hover rather than taking the neutral state layer: canopy is
    this kit's semantic for "this facet is narrowing your results", and a grey tint
@@ -49,7 +58,17 @@ const PILL_IDLE = "border-border bg-secondary text-foreground state-layer";
    --accent hover invisible; 0.08 -> 0.16 measures -4.19 / -4.62, which is the
    same weight `state-layer` gives every other control (-4.19 to -4.72). The
    RESTING Set appearance is untouched: selection stays canopy/[0.08]. */
-export const PILL_SET = "border-canopy/35 bg-canopy/[0.08] text-canopy hover:bg-canopy/[0.16]";
+/* Set is now the app's own selected chip: a SOLID canopy fill with white text,
+   the same thing the composer's audience picker does for the same meaning, and
+   the DESIGN-SYSTEM's one green state at full strength rather than at 8%. The
+   reward is the flip -- press a facet and it lights up -- which is what the
+   faint tint could never give, because 8% canopy over a cream pill is a shade,
+   not an answer.
+   Hover BRIGHTENS rather than deepening: a filled brand surface lifts (the same
+   move the canopy CTA and the composer's remove button make), and a further ink
+   tint on a saturated fill barely moves at all. */
+export const PILL_SET =
+  "border-canopy bg-canopy text-white transition-[filter] hover:brightness-[1.12]";
 
 /** The item row used inside every facet's dropdown/panel list: the menu
  *  material's row (`--radius-sm` 8.8px -- concentric with the 12px panel
@@ -131,7 +150,10 @@ export function FacetClearButton({ label, onClear }: { label: string; onClear: (
         e.stopPropagation();
         onClear();
       }}
-      className="grid size-6 shrink-0 place-items-center rounded-full text-canopy/70 outline-none transition-transform duration-150 hover:bg-canopy/15 hover:text-canopy active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
+      /* Inside a solid canopy pill now, so it reads in white at 70% and goes to
+         full white on a darker wash. The old canopy-on-cream pair went
+         invisible the moment the pill behind it filled. */
+      className="grid size-6 shrink-0 place-items-center rounded-full text-white/70 outline-none transition-transform duration-150 hover:bg-white/20 hover:text-white active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
     >
       <X className="size-3.5" strokeWidth={2.25} />
     </button>

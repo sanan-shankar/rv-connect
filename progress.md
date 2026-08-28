@@ -6016,3 +6016,22 @@ fixes a latent hang: `uploading` was a flag that a failure left raised, so Post 
 Verified with the upload stubbed at the network (no bytes to R2): the thumbnail is on screen at
 ~300ms with its shimmer, the box grows once from 178px to 268px, and the shimmer clears the frame
 the upload lands.
+
+## 2026-08-28 — the filter pills stop being cream
+
+Owner: "I don't like the colours of the filtering pills. it's that brown cream thing. it doesn't
+look good ... it's not beautiful and delightful and fun and dopamine inducing enough yet."
+
+He was right about more than the hue. The pills sat on `--secondary`, a warm cream, on the
+Float-white filter panel: four filled boxes competing for attention before you had chosen
+anything, and then a SET pill announced itself with an 8% canopy wash over that cream, which is a
+shade rather than an answer. All of the colour was being spent at rest, and none of it on the one
+event worth celebrating.
+
+So the rest state gives up its fill entirely -- a hairline and the label, nothing else -- and
+setting a facet fills it SOLID canopy with white text, which is the chip the composer's audience
+picker has always used for the same meaning. The reward is the flip. Hover on a set pill
+brightens rather than deepening, the same move the canopy CTA makes, because a further ink tint on
+a saturated fill barely moves; the clear x inside it goes white, since canopy-on-canopy vanished
+the moment the pill filled. The sentence line's tokens inherit all of this, so an applied filter
+reads the same at both ends of the page.
