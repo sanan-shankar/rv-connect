@@ -1,5 +1,49 @@
 # Progress Log
 
+## 2026-08-28 — the crop room, rebuilt to answer a question rather than pose one
+
+The owner, on the last two rounds of photograph work: *"what is your problem I don't get
+it? ... please tell me what the original picture is and what we're rendering it as cause if
+you zoom in a bit on a portrait it'll still look like a portrait to me so I won't know what
+we're dealing with or what the original is. and chill with the pixel counts idk how to
+comprehend that."*
+
+Fair, and the fault was mine twice over: I had been reasoning in pixel arithmetic and
+reporting it, and `/lab/crop` was still a room for CHOOSING a rule when the rules have been
+chosen and shipped. It is now a room for LOOKING at what they do. The eight policies, the
+six-ways comparison and the masonry-versus-justified panels are gone with `_policies.ts`;
+so is the last of the room's decision machinery.
+
+**Every shape a member can post, twice.** Eleven real photographs cut from the banyan set,
+from 9:16 to 21:9, deliberately crowding the middle — 1:1, 7:6, 5:4, 4:3 — because that is
+the band where the rule makes its hardest choice. Each appears as the photograph it arrived
+as, with the part we remove **shaded out and the surviving window outlined**, and beneath it
+as a real post card at the chosen width. No pixel counts anywhere: shapes have names, cuts
+are a share of the frame in words ("a fifth comes off the top and bottom"), and a post's
+height is given as a percentage of a laptop screen.
+
+**And it immediately earned itself.** Laid out that way, the 20% crop budget is plainly
+right on a phone (nothing is cut at all) and plainly right on a laptop (7:6, 5:4 and 4:3 now
+reach both edges, losing a fifth, a seventh and a twelfth). On a **big monitor it is wasted**:
+a 4:3 loses a fifth off the top and bottom *and still* sits in a blurred band a sixth of the
+card either side, because the photograph stops at 900px while the card keeps growing to
+1216. Full price, partial win, on every landscape narrower than 1.8:1. That was a suspicion
+in a commit message yesterday; it is a picture now, and it is the owner's to rule on.
+
+**Several photographs, three ways.** Two, three, four or five of mixed shape, rendered as
+they are now, as they were for about a day (justified rows — level, uncropped, and with five
+in a card each one a stamp), and as they were before any of it (two columns and a hard height
+cap, every photograph cut to a box with nothing to do with its shape). He asked for the last
+of those by name.
+
+The eleven fixtures double as the set spec §12 has been asking for since the campaign opened.
+
+**Not verified through `npm run check`.** Two other sessions are working this checkout: the
+gate is red on `search-pill.tsx`, and a `framedRatio` helper I left behind in
+`photo-layout.test.mjs` is now an unused-variable warning after phase 4 rewrote the carousel
+tests around it — neither is in a file I can safely touch mid-edit. My own files are clean
+under TypeScript, ESLint and the lab audit, and the room was shot at every width.
+
 ## 2026-08-28 — the viewer, edge to edge, and the caption that is not a panel
 
 Collection rework phase 4 (spec sec. 5). The owner's verdict on the viewer he had

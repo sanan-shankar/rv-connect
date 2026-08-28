@@ -1,74 +1,143 @@
-import type { Specimen } from "./_policies";
-
 /* ------------------------------------------------------------------ *
- *  Six photographs chosen to be awkward.
+ *  One real photograph for every shape a member can post.
  *
- *  All six are real frames of the banyan amphitheatre, already in this
- *  repo. Three are used as they are. Three were cut from the others to
- *  reach shapes the Collection does not happen to contain yet but a
- *  phone and a real camera produce constantly: 9:16, 21:9, and a file
- *  small enough that a wide column has to stretch it.
+ *  Cut from the banyan set that already lives in this repo, so they are
+ *  photographs and not swatches, and boxed to 940 on the long edge. They
+ *  run from a phone video still at one end to a panorama at the other,
+ *  and they deliberately crowd the middle -- 1:1, 7:6, 5:4, 4:3 -- because
+ *  that narrow band is where the rule has to make its hardest choice and
+ *  where a bed used to show either side of the photograph.
  *
- *  The focal numbers are sharp's, not mine. Each file was resized to a
- *  square with `sharp.strategy.attention` and the crop window it chose
- *  was read back. Note what it does on the two portraits: it goes for
- *  the canopy, because that is where the contrast is, and walks past the
- *  benches. Worth seeing before trusting policy six with a face.
+ *  The focal numbers are sharp's own, read back the way the upload path
+ *  reads them. They are not always sensible: on the 5:4 it gave up and
+ *  returned the corner, and on the 7:6 it went for the bright edge. That
+ *  is the point of the clamp, and it is worth seeing here rather than
+ *  taking on trust.
+ *
+ *  Throwaway, with the room. Delete these files, public/lab/crop/ and the
+ *  registry row once the layout rules are settled.
  * ------------------------------------------------------------------ */
+
+export type Specimen = {
+  key: string;
+  src: string;
+  /** The file's own size. Everything the room says is derived from these. */
+  w: number;
+  h: number;
+  /** The shape, the way a person would name it. */
+  label: string;
+  note: string;
+  focal: { x: number; y: number };
+};
 
 export const SPECIMENS: Specimen[] = [
   {
-    key: "phone",
-    src: "/lab/crop/phone-9x16.webp",
-    w: 731,
-    h: 1300,
+    key: "9x16",
+    src: "/lab/crop/shape-9x16.webp",
+    w: 529,
+    h: 940,
     label: "9:16",
-    note: "A phone held upright. The worst case, and the most common one.",
-    focal: { x: 0.5, y: 0.281 },
+    note: "A phone video still, or a screenshot. The tallest thing anyone posts.",
+    focal: { x: 0.594, y: 0.094 },
   },
   {
-    key: "portrait",
-    src: "/images/collection/demo-assembly-wide.webp",
-    w: 760,
-    h: 1140,
+    key: "2x3",
+    src: "/lab/crop/shape-2x3.webp",
+    w: 627,
+    h: 940,
     label: "2:3",
-    note: "A camera held upright. Benches along the bottom, canopy along the top.",
-    focal: { x: 0.5, y: 0.333 },
+    note: "A camera held upright. The 35mm portrait.",
+    focal: { x: 0.561, y: 0.094 },
   },
   {
-    key: "square",
-    src: "/images/collection/c1.webp",
+    key: "3x4",
+    src: "/lab/crop/shape-3x4.webp",
+    w: 705,
+    h: 940,
+    label: "3:4",
+    note: "A phone held upright. The commonest portrait there is.",
+    focal: { x: 0.687, y: 0.812 },
+  },
+  {
+    key: "4x5",
+    src: "/lab/crop/shape-4x5.webp",
+    w: 752,
+    h: 940,
+    label: "4:5",
+    note: "Instagram's portrait. Barely taller than wide.",
+    focal: { x: 0.593, y: 0.155 },
+  },
+  {
+    key: "1x1",
+    src: "/lab/crop/shape-1x1.webp",
     w: 900,
     h: 900,
     label: "1:1",
-    note: "Square. Nothing should ever happen to this one.",
-    focal: { x: 0.5, y: 0.5 },
+    note: "Square. A deliberate shape, not an accident.",
+    focal: { x: 0.156, y: 0.812 },
   },
   {
-    key: "landscape",
-    src: "/images/collection/demo-banyan-canopy.webp",
-    w: 1280,
-    h: 760,
-    label: "5:3",
-    note: "An ordinary landscape frame. The trunk is the subject and it sits right of centre.",
-    focal: { x: 0.703, y: 0.5 },
+    key: "7x6",
+    src: "/lab/crop/shape-7x6.webp",
+    w: 900,
+    h: 771,
+    label: "7:6",
+    note: "Only just landscape. The shape that used to sit on the widest bed.",
+    focal: { x: 0.968, y: 0.781 },
   },
   {
-    key: "pano",
-    src: "/lab/crop/pano-21x9.webp",
-    w: 1280,
-    h: 549,
+    key: "5x4",
+    src: "/lab/crop/shape-5x4.webp",
+    w: 900,
+    h: 720,
+    label: "5:4",
+    note: "The old print shape.",
+    focal: { x: 0, y: 0 },
+  },
+  {
+    key: "4x3",
+    src: "/lab/crop/shape-4x3.webp",
+    w: 940,
+    h: 705,
+    label: "4:3",
+    note: "A phone held sideways. The commonest landscape there is.",
+    focal: { x: 0.405, y: 0.25 },
+  },
+  {
+    key: "3x2",
+    src: "/lab/crop/shape-3x2.webp",
+    w: 940,
+    h: 627,
+    label: "3:2",
+    note: "A camera held sideways. The 35mm landscape.",
+    focal: { x: 0.405, y: 0.249 },
+  },
+  {
+    key: "16x9",
+    src: "/lab/crop/shape-16x9.webp",
+    w: 940,
+    h: 529,
+    label: "16:9",
+    note: "Widescreen.",
+    focal: { x: 0.968, y: 0.656 },
+  },
+  {
+    key: "21x9",
+    src: "/lab/crop/shape-21x9.webp",
+    w: 940,
+    h: 403,
     label: "21:9",
-    note: "A panorama. Wide enough that some policies have to cut its sides off.",
-    focal: { x: 0.786, y: 0.5 },
-  },
-  {
-    key: "grainy",
-    src: "/lab/crop/grainy-420.webp",
-    w: 420,
-    h: 420,
-    label: "420px",
-    note: "A small file. Nothing can crop this well; the question is how badly a wide column stretches it.",
-    focal: { x: 0.5, y: 0.5 },
+    note: "A panorama. A thin strip, and that is correct.",
+    focal: { x: 0.905, y: 0.811 },
   },
 ];
+
+/** The three column widths this app really has: a phone, a laptop, and the
+ *  point where the feed stops growing on a big monitor. */
+export const WIDTHS = {
+  phone: { label: "Phone", px: 358, note: "A card on a phone. Nothing is ever narrowed here -- the screen is the limit." },
+  laptop: { label: "Laptop", px: 728, note: "A card on an ordinary laptop. This is the one to judge on." },
+  wide: { label: "Big monitor", px: 1216, note: "The feed on a 27-inch screen, where the card grows but the photograph does not." },
+} as const;
+
+export type WidthKey = keyof typeof WIDTHS;
