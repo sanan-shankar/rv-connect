@@ -176,7 +176,18 @@ export const TurnstileWidget = forwardRef<TurnstileHandle, { siteKey: string | n
                timeout; but only LATCH once the retries are spent. Resetting
                gives the next attempt a fresh challenge instead of handing the
                whole page session to one bad request (audit M07). */
-            "error-callback": () => {
+            "error-callback": (code?: string) => {
+              /* Cloudflare names the reason and we used to drop it, so every
+                 failure here reached the page as one sentence with nothing
+                 behind it. On 2026-08-28 that cost a session: the owner could
+                 not sign in to any past deployment, because each lives at its
+                 own `*.vercel.app` URL and only `rishivalley.space` was on the
+                 widget's hostname list. Cloudflare was saying 110200, "domain
+                 not allowed", into a console nobody could hear — and in
+                 interaction-only mode there is no visible widget to hint at
+                 it either. One line, and the next one of these is a lookup
+                 rather than an investigation. */
+              console.warn(`[turnstile] challenge error${code ? `: ${code}` : ""}`);
               errors.current += 1;
               if (errors.current > ERROR_RETRIES) {
                 dead.current = true;

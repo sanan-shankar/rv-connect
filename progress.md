@@ -1,5 +1,46 @@
 # Progress Log
 
+## 2026-08-28 — a Turnstile token is now good only on the host it was solved on
+
+The owner could not sign in to any past deployment: *"it says we weren't able to identify
+you're not a robot and there's no tick box for me to click."* Nothing in the old code was
+broken. A Turnstile site key only runs on the hostnames listed in Cloudflare, ours listed
+`rishivalley.space`, and every past deployment lives at its own generated
+`rv-connect-<hash>.vercel.app` URL. Cloudflare was answering 110200, "domain not allowed" —
+silently, because `interaction-only` makes the widget invisible when it fails exactly as when
+it passes, and because `error-callback` threw the code away. It logs it now. That one line is
+the difference between a lookup and an investigation next time.
+
+Worth writing down: **an env var could not have fixed this.** Vercel bakes env vars into a
+deployment at build time, so nothing changed in code or config reaches a build that already
+exists. The Cloudflare hostname list is the only lever that applies retroactively, which is
+why the fix had to be there rather than here.
+
+So `vercel.app` goes on the list (the owner's dashboard change; a per-deployment URL cannot be
+enumerated in advance, so nothing narrower covers them). Turnstile matches subdomains, which
+means that entry also hands our site key — public, it ships in the HTML — to every other site
+on that domain. `src/lib/turnstile-origin-rule.ts` is what pays for it: siteverify reports the
+hostname a token was solved on, and a token is now only spendable by a request that arrived on
+that same host, so tokens farmed on someone else's `*.vercel.app` page are worth nothing at
+`rishivalley.space`.
+
+Deliberately not an allow-list: one here would have to contain everything Cloudflare's list
+contains and would buy exactly nothing. Its own `*-rule.ts` because node:test cannot load a
+module with relative value imports, and the ten tests are written as the attack — a farmed
+token refused, one deployment's token refused at another, www and the apex still one site, a
+port still one site, and unknown-on-either-side failing OPEN. That last is the deliberate
+part: the Host header is not ours to control, and a silent sign-in lockout would be worse than
+the farming. The refusal logs at `console.error` so Sentry says so if that reasoning is wrong.
+
+`host` is a required argument to `verifyTurnstile`, not optional-with-a-default, so a future
+door cannot forget to pass it and quietly lose the check.
+
+Verified by signing in at the real form with an invented address: the answer is "Invalid email
+or password", not the bot-check refusal, which proves the token passed through the new
+signature and the request reached the user lookup. tsc, ESLint and the 60 auth-adjacent tests
+clean. `npm run check` has one unrelated red, C-179, which belongs to the collection-river
+rewrite in progress in another session (its `handleLoadMore` no longer exists); not touched.
+
 ## 2026-08-28 — the crop room uses the real card, and follows the window
 
 Two more from the owner on the rebuilt room: *"make the phone laptop monitor thing much
