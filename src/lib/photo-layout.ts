@@ -267,74 +267,45 @@ export function framePhoto(facts: PhotoFacts): PhotoFrame {
  * ------------------------------------------------------------------ */
 
 /**
- * The one shape a carousel draws every photograph into.
+ * How wide a carousel may be drawn, given what is in it.
  *
- * A carousel has to pick a shape, because the alternative is a card that
- * changes height under the reader's thumb. The first version let the tallest
- * photograph decide and it was wrong in the way the owner had just finished
- * objecting to: a 3:4 portrait among two landscapes made the frame 421px tall
- * on a phone, so both landscapes sat in 121px of blurred bed, top and bottom.
+ * A CAROUSEL SHARES A HEIGHT, NOT A SHAPE. That is the whole of the rule and
+ * it is worth stating plainly, because two earlier versions shared a shape and
+ * both were wrong in the same way.
  *
- * The MEDIAN of the set instead, so the shape most of the photographs already
- * are is the shape they are all drawn in. The same three become a 178px frame
- * on that phone: the landscapes fill it exactly and the portrait is the one
- * that is bedded. Clamped to the app's two ends -- 3:4, which is the tall
- * target, and 1.8:1, which is the 900px cap over the 500px ceiling -- so a
- * carousel is never a shape a single photograph could not be.
+ * What has to be stable is the CARD's height -- nothing may change size under
+ * a reader's thumb mid-swipe. A shared aspect ratio delivers that, but it
+ * charges every photograph that is not that shape for it. Version one let the
+ * tallest photograph pick the shape, so two landscapes beside a portrait sat
+ * in 121px of blurred bed on a phone. Version two picked the MEDIAN, and the
+ * owner found the bill for that one in his own feed on 2026-08-28: three
+ * photographs, two upright and one of the Colosseum, drew the Colosseum
+ * 372 x 347 inside a 372 x 495 frame in a card 850px wide -- "why are all the
+ * photos fixed at that aspect ratio... that photo can take up much more space
+ * but we're not letting it??" He is right, and the arithmetic is stark: at its
+ * own shape it is 833 x 500, which is five times the area.
  *
- * Ratios come in ALREADY FRAMED (`drawnRatio(framePhoto(p))`), so a 9:16
- * screenshot arrives as 3:4 and does not drag the whole set upright.
+ * Sharing the HEIGHT gives the stable card for free and costs nothing:
+ *
+ *    every photograph in a carousel is drawn EXACTLY as it would have been
+ *    had it been posted on its own,
+ *
+ * which is the same sentence <PhotoRows> already lives by for a photograph
+ * alone on a row. The frame's height is then whichever of them is tallest,
+ * and the browser works that out on its own -- a flex line's height is the
+ * tallest thing on it, so there is nothing here to compute and nothing to
+ * measure. All this function decides is how wide the frame may be, which is
+ * the widest any one of them may be drawn.
+ *
+ * What it costs, honestly: a portrait beside a landscape now has a blurred bed
+ * at its sides on a wide screen, where under the median rule the frame was
+ * narrow and the portrait filled it. That is the same bed the same portrait
+ * gets when posted alone in the same column, and it buys the landscape beside
+ * it five times the picture.
  */
-export function carouselBox(ratios: number[]): number {
-  const sorted = [...ratios].sort((a, b) => a - b);
-  const mid = sorted.length >> 1;
-  const median =
-    sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-  return clamp(median, TALL_TARGET, PHOTO_MAX_WIDTH / PHOTO_MAX_HEIGHT);
-}
-
-/**
- * Where one photograph sits inside that shared box, as two percentages of it.
- *
- * The box is `boxRatio`; the photograph is `r`. If the two are within the crop
- * budget of each other the photograph fills the box and loses up to a fifth of
- * itself to `object-fit: cover`. If they are further apart than that, it is
- * drawn at the largest box the budget allows and its own blurred copy fills
- * what is left -- so the budget is a ceiling on what may be cut, never a floor
- * on what must be.
- *
- * Both numbers are percentages of the SAME box, which is what makes this pure
- * CSS: the carousel gives its track a fixed `aspect-ratio`, so a percentage
- * width and a percentage height describe a real rectangle without anything
- * having to measure a column.
- */
-export function placeInBox(
-  facts: PhotoFacts,
-  boxRatio: number
-): { width: string; height: string; objectPosition: string; kept: number } {
-  /* The FRAMED shape, not the file's. A 9:20 screenshot is a 3:4 photograph
-     everywhere else in the app, and placing it raw made it 229px wide in a
-     730px carousel -- the strip the framing rule exists to prevent. */
-  const frame = framePhoto(facts);
-  const r = drawnRatio(frame);
-  /* The widest and narrowest the drawn box may be for this photograph. Wider
-     than `r` cuts its top and bottom; narrower cuts its sides. */
-  const widest = r / (1 - CROP_BUDGET);
-  const narrowest = r * (1 - CROP_BUDGET);
-  const drawn = clamp(boxRatio, narrowest, widest);
-  return {
-    /* Whichever direction the box had to be pulled back in, the photograph
-       shrinks along that axis only, and stays centred. */
-    width: `${Math.min(100, (drawn / boxRatio) * 100)}%`,
-    height: `${Math.min(100, (boxRatio / drawn) * 100)}%`,
-    objectPosition:
-      drawn > r
-        ? `50% ${pct(clamp(facts.focalY, AIM_WIDE_Y.lo, AIM_WIDE_Y.hi))}`
-        : `${pct(clamp(facts.focalX, AIM_X.lo, AIM_X.hi))} 50%`,
-    /* Both crops, because they compound: what the framing rule already took
-       off a tall photograph, times what the box takes off what is left. */
-    kept: frame.kept * keptAt(r, drawn),
-  };
+export function carouselWidth(frames: PhotoFrame[]): number {
+  if (!frames.length) return PHOTO_MAX_WIDTH;
+  return Math.min(PHOTO_MAX_WIDTH, Math.max(...frames.map((f) => f.maxWidth)));
 }
 
 /**

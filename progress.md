@@ -1,5 +1,40 @@
 # Progress Log
 
+## 2026-08-28 — the carousel frame follows the photograph
+
+The owner, looking at one of his own posts: *"why are all the photos fixed at that aspect
+ratio. in the second screenshot that photo can take up much more space but we're not letting
+it??"* He is right, and it is the case D21 flagged as unresolved when the carousel shipped.
+
+A carousel used to pick ONE shape for its whole set. Two rules were tried and each was wrong
+in the other's direction. Measured on a real post -- a 9:20, a 20:9 and a 16:9 -- in a 314px
+phone slide, where the three photographs want 419, 141 and 177px of height:
+
+- **the median shape** (what shipped) drew the odd one out small: his Colosseum came out
+  372x347 inside a 372x495 frame in a card 850px wide, where alone it is 833x500;
+- **the tallest shape** gave every photograph its full size but put 122px of blurred bed
+  above AND below the 16:9 -- "yucky blur bars", which he has objected to twice.
+
+There is no third fixed height that avoids both, because 419 and 141 are three to one. So the
+frame is not fixed. **It is the height of whichever photograph you are looking at**,
+interpolated across the swipe, so the card breathes with the thumb instead of jumping when a
+slide lands. The rule is now one sentence: *every photograph in a carousel is drawn exactly
+as it would have been posted on its own* -- the same sentence `<PhotoRows>` already lives by
+for a photograph alone on a row.
+
+Measured after, every slide, both viewports: **zero bed anywhere** except the 178px each side
+a portrait gets on a laptop, which is what the same portrait gets posted alone. At 390px the
+three slides are 314x176, 314x140 and 314x419, each filling its frame exactly; at 1440 they
+are 728x409, 728x327 and 375x498.
+
+The heights are arithmetic, not measurement -- `drawnSize`, the same pure function the layout
+tests assert against, given the one number a browser has to supply: how wide a slide is. Before
+that number exists (server render, first paint) a ghost cell holds the first photograph's box
+open in plain CSS, so nothing jumps into place. `carouselBox` and `placeInBox` are deleted;
+`carouselWidth` replaces them and carries the reasoning.
+
+`npm run check` green, 82/82. `npm run visual` 23/23, no baseline moved.
+
 ## 2026-08-28 — the crop room, rebuilt to answer a question rather than pose one
 
 The owner, on the last two rounds of photograph work: *"what is your problem I don't get
