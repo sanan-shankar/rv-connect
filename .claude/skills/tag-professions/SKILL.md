@@ -8,8 +8,8 @@ description: Work out what field each member is in, from their job title and wor
 Three steps, and the middle one is the only one that needs you.
 
 ```bash
-node scripts/dev/tag-professions-pick.mjs --all      # export the pairs to .professions/
-#  ...you read them and write .professions/verdicts.json...
+node scripts/dev/tag-professions-pick.mjs --all      # export the pairs to scripts/dev/.professions/
+#  ...you read them and write scripts/dev/.professions/verdicts.json...
 node scripts/dev/tag-professions-apply.mjs           # dry run: shows every change
 node scripts/dev/tag-professions-apply.mjs --apply   # writes
 ```
@@ -33,7 +33,7 @@ his own subscription, the same way `tag-photos` works, and for the same reason.
 node scripts/dev/tag-professions-pick.mjs [--all] [--tag <value>] [--limit N] [--env .env.demo]
 ```
 
-Read-only. Writes `.professions/manifest.json`, which carries the people, **the vocabulary
+Read-only. Writes `scripts/dev/.professions/manifest.json`, which carries the people, **the vocabulary
 and the rules**, so everything you need to judge is in the one file.
 
 | | |
@@ -51,7 +51,7 @@ The rules are in `TAG_RULES` in `src/lib/profession-tags.ts`, and the picker cop
 into the manifest. **Read them there, not from this summary** — that file is what the tests
 hold and this one is not.
 
-Write `.professions/verdicts.json`:
+Write `scripts/dev/.professions/verdicts.json`:
 
 ```json
 {
@@ -132,7 +132,7 @@ What the applier guarantees:
 - **It adds parent tags for you.**
 - **It re-reads the rows** at apply time, so the source text it records is the text as it
   stands now.
-- **Every write leaves an undo.** `.professions/applied-<time>.json` holds the old values;
+- **Every write leaves an undo.** `scripts/dev/.professions/applied-<time>.json` holds the old values;
   `--undo <file> --apply` puts them back.
 
 ## The traps
@@ -145,7 +145,7 @@ What the applier guarantees:
 - **It never touches `workplace` or `jobTitle`.** Those are the member's own words and the
   input to this pass. If a tag is wrong, the fix is the member editing their job title, and
   the next run re-reads it.
-- **`.professions/` holds real members' details keyed by user id.** Gitignored, and it must
+- **`scripts/dev/.professions/` holds real members' details keyed by user id.** Gitignored, and it must
   stay that way.
 - **The manifest names its own database.** Both scripts refuse a batch picked from a
   different one, because the ids belong to one database and applying them to another is the

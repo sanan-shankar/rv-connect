@@ -155,7 +155,7 @@ export async function seedDemo(
           workplace: p.workplace ?? null,
           /* Authored here rather than left for the tagging pass. The demo is
              the public, no-login showcase and its Profession filter hides
-             itself until two tags clear TAG_FLOOR, so an untagged seed would
+             itself when no tag clears TAG_FLOOR, so an untagged seed would
              show a directory with the control missing. `withParents` for the
              same reason the applier calls it -- the seed must not be the one
              place a child tag arrives without its parent. */

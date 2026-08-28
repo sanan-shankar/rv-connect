@@ -281,17 +281,17 @@ test("the profession filter arm survives for bookmarked links", () => {
 test("the Profession control hides only when it has nothing to offer", () => {
   /* This gate has been at two values in one day. It was `>= 2`, on the
      argument that a dropdown offering a single choice reads as a broken
-     control -- and on the live database that is exactly what the data gives,
-     because TAG_FLOOR is five and only "Studying" clears it (25 of the 34
-     people who have said anything; Education, Healthcare and Law sit on 2).
+     control -- and with TAG_FLOOR at five that is exactly what the data gave,
+     since only "Studying" cleared it.
 
      The owner overruled it the same afternoon: "did you make the profession
      tab disappear from filters? bring it back if it was you". A filter that
-     comes and goes on its own is the worse of the two surprises, and the thin
-     list is a fact about a young directory rather than a fault in the control.
-     Whether it stays thin is a question about TAG_FLOOR, which is his number
-     and lives in profession-tags.ts -- not something this component gets to
-     decide by hiding.
+     comes and goes on its own is the worse of the two surprises. He then said
+     the surviving one-item list was "no real filters", which was the honest
+     complaint underneath both -- so the FLOOR came down to two rather than
+     this gate going back up, and the list is four wide. The lesson worth
+     keeping: a control that hides itself was treating a data problem as a
+     presentation problem.
 
      Pinned because the failure is invisible in a screenshot of today's data:
      the control looks the same whether the rule is working or the prop has

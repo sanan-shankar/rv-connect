@@ -322,7 +322,7 @@ export default async function DirectoryPage({
     /* Profession facet options: the live tag histogram, both caps applied
        here in SQL so the control cannot offer a tag the server would not
        honour.
-         TAG_FLOOR       a tag needs five people before it is offered at all
+         TAG_FLOOR       a tag needs a second person before it is offered at all
          TAG_VISIBLE_MAX only the twelve largest are offered
        The two do different jobs and hand off as the membership grows -- see
        the comments on each in src/lib/profession-tags.ts.

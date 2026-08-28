@@ -19,7 +19,7 @@
  *      person.
  *    - The rows are re-read at apply time, so the source string stored
  *      is the text as it stands now, not as it was when picked.
- *    - Every write leaves `.professions/applied-<time>.json` holding the
+ *    - Every write leaves `scripts/dev/.professions/applied-<time>.json` holding the
  *      old values. `--undo <file> --apply` puts them back.
  *
  *  UNLIKE tag-photos-apply.mjs, this one OVERWRITES tags that are
@@ -54,7 +54,7 @@ const value = (name, fallback) => {
 const APPLY = flag("--apply");
 const UNDO = value("--undo", null);
 const envFile = value("--env", ".env");
-const OUT = path.join(process.cwd(), ".professions");
+const OUT = path.join(process.cwd(), "scripts", "dev", ".professions");
 
 const env = readEnv([envFile]);
 const url = env.DIRECT_URL || env.DATABASE_URL;

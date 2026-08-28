@@ -86,18 +86,26 @@ export const TAG_VALUES: readonly string[] = PROFESSION_TAGS.map((t) => t.value)
 /**
  * How many people a tag needs before the filter OFFERS it.
  *
- * The owner's number. This is the "is this a real category" gate, and
- * it is a DISPLAY rule only -- the lone doctor is tagged Healthcare on
- * the day they join and the tag appears by itself when the fifth person
- * arrives. Assignment never bends to make a tag show up or hide (rule
- * 2), because a tag chosen to clear a threshold is a lie in the column
- * that every later pass then reads as fact.
+ * Its whole job is excluding a tag that describes ONE person: "is this a
+ * category, or is it somebody?" Nothing more. Keeping the list short is
+ * TAG_VISIBLE_MAX's job, below, and splitting the two is what lets this one
+ * be small enough to be honest at 63 members and still be right at 2,000.
  *
- * Load-bearing only while the membership is small. At 63 members five
- * people is 8% of everybody; at 2,000 it is 0.25% and every tag would
- * clear it, which is why TAG_VISIBLE_MAX exists as well.
+ * IT WAS FIVE FIRST, and five was wrong -- worth recording because the
+ * reasoning sounded fine and the data settled it. Measured on the live
+ * database the day the tags landed: "Studying" 25, then Education, Healthcare
+ * and Law on 2 each and six tags on 1. A floor of five admitted exactly one
+ * option, so the Profession control was a dropdown with nothing to choose
+ * between, and the owner came back the same evening: "there's no real filters
+ * for profession now." Two is the literal reading of what he actually asked
+ * for at the start -- "we don't want to have a bunch of buckets with just one
+ * person" -- and it admits four.
+ *
+ * This is a DISPLAY rule and assignment never bends to it (rule 2). The lone
+ * doctor is tagged Healthcare on the day they join and the tag appears by
+ * itself when the second arrives.
  */
-export const TAG_FLOOR = 5;
+export const TAG_FLOOR = 2;
 
 /**
  * How many tags the filter will offer at once, largest first.
@@ -265,10 +273,10 @@ export const TAG_RULES = `A tag is a field somebody would browse, not a job titl
 Research" is a title; Finance is a tag. Labels are one word wherever one word is true -- a
 compound label ("Agriculture & Environment") is two tags pretending to be one.
 
-Tag honestly, whatever the size. A tag needs five people before the filter offers it, but that is
-a display rule and it is not yours to manage: the lone doctor is Healthcare on the day they join
-and the tag appears by itself at the fifth person. Never choose a tag to make one show up or stay
-hidden.
+Tag honestly, whatever the size. A tag needs a second person before the filter offers it, but that
+is a display rule and it is not yours to manage: the lone doctor is Healthcare on the day they
+join and the tag appears by itself when the second one arrives. Never choose a tag to make one
+show up or stay hidden.
 
 Never invent a tag to fit one person. If the only way to phrase it is by describing the person in
 front of you, it is not a tag -- use the nearest broader tag that is true, or none.
