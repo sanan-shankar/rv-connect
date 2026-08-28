@@ -5,17 +5,19 @@ import { toast } from "sonner";
 import { downscaleImage } from "@/lib/image-downscale";
 import { directUploadPut } from "@/lib/upload-client";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
+import type { PhotoFacts } from "@/lib/photo-layout";
+import { myImageFacts } from "@/app/(main)/image-aim";
 
 /* ------------------------------------------------------------------ *
  *  The composer's photograph pipeline, lifted out of create-post-form
  *  whole (audit feed-posts-02).
  *
- *  Its only contract with the editor is the four values it hands back --
+ *  Its only contract with the editor is the values it hands back --
  *  `images` (the stored urls a submit sends), `previews` (what the writer
- *  looks at), `uploading` and `uploadProgress` (what the Post button and the
- *  Photo label read). That narrow seam is why this half comes out cleanly
- *  while the editor body, which closes over twenty pieces of state, stays
- *  where it is.
+ *  looks at), `facts` (what the server measured, for the crop handle),
+ *  `uploading` and `uploadProgress` (what the Post button and the Photo label
+ *  read). That narrow seam is why this half comes out cleanly while the editor
+ *  body, which closes over twenty pieces of state, stays where it is.
  * ------------------------------------------------------------------ */
 
 const UPLOAD_TIMEOUT_MS = 60_000;
@@ -48,6 +50,14 @@ export function useComposerUploads({
 }) {
   const [images, setImages] = useState<string[]>(initialImages ?? []);
   const [previews, setPreviews] = useState<string[]>(initialImages ?? []);
+  /* What the server measured about each stored url, keyed by it. Both upload
+     routes have returned this since spec §2 and both callers threw it away.
+     The crop handle needs the machine's own aim as its starting position --
+     without it every photograph opens at dead centre, which is not where the
+     card is going to draw it. Keyed rather than parallel to `images`, because
+     `removeImage` splices that list and a second list would have to be spliced
+     in step for ever. */
+  const [facts, setFacts] = useState<Record<string, PhotoFacts>>({});
   const [uploading, setUploading] = useState(false);
   // Determinate-feeling progress for the "Photo" button label while a batch
   // uploads one file at a time (no byte-level progress events on a plain
@@ -67,6 +77,41 @@ export function useComposerUploads({
     },
     []
   );
+
+  /** Keep whatever measurements a response carried. Both routes answer
+   *  `{ urls, images }`, and an `images` shorter than `urls` is a supported
+   *  state: an image sharp could not measure still uploads and still posts, it
+   *  simply gets no crop handle. */
+  function keep(images: unknown) {
+    if (!Array.isArray(images)) return;
+    setFacts((prev) => {
+      const next = { ...prev };
+      for (const f of images as ({ url?: string } & PhotoFacts)[]) {
+        if (f?.url) next[f.url] = f;
+      }
+      return next;
+    });
+  }
+
+  /* A resumed draft arrives holding urls and nothing else, so its
+     photographs would open the crop handle at dead centre while the card
+     draws the machine's aim -- a first frame nobody has ever seen, which is
+     the one thing that dialog must not do. One query, once, for the drafts
+     that have photographs at all. */
+  useEffect(() => {
+    const resumed = initialImages ?? [];
+    if (resumed.length === 0) return;
+    let gone = false;
+    void myImageFacts(resumed).then((known) => {
+      if (!gone) setFacts((prev) => ({ ...known, ...prev }));
+    });
+    return () => {
+      gone = true;
+    };
+    // Mount only: `initialImages` is the draft this composer opened on, and a
+    // fresh array identity each render would re-query for ever.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Preferred upload path: presigned PUT straight to R2 (the shared
@@ -93,6 +138,7 @@ export function useComposerUploads({
         // Same as the classic path below: anything the server changed about
         // the file is said out loud (audit M15/C-073).
         for (const notice of (data.notices ?? []) as string[]) toast.info(notice);
+        keep(data.images);
         return data.urls[0] as string;
       }
       throw new Error(data.error || `"${original.name}" failed to upload`);
@@ -128,7 +174,8 @@ export function useComposerUploads({
       throw new Error(data.error || `"${file.name}" failed to upload`);
     }
 
-    const { urls, notices } = await res.json();
+    const { urls, images, notices } = await res.json();
+    keep(images);
     // Anything the server changed about the file, said out loud (audit M15).
     // A toast rather than inline copy: it is information about one upload that
     // has already succeeded, not a condition to fix before carrying on.
@@ -216,6 +263,7 @@ export function useComposerUploads({
   return {
     images,
     previews,
+    facts,
     uploading,
     uploadProgress,
     handleImageFiles,

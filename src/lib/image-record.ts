@@ -93,7 +93,17 @@ export async function photoFactsFor(
   try {
     const rows = await prisma.image.findMany({
       where: { url: { in: wanted } },
-      select: { url: true, width: true, height: true, focalX: true, focalY: true, blurDataUrl: true },
+      select: {
+        url: true,
+        width: true,
+        height: true,
+        focalX: true,
+        focalY: true,
+        // Without this every hand-aimed crop reads as a guess and gets braked
+        // back into the band the uploader dragged out of.
+        focalSet: true,
+        blurDataUrl: true,
+      },
     });
     return new Map(rows.map(({ url, ...facts }) => [url, facts]));
   } catch (err) {

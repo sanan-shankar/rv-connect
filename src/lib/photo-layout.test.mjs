@@ -218,6 +218,54 @@ test("the aim is clamped, so a bad guess cannot do damage", () => {
   assert.equal(bottom.objectPosition, "50% 50%");
 });
 
+test("a hand-aimed crop is not braked, because the brake is on the guess", () => {
+  /* Spec sec. 9's crop handle. The clamp above exists because sharp's
+     `attention` is a contrast heuristic that goes for the bright sky -- of the
+     first 41 photographs measured, 14 landed within 3% of an edge. A person
+     who has dragged the window has looked at the photograph, and X's own
+     conclusion after withdrawing their saliency crop was that "how to crop an
+     image is a decision best made by people". Braking them would make the
+     handle lie: the window would settle somewhere they did not put it. */
+  const tall = SHAPES[0]; // 9:16
+  const wide = SHAPES.find((s) => s.name.startsWith("4:3"));
+  for (const shape of [tall, wide]) {
+    for (const focalY of [0, 0.05, 0.85, 1]) {
+      const guessed = frameOf(shape, { focalX: 0.5, focalY });
+      const aimed = frameOf(shape, { focalX: 0.5, focalY, focalSet: true });
+      assert.equal(
+        aimed.objectPosition,
+        `50% ${Math.round(focalY * 100)}%`,
+        `${shape.name} at ${focalY} was braked despite being aimed by hand`
+      );
+      // And the point of the flag: without it, the same number is braked.
+      assert.notEqual(aimed.objectPosition, guessed.objectPosition);
+    }
+  }
+});
+
+test("aiming by hand changes where the window sits and nothing else", () => {
+  // It must not move the box, the cap or the ceiling: this is a decision about
+  // WHAT is kept, never about how large the photograph is drawn.
+  for (const shape of SHAPES) {
+    const guessed = frameOf(shape, { focalX: 0.5, focalY: 0.9 });
+    const aimed = frameOf(shape, { focalX: 0.5, focalY: 0.9, focalSet: true });
+    for (const key of ["maxWidth", "maxHeight", "aspectRatio", "kept"]) {
+      assert.deepEqual(aimed[key], guessed[key], `${shape.name} moved its ${key}`);
+    }
+  }
+});
+
+test("a photograph that keeps its whole frame is never aimed, hand or not", () => {
+  /* What the crop handle keys off: it renders nothing when `kept` is 1, so
+     this is the assertion that the button cannot appear on a photograph with
+     no window to move. A 4:5 is the case -- taller than 3:4, so it keeps
+     everything. */
+  const four5 = SHAPES.find((s) => s.name.startsWith("4:5"));
+  const frame = frameOf(four5, { focalX: 0.5, focalY: 0.1, focalSet: true });
+  assert.equal(frame.kept, 1);
+  assert.equal(frame.objectPosition, "50% 50%");
+});
+
 test("a tall photograph is only ever trimmed top and bottom", () => {
   /* The sideways case is gone with the rule that created it. Nothing tall is
      drawn narrower than its own shape any more, so there is no axis but the

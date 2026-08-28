@@ -106,9 +106,12 @@ export const PHOTO_MAX_HEIGHT = 500;
  * image down to a small 16:9 preview and so choosing which of several people
  * you saw. It is CLAMPED, here: heads live in the upper half, so a floor at
  * 50% means the worst case of a bad guess is the plain centre crop we would
- * have done anyway. And the uploader must be able to OVERRIDE it, which is
- * X's own replacement and is spec §9 -- not built yet, and the reason to
- * build it is below.
+ * have done anyway. And the uploader can OVERRIDE it, which is X's own
+ * replacement and is spec §9: the crop handle in the composer sets
+ * `focalSet`, and this whole band is switched off for an image somebody has
+ * aimed by hand. The brake is on the guess, never on the person -- braking
+ * them would make the handle lie, leaving the window somewhere they did not
+ * put it.
  *
  * How much work the clamp is doing, measured rather than assumed: of the 41
  * photographs in the database on 2026-08-27, 14 have a focal point within 3%
@@ -164,6 +167,10 @@ export type PhotoShape = { width: number; height: number };
 export type PhotoFacts = PhotoShape & {
   focalX: number;
   focalY: number;
+  /** True once the uploader aimed this crop by hand, which turns the clamps
+   *  off for it. Optional so every existing caller, and every row written
+   *  before the column existed, reads as "the machine guessed this". */
+  focalSet?: boolean;
 };
 
 /** A photograph as a card receives it: what decides its layout, plus the
@@ -208,6 +215,11 @@ function keptAt(r: number, box: number): number {
 export function framePhoto(facts: PhotoFacts): PhotoFrame {
   const { width, height, focalY } = facts;
   const r = width / height;
+  /* Where the window sits. A hand-aimed image is used as given; a guessed one
+     is braked into its band. Both are then held inside 0..1, because an
+     object-position outside the frame is not a position. */
+  const aim = (band: { lo: number; hi: number }) =>
+    pct(facts.focalSet ? focalY : clamp(focalY, band.lo, band.hi));
 
   /* Square or wider: true shape, never cut, never barred, so a 21:9 is a thin
      strip. Owner, verbatim: "for very wide images like 21:9, our solution
@@ -236,7 +248,7 @@ export function framePhoto(facts: PhotoFacts): PhotoFrame {
       aspectRatio: `${width} / ${height}`,
       /* Only moves once the ceiling is actually cutting, and then only up and
          down, because that is the axis being cut. */
-      objectPosition: `50% ${pct(clamp(focalY, AIM_WIDE_Y.lo, AIM_WIDE_Y.hi))}`,
+      objectPosition: `50% ${aim(AIM_WIDE_Y)}`,
       /* The worst case, at a column wide enough for the cap to bind. On a
          phone no column is, so nothing is cut at all. */
       kept: whole / filled,
@@ -281,8 +293,7 @@ export function framePhoto(facts: PhotoFacts): PhotoFrame {
        do is the plain centre crop. A photograph that keeps all of itself is
        not aimed at all: there is no window to move, and saying otherwise in
        the CSS invites the next reader to believe something is being cut. */
-    objectPosition:
-      shape === r ? "50% 50%" : `50% ${pct(clamp(focalY, AIM_Y.lo, AIM_Y.hi))}`,
+    objectPosition: shape === r ? "50% 50%" : `50% ${aim(AIM_Y)}`,
     kept: keptAt(r, shape),
   };
 }

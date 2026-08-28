@@ -20,6 +20,8 @@ import { ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { SpringPress } from "@/components/common/motion";
 import { AttachImageDialog } from "@/components/common/attach-image-dialog";
+import { PhotoAimButton } from "@/components/common/photo-aim";
+import type { PhotoFacts } from "@/lib/photo-layout";
 import { cn } from "@/lib/utils";
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -44,6 +46,9 @@ export function PhotoAttachments({
      (audit C-182). The Remove button stays live during an upload on purpose --
      waiting for someone else's photo to finish before you can undo your own is
      the worse answer. */
+  /** What the server measured about each stored url, for the crop handle. */
+  const [facts, setFacts] = useState<Record<string, PhotoFacts>>({});
+
   const imagesRef = useRef(images);
   useEffect(() => {
     imagesRef.current = images;
@@ -90,6 +95,18 @@ export function PhotoAttachments({
       }
       // Anything the server changed about the file, said out loud (audit M15).
       for (const notice of (data.notices ?? []) as string[]) toast.info(notice);
+      /* What the server measured, kept rather than dropped: it is the crop
+         handle's starting position, and without it the handle would open at
+         dead centre while the card draws the machine's aim. */
+      if (Array.isArray(data.images)) {
+        setFacts((prev) => {
+          const next = { ...prev };
+          for (const f of data.images as ({ url?: string } & PhotoFacts)[]) {
+            if (f?.url) next[f.url] = f;
+          }
+          return next;
+        });
+      }
       onChange([...imagesRef.current, ...(data.urls as string[])]);
     } catch {
       toast.error("That photo would not upload. Try again.");
@@ -118,6 +135,15 @@ export function PhotoAttachments({
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={src} alt="" className="h-full w-full object-cover" />
+            {/* Only where the answer card is going to cut this photograph.
+                This is the surface the owner complained about by name --
+                "all of their faces are cropped out and you can't see them" --
+                so it is the one that most wants a person deciding. */}
+            <PhotoAimButton
+              src={src}
+              facts={facts[src]}
+              className="absolute bottom-1.5 left-1.5 h-6 w-6"
+            />
             <SpringPress
               as="button"
               onClick={() => onChange(images.filter((_, idx) => idx !== i))}

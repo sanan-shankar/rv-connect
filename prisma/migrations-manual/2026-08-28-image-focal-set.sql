@@ -1,0 +1,25 @@
+-- The uploader has aimed this crop by hand.
+--
+-- Spec §9 calls the crop handle NOT OPTIONAL, and the reason is precise: §1
+-- aims every crop automatically, and the only thing that makes an automatic
+-- aim defensible is that the person who took the photograph can overrule it.
+-- That is X's own replacement for the saliency crop they withdrew after
+-- measuring real bias in it (docs/planning/collection-rework/prior-art.md).
+--
+-- Why a column rather than nothing: `framePhoto` clamps the window's travel
+-- (15%..50% down a tall frame, 25%..75% across a wide one) because sharp's
+-- `attention` is a contrast heuristic and a third of its guesses land within
+-- 3% of an edge. That brake belongs on a GUESS. A person who has dragged the
+-- window has looked at the photograph, and braking them would make the handle
+-- lie -- the window would settle somewhere they did not put it. So the clamp
+-- is switched off for this image once somebody has aimed it.
+--
+-- Not a sentinel inside focalY, because every position a person can choose is
+-- also a position the machine can guess: there is no value of focalY that
+-- could mean "and a human meant this".
+--
+-- Idempotent, per CLAUDE.md: never `prisma db push` against this database.
+-- Apply: node scripts/dev/run-sql.mjs prisma/migrations-manual/2026-08-28-image-focal-set.sql
+--   and: node scripts/dev/run-sql.mjs --env .env.demo prisma/migrations-manual/2026-08-28-image-focal-set.sql
+
+ALTER TABLE "Image" ADD COLUMN IF NOT EXISTS "focalSet" BOOLEAN NOT NULL DEFAULT false;

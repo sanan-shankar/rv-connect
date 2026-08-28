@@ -207,6 +207,21 @@ model Image {
   focalX      Float    @default(0.5)
   focalY      Float    @default(0.5)
 
+  /// True once the UPLOADER has aimed the crop by hand, which turns the clamp
+  /// above off for this image.
+  ///
+  /// The clamp is a brake on a GUESS, not on a person. sharp's `attention` is a
+  /// contrast heuristic that goes for the bright sky -- of the first 41 images
+  /// measured, 14 landed within 3% of an edge -- so a bad guess has to be
+  /// bounded. A person dragging the window has looked at the photograph, and X's
+  /// own conclusion after withdrawing their saliency crop was that "how to crop
+  /// an image is a decision best made by people". Braking them would make the
+  /// handle lie: the window would stop somewhere they did not put it.
+  ///
+  /// Separate column rather than a sentinel value in focalY, because every
+  /// position a person can choose is also a position the machine can guess.
+  focalSet    Boolean  @default(false)
+
   /// True for a photograph with no colour in it, measured rather than declared
   /// (spec §7.4: a filter nobody has to tag for). Sepia and faded prints read as
   /// colour here, which is honest -- they have a hue.
