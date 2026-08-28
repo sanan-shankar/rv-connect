@@ -278,20 +278,26 @@ test("the profession filter arm survives for bookmarked links", () => {
   assert.match(WHERE, /if \(filters\.profession\)/, "the profession arm is gone; C-098's slice boundary above now points at nothing");
 });
 
-test("the Profession control hides rather than offer a single choice", () => {
-  /* The server hands down only the tags that clear TAG_FLOOR, cut to
-     TAG_VISIBLE_MAX. What survives can be ONE: measured on the live database
-     on 2026-08-28, "Studying" holds 25 of the 34 people who have said anything
-     about their work and nothing else reaches five. A dropdown offering a
-     single choice reads as a broken control rather than as a young directory,
-     so it waits until there is something to choose between and arrives on its
-     own as the membership fills in.
+test("the Profession control hides only when it has nothing to offer", () => {
+  /* This gate has been at two values in one day. It was `>= 2`, on the
+     argument that a dropdown offering a single choice reads as a broken
+     control -- and on the live database that is exactly what the data gives,
+     because TAG_FLOOR is five and only "Studying" clears it (25 of the 34
+     people who have said anything; Education, Healthcare and Law sit on 2).
 
-     Pinned because the failure is invisible in a screenshot of today's data --
-     the control is absent either way, whether that is the rule working or the
-     prop having quietly become undefined. */
-  const guard = /\{professions\.length >= 2 && \(/;
-  assert.match(CLIENT, guard, "the single-option gate on the Profession facet is gone");
+     The owner overruled it the same afternoon: "did you make the profession
+     tab disappear from filters? bring it back if it was you". A filter that
+     comes and goes on its own is the worse of the two surprises, and the thin
+     list is a fact about a young directory rather than a fault in the control.
+     Whether it stays thin is a question about TAG_FLOOR, which is his number
+     and lives in profession-tags.ts -- not something this component gets to
+     decide by hiding.
+
+     Pinned because the failure is invisible in a screenshot of today's data:
+     the control looks the same whether the rule is working or the prop has
+     quietly become undefined. */
+  const guard = /\{professions\.length >= 1 && \(/;
+  assert.match(CLIENT, guard, "the Profession facet no longer renders on a one-tag list");
   const gateAt = CLIENT.search(guard);
   const facetAt = CLIENT.indexOf('label="Profession"');
   assert.ok(gateAt !== -1 && gateAt < facetAt, "the Profession facet is no longer inside its gate");

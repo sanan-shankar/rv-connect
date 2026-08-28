@@ -432,16 +432,22 @@ export function DirectoryClient({
             was loose by construction and could only find members whose free
             text happened to contain a bucket's own name.
 
-            HIDDEN BELOW TWO OPTIONS. The server already applies the floor of
-            five and the cap of twelve; what is left can be one, and on the
-            live database today it IS one ("Studying", 25 of the 34 people who
-            have said anything). A dropdown offering a single choice is worse
-            than no dropdown -- it reads as a broken control rather than as a
-            young directory -- so the control arrives on its own when there is
-            something to choose between. The CHIP below is unaffected: a
-            bookmarked ?profession= still shows and still clears, exactly as
-            the removed House filter's does. */}
-        {professions.length >= 2 && (
+            HIDDEN ONLY WHEN THE LIST IS EMPTY. It used to hide below two
+            options, on the argument that a dropdown offering a single choice
+            reads as a broken control; the owner asked for it back on
+            2026-08-28 ("did you make the profession tab disappear from
+            filters? bring it back"), and a filter that comes and goes on its
+            own is the worse of the two surprises.
+            What actually empties it is TAG_FLOOR, his own number: a tag needs
+            five people before it is offered, and on the live database today
+            only "Studying" clears that (25, against Education, Healthcare and
+            Law on 2 each). So this control is one choice wide until either the
+            membership grows into the floor or the floor comes down -- and both
+            of those are his call, not this component's.
+            The CHIP is unaffected either way: a bookmarked ?profession= still
+            shows and still clears, exactly as the removed House filter's
+            does. */}
+        {professions.length >= 1 && (
           <FacetSearchSelect
             label="Profession"
             value={initialFilters.profession}

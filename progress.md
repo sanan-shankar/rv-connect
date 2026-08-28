@@ -6033,3 +6033,24 @@ made the pins read as "humongous circles", because the marker layer counter-scal
 `box.s`, the CSS pixels one viewBox unit occupies -- change the frame and every pin changes size
 with it. That coupling is the thing to solve first if this is ever tried again: the frame and the
 marker scale are one problem, not two.
+
+## 2026-08-28 — the Profession control comes back
+
+"Did you make the profession tab disappear from filters?
+bring it back if it was you": it was. The facet was gated at two or more options, on the argument
+that a one-choice dropdown reads as a broken control, and TAG_FLOOR (five people before a tag is
+offered -- his own number) leaves exactly one on the live database today: Studying, at 25, against
+Education, Healthcare and Law on 2 each. A filter that comes and goes on its own is the worse
+surprise, so the gate is now "has anything at all", and whether the list stays thin is a question
+about the floor rather than about this component. The rule test moved with it.
+
+## 2026-08-28 — the header's two ends start at the same height
+
+Owner: "the search icon and filters sits higher than the directory text. make sure the top of the
+D aligns with the top of the pills." They were 6px apart. The header centred a 30px title against a
+40px action row, so the two ends of one row began at different heights, and a `-mt-[5px]` existed
+purely to cancel the push that centring gave the title. Both are gone: `items-start` puts the two
+tops on the same line, plus one pixel on the cluster because a Libre Baskerville capital's cap
+starts a pixel below its own line box at 30px/leading-none (measured off rendered pixels, not
+metrics). The title does not move -- h1 box top 40 before and after -- the pills come down to it.
+Measured: ink top 41, pill top 41.
