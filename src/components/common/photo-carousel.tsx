@@ -45,7 +45,7 @@
  * ------------------------------------------------------------------ */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { CarouselArrow } from "@/components/common/carousel-arrow";
 import { PhotoBed } from "@/components/common/photo-frame";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import {
@@ -68,17 +68,6 @@ export type CarouselPhoto = {
  *  followed by the eye, short enough not to be waited on. */
 const SLIDE_MS = 460;
 
-/** The rail's geometry, in px, in one place: the dot and the space beside it.
- *  The indicator's travel is a multiple of the two, so a Tailwind class and a
- *  number in a transform must not be allowed to drift apart. */
-const DOT = 6;
-const DOT_GAP = 6;
-
-/** What a photograph nobody has measured is treated as, for its `sizes`
- *  promise only: an ordinary camera landscape. It is drawn filling the frame
- *  regardless, so this decides nothing about layout. */
-const NEUTRAL: PhotoFacts = { width: 3, height: 2, focalX: 0.5, focalY: 0.5 };
-
 const ease = (t: number) => {
   /* EASE_OUT_SMOOTH as a cubic-bezier, evaluated. Newton on x(t) is overkill
      for a 460ms tween, so this samples the curve by bisection -- accurate to
@@ -95,6 +84,17 @@ const ease = (t: number) => {
   }
   return bez(y1, y2, (lo + hi) / 2);
 };
+
+/** The rail's geometry, in px, in one place: the dot and the space beside it.
+ *  The indicator's travel is a multiple of the two, so a Tailwind class and a
+ *  number in a transform must not be allowed to drift apart. */
+const DOT = 6;
+const DOT_GAP = 6;
+
+/** What a photograph nobody has measured is treated as, for its `sizes`
+ *  promise only: an ordinary camera landscape. It is drawn filling the frame
+ *  regardless, so this decides nothing about layout. */
+const NEUTRAL: PhotoFacts = { width: 3, height: 2, focalX: 0.5, focalY: 0.5 };
 
 export function PhotoCarousel({
   photos,
@@ -359,26 +359,23 @@ export function PhotoCarousel({
         const forward = side === 1;
         const disabled = forward ? at === last : at === 0;
         return (
-          <button
+          <CarouselArrow
             key={side}
-            type="button"
-            tabIndex={-1}
-            aria-hidden
-            onClick={() => go(forward ? at + 1 : at - 1)}
+            forward={forward}
+            decorative
+            onPress={() => go(forward ? at + 1 : at - 1)}
             disabled={disabled}
             className={cn(
-              "absolute top-1/2 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full",
-              "bg-paper/85 text-foreground shadow-[0_1px_6px_rgba(0,0,0,0.18)] backdrop-blur-sm",
-              "transition-[opacity,transform] duration-200 ease-out",
-              "hover:scale-[1.06] active:scale-[0.94]",
+              /* `hidden` plus the pointer-fine `grid` is what keeps these off
+                 a touch screen, and it has to beat <CarouselArrow>'s own
+                 `grid` -- hence the media query, which is more specific. */
+              "absolute top-1/2 hidden -translate-y-1/2",
               "opacity-0 group-hover/carousel:opacity-100",
               disabled && "!opacity-0",
               forward ? "right-3" : "left-3",
               "[@media(pointer:fine)]:grid"
             )}
-          >
-            {forward ? <CaretRight size={16} weight="bold" /> : <CaretLeft size={16} weight="bold" />}
-          </button>
+          />
         );
       })}
 
