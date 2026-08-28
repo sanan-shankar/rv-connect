@@ -1,5 +1,35 @@
 # Progress Log
 
+## 2026-08-28 — the approval queue clears in one press
+
+Collection rework, the last of spec sec. 9. `photoTrusted` answers the school photographer's
+SECOND hundred photographs -- bless him once and everything after goes straight in -- and its
+admin toggle already existed on a member's profile, contrary to the handover, which had it
+listed as owed. What did not exist is the answer to the FIRST hundred: clearing a queue one
+press at a time is the thing that stops the archive being opened to him at all.
+
+**A selection, deliberately, not an "approve everything" button.** The ticks are the point: an
+admin has to be able to leave one out. A batch approval with no way to exclude is how a
+photograph nobody looked at reaches the Collection, and an admin who cannot exclude will either
+approve blind or go back to one at a time. `approvePhotos` bounds the id list at 100 before it
+becomes an `IN` clause (a page of the queue is 40), and only touches rows still `approved:
+false`, so a photograph another admin waved through a moment ago keeps THEIR name against it.
+
+**The tick sits on the thumbnail, and that was a measurement rather than a preference.** As a
+column of its own it took 24px out of a row that is already tight: at 390px the caption was cut
+to "A 4x3 spe..." and the contributor's name broke over two lines. On the photograph it costs
+nothing at either width, and "tick this photograph" is what the gesture means anyway. The box
+itself is the house pattern from the composer's "Also add to the Collection" -- 19px, 3px
+radius, canopy when set, which the owner settled over three passes -- with one change, an
+opaque resting fill, because a hairline box over a photograph is a hairline box over anything.
+The bar appears only past one waiting photograph; a single one already has its own Approve
+button two inches to the right.
+
+Verified by seeding five pending photographs against lab specimen urls (so no real bytes were
+ever in reach), ticking all, unticking one, and pressing Approve 4: the database came back four
+approved and one still waiting, and the probe deleted its own rows. Screenshotted at 1440x1000
+and 390x844. `npm run check` green, 86/86; `npm run visual` 23/23, no baseline moved.
+
 ## 2026-08-28 — the uploader moves the crop
 
 Collection rework, spec sec. 9, and it is marked NOT OPTIONAL there for a reason that is about
