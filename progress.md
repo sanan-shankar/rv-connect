@@ -1,5 +1,37 @@
 # Progress Log
 
+## 2026-08-28 — 3:4 is a floor, not a target
+
+The owner, looking at the rebuilt crop room: *"why do we make 4:5 into 3:4? aren't we just
+cutting off material from the side and adding a blur bar when we could just leave that
+material and have less blur bar or am I missing something."*
+
+He was not missing anything; the rule was. A photograph taller than wide was brought to one
+shape, 3:4, and for anything TALLER than 3:4 that is a good trade — a 9:16 gives up its top
+and bottom and is drawn 375px wide instead of 281, so the cut buys picture and shrinks the
+bed. For anything BETWEEN 3:4 and square it was the same trade backwards: a 4:5 lost 6% off
+its sides in order to be drawn 375px wide where its own shape allows 400. Narrower picture,
+wider bed, and a piece of the photograph gone to pay for both. There is no reading of the
+rule that wanted that.
+
+So the tall target is now a floor: **the shape is `max(its own, 3:4)`**. Anything between 3:4
+and square keeps every pixel it arrived with and gets the smallest bed its shape allows;
+anything taller is brought to 3:4 exactly as before. Two things fall out. A cut is now only
+ever made to SHRINK a bed, never to widen one. And a tall photograph is only ever trimmed top
+and bottom, so the sideways aim went with the case that needed it — `AIM_X` is deleted, and a
+photograph that keeps all of itself is no longer given an `object-position` implying it does
+not.
+
+What the old rule bought was one width for every tall card. That is the smaller half of the
+rhythm: the height ceiling already makes every tall card exactly as tall, which is what a
+scroll actually feels. The test that asserted one SIZE now asserts one HEIGHT, and pins the
+widths that differ on purpose — 375 for a 9:16 and a 3:4, 400 for a 4:5.
+
+24 tests on `photo-layout.ts`, all passing. `npm run visual` moved nothing on the feed or
+letters. The gate's two red rows are the third session's Collection river, mid-rewrite: an
+ESLint error in `search-pill.tsx` and `append-page.test.mjs` reading a `handleLoadMore` their
+rewrite has replaced. Neither is in a file I can safely touch.
+
 ## 2026-08-28 — the carousel frame follows the photograph
 
 The owner, looking at one of his own posts: *"why are all the photos fixed at that aspect
