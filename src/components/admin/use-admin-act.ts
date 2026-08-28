@@ -42,13 +42,24 @@ export function useAdminAct(options?: { onDone?: () => void; refreshOnError?: bo
 
   async function act(
     key: string,
-    fn: () => Promise<{ error?: string } | void>,
+    /* Whatever the action hands back; all this cares about is whether there is
+       an `error` string in it.
+
+       It used to say `{ error?: string } | void`, which is a WEAK type -- one
+       whose properties are all optional -- and TypeScript refuses a source
+       that shares no property with it. So an action returning only
+       `{ success: true }` on its happy path did not typecheck here, which is
+       most of them: `declinePhoto` was the one that tripped it. The error hid
+       for a while behind tsc's incremental cache, since this file changes far
+       less often than the actions it calls, and a cold run is the only thing
+       that re-checks the call sites. */
+    fn: () => Promise<Record<string, unknown> | void>,
     done: string
   ): Promise<boolean> {
     setBusy(key);
     try {
       const result = await callAction(fn);
-      if (result && "error" in result && result.error) {
+      if (result && typeof result.error === "string" && result.error) {
         toast.error(result.error);
         if (options?.refreshOnError) router.refresh();
         return false;
