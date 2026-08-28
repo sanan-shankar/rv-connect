@@ -64,7 +64,15 @@ export function BucketTiles({
   className?: string;
 }) {
   return (
-    <div className={cn("grid grid-cols-2 gap-2", className)}>
+    /* THREE COLUMNS, so it is two rows on every screen. The owner asked for
+       exactly this swap on mobile (2026-08-28): "instead of two columns three
+       rows, let's make it three columns two rows -- I think that will still be
+       a big enough touch target." He is right about the target: at 390px this
+       leaves each tile about 103px wide against a 44px minimum, and it buys
+       back a whole row of height in a dialog whose problem was height. The
+       desktop panel is 360px, where the same three columns give 115px, so
+       there is no breakpoint here at all. */
+    <div className={cn("grid grid-cols-3 gap-2", className)}>
       {BUCKETS.map((b) => {
         const on = value.includes(b.value);
         const some = !on && mixed.includes(b.value);
@@ -81,7 +89,13 @@ export function BucketTiles({
               onChange(on ? value.filter((v) => v !== b.value) : [...value, b.value])
             }
             className={cn(
-              "flex min-h-[82px] flex-col items-start justify-between gap-2 rounded-[var(--radius-md)] border p-3 text-left",
+              /* Centred, not left-aligned, and a fixed floor. At two columns
+                 a tile was wide enough that ragged-left read as a list; at
+                 three it is nearly square, where centring is what makes it
+                 read as a button. The floor is two lines tall so that
+                 "School life" wrapping cannot make its row jump past the
+                 others. */
+              "flex min-h-[82px] flex-col items-center justify-center gap-1.5 rounded-[var(--radius-md)] border p-2.5 text-center",
               "transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               on
                 ? "border-canopy bg-canopy text-white"
@@ -107,9 +121,13 @@ export function BucketTiles({
               transition={SPRINGS.snappy}
               className={cn("block", on ? "text-white" : "text-canopy")}
             >
-              <Glyph size={26} weight="duotone" />
+              <Glyph size={24} weight="duotone" />
             </m.span>
-            <span className="text-[13.5px] font-semibold leading-none">{b.label}</span>
+            {/* 14px, not 13.5. The owner on the small type across this flow:
+                "we're just not respecting the user enough, the mobile user."
+                `leading-tight` rather than `leading-none` so a wrapped label
+                has somewhere to put its second line. */}
+            <span className="text-[14px] font-semibold leading-tight">{b.label}</span>
           </m.button>
         );
       })}

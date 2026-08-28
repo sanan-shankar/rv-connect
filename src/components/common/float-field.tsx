@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentProps, ReactNode } from "react";
+import { useCallback, useEffect, useRef, type ComponentProps, type ReactNode } from "react";
 import { InfoTooltip } from "@/components/common/info-tooltip";
 import { cn } from "@/lib/utils";
 
@@ -147,10 +147,39 @@ export function FloatArea({
   hint?: ReactNode;
   containerClassName?: string;
 }) {
+  /* IT GROWS AS YOU TYPE, and starts at whatever `rows` says rather than at
+     the tallest it will ever need to be. The owner, on the contribute room's
+     description box (2026-08-28): "maybe the description isn't a tall
+     rectangle, but it should clearly expand when people are typing." A box
+     drawn at its maximum is asking for an essay before a word is typed, which
+     on a phone is most of the screen spent on emptiness.
+
+     The floor is MEASURED, once, rather than computed: it is whatever height
+     the `rows` attribute gave the box before anything touched it, so this
+     stays true if a caller changes `rows` or the line-height moves. */
+  const area = useRef<HTMLTextAreaElement>(null);
+  const floor = useRef(0);
+  const grow = useCallback(() => {
+    const el = area.current;
+    if (!el) return;
+    if (!floor.current) floor.current = el.clientHeight;
+    /* `auto` first: without it the box can only ever get taller, because
+       scrollHeight of an element with an explicit height is that height. */
+    el.style.height = "auto";
+    el.style.height = `${Math.max(floor.current, el.scrollHeight)}px`;
+  }, []);
+
+  /* Keyed on the value, so it is right after a paste, after the room fills
+     the box in from another photograph's answers, and after the first paint
+     -- not only on the keystrokes an `onInput` would hear. */
+  useEffect(grow, [grow, areaProps.value]);
+
   return (
     <div className={cn("relative", containerClassName)}>
       <textarea
         id={id}
+        ref={area}
+        onInput={grow}
         // Always a placeholder, even if only a space, so :placeholder-shown
         // can stand in for "empty" -- same trick as FloatField.
         placeholder=" "

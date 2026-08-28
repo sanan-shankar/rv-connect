@@ -6431,3 +6431,57 @@ taken", set at 11.5px. The owner: *"that font is just getting too small, we're j
 the user enough, the mobile user."* Four words that each explain themselves do not need eight more
 underneath them in type nobody reads. "Through time" became "Chronological" while it was open,
 because he read the menu back to himself that way.
+
+
+## 2026-08-28 — contributing is a carousel
+
+The owner on the contribute pop-up, mostly about height and mostly about phones: *"there's a big
+gap between the title and the first picture, and there's a gap between the title and the Add More
+as well... on computer it's fine, but on mobile I just want to increase the conversion rate."*
+
+The gap was three stacked paddings and a meta row -- about 55px between the title and the
+photograph, and that row was also what held "Add more" away from the title. The row is deleted
+outright, the count moved under the picture where it belongs, and "Add more" went into the footer
+as the secondary half of the one decision left to make about a drop. Title to picture is 28px now.
+
+THE WALL IS GONE, and that is the real change. His argument was about correctness rather than
+taste: *"firstly it defaults to select all, and then I don't think people are going to go one by
+one and put all the tags... when people upload photos they're generally not going to upload all
+bird photos, so it's not like the tags will carry on for each batch."* Select-all-on-arrival
+quietly promised that one answer fits a whole drop, and a real drop is a birthday, a match and a
+corridor. So the set is a sequence: one photograph at a time, and the one in view is the one you
+are answering for. Nothing is selected, so the ring, the dimming, the shift and cmd click, the
+"3 of 12 selected" line and the half-lit mixed buckets all went with it -- about 130 lines.
+
+The school photographer's hundred still needs an escape, but as a press he reaches for rather than
+a default he has to undo: "Use these answers for all 12" grows in at the foot of the questions,
+only once the current photograph has been given a bucket, a decade or a word, and confirms in
+place rather than firing a toast.
+
+Two things about the stage are worth keeping. It is a FIXED HEIGHT with the picture contained in
+it, which is a different answer from the feed carousel's and deliberately so: this is a filing
+surface, and a panel that changed height on every swipe would move the tile your thumb is already
+travelling to. Measured across a 2:3, a 3:2 and a 16:5 in one drop, the stage stays 240px and the
+"What is it of?" heading stays at 418px, and every picture centres at offset 0.00. And it
+CROSS-FADES rather than sliding, which the owner named himself: *"when you move from one picture
+to another in the image viewer it doesn't slide, it does the crossfade thing -- that's what I
+mean."* So it is <ImageViewer>'s step copied down to its two opposite curves, and for the same
+reason: both frames mounted at once means the paper showing through the cross is
+(1 - outgoing) * (1 - incoming), which peaks at a quarter if both legs share a curve. Sampled
+frame by frame here, it peaks at 0.015.
+
+`object-contain` was the trap in the middle of this. It fits the PICTURE inside the element and
+leaves the ELEMENT at full width, which is invisible until you hang something off a corner: a 2:3
+portrait drew 160px of picture in a 316px box, so the hairline border and the remove button both
+anchored 116px from the photograph. The room already measures every file, so the box is given the
+picture's own ratio and a width that cannot overflow either axis -- arithmetic the browser does on
+the first frame, with no ResizeObserver.
+
+The questions were reordered to what it is of, then when, then the description, and the
+description stopped being a question ("don't say what is this photograph, we can just say add a
+description"). Its hint lost the bolding and both hedges -- "if you know", "a line is plenty, and
+nothing is required" -- which were apologising for a question already asked gently. The box starts
+at two lines and grows as you type instead of sitting open at its full height. Bucket tiles went to
+three columns so they are two rows on every screen, and the type floor across the room went to
+14px: *"we have to make sure we don't use fonts that are too small on mobile, because this is
+getting to become a bad accessibility thing."*
