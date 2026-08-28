@@ -537,14 +537,35 @@
   .card-elevated {
     box-shadow: 0 1px 2px rgb(var(--shadow-ink) / 0.04), 0 18px 40px -28px rgb(var(--shadow-ink) / 0.5);
   }
-  /* The middle dot that separates name/batch/time. Slightly larger and optically
-     centred, in the soft-ink colour, so it reads as a deliberate divider. */
+  /* The middle dot that separates name/batch/time.
+   *
+   * IT IS DRAWN, NOT TYPED. The `·` glyph sits at half the x-height, which is
+   * where it belongs between two lowercase words -- but this dot almost always
+   * separates digits and capitals ("1,240 photographs · Newest"), whose optical
+   * centre is a third higher. The old rule tried to correct for that with
+   * `top: 1px`, which pushed it the wrong way, so the owner read it as "almost
+   * a full stop at the bottom of the line" (2026-08-28). No font-relative nudge
+   * fixes a glyph whose own metrics are the problem.
+   *
+   * So the `·` is kept as the element's text (it is what the markup means, and
+   * these spans are `aria-hidden` anyway) but not rendered, and the dot itself
+   * is a round box sized in `em` so it scales with whatever line it punctuates.
+   *
+   * `overflow: hidden` is load-bearing, not tidiness: it is what makes an
+   * inline-block take its BOTTOM MARGIN EDGE as its baseline instead of its
+   * content's. That turns `vertical-align` into a plain statement about where
+   * the dot's underside sits -- 0.215em up, putting its centre at 0.33em,
+   * which is half of Source Sans 3's cap height. In a flex row (most of the
+   * eighteen sites) `align-items` governs and this is simply inert. */
   .dotsep {
-    font-size: 1.15em;
-    line-height: 0;
-    position: relative;
-    top: 1px;
-    color: var(--muted-foreground);
+    display: inline-block;
+    overflow: hidden;
+    width: 0.23em;
+    height: 0.23em;
+    vertical-align: 0.215em;
+    border-radius: 9999px;
+    background-color: var(--muted-foreground);
+    color: transparent;
     opacity: 0.7;
   }
   /* Frosted glass: a translucent --card with a backdrop blur, for sticky bars
