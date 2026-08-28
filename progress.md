@@ -1,5 +1,69 @@
 # Progress Log
 
+## 2026-08-28 — the owner's round on the Collection rework
+
+He used the shipped thing and came back with eleven asks in one message. All eleven are done.
+The decisions behind them are D40 to D46 in
+`docs/planning/collection-rework/handover.md`; what follows is what a future `git blame` would
+not otherwise recover.
+
+**The yellowing has a general cause, and it is a rung collision rather than a bad colour.**
+He said: *"I don't like the yellowing when it's not selecting. that yellowing appears in many
+places i'd like to get rid of it everywhere."* `--card` (#F5F2EA) is a warm card ON the page
+wash (#E4E1D5): lighter than its surround, so the eye reads a surface. A pop-up is `--float`,
+pure white — so on it the same hex is DARKER than the paper and reads as a stain. Six unlit
+bucket tiles, two Select triggers, a text input and a 54vh drop target were all wearing it
+inside a white modal. Fixed by removing the fills and keeping the borders. **The rule worth
+carrying out of this room: a warm fill only works below the surface it sits on. Inside a white
+modal, draw the line, not the wash.**
+
+**"More" in the viewer was revealing less than a line of text.** `hasMore` was
+`overflows || where || tags.length`, so any photograph with a place name or a bucket carried a
+permanent control to unfold two chips. The chips and the place are simply drawn now, above the
+caption; "More" survives only for a caption that genuinely runs past its two lines.
+
+**The heart was invisible because a prop had been copied as classes.** `LoveButton` has an
+`onDark` flag for exactly the case of floating over a photograph. The viewer's call site had
+hand-copied its two hover classes into `className` and not passed the flag, so it kept
+`state-layer` — an ink tint with nothing to darken on a near-black wash — and the unliked heart
+kept the 0.45 opacity tuned against a warm paper card. On dark it is drawn at full strength with
+a drop shadow, and the fill-versus-outline weight carries the state instead of the opacity.
+
+**Two of his reports turned out to be nothing, and saying so is the finding.** There were no
+tags to remove: both databases checked, zero `freeTags` and zero buckets across the two
+photographs production holds. And "Through time seems to just be the same as newest" is *true*
+on an archive of two undated photographs — so the fix was not to the ordering but to stop
+drawing a heading when there is only one band, since a heading that never changes says nothing.
+The "weird bars behind them" were the price of stickiness: a sticky heading needs a background
+to travel over. The decade rail already says where you are, permanently, so the stickiness went
+and the band and rule went with it.
+
+**"When" stopped announcing ignorance twice before anybody had spoken.** Two dropdowns resting
+on "Year unknown" and "Not sure" meant the commonest answer in a heritage archive — a decade,
+roughly — cost two presses and a scroll through ninety-nine years. It is eight decade pills now,
+newest first in the decade rail's own order, with a year box appearing once a decade is chosen
+and a month once the year is real. **There is deliberately no "Not sure" pill**: nothing lit
+means nobody said, and a control whose pressed and unpressed states mean the same thing is a
+cruelty rather than a courtesy.
+
+**The tagging pass no longer writes captions**, on his instruction, and the distinction is why
+he is right: a bucket and a decade are closed vocabularies checkable by looking, where a wrong
+answer is visible as a wrong answer. A caption is not — a session cannot see a name, a house, a
+year or an occasion, so anything it writes is a description of pixels standing where a member's
+own sentence should be, in a place they would otherwise have filled. `caption` is out of
+`Verdict`, out of the applier's `COLUMNS` and out of the picker's `--all` query. A caption in a
+verdicts file is **dropped, counted and reported**, never refused: a field whose correct
+handling is to ignore it must not cost a batch of good buckets.
+
+**Bug #19 was still real** and shipped fixed in the same commit as the close-out that claimed
+it. The Catch-up photo wall printed `entry.body` raw beside an answer card running the identical
+field through `renderRichText`.
+
+`npm run check` green, 86/86. `npm run visual` 21 passed and no baseline moved; the two failures
+are `/directory` at both viewports, from another session's uncommitted work in this shared tree.
+Measured at 1440x900 and 390x844.
+
+
 ## 2026-08-28 — a contribution's original no longer hides in the archive
 
 The owner asked for click-by-click instructions to add the R2 lifecycle rule this campaign
@@ -5661,3 +5725,44 @@ Measured with the upload stubbed at the network so no bytes reached R2: the menu
 the label 124px, and ticked it fits on one line — it did not at first, because flex's
 `min-width: auto` let the check squeeze the label into two lines, a menu row that changed
 height when you pressed it. `whitespace-nowrap` holds it. Desktop and 390x844 both.
+
+## 2026-08-28 — the directory chrome becomes one row, and House gives its slot to Profession
+
+Owner: "compress the search button on directory and combine the map batches search and
+filtering tastefully into one row instead of two badly spaced ones. also remove filtering by
+house. add by profession even though we don't have those tags yet."
+
+The chrome was two rows: a full-width search bar with Filters on its end, and under it the
+result count facing the view toggle across the whole width of the page. It is one row now:
+back arrow, the Map/Batches toggle, the count and its filter tokens, Filters. Left to right
+it reads the way the question goes, and the gap that used to sit in the middle is where the
+sentence lives.
+
+Search moved to the title line as the app's one expand-on-press pill, the same component
+and springs the Collection's river uses. It was first put at the end of the control row,
+which measured wrong the moment it opened: the pill expands as an OVERLAY rather than
+reflowing its row, and at 390px an open field is 68vw, so it swallowed the Map/Batches
+toggle and the back arrow whole. A phone has no Escape key to shut it with, and the only
+way back to the map was to delete the query by hand. Over a page title it covers nothing
+anybody can press, which is why the Collection puts it there.
+
+Measured at 360, 390, 640 and 1440 with a query and two filters live. The first version
+overflowed 390px by 9px (back 40 + toggle 208 + "Filters · 1" 107 against 350px of column),
+so below sm the Filters button takes the kit's existing `compact` spelling -- icon and
+count, no word -- which buys 47px, and the toggle may shrink rather than hang over the
+gutter. Every width now reports scrollWidth === clientWidth.
+
+House is gone from the panel. Profession is back in its place, which needed the arm under
+it rewritten: it was `where.workplace = <exact value>`, aimed at an onboarding Industry
+select that no longer exists, and it matched 0 of 63 members. It is now a case-insensitive
+contains over jobTitle and then workplace, which finds 28 of 63 on the live database --
+"Law" reaches the lawyer, "Research" the research analyst -- while eleven of the fourteen
+buckets still find nobody, and will until the LLM-derived tag ships. It combines with AND,
+because `q` already owns `where.OR` and a second assignment would have dropped the member's
+search while the box went on showing what they typed.
+
+`directory-rule.test.mjs` said the opposite of all this (the facet was pinned HIDDEN on
+2026-08-26, when the equality arm made it decorative). Its three replacement tests pin the
+pair -- the control and an arm that can actually match somebody -- and still fail the day a
+profession column appears in the schema, telling that session to point the arm at the tag
+and drop the contains.

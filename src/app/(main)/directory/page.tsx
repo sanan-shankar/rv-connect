@@ -3,7 +3,6 @@ import { after } from "next/server";
 import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
-import { PageHeader } from "@/components/layout/page-header";
 import { DirectoryClient } from "@/components/directory/directory-client";
 import { cityCoords, hasOwnPin, normalizeCity } from "@/lib/city-coords";
 import { resolvePlacesFromGazetteer } from "@/lib/geocode";
@@ -354,9 +353,10 @@ export default async function DirectoryPage({
 
   return (
     <div>
-      {/* No subtitle (owner, 2026-08-22): the grid says what the page is. */}
-      <PageHeader
-        guide="directory" title="Directory" />
+      {/* The header is DirectoryClient's own (2026-08-28): its title line now
+          carries the search pill, and the query behind that pill is client
+          state. No subtitle either way (owner, 2026-08-22): the grid says what
+          the page is. */}
       <DirectoryClient
         users={users}
         resultCount={resultCount}
