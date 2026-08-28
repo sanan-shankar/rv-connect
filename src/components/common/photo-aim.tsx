@@ -180,7 +180,7 @@ function AimDialog({
   src: string;
   facts: PhotoFacts;
 }) {
-  const { frame, width, height } = stageOf(facts);
+  const { width, height } = stageOf(facts);
   const start = shownAim(facts);
   const [aim, setAim] = useState(start);
   const [saving, setSaving] = useState(false);
@@ -232,16 +232,18 @@ function AimDialog({
     onOpenChange(false);
   }
 
-  const kept = Math.round(frame.kept * 100);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>What stays in frame</DialogTitle>
+          {/* No percentage. It used to end "...and 62% of it fits", which is a
+              number about the machine rather than about the photograph: the
+              frame beneath already SHOWS what fits, and the fraction only
+              invited a reader to chase it upward. Owner, 2026-08-28. */}
           <DialogDescription>
-            Drag the photograph up or down. This is the shape it takes in a post, and{" "}
-            {kept}% of it fits.
+            Drag the photograph up or down. This is the shape it takes in a post.
           </DialogDescription>
         </DialogHeader>
 

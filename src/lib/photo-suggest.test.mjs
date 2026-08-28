@@ -3,11 +3,9 @@ import assert from "node:assert/strict";
 
 import {
   BUCKET_RULES,
-  SUGGEST_CAPTION_MAX,
   VALLEY_GLOSSARY,
   planChange,
   readVerdicts,
-  tidyCaption,
 } from "./photo-suggest.ts";
 import { BUCKET_VALUES } from "./collection.ts";
 
@@ -26,6 +24,11 @@ import { BUCKET_VALUES } from "./collection.ts";
  *     contributor in the room during a backfill, so the only honest
  *     version of "suggestions are never silent" is that a suggestion
  *     only ever fills a blank.
+ *  3. NO CAPTION IS EVER WRITTEN (owner, 2026-08-28). A session can see
+ *     a tree and a building; it cannot see a name, a house, a year or an
+ *     occasion. A caption in a verdicts file is dropped and counted, not
+ *     refused -- refusing would cost a batch of good buckets over a field
+ *     whose correct handling is to ignore it.
  * ------------------------------------------------------------------ */
 
 const KNOWN = new Set(["a", "b", "c"]);
@@ -34,22 +37,20 @@ const KNOWN = new Set(["a", "b", "c"]);
 const blank = (id = "a") => ({
   id,
   subject: "",
-  caption: null,
   era: null,
   datePrecision: "unknown",
 });
 
 /* ---------------- reading what a session wrote ---------------- */
 
-test("a well-formed verdict is read, de-duplicated and tidied", () => {
+test("a well-formed verdict is read and de-duplicated", () => {
   const { verdicts, problems } = readVerdicts(
-    [{ id: "a", buckets: ["people", "school-life", "people"], caption: "  Assembly,\n  before the bell. " }],
+    [{ id: "a", buckets: ["people", "school-life", "people"] }],
     KNOWN
   );
   assert.deepEqual(problems, []);
   assert.equal(verdicts.length, 1);
   assert.deepEqual(verdicts[0].buckets, ["people", "school-life"]);
-  assert.equal(verdicts[0].caption, "Assembly, before the bell.");
 });
 
 test("both file shapes are accepted: a bare array and { photos: [...] }", () => {
@@ -123,9 +124,34 @@ test("an invented decade is refused, and 'unknown' is simply no answer", () => {
   assert.equal(none.verdicts[0].era, undefined);
 });
 
-test("a caption is cut to the column's own limit", () => {
-  const long = "x".repeat(SUGGEST_CAPTION_MAX + 50);
-  assert.equal(tidyCaption(long).length, SUGGEST_CAPTION_MAX);
+test("a caption is dropped and counted, and the buckets beside it still land", () => {
+  const { verdicts, problems, ignoredCaptions } = readVerdicts(
+    [
+      { id: "a", buckets: ["people"], caption: "Morning assembly under the banyan." },
+      { id: "b", buckets: ["birds"] },
+      { id: "c", buckets: ["nature"], caption: "   " },
+    ],
+    KNOWN
+  );
+  assert.deepEqual(problems, [], "a caption must not cost the batch");
+  assert.equal(verdicts.length, 3);
+  assert.equal(ignoredCaptions, 1, "whitespace is not a caption offered");
+  for (const v of verdicts) {
+    assert.equal("caption" in v, false, "no caption may survive into a verdict");
+  }
+});
+
+test("no plan ever writes the caption column", () => {
+  const change = planChange(blank(), {
+    id: "a",
+    buckets: ["people"],
+    // Not a Verdict field any more; here as the shape a stale caller might
+    // still pass, which must change nothing.
+    caption: "Assembly.",
+    era: "1970s",
+  });
+  assert.equal("caption" in change.set, false);
+  assert.equal("caption" in change.was, false);
 });
 
 /* ---------------- what may be written ---------------- */
@@ -134,12 +160,10 @@ test("a blank row takes everything the verdict offers", () => {
   const change = planChange(blank(), {
     id: "a",
     buckets: ["people", "school-life"],
-    caption: "Assembly.",
     era: "1970s",
   });
   assert.deepEqual(change.set, {
     subject: "people,school-life",
-    caption: "Assembly.",
     era: "1970s",
     datePrecision: "decade",
   });
@@ -149,26 +173,10 @@ test("a blank row takes everything the verdict offers", () => {
 test("a bucket somebody already chose is never replaced", () => {
   const change = planChange(
     { ...blank(), subject: "birds" },
-    { id: "a", buckets: ["people"], caption: "A hoopoe." }
+    { id: "a", buckets: ["people"], era: "1970s" }
   );
   assert.equal(change.set.subject, undefined, "their filing must survive");
-  assert.equal(change.set.caption, "A hoopoe.");
   assert.match(change.kept.join(" "), /already filed/);
-});
-
-test("a caption somebody wrote is never replaced, whitespace-only aside", () => {
-  const theirs = planChange(
-    { ...blank(), caption: "The banyan, this morning." },
-    { id: "a", buckets: ["nature"], caption: "A large tree." }
-  );
-  assert.equal(theirs.set.caption, undefined);
-  assert.match(theirs.kept.join(" "), /already has a caption/);
-
-  const empty = planChange(
-    { ...blank(), caption: "   " },
-    { id: "a", buckets: ["nature"], caption: "A large tree." }
-  );
-  assert.equal(empty.set.caption, "A large tree.");
 });
 
 test("a date somebody gave is never overruled, at any precision", () => {
@@ -193,14 +201,14 @@ test("a decade always brings its precision with it, so the two columns agree", (
 
 test("a fully answered photograph plans no change at all", () => {
   const change = planChange(
-    { id: "a", subject: "people", caption: "Class of 78.", era: "1970s", datePrecision: "year" },
-    { id: "a", buckets: ["nature"], caption: "Some trees.", era: "2020s" }
+    { id: "a", subject: "people", era: "1970s", datePrecision: "year" },
+    { id: "a", buckets: ["nature"], era: "2020s" }
   );
   assert.equal(change, null);
 });
 
 test("every change carries the old values, so it can be undone exactly", () => {
-  const change = planChange(blank(), { id: "a", buckets: ["birds"], caption: "A hoopoe." });
+  const change = planChange(blank(), { id: "a", buckets: ["birds"], era: "1980s" });
   for (const column of Object.keys(change.set)) {
     assert.ok(column in change.was, `${column} is written with no record of what it was`);
   }

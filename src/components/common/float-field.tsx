@@ -1,6 +1,7 @@
 "use client";
 
 import type { ComponentProps, ReactNode } from "react";
+import { InfoTooltip } from "@/components/common/info-tooltip";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ *
@@ -106,6 +107,78 @@ export function FloatField({
       </label>
       {trailing && (
         <div className="absolute right-3 top-1/2 -translate-y-1/2">{trailing}</div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ *  <FloatArea> - the same idea for a paragraph rather than a line.
+ *
+ *  Built here rather than in the one room that needed it (the Collection's
+ *  contribute pop-up) because the float-label rule is the thing being
+ *  shared: the label lives inside the box, rises when the box is focused or
+ *  filled, and is the only text there. A second hand-rolled copy of that in
+ *  a feature folder is how the signup material starts drifting.
+ *
+ *  Two deliberate differences from FloatField:
+ *
+ *  - IT IS DRAWN AS A BORDER, NOT A FILL. FloatField's mist well is right on
+ *    the page wash, where a fill sits LIGHTER than its surround and reads as
+ *    a box. A pop-up is pure white (--float): every warm fill is darker than
+ *    the paper and reads as a stain instead, which is exactly what the owner
+ *    called "the yellowing" (2026-08-28). A hairline says the same thing on
+ *    white and costs nothing on any other surface.
+ *  - THE LABEL IS ANCHORED TO THE TOP, not the vertical centre. A three-line
+ *    box has no middle to sit in; the resting label lines up with the first
+ *    line of text and rises out of it.
+ * ------------------------------------------------------------------ */
+export function FloatArea({
+  id,
+  label,
+  hint,
+  className,
+  containerClassName,
+  ...areaProps
+}: ComponentProps<"textarea"> & {
+  id: string;
+  label: string;
+  /** What goes behind the (i). Omit it and no icon is drawn. */
+  hint?: ReactNode;
+  containerClassName?: string;
+}) {
+  return (
+    <div className={cn("relative", containerClassName)}>
+      <textarea
+        id={id}
+        // Always a placeholder, even if only a space, so :placeholder-shown
+        // can stand in for "empty" -- same trick as FloatField.
+        placeholder=" "
+        className={cn(
+          "peer w-full resize-none rounded-[var(--radius-input)] border border-border bg-transparent",
+          "px-4 pb-3 pt-[1.625rem] text-base leading-snug text-foreground outline-none",
+          "transition-colors duration-150 focus:border-canopy disabled:opacity-50",
+          "placeholder:text-transparent",
+          hint && "pr-10",
+          className
+        )}
+        {...areaProps}
+      />
+      <label
+        htmlFor={id}
+        className={cn(
+          "pointer-events-none absolute left-4 top-[1.0625rem] origin-left text-base text-muted-foreground",
+          "transition-transform duration-200 ease-out",
+          "peer-focus:translate-y-[-0.72rem] peer-focus:scale-[0.72]",
+          "peer-[:not(:placeholder-shown)]:translate-y-[-0.72rem] peer-[:not(:placeholder-shown)]:scale-[0.72]"
+        )}
+      >
+        {label}
+      </label>
+      {hint && (
+        <div className="absolute right-2.5 top-2.5">
+          <InfoTooltip label="What to write" side="bottom">{hint}</InfoTooltip>
+        </div>
       )}
     </div>
   );

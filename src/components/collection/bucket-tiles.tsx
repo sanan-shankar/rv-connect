@@ -87,7 +87,16 @@ export function BucketTiles({
                 ? "border-canopy bg-canopy text-white"
                 : some
                   ? "border-canopy/40 bg-canopy/[0.08] text-foreground"
-                  : "state-layer border-border bg-card text-foreground"
+                  /* No fill at rest, and that is the whole of the owner's
+                     complaint about these: "I don't like the yellowing when
+                     it's not selecting." `bg-card` is #F5F2EA, which reads
+                     as a warm card ON the page wash it was drawn for -- but
+                     these live inside a pop-up, and a pop-up is pure white
+                     (--float). Cream on white is not a surface, it is a
+                     stain. The tile keeps its border and its ink hover; the
+                     one filled state in the set is the one that means
+                     something. */
+                  : "state-layer border-border text-foreground"
             )}
           >
             <m.span

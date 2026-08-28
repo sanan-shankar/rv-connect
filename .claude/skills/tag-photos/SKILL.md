@@ -1,6 +1,6 @@
 ---
 name: tag-photos
-description: Fill in the Valley Collection's buckets, captions and decades for photographs nobody tagged. Use when asked to tag, classify, describe or file Collection photographs, or to run the suggestion pass. Looks at the photographs on disk and writes answers back through a dry-run-by-default script.
+description: Fill in the Valley Collection's buckets and decades for photographs nobody filed. Use when asked to tag, classify or file Collection photographs, or to run the suggestion pass. Looks at the photographs on disk and writes answers back through a dry-run-by-default script. It never writes captions.
 ---
 
 # Tagging the Collection
@@ -42,7 +42,7 @@ Read-only against the database. It writes `.tagging/`:
   contributor already typed**
 
 Default is every photograph with **no bucket**, newest first, sixty at a time.
-`--all` widens it to anything still missing a caption or a date. Run it again
+`--all` widens it to anything still missing a date. Run it again
 for the next sixty: it only ever exports what is still untagged, so repeating
 it walks the archive rather than re-reading it. The count it prints is how many
 are outstanding in total.
@@ -62,16 +62,15 @@ Write `.tagging/verdicts.json`:
 ```json
 {
   "photos": [
-    { "id": "clx…", "buckets": ["people", "school-life"],
-      "caption": "Morning assembly under the banyan.", "era": "1970s" },
+    { "id": "clx…", "buckets": ["people", "school-life"], "era": "1970s" },
     { "id": "cly…", "buckets": ["birds"] }
   ]
 }
 ```
 
-`buckets` is required and is the only required field. `caption` and `era` are
-offered only where the photograph really says one. A bare array instead of
-`{ "photos": [...] }` is accepted too.
+`buckets` is required and is the only required field. `era` is offered only
+where the photograph itself dates it. **There is no caption field** — see
+below. A bare array instead of `{ "photos": [...] }` is accepted too.
 
 ### The six buckets, and how to choose between them
 
@@ -91,20 +90,23 @@ bucket arriving without anyone having had to guess in advance. That feedback
 loop is the whole reason Other exists, and forcing photographs into a bucket
 that nearly fits is how it gets defeated.
 
-### Captions — the part where you can do real damage
+### Do not write captions
 
-This is a real school's archive and these are real people. **Never write a name
-into a caption.** You cannot tell one person, one house or one year from
-another by looking, and a confident wrong name in the school's own archive is
-much worse than no caption at all. If a name is already in what the contributor
-typed, it is theirs and you do not need to repeat it.
+**This pass does not caption anything.** The owner, 2026-08-28: *"tagging tool
+should not write captions."*
 
-Describe what is in the frame, plainly, in one line, in the house voice —
-`docs/spec/DESIGN-SYSTEM.md` for that, and no em dashes. "Morning assembly
-under the banyan" rather than "A vibrant gathering of students beneath a
-majestic tree". If a photograph does not say anything worth a line, leave
-`caption` out. An empty field is honest; a padded one is noise the search box
-then has to carry forever.
+The reason is the shape of what you can and cannot see. A bucket and a decade
+are checkable by looking: a bird is a bird, black-and-white film is a decade's
+worth of evidence, and both are closed vocabularies where a wrong answer is
+visible as a wrong answer. A caption is not. You cannot see a name, a house, a
+year, an occasion or whose morning it was, so anything you write is a
+description of pixels standing in a real school's archive in the place where
+somebody's own sentence should be — and it is worse than a blank, because a
+blank invites the person who was there to fill it and a caption does not.
+
+If you put a `caption` on an entry anyway, the applier drops it, counts it and
+says so in the dry run. It does not refuse the batch: your buckets and decades
+still land.
 
 ### Decades
 
@@ -132,11 +134,12 @@ exactly which columns it would set and what it is leaving alone.
 
 What the applier guarantees, so you do not have to:
 
-- **It only fills what is empty.** A caption somebody wrote, a bucket somebody
-  chose, a date somebody gave — never touched. The rule and its tests are in
+- **It only fills what is empty.** A bucket somebody chose, a date somebody
+  gave — never touched. The rule and its tests are in
   `src/lib/photo-suggest.ts`.
-- **It re-reads the rows** at apply time, so a photograph captioned in the
-  hours since the batch was picked keeps its caption.
+- **It never writes a caption**, whatever the verdicts file says.
+- **It re-reads the rows** at apply time, so a photograph filed in the hours
+  since the batch was picked keeps what its contributor chose.
 - **It refuses a seventh bucket**, an unknown decade, an id outside the batch,
   and the same photograph answered twice.
 - **Every write leaves an undo.** `.tagging/applied-<time>.json` holds the old

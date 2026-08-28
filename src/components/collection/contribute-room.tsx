@@ -25,8 +25,8 @@
  *    photographs being a chore and being a five-minute job, and it is
  *    the thing to get right before anything decorative.
  *  - The questions are asked in plain words beside the wall, not under
- *    it: "What is this?", not "Caption". One field, six tiles, when, and
- *    where.
+ *    it: "What is this photograph?", not "Caption". One field, six tiles,
+ *    and when.
  *  - Nothing is required. A contribution refused for want of a tag is a
  *    contribution that does not happen, and the owner has said plainly
  *    he cannot expect people to fill anything in.
@@ -40,9 +40,13 @@
  *  own scroll -- and it keeps everything the room had. The three ways in
  *  are named because he asked for them by name: paste, drop, browse.
  *
- *  Spec sec. 8. The parts still owed after this are sec. 8.3 (the LLM
- *  suggestion pass), sec. 9's crop handle, and the trusted-contributor
- *  admin control.
+ *  Spec sec. 8. Revised 2026-08-28 against the owner's own read of the
+ *  shipped room, and every one of those changes is annotated where it
+ *  lives: the invitation is smaller and names the clipboard only on a
+ *  machine that has one, the two overlapping prose fields are one
+ *  description on the signup's float-label material, "when" is decade
+ *  pills instead of two dropdowns, and nothing at rest is filled with
+ *  cream -- "I don't like the yellowing when it's not selecting."
  * ------------------------------------------------------------------ */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -55,11 +59,9 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -68,10 +70,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PhotoStream } from "@/components/common/photo-rows";
+import { FloatArea } from "@/components/common/float-field";
 import { EASE_OUT_SMOOTH, SPRINGS } from "@/components/common/motion";
 import { ContributedHoopoe } from "@/components/mascot/moments/contributed-hoopoe";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
-import { ERAS, PHOTO_YEAR_MIN, eraLabel } from "@/lib/collection";
+import { ERAS, PHOTO_YEAR_MIN } from "@/lib/collection";
 import { contributePhoto, contributePhotoDirect } from "@/app/(main)/collection/actions";
 import { directUploadPut } from "@/lib/upload-client";
 import { shrinkForUpload } from "@/lib/image-downscale";
@@ -84,9 +87,6 @@ const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
-
-const NOT_SURE = "not-sure";
-const NO_MONTH = "no-month";
 
 /** How many files climb to the bucket at once. Three, because a browser gives
  *  six connections per origin and the rest of the page still has to load its
@@ -118,44 +118,89 @@ type Staged = {
   key?: string;
 };
 
-/** What the questions answer, per photograph. */
+/** What the questions answer, per photograph.
+ *
+ *  `area` used to be here as a third field, "Where in the valley?". The
+ *  owner deleted it: "remove where in the valley. we should prompt them to
+ *  include that in the description." Two boxes asking for prose about one
+ *  photograph is how you get one of them left blank; search cannot tell the
+ *  two columns apart anyway (spec §7.2), so the place is now something the
+ *  description's own hint asks for. Existing rows keep whatever they were
+ *  given, and the viewer still prints it.
+ *
+ *  The date is three fields because a contributor may know any amount:
+ *  nothing (leave it), a decade (one press), a year, a month. `decade` is ""
+ *  for "nobody said", never "unknown" -- nothing lit is the resting state,
+ *  and a lit "Not sure" pill that meant exactly the same thing was the one
+ *  cruelty in the old two-dropdown version. */
 type Meta = {
   caption: string;
-  area: string;
   buckets: string[];
-  year: string;
-  month: string;
+  /** An ERAS value, or "" when nobody has said. */
   decade: string;
+  /** Digits as typed. Only counts once it is a real four-digit year. */
+  year: string;
+  /** A month name from MONTHS, or "" -- and only ever alongside a year. */
+  month: string;
 };
 
 const EMPTY_META: Meta = {
   caption: "",
-  area: "",
   buckets: [],
-  year: NOT_SURE,
-  month: NO_MONTH,
-  decade: "unknown",
+  decade: "",
+  year: "",
+  month: "",
 };
 
-/** The date fields exactly as both contribute paths encode them. */
+/** Is what has been typed into the year box actually a year? The valley's own
+ *  year at the top, matching the server validator that will judge it. */
+const yearGiven = (typed: string) => {
+  const n = Number(typed);
+  return typed.length === 4 && n >= PHOTO_YEAR_MIN && n <= valleyYear();
+};
+
+/** The date fields exactly as both contribute paths encode them.
+ *
+ *  A half-typed year degrades to the decade rather than being refused: "197"
+ *  in the box with 1970s lit files under the 1970s, which is true, instead
+ *  of failing validation on the way to the server. */
 function dateMeta(meta: Meta) {
-  if (meta.year !== NOT_SURE) {
-    const monthIndex = MONTHS.indexOf(meta.month); // -1 when NO_MONTH
+  if (yearGiven(meta.year)) {
+    const monthIndex = MONTHS.indexOf(meta.month);
     return monthIndex >= 0
       ? { photoYear: Number(meta.year), photoMonth: monthIndex + 1, datePrecision: "month" }
       : { photoYear: Number(meta.year), datePrecision: "year" };
   }
   return {
-    era: meta.decade,
-    datePrecision: meta.decade === "unknown" ? "unknown" : "decade",
+    era: meta.decade || "unknown",
+    datePrecision: meta.decade ? "decade" : "unknown",
   };
 }
 
-function yearOptions(): number[] {
-  const out: number[] = [];
-  // The valley's year, matching the server validator that will judge it.
-  for (let y = valleyYear(); y >= PHOTO_YEAR_MIN; y--) out.push(y);
-  return out;
+/** The decades as pills: newest first, matching the Collection's own decade
+ *  rail, and without the "Not sure" entry -- here, nothing pressed IS not
+ *  sure. */
+const DECADE_PILLS = ERAS.filter((e) => e.value !== "unknown").slice().reverse();
+
+/** Whether this is a machine with a cursor and a clipboard you can paste
+ *  from -- which is the honest test for "should the invitation say the word
+ *  clipboard". Not a width: a 1024px iPad has neither, and a small laptop
+ *  window has both.
+ *
+ *  False until the first effect runs, so the server and the first client
+ *  frame agree and the heading never swaps under a reader. The safe default
+ *  is the shorter sentence: a phone that briefly reads "drag and drop or
+ *  browse" is right, a desktop that briefly omits paste loses nothing. */
+function usePointerFine(): boolean {
+  const [fine, setFine] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const sync = () => setFine(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return fine;
 }
 
 /** Read a file's own shape, which is what the justified rows are solved from.
@@ -175,10 +220,19 @@ function measure(file: File): Promise<{ preview: string; width: number; height: 
 }
 
 /* ------------------------------------------------------------------ *
- *  The pop-up. Most of the glass, because a wall of two hundred
- *  photographs needs room, and its own scroll so the Add button and the
- *  questions never leave the screen while you are looking at them.
- *  Everything inside is the same room; only its container changed.
+ *  The pop-up. Most of the glass ONCE THERE IS SOMETHING TO SHOW: a wall
+ *  of two hundred photographs needs room, and its own scroll so the Add
+ *  button and the questions never leave the screen while you are looking
+ *  at them. Everything inside is the same room; only its container
+ *  changed.
+ *
+ *  It opens small. A 1150px pop-up holding one sentence and one button is
+ *  a letterbox, and the invitation shrank on the owner's instruction
+ *  ("make the box smaller it's unnecessarily big") only for the glass
+ *  around it to keep the same emptiness. So the dialog is a normal small
+ *  dialog until photographs land and then it takes the room it needs --
+ *  which reads as the space opening up for your pictures, not as a jump.
+ *  Not animated: width is neither transform nor opacity.
  * ------------------------------------------------------------------ */
 export function ContributeDialog({
   open,
@@ -191,24 +245,75 @@ export function ContributeDialog({
   autoApproved: boolean;
   roomLeft: number;
 }) {
+  const [wall, setWall] = useState(0);
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] w-full max-w-[calc(100%-1.5rem)] flex-col overflow-hidden p-0 sm:max-w-6xl">
-        <DialogHeader className="shrink-0 px-5 pt-5 text-left sm:px-6 sm:pt-6">
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        onOpenChange(v);
+        // So a room reopened after a contribution starts small again.
+        if (!v) setWall(0);
+      }}
+    >
+      <DialogContent
+        className={cn(
+          "flex max-h-[90vh] w-full max-w-[calc(100%-1.5rem)] flex-col overflow-hidden p-0",
+          /* `sm:max-w-lg` and `sm:max-w-6xl` deliberately, and both are
+             classes this codebase already ships (the crop dialog uses the
+             first, this room already used the second). An earlier pass here
+             reached for `sm:max-w-2xl`, which no other file had ever
+             written -- so it was a brand-new rule in the generated
+             stylesheet, and a browser holding a cached sheet from before
+             the edit fell back to `max-w-[calc(100%-1.5rem)]` and drew the
+             pop-up edge to edge. That is what the owner saw: "why tf is
+             this full screen now". Picking a utility already in the sheet
+             costs nothing and cannot do that. */
+          wall > 0 ? "sm:max-w-6xl" : "sm:max-w-lg"
+        )}
+      >
+        <DialogHeader
+          className={cn(
+            "shrink-0 text-left",
+            /* ONE HEADING ON SCREEN AT A TIME, and which one depends on
+               what the room is doing.
+
+               With photographs on the wall this is the room's name and it
+               sits where a dialog title belongs. With nothing dropped yet
+               the invitation below owns the words -- the owner asked for
+               "drag and drop, browse or paste from your clipboard" to be
+               THE heading -- and a second, smaller heading above it read
+               as a mistake rather than a hierarchy: "the title small than
+               the rest it looks so ruined". So the title goes to the
+               screen readers only, and the sentence he asked for is the
+               only thing set large. */
+            wall > 0 ? "px-5 pt-5 sm:px-6 sm:pt-6" : "sr-only"
+          )}
+        >
           {/* pr-10 clears the close button, which sits inside the panel at
               the top right: at 390px the title ran straight into it. */}
           <DialogTitle className="pr-10 font-heading text-[23px] leading-tight tracking-[-0.02em]">
             Add to the valley&rsquo;s memory
           </DialogTitle>
-          <DialogDescription className="mt-1.5">
-            Paste, drop or browse. As many photographs as you like, all at once.
-          </DialogDescription>
+          {/* No description under the title. It said "Paste, drop or browse.
+              As many photographs as you like, all at once" -- the same
+              sentence the invitation below says in larger type, six
+              centimetres lower, which is where the eye actually is. Two
+              copies of one instruction is one too many (owner, 2026-08-28).
+              A DialogTitle carries the accessible name on its own. */}
         </DialogHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 pt-4 sm:px-6 sm:pb-6">
+        <div
+          className={cn(
+            "min-h-0 flex-1 overflow-y-auto px-5 pb-5 sm:px-6 sm:pb-6",
+            // With the title hidden, the close button has nothing above the
+            // content to sit beside, so the room makes room for it itself.
+            wall > 0 ? "pt-4" : "pt-11 sm:pt-12"
+          )}
+        >
           <ContributeRoom
             autoApproved={autoApproved}
             roomLeft={roomLeft}
             active={open}
+            onWall={setWall}
             onDone={() => onOpenChange(false)}
           />
         </div>
@@ -221,8 +326,12 @@ export function ContributeRoom({
   autoApproved,
   roomLeft,
   active = true,
+  onWall,
   onDone,
 }: {
+  /** How many photographs are on the wall right now. The pop-up around this
+   *  sizes itself from it; the standalone lab room ignores it. */
+  onWall?: (count: number) => void;
   /** Close the pop-up. Seeing what was just added IS closing it: the
    *  Collection is the page behind, and it refreshed as they landed. */
   onDone?: () => void;
@@ -248,6 +357,12 @@ export function ContributeRoom({
   const [added, setAdded] = useState<number | null>(null);
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  /* Told, not read: the pop-up around this owns its own width and this is
+     the only thing it needs from the room. */
+  useEffect(() => {
+    onWall?.(photos.length);
+  }, [photos.length, onWall]);
 
   /* Object URLs are a real allocation, not a string: a hundred photographs at
      five megabytes is half a gigabyte the tab keeps until it is told
@@ -479,7 +594,6 @@ export function ContributeRoom({
         : EMPTY_META[k];
     return {
       caption: agree("caption"),
-      area: agree("area"),
       buckets: agree("buckets"),
       year: agree("year"),
       month: agree("month"),
@@ -564,7 +678,6 @@ export function ContributeRoom({
     const m0 = meta[p.id] ?? EMPTY_META;
     const common = {
       caption: m0.caption.trim() || undefined,
-      area: m0.area.trim() || undefined,
       buckets: m0.buckets,
       ...dateMeta(m0),
     };
@@ -585,7 +698,6 @@ export function ContributeRoom({
     const fd = new FormData();
     fd.set("file", ready.files[0]);
     if (common.caption) fd.set("caption", common.caption);
-    if (common.area) fd.set("area", common.area);
     for (const b of m0.buckets) fd.append("buckets", b);
     if (common.photoYear !== undefined) fd.set("photoYear", String(common.photoYear));
     if (common.photoMonth !== undefined) fd.set("photoMonth", String(common.photoMonth));
@@ -835,24 +947,43 @@ export function ContributeRoom({
                     : `${selected.length} of ${photos.length} selected`}
               </p>
 
-              <label className="sr-only" htmlFor="contribute-caption">
-                What is this?
-              </label>
-              <textarea
+              {/* THE DESCRIPTION, and it is the one field left.
+                  Three things changed here on 2026-08-28, all the owner's:
+
+                  - The floating label, not a grey placeholder. "the grey
+                    text placeholder isn't good" -- and it is right, because
+                    a placeholder is the question and it leaves the moment
+                    you answer it, so a filled box no longer says what it
+                    holds. This is the signup's own material (FloatArea, the
+                    textarea sibling of the field the Revolut-inspired
+                    sign-in uses), which is the standard he asked this whole
+                    flow to be held to.
+                  - The (i), which is where "what, where, why" now lives.
+                    Where-in-the-valley used to be a second box; it is a
+                    sentence in the hint instead.
+                  - No fill. See the bucket tiles: cream on a white pop-up is
+                    the yellowing. The border draws the box. */}
+              <FloatArea
                 id="contribute-caption"
-                rows={2}
+                label="What is this photograph?"
+                rows={3}
+                maxLength={300}
                 value={shown.caption}
                 disabled={!selected.length}
                 onChange={(e) => answer({ caption: e.target.value.slice(0, 300) })}
-                placeholder="What is this? A word or two is plenty."
-                /* No border and no label. It is the first thing in the panel
-                   and the placeholder says what it wants, so a box around it
-                   would only make it look like a form. */
-                className="w-full resize-none bg-transparent text-[16.5px] leading-snug text-foreground outline-none placeholder:text-muted-foreground/70 disabled:opacity-50"
+                hint={
+                  <>
+                    Anything you remember. <strong className="font-semibold">What</strong> is
+                    happening, <strong className="font-semibold">where</strong> in the valley it
+                    was, and <strong className="font-semibold">who</strong> is in it if you know.
+                    A line is plenty, and nothing is required.
+                  </>
+                }
               />
 
-              <div className="my-3 h-px bg-border" aria-hidden />
-
+              <p className="mb-2 mt-5 text-[13px] font-semibold text-foreground">
+                What is it of?
+              </p>
               <BucketTiles
                 value={shown.buckets}
                 mixed={mixedBuckets}
@@ -860,86 +991,16 @@ export function ContributeRoom({
                 className={cn(!selected.length && "pointer-events-none opacity-50")}
               />
 
-              <div className="mt-4 space-y-2.5">
-                <div className="grid grid-cols-2 gap-2">
-                  <Select
-                    value={shown.year}
-                    onValueChange={(v) => answer({ year: v ?? NOT_SURE, month: NO_MONTH })}
-                    disabled={!selected.length}
-                  >
-                    <SelectTrigger className="bg-card">
-                      {/* Explicit label render: the Select only learns an
-                          item's label once its content has mounted, so the
-                          sentinel would show its raw value on first paint. */}
-                      <SelectValue placeholder="Year">
-                        {(v: string) => (v === NOT_SURE ? "Year unknown" : v)}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NOT_SURE}>Year unknown</SelectItem>
-                      {yearOptions().map((y) => (
-                        <SelectItem key={y} value={String(y)}>
-                          {y}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  {shown.year !== NOT_SURE ? (
-                    <Select
-                      value={shown.month}
-                      onValueChange={(v) => answer({ month: v ?? NO_MONTH })}
-                      disabled={!selected.length}
-                    >
-                      <SelectTrigger className="bg-card">
-                        <SelectValue placeholder="Month">
-                          {(v: string) => (v === NO_MONTH ? "Month" : v)}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={NO_MONTH}>Month</SelectItem>
-                        {MONTHS.map((mo) => (
-                          <SelectItem key={mo} value={mo}>
-                            {mo}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Select
-                      value={shown.decade}
-                      onValueChange={(v) => answer({ decade: v ?? "unknown" })}
-                      disabled={!selected.length}
-                    >
-                      <SelectTrigger className="bg-card">
-                        <SelectValue placeholder="Decade">
-                          {(v: string) => eraLabel(v)}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ERAS.map((e) => (
-                          <SelectItem key={e.value} value={e.value}>
-                            {e.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-
-                <Input
-                  value={shown.area}
-                  disabled={!selected.length}
-                  onChange={(e) => answer({ area: e.target.value.slice(0, 100) })}
-                  placeholder="Where in the valley?"
-                  className="bg-card"
-                />
-              </div>
+              <WhenAsked
+                meta={shown}
+                disabled={!selected.length}
+                onAnswer={answer}
+              />
             </div>
 
             <Button
               variant="primary"
-              className="mt-3 w-full rounded-full"
+              className="mt-5 w-full rounded-full"
               disabled={adding || !photos.length}
               onClick={fileAll}
             >
@@ -947,11 +1008,12 @@ export function ContributeRoom({
                 ? "Adding..."
                 : `Add ${photos.length} ${photos.length === 1 ? "photograph" : "photographs"}`}
             </Button>
-            <p className="mt-2 text-center text-[12px] leading-relaxed text-muted-foreground">
-              {autoApproved
-                ? "Yours go straight into the Collection."
-                : "An admin looks at new photographs before they appear."}
-            </p>
+            {/* Same as the invitation: only the half that is news. */}
+            {!autoApproved && (
+              <p className="mt-2 text-center text-[12px] leading-relaxed text-muted-foreground">
+                An admin looks at new photographs before they appear.
+              </p>
+            )}
           </aside>
         </div>
       )}
@@ -959,7 +1021,165 @@ export function ContributeRoom({
   );
 }
 
-/** Before anything has been dropped. */
+/* ------------------------------------------------------------------ *
+ *  WHEN WAS IT TAKEN.
+ *
+ *  The owner on the version this replaces: "even the year and month and
+ *  decade thing could be done in a cuter way. the idea is good but
+ *  execution could be improved." What was there: two dropdowns side by
+ *  side, resting on the words "Year unknown" and "Not sure" -- so the
+ *  commonest answer in a heritage archive (a decade, roughly) cost two
+ *  presses and a scroll through ninety-nine years to reach, and the
+ *  resting state announced ignorance twice before anybody had said
+ *  anything.
+ *
+ *  This is the same three facts, asked in the order people actually know
+ *  them, and it costs one tap for most photographs:
+ *
+ *    ROUGHLY WHEN?   eight decades as pills, newest first, in the
+ *                    Collection's own vocabulary and its own order (the
+ *                    decade rail reads top-down from 2020s). One tap. Press
+ *                    the lit one again to unsay it.
+ *    EXACT YEAR?     appears only once a decade is chosen, because that is
+ *                    when the question makes sense, and it is a four-box
+ *                    numeric field rather than a hundred-item list.
+ *    MONTH?          appears only once the year is a real year. The rarest
+ *                    thing anybody knows, so it is last and it is small.
+ *
+ *  Nothing lit means nobody said, which files under Undated. There is no
+ *  "Not sure" pill, on purpose: it would have been a control whose pressed
+ *  and unpressed states meant the same thing.
+ * ------------------------------------------------------------------ */
+function WhenAsked({
+  meta,
+  disabled,
+  onAnswer,
+}: {
+  meta: Meta;
+  disabled: boolean;
+  onAnswer: (patch: Partial<Meta>) => void;
+}) {
+  const hasYear = yearGiven(meta.year);
+  return (
+    <div className={cn("mt-5", disabled && "pointer-events-none opacity-50")}>
+      <p className="mb-2 text-[13px] font-semibold text-foreground">
+        When was it taken?{" "}
+        <span className="font-normal text-muted-foreground">if you know</span>
+      </p>
+
+      <div className="flex flex-wrap gap-1.5">
+        {DECADE_PILLS.map((e) => {
+          const on = meta.decade === e.value;
+          return (
+            <m.button
+              key={e.value}
+              type="button"
+              aria-pressed={on}
+              whileTap={{ scale: 0.94 }}
+              transition={SPRINGS.snappy}
+              onClick={() =>
+                /* Pressing the lit one unsays it, and takes the year and
+                   month with it -- a year inside a decade nobody is
+                   claiming any more is a fact with nothing under it. */
+                onAnswer(
+                  on
+                    ? { decade: "", year: "", month: "" }
+                    : { decade: e.value, year: "", month: "" }
+                )
+              }
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-[13px] font-medium tabular-nums",
+                "transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                on
+                  ? "border-canopy bg-canopy text-white"
+                  : "state-layer border-border text-foreground"
+              )}
+            >
+              {e.label}
+            </m.button>
+          );
+        })}
+      </div>
+
+      {/* The finer questions, and they arrive rather than waiting. Height
+          and opacity are what an accordion has to animate; this is a small
+          block at the bottom of a panel, so nothing below it moves. */}
+      <AnimatePresence initial={false}>
+        {meta.decade && (
+          <m.div
+            key="finer"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.18, ease: EASE_OUT_SMOOTH }}
+            className="mt-2.5 flex items-center gap-2"
+          >
+            <label
+              htmlFor="contribute-year"
+              className="shrink-0 text-[13px] text-muted-foreground"
+            >
+              Exact year?
+            </label>
+            <input
+              id="contribute-year"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
+              maxLength={4}
+              placeholder={meta.decade === "pre-1960s" ? "1957" : meta.decade.slice(0, 3) + "4"}
+              value={meta.year}
+              onChange={(e) =>
+                onAnswer({ year: e.target.value.replace(/\D/g, "").slice(0, 4), month: "" })
+              }
+              className={cn(
+                "w-[5.5rem] rounded-[var(--radius-input)] border border-border bg-transparent",
+                "px-3 py-1.5 text-[15px] tabular-nums text-foreground outline-none",
+                "transition-colors duration-150 focus:border-canopy",
+                "placeholder:text-muted-foreground/60"
+              )}
+            />
+            {hasYear && (
+              <Select
+                value={meta.month}
+                onValueChange={(v) => onAnswer({ month: v ?? "" })}
+              >
+                <SelectTrigger className="h-auto min-w-0 flex-1 py-1.5">
+                  <SelectValue placeholder="Month">
+                    {(v: string) => v || "Month"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((mo) => (
+                    <SelectItem key={mo} value={mo}>
+                      {mo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </m.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/** Before anything has been dropped.
+ *
+ *  Three things the owner changed on 2026-08-28, and each is visible here:
+ *
+ *  1. IT IS SMALLER. It used to reserve `min-h-[54vh]` and 64px of vertical
+ *     padding around a 64px glyph -- "make the box smaller it's
+ *     unnecessarily big" -- for a screen whose whole job is one sentence and
+ *     one button.
+ *  2. IT IS NOT CREAM. `bg-card` on a pure-white pop-up is the "yellowing"
+ *     he asked to be rid of. The box keeps its border, which is what tells
+ *     you where to drop; there is nothing else it needs.
+ *  3. THE HEADING NAMES THE THREE WAYS IN, and names the clipboard only
+ *     where there is one. A phone has no paste, and offering it there is a
+ *     door painted on a wall.
+ */
 function Invitation({
   reading,
   autoApproved,
@@ -969,37 +1189,50 @@ function Invitation({
   autoApproved: boolean;
   onChoose: () => void;
 }) {
+  const canPaste = usePointerFine();
   return (
-    /* One warm place to put things, rather than a line of text floating on
-       the page wash. The whole window takes a drop, but the eye needs
-       somewhere to aim, and a drop target is a box that has earned its border.
-       No dashes anywhere on it: a dashed rectangle is the one shape that would
-       make this look like the file manager the owner said it must not be. */
-    <div className="card-elevated flex min-h-[54vh] flex-col items-center justify-center rounded-[var(--radius-xl)] border border-border bg-card px-6 py-16 text-center">
+    /* No box. There used to be a bordered card here holding the invitation,
+       inside a bordered white pop-up holding the card -- two frames around
+       one sentence, and the inner one was the "unnecessarily big" thing.
+       The pop-up is small now and IS the place to aim; the moment a file is
+       actually over the window, the canopy frame that spans the whole
+       viewport says so far more clearly than a rectangle could. No dashes
+       anywhere either: a dashed rectangle is the one shape that would make
+       this look like the file manager the owner said it must not be. */
+    <div className="flex flex-col items-center justify-center px-2 pb-8 text-center">
       <m.span
         aria-hidden
         initial={{ opacity: 0, scale: 0.94 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={SPRINGS.gentle}
-        className="mb-6 text-canopy"
+        className="mb-4 text-canopy"
       >
-        <Images size={64} weight="duotone" />
+        <Images size={44} weight="duotone" />
       </m.span>
-      <p className="max-w-xl font-heading text-[25px] leading-snug tracking-[-0.015em] text-foreground">
-        {reading > 0 ? `Reading ${reading} photographs...` : "Paste, drop, or browse"}
+      <p className="max-w-xl font-heading text-[22px] leading-snug tracking-[-0.015em] text-foreground">
+        {reading > 0
+          ? `Reading ${reading} photographs...`
+          : canPaste
+            ? "Drag and drop, browse or paste from your clipboard"
+            : /* A phone has neither a cursor to drag with nor a paste this
+                 room can hear, so it is told what it can actually do. */
+              "Add your photographs"}
       </p>
-      <p className="mt-2.5 max-w-md text-[14.5px] leading-relaxed text-muted-foreground">
-        As many photographs as you like, all at once. You can say what they are afterwards,
-        and you do not have to say much.
+      <p className="mt-2 max-w-md text-[14.5px] leading-relaxed text-muted-foreground">
+        As many photos as you like. Please provide descriptions if possible!
       </p>
-      <Button variant="primary" className="mt-7 rounded-full px-6" onClick={onChoose}>
+      <Button variant="primary" className="mt-6 rounded-full px-6" onClick={onChoose}>
         Browse your photographs
       </Button>
-      <p className="mt-4 text-[12px] text-muted-foreground">
-        {autoApproved
-          ? "Yours go straight into the Collection."
-          : "An admin looks at new photographs before they appear."}
-      </p>
+      {/* Only the half of this that is news. "Yours go straight into the
+          Collection" told a trusted contributor the default, which is not
+          worth a line; that an admin will look first genuinely changes what
+          the next screen means, so that one stays. */}
+      {!autoApproved && (
+        <p className="mt-4 text-[12px] text-muted-foreground">
+          An admin looks at new photographs before they appear.
+        </p>
+      )}
     </div>
   );
 }
