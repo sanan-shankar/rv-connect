@@ -5631,3 +5631,33 @@ need its partner.
 It could not be confirmed on a real Android device here — macOS draws overlay scrollbars, so
 the stepper never paints locally — but the scroll container it needs was measured directly,
 before and after.
+
+## 2026-08-28 — the Collection offer moves under the plus
+
+Owner, on the "Also add to the Collection" tick that sat in the composer's control row:
+"it's so ugly the text is ugly everything sucks. I think let's move that command under the
+plus." So it did.
+
+It is now a line in the "+" menu, next to "Add a poll" and "Write as a Letter", appearing
+only once a photograph is attached and taking the whole menu into being with it on the
+letters desk, where the other three offers are switched off. The glyph is `Images`, the
+sidebar's own Collection icon, so the destination is recognised before the label is read,
+and it is a stack of photographs, which is the other half of the message: the pictures go
+to the archive, not the post. Its neighbours announce state by rewriting their label to the
+undo ("Remove poll"); this one keeps one label and carries a check, because the reverse of
+giving something to an archive has no phrasing that is not clumsy or faintly scolding.
+
+The state still has to be legible with the menu shut, and the two obvious answers were both
+wrong. A tick on the thumbnail would be its third control after the crop handle and the
+remove button (owner: "the photo already has a crop, x and now a third command is
+confusing"). A chip saying "For the Collection" would claim the whole post was going
+(owner: it "shouldn't imply the entire post is for the collection just the images"). So the
+chip names the photographs and counts them: "Photo for the Collection", "2 photos for the
+Collection". It is the audience chip's twin and, like it, reopens the menu. Leaf rather than
+canopy, because dark mode lightens `--leaf` and deliberately leaves `--canopy` at the deep
+green the sidebar wants, so a canopy-inked chip is nearly unreadable on a dark card.
+
+Measured with the upload stubbed at the network so no bytes reached R2: the menu is 208px,
+the label 124px, and ticked it fits on one line — it did not at first, because flex's
+`min-width: auto` let the check squeeze the label into two lines, a menu row that changed
+height when you pressed it. `whitespace-nowrap` holds it. Desktop and 390x844 both.
