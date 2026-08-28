@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ImagePlus, X, BarChart3, Feather, Plus, MapPin, Loader2, Check } from "lucide-react";
+import { ImagePlus, X, BarChart3, Feather, Plus, MapPin, Loader2, Check, Images } from "lucide-react";
 import { m, AnimatePresence } from "motion/react";
 import { buttonVariants } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -145,9 +145,10 @@ export function CreatePostForm({
   const [content, setContent] = useState(initialContent ?? "");
   const [kind, setKind] = useState<"post" | "letter">(defaultLetter ? "letter" : "post");
   const [title, setTitle] = useState(initialTitle ?? "");
-  /* "Also add to the Collection". Off by default and never remembered between
-     posts: it is an offer, and an offer that quietly stays ticked would put
-     photographs in the archive nobody chose to put there. */
+  /* "Add to the Collection", the one item the "+" menu grows once a photo is
+     attached. Off by default and never remembered between posts: it is an
+     offer, and an offer that quietly stays on would put photographs in the
+     archive nobody chose to put there. */
   const [toCollection, setToCollection] = useState(false);
   /* The photograph pipeline, in its own file (audit feed-posts-02): the
      uploads, the previews and the blob-url bookkeeping, whose whole contract
@@ -164,7 +165,7 @@ export function CreatePostForm({
   } = useComposerUploads({
     initialImages,
     // Taking the last photograph out takes the offer with it, so adding a
-    // different one later starts from "no" rather than from a tick the writer
+    // different one later starts from "no" rather than from a yes the writer
     // left on for a picture they since deleted.
     onEmptied: () => setToCollection(false),
   });
@@ -455,8 +456,8 @@ export function CreatePostForm({
       // "Save as draft" only ever applies to a letter; the button itself is
       // hidden outside letter mode, but this keeps the payload honest either way.
       if (isLetter && saveAsDraft) formData.set("saveAsDraft", "true");
-      // Only sent when there is actually a photograph to contribute; the tick is
-      // hidden otherwise, and the server ignores it for a draft.
+      // Only sent when there is actually a photograph to contribute; the menu
+      // item is hidden otherwise, and the server ignores it for a draft.
       if (toCollection && images.length > 0) formData.set("toCollection", "true");
 
       /* Resumed draft: the row already exists, so every save is an in-place
@@ -530,10 +531,10 @@ export function CreatePostForm({
             : isLetter
               ? "Your letter is published"
               : "Post shared!",
-          // Said once, here, rather than as a line of help under the tick: a
-          // contribution waits for a moderator, and someone who ticks the box and
-          // then cannot find their photograph in the Collection deserves to know
-          // why. The tick itself stays a tick.
+          // Said once, here, rather than as a line of help in the menu: a
+          // contribution waits for a moderator, and someone who chose to give a
+          // photograph and then cannot find it in the Collection deserves to
+          // know why. The menu item itself stays one line.
           toCollection && images.length > 0
             ? { description: "The photo is with the Collection editors." }
             : undefined
@@ -549,10 +550,16 @@ export function CreatePostForm({
 
   // The "+" menu only earns its place when it has something to offer: a poll
   // (posts only), the letter toggle (not on the letters page, which is already
-  // a letter), and the audience picker (only if this person has cities).
+  // a letter), the Collection offer (only with a photograph attached) and the
+  // audience picker (only if this person has cities).
   const canAddPoll = !isLetter;
   const canToggleLetter = !defaultLetter;
-  const showMore = canAddPoll || canToggleLetter || audienceOptions.length > 0;
+  // The Collection offer joined the menu on 2026-08-28; it exists only while
+  // there is a photograph to give, which is also why it can bring the whole
+  // menu into being on the letters desk, where the other three offers are off.
+  const canOfferCollection = previews.length > 0;
+  const showMore =
+    canAddPoll || canToggleLetter || canOfferCollection || audienceOptions.length > 0;
 
   // One shared shelf for the two icon controls, so the row reads as one hand
   // made it: 36px target (comfortable on a phone), 18px glyph, pill, and the
@@ -754,12 +761,12 @@ export function CreatePostForm({
             flex row re-centres a shrunken margin box and would swallow half the
             pull. The Post pill keeps its own corner: its FILL is the visual
             edge and already sits at the padding line, so it must not sink. */}
-        {/* flex-wrap, added when the Collection tick joined this row: icons +
-            tick + Post overflow a 390px composer by a few pixels once three
-            photos are attached, and wrapping Post onto its own right-aligned
-            line is a far better answer than truncating the tick's label to
-            "Also add to the Coll...". At every width above that it stays one
-            row, which is where the owner asked for it. */}
+        {/* flex-wrap, from the days when a full "Also add to the Collection"
+            tick sat in this row and overflowed a 390px composer. That label is
+            now inside the "+" menu and only its chip can appear here, so the
+            row fits at every width -- but the wrap stays, because it is what
+            catches a long city name in the audience chip beside it, and
+            wrapping Post to its own right-aligned line beats truncating. */}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
           {/* Vertically CENTRED against the buttons on the right, not pinned to
               the bottom of the card (owner, 2026-08-02: the icons sat "with
@@ -893,6 +900,47 @@ export function CreatePostForm({
                           <span>{isLetter ? "Back to a post" : "Write as a Letter"}</span>
                         </button>
                       )}
+                      {/* The Collection offer. It used to be a tick and a
+                          label sitting out in the control row, which the owner
+                          called ugly on 2026-08-28 and asked to live "under the
+                          plus", appearing once a photo is uploaded. It reads
+                          better here anyway: this menu is already "what else
+                          goes with this post", which is the whole question the
+                          offer is asking.
+                          The glyph is the sidebar's own Collection icon, so the
+                          destination is recognised before the label is read --
+                          and it is a stack of photographs, which is the other
+                          half of the message (the pictures go, not the post).
+                          Its two neighbours announce state by rewriting their
+                          label to the undo ("Remove poll"); this one keeps one
+                          label and carries a check, because the reverse of
+                          giving something to an archive has no phrasing that
+                          is not either clumsy or faintly scolding. */}
+                      {canOfferCollection && (
+                        <button
+                          type="button"
+                          role="menuitemcheckbox"
+                          aria-checked={toCollection}
+                          onClick={() => {
+                            setToCollection((v) => !v);
+                            setMore(false);
+                          }}
+                          className={`state-layer flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
+                            toCollection ? "text-leaf" : "text-foreground"
+                          }`}
+                        >
+                          <Images className="h-4 w-4 shrink-0" />
+                          {/* nowrap: with the check taking its 16px on the
+                              right, flex's default min-width:auto let this
+                              label break to "Add to the / Collection" the
+                              moment it was ticked -- a menu row that changes
+                              height when you press it. */}
+                          <span className="whitespace-nowrap">Add to the Collection</span>
+                          {toCollection && (
+                            <Check className="ml-auto h-4 w-4 shrink-0" strokeWidth={2.5} />
+                          )}
+                        </button>
+                      )}
                       {audienceOptions.length > 0 && (
                         <div className="mt-1 border-t border-border pt-1.5" role="group" aria-label="Show to">
                           <p className="px-2.5 pb-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
@@ -944,59 +992,26 @@ export function CreatePostForm({
             )}
           </div>
 
-          {/* The Collection offer, in the control row beside the two icons
-              rather than under the thumbnails (owner, 2026-08-04). It belongs
-              here: this row is already "what else goes with this post", which
-              is exactly what the tick is asking.
-
-              Small text and an 18px box, no card and no border (owner: "it
-              shouldn't be a big part ... maybe it could even just be a tiny
-              tick mark"). A real button with role=checkbox rather than an
-              <input>: the app has no checkbox primitive, and the whole row
-              needs to be the target so the label is tappable on a phone.
-              Unticked it is muted ink and a hairline box; ticked, the box fills
-              canopy. Colour only, no movement, per the hover rule. */}
-          {previews.length > 0 && (
+          {/* The tick's job, done only when the answer is yes: off, the row
+              carries nothing at all. It is the audience chip's twin, and like
+              that one it reopens the menu, which is where it is turned off.
+              It names the PHOTOGRAPHS, not the post, because only they go to
+              the archive (owner, 2026-08-28: it "shouldn't imply the entire
+              post is for the collection just the images"), and the count says
+              which ones when there are three.
+              Leaf, not canopy: dark mode lightens --leaf to #3FD16A and leaves
+              --canopy at the deep #235C49 it wants the sidebar to keep, so a
+              canopy-inked chip would go nearly unreadable on a dark card. */}
+          {toCollection && previews.length > 0 && (
             <button
               type="button"
-              role="checkbox"
-              aria-checked={toCollection}
-              onClick={() => setToCollection((v) => !v)}
-              className="group/coll flex shrink-0 items-center gap-2 rounded-full py-1 pl-1 pr-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              onClick={() => setMore(true)}
+              className="inline-flex min-w-0 items-center gap-1 rounded-full bg-leaf/12 px-2.5 py-1 text-[11.5px] font-semibold text-leaf hover:bg-leaf/20 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-              <span
-                aria-hidden
-                /* Radius 3px, well under the app's 16 -> 12 -> 8 ladder. That
-                   ladder is for BOXES; this is a control glyph the size of a
-                   word, and at this size the 6px it started at read as a
-                   rounded-rect rather than a tickbox (owner: "way more squarish
-                   ... much tighter, but I don't want it fully squared off, just
-                   a slight curve").
-
-                   Size was the wrong dial. Three passes on the owner (18 "a bit
-                   smaller", 20 "too big", 19 "slightly small") could not all be
-                   about pixels, and they were not: the box sat in --border
-                   (#DFD8CB) at 1px while the two glyphs beside it are
-                   --muted-foreground (#6E7268) at a 2px stroke. A pale hairline
-                   reads small at ANY dimension, so growing the box only made a
-                   faint square bigger. It now wears the icons' own ink, at 19px
-                   (the size that measured closest), and the weights match. */
-                className={cn(
-                  "grid size-[19px] shrink-0 place-items-center rounded-[3px] border transition-colors",
-                  toCollection
-                    ? "border-canopy bg-canopy text-white"
-                    : "border-muted-foreground/70 bg-card text-transparent group-hover/coll:border-canopy"
-                )}
-              >
-                <Check className="size-3" strokeWidth={3} />
-              </span>
-              <span
-                className={cn(
-                  "text-[12.5px] transition-colors",
-                  toCollection ? "text-foreground" : "text-muted-foreground"
-                )}
-              >
-                Also add to the Collection
+              <Images className="h-3 w-3 shrink-0" />
+              <span className="truncate">
+                {previews.length === 1 ? "Photo" : `${previews.length} photos`} for the
+                Collection
               </span>
             </button>
           )}
