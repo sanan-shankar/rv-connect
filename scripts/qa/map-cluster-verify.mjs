@@ -148,7 +148,7 @@ note(`start: k=${s.k.toFixed(2)}  markers=${s.markers.length} (clusters ${s.mark
 // PHASE A - the owner's actual flow: keep clicking the blue pin over the NCR
 // and expect it to break into New Delhi and Gurugram. Every click must move the
 // zoom (a click that does nothing is the reported bug).
-const shotDir = "./temporary screenshots";
+const shotDir = "./e2e/.shots";
 if (wantShot) mkdirSync(shotDir, { recursive: true });
 const shot = async (name) => {
   if (!wantShot) return;

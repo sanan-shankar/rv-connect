@@ -1,5 +1,43 @@
 # Progress Log
 
+## 2026-08-28 — the root directory loses five entries and none of them are missed
+
+The owner asked what at the root could go without breaking anything, counting dotfiles the
+same as visible ones. Thirty-five entries; five left.
+
+**Deleted**: the root `.DS_Store`, and `.professions/`, whose only content was a stale
+manifest from the morning's tagging run (no undo logs had been written, so nothing was lost
+that the picker does not regenerate in seconds).
+
+**`.puppeteerrc.cjs` folded into `package.json`.** Puppeteer resolves its config through
+lilconfig, and `package.json` is the FIRST of its fourteen search places
+(`getConfiguration.ts:112`), read via a `"puppeteer"` key. Proved both directions before
+believing it: with the key present `skipDownload` is `true`, with the key renamed it is
+`undefined`, and no `PUPPETEER_*` variable is set in the shell to fake it. The twelve lines
+of reasoning the rc file carried — why this setting saves a 130MB Chrome download on every
+Vercel build — moved into `scripts/README.md`, because a JSON key cannot hold a comment and
+that reasoning is the whole reason the setting exists.
+
+**`knip.jsonc` moved to `scripts/qa/`.** knip is not a dependency here and never has been;
+it is an occasional `npx` download, so its config was a permanent root entry for a tool
+nobody has installed. It now needs `npx knip --config scripts/qa/knip.jsonc`, written into
+the file's own header and into `docs/OPERATIONS.md §8`, because knip only auto-discovers at
+the root. Its globs are unchanged: they were always relative to the directory knip runs in.
+
+**`temporary screenshots/` became `e2e/.shots/`.** Renaming it to a dotfile would have been
+theatre — he counts those too — so it moved inside a folder that already exists and already
+holds exactly this kind of thing, next to Playwright's `.output/`, `.report/` and `.auth/`.
+Thirteen references across eight QA scripts, `scripts/README.md`, the `screenshot-qa` agent
+and `.gitignore`. Verified by taking a real screenshot afterwards: it landed in
+`e2e/.shots/` and did not recreate the old folder at the root.
+
+Two things left alone. `sanan's stuff/` stays where it is — his call, asked and answered.
+`progress.md` could move to `docs/` for one more entry off the count, but `docs/README.md`
+deliberately keeps it at the root as a repo-discovery file, and that is a decision to make
+on purpose rather than in passing.
+
+Root: 35 entries to 30. `npm run check` green (88/88).
+
 ## 2026-08-28 — Done on a profile settles the sheet twice
 
 Owner, from a phone: *"instead of the tile and buttons adjusting correctly right away, they

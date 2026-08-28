@@ -62,4 +62,4 @@ Check, in this order:
   tells you nothing. Report that you skipped them and why.
 - Report findings ranked worst first, each with the file you believe is responsible.
 - If the route is clean, say so plainly and briefly. Do not invent findings to look thorough.
-- Screenshots land in `temporary screenshots/`. That folder is gitignored scratch; leave it.
+- Screenshots land in `e2e/.shots/`. That folder is gitignored scratch; leave it.

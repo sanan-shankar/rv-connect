@@ -11,7 +11,7 @@ const url = process.argv[2] || 'http://localhost:3000';
 // end up with a file called "screenshot-7---mobile.png".
 const label = (process.argv[3] || '').startsWith('--') ? '' : process.argv[3] || '';
 
-const screenshotsDir = './temporary screenshots';
+const screenshotsDir = './e2e/.shots';
 mkdirSync(screenshotsDir, { recursive: true });
 
 // Auto-increment screenshot number

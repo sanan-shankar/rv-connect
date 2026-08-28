@@ -34,7 +34,7 @@ if (!adminEmail) {
   process.exit(1);
 }
 
-const outDir = "./temporary screenshots/drive";
+const outDir = "./e2e/.shots/drive";
 mkdirSync(outDir, { recursive: true });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

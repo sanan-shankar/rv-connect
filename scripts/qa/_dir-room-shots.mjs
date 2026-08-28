@@ -12,7 +12,7 @@ import { mkdirSync } from "node:fs";
 const mobile = process.argv.includes("--mobile");
 // Extra query string, e.g. --qs "?n=2400&stress=worst"
 const qsArg = process.argv.find((a) => a.startsWith("?")) || "";
-const OUT = "./temporary screenshots/dir-room";
+const OUT = "./e2e/.shots/dir-room";
 mkdirSync(OUT, { recursive: true });
 
 const SECTIONS = [

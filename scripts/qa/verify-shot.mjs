@@ -34,8 +34,8 @@ try {
 }
 const overlay = await page.evaluate(() => /Application error|Unhandled Runtime Error|could not be found/i.test(document.body?.innerText || ""));
 if (overlay) errs.push("overlay: error text visible");
-mkdirSync("temporary screenshots", { recursive: true });
-const outPath = join("temporary screenshots", out);
+mkdirSync("e2e/.shots", { recursive: true });
+const outPath = join("e2e/.shots", out);
 try { await page.screenshot({ path: outPath }); } catch {}
 console.log(JSON.stringify({ route, status, errors: errs, out: outPath }));
 await browser.close();
