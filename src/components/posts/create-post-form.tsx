@@ -12,6 +12,7 @@ import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { createPost, editPost, publishDraft } from "@/app/(main)/feed/actions";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
+import { PhotoAimButton } from "@/components/common/photo-aim";
 import { cn } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
 import { useComposerUploads } from "./use-composer-uploads";
@@ -154,6 +155,7 @@ export function CreatePostForm({
   const {
     images,
     previews,
+    facts,
     uploading,
     uploadProgress,
     handleImageFiles,
@@ -322,9 +324,19 @@ export function CreatePostForm({
   // file input mid-pick, so the OS file dialog returned a file to an
   // element that no longer existed (owner, 2026-08-06: "composer reset
   // when you browse for files... nothing uploads").
+  //
+  // And guarded on being inside ANY dialog, which is the general form of the
+  // same bug: `attachOpen` fixed it for one portal by name, and the crop
+  // handle (spec §9) was a second one that collapsed the composer out from
+  // under itself mid-drag, taking the photograph with it. A third portal
+  // would have repeated it again. Every dialog in this app is the same
+  // material and carries `role="dialog"`, so this asks the question once
+  // rather than keeping a list of them.
   useEffect(() => {
     if (!expanded || attachOpen) return;
     function onDown(e: MouseEvent) {
+      const target = e.target as Element | null;
+      if (target?.closest?.('[role="dialog"], [role="alertdialog"]')) return;
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
         if (!hasContent) collapse();
         else setMore(false);
@@ -698,6 +710,16 @@ export function CreatePostForm({
                   src={preview}
                   alt=""
                   className="h-full w-full rounded-[var(--radius-sm)] object-cover"
+                />
+                {/* Only appears where the card is actually going to cut this
+                    photograph, so it doubles as the notice that it will be.
+                    Bottom LEFT, mirroring the remove button at top right: two
+                    controls on an 80px square want opposite corners, and the
+                    destructive one keeps the corner it has always had. */}
+                <PhotoAimButton
+                  src={images[i]}
+                  facts={facts[images[i]]}
+                  className="absolute -bottom-1 -left-1 h-5 w-5"
                 />
                 <button
                   type="button"

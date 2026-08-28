@@ -1,5 +1,58 @@
 # Progress Log
 
+## 2026-08-28 — the uploader moves the crop
+
+Collection rework, spec sec. 9, and it is marked NOT OPTIONAL there for a reason that is about
+trust rather than convenience. Every crop in this app is aimed automatically from sharp's
+`attention`, and X shipped that idea at far greater scale, measured real racial and gender
+bias in it, and withdrew it: *"how to crop an image is a decision best made by people."* Their
+replacement was to show the person the crop and let them move it. This is that, and it is the
+last thing owed before the automatic aim is defensible at all.
+
+**A column, because the clamp is a brake on a guess and not on a person.** `framePhoto` holds
+the window inside 15-50% of a tall frame because sharp's guess is often wrong -- of the first
+41 photographs measured, 14 landed within 3% of an edge. Braking somebody who has looked at
+the photograph would make the handle lie, leaving the window where they did not put it. So
+`Image.focalSet` turns the band off for an image aimed by hand. Not a sentinel in `focalY`:
+every position a person can choose is one the machine can guess.
+
+**Two things make the dialog truthful rather than decorative.** The frame is the REAL one,
+read out of `framePhoto`'s own output rather than recomputed, so what you drag is what the
+feed shows. And the control only exists where something is actually being cut -- a photograph
+that keeps its whole frame has no window to move, and offering a handle would teach people the
+app crops everything.
+
+**Driving the real composer found three bugs a screenshot would not have.**
+
+1. **The dialog opened on a frame nobody had ever seen.** It started at the raw `focalY`
+   (9%) where the card draws the clamped one (15%).
+2. **What you saw was not what was stored.** `object-position` takes whole percent and the
+   drag stored a float, so a window approved at 53% was saved as 0.5747 and drawn at 57%.
+   Quantised now; the number on screen is the number in the row.
+3. **The composer collapsed out from under the dialog mid-drag, taking the photograph with
+   it.** Its outside-click handler is guarded on `attachOpen` by name, with a comment
+   recording the identical bug for the attach-photo popup in August. A third portal would
+   have repeated it again, so the guard now asks whether the click landed in ANY dialog.
+
+Verified end to end at 1440x900 and 390x844 on a 9:16 and a 4:3: the frame measures 351x468,
+exactly 3:4, the aim reaches the row, `focalSet` is true, and the probe takes its own bytes
+and rows back out. A `max-height` bound was wrong and measured wrong -- it clamped the box
+without narrowing it, so a 3:4 frame drew at 0.80 -- and is a width now. `npm run check`
+green, 86/86. `npm run visual` 23/23, no baseline moved.
+
+**The write-path review was done by hand**, as sessions 2, 4 and 5 did. `aimImage`: auth
+precedes the write; the only inputs are a url through the same C2 ownership check every
+image-naming path uses and a finite number clamped to 0..1; `Image` is absent from the demo's
+`ALLOWED_WRITE_MODELS` and the action refuses `IS_DEMO` outright, so two layers cover it; the
+schema went through a dated idempotent file applied with `run-sql.mjs` to both databases. No
+meter, matching `togglePhotoLove` -- a small idempotent write on a row the caller already owns,
+bounded by their own upload quota.
+
+**One thing found and not fixed**, because it changes behaviour nobody asked about:
+`hasContent` in the composer counts words only, so an outside click still collapses a composer
+holding three photographs and no text. The photographs survive in state, but they vanish from
+the screen.
+
 ## 2026-08-28 — the suggestion pass, without an API
 
 Collection rework, spec sec. 8.3: fill the taxonomy in for photographs nobody tagged. 70-80%
