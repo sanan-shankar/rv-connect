@@ -6615,3 +6615,33 @@ photographs of the valley arrived in the archive while it was being built, so th
 four now and a decade rail where it had none. The suite deliberately leaves `/collection` unmasked
 (visual.spec.ts: photos arrive rarely enough that its picture still means something), so this is the
 suite working as designed rather than a reason to widen the mask.
+
+
+## 2026-08-29 — the decade rail stopped hiding the exit
+
+The owner, having used the Collection like a member rather than like its author: *"say I just enter
+collection, then I click 2020s and then those pics come up, I now have no way to go back... the only
+way to bring up that sidebar type thing is to reload collections. like doing that has locked me into
+2020s."* He was not missing anything. It was locked.
+
+The cause is one line and it is a facet-counting rule the rail broke: `loadPhotos` grouped photographs
+by era through the SAME `where` the river used, era included. Press "2020s" and the groupBy returns
+exactly one row, so the rail has one mark -- and `<DecadeRail>` hides itself below two, on the good
+argument that a rail of one mark is noise rather than a shape. So the control disappeared at the
+moment it was used, taking with it the only thing that could undo it. Nothing else on the page clears
+`era`: the bucket line's "All" clears the BUCKET.
+
+The fix is that a facet must not narrow its own tally. The decade counts now come from a `where` built
+with `era` stripped out, while bucket and search stay in -- a decade's mark should say how many BIRD
+photographs the 1970s holds while Birds is the filter, which was the original argument for filtering
+those counts at all. Round-tripped in the browser: press 2020s, the rail stays with both marks and
+2020s lit; press it again, back to everything.
+
+Two mobile notes came with it. The `<DecadeStrip>` -- the same index as a scrolling line of words under
+the buckets -- is gone below 1280px: *"remove the decades and undated thing from mobile, it looks
+really bad."* Two words with no marks beside them were carrying none of what makes the rail worth
+having. That leaves NO way to filter by decade under 1280px, which is a real gap rather than a
+tidy-up, and it is the open question in the rail's redesign rather than something to paper over with a
+smaller version of the thing he just rejected. And the count line got `gap-y-3` where it had `gap-y-1`:
+the row only wraps on a narrow screen, so that number is mobile-only by construction and the laptop
+never sees it.

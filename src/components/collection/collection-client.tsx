@@ -53,7 +53,7 @@ import {
 import { areaLabel, bucketLabel } from "@/lib/collection";
 import { PhotoRiver, Tile } from "./photo-river";
 import { RiverControls } from "./river-controls";
-import { DecadeRail, DecadeStrip, type DecadeCount } from "./decade-rail";
+import { DecadeRail, type DecadeCount } from "./decade-rail";
 
 /* ------------------------------------------------------------------ *
  *  Both open on a press and neither has any presence on the page until
@@ -506,7 +506,20 @@ export function CollectionClient({
             onOrder={setOrder}
             total={loading ? undefined : total}
           />
-          <DecadeStrip decades={decades} value={era} onChange={setEra} className="mt-1" />
+          {/* NO DECADE STRIP BELOW 1280px. It was a scrolling line of decade
+              words under the buckets -- the same index as the right-hand rail,
+              in the one shape a narrow screen had room for -- and the owner's
+              read of it on a phone was flat: "remove the decades and undated
+              thing from mobile, it looks really bad." Two words with no marks
+              beside them were carrying none of what makes the rail worth
+              having; they were just a second row of filters competing with the
+              buckets.
+
+              This does mean there is no way to filter by decade under 1280px
+              at all, which is a real gap rather than a tidy-up -- and it is
+              the open question in the rail's redesign, not something to paper
+              over with a smaller version of the thing he just rejected.
+              <DecadeStrip> stays in decade-rail.tsx until that is settled. */}
 
           {/* The controls sit closer to the river than the title sits to the
               controls (16px against the header's 24px), so the line of buckets

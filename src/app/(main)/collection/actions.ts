@@ -589,6 +589,20 @@ export async function loadPhotos(
 
   const order: RiverOrder = opts?.order ?? "newest";
   const filters = buildCollectionWhere(opts);
+  /* THE RAIL'S OWN COUNTS EXCLUDE THE RAIL'S OWN FILTER, which is the one
+     rule a facet has to obey and the one this broke. Counting decades through
+     a `where` that already pins `era` returns exactly one row, so pressing
+     "2020s" left the rail with a single mark -- and <DecadeRail> hides itself
+     below two, because a rail of one mark is noise. The rail therefore
+     DISAPPEARED at the moment you used it, taking the only control that could
+     undo it: "doing that has locked me into 2020s... the only way to bring up
+     that sidebar type thing is to reload" (owner, 2026-08-29).
+
+     Bucket and search stay in, deliberately. A decade's mark should say how
+     many BIRD photographs the 1970s holds while Birds is the filter, or
+     pressing a decade with twelve beside it returns nothing. It is only the
+     era that must not narrow its own tally. */
+  const facetFilters = buildCollectionWhere({ ...opts, era: undefined });
   const cursor = decodeCursor(order, opts?.cursor);
   const first = cursor === null;
   const where = { ...filters, ...afterCursor(order, cursor) };
@@ -618,7 +632,7 @@ export async function loadPhotos(
       prisma.photo.count({ where: filters }),
       prisma.photo.groupBy({
         by: ["era"],
-        where: filters,
+        where: facetFilters,
         _count: { era: true },
       }),
     ]);

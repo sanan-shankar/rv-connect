@@ -130,7 +130,12 @@ export function RiverControls({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-wrap items-end justify-between gap-x-6 gap-y-1", className)}>
+    /* `gap-y-3` is a MOBILE number: the row only wraps on a narrow screen, so
+       on a laptop this gap never exists and the buckets and the count share
+       one line. Wrapped, 4px put the count line right under the buckets --
+       "the 4 photos newest needs to be moved a touch down, it's too close to
+       the navigation" (owner, 2026-08-29). */
+    <div className={cn("flex flex-wrap items-end justify-between gap-x-6 gap-y-3", className)}>
       {/* The buckets. A horizontal scroller on a phone rather than a wrap,
           because a wrapped second line of them reads as a form again -- and
           the scroll is the same gesture the decade strip below it takes. */}
