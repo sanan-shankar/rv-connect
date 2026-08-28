@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, ExternalLink, EyeOff, MoreHorizontal, Search, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
 import { useAdminAct } from "@/components/admin/use-admin-act";
 import { AdminFilterBar, useAdminFilterParams } from "@/components/admin/admin-filter-bar";
 import { Button } from "@/components/ui/button";
@@ -18,12 +19,13 @@ import { type SentenceToken } from "@/components/common/filters/sentence-line";
 import { Chip } from "@/components/admin/admin-chip";
 import { AdminEmpty } from "@/components/admin/admin-chrome";
 import { ModerationDialog } from "@/components/admin/moderation-dialog";
-import { formatTimeAgo } from "@/lib/utils";
+import { cn, formatTimeAgo } from "@/lib/utils";
 import { TYPE_OPTIONS, typeLabel, type ContentItem } from "@/lib/admin-content";
 import { adminRemoveComment, adminRemovePost } from "@/app/(main)/feed/actions";
 import {
   adminRemovePhoto,
   approvePhoto,
+  approvePhotos,
   declinePhoto,
 } from "@/app/(main)/collection/actions";
 
@@ -51,6 +53,18 @@ export function ContentList({
   const { setParam } = filters;
   const { busy, act } = useAdminAct();
   const [removing, setRemoving] = useState<ContentItem | null>(null);
+  /* Which of the waiting photographs are ticked. Spec §9: once one
+     contributor can drop a hundred photographs at once, clearing the queue a
+     press at a time is what stops the archive being opened to the school
+     photographer at all.
+
+     A SELECTION rather than an "approve everything" button, and the ticks are
+     the point: an admin has to be able to leave one out. A batch approval with
+     no way to exclude is how a photograph nobody looked at reaches the
+     Collection, and an admin who cannot exclude will approve blind or go back
+     to one at a time. */
+  const [ticked, setTicked] = useState<Set<string>>(new Set());
+  const [approving, setApproving] = useState(false);
 
   const type = searchParams.get("type") ?? "";
   const hidden = searchParams.get("hidden") === "1";
@@ -79,6 +93,46 @@ export function ContentList({
   }
 
   const activeCount = (type ? 1 : 0) + (hidden ? 1 : 0);
+
+  const waiting = useMemo(
+    () => items.filter((i) => i.kind === "photo" && i.approved === false && !i.isHidden),
+    [items]
+  );
+
+  /** A row a tick can be put against: a photograph still waiting, and only
+   *  once there is a batch to be a batch. One photograph waiting already has
+   *  its own Approve button two inches to the right. */
+  const tickable = (i: ContentItem) =>
+    i.kind === "photo" && i.approved === false && !i.isHidden && waiting.length > 1;
+  const chosen = useMemo(
+    () => waiting.filter((i) => ticked.has(i.id)),
+    [waiting, ticked]
+  );
+
+  function tick(id: string) {
+    setTicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function approveChosen() {
+    if (!chosen.length || approving) return;
+    setApproving(true);
+    const res = await approvePhotos(chosen.map((i) => i.id));
+    setApproving(false);
+    if (res.error) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success(
+      res.count === 1 ? "One photograph is in the Collection" : `${res.count} are in the Collection`
+    );
+    setTicked(new Set());
+    router.refresh();
+  }
 
   function facets(fullWidth: boolean, compact = false) {
     const className = fullWidth ? (compact ? "w-full h-9" : "w-full") : undefined;
@@ -141,18 +195,93 @@ export function ContentList({
         </AdminEmpty>
       ) : (
         <div className="flex flex-col gap-3">
+          {/* Only where there is a batch to be a batch. One photograph waiting
+              already has its own Approve button two inches to the right, and a
+              row of selection chrome above it would be a control asking to be
+              used for nothing. */}
+          {waiting.length > 1 && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-0.5 text-[12.5px] text-muted-foreground">
+              <span className="tabular-nums">
+                {chosen.length
+                  ? `${chosen.length} of ${waiting.length} ticked`
+                  : `${waiting.length} waiting`}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setTicked(
+                    chosen.length === waiting.length ? new Set() : new Set(waiting.map((i) => i.id))
+                  )
+                }
+                className="font-medium text-canopy underline-offset-2 transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                {chosen.length === waiting.length ? "Tick none" : "Tick all"}
+              </button>
+              {chosen.length > 0 && (
+                <Button
+                  size="xs"
+                  variant="primary"
+                  className="ml-auto"
+                  disabled={approving}
+                  onClick={approveChosen}
+                >
+                  <Check className="size-3" strokeWidth={2} />
+                  {approving ? "Approving..." : `Approve ${chosen.length}`}
+                </Button>
+              )}
+            </div>
+          )}
           {items.map((item) => (
             <div
               key={`${item.kind}-${item.id}`}
               className="flex gap-3 rounded-[var(--radius)] border border-border bg-card p-3.5"
             >
               {item.thumbUrl && (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={item.thumbUrl}
-                  alt=""
-                  className="size-16 shrink-0 rounded-[var(--radius-sm)] border border-border object-cover"
-                />
+                <div className="relative size-16 shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={item.thumbUrl}
+                    alt=""
+                    className="size-full rounded-[var(--radius-sm)] border border-border object-cover"
+                  />
+                  {/* The tick sits ON the photograph rather than beside it, and
+                      that is a measurement rather than a preference. A column
+                      of its own took 24px out of a row that is already tight:
+                      at 390px the caption was cut to "A 4x3 spe..." and the
+                      contributor's name broke over two lines. On the thumbnail
+                      it costs nothing at either width, and "tick this
+                      photograph" is what the gesture means anyway.
+
+                      The box itself is the house pattern from the composer's
+                      "Also add to the Collection" -- 19px, 3px radius, canopy
+                      when set -- which the owner settled over three passes.
+                      This app has no checkbox primitive and a second invented
+                      one is how two ticks start looking different. The only
+                      change is an opaque resting fill, because a hairline box
+                      over a photograph is a hairline box over anything. */}
+                  {tickable(item) && (
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={ticked.has(item.id)}
+                      aria-label={`Tick this photo by ${item.authorName}`}
+                      onClick={() => tick(item.id)}
+                      className="group/tick absolute -left-1.5 -top-1.5 grid size-7 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    >
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "grid size-[19px] place-items-center rounded-[3px] border shadow-[0_1px_3px_rgba(30,28,22,0.35)] transition-colors",
+                          ticked.has(item.id)
+                            ? "border-canopy bg-canopy text-white"
+                            : "border-muted-foreground/70 bg-card text-transparent group-hover/tick:border-canopy"
+                        )}
+                      >
+                        <Check className="size-3" strokeWidth={3} />
+                      </span>
+                    </button>
+                  )}
+                </div>
               )}
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px]">

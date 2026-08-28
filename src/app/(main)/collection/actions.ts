@@ -686,6 +686,48 @@ export async function approvePhoto(photoId: string) {
   return { success: true };
 }
 
+/**
+ * Approve a page of the queue in one press.
+ *
+ * Spec §9 asks for this beside trusted contributors and for the same reason:
+ * once bulk upload exists, one contributor can put a hundred photographs in
+ * front of an admin, and clearing them one press at a time is the thing that
+ * stops the archive being opened to the school photographer at all. Blessing
+ * him `photoTrusted` answers the SECOND hundred; this answers the first.
+ *
+ * Deliberately a SELECTION rather than an "approve everything" button. The
+ * point of the ticks is that you can leave one out: a batch approval with no
+ * way to exclude is how a photograph nobody looked at reaches the Collection,
+ * and an admin who cannot exclude will either approve blind or go back to one
+ * at a time.
+ *
+ * `updateMany` for the same reason `approvePhoto` uses it (audits
+ * C-074/C-130): two admins clearing the queue together is ordinary, and a row
+ * that is already gone should be counted out rather than thrown.
+ */
+export async function approvePhotos(photoIds: string[]) {
+  const session = await auth();
+  if (session?.user?.role !== "admin") return { error: "Not authorized" };
+
+  /* The list is user input, so it is bounded before it becomes an `IN` clause.
+     A page of the queue is CONTENT_PAGE_SIZE (40); this is generous room above
+     that and still a number rather than whatever was posted. */
+  if (!Array.isArray(photoIds)) return { error: "Nothing to approve" };
+  const ids = [...new Set(photoIds.filter((id) => typeof id === "string" && id))].slice(0, 100);
+  if (ids.length === 0) return { error: "Nothing to approve" };
+
+  const approved = await prisma.photo.updateMany({
+    // `approved: false` so a row somebody else waved through a moment ago
+    // keeps THEIR name against it rather than being re-stamped with ours.
+    where: { id: { in: ids }, approved: false },
+    data: { approved: true, approvedAt: new Date(), approvedById: session.user.id },
+  });
+  if (approved.count === 0) return { error: "Those photos are no longer waiting." };
+  revalidatePath("/collection");
+  revalidatePath("/admin");
+  return { success: true, count: approved.count };
+}
+
 /** Thrown to roll back a removal whose row somebody else already took. A
  *  sentinel rather than a flag, because the only way out of a Prisma
  *  interactive transaction without committing is to throw. */
