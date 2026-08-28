@@ -14,33 +14,25 @@
 3. **Skim [`prior-art.md`](prior-art.md)** — how Instagram, X, Flickr and Google Photos
    solved these same problems. Read it before disagreeing with a recommendation; the
    disagreement may already be answered.
-4. **Then pick up the three pieces of phase 6 that are left.** All six phases have
+4. **Phase 6 is finished. What is left is the close-out and the owner's own eyes.**
+   All six phases have
    shipped their visible half: dimensions are stored, one photograph in a column has one
    rule, several together are justified rows everywhere, the viewer is rebuilt, the
    Collection page is a river with six buckets and a decade rail, and contributing is a
    pop-up you drop a hundred photographs into. **The status board below is the truth**;
    this is the short version of it.
 
-   What is left of spec §8 and §9, none of it visual, in the order I would do it:
+   The three pieces of §8.3 and §9 that were owed all shipped on 2026-08-28 (session 6):
+   the suggestion pass, in a shape the owner redirected (**D37** — no API, a session in
+   this repo looking at the photographs); the crop handle (**D38**); and the approval
+   queue's selection (**D39**). The trusted-contributor toggle the board asked for turned
+   out to **already exist** on a member's profile — see F45, and do not go looking for it.
 
-   - **§8.3, the suggestion pass.** The owner's own idea (#25) and he wants it. It is also
-     what makes §7's taxonomy actually get filled in, because the room asks for buckets and
-     requires none (D35). Closed classification against the six, structured outputs, prompt
-     caching, the Batch API for a backfill. `bucket-tiles.tsx` is already its own component
-     so a suggested bucket can arrive pre-lit.
-   - **§9, the crop handle.** The uploader moves the crop. NOT optional: it is the only
-     thing that makes the automatic aim defensible, and it is X's own replacement for the
-     model they withdrew (prior-art.md, F13, F15).
-   - **§9, trusted contributors.** `User.photoTrusted` exists and is honoured by
-     `isPhotoAutoApproved`; there is still no UI to set it. An admin control on a member's
-     profile, and select-all on the approval queue.
-
-   Then the **close-out** in the status board, which has one trap in it: `/lab/crop`'s
-   specimens are now shared with `/lab/collection`, so retiring that room MOVES them rather
-   than deleting them (F39).
-
-   If you would rather do a different part first, say so and do it — §13's order is
-   RECOMMENDED, not LOCKED.
+   **So what is left is the close-out in the status board**, which has one trap in it:
+   `/lab/crop`'s specimens are now shared with `/lab/collection`, so retiring that room
+   MOVES them rather than deleting them (F39). And **the owner has not looked at most of
+   this** — Open questions 1, 2, 3 and 6 are the backlog of things built and unseen. If he
+   is in the room, that is worth more than any new work.
 
 **Operational context is spec §15** — repo, branch, the gate, screenshots, the test account,
 the one database behind both production and local dev, and the rule that a push is a deploy.
@@ -167,20 +159,20 @@ that rework.
         tiles; batch questions against a selection; the hoopoe at the end. See D32 to D36
         and F40 to F44. **Not all of §8**: three pieces are still owed and are the next
         session's, below.
-  - [ ] **Phase 6, the rest. START HERE.** Three pieces of spec §8 and §9, each its own
-        thing and none of them visual:
-        - **§8.3, the suggestion pass.** The owner's own idea (#25) and he wants it. Send
-          each 480px thumbnail to the Claude API with anything already typed, get back a
-          closed classification against the six buckets plus a one-line caption and a
-          decade guess. Structured outputs so a seventh bucket cannot be invented, prompt
-          caching on the vocabulary prefix, the Batch API for a backfill. The estimate in
-          §8.3 (about $29 on Opus 5 for 20,000) is from published rates, not measured.
-        - **§9, the crop handle.** The uploader moves the crop. NOT optional: it is the
-          only thing that makes the automatic aim defensible at all, and it is X's own
-          replacement for the model they withdrew (prior-art.md).
-        - **§9, trusted contributors.** `User.photoTrusted` exists and is honoured; there
-          is still no UI to set it. An admin control on a member's profile, and select-all
-          on the approval queue.
+  - [x] **Phase 6, the rest**, session 6, 2026-08-28. All three, in three commits:
+        - **§8.3, the suggestion pass** — and the owner changed its shape before a line was
+          written (**D37**). No API key, no billing, nothing new in the deployed bundle: a
+          picker exports untagged photographs into a gitignored `.tagging/`, a session in
+          this repo reads them, an applier puts the answers back. The rules are in
+          `src/lib/photo-suggest.ts` where tests hold them; the procedure is
+          `.claude/skills/tag-photos/SKILL.md`. **The live in-room suggestion is not
+          built and cannot be without the API call** — say so rather than implying §8.3 is
+          wholly done.
+        - **§9, the crop handle** (**D38**). `PhotoAimButton` on any composer preview the
+          card will cut, drawn at the real frame. `Image.focalSet` is new, so the clamp
+          brakes the machine and not the person. F46 to F48 are what driving it found.
+        - **§9, the queue's selection** (**D39**). `approvePhotos`, ticks on the waiting
+          rows, "Tick all", "Approve N". The **profile toggle already existed** (F45).
 - [ ] **OWED BY THE OWNER: an R2 lifecycle rule on the staging prefix.** Bulk upload
       stages every dropped file under `collection/<userId>/...` the moment it lands, before
       anything is filed, which is what makes a drop of a hundred feel instant. A drop that
@@ -429,6 +421,37 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   ceiling takes. The `uploads` meter for post images is untouched, because posts have no
   such ceiling. The old comment on `uploads` said it stood in "until M17's real per-account
   quota lands"; it landed.
+
+- **D37. The suggestion pass is a session in this repo, not a paid API call.** The
+  owner's, 2026-08-28, before a line of it was written. Spec §8.3 drew the Claude API with
+  structured outputs, prompt caching and the Batch API, and costed a 20,000 backfill at
+  about $29 on Opus 5. Asked whether to add an `ANTHROPIC_API_KEY`, he answered: *"I wasn't
+  actually gonna do it through API. I was gonna orchestrate it through my regular Claude
+  Max subscription on a session in VS Code. It can access all the photos and that should be
+  more than enough."* He is right and it is better on every axis that matters here: no key,
+  no billing, no runtime dependency, nothing new in the deployed bundle, and a session that
+  can genuinely LOOK at the photographs rather than pay per token to. `tag-photos-pick.mjs`
+  exports a batch into a gitignored `.tagging/` as 640px JPEGs plus a manifest of what each
+  contributor already typed; the session writes `verdicts.json`; `tag-photos-apply.mjs`
+  puts it back, dry by default. **What is genuinely lost is the LIVE suggestion in the
+  contribute room**, which needed the API call: a new upload still depends on somebody
+  pressing a bucket tile, and the answer is to run the pass again when photographs have
+  accumulated. Say that plainly rather than letting §8.3 read as finished.
+- **D38. A hand-aimed crop is not braked; the clamp is on the guess.** Mine, and it needed
+  one column (`Image.focalSet`). `framePhoto` holds a tall photograph's window inside
+  15–50% of the frame because sharp's `attention` is a contrast heuristic — of the first 41
+  photographs measured, 14 landed within 3% of an edge (F15). That brake belongs on a
+  guess. A person who has dragged the window has looked at the photograph, and X's own
+  conclusion after withdrawing their saliency crop was that *"how to crop an image is a
+  decision best made by people"*. Braking them would make the handle **lie**: the window
+  would settle somewhere they did not put it. Not a sentinel value inside `focalY`, because
+  every position a person can choose is also one the machine can guess.
+- **D39. The queue is a SELECTION, not an "approve everything" button.** Mine. Spec §9 asks
+  for "select-all and approve-page"; the ticks are the load-bearing half. A batch approval
+  with no way to exclude is how a photograph nobody looked at reaches the Collection, and an
+  admin who cannot leave one out will either approve blind or go back to one at a time. The
+  bar appears only past one waiting photograph — a single one already has its own Approve
+  button two inches to the right.
 
 ## Findings from reading the code (2026-08-26, session 1)
 
@@ -858,6 +881,50 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   to `CollectionClient`). Per CLAUDE.md, work around other sessions' edits, never stash or
   revert them. Re-read collection files before editing them.
 
+- **F45. The trusted-contributor toggle already existed, and the board said it did not.**
+  Three sessions carried "there is still no UI to set `photoTrusted`" in the status board
+  and in spec §9. It is on a member's admin profile under **Powers**, beside Admin
+  (`person-detail.tsx`, and `adminSetPhotoTrusted` in `admin/people/actions.ts`), with a
+  blurb that says what it does rather than what the column is called. Somebody built it and
+  nobody struck the line. **The lesson is not "check before building" — it is that a
+  status board copied forward is a claim, not a fact.** The three items on it were checked
+  against the code this session and one of the three was already done.
+- **F46. `git commit -- <paths>` takes the WORKING TREE, not the index.** This repo's own
+  rule for a shared checkout is to commit with an explicit pathspec so a peer's staged work
+  cannot ride along. It does not do what it looks like: naming a path commits that file's
+  working-tree contents and **ignores whatever was staged for it**. So `git apply --cached`
+  of a single hunk, followed by `git commit -F - -- CLAUDE.md`, committed BOTH hunks — the
+  owner's own uncommitted edit went in with mine. Harmless here (his change, and one he
+  wanted), but the technique for splitting a file is `git add -p` or `git apply --cached`
+  followed by a **plain `git commit` with no pathspec at all**, having staged only what you
+  mean. The pathspec form is still right when you are committing whole files.
+- **F47. A portalled dialog is a click OUTSIDE the composer, and this is the second time.**
+  `create-post-form.tsx` collapses on an outside mousedown, and its guard named
+  `attachOpen` by hand with a comment recording the identical bug for the attach-photo
+  popup in August 2026 ("composer reset when you browse for files... nothing uploads").
+  The crop handle was a second portal and did the same thing: opening it and dragging
+  collapsed the composer out from under the dialog, taking the uploaded photograph with it.
+  A third would have repeated it again, so the guard now asks whether the click landed in
+  **any** `[role="dialog"]` rather than keeping a list of them. **Anything else in this app
+  that closes on an outside click wants the same question asked of it.**
+- **F48. A dialog that shows "what it will look like" has three ways to lie, and driving it
+  found all three.** None would have shown up in a screenshot. (1) It opened at the RAW
+  `focalY` where the card draws the CLAMPED one — 9% against 15% — so its first frame was a
+  photograph nobody had ever seen. (2) `object-position` takes whole percent and the drag
+  stored a float, so a window approved at 53% was saved as 0.5747 and drawn at 57%; the
+  value is quantised now, and the number on screen is the number in the row. (3) Bounding
+  the frame with `max-height` to keep the dialog inside a short window clamped the box
+  **without narrowing it**, so a 3:4 frame drew at 375x468 — 0.80. The cap is a `max-width`
+  now. The general shape: **if a preview claims to be the real thing, every bound on it has
+  to be expressed in the axis that keeps the shape.**
+- **F49. `hasContent` in the composer counts words only, and photographs are not words.**
+  Found beside F47 and deliberately NOT fixed, because it changes behaviour nobody asked
+  about. An outside click on a composer holding three uploaded photographs and no text
+  still collapses it to the pill. The photographs survive in state and come back when it is
+  re-expanded, so nothing is lost — but they vanish from the screen, which is not what
+  "there is nothing here yet" should mean. One clause: `content.trim().length > 0 ||
+  images.length > 0`. The owner's call.
+
 ## The requirement ledger
 
 Every discrete ask in `brief.md`, itemised so none is quietly dropped. Status is one of:
@@ -887,8 +954,8 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | 32 | The pill-plus-dropdown filter pattern is "not a 10 on 10"; do not reuse it just because it is used elsewhere; keep thinking creatively | **done** — phase 5. Not one pill or dropdown survives on this page except the order menu |
 | 29 | The search bar is too big and the controls eat a whole row; consider moving them up in line with the title | **done** — phase 5. Search is an icon on the title line; the controls are one line of words |
 | 23 | Study how big archives and photo libraries solve this (he names Imperial's archive); lift from prior art rather than reinventing | **answered** — `prior-art.md` |
-| 24 | The school photographer cannot be invited yet | **mostly** — phase 6 answers all three. The suggestion pass (§8.3) would remove the last of the typing |
-| 25 | LLM-assisted tagging from descriptions and images | open — spec §8.3, and the next session's |
+| 24 | The school photographer cannot be invited yet | **done** — phase 6 for the upload, D37 for the tagging, D39 for the queue his first hundred lands in. He can be invited |
+| 25 | LLM-assisted tagging from descriptions and images | **done, in a shape he redirected** — D37. A session in this repo reads the photographs; no API, no key, no bill. `.claude/skills/tag-photos/SKILL.md`. **The live in-room suggestion is not built** and needed the API call |
 | 28 | Design for three audiences: end user, photographer, uploader | **done** — phase 5 serves the first, phase 6 the other two |
 
 ### Bugs and gaps found by the owner while talking
@@ -903,7 +970,7 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | 55 | The white outline around a photo on its blurred bed. Fractional widths (a 2:3 photo is 466.67px in a 728px column) let the frame's own light background show as a hairline down the edge, invisible on paper and obvious over blur | **fixed** — dimensions round to whole pixels, and a photo on a bed carries no background or border of its own |
 | 56 | Search must still read the descriptions | **answered** — spec §7.2, yes |
 | 57 | "how do we make a really splendid ui for them to do so?... big bucket touch targets so they'll want to do it" | **done** — phase 6, and **his to judge**. A pop-up at his call (D32), not the room §8.2 sketched |
-| 58 | "should include an other bucket also" | open — spec §7.1, and it feeds the taxonomy back |
+| 58 | "should include an other bucket also" | **done** — it is one of the six, and it is a real destination in code rather than a hole (F34). The tagging pass is told to use it rather than force a fit |
 | 59 | Specs and prompts written by AI for AI are too distilled and too constraining; make it a skill so he stops repeating it | **done** — `.claude/skills/writing-for-agents/SKILL.md`, wired into CLAUDE.md's skills table |
 | 60 | Catch-up photographs made the reader wait about a second each. "I can't have the user waiting for anything wtf how can we not have the photos ready for them to look at" | **fixed** — F19, they are back on the bucket's own urls. The lasting answer is spec §4 |
 | 61 | The blurred bed was "quite shabbily done... yucky blur bars" | **fixed** — F20, the bed is the photograph rather than its 16px thumbnail |
@@ -927,7 +994,7 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | # | Ask | Status |
 |---|---|---|
 | 33 | Feed images stretch on widescreen monitors; low-resolution images go grainy; there is no real limit on feed width | **fixed** — the 900px cap (D10) and the 500px ceiling (D15) |
-| 34 | Automatic cropping removes the part that matters | **fixed** — phases 2 and 3. The uploader override (spec §9) is still owed, in phase 6 |
+| 34 | Automatic cropping removes the part that matters | **fixed** — phases 2 and 3, and the uploader override now exists (D38): a handle on any composer preview the card will cut, and `focalSet` so the clamp does not brake a person |
 | 37 | Multi-image layouts are more complicated and he does not know whether the logic works | **done** — phase 3 justified rows, and the 2026-08-28 carousel rule: every photograph is drawn exactly as it would be posted alone |
 | 38 | Avoid a wall of black bars, but find the right way to crop | **done** — D6, D19, and the carousel frame that follows the photograph |
 | 39 | Consider rules for how wide the feed may be | **done** — the 900px cap (D10) and the 500px ceiling (D15) |
@@ -991,9 +1058,23 @@ reading the brief** — the wording in the brief carries nuance this table does 
    a sentence. That is a real difference and a small one. **His to call**: keep the second
    line, or fold it into the caption and have one field. Folding it in is about ten minutes
    and loses nothing search can see.
-5. **The LLM tagging pass** (#25) -- he wants it, and it is phase 6. The estimate in spec
-   sec. 8.3 (about $29 on Opus 5 for 20,000) is from published rates, not measured; confirm
-   on a hundred photographs before running twenty thousand.
+6. **The tagging pass, now that it is built** (#25, D37). Two things are his to judge and
+   neither is code. **How much a session should take on at once**: the picker defaults to
+   sixty, which is a guess about how many photographs a session can look at properly before
+   the last ones get answered carelessly. And **whether captions should be written at all**
+   — the applier only ever fills a blank, and the skill tells the session to describe what
+   is in the frame and never to write a name, because it cannot tell one person or one year
+   from another by looking. He may want captions left to people entirely, which is one line
+   in the skill.
+7. **The crop handle** (D38), which he has not seen. It appears only on a composer preview
+   the card is actually going to cut, and it opens the photograph at the real frame — 3:4
+   at 375x500 for anything taller. Two things worth his eye: whether the small crop badge
+   on an 80px preview is findable, and whether "Put it back" is the right words for
+   returning to the machine's own aim.
+8. **The queue's ticks** (D39), also unseen. Five waiting photographs is the case it was
+   screenshotted at; whether the bar earns its line when there are two is a taste call.
+9. **F49, and it is one clause.** An outside click still collapses a composer holding three
+   photographs and no text. Not fixed because it changes behaviour he has not asked about.
 
 ## Session log
 
@@ -1227,3 +1308,48 @@ are D32 to D36 and the findings F40 to F44.
 - **Next session: the rest of phase 6** -- the suggestion pass, the crop handle, the
   trusted-contributor control. All three are in the status board above. Read this file, then
   `brief.md` in full, then spec §8.3 and §9.
+
+### Session 6 — 2026-08-28 (Opus)
+
+Read `brief.md` and `spec.md` in full and `prior-art.md`, then built **the three pieces of
+phase 6 that were owed**. Detail in `progress.md` under the same date; what changes what the
+next session should do is D37 to D39 and F45 to F49.
+
+- **The owner redirected §8.3 before a line of it was written**, and his shape is better:
+  no API, no key, no bill, a session in this repo that can simply look at the photographs
+  (D37). `scripts/dev/tag-photos-{pick,apply}.mjs`, `src/lib/photo-suggest.ts` (19 tests),
+  `.claude/skills/tag-photos/SKILL.md`, wired into CLAUDE.md's skills table. **Verified
+  against the live archive**: picked its two photographs, read them, watched the dry run
+  refuse both suggested captions because both rows already had one, applied, and undid —
+  the two rows are as the session found them. Every refusal fired on a deliberately bad
+  file: a seventh bucket, an id outside the batch, an invented decade, and a batch picked
+  from one database applied to another.
+- **The crop handle** (D38), with `Image.focalSet` and a dated migration applied to both
+  databases. Wired into the post/letter composer and Catch-up answers. **Driving the real
+  composer found three bugs a screenshot would not have** — F48 for the two in the dialog,
+  F47 for the composer collapsing out from under it, which is the second time a portalled
+  dialog has done that.
+- **The queue's selection** (D39). And **the trusted-contributor toggle the board asked for
+  already existed** (F45) — three sessions carried a line saying it did not.
+- **The write-path review was done in this session by hand**, as sessions 2, 4 and 5 did.
+  `aimImage`: auth precedes the write; the only inputs are a url through the same C2
+  ownership check every image-naming path uses and a finite number clamped to 0..1; `Image`
+  is absent from the demo's `ALLOWED_WRITE_MODELS` and the action refuses `IS_DEMO`
+  outright; the schema went through a dated idempotent file applied with `run-sql.mjs`. No
+  meter, matching `togglePhotoLove` — a small idempotent write on a row the caller already
+  owns, bounded by their own upload quota. `approvePhotos` bounds its id list at 100 before
+  it becomes an `IN` clause, and `myImageFacts` reads through the same ownership filter so
+  it cannot be used to enumerate the bucket.
+- `npm run check` green, 86/86. `npm run visual` 23/23, no baseline moved. Measured at
+  1440x900 and 390x844. Every probe deleted itself and its own rows and bytes; the
+  `Image` table is back to 44 rows, 0 hand-aimed.
+- **One commit picked up a change that was not mine**, and it is worth knowing why: F46,
+  `git commit -- <paths>` takes the working tree and ignores the index, so staging a single
+  hunk of CLAUDE.md did not hold. The owner's own uncommitted edit went in with it.
+- **What the owner has not seen:** the tagging pass, the crop handle, the queue's ticks —
+  and still all of phases 4 and 5. Open questions 1, 2, 3 and 6 to 9.
+- **Next session: the close-out**, which is now the only thing left on the board. Retiring
+  `/lab/crop` MOVES its specimens rather than deleting them (F39). Then bug #18, #19, #35
+  and #37 out of `docs/planning/bugs.md`, and `docs/spec/media.md`, large parts of which
+  D2 and D3 superseded. If the owner is in the room, showing him the backlog above is worth
+  more.
