@@ -14,11 +14,15 @@
  *  Code session on the owner's own subscription rather than a paid API
  *  call. This script does the part a session should not: it reads the
  *  database and writes a manifest. The session reads the manifest, writes
- *  `.professions/verdicts.json`, and tag-professions-apply.mjs puts the
+ *  `scripts/dev/.professions/verdicts.json`, and tag-professions-apply.mjs puts the
  *  answers back. The procedure is .claude/skills/tag-professions/SKILL.md.
  *
  *  READ-ONLY against the database. Writes nothing anywhere but
- *  `.professions/`, which is gitignored.
+ *  `scripts/dev/.professions/`, which is gitignored. Beside the scripts that
+ *  own it rather than in the repo root: the owner keeps the root short, and an
+ *  ignored working folder is the clearest case of something that does not have
+ *  to be there. (`.tagging/`, the photograph pass's equivalent, is still a root
+ *  entry -- it predates the rule and moving it is its own change.)
  *
  *  Run: node scripts/dev/tag-professions-pick.mjs [--all] [--limit N]
  *                                                 [--tag <value>]
@@ -51,7 +55,7 @@ const LIMIT = Number(value("--limit", 0));
 const ALL = flag("--all");
 const ONLY_TAG = value("--tag", null);
 const envFile = value("--env", ".env");
-const OUT = path.join(process.cwd(), ".professions");
+const OUT = path.join(process.cwd(), "scripts", "dev", ".professions");
 
 const env = readEnv([envFile]);
 const url = env.DIRECT_URL || env.DATABASE_URL;
@@ -231,9 +235,9 @@ await writeFile(
 );
 
 console.log(
-  `\nwrote ${people.length} to .professions/manifest.json` +
+  `\nwrote ${people.length} to scripts/dev/.professions/manifest.json` +
     `\n\nNext: read it -- the vocabulary and the rules are in the file -- write` +
-    `\n.professions/verdicts.json, then \`node scripts/dev/tag-professions-apply.mjs\` (dry by default).` +
+    `\nscripts/dev/.professions/verdicts.json, then \`node scripts/dev/tag-professions-apply.mjs\` (dry by default).` +
     `\nThe procedure is .claude/skills/tag-professions/SKILL.md.`
 );
 await client.end();

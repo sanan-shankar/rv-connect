@@ -438,12 +438,12 @@ export function DirectoryClient({
             2026-08-28 ("did you make the profession tab disappear from
             filters? bring it back"), and a filter that comes and goes on its
             own is the worse of the two surprises.
-            What actually empties it is TAG_FLOOR, his own number: a tag needs
-            five people before it is offered, and on the live database today
-            only "Studying" clears that (25, against Education, Healthcare and
-            Law on 2 each). So this control is one choice wide until either the
-            membership grows into the floor or the floor comes down -- and both
-            of those are his call, not this component's.
+            What fills or empties it is TAG_FLOOR, and the floor came down to
+            two the same evening: at five it admitted only "Studying" (25,
+            against Education, Healthcare and Law on 2 each) and he came back
+            with "there's no real filters for profession now". At two it admits
+            those four. How thin the list is stays a question about the floor
+            rather than about this component.
             The CHIP is unaffected either way: a bookmarked ?profession= still
             shows and still clears, exactly as the removed House filter's
             does. */}

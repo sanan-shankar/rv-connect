@@ -1,5 +1,33 @@
 # Progress Log
 
+## 2026-08-28 — the profession floor comes down, and its working folder leaves the root
+
+Two of his, in one message: *"there's no real filters for profession now"*, and the root
+directory picking up an entry it did not need.
+
+**The floor was the problem, not the control, and a session had already said so.** With
+`TAG_FLOOR` at five, the live histogram is Studying 25, then Education, Healthcare and Law
+on 2 each and six tags on 1 -- so exactly one option cleared, and the facet was a dropdown
+with nothing to choose between. It was first hidden below two options, then (his call, same
+afternoon) brought back at one, and the note left on that fix was right: whether the list
+stays thin is a question about the floor, not about the component. **Five was mine, offered
+as a default before any of this data existed. Two is the literal reading of what he actually
+asked for at the start -- "we don't want a bunch of buckets with just one person" -- and it
+admits four.** Verified: `?profession=law` returns 2 results with a Law chip, where before
+the tag was not offered at all. The lesson worth keeping is the one the earlier fix nearly
+had: **a control that hides itself is treating a data problem as a presentation problem.**
+
+`TAG_VISIBLE_MAX` at twelve is untouched and still does the readability work as the
+membership grows; the floor's only remaining job is excluding a tag that describes one
+person. The two now hand off cleanly in both directions rather than only at the top end.
+
+**The working folder: `.professions/` -> `scripts/dev/.professions/`.** First attempt put it
+in `.scratch/`, on the reasoning that the name was already in `.gitignore` -- but nothing had
+ever created that folder, so using it added a root entry rather than removing one. He caught
+it in one line: *"why do we have a .scratch now"*. It sits beside the two scripts that own it
+now, and the root is back to 32 entries. `.tagging/`, the photograph pass's equivalent, is
+still a root entry; it predates the rule and moving it is its own change.
+
 ## 2026-08-28 — the profile feed stops guessing how tall it is about to be
 
 The second reflow found while measuring the Done button, and the owner's *"fix it"*. Pressing
