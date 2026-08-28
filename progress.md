@@ -6645,3 +6645,27 @@ tidy-up, and it is the open question in the rail's redesign rather than somethin
 smaller version of the thing he just rejected. And the count line got `gap-y-3` where it had `gap-y-1`:
 the row only wraps on a narrow screen, so that number is mobile-only by construction and the laptop
 never sees it.
+
+
+## 2026-08-29 — the page title stops crowding its own second line
+
+*"Move the word Collection a bit below. Don't move the rest, that's fine. Just the Collection word is
+too close to The Valley."* "The Valley Collection" wraps on a phone, and the shared `<PageHeader>` set
+its `<h1>` at `leading-none` -- 30px of line-height on 30px Libre Baskerville. Consecutive baselines
+30px apart, a descender reaching 8px below one, and a capital starting 20px above the next, leaves
+about two pixels between the tail of "Valley" and the shoulder of "Collection". Not a collision;
+cramped. `leading-[1.2]` opens it to eight.
+
+Changed in `<PageHeader>` rather than passed down from the Collection, and that was the interesting
+call. Every main surface routes its title through that component precisely so headings cannot drift --
+they were four separate variants once, and the component says so in a comment. A `titleClassName`
+escape hatch is how that starts again, so the leading is simply correct there now instead of
+overridable here. The owner cleared it once the cost was stated: *"you can tweak it for all of them if
+all it does is moves the wrapped words a bit lower."*
+
+The cost is slightly more than that and was worth measuring before claiming otherwise: a WRAPPED title
+gains 6px between its lines, and a SINGLE-LINE title gains 6px of box height, which moves its ink down
+3px and everything under it down 6px. Eleven of the twenty-three visual routes moved, on both
+viewports, and the About diff is the whole story -- the title shifting a few pixels and one paragraph
+following it. That is the suite doing its job on a change with a wider blast radius than the request
+implied.

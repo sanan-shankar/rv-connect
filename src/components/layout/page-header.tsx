@@ -70,7 +70,22 @@ export function PageHeader({
             its own heading (they used to drift across 4 variants). The weight is
             the face's own regular, NOT font-bold: owner, 2026-07-30, on a bolded
             trial, "it's all a bit thicker, this is way too overpowering". */}
-        <h1 className="font-heading text-[30px] leading-none tracking-[-0.02em] text-foreground">
+        {/* `leading-[1.2]`, not `leading-none`. At 30px Libre Baskerville a
+            line-height of 1.0 puts consecutive baselines 30px apart, and a
+            descender reaching 8px below one baseline leaves about two pixels
+            under the capital of the next -- fine for the single-line titles
+            most surfaces have, and visibly cramped for the one that wraps.
+            "The Valley Collection" wraps on a phone, and the owner: "move the
+            word Collection a bit below, it's too close to The Valley."
+            1.2 opens that to eight pixels of clearance.
+
+            Changed HERE rather than passed in from the Collection: every main
+            surface routes its title through this component precisely so they
+            cannot drift (they were four variants once), and a `titleClassName`
+            escape hatch is how that starts again. The cost is six pixels of
+            height on single-line headers, which is the honest price of a
+            leading that does not collide. */}
+        <h1 className="font-heading text-[30px] leading-[1.2] tracking-[-0.02em] text-foreground">
           {guide ? <GuideDoor area={guide}>{title}</GuideDoor> : title}
         </h1>
         {subtitle && (
