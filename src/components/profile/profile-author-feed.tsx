@@ -21,6 +21,7 @@ export function ProfileAuthorFeed({
   kind,
   emptyTitle,
   emptyBody,
+  expectedCount,
   layout = "sheet",
 }: {
   authorId: string;
@@ -30,6 +31,19 @@ export function ProfileAuthorFeed({
   kind?: "post" | "letter";
   emptyTitle?: string;
   emptyBody?: string;
+  /**
+   * How many posts this scope holds, counted on the server in the same request
+   * that rendered the page. The tab pill beside this feed is ALREADY printing
+   * it, so the skeleton is not a guess we have to make -- and a three-card
+   * skeleton under a pill reading "0" contradicts something the reader can see.
+   *
+   * Two jobs. At zero it skips the skeleton entirely and opens on the empty
+   * state, which is what the fetch is about to confirm; the fetch still runs,
+   * so a count made stale by a post written since the page loaded corrects
+   * itself. Above zero it sizes the skeleton, capped at three, so one post is
+   * one placeholder rather than three.
+   */
+  expectedCount?: number;
   /**
    * "sheet" stacks the posts inside one bordered card, divider-separated.
    * "cards" lets each post stand free on the page as its own card, exactly as
@@ -104,7 +118,9 @@ export function ProfileAuthorFeed({
 
   const asCards = layout === "cards";
 
-  if (loading) {
+  /* Falling through to the empty state below rather than returning one here:
+     the two must not drift, and the fetch may still overrule the count. */
+  if (loading && expectedCount !== 0) {
     return (
       <div
         className={
@@ -113,7 +129,7 @@ export function ProfileAuthorFeed({
             : "card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card"
         }
       >
-        {[1, 2, 3].map((i) => (
+        {Array.from({ length: Math.min(expectedCount ?? 3, 3) }, (_, i) => (
           <div
             key={i}
             className={

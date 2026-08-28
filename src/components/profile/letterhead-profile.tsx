@@ -1892,6 +1892,12 @@ function Writing({
 
   const [tab, setTab] = useState<TabKey>("all");
 
+  /* The count the OPEN pill is printing, handed to the feed below it so the
+     two cannot disagree. Read off TABS rather than re-deriving the same three
+     sums: the pill and the feed must be quoting one number, and that is the
+     whole reason the feed can stop guessing how tall it is about to be. */
+  const openCount = TABS.find((t) => t.key === tab)?.count;
+
   return (
     /* The top margin lives on the caller now, because the contact block that
        takes this one's place in edit mode has to sit at exactly the same y. */
@@ -1915,6 +1921,7 @@ function Writing({
             firstName={firstName}
             isOwnProfile={isOwnProfile}
             kind={tab === "all" ? undefined : tab === "posts" ? "post" : "letter"}
+            expectedCount={openCount}
             layout="cards"
             emptyTitle={
               tab === "letters"
@@ -1938,7 +1945,7 @@ function Writing({
             </div>
           ))}
 
-        {tab === "saved" && <SavedPostsFeed />}
+        {tab === "saved" && <SavedPostsFeed expectedCount={savedCount} />}
       </div>
     </div>
   );

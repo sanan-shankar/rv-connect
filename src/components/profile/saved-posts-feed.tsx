@@ -113,7 +113,15 @@ function SavedSkeleton({ cols }: { cols: number }) {
   );
 }
 
-export function SavedPostsFeed() {
+export function SavedPostsFeed({
+  expectedCount,
+}: {
+  /** How many the viewer has saved, counted on the server with the rest of the
+   *  page. At zero this opens on the empty state instead of a skeleton that is
+   *  already known to be about to collapse into one -- the same reason
+   *  ProfileAuthorFeed takes it. The fetch still runs and still overrules. */
+  expectedCount?: number;
+}) {
   const [posts, setPosts] = useState<PostData[]>([]);
   const [removed, setRemoved] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -157,7 +165,7 @@ export function SavedPostsFeed() {
     toast("Removed from saved");
   }
 
-  if (loading) {
+  if (loading && expectedCount !== 0) {
     return (
       <div ref={ref}>
         <SavedSkeleton cols={cols} />
