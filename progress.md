@@ -6416,6 +6416,29 @@ whatever line it punctuates. All eighteen sites at once. `overflow: hidden` on i
 rather than tidiness: it is what makes an inline-block take its bottom margin edge as its baseline,
 which turns `vertical-align` into a plain statement about where the dot's underside sits.
 
+THAT WAS NOT ENOUGH, and the owner caught it: "middle dot still not in the middle is it?" Drawing
+the dot fixes its shape and fixes nothing about where the box lands, because most of these
+eighteen sites are FLEX rows -- and a flex item is blockified, so `vertical-align` is ignored
+outright and `align-items: center` governs. What that centres is the LINE BOX, and a line box
+carries descender space under the baseline that no capital or digit ever reaches, so its middle
+sits below the middle of the ink beside it. Measured on the live row: the span's centre at 201.25,
+the dot's at 202.25, the cap band's at 200.23. Two separate errors stacked -- one pixel of the old
+`top: 1px`, and 1.02px of line-box-versus-cap.
+
+So there are two corrections and they are both in `em`: `top: -0.078em` for the flex rows, and
+`vertical-align: 0.135em` for the four inline sites, the second reduced from the 0.215em it would
+otherwise want because the first applies in both contexts. Verified by injecting the finished rule
+against the live row and against a reproduction of the inline usage: 0.008px and 0.024px off
+centre. Worth the paragraph because the first attempt looked right in a screenshot and was wrong by
+two pixels, and because the reason it was wrong -- flex blockification silently killing
+`vertical-align` -- will bite anything else that tries to align a drawn mark to text in a flex row.
+
+A second lesson, cheaper to state: none of this was visible in the browser while it was being
+worked on. The dev server was serving a stylesheet from before the edit, and `.dotsep` was simply
+absent from the loaded CSS -- gotcha 1 in CLAUDE.md, which says in as many words to clear `.next`
+and restart after touching globals.css. A hard reload and a `touch` both failed to shake it. The
+first fix was "verified" against a screenshot of the OLD rule still running.
+
 The misalignment was 6px, measured. `items-end` aligns the two children's bottom EDGES, and they
 are not built alike: a bucket word is one 13.5px line set `leading-none`, the count is a 13px line
 sharing a centred flex row with a dropdown trigger carrying its own `py-0.5`. Equal bottoms, two
