@@ -5,6 +5,7 @@ import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { DirectoryClient } from "@/components/directory/directory-client";
 import { cityCoords, hasOwnPin, normalizeCity } from "@/lib/city-coords";
+import { TAG_FLOOR, TAG_VISIBLE_MAX, tagLabel } from "@/lib/profession-tags";
 import { resolvePlacesFromGazetteer } from "@/lib/geocode";
 import { buildDirectoryWhere, directoryOrderBy, parseDirectoryYears } from "./where";
 import type { CityPin, PinPerson } from "@/components/directory/alumni-map";
@@ -256,6 +257,7 @@ export default async function DirectoryPage({
     resultCount,
     mapped,
     cityGroups,
+    professionGroups,
   ] = await Promise.all([
     prisma.user.groupBy({
       by: ["batchYear"],
@@ -275,7 +277,13 @@ export default async function DirectoryPage({
       _min: { batchYear: true },
       _max: { batchYear: true },
     }),
-    hasFilter && !namesLocked
+    /* Not gated on `hasFilter` any more (2026-08-28). People is a browse view
+       now, always on the toggle rather than appearing when a filter did, so an
+       unfiltered visit that opens it needs a real first page -- it was getting
+       an empty array and the grid said "No one matches these filters" about
+       filters nobody had set. Stage 1 still gets nothing, which is the trust
+       model and not a bug. */
+    !namesLocked
       ? prisma.user.findMany({
           where,
           select: PERSON_SELECT,
@@ -303,14 +311,33 @@ export default async function DirectoryPage({
     // City facet options: live distinct `UserPlace.city` values (frequency,
     // then A-Z), NOT `distinct User.currentCity` -- a person now has an
     // unlimited ordered city list, so the option source moved to the child
-    // table. Profession/House/Type are static vocabularies (no query
-    // needed) imported straight into the client component.
+    // table. House/Type are static vocabularies (no query needed) imported
+    // straight into the client component; Profession is the query below.
     prisma.userPlace.groupBy({
       by: ["city"],
       where: { user: { isBlocked: false, deletionRequestedAt: null } },
       _count: { city: true },
       orderBy: [{ _count: { city: "desc" } }, { city: "asc" }],
     }),
+    /* Profession facet options: the live tag histogram, both caps applied
+       here in SQL so the control cannot offer a tag the server would not
+       honour.
+         TAG_FLOOR       a tag needs five people before it is offered at all
+         TAG_VISIBLE_MAX only the twelve largest are offered
+       The two do different jobs and hand off as the membership grows -- see
+       the comments on each in src/lib/profession-tags.ts.
+
+       $queryRaw rather than groupBy because `professionTags` is a text[] and
+       Prisma cannot group by the ELEMENTS of an array; `unnest` is the only
+       instrument. Same reasoning as the raw query in api/places/search. */
+    prisma.$queryRaw<{ tag: string; n: number }[]>`
+      SELECT unnest("professionTags") AS tag, count(*)::int AS n
+        FROM "User"
+       WHERE "isBlocked" = false AND "deletionRequestedAt" IS NULL
+       GROUP BY 1
+      HAVING count(*) >= ${TAG_FLOOR}
+       ORDER BY n DESC, tag ASC
+       LIMIT ${TAG_VISIBLE_MAX}`,
   ]);
 
   /* What people look for HERE, which was the one scope with no writer even
@@ -368,6 +395,11 @@ export default async function DirectoryPage({
           .map((b) => ({ year: b.batchYear, count: b._count.id }))}
         facultyCount={facultyCount}
         cities={cityGroups.map((c) => c.city)}
+        /* Value and label both, unlike `cities`: a city IS its own label, but
+           a tag is a slug ("social impact" is stored lower case) and the label
+           is the vocabulary's. Resolved on the server so the client never
+           imports the whole vocabulary to render twelve strings. */
+        professions={professionGroups.map((p) => ({ value: p.tag, label: tagLabel(p.tag) }))}
         minBatchYear={batchYearRange._min.batchYear ?? valleyYear() - 40}
         maxBatchYear={batchYearRange._max.batchYear ?? valleyYear()}
         /* The filters that were actually APPLIED, not the raw params (audit

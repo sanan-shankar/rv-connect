@@ -139,35 +139,29 @@ export function buildDirectoryWhere(filters: DirectoryFilters): Record<string, u
     };
   }
   if (filters.profession) {
-    /* Provisional, and deliberately loose. This was
-       `where.workplace = <exact value>`, aimed at an onboarding Industry
-       select that has since been deleted: measured on the live database on
-       2026-08-26 it matched 0 of 63 members, because workplace now holds a
-       free-text ORGANISATION and the role lives in jobTitle. The control came
-       back on 2026-08-28 (owner's call, ahead of the tags), so the arm has to
-       match what members actually typed: a case-insensitive contains over
-       jobTitle first and workplace second. On that same database it finds 28
-       of 63 -- "Law" reaches the lawyer, "Research" the research analyst --
-       and eleven of the fourteen buckets still find nobody. A contains can
-       obviously over-reach (a workplace called "Lawson"), which is acceptable
-       for a filter nobody can bookmark by accident and is the reason this is
-       marked provisional: the LLM-derived profession tag
-       (docs/planning/FEATURES.md section 2) replaces the whole branch with an
-       equality on its own column.
+    /* A derived tag, matched exactly -- `professionTags` is a Postgres text[]
+       written only by scripts/dev/tag-professions-*.mjs, and `has` is a `@>`
+       containment against the GIN index on it.
 
-       AND rather than a second OR: `filters.q` above already owns `where.OR`,
-       and assigning it twice would drop the member's search entirely while the
-       search box went on showing what they typed -- the exact shape of the
-       clobbers audits C-093 and Low 73 found on accountType and batchYear. */
-    const needle = escapeLike(filters.profession);
-    where.AND = [
-      {
-        OR: [
-          { jobTitle: { contains: needle, ...insensitive } },
-          { workplace: { contains: needle, ...insensitive } },
-        ],
-      },
-    ];
+       This replaces a case-insensitive contains over jobTitle then workplace,
+       which was a stand-in for exactly this column and was marked provisional
+       from the day it shipped. The contains was loose by construction (a
+       workplace called "Lawson" answered a filter for Law) and it could only
+       ever find the members whose free text happened to contain a bucket's
+       own name. The vocabulary and the rules behind the values are in
+       src/lib/profession-tags.ts.
+
+       AND the reason `where.AND` is gone with it: that array existed solely so
+       the contains' OR would not clobber `filters.q`'s (audits C-093, Low 73).
+       One clause on one column needs no such arrangement, so the hazard is
+       removed rather than managed.
+
+       No `tagsOf()` on the way in, deliberately. A URL asking for a tag that
+       no longer exists should return nothing and show a chip to clear, which
+       is what an unmatched value does here anyway; mapping it through the
+       legacy table would silently answer a DIFFERENT question than the chip
+       on screen says it is answering. */
+    where.professionTags = { has: filters.profession };
   }
   // escapeLike like every other free-text contains: an unescaped "%" or "_" in
   // the URL param would otherwise reach Postgres as a live LIKE wildcard and

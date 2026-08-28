@@ -23,6 +23,7 @@
 
 import type { PrismaClient } from "@/generated/prisma/client";
 import { CITY_COORDS } from "@/lib/city-coords";
+import { sourceOf, tagsOf, withParents } from "@/lib/profession-tags";
 import { ALL_DEMO_PEOPLE, type DemoPerson } from "./people";
 import {
   CATCHUP_KEEPER,
@@ -152,6 +153,14 @@ export async function seedDemo(
           secondaryCity: p.secondCity ?? null,
           jobTitle: p.jobTitle ?? null,
           workplace: p.workplace ?? null,
+          /* Authored here rather than left for the tagging pass. The demo is
+             the public, no-login showcase and its Profession filter hides
+             itself until two tags clear TAG_FLOOR, so an untagged seed would
+             show a directory with the control missing. `withParents` for the
+             same reason the applier calls it -- the seed must not be the one
+             place a child tag arrives without its parent. */
+          professionTags: withParents(tagsOf(p.professionTags ?? [])),
+          professionTagSource: sourceOf(p.jobTitle ?? null, p.workplace ?? null),
           bio: p.bio ?? null,
           about: p.about ?? null,
           houses: housesJson(p),
