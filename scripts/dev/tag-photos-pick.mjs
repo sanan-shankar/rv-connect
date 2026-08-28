@@ -72,12 +72,14 @@ await client.connect();
 /* Untagged means no bucket. That is the field the whole of sec. 7 rests on and
    the one a contributor can silently refuse to fill (D35: nothing is
    required), so it is the default. `--all` widens it to anything still missing
-   a caption or a date as well, for a second pass over photographs that were
-   filed but not described. Hidden rows are left out either way: they are
-   removed, and describing them better serves nobody. */
+   a DATE as well, for a second pass over photographs that were filed but not
+   dated. Not captions: this pass does not write them (see the note at the top
+   of src/lib/photo-suggest.ts), so picking a photograph BECAUSE it has no
+   caption would export bytes for a question nobody is going to answer.
+   Hidden rows are left out either way: they are removed, and filing them
+   better serves nobody. */
 const wanted = ALL
   ? `("subject" IS NULL OR "subject" = ''
-      OR "caption" IS NULL OR "caption" = ''
       OR "datePrecision" IS NULL OR "datePrecision" = 'unknown')`
   : `("subject" IS NULL OR "subject" = '')`;
 

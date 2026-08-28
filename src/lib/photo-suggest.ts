@@ -24,10 +24,11 @@
  *  never silent -- they arrive as prefilled fields the contributor can
  *  change", and in a backfill there is no contributor in the room to
  *  change them. The honest equivalent of asking is not asking for
- *  anything a person has already answered. So a caption somebody wrote
- *  is never touched, a bucket somebody chose is never removed, and a
- *  date somebody gave is never overruled. What is left is the enormous
- *  common case this exists for: the field is blank.
+ *  anything a person has already answered. So a bucket somebody chose is
+ *  never removed and a date somebody gave is never overruled. What is
+ *  left is the enormous common case this exists for: the field is blank.
+ *
+ *  And captions are not written at all -- see the note below the imports.
  * ------------------------------------------------------------------ */
 
 /* A `.ts` extension, and a relative path, because this module's own unit test
@@ -36,8 +37,19 @@
    exactly this (see the comment there). */
 import { BUCKET_VALUES, ERA_VALUES, bucketsOf, type BucketValue } from "./collection.ts";
 
-/** The longest caption the Collection accepts, matching `photoSchema`. */
-export const SUGGEST_CAPTION_MAX = 300;
+/* CAPTIONS ARE NOT WRITTEN BY THIS PASS. The owner, 2026-08-28: "tagging
+   tool should not write captions." He is right, and the reason is in the
+   glossary below: a session can see a tree and a building and cannot see a
+   name, a house, a year or an occasion, so every caption it writes is a
+   description of pixels standing in a real school's archive where a
+   member's own sentence should be. Buckets and decades are different --
+   both are closed vocabularies, both are checkable by looking, and neither
+   pretends to be somebody's memory.
+
+   A `caption` in a verdicts file is therefore DROPPED, counted, and
+   reported by the dry run, rather than refused. Refusing would cost a whole
+   batch of good buckets over a field whose correct handling is to ignore
+   it. */
 
 /**
  * What a classifier cannot know about this place, written down.
@@ -67,9 +79,9 @@ Names that will appear and that a general classifier will not know:
   - House names (Golden, Silver, Neem, Raavi, Palm, Meru, Nilgiri, Amaltash, Gulmohar and others)
     are groups of children, not places.
 
-Do not write a name into a caption unless it is already in what the contributor typed. You cannot
-tell one person, one house or one year from another by looking, and this is a real school's
-archive: a confident wrong name is worse than no caption at all.`;
+Do not write captions at all. You cannot tell one person, one house, one year or one occasion
+from another by looking, and this is a real school's archive: a confident wrong sentence in it is
+worse than a blank. Captions belong to the people who were there.`;
 
 /**
  * How to choose between the six. Written here rather than in the session
@@ -93,18 +105,11 @@ under one of the three makes it unfindable under the other two.
 export type Verdict = {
   id: string;
   buckets: BucketValue[];
-  /** A plain sentence, only where the photograph really says one. */
-  caption?: string;
   /** A decade, only when the photograph itself dates it. */
   era?: string;
 };
 
 export type VerdictProblem = { at: string; why: string };
-
-/** Collapse a suggested caption to the one line the column will take. */
-export function tidyCaption(raw: string): string {
-  return raw.replace(/\s+/g, " ").trim().slice(0, SUGGEST_CAPTION_MAX);
-}
 
 /**
  * Read a verdicts file, refusing anything malformed rather than coercing it.
@@ -123,9 +128,12 @@ export function tidyCaption(raw: string): string {
 export function readVerdicts(
   raw: unknown,
   known: Set<string>
-): { verdicts: Verdict[]; problems: VerdictProblem[] } {
+): { verdicts: Verdict[]; problems: VerdictProblem[]; ignoredCaptions: number } {
   const problems: VerdictProblem[] = [];
   const verdicts: Verdict[] = [];
+  /** Captions offered and thrown away, so the dry run can say so rather than
+   *  leaving a session to wonder where its sentences went. */
+  let ignoredCaptions = 0;
 
   const list = Array.isArray(raw)
     ? raw
@@ -133,7 +141,11 @@ export function readVerdicts(
       ? (raw as { photos: unknown[] }).photos
       : null;
   if (!list) {
-    return { verdicts, problems: [{ at: "(file)", why: "expected an array, or { photos: [...] }" }] };
+    return {
+      verdicts,
+      problems: [{ at: "(file)", why: "expected an array, or { photos: [...] }" }],
+      ignoredCaptions,
+    };
   }
 
   const seen = new Set<string>();
@@ -181,14 +193,8 @@ export function readVerdicts(
 
     const verdict: Verdict = { id, buckets };
 
-    if (e.caption !== undefined && e.caption !== null && e.caption !== "") {
-      if (typeof e.caption !== "string") {
-        problems.push({ at: id, why: "caption is not a string" });
-        return;
-      }
-      const caption = tidyCaption(e.caption);
-      if (caption) verdict.caption = caption;
-    }
+    // Dropped, not refused. See the note at the top of this file.
+    if (typeof e.caption === "string" && e.caption.trim()) ignoredCaptions += 1;
 
     if (e.era !== undefined && e.era !== null && e.era !== "" && e.era !== "unknown") {
       if (typeof e.era !== "string" || !(ERA_VALUES as readonly string[]).includes(e.era)) {
@@ -201,14 +207,13 @@ export function readVerdicts(
     verdicts.push(verdict);
   });
 
-  return { verdicts, problems };
+  return { verdicts, problems, ignoredCaptions };
 }
 
 /** The Photo columns this decides about. */
 export type TaggableRow = {
   id: string;
   subject: string | null;
-  caption: string | null;
   era: string | null;
   datePrecision: string | null;
 };
@@ -217,9 +222,9 @@ export type TaggableRow = {
 export type Change = {
   id: string;
   /** The columns to write. Empty is impossible: `planChange` returns null. */
-  set: { subject?: string; caption?: string; era?: string; datePrecision?: string };
+  set: { subject?: string; era?: string; datePrecision?: string };
   /** The same columns as they are now, so the write can be undone exactly. */
-  was: { subject?: string | null; caption?: string | null; era?: string | null; datePrecision?: string | null };
+  was: { subject?: string | null; era?: string | null; datePrecision?: string | null };
   /** Human-readable notes on what the suggestion offered and this refused. */
   kept: string[];
 };
@@ -242,15 +247,6 @@ export function planChange(row: TaggableRow, v: Verdict): Change | null {
   } else {
     set.subject = v.buckets.join(",");
     was.subject = row.subject;
-  }
-
-  if (v.caption) {
-    if (row.caption && row.caption.trim()) {
-      kept.push("already has a caption");
-    } else {
-      set.caption = v.caption;
-      was.caption = row.caption;
-    }
   }
 
   /* A decade is only offered where the photograph has NO date at all. A

@@ -184,12 +184,25 @@ that rework.
       **One thing still outstanding**: production keeps minting the OLD shape until this is
       deployed, so `node scripts/dev/sweep-stranded-originals.mjs` must be run once more
       after the deploy. Then that script and its `scripts/README.md` line get deleted.
-- [ ] **Close-out**: delete `/lab/crop`, `public/lab/crop/` and the registry row (its
-      "several at once" mode now renders the SHIPPED components beside what each surface did
-      before, so it is worth keeping until the owner has looked at phase 3);
-      fold bug #18, #19, #35 and #37 out of `docs/planning/bugs.md`,
-      update `docs/spec/media.md` (large parts of it are now superseded — see D2, D3),
-      delete `/lab/crop` and its registry line, log in `progress.md`.
+- [x] **The owner's round on the shipped rework** — session 7, 2026-08-28. Eleven asks in one
+      message, against the viewer, the contribute pop-up, the crop handle, "Through time" and the
+      tagging pass. All eleven done; **D40 to D46** are the ones that were decisions rather than
+      edits, and F51 is the one that turned out to be nothing. Open question 5 is now ANSWERED
+      by him: Where is folded into the description and the second box is gone.
+- [x] **Close-out, the documents** — session 7. Bug #18 and #19 are out of
+      `docs/planning/bugs.md` and into its Settled section (#19 was still real and was fixed in
+      the same commit; #35 and #37 were never bugs.md numbers, they are the campaign's own
+      ledger rows and were already marked fixed there). `docs/spec/media.md` now opens with a
+      banner naming the five sections this campaign killed and the four that still stand.
+- [ ] **Close-out, the last two things**, and they are deliberately NOT done:
+      - **`/lab/crop` stays** until the owner has looked at phase 3 in it. That is what the line
+        here always said, and he has not: its "several at once" mode is the only place the
+        SHIPPED justified rows are drawn beside what each surface did before. Retiring it MOVES
+        `public/lab/crop/` rather than deleting it (F39) — `/lab/collection` shares those
+        specimens.
+      - **`node scripts/dev/sweep-stranded-originals.mjs` must be run once more after the
+        deploy** (see the R2 item above), and only then does that script and its
+        `scripts/README.md` line get deleted. Nothing has been deployed since it was written.
 
 ## Decisions locked so far
 
@@ -455,6 +468,76 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   admin who cannot leave one out will either approve blind or go back to one at a time. The
   bar appears only past one waiting photograph — a single one already has its own Approve
   button two inches to the right.
+
+### The owner's round on the shipped rework (2026-08-28, session 7)
+
+Eleven asks in one message, after he had finally used the thing. Each of these is his
+unless it says otherwise.
+
+- **D40. The viewer's tags show by default; "More" is only ever about the caption.**
+  His: *"in the photo viewer I don't like the see more for the tag... maybe the tags could
+  just show above it by default. instead of constantly having a more button which is clutter
+  anyway."* `hasMore` used to be `overflows || where || tags.length` — so a photograph with a
+  place name and two chips carried a control on screen permanently to reveal less than one
+  line of text. The chips and the place are simply drawn now, above the caption; the word
+  "More" appears only when the caption itself runs past its two lines, which is the one thing
+  actually hidden.
+
+- **D41. There were no tags to remove.** He asked, conditionally: *"firstly remove all tags in
+  the current photos if there are."* Checked both databases: production holds two photographs,
+  neither filed under a bucket and neither carrying a `freeTags` value; the demo database holds
+  none. Nothing to clear, so nothing was cleared. **And "the six you've picked are fine"
+  settles the taxonomy** — D31 is no longer a proposal he can overrule, it is a decision.
+
+- **D42. The decade headings are chapter openings, not sticky bars.** His: *"the through time
+  seems to just be the same as newest except with some headings. also the headings have the
+  weird bars behind them."* Both halves are one cause. The heading was sticky, stickiness needs
+  a background to travel over, and that background was the "weird bar" — a translucent band
+  plus a hairline rule across the river at every decade. The stickiness was buying very little
+  next to a decade rail that says where you are permanently, so it is gone: the decade, the
+  count under it, and a clear breath above. **And a lone band draws no heading at all**, which
+  is what he was actually looking at — the real Collection holds two undated photographs, so
+  "Through time" ordered them identically to Newest and then labelled the result "Undated". A
+  heading that never changes says nothing.
+
+- **D43. One prose field, not two, and the place goes in it.** His: *"remove where in the
+  valley. we should prompt them to include that in the description. maybe an i somewhere to
+  let them know to include what where why."* **This answers open question 5**, which has been
+  waiting for him since 2026-08-27. `area` is gone from the contribute room — the column
+  survives, existing rows keep their value and the viewer still prints it, but nothing new
+  writes it. What asks for the place now is the (i) beside the description.
+
+- **D44. Nothing at rest is filled with cream, and the reason generalises.** His: *"I don't
+  like the yellowing when it's not selecting. that yellowing appears in many places i'd like
+  to get rid of it everywhere but I guess you can just do it here."* The cause is a rung
+  collision rather than a bad colour. `--card` (#F5F2EA) is a warm card ON the page wash
+  (#E4E1D5), where it sits LIGHTER than its surround and reads as a surface. A pop-up is
+  `--float`, pure white — so on it every warm fill is DARKER than the paper and reads as a
+  stain instead of a surface. Fixed here by removing the fills and keeping the borders
+  (bucket tiles, the drop target, the description box, the year box). **The general rule,
+  worth carrying: a warm fill only works below the surface it sits on. Inside a white
+  modal, draw the line, not the wash.**
+
+- **D45. "When" is decade pills that open into a year and then a month.** His: *"even the year
+  and month and decade thing could be done in a cuter way. the idea is good but execution could
+  be improved."* It was two dropdowns resting on the words "Year unknown" and "Not sure", so
+  the commonest answer in a heritage archive — a decade, roughly — cost two presses and a
+  scroll through ninety-nine years, and the resting state announced ignorance twice before
+  anybody had said anything. Now: eight decade pills, newest first in the decade rail's own
+  order, one tap. A four-digit year box appears once a decade is chosen and a month once the
+  year is real. There is deliberately **no "Not sure" pill** — nothing lit means nobody said,
+  and a control whose pressed and unpressed states mean the same thing is a cruelty.
+
+- **D46. The tagging pass never writes captions.** His, flatly: *"tagging tool should not write
+  captions."* The distinction that makes him right: a bucket and a decade are closed
+  vocabularies checkable by looking, and a wrong answer in one is visible as a wrong answer. A
+  caption is not — a session cannot see a name, a house, a year or an occasion, so everything
+  it writes is a description of pixels standing where somebody's own sentence should be, in a
+  place a member would otherwise have filled. The `caption` field is out of `Verdict`, out of
+  the applier's `COLUMNS`, out of the picker's `--all` query (picking a photograph BECAUSE it
+  has no caption exports bytes for a question nobody will answer), and the skill now says why.
+  A caption in a verdicts file is **dropped, counted and reported**, not refused: a field whose
+  correct handling is to ignore it must not cost a batch of good buckets.
 
 ## Findings from reading the code (2026-08-26, session 1)
 
@@ -942,6 +1025,17 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   owed item against the code before acting on it, and especially before telling the owner
   to act on it.**
 
+- **F51. The heart in the viewer had never been given `onDark`.** He said the unliked one was
+  invisible, and it was: `LoveButton` has an `onDark` prop that exists precisely for a control
+  floating over a photograph, and the viewer's call site had hand-copied its two hover classes
+  into `className` without passing the flag. So it kept `state-layer` — an INK tint, with
+  nothing to darken on a near-black wash — and the unliked heart kept the 0.45 opacity that is
+  tuned against a warm paper card, where a heart at full strength shouts. Over a photograph
+  there is no surface to sit quietly against. Now `onDark` is passed, the flag draws the
+  unliked heart at full strength with a drop shadow so it survives a bright sky, and the
+  fill-versus-outline weight carries the state instead of the opacity. **The general shape:
+  a prop copied as classes is a prop that will not be there next time the prop changes.**
+
 ## The requirement ledger
 
 Every discrete ask in `brief.md`, itemised so none is quietly dropped. Status is one of:
@@ -1064,17 +1158,11 @@ reading the brief** — the wording in the brief carries nuance this table does 
    looking at, interpolated across the swipe, so nothing is ever shrunk or bedded. Worth a
    look at the card breathing as it moves, because that is the part he has not seen.
 4. **The square case in F27**, which he already owns and nobody has resolved.
-5. **Where, and whether it earns its place** (#13). He asked again on 2026-08-28: *"I
-   thought we made a decision on the description+where in the valley being a bit redundant?
-   where did we land on that?"* Where we landed: **two fields, not three.** The caption IS
-   the description -- there is no second overlapping box, which was his own complaint -- and
-   "Part of school" became **Where**, one optional line, searched exactly as the caption is
-   and never offered as a dropdown (§7.2). So they are redundant in what they DO: search
-   cannot tell them apart. The only thing Where buys is that it ASKS a different question,
-   and a short field labelled with a place gets a place written in it where a caption gets
-   a sentence. That is a real difference and a small one. **His to call**: keep the second
-   line, or fold it into the caption and have one field. Folding it in is about ten minutes
-   and loses nothing search can see.
+5. **ANSWERED, 2026-08-28. Where is folded in.** He said: *"remove where in the valley. we
+   should prompt them to include that in the description."* Done -- see D43. One prose field,
+   and the (i) beside it asks for what, where and who. The `area` column stays, existing rows
+   keep their values and the viewer still prints them; nothing new writes it. Nothing else
+   here needs deciding.
 6. **The tagging pass, now that it is built** (#25, D37). Two things are his to judge and
    neither is code. **How much a session should take on at once**: the picker defaults to
    sixty, which is a guess about how many photographs a session can look at properly before
@@ -1092,6 +1180,17 @@ reading the brief** — the wording in the brief carries nuance this table does 
    screenshotted at; whether the bar earns its line when there are two is a taste call.
 9. **F49, and it is one clause.** An outside click still collapses a composer holding three
    photographs and no text. Not fixed because it changes behaviour he has not asked about.
+10. **Everything in session 7** (D40 to D46), which is his own round answered but not yet
+    seen: the viewer with its chips always out and the heart visible, the contribute pop-up
+    (which now opens small and grows when photographs land), the decade pills, and the
+    Collection's chapter headings. Screenshotted at 1440x900 and 390x844 and measured; not
+    looked at by him.
+11. **Two things in the contribute room he has not commented on and might.** The pop-up's
+    heading on a phone reads "Add your photographs" rather than "Drag and drop or browse":
+    a phone has neither a cursor to drag with nor a paste this room can hear, and his
+    instruction was only that the clipboard is desktop-only, so the rest of that sentence
+    was a judgement call. And the wall's justified rows go ragged at 390px when a row cannot
+    be filled -- pre-existing, untouched here because it is outside what he asked for.
 
 ## Session log
 
@@ -1392,3 +1491,33 @@ F50 was found: the instruction on the board would have deleted the Collection. D
 - **Next session**: run the sweep once more after the deploy, then the close-out. And the
   owner has said he will pick up the open questions — all nine are above, and questions 1,
   2, 3 and 7 are things built and never seen by him.
+
+### Session 7 — 2026-08-28 (Opus)
+
+**The owner's own round on the shipped rework**, plus the documentary half of the close-out.
+Eleven asks in one message, all done; the reasoning is D40 to D46 and F51, and the code carries
+each one beside itself. Detail in `progress.md` under the same date.
+
+- **He answered open question 5 himself.** Where is folded into the description (D43), which
+  has been waiting on him since 2026-08-27.
+- **He also settled the taxonomy**: "the six you've picked are fine" (D41). D31 is a decision
+  now, not a proposal.
+- **"The yellowing" has a general cause**, worth carrying past this room: a warm fill only
+  reads as a surface when it sits BELOW the surface around it. On the page wash `--card` is a
+  card; inside a `--float` white modal the same hex is a stain. D44.
+- **Two things turned out to be nothing.** There were no tags to remove -- both databases
+  checked, zero `freeTags` and zero buckets across two photographs (D41). And "Through time is
+  the same as Newest" is true, on an archive of two undated photographs; the fix was to stop
+  drawing a heading when there is only one band (D42).
+- **Bug #19 was still real** and was fixed in the same commit as the close-out that claimed it:
+  the Catch-up photo wall printed `entry.body` raw beside an answer card rendering the identical
+  field through `renderRichText`.
+- `npm run check` green, 86/86 with the two rewritten photo-suggest tests. `npm run visual`:
+  21 passed, and the two that failed are `/directory` at both viewports from **another
+  session's uncommitted work in this tree**, not from anything here. No baseline moved.
+- Measured at 1440x900 and 390x844 through `scripts/qa/_probe-kit.mjs` + `_dev-login.mjs`;
+  every scratch probe deleted before committing.
+- **Next session**: the two close-out items on the board that were deliberately left
+  (`/lab/crop` waits for the owner to look at phase 3 in it; the stranded-originals sweep
+  waits for a deploy), and open questions 1, 2, 3, 6 to 11 -- all of which are things built
+  and never seen by him. If he is in the room, showing him those is worth more than new work.

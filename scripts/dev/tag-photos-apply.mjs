@@ -4,22 +4,27 @@
  *
  *  Reads `.tagging/manifest.json` (what `tag-photos-pick.mjs` exported)
  *  and `.tagging/verdicts.json` (what the session wrote), and writes the
- *  buckets, captions and decades onto the rows.
+ *  buckets and decades onto the rows. NOT captions -- see below.
  *
  *  THIS IS THE HALF THAT CAN DAMAGE A REAL ARCHIVE, so it is built to be
  *  hard to do that with:
  *
  *    - DRY BY DEFAULT. It prints every change it would make and writes
  *      nothing until `--apply`.
- *    - It only ever fills a field that is EMPTY. A caption somebody
- *      wrote, a bucket somebody chose and a date somebody gave are never
- *      touched -- the rule and its reasoning are in
- *      `src/lib/photo-suggest.ts`, which is where the tests are too.
+ *    - It only ever fills a field that is EMPTY. A bucket somebody
+ *      chose and a date somebody gave are never touched -- the rule and
+ *      its reasoning are in `src/lib/photo-suggest.ts`, which is where
+ *      the tests are too.
+ *    - IT NEVER WRITES A CAPTION AT ALL (owner, 2026-08-28: "tagging
+ *      tool should not write captions"). A caption in the verdicts file
+ *      is dropped, counted and reported below rather than refused: a
+ *      field whose correct handling is to ignore it must not cost a
+ *      batch of good buckets.
  *    - A bucket outside the six is REFUSED, not coerced to Other. A
  *      closed vocabulary that quietly accepts anything is not closed.
  *    - The rows are re-read at apply time, not trusted from the
- *      manifest, because a contributor may have captioned one of them in
- *      the hours since the batch was picked.
+ *      manifest, because a contributor may have filed one of them in the
+ *      hours since the batch was picked.
  *    - Every write leaves `.tagging/applied-<time>.json`, holding the old
  *      value of every column it touched. `--undo <file>` puts them back.
  *
@@ -60,7 +65,7 @@ if (envFile.includes("demo") && !url.includes(DEMO_REF)) {
 const readJson = async (p) => JSON.parse(await readFile(p, "utf8"));
 
 /** The columns this script is allowed to write, and nothing else ever. */
-const COLUMNS = ["subject", "caption", "era", "datePrecision"];
+const COLUMNS = ["subject", "era", "datePrecision"];
 
 const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
 await client.connect();
@@ -134,7 +139,14 @@ try {
 }
 
 const known = new Set(manifest.photos.map((p) => p.id));
-const { verdicts, problems } = readVerdicts(raw, known);
+const { verdicts, problems, ignoredCaptions } = readVerdicts(raw, known);
+
+if (ignoredCaptions) {
+  console.log(
+    `${ignoredCaptions} caption(s) in verdicts.json were ignored: this pass does not write` +
+      ` captions. The buckets and decades beside them still apply.\n`
+  );
+}
 
 if (problems.length) {
   console.log(`${problems.length} problem(s) in verdicts.json:`);
@@ -158,11 +170,11 @@ if (!verdicts.length) {
 
 /* The rows are re-read HERE rather than carried in the manifest. Hours pass
    between picking a batch and answering it, and in that time a contributor may
-   have captioned one of them -- in which case the caption is theirs and this
-   must leave it alone. Reading the state we are about to decide about is the
-   only way that check means anything. */
+   have filed one of them -- in which case the answer is theirs and this must
+   leave it alone. Reading the state we are about to decide about is the only
+   way that check means anything. */
 const { rows } = await client.query(
-  `SELECT "id", "subject", "caption", "era", "datePrecision"
+  `SELECT "id", "subject", "era", "datePrecision"
      FROM "Photo" WHERE "id" = ANY($1::text[]) AND "isHidden" = false`,
   [verdicts.map((v) => v.id)]
 );

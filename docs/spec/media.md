@@ -1,8 +1,41 @@
-> **Superseded 2026-07-02.** Storage is Cloudflare R2 (not Vercel Blob) via the
+> **READ THIS BEFORE ANY OF WHAT FOLLOWS. Superseded twice.**
+>
+> **2026-08-28, and this is the big one.** The Collection rework
+> (`docs/planning/collection-rework/spec.md`) replaced the design of most of
+> this document, and where the two disagree, that one is what shipped. The
+> sections below that are now WRONG, not merely dated:
+>
+> - **§2, "what stays out"** — dead in full. It is built around "the place,
+>   not people", with three mechanisms for keeping people out and a canned
+>   decline for a class photograph. The owner widened the frame to the
+>   school's whole visual memory (campaign D2): people, class photographs
+>   and events all belong.
+> - **§5, the taxonomy** — dead. The four facets and the fourteen `subject`
+>   values are gone, replaced by **six buckets** (`src/lib/collection.ts`:
+>   People, Birds, Nature, Campus, School life, Other), "Part of school" as
+>   free text rather than a picklist, and no facet dropdowns at all. The
+>   fourteen values had nowhere to file a class photograph, which is what
+>   made them wrong rather than short. `freeTags` survives as a column and
+>   is searched; nothing writes it any more.
+> - **§3's routes** — `/collection/[id]` is a permalink that opens the
+>   viewer, not a detail page; `/collection/contribute` never existed as a
+>   route (contributing is a pop-up).
+> - **§6, the grid page** — dead. No masonry, no filter rail of three
+>   Selects, no "A wander" sort. The page is a river of justified rows with
+>   the six buckets on one line, a decade rail, search on the title line
+>   and four orders (`src/components/collection/*`).
+> - **§4.3's "blur placeholder"** and the whole question of how a photograph
+>   is sized are answered by `src/lib/photo-layout.ts` and `<PhotoFrame>`,
+>   which store real dimensions and reserve the space (campaign phases 1–3).
+>
+> What is still true here: §1 (the name), §4.1–4.2 and §4.4 (variants and
+> the storage budget), §8 (admin approval), §9 (the data model, plus the
+> columns added since), and §7's principle that the archive is reusable
+> across the app.
+>
+> **2026-07-02.** Storage is Cloudflare R2 (not Vercel Blob) via the
 > `putImage`/`delImage` shim in `src/lib/storage.ts`; hosting is Vercel (compute
 > never moved to Render). For the stack itself see `AGENTS.md`; the infra migration runbook lives in git history: `git log --follow -- docs/STACK_MIGRATION.md`.
-> The photo/Collection pipeline design below (taxonomy, variants, moderation,
-> data model) is still current; only the storage-provider specifics are stale.
 
 # Spec: media
 
@@ -40,6 +73,10 @@ The v2 sidebar (`NAV` array in `preview/v2/page.tsx`) currently uses Lucide `Fol
 This keeps the icon language consistent with the established split: Lucide for chrome, Phosphor duotone for decorative.
 
 ## 2. Purpose, scope, and what stays out
+
+> **DEAD, 2026-08-28.** The frame widened to the school's whole visual
+> memory. People, class photographs and events belong here. See the banner
+> at the top of this file and campaign decision D2.
 
 The owner is explicit: this is **a living visual memory of the place**, not a personal photo dump. The design must structurally discourage people-snaps without policing them heavily. Three mechanisms enforce the frame:
 
@@ -107,6 +144,9 @@ Implementation note: the current route hard-caps file input at `5 * 1024 * 1024`
 
 ## 5. Cataloging: the tag taxonomy (decision-bearing)
 
+> **DEAD, 2026-08-28.** Six buckets, in `src/lib/collection.ts`. See the
+> banner at the top of this file.
+
 The owner wants "community cataloging via simple tags (birds, landscape, junior/senior school, decade, etc.)." The risk with free-text tags is a sprawling, useless mess at 600 photos. **Decision: a small, fixed, faceted taxonomy across four axes, plus optional free-text only for bird/species names.** Faceted (not flat) tags make the filter rail genuinely useful at scale.
 
 | Facet | Field | Values (fixed enum, stored as strings to match the project's existing string-enum convention, e.g. `Post.tag`) |
@@ -124,6 +164,9 @@ Rationale for fixed enums on the first three facets:
 Free-text is deliberately confined to species names so the community can self-organize birds (the school is a famous bird sanctuary, this is the highest-value cataloging) without a tag free-for-all.
 
 ## 6. The grid page UX
+
+> **DEAD, 2026-08-28.** The page is a river of justified rows, not masonry
+> behind a filter rail. See the banner at the top of this file.
 
 Reuse the directory's proven structure (`directory-client.tsx`): URL-driven filters, a search box with a 300ms debounce, a collapsible filter panel in a `glass` container, and a graceful empty state. The collection adds a masonry layout instead of the equal-card grid.
 

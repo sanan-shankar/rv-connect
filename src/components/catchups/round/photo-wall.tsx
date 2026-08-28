@@ -21,6 +21,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { EntryLoveButton } from "@/components/catchups/round/entry-love-button";
+import { renderRichText } from "@/lib/rich-text";
 import { PhotoStream } from "@/components/common/photo-rows";
 import type { RoundEntry } from "@/components/catchups/round/answer-card";
 import { formatDisplayDate } from "@/lib/utils";
@@ -70,9 +71,15 @@ export function PhotoWall({ entries }: { entries: RoundEntry[] }) {
               />
             </button>
             {entry.body?.trim() && (
-              <p className="mt-[var(--space-xs)] whitespace-pre-wrap text-[13.5px] leading-[1.55] text-foreground">
-                {entry.body}
-              </p>
+              /* renderRichText, the same as the answer card beside it. The
+                 same field used to render two ways in the same round: the
+                 card honoured the composer's markers and the wall printed
+                 them, so a caption written with emphasis read `*like this*`
+                 here and formatted there (bugs.md #19). */
+              <p
+                className="mt-[var(--space-xs)] whitespace-pre-wrap text-[13.5px] leading-[1.55] text-foreground"
+                dangerouslySetInnerHTML={{ __html: renderRichText(entry.body) }}
+              />
             )}
             <div className="mt-[var(--space-xs)] flex items-center justify-between gap-1">
               <Link

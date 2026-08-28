@@ -393,9 +393,15 @@ export function ImageViewer({
   const caption = current?.caption?.trim() ?? "";
   const tags = current?.tags?.filter(Boolean) ?? [];
   const where = current?.where?.trim() ?? "";
-  /* There is more to read if the caption is cut off, or if this photograph
-     carries anything the resting state has no room for. */
-  const hasMore = overflows || Boolean(where) || tags.length > 0;
+  /* "More" is now about the CAPTION and nothing else.
+     It used to also mean "there is a where and some buckets folded away
+     under here", which put a control on the screen for two chips and a
+     place name -- the owner: "I don't like the see more for the tag...
+     maybe the tags could just show above it by default. instead of
+     constantly having a more button which is clutter anyway."
+     They do, below. So the only thing left hidden is a caption longer than
+     its two lines, and that is the only thing the word now offers. */
+  const hasMore = overflows;
   const hidden = chrome !== "shown";
 
   const chromeClass = cn(
@@ -599,33 +605,23 @@ export function ImageViewer({
                 style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}
               >
                 {/* The rest of the record: where it was, and what it is filed
-                    under. It lives here rather than in a panel of its own,
-                    which is the whole of the owner's complaint -- and it is
-                    what the deleted /collection/[id] page used to hold. */}
-                <AnimatePresence initial={false}>
-                  {expanded && (where || tags.length > 0) && (
-                    <m.div
-                      key="record"
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 6 }}
-                      transition={{ duration: 0.18, ease: EASE_OUT_SMOOTH }}
-                      className="flex flex-wrap items-center gap-1.5"
-                    >
-                      {where && (
-                        <span className="mr-1 text-[12.5px] text-white/70">{where}</span>
-                      )}
-                      {tags.map((t) => (
-                        <span
-                          key={t}
-                          className="rounded-full border border-white/20 bg-white/10 px-2.5 py-0.5 text-[11.5px] font-medium text-white/85"
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </m.div>
-                  )}
-                </AnimatePresence>
+                    under. Always here, never behind a press. It is two chips
+                    and a place name -- less than one line of the caption
+                    above it -- and hiding that much behind a control cost
+                    more screen than showing it ever did. */}
+                {(where || tags.length > 0) && (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {where && <span className="mr-1 text-[12.5px] text-white/70">{where}</span>}
+                    {tags.map((t) => (
+                      <span
+                        key={t}
+                        className="rounded-full border border-white/20 bg-white/10 px-2.5 py-0.5 text-[11.5px] font-medium text-white/85"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 {caption &&
                   (hasMore ? (
@@ -683,7 +679,13 @@ export function ImageViewer({
                       count={current.loveCount ?? 0}
                       onToggle={() => onToggleLove(at)}
                       label="photo"
-                      className="ml-auto text-white/85 hover:bg-white/12 hover:text-white"
+                      /* onDark, not a hand-typed copy of what onDark does.
+                         This call site had the hover classes but not the
+                         flag, so it kept `state-layer` -- an INK tint with
+                         nothing to darken on a near-black wash -- and the
+                         unliked heart stayed at its paper-card opacity. */
+                      onDark
+                      className="ml-auto"
                     />
                   )}
                 </div>

@@ -159,14 +159,27 @@ export function PhotoRiver({
             bi > 0 ? { contentVisibility: "auto", containIntrinsicSize: "auto 600px" } : undefined
           }
         >
-          {band.era && (
-            /* The foldering, inline and free. Sticky, so you always know
-               which decade you are in without a breadcrumb. */
-            <h2 className="sticky top-0 z-10 -mx-1 mb-3 flex items-baseline gap-3 bg-background/85 px-1 pb-2 pt-3 backdrop-blur-sm">
-              <span className="font-heading text-[19px] leading-none tracking-[-0.02em] text-foreground">
+          {band.era && bands.length > 1 && (
+            /* The foldering, inline and free -- and it is a chapter opening
+               now rather than a bar.
+               It used to be sticky, which meant it needed a background to
+               travel over, which meant a translucent band and a hairline
+               rule ran across the river at every decade. The owner: "the
+               headings also have the weird bars behind them." They were the
+               price of the stickiness, and the stickiness was buying very
+               little: the decade rail on the right already says where you
+               are, permanently, without covering anything.
+               So: no band, no rule, no blur. The decade, the count under
+               it, and a clear breath above so the eye reads a new section
+               starting rather than a label attached to the row above. */
+            <h2 className={cn("mb-4", bi > 0 && "mt-12")}>
+              <span className="block font-heading text-[22px] leading-none tracking-[-0.02em] text-foreground">
                 {bandLabel(band.era)}
               </span>
-              <span className="h-px flex-1 bg-border" aria-hidden />
+              <span className="mt-1.5 block text-[12.5px] tabular-nums text-muted-foreground">
+                {band.photos.length}{" "}
+                {band.photos.length === 1 ? "photograph" : "photographs"}
+              </span>
             </h2>
           )}
           <PhotoStream photos={band.photos} keyOf={(p) => p.id} className="mb-3">

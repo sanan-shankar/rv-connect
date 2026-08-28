@@ -218,51 +218,6 @@ owner's own screen and saying concretely what looks wrong, since "body parts are
 describing clipping, rasterisation or the flight pose rather than pivots. Get a screenshot from the
 owner at zoom before writing any more code.
 
-### 18. Feed photos have no reserved space, so the page jumps as each one loads (owner will fold into a photo rework)
-
-**2026-08-21, from the pre-release audit (Low 101).** A photo in the feed occupies NO height until
-it has downloaded, so the moment it lands everything below it moves down. If somebody is reading a
-post and a photo above them finishes loading, the sentence they are on slides away.
-
-The fix is to reserve the space in advance, and reserving space means committing to a shape in
-advance. Two ways, and both are the owner's call, which is why nothing was changed:
-
-- **Crop every feed photo to one fixed aspect ratio** (`aspect-[4/3]` on the button plus
-  `object-cover`, which the cards already use). No jumping, but a tall portrait photo loses its top
-  and bottom in the feed.
-- **Switch `<img>` to `next/image`**, which measures each photo and reserves the right box for it.
-  The good answer visually, but it routes every photograph through Vercel's METERED image
-  optimisation, which has a monthly quota and a bill past it.
-
-**The owner is reworking how photos crop and size (2026-08-21) and will fold this in.**
-
-Two related things ride along with the same decision:
-- The same `<img>` is why photos are served at full resolution rather than at the size they render.
-- **Low 16, the Download button in the photo viewer**, is the other half: it fetches the image so it
-  can save it with a filename, and that fetch is cross-origin to `pub-*.r2.dev`, which sends no CORS
-  header, so it silently falls back to opening the photo in a tab. That one is fixed by the custom
-  image domain (a bucket CORS policy only applies to a custom domain, never to `r2.dev`), not by the
-  cropping decision.
-
-- Size: S for the fixed-ratio version, M for `next/image` plus the quota question.
-- Where: `src/components/posts/post-card.tsx:395-425`, and the same shape on the letter page.
-
-### 19. A Catch-up photo caption shows its formatting markers on the photo wall
-The same field renders two ways in the same round. `catchups/round/answer-card.tsx:105` passes
-`entry.body` through `renderRichText` — the composer formats live, so the reader honours the
-markers. `catchups/round/question-section.tsx:42-44` prints the identical `entry.body` raw inside a
-`whitespace-pre-wrap` paragraph, so a caption written with formatting shows `*like this*` literally
-on the photo wall and formatted on the card. Surfaced in passing by the 2026-08-25 refactor audit
-(report §3, bug lead (a)); it is a bug, not a simplification, so it is filed here rather than fixed
-in that campaign.
-- Size: tiny — the same `dangerouslySetInnerHTML={{ __html: renderRichText(...) }}` shape, but
-  check the grid cell's line-clamping still behaves once the paragraph holds markup.
-- Where: `src/components/catchups/round/question-section.tsx:41-45`.
-
-*(The same audit raised a second lead — that `round/masthead.tsx:50` might format a publish date
-without a timezone and shift it a day across midnight IST. Checked on 2026-08-26: it does pass
-`timeZone: VALLEY_TIME_ZONE`. No bug, nothing to do.)*
-
 ### 20. The /login password peek-a-boo never covers the bird's eyes
 `login-client.tsx` is written around it — "the hoopoe covers its eyes (wings up) while the password
 is hidden, and peeks when you reveal it" — and the wings do not move. Not at the end of the intro
@@ -309,6 +264,24 @@ blocks anything; each is a choice the code cannot make for itself.
 
 Earlier feedback that was addressed, and in a few cases changed again by a later owner decision. Listed
 so a future session does not "fix" one of these back to a state the owner deliberately moved away from.
+
+### Closed by the Collection rework, 2026-08-28
+
+- **#18. Feed photos had no reserved space, so the page jumped as each one loaded.** The entry
+  said "the owner is reworking how photos crop and size and will fold this in", and that is what
+  happened: `docs/planning/collection-rework/` is the campaign, and its phase 1 added the `Image`
+  table so every uploaded photograph's real width and height are stored, phase 2 put `<PhotoFrame>`
+  and `src/lib/photo-layout.ts` in front of every single-photograph surface, and phase 3 did the
+  same for several at once with justified rows. The box is reserved from the stored dimensions
+  before a byte arrives; measured CLS on the feed is 0.0000. **Neither of the two options this
+  entry offered was taken** — nothing is cropped to a fixed ratio and nothing goes through
+  `next/image`, so the metered optimiser and its bill are still avoided (campaign finding F1).
+  The two things it said would ride along: photographs are now served at the size they render,
+  and the viewer's Download button was fixed by the custom image domain, as this entry predicted.
+
+- **#19. A Catch-up photo caption showed its formatting markers on the photo wall.** The wall
+  printed `entry.body` raw beside an answer card that ran the identical field through
+  `renderRichText`. Fixed on the wall, in `src/components/catchups/round/photo-wall.tsx`.
 
 ### Owner-reported, 2026-08-27
 

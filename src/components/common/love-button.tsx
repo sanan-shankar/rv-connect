@@ -126,7 +126,22 @@ export function LoveButton({
             size={icon}
             weight={liked ? "fill" : "duotone"}
             color="#E03A33"
-            style={{ opacity: liked ? 1 : 0.45, transition: "none" }}
+            style={{
+              /* 0.45 is a resting weight tuned against a warm PAPER card,
+                 where a heart at full strength shouts. Over a photograph it
+                 disappeared -- the owner, in the viewer: "the heart is not
+                 really visible. the hearted heart is visible but the other
+                 one no one will see it." There is no surface to sit quietly
+                 against there, so on dark the unliked heart is drawn at full
+                 strength and the fill/outline weight above carries the state
+                 instead of the opacity. */
+              opacity: liked || onDark ? 1 : 0.45,
+              /* And a photograph can be any colour, including a red one. The
+                 shadow is what keeps the glyph readable over a bright sky,
+                 the same job the scrims do for the words beside it. */
+              filter: onDark ? "drop-shadow(0 1px 2px rgba(0,0,0,0.55))" : undefined,
+              transition: "none",
+            }}
           />
         </m.span>
         {animate && (

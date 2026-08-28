@@ -23,9 +23,16 @@ import {
 export function InfoTooltip({
   children,
   label = "More info",
+  side = "top",
 }: {
   children: ReactNode;
   label?: string;
+  /** Which way the note opens. "top" is right for an icon on a row of text
+   *  with a page below it; "bottom" is right for an icon in the top corner
+   *  of a tall box, where opening upward means leaving the panel entirely
+   *  and landing on whatever is above it (in the contribute pop-up, that
+   *  was the dialog's own close button). */
+  side?: "top" | "bottom";
 }) {
   const [open, setOpen] = useState(false);
 
@@ -41,7 +48,7 @@ export function InfoTooltip({
         <Info className="h-[15px] w-[15px]" aria-hidden />
       </PopoverTrigger>
       <PopoverPortal>
-        <PopoverPositioner side="top" sideOffset={6} align="start">
+        <PopoverPositioner side={side} sideOffset={6} align="start">
           <PopoverContent
             onMouseEnter={() => setOpen(true)}
             onMouseLeave={() => setOpen(false)}
