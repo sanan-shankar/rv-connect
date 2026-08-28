@@ -114,6 +114,47 @@ async function loadLandPaths(signal: AbortSignal): Promise<string[]> {
 
 const MIN_Z = 1;
 
+/**
+ * The view the map opens on.
+ *
+ * The map used to open on the whole sphere, so a third of the card was empty
+ * Pacific either side of the antimeridian and the world sat small in the middle
+ * of its own frame (owner, 2026-08-28: "make the default map view like this
+ * instead of the zoomed out version").
+ *
+ * These three numbers are not derived from anything. The owner dragged the real
+ * map to the framing he wanted and sent the screenshot: "I finetuned the
+ * position. exactly this." They were read back off that image by solving for
+ * the transform that puts the pins where it shows them, and they mean: the top
+ * of the sphere at the top of the frame, the dead half of the Pacific off the
+ * left edge, and the south polar ocean below Antarctica cropped away. What is
+ * in frame runs 156W to 179E, and down to 65S.
+ *
+ * It is a ZOOM, not a viewBox, and that distinction is the whole point: an
+ * earlier pass reframed the world by shrinking the viewBox, which changed how
+ * many CSS pixels one map unit occupies, and since the marker layer
+ * counter-scales against exactly that number, every pin ballooned and the work
+ * was reverted (owner: "I want the circles ... exactly as it is now"). Markers
+ * already carry `1 / transform.k`, so they hold their size through any zoom:
+ * opening at k > 1 moves the land and leaves every pin measuring what it
+ * measured before. Measured, both ways: 48.10 / 43.17 px.
+ *
+ * MIN_Z stays 1, so the whole sphere is still one press of minus away -- the
+ * default is a starting point, not a floor.
+ */
+const DEFAULT_K = 1.133;
+const DEFAULT_VIEW = zoomIdentity.translate(-91, 0).scale(DEFAULT_K);
+
+/** Is this the view the map opens on? Decides whether the reset button has
+ *  anything to say. Half a unit of slack: d3 hands back floats. */
+function isDefaultView(t: ZoomTransform): boolean {
+  return (
+    Math.abs(t.k - DEFAULT_K) < 1e-6 &&
+    Math.abs(t.x - DEFAULT_VIEW.x) < 0.5 &&
+    Math.abs(t.y - DEFAULT_VIEW.y) < 0.5
+  );
+}
+
 // The MAXIMUM zoom is no longer a constant. It is derived per data set by
 // maxUsefulZoom() so that the tightest pair of real cities always comes apart:
 // New Delhi and Gurgaon sit 0.53 base units apart, which needs k ~ 100 on a
@@ -154,20 +195,16 @@ const MIN_PX_PER_UNIT = 1;
 /* The inline card runs to the bottom of the window rather than stopping at
    `min(72vh, 640px)`, which left a dead band of page under it (owner,
    2026-08-28: "the map window now doesn't fill the screen there's a gap at the
-   bottom can you make it extend"). Measured rather than declared: everything
-   above it -- the header, the one chrome row -- can change height when a filter
-   token wraps, so a vh figure would be wrong by 30px half the time.
+   bottom can you make it extend").
 
-   The FRAMING that shipped alongside this was reverted the same day ("just make
-   it look like how it looked before"): the viewBox is the whole sphere again,
-   so a taller card simply shows more sea, and every pin is exactly the size it
-   was. That is the point of keeping only this half -- the marker layer
-   counter-scales against `box.s`, so touching the viewBox resizes every pin,
-   and touching the card height does not. */
+   It is `flex-1` in a column that runs the height of the shell, and used to be
+   a pixel height measured from window.innerHeight. The measurement was correct
+   and still wrong: the server has no window, so it rendered a 360px card that
+   grew to 700px the instant hydration ran, and that jump is the "weird glitch
+   for a few milliseconds" the owner reported. Layout the browser can do on the
+   first pass has no such frame. Every ancestor between here and <main> carries
+   `flex min-h-0 flex-1 flex-col` for this. */
 const MAP_MIN_H = 360;
-/* 32, measured: the shell's own bottom padding plus the rounding on the card's
-   border box. At 16 the page grew a 16px scrollbar of nothing. */
-const MAP_BOTTOM_GUTTER = 32;
 
 /** Every marker is a button: hover, focus-visible and active all read. Opacity
  *  only, per the motion rule (the group's transform is doing map work). */
@@ -204,7 +241,7 @@ export function AlumniMap({
    *  to show here yet" about a city with a number on it. */
   namesLocked?: boolean;
 }) {
-  const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
+  const [transform, setTransform] = useState<ZoomTransform>(DEFAULT_VIEW);
   /* Empty until the atlas lands. Rendering no <path> is a frame the map has
      always been able to draw -- the pins carry the meaning and are painted
      from props on the first frame. See loadLandPaths above. */
@@ -239,35 +276,12 @@ export function AlumniMap({
    *  one viewBox unit currently occupies. See MIN_PX_PER_UNIT. */
   const [box, setBox] = useState({ w: 0, h: 0, s: MIN_PX_PER_UNIT });
   const [coarsePointer, setCoarsePointer] = useState(false);
-  const cardRef = useRef<HTMLDivElement | null>(null);
-  /** How tall the inline card is: its own top to the bottom of the window, less
-   *  the shell's gutter. See MAP_MIN_H. */
-  const [fillHeight, setFillHeight] = useState<number>(MAP_MIN_H);
-  useLayoutEffect(() => {
-    const el = cardRef.current;
-    if (!el) return;
-    const measure = () => {
-      const top = el.getBoundingClientRect().top + window.scrollY;
-      const avail = window.innerHeight - top + window.scrollY - MAP_BOTTOM_GUTTER;
-      setFillHeight(Math.max(MAP_MIN_H, Math.round(avail)));
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    /* The row above can grow without the window resizing at all (a filter token
-       wraps onto a second line), so watch the column too. */
-    const ro = new ResizeObserver(measure);
-    if (el.parentElement) ro.observe(el.parentElement);
-    return () => {
-      window.removeEventListener("resize", measure);
-      ro.disconnect();
-    };
-  }, []);
   const svgRef = useRef<SVGSVGElement | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const zoomBehavior = useRef<any>(null);
   /** The live transform, readable from effects that must not re-run on zoom.
    *  Every change comes through the zoom handler, so this cannot drift. */
-  const transformRef = useRef<ZoomTransform>(zoomIdentity);
+  const transformRef = useRef<ZoomTransform>(DEFAULT_VIEW);
 
   const max = Math.max(1, ...pins.map((p) => p.count));
 
@@ -365,7 +379,8 @@ export function AlumniMap({
     // Carry the live view across the full-screen swap. That toggle mounts a
     // BRAND NEW <svg>, whose d3 transform starts at identity, while React keeps
     // painting the zoom held in state: without this the next gesture snapped the
-    // map back out to the whole world. Harmless on first mount (identity).
+    // map back out to the whole world. On first mount it is what installs the
+    // default view in d3, which React has already rendered.
     sel.call(zb.transform, transformRef.current);
     // No double-click zoom (it competes with pin clicks).
     sel.on("dblclick.zoom", null);
@@ -440,7 +455,14 @@ export function AlumniMap({
 
   const mapBody = (
     <div
-      className="relative h-full w-full overflow-hidden"
+      /* absolute inset-0, not h-full: the card's height now comes from
+         `flex-1` rather than an inline pixel value, and a percentage height
+         only resolves against a containing block that has a DEFINITE one.
+         Below md the shell is a flex column sized by min-height, which is not
+         definite, so `h-full` collapsed to the svg's own aspect ratio and the
+         map became a 178px strip at the top of a 579px card. Insetting to the
+         card's padding box sidesteps the question. */
+      className="absolute inset-0 overflow-hidden"
       // The ocean is a recessed well, so it sits on --muted. (The old
       // var(--surface-2, #EEE8DA) referenced a token that never existed, so
       // the hardcoded fallback always won and froze the sea at pre-protocol
@@ -607,17 +629,24 @@ export function AlumniMap({
         >
           &minus;
         </button>
-        {/* Back to the whole world. Earned by the new zoom range: the ceiling is
-            now whatever this data set needs to pull its tightest pair of cities
-            apart (hundreds, not 12), so walking back out on the minus button
-            alone would take ten presses. Hidden at rest, when it would say
-            nothing the map is not already showing. */}
-        {transform.k > MIN_Z + 1e-6 && (
+        {/* Back to the opening view. Earned by the new zoom range: the ceiling
+            is now whatever this data set needs to pull its tightest pair of
+            cities apart (hundreds, not 12), so walking back out on the minus
+            button alone would take ten presses. Hidden at rest, when it would
+            say nothing the map is not already showing -- and "at rest" is the
+            default framing now, not k = 1, since minus still walks out past it
+            to the whole sphere. */}
+        {!isDefaultView(transform) && (
           <button
             type="button"
-            aria-label="Reset the view to the whole world"
+            aria-label="Reset the view"
             onClick={() => {
-              zoomTo(W / 2, H / 2, MIN_Z);
+              /* The transform itself, not scaleTo + translateTo: the opening
+                 view is deliberately off-centre, and centring would land
+                 somewhere the map never opens on. */
+              if (svgRef.current && zoomBehavior.current) {
+                select(svgRef.current).call(zoomBehavior.current.transform, DEFAULT_VIEW);
+              }
             }}
             className="grid h-9 w-9 place-items-center rounded-full border border-border bg-card/95 text-foreground shadow-sm backdrop-blur transition-transform state-layer active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
@@ -682,11 +711,10 @@ export function AlumniMap({
 
   return (
     <>
-      {/* Inline map. Height measured, not declared -- see MAP_MIN_H. */}
+      {/* Inline map. Fills the column, floors at MAP_MIN_H -- see there. */}
       <div
-        ref={cardRef}
-        className="card-elevated relative overflow-hidden rounded-[var(--radius)] border border-border"
-        style={{ height: fillHeight }}
+        className="card-elevated relative flex-1 overflow-hidden rounded-[var(--radius)] border border-border"
+        style={{ minHeight: MAP_MIN_H }}
       >
         {!fullscreen && mapBody}
       </div>

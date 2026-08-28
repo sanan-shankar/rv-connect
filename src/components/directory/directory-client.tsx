@@ -496,7 +496,10 @@ export function DirectoryClient({
   );
 
   return (
-    <div>
+    /* Full height, so the map view below can take what the header leaves.
+       Harmless for the People and Batches views: they are taller than the
+       screen anyway and a flex column grows past it exactly as a block did. */
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* Search rides on the title line, as the app's one expand-on-press
           pill, exactly as the Collection's river does it (spec sec. 6). It was
           a full-width bar owning a whole row of the page for a control most
@@ -569,7 +572,14 @@ export function DirectoryClient({
           Right-anchoring the sentence is not only tidier: it is what makes a
           filter land quietly, because a token added there grows LEFTWARD into
           empty space instead of shoving its neighbours along. */}
-      <div className="mb-4 space-y-2.5">
+      {/* gap, not space-y: below sm this row has a second line under it, and
+          `space-y` hangs a 10px bottom margin on the first child that stays
+          there when the second is display:none. That margin used to collapse
+          away into the page; now that the column above is a flex container
+          this box is its own formatting context, so it stopped collapsing and
+          pushed the map 10px down. A gap simply is not there when there is
+          only one child. */}
+      <div className="mb-4 flex flex-col gap-2.5">
         <div className="flex items-center gap-3">
           {/* Canopy-filled thumb, same control as the profile Writing switcher
               (owner, 2026-08-02). Constant three segments, so this never
@@ -614,13 +624,14 @@ export function DirectoryClient({
       <div
         aria-busy={showPending || undefined}
         className={cn(
-          "transition-opacity duration-200 ease-out",
+          "flex min-h-0 flex-1 flex-col transition-opacity duration-200 ease-out",
           showPending && "opacity-55"
         )}
       >
         <AnimatePresence mode="wait" initial={false}>
           <m.div
             key={browseView}
+            className="flex min-h-0 flex-1 flex-col"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1, transition: { duration: 0.18, ease: EASE_OUT_SMOOTH } }}
             exit={{ opacity: 0, transition: { duration: 0.12, ease: "easeOut" } }}

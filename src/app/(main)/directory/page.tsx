@@ -379,7 +379,9 @@ export default async function DirectoryPage({
   const unmappedPeople = namesLocked ? [] : built.unmappedPeople;
 
   return (
-    <div>
+    /* The column runs the full height of the shell, so the map view can fill
+       whatever is left below the header instead of measuring the window. */
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* The header is DirectoryClient's own (2026-08-28): its title line now
           carries the search pill, and the query behind that pill is client
           state. No subtitle either way (owner, 2026-08-22): the grid says what
