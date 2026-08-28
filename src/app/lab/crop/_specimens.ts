@@ -132,11 +132,16 @@ export const SPECIMENS: Specimen[] = [
   },
 ];
 
-/** The three column widths this app really has: a phone, a laptop, and the
- *  point where the feed stops growing on a big monitor. */
+/** How wide the card is.
+ *
+ *  `window` is the real thing and the default: the card simply fills the room,
+ *  so dragging the browser narrower does exactly what dragging the real app
+ *  narrower does. The other three pin it to a width the app actually has, for
+ *  looking at one screen without owning that screen. */
 export const WIDTHS = {
+  window: { label: "This window", px: 0, note: "The card fills the room and follows the window, the way it does in the app. Drag the browser and watch it move." },
   phone: { label: "Phone", px: 358, note: "A card on a phone. Nothing is ever narrowed here -- the screen is the limit." },
-  laptop: { label: "Laptop", px: 728, note: "A card on an ordinary laptop. This is the one to judge on." },
+  laptop: { label: "Laptop", px: 728, note: "A card on an ordinary laptop." },
   wide: { label: "Big monitor", px: 1216, note: "The feed on a 27-inch screen, where the card grows but the photograph does not." },
 } as const;
 

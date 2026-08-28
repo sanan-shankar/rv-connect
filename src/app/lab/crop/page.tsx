@@ -24,12 +24,11 @@
  *  docs/planning/collection-rework/handover.md.
  * ------------------------------------------------------------------ */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DelightShell, DemoCard, Seg } from "../_kit";
 import { SPECIMENS, WIDTHS, type Specimen, type WidthKey } from "./_specimens";
-import { PhotoFrame } from "@/components/common/photo-frame";
 import { PhotoRows } from "@/components/common/photo-rows";
-import { PhotoCarousel } from "@/components/common/photo-carousel";
+import { PostCard } from "@/components/posts/post-card";
 import { drawnSize, framePhoto } from "@/lib/photo-layout";
 
 /** A laptop window, for saying how much of the screen a post takes. The one
@@ -160,31 +159,65 @@ function Verdict({ s, column }: { s: Specimen; column: number }) {
   );
 }
 
-/** A post, near enough: somebody's name, a line, the photograph, the actions.
- *  The photograph is the real component, not a copy of it. */
+/** THE REAL CARD, not a look-alike.
+ *
+ *  `<PostCard demo>` exists for exactly this -- its own comment says so: "it
+ *  exists so a preview can show the REAL card instead of a look-alike copy of
+ *  it." Everything below therefore goes through the same component the feed
+ *  renders, with the same photograph rule, the same justified rows and the
+ *  same carousel. A hand-rolled card in a lab is worth nothing: it can be
+ *  right about the photograph and wrong about everything around it, which is
+ *  what makes a post feel long or short.
+ *
+ *  The card is wrapped at the column's width rather than given it as a prop,
+ *  because that is how the app does it too -- ContentColumn sets the width and
+ *  the card fills it. The `column` prop it does take chooses only the `sizes`
+ *  promise. The 34px is the card's own padding and borders, so the PHOTOGRAPH
+ *  inside lands at the width being simulated. */
 function Post({
   column,
-  children,
+  pinned,
+  photos,
   words = "The banyan, this morning.",
 }: {
   column: number;
-  children: React.ReactNode;
+  /** False when the room is following the window, where the card should do
+   *  what it does in the app: fill what it is given. */
+  pinned: boolean;
+  photos: Specimen[];
   words?: string;
 }) {
   return (
-    <article className="cr-card" style={{ width: column + 34 }}>
-      <header>
-        <span className="cr-dot" />
-        <span className="cr-who">Anita Rao</span>
-        <span className="cr-when">2 days ago</span>
-      </header>
-      <p className="cr-body">{words}</p>
-      {children}
-      <footer>
-        <span>12 loves</span>
-        <span>3 replies</span>
-      </footer>
-    </article>
+    <div style={{ width: pinned ? column + 34 : "100%", maxWidth: "100%" }}>
+      <PostCard
+        demo
+        variant="card"
+        column={column > 900 ? "wide" : "centered"}
+        post={{
+          id: `crop-${photos.map((p) => p.key).join("-")}`,
+          content: words,
+          images: JSON.stringify(photos.map((p) => p.src)),
+          photos: photos.map(facts),
+          createdAt: new Date(2026, 7, 26).toISOString(),
+          author: {
+            id: "crop-demo",
+            name: "Anita Rao",
+            photoUrl: null,
+            birdOverride: null,
+            accountType: "alumnus",
+            verifyState: "verified",
+            batchType: "batch",
+            batchYear: 1994,
+          },
+          commentCount: 3,
+          likeCount: 12,
+          liked: false,
+          bookmarked: false,
+          isOwn: false,
+          poll: null,
+        }}
+      />
+    </div>
   );
 }
 
@@ -209,21 +242,38 @@ function Justified({ photos }: { photos: Specimen[] }) {
   );
 }
 
-function OnePhoto({ s, column }: { s: Specimen; column: number }) {
+/** The two layouts that no longer exist in the app cannot go through the real
+ *  card, because the real card no longer knows how to draw them. They get the
+ *  card's own measure and chrome and nothing else -- the point of those two
+ *  panels is the arrangement of the photographs, not the card around them. */
+function RawCard({
+  column,
+  pinned,
+  children,
+}: {
+  column: number;
+  pinned: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4"
+      style={{ width: pinned ? column + 34 : "100%", maxWidth: "100%" }}
+    >
+      <p className="mb-3 text-sm text-foreground">A few from the walk up Rishi Konda.</p>
+      {children}
+    </div>
+  );
+}
+
+function OnePhoto({ s, column, pinned }: { s: Specimen; column: number; pinned: boolean }) {
   return (
     <div className="cr-case">
       <div className="cr-case-head">
         <Original s={s} column={column} />
         <Verdict s={s} column={column} />
       </div>
-      <Post column={column}>
-        <PhotoFrame
-          src={s.src}
-          photo={facts(s)}
-          sizes="100vw"
-          className="rounded-[10px]"
-        />
-      </Post>
+      <Post column={column} pinned={pinned} photos={[s]} />
     </div>
   );
 }
@@ -269,7 +319,14 @@ function TiledAsBefore({ photos }: { photos: Specimen[] }) {
 }
 
 export default function CropRoom() {
-  const [widthKey, setWidthKey] = useState<WidthKey>("laptop");
+  const [widthKey, setWidthKey] = useState<WidthKey>("window");
+  /* What the card is ACTUALLY as wide as, when it is following the window.
+     The verdicts are arithmetic about a real width, so in window mode the room
+     has to measure the one the browser settled on -- which is the one thing a
+     lab may do and the app may not, because here the measurement is the
+     subject rather than the layout. */
+  const [live, setLive] = useState(0);
+  const room = useRef<HTMLDivElement>(null);
   const [setKey, setSetKey] = useState("Three");
 
   useEffect(() => {
@@ -281,7 +338,18 @@ export default function CropRoom() {
     if (SETS.some((s) => s.label === n)) setSetKey(n!);
   }, []);
 
-  const column = WIDTHS[widthKey].px;
+  useEffect(() => {
+    const el = room.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setLive(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  /* 34px is the card's own padding and borders, so what is left is the width
+     the PHOTOGRAPH gets -- which is what every number below is about. */
+  const column = WIDTHS[widthKey].px || Math.max(0, Math.round(live) - 34);
+  const pinned = WIDTHS[widthKey].px > 0;
   const set = SETS.find((s) => s.label === setKey) ?? SETS[1];
   const many = set.keys
     .map((k) => SPECIMENS.find((s) => s.key === k))
@@ -293,7 +361,7 @@ export default function CropRoom() {
       lede="Every shape somebody can post. On the left, the photograph as it arrived, with the part we remove shaded out. Below it, the post as it actually renders."
       css={CSS}
     >
-      <DemoCard title="Which screen" note={WIDTHS[widthKey].note} pad>
+      <div className="cr-screens" ref={room}>
         <Seg
           options={(Object.keys(WIDTHS) as WidthKey[]).map((k) => ({
             v: k,
@@ -302,7 +370,8 @@ export default function CropRoom() {
           value={widthKey}
           onChange={setWidthKey}
         />
-      </DemoCard>
+        <p>{WIDTHS[widthKey].note}</p>
+      </div>
 
       <DemoCard
         title="One photograph"
@@ -311,7 +380,7 @@ export default function CropRoom() {
       >
         <div className="cr-cases">
           {SPECIMENS.map((s) => (
-            <OnePhoto key={s.key} s={s} column={column} />
+            <OnePhoto key={s.key} s={s} column={column} pinned={pinned} />
           ))}
         </div>
       </DemoCard>
@@ -330,18 +399,7 @@ export default function CropRoom() {
 
           <div className="cr-many">
             <p className="cr-label">Now</p>
-            <Post column={column} words="A few from the walk up Rishi Konda.">
-              {many.length > 2 ? (
-                <PhotoCarousel
-                  photos={many.map((s) => ({ src: s.src, photo: facts(s) }))}
-                  sizes="100vw"
-                  onOpen={() => {}}
-                  onPreload={() => {}}
-                />
-              ) : (
-                <Justified photos={many} />
-              )}
-            </Post>
+            <Post column={column} pinned={pinned} photos={many} words="A few from the walk up Rishi Konda." />
 
             {many.length > 2 && (
               <>
@@ -352,9 +410,9 @@ export default function CropRoom() {
                   Level rows, nothing cut, but with five in a card each one is a stamp.
                   This is what a post did for about a day.
                 </p>
-                <Post column={column} words="A few from the walk up Rishi Konda.">
+                <RawCard column={column} pinned={pinned}>
                   <Justified photos={many} />
-                </Post>
+                </RawCard>
               </>
             )}
 
@@ -363,9 +421,9 @@ export default function CropRoom() {
               Two columns and a hard height cap, every photograph cut to a box that had
               nothing to do with its shape. The upright ones are the ones to look at.
             </p>
-            <Post column={column} words="A few from the walk up Rishi Konda.">
+            <RawCard column={column} pinned={pinned}>
               <TiledAsBefore photos={many} />
-            </Post>
+            </RawCard>
           </div>
         </div>
       </DemoCard>
@@ -374,6 +432,8 @@ export default function CropRoom() {
 }
 
 const CSS = `
+.cr-screens { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: -4px 0 4px; width: 100%; }
+.cr-screens p { margin: 0; font-size: 12.5px; color: var(--dl-ink-3); }
 .cr-panel { padding: 20px; display: grid; gap: 18px; justify-items: start; width: 100%; }
 .cr-cases { display: grid; gap: 0; width: 100%; }
 .dl-demo-stage:has(.cr-cases), .dl-demo-stage:has(.cr-panel) { align-items: stretch; justify-content: flex-start; }
@@ -393,13 +453,6 @@ const CSS = `
 .cr-shape strong { color: var(--dl-ink); }
 .cr-screen { color: var(--dl-ink-3); font-size: 12.5px; }
 
-.cr-card { background: var(--dl-card); border: 1px solid var(--dl-line); border-radius: 14px; padding: 16px; max-width: 100%; }
-.cr-card header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.cr-dot { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(140deg, #9db892, #5d7f63); }
-.cr-who { font-weight: 650; font-size: 13.5px; color: var(--dl-ink); }
-.cr-when { font-size: 12px; color: var(--dl-ink-3); }
-.cr-body { margin: 0 0 10px; font-size: 14px; color: var(--dl-ink); }
-.cr-card footer { display: flex; gap: 14px; margin-top: 10px; font-size: 12.5px; color: var(--dl-ink-3); }
 .cr-many { overflow-x: auto; display: grid; gap: 8px; justify-items: start; }
 .cr-label { margin: 18px 0 0; font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--dl-ink-3); }
 .cr-many > .cr-label:first-child { margin-top: 0; }

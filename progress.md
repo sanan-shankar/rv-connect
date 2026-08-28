@@ -1,5 +1,30 @@
 # Progress Log
 
+## 2026-08-28 — the crop room uses the real card, and follows the window
+
+Two more from the owner on the rebuilt room: *"make the phone laptop monitor thing much
+small why's it so big. and why can't you use the actual post rig why're you recreating in
+this shabby way. I want to test the real deal"* and *"it doesn't adjust to my window size
+like it normally would?"*
+
+**The look-alike card is gone.** Every post in the room is `<PostCard demo>` now — the same
+component the feed renders, with the real byline, bird avatar, batch line, heart, comment,
+bookmark and share. That prop exists for exactly this and says so in its own docblock: "it
+exists so a preview can show the REAL card instead of a look-alike copy of it." I had built a
+hand-rolled card beside it, which is worth nothing: a fake card can be right about the
+photograph and wrong about everything around it, and what makes a post feel long or short is
+the whole card. The two layouts that no longer exist in the app — justified rows for several,
+and the old two-column tiles — still get a plain shell, because the real card no longer knows
+how to draw them.
+
+**The room follows the window by default.** "This window" is the new first option and the
+default: the card fills the room, so dragging the browser does exactly what dragging the real
+app does. The three fixed widths stay as simulations for looking at one screen without owning
+it. In window mode the room measures itself with a ResizeObserver, which is the one place
+that is allowed — here the measurement is the subject rather than the layout.
+
+**And the screen switcher is a strip**, not a card with a 150px empty stage under it.
+
 ## 2026-08-28 — 3:4 is a floor, not a target
 
 The owner, looking at the rebuilt crop room: *"why do we make 4:5 into 3:4? aren't we just
