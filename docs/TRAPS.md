@@ -166,7 +166,7 @@ thing presigning exists to avoid. It was in exactly that state until 2026-08-21.
 ## Layout
 
 **A Turnstile site key only works on the hostnames listed in Cloudflare, and a Vercel deployment
-URL is not one of them.** Every deployment gets its own `rv-connect-<hash>.vercel.app` address, so
+URL is not one of them.** Every deployment gets its own `rv-alumni-<hash>.vercel.app` address, so
 opening an old one to see how the site used to look gives "We couldn't confirm you're human" with
 no checkbox to click — `interaction-only` means the widget is invisible when it fails exactly as
 when it passes. Cloudflare is saying 110200, "domain not allowed". **An env var will not fix it:

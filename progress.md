@@ -73,7 +73,7 @@ The owner could not sign in to any past deployment: *"it says we weren't able to
 you're not a robot and there's no tick box for me to click."* Nothing in the old code was
 broken. A Turnstile site key only runs on the hostnames listed in Cloudflare, ours listed
 `rishivalley.space`, and every past deployment lives at its own generated
-`rv-connect-<hash>.vercel.app` URL. Cloudflare was answering 110200, "domain not allowed" —
+`rv-alumni-<hash>.vercel.app` URL. Cloudflare was answering 110200, "domain not allowed" —
 silently, because `interaction-only` makes the widget invisible when it fails exactly as when
 it passes, and because `error-callback` threw the code away. It logs it now. That one line is
 the difference between a lookup and an investigation next time.
