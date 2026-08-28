@@ -1,655 +1,409 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  Eight ways to hold a photograph.
+ *  What we do to a photograph.
  *
- *  The owner asked to decide the crop rule by looking rather than by
- *  reading a list of three options, so this room renders all eight answers
- *  against six deliberately awkward photographs, at the three column
- *  widths the app really uses. Whatever he picks becomes the rule for
- *  post-card, the catch-up answer card, the letter page and the
- *  Collection grid, so the maths sits in _policies.ts where it can be
- *  lifted rather than retyped.
+ *  Not a decision room any more -- the rules are chosen and shipped.
+ *  This is the room for LOOKING at what they do, because the numbers in
+ *  a commit message are unreadable and a portrait that has been cropped
+ *  a little still looks like a portrait. So every shape a member can
+ *  post is here twice: the photograph as it arrived, with the part we
+ *  remove shaded out, and the post as it actually renders.
  *
- *  Throwaway. Delete this room, its three generated files under
- *  public/lab/crop/ and its registry row once the choice is made. It is
- *  on the close-out list in docs/planning/collection-rework/handover.md.
+ *  The owner, 2026-08-28: "please tell me what the original picture is
+ *  and what we're rendering it as cause if you zoom in a bit on a
+ *  portrait it'll still look like a portrait to me so I won't know what
+ *  we're dealing with or what the original is. and chill with the pixel
+ *  counts idk how to comprehend that."
+ *
+ *  So: no pixel counts. Shapes have names, cuts are a share of the
+ *  frame, and the height of a post is measured in laptop screens.
+ *
+ *  Throwaway. Delete this room, public/lab/crop/ and its registry row
+ *  once the rules are settled -- it is on the close-out list in
+ *  docs/planning/collection-rework/handover.md.
  * ------------------------------------------------------------------ */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { DelightShell, DemoCard, Seg } from "../_kit";
-import { SPECIMENS } from "./_specimens";
-import { PhotoRows, PhotoStream } from "@/components/common/photo-rows";
-import {
-  FLOORS,
-  POLICIES,
-  TALL_CEILINGS,
-  TALL_SHAPES,
-  type FillKind,
-  WIDTHS,
-  frameFor,
-  stackHeight,
-  type PolicyKey,
-  type Specimen,
-  type WidthKey,
-} from "./_policies";
+import { SPECIMENS, WIDTHS, type Specimen, type WidthKey } from "./_specimens";
+import { PhotoFrame } from "@/components/common/photo-frame";
+import { PhotoRows } from "@/components/common/photo-rows";
+import { PhotoCarousel } from "@/components/common/photo-carousel";
+import { drawnSize, framePhoto } from "@/lib/photo-layout";
 
-/* ------------------------------------------------------------------ *
- *  One photograph in one policy's box. Everything below draws this.
- * ------------------------------------------------------------------ */
-function Frame({
-  photo,
-  policy,
-  width,
-  floor,
-  ceiling,
-  gap,
-  tall,
-  aim,
+/** A laptop window, for saying how much of the screen a post takes. The one
+ *  number in the room, and it is here so nothing else has to be a number. */
+const SCREEN = 900;
+
+const facts = (s: Specimen) => ({
+  width: s.w,
+  height: s.h,
+  focalX: s.focal.x,
+  focalY: s.focal.y,
+  blurDataUrl: null,
+});
+
+/** Everything the room says about one photograph in one column. */
+function read(s: Specimen, column: number) {
+  const frame = framePhoto(facts(s));
+  const drawn = drawnSize(frame, column);
+  const came = s.w / s.h;
+  const shown = drawn.width / drawn.height;
+  const kept = Math.min(came, shown) / Math.max(came, shown);
+  const [x, y] = frame.objectPosition.split(" ").map((v) => parseFloat(v) / 100);
+  return {
+    came,
+    shown,
+    kept,
+    /** Which way the photograph is trimmed, and how the surviving window sits
+     *  in the original -- which is what the shading below draws. */
+    axis: shown > came ? ("y" as const) : shown < came ? ("x" as const) : ("none" as const),
+    at: shown > came ? y : x,
+    /** How much card is left over either side, as a share of the card. */
+    bed: Math.max(0, (column - drawn.width) / column),
+    height: drawn.height,
+  };
+}
+
+/** "a tenth", "a fifth" -- a share of a photograph, in words. */
+function share(lost: number): string {
+  if (lost < 0.03) return "a sliver";
+  const denom = Math.round(1 / lost);
+  const words: Record<number, string> = {
+    2: "half", 3: "a third", 4: "a quarter", 5: "a fifth", 6: "a sixth",
+    7: "a seventh", 8: "an eighth", 9: "a ninth", 10: "a tenth",
+    11: "a tenth", 12: "a twelfth", 20: "a twentieth",
+  };
+  return words[denom] ?? `${Math.round(lost * 100)}%`;
+}
+
+/** The whole photograph, small, with the part we remove shaded out. */
+function Original({ s, column }: { s: Specimen; column: number }) {
+  const { came, kept, axis, at } = read(s, column);
+  const box = 208;
+  const w = came >= 1 ? box : box * came;
+  const h = came >= 1 ? box / came : box;
+  const gone = 1 - kept;
+  const before = at * gone;
+
+  return (
+    <figure className="cr-orig-wrap">
+      <div className="cr-orig" style={{ width: w, height: h }}>
+        <img src={s.src} alt="" />
+      {axis !== "none" && (
+        <>
+          <span
+            className="cr-gone"
+            style={
+              axis === "y"
+                ? { left: 0, right: 0, top: 0, height: `${before * 100}%` }
+                : { top: 0, bottom: 0, left: 0, width: `${before * 100}%` }
+            }
+          />
+          <span
+            className="cr-gone"
+            style={
+              axis === "y"
+                ? { left: 0, right: 0, bottom: 0, height: `${(gone - before) * 100}%` }
+                : { top: 0, bottom: 0, right: 0, width: `${(gone - before) * 100}%` }
+            }
+          />
+          {/* The window that survives, outlined, so the shading is read as a
+              crop rather than as a shadow on the photograph. */}
+          <span
+            className="cr-keep"
+            style={
+              axis === "y"
+                ? { left: 0, right: 0, top: `${before * 100}%`, height: `${kept * 100}%` }
+                : { top: 0, bottom: 0, left: `${before * 100}%`, width: `${kept * 100}%` }
+            }
+          />
+        </>
+      )}
+      </div>
+      <figcaption>
+        {s.label} as it arrived
+        {axis !== "none" && <> &middot; the shaded part goes</>}
+      </figcaption>
+    </figure>
+  );
+}
+
+/** What happened, in a sentence a person can read. */
+function Verdict({ s, column }: { s: Specimen; column: number }) {
+  const { came, kept, axis, bed, height } = read(s, column);
+  const lost = 1 - kept;
+  const screens = Math.round((height / SCREEN) * 100);
+
+  const cut =
+    lost < 0.005
+      ? "Nothing is cut."
+      : came < 1
+        ? `Brought to 3:4 -- ${share(lost)} comes off the ${axis === "y" ? "top and bottom" : "sides"}.`
+        : `${share(lost)[0].toUpperCase()}${share(lost).slice(1)} comes off the ${axis === "y" ? "top and bottom" : "sides"}, so it can fill the card.`;
+
+  const fill =
+    bed < 0.01
+      ? "It reaches both edges of the card."
+      : `It still leaves a blurred band either side, about ${share(bed / 2)} of the card each.`;
+
+  return (
+    <div className="cr-verdict">
+      <p className="cr-shape">
+        <strong>Came in {s.label}.</strong> {s.note}
+      </p>
+      <p>{cut}</p>
+      <p>{fill}</p>
+      <p className="cr-screen">The photograph takes about {screens}% of a laptop screen.</p>
+    </div>
+  );
+}
+
+/** A post, near enough: somebody's name, a line, the photograph, the actions.
+ *  The photograph is the real component, not a copy of it. */
+function Post({
+  column,
+  children,
+  words = "The banyan, this morning.",
 }: {
-  photo: Specimen;
-  policy: PolicyKey;
-  width: number;
-  floor: number;
-  ceiling: number;
-  gap: FillKind;
-  tall: number;
-  aim: boolean;
+  column: number;
+  children: React.ReactNode;
+  words?: string;
 }) {
-  const f = frameFor(policy, photo, width, { floor, ceiling, gap, tall, aim });
   return (
-    /* The column-wide stage. The photograph sits centred on it at whatever
-       width its rule allows, and the stage behind it is either the card's own
-       paper or a blurred copy of the same photograph. */
-    <div
-      className={`cr-stagebox${f.fill === "blur" ? " blurred bedded" : ""}${f.fill === "paper" ? " bedded" : ""}`}
-      style={{ width, height: f.height }}
-    >
-      {f.fill === "blur" && <img src={photo.src} alt="" aria-hidden className="cr-blur" />}
-      <div className="cr-frame" style={{ width: f.width, height: f.height }}>
+    <article className="cr-card" style={{ width: column + 34 }}>
+      <header>
+        <span className="cr-dot" />
+        <span className="cr-who">Anita Rao</span>
+        <span className="cr-when">2 days ago</span>
+      </header>
+      <p className="cr-body">{words}</p>
+      {children}
+      <footer>
+        <span>12 loves</span>
+        <span>3 replies</span>
+      </footer>
+    </article>
+  );
+}
+
+/** Several photographs in level rows, each at the shape the one-photograph
+ *  rule gives it. What ships for two, and what shipped briefly for more. */
+function Justified({ photos }: { photos: Specimen[] }) {
+  return (
+    <PhotoRows photos={photos.map(facts)}>
+      {(_p, i, cell) => (
         <img
-          src={photo.src}
-          alt={photo.note}
-          className="cr-img"
-          style={{ objectFit: f.fit, objectPosition: f.position }}
+          src={photos[i].src}
+          alt=""
+          className="h-full w-full rounded-[10px] object-cover"
+          style={{
+            aspectRatio: cell.aspectRatio,
+            objectPosition: cell.objectPosition,
+            maxHeight: cell.maxHeight,
+          }}
         />
+      )}
+    </PhotoRows>
+  );
+}
+
+function OnePhoto({ s, column }: { s: Specimen; column: number }) {
+  return (
+    <div className="cr-case">
+      <div className="cr-case-head">
+        <Original s={s} column={column} />
+        <Verdict s={s} column={column} />
       </div>
-    </div>
-  );
-}
-
-/** The "you lost this much" readout. A number that is doing work. */
-function Kept({ kept }: { kept: number }) {
-  const pct = Math.round(kept * 100);
-  if (pct >= 100) return <span className="cr-kept whole">whole frame</span>;
-  return (
-    <span className={`cr-kept${pct < 60 ? " bad" : pct < 90 ? " warn" : ""}`}>
-      {pct}% of the frame
-    </span>
-  );
-}
-
-/* ------------------------------------------------------------------ *
- *  Mode one: one photograph, all six policies, stacked at true size.
- * ------------------------------------------------------------------ */
-function SixWays({ photo, width, floor, ceiling, gap, tall, aim }: { photo: Specimen; width: number; floor: number; ceiling: number; gap: FillKind; tall: number; aim: boolean }) {
-  return (
-    <div className="cr-stack">
-      {POLICIES.map((p) => {
-        const f = frameFor(p.key, photo, width, { floor, ceiling, gap, tall, aim });
-        return (
-          <div key={p.key} className="cr-row">
-            <div className="cr-row-head" style={{ width }}>
-              <div>
-                <h4>{p.name}</h4>
-                <p>{p.line}</p>
-              </div>
-              <div className="cr-row-nums">
-                <span className="cr-h">
-                  {Math.round(f.width)} x {Math.round(f.height)}
-                  {f.width < width - 1 && ", narrowed"}
-                </span>
-                <Kept kept={f.kept} />
-              </div>
-            </div>
-            <Frame photo={photo} policy={p.key} width={width} floor={floor} ceiling={ceiling} gap={gap} tall={tall} aim={aim} />
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ *
- *  Mode two: a whole feed under one policy, so the scroll can be felt.
- *  This is the mode that answers "definitely don't want some huge ass
- *  pictures to keep scrolling past".
- * ------------------------------------------------------------------ */
-function ScrollIt({ policy, width, floor, ceiling, gap, tall, aim }: { policy: PolicyKey; width: number; floor: number; ceiling: number; gap: FillKind; tall: number; aim: boolean }) {
-  const [screens, setScreens] = useState<number | null>(null);
-  const total = stackHeight(policy, SPECIMENS, width, { floor, ceiling, gap, tall, aim });
-
-  useEffect(() => {
-    setScreens(total / window.innerHeight);
-  }, [total]);
-
-  return (
-    <div>
-      <div className="cr-scrollbar-note" style={{ width }}>
-        <strong>{Math.round(total).toLocaleString()}px</strong> of photograph for six posts
-        {screens !== null && <span>, about {screens.toFixed(1)} screenfuls on this monitor</span>}
-      </div>
-      <div className="cr-feed">
-        {SPECIMENS.map((photo) => (
-          <article key={photo.key} className="cr-card" style={{ width }}>
-            <header>
-              <span className="cr-dot" />
-              <span className="cr-who">Anita Rao</span>
-              <span className="cr-when">2 days ago</span>
-            </header>
-            <p className="cr-body">{photo.note}</p>
-            <Frame photo={photo} policy={policy} width={width} floor={floor} ceiling={ceiling} gap={gap} tall={tall} aim={aim} />
-            <footer>
-              <span>12 loves</span>
-              <span>3 replies</span>
-              <span className="cr-tag">{photo.label}</span>
-            </footer>
-          </article>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ *
- *  Mode three: more than one photograph at a time. Today's grid against
- *  the reference gallery's justified rows.
- * ------------------------------------------------------------------ */
-const GAP = 8;
-
-function TodaysGrid({ photos, width }: { photos: Specimen[]; width: number }) {
-  const cols = photos.length === 1 ? 1 : 2;
-  const cell = (width - GAP * (cols - 1)) / cols;
-  return (
-    <div className="cr-grid" style={{ width, gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: GAP }}>
-      {photos.map((p, i) => {
-        /* post-card.tsx: three photos put the first across both columns,
-           and the height caps are 384 / 256 / 192 by count. */
-        const span = photos.length === 3 && i === 0;
-        const h = photos.length === 1 ? 384 : span ? 256 : 192;
-        return (
-          <div
-            key={i}
-            className="cr-frame"
-            style={{ height: h, gridColumn: span ? "span 2" : undefined, width: span ? width : cell }}
-          >
-            <img src={p.src} alt="" className="cr-img" style={{ objectFit: "cover" }} />
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/** The shipped components, given the room's specimens. They take a shape and
- *  a render function; everything else is theirs. */
-const shaped = (photos: Specimen[]) =>
-  photos.map((p) => ({ ...p, width: p.w, height: p.h, focalX: p.focal.x, focalY: p.focal.y }));
-
-function ShippedPost({ photos, width }: { photos: Specimen[]; width: number }) {
-  return (
-    <div style={{ width }}>
-      <PhotoRows photos={shaped(photos)} gap={GAP}>
-        {(p, _i, cell) => (
-          <img
-            src={p.src}
-            alt=""
-            className="cr-img"
-            style={{
-              objectFit: "cover",
-              aspectRatio: cell.aspectRatio,
-              objectPosition: cell.objectPosition,
-              maxHeight: cell.maxHeight,
-              height: "100%",
-            }}
-          />
-        )}
-      </PhotoRows>
-    </div>
-  );
-}
-
-function ShippedGrid({ photos, width }: { photos: Specimen[]; width: number }) {
-  return (
-    <div style={{ width }}>
-      <PhotoStream photos={shaped(photos)} gap={GAP} keyOf={(_p, i) => i}>
-        {(p, _i, cell) => (
-          <img
-            src={p.src}
-            alt=""
-            className="cr-img"
-            style={{ objectFit: "cover", aspectRatio: cell.aspectRatio, width: "100%" }}
-          />
-        )}
-      </PhotoStream>
-    </div>
-  );
-}
-
-/** Today's Collection grid: CSS columns, which is why its rows never line up. */
-function Masonry({ photos, width }: { photos: Specimen[]; width: number }) {
-  return (
-    <div className="cr-masonry" style={{ width }}>
-      {photos.map((p, i) => (
-        <div key={i} className="cr-mas-item">
-          <img src={p.src} alt="" className="cr-img-flow" />
-        </div>
-      ))}
+      <Post column={column}>
+        <PhotoFrame
+          src={s.src}
+          photo={facts(s)}
+          sizes="100vw"
+          className="rounded-[10px]"
+        />
+      </Post>
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
 
-type Mode = "six" | "scroll" | "many";
+const SETS: { label: string; keys: string[] }[] = [
+  { label: "Two", keys: ["3x2", "9x16"] },
+  { label: "Three", keys: ["16x9", "21x9", "9x16"] },
+  { label: "Four", keys: ["4x3", "1x1", "2x3", "21x9"] },
+  { label: "Five", keys: ["4x3", "9x16", "3x2", "1x1", "16x9"] },
+];
 
-/* How many photographs the "several at once" mode draws. Two to six is a
-   POST (the composer stops at three, so four and six are the Catch-up's
-   legacy rows and the future). 34 is a WALL: enough that the rows have to
-   break several times, which is the only way to see whether they line up. */
-const COUNTS = ["2", "3", "4", "6", "34"] as const;
-type CountKey = (typeof COUNTS)[number];
+/** How a post used to tile several photographs, before any of this: two
+ *  columns, the first spanning both when there were exactly three, and a hard
+ *  pixel cap on every cell. Every photograph `object-cover`, so every one of
+ *  them cut to a box that had nothing to do with its shape -- which is where
+ *  "sometimes the catch up just shows a bunch of shoulders" came from. Kept
+ *  here only so the two can be looked at side by side; nothing in the app
+ *  renders this any more.
+ *
+ *  The composer never allowed more than three, so four and five are what this
+ *  rule WOULD have done rather than something anybody ever saw. */
+function TiledAsBefore({ photos }: { photos: Specimen[] }) {
+  return (
+    <div className="cr-tiled" style={{ gridTemplateColumns: photos.length === 1 ? "1fr" : "1fr 1fr" }}>
+      {photos.map((s, i) => {
+        const wide = photos.length === 3 && i === 0;
+        return (
+          <img
+            key={s.key}
+            src={s.src}
+            alt=""
+            style={{
+              gridColumn: wide ? "span 2" : undefined,
+              maxHeight: photos.length === 1 ? 384 : wide ? 256 : 192,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
 
 export default function CropRoom() {
-  const [mode, setMode] = useState<Mode>("six");
   const [widthKey, setWidthKey] = useState<WidthKey>("laptop");
-  const [photoKey, setPhotoKey] = useState(SPECIMENS[0].key);
-  const [policy, setPolicy] = useState<PolicyKey>("bounds");
-  const [count, setCount] = useState<CountKey>("3");
-  const [floor, setFloor] = useState<number>(FLOORS[0].v);
-  /* Brief #39, "rules for how wide the feed can be". A ratio floor cannot
-     save a wide screen on its own: at a 1216px column even a square photo is
-     1216px tall. Capping the PHOTO rather than the card is the other lever,
-     and the two together are what actually decide whether the feed is a
-     chore. Kept separate so each can be judged on its own. */
-  const [cap, setCap] = useState<number>(900);
-  const [gap, setGap] = useState<FillKind>("blur");
-  const [tall, setTall] = useState<number>(TALL_SHAPES[1].v);
-  const [aim, setAim] = useState(true);
-  const [ceiling, setCeiling] = useState<number>(TALL_CEILINGS[1].v);
-  const stageRef = useRef<HTMLDivElement>(null);
+  const [setKey, setSetKey] = useState("Three");
 
-  /* Every control is in the URL, so a particular comparison can be linked,
-     screenshotted and argued about rather than described. Same trick the
-     shell already uses for ?theme and ?reduced. Read after mount: doing it
-     during render would make the first client paint disagree with the
-     server's. */
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
-    const m = q.get("mode");
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reads the URL query after mount, the same way DelightShell reads ?theme. Doing it during render would make the first client render disagree with the server's.
-    if (m === "six" || m === "scroll" || m === "many") setMode(m);
     const w = q.get("w");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reads the URL query after mount, the same way DelightShell reads ?theme. During render it would disagree with the server's first paint.
     if (w && w in WIDTHS) setWidthKey(w as WidthKey);
-    const ph = q.get("photo");
-    if (ph && SPECIMENS.some((s) => s.key === ph)) setPhotoKey(ph);
-    const po = q.get("policy");
-    if (po && POLICIES.some((p) => p.key === po)) setPolicy(po as PolicyKey);
-    const c = q.get("n");
-    if (COUNTS.includes(c as CountKey)) setCount(c as CountKey);
-    const fl = Number(q.get("floor"));
-    if (FLOORS.some((f) => f.v === fl)) setFloor(fl);
-    if (q.has("cap")) {
-      const cp = Number(q.get("cap"));
-      if (cp === 0 || cp === 720 || cp === 900) setCap(cp);
-    }
-    const g = q.get("gap");
-    if (g === "paper" || g === "blur") setGap(g);
-    const tl = Number(q.get("tall"));
-    if (TALL_SHAPES.some((t) => t.v === tl)) setTall(tl);
-    if (q.get("aim") === "0") setAim(false);
-    const ce = Number(q.get("ceiling"));
-    if (TALL_CEILINGS.some((c) => c.v === ce)) setCeiling(ce);
+    const n = q.get("n");
+    if (SETS.some((s) => s.label === n)) setSetKey(n!);
   }, []);
 
   const column = WIDTHS[widthKey].px;
-  const width = cap ? Math.min(column, cap) : column;
-  const photo = SPECIMENS.find((s) => s.key === photoKey) ?? SPECIMENS[0];
-  /* Past six, the six specimens repeat. The subject is the layout, not the
-     pictures, and a wall of 34 is the only way to see a row break. */
-  const wanted = Number(count);
-  const many = Array.from({ length: wanted }, (_, i) => SPECIMENS[i % SPECIMENS.length]);
+  const set = SETS.find((s) => s.label === setKey) ?? SETS[1];
+  const many = set.keys
+    .map((k) => SPECIMENS.find((s) => s.key === k))
+    .filter(Boolean) as Specimen[];
 
   return (
     <DelightShell
-      title="Eight ways to hold a photograph"
-      lede="The same awkward photo, eight rules, at the three widths this app really uses. The top two never cut a face."
+      title="What we do to a photograph"
+      lede="Every shape somebody can post. On the left, the photograph as it arrived, with the part we remove shaded out. Below it, the post as it actually renders."
       css={CSS}
     >
+      <DemoCard title="Which screen" note={WIDTHS[widthKey].note} pad>
+        <Seg
+          options={(Object.keys(WIDTHS) as WidthKey[]).map((k) => ({
+            v: k,
+            label: WIDTHS[k].label,
+          }))}
+          value={widthKey}
+          onChange={setWidthKey}
+        />
+      </DemoCard>
+
       <DemoCard
-        title="The controls"
-        note="Width first. Most of what looks wrong only looks wrong on a wide screen."
-        pad
+        title="One photograph"
+        note="Tall ones are brought to one shape and sit on a blurred copy of themselves. Square-ish ones lose a little so they can fill the card. Wide ones are never cut at all."
+        pad={false}
       >
-        <div className="cr-panel cr-controls">
-          <label className="cr-ctl">
-            <span>Column</span>
-            <Seg
-              options={(Object.keys(WIDTHS) as WidthKey[]).map((k) => ({
-                v: k,
-                label: `${WIDTHS[k].label} · ${WIDTHS[k].px}px`,
-              }))}
-              value={widthKey}
-              onChange={setWidthKey}
-            />
-          </label>
-          <p className="cr-ctl-note">{WIDTHS[widthKey].note}</p>
-
-          <label className="cr-ctl">
-            <span>Tallest a photo may be</span>
-            <Seg
-              options={TALL_CEILINGS.map((c) => ({ v: String(c.v), label: c.label }))}
-              value={String(ceiling)}
-              onChange={(v) => setCeiling(Number(v))}
-            />
-          </label>
-          <p className="cr-ctl-note">
-            {TALL_CEILINGS.find((c) => c.v === ceiling)?.note} Used by the first rule, which
-            narrows a tall photo rather than cutting it.
-          </p>
-
-          <label className="cr-ctl">
-            <span>Portrait floor</span>
-            <Seg
-              options={FLOORS.map((f) => ({ v: String(f.v), label: f.label }))}
-              value={String(floor)}
-              onChange={(v) => setFloor(Number(v))}
-            />
-          </label>
-          <p className="cr-ctl-note">
-            {FLOORS.find((f) => f.v === floor)?.note} A tall photo comes out{" "}
-            {Math.round(width / floor)}px high in this column.
-          </p>
-
-          <label className="cr-ctl">
-            <span>Tall photos become</span>
-            <Seg
-              options={TALL_SHAPES.map((t) => ({ v: String(t.v), label: t.label }))}
-              value={String(tall)}
-              onChange={(v) => setTall(Number(v))}
-            />
-          </label>
-          <p className="cr-ctl-note">
-            {TALL_SHAPES.find((t) => t.v === tall)?.note} At this ceiling the photo is drawn{" "}
-            {Math.round(Math.min(ceiling * tall, width))}px wide.
-          </p>
-
-          <label className="cr-ctl">
-            <span>Aim the crop</span>
-            <Seg
-              options={[
-                { v: "on", label: "At the subject" },
-                { v: "off", label: "Fixed, top-biased" },
-              ]}
-              value={aim ? "on" : "off"}
-              onChange={(v) => setAim(v === "on")}
-            />
-          </label>
-          <p className="cr-ctl-note">
-            Sharp guesses where the subject is at upload and the window moves towards it,
-            clamped so a bad guess can only ever land on the plain centre crop. It only
-            touches tall photos, since this rule never cuts a wide one, and on these six
-            specimens it moves the window by two or three percent. That is honest: they are
-            landscapes with no one subject. It earns its keep on a photo of a person
-            standing off to one side.
-          </p>
-
-          <label className="cr-ctl">
-            <span>Beside a tall photo</span>
-            <Seg
-              options={[
-                { v: "blur" as FillKind, label: "Blurred copy" },
-                { v: "paper" as FillKind, label: "Plain paper" },
-              ]}
-              value={gap}
-              onChange={setGap}
-            />
-          </label>
-          <p className="cr-ctl-note">
-            What fills the card either side of a photo that does not span it. Only the two
-            rules that narrow a tall photo use this.
-          </p>
-
-          <label className="cr-ctl">
-            <span>Photo width</span>
-            <Seg
-              options={[
-                { v: "0", label: "Full column" },
-                { v: "900", label: "Cap at 900px" },
-                { v: "720", label: "Cap at 720px" },
-              ]}
-              value={String(cap)}
-              onChange={(v) => setCap(Number(v))}
-            />
-          </label>
-          <p className="cr-ctl-note">
-            {cap
-              ? `The card stays ${column}px wide; the photograph inside it stops at ${width}px.`
-              : "The photograph grows with the card, all the way to 1216px."}
-          </p>
-
-          <label className="cr-ctl">
-            <span>Looking at</span>
-            <Seg
-              options={[
-                { v: "six" as Mode, label: "One photo, every rule" },
-                { v: "scroll" as Mode, label: "Scroll a feed" },
-                { v: "many" as Mode, label: "Several at once" },
-              ]}
-              value={mode}
-              onChange={setMode}
-            />
-          </label>
+        <div className="cr-cases">
+          {SPECIMENS.map((s) => (
+            <OnePhoto key={s.key} s={s} column={column} />
+          ))}
         </div>
       </DemoCard>
 
-      {mode === "six" && (
-        <DemoCard
-          title="One photograph, every rule"
-          note="Pick an awkward one. The percentage is how much of the photographer's frame survives."
-          pad={false}
-        >
-          <div className="cr-panel">
-          <div className="cr-picker">
-            {SPECIMENS.map((s) => (
-              <button
-                key={s.key}
-                type="button"
-                className={`cr-thumb${s.key === photoKey ? " on" : ""}`}
-                onClick={() => setPhotoKey(s.key)}
-              >
-                <img src={s.src} alt="" />
-                <span>{s.label}</span>
-              </button>
-            ))}
-          </div>
-          <p className="cr-caption">{photo.note}</p>
-          <div className="cr-stage" ref={stageRef}>
-            <SixWays photo={photo} width={width} floor={floor} ceiling={ceiling} gap={gap} tall={tall} aim={aim} />
-          </div>
-          </div>
-        </DemoCard>
-      )}
+      <DemoCard
+        title="More than one"
+        note="Two sit side by side. More than two is a carousel you swipe, and every photograph in it is drawn exactly as it would have been posted on its own. Underneath, the two things it replaced."
+        pad={false}
+      >
+        <div className="cr-panel">
+          <Seg
+            options={SETS.map((s) => ({ v: s.label, label: s.label }))}
+            value={setKey}
+            onChange={setSetKey}
+          />
 
-      {mode === "scroll" && (
-        <DemoCard
-          title="Scroll a feed of six"
-          note="The one that answers whether a rule makes the feed a chore. Switch rules and scroll each."
-          pad={false}
-        >
-          <div className="cr-panel">
-          <div className="cr-picker wrap">
-            {POLICIES.map((p) => (
-              <button
-                key={p.key}
-                type="button"
-                className={`cr-pill${p.key === policy ? " on" : ""}`}
-                onClick={() => setPolicy(p.key)}
-              >
-                {p.name}
-              </button>
-            ))}
-          </div>
-          <div className="cr-stage">
-            <ScrollIt policy={policy} width={width} floor={floor} ceiling={ceiling} gap={gap} tall={tall} aim={aim} />
-          </div>
-          </div>
-        </DemoCard>
-      )}
+          <div className="cr-many">
+            <p className="cr-label">Now</p>
+            <Post column={column} words="A few from the walk up Rishi Konda.">
+              {many.length > 2 ? (
+                <PhotoCarousel
+                  photos={many.map((s) => ({ src: s.src, photo: facts(s) }))}
+                  sizes="100vw"
+                  onOpen={() => {}}
+                  onPreload={() => {}}
+                />
+              ) : (
+                <Justified photos={many} />
+              )}
+            </Post>
 
-      {mode === "many" && (
-        <DemoCard
-          title="Several photographs at once"
-          note="What a post with more than one photo does, and what the Collection grid does."
-          pad={false}
-        >
-          <div className="cr-panel">
-          <div className="cr-picker wrap">
-            {COUNTS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                className={`cr-pill${c === count ? " on" : ""}`}
-                onClick={() => setCount(c)}
-              >
-                {c === "34" ? "a wall of 34" : `${c} photos`}
-              </button>
-            ))}
-          </div>
-          <div className="cr-stage">
-            <h4 className="cr-h4">A post, as it ships now</h4>
-            <p className="cr-caption">
-              Justified rows: gutters even, rows level, every row filling its width. How many
-              share a row follows the column rather than a rule -- three across a laptop card,
-              one across a phone, so a photograph never comes out a stamp. A tall one is brought
-              to 3:4 first, exactly as it would be if it were posted on its own; otherwise a
-              9:20 screenshot beside a panorama is drawn 72px wide.
+            {many.length > 2 && (
+              <>
+                <p className="cr-label">
+                  Before the carousel &mdash; all of them at once, in rows
+                </p>
+                <p className="cr-label-note">
+                  Level rows, nothing cut, but with five in a card each one is a stamp.
+                  This is what a post did for about a day.
+                </p>
+                <Post column={column} words="A few from the walk up Rishi Konda.">
+                  <Justified photos={many} />
+                </Post>
+              </>
+            )}
+
+            <p className="cr-label">Before any of it &mdash; tiles</p>
+            <p className="cr-label-note">
+              Two columns and a hard height cap, every photograph cut to a box that had
+              nothing to do with its shape. The upright ones are the ones to look at.
             </p>
-            <ShippedPost photos={many} width={width} />
-
-            <h4 className="cr-h4">The Collection grid, as it ships now</h4>
-            <p className="cr-caption">
-              The same wrap, aiming at a taller row, and nothing cropped at all -- an archive
-              shows the true frame. The last row runs short at the target height rather than
-              blowing one leftover photograph up to the width of the page. Try the wall of 34.
-            </p>
-            <ShippedGrid photos={many} width={width} />
-
-            <h4 className="cr-h4">What a post did before</h4>
-            <p className="cr-caption">
-              Fixed square-ish cells with a hard pixel cap. The 9:16 phone photo is the one to look at.
-            </p>
-            <TodaysGrid photos={many} width={width} />
-
-            <h4 className="cr-h4">What the Collection grid did before</h4>
-            <p className="cr-caption">
-              CSS columns. Nothing is cropped, which is right, but the rows never line up, which is
-              the difference he noticed.
-            </p>
-            <Masonry photos={many} width={width} />
+            <Post column={column} words="A few from the walk up Rishi Konda.">
+              <TiledAsBefore photos={many} />
+            </Post>
           </div>
-          </div>
-        </DemoCard>
-      )}
+        </div>
+      </DemoCard>
     </DelightShell>
   );
 }
 
 const CSS = `
-.cr-panel { width: 100%; display: block; }
-.cr-controls { display: flex; flex-direction: column; gap: var(--space-s, 12px); }
-.cr-ctl { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.cr-ctl > span { font-size: 12.5px; font-weight: 600; opacity: .62; min-width: 78px; }
-.cr-ctl-note { font-size: 12.5px; opacity: .55; margin: -4px 0 4px 92px; }
+.cr-panel { padding: 20px; display: grid; gap: 18px; justify-items: start; width: 100%; }
+.cr-cases { display: grid; gap: 0; width: 100%; }
+.dl-demo-stage:has(.cr-cases), .dl-demo-stage:has(.cr-panel) { align-items: stretch; justify-content: flex-start; }
+.cr-case { padding: 22px 20px; border-top: 1px solid var(--dl-line); }
+.cr-case:first-child { border-top: 0; }
+.cr-case-head { display: flex; gap: 22px; align-items: flex-start; margin-bottom: 16px; }
 
-.cr-picker { display: flex; gap: 8px; padding: 14px 18px 4px; overflow-x: auto; }
-.cr-picker.wrap { flex-wrap: wrap; overflow: visible; }
-.cr-thumb {
-  position: relative; flex: 0 0 auto; width: 62px; height: 62px; padding: 0;
-  border-radius: 10px; overflow: hidden; border: 2px solid transparent;
-  background: none; cursor: pointer; opacity: .55;
-  transition: opacity 160ms ease, border-color 160ms ease;
-}
-.cr-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.cr-thumb span {
-  position: absolute; inset: auto 0 0 0; font-size: 10px; font-weight: 700;
-  color: #fff; background: rgba(24,25,20,.66); padding: 2px 0;
-}
-.cr-thumb:hover { opacity: .85; }
-.cr-thumb.on { opacity: 1; border-color: var(--leaf, #235C49); }
-.cr-thumb:focus-visible, .cr-pill:focus-visible { outline: 2px solid var(--ring, #235C49); outline-offset: 2px; }
+.cr-orig-wrap { flex: none; margin: 0; display: grid; gap: 7px; justify-items: center; }
+.cr-orig-wrap figcaption { font-size: 11.5px; letter-spacing: 0.02em; color: var(--dl-ink-3); text-align: center; max-width: 22ch; }
+.cr-orig { position: relative; border-radius: 6px; overflow: hidden; box-shadow: 0 0 0 1px var(--dl-line); }
+.cr-keep { position: absolute; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.9); border-radius: 2px; }
+.cr-orig img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cr-gone { position: absolute; background: rgba(24,22,18,0.72); backdrop-filter: saturate(0.2); }
 
-.cr-pill {
-  border-radius: 999px; padding: 6px 13px; font-size: 12.5px; font-weight: 600;
-  border: 1px solid rgba(30,28,22,.16); background: transparent; cursor: pointer;
-  transition: opacity 160ms ease, transform 160ms ease;
-}
-.cr-pill:active { transform: scale(.97); }
-.cr-pill.on { background: var(--leaf, #235C49); color: #fff; border-color: transparent; }
+.cr-verdict { display: grid; gap: 4px; max-width: 46ch; }
+.cr-verdict p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--dl-ink-2); }
+.cr-shape strong { color: var(--dl-ink); }
+.cr-screen { color: var(--dl-ink-3); font-size: 12.5px; }
 
-.cr-stagebox {
-  position: relative; display: flex; justify-content: center; align-items: center;
-  overflow: hidden; border-radius: 10px; flex: 0 0 auto;
-}
-.cr-stagebox.blurred { background: var(--mist, #F0EDE6); }
-/* On a bed, the photo must not carry a light background or a hairline of its
-   own: either one shows down its edge as a pale outline. The bed defines it. */
-.cr-stagebox.bedded .cr-frame { border: none; background: transparent; }
-.cr-caption { font-size: 13px; opacity: .62; padding: 6px 18px 12px; max-width: 62ch; }
-.cr-h4 { font-size: 15px; font-weight: 700; padding: 22px 18px 0; }
-.cr-stage { padding: 4px 18px 22px; overflow-x: auto; }
-
-.cr-stack { display: flex; flex-direction: column; gap: 26px; }
-.cr-row-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding-bottom: 7px; }
-.cr-row-head h4 { font-size: 14px; font-weight: 700; }
-.cr-row-head p { font-size: 12px; opacity: .58; max-width: 46ch; }
-.cr-row-nums { display: flex; gap: 10px; align-items: baseline; flex: 0 0 auto; }
-.cr-h { font-size: 12px; opacity: .58; font-variant-numeric: tabular-nums; }
-.cr-kept { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.cr-kept.whole { color: var(--leaf, #235C49); }
-.cr-kept.warn { color: #9A6A18; }
-.cr-kept.bad { color: #A33A2A; }
-
-.cr-frame {
-  position: relative; overflow: hidden; border-radius: 10px;
-  border: 1px solid rgba(30,28,22,.12); background: var(--mist, #F0EDE6); flex: 0 0 auto;
-}
-.cr-img { width: 100%; height: 100%; display: block; position: relative; z-index: 1; }
-.cr-img-flow { width: 100%; height: auto; display: block; border-radius: 10px; }
-.cr-blur {
-  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-  transform: scale(1.12); filter: blur(26px) brightness(.68) saturate(1.1); z-index: 0;
-}
-
-.cr-feed { display: flex; flex-direction: column; gap: 14px; }
-.cr-card {
-  border: 1px solid rgba(30,28,22,.12); border-radius: 14px; padding: 14px;
-  background: var(--paper, #FBF9F4);
-}
-.cr-card header { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
-.cr-dot { width: 26px; height: 26px; border-radius: 999px; background: var(--leaf, #235C49); opacity: .8; }
-.cr-who { font-weight: 700; }
-.cr-when { opacity: .5; }
-.cr-body { font-size: 14px; margin: 9px 0 11px; }
-.cr-card footer { display: flex; gap: 14px; font-size: 12px; opacity: .55; padding-top: 10px; }
-.cr-tag { margin-left: auto; font-weight: 700; opacity: .8; }
-.cr-scrollbar-note {
-  font-size: 13px; opacity: .7; padding-bottom: 12px;
-}
-
-.cr-grid { display: grid; }
-.cr-just { display: flex; flex-direction: column; }
-.cr-just-row { display: flex; }
-.cr-masonry { columns: 3; column-gap: 8px; }
-.cr-mas-item { break-inside: avoid; margin-bottom: 8px; }
+.cr-card { background: var(--dl-card); border: 1px solid var(--dl-line); border-radius: 14px; padding: 16px; max-width: 100%; }
+.cr-card header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.cr-dot { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(140deg, #9db892, #5d7f63); }
+.cr-who { font-weight: 650; font-size: 13.5px; color: var(--dl-ink); }
+.cr-when { font-size: 12px; color: var(--dl-ink-3); }
+.cr-body { margin: 0 0 10px; font-size: 14px; color: var(--dl-ink); }
+.cr-card footer { display: flex; gap: 14px; margin-top: 10px; font-size: 12.5px; color: var(--dl-ink-3); }
+.cr-many { overflow-x: auto; display: grid; gap: 8px; justify-items: start; }
+.cr-label { margin: 18px 0 0; font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--dl-ink-3); }
+.cr-many > .cr-label:first-child { margin-top: 0; }
+.cr-label-note { margin: 0; max-width: 52ch; font-size: 13px; line-height: 1.55; color: var(--dl-ink-2); }
+.cr-tiled { display: grid; gap: 8px; }
+.cr-tiled img { width: 100%; object-fit: cover; border-radius: 10px; display: block; }
 `;
