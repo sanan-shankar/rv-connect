@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { downscaleImage } from "@/lib/image-downscale";
 import { directUploadPut } from "@/lib/upload-client";
@@ -21,6 +21,11 @@ import { myImageFacts } from "@/app/(main)/image-aim";
  * ------------------------------------------------------------------ */
 
 const UPLOAD_TIMEOUT_MS = 60_000;
+
+/** One photograph in the composer. `preview` is what is on screen from the
+ *  first frame (a local object url, or a resumed draft's stored url); `url`
+ *  arrives when the bytes are in, and its absence IS the uploading state. */
+type Shot = { preview: string; url?: string };
 
 /**
  * Release the `blob:` previews this composer minted, leaving stored urls alone.
@@ -48,8 +53,31 @@ export function useComposerUploads({
    *  "Also add to the Collection" on it. See removeImage. */
   onEmptied?: () => void;
 }) {
-  const [images, setImages] = useState<string[]>(initialImages ?? []);
-  const [previews, setPreviews] = useState<string[]>(initialImages ?? []);
+  /* ONE list, in the order the writer added them, rather than two arrays that
+     had to be kept in step.
+     The reason is not tidiness: `previews` used to be appended only AFTER the
+     upload came back, so choosing a photograph showed nothing at all for
+     however long the network took -- a spinner in the toolbar, an unchanged
+     composer -- and then the whole row of thumbnails appeared at once and shoved
+     the controls down. The photograph is on the device the moment it is chosen,
+     so it goes on screen the moment it is chosen, and the upload is something
+     that happens TO a thumbnail that is already there (owner, 2026-08-28: "make
+     sure the composer expanding when the photo is added is done very smoothly
+     ... it's very rough now"). */
+  const [shots, setShots] = useState<Shot[]>(
+    () => (initialImages ?? []).map((url) => ({ preview: url, url }))
+  );
+  /* What submit sends: the STORED urls, so a photograph still climbing to R2
+     cannot be posted as a blob: url nobody else could ever read. Post is gated
+     on `uploading` as well, which is what stops the half-uploaded case. */
+  const images = useMemo(() => shots.filter((s) => s.url).map((s) => s.url as string), [shots]);
+  const previews = useMemo(() => shots.map((s) => s.preview), [shots]);
+  /** Per thumbnail, index-aligned with `previews`: the stored url once it
+   *  lands, and undefined until then. `urls` rather than `images` is what the
+   *  crop handle has to read -- `images` skips the ones still climbing, so its
+   *  indices stop matching the thumbnails the moment anything is pending. */
+  const urls = useMemo(() => shots.map((s) => s.url), [shots]);
+  const pending = useMemo(() => shots.map((s) => !s.url), [shots]);
   /* What the server measured about each stored url, keyed by it. Both upload
      routes have returned this since spec §2 and both callers threw it away.
      The crop handle needs the machine's own aim as its starting position --
@@ -58,7 +86,7 @@ export function useComposerUploads({
      `removeImage` splices that list and a second list would have to be spliced
      in step for ever. */
   const [facts, setFacts] = useState<Record<string, PhotoFacts>>({});
-  const [uploading, setUploading] = useState(false);
+  const uploading = shots.some((s) => !s.url);
   // Determinate-feeling progress for the "Photo" button label while a batch
   // uploads one file at a time (no byte-level progress events on a plain
   // fetch, but "uploading 2 of 3" reads as real progress).
@@ -186,7 +214,9 @@ export function useComposerUploads({
   async function handleImageFiles(files: File[]) {
     if (files.length === 0) return;
 
-    const remaining = 3 - images.length;
+    // Against the THUMBNAILS on screen, not the uploaded urls: a photograph
+    // still climbing already occupies one of the three places.
+    const remaining = 3 - shots.length;
     if (files.length > remaining) {
       toast.error(`You can add ${remaining} more image${remaining !== 1 ? "s" : ""}`);
       return;
@@ -207,47 +237,51 @@ export function useComposerUploads({
     }
     if (valid.length === 0) return;
 
-    setUploading(true);
-    const uploadedUrls: string[] = [];
-    const uploadedPreviews: string[] = [];
+    /* On screen FIRST, all of them, from the local file. Preview from the
+       original rather than the re-encode: higher quality, and it is only ever
+       shown in this composer. The blob url doubles as each shot's identity for
+       the rest of this function, so a removal mid-upload cannot land a url on
+       whatever happens to be at that index by then. */
+    const staged: Shot[] = valid.map((f) => ({ preview: URL.createObjectURL(f) }));
+    setShots((prev) => [...prev, ...staged]);
 
     // One file at a time (sequential): gives a real "uploading N of M"
     // state and means one bad file doesn't sink the others.
     for (let i = 0; i < valid.length; i++) {
       const original = valid[i];
+      const key = staged[i].preview;
       setUploadProgress({ done: i, total: valid.length });
       try {
         const url = await uploadViaPresign(original);
-        uploadedUrls.push(url);
-        // Preview from the original file: higher quality than the re-encode,
-        // and it is only ever shown locally in the composer.
-        uploadedPreviews.push(URL.createObjectURL(original));
+        setShots((prev) => prev.map((s) => (s.preview === key ? { ...s, url } : s)));
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Upload failed");
+        /* The thumbnail goes with the failure. Leaving it would be a
+           photograph the writer can see, cannot post, and is not told about
+           beyond a toast that slides away -- and `uploading` would never come
+           back down, so Post would stay disabled for ever. */
+        setShots((prev) => {
+          const next = prev.filter((s) => s.preview !== key);
+          if (next.length === 0) onEmptied?.();
+          return next;
+        });
+        URL.revokeObjectURL(key);
       }
     }
 
-    if (uploadedUrls.length > 0) {
-      setImages((prev) => [...prev, ...uploadedUrls]);
-      setPreviews((prev) => [...prev, ...uploadedPreviews]);
-    }
-
-    setUploading(false);
     setUploadProgress(null);
   }
 
   function removeImage(index: number) {
-    setImages((prev) => {
+    setShots((prev) => {
+      const gone = prev[index];
+      if (gone && gone.preview.startsWith("blob:")) URL.revokeObjectURL(gone.preview);
       const next = prev.filter((_, i) => i !== index);
       // Taking the last photograph out takes the offer with it, so adding a
-      // different one later starts from "no" rather than from a tick the
+      // different one later starts from "no" rather than from a yes the
       // writer left on for a picture they since deleted.
       if (next.length === 0) onEmptied?.();
       return next;
-    });
-    setPreviews((prev) => {
-      URL.revokeObjectURL(prev[index]);
-      return prev.filter((_, i) => i !== index);
     });
   }
 
@@ -255,14 +289,15 @@ export function useComposerUploads({
      released BEFORE it is (audit C-183 -- see revokeBlobPreviews above for
      why the order matters and why R2 urls are left alone). */
   function resetImages() {
-    setImages([]);
     revokeBlobPreviews(previewsRef.current);
-    setPreviews([]);
+    setShots([]);
   }
 
   return {
     images,
     previews,
+    urls,
+    pending,
     facts,
     uploading,
     uploadProgress,
