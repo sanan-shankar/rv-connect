@@ -2,8 +2,8 @@
 /* ------------------------------------------------------------------ *
  *  Step two of the suggestion pass: put a session's answers back.
  *
- *  Reads `.tagging/manifest.json` (what `tag-photos-pick.mjs` exported)
- *  and `.tagging/verdicts.json` (what the session wrote), and writes the
+ *  Reads `scripts/dev/.tagging/manifest.json` (what `tag-photos-pick.mjs` exported)
+ *  and `scripts/dev/.tagging/verdicts.json` (what the session wrote), and writes the
  *  buckets and decades onto the rows. NOT captions -- see below.
  *
  *  THIS IS THE HALF THAT CAN DAMAGE A REAL ARCHIVE, so it is built to be
@@ -25,11 +25,11 @@
  *    - The rows are re-read at apply time, not trusted from the
  *      manifest, because a contributor may have filed one of them in the
  *      hours since the batch was picked.
- *    - Every write leaves `.tagging/applied-<time>.json`, holding the old
+ *    - Every write leaves `scripts/dev/.tagging/applied-<time>.json`, holding the old
  *      value of every column it touched. `--undo <file>` puts them back.
  *
  *  Run: node scripts/dev/tag-photos-apply.mjs [--apply] [--env .env.demo]
- *       node scripts/dev/tag-photos-apply.mjs --undo .tagging/applied-….json --apply
+ *       node scripts/dev/tag-photos-apply.mjs --undo scripts/dev/.tagging/applied-….json --apply
  * ------------------------------------------------------------------ */
 
 import { readFile, writeFile } from "node:fs/promises";
@@ -48,7 +48,7 @@ const value = (name, fallback) => {
 const APPLY = flag("--apply");
 const UNDO = value("--undo", null);
 const envFile = value("--env", ".env");
-const OUT = path.join(process.cwd(), ".tagging");
+const OUT = path.join(process.cwd(), "scripts", "dev", ".tagging");
 
 const env = readEnv([envFile]);
 const url = env.DIRECT_URL || env.DATABASE_URL;
@@ -132,7 +132,7 @@ try {
   raw = await readJson(path.join(OUT, "verdicts.json"));
 } catch {
   console.error(
-    `No .tagging/verdicts.json. That is the file the tagging session writes;` +
+    `No scripts/dev/.tagging/verdicts.json. That is the file the tagging session writes;` +
       `\nsee .claude/skills/tag-photos/SKILL.md.`
   );
   process.exit(1);

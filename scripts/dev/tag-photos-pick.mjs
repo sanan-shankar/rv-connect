@@ -10,14 +10,14 @@
  *  to a Claude Code session on his own subscription, which can simply
  *  READ the photographs. That is what this puts on disk.
  *
- *  It writes a working folder, `.tagging/`, holding one small JPEG per
+ *  It writes a working folder, `scripts/dev/.tagging/`, holding one small JPEG per
  *  photograph and a manifest saying what each one is and what the
  *  contributor already typed. The session reads them, writes
- *  `.tagging/verdicts.json`, and `tag-photos-apply.mjs` puts the answers
+ *  `scripts/dev/.tagging/verdicts.json`, and `tag-photos-apply.mjs` puts the answers
  *  back. `.claude/skills/tag-photos/SKILL.md` is the whole procedure.
  *
  *  READ-ONLY against the database. It writes nothing anywhere but
- *  `.tagging/`, which is gitignored -- it holds copies of real members'
+ *  `scripts/dev/.tagging/`, which is gitignored -- it holds copies of real members'
  *  photographs and must never enter git, for the same reason `.backups/`
  *  must not.
  *
@@ -50,7 +50,7 @@ const DEFAULT_LIMIT = 60;
 const LIMIT = Number(value("--limit", DEFAULT_LIMIT));
 const ALL = flag("--all");
 const envFile = value("--env", ".env");
-const OUT = path.join(process.cwd(), ".tagging");
+const OUT = path.join(process.cwd(), "scripts", "dev", ".tagging");
 
 const env = readEnv([envFile]);
 const url = env.DIRECT_URL || env.DATABASE_URL;
@@ -182,11 +182,11 @@ await writeFile(
   ) + "\n"
 );
 
-console.log(`\nwrote ${photos.length} to .tagging/photos/, failed ${failures.length}`);
+console.log(`\nwrote ${photos.length} to scripts/dev/.tagging/photos/, failed ${failures.length}`);
 for (const [id, why] of failures) console.log(`  ${why}  ${id}`);
 console.log(
-  `\nNext: a session reads .tagging/manifest.json and the photographs beside it, writes` +
-    `\n.tagging/verdicts.json, then \`node scripts/dev/tag-photos-apply.mjs\` (dry by default).` +
+  `\nNext: a session reads scripts/dev/.tagging/manifest.json and the photographs beside it, writes` +
+    `\nscripts/dev/.tagging/verdicts.json, then \`node scripts/dev/tag-photos-apply.mjs\` (dry by default).` +
     `\nThe procedure is .claude/skills/tag-photos/SKILL.md.`
 );
 await client.end();

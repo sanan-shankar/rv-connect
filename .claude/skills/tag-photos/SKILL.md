@@ -8,9 +8,15 @@ description: Fill in the Valley Collection's buckets and decades for photographs
 You are going to look at photographs from a real school's archive and say what
 each one is. Three steps, and the middle one is the only one that needs you.
 
+This is one of the **hand-run passes**. `docs/spec/hand-run-passes.md` is the shape
+they all share -- what a picker and an applier guarantee, where the working
+folder goes, and the rules that hold across every pass. Read it if you are
+changing this one or building a third. What follows is only what is particular
+to photographs.
+
 ```bash
-node scripts/dev/tag-photos-pick.mjs            # export a batch to .tagging/
-#  ...you read them and write .tagging/verdicts.json...
+node scripts/dev/tag-photos-pick.mjs            # export a batch to scripts/dev/.tagging/
+#  ...you read them and write scripts/dev/.tagging/verdicts.json...
 node scripts/dev/tag-photos-apply.mjs           # dry run: shows every change
 node scripts/dev/tag-photos-apply.mjs --apply   # writes
 ```
@@ -35,10 +41,10 @@ Code. It can access all the photos and that should be more than enough."*
 node scripts/dev/tag-photos-pick.mjs [--limit 60] [--all] [--env .env.demo]
 ```
 
-Read-only against the database. It writes `.tagging/`:
+Read-only against the database. It writes `scripts/dev/.tagging/`:
 
-- `.tagging/photos/001-<id>.jpg` … one 640px JPEG per photograph
-- `.tagging/manifest.json` … the id, the file, who uploaded it, and **what the
+- `scripts/dev/.tagging/photos/001-<id>.jpg` … one 640px JPEG per photograph
+- `scripts/dev/.tagging/manifest.json` … the id, the file, who uploaded it, and **what the
   contributor already typed**
 
 Default is every photograph with **no bucket**, newest first, sixty at a time.
@@ -49,7 +55,7 @@ are outstanding in total.
 
 ## Step 2 — look at them
 
-Read `.tagging/manifest.json` first, then read the photographs. **Actually open
+Read `scripts/dev/.tagging/manifest.json` first, then read the photographs. **Actually open
 each image.** The whole point of doing this in a session rather than through an
 API is that you can see them.
 
@@ -57,7 +63,7 @@ Read `said` on each manifest entry before you decide. A contributor who wrote
 "Founders' Week, 1974" has told you something you cannot see, and it usually
 settles the bucket and the decade both.
 
-Write `.tagging/verdicts.json`:
+Write `scripts/dev/.tagging/verdicts.json`:
 
 ```json
 {
@@ -142,14 +148,14 @@ What the applier guarantees, so you do not have to:
   since the batch was picked keeps what its contributor chose.
 - **It refuses a seventh bucket**, an unknown decade, an id outside the batch,
   and the same photograph answered twice.
-- **Every write leaves an undo.** `.tagging/applied-<time>.json` holds the old
+- **Every write leaves an undo.** `scripts/dev/.tagging/applied-<time>.json` holds the old
   value of every column touched; `--undo <file> --apply` puts them back.
 
 ## The traps
 
 - **One database serves production and local dev.** A `--apply` here changes
   what members see. That is what the dry run is for, and it is not optional.
-- **`.tagging/` holds copies of real members' photographs.** It is gitignored
+- **`scripts/dev/.tagging/` holds copies of real members' photographs.** It is gitignored
   and must stay that way. Never commit it, and never move anything out of it.
 - **The manifest names its own database.** Both scripts refuse to apply a batch
   picked from a different one, because the ids belong to one database and

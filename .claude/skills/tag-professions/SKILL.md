@@ -7,6 +7,12 @@ description: Work out what field each member is in, from their job title and wor
 
 Three steps, and the middle one is the only one that needs you.
 
+This is one of the **hand-run passes**. `docs/spec/hand-run-passes.md` is the shape
+they all share -- what a picker and an applier guarantee, where the working
+folder goes, and the rules that hold across every pass. Read it if you are
+changing this one or building a third. What follows is only what is particular
+to professions.
+
 ```bash
 node scripts/dev/tag-professions-pick.mjs --all      # export the pairs to scripts/dev/.professions/
 #  ...you read them and write scripts/dev/.professions/verdicts.json...
