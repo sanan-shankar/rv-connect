@@ -6179,3 +6179,20 @@ tops on the same line, plus one pixel on the cluster because a Libre Baskerville
 starts a pixel below its own line box at 30px/leading-none (measured off rendered pixels, not
 metrics). The title does not move -- h1 box top 40 before and after -- the pills come down to it.
 Measured: ink top 41, pill top 41.
+
+## 2026-08-28 — the install scripts are on a list now
+
+`npm warn allow-scripts: 7 packages have install scripts not yet covered by allowScripts` turned
+up in a Vercel build log. Harmless today -- npm 11 warns and still runs them, and the schema-engine
+binary sitting in `node_modules/@prisma/engines` proves it -- but npm 12 flips the default to deny,
+and the day that lands the build loses `prisma generate` and Sentry's source-map upload without
+saying why. So the list is written down while it is a warning and not a failure:
+`@prisma/engines`, `prisma`, `@sentry/cli`, `unrs-resolver` and `fsevents` approved because a
+build or a lint needs what their scripts fetch; `puppeteer`, `core-js` and `msw` denied because
+nothing here does (puppeteer's own Chrome has never worked on this machine -- `skipDownload` was
+already set beside it). Runtime was never at risk either way: the `prisma-client` generator plus
+the `pg` adapter means no query engine ships to Vercel.
+
+The point of the block is not the silence. Approvals are pinned to a version, so a Prisma bump
+re-raises the question, and any new dependency that wants to run code at install time now has to
+be answered for rather than noticed.
