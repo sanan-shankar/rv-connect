@@ -5,7 +5,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { recordLoginAttempt } from "@/lib/login-attempt";
 import { hasBudget, consume, ipFromRequest } from "@/lib/rate-limit";
-import { verifyTurnstile, devBypassAllowed } from "@/lib/turnstile";
+import { verifyTurnstile, devBypassAllowed, hostFromRequest } from "@/lib/turnstile";
 import { humanPassValid, humanPassFromCookieHeader } from "@/lib/human-pass-rule";
 import { appSecret } from "@/lib/app-secret";
 import { writeAudit } from "@/lib/audit";
@@ -116,7 +116,11 @@ const nextAuth = NextAuth({
               appSecret(),
             ) ||
             devBypassAllowed(credentials?.devBypass as string | undefined) ||
-            (await verifyTurnstile(credentials?.turnstileToken as string | undefined, ip));
+            (await verifyTurnstile(
+              credentials?.turnstileToken as string | undefined,
+              ip,
+              hostFromRequest(request),
+            ));
           if (!human) {
             recordLoginAttempt({ email, ok: false, reason: "bot-check" });
             throw new BotCheckFailed();

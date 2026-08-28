@@ -197,6 +197,31 @@ Pre-Clearance, which would stop re-challenging someone who has already passed, n
 proxied through Cloudflare. `rishivalley.space` answers `server: Vercel` with no `cf-ray`, so it is
 DNS-only and Pre-Clearance is not available to us.
 
+### The hostname list, and why a token is bound to its host (2026-08-28)
+
+The widget's Cloudflare hostname list now contains **`vercel.app`** as well as `rishivalley.space`.
+
+The reason is the owner's habit of opening past deployments to see how the site used to look. Every
+one of them lives at its own `rv-connect-<hash>-….vercel.app` URL, generated per deployment and
+unknowable in advance, so none were on the list; Turnstile answered 110200 ("domain not allowed"),
+and because the widget is `interaction-only` there was no visible box to hint at it — just "We
+couldn't confirm you're human", with no way through and nothing in the console, since the
+error-callback discarded Cloudflare's code. It does not any more. Note also that **an env var
+cannot fix this retroactively**: Vercel bakes env vars into a deployment at build time, so the
+Cloudflare hostname list is the only lever that reaches builds that already exist.
+
+Turnstile matches subdomains, so `vercel.app` covers every past and future deployment — and hands
+our (public, it ships in the HTML) site key to every other site on that domain. The narrowing that
+pays for it is `src/lib/turnstile-origin-rule.ts`: siteverify reports the hostname a token was
+solved on, and a token is only accepted by a request that arrived on that same host. Tokens farmed
+on someone else's `*.vercel.app` page are then worth nothing at `rishivalley.space`.
+
+Deliberately not an allow-list of hostnames — one here would have to contain everything Cloudflare's
+list contains, and so would buy nothing. Unknown host on either side is a PASS, the same fail-open
+posture as unreachable-Cloudflare: the Host header is not ours to control and a silent sign-in
+lockout would be the worse failure. The refusal logs at `console.error`, so if that reasoning is
+ever wrong it appears in Sentry instead of quietly locking members out.
+
 ## Traps that have already cost time
 
 1. A local production server needs `AUTH_TRUST_HOST=1` or every auth route 500s and refusal tests

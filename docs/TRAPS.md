@@ -165,6 +165,15 @@ thing presigning exists to avoid. It was in exactly that state until 2026-08-21.
 
 ## Layout
 
+**A Turnstile site key only works on the hostnames listed in Cloudflare, and a Vercel deployment
+URL is not one of them.** Every deployment gets its own `rv-connect-<hash>.vercel.app` address, so
+opening an old one to see how the site used to look gives "We couldn't confirm you're human" with
+no checkbox to click — `interaction-only` means the widget is invisible when it fails exactly as
+when it passes. Cloudflare is saying 110200, "domain not allowed". **An env var will not fix it:
+Vercel bakes env vars in at build time, so nothing you change in code or config reaches a
+deployment that already exists.** The Cloudflare hostname list is the only lever that applies
+retroactively; `vercel.app` is on it now, and `turnstile-origin-rule.ts` is what keeps that safe.
+
 **`overflow-hidden` on a wrapper that is usually empty costs you a `space-y` gap.** Hidden overflow
 makes the element a block formatting context, and a BFC stops margins collapsing THROUGH it. The
 Turnstile holder is 0px tall for everyone Cloudflare waves past, so rounding its corners with

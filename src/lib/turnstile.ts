@@ -1,5 +1,7 @@
+import { headers } from "next/headers";
 import { timingSafeEqualStrings } from "./timing-safe";
 import { IS_DEMO } from "./demo";
+import { normaliseHost, sameOrigin } from "./turnstile-origin-rule";
 
 /* ------------------------------------------------------------------ *
  *  Cloudflare Turnstile, verified SERVER-SIDE (audit H22 — Phase 4).
@@ -75,6 +77,13 @@ function turnstileSecret(): string | null {
 }
 
 
+/** The host from a Request the framework hands us — the NextAuth authorize
+ *  path, which runs before `next/headers` has a request scope. Mirrors
+ *  `ipFromRequest` in rate-limit.ts, for the same reason. */
+export function hostFromRequest(req: Request): string | null {
+  return normaliseHost(req.headers.get("host"));
+}
+
 /**
  * The server-side verdict on a widget token. Fail-open ONLY when Turnstile
  * is unconfigured or Cloudflare itself is unreachable: a bot check that
@@ -82,10 +91,17 @@ function turnstileSecret(): string | null {
  * worse bug than the bots (same posture as rate-limit.ts, and it means
  * the demo project, which has no keys, is never locked out). A token that
  * is missing, spent or forged is a plain NO in every environment.
+ *
+ * `host` is the host the request arrived on, checked against the host the
+ * token was solved on (turnstile-origin-rule.ts). It is REQUIRED rather than
+ * optional-with-a-default because an omitted argument would silently drop
+ * that check — the exact shape of the bugs this file's own history is made
+ * of. Pass null where there is genuinely nothing to read.
  */
 export async function verifyTurnstile(
   token: string | null | undefined,
-  ip?: string,
+  ip: string | undefined,
+  host: string | null,
 ): Promise<boolean> {
   /* Defence in depth, same posture as rate-limit.ts: every route that could
      reach this is already closed on the demo by DEMO_CLOSED_PATHS, but the
@@ -118,8 +134,37 @@ export async function verifyTurnstile(
       // Sign-in must not hang on Cloudflare; past this, fail open (below).
       signal: AbortSignal.timeout(5000),
     });
-    const data = (await res.json()) as { success?: boolean };
-    return data.success === true;
+    const data = (await res.json()) as {
+      success?: boolean;
+      hostname?: string;
+      "error-codes"?: string[];
+    };
+    if (data.success !== true) {
+      // Cloudflare says WHY, and until now we threw it away — which is how a
+      // widened-hostname problem read as "we couldn't confirm you're human"
+      // with nothing else to go on, on both sides of the wire (2026-08-28).
+      const why = data["error-codes"]?.join(",");
+      if (why) console.warn(`[turnstile] siteverify refused a token: ${why}`);
+      return false;
+    }
+    /* Only the REAL key pair needs an origin check. The pinned test secret
+       accepts tokens minted anywhere and reports a hostname of Cloudflare's
+       choosing, so applying this to it would fail local sign-in, the e2e
+       suite and the visual suite for a key that protects nothing. */
+    if (secret !== TEST_SECRET_KEY && !sameOrigin(data.hostname ?? null, host)) {
+      // error, not warn: this is a refusal at the auth door, so it belongs
+      // in Sentry. It should be silent forever on rishivalley.space — the
+      // page host and the Host header are the same there — which is exactly
+      // why a burst of it is the signal that either someone is replaying
+      // farmed tokens, or this check is wrong and members are being locked
+      // out. A silent lockout is the failure mode worth spending a log line
+      // to avoid.
+      console.error(
+        `[turnstile] token was solved on ${data.hostname} but the request arrived on ${host}; refusing`,
+      );
+      return false;
+    }
+    return true;
   } catch (err) {
     console.error("[turnstile] siteverify unreachable; failing open", err);
     return true;
@@ -149,8 +194,10 @@ export function devBypassAllowed(candidate: string | null | undefined): boolean 
  * header) and its failure is a throw, not a return.
  */
 export async function verifyHumanFromForm(formData: FormData, ip: string): Promise<boolean> {
-  return (
-    devBypassAllowed(formData.get("devBypass") as string | null) ||
-    (await verifyTurnstile(formData.get("turnstileToken") as string | null, ip))
-  );
+  if (devBypassAllowed(formData.get("devBypass") as string | null)) return true;
+  // Read here rather than at the two call sites: a server action has a request
+  // scope, so the host is free, and asking for it once means neither door can
+  // forget to pass it and quietly lose the origin check.
+  const host = normaliseHost((await headers()).get("host"));
+  return verifyTurnstile(formData.get("turnstileToken") as string | null, ip, host);
 }
