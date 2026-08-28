@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ImagePlus, X, BarChart3, Feather, Plus, MapPin, Loader2, Check, Images } from "lucide-react";
+import { ImagePlus, X, BarChart3, Feather, Plus, MapPin, Check, Images } from "lucide-react";
 import { m, AnimatePresence } from "motion/react";
 import { buttonVariants } from "@/components/ui/button";
 import { toast } from "sonner";
