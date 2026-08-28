@@ -49,10 +49,9 @@
  *  cream -- "I don't like the yellowing when it's not selecting."
  * ------------------------------------------------------------------ */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { m, AnimatePresence } from "motion/react";
-import { X } from "lucide-react";
 import { Images } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -69,7 +68,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PhotoStream } from "@/components/common/photo-rows";
 import { FloatArea } from "@/components/common/float-field";
 import { EASE_OUT_SMOOTH, SPRINGS } from "@/components/common/motion";
 import { ContributedHoopoe } from "@/components/mascot/moments/contributed-hoopoe";
@@ -81,6 +79,7 @@ import { shrinkForUpload } from "@/lib/image-downscale";
 import { MAX_UPLOAD_BYTES, isImageFile } from "@/lib/upload-shared";
 import { valleyYear } from "@/lib/utils";
 import { BucketTiles } from "./bucket-tiles";
+import { ContributeStage } from "./contribute-stage";
 import { cn } from "@/lib/utils";
 
 const MONTHS = [
@@ -92,11 +91,6 @@ const MONTHS = [
  *  six connections per origin and the rest of the page still has to load its
  *  own thumbnails while this runs. */
 const LANES = 3;
-
-/** How many photographs stagger their entrance. Past this they all arrive
- *  together: a 40ms step across two hundred tiles is eight seconds of waiting
- *  for the last one, which is a queue again. */
-const STAGGER_CAP = 18;
 
 /** How long one file may spend climbing before the lane gives up on the
  *  direct path and lets the proxied one have it at Add time. Generous and
@@ -240,9 +234,14 @@ function measure(file: File): Promise<{ preview: string; width: number; height: 
  *  which reads as the space opening up for your pictures, not as a jump.
  *  Not animated: width is neither transform nor opacity.
  * ------------------------------------------------------------------ */
-/** How much glass the room needs, given how many photographs are on the wall.
- *  Three rungs and no more: an invitation, a photograph, a contact sheet. */
-const GLASS_WIDTH = (wall: number) => (wall === 0 ? 512 : wall === 1 ? 620 : wall <= 4 ? 900 : 1152);
+/** How much glass the room needs. TWO RUNGS NOW, where there were four.
+ *
+ *  The ladder used to climb with the number of photographs, because the wall
+ *  did: one picture wanted a column and a hundred wanted a contact sheet. The
+ *  carousel shows exactly one photograph whatever the count, beside exactly
+ *  one column of questions, so twelve photographs and two need the same glass
+ *  and there is nothing left for the middle rungs to describe. */
+const GLASS_WIDTH = (wall: number) => (wall === 0 ? 512 : 940);
 
 export function ContributeDialog({
   open,
@@ -299,12 +298,21 @@ export function ContributeDialog({
                the rest it looks so ruined". So the title goes to the
                screen readers only, and the sentence he asked for is the
                only thing set large. */
-            wall > 0 ? "px-5 pt-5 sm:px-6 sm:pt-6" : "sr-only"
+            /* TIGHTER. Between the title and the first picture sat the
+               header's 20px, the scroller's 16px and a 13px meta row with
+               12px under it -- about 55px of nothing, on the screen whose
+               whole problem is height. The owner: "there's a big gap between
+               the title and the first picture." The meta row is deleted
+               outright (see the stage) and these two are trimmed. */
+            wall > 0 ? "px-5 pt-4 sm:px-6 sm:pt-5" : "sr-only"
           )}
         >
           {/* pr-10 clears the close button, which sits inside the panel at
               the top right: at 390px the title ran straight into it. */}
-          <DialogTitle className="pr-10 font-heading text-[23px] leading-tight tracking-[-0.02em]">
+          {/* 20px on a phone: at 23px "Add to the valley's memory" wraps to two
+              lines inside 326px of Libre Baskerville, which is 30px of exactly
+              the height this pass exists to give back. */}
+          <DialogTitle className="pr-10 font-heading text-[20px] leading-tight tracking-[-0.02em] sm:text-[23px]">
             Add to the valley&rsquo;s memory
           </DialogTitle>
           {/* No description under the title. It said "Paste, drop or browse.
@@ -319,7 +327,7 @@ export function ContributeDialog({
             "min-h-0 flex-1 overflow-y-auto px-5 pb-5 sm:px-6 sm:pb-6",
             // With the title hidden, the close button has nothing above the
             // content to sit beside, so the room makes room for it itself.
-            wall > 0 ? "pt-4" : "pt-11 sm:pt-12"
+            wall > 0 ? "pt-3" : "pt-11 sm:pt-12"
           )}
         >
           <ContributeRoom
@@ -363,7 +371,9 @@ export function ContributeRoom({
   const router = useRouter();
   const emailGate = useEmailGate();
   const [photos, setPhotos] = useState<Staged[]>([]);
-  const [chosen, setChosen] = useState<Set<string>>(new Set());
+  /** Which photograph the questions are answering for: a POSITION in the
+   *  carousel, not a selection. Reported up from the stage's scroll offset. */
+  const [at, setAt] = useState(0);
   const [meta, setMeta] = useState<Record<string, Meta>>({});
   const [reading, setReading] = useState(0);
   const [adding, setAdding] = useState(false);
@@ -453,9 +463,6 @@ export function ContributeRoom({
         return;
       }
       setPhotos((prev) => [...prev, ...fresh]);
-      // Everything that lands is selected, so one caption and one bucket press
-      // files the whole drop.
-      setChosen((prev) => new Set([...prev, ...fresh.map((f) => f.id)]));
       setMeta((prev) => {
         const next = { ...prev };
         for (const f of fresh) next[f.id] = { ...EMPTY_META };
@@ -593,77 +600,49 @@ export function ContributeRoom({
 
   /* ---------------- what the questions are answering ---------------- */
 
-  const selected = useMemo(() => photos.filter((p) => chosen.has(p.id)), [photos, chosen]);
+  /** The photograph in view. Clamped rather than trusted: a removal shortens
+   *  the drop before the stage's scroll handler has said so. */
+  const viewing = photos.length ? photos[Math.min(at, photos.length - 1)] : undefined;
 
-  /** The value the questions show: what every selected photograph agrees on,
-   *  or nothing when they disagree. */
-  const shown: Meta = useMemo(() => {
-    if (!selected.length) return EMPTY_META;
-    const first = meta[selected[0].id] ?? EMPTY_META;
-    if (selected.length === 1) return first;
-    const agree = <K extends keyof Meta>(k: K): Meta[K] =>
-      selected.every((p) => JSON.stringify(meta[p.id]?.[k]) === JSON.stringify(first[k]))
-        ? first[k]
-        : EMPTY_META[k];
-    return {
-      caption: agree("caption"),
-      buckets: agree("buckets"),
-      year: agree("year"),
-      month: agree("month"),
-      decade: agree("decade"),
-    };
-  }, [selected, meta]);
+  /** The value the questions show. One photograph, so there is nothing to
+   *  reconcile -- the old room had to work out what a multi-selection agreed
+   *  on and draw the rest half-lit, and that whole apparatus went with it. */
+  const shown: Meta = (viewing && meta[viewing.id]) || EMPTY_META;
 
-  /** Buckets some of the selection carries and some does not. Half-lit, so a
-   *  press does not silently look like it did nothing. */
-  const mixedBuckets = useMemo(() => {
-    if (selected.length < 2) return [];
-    const some = new Set<string>();
-    for (const p of selected) for (const b of meta[p.id]?.buckets ?? []) some.add(b);
-    return [...some].filter((b) => !shown.buckets.includes(b));
-  }, [selected, meta, shown.buckets]);
-
-  /** Write one answer onto everything currently selected. */
+  /** Write an answer onto the photograph in view. */
   const answer = useCallback(
     (patch: Partial<Meta>) => {
-      setMeta((prev) => {
-        const next = { ...prev };
-        for (const p of selected) next[p.id] = { ...(next[p.id] ?? EMPTY_META), ...patch };
-        return next;
-      });
+      if (!viewing) return;
+      setMeta((prev) => ({
+        ...prev,
+        [viewing.id]: { ...(prev[viewing.id] ?? EMPTY_META), ...patch },
+      }));
     },
-    [selected]
+    [viewing]
   );
 
-  /* ---------------- selection ---------------- */
+  /** Copy the photograph in view's answers onto every photograph in the drop.
+   *
+   *  The one concession to the school photographer's hundred, and it is a
+   *  press he asks for rather than a default he has to undo. Select-all-by-
+   *  default was the old room's answer to the same problem and it was the
+   *  wrong shape: it promised that one set of tags fits a drop nobody had
+   *  looked through yet. */
+  const applyToAll = useCallback(() => {
+    if (!viewing) return;
+    setMeta((prev) => {
+      const one = prev[viewing.id] ?? EMPTY_META;
+      const next: Record<string, Meta> = {};
+      for (const p of photos) next[p.id] = { ...one };
+      return next;
+    });
+  }, [viewing, photos]);
 
-  const lastPressed = useRef<string | null>(null);
-  function press(id: string, e: React.MouseEvent) {
-    const ids = photos.map((p) => p.id);
-    if (e.shiftKey && lastPressed.current) {
-      const a = ids.indexOf(lastPressed.current);
-      const b = ids.indexOf(id);
-      if (a >= 0 && b >= 0) {
-        const run = ids.slice(Math.min(a, b), Math.max(a, b) + 1);
-        setChosen((prev) => new Set([...prev, ...run]));
-        return;
-      }
-    }
-    if (e.metaKey || e.ctrlKey) {
-      setChosen((prev) => {
-        const next = new Set(prev);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        return next;
-      });
-      lastPressed.current = id;
-      return;
-    }
-    // A plain press narrows to this one, which is how a set of hundreds gets
-    // one photograph its own caption without a mode to enter first.
-    setChosen(new Set([id]));
-    lastPressed.current = id;
-  }
+  /** Whether there is anything worth copying. The apply-to-all does not
+   *  appear over six blank answers, so it cannot be pressed before it means
+   *  anything. */
+  const answered =
+    shown.buckets.length > 0 || shown.caption.trim().length > 0 || shown.decade !== "";
 
   function remove(id: string) {
     const going = photos.find((p) => p.id === id);
@@ -672,11 +651,6 @@ export function ContributeRoom({
       live.current = live.current.filter((u) => u !== going.preview);
     }
     setPhotos((prev) => prev.filter((p) => p.id !== id));
-    setChosen((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
   }
 
   /* ---------------- filing them ---------------- */
@@ -766,18 +740,14 @@ export function ContributeRoom({
     live.current.forEach((u) => URL.revokeObjectURL(u));
     live.current = [];
     setPhotos([]);
-    setChosen(new Set());
     setMeta({});
+    setAt(0);
     setAdded(done);
     // So the Collection behind this room already holds them when it is opened.
     router.refresh();
   }
 
   /* ---------------- what to draw ---------------- */
-
-  const allSelected = selected.length === photos.length && photos.length > 0;
-  /** One photograph is a different room from a wall of them. See below. */
-  const single = photos.length === 1;
 
   if (added !== null) {
     return (
@@ -838,242 +808,123 @@ export function ContributeRoom({
           onChoose={() => fileInput.current?.click()}
         />
       ) : (
-        /* ONE PHOTOGRAPH IS NOT A SMALL WALL, and treating it as one is
-           what the owner saw: "right now this UI is made for uploading
-           multiple photos. so much white space. photo so small." Measured
-           before the fix, a single portrait dropped into this room was drawn
-           99x176 inside a 780px column, because the wall's row solver is
-           tuned for a hundred photographs at once.
+        /* ONE SHAPE, whatever the count -- which is the whole point of the
+           carousel. The room used to branch: a column for one photograph, a
+           wall with a panel beside it for several, and a glass ladder to fit
+           both. The stage shows one picture either way, so the layout is the
+           same two columns for one photograph as for a hundred, and the only
+           thing the count changes is whether the stage draws its arrows.
 
-           So the room has two shapes. With one photograph it is a column --
-           the picture at the top, big, and the questions under it, which is
-           the shape a composer has and the shape somebody sharing ONE thing
-           expects. With several it is the wall-and-panel it was, because
-           then the selection is the interaction and the panel has to stay
-           beside what it is answering for. The glass around it sizes to
-           match (see ContributeDialog). */
-        <div
-          className={cn(
-            "flex flex-col",
-            single ? "gap-5" : "gap-6 lg:flex-row lg:items-start lg:gap-8"
-          )}
-        >
-          {/* The wall. The same justified rows these photographs will live in
-              on /collection, so the first thing a contributor sees is their
-              own pictures already looking like the archive. */}
-          <div className="min-w-0 flex-1">
-            <div className="mb-3 flex items-center gap-3 text-[13px] text-muted-foreground">
-              {/* The count and the select-all are about a SET. With one
-                  photograph there is no set: it says "1 photograph" beside a
-                  button offering to select none of it. */}
-              {!single && (
-                <>
-                  <span className="tabular-nums">{photos.length} photographs</span>
-                  <span className="dotsep" aria-hidden>
-                    ·
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setChosen(allSelected ? new Set() : new Set(photos.map((p) => p.id)))
-                    }
-                    className="font-medium text-canopy underline-offset-2 transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
-                  >
-                    {allSelected ? "Select none" : "Select all"}
-                  </button>
-                  <span className="dotsep" aria-hidden>
-                    ·
-                  </span>
-                </>
-              )}
-              <button
-                type="button"
-                onClick={() => fileInput.current?.click()}
-                className="font-medium text-canopy underline-offset-2 transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
-              >
-                Add more
-              </button>
-              {reading > 0 && <span className="ml-auto">Reading {reading}...</span>}
-            </div>
-
-            {/* Tighter than the Collection's own grid, and smaller. This wall
-                is a working surface -- you are selecting on it and taking
-                things off it -- rather than a gallery, so it wants more
-                photographs per row and no single one running away with the
-                pop-up. At the archive's own target a 16:9 left alone on a row
-                grew to 416px and owned the whole panel. */}
-            <PhotoStream
-              photos={photos}
-              keyOf={(p) => p.id}
-              /* A fraction of the WALL, not of the viewport, so a phone gets
-                 two or three across at a size worth looking at and a laptop
-                 gets four. At 22% a phone packed five, each about 55px wide
-                 with a 28px remove button sitting on it.
-
-                 Three rungs, because the right size of a photograph on this
-                 wall depends entirely on how many are on it. One is a
-                 photograph you are looking at; a hundred are a contact sheet
-                 you are selecting on. */
-              targetHeight={
-                single ? "min(380px, 100%)" : photos.length <= 4 ? "min(250px, 46%)" : "min(150px, 34%)"
-              }
-              maxScale={single ? 1.9 : 1.6}
-            >
-              {(p, i, cell) => (
-                <m.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ ...SPRINGS.gentle, delay: Math.min(i, STAGGER_CAP) * 0.035 }}
-                  className="relative"
-                >
-                  <button
-                    type="button"
-                    onClick={(e) => press(p.id, e)}
-                    aria-pressed={chosen.has(p.id)}
-                    aria-label={p.file.name}
-                    className={cn(
-                      "block w-full overflow-hidden rounded-[var(--radius-md)] bg-mist",
-                      "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                      chosen.has(p.id)
-                        ? "ring-2 ring-canopy ring-offset-2 ring-offset-background"
-                        : "opacity-80"
-                    )}
-                    style={{ aspectRatio: cell.aspectRatio }}
-                  >
-                    <m.img
-                      src={p.preview}
-                      alt=""
-                      /* It develops. Half-faded while its bytes are still
-                         climbing, full once they have landed -- which is the
-                         true state of the thing and the right metaphor for a
-                         photograph archive. Opacity only. */
-                      animate={{ opacity: p.state === "here" ? 1 : 0.42 }}
-                      transition={{ duration: 0.55, ease: EASE_OUT_SMOOTH }}
-                      className="h-full w-full object-cover"
-                    />
-                    {p.state === "failed" && (
-                      <span className="absolute inset-x-2 bottom-2 rounded-full bg-destructive px-2 py-1 text-center text-[11px] font-semibold text-white">
-                        Would not upload
-                      </span>
-                    )}
-                  </button>
-                  {/* Always there, never on hover. It used to be
-                      `opacity-0 group-hover:opacity-100` on a wrapper with no
-                      `group` class on it, so it was invisible at every width
-                      and on every device -- the owner, looking at the room:
-                      "I should be able to remove a photo. now there's no way I
-                      have to add everything." A control for taking something
-                      back out has to be visible before you want it. */}
-                  <button
-                    type="button"
-                    onClick={() => remove(p.id)}
-                    aria-label={`Take ${p.file.name} back out`}
-                    className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-foreground/60 text-background backdrop-blur-sm transition-colors duration-150 hover:bg-destructive focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </m.div>
-              )}
-            </PhotoStream>
+           Stacked on a phone, side by side from `lg`. Side by side is what
+           keeps the pop-up short on a laptop: the questions are about 500px
+           of column, and putting them UNDER a 380px stage would be a dialog
+           you scroll to reach the button. */
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-8">
+          <div className="min-w-0 lg:flex-1">
+            <ContributeStage
+              /* The stage is told about pictures, not about files: it has no
+                 business knowing what an upload key is. */
+              photos={photos.map((p) => ({
+                id: p.id,
+                preview: p.preview,
+                name: p.file.name,
+                width: p.width,
+                height: p.height,
+                landed: p.state === "here",
+                failed: p.state === "failed",
+              }))}
+              at={at}
+              onAt={setAt}
+              onRemove={remove}
+            />
           </div>
 
-          {/* The asking. Beside the wall, not under it, and in plain words. */}
-          <aside
-            className={cn(
-              "w-full shrink-0",
-              !single && "lg:sticky lg:top-0 lg:w-[336px]"
-            )}
-          >
-            {/* No card around the questions. They used to sit on a paper panel
-                inside a Float-white pop-up, with paper bucket tiles on top of
-                it -- so the tiles, the one thing here that has to look
-                pressable, had nothing to stand against. On the white they
-                read. */}
-            <div>
-              {/* Which photographs the answers below will land on. Silent
-                  when there is only one: "All 1 photograph" is a sentence
-                  that exists to describe a choice nobody made. */}
-              {!single && (
-                <p className="mb-3 text-[13px] font-semibold text-foreground">
-                  {selected.length === 0
-                    ? "Nothing selected"
-                    : selected.length === photos.length
-                      ? `All ${photos.length} photographs`
-                      : `${selected.length} of ${photos.length} selected`}
-                </p>
-              )}
+          {/* The asking. In the owner's order (2026-08-28): what it is of
+              first, then when, then the description -- which is roughly the
+              order somebody knows those three things about an old
+              photograph, and it puts the one-tap question at the top where
+              the answer rate is highest. */}
+          <aside className="w-full lg:w-[360px] lg:shrink-0">
+            {/* 15px, not 13.5. These three headings are the questions
+                themselves, and the owner's read of the type across this
+                flow was that it had stopped respecting the reader: "we have
+                to make sure we don't use fonts that are too small on mobile,
+                because this is getting to become a bad accessibility
+                thing." */}
+            <p className="mb-2 text-[15px] font-semibold text-foreground">What is it of?</p>
+            <BucketTiles
+              value={shown.buckets}
+              onChange={(next) => answer({ buckets: next })}
+            />
 
-              {/* THE DESCRIPTION, and it is the one field left.
-                  Three things changed here on 2026-08-28, all the owner's:
+            <WhenAsked meta={shown} onAnswer={answer} />
 
-                  - The floating label, not a grey placeholder. "the grey
-                    text placeholder isn't good" -- and it is right, because
-                    a placeholder is the question and it leaves the moment
-                    you answer it, so a filled box no longer says what it
-                    holds. This is the signup's own material (FloatArea, the
-                    textarea sibling of the field the Revolut-inspired
-                    sign-in uses), which is the standard he asked this whole
-                    flow to be held to.
-                  - The (i), which is where "what, where, why" now lives.
-                    Where-in-the-valley used to be a second box; it is a
-                    sentence in the hint instead.
-                  - No fill. See the bucket tiles: cream on a white pop-up is
-                    the yellowing. The border draws the box. */}
-              <FloatArea
-                id="contribute-caption"
-                label="What is this photograph?"
-                rows={3}
-                maxLength={300}
-                value={shown.caption}
-                disabled={!selected.length}
-                onChange={(e) => answer({ caption: e.target.value.slice(0, 300) })}
-                hint={
-                  <>
-                    Anything you remember. <strong className="font-semibold">What</strong> is
-                    happening, <strong className="font-semibold">where</strong> in the valley it
-                    was, and <strong className="font-semibold">who</strong> is in it if you know.
-                    A line is plenty, and nothing is required.
-                  </>
-                }
-              />
+            {/* THE DESCRIPTION, and it is the one prose field left.
 
-              <p className="mb-2 mt-5 text-[13px] font-semibold text-foreground">
-                What is it of?
-              </p>
-              <BucketTiles
-                value={shown.buckets}
-                mixed={mixedBuckets}
-                onChange={(next) => answer({ buckets: next })}
-                className={cn(
-                  /* Two columns in the 336px panel beside a wall; three when
-                     the panel is the full width of the pop-up, under a single
-                     photograph, where two would draw six tiles 280px wide and
-                     82px tall and nothing in them would be near the middle. */
-                  single && "sm:grid-cols-3",
-                  !selected.length && "pointer-events-none opacity-50"
-                )}
-              />
+                The label was "What is this photograph?" and the owner cut it
+                back: "don't say what is this photograph, we can just say add
+                a description." A question mark on a form is a thing you owe
+                an answer to; a label is a box you may use.
 
-              <WhenAsked
-                meta={shown}
-                disabled={!selected.length}
-                onAnswer={answer}
-              />
+                The hint behind the (i) lost three things and kept one. Gone:
+                the bolding on what/where/who ("I don't want to bold this"),
+                "if you know", and "a line is plenty, and nothing is
+                required" -- two hedges apologising for a question that had
+                already been asked gently. Kept: the three prompts
+                themselves, because where-in-the-valley used to be a second
+                box and this sentence is now the only place it is asked for. */}
+            <FloatArea
+              id="contribute-caption"
+              label="Add a description"
+              /* Two rows, and it grows from there as you type. It was three,
+                 sitting open at its full height before a word was in it. */
+              rows={2}
+              maxLength={300}
+              containerClassName="mt-5"
+              value={shown.caption}
+              onChange={(e) => answer({ caption: e.target.value.slice(0, 300) })}
+              hint="Anything you remember. What is happening, where in the valley it was, and who is in it."
+            />
+
+            <ApplyToAll
+              count={photos.length}
+              ready={photos.length > 1 && answered}
+              onApply={applyToAll}
+            />
+
+            {/* ONE FOOTER ROW, and "Add more" lives in it now. It used to be
+                the third item in a meta line above the wall -- which is what
+                put a gap between the title and it, and the owner asked for
+                it to go somewhere else. Here it is the secondary half of the
+                one decision left to make about this drop, beside the
+                primary. */}
+            <div className="mt-4 flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="shrink-0 rounded-full"
+                onClick={() => fileInput.current?.click()}
+              >
+                Add more
+              </Button>
+              <Button
+                variant="primary"
+                className="min-w-0 flex-1 rounded-full"
+                disabled={adding}
+                onClick={fileAll}
+              >
+                {adding
+                  ? "Adding..."
+                  : `Add ${photos.length} ${photos.length === 1 ? "photograph" : "photographs"}`}
+              </Button>
             </div>
-
-            <Button
-              variant="primary"
-              className="mt-5 w-full rounded-full"
-              disabled={adding || !photos.length}
-              onClick={fileAll}
-            >
-              {adding
-                ? "Adding..."
-                : `Add ${photos.length} ${photos.length === 1 ? "photograph" : "photographs"}`}
-            </Button>
+            {reading > 0 && (
+              <p className="mt-2 text-center text-[14px] text-muted-foreground">
+                Reading {reading}...
+              </p>
+            )}
             {/* Same as the invitation: only the half that is news. */}
             {!autoApproved && (
-              <p className="mt-2 text-center text-[12px] leading-relaxed text-muted-foreground">
+              <p className="mt-2 text-center text-[13px] leading-relaxed text-muted-foreground">
                 An admin looks at new photographs before they appear.
               </p>
             )}
@@ -1081,6 +932,90 @@ export function ContributeRoom({
         </div>
       )}
     </>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ *  USE THESE ANSWERS FOR ALL OF THEM.
+ *
+ *  The carousel's one concession to somebody holding a hundred
+ *  photographs, and the shape of it is the argument. The room used to
+ *  select everything on arrival, so one caption and one bucket press
+ *  filed a whole drop -- fast, and quietly wrong, because it assumed a
+ *  drop is one subject. The owner: "when people upload photos they're
+ *  generally not going to upload all bird photos, so it's not like the
+ *  tags will carry on for each batch."
+ *
+ *  So the same power is here, but as something you reach for rather than
+ *  something you have to undo, and it is held to three rules:
+ *
+ *  - IT IS NOT THERE UNTIL IT CAN DO ANYTHING. One photograph has no
+ *    "all" to apply to, and blank answers have nothing to copy, so it
+ *    grows in only once the current photograph has been given a bucket,
+ *    a decade or a word.
+ *  - IT CONFIRMS IN PLACE. A toast for something you did to the panel
+ *    you are looking at is a notification about the room you are in.
+ *  - IT IS AN OUTLINE, NOT A FILL. The one filled pill in this column is
+ *    the one that ends the task.
+ * ------------------------------------------------------------------ */
+function ApplyToAll({
+  count,
+  ready,
+  onApply,
+}: {
+  count: number;
+  ready: boolean;
+  onApply: () => void;
+}) {
+  const [done, setDone] = useState(false);
+
+  /* The confirmation is temporary, and deliberately so: change an answer
+     after applying and the offer comes back, because it now means something
+     different from what was applied. */
+  useEffect(() => {
+    if (!done) return;
+    const t = setTimeout(() => setDone(false), 2400);
+    return () => clearTimeout(t);
+  }, [done]);
+
+  return (
+    <AnimatePresence initial={false}>
+      {ready && (
+        <m.div
+          key="all"
+          /* Height, for the same reason WhenAsked's finer row uses it: the
+             block genuinely takes up space it did not before, and sliding it
+             in would put it over the button underneath instead of making
+             room. One 40px block, animated on a press. */
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.24, ease: EASE_OUT_SMOOTH }}
+          className="overflow-hidden"
+        >
+          <div className="pt-4">
+            <m.button
+              type="button"
+              onClick={() => {
+                onApply();
+                setDone(true);
+              }}
+              whileTap={{ scale: 0.98 }}
+              transition={SPRINGS.snappy}
+              className={cn(
+                "w-full rounded-full border px-4 py-2.5 text-[14px] font-semibold",
+                "transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy",
+                done
+                  ? "border-canopy bg-canopy/[0.08] text-canopy"
+                  : "state-layer border-border text-canopy"
+              )}
+            >
+              {done ? `Applied to all ${count}` : `Use these answers for all ${count}`}
+            </m.button>
+          </div>
+        </m.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -1126,18 +1061,19 @@ export function ContributeRoom({
  * ------------------------------------------------------------------ */
 function WhenAsked({
   meta,
-  disabled,
   onAnswer,
 }: {
   meta: Meta;
-  disabled: boolean;
   onAnswer: (patch: Partial<Meta>) => void;
 }) {
   const hasYear = yearGiven(meta.year);
   const dated = Boolean(meta.decade) && meta.decade !== "unknown";
+  /* No disabled state any more. There was one because the questions used to
+     answer for a SELECTION, which could be empty; the carousel always has a
+     photograph in view, so there is never a moment when these are dead. */
   return (
-    <div className={cn("mt-5", disabled && "pointer-events-none opacity-50")}>
-      <p className="mb-2 text-[13px] font-semibold text-foreground">When was it taken?</p>
+    <div className="mt-5">
+      <p className="mb-2 text-[15px] font-semibold text-foreground">When was it taken?</p>
 
       <div className="flex flex-wrap gap-1.5">
         {DECADE_PILLS.map((e) => {
@@ -1160,7 +1096,10 @@ function WhenAsked({
                 )
               }
               className={cn(
-                "rounded-full border px-3 py-1.5 text-[13px] font-medium tabular-nums",
+                /* 14px and a taller pill: ten of these are the fastest answer
+                   in the room, and they were set in the type the owner
+                   called out. */
+                "rounded-full border px-3 py-2 text-[14px] font-medium tabular-nums",
                 "transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 on
                   ? "border-canopy bg-canopy text-white"
@@ -1186,7 +1125,7 @@ function WhenAsked({
             )
           }
           className={cn(
-            "rounded-full border px-3 py-1.5 text-[13px] font-medium",
+            "rounded-full border px-3 py-2 text-[14px] font-medium",
             "transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
             meta.decade === "unknown"
               ? "border-canopy bg-canopy text-white"
@@ -1223,7 +1162,7 @@ function WhenAsked({
           <div className="mt-2.5 flex items-center gap-2">
             <label
               htmlFor="contribute-year"
-              className="shrink-0 text-[13px] text-muted-foreground"
+              className="shrink-0 text-[14px] text-muted-foreground"
             >
               Exact year?
             </label>
