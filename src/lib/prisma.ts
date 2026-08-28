@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { PrismaClient, Prisma } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { IS_DEMO, DemoWriteError, demoWriteAllowed } from "./demo";
@@ -117,8 +119,34 @@ function createPrismaClient() {
 // on any schema change at all. Both halves are kept: if a future client stops
 // emitting the enums, the filter yields nothing and this degrades to exactly
 // the model-name behaviour it replaced, rather than to a constant.
+/* The third thing that can change, and the one neither half below can see: a
+ * field's own ATTRIBUTES. `takenKey` went from `@default(0)` to
+ * `@default(dbgenerated())` on 2026-08-28 -- same models, same column names,
+ * so the key did not move and the running server kept a client that wrote the
+ * column into every INSERT, which Postgres refuses for a generated column.
+ * Every contribution to the Collection failed, from code that typechecked.
+ *
+ * The generated client exposes no `dmmf` at runtime, so there is no object to
+ * fold in. The schema FILE is the only thing that reflects an attribute, so in
+ * development this reads it. Never in production: there is no hot reload there,
+ * the file may not even be deployed, and a data layer that can fail to start
+ * because of a missing file is a worse bug than the one this prevents. Any
+ * error at all yields "", which degrades to exactly the behaviour above.
+ */
+function schemaFingerprint(): string {
+  if (process.env.NODE_ENV === "production") return "";
+  try {
+    return createHash("sha1")
+      .update(readFileSync(`${process.cwd()}/prisma/schema.prisma`))
+      .digest("hex");
+  } catch {
+    return "";
+  }
+}
+
 const globalForPrismaKey = globalThis as unknown as { prismaKey: string | undefined };
 const clientKey = [
+  schemaFingerprint(),
   Object.keys(Prisma.ModelName).sort().join(","),
   Object.entries(Prisma as unknown as Record<string, unknown>)
     .filter(

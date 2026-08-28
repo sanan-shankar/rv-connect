@@ -64,10 +64,31 @@ const LIMITS = {
   /** Per user. Commenting runs hotter than posting — a lively thread is
    *  the product working — so triple the allowance. */
   comments: { tokens: 30, window: "10 m" },
-  /** Per user, across all three upload routes and both Collection
-   *  contribution paths. Caps what one account can push into R2 in an
-   *  hour until M17's real per-account quota lands in Phase 5. */
+  /** Per user, across all three upload routes. Caps what one account can push
+   *  into R2 in an hour. Post images have no per-account ceiling of their own,
+   *  so this meter is the only thing bounding them and it stays where it is. */
   uploads: { tokens: 40, window: "1 h" },
+  /** Per user, for Collection contributions only, and much larger for a
+   *  reason rather than out of impatience.
+   *
+   *  Forty an hour was written for a dialog that took one photograph at a
+   *  time, and each contribution spends two of it: one at the presigned door,
+   *  one at the action that makes the row. Twenty photographs an hour. The
+   *  case this whole campaign exists to serve is the school photographer, of
+   *  whom the owner said "I can't ask him to do it one by one" and whose drop
+   *  is a hundred photographs -- so the old meter did not slow that down, it
+   *  made it impossible.
+   *
+   *  Raising it does NOT raise what an abusive account can cost us, and that
+   *  is the whole argument. The Collection has a real per-account ceiling
+   *  (MAX_PHOTOS_PER_ACCOUNT, checked on every contribution, audit M17), so
+   *  the total is already bounded at a thousand photographs however fast they
+   *  arrive; this meter only decides how long reaching that ceiling takes. The
+   *  comment on `uploads` used to say it was standing in "until M17's real
+   *  per-account quota lands", and that quota landed. Two hundred photographs
+   *  an hour is a long sitting for a real contributor and still five hours to
+   *  the ceiling for anybody else. */
+  collectionUploads: { tokens: 400, window: "1 h" },
   /** Per user. Reporting is for summoning a human, and ten summonses a
    *  day is already a campaign; Phase 7 adds the per-pair dedupe. */
   reports: { tokens: 10, window: "24 h" },

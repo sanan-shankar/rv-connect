@@ -154,9 +154,11 @@ export async function contributePhoto(formData: FormData) {
   const gate = await requireVerifiedMember();
   if (!gate.ok) return { error: gate.error };
 
-  // Shares the uploads meter with the /api/upload routes: however the bytes
-  // travel, one account gets one hourly allowance (audit M2).
-  const limited = await rateLimit("uploads", session.user.id);
+  // The Collection's own meter, shared with the presigned door: however the
+  // bytes travel, one account gets one hourly allowance (audit M2). Separate
+  // from `uploads` because a contribution is bounded by a per-account ceiling
+  // and a post image is not -- see rate-limit.ts.
+  const limited = await rateLimit("collectionUploads", session.user.id);
   if (!limited.ok) return { error: limited.error };
 
   const quota = await photoQuotaError(session.user.id);
@@ -346,7 +348,7 @@ export async function contributePhotoDirect(input: {
 
   // Same meter as contributePhoto: the bytes came up through presign, but
   // the row it creates is the same kind of thing (audit M2).
-  const limited = await rateLimit("uploads", session.user.id);
+  const limited = await rateLimit("collectionUploads", session.user.id);
   if (!limited.ok) return refuse(limited.error);
 
   const quota = await photoQuotaError(session.user.id);

@@ -210,8 +210,17 @@ test("C-073: every path that re-encodes counts the frames and says the same sent
   // ...and both surfaces show what comes back.
   const composer = readFileSync(new URL("../components/posts/use-composer-uploads.ts", import.meta.url), "utf8");
   assert.equal([...composer.matchAll(/toast\.info\(notice\)/g)].length, 2, "the direct path drops the notice");
-  const dialog = readFileSync(new URL("../components/collection/contribute-dialog.tsx", import.meta.url), "utf8");
-  assert.match(dialog, /result\.notice/);
+  /* The contribute dialog became the contribute room on 2026-08-28 (spec
+     sec. 8.2), and the room files a BATCH -- so it collects the notices and
+     says them once at the end rather than once per file. Both paths through
+     it have to keep the notice. */
+  const room = readFileSync(new URL("../components/collection/contribute-room.tsx", import.meta.url), "utf8");
+  assert.equal(
+    [...room.matchAll(/notices\.current\.add\(res\.notice\)/g)].length,
+    2,
+    "a contribute path drops the notice"
+  );
+  assert.match(room, /toast\.info\(/);
 });
 
 test("C-073: the sentence names the file when there is one to name", () => {

@@ -251,7 +251,7 @@ export const postSchema = z
     path: ["content"],
   });
 
-// The Collection contribute form (contribute-dialog.tsx) simplified to three
+// The Collection contribute room (contribute-room.tsx) asks for four things:
 // facts: a caption, which part of school it's from (free text, no longer a
 // fixed picklist), and when. "When" is either an exact year (with an optional
 // month) or, when the contributor isn't sure, a decade fallback from ERA_VALUES

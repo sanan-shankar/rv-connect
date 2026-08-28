@@ -151,11 +151,33 @@ that rework.
         pagination, batched loading and `content-visibility` windowing. The Part-of-school
         dropdown is deleted, not restyled. `/lab/collection` is where to judge it: 240
         made-up photographs, because the database holds two. See D26 to D31 and F34 to F39.
-  - [ ] **Phase 6 — contributing. START HERE.** Spec §8, the most open section in the
-        campaign, and the owner has now asked for it twice in his own words (#57, and
-        2026-08-28: *"the contribute panel is still not nice at all... let's think of
-        something totally different and just dopamine inducing when you look at it"*).
-        Nothing is blocked.
+  - [x] **Phase 6 — the contribute pop-up**, session 5, 2026-08-28. Bulk drop, paste and
+        browse; the wall of justified rows the photographs develop into; the six bucket
+        tiles; batch questions against a selection; the hoopoe at the end. See D32 to D36
+        and F40 to F44. **Not all of §8**: three pieces are still owed and are the next
+        session's, below.
+  - [ ] **Phase 6, the rest. START HERE.** Three pieces of spec §8 and §9, each its own
+        thing and none of them visual:
+        - **§8.3, the suggestion pass.** The owner's own idea (#25) and he wants it. Send
+          each 480px thumbnail to the Claude API with anything already typed, get back a
+          closed classification against the six buckets plus a one-line caption and a
+          decade guess. Structured outputs so a seventh bucket cannot be invented, prompt
+          caching on the vocabulary prefix, the Batch API for a backfill. The estimate in
+          §8.3 (about $29 on Opus 5 for 20,000) is from published rates, not measured.
+        - **§9, the crop handle.** The uploader moves the crop. NOT optional: it is the
+          only thing that makes the automatic aim defensible at all, and it is X's own
+          replacement for the model they withdrew (prior-art.md).
+        - **§9, trusted contributors.** `User.photoTrusted` exists and is honoured; there
+          is still no UI to set it. An admin control on a member's profile, and select-all
+          on the approval queue.
+- [ ] **OWED BY THE OWNER: an R2 lifecycle rule on the staging prefix.** Bulk upload
+      stages every dropped file under `collection/<userId>/...` the moment it lands, before
+      anything is filed, which is what makes a drop of a hundred feel instant. A drop that
+      is abandoned leaves those objects behind, and nothing in this system can enumerate
+      the bucket to find them (that is deliberate, audit C-063). One lifecycle rule in the
+      Cloudflare dashboard -- delete objects under that prefix older than a few days --
+      closes it permanently. Cheap either way (a stray photograph is a fraction of a cent a
+      month), but it is unbounded without the rule.
 - [ ] **Close-out**: delete `/lab/crop`, `public/lab/crop/` and the registry row (its
       "several at once" mode now renders the SHIPPED components beside what each surface did
       before, so it is worth keeping until the owner has looked at phase 3);
@@ -366,6 +388,36 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   `subject`: one database serves production and local dev, so renaming it breaks every
   Collection query in production until the next deploy lands, and legibility does not buy
   an outage window. `bucketsOf()` maps on read; the migration maps the rows.
+
+- **D32. Contributing is a POP-UP, and that reverses spec §8.2.** The owner's, 2026-08-28,
+  after looking at it built both ways: *"i'm not sure I like the contribute being a separate
+  page. I feel like it should a pop up but can be prettier and we have to say the pste, drop
+  and browse thing."* §8.2's argument -- a modal is the wrong container for twenty minutes
+  with two hundred photographs -- is answered by making it a large one, most of the glass,
+  with its own scroll. `/collection/add` is deleted.
+- **D33. The photographs are the interface, and they DEVELOP.** Mine, and it is the whole
+  room. A dropped photograph appears immediately at full size in the justified rows it will
+  live in on /collection, half-faded, and comes up to full as its bytes land. It is the true
+  state of the thing and the right metaphor for an archive, it is opacity only, and it is
+  what makes the difference between watching a queue drain and watching your own pictures
+  arrive.
+- **D34. Everything that lands is selected.** Mine, and it is the load-bearing decision for
+  the case this campaign exists for. Drop a hundred, type one caption, press School life,
+  press Add: that is the five-minute job against "I can't ask him to do it one by one". A
+  plain press narrows to one photograph, so a single caption needs no mode to enter first.
+- **D35. Nothing is required.** No caption, no bucket, no date. A contribution refused for
+  want of a tag is a contribution that does not happen, and the owner has said plainly he
+  cannot expect people to fill anything in. §8.3's suggestion pass is what raises the fill
+  rate, not a required field.
+- **D36. Collection contributions get their own rate limit, at 400 an hour.** Mine, and it
+  is a security-adjacent change so the argument matters. Forty an hour was written for a
+  one-at-a-time dialog and a contribution spends two of it -- twenty photographs an hour,
+  so the photographer's hundred was not slowed, it was impossible. Raising it does NOT
+  raise what an abusive account can cost: `MAX_PHOTOS_PER_ACCOUNT` already bounds the total
+  at a thousand however fast they arrive, and this only decides how long reaching that
+  ceiling takes. The `uploads` meter for post images is untouched, because posts have no
+  such ceiling. The old comment on `uploads` said it stood in "until M17's real per-account
+  quota lands"; it landed.
 
 ## Findings from reading the code (2026-08-26, session 1)
 
@@ -751,6 +803,45 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   `_specimens.ts` and the eleven `public/lab/crop/shape-*.webp` files MOVE somewhere
   shared rather than going with it -- spec §12 has been asking for exactly this fixture set
   since the campaign opened, and it exists now.
+- **F40. A Prisma-side default on a Postgres GENERATED column breaks every INSERT.**
+  `takenKey` is `GENERATED ALWAYS ... STORED`, and it was declared `@default(0)` in
+  schema.prisma. Prisma applies a non-`dbgenerated` default CLIENT-side, which means it
+  writes the column into the INSERT, and Postgres refuses a non-DEFAULT value for a
+  generated column. Every contribution to the Collection failed, from code that typechecked
+  and whose reads were all fine. The owner found it before I did. `@default(dbgenerated())`
+  is how Prisma is told the database owns a column: read it, never write it.
+- **F41. The stale-client guard could not see it, and now can.** `src/lib/prisma.ts` hashes
+  model names and field names, which is why it caught a new column when it was added. A
+  field's ATTRIBUTES -- its default, its type -- appear in neither, so changing `@default(0)`
+  to `@default(dbgenerated())` left the key identical and the running server kept a client
+  that still wrote the column. The generated client exposes no `dmmf` at runtime, so there
+  is nothing to fold in; in DEVELOPMENT the key now includes a hash of `schema.prisma`
+  itself. Never in production: there is no hot reload there, the file may not be deployed,
+  and a data layer that fails to start over a missing file is worse than the bug.
+  **This is the third distinct form of CLAUDE.md gotcha 8.** If a Prisma error appears from
+  code that typechecks, suspect the cached client before the code.
+- **F42. `tsc --noEmit` reports a file clean that a cold run fails.** `tsconfig.json` has
+  `incremental: true`. A caller is only re-checked when its own dependencies change, so
+  `useAdminAct` -- whose `{ error?: string } | void` is a WEAK type TypeScript refuses from
+  any source sharing none of its properties -- had a real error at the content queue's
+  `declinePhoto` call that `npm run check` had been reporting clean for however long.
+  Twenty minutes went into believing my own change had caused it. **If a type error appears
+  and disappears between runs, delete `node_modules/.cache/tsconfig.tsbuildinfo` before
+  trusting either answer.**
+- **F43. Concurrent upload lanes claim in a ref, never in state.** Three lanes start in the
+  same tick; `setPhotos` has not committed by the time the second reads the wall, so all
+  three found the same photograph and uploaded it three times over. A `Set` written
+  synchronously is the only thing that is true immediately. The same tick trap also had a
+  second half: the pump's effect originally depended on `photos`, so every `setPhotos` the
+  pump ITSELF made re-ran the effect, whose cleanup cancelled the upload already in flight
+  -- the result was discarded and not one photograph ever finished. Read the wall through a
+  ref; depend only on how many there are.
+- **F44. A presigned PUT that neither answers nor fails stalls the whole wall.** From
+  localhost the PUT to R2 simply hangs, and with a fixed pool of lanes three stuck files
+  stop the other ninety-seven. `directUploadPut` takes an `AbortSignal` now and the room
+  gives each file a deadline proportional to its size (20s plus 20s per megabyte, capped),
+  after which it falls back to the proxied path exactly as a CORS-blocked PUT does. One
+  photograph in a composer can afford to wait; a wall cannot.
 - **F7. A concurrent session is editing this area.** `src/app/(main)/collection/page.tsx`
   changed on disk mid-session (server-side first-page fetch added, `firstPage` prop passed
   to `CollectionClient`). Per CLAUDE.md, work around other sessions' edits, never stash or
@@ -772,22 +863,22 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | 4 | Year should not be the primary organising axis | decided (his) |
 | 5 | Buckets floated: people, class photos, nature, birds, black-and-white (he notes it overlaps), "how things looked at a certain time" | **decided** — phase 5, the six in D31. His to overrule |
 | 6 | Do we need tags at all? He argues both sides and does not settle it | **answered** — no free tags; six buckets browse, everything in prose is searched |
-| 7 | An easy workflow for uploading *and* tagging | open |
-| 8 | A description box per image, but he cannot expect people to fill it | open |
-| 9 | 70–80% of images expected via bulk upload | context |
-| 10 | **Bulk upload must be supported** | open — F5, does not exist |
+| 7 | An easy workflow for uploading *and* tagging | **done** — phase 6. Drop, one caption, one bucket press, Add |
+| 8 | A description box per image, but he cannot expect people to fill it | **partly** — phase 6 asks once for a whole batch and requires nothing. §8.3 is what fills it |
+| 9 | 70–80% of images expected via bulk upload | context — and phase 6 is built for it |
+| 10 | **Bulk upload must be supported** | **done** — phase 6. Paste, drop or browse, any number at once |
 | 11 | Current filtering is "extremely trash" | **done** — phase 5, the whole row is deleted (D27) |
 | 12 | A year tag on photos is good | exists, keep |
-| 13 | "Part of school" wording: maybe rename to notes / location; caption and description overlap | open |
+| 13 | "Part of school" wording; caption and description overlap | **decided** — two fields, not three: the caption IS the description, and "Part of school" is **Where**, one optional line, searched not filtered. Put to him again 2026-08-28; see Open questions 5 |
 | 14 | "When" must be present; the year → month, or decade-if-unsure fallback is "pretty smart, actually" | **keep as is** |
 | 30 | "Part of school" is free text and will reach ~2,000 distinct values at 2,000 photos, making its dropdown unusable; fold it into the main search instead | **done** — phase 5, the dropdown is deleted and search reads it |
 | 31 | Keep newest / oldest / most loved | **done** — all three kept, "A wander" gone, "Through time" added (D30) |
 | 32 | The pill-plus-dropdown filter pattern is "not a 10 on 10"; do not reuse it just because it is used elsewhere; keep thinking creatively | **done** — phase 5. Not one pill or dropdown survives on this page except the order menu |
 | 29 | The search bar is too big and the controls eat a whole row; consider moving them up in line with the title | **done** — phase 5. Search is an icon on the title line; the controls are one line of words |
 | 23 | Study how big archives and photo libraries solve this (he names Imperial's archive); lift from prior art rather than reinventing | **answered** — `prior-art.md` |
-| 24 | The school photographer cannot be invited yet: cannot upload one by one, 100 photos would flood and get lost, cannot tag each one | the motivating use case |
-| 25 | LLM-assisted tagging from descriptions and images, as was done for directory professions | open — he proposed it, likes it |
-| 28 | Design for three audiences: an end user finding photos, a photographer wanting their work seen and sorted, and an uploader wanting it seamless | open — framing instruction |
+| 24 | The school photographer cannot be invited yet | **mostly** — phase 6 answers all three. The suggestion pass (§8.3) would remove the last of the typing |
+| 25 | LLM-assisted tagging from descriptions and images | open — spec §8.3, and the next session's |
+| 28 | Design for three audiences: end user, photographer, uploader | **done** — phase 5 serves the first, phase 6 the other two |
 
 ### Bugs and gaps found by the owner while talking
 
@@ -800,7 +891,7 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | 35 | Catch-up photos crop friends' faces out; "sometimes the catch up just shows a bunch of shoulders" | **fixed** — phase 2 for one photograph, phase 3 for the wall and the legacy multi-photo answer |
 | 55 | The white outline around a photo on its blurred bed. Fractional widths (a 2:3 photo is 466.67px in a 728px column) let the frame's own light background show as a hairline down the edge, invisible on paper and obvious over blur | **fixed** — dimensions round to whole pixels, and a photo on a bed carries no background or border of its own |
 | 56 | Search must still read the descriptions | **answered** — spec §7.2, yes |
-| 57 | "how do we make a really splendid ui for them to do so? isntead of a dialog maybe a more expansive thing... big bucket touch targets so they'll want to do it... just be fresh and creative and create something splendid" | open — spec §8.2, deliberately left OPEN |
+| 57 | "how do we make a really splendid ui for them to do so?... big bucket touch targets so they'll want to do it" | **done** — phase 6, and **his to judge**. A pop-up at his call (D32), not the room §8.2 sketched |
 | 58 | "should include an other bucket also" | open — spec §7.1, and it feeds the taxonomy back |
 | 59 | Specs and prompts written by AI for AI are too distilled and too constraining; make it a skill so he stops repeating it | **done** — `.claude/skills/writing-for-agents/SKILL.md`, wired into CLAUDE.md's skills table |
 | 60 | Catch-up photographs made the reader wait about a second each. "I can't have the user waiting for anything wtf how can we not have the photos ready for them to look at" | **fixed** — F19, they are back on the bucket's own urls. The lasting answer is spec §4 |
@@ -878,6 +969,17 @@ reading the brief** — the wording in the brief carries nuance this table does 
    looking at, interpolated across the swipe, so nothing is ever shrunk or bedded. Worth a
    look at the card breathing as it moves, because that is the part he has not seen.
 4. **The square case in F27**, which he already owns and nobody has resolved.
+5. **Where, and whether it earns its place** (#13). He asked again on 2026-08-28: *"I
+   thought we made a decision on the description+where in the valley being a bit redundant?
+   where did we land on that?"* Where we landed: **two fields, not three.** The caption IS
+   the description -- there is no second overlapping box, which was his own complaint -- and
+   "Part of school" became **Where**, one optional line, searched exactly as the caption is
+   and never offered as a dropdown (§7.2). So they are redundant in what they DO: search
+   cannot tell them apart. The only thing Where buys is that it ASKS a different question,
+   and a short field labelled with a place gets a place written in it where a caption gets
+   a sentence. That is a real difference and a small one. **His to call**: keep the second
+   line, or fold it into the caption and have one field. Folding it in is about ten minutes
+   and loses nothing search can see.
 5. **The LLM tagging pass** (#25) -- he wants it, and it is phase 6. The estimate in spec
    sec. 8.3 (about $29 on Opus 5 for 20,000) is from published rates, not measured; confirm
    on a hundred photographs before running twenty thousand.
@@ -1082,3 +1184,35 @@ session should do is D26 to D31 and F34 to F39 above.
   1 and 3 above are what to put in front of him.
 - **Next session: phase 6, contributing.** Read this file, then `brief.md` in full, then
   spec §8. He has asked for it twice. Nothing is blocked.
+
+### Session 5, second half — 2026-08-28 (Opus)
+
+**Phase 6's interface**, built after phase 5 landed, and shaped live by the owner three
+times while it was being built. Detail in `progress.md` under the same date; the decisions
+are D32 to D36 and the findings F40 to F44.
+
+- Built first as a room at `/collection/add`, then moved into a pop-up at his word (D32)
+  and the route deleted. `contribute-dialog.tsx` is gone; `contribute-room.tsx` holds both
+  the pop-up and the room inside it, and `bucket-tiles.tsx` is the six targets on their own
+  so the suggestion pass in §8.3 can reuse them.
+- `contributed-hoopoe.tsx` is the one appearance the flow gets, at the end, on the count.
+- **The three corrections he made while watching**, all shipped: the remove control was
+  invisible (F44's neighbour -- `group-hover` with no `group`), contributing was broken by a
+  Prisma error (F40), and it should be a pop-up rather than a page (D32).
+- **The write-path review was done in this session by hand.** `vetUploadRequest` grew a
+  `meter` parameter that DEFAULTS to the old value, so both other callers are unchanged.
+  The presign route now parses its body before the gate, and only that: no auth, no
+  database read and no signature happens before the gate still passes. The only new user
+  input reaching Prisma is `buckets`, through a Zod enum of exactly six values. `Photo`
+  remains absent from the demo's `ALLOWED_WRITE_MODELS` and both actions still refuse
+  `IS_DEMO` outright. The rate-limit change is argued in D36 and is the one thing here a
+  reviewer should look at twice.
+- Verified by adding one real photograph end to end against the live database and then
+  removing it through the same purge machinery `erasePhoto` uses; the archive is back to
+  its two rows and the two objects are on the purge queue.
+- `npm run check` green, 85/85. `npm run visual` 23/23, no baseline moved.
+- **What the owner has not seen:** the pop-up in its final shape, and the finish screen with
+  the hoopoe.
+- **Next session: the rest of phase 6** -- the suggestion pass, the crop handle, the
+  trusted-contributor control. All three are in the status board above. Read this file, then
+  `brief.md` in full, then spec §8.3 and §9.

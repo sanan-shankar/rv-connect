@@ -26,7 +26,7 @@ const SENDERS = [
   "src/components/onboarding/steps/photo-step.tsx",
   "src/components/catchups/answer/photo-attachments.tsx",
   "src/components/messages/message-composer.tsx",
-  "src/components/collection/contribute-dialog.tsx",
+  "src/components/collection/contribute-room.tsx",
   /* The composer sends through its uploads hook (feed-posts-02), which is
      where the fallback's downscale lives now. */
   "src/components/posts/use-composer-uploads.ts",

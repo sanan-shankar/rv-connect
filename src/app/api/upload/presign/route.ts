@@ -23,12 +23,12 @@ import { vetUploadRequest } from "@/lib/api-gate";
  */
 
 export async function POST(request: Request) {
-  // The most important of the three doors. What this route hands back is a
-  // signed URL that writes DIRECTLY into the bucket with no further pass
-  // through our code, so it is the last point at which we get a say.
-  const vet = await vetUploadRequest(request);
-  if (!vet.ok) return vet.response;
-
+  /* The body is read BEFORE the gate, and only because the gate needs to know
+     which hourly allowance to charge: a Collection contribution is metered
+     separately from a post image (rate-limit.ts). Nothing about the gate
+     itself moved -- no signature is minted, nothing is read from the database
+     and no bytes move until it has passed. Parsing a JSON body is what every
+     route does for an unauthenticated caller anyway. */
   let body: { kind?: string; contentType?: string; bytes?: number; filename?: string };
   try {
     body = await request.json();
@@ -40,6 +40,15 @@ export async function POST(request: Request) {
   if (kind !== "post" && kind !== "collection") {
     return NextResponse.json({ error: "Unknown upload kind" }, { status: 400 });
   }
+
+  // The most important of the three doors. What this route hands back is a
+  // signed URL that writes DIRECTLY into the bucket with no further pass
+  // through our code, so it is the last point at which we get a say.
+  const vet = await vetUploadRequest(
+    request,
+    kind === "collection" ? "collectionUploads" : "uploads"
+  );
+  if (!vet.ok) return vet.response;
 
   // A blank MIME type falls back to the filename; a present, unsupported one
   // does not (audit C-066).
