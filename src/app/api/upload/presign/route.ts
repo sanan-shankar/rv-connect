@@ -76,14 +76,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ direct: false });
   }
 
-  // Both the staging area and the Collection original are scoped to the
-  // uploader, so the finalize step can prove the caller owns the key it names
-  // rather than trusting an arbitrary path in the request body (audit C2).
+  /* Both kinds stage under `staging/`, and the Collection's used to stage
+     under `collection/` instead. That was a real leak rather than untidiness:
+     an abandoned drop leaves its original behind for ever, nothing in this
+     system can enumerate the bucket to find it (audit C-063), and a lifecycle
+     rule cannot clean it up because R2 matches a PREFIX and the archive's own
+     photographs share that prefix. Measured on 2026-08-28: sixty stranded
+     originals from one day of use, one of them confirmed publicly readable --
+     and these are the untouched files, so a phone photo's original still
+     carries the GPS coordinates it was taken at, which is the whole reason
+     the successful path deletes it (audit M12).
+
+     Under `staging/` one lifecycle rule closes it permanently, and the folder
+     finally means what its name says: nothing in here is anybody's.
+
+     Both are still scoped to the uploader, so finalize can prove the caller
+     owns the key it names rather than trusting a path in the body (audit C2).
+     The `-o` suffix stays, and does a second job now: `STAGING_KEY` in the
+     post finalize route is `[a-z0-9]+\.` with no hyphen, so a Collection
+     original cannot be finalized as a post image even though they now share a
+     root. */
   const id = createId();
   const target =
     kind === "post"
       ? { subdir: ownerPrefix("staging", vet.userId), filename: `${id}.${format.ext}` }
-      : { subdir: ownerPrefix("collection", vet.userId), filename: `${id}-o.${format.ext}` };
+      : { subdir: ownerPrefix("staging", vet.userId), filename: `${id}-o.${format.ext}` };
 
   const { key, signedUrl, publicUrl } = await presignImagePut(
     target.subdir,
