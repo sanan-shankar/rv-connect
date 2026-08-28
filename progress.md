@@ -1,5 +1,42 @@
 # Progress Log
 
+## 2026-08-28 — the hand-run passes become a protocol, not two coincidences
+
+*"I don't want each session to create new documentation and do it a new way. we have to have
+a workflow/protocol for it."*
+
+There were two passes -- the Collection's photograph tagging and the directory's profession
+tagging -- built four weeks apart by different sessions. They came out nearly identical, and
+that was **luck**: the second session read the first. Nothing said it had to, and a third
+would have been a coin toss.
+
+`docs/spec/hand-run-passes.md` is that shape written down: pick (read-only, stamps its
+database, carries the vocabulary and the rules inside the manifest) -> a session judges ->
+apply (dry by default, refuses a value outside the vocabulary, re-reads at apply time, leaves
+an undo). Plus the rules that hold across all of them, several of which were only ever in one
+skill and applied to both: never write the thing you cannot check; a guess dressed as a fact
+is worse than the blank; the unanswered pile is the sensor; the vocabulary lives in TypeScript
+and never in the database; no pass is ever a paid API call.
+
+**The document alone would not have worked**, which is why `scripts/qa/hand-run-passes.test.mjs`
+exists. It **discovers** passes by globbing `scripts/dev/*-pick.mjs` rather than listing them,
+so a third one is checked the day it is written, and it pins the five things that make a pass
+findable and safe: an applier beside the picker, a working folder under `scripts/dev/.<name>/`,
+a picker that stamps its database and contains no UPDATE, an applier with `--apply`/`--undo`,
+and a skill that is registered in CLAUDE.md's table and points here. It found three real gaps
+on the first run -- `tag-professions` was never added to the skills table, and neither skill
+linked the spec.
+
+**The root.** `.tagging/` had not been regenerated since the cleanup, so he could not see it,
+but it would have come back to the root the next time anyone tagged photographs. Both working
+folders are now `scripts/dev/.<name>/`, covered by a single `scripts/dev/.*/` gitignore line
+so a third pass is ignored the day it is written rather than the day somebody notices.
+
+**On the keyword.** `/tag-photos` and `/tag-professions` are the entry points, both now in
+CLAUDE.md's skills table with a third row sending anyone building or changing one to the spec
+first. A session should not need the rules re-prompted; if it does, the gap belongs in the
+skill or the spec, not in the next message.
+
 ## 2026-08-28 — the profession floor comes down, and its working folder leaves the root
 
 Two of his, in one message: *"there's no real filters for profession now"*, and the root

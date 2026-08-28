@@ -21,8 +21,10 @@
  *  `scripts/dev/.professions/`, which is gitignored. Beside the scripts that
  *  own it rather than in the repo root: the owner keeps the root short, and an
  *  ignored working folder is the clearest case of something that does not have
- *  to be there. (`.tagging/`, the photograph pass's equivalent, is still a root
- *  entry -- it predates the rule and moving it is its own change.)
+ *  to be there. `scripts/dev/.tagging/`, the photograph pass's equivalent, sits
+ *  beside it for the same reason. The shape both passes share, and the rule
+ *  that a third one conforms rather than inventing its own, is
+ *  docs/spec/hand-run-passes.md.
  *
  *  Run: node scripts/dev/tag-professions-pick.mjs [--all] [--limit N]
  *                                                 [--tag <value>]

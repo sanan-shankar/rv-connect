@@ -14,6 +14,12 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
   work.** Live tokens are in `src/app/globals.css`; where the two disagree, globals.css is what ships.
 - `docs/spec/` holds a deep spec per area (admin, avatars, catchups, demo, directory, letters,
   mascot, media, profile, lab-voice). Read the one you are touching.
+- **`docs/spec/hand-run-passes.md` is the protocol for every pass where a session judges real
+  members' data and writes it back** (the Collection's photograph tags, the directory's
+  profession tags). Pick -> read -> dry run -> apply, with an undo. None of them is an API
+  call: the model in the loop is a session on the owner's own subscription. Read it before
+  building, changing or running one -- a third pass CONFORMS to that shape rather than
+  inventing its own, and `scripts/qa/hand-run-passes.test.mjs` fails if it does not.
 - **`docs/TRAPS.md` is what this stack does to you** -- Postgres, Prisma, Next and Vercel facts that
   have each cost a session, every one proved before it was written down. Read it before touching the
   database, a migration, a scheduled job, or anything that looks like a race. (The tooling
@@ -50,7 +56,7 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
   retelling of the diff, not a bulleted inventory of every touched file, not the session's narration.
   Going over needs a reason you can state out loud (a migration whose ordering must be recorded, a
   security fix whose blast radius has to be spelled out); "there was a lot in this commit" is not one
-  — that is a sign it should have been several commits.
+  — that is a sign it should have been several commits. And don't take 10 trims to get the right count. Get it right the first time.
 - **Version control is maintained, not asked for**: work on `main`, no feature branches. Commit each
   coherent piece as it lands and passes `npm run check` — do not wait to be told, and do not let a
   session end with a working tree full of unrelated changes. Stage the files your task touched, by
@@ -186,6 +192,8 @@ for an ambiguous product or design call the specs do not already answer.
 | Screenshotting authenticated pages | `.claude/skills/screenshot-auth/SKILL.md` |
 | Reviewing existing pages retroactively | `.claude/skills/ui-audit/SKILL.md` |
 | Tagging Collection photographs nobody filed | `.claude/skills/tag-photos/SKILL.md` |
+| Filing members under a profession for the directory filter | `.claude/skills/tag-professions/SKILL.md` |
+| Building, changing or running ANY of the above hand-run passes | read `docs/spec/hand-run-passes.md` first |
 | A bug that survived two attempts | superpowers systematic debugging |
 | Writing a prompt, spec, plan or handover another session works from | `.claude/skills/writing-for-agents/SKILL.md` |
 
