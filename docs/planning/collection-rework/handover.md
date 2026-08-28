@@ -14,19 +14,30 @@
 3. **Skim [`prior-art.md`](prior-art.md)** — how Instagram, X, Flickr and Google Photos
    solved these same problems. Read it before disagreeing with a recommendation; the
    disagreement may already be answered.
-4. **Then start spec §13, phase 6: contributing.** Phases 1 to 5 are done and
-   committed — dimensions are stored, one photograph in a column has one rule, several
-   photographs together are justified rows everywhere, the viewer is rebuilt, and the
-   Collection page is a river with six buckets, a decade rail and keyset paging.
+4. **Then pick up the three pieces of phase 6 that are left.** All six phases have
+   shipped their visible half: dimensions are stored, one photograph in a column has one
+   rule, several together are justified rows everywhere, the viewer is rebuilt, the
+   Collection page is a river with six buckets and a decade rail, and contributing is a
+   pop-up you drop a hundred photographs into. **The status board below is the truth**;
+   this is the short version of it.
 
-   What is left is **§8, the most OPEN section in the whole spec**, and the owner has
-   asked for it twice now, most recently on 2026-08-28: *"the contribute panel is still
-   not nice at all. like when you click on it it's very unappealing. let's think of
-   something totally different and just dopamine inducing when you look at it."* Read §8
-   in full, and F34 below for what the taxonomy work already put in place.
+   What is left of spec §8 and §9, none of it visual, in the order I would do it:
 
-   Phase 6 is bulk upload, the contribute ROOM (not a dialog), the batch questions, the
-   LLM suggestion pass, the crop handle and the trusted-contributor controls.
+   - **§8.3, the suggestion pass.** The owner's own idea (#25) and he wants it. It is also
+     what makes §7's taxonomy actually get filled in, because the room asks for buckets and
+     requires none (D35). Closed classification against the six, structured outputs, prompt
+     caching, the Batch API for a backfill. `bucket-tiles.tsx` is already its own component
+     so a suggested bucket can arrive pre-lit.
+   - **§9, the crop handle.** The uploader moves the crop. NOT optional: it is the only
+     thing that makes the automatic aim defensible, and it is X's own replacement for the
+     model they withdrew (prior-art.md, F13, F15).
+   - **§9, trusted contributors.** `User.photoTrusted` exists and is honoured by
+     `isPhotoAutoApproved`; there is still no UI to set it. An admin control on a member's
+     profile, and select-all on the approval queue.
+
+   Then the **close-out** in the status board, which has one trap in it: `/lab/crop`'s
+   specimens are now shared with `/lab/collection`, so retiring that room MOVES them rather
+   than deleting them (F39).
 
    If you would rather do a different part first, say so and do it — §13's order is
    RECOMMENDED, not LOCKED.
