@@ -11,7 +11,7 @@
  *
  *  What is worth pressing: a bucket, and watch the underline glide and
  *  the river cross-fade; a decade on the right-hand rail, whose marks
- *  are how many photographs each decade holds; "Through time" in the
+ *  are how many photographs each decade holds; "Chronological" in the
  *  order menu, which turns the decades into headings you scroll past.
  * ------------------------------------------------------------------ */
 

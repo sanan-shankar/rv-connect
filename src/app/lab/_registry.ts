@@ -170,7 +170,7 @@ export const REGISTRY: LabEntry[] = [
     title: "An archive with something in it",
     group: "Delight",
     status: "active",
-    note: "The rebuilt Collection page, live, against 240 made-up photographs -- the real one holds two. Press a bucket and watch the underline glide, press a decade on the right-hand rail whose marks are how many each holds, or switch the order to Through time and scroll past the decades.",
+    note: "The rebuilt Collection page, live, against 240 made-up photographs -- the real one holds two. Press a bucket and watch the underline glide, press a decade on the right-hand rail whose marks are how many each holds, or switch the order to Chronological and scroll past the decades.",
   },
   {
     href: "/lab/viewer",

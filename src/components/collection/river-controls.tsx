@@ -46,14 +46,24 @@ import { cn } from "@/lib/utils";
 /** Every order the river can take. "A wander" is deleted -- the owner,
  *  verbatim: "can you please delete that a wander that's not great."
  *
- *  "Through time" is the one that is not a sort of the upload log. It orders
+ *  "Chronological" is the one that is not a sort of the upload log. It orders
  *  by when the photograph was TAKEN and turns on the decade headings, which
- *  is the archive's own spine and the reason `takenKey` exists. */
-export const RIVER_ORDERS: { value: RiverOrder; label: string; note: string }[] = [
-  { value: "newest", label: "Newest", note: "Most recently added" },
-  { value: "taken", label: "Through time", note: "By when it was taken" },
-  { value: "oldest", label: "Oldest", note: "The first ones added" },
-  { value: "loved", label: "Most loved", note: "" },
+ *  is the archive's own spine and the reason `takenKey` exists. It was called
+ *  "Through time" until the owner read the menu back to himself as "newest,
+ *  chronological, oldest, most loved" -- the house phrase was costing a reader
+ *  a beat to work out what the other three say plainly.
+ *
+ *  AND THERE IS NO SECOND LINE. Each of these used to carry a note under it
+ *  ("Most recently added", "By when it was taken") set at 11.5px, and the
+ *  owner deleted the lot: "that font is just getting too small, we're just not
+ *  respecting the user enough, the mobile user." Four words that each explain
+ *  themselves do not need eight more words explaining them in type nobody can
+ *  read. */
+export const RIVER_ORDERS: { value: RiverOrder; label: string }[] = [
+  { value: "newest", label: "Newest" },
+  { value: "taken", label: "Chronological" },
+  { value: "oldest", label: "Oldest" },
+  { value: "loved", label: "Most loved" },
 ];
 
 export const orderLabel = (v: RiverOrder) =>
@@ -149,8 +159,29 @@ export function RiverControls({
       </nav>
 
       {/* The count and the order, as one sentence. `tabular-nums` so the
-          number does not jitter as a filter narrows the river. */}
-      <div className="flex shrink-0 items-center gap-1.5 pb-2 text-[13px] text-muted-foreground">
+          number does not jitter as a filter narrows the river.
+
+          `pb-0.5`, and it is a MEASURED optical correction rather than a
+          spacing choice -- the owner: "the 1 photograph / newest line isn't
+          in line with the buckets line."
+
+          The row cannot inherit the alignment, because `items-end` on the
+          parent aligns the two children's BOTTOM EDGES and these two children
+          are not built the same: a bucket word is one 13.5px line set
+          `leading-none`, while this is a 13px line sharing a centred flex row
+          with a dropdown trigger that carries its own `py-0.5`. Equal bottoms,
+          two different baselines. Nor can the parent switch to
+          `items-baseline`: the bucket nav is an `overflow-x-auto` scroller, and
+          a box with non-visible overflow has no baseline to align to -- it
+          synthesises one from its bottom margin edge, which puts us back where
+          we started.
+
+          So the baseline is placed by hand. Measured at 1440px in Source Sans
+          3: at `pb-2` this row's baseline sat exactly 6px above the nav's, and
+          the drift falls one-for-one with the padding (pb-4px: 2, pb-3px: 1,
+          pb-2px: 0). Two pixels is the number that lands them on the same
+          line. */}
+      <div className="flex shrink-0 items-center gap-1.5 pb-0.5 text-[13px] text-muted-foreground">
         {total !== undefined && (
           <span className="tabular-nums">
             {total.toLocaleString()} {total === 1 ? "photograph" : "photographs"}
@@ -172,12 +203,14 @@ export function RiverControls({
               <DropdownMenuItem
                 key={o.value}
                 onClick={() => onOrder(o.value)}
-                className="flex-col items-start gap-0 px-2 py-1.5"
+                /* One line each, so the row is a comfortable target rather
+                   than a stacked label-and-note squeezed into the same
+                   height. */
+                className="px-2 py-2"
               >
-                <span className={cn("text-[13.5px]", order === o.value && "font-semibold text-canopy")}>
+                <span className={cn("text-[14px]", order === o.value && "font-semibold text-canopy")}>
                   {o.label}
                 </span>
-                {o.note && <span className="text-[11.5px] text-muted-foreground">{o.note}</span>}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
