@@ -1,5 +1,35 @@
 # Progress Log
 
+## 2026-08-28 — the app icon loses its face to Android's mask
+
+The owner installed the app on a Samsung and got a crest and a bare orange forehead:
+*"the eyes didn't show ... it's basically like the hoopoe has just been moved down"*. It was
+right on his iPhone and right in his Mac dock, which is most of why it shipped.
+
+**An adaptive launcher never draws all 512px.** Android's icon is 108dp of artwork of which
+only the middle 72dp is shown, so everything outside x/y 85.3..426.7 is discarded before any
+mask shape applies, and a circular mask then keeps only what is inside a 170.7px radius.
+Apple masks to a squircle that is essentially the whole square, so the same file was correct
+on every surface the owner could check.
+
+**The old transform scaled 0.8 about the bottom centre**, reasoning that the bird peeks over
+the bottom edge of the tile and must stay pinned to it. True for the tile, exactly wrong for
+the mask: it held the face against the one edge a launcher crops hardest. Measured on the
+shipped PNG, the art ran y 204..511 and the eyes sat at y~500-522 -- entirely below the crop.
+The maskable variant is now composed against the SAFE ZONE instead of the canvas: scale 0.65,
+and move the FACE's centre to the canvas centre rather than leaving the art where the tile
+wanted it. **Getting only half of that right is what cost a round** -- scaling about
+(256, 355.5) leaves that point fixed and changes nothing on Android; the fix is the
+asymmetric translate pair. Art now runs x 122..388, y 108..461, and every eye and glint pixel
+survives a square, a Samsung squircle and a full circle with zero clipped. The chin is left
+outside on purpose, so the launcher's own mask makes the cut and the peek survives without a
+band of empty tile under a floating face.
+
+**The guard is the crop, not the picture.** `app-icon-safe-zone.test.mjs` fails if any eye
+pixel below the crest falls outside the safe circle -- 3,193 of 3,922 did, on the file that
+shipped. Nothing else moved: apple-icon, favicon.ico and the three "any" icons are
+byte-identical, and the 23 visual baselines pass.
+
 ## 2026-08-28 — profession tags: the directory filter gets a column nobody types
 
 The Profession filter matched free text. `workplace` holds the ORGANISATION and `jobTitle`
