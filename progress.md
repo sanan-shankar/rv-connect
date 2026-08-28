@@ -5986,3 +5986,33 @@ Nuku'alofa was pulling the west edge out to the antimeridian and charging everyb
 empty Pacific for it; a pin further than ~50 degrees of longitude from its nearest neighbour no
 longer re-frames the map, and is still one drag away. The rule dissolves itself: the day a second
 pin appears near them, the pair stops being isolated and the frame goes and gets them.
+
+## 2026-08-28 — a photograph appears when you choose it
+
+Owner: "make sure the composer expanding when the photo is added is done very smoothly. not just
+that animation timing but just making the whole appearance of it really lovely because it's very
+rough now."
+
+The timing was the smaller half. `previews` was only appended AFTER the upload came back, so
+choosing a photograph showed nothing at all for however long the network took -- a spinner in the
+toolbar corner, an unchanged composer -- and then the whole row of thumbnails appeared at once,
+at full size, shoving the control row down. The box was still springing to its new height while
+they did it, so for a few frames they hung past the bottom edge of the card.
+
+So the pipeline now holds ONE list of shots rather than two arrays kept in step, and a shot goes
+on screen the moment it is chosen, from the local file. The upload is something that happens TO a
+thumbnail that is already there: the photograph wears the app's own warm shimmer at low opacity
+while it climbs, and the shimmer lifts when the bytes are in. The toolbar's spinner is retired --
+it was the only sign of an upload, in the corner furthest from the thing it was about -- and the
+photo button is no longer disabled during one, because "three photographs" is now what you can
+see rather than what has finished uploading.
+
+Each thumbnail enters on the same spring the box grows with, from 94% and 6px low, 40ms behind
+the one before it; the crop handle waits ~120ms more, both because it has nothing to aim at until
+the server has measured the file and because three controls landing on one 80px square at once is
+the busyness this was meant to undo. A failed upload takes its own thumbnail with it, which also
+fixes a latent hang: `uploading` was a flag that a failure left raised, so Post stayed disabled.
+
+Verified with the upload stubbed at the network (no bytes to R2): the thumbnail is on screen at
+~300ms with its shimmer, the box grows once from 178px to 268px, and the shimmer clears the frame
+the upload lands.

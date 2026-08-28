@@ -156,6 +156,8 @@ export function CreatePostForm({
   const {
     images,
     previews,
+    urls,
+    pending,
     facts,
     uploading,
     uploadProgress,
@@ -709,41 +711,101 @@ export function CreatePostForm({
             of the 16 -> 12 -> 8 nesting ladder, not the second. */}
         {previews.length > 0 && (
           <div className="flex gap-2">
-            {previews.map((preview, i) => (
-              <div key={i} className="relative h-20 w-20">
-                {/* eslint-disable-next-line @next/next/no-img-element -- local
-                    object URLs and R2 originals; next/image buys nothing here */}
-                <img
-                  src={preview}
-                  alt=""
-                  className="h-full w-full rounded-[var(--radius-sm)] object-cover"
-                />
-                {/* Only appears where the card is actually going to cut this
-                    photograph, so it doubles as the notice that it will be.
-                    Bottom LEFT, mirroring the remove button at top right: two
-                    controls on an 80px square want opposite corners, and the
-                    destructive one keeps the corner it has always had. */}
-                <PhotoAimButton
-                  src={images[i]}
-                  facts={facts[images[i]]}
-                  className="absolute -bottom-1 -left-1 h-5 w-5"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeImage(i)}
-                  aria-label="Remove image"
-                  // This was the one clickable left in the app with no hover,
-                  // no focus ring and no press. state-layer would be wrong
-                  // here: the button is already an ink-filled disc, so a
-                  // further ink tint barely moves it. It brightens instead,
-                  // which is the same move the canopy CTA makes for the same
-                  // reason (a filled brand surface lifts, it does not deepen).
-                  className="absolute -right-1 -top-1 rounded-full bg-foreground p-0.5 text-background transition-[filter,transform] duration-150 hover:brightness-150 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            <AnimatePresence initial={false} mode="popLayout">
+              {previews.map((preview, i) => (
+                /* The thumbnail arrives on the SAME spring the box grows with,
+                   from 94% and 6px low, one 40ms behind the next. Before this
+                   it appeared at full size the instant its upload finished --
+                   after seconds of nothing -- while the box was still catching
+                   up, so the photographs spilled past the bottom edge of the
+                   card for a few frames and the control row was shoved down
+                   under them. Now the growth and the arrival are one gesture,
+                   because they are one clock. */
+                <m.div
+                  key={preview}
+                  initial={{ opacity: 0, scale: 0.94, y: 6 }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                    y: 0,
+                    transition: { ...SPRINGS.gentle, delay: i * 0.04 },
+                  }}
+                  exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.14, ease: "easeOut" } }}
+                  className="relative h-20 w-20"
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
+                  {/* eslint-disable-next-line @next/next/no-img-element -- local
+                      object URLs and R2 originals; next/image buys nothing here */}
+                  <img
+                    src={preview}
+                    alt=""
+                    className={cn(
+                      "h-full w-full rounded-[var(--radius-sm)] object-cover transition-opacity duration-300",
+                      pending[i] && "opacity-75"
+                    )}
+                  />
+
+                  {/* The photograph says it is working, rather than a spinner
+                      in the toolbar saying it about something you cannot see.
+                      The app's own warm shimmer, at low opacity over the real
+                      picture: the thumbnail is present and legible the whole
+                      time, just not finished. */}
+                  <AnimatePresence>
+                    {pending[i] && (
+                      <m.span
+                        key="veil"
+                        aria-hidden
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 0.45 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3, ease: "easeOut" }}
+                        className="skeleton-warm pointer-events-none absolute inset-0 rounded-[var(--radius-sm)]"
+                      />
+                    )}
+                  </AnimatePresence>
+
+                  {/* Only appears where the card is actually going to cut this
+                      photograph, so it doubles as the notice that it will be.
+                      Bottom LEFT, mirroring the remove button at top right: two
+                      controls on an 80px square want opposite corners, and the
+                      destructive one keeps the corner it has always had.
+                      It waits for the upload, both because it has nothing to
+                      aim at until the server has measured the file, and because
+                      three controls arriving on one small square at once is the
+                      busyness this pass is trying to undo. */}
+                  <AnimatePresence>
+                    {urls[i] && (
+                      <m.div
+                        key="aim"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1, transition: { duration: 0.2, delay: 0.12 } }}
+                        exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                      >
+                        <PhotoAimButton
+                          src={urls[i] as string}
+                          facts={facts[urls[i] as string]}
+                          className="absolute -bottom-1 -left-1 h-5 w-5"
+                        />
+                      </m.div>
+                    )}
+                  </AnimatePresence>
+
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    aria-label="Remove image"
+                    // This was the one clickable left in the app with no hover,
+                    // no focus ring and no press. state-layer would be wrong
+                    // here: the button is already an ink-filled disc, so a
+                    // further ink tint barely moves it. It brightens instead,
+                    // which is the same move the canopy CTA makes for the same
+                    // reason (a filled brand surface lifts, it does not deepen).
+                    className="absolute -right-1 -top-1 rounded-full bg-foreground p-0.5 text-background transition-[filter,transform] duration-150 hover:brightness-150 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </m.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
 
@@ -801,10 +863,19 @@ export function CreatePostForm({
                 setAttachMounted(true);
                 setAttachOpen(true);
               }}
+              /* Counted against the THUMBNAILS, and no longer disabled while
+                 one is climbing: the photographs are on screen from the moment
+                 they are chosen, so "three" is what you can see, and a second
+                 one can be added while the first uploads.
+                 The glyph does not spin any more either. It was the only sign
+                 an upload was happening, in the corner furthest from the
+                 photograph it was about; the thumbnail now carries its own
+                 shimmer, and the aria-label still says it for anyone who cannot
+                 see the shimmer. */
               {...({
                 type: "button",
-                disabled: images.length >= 3 || uploading,
-                title: uploading ? "Uploading..." : "Add a photo",
+                disabled: previews.length >= 3,
+                title: "Add a photo",
                 "aria-label": uploading
                   ? uploadProgress && uploadProgress.total > 1
                     ? `Uploading photo ${uploadProgress.done + 1} of ${uploadProgress.total}`
@@ -812,11 +883,7 @@ export function CreatePostForm({
                   : "Add a photo",
               } as object)}
             >
-              {uploading ? (
-                <Loader2 className="h-[18px] w-[18px] animate-spin" />
-              ) : (
-                <ImagePlus className="h-[18px] w-[18px]" />
-              )}
+              <ImagePlus className="h-[18px] w-[18px]" />
             </SpringPress>
 
             {/* The plus opens the same "add to your post" menu (poll, letter,
