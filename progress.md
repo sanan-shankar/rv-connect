@@ -1,5 +1,50 @@
 # Progress Log
 
+## 2026-08-28 — the suggestion pass, without an API
+
+Collection rework, spec sec. 8.3: fill the taxonomy in for photographs nobody tagged. 70-80%
+of this archive arrives in bulk and the contribute room requires nothing, so sec. 7's six
+buckets only work if something fills them in afterwards.
+
+**The owner redirected the shape of it before a line was written.** The spec drew a paid API
+call -- each 480px thumbnail to the Claude API, structured outputs, the Batch API, about $29
+for twenty thousand. Asked whether to add an `ANTHROPIC_API_KEY`, he said: *"I wasn't
+actually gonna do it through API. I was gonna orchestrate it through my regular Claude Max
+subscription on a session in VS Code. It can access all the photos and that should be more
+than enough."* He is right, and it is better on every axis that matters here: no key, no
+billing, no runtime dependency, nothing new in the deployed bundle, and a session that can
+genuinely look at the photographs rather than pay per token to.
+
+So it is a picker, a skill and an applier. `tag-photos-pick.mjs` exports a batch of untagged
+photographs into a gitignored `.tagging/` as 640px JPEGs plus a manifest of what each
+contributor already typed; a session reads them and writes `verdicts.json`;
+`tag-photos-apply.mjs` puts the answers back. `.claude/skills/tag-photos/SKILL.md` is the
+procedure, wired into CLAUDE.md's skills table.
+
+**The applier is the half that can damage a real archive, so the rules live in
+`src/lib/photo-suggest.ts` where tests can hold them, not in the script.** One rule carries
+it: a suggestion only ever fills a field that is EMPTY. Sec. 8.3's own line is "suggestions
+are never silent -- they arrive as prefilled fields the contributor can change", and in a
+backfill nobody is in the room to change them. The honest equivalent of asking is not asking
+for anything a person has already answered, so a caption somebody wrote, a bucket somebody
+chose and a date somebody gave are never touched. It is dry by default, re-reads the rows at
+apply time rather than trusting the manifest, refuses a seventh bucket rather than mapping it
+to Other -- a closed vocabulary that quietly accepts anything is not closed, and "Other is a
+sensor" would then be reading the mapping instead of the archive -- and leaves an undo log
+holding the old value of every column it wrote.
+
+**Verified end to end against the live archive.** Picked its two photographs, read them,
+wrote verdicts, watched the dry run refuse both suggested captions because both rows already
+had one, applied, and undid: the two rows are byte-identical to how the session found them.
+Every refusal fired on a deliberately bad file too -- a seventh bucket, an id outside the
+batch, an invented decade, and a batch picked from one database being applied to another.
+`npm run check` green, 86/86.
+
+**What this does not do, and it is a real loss worth stating.** There is no live suggestion
+in the contribute room. That needed the API call, and without one a new upload still depends
+on somebody pressing a bucket tile. The answer is to run this again when photographs have
+accumulated, which is a few minutes rather than a background job.
+
 ## 2026-08-28 — contributing is a room in a pop-up, and the photographs develop
 
 Collection rework phase 6, the part of spec sec. 8 that is the interface. The owner asked
