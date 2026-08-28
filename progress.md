@@ -6458,11 +6458,28 @@ a default he has to undo: "Use these answers for all 12" grows in at the foot of
 only once the current photograph has been given a bucket, a decade or a word, and confirms in
 place rather than firing a toast.
 
-Two things about the stage are worth keeping. It is a FIXED HEIGHT with the picture contained in
-it, which is a different answer from the feed carousel's and deliberately so: this is a filing
-surface, and a panel that changed height on every swipe would move the tile your thumb is already
-travelling to. Measured across a 2:3, a 3:2 and a 16:5 in one drop, the stage stays 240px and the
-"What is it of?" heading stays at 418px, and every picture centres at offset 0.00. And it
+Two things about the stage are worth keeping. It is ONE HEIGHT FOR THE WHOLE DROP with the picture
+contained in it, which is a different answer from the feed carousel's and deliberately so: this is
+a filing surface, and a panel that changed height on every swipe would move the tile your thumb is
+already travelling to. Measured across a 2:3, a 3:2 and a 16:5 in one drop, the stage stays 240px
+and the "What is it of?" heading stays at 418px, and every picture centres at offset 0.00.
+
+That height started flat and did not stay flat. A drop of nothing but panoramas drew 101px of
+picture inside a 240px stage, and the owner's rule for that is the obvious one: *"make 240px the
+max, but if the tallest photo is less than that then make it that."* The tallest photograph is the
+one with the smallest width/height, and drawn across the full stage it wants `width / ratio` of
+height, so the stage is `min(the ceiling, that)` and every other photograph in the drop is wider
+and fits by construction. Measured after: a panorama drop is 101px instead of 240 and the first
+question rises from y=418 to y=279; a landscape drop is 216px; a drop with a portrait in it still
+takes the whole 240, because the portrait needs it. Wasted paper is 0.0px in every uniform drop,
+which is what killed the card's `px-1` -- four pixels of padding made the picture narrower than the
+height had been solved for.
+
+The mechanism is worth remembering because it is arithmetic rather than measurement: the stage's
+own width is not a number CSS can put in a `calc`, so the parent becomes a query container and
+100cqw is that width. Correct on the first frame, through every resize, with no ResizeObserver and
+no state. The custom property has to be declared on the child, because an element cannot query
+itself. And it
 CROSS-FADES rather than sliding, which the owner named himself: *"when you move from one picture
 to another in the image viewer it doesn't slide, it does the crossfade thing -- that's what I
 mean."* So it is <ImageViewer>'s step copied down to its two opposite curves, and for the same
