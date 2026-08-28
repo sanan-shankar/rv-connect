@@ -208,6 +208,11 @@ Dev server: `npm run dev` on `http://localhost:3000`. Start it in the background
 | `npm run verify:shot <route> <out.png> [mobile]` | authed shot **plus** console and pageerror capture |
 | `npm run verify:crawl` | every live route signed in, with status and console errors |
 
+All four write to `e2e/.shots/` -- gitignored scratch, beside Playwright's own run output.
+Nothing puts an image at the repo root any more (`temporary screenshots/` moved there on
+2026-08-28), so if that folder reappears at the root, something hand-rolled a path instead
+of using these commands.
+
 Protocol: screenshot, **Read the PNG**, make fixes, re-screenshot, compare in specific numbers ("the
 heading gap is 24px, should be 16px"). Minimum two rounds, then repeat on mobile.
 
