@@ -1237,7 +1237,28 @@ export function LetterheadProfile({
               <FadeRise delay={0.09}>
                 <section className="mt-[var(--space-l)]">
                   <SectionLabel>Houses</SectionLabel>
-                  <div className="mt-[var(--space-s)]">
+                  {/* `empty:hidden` because HouseChainEditor renders NOTHING
+                      for a member with no years and no houses recorded, which
+                      left this div as a childless box carrying a margin -- and
+                      a childless box's margin collapses through itself and then
+                      escapes the section, but only once it is the LAST child.
+                      The hint below it is what held it in, so the margin left
+                      the moment AnimatePresence unmounted that hint, roughly
+                      100ms after its exit spring had already finished: the
+                      sheet settled, sat still for a beat, then dropped another
+                      9.888px (= --space-s at 16px, measured on the live page).
+                      Two steps to say one thing, which is the same complaint
+                      the occupation row above answers with an animated
+                      marginBottom (owner, 2026-08-28: "they adjust and then
+                      maybe half a second later it moves up a tiny bit more").
+                      It cannot be fixed the same way here, because the residual
+                      is 9.888px for a member with an empty chain and 0px for
+                      one with houses, so no fixed exit value is right for both.
+                      Hidden while empty, the margin does not exist at all and
+                      unmounting the hint costs exactly its animated height.
+                      Nothing moves at rest: measured 18px section height either
+                      way, and the settled sheet is 476.34px before and after. */}
+                  <div className="mt-[var(--space-s)] empty:hidden">
                     {/* The SAME component in both states, never a swap: turning
                         the pen on must not remount the chain, or it re-measures
                         its pill widths and re-runs its entrance. */}

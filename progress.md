@@ -1,5 +1,36 @@
 # Progress Log
 
+## 2026-08-28 — Done on a profile settles the sheet twice
+
+Owner, from a phone: *"instead of the tile and buttons adjusting correctly right away, they
+adjust and then maybe half a second later it moves up a tiny bit more"*. Measured on the live
+page at 390x844: the sheet springs 511.6px -> 486.2px over 436ms, sits still, then drops
+another **9.88px at 501ms** in a single frame with nothing between. 9.888px is `--space-s`
+at a 16px root, which is the whole diagnosis.
+
+**A childless box's margin escapes, but only once it is the last child.** The Houses section
+wraps `HouseChainEditor` in a `mt-[var(--space-s)]` div, and that editor renders *nothing* for
+a member with no years and no houses recorded -- so on leaving edit mode the wrapper became a
+box with no children carrying a margin. Such a margin collapses through itself, and then
+collapses out through the section's bottom edge as soon as nothing follows it. The "Tap a
+house to change it." hint is what had been holding it in, so the margin left at the moment
+`AnimatePresence` **unmounted** that hint, roughly 100ms after its exit spring had already
+reached zero. Two layout events, one of them invisible until it fires.
+
+**Fixed with `empty:hidden` on the wrapper**, so the margin does not exist at all when there
+is nothing to space and unmounting the hint costs exactly its animated height. The occupation
+row above solves the same class of bug by animating `marginBottom` on the exit spring, and
+that will not work here: the residual is 9.888px for a member with an empty chain and 0px for
+one with houses, so no fixed exit value is right for both. **Nothing moves at rest** --
+measured 18px section height either way, settled sheet 476.34px before and after, 370.25px on
+desktop. After: one monotonic decay ending at 451ms, largest single frame 2.58px, no step.
+
+Worth knowing for whoever hits this next: it only reproduces on a profile with **no houses**,
+which is why it was found on Jerry rather than the owner's own sheet, and the file has now
+been bitten twice by the same shape -- an `AnimatePresence` exit animation and the unmount
+that follows it are two separate layout events, and anything the node contributes beyond its
+animated height lands as a step a beat later.
+
 ## 2026-08-28 — the app icon loses its face to Android's mask
 
 The owner installed the app on a Samsung and got a crest and a bare orange forehead:
