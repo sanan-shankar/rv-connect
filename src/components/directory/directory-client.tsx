@@ -642,11 +642,19 @@ export function DirectoryClient({
                 <div className="mb-3 flex justify-center">
                   <NoResultsHoopoe size={76} />
                 </div>
+                {/* People is a browse view now, reachable with nothing set, so
+                    this card can no longer assume it is looking at a filtered
+                    list -- it was telling members that "no one matches these
+                    filters" about filters they had not set (owner, 2026-08-28).
+                    The real cause of that was server-side and is fixed in
+                    page.tsx; this is the copy holding up its end. */}
                 <p className="font-heading text-lg text-foreground">
-                  No one matches these filters.
+                  {hasFilter ? "No one matches these filters." : "Nobody here yet."}
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Try removing a filter or clearing your search.
+                  {hasFilter
+                    ? "Try removing a filter or clearing your search."
+                    : "The directory fills up as people join and finish their profiles."}
                 </p>
                 {/* Just the escape hatch. This used to reprint every active
                     filter as chips, which was the third copy of the same state

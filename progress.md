@@ -6035,3 +6035,12 @@ brightens rather than deepening, the same move the canopy CTA makes, because a f
 a saturated fill barely moves; the clear x inside it goes white, since canopy-on-canopy vanished
 the moment the pill filled. The sentence line's tokens inherit all of this, so an applied filter
 reads the same at both ends of the page.
+
+## 2026-08-28 — the empty directory stops blaming filters
+
+With People on the toggle at all times, its empty card could no longer assume it was looking at a
+filtered list: the owner saw "No one matches these filters" with nothing set. The cause was in
+page.tsx -- the people query was gated on `hasFilter`, from the days when the view only existed
+while filtering, so an unfiltered People got an empty array (fixed in the profession-tag commit
+that touched the same file). The copy now holds up its end too: unfiltered, it says the directory
+fills up as people join, and the "Clear all" button stays behind `hasFilter` as before.
