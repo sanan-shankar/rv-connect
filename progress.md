@@ -6525,3 +6525,63 @@ at two lines and grows as you type instead of sitting open at its full height. B
 three columns so they are two rows on every screen, and the type floor across the room went to
 14px: *"we have to make sure we don't use fonts that are too small on mobile, because this is
 getting to become a bad accessibility thing."*
+
+
+## 2026-08-29 — the decades go, and one box understands a partial answer
+
+The owner, on the panel the last pass left behind: *"can we scratch the way we do years now. instead
+of decades. just make a Revolut-esque cute signup/sign-in style box where they can put year and
+month... looking at that box I'm seeing it just has an excess of elements and border, it's not smart
+and sleek at all, it's just overcrowded and disgusting. we need to hold ourselves to a higher
+standard."* Thirteen controls answered one question: ten decade pills, an "I don't know" pill, a
+bordered year input and a bordered month dropdown.
+
+THE IDEA IS THAT THE FIELD UNDERSTANDS A PARTIAL ANSWER, and everything else follows from it. Nobody
+picks between "a decade" and "a year" any more, because that was never a choice about the
+photograph -- it was a choice about which of our controls matched how much they remembered. One
+numeric box, and how much you type IS the precision: blank is unknown, `197` is the 1970s, `1978` is
+a year, and only then does a month exist at all. You stop typing when you run out of certainty.
+
+And the label reports what it understood, but only when it has something to add: at three digits it
+reads "Filed under the 1970s", because `197` is not self-evidently an answer and a person needs to
+know they can stop; at four it returns to the question, because the year is sitting right there and
+a label repeating it is one more thing to read. That costs no elements -- the floating label was
+already there.
+
+He asked the month question himself and left it open ("do we show year and month or show month only
+after they put year? idk"). The answer was already in the encoder: a month with no year is not
+something the archive can store, so a Month control beside an empty box would be permanently dead,
+which is the exact complaint. It fades in on opacity when the year becomes real.
+
+The two typing fields then became ONE CARD with one frame and a hairline between them, which is
+where most of the borders went: two bordered boxes under a heading each is four shapes where the eye
+wants one, and the float labels are the headings, so two headings went too. `FloatArea` grew a
+`bare` mode for it.
+
+THE ENCODER MOVED TO `lib/collection.ts` and is now pinned. `photoDate` is the rule for what goes
+into the archive rather than a detail of one screen, and a photograph mis-filed here is wrong in the
+decade rail, in the Chronological order and in every era filter, with nobody noticing until someone
+goes looking for the 1970s. `collection-date.test.mjs` already held the READ side (`takenLabel`);
+the write side went in beside it, plus a round-trip test that the two agree -- `photoDate("197")`
+writing `{era:"1970s"}` is only correct because `takenLabel` reads it back as "the 1970s".
+
+Four smaller things the owner caught while it was being built, each measured rather than eyeballed:
+
+- THE (i) WAS ALIGNED TO NOTHING -- "just hanging, I can't see why it's there". It sat 2.5px off the
+  label's centre and inset 10px against the text's own 16px. It is anchored to the label now: same
+  line, mirrored inset, 0.00px off centre.
+- THE NOTE WRAPPED RAGGED. At 256px the hint broke 189/218/91 -- a 127px spread and a runt last
+  line. `text-wrap: balance` evens any hint that lands there, and at 288px this one needs only two
+  lines, 258/243, a 15px spread. Its position was also being decided by collision rather than by
+  intent (`align="start"` on a right-hand icon sends the panel off a phone and the positioner shoves
+  it back), which is why it seemed to move; it hangs from the icon's own edge now.
+- THE SECOND BOX WAS BIGGER THAN THE FIRST, 66px against 56. Four pixels of padding, and six of
+  phantom line box because a textarea is inline-block by default and its wrapper grew a line around
+  it. Both rows are 56px now.
+- THE AUTO-GROW FLOOR WAS CACHED ON MOUNT, which is wrong if a webfont finishes loading afterwards
+  and changes the line height under it. Measured fresh each time instead; two extra layout reads on
+  one textarea is nothing, and it cannot go stale.
+
+One regression to be honest about: a decade used to be one tap and is now three keystrokes. On a
+number pad with the label confirming what it understood, that is a trade worth making for losing
+eleven controls -- but it is a trade, not a free win.

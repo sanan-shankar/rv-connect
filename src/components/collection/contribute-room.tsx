@@ -52,7 +52,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { m, AnimatePresence } from "motion/react";
-import { Images } from "@phosphor-icons/react";
+import { CaretDown, Images } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,17 +62,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { FloatArea } from "@/components/common/float-field";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  FIELD_PAD,
+  FLOAT_LABEL_BASE,
+  FLOAT_LABEL_REST,
+  FLOAT_LABEL_UP,
+  FloatArea,
+} from "@/components/common/float-field";
 import { EASE_OUT_SMOOTH, SPRINGS } from "@/components/common/motion";
 import { ContributedHoopoe } from "@/components/mascot/moments/contributed-hoopoe";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
-import { ERAS, PHOTO_YEAR_MIN } from "@/lib/collection";
+import { eraFromPartial, eraSaid, MONTHS, photoDate, yearGiven } from "@/lib/collection";
 import { contributePhoto, contributePhotoDirect } from "@/app/(main)/collection/actions";
 import { directUploadPut } from "@/lib/upload-client";
 import { shrinkForUpload } from "@/lib/image-downscale";
@@ -81,11 +86,6 @@ import { valleyYear } from "@/lib/utils";
 import { BucketTiles } from "./bucket-tiles";
 import { ContributeStage } from "./contribute-stage";
 import { cn } from "@/lib/utils";
-
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
 
 /** How many files climb to the bucket at once. Three, because a browser gives
  *  six connections per origin and the rest of the page still has to load its
@@ -130,57 +130,31 @@ type Staged = {
 type Meta = {
   caption: string;
   buckets: string[];
-  /** An ERAS decade, `"unknown"` when they pressed "I don't know", or "" when
-   *  nobody has touched the row at all. The last two encode the same way. */
-  decade: string;
-  /** Digits as typed. Only counts once it is a real four-digit year. */
+  /** Digits as typed, up to four. THE ONLY DATE FIELD THERE IS NOW.
+   *
+   *  There used to be a `decade` beside it, holding one of ten pills or the
+   *  word "unknown". The owner scrapped the pills outright (2026-08-28) and
+   *  the field absorbed what they did: three digits is a decade, four is a
+   *  year, nothing is nothing. So a contributor stops typing when they run
+   *  out of certainty rather than choosing which of two controls matches how
+   *  much they know. See `dateMeta`. */
   year: string;
-  /** A month name from MONTHS, or "" -- and only ever alongside a year. */
+  /** A month name from MONTHS, or "" -- and only ever alongside a real year,
+   *  because a month with no year is not something the archive can file. */
   month: string;
 };
 
 const EMPTY_META: Meta = {
   caption: "",
   buckets: [],
-  decade: "",
   year: "",
   month: "",
 };
 
-/** Is what has been typed into the year box actually a year? The valley's own
- *  year at the top, matching the server validator that will judge it. */
-const yearGiven = (typed: string) => {
-  const n = Number(typed);
-  return typed.length === 4 && n >= PHOTO_YEAR_MIN && n <= valleyYear();
-};
-
-/** The date fields exactly as both contribute paths encode them.
- *
- *  A half-typed year degrades to the decade rather than being refused: "197"
- *  in the box with 1970s lit files under the 1970s, which is true, instead
- *  of failing validation on the way to the server. */
-function dateMeta(meta: Meta) {
-  if (yearGiven(meta.year)) {
-    const monthIndex = MONTHS.indexOf(meta.month);
-    return monthIndex >= 0
-      ? { photoYear: Number(meta.year), photoMonth: monthIndex + 1, datePrecision: "month" }
-      : { photoYear: Number(meta.year), datePrecision: "year" };
-  }
-  /* "" (untouched) and "unknown" (the I-don't-know pill) encode identically.
-     They are two different things to say to a person and the same thing to
-     say to the archive, which is exactly the right place for that difference
-     to stop. */
-  const said = meta.decade && meta.decade !== "unknown";
-  return {
-    era: said ? meta.decade : "unknown",
-    datePrecision: said ? "decade" : "unknown",
-  };
-}
-
-/** The decades as pills: newest first, matching the Collection's own decade
- *  rail, and without the "Not sure" entry -- here, nothing pressed IS not
- *  sure. */
-const DECADE_PILLS = ERAS.filter((e) => e.value !== "unknown").slice().reverse();
+/* The date rule -- what one box of digits means to the archive -- lives in
+   `lib/collection.ts` beside the eras themselves, because it is a fact about
+   what gets stored rather than a detail of this screen, and because it is
+   pure there and pinned by `collection-date.test.mjs`. */
 
 /** Whether this is a machine with a cursor and a clipboard you can paste
  *  from -- which is the honest test for "should the invitation say the word
@@ -642,7 +616,7 @@ export function ContributeRoom({
    *  appear over six blank answers, so it cannot be pressed before it means
    *  anything. */
   const answered =
-    shown.buckets.length > 0 || shown.caption.trim().length > 0 || shown.decade !== "";
+    shown.buckets.length > 0 || shown.caption.trim().length > 0 || shown.year !== "";
 
   function remove(id: string) {
     const going = photos.find((p) => p.id === id);
@@ -666,7 +640,7 @@ export function ContributeRoom({
     const common = {
       caption: m0.caption.trim() || undefined,
       buckets: m0.buckets,
-      ...dateMeta(m0),
+      ...photoDate(m0, valleyYear()),
     };
 
     if (p.key) {
@@ -857,34 +831,49 @@ export function ContributeRoom({
               onChange={(next) => answer({ buckets: next })}
             />
 
-            <WhenAsked meta={shown} onAnswer={answer} />
+            {/* ONE CARD, TWO ROWS, ONE FRAME. These were two separately
+                bordered boxes under a heading each, which is four shapes
+                where the eye wants one: "an excess of elements and border...
+                overcrowded and disgusting" (owner, 2026-08-28). Grouped, they
+                read as a single form the way an inset list does, and the
+                float labels are the headings -- so two headings went too.
 
-            {/* THE DESCRIPTION, and it is the one prose field left.
+                `overflow-hidden` is what lets the group's radius clip rows
+                that draw no radius of their own. */}
+            <div className="mt-5 overflow-hidden rounded-[var(--radius-input)] border border-border">
+              <WhenField meta={shown} onAnswer={answer} />
 
-                The label was "What is this photograph?" and the owner cut it
-                back: "don't say what is this photograph, we can just say add
-                a description." A question mark on a form is a thing you owe
-                an answer to; a label is a box you may use.
+              {/* THE DESCRIPTION, and it is the one prose field left.
 
-                The hint behind the (i) lost three things and kept one. Gone:
-                the bolding on what/where/who ("I don't want to bold this"),
-                "if you know", and "a line is plenty, and nothing is
-                required" -- two hedges apologising for a question that had
-                already been asked gently. Kept: the three prompts
-                themselves, because where-in-the-valley used to be a second
-                box and this sentence is now the only place it is asked for. */}
-            <FloatArea
-              id="contribute-caption"
-              label="Add a description"
-              /* Two rows, and it grows from there as you type. It was three,
-                 sitting open at its full height before a word was in it. */
-              rows={2}
-              maxLength={300}
-              containerClassName="mt-5"
-              value={shown.caption}
-              onChange={(e) => answer({ caption: e.target.value.slice(0, 300) })}
-              hint="Anything you remember. What is happening, where in the valley it was, and who is in it."
-            />
+                  The label was "What is this photograph?" and the owner cut
+                  it back: "don't say what is this photograph, we can just say
+                  add a description." A question mark on a form is a thing you
+                  owe an answer to; a label is a box you may use.
+
+                  The hint behind the (i) lost three things and kept one.
+                  Gone: the bolding on what/where/who ("I don't want to bold
+                  this"), "if you know", and "a line is plenty, and nothing is
+                  required" -- two hedges apologising for a question that had
+                  already been asked gently. Kept: the three prompts
+                  themselves, because where-in-the-valley used to be a second
+                  box and this sentence is now the only place it is asked for. */}
+              <div className="border-t border-border">
+                <FloatArea
+                  id="contribute-caption"
+                  label="Add a description"
+                  bare
+                  /* ONE row, not two. It grows from there, so the box is the
+                     size of what you have written rather than the size of
+                     what you might write -- and an empty one now matches the
+                     date row above it instead of towering over it. */
+                  rows={1}
+                  maxLength={300}
+                  value={shown.caption}
+                  onChange={(e) => answer({ caption: e.target.value.slice(0, 300) })}
+                  hint="Anything you remember. What is happening, where in the valley it was, and who is in it."
+                />
+              </div>
+            </div>
 
             <ApplyToAll
               count={photos.length}
@@ -1020,196 +1009,175 @@ function ApplyToAll({
 }
 
 /* ------------------------------------------------------------------ *
- *  WHEN WAS IT TAKEN.
+ *  WHEN WAS IT TAKEN -- one box, and you stop typing when you run out
+ *  of certainty.
  *
- *  The owner on the version this replaces: "even the year and month and
- *  decade thing could be done in a cuter way. the idea is good but
- *  execution could be improved." What was there: two dropdowns side by
- *  side, resting on the words "Year unknown" and "Not sure" -- so the
- *  commonest answer in a heritage archive (a decade, roughly) cost two
- *  presses and a scroll through ninety-nine years to reach, and the
- *  resting state announced ignorance twice before anybody had said
- *  anything.
+ *  What this replaces: ten decade pills, an "I don't know" pill, and a
+ *  grow-in row holding a bordered year input and a bordered month
+ *  dropdown. Thirteen controls to answer one question. The owner:
+ *  "looking at that box I'm seeing it just has an excess of elements and
+ *  border, it's not smart and sleek at all, it's just overcrowded and
+ *  disgusting. we need to hold ourselves to a higher standard."
  *
- *  This is the same three facts, asked in the order people actually know
- *  them, and it costs one tap for most photographs:
+ *  THE IDEA IS THAT THE FIELD UNDERSTANDS A PARTIAL ANSWER. Nobody
+ *  chooses between "a decade" and "a year" any more, because that was
+ *  never a choice about the photograph -- it was a choice about which of
+ *  our controls matched how much they remembered. Here there is one
+ *  numeric box, and how much you type IS the precision:
  *
- *    ROUGHLY WHEN?   ten decades as pills, newest first, in the
- *                    Collection's own vocabulary and its own order (the
- *                    decade rail reads top-down from 2020s). One tap. Press
- *                    the lit one again to unsay it.
- *    EXACT YEAR?     appears only once a decade is chosen, because that is
- *                    when the question makes sense, and it is a four-box
- *                    numeric field rather than a hundred-item list.
- *    MONTH?          appears only once the year is a real year. The rarest
- *                    thing anybody knows, so it is last and it is small.
+ *      (blank)  nothing said, which the archive files as unknown
+ *      197      the 1970s
+ *      1978     1978, and only now does a month exist
+ *      1978 + March
  *
- *  AND AN "I DON'T KNOW" PILL, which the first version of this deliberately
- *  did not have -- the argument being that it and an empty row mean the same
- *  thing to the archive, so it is a control whose pressed and unpressed
- *  states are identical. The owner overruled it, and he is right for a
- *  reason about the person rather than the database: an empty row is a
- *  question still hanging over you, and a lit "I don't know" is an answer
- *  you have given and can walk away from. The hedge that used to be printed
- *  beside the heading ("if you know") is gone with it -- it was apologising
- *  for a question the row can now answer for itself.
+ *  AND THE LABEL SAYS WHAT IT UNDERSTOOD, but only when it has something
+ *  to add. At three digits it reads "Filed under the 1970s", because
+ *  "197" is not self-evidently an answer and a person needs to know they
+ *  can stop. At four it goes back to the question, because the year is
+ *  sitting right there and a label repeating it is one more thing to
+ *  read. That is the whole of the cleverness and it costs no elements:
+ *  the floating label was already there.
  *
- *  So `decade` has three states, not two: "" for untouched, `"unknown"` for
- *  said-so, and a decade. The last two encode identically (era "unknown",
- *  precision "unknown"); the difference is entirely on this screen, which is
- *  where it matters.
+ *  MONTH ONLY EXISTS ONCE A YEAR DOES. The owner asked the question
+ *  himself and left it open -- "do we show year and month or show month
+ *  only after they put year? idk." The answer is in `dateMeta`: a month
+ *  without a year is not something the archive can store, so a Month
+ *  control sitting beside an empty box would be a permanently dead
+ *  element, which is the exact complaint above. It fades in on opacity
+ *  when the year becomes real, and it is text and a caret rather than a
+ *  fourth bordered box.
+ *
+ *  The material is the signup's, not a copy of the signup: FIELD_PAD,
+ *  FLOAT_LABEL_* and the JS-tracked focus are the shared primitives
+ *  <PhoneField> is built from (float-field.tsx says so in as many
+ *  words). What is different is everything the job is: no mist fill,
+ *  because this floats on a white pop-up where a warm fill is the
+ *  "yellowing"; no frame of its own, because it is the top row of a
+ *  grouped card; and a label that reports rather than only names.
  * ------------------------------------------------------------------ */
-function WhenAsked({
+function WhenField({
   meta,
   onAnswer,
 }: {
   meta: Meta;
   onAnswer: (patch: Partial<Meta>) => void;
 }) {
-  const hasYear = yearGiven(meta.year);
-  const dated = Boolean(meta.decade) && meta.decade !== "unknown";
-  /* No disabled state any more. There was one because the questions used to
-     answer for a SELECTION, which could be empty; the carousel always has a
-     photograph in view, so there is never a moment when these are dead. */
-  return (
-    <div className="mt-5">
-      <p className="mb-2 text-[15px] font-semibold text-foreground">When was it taken?</p>
+  const [focused, setFocused] = useState(false);
+  const yearRef = useRef<HTMLInputElement>(null);
+  const exact = yearGiven(meta.year, valleyYear());
+  const era = eraFromPartial(meta.year);
+  const active = focused || meta.year !== "";
 
-      <div className="flex flex-wrap gap-1.5">
-        {DECADE_PILLS.map((e) => {
-          const on = meta.decade === e.value;
-          return (
-            <m.button
-              key={e.value}
-              type="button"
-              aria-pressed={on}
-              whileTap={{ scale: 0.94 }}
-              transition={SPRINGS.snappy}
-              onClick={() =>
-                /* Pressing the lit one unsays it, and takes the year and
-                   month with it -- a year inside a decade nobody is
-                   claiming any more is a fact with nothing under it. */
-                onAnswer(
-                  on
-                    ? { decade: "", year: "", month: "" }
-                    : { decade: e.value, year: "", month: "" }
-                )
-              }
-              className={cn(
-                /* 14px and a taller pill: ten of these are the fastest answer
-                   in the room, and they were set in the type the owner
-                   called out. */
-                "rounded-full border px-3 py-2 text-[14px] font-medium tabular-nums",
-                "transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                on
-                  ? "border-canopy bg-canopy text-white"
-                  : "state-layer border-border text-foreground"
-              )}
-            >
-              {e.label}
-            </m.button>
-          );
-        })}
-        {/* Set apart by its words rather than by a rule or a gap: it is one
-            of the answers, not a way out of answering. */}
-        <m.button
-          type="button"
-          aria-pressed={meta.decade === "unknown"}
-          whileTap={{ scale: 0.94 }}
-          transition={SPRINGS.snappy}
-          onClick={() =>
-            onAnswer(
-              meta.decade === "unknown"
-                ? { decade: "", year: "", month: "" }
-                : { decade: "unknown", year: "", month: "" }
-            )
-          }
+  /* The label reports only when it can say something the box does not
+     already show. See the note above. */
+  const says = era ? `Filed under ${eraSaid(era)}` : "When was it taken?";
+
+  return (
+    <div
+      className="relative h-14 w-full"
+      onFocusCapture={() => setFocused(true)}
+      onBlurCapture={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setFocused(false);
+      }}
+      /* The whole row is one target: a press on the padding, or on the empty
+         middle, lands in the year rather than on nothing. Same call
+         <PhoneField> makes. */
+      onClick={(e) => {
+        if (!(e.target instanceof HTMLInputElement) && !(e.target as HTMLElement).closest("button")) {
+          yearRef.current?.focus();
+        }
+      }}
+    >
+      <div className={cn("flex h-full items-center", FIELD_PAD)}>
+        <input
+          ref={yearRef}
+          id="contribute-year"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          autoComplete="off"
+          maxLength={4}
+          /* Revealed on focus only, so the resting box holds one piece of
+             text and not two -- FloatField's `focusHint` rule. */
+          placeholder="1978"
+          value={meta.year}
+          onChange={(e) => {
+            const year = e.target.value.replace(/\D/g, "").slice(0, 4);
+            /* A month cannot outlive the year it belonged to. */
+            onAnswer(yearGiven(year, valleyYear()) ? { year } : { year, month: "" });
+          }}
           className={cn(
-            "rounded-full border px-3 py-2 text-[14px] font-medium",
-            "transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-            meta.decade === "unknown"
-              ? "border-canopy bg-canopy text-white"
-              : "state-layer border-border text-muted-foreground"
+            "w-[4.25rem] shrink-0 bg-transparent text-base tabular-nums text-foreground outline-none",
+            "placeholder:text-muted-foreground/60 placeholder:opacity-0 placeholder:transition-opacity placeholder:duration-200 focus:placeholder:opacity-100"
+          )}
+        />
+
+        {/* Opacity only, and it never moves the row: the year is a fixed
+            width, so the month has always had its place whether or not it is
+            drawn yet. */}
+        <div
+          className={cn(
+            "ml-auto transition-opacity duration-200",
+            exact ? "opacity-100" : "pointer-events-none opacity-0"
           )}
         >
-          I don&rsquo;t know
-        </m.button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              tabIndex={exact ? 0 : -1}
+              aria-label={meta.month ? `Month: ${meta.month}. Change` : "Add a month"}
+              className={cn(
+                "state-layer -mx-1 inline-flex items-center gap-1 rounded-[var(--radius-sm)] px-1 py-0.5",
+                "text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                meta.month ? "font-medium text-foreground" : "text-muted-foreground"
+              )}
+            >
+              {meta.month || "Month"}
+              <CaretDown size={11} weight="bold" aria-hidden />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="max-h-64 w-auto min-w-36 overflow-y-auto">
+              {/* First, and unlabelled as a clearing action, because taking
+                  the month back off is the same gesture as choosing one. */}
+              <DropdownMenuItem
+                onClick={() => onAnswer({ month: "" })}
+                className="px-2 py-2"
+              >
+                <span className={cn("text-[14px]", !meta.month && "font-semibold text-canopy")}>
+                  No month
+                </span>
+              </DropdownMenuItem>
+              {MONTHS.map((mo) => (
+                <DropdownMenuItem key={mo} onClick={() => onAnswer({ month: mo })} className="px-2 py-2">
+                  <span className={cn("text-[14px]", meta.month === mo && "font-semibold text-canopy")}>
+                    {mo}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
-      {/* The finer questions, and they GROW rather than appearing. The first
-          version animated opacity and y on the row alone, so the panel's own
-          height stepped in one frame and the pills below jumped -- the owner:
-          "clicking on those pills doesn't animate the extension it just jumps
-          to the next thing shoul dbe smoothly."
-
-          Height is the one property this cannot do with transform alone: the
-          block genuinely takes up space it did not before, and translating it
-          would slide it over what is under it instead of making room. `height:
-          auto` measures once and tweens; `overflow-hidden` keeps the contents
-          from spilling while the box is shorter than they are. It is a 44px
-          block in a dialog, animated once per press, so this is nowhere near
-          the cost the transform-and-opacity-only rule exists to avoid. */}
-      <AnimatePresence initial={false}>
-        {dated && (
-          <m.div
-            key="finer"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.24, ease: EASE_OUT_SMOOTH }}
-            className="overflow-hidden"
+      <label
+        htmlFor="contribute-year"
+        className={cn(FLOAT_LABEL_BASE, active ? FLOAT_LABEL_UP : FLOAT_LABEL_REST)}
+      >
+        {/* The float itself is transform-only, per the material's own rule;
+            the TEXT swap is a crossfade, so "When was it taken?" becoming
+            "Filed under the 1970s" reads as the field answering rather than
+            as a word replaced. */}
+        <AnimatePresence mode="wait" initial={false}>
+          <m.span
+            key={says}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.14, ease: EASE_OUT_SMOOTH }}
+            className="block whitespace-nowrap"
           >
-          <div className="mt-2.5 flex items-center gap-2">
-            <label
-              htmlFor="contribute-year"
-              className="shrink-0 text-[14px] text-muted-foreground"
-            >
-              Exact year?
-            </label>
-            <input
-              id="contribute-year"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              autoComplete="off"
-              maxLength={4}
-              /* An example inside the decade that is lit, so the box shows
-                 the shape of the answer rather than a generic "YYYY". */
-              placeholder={meta.decade.startsWith("pre-") ? "1931" : `${meta.decade.slice(0, 3)}4`}
-              value={meta.year}
-              onChange={(e) =>
-                onAnswer({ year: e.target.value.replace(/\D/g, "").slice(0, 4), month: "" })
-              }
-              className={cn(
-                "w-[5.5rem] rounded-[var(--radius-input)] border border-border bg-transparent",
-                "px-3 py-1.5 text-[15px] tabular-nums text-foreground outline-none",
-                "transition-colors duration-150 focus:border-canopy",
-                "placeholder:text-muted-foreground/60"
-              )}
-            />
-            {hasYear && (
-              <Select
-                value={meta.month}
-                onValueChange={(v) => onAnswer({ month: v ?? "" })}
-              >
-                <SelectTrigger className="h-auto min-w-0 flex-1 py-1.5">
-                  <SelectValue placeholder="Month">
-                    {(v: string) => v || "Month"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {MONTHS.map((mo) => (
-                    <SelectItem key={mo} value={mo}>
-                      {mo}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-          </m.div>
-        )}
-      </AnimatePresence>
+            {says}
+          </m.span>
+        </AnimatePresence>
+      </label>
     </div>
   );
 }

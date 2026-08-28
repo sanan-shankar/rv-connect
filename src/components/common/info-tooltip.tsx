@@ -24,9 +24,18 @@ export function InfoTooltip({
   children,
   label = "More info",
   side = "top",
+  align = "start",
 }: {
   children: ReactNode;
   label?: string;
+  /** Which edge the note hangs from, and it should follow where the icon
+   *  IS. An icon inline in a sentence wants "start"; an icon parked in the
+   *  right corner of a box wants "end", because "start" there sends a 288px
+   *  panel off the right of a phone and the positioner shoves it back by
+   *  however much it overflowed. That shove is why the owner saw it as
+   *  "misplaced" and moving: its position was decided by collision rather
+   *  than by intent, so it landed somewhere different at every width. */
+  align?: "start" | "end";
   /** Which way the note opens. "top" is right for an icon on a row of text
    *  with a page below it; "bottom" is right for an icon in the top corner
    *  of a tall box, where opening upward means leaving the panel entirely
@@ -48,11 +57,22 @@ export function InfoTooltip({
         <Info className="h-[15px] w-[15px]" aria-hidden />
       </PopoverTrigger>
       <PopoverPortal>
-        <PopoverPositioner side={side} sideOffset={6} align="start">
+        <PopoverPositioner side={side} sideOffset={6} align={align}>
           <PopoverContent
             onMouseEnter={() => setOpen(true)}
             onMouseLeave={() => setOpen(false)}
-            className="w-64 p-3 text-[13px] leading-relaxed text-foreground"
+            /* 288px and balanced, and both numbers were measured rather than
+               picked. At 256px the contribute room's hint broke 189/218/91 --
+               a 127px spread and a runt last line, which the owner read as
+               "unevenly wrapped, it looks wonky". `text-wrap: balance` evens
+               any hint that lands here (the same sentence becomes 177/154/168
+               at every width from 208 to 272), and at 288 it needs only two
+               lines, 258/243, a 15px spread. Two even lines is the tidiest
+               shape this text has.
+
+               14px, not 13: this is a paragraph a member reads, and the small
+               type across this flow is what the owner called out. */
+            className="w-72 p-3 text-[14px] leading-relaxed text-balance text-foreground"
           >
             {children}
           </PopoverContent>
