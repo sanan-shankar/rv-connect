@@ -45,8 +45,7 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
   the answer to that prompt is no unless the owner says otherwise in the same breath.
 - **Git commits**: never include `Co-Authored-By`, model names, or any AI attribution. Plain
   conventional commit messages.
-- **150 words is the ceiling for a commit message**, subject line included, and it is absolute, not a
-  target to drift past. Most commits want less: a subject line and two or three sentences saying
+- **150 words is the HARD CEILING for a commit message**, subject line included, and it is absolute, NOT A TARGET TO DRIFT     PAST ACCIDENTALLY OR IGNORE. Most commits want less: a subject line and two or three sentences saying
   what changed and why. The body is for the reasoning a future `git blame` cannot recover — not a
   retelling of the diff, not a bulleted inventory of every touched file, not the session's narration.
   Going over needs a reason you can state out loud (a migration whose ordering must be recorded, a
@@ -186,6 +185,7 @@ for an ambiguous product or design call the specs do not already answer.
 | Typography, spatial polish, removing AI-slop | `/impeccable` (`/audit`, `/polish`, `/typeset`) |
 | Screenshotting authenticated pages | `.claude/skills/screenshot-auth/SKILL.md` |
 | Reviewing existing pages retroactively | `.claude/skills/ui-audit/SKILL.md` |
+| Tagging Collection photographs nobody filed | `.claude/skills/tag-photos/SKILL.md` |
 | A bug that survived two attempts | superpowers systematic debugging |
 | Writing a prompt, spec, plan or handover another session works from | `.claude/skills/writing-for-agents/SKILL.md` |
 

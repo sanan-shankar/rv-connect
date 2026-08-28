@@ -58,6 +58,8 @@ Full runbook in `docs/spec/demo.md`. These four are that pipeline.
 | `shot-svg.mjs` | Renders a static SVG to PNG. For illustration work without a dev server. |
 | `import-roster.mjs` | Consolidates the office roster CSV into the `RosterEntry` table, which is what the trust model matches a signup against. Dry by default; `--apply` writes. |
 | `set-password.mjs` | **Break glass.** Sets a password directly on one account from this laptop. It exists because deleting the password-less admin bypass (security audit C1) left no other way back in if the last admin is locked out. |
+| `tag-photos-pick.mjs` | Exports a batch of untagged Collection photographs into `.tagging/` as small JPEGs plus a manifest, so a session can look at them and say what they are. Read-only. `--limit N` (60), `--all` widens it past "no bucket", `--env .env.demo`. |
+| `tag-photos-apply.mjs` | Puts that session's `.tagging/verdicts.json` back onto the rows. **Dry by default**; `--apply` writes. Only ever fills a field that is empty, refuses a bucket outside the six, and leaves an undo log (`--undo <file> --apply`). The procedure both halves belong to is `.claude/skills/tag-photos/SKILL.md`. |
 | `email-mark.mjs` | Rasterises the app mark for use in emails. |
 | `build-app-icon.mjs` | Writes `public/images/brand/app-icon.svg` from `src/lib/hoopoe-geometry.ts`, so the shipped mark is the mascot's own curves and cannot drift from them. No dev server, no browser. |
 | `generate-icons.mjs` | Generates every raster app icon from the two canonical marks. Bakes Apple's edge light into the Android maskable icon and leaves the Apple one flat, because iOS and macOS light it themselves. |
