@@ -1,5 +1,72 @@
 # Progress Log
 
+## 2026-08-28 — the Collection is a river, and the controls are one line of words
+
+Collection rework phase 5 (spec sec. 6, 7 and 10). The owner set the problem and
+answered half of it himself: *"is the plan that I see a bunch of folders because that
+would, I guess, be the most organized... But also that is the most boring. Because if I
+click collection to see pictures, and many people aren't using this app that regularly,
+they just want to see some nice pictures."* And the constraint: *"it's not a file manager.
+It should still be a delightful image viewer and archive."*
+
+**Photographs first, always. Organisation is a lens over them, never a gate in front of
+them, and there is no folder screen at any point.** /collection opens straight onto
+justified rows. Everything else narrows what is already on screen, in place, with a
+cross-fade and no navigation.
+
+**The whole filter row is gone.** It was a full-width search field, a When dropdown, a
+Part of school dropdown and a Sort pill, and the owner's verdict was that it ate a row
+and that the pill-plus-dropdown pattern is "not like a 10 on 10 at anything so I don't
+want us to stick to it just because other places have it". What replaced it is one quiet
+line: the six buckets as words with a canopy underline that glides between them, and the
+count and the order as a sentence on the right. Search is an icon on the title line that
+opens into a field, which is the shared `<SearchPill>` the header has always had, now
+usable in a live controlled mode instead of copied.
+
+**Two dropdowns were deleted rather than restyled.** *Part of school* is free text, so at
+two thousand photographs its menu becomes two thousand near-duplicates -- the owner
+reasoned his own way to that during the brief -- and it is searched now, never filtered.
+*When* became the decade rail: a vertical index down the right-hand margin the 1600px
+column was wasting anyway, where each decade's mark is as long as its share of the
+archive. It says what shape the archive is at rest, without a click, and pressing a decade
+filters to it. Below 1280px it is the same words as a quiet scrolling line.
+
+**A fourth order, "Through time"**, sorts by when the photograph was TAKEN rather than
+when it was scanned, and turns the decades into sticky headings you scroll past. That is
+the foldering, inline, at the cost of no clicks -- and it needed one new thing in
+Postgres: `takenKey`, a generated column collapsing year, month and decade into one
+sortable integer (March 1978 -> 197803, "the 1970s" -> 197000, undated -> 0).
+
+**Six buckets replace fourteen.** People, Birds, Nature, Campus, School life, Other. The
+old list was drawn up under "the place, not people" and had nowhere to file a class
+photograph, which is why the owner's D2 made it wrong rather than short. Other is a
+sensor rather than a bin: an unrecognised value lands there, where we are looking, instead
+of vanishing. The contribute dialog now asks for them, which is the first small version of
+the room spec sec. 8.2 wants.
+
+**Twenty thousand photographs.** Offset pages are gone: a keyset cursor on
+`(takenKey, id)` or `(createdAt, id)` is flat at any depth where `skip: 9600` was not, and
+it also closes the correctness hole the old code documented rather than fixed. Batches
+arrive on an observer at the foot, 48 at a time. Windowing is `content-visibility` on each
+decade band past the first, which is the browser's own and needs no measured rows -- and
+a decade boundary is the only seam where breaking a justified row is correct. Search stays
+an unanchored ILIKE and is served by trigram GIN indexes rather than the tsvector spec
+sec. 10 proposed, because someone half-remembering a caption types a fragment and full-text
+search stems.
+
+**Two bugs fixed on the way.** A newly contributed photograph appeared only after a
+reload (#15): the page did refresh, but the river was seeded from the prop once and never
+listened again. And a link to one photograph opened the archive without it -- writing the
+view into the address bar fired on mount, rewrote /collection/<id> to /collection, and
+Next reads a `replaceState` as a navigation. Pinned in `e2e/collection-permalink.spec.ts`.
+
+**`/lab/collection`** is where to judge any of this: the real components against 240
+made-up photographs, because the database holds two and both say "asdf".
+
+`npm run check` green, 85/85. `npm run visual` 23/23 with the two Collection baselines
+deliberately moved (read the diff first: it is the dropdown row becoming the bucket line).
+Measured at 1440x900 and 390x844.
+
 ## 2026-08-28 — a Turnstile token is now good only on the host it was solved on
 
 The owner could not sign in to any past deployment: *"it says we weren't able to identify

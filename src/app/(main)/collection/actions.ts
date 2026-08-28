@@ -15,7 +15,14 @@ import { countImageFrames, sharpImage, storedResizeBox } from "@/lib/image";
 import { purgeImageKey, purgeImageUrls, putAllOrNone } from "@/lib/image-purge";
 import { drainPendingImagePurges } from "@/lib/account-purge";
 import { escapeLike, insensitive } from "@/lib/db-text";
-import { takenLabel } from "@/lib/collection";
+import {
+  afterCursor,
+  decodeCursor,
+  encodeCursor,
+  orderByFor,
+  type RiverOrder,
+} from "@/lib/river-cursor";
+import { bucketsOf, takenLabel, takenShort } from "@/lib/collection";
 import {
   MAX_UPLOAD_BYTES,
   MAX_PHOTOS_PER_ACCOUNT,
@@ -37,23 +44,16 @@ import { rateLimit } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
 import { isForeignKeyViolation, isUniqueViolation } from "@/lib/prisma-errors";
 
-const PAGE_SIZE = 24;
-
-/**
- * Negative or non-integer page numbers, clamped before they reach Prisma.
+/* How many photographs a batch of the river holds.
  *
- * `skip` will not take a negative number: `loadPhotos({ page: -1 })` threw
- * rather than returning a page (audit Low 79). A page number arrives from a
- * client call, so it is input, and input gets bounded.
- *
- * Not exported: every export from a "use server" file must be an async Server
- * Action, and Next refuses the module outright otherwise.
- */
-function clampPage(page: unknown): number {
-  const n = Number(page);
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.floor(n));
-}
+ * 24 was a page of masonry; the river is justified rows across a column that
+ * reaches 1600px, where 24 photographs is about five rows and less than one
+ * screen -- so the observer at the foot would fire again the moment its batch
+ * landed, and again after that. 48 is roughly a screen and a half on a laptop
+ * and about four screens on a phone, which is the shape the owner described on
+ * his reference gallery: "only when you reach the bottom, does it load the
+ * next batch." (That gallery held 35 of ~300 in the DOM.) */
+const PAGE_SIZE = 48;
 
 export type PhotoData = {
   id: string;
@@ -62,6 +62,8 @@ export type PhotoData = {
   width: number;
   height: number;
   caption: string | null;
+  /** The six buckets this photograph is filed under, already mapped off the
+   *  stored `subject` column and de-duplicated (src/lib/collection.ts). */
   subject: string[];
   area: string | null;
   era: string;
@@ -71,6 +73,11 @@ export type PhotoData = {
    *  viewer shows this and never `createdAt`, which is the day somebody
    *  scanned it (brief #21). */
   takenLabel: string | null;
+  /** The same fact at tile length -- "1978", "1970s", or nothing. The owner
+   *  on the hover overlay: "I don't think we need to show the caption and the
+   *  number of likes. We could just show the person. The person and the year
+   *  maybe, that would be good." */
+  takenShort: string | null;
   approved: boolean;
   loveCount: number;
   loved: boolean;
@@ -97,11 +104,16 @@ function shape(
     width: p.width,
     height: p.height,
     caption: p.caption,
-    subject: p.subject ? p.subject.split(",").filter(Boolean) : [],
+    /* The six buckets, resolved here rather than at each reader: the column
+       can still hold a value from the fourteen-item list it used to carry, and
+       four of those collapse onto Nature -- so a photograph filed
+       "hills,flora" must arrive as ONE Nature, not two. */
+    subject: bucketsOf(p.subject),
     area: p.area,
     era: p.era,
     freeTags: p.freeTags ? p.freeTags.split(",").map((t) => t.trim()).filter(Boolean) : [],
     takenLabel: takenLabel(p),
+    takenShort: takenShort(p),
     approved: p.approved,
     loveCount: p._count.loves,
     loved: p.loves.length > 0,
@@ -169,6 +181,9 @@ export async function contributePhoto(formData: FormData) {
   const parsed = parsePhotoMeta({
     caption: (formData.get("caption") as string) || undefined,
     area: (formData.get("area") as string) || undefined,
+    // One field per bucket, so the six arrive as a real list rather than as a
+    // string this side has to agree with the form about how to split.
+    buckets: formData.getAll("buckets").map(String).filter(Boolean),
     era: (formData.get("era") as string) || undefined,
     datePrecision: (formData.get("datePrecision") as string) || undefined,
     photoYear: yearRaw ? Number(yearRaw) : undefined,
@@ -288,6 +303,7 @@ export async function contributePhotoDirect(input: {
   key: string;
   caption?: string;
   area?: string;
+  buckets?: string[];
   era?: string;
   datePrecision?: string;
   photoYear?: number;
@@ -339,6 +355,7 @@ export async function contributePhotoDirect(input: {
   const parsed = parsePhotoMeta({
     caption: input.caption,
     area: input.area,
+    buckets: input.buckets,
     era: input.era,
     datePrecision: input.datePrecision,
     photoYear: input.photoYear,
@@ -465,105 +482,130 @@ export async function contributePhotoDirect(input: {
   return { success: true, autoApprove, notice };
 }
 
-/**
- * Build the Prisma `where` for the Collection gallery from a set of filters.
- * Subject and the bird/species free-tag picker were removed from upload
- * (2026-07-18 rework), so neither gets a dropdown here; caption search still
- * ORs the legacy `freeTags` column so older bird-tagged photos stay findable
- * by typing (filters-rework.md sec 3.2).
- */
-function buildCollectionWhere(opts?: { area?: string; era?: string; search?: string }) {
+/* ------------------------------------------------------------------ *
+ *  The river's query.
+ *
+ *  Three filters and one order, and the shape of each is an argument the
+ *  brief settled rather than a convenience.
+ *
+ *  BUCKET is the only closed vocabulary in here (spec sec. 7.1). It reads a
+ *  comma-joined column with `contains`, which is exact because no one of
+ *  the six values is a substring of another -- checked, and worth
+ *  rechecking the day a seventh is added.
+ *
+ *  ERA is the decade rail: a filter as well as an index, so pressing 1978
+ *  on the rail narrows the river to it rather than merely jumping there.
+ *
+ *  SEARCH reads everything anybody wrote in prose -- the caption, the Where
+ *  line, the legacy free tags and the contributor's name -- and NOTHING
+ *  written in prose is ever offered as a dropdown. That is the whole trade
+ *  the owner reasoned his own way to during the brief: "it is kind of
+ *  easier for people to just write big banyan tree than it is to scroll and
+ *  find the big banyan tree tag." The unanchored ILIKE this produces is
+ *  served by trigram indexes, not scanned (see the 2026-08-28 migration).
+ * ------------------------------------------------------------------ */
+
+export type { RiverOrder };
+
+export type RiverFilters = {
+  bucket?: string;
+  era?: string;
+  search?: string;
+  order?: RiverOrder;
+};
+
+/** As long a search as anybody means. Bounded here as well as in
+ *  `riverFiltersFrom`, because an action is callable directly and a
+ *  hundred-kilobyte `contains` is a slow query for nothing. */
+const MAX_SEARCH = 100;
+
+function buildCollectionWhere(opts?: RiverFilters) {
+  const search = opts?.search?.slice(0, MAX_SEARCH).trim();
   return {
     approved: true,
     isHidden: false,
-    // `area` is free text (upload no longer offers a fixed picklist), so this
-    // is a `contains`, not equality -- matches both the option the person
-    // picked from the live distinct-value list and anyone who free-typed a
-    // near variant.
-    ...(opts?.area ? { area: { contains: escapeLike(opts.area), ...insensitive } } : {}),
+    ...(opts?.bucket ? { subject: { contains: escapeLike(opts.bucket), ...insensitive } } : {}),
     ...(opts?.era ? { era: opts.era } : {}),
-    ...(opts?.search
+    ...(search
       ? {
           OR: [
-            { caption: { contains: escapeLike(opts.search), ...insensitive } },
-            { freeTags: { contains: escapeLike(opts.search), ...insensitive } },
+            { caption: { contains: escapeLike(search), ...insensitive } },
+            // "Part of school", which stopped being a dropdown and became
+            // part of what search reads (spec sec. 7.2, brief #30).
+            { area: { contains: escapeLike(search), ...insensitive } },
+            { freeTags: { contains: escapeLike(search), ...insensitive } },
+            { uploader: { name: { contains: escapeLike(search), ...insensitive } } },
           ],
         }
       : {}),
   };
 }
 
-export async function loadPhotos(opts?: {
-  page?: number;
-  area?: string;
-  era?: string;
-  search?: string;
-  sortBy?: "newest" | "oldest" | "loved" | "wander";
-}) {
+/** How many photographs sit in each decade under the CURRENT bucket and
+ *  search. The rail's marks are drawn in proportion to these, so it is a
+ *  picture of the archive's own shape rather than a menu -- and it has to
+ *  answer the question the person is actually asking, or pressing a decade
+ *  with twelve beside it returns nothing. */
+export type DecadeCount = { era: string; count: number };
+
+/** What the river hands back. `total` and `decades` ride only on the first
+ *  page: neither can change while paging through one query, and counting
+ *  twenty thousand rows again per page is the second thing offset
+ *  pagination was making the database do for nothing. */
+export type RiverPage = {
+  photos: PhotoData[];
+  nextCursor: string | null;
+  total?: number;
+  decades?: DecadeCount[];
+};
+
+export async function loadPhotos(
+  opts?: RiverFilters & { cursor?: string | null }
+): Promise<RiverPage> {
   const session = await auth();
-  if (!session?.user?.id) return { photos: [] as PhotoData[], hasMore: false, total: 0 };
+  if (!session?.user?.id) return { photos: [], nextCursor: null, total: 0, decades: [] };
 
-  const page = clampPage(opts?.page ?? 0);
-  const where = buildCollectionWhere(opts);
+  const order: RiverOrder = opts?.order ?? "newest";
+  const filters = buildCollectionWhere(opts);
+  const cursor = decodeCursor(order, opts?.cursor);
+  const first = cursor === null;
+  const where = { ...filters, ...afterCursor(order, cursor) };
+  const skip: number = cursor && "offset" in cursor ? cursor.offset : 0;
 
-  // "A wander": a gentle shuffle of a bounded set, single page (no load-more).
-  if (opts?.sortBy === "wander") {
-    const [rows, total] = await Promise.all([
-      prisma.photo.findMany({
-        where,
-        include: includeFor(session.user.id),
-        orderBy: { createdAt: "desc" },
-        take: 60,
-      }),
-      prisma.photo.count({ where }),
-    ]);
-    for (let i = rows.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [rows[i], rows[j]] = [rows[j], rows[i]];
-    }
-    return { photos: rows.map((p) => shape(p, session.user.id)), hasMore: false, total };
-  }
-
-  /* Every sort ends in `id`, which is unique.
-   *
-   * These are offset pages (`skip: page * PAGE_SIZE`), so each page re-runs the
-   * whole sort and takes a slice of it. A sort that leaves rows tied therefore
-   * has no defined answer to "which of these came 24th" -- and Postgres is free
-   * to answer differently each time. "Most loved" ties almost everything (most
-   * photos have nought to two loves), so page 2 could hand back rows page 1 had
-   * already shown and skip others entirely; the client appends keyed by id, so
-   * the duplicates collided as React keys too (audit B-122). `createdAt` breaks
-   * most ties and `id` breaks the rest, which makes the full ordering total and
-   * every page a real slice of one list.
-   */
-  const orderBy =
-    opts?.sortBy === "oldest"
-      ? [{ createdAt: "asc" as const }, { id: "asc" as const }]
-      : opts?.sortBy === "loved"
-        ? [
-            { loves: { _count: "desc" as const } },
-            { createdAt: "desc" as const },
-            { id: "desc" as const },
-          ]
-        : [{ createdAt: "desc" as const }, { id: "desc" as const }];
-
-  const [rows, total] = await Promise.all([
-    prisma.photo.findMany({
-      where,
-      include: includeFor(session.user.id),
-      orderBy,
-      take: PAGE_SIZE + 1,
-      skip: page * PAGE_SIZE,
-    }),
-    prisma.photo.count({ where }),
-  ]);
+  const rows = await prisma.photo.findMany({
+    where,
+    include: includeFor(session.user.id),
+    orderBy: orderByFor(order),
+    take: PAGE_SIZE + 1,
+    ...(skip ? { skip } : {}),
+  });
 
   const hasMore = rows.length > PAGE_SIZE;
   const trimmed = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
-  return { photos: trimmed.map((p) => shape(p, session.user.id)), hasMore, total };
+  const last = trimmed[trimmed.length - 1];
+  const nextCursor =
+    hasMore && last ? encodeCursor(order, last, skip + PAGE_SIZE) : null;
+
+  const page: RiverPage = {
+    photos: trimmed.map((p) => shape(p, session.user.id)),
+    nextCursor,
+  };
+
+  if (first) {
+    const [total, byEra] = await Promise.all([
+      prisma.photo.count({ where: filters }),
+      prisma.photo.groupBy({
+        by: ["era"],
+        where: filters,
+        _count: { era: true },
+      }),
+    ]);
+    page.total = total;
+    page.decades = byEra.map((g) => ({ era: g.era, count: g._count.era }));
+  }
+
+  return page;
 }
-
-
 
 /** One photograph, for a link straight to it. Same visibility rules as the
  *  grid: a hidden photograph is nothing to anybody, and one still awaiting
@@ -711,8 +753,13 @@ export async function declinePhoto(photoId: string) {
     data: {
       userId: erased.uploaderId,
       type: "admin",
+      /* No longer "this space is for the place itself": the owner widened the
+         frame to the school's whole visual memory, people included (D2), so
+         the old line refused a class photograph on grounds that stopped being
+         true. There is no single reason a photograph is declined any more, so
+         this does not invent one. */
       message:
-        "A photo you shared was not added to the Collection. This space is for the place itself; please share people-shots on the feed or your profile instead.",
+        "A photo you shared was not added to the Collection. If you think that was a mistake, message the admins and we will take another look.",
       link: "/collection",
     },
   });

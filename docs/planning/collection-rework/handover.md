@@ -14,19 +14,21 @@
 3. **Skim [`prior-art.md`](prior-art.md)** — how Instagram, X, Flickr and Google Photos
    solved these same problems. Read it before disagreeing with a recommendation; the
    disagreement may already be answered.
-4. **Then start spec §13, phase 5: the Collection page.** Phases 1 to 4 are done and
+4. **Then start spec §13, phase 6: contributing.** Phases 1 to 5 are done and
    committed — dimensions are stored, one photograph in a column has one rule, several
-   photographs together are justified rows everywhere, and the viewer is rebuilt. What is
-   left is the Collection page itself (§6) and contributing (§8), **the two most OPEN
-   sections in the whole spec**, and the owner has said so in the plainest terms: *"just be
-   fresh and creative and create something splendid."*
+   photographs together are justified rows everywhere, the viewer is rebuilt, and the
+   Collection page is a river with six buckets, a decade rail and keyset paging.
 
-   Phase 5 is the river, the buckets on the title line, search, the time scrubber, keyset
-   pagination and windowing. It is also where the taxonomy in §7.1 lands, which the viewer
-   is already drawing (it shows whatever buckets a photograph carries, so the day `SUBJECTS`
-   is replaced the viewer follows with no change). Read §6 and §7 before anything.
+   What is left is **§8, the most OPEN section in the whole spec**, and the owner has
+   asked for it twice now, most recently on 2026-08-28: *"the contribute panel is still
+   not nice at all. like when you click on it it's very unappealing. let's think of
+   something totally different and just dopamine inducing when you look at it."* Read §8
+   in full, and F34 below for what the taxonomy work already put in place.
 
-   If you would rather do a different phase first, say so and do it — §13's order is
+   Phase 6 is bulk upload, the contribute ROOM (not a dialog), the batch questions, the
+   LLM suggestion pass, the crop handle and the trusted-contributor controls.
+
+   If you would rather do a different part first, say so and do it — §13's order is
    RECOMMENDED, not LOCKED.
 
 **Operational context is spec §15** — repo, branch, the gate, screenshots, the test account,
@@ -143,10 +145,17 @@ that rework.
         `/collection/[id]` reduced to the route. Catch-up photographs open too (#36, #41),
         which was the last surface where a photograph was not clickable. See D22 to D25 and
         F30 to F33.
-  - [ ] **Phase 5 — the Collection page. START HERE.** · **Phase 6** contributing.
-        Read spec §6 and §8 before starting either; they are the two most open sections in
-        the whole campaign and the owner has said so in the plainest terms. Nothing is
-        blocked: the layout work and the viewer are both done.
+  - [x] **Phase 5 — the Collection page**, session 5, 2026-08-28. The river, the six
+        buckets on one line of words, the decade rail that replaced the When dropdown,
+        search on the title line, "Through time" with sticky decade headings, keyset
+        pagination, batched loading and `content-visibility` windowing. The Part-of-school
+        dropdown is deleted, not restyled. `/lab/collection` is where to judge it: 240
+        made-up photographs, because the database holds two. See D26 to D31 and F34 to F39.
+  - [ ] **Phase 6 — contributing. START HERE.** Spec §8, the most open section in the
+        campaign, and the owner has now asked for it twice in his own words (#57, and
+        2026-08-28: *"the contribute panel is still not nice at all... let's think of
+        something totally different and just dopamine inducing when you look at it"*).
+        Nothing is blocked.
 - [ ] **Close-out**: delete `/lab/crop`, `public/lab/crop/` and the registry row (its
       "several at once" mode now renders the SHIPPED components beside what each surface did
       before, so it is worth keeping until the owner has looked at phase 3);
@@ -321,6 +330,42 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   R2 drain after the commit -- exists once rather than twice. `Photo` is not on the demo's
   `ALLOWED_WRITE_MODELS`, so the demo's default-deny already covers the new action and no
   closed list needed an entry.
+
+- **D26. Photographs first; organisation is a lens, never a gate.** Mine, and it is the
+  answer to the owner's own #42/#44. `/collection` opens on the river; there is no folder
+  screen anywhere and every control narrows what is already on the screen, in place, with a
+  cross-fade rather than a navigation.
+- **D27. The whole filter row is deleted, not restyled.** A full-width search field, a When
+  dropdown, a Part of school dropdown and a Sort pill become ONE line: the six buckets as
+  words with a canopy underline that glides between them, and the count and the order as a
+  sentence on the right. Search is an icon on the title line -- the shared `<SearchPill>`,
+  extended with a live controlled mode rather than copied. This is #29 and #32 answered by
+  subtraction.
+- **D28. Two dropdowns are GONE rather than prettier, and each for its own reason.**
+  *Part of school* is free text, so its menu heads for two thousand near-duplicates (#30,
+  the owner's own reasoning); it is searched now. *When* became the decade rail, which is
+  better than the dropdown at the thing a dropdown is for: nine marks whose length is each
+  decade's share of the archive, so it says what shape the archive IS at rest, with no
+  click. Press one to filter. Below 1280px it is the same words as a scrolling line.
+  **Worth telling the owner plainly**: a filter he called "definitely useful" no longer
+  has a dropdown. The capability is not gone, the mechanism is.
+- **D29. The rail is a filter, not a scrubber, and that is honesty rather than
+  timidity.** Google Photos' scrubber maps scroll position to date. The river is keyset
+  paginated, so the rows past the current page do not exist in the browser and a scrubber
+  would be inventing them. Pressing a decade asks the server, which cannot lie. Revisit if
+  the archive is ever fully materialised client-side, which it should not be.
+- **D30. A fourth order, "Through time", and one new generated column.** Newest, Oldest and
+  Most loved are all sorts of the UPLOAD log, which is the wrong spine for an archive. The
+  fourth sorts by when the photograph was TAKEN and turns the decades into sticky headings
+  you scroll past -- the foldering the owner wanted (#45), inline, at the cost of no clicks.
+  It needed `Photo.takenKey`: year * 100 + month, collapsed from three columns at three
+  precisions, GENERATED ALWAYS in Postgres. Undated is 0, not NULL, so it sorts last with no
+  NULLS clause and the keyset cursor stays a two-column comparison.
+- **D31. Six buckets, and the column keeps its old name.** People · Birds · Nature · Campus
+  · School life · Other, replacing the fourteen (spec §7.1). The Postgres column is still
+  `subject`: one database serves production and local dev, so renaming it breaks every
+  Collection query in production until the next deploy lands, and legibility does not buy
+  an outage window. `bucketsOf()` maps on read; the migration maps the rows.
 
 ## Findings from reading the code (2026-08-26, session 1)
 
@@ -651,6 +696,61 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   counter), but its own specimens are 800-1300px, so the room CANNOT show what edge to edge
   looks like on a laptop -- judge that on `/collection` or on a Round, where the files are
   the real ones. The fixture set spec §12 asks for is still owed and is now overdue twice.
+- **F34. Other has to be a real destination in code, or it is a hole.** The spec says
+  Other is a sensor rather than a bin. That only works if an unrecognised value LANDS
+  there: the first version of `bucketsOf` dropped anything it did not know, so a photograph
+  carrying a value from the demo's own seeds would have belonged to no bucket at all and
+  shown up in no view -- invisible rather than flagged. It reads as Other now, which is the
+  same answer the migration writes into the column, and a test says the two agree.
+- **F35. `history.replaceState` is a NAVIGATION to Next, and that broke every shared
+  link.** The river writes the view it is showing into the address bar as you filter, so a
+  bucket or a decade is a link. On `/collection/<id>` -- the same page with the viewer
+  already open -- that write fired on mount, rewrote the URL to `/collection`, and Next
+  re-rendered the OTHER route, which has no photograph to open. A shared link landed on the
+  archive with the thing it named nowhere in sight, and there was no error anywhere. The
+  guard is a comparison against the filters the page was ASKED for, not a ref latched on the
+  first run: a ref is defeated by StrictMode's double-invoked mount effect in development,
+  which is exactly how the first version let the write through. Pinned in
+  `e2e/collection-permalink.spec.ts`.
+- **F36. `tsc --noEmit` will report a file clean that a cold run fails.** `tsconfig.json`
+  has `incremental: true` and a tsbuildinfo in `node_modules/.cache`, so a file is only
+  re-checked when its own dependencies change -- and `useAdminAct` typed its callback as
+  `{ error?: string } | void`, a WEAK type that TypeScript refuses from any source sharing
+  none of its properties. Every action returning `{ success: true }` on its happy path was
+  a real error at that call site, and `npm run check` had been reporting TypeScript clean
+  for however long, because the caller changes far less often than the actions it calls.
+  **Twenty minutes went into thinking my own change had caused it.** If a type error
+  appears and disappears between runs, delete `node_modules/.cache/tsconfig.tsbuildinfo`
+  before believing either answer.
+- **F37. Trigram beats full-text here, and it is one line either way.** Spec §10 asked for
+  a tsvector column and Postgres full-text search. The copy argues against it: full-text
+  stems and tokenises, so it answers "banyan" and not "bany", and somebody half-remembering
+  a caption types the fragment. Three `pg_trgm` GIN indexes serve the unanchored ILIKE the
+  query already writes, need no new column, no trigger and no query change, and pg_trgm was
+  already installed in this database (in the `extensions` schema, so the operator class
+  wants qualifying).
+- **F38. Windowing and justified rows fight, and the decade heading is the truce.**
+  `content-visibility: auto` is the browser's own windowing and needs no measured rows,
+  which is what D16 ruled a virtualiser out for. But it can only be applied to a CHUNK, and
+  chopping one continuous river into chunks breaks a justified row at every seam. A decade
+  band is a seam that already ends its rows, so the windowing rides on those and on nothing
+  else -- and never on the first band, which is the largest thing painted. In the other
+  three orders there are no bands and so no windowing, only batched loading. Say so rather
+  than implying the archive is windowed everywhere.
+- **F39. There is finally something to look at, and it is `/lab/collection`.** 240
+  photographs dealt from the eleven real shapes in `/lab/crop/_specimens.ts`, across nine
+  decades weighted the way an archive actually fills (mostly recent, a third undated), six
+  buckets and twelve names. It renders the REAL components; only the archive is invented.
+  Two things it cost: the fixture must be deterministic or the room cannot be screenshotted
+  twice and compared, and the obvious `Math.sin` hash for that is a trap -- its precision is
+  not specified by the language, so a server and a browser may disagree in the last bits and
+  every value here is immediately floored into an index. Integer mixing instead, and
+  remember `^` in JavaScript answers a SIGNED 32-bit integer: forgetting one `>>> 0` made
+  half the values negative and collapsed nine decades into three.
+  **`/lab/crop`'s specimens are now shared.** When that room is retired its
+  `_specimens.ts` and the eleven `public/lab/crop/shape-*.webp` files MOVE somewhere
+  shared rather than going with it -- spec §12 has been asking for exactly this fixture set
+  since the campaign opened, and it exists now.
 - **F7. A concurrent session is editing this area.** `src/app/(main)/collection/page.tsx`
   changed on disk mid-session (server-side first-page fetch added, `firstPage` prop passed
   to `CollectionClient`). Per CLAUDE.md, work around other sessions' edits, never stash or
@@ -666,24 +766,24 @@ reading the brief** — the wording in the brief carries nuance this table does 
 
 | # | Ask | Status |
 |---|---|---|
-| 1 | Scale to 20,000 images (and by implication beyond) | open |
+| 1 | Scale to 20,000 images (and by implication beyond) | **mostly** — phase 5: keyset paging, trigram search, indexes, `content-visibility` windowing in time order (F38). The R2 derivative ladder (spec §4) is still owed |
 | 2 | Clarify whether images are being billed through Vercel; "I don't want to be billed by myself for images" | **answered** — F1 |
-| 3 | All forms of categorisation, filtering, extremely easy navigation | open |
+| 3 | All forms of categorisation, filtering, extremely easy navigation | **done** — phase 5: six buckets, the decade rail, one search box, four orders |
 | 4 | Year should not be the primary organising axis | decided (his) |
-| 5 | Buckets floated: people, class photos, nature, birds, black-and-white (he notes it overlaps), "how things looked at a certain time" | open — he is unsure, wants a proposal |
-| 6 | Do we need tags at all? He argues both sides and does not settle it | open — **needs a designed answer, not a question back** |
+| 5 | Buckets floated: people, class photos, nature, birds, black-and-white (he notes it overlaps), "how things looked at a certain time" | **decided** — phase 5, the six in D31. His to overrule |
+| 6 | Do we need tags at all? He argues both sides and does not settle it | **answered** — no free tags; six buckets browse, everything in prose is searched |
 | 7 | An easy workflow for uploading *and* tagging | open |
 | 8 | A description box per image, but he cannot expect people to fill it | open |
 | 9 | 70–80% of images expected via bulk upload | context |
 | 10 | **Bulk upload must be supported** | open — F5, does not exist |
-| 11 | Current filtering is "extremely trash" | open |
+| 11 | Current filtering is "extremely trash" | **done** — phase 5, the whole row is deleted (D27) |
 | 12 | A year tag on photos is good | exists, keep |
 | 13 | "Part of school" wording: maybe rename to notes / location; caption and description overlap | open |
 | 14 | "When" must be present; the year → month, or decade-if-unsure fallback is "pretty smart, actually" | **keep as is** |
-| 30 | "Part of school" is free text and will reach ~2,000 distinct values at 2,000 photos, making its dropdown unusable; fold it into the main search instead | open — he reasoned to this himself, it is close to a decision |
-| 31 | Keep newest / oldest / most loved | decided |
-| 32 | The pill-plus-dropdown filter pattern is "not a 10 on 10"; do not reuse it just because it is used elsewhere; keep thinking creatively | open — a design instruction |
-| 29 | The search bar is too big and the controls eat a whole row; consider moving them up in line with the title | open |
+| 30 | "Part of school" is free text and will reach ~2,000 distinct values at 2,000 photos, making its dropdown unusable; fold it into the main search instead | **done** — phase 5, the dropdown is deleted and search reads it |
+| 31 | Keep newest / oldest / most loved | **done** — all three kept, "A wander" gone, "Through time" added (D30) |
+| 32 | The pill-plus-dropdown filter pattern is "not a 10 on 10"; do not reuse it just because it is used elsewhere; keep thinking creatively | **done** — phase 5. Not one pill or dropdown survives on this page except the order menu |
+| 29 | The search bar is too big and the controls eat a whole row; consider moving them up in line with the title | **done** — phase 5. Search is an icon on the title line; the controls are one line of words |
 | 23 | Study how big archives and photo libraries solve this (he names Imperial's archive); lift from prior art rather than reinventing | **answered** — `prior-art.md` |
 | 24 | The school photographer cannot be invited yet: cannot upload one by one, 100 photos would flood and get lost, cannot tag each one | the motivating use case |
 | 25 | LLM-assisted tagging from descriptions and images, as was done for directory professions | open — he proposed it, likes it |
@@ -693,7 +793,7 @@ reading the brief** — the wording in the brief carries nuance this table does 
 
 | # | Ask | Status |
 |---|---|---|
-| 15 | A newly uploaded photo does not appear until the page is reloaded | open — **bug** |
+| 15 | A newly uploaded photo does not appear until the page is reloaded | **fixed** — phase 5. The route did refresh; the river was seeded from the prop once and never listened again |
 | 17 | Clicking a photo did not open the viewer the first time ("this doesn't even load... Okay. Loaded") | **fixed** — phase 4. It was the `dynamic()` import; every tile now warms it on pointer enter and on focus, as the post card already did |
 | 21 | The viewer shows the *upload* date, not the date the photo was taken | **fixed** — phase 4, `takenLabel` in `src/lib/collection.ts`. "May 1978", "1978", "the 1970s", or nothing |
 | 36 | Catch-up images cannot be clicked to expand | **fixed** — phase 4. A wall photograph opens the viewer on the WHOLE wall |
@@ -715,7 +815,7 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | 18 | Edge to edge; more immersive; a better photo-to-whitespace ratio. He recalls Dropbox or Google Drive doing it "all the way" | **done** — phase 4, with the one limit in D22 (never enlarged past its own file) |
 | 19 | The caption panel is the worst of it: low frame rate, a bottom bar that pops up, dismissible only by hitting one small exact pill. "It's like the worst design ever" | **done** — phase 4. The panel is deleted; the caption is always on screen and the whole of it is the control. D23 |
 | 20 | The "2 of 2" counter may not be needed, at least in the Collection | **done** — phase 4. Gone in the Collection (`showCount={false}`), kept where a count is a real fact: a post, a letter, a Catch-up wall |
-| 21 | Show the person and the date the photo was taken | open |
+| 21 | Show the person and the date the photo was taken | **done** — phase 4 in the viewer, phase 5 on the tile |
 | 22 | `/collection/[id]` probably should not exist; fold the heart and the tags into the viewer. "That another page isn't even pretty" | **done** — phase 4. The route renders the grid with the viewer open on that photograph; the page design is deleted, and `photo-love-button.tsx` and `photo-moderation-control.tsx` went with it |
 | 27 | The caption and its surroundings can be much prettier | **done** — phase 4, and **his to judge**. Two lines on a warm-ink scrim, the buckets and the Where line one press behind them |
 | 51 | The reference viewer is simple, intuitive, few elements, though its animations are choppy; ours will have more elements | reference |
@@ -725,10 +825,10 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | # | Ask | Status |
 |---|---|---|
 | 33 | Feed images stretch on widescreen monitors; low-resolution images go grainy; there is no real limit on feed width | **fixed** — the 900px cap (D10) and the 500px ceiling (D15) |
-| 34 | Automatic cropping removes the part that matters | open — F3 |
-| 37 | Multi-image layouts are more complicated and he does not know whether the logic works | open |
-| 38 | Avoid a wall of black bars, but find the right way to crop | open — **D6, the gating decision** |
-| 39 | Consider rules for how wide the feed may be | open — **now a control in `/lab/crop`**, and F8 says it is half the answer |
+| 34 | Automatic cropping removes the part that matters | **fixed** — phases 2 and 3. The uploader override (spec §9) is still owed, in phase 6 |
+| 37 | Multi-image layouts are more complicated and he does not know whether the logic works | **done** — phase 3 justified rows, and the 2026-08-28 carousel rule: every photograph is drawn exactly as it would be posted alone |
+| 38 | Avoid a wall of black bars, but find the right way to crop | **done** — D6, D19, and the carousel frame that follows the photograph |
+| 39 | Consider rules for how wide the feed may be | **done** — the 900px cap (D10) and the 500px ceiling (D15) |
 | 40 | **Thorough testing across every aspect ratio, and combinations of ratios within one post**, across feed, catch-ups and Collection | **partly** — every ordered pair and triple of nine ratios at all three column widths is asserted in `photo-layout.test.mjs`. The fixture set of real photographs (spec §12) is still owed, F26 |
 | 41 | Every image clickable, opening in our viewer | **done** — phase 4. Catch-ups were the last surface; the feed, letters and the Collection already were |
 
@@ -736,21 +836,21 @@ reading the brief** — the wording in the brief carries nuance this table does 
 
 | # | Ask | Status |
 |---|---|---|
-| 42 | What do you see on a fresh click? Folders would be most organised but "the most boring" | open — **the second-biggest design question** |
-| 43 | Many people use the app rarely and just want to see nice pictures without navigating | open — framing |
-| 44 | Perhaps show pictures on the landing page with an option to go deeper | open — his own suggestion |
-| 45 | Any foldering must be beautiful, with amazing transitions and incredible attention to detail | open |
+| 42 | What do you see on a fresh click? Folders would be most organised but "the most boring" | **decided** — D26. Photographs, immediately; no folder screen anywhere |
+| 43 | Many people use the app rarely and just want to see nice pictures without navigating | **done** — the river is the landing state; nothing to navigate |
+| 44 | Perhaps show pictures on the landing page with an option to go deeper | **done** — pictures first, buckets and decades are the way deeper |
+| 45 | Any foldering must be beautiful, with amazing transitions and incredible attention to detail | **done** — "Through time" folders inline under sticky decade headings; the bucket underline glides; the river cross-fades |
 | 46 | Use the screen properly. Letters is "quite a horrible use of space": one column, about three posts, too much whitespace inside and outside the tiles | open — **note this indicts Letters too** |
-| 47 | Must not look corporate, or like Google Drive / OneDrive / Dropbox. "It's not a file manager. It should still be a delightful image viewer and archive" | open — constraint |
-| 48 | Which buckets to keep | open |
-| 16 | Tile hover currently shows caption + love count + person; he wants person + year instead | open |
-| 26 | The tag pills are "okay... not too pretty" | open |
+| 47 | Must not look corporate, or like Google Drive / OneDrive / Dropbox. "It's not a file manager. It should still be a delightful image viewer and archive" | **his to judge** — phase 5. No folders, no boxes, no pills; `/lab/collection` |
+| 48 | Which buckets to keep | **decided** — D31 |
+| 16 | Tile hover currently shows caption + love count + person; he wants person + year instead | **done** — phase 5, exactly that and nothing else |
+| 26 | The tag pills are "okay... not too pretty" | **done** — there are no filter pills left; the buckets are words on a line |
 
 ### From the reference gallery
 
 | # | Ask | Status |
 |---|---|---|
-| 49 | Lazy loading in batches as you reach the bottom | open — F2 confirms; current Collection paginates at 24 |
+| 49 | Lazy loading in batches as you reach the bottom | **done** — phase 5, an observer at the foot, 48 at a time, keyset |
 | 50 | A justified grid: mixed aspect ratios, even gutters, no black bars, no cropping | **done** — phase 3, `<PhotoStream>` |
 
 ### Meta
@@ -762,19 +862,25 @@ reading the brief** — the wording in the brief carries nuance this table does 
 
 ## Open questions for the owner
 
-1. **The viewer, all of it** (phase 4). It is built and he has not seen it. The three worth
-   naming: the photograph is never enlarged past its own file, so a small old scan does not
-   fill a wide screen (D22); the chrome disappears after 3.6s of stillness, which is
-   deliberate and is the only way "nothing on screen but the photograph" happens (D24); and
-   the counter is gone in the Collection but kept on a post (#20).
-2. **The two he already owns, unresolved from the session before this one**: the square case
-   in F27, and a mixed-orientation carousel always bedding the odd shape out (D21).
-3. **The landing shape** (#42/#44) — folders, a flowing grid, or a hybrid. Approaches to
-   be proposed with a recommendation, not asked cold.
-4. **The bucket vocabulary** (#5/#48) — to be proposed, not asked. He has said twice he
-   does not know and wants it solved for him.
-5. **The LLM tagging pass** (#25) — he wants it. Cost at 20,000 images was not yet
-   estimated; do that before proposing it, and put a real number in the spec.
+1. **The Collection page, all of it** (phase 5), at `/lab/collection` rather than
+   `/collection` -- the real one holds two photographs. Four worth naming, because each is
+   a decision rather than a detail: the **six buckets** are a proposal he can overrule
+   (D31); the **When dropdown is gone**, replaced by the decade rail, which is the one
+   place a capability he called "definitely useful" changed mechanism (D28); **"Through
+   time"** is a fourth order he did not ask for, and it is the one that makes this an
+   archive rather than a feed (D30); and the **decade rail filters rather than scrubs**,
+   for a reason that is honest rather than lazy (D29).
+2. **The viewer, all of it** (phase 4). Built, still unseen. The photograph is never
+   enlarged past its own file (D22); the chrome withdraws after 3.6s of stillness (D24);
+   the counter is gone in the Collection and kept on a post (#20).
+3. **The carousel, again** (2026-08-28). He objected to a photograph drawn small, and the
+   fix changed the rule: the frame is now the height of whichever photograph you are
+   looking at, interpolated across the swipe, so nothing is ever shrunk or bedded. Worth a
+   look at the card breathing as it moves, because that is the part he has not seen.
+4. **The square case in F27**, which he already owns and nobody has resolved.
+5. **The LLM tagging pass** (#25) -- he wants it, and it is phase 6. The estimate in spec
+   sec. 8.3 (about $29 on Opus 5 for 20,000) is from published rates, not measured; confirm
+   on a hundred photographs before running twenty thousand.
 
 ## Session log
 
@@ -934,3 +1040,45 @@ D22 to D25 and F30 to F33 above.
   questions 1 above.
 - **Next session: phase 5, the Collection page.** Read this file, then `brief.md` in full,
   then spec §6 and §7. Nothing is blocked.
+
+### Session 5 — 2026-08-28 (Opus)
+
+Read `brief.md` and `spec.md` in full and `prior-art.md`, then built **phase 5: the
+Collection page**. Detail in `progress.md` under the same date; what changes what the next
+session should do is D26 to D31 and F34 to F39 above.
+
+- **Interrupted twice by the owner, and both were the right interruptions.** First, the
+  carousel: *"why are all the photos fixed at that aspect ratio... that photo can take up
+  much more space but we're not letting it??"* -- which is D21, the case the last session
+  flagged as unresolved. Shipped separately (commit `3e6d4c9`) before going back to phase
+  5, because he was looking at it. The rule is now one sentence: **every photograph in a
+  carousel is drawn exactly as it would have been posted on its own**, and the frame is the
+  current photograph's height, interpolated across the swipe. Two fixed-shape rules were
+  tried first and each was wrong in the other's direction; the numbers are in the commit.
+  Second, the contribute panel: *"still not nice at all... let's think of something totally
+  different and just dopamine inducing"*, which is spec §8.2 and phase 6.
+- The river: `river-controls.tsx`, `decade-rail.tsx`, `photo-river.tsx`, and
+  `collection-client.tsx` rewritten around them. `collection-facets.ts` is deleted with the
+  dropdowns it fed. `<SearchPill>` grew a live controlled mode rather than being copied.
+- Postgres: `2026-08-28-collection-river.sql` -- the taxonomy remapped, `takenKey`
+  generated, three river indexes and four trigram GIN indexes. Applied to the main and the
+  demo databases, idempotent, re-run to prove it.
+- `src/lib/river-cursor.ts` came OUT of the server action so the keyset paging could be
+  tested at all (a "use server" module may only export async actions). Seven tests on it,
+  seven on the taxonomy, and `e2e/collection-permalink.spec.ts` for F35.
+- **The write-path review was done in this session by hand**, as sessions 2 and 4 did. Auth
+  precedes every write and none of the changed actions moved a gate; the only new user
+  input reaching Prisma is `buckets`, which passes a Zod enum of exactly six values before
+  it is joined; `Photo` is still absent from the demo's `ALLOWED_WRITE_MODELS`, so
+  default-deny covers everything here; the schema change went through a dated idempotent
+  file. Two bounds came out of the review rather than out of a test: an offset cursor is
+  capped at 10,000 (a cursor is input, and `skip: 1e12` is a request to count past a
+  trillion rows), and `search` is capped at 100 characters server-side as well as in
+  `riverFiltersFrom`.
+- `npm run check` green, 85/85. `npm run visual` 23/23 with the two Collection baselines
+  deliberately moved -- read the diff first, it is the dropdown row becoming the bucket
+  line. Measured live at 1440x900 and 390x844 on `/lab/collection` and `/collection`.
+- **What the owner has not seen:** all of phase 5, and the carousel change. Open questions
+  1 and 3 above are what to put in front of him.
+- **Next session: phase 6, contributing.** Read this file, then `brief.md` in full, then
+  spec §8. He has asked for it twice. Nothing is blocked.

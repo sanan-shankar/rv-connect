@@ -1,5 +1,5 @@
 import { z } from "zod/v4";
-import { ERA_VALUES } from "./collection";
+import { BUCKET_VALUES, ERA_VALUES } from "./collection";
 import { emailField } from "./email-address";
 import { POST_CONTENT_MAX, POST_TOO_LONG, postContentMax } from "./post-caps";
 import { FULL_NAME_MAX, fullNameFits, valleyYear } from "./utils";
@@ -261,6 +261,12 @@ export const photoSchema = z
   .object({
     caption: z.string().trim().max(300).optional(),
     area: z.string().trim().max(100).optional(),
+    /* The six buckets, and only the six. A closed vocabulary is the whole
+       point of them (src/lib/collection.ts): the moment anything else can be
+       written here it is free text, and free text is searched, never
+       filtered. Several are allowed, since a photograph of the banyan with
+       people under it is both. */
+    buckets: z.array(z.enum(BUCKET_VALUES as [string, ...string[]])).max(BUCKET_VALUES.length).optional(),
     photoYear: yearField().optional(),
     photoMonth: z.number().int().min(1).max(12).optional(),
     era: z.enum(ERA_VALUES as [string, ...string[]]).optional(),

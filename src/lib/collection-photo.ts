@@ -31,6 +31,10 @@ export const THUMB_PX = 480;
 export type PhotoMeta = {
   caption: string | null;
   area: string | null;
+  /** The six buckets, comma-joined for the `subject` column. Empty when the
+   *  contributor filed it nowhere -- which is allowed, and is what the Other
+   *  bucket and the suggestion pass (spec sec. 8.3) exist to reduce. */
+  buckets: string;
   era: string;
   photoYear: number | null;
   photoMonth: number | null;
@@ -42,6 +46,7 @@ export type PhotoMeta = {
 export const NO_PHOTO_META = (caption: string | null): PhotoMeta => ({
   caption,
   area: null,
+  buckets: "",
   era: "unknown",
   photoYear: null,
   photoMonth: null,
@@ -59,6 +64,7 @@ export const NO_PHOTO_META = (caption: string | null): PhotoMeta => ({
 export function parsePhotoMeta(raw: {
   caption?: string;
   area?: string;
+  buckets?: string[];
   era?: string;
   datePrecision?: string;
   photoYear?: number;
@@ -67,6 +73,7 @@ export function parsePhotoMeta(raw: {
   const parsed = photoSchema.safeParse({
     caption: raw.caption || undefined,
     area: raw.area || undefined,
+    buckets: raw.buckets?.length ? raw.buckets : undefined,
     era: raw.era || undefined,
     datePrecision: raw.datePrecision || undefined,
     photoYear: raw.photoYear,
@@ -74,11 +81,14 @@ export function parsePhotoMeta(raw: {
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const { caption, area, era, datePrecision, photoYear, photoMonth } = parsed.data;
+  const { caption, area, buckets, era, datePrecision, photoYear, photoMonth } = parsed.data;
   return {
     meta: {
       caption: caption || null,
       area: area || null,
+      // De-duplicated on the way in: the form cannot send the same bucket
+      // twice, but this is the one place that decides what the column holds.
+      buckets: [...new Set(buckets ?? [])].join(","),
       // The decade bucket other Collection surfaces (browse filters, admin
       // queue) already key off. Derived from the exact year when given, else
       // whatever decade fallback the contributor picked.
@@ -131,10 +141,12 @@ export async function gridThumb(
 /**
  * The columns of a Photo row, wherever the contribution came from.
  *
- * `subject` and `freeTags` are the legacy placeholders: subject tagging and
- * the bird/species free-tag field were removed from the form in the 2026-07-18
- * rework, and are kept empty/null for older rows and any Collection surface
- * still reading them. That sentence used to be written out three times too.
+ * `subject` holds the six buckets, comma-joined (src/lib/collection.ts). The
+ * column keeps its old name deliberately -- one database serves production and
+ * local dev, so renaming it breaks every Collection query in production until
+ * the next deploy lands. `freeTags` is the legacy free-text bird/species
+ * field, removed from the form in the 2026-07-18 rework and kept null for old
+ * rows; search still reads it so those photographs stay findable by typing.
  */
 export function photoRowData(args: {
   uploaderId: string;
@@ -156,7 +168,7 @@ export function photoRowData(args: {
     width,
     height,
     caption: meta.caption,
-    subject: "",
+    subject: meta.buckets,
     area: meta.area,
     era: meta.era,
     freeTags: null,

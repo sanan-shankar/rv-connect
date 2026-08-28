@@ -23,11 +23,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
-import { ERAS, PHOTO_YEAR_MIN, eraLabel } from "@/lib/collection";
+import { BUCKETS, ERAS, PHOTO_YEAR_MIN, eraLabel } from "@/lib/collection";
 import { contributePhoto, contributePhotoDirect } from "@/app/(main)/collection/actions";
 import { directUploadPut } from "@/lib/upload-client";
 import {MAX_UPLOAD_BYTES, isImageFile} from "@/lib/upload-shared";
-import { valleyYear } from "@/lib/utils";
+import { cn, valleyYear } from "@/lib/utils";
 
 
 const MONTHS = [
@@ -63,6 +63,11 @@ export function ContributeDialog({
   const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [area, setArea] = useState("");
+  /* Which of the six this photograph is. Several are allowed -- a photograph
+     of the banyan with people under it is both -- and none is also allowed,
+     because a contribution refused for want of a tag is a contribution that
+     does not happen. */
+  const [buckets, setBuckets] = useState<string[]>([]);
   // "When": either an exact year (+ optional month), or -- if not sure -- a
   // decade fallback from ERAS. yearChoice holds NOT_SURE until a real year is
   // picked, which is when the (optional) month select appears.
@@ -80,6 +85,7 @@ export function ContributeDialog({
     setPreview(null);
     setCaption("");
     setArea("");
+    setBuckets([]);
     setYearChoice(NOT_SURE);
     setMonthChoice(NO_MONTH);
     setDecade("unknown");
@@ -134,6 +140,7 @@ export function ContributeDialog({
           key: staged.key,
           caption: caption.trim() || undefined,
           area: area.trim() || undefined,
+          buckets,
           ...dateMeta(),
         });
       } else {
@@ -158,6 +165,7 @@ export function ContributeDialog({
         fd.set("file", ready.files[0]);
         if (caption.trim()) fd.set("caption", caption.trim());
         if (area.trim()) fd.set("area", area.trim());
+        for (const b of buckets) fd.append("buckets", b);
         const meta = dateMeta();
         if (meta.photoYear !== undefined) fd.set("photoYear", String(meta.photoYear));
         if (meta.photoMonth !== undefined) fd.set("photoMonth", String(meta.photoMonth));
@@ -206,7 +214,8 @@ export function ContributeDialog({
         <DialogHeader>
           <DialogTitle className="font-heading text-xl">Contribute a photo</DialogTitle>
           <DialogDescription>
-            What is this, and where in the valley? The Collection is for the place itself.
+            What is this, and when? The Collection is the valley&rsquo;s whole
+            visual memory, people included.
           </DialogDescription>
         </DialogHeader>
 
@@ -250,6 +259,48 @@ export function ContributeDialog({
               maxLength={300}
               className="bg-card"
             />
+          </div>
+
+          {/* The buckets. Six, and pressing one is the single thing we ask of
+              every contributor -- so it is a target you want to press rather
+              than a checkbox you tolerate. Selection is the app's one green
+              state (DESIGN-SYSTEM sec. 2 rule 4); hover is colour only, and the
+              press keeps its sink. Spec sec. 8.2 wants a whole room built
+              around this in phase 6; this is the same interaction at dialog
+              scale, so it can be lived with first. */}
+          <div>
+            <label className="mb-1.5 block text-[13px] font-semibold text-foreground">
+              What is it of? <span className="font-normal text-muted-foreground">(pick any)</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {BUCKETS.map((b) => {
+                const on = buckets.includes(b.value);
+                return (
+                  <button
+                    key={b.value}
+                    type="button"
+                    aria-pressed={on}
+                    title={b.hint}
+                    onClick={() =>
+                      setBuckets((prev) =>
+                        prev.includes(b.value)
+                          ? prev.filter((v) => v !== b.value)
+                          : [...prev, b.value]
+                      )
+                    }
+                    className={cn(
+                      "rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors duration-150",
+                      "active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                      on
+                        ? "border-canopy bg-canopy text-white"
+                        : "state-layer border-border bg-card text-foreground"
+                    )}
+                  >
+                    {b.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Part of school */}
