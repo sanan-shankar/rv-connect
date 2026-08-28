@@ -20,9 +20,9 @@
  *     Ship them pre-rounded and the platform's mask eats into our corner
  *     radius, leaving four dark nubs where the two curves disagree.
  *
- * The maskable one additionally shrinks the ridge to 80% about the centre so
- * the whole range survives the most aggressive circular crop. Every peak then
- * sits 188px from centre at worst, inside the 204.8px safe radius.
+ * The maskable one is additionally re-composed against the ADAPTIVE SAFE ZONE,
+ * which is only the middle 66.67% of this canvas -- see the long note above the
+ * transform. Getting that wrong is what cost the hoopoe its eyes on Android.
  *
  * Run: node scripts/dev/generate-icons.mjs
  */
@@ -75,17 +75,50 @@ function lit(svg) {
   return withFilter;
 }
 
-/* Wrap the art group in a 0.8 scale, about the BOTTOM CENTRE rather than the
-   canvas centre. The bird is peeking over the bottom edge, so shrinking it
-   about the middle would lift the head clear of that edge and leave a band of
-   tile under a floating face -- the one thing the composition cannot afford.
-   Scaling toward (256, 512) keeps the head against the bottom and pulls the
-   crest down into the adaptive launcher's safe circle, which is what the
-   maskable icon is for. */
+/* ---- the maskable transform, and the bird's missing eyes ---------------
+ *
+ * An adaptive launcher does NOT show all 512px. Android's icon is 108dp of
+ * artwork of which only the middle 72dp is ever drawn -- 66.67%, so on this
+ * canvas everything outside x/y 85.3..426.7 is thrown away before any mask
+ * shape is even applied, and a circular mask then eats the corners of what
+ * is left (safe radius 170.7 about the centre).
+ *
+ * This used to scale 0.8 about the BOTTOM CENTRE, (256, 512), reasoning that
+ * the bird peeks over the bottom edge of the tile so it must stay pinned to
+ * that edge. That is right for the tile and exactly wrong for the mask: it
+ * held the face against the one edge the launcher crops hardest. Measured on
+ * the shipped file, the art ran from y=204 to y=511 and the eyes sat at
+ * y~500-522, so the crop at 426.7 took the entire face and left the crest and
+ * a bare orange forehead (owner, 2026-08-28, on a Samsung install: "the eyes
+ * didn't show ... it's basically like the hoopoe has just been moved down").
+ * iOS and macOS were fine throughout, which is why this survived: they mask
+ * to a squircle that is essentially the whole square, so apple-icon and the
+ * "any" icons above have always been safe full-bleed.
+ *
+ * So the maskable variant is composed against the SAFE ZONE rather than the
+ * canvas: scale 0.65, and move the FACE's centre to the canvas centre rather
+ * than leaving the art where the tile wanted it. That face centre is
+ * (256, 355.5), 355.5 being the midpoint of the two things that must survive
+ * -- the topmost crest tip (y=126) and the bottom of the eyes (y=585) -- hence
+ * the asymmetric translate pair below, which is the whole trick. Scaling about
+ * (256, 355.5) and stopping there leaves that point fixed and the face still
+ * far too low; that was the first attempt and it changed nothing on Android.
+ *
+ * Measured on the output: art now runs x 122..388, y 108..461, and every eye
+ * and glint pixel survives all three mask shapes -- square, Samsung squircle
+ * and a full circle -- with zero clipped. A circular mask does shave ~500px of
+ * the head's lower shoulders, below the eyes; that is the same cut the chin
+ * already takes and it reads as the peek rather than as damage.
+ *
+ * The chin is deliberately left OUTSIDE: the head's lower edge scales to
+ * y=460, past the crop, so the launcher's own mask makes the cut. That is
+ * how the peek survives here. On the tile it is the bottom edge that clips
+ * the head; under a mask it is the mask, and the read is the same either way
+ * without a band of empty tile under a floating face. */
 const maskable = lit(fullBleed)
-  .replace('<g id="lit"', '<g transform="translate(256 512) scale(0.8) translate(-256 -512)"><g id="lit"')
+  .replace('<g id="lit"', '<g transform="translate(256 256) scale(0.65) translate(-256 -355.5)"><g id="lit"')
   .replace("</svg>", "</g></svg>");
-/* The 0.8 wrapper sits OUTSIDE the filtered group on purpose. An ancestor
+/* The scale wrapper sits OUTSIDE the filtered group on purpose. An ancestor
    transform scales every length inside a filter along with the art it is
    lighting, which here is exactly right: the band should shrink with the bird
    so the edge reads the same. Putting the scale on the filtered element itself
