@@ -1,5 +1,31 @@
 # Progress Log
 
+## 2026-08-28 — the profile feed stops guessing how tall it is about to be
+
+The second reflow found while measuring the Done button, and the owner's *"fix it"*. Pressing
+Done mounts the tab strip, and its feed rendered a three-card skeleton at 516px which then
+collapsed to a 198.8px empty state about 1.1s later. Below the fold at 390x844, so it is not
+what he saw on his phone, but it is a 317px shift that happened every single time.
+
+**The number was never unknown.** `Writing` already receives `postCount`, `letterCount`,
+`photoCount` and `savedCount` from the server and prints them in the tab pills -- so a
+three-card skeleton was sitting directly under a pill reading "0", contradicting something the
+reader can already see. The open pill's count now goes to the feed as `expectedCount`, read
+off the same `TABS` array the pill renders from rather than re-derived, so the two cannot
+drift.
+
+**Two jobs, one number.** At zero the skeleton is skipped entirely and the feed opens on the
+empty state; the fetch still runs, so a count made stale by a post written since the page
+loaded corrects itself. Above zero it sizes the skeleton, capped at three, so one post is one
+placeholder instead of three. `SavedPostsFeed` takes the same prop for the same reason.
+
+Measured after: the block below the sheet holds **one** height, 198.8px, from the first frame
+to the last -- the 516px phase is gone. Every zero-count tab (All, Posts, Letters, Saved) swaps
+straight to its empty state in one render, 28-52ms, with zero shimmer at any point. On a
+profile with one post the skeleton is now one card rather than three. The route's own
+`loading.tsx` still draws three placeholder cards before hydration and is left alone: it runs
+before any count exists, which is the one place the guess is unavoidable.
+
 ## 2026-08-28 — the root directory loses five entries and none of them are missed
 
 The owner asked what at the root could go without breaking anything, counting dotfiles the
