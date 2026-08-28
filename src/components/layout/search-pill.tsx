@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
 import { AnimatePresence, m } from "motion/react";
 import { cn } from "@/lib/utils";
 
@@ -239,6 +239,37 @@ export function SearchPill({
               aria-expanded={open}
               className="state-layer absolute inset-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             />
+          )}
+        </AnimatePresence>
+
+        {/* The way OUT, for a finger. Escape has always cleared and closed
+            this, and on a keyboard that was enough; on a phone a pill holding
+            a query could only be emptied by selecting the text and deleting
+            it, and until it was empty it would not collapse. The directory
+            made that plain (2026-08-28): with a search live and no facet set,
+            the count line has no "Clear all" to offer either, so this was the
+            only escape and it did not exist.
+            Inside the pill rather than beside it, so the row's geometry never
+            changes -- it appears in padding the form already carries. */}
+        <AnimatePresence>
+          {open && value && (
+            <m.button
+              key="clear"
+              type="button"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.14, ease: "easeOut" }}
+              onClick={() => {
+                setValue?.("");
+                setOpen(false);
+                if (!live) inputRef.current?.focus();
+              }}
+              aria-label="Clear the search"
+              className="state-layer grid size-6 shrink-0 place-items-center rounded-full text-muted-foreground transition-transform hover:text-foreground active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              <XIcon weight="bold" size={12} />
+            </m.button>
           )}
         </AnimatePresence>
       </m.form>

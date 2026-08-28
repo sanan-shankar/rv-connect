@@ -1,5 +1,84 @@
 # Progress Log
 
+## 2026-08-28 — profession tags: the directory filter gets a column nobody types
+
+The Profession filter matched free text. `workplace` holds the ORGANISATION and `jobTitle`
+the ROLE, so what somebody does is only readable from the pair -- and the shipped arm was a
+`contains` over both, loose by construction (a workplace called "Lawson" answered a filter
+for Law) and able to find only the members whose own words happened to contain a bucket's
+name. It now matches `User.professionTags`, a text[] written by a hand-run pass.
+
+**Tags, not one bucket, and that was the owner's correction mid-design.** The first draft
+put each person in exactly one bucket with a "studying" boolean beside it. He rejected the
+boolean -- *"not that scalable"* -- and asked for tags a person can hold several of. That
+turned out to dissolve the hardest problem in the data rather than merely soften it: 25 of
+the 34 people with any work text say "Student", and as one bucket that is the largest and
+least informative fact in the directory. As tags, the medical student at SRMC is
+`["studying","healthcare"]`, the law student at GNLU is `["studying","law"]`, and the student
+at NYU is `["studying"]` alone -- which is the honest answer, because a general university
+names no field. **The line I judged by: only a single-discipline institution tells you the
+field.** GNLU, SRMC, a culinary academy and Chennai Mathematical Institute do; Georgia Tech,
+Imperial and Virginia Tech do not, whatever their names suggest.
+
+**Three caps, doing three different jobs.** `TAG_FLOOR = 5` is "is this a real category" and
+is load-bearing only while the membership is small -- at 63 members five people is 8% of
+everybody, at 2,000 it is 0.25% and every tag would clear it. `TAG_VISIBLE_MAX = 12` is "is
+this list readable" and takes over as it grows; the two hand off. `VOCAB_MAX = 18`, held by a
+test, caps what EXISTS rather than what is shown, so past eighteen adding a tag has to be an
+argument about which one it replaces -- that is what makes "merge upward" bite instead of
+being advice. The owner's worry was *"we don't have 100 tags for people to wade through"*,
+and a bare floor does not survive growth; that is why there are two display caps and not one.
+
+**The floor is a display rule and assignment never bends to it.** The lone doctor is tagged
+Healthcare on the day they join and the tag appears by itself at the fifth person. A tag
+chosen to clear a threshold is a lie in a column every later pass reads as fact.
+
+**On today's data exactly one tag clears the floor**, so the control hides itself: a dropdown
+offering one choice reads as a broken control rather than as a young directory. Pinned by a
+test, because the failure is invisible in a screenshot -- the control is absent whether that
+is the rule working or the prop having quietly become undefined.
+
+**The vocabulary changes without a migration, which was the owner's stated requirement.**
+No Postgres enum, no CHECK constraint: one database serves production and local dev, so a
+constraint would turn every vocabulary edit into a migration with an outage window. Adding a
+tag is a line of TypeScript; removing one is an entry in `LEGACY_TAGS`, which maps a dead
+value onto zero or more live ones on read (the Collection's `LEGACY_BUCKETS`, widened from
+one->one to one->many so a SPLIT is expressible). Splitting Healthcare into Healthcare +
+Doctors is `--tag healthcare` on the picker, and the applier re-adds the parent, so no
+bookmarked `?profession=healthcare` ever dies.
+
+**There is no "Other".** Someone whose text names no field gets `[]`, and the picker prints
+that pile every run -- a run of the same kind of work in it is the evidence for the next tag,
+arriving without anyone having had to guess. That is the job Other does in the Collection,
+done better, because there is no bucket to hide in.
+
+**A bug worth remembering: the staleness check had two implementations and they disagreed by
+a space.** `professionTagSource` stores the pair the tags were judged from. Written first as
+SQL in the WHERE clause, `json_build_array(...)::text`, it re-took all 34 people the run
+after they were tagged: Postgres renders `["Businessman", "KSR Group"]` and JSON.stringify
+renders `["Businessman","KSR Group"]`. One definition now (`sourceOf`), and the query returns
+candidates rather than the answer. The comment in that file says so, because the SQL twin is
+the obvious thing to reach for.
+
+A previous session had left a tripwire in `directory-rule.test.mjs` that fails the moment
+`profession` appears in `schema.prisma` -- "the tag has shipped, point the arm at the COLUMN".
+It fired on the first `npm run check` after the migration, which is why the backend and the
+rewiring are one change rather than two.
+
+**Not committed, and why.** `src/app/(main)/directory/page.tsx` and
+`src/components/directory/directory-client.tsx` hold another session's in-flight work (the
+People browse view, the map and chrome rework) interleaved with mine. Committing them would
+carry work I did not author; committing everything else would leave HEAD unable to compile,
+because the client at HEAD still imports the deleted `PROFESSION_OPTIONS`. So the tree is
+green and complete and the commit is one piece, waiting on that session. The two red routes
+in `npm run visual` are theirs too -- a grid below the map and a new People tab -- and the
+baselines are theirs to accept.
+
+**Still owed:** the migration has NOT been applied to the demo database (the command was
+declined). `prisma/migrations-manual/2026-08-28-profession-tags.sql` with `--env .env.demo`,
+before the demo is next seeded -- the seeder now writes `professionTags` and will fail
+without the column.
+
 ## 2026-08-28 — the owner's round on the Collection rework
 
 He used the shipped thing and came back with eleven asks in one message. All eleven are done.
@@ -5843,3 +5922,39 @@ earlier, when the rule above the Doorway had to be removed in two places.
 sends the reader to the shipped `chapters/catchups.tsx` as the worked example and states
 in 2.2 what the four stages settled, so the reasoning outlives the room. `/lab` shows 11
 active rooms and 45 registered.
+
+## 2026-08-28 — the directory stops flinching
+
+Owner, on filtering: "when we add filters its just such a sudden motion it's so janky and clumsy
+it's really jarring how things move ... I don't feel like filtering because it's so painful to
+watch all the elements just jank around."
+
+Four things moved at once, and the biggest was not layout at all. Every filter change is a
+NAVIGATION -- same route, new searchParams -- and this route has a `loading.tsx`, so React was
+unmounting the whole page and painting that skeleton (a stub title, a full-width bar, three
+140px pills, six card ghosts) before painting the result. On every facet pick, and on every
+keystroke in the search box. Inside `startTransition` React keeps the page that is already on
+screen instead, and hands back `isPending`; measured with a MutationObserver watching for
+`.skeleton-warm`, it now appears zero times during a filter, where it used to flash on each one.
+
+The pending signal waits 150ms before it shows anything, so a filter that resolves in 80ms shows
+nothing at all -- a dim that comes and goes inside a tenth of a second is a flicker, which reads
+worse than the wait it was reporting.
+
+Then the frame was made to hold still. The toggle carries all three segments always (it used to
+GROW a People segment mid-gesture, sliding the other two under the finger); the back arrow is
+gone, because it inserted 40px at the head of the row and never said anything "Clear all" does
+not; and the count line moved to the right-hand end, which is not only tidier -- a token added
+there grows leftward into empty space instead of shoving its neighbours along. Measured through
+a filter: the toggle's rect is identical at 120, 260, 500, 1200 and 2500ms, and the sentence
+moves 2px as its own number changes width.
+
+What a filter does now depends on what you filtered by (owner's call): typing a name moves to
+People on the first keystroke, because that is looking for a person; picking a facet leaves you
+on the map, which narrows in place. Search, filters and the view toggle are one still frame, and
+the content region crossfades between views rather than swapping.
+
+One thing the move exposed: with a search live and no facet set, there were no tokens, so no
+"Clear all" -- and with the back arrow gone, a phone had no way at all to end a search but to
+select the text and delete it. SearchPill now carries a clear button inside the open pill, which
+Escape has always done on a keyboard.
