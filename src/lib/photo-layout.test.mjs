@@ -160,20 +160,31 @@ test("a tall photograph is cut a little, never a lot", () => {
   assert.ok(Math.abs(kept["9:16 phone video still"] - 0.75) < 0.001);
   assert.ok(Math.abs(kept["2:3 camera portrait"] - 8 / 9) < 0.001);
   assert.equal(kept["3:4 phone portrait"], 1);
-  assert.ok(Math.abs(kept["4:5 Instagram portrait"] - 0.9375) < 0.001);
+  /* And a 4:5 keeps all of itself, because 3:4 is a FLOOR. Forcing it down to
+     3:4 cut its sides to draw it NARROWER than its own shape allows -- 375px
+     against 400 in a 728px column -- which is a cut that pays for a bigger
+     bed. The owner caught it: "aren't we just cutting off material from the
+     side and adding a blur bar when we could just leave that material and
+     have less blur bar." */
+  assert.equal(kept["4:5 Instagram portrait"], 1);
   for (const [name, k] of Object.entries(kept)) {
     assert.ok(k >= 0.75, `${name} kept only ${Math.round(k * 100)}%`);
   }
 });
 
-test("every tall card is the same size, which is the point of one shape", () => {
-  const sizes = SHAPES.filter((s) => s.w < s.h).map((s) =>
-    JSON.stringify(drawnSize(frameOf(s), 728))
-  );
-  assert.equal(new Set(sizes).size, 1, "tall cards came out ragged");
-  // 500px tall at 3:4 is 375 wide, leaving 177px of bed each side of a 728px
-  // column. Both numbers are load-bearing enough to write down.
-  assert.deepEqual(JSON.parse(sizes[0]), { width: 375, height: 500 });
+test("every tall card is the same HEIGHT, which is what a scroll feels", () => {
+  /* The rhythm that matters is vertical: the ceiling makes every tall card
+     exactly as tall, so the feed scrolls evenly whatever shapes are in it.
+     Their WIDTHS differ now, deliberately -- a photograph between 3:4 and
+     square keeps its own shape rather than being cut narrower to match. */
+  const drawn = SHAPES.filter((s) => s.w < s.h).map((s) => drawnSize(frameOf(s), 728));
+  assert.equal(new Set(drawn.map((d) => d.height)).size, 1, "tall cards came out ragged");
+  assert.equal(drawn[0].height, PHOTO_MAX_HEIGHT);
+  // 500px tall at 3:4 is 375 wide; at 4:5 it is 400, which is the whole point.
+  const width = (name) => drawnSize(frameOf(SHAPES.find((s) => s.name.startsWith(name))), 728).width;
+  assert.equal(width("9:16"), 375);
+  assert.equal(width("3:4"), 375);
+  assert.equal(width("4:5"), 400);
 });
 
 test("on a phone nothing narrows and no bed shows", () => {
@@ -207,15 +218,17 @@ test("the aim is clamped, so a bad guess cannot do damage", () => {
   assert.equal(bottom.objectPosition, "50% 50%");
 });
 
-test("a photo shallower than the box is aimed sideways, not downwards", () => {
-  // A 4:5 is taller than wide but SHALLOWER than 3:4, so filling the box cuts
-  // its sides. Moving the window down would be aiming along the axis that is
-  // not being cut, which does nothing at all.
-  const frame = frameOf(SHAPES.find((s) => s.name.startsWith("4:5")), {
-    focalX: 0.9,
-    focalY: 0.1,
-  });
-  assert.equal(frame.objectPosition, "75% 50%");
+test("a tall photograph is only ever trimmed top and bottom", () => {
+  /* The sideways case is gone with the rule that created it. Nothing tall is
+     drawn narrower than its own shape any more, so there is no axis but the
+     vertical one to cut, and a photograph that keeps all of itself is not
+     aimed at all. */
+  for (const shape of SHAPES.filter((s) => s.w < s.h)) {
+    const frame = frameOf(shape, { focalX: 0.9, focalY: 0.1 });
+    assert.ok(frame.objectPosition.startsWith("50% "), `${shape.name} aimed sideways`);
+  }
+  const four5 = frameOf(SHAPES.find((s) => s.name.startsWith("4:5")), { focalX: 0.9, focalY: 0.1 });
+  assert.equal(four5.objectPosition, "50% 50%", "a 4:5 keeps all of itself, so nothing is aimed");
 });
 
 test("the sizes promise carries the cap, and survives a nested calc", () => {

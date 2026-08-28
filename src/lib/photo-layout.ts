@@ -90,6 +90,11 @@ export const PHOTO_MAX_HEIGHT = 500;
 /**
  * How far the visible window may travel when a tall photograph is cut.
  *
+ * Vertical only. There used to be a horizontal band beside this one, for a
+ * photograph between 3:4 and square being squeezed narrower to match the tall
+ * target -- a case that no longer exists, because 3:4 became a floor rather
+ * than a target (see `framePhoto`). Nothing is ever trimmed at the sides now.
+ *
  * The brakes, and they are the load-bearing part rather than a nicety. X
  * cropped timeline previews with a saliency model from 2018, audited it in
  * 2021, found it favoured white faces over Black faces and women over men,
@@ -111,7 +116,6 @@ export const PHOTO_MAX_HEIGHT = 500;
  * sharp's `attention` is a contrast heuristic and it goes for the bright sky.
  */
 export const AIM_Y = { lo: 0.15, hi: 0.5 };
-export const AIM_X = { lo: 0.25, hi: 0.75 };
 
 /**
  * The same brakes for a WIDE photograph, whose window travels up and down
@@ -202,7 +206,7 @@ function keptAt(r: number, box: number): number {
  * answer, a letter. One rule, one implementation, no second opinion.
  */
 export function framePhoto(facts: PhotoFacts): PhotoFrame {
-  const { width, height, focalX, focalY } = facts;
+  const { width, height, focalY } = facts;
   const r = width / height;
 
   /* Square or wider: true shape, never cut, never barred, so a 21:9 is a thin
@@ -239,26 +243,47 @@ export function framePhoto(facts: PhotoFacts): PhotoFrame {
     };
   }
 
-  /* Taller than wide: one shape, so every tall card in the feed matches, and
-     as large as the ceiling allows. At the 728px laptop column that is
-     375 x 500 with 177px of bed each side; on a phone the ceiling never
-     binds, the photo simply fills the width and no bed shows at all. */
+  /* Taller than wide. 3:4 is a FLOOR, not a target, and the difference is the
+     owner's, 2026-08-28: "why do we make 4:5 into 3:4? aren't we just cutting
+     off material from the side and adding a blur bar when we could just leave
+     that material and have less blur bar."
+
+     He is right, and it was strictly worse on every axis. A 4:5 forced to 3:4
+     is drawn NARROWER than its own shape allows -- 375px against 400 in a
+     728px column -- so the rule was cutting 6% off its sides in order to make
+     the picture smaller and the bed wider. There is no reading of the rule
+     that wanted that. The cut only ever pays when it makes the photograph
+     WIDER, which is exactly the case of a photograph taller than 3:4: a 9:16
+     goes from 281px to 375px by giving up its top and bottom.
+
+     So the shape a tall photograph is brought to is `max(its own, 3:4)`.
+     Anything between 3:4 and square keeps every pixel it came with and gets
+     the smallest bed its shape allows; anything taller is brought to 3:4 as
+     before. Two things follow. The bed is now never the price of a cut -- if
+     we cut, it is to shrink the bed. And a tall photograph is only ever
+     trimmed top and bottom, so the sideways aim this branch used to need is
+     gone with the case that needed it.
+
+     What the old rule bought was one width for every tall card, and that is
+     the smaller half of the rhythm: the height ceiling already makes every one
+     of them exactly as tall, which is what a scroll actually feels. */
+  const shape = Math.max(r, TALL_TARGET);
   return {
-    // Same ceiling, same conversion: it is a HEIGHT, and the shape is fixed,
-    // so it reaches CSS as the width that produces it. 500px at 3:4 is 375.
-    maxWidth: Math.min(PHOTO_MAX_WIDTH, Math.round(PHOTO_MAX_HEIGHT * TALL_TARGET)),
+    // The ceiling is a HEIGHT, and it reaches CSS as the width that produces
+    // it: 500px at 3:4 is 375, at 4:5 it is 400.
+    maxWidth: Math.min(PHOTO_MAX_WIDTH, Math.round(PHOTO_MAX_HEIGHT * shape)),
     maxHeight: PHOTO_MAX_HEIGHT,
-    aspectRatio: "3 / 4",
-    /* Taller than the target loses its top and bottom, so the window travels
-       vertically; shallower than it (a 4:5, say) loses its sides, so the
-       window travels sideways instead. Either way it starts where a person
-       would put it and moves towards the machine's guess only as far as the
-       clamp allows. */
+    aspectRatio: shape === r ? `${width} / ${height}` : "3 / 4",
+    /* Only ever the top and bottom now, so the window only travels vertically.
+       It starts where a person would put it and moves towards the machine's
+       guess as far as the clamp allows -- and no further, because heads live
+       in the upper half and the floor at 50% means the worst a bad guess can
+       do is the plain centre crop. A photograph that keeps all of itself is
+       not aimed at all: there is no window to move, and saying otherwise in
+       the CSS invites the next reader to believe something is being cut. */
     objectPosition:
-      r < TALL_TARGET
-        ? `50% ${pct(clamp(focalY, AIM_Y.lo, AIM_Y.hi))}`
-        : `${pct(clamp(focalX, AIM_X.lo, AIM_X.hi))} 50%`,
-    kept: keptAt(r, TALL_TARGET),
+      shape === r ? "50% 50%" : `50% ${pct(clamp(focalY, AIM_Y.lo, AIM_Y.hi))}`,
+    kept: keptAt(r, shape),
   };
 }
 
