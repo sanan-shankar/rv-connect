@@ -1,5 +1,47 @@
 # Progress Log
 
+## 2026-08-28 — a contribution's original no longer hides in the archive
+
+The owner asked for click-by-click instructions to add the R2 lifecycle rule this campaign
+has had on its owed list since phase 6. Writing them found that **the rule as specified would
+have deleted his archive**, and that the leak it was meant to close was already open.
+
+**The shape of it.** A Collection contribution PUTs the untouched original to storage the
+moment a file is dropped, which is what makes a drop of a hundred feel instant, and deletes it
+once the display copy is made. An abandoned drop never reaches that delete. Those originals
+were minted under `collection/<userId>/...` -- **the same folder the archive's own photographs
+live in** -- and an R2 lifecycle rule matches a PREFIX, so a rule on `collection/` takes the
+real photographs with it. Nothing else could reach them either: this system deliberately
+cannot enumerate the bucket (audit C-063).
+
+**Measured rather than reasoned about.** Sixty stranded originals, 6.7MB, all from a single
+day of testing the new contribute room. And it is not only bytes: these are the untouched
+files, so a phone photograph still carries the GPS coordinates written into it, which is the
+whole reason the successful path deletes it (audit M12). One was fetched over the open
+internet and answered **HTTP 200**.
+
+**The fix is one line of intent.** Collection originals stage under `staging/` now, like every
+other upload, so the folder finally means what its name says: nothing in there is anybody's,
+and one lifecycle rule closes it permanently. `collection/` stays ACCEPTED on the finalize
+side, because a browser can hold a presigned URL minted by the old code when the new code
+deploys and refusing it would fail a contribution whose bytes are already stored. The `-o`
+suffix does a second job now: the post finalize route's `STAGING_KEY` has no hyphen in it, so
+a Collection original cannot be finalized as a post image even though they share a root.
+
+**Verified by contributing a photograph end to end**, not by reading the diff: the presign
+minted `staging/.../-o.webp`, the contribution created its row, the staged original was gone
+afterwards, and the probe took its own row and bytes back out. Then
+`scripts/dev/sweep-stranded-originals.mjs` deleted the sixty -- dry-run first, refusing any key
+a database row points at, and only ever considering keys ending `-o.` so the archive's own
+`<cuid>.webp` and `<cuid>-t.webp` cannot match the pattern at all. Both real photographs still
+answer 200 on all four of their files. `collection/` went from 70 objects to 10.
+
+**Two things left over, reported rather than acted on.** Six orphaned display and thumbnail
+files sit in `collection/` from before the purge machinery existed (about 1.2MB); two
+`PendingImagePurge` rows are queued and the nightly sweep owns those. And the sweep script has
+to be **run once more after this deploys**, because production keeps minting the old shape
+until then; after that it and its ledger line should be deleted.
+
 ## 2026-08-28 — the approval queue clears in one press
 
 Collection rework, the last of spec sec. 9. `photoTrusted` answers the school photographer's

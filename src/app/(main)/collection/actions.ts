@@ -281,8 +281,25 @@ async function createPhotoRow(
   }
 }
 
+/* The staged original of a Collection contribution.
+ *
+ * TWO ROOTS, and the second one is history rather than choice. These are
+ * minted under `staging/` now; they used to be minted under `collection/`,
+ * beside the archive's own photographs, which meant an abandoned drop stranded
+ * its original for ever: nothing here can enumerate the bucket to find it
+ * (audit C-063), and a lifecycle rule cannot reach it either, because R2
+ * matches a PREFIX and the real photographs share that prefix. Sixty were
+ * measured stranded on 2026-08-28, one of them confirmed publicly readable --
+ * and an untouched original still carries the GPS coordinates the phone wrote
+ * into it, which is exactly why the successful path deletes it (audit M12).
+ *
+ * `collection/` stays accepted because a browser can be holding a presigned
+ * URL minted by the OLD code when the new code deploys, and refusing it would
+ * fail a contribution whose bytes are already in the bucket. Safe to narrow to
+ * `staging/` alone once nothing old is in flight -- which is any time after
+ * the deploy, since a presign is short-lived. */
 const COLLECTION_ORIGINAL_KEY =
-  /^collection\/[a-z0-9]+\/\d{4}\/\d{2}\/[a-z0-9]+-o\.(jpg|jpeg|png|webp|gif)$/;
+  /^(staging|collection)\/[a-z0-9]+\/\d{4}\/\d{2}\/[a-z0-9]+-o\.(jpg|jpeg|png|webp|gif)$/;
 
 /**
  * The direct-to-R2 completion of a Collection contribution: the browser has
@@ -321,7 +338,10 @@ export async function contributePhotoDirect(input: {
   if (
     typeof input.key !== "string" ||
     !COLLECTION_ORIGINAL_KEY.test(input.key) ||
-    !keyBelongsTo(input.key, session.user.id, "collection")
+    /* Against the root the key actually carries. The regex above has already
+       proved it is one of the two, so this cannot be widened by the caller:
+       whichever it is, the id segment must still be the session user's. */
+    !keyBelongsTo(input.key, session.user.id, input.key.startsWith("staging/") ? "staging" : "collection")
   ) {
     // The one refusal that must NOT delete: the key is not one we can vouch
     // for, so it is not ours to aim a delete at.
