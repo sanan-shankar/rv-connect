@@ -32,12 +32,13 @@
  *     rather than jumping when a slide finally settles. That is the
  *     detail that makes a carousel feel attached to the gesture.
  *
- *  All three photographs share ONE shape, chosen as the median of the
- *  set (`carouselBox`), because the alternative is a card that changes
- *  height under the reader's thumb. Each photograph fills it if it can
- *  do so within the 20% crop budget and sits on its own blurred bed if
- *  it cannot -- so the shape most of them already are is the shape they
- *  are all drawn in, and the odd one out is the only one bedded.
+ *  4. THE FRAME FOLLOWS THE PHOTOGRAPH. Every photograph is drawn at
+ *     exactly the size it would have been posted on its own, and the
+ *     frame is whatever height that photograph needs -- interpolated as
+ *     you swipe, so it breathes with the gesture rather than jumping
+ *     when a slide lands. Nothing is ever shrunk to fit a shared shape
+ *     and nothing is ever bedded to fill one. See `carouselWidth` for
+ *     the two shared-shape rules this replaced and why both were wrong.
  *
  *  Everything animated is a transform. The frame's shape is known before
  *  any photograph loads, so nothing jumps.
@@ -48,11 +49,9 @@ import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { PhotoBed } from "@/components/common/photo-frame";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import {
-  carouselBox,
-  drawnRatio,
+  carouselWidth,
+  drawnSize,
   framePhoto,
-  placeInBox,
-  PHOTO_MAX_HEIGHT,
   photoSizes,
   type PhotoFacts,
   type StoredPhoto,
@@ -112,19 +111,62 @@ export function PhotoCarousel({
   onPreload: () => void;
   className?: string;
 }) {
-  /* An unmeasured photograph -- one that predates the `Image` table, or whose
-     measurement failed -- has no shape to contribute and no shape to be
-     placed in, so it simply fills the frame the others agreed on. */
-  const known = photos.map((p) => p.photo).filter(Boolean) as StoredPhoto[];
-  const box = carouselBox(
-    known.length ? known.map((p) => drawnRatio(framePhoto(p))) : [3 / 2]
-  );
+  /* One frame per photograph, each the frame that photograph would have been
+     given had it been posted on its own. An unmeasured one -- predating the
+     `Image` table, or whose measurement failed -- has no shape to contribute,
+     so it is treated as an ordinary camera landscape and simply fills
+     whatever height the others settle on. */
+  const frames = photos.map((p) => framePhoto(p.photo ?? NEUTRAL));
+  const frameWidth = carouselWidth(frames);
 
+  const frame = useRef<HTMLDivElement>(null);
   const track = useRef<HTMLDivElement>(null);
   const rail = useRef<HTMLSpanElement>(null);
   const tween = useRef(0);
   const [at, setAt] = useState(0);
   const last = photos.length - 1;
+
+  /* ---------------------------------------------------------------- *
+   *  The frame's height, which is the current photograph's height.
+   *
+   *  Two shared-shape rules came before this one and each was wrong in
+   *  the other's direction. Measured on one real post -- a 9:20, a 20:9
+   *  and a 16:9 -- in a 314px phone slide, where the three photographs
+   *  want 419, 141 and 177px of height:
+   *
+   *    shared SHAPE (the median)  the portrait is drawn 296 x 177,
+   *                               a third of the picture it should be.
+   *                               This is what the owner found in his
+   *                               own feed on 2026-08-28.
+   *    shared HEIGHT (the tallest) every photograph is full size, but the
+   *                               16:9 sits in a 421px frame with 122px
+   *                               of blurred bed above AND below it --
+   *                               "yucky blur bars", his words, twice.
+   *
+   *  There is no third fixed height that avoids both, because 419 and
+   *  141 are three to one. So the frame is not fixed. It is the height
+   *  of whichever photograph you are looking at, interpolated across the
+   *  swipe so the card breathes with your thumb instead of jumping when
+   *  a slide lands.
+   *
+   *  The heights are ARITHMETIC, not measurement: `drawnSize` is the same
+   *  pure function the layout tests assert against, given the one number
+   *  a browser has to tell us -- how wide a slide is. Before that number
+   *  exists (server render, first paint) the ghost below holds the first
+   *  photograph's box open in plain CSS, so nothing jumps into place.
+   * ---------------------------------------------------------------- */
+  const heights = useRef<number[]>([]);
+  const slideWidth = useRef(0);
+
+  /** The frame's height at a fractional position along the track. */
+  const heightAt = useCallback((where: number) => {
+    const hs = heights.current;
+    if (!hs.length) return null;
+    const i = Math.max(0, Math.min(hs.length - 1, Math.floor(where)));
+    const j = Math.min(hs.length - 1, i + 1);
+    const t = Math.max(0, Math.min(1, where - i));
+    return hs[i] + (hs[j] - hs[i]) * t;
+  }, []);
 
   /* One read of the scroll offset, turned into two things: which photograph
      is showing (for the arrows and the labels) and where the indicator sits
@@ -137,6 +179,11 @@ export function PhotoCarousel({
     if (!el) return;
     const span = el.scrollWidth - el.clientWidth;
     const progress = span > 0 ? el.scrollLeft / span : 0;
+    /* Where the track actually is, in slides. Written straight to the frame
+       rather than through state, for the same reason the indicator is: this
+       fires on every scroll frame. */
+    const h = heightAt(el.clientWidth > 0 ? el.scrollLeft / el.clientWidth : 0);
+    if (h !== null && frame.current) frame.current.style.height = `${h}px`;
     if (rail.current) {
       const travel = progress * last * (DOT + DOT_GAP);
       rail.current.style.transform = `translate3d(${travel.toFixed(2)}px, 0, 0)`;
@@ -145,7 +192,7 @@ export function PhotoCarousel({
       const now = Math.round(progress * last);
       return now === was ? was : now;
     });
-  }, [last]);
+  }, [last, heightAt]);
 
   const go = useCallback(
     (index: number) => {
@@ -175,10 +222,58 @@ export function PhotoCarousel({
     [last]
   );
 
+  /* One measurement, and it is the slide's width -- the single thing about a
+     column the arithmetic cannot know. Everything else follows from the
+     stored dimensions. Re-run on resize, because the column changes with the
+     window and the sidebar appears at a breakpoint. */
+  useEffect(() => {
+    const el = track.current;
+    if (!el) return;
+    const measure = () => {
+      const w = el.clientWidth;
+      if (!w || w === slideWidth.current) return;
+      slideWidth.current = w;
+      heights.current = frames.map((f) => drawnSize(f, w).height);
+      readScroll();
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+    /* `frames` is rebuilt every render from props that do not change for the
+       life of a card, so the shapes are keyed on the one thing that can:
+       which photographs these are. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photos, readScroll]);
+
   useEffect(() => () => cancelAnimationFrame(tween.current), []);
 
   return (
-    <div className={cn("group/carousel relative", className)}>
+    <div
+      className={cn("group/carousel relative mx-auto", className)}
+      /* The frame is as wide as the widest photograph in it may be drawn, and
+         no wider -- so a set of three landscapes reaches the same edges a
+         single landscape would, and a set of three portraits stays as narrow
+         as a single portrait. Capped at the same 900px everything else is. */
+      style={{ maxWidth: `min(100%, ${frameWidth}px)` }}
+    >
+    <div ref={frame} className="relative">
+      {/* The ghost. It holds the FIRST photograph's box open in plain CSS --
+          a max-width, an aspect-ratio and the ceiling, exactly what
+          <PhotoFrame> puts on a photograph posted alone -- so the card has
+          its right height on the server, before hydration and before any
+          slide has been measured. From the first scroll frame onward the
+          height above is explicit and this is inert. Same trick as
+          <PhotoStream>'s trailing cell: a box that is only its own shape. */}
+      <div
+        aria-hidden
+        className="pointer-events-none w-full"
+        style={{
+          maxWidth: frames[0]?.maxWidth,
+          aspectRatio: frames[0]?.aspectRatio,
+          maxHeight: frames[0]?.maxHeight,
+        }}
+      />
       <div
         ref={track}
         onScroll={readScroll}
@@ -196,16 +291,14 @@ export function PhotoCarousel({
           }
         }}
         tabIndex={0}
-        style={{
-          aspectRatio: box,
-          /* Capped the way a single photograph is capped, and by the same
-             arithmetic: a height ceiling reaches CSS as the width that
-             produces it. At the widest shape a carousel may take, 1.8:1, that
-             is exactly the 900px a photograph stops at. */
-          maxWidth: `min(100%, ${Math.round(PHOTO_MAX_HEIGHT * box)}px)`,
-        }}
         className={cn(
-          "mx-auto flex snap-x snap-mandatory items-stretch overflow-x-auto rounded-[var(--radius-md)]",
+          /* NO height of its own, and that is the mechanism. A flex line is as
+             tall as the tallest item on it, and each slide is as tall as the
+             photograph inside it wants to be, so the frame settles on the
+             tallest photograph in the set with nothing computed and nothing
+             measured. `items-stretch` then gives every other slide that same
+             height to bed its photograph into. */
+          "absolute inset-0 flex snap-x snap-mandatory items-stretch overflow-x-auto rounded-[var(--radius-md)]",
           /* The track scrolls sideways inside a page that scrolls down, so a
              horizontal overscroll must stop here rather than becoming the
              browser's back gesture. */
@@ -214,10 +307,8 @@ export function PhotoCarousel({
         )}
       >
         {photos.map((p, i) => {
-          const placed = p.photo ? placeInBox(p.photo, box) : null;
-          const promise = p.srcSet
-            ? photoSizes(sizes, framePhoto(p.photo ?? NEUTRAL))
-            : undefined;
+          const shape = frames[i];
+          const promise = p.srcSet ? photoSizes(sizes, shape) : undefined;
           return (
             <button
               key={i}
@@ -240,21 +331,26 @@ export function PhotoCarousel({
                    away, so they wait until the reader is near them. */
                 loading={i === 0 ? undefined : "lazy"}
                 decoding="async"
-                className="relative object-cover"
-                style={
-                  placed
-                    ? {
-                        width: placed.width,
-                        height: placed.height,
-                        objectPosition: placed.objectPosition,
-                      }
-                    : { width: "100%", height: "100%" }
-                }
+                className="relative w-full object-cover"
+                /* The single-photograph rule, unchanged and unshared: a
+                   max-width, an aspect-ratio and the 500px ceiling, which is
+                   exactly what <PhotoFrame> puts on a photograph posted
+                   alone. `max-height: 100%` is only a guard for the moment
+                   mid-swipe when the frame is between two heights; at rest
+                   the frame IS this photograph's height, so it never binds
+                   and nothing is ever bedded. */
+                style={{
+                  maxWidth: shape.maxWidth,
+                  aspectRatio: shape.aspectRatio,
+                  maxHeight: `min(100%, ${shape.maxHeight}px)`,
+                  objectPosition: shape.objectPosition,
+                }}
               />
             </button>
           );
         })}
       </div>
+    </div>
 
       {/* Arrows. Desktop only -- a touch screen has the gesture, and a control
           you cannot hover has no reason to be dimmed. They sit over the

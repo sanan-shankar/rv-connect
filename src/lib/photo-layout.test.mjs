@@ -4,14 +4,13 @@ import {
   AIM_Y,
   AIM_WIDE_Y,
   CROP_BUDGET,
-  carouselBox,
+  carouselWidth,
   drawnRatio,
   drawnRows,
   drawnSize,
   framePhoto,
   photoRatio,
   photoSizes,
-  placeInBox,
   PHOTO_MAX_WIDTH,
   PHOTO_MAX_HEIGHT,
   PHOTO_ROW_TARGET,
@@ -352,47 +351,90 @@ test("the grid never crops, and its rows line up", () => {
  *  A carousel: one shape, agreed on by the set.
  * ------------------------------------------------------------------ */
 
-const framedRatio = (shape) => drawnRatio(frameOf(shape));
 
-test("the carousel takes the shape most of its photographs already are", () => {
-  const wide = SHAPES.find((s) => s.name.startsWith("16:9"));
+test("a carousel is as wide as its widest photograph may be drawn, and no wider", () => {
   const pano = SHAPES.find((s) => s.name.startsWith("21:9"));
   const tall = SHAPES.find((s) => s.name.startsWith("9:16"));
-  /* The measured failure this replaced: letting the TALLEST photograph decide
-     made a frame 421px high on a phone for two landscapes and one portrait,
-     so both landscapes sat in 121px of bed. The median gives them the frame
-     instead, and beds the portrait. */
-  assert.equal(carouselBox([wide, pano, tall].map(framedRatio)), framedRatio(wide));
-  // Never a shape a single photograph could not be: 3:4 at one end, the
-  // 900-over-500 cap at the other.
-  assert.equal(carouselBox([tall, tall, tall].map(framedRatio)), TALL_TARGET);
-  assert.equal(carouselBox([pano, pano, pano].map(framedRatio)), PHOTO_MAX_WIDTH / PHOTO_MAX_HEIGHT);
+  // Three portraits stay as narrow as one portrait: 500px of ceiling at 3:4.
+  assert.equal(carouselWidth([tall, tall, tall].map(frameOf)), Math.round(PHOTO_MAX_HEIGHT * TALL_TARGET));
+  // Three panoramas reach the same 900px cap a single panorama reaches.
+  assert.equal(carouselWidth([pano, pano, pano].map(frameOf)), PHOTO_MAX_WIDTH);
+  // Mixed: the widest decides, so the widest is never made small to spare
+  // the narrowest a bed.
+  assert.equal(
+    carouselWidth([tall, pano, tall].map(frameOf)),
+    carouselWidth([pano].map(frameOf))
+  );
 });
 
-test("every photograph fills one axis of the carousel and overflows neither", () => {
+test("every photograph in a carousel is drawn exactly as it would be posted alone", () => {
+  /* The rule, asserted rather than described. This is what the two earlier
+     shared-SHAPE versions could not say: under the median rule the owner's own
+     Colosseum came out 375 x 351 in a 728px card beside two portraits, where
+     posted alone it is 728 x 500. */
   for (const combo of combinations(3)) {
-    const box = carouselBox(combo.map(framedRatio));
-    for (const shape of combo) {
-      const placed = placeInBox({ width: shape.w, height: shape.h, ...centred }, box);
-      const w = Number(placed.width.replace("%", ""));
-      const h = Number(placed.height.replace("%", ""));
-      assert.ok(w <= 100.01 && h <= 100.01, `${shape.name} overflows a ${box} box`);
-      // One of the two is always the full box; the other is where the bed goes.
-      assert.ok(Math.abs(Math.max(w, h) - 100) < 0.01, `${shape.name} fills neither axis`);
+    const frames = combo.map(frameOf);
+    const frameWidth = carouselWidth(frames);
+    for (const column of COLUMNS) {
+      // The frame caps the column; each photograph is then drawn inside it.
+      const inside = Math.min(column, frameWidth);
+      for (const [i, shape] of combo.entries()) {
+        assert.deepEqual(
+          drawnSize(frames[i], inside),
+          drawnSize(frames[i], column),
+          `${shape.name} beside ${combo.map((c) => c.name).join(" + ")} at ${column}px`
+        );
+      }
     }
   }
 });
 
-test("the carousel never cuts more than the framing rule plus the budget", () => {
+test("a carousel is as tall as its tallest photograph and no photograph overflows it", () => {
   for (const combo of combinations(3)) {
-    const box = carouselBox(combo.map(framedRatio));
-    for (const shape of combo) {
-      const facts = { width: shape.w, height: shape.h, ...centred };
-      const floor = frameOf(shape).kept * (1 - CROP_BUDGET);
+    const frames = combo.map(frameOf);
+    const frameWidth = carouselWidth(frames);
+    for (const column of COLUMNS) {
+      const inside = Math.min(column, frameWidth);
+      const heights = frames.map((f) => drawnSize(f, inside).height);
+      /* What the flex line will settle on, which is the card's height. Nothing
+         may exceed it (that would clip) and one photograph must reach it
+         (otherwise the card is taller than anything in it). */
+      const frameHeight = Math.max(...heights);
+      assert.ok(frameHeight <= PHOTO_MAX_HEIGHT + 0.01, `${frameHeight}px is over the ceiling`);
       assert.ok(
-        placeInBox(facts, box).kept >= floor - 0.001,
-        `${shape.name} in a ${box} box kept ${placeInBox(facts, box).kept}`
+        heights.some((h) => Math.abs(h - frameHeight) < 0.01),
+        "no photograph reaches the frame's height"
       );
+      for (const [i, shape] of combo.entries()) {
+        assert.ok(
+          heights[i] <= frameHeight + 0.01,
+          `${shape.name} overflows a ${frameHeight}px frame`
+        );
+        assert.ok(
+          drawnSize(frames[i], inside).width <= frameWidth + 0.01,
+          `${shape.name} overflows a ${frameWidth}px frame`
+        );
+      }
     }
   }
+});
+
+test("the owner's Colosseum: a landscape beside two portraits is not shrunk to fit them", () => {
+  /* 2026-08-28, looking at his own post: three photographs, two upright and
+     one of the Colosseum, in a card about 850px wide. "why are all the photos
+     fixed at that aspect ratio... that photo can take up much more space but
+     we're not letting it??" Under the median rule the frame was 3:4, so the
+     landscape was drawn 375 x 351 inside it. */
+  const tall = SHAPES.find((s) => s.name.startsWith("3:4"));
+  const wide = SHAPES.find((s) => s.name.startsWith("4:3"));
+  const frames = [tall, wide, tall].map(frameOf);
+  const inside = Math.min(728, carouselWidth(frames));
+
+  const landscape = drawnSize(frames[1], inside);
+  assert.equal(landscape.width, 728);
+  assert.equal(landscape.height, PHOTO_MAX_HEIGHT);
+  // Its neighbours are untouched: still the 375 x 500 a portrait is alone.
+  const portrait = drawnSize(frames[0], inside);
+  assert.equal(portrait.width, Math.round(PHOTO_MAX_HEIGHT * TALL_TARGET));
+  assert.equal(portrait.height, PHOTO_MAX_HEIGHT);
 });
