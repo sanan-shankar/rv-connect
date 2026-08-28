@@ -84,11 +84,15 @@ test("ERA_START_YEAR is the same mapping the takenKey column computes", () => {
   /* `takenKey` is a GENERATED column, so this table exists twice: once in
      TypeScript for the river's fixtures and its labels, once in SQL for the
      ordering. They cannot be shared, so they are compared. */
+  /* The NEWEST migration that defines the column, not the one that first
+     created it: `takenKey` was rebuilt on 2026-08-28 when the decade ladder
+     grew a 1940s and a 1950s, and the original file still holds the old CASE.
+     If it is ever rebuilt again, this path moves with it. */
   const sql = readFileSync(
-    new URL("../../prisma/migrations-manual/2026-08-28-collection-river.sql", import.meta.url),
+    new URL("../../prisma/migrations-manual/2026-08-28-era-1940s-1950s.sql", import.meta.url),
     "utf8"
   );
-  const generated = sql.slice(sql.indexOf('ADD COLUMN IF NOT EXISTS "takenKey"'));
+  const generated = sql.slice(sql.indexOf('ADD COLUMN "takenKey"'));
   for (const [era, year] of Object.entries(ERA_START_YEAR)) {
     const line = new RegExp(`WHEN '${era}'\\s+THEN ${year}\\b`);
     assert.match(generated, line, `${era} is ${year} in TypeScript; the migration disagrees`);
@@ -103,7 +107,7 @@ test("ERA_START_YEAR is the same mapping the takenKey column computes", () => {
 test("the tile says the shortest true thing about when, or nothing", () => {
   assert.equal(takenShort({ photoYear: 1978, era: "1970s" }), "1978");
   assert.equal(takenShort({ photoYear: null, era: "1970s" }), "1970s");
-  assert.equal(takenShort({ photoYear: null, era: "pre-1960s" }), "Pre-1960s");
+  assert.equal(takenShort({ photoYear: null, era: "pre-1940s" }), "Pre-1940s");
   // Nothing at all rather than a guess: the owner's whole complaint about the
   // viewer was a date that was not the photograph's.
   assert.equal(takenShort({ photoYear: null, era: "unknown" }), null);

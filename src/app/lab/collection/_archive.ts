@@ -87,11 +87,13 @@ const CAPTIONS = [
    in is undated. That is the finding the rail exists to show. */
 const ERA_WEIGHTS: [string, number][] = [
   ["2020s", 46], ["2010s", 58], ["2000s", 31], ["1990s", 22],
-  ["1980s", 17], ["1970s", 14], ["1960s", 9], ["pre-1960s", 5], ["unknown", 38],
+  ["1980s", 17], ["1970s", 14], ["1960s", 9], ["1950s", 3], ["1940s", 2],
+  ["pre-1940s", 2], ["unknown", 38],
 ];
 
 const ERA_YEARS: Record<string, [number, number]> = {
-  "pre-1960s": [1931, 1959], "1960s": [1960, 1969], "1970s": [1970, 1979],
+  "pre-1940s": [1931, 1939], "1940s": [1940, 1949], "1950s": [1950, 1959],
+  "1960s": [1960, 1969], "1970s": [1970, 1979],
   "1980s": [1980, 1989], "1990s": [1990, 1999], "2000s": [2000, 2009],
   "2010s": [2010, 2019], "2020s": [2020, 2026],
 };
@@ -162,7 +164,7 @@ export const LAB_ARCHIVE: PhotoData[] = Array.from({ length: 240 }, (_, n) => {
 export function takenKeyOf(p: PhotoData): number {
   const year = p.takenShort && /^\d{4}$/.test(p.takenShort)
     ? Number(p.takenShort)
-    : ({ "pre-1960s": 1926, "1960s": 1960, "1970s": 1970, "1980s": 1980,
+    : ({ "pre-1940s": 1926, "1940s": 1940, "1950s": 1950, "1960s": 1960, "1970s": 1970, "1980s": 1980,
          "1990s": 1990, "2000s": 2000, "2010s": 2010, "2020s": 2020 }[p.era] ?? 0);
   return year * 100;
 }

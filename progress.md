@@ -63,6 +63,52 @@ field through `renderRichText`.
 are `/directory` at both viewports, from another session's uncommitted work in this shared tree.
 Measured at 1440x900 and 390x844.
 
+### The same day, an hour later: his second pass
+
+**One photograph was being treated as a small wall, and the number says it plainly.** A single
+portrait dropped into the contribute room was drawn **99x176 inside a 780px column of an 1152px
+pop-up** -- "so much white space. photo so small. not nice." The row solver is tuned for a
+hundred photographs at once, and nothing told it when there was one. The room has two shapes
+now: one photograph is a column with the picture at the top (222x394 at 1440), several is the
+wall-and-panel it was, and the glass sizes to what is in it -- 512 / 620 / 900 / 1152 by count.
+
+**That width is an inline style rather than a `sm:max-w-*` class, and the reason is the bug he
+caught an hour earlier.** A Tailwind class this codebase has never written before is a
+brand-new rule in the generated stylesheet, so a browser holding a cached sheet from before the
+edit matches nothing and falls back to full width -- "why tf is this full screen now". A style
+attribute is in the markup and cannot be missing, and one `min()` carries the small-screen
+inset at every width with no breakpoint.
+
+**The decade ladder now reaches the school's founding.** 1940s and 1950s of their own, and
+Pre-1960s became Pre-1940s rather than surviving beside them: a 1955 photograph offered both
+has two true answers, and a vocabulary with two true answers gets filled in at random.
+`takenKey` is a GENERATED column whose CASE is the SQL half of `ERA_START_YEAR`, and a
+generated column cannot be altered in place -- so it and the river's keyset index are dropped
+and rebuilt inside one transaction (`2026-08-28-era-1940s-1950s.sql`, applied to both
+databases). `pre-1960s` stays in the CASE and is offered nowhere: no row has ever held it, but
+a stale browser can post it, and a value falling through to NULL sorts as undated rather than
+as what it says. **He asked for a note about revisiting it** and it is above `ERAS` in
+`src/lib/collection.ts`, with the query that answers the question.
+
+**"I don't know" is a pill now, and yesterday's argument against it was wrong.** The argument
+was that it and an empty row mean the same thing to the archive, so its pressed and unpressed
+states are identical. That is true of the database and false of the person: an empty row is a
+question still hanging over you, and a lit "I don't know" is an answer you have given and can
+walk away from. The hedge beside the heading ("if you know") went with it.
+
+**Height animates in exactly one place in this campaign**, and this is it: the finer date
+questions grow out of the pills rather than appearing under them. The block genuinely takes up
+space it did not before, and translating it would slide it over what is beneath instead of
+making room. 44px, once per press, in a dialog.
+
+**The "Banyan Tree tag" was `Photo.area`.** He was right that something was there and right to
+call it a tag -- the viewer prints `area` above the caption, where it reads exactly like one.
+It is the answer to the "Where in the valley?" box deleted in the same round, so nothing writes
+it any more and it was the only thing left that could put a tag on a photograph. Both rows
+cleared by a file scoped to their two ids rather than to `WHERE area IS NOT NULL`, with the old
+values (`'asdf'`, `'Big Banyan Tree'`) in its header so the second can be typed back into a
+caption. The column stays: deprecated, not deleted.
+
 
 ## 2026-08-28 — a contribution's original no longer hides in the archive
 
