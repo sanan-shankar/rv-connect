@@ -60,7 +60,17 @@ function isWideRoute(pathname: string): boolean {
 export function ContentColumn({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   return (
-    <div className={isWideRoute(pathname) ? "w-full max-w-[1600px]" : "mx-auto w-full max-w-3xl"}>
+    /* A column that fills the shell's own height, so a page can give a child
+       the space that is left (the directory map does; see app-shell.tsx). For
+       every other page this is invisible: a flex column of block children
+       stacks exactly the way the block box did. */
+    <div
+      className={
+        isWideRoute(pathname)
+          ? "flex min-h-0 w-full max-w-[1600px] flex-1 flex-col"
+          : "mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col"
+      }
+    >
       {children}
     </div>
   );

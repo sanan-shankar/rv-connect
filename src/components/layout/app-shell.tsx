@@ -37,8 +37,16 @@ export function AppShell({
   demo?: boolean;
   children: React.ReactNode;
 }) {
+  /* A flex COLUMN below md, a row from md up, and `dvh` rather than `screen`.
+     All three exist so a page can hand a child the height that is actually left
+     on the screen: the shell is the only thing that knows it. The directory map
+     is the one surface using it -- it used to measure the window in JavaScript
+     and set a pixel height, which meant the server rendered a 360px card that
+     jumped to 700px the moment hydration ran. `dvh` and not `screen` (100vh)
+     because 100vh on a phone is the LARGE viewport, i.e. taller than what you
+     can see, which is the one thing that measurement got right. */
   return (
-    <div className="relative min-h-screen bg-background md:flex">
+    <div className="relative flex min-h-dvh flex-col bg-background md:flex-row">
       {/* Fixed valley back-layer: covers the window at any desktop size (cover =
           as zoomed-out as it can be while still filling) and NEVER scrolls. The
           content layer scrolls over it. Sidebar + content sit above it (z-10).
@@ -70,7 +78,7 @@ export function AppShell({
             the owner's machine and was rejected outright ("revert all your
             changes to the margin between the tile and the sidebar"). Do not
             reintroduce viewport-unit padding here. */}
-        <main className="w-full flex-1 p-5 sm:p-7 lg:p-10">
+        <main className="flex w-full flex-1 flex-col p-5 sm:p-7 lg:p-10">
           <ContentColumn>
             {notice}
             {children}

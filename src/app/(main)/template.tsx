@@ -26,6 +26,10 @@ export default function MainTemplate({
 }) {
   return (
     <m.div
+      /* Passes the shell's height through to the page, which the directory map
+         fills instead of measuring the window (see app-shell.tsx). A flex
+         column of block children stacks exactly as the block box did. */
+      className="flex min-h-0 flex-1 flex-col"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={SPRINGS.gentle}

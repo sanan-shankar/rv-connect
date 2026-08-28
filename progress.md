@@ -1,5 +1,63 @@
 # Progress Log
 
+## 2026-08-28 — the map opens where the owner framed it, and gets there without a jump
+
+*"make the default map view like this instead of the zoomed out version. but I want the circles
+and all that to be sized and relative to the map exactly as it is now"* — and then, after two
+tries, *"I finetuned the position. exactly this."*
+
+The framing this morning was reverted for one reason (written up above): reframing by shrinking
+the viewBox changes `box.s`, the CSS pixels one viewBox unit occupies, and the marker layer
+counter-scales against that number, so every pin ballooned. **A zoom does not have that problem.**
+Markers already carry `1 / transform.k` so they hold their size through any zoom — so opening at
+`k > 1` moves the land and leaves every pin exactly where it was in size. Measured both ways
+rather than reasoned about: cluster discs 48.10 / 43.17 px, Las Vegas 27.59 / 23.89 px, identical
+at `k = 1` and at the new default.
+
+The default itself is not derived from anything. The owner dragged the real map to what he wanted
+and sent the screenshot; the transform behind it was solved out of that image — pin positions and
+the sidebar's known 248px giving the retina scale — and comes to `translate(-91, 0) scale(1.133)`:
+the top of the globe at the top of the frame, the dead half of the Pacific off the left edge, the
+south polar ocean cropped. Rendered at his window size the pins land within a pixel of his
+screenshot. `MIN_Z` stays 1, so minus still walks out to the whole sphere, and the reset button
+now returns to this view rather than centring on one the map never opens on.
+
+### The glitch, which was two glitches
+
+*"whenever I go to directory there's a weird glitch on the page for a few milliseconds it looks
+different then adjusts."*
+
+1. **The card's height was measured in JavaScript.** `window.innerHeight - top - 32`, correct and
+   still wrong: the server has no window, so the SSR HTML carried `height:360px` and hydration
+   grew it to 697 about 170ms later. Proved by fetching the HTML, not by reading the code.
+2. **`loading.tsx` was the page as it looked before the map existed** — a search bar, three filter
+   pills and six profile cards in a grid — so every navigation flashed a card grid and then
+   rearranged itself into a map.
+
+The height is real layout now: `flex-1` in a column that runs the height of the shell, which meant
+threading `flex min-h-0 flex-1 flex-col` from `<main>` down through ContentColumn, the (main)
+template, the page and the client. The shell's root is a flex COLUMN below md (it was a block, so
+nothing below md could stretch) and `min-h-dvh` rather than `min-h-screen`, because 100vh on a
+phone is the large viewport — taller than what you can see, which is the one thing the old
+measurement got right. The skeleton is now the page's own shape, with the map slot in the ocean
+colour the map paints first.
+
+Two things that fell out of it, both worth knowing:
+
+- **`h-full` inside the card collapsed.** A percentage height needs a containing block with a
+  definite height; a flex item sized by `min-height` below md is not that, so the map became a
+  178px strip at the top of a 579px card. `absolute inset-0` sidesteps the question entirely.
+- **A flex parent stopped a margin collapsing.** The toolbar row's `space-y-2.5` hangs a 10px
+  bottom margin on its first child that stays when the second is `sm:hidden`; that margin used to
+  collapse into the page and now could not, pushing the map down 10px. `flex flex-col gap-2.5`
+  has no trailing margin to collapse. The visual suite caught this — a red band 8px tall at the
+  top of the card — which is exactly the page you were not looking at.
+
+The mobile directory baseline moved: the card's bottom gutter is the page's own padding (20px)
+now instead of a hardcoded 32, so it matches the gap on every other edge. Everything else in the
+suite is byte-identical, which is the check that the shell change was safe. (Collection's two
+baselines fail against live data that changed mid-session; left alone, not mine.)
+
 ## 2026-08-28 — the hand-run passes become a protocol, not two coincidences
 
 *"I don't want each session to create new documentation and do it a new way. we have to have
