@@ -3,9 +3,10 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { Search, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { SegmentedPills } from "@/components/common/segmented-pills";
-import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/layout/page-header";
+import { SearchPill } from "@/components/layout/search-pill";
 import { Button } from "@/components/ui/button";
 import { FacetSearchSelect } from "@/components/common/filters/facet-search-select";
 import { FacetSelect } from "@/components/common/filters/facet-select";
@@ -13,7 +14,7 @@ import { FilterButton, FilterPopover } from "@/components/common/filters/filter-
 import { FilterSheet } from "@/components/common/filters/filter-sheet";
 import { RangeFacetPill } from "@/components/common/filters/range-facet-pill";
 import { SentenceLine, type SentenceToken } from "@/components/common/filters/sentence-line";
-import { HOUSE_OPTIONS, TYPE_OPTIONS } from "@/lib/directory-facets";
+import { PROFESSION_OPTIONS, TYPE_OPTIONS } from "@/lib/directory-facets";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { ProfileCard } from "./profile-card";
@@ -242,18 +243,10 @@ export function DirectoryClient({
      "12 results, City: Chennai" reads like a database row rather than a
      line of English. Order is the order someone would say them. */
   const sentenceTokens: SentenceToken[] = [];
-  /* The Profession CONTROL is deliberately not rendered (owner, 2026-08-26).
-     It filtered `User.workplace` by exact equality against an 18-value list
-     that the deleted onboarding Industry select used to write; measured on the
-     live database that day, it matched 0 of 63 members while 28 had a
-     workplace, because workplace now holds a free-text ORGANISATION and the
-     role lives in jobTitle. The facet returns when the LLM-derived profession
-     tag ships (docs/planning/FEATURES.md section 2), which needs its own
-     column -- the equality arm below is not reusable for it.
-     `directory-rule.test.mjs` fails the day that column appears, so this
-     cannot be forgotten.
-     This chip stays on purpose: it is the only way to clear a bookmarked
-     ?profession= now that no control can. */
+  /* Profession was hidden on 2026-08-26 (the exact-equality arm it had then
+     matched 0 of 63 members) and put back on 2026-08-28 at the owner's word,
+     ahead of the tags, with the arm rewritten to a contains over jobTitle and
+     workplace. See the facet itself for what the data actually supports. */
   if (initialFilters.profession) {
     sentenceTokens.push({
       key: "profession",
@@ -275,6 +268,11 @@ export function DirectoryClient({
       onClear: () => updateBatchRange({ from: "", to: "" }),
     });
   }
+  /* House lost its CONTROL on 2026-08-28 (owner: "remove filtering by
+     house"), and keeps its chip for the same reason profession kept one while
+     it was hidden: a bookmarked ?house= must still render a coherent page with
+     something on it the member can press to get out of. Nothing can set it any
+     more. */
   if (initialFilters.house) {
     sentenceTokens.push({
       key: "house",
@@ -305,7 +303,7 @@ export function DirectoryClient({
   const activeFacetCount =
     (initialFilters.city ? 1 : 0) +
     (initialFilters.yearFrom || initialFilters.yearTo ? 1 : 0) +
-    (initialFilters.house ? 1 : 0) +
+    (initialFilters.profession ? 1 : 0) +
     (initialFilters.type ? 1 : 0);
 
   // People (results) only appears while a filter is active; the map and batches
@@ -353,12 +351,22 @@ export function DirectoryClient({
     const className = fullWidth ? (compact ? "w-full h-9" : "w-full") : undefined;
     return (
       <>
+        {/* Profession, back on the panel at the owner's word (2026-08-28)
+            ahead of the tags that will one day fill it. Until those land it
+            matches what members typed themselves -- jobTitle, then workplace --
+            as a contains, so "Law" finds the lawyer and "Research" the research
+            analyst. Measured on the live database the day it went back: 28 of
+            63 members match one of these fourteen, and eleven of the fourteen
+            match nobody at all. That is the honest state of the data, not a
+            fault in the control; the LLM-derived tag (FEATURES.md sec. 2)
+            is what fills the rest. */}
         <FacetSearchSelect
-          label="House"
-          value={initialFilters.house}
-          onChange={(v) => updateFilters("house", v)}
-          options={HOUSE_OPTIONS}
-          anyLabel="Any house"
+          label="Profession"
+          value={initialFilters.profession}
+          onChange={(v) => updateFilters("profession", v)}
+          options={PROFESSION_OPTIONS}
+          anyLabel="Any profession"
+          searchPlaceholder="Search professions..."
           className={className}
         />
         <FacetSelect
@@ -370,22 +378,6 @@ export function DirectoryClient({
           className={className}
         />
       </>
-    );
-  }
-
-  // Shared by the mobile and desktop search boxes so neither drifts from the
-  // other (the desktop one is a fixed, shorter width; mobile fills the row).
-  function renderSearchBox(className: string) {
-    return (
-      <div className={className}>
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search people by name, city, or work."
-          value={query}
-          onChange={(e) => handleSearch(e.target.value)}
-          className="h-10 rounded-full border-border bg-card pl-10"
-        />
-      </div>
     );
   }
 
@@ -403,29 +395,84 @@ export function DirectoryClient({
     );
   }
 
+  /* The sentence: the result count the page always owed, which also carries
+     every applied filter as a removable token, so a filter costs ZERO vertical
+     pixels (owner, 2026-08-03: "use sentence for filter"; Concept B in
+     /lab/directory). From sm up it rides INSIDE the control row, in the gap
+     between the browse toggle and Filters that used to be empty; below sm it
+     drops under the row, because a count, two tokens and "Clear all" cannot
+     share 390px with a three-way toggle. It is a line of text either way, not
+     a second row of controls. */
+  const sentence = (
+    <SentenceLine
+      count={resultCount}
+      singular={hasFilter ? "result" : "person"}
+      plural={hasFilter ? "results" : "people"}
+      tokens={sentenceTokens}
+      onClearAll={clearAll}
+      onOpenPanel={() => (window.innerWidth >= 1024 ? setPanelOpen(true) : setSheetOpen(true))}
+      max={2}
+    />
+  );
+
   return (
     <div>
-      {/* THE CHROME: two rows, and it cannot grow a third.
-          Row one is search + Filters + Sort, a fixed 40px forever. Row two is
-          the sentence line, which the page already owed for the result count,
-          now also carrying the applied filters as removable tokens and the
-          view toggle on its right.
+      {/* Search rides on the title line, as the app's one expand-on-press
+          pill, exactly as the Collection's river does it (spec sec. 6). It was
+          a full-width bar owning a whole row of the page for a control most
+          visits never touch (owner, 2026-08-28: "compress the search button").
 
-          Adding a filter therefore costs ZERO vertical pixels. That is the
-          whole point (owner, 2026-08-03: "use sentence for filter"; Concept B
-          in /lab/directory). What this replaced showed one filter in three
-          places at once: a facet pill on the toolbar, a chip in the mobile
-          strip, and a tally on the More-filters button, and opening that
-          disclosure pushed the entire page down. */}
+          It cannot live in the control row below, which is where it was first
+          put: the pill opens as an OVERLAY rather than reflowing its row, and
+          at 390px an open field is 68vw -- it swallowed the Map/Batches toggle
+          and the back arrow whole, and a phone has no Escape key to shut it
+          with. Over a page title it covers nothing anybody can press. */}
+      <PageHeader
+        guide="directory"
+        title="Directory"
+        actions={
+          <SearchPill
+            value={query}
+            onChange={handleSearch}
+            placeholder="Search people"
+            label="Search people by name, city or work"
+            restLabel="Search people"
+          />
+        }
+      />
+
+      {/* THE CHROME: ONE row, at every width.
+          It was two, and badly balanced: a full-width search bar with Filters
+          on its end, and under it the count facing the view toggle across the
+          whole page (owner, 2026-08-28: "combine the map batches search and
+          filtering tastefully into one row instead of two badly spaced ones").
+          The row now reads left to right as the question actually goes: what
+          am I looking at, how many is that, and how do I narrow it. */}
       <div className="mb-4 space-y-2.5">
-        <div className="flex flex-nowrap items-center gap-2">
+        <div className="flex items-center gap-2 sm:gap-3">
           {renderBackButton()}
-          {renderSearchBox("relative min-w-0 flex-1")}
+          {/* Canopy-filled thumb, same control as the profile Writing switcher
+              (owner, 2026-08-02). People appears only while filtering; map and
+              batches stay reachable so a filter narrows the map in place
+              instead of abandoning it for a flat grid. */}
+          <SegmentedPills
+            ariaLabel="Browse view"
+            layoutId="directoryView"
+            segments={viewSegments}
+            value={browseView}
+            onChange={setBrowseView}
+            /* min-w-0 rather than shrink-0: at 360px the three-way toggle,
+               the back arrow and even the compact Filters button add up to
+               5px more than the column, and a segment label truncating is a
+               far better answer than a control hanging over the gutter. */
+            className="min-w-0 bg-card"
+          />
+          <div className="hidden min-w-0 flex-1 sm:block">{sentence}</div>
           {/* Desktop: the facets live in a popover on this button. Mobile: the
               same facets, in the kit's existing bottom sheet (it carries its
               own "Show N" footer, which is the right ending for a full-screen
               surface and wrong for a small anchored panel). */}
-          <div className="hidden lg:block">
+          <div className="ml-auto hidden shrink-0 lg:block">
             <FilterPopover
               open={panelOpen}
               onOpenChange={setPanelOpen}
@@ -437,57 +484,27 @@ export function DirectoryClient({
               {renderSecondaryFacets(true, true)}
             </FilterPopover>
           </div>
+          {/* Two spellings of the same button below lg, because at 390px the
+              full one does not fit: back arrow + a three-way toggle + "Filters
+              · 1" measured 379px against 350px of column and pushed the page
+              into a 9px horizontal scroll. `compact` (the prop the kit already
+              carries for a narrow column) drops the word and keeps the icon
+              and the count, which buys 47px. From sm up there is room for the
+              word, and it reads better than a bare glyph. */}
           <FilterButton
             count={activeFacetCount}
             onClick={() => setSheetOpen(true)}
-            className="lg:hidden"
+            compact
+            className="ml-auto shrink-0 sm:hidden"
+          />
+          <FilterButton
+            count={activeFacetCount}
+            onClick={() => setSheetOpen(true)}
+            className="ml-auto hidden shrink-0 sm:inline-flex lg:hidden"
           />
         </div>
 
-        {/* Below sm the sentence cannot hold a count, tokens AND a three-way
-            toggle side by side, so the toggle takes its own full-width row.
-            It is one more row, but it still does not GROW: the sentence is
-            present at every filter count, holding just the count when nothing
-            is set. The property that matters survives the breakpoint. */}
-        <div className="sm:hidden">
-          <SegmentedPills
-            ariaLabel="Browse view"
-            layoutId="directoryViewNarrow"
-            segments={viewSegments}
-            value={browseView}
-            onChange={setBrowseView}
-            // Full width here, so the segments split it evenly rather than
-            // huddling at the left end of a wide bar. `fill` carries the
-            // width; the track must not also be sent a w-full class.
-            fill
-            className="bg-card"
-          />
-        </div>
-        <SentenceLine
-          count={resultCount}
-          singular={hasFilter ? "result" : "person"}
-          plural={hasFilter ? "results" : "people"}
-          tokens={sentenceTokens}
-          onClearAll={clearAll}
-          onOpenPanel={() => (window.innerWidth >= 1024 ? setPanelOpen(true) : setSheetOpen(true))}
-          max={2}
-          right={
-            <div className="hidden sm:block">
-              {/* Canopy-filled thumb, same control as the profile Writing
-                  switcher (owner, 2026-08-02). People appears only while
-                  filtering; map and batches stay reachable so a filter narrows
-                  the map in place instead of abandoning it for a flat grid. */}
-              <SegmentedPills
-                ariaLabel="Browse view"
-                layoutId="directoryView"
-                segments={viewSegments}
-                value={browseView}
-                onChange={setBrowseView}
-                className="bg-card"
-              />
-            </div>
-          }
-        />
+        <div className="sm:hidden">{sentence}</div>
       </div>
 
       <FilterSheet

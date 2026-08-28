@@ -205,40 +205,56 @@ test("C-098: buildDirectoryWhere accepts the several cities the link sends", () 
   assert.match(branch, /new Set\(/, "the targets are not de-duplicated across cities");
 });
 
-/* ---- the Profession facet: hidden now, owed later --------------- */
+/* ---- the Profession facet: rendered now, tag owed later --------- */
 
-test("the Profession facet stays hidden until a profession tag exists", () => {
-  /* Owner, 2026-08-26: profession filtering IS wanted long term. The plan is
-     to run every workplace + jobTitle pair through an LLM at ~150 members,
-     derive the buckets, and write each member a backend tag
-     (docs/planning/FEATURES.md section 2).
+test("the Profession facet is on the panel, matching what members typed", () => {
+  /* History, because this control has moved twice. It filtered
+     `User.workplace` by exact equality against the vocabulary the deleted
+     onboarding Industry select used to write, and on 2026-08-26 it was hidden:
+     measured on the live database that day it matched 0 of 63 members, while
+     28 had a workplace, because workplace now holds a free-text ORGANISATION
+     and the role lives in jobTitle.
 
-     Until that column exists the facet is hidden, because the control filtered
-     `User.workplace` by exact equality against an 18-value list that the
-     deleted onboarding Industry select used to write. Measured on the live
-     database that day: 0 of 63 members matched, while 28 had a workplace --
-     the column now holds a free-text ORGANISATION and the role lives in
-     jobTitle, so no single column is filterable.
+     The owner asked for it back on 2026-08-28, ahead of the tags. What makes
+     that honest rather than decorative is the arm underneath: a contains over
+     jobTitle AND workplace, which finds 28 of 63 on the same database. So what
+     is pinned here is the pair -- the control and a filter that can match
+     somebody -- never the control on its own. */
+  assert.ok(/label="Profession"/.test(CLIENT), "the Profession facet is gone from the panel");
+  const branch = WHERE.slice(WHERE.indexOf("if (filters.profession)"), WHERE.indexOf("if (filters.house)"));
+  assert.doesNotMatch(
+    branch,
+    /where\.workplace = filters\.profession/,
+    "the exact-equality arm is back; it matched 0 of 63 members, so the facet would be decorative"
+  );
+  assert.match(branch, /jobTitle: \{ contains/, "the arm does not read jobTitle, which is where the role actually lives");
+  assert.match(branch, /workplace: \{ contains/, "the arm no longer falls back to workplace");
+});
 
-     This test is the reminder. The day a profession column lands in the
-     schema, it FAILS and tells you to put the control back. */
+test("the profession arm cannot clobber the search", () => {
+  /* `filters.q` owns where.OR. A second assignment to it would drop the
+     member's search while the box went on showing what they typed -- the same
+     silent clobber audits C-093 and Low 73 found on accountType and batchYear,
+     which is why both of those are folds now. */
+  const branch = WHERE.slice(WHERE.indexOf("if (filters.profession)"), WHERE.indexOf("if (filters.house)"));
+  assert.doesNotMatch(branch, /where\.OR =/, "the profession arm assigns where.OR, which the q search already owns");
+  assert.match(branch, /where\.AND =/, "the profession arm no longer combines with AND");
+});
+
+test("a profession tag column takes the contains arm with it", () => {
+  /* The plan is still to run every workplace + jobTitle pair through an LLM,
+     derive the buckets and write each member a real tag
+     (docs/planning/FEATURES.md section 2). The day that column exists this
+     fails, because a contains over free text is a stand-in for it and keeping
+     both is how a filter comes to disagree with the tag it displays. */
   const tagShipped = /profession/i.test(SCHEMA);
-  const facetRendered = /label="Profession"/.test(CLIENT);
-
   if (tagShipped) {
-    assert.ok(
-      facetRendered,
+    assert.doesNotMatch(
+      WHERE,
+      /jobTitle: \{ contains: needle/,
       "A profession field now exists in schema.prisma, so the tag has shipped -- " +
-        "put the Profession facet back in renderPrimaryFacets (directory-client.tsx), " +
-        "restore its arm in activeFacetCount, and point where.ts at the TAG rather than " +
-        "at `where.workplace = <exact value>`, which was never reusable for it."
-    );
-  } else {
-    assert.ok(
-      !facetRendered,
-      "The Profession facet is being rendered again, but nothing writes a profession: " +
-        "it filters workplace by exact equality and matches nobody. Either ship the tag " +
-        "column first, or leave the control hidden. See docs/planning/FEATURES.md section 2."
+        "point the profession arm in where.ts at that COLUMN and drop the contains " +
+        "over jobTitle/workplace it stood in for."
     );
   }
 });

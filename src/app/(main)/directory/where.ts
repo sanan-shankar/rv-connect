@@ -138,12 +138,45 @@ export function buildDirectoryWhere(filters: DirectoryFilters): Record<string, u
       some: { OR: targets.map((v) => ({ city: { equals: v, ...insensitive } })) },
     };
   }
-  if (filters.profession) where.workplace = filters.profession;
+  if (filters.profession) {
+    /* Provisional, and deliberately loose. This was
+       `where.workplace = <exact value>`, aimed at an onboarding Industry
+       select that has since been deleted: measured on the live database on
+       2026-08-26 it matched 0 of 63 members, because workplace now holds a
+       free-text ORGANISATION and the role lives in jobTitle. The control came
+       back on 2026-08-28 (owner's call, ahead of the tags), so the arm has to
+       match what members actually typed: a case-insensitive contains over
+       jobTitle first and workplace second. On that same database it finds 28
+       of 63 -- "Law" reaches the lawyer, "Research" the research analyst --
+       and eleven of the fourteen buckets still find nobody. A contains can
+       obviously over-reach (a workplace called "Lawson"), which is acceptable
+       for a filter nobody can bookmark by accident and is the reason this is
+       marked provisional: the LLM-derived profession tag
+       (docs/planning/FEATURES.md section 2) replaces the whole branch with an
+       equality on its own column.
+
+       AND rather than a second OR: `filters.q` above already owns `where.OR`,
+       and assigning it twice would drop the member's search entirely while the
+       search box went on showing what they typed -- the exact shape of the
+       clobbers audits C-093 and Low 73 found on accountType and batchYear. */
+    const needle = escapeLike(filters.profession);
+    where.AND = [
+      {
+        OR: [
+          { jobTitle: { contains: needle, ...insensitive } },
+          { workplace: { contains: needle, ...insensitive } },
+        ],
+      },
+    ];
+  }
   // escapeLike like every other free-text contains: an unescaped "%" or "_" in
   // the URL param would otherwise reach Postgres as a live LIKE wildcard and
   // silently widen the filter (the last of the ~18 contains sites to get this).
   // Case-sensitivity is left exactly as it was -- only the wildcard escaping changes.
-  /* `contains` stays here, unlike the city filter above: `houses` is a JSON
+  /* The house CONTROL is gone (owner, 2026-08-28: "remove filtering by
+     house"); this arm stays so a bookmarked ?house= still returns the page it
+     used to, with a chip on it to clear.
+     `contains` stays here, unlike the city filter above: `houses` is a JSON
      string of [{year, house}] rows, so a substring is the only instrument
      without parsing the column in SQL. Checked against the canonical list in
      lib/houses.ts: no house name is a substring of another, and the only other
