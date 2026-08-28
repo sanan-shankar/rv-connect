@@ -173,14 +173,17 @@ that rework.
           brakes the machine and not the person. F46 to F48 are what driving it found.
         - **§9, the queue's selection** (**D39**). `approvePhotos`, ticks on the waiting
           rows, "Tick all", "Approve N". The **profile toggle already existed** (F45).
-- [ ] **OWED BY THE OWNER: an R2 lifecycle rule on the staging prefix.** Bulk upload
-      stages every dropped file under `collection/<userId>/...` the moment it lands, before
-      anything is filed, which is what makes a drop of a hundred feel instant. A drop that
-      is abandoned leaves those objects behind, and nothing in this system can enumerate
-      the bucket to find them (that is deliberate, audit C-063). One lifecycle rule in the
-      Cloudflare dashboard -- delete objects under that prefix older than a few days --
-      closes it permanently. Cheap either way (a stray photograph is a fraction of a cent a
-      month), but it is unbounded without the rule.
+- [x] **The R2 lifecycle rule — DONE by the owner, 2026-08-28, and the item as written
+      here was WRONG in a way that would have destroyed the archive.** It said to point a
+      rule at `collection/<userId>/...`. That is the folder the archive's own photographs
+      live in, and an R2 rule matches a PREFIX, so it would have deleted them. See F50 and
+      the new entry in `docs/TRAPS.md`.
+      What actually happened: contributions now stage under `staging/` (commit `04c90a2`),
+      the sixty originals already stranded under `collection/` were swept, and the owner
+      added the rule — `expire-staging`, prefix `staging/`, delete after 7 days, enabled.
+      **One thing still outstanding**: production keeps minting the OLD shape until this is
+      deployed, so `node scripts/dev/sweep-stranded-originals.mjs` must be run once more
+      after the deploy. Then that script and its `scripts/README.md` line get deleted.
 - [ ] **Close-out**: delete `/lab/crop`, `public/lab/crop/` and the registry row (its
       "several at once" mode now renders the SHIPPED components beside what each surface did
       before, so it is worth keeping until the owner has looked at phase 3);
@@ -925,6 +928,20 @@ Each is the owner's, given in this session. Do not relitigate these without aski
   "there is nothing here yet" should mean. One clause: `content.trim().length > 0 ||
   images.length > 0`. The owner's call.
 
+- **F50. An owed item can be wrong, and this one would have deleted the archive.** The
+  status board carried "add a lifecycle rule on the staging prefix" for three sessions,
+  naming `collection/<userId>/...`. Writing the click-by-click for it found that the
+  abandoned originals and the real photographs share that folder, and an R2 lifecycle rule
+  matches a **prefix** — so the instruction, followed exactly, deletes the Collection.
+  Sixty stranded originals were measured, one confirmed readable over the open internet at
+  HTTP 200; these are the untouched files, so a phone photograph still carries its GPS
+  (audit M12). Fixed by staging them under `staging/` instead. **Two lessons, and the
+  second is the bigger one.** Where temporary bytes live is a decision to make before the
+  first one is written, not after. And an item on an owed list is a claim somebody made
+  once — F45 found one already done, this one found one actively dangerous. **Check an
+  owed item against the code before acting on it, and especially before telling the owner
+  to act on it.**
+
 ## The requirement ledger
 
 Every discrete ask in `brief.md`, itemised so none is quietly dropped. Status is one of:
@@ -1353,3 +1370,25 @@ next session should do is D37 to D39 and F45 to F49.
   and #37 out of `docs/planning/bugs.md`, and `docs/spec/media.md`, large parts of which
   D2 and D3 superseded. If the owner is in the room, showing him the backlog above is worth
   more.
+
+### Session 6, close-out — 2026-08-28
+
+The owner asked for click-by-click instructions to add the R2 lifecycle rule, which is how
+F50 was found: the instruction on the board would have deleted the Collection. Detail in
+`progress.md` under the same date and in `docs/TRAPS.md`.
+
+- Collection originals stage under `staging/` (commit `04c90a2`), verified by contributing
+  a photograph end to end and watching the staged original disappear on success.
+- `scripts/dev/sweep-stranded-originals.mjs` deleted the sixty already stranded, dry-run
+  first, refusing any key a database row points at. `collection/` went 70 objects to 10;
+  both real photographs still answer 200 on all four of their files.
+- **The owner added the rule himself**: `expire-staging`, prefix `staging/`, delete after 7
+  days, enabled. The app's storage key cannot read or write lifecycle settings
+  (`AccessDenied`), so this could not be verified or done from here — it is his screen and
+  his to confirm.
+- **Left over, reported not acted on**: six orphaned display/thumbnail files in
+  `collection/` from before the purge machinery (about 1.2MB), two of them already on
+  `PendingImagePurge` for the nightly sweep.
+- **Next session**: run the sweep once more after the deploy, then the close-out. And the
+  owner has said he will pick up the open questions — all nine are above, and questions 1,
+  2, 3 and 7 are things built and never seen by him.
