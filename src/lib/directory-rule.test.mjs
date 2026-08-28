@@ -282,7 +282,7 @@ test("the Profession control hides only when it has nothing to offer", () => {
   /* This gate has been at two values in one day. It was `>= 2`, on the
      argument that a dropdown offering a single choice reads as a broken
      control -- and with TAG_FLOOR at five that is exactly what the data gave,
-     since only "Studying" cleared it.
+     since only Student cleared it.
 
      The owner overruled it the same afternoon: "did you make the profession
      tab disappear from filters? bring it back if it was you". A filter that

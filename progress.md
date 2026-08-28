@@ -1,5 +1,40 @@
 # Progress Log
 
+## 2026-08-28 — "studying" becomes "student", and a hole in the rename story
+
+*"why is it studying. it should be student."* He is right, and the reason generalises past
+this one word: every other value in the vocabulary is a **field** -- Technology, Healthcare,
+Law -- so the gerund was the one odd word in the list. It also fails forward: when Retired
+turns up, it sits beside Student naturally and beside Studying awkwardly.
+
+**Renamed properly rather than relabelled, and the interesting part is that this needed a
+migration.** The design was built so a vocabulary change would not: `LEGACY_TAGS` maps a dead
+value on read, and the directory's filter arm matches the stored string directly, so both
+survive a rename untouched. **The facet OPTIONS do not.** The histogram behind them is
+`unnest("professionTags")` in raw SQL in `directory/page.tsx`, which never passes through
+`profession-tags.ts` -- so a renamed value goes on being counted, and labelled, under its old
+name for as long as any row holds it. Left alone, the dropdown would have gone on saying
+"Studying" while every other surface said Student.
+
+So the promise is narrower than it was written, and both `profession-tags.ts` and
+`docs/spec/hand-run-passes.md` now say so: **adding, removing and splitting a tag need no SQL;
+renaming a stored value needs a migration as well.** That is a real limit, not a defect --
+worth knowing before somebody plans a rename believing otherwise.
+
+Done now because it is as cheap as it will ever be: the column was hours old, so nobody had a
+`?profession=studying` link saved. The `LEGACY_TAGS` entry stays anyway, for the demo
+database's own seeds and for a browser holding a page built before the deploy. 25 rows
+rewritten; `?profession=student` returns 25 with a Student chip.
+
+**Also, the Collection got tagged.** Both photographs in it -- which is the whole archive.
+Rishi Konda at dusk is Nature; the black-and-white banyan is Campus **and** Nature, because
+the vocabulary draws that line precisely (the banyan means the amphitheatre under it; the
+tree alone would be Nature) and the swept floor is visible in the frame. Its decade is left
+blank on purpose: it is plainly archival, but no people, clothes, vehicles or absent
+buildings date it, and a guess would sit in the decade rail as a fact. The other photograph
+is the owner's own test upload, caption "asdf", which the pass will never touch -- it does not
+write captions and does not overwrite what a contributor typed.
+
 ## 2026-08-28 — the map opens where the owner framed it, and gets there without a jump
 
 *"make the default map view like this instead of the zoomed out version. but I want the circles

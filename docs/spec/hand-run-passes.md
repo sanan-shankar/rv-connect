@@ -113,8 +113,11 @@ fallback — there is no bucket to hide in, so the pile is the whole signal.
 **The vocabulary lives in TypeScript, never in the database.** No Postgres enum, no CHECK
 constraint. One database serves production and local dev, so a constraint turns every
 vocabulary edit into a migration with an outage window. Both `src/lib/collection.ts` and
-`src/lib/profession-tags.ts` keep a legacy map from dead values onto live ones, so a rename or
-a removal needs no SQL and rows carrying an old value keep working.
+`src/lib/profession-tags.ts` keep a legacy map from dead values onto live ones, so **adding,
+removing or splitting** a value needs no SQL and rows carrying an old one keep working. Renaming
+a STORED value is the exception and does need a migration: a facet's option list is usually
+counted in raw SQL, which never passes through the legacy map, so the old name goes on being
+counted and labelled until the rows themselves are rewritten.
 
 **Prefer tags to buckets, and never a boolean.** The owner, 2026-08-28: *"student boolean isn't
 scalable... more like tags then."* Several values in one array column lets a status and a

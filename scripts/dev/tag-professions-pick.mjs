@@ -172,7 +172,7 @@ const people = rows.map((r) => ({
      name adds nothing to it, and guessing a field from somebody's name is
      a way to be wrong that this pass should not even have available. */
   bio: r.bio ?? null,
-  /* Earns its place: a 2024 leaver at a general university is Studying, a
+  /* Earns its place: a 2024 leaver at a general university is Student, a
      1978 alumnus who writes "Doctor" is not. */
   batchYear: r.batchYear ?? null,
   accountType: r.accountType,

@@ -62,7 +62,7 @@ Write `scripts/dev/.professions/verdicts.json`:
 ```json
 {
   "people": [
-    { "id": "clx…", "tags": ["studying", "healthcare"] },
+    { "id": "clx…", "tags": ["student", "healthcare"] },
     { "id": "cly…", "tags": ["law"] },
     { "id": "clz…", "tags": [] }
   ]
@@ -85,7 +85,7 @@ failing without anybody noticing. If you have read `tag-photos` recently, that i
 wrong here.
 
 **Guessing a field from a general university.** "Student" at Ashoka, NYU, Edinburgh or
-Delhi University names no field at all. That is `["studying"]` and nothing else. "Student"
+Delhi University names no field at all. That is `["student"]` and nothing else. "Student"
 at GNLU is a law school, at SRMC a medical college, at the Culinary Arts Academy a
 hospitality school — those name a field, and there the second tag is real. The line is
 whether the institution or the course *tells* you, not whether you can imagine a likely
