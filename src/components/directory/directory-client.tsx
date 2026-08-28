@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo, useTransition } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { ArrowLeft } from "lucide-react";
+import { AnimatePresence, m } from "motion/react";
+import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { SegmentedPills } from "@/components/common/segmented-pills";
 import { PageHeader } from "@/components/layout/page-header";
 import { SearchPill } from "@/components/layout/search-pill";
@@ -14,13 +15,15 @@ import { FilterButton, FilterPopover } from "@/components/common/filters/filter-
 import { FilterSheet } from "@/components/common/filters/filter-sheet";
 import { RangeFacetPill } from "@/components/common/filters/range-facet-pill";
 import { SentenceLine, type SentenceToken } from "@/components/common/filters/sentence-line";
-import { PROFESSION_OPTIONS, TYPE_OPTIONS } from "@/lib/directory-facets";
+import { TYPE_OPTIONS } from "@/lib/directory-facets";
+import { tagLabel } from "@/lib/profession-tags";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { ProfileCard } from "./profile-card";
 import { AlumniMap, type CityPin, type PinPerson } from "./alumni-map";
 import { loadDirectoryPage } from "@/app/(main)/directory/actions";
 import { NoResultsHoopoe } from "@/components/mascot/moments/no-results-hoopoe";
+import { cn } from "@/lib/utils";
 
 interface User {
   id: string;
@@ -56,6 +59,11 @@ interface DirectoryClientProps {
   batchYearCounts: { year: number; count: number }[];
   facultyCount: number;
   cities: string[];
+  /* The tag histogram the server has already filtered by TAG_FLOOR and cut to
+     TAG_VISIBLE_MAX. Options, not raw counts: the two caps are the server's
+     decision (they are what the filter can actually honour), so the client is
+     handed the answer rather than the arithmetic. */
+  professions: { value: string; label: string }[];
   minBatchYear: number;
   maxBatchYear: number;
   initialFilters: DirectoryFiltersState;
@@ -85,6 +93,7 @@ export function DirectoryClient({
   batchYearCounts,
   facultyCount,
   cities,
+  professions,
   minBatchYear,
   maxBatchYear,
   initialFilters,
@@ -101,12 +110,45 @@ export function DirectoryClient({
      must not close the other out from under it. */
   const [panelOpen, setPanelOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  // When filtering, default to the People (grid) view so results are visible;
-  // otherwise the zero-typing browse opens on the Map.
+  /* Which view the member is looking at, and it is THEIRS from here on.
+     It used to be recomputed from `hasFilter` on every props change, so any
+     filter at all threw you off the map and onto the grid -- the single
+     biggest jolt in the whole interaction. Now (owner's call, 2026-08-28) it
+     depends on what you filtered BY: typing a name is looking for a person, so
+     it moves to People; picking a facet is looking at a shape, so the map
+     stays and narrows in place. Both are set explicitly at the call sites
+     (handleSearch, openBatch) rather than derived here.
+     A first load already carrying a query or a batch year is the same
+     intention arriving by link, so it opens on People. */
   const [browseView, setBrowseView] = useState<"map" | "batches" | "people">(
-    hasFilter ? "people" : "map"
+    initialFilters.q || initialFilters.year ? "people" : "map"
   );
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* Every filter change is a NAVIGATION -- same route, new searchParams -- and
+     this route has a loading.tsx. Without a transition around the push, React
+     unmounts the whole page and paints that skeleton (a stub title, a bar,
+     three pills, six card ghosts) before painting the result, on every facet
+     pick and every keystroke in the search box. That, not the layout, was the
+     lurch the owner described on 2026-08-28: "such a sudden motion ... it's so
+     jarring how things move".
+     Inside startTransition, React keeps the page that is already on screen and
+     hands us `isPending` instead. `directory-rule.test.mjs` pins it, because a
+     future router.push written without it brings the skeleton straight back. */
+  const [isPending, startTransition] = useTransition();
+  /* The pending state is DELAYED, not immediate. A filter that resolves in
+     80ms should show nothing at all: a dim that appears and disappears inside
+     a tenth of a second is a flicker, which is worse than the wait it reports.
+     Past 150ms the member has noticed the delay and the signal is a relief. */
+  const [showPending, setShowPending] = useState(false);
+  useEffect(() => {
+    if (!isPending) {
+      setShowPending(false);
+      return;
+    }
+    const t = setTimeout(() => setShowPending(true), 150);
+    return () => clearTimeout(t);
+  }, [isPending]);
 
   // Accumulated results for keyset "Load more". Seeded from the SSR first page and
   // reset whenever the server hands a new first page (filters changed).
@@ -128,8 +170,7 @@ export function DirectoryClient({
     listGeneration.current += 1;
     setResults(users);
     setCursor(nextCursor);
-    setBrowseView(hasFilter ? "people" : "map");
-  }, [users, nextCursor, hasFilter]);
+  }, [users, nextCursor]);
 
   /* The search debounce outlives this component without it. Type, then
      navigate away inside the 300ms, and the timer still fires its
@@ -186,6 +227,15 @@ export function DirectoryClient({
     }
   }
 
+  /* The one door out to the router. Everything that changes a filter goes
+     through here so nothing can navigate outside the transition. */
+  const navigate = useCallback(
+    (url: string) => {
+      startTransition(() => router.push(url));
+    },
+    [router]
+  );
+
   const updateFilters = useCallback(
     (key: string, value: string) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -194,9 +244,9 @@ export function DirectoryClient({
       } else {
         params.delete(key);
       }
-      router.push(`/directory?${params.toString()}`);
+      navigate(`/directory?${params.toString()}`);
     },
-    [router, searchParams]
+    [navigate, searchParams]
   );
 
   const updateBatchRange = useCallback(
@@ -204,26 +254,40 @@ export function DirectoryClient({
       const params = new URLSearchParams(searchParams.toString());
       if (next.from) params.set("yearFrom", next.from); else params.delete("yearFrom");
       if (next.to) params.set("yearTo", next.to); else params.delete("yearTo");
-      router.push(`/directory?${params.toString()}`);
+      navigate(`/directory?${params.toString()}`);
     },
-    [router, searchParams]
+    [navigate, searchParams]
   );
 
   const handleSearch = useCallback(
     (value: string) => {
       setQuery(value);
+      // Typing is looking for a PERSON, so the view moves on the first
+      // keystroke rather than when the results land: the grid is already there
+      // holding the previous list while the new one is fetched, which is one
+      // move instead of a keystroke followed by a jump 300ms later.
+      if (value.trim()) setBrowseView("people");
       if (searchTimer.current) clearTimeout(searchTimer.current);
       searchTimer.current = setTimeout(() => updateFilters("q", value), 300);
     },
     [updateFilters]
   );
 
+  /* A batch tile is a drilldown, not a facet: pressing '09 means "show me the
+     people in it", so this is the other place that moves the view. */
+  const openBatch = useCallback(
+    (value: string) => {
+      setBrowseView("people");
+      updateFilters("year", value);
+    },
+    [updateFilters]
+  );
+
   function clearAll() {
     setQuery("");
-    router.push("/directory");
+    navigate("/directory");
   }
 
-  const showingYear = !!initialFilters.year;
   const yearLabel =
     initialFilters.year === "faculty"
       ? "Faculty"
@@ -250,7 +314,13 @@ export function DirectoryClient({
   if (initialFilters.profession) {
     sentenceTokens.push({
       key: "profession",
-      label: initialFilters.profession,
+      /* The vocabulary's label, not the raw URL value: the column stores
+         slugs, so a chip reading the parameter back would say "social impact"
+         where the control says "Social impact". Resolved here rather than off
+         the `professions` prop because a tag below TAG_FLOOR is not in that
+         list, and a bookmarked link to one still has to draw a chip a person
+         can read and clear. */
+      label: tagLabel(initialFilters.profession),
       onClear: () => updateFilters("profession", ""),
     });
   }
@@ -306,11 +376,14 @@ export function DirectoryClient({
     (initialFilters.profession ? 1 : 0) +
     (initialFilters.type ? 1 : 0);
 
-  // People (results) only appears while a filter is active; the map and batches
-  // are always reachable so filtering narrows the map rather than replacing it.
-  const views: ("map" | "batches" | "people")[] = hasFilter
-    ? ["people", "map", "batches"]
-    : ["map", "batches"];
+  /* All three, always (owner, 2026-08-28). People used to appear only while a
+     filter was active, so the toggle GREW a segment mid-gesture and the two
+     already on screen slid sideways under the finger -- one of the four things
+     that moved every time a filter landed. A constant toggle is a still frame,
+     and People with nothing filtered is simply everyone, in the server's own
+     order (newest first, never A-Z; that was the original complaint this page
+     was built around). */
+  const views: ("map" | "batches" | "people")[] = ["map", "batches", "people"];
   const viewSegments = views.map((v) => ({
     key: v,
     label: v === "map" ? "Map" : v === "batches" ? "Batches" : "People",
@@ -351,24 +424,34 @@ export function DirectoryClient({
     const className = fullWidth ? (compact ? "w-full h-9" : "w-full") : undefined;
     return (
       <>
-        {/* Profession, back on the panel at the owner's word (2026-08-28)
-            ahead of the tags that will one day fill it. Until those land it
-            matches what members typed themselves -- jobTitle, then workplace --
-            as a contains, so "Law" finds the lawyer and "Research" the research
-            analyst. Measured on the live database the day it went back: 28 of
-            63 members match one of these fourteen, and eleven of the fourteen
-            match nobody at all. That is the honest state of the data, not a
-            fault in the control; the LLM-derived tag (FEATURES.md sec. 2)
-            is what fills the rest. */}
-        <FacetSearchSelect
-          label="Profession"
-          value={initialFilters.profession}
-          onChange={(v) => updateFilters("profession", v)}
-          options={PROFESSION_OPTIONS}
-          anyLabel="Any profession"
-          searchPlaceholder="Search professions..."
-          className={className}
-        />
+        {/* Profession, filtering on the derived tag column
+            (src/lib/profession-tags.ts), which nobody types: the pair a member
+            DOES type -- jobTitle, the role, and workplace, the organisation --
+            only says what field they are in when read together, so the tag is
+            what a filter can match. It replaced a contains over both, which
+            was loose by construction and could only find members whose free
+            text happened to contain a bucket's own name.
+
+            HIDDEN BELOW TWO OPTIONS. The server already applies the floor of
+            five and the cap of twelve; what is left can be one, and on the
+            live database today it IS one ("Studying", 25 of the 34 people who
+            have said anything). A dropdown offering a single choice is worse
+            than no dropdown -- it reads as a broken control rather than as a
+            young directory -- so the control arrives on its own when there is
+            something to choose between. The CHIP below is unaffected: a
+            bookmarked ?profession= still shows and still clears, exactly as
+            the removed House filter's does. */}
+        {professions.length >= 2 && (
+          <FacetSearchSelect
+            label="Profession"
+            value={initialFilters.profession}
+            onChange={(v) => updateFilters("profession", v)}
+            options={professions}
+            anyLabel="Any profession"
+            searchPlaceholder="Search professions..."
+            className={className}
+          />
+        )}
         <FacetSelect
           label="Type"
           value={initialFilters.type}
@@ -381,19 +464,10 @@ export function DirectoryClient({
     );
   }
 
-  function renderBackButton() {
-    if (!(showingYear || hasFilter)) return null;
-    return (
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => router.push("/directory")}
-        title="Back to browse"
-      >
-        <ArrowLeft className="h-4 w-4" />
-      </Button>
-    );
-  }
+  /* renderBackButton is gone (owner, 2026-08-28: "drop it"). It inserted a
+     40px arrow at the START of the row the moment anything was filtered, which
+     shoved the toggle and everything after it sideways -- and it never said
+     anything "Clear all" in the count line does not already say. */
 
   /* The sentence: the result count the page always owed, which also carries
      every applied filter as a removable token, so a filter costs ZERO vertical
@@ -427,83 +501,87 @@ export function DirectoryClient({
           at 390px an open field is 68vw -- it swallowed the Map/Batches toggle
           and the back arrow whole, and a phone has no Escape key to shut it
           with. Over a page title it covers nothing anybody can press. */}
+      {/* Search and Filters TOGETHER on the title line (owner, 2026-08-28:
+          "move the filters to the right of the search"). Two controls of the
+          same weight, in the corner where every other page in the app keeps
+          its actions, which leaves the row below to be one thing rather than
+          a hodgepodge.
+          The search pill has to live up here rather than in that row: it opens
+          as an OVERLAY rather than reflowing, and at 390px an open field is
+          68vw, so in the row it swallowed the toggle whole. Over a title it
+          covers nothing anybody can press. */}
       <PageHeader
         guide="directory"
         title="Directory"
         actions={
-          <SearchPill
-            value={query}
-            onChange={handleSearch}
-            placeholder="Search people"
-            label="Search people by name, city or work"
-            restLabel="Search people"
-          />
+          <>
+            <SearchPill
+              value={query}
+              onChange={handleSearch}
+              placeholder="Search people"
+              label="Search people by name, city or work"
+              restLabel="Search people"
+            />
+            <div className="hidden lg:block">
+              <FilterPopover
+                open={panelOpen}
+                onOpenChange={setPanelOpen}
+                trigger={
+                  <FilterButton count={activeFacetCount} onClick={() => setPanelOpen((v) => !v)} />
+                }
+              >
+                {/* `compact` shrinks the facets to h-9 in the panel; the sheet
+                    on mobile keeps them at the full h-10 touch target. */}
+                {renderPrimaryFacets(true, true)}
+                {renderSecondaryFacets(true, true)}
+              </FilterPopover>
+            </div>
+            {/* Below lg the same facets open the kit's bottom sheet (it carries
+                its own "Show N" footer, which is the right ending for a
+                full-screen surface and wrong for a small anchored panel).
+                Compact below sm, where the word costs 47px the row has not
+                got. */}
+            <FilterButton
+              count={activeFacetCount}
+              onClick={() => setSheetOpen(true)}
+              compact
+              className="sm:hidden"
+            />
+            <FilterButton
+              count={activeFacetCount}
+              onClick={() => setSheetOpen(true)}
+              className="hidden sm:inline-flex lg:hidden"
+            />
+          </>
         }
       />
 
-      {/* THE CHROME: ONE row, at every width.
-          It was two, and badly balanced: a full-width search bar with Filters
-          on its end, and under it the count facing the view toggle across the
-          whole page (owner, 2026-08-28: "combine the map batches search and
-          filtering tastefully into one row instead of two badly spaced ones").
-          The row now reads left to right as the question actually goes: what
-          am I looking at, how many is that, and how do I narrow it. */}
+      {/* THE ROW: the browse toggle at one edge, the count and its filter
+          tokens at the other, and nothing in between (owner, 2026-08-28:
+          "move the numbers to the right instead of beside the map ... we have
+          a hodgepodge of elements no real structure ordering spacing").
+          Right-anchoring the sentence is not only tidier: it is what makes a
+          filter land quietly, because a token added there grows LEFTWARD into
+          empty space instead of shoving its neighbours along. */}
       <div className="mb-4 space-y-2.5">
-        <div className="flex items-center gap-2 sm:gap-3">
-          {renderBackButton()}
+        <div className="flex items-center gap-3">
           {/* Canopy-filled thumb, same control as the profile Writing switcher
-              (owner, 2026-08-02). People appears only while filtering; map and
-              batches stay reachable so a filter narrows the map in place
-              instead of abandoning it for a flat grid. */}
+              (owner, 2026-08-02). Constant three segments, so this never
+              re-flows when a filter lands. */}
           <SegmentedPills
             ariaLabel="Browse view"
             layoutId="directoryView"
             segments={viewSegments}
             value={browseView}
             onChange={setBrowseView}
-            /* min-w-0 rather than shrink-0: at 360px the three-way toggle,
-               the back arrow and even the compact Filters button add up to
-               5px more than the column, and a segment label truncating is a
-               far better answer than a control hanging over the gutter. */
             className="min-w-0 bg-card"
           />
-          <div className="hidden min-w-0 flex-1 sm:block">{sentence}</div>
-          {/* Desktop: the facets live in a popover on this button. Mobile: the
-              same facets, in the kit's existing bottom sheet (it carries its
-              own "Show N" footer, which is the right ending for a full-screen
-              surface and wrong for a small anchored panel). */}
-          <div className="ml-auto hidden shrink-0 lg:block">
-            <FilterPopover
-              open={panelOpen}
-              onOpenChange={setPanelOpen}
-              trigger={<FilterButton count={activeFacetCount} onClick={() => setPanelOpen((v) => !v)} />}
-            >
-              {/* `compact` shrinks the facets to h-9 in the panel; the sheet on
-                  mobile keeps them at the full h-10 touch target. */}
-              {renderPrimaryFacets(true, true)}
-              {renderSecondaryFacets(true, true)}
-            </FilterPopover>
-          </div>
-          {/* Two spellings of the same button below lg, because at 390px the
-              full one does not fit: back arrow + a three-way toggle + "Filters
-              · 1" measured 379px against 350px of column and pushed the page
-              into a 9px horizontal scroll. `compact` (the prop the kit already
-              carries for a narrow column) drops the word and keeps the icon
-              and the count, which buys 47px. From sm up there is room for the
-              word, and it reads better than a bare glyph. */}
-          <FilterButton
-            count={activeFacetCount}
-            onClick={() => setSheetOpen(true)}
-            compact
-            className="ml-auto shrink-0 sm:hidden"
-          />
-          <FilterButton
-            count={activeFacetCount}
-            onClick={() => setSheetOpen(true)}
-            className="ml-auto hidden shrink-0 sm:inline-flex lg:hidden"
-          />
+          <div className="ml-auto hidden min-w-0 sm:block">{sentence}</div>
         </div>
 
+        {/* Below sm the sentence cannot share the row with a three-way toggle,
+            so it takes the line under it. It is a line of text, not a second
+            row of controls. */}
         <div className="sm:hidden">{sentence}</div>
       </div>
 
@@ -518,39 +596,110 @@ export function DirectoryClient({
         {renderSecondaryFacets(true)}
       </FilterSheet>
 
-      {browseView === "people" ? (
-        <div>
-          {yearLabel && (
-            <div className="mb-3 text-sm font-medium text-foreground">{yearLabel}</div>
-          )}
+      {/* ONE region, crossfaded. Map, batches and people used to swap
+          instantly, so a filter both replaced the whole content area and moved
+          every control around it in the same frame. A fade is enough: 120ms
+          out, 180ms in, and the incoming view waits for the outgoing one so
+          the two are never both on screen fighting for the same space.
 
-          {namesLocked ? (
-            /* Not the no-results card: nothing failed to match, the viewer is
-               simply below the tier that sees people. Same fix as everywhere
-               else, and the banner up top carries the resend button. */
+          The wrapper dims while a navigation is in flight, and only once
+          showPending has waited out its 150ms -- see the note on that state.
+          Opacity only, per the motion rule. */}
+      <div
+        aria-busy={showPending || undefined}
+        className={cn(
+          "transition-opacity duration-200 ease-out",
+          showPending && "opacity-55"
+        )}
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          <m.div
+            key={browseView}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.18, ease: EASE_OUT_SMOOTH } }}
+            exit={{ opacity: 0, transition: { duration: 0.12, ease: "easeOut" } }}
+          >
+        {browseView === "people" ? (
+          <div>
+            {yearLabel && (
+              <div className="mb-3 text-sm font-medium text-foreground">{yearLabel}</div>
+            )}
+
+            {namesLocked ? (
+              /* Not the no-results card: nothing failed to match, the viewer is
+                 simply below the tier that sees people. Same fix as everywhere
+                 else, and the banner up top carries the resend button. */
+              <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
+                <p className="font-heading text-lg tracking-tight text-foreground">
+                  Confirm your email to browse the people.
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Tap the link we sent you and every name opens up. The map is yours either way.
+                </p>
+              </div>
+            ) : results.length === 0 ? (
+              <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
+                <div className="mb-3 flex justify-center">
+                  <NoResultsHoopoe size={76} />
+                </div>
+                <p className="font-heading text-lg text-foreground">
+                  No one matches these filters.
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Try removing a filter or clearing your search.
+                </p>
+                {/* Just the escape hatch. This used to reprint every active
+                    filter as chips, which was the third copy of the same state
+                    on one screen; the sentence line directly above already lists
+                    them, each removable. */}
+                {hasFilter && (
+                  <Button variant="outline" className="mt-4 rounded-full" onClick={clearAll}>
+                    Clear all
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* No gap below sm: there the cards are borderless rows, and a
+                    16px gutter between rows in a plain series reads as things
+                    drifting apart. From sm up they are boxed cards in a grid and
+                    need the gutter back. */}
+                <div
+                  ref={gridRef}
+                  className="grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3"
+                >
+                  {results.map((user) => (
+                    <ProfileCard key={user.id} user={user} />
+                  ))}
+                </div>
+                {cursor && (
+                  <div className="flex justify-center pt-6">
+                    <Button
+                      variant="outline"
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                      className="rounded-full"
+                    >
+                      {loadingMore ? "Loading..." : "Load more"}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        ) : browseView === "map" ? (
+          cityPins.length === 0 && unmappedCount === 0 ? (
             <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
               <p className="font-heading text-lg tracking-tight text-foreground">
-                Confirm your email to browse the people.
+                {hasFilter
+                  ? "No one on the map matches these filters."
+                  : "The map fills in as people add their city."}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Tap the link we sent you and every name opens up. The map is yours either way.
+                {hasFilter
+                  ? "Try the People view, widen a filter, or clear your search."
+                  : "Add yours from your profile and watch the valley spread across the world."}
               </p>
-            </div>
-          ) : results.length === 0 ? (
-            <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
-              <div className="mb-3 flex justify-center">
-                <NoResultsHoopoe size={76} />
-              </div>
-              <p className="font-heading text-lg text-foreground">
-                No one matches these filters.
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Try removing a filter or clearing your search.
-              </p>
-              {/* Just the escape hatch. This used to reprint every active
-                  filter as chips, which was the third copy of the same state
-                  on one screen; the sentence line directly above already lists
-                  them, each removable. */}
               {hasFilter && (
                 <Button variant="outline" className="mt-4 rounded-full" onClick={clearAll}>
                   Clear all
@@ -558,97 +707,52 @@ export function DirectoryClient({
               )}
             </div>
           ) : (
-            <>
-              {/* No gap below sm: there the cards are borderless rows, and a
-                  16px gutter between rows in a plain series reads as things
-                  drifting apart. From sm up they are boxed cards in a grid and
-                  need the gutter back. */}
-              <div
-                ref={gridRef}
-                className="grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3"
+            /* Just the map. The "Top cities" card that used to sit under it is
+               gone (owner, 2026-08-03), and its wrapper went with it: a
+               space-y-4 stack separating one child from nothing is not a
+               layout. The cities it listed are the five biggest pins, which is
+               what the map is already showing, at their real positions. */
+            <AlumniMap
+              pins={cityPins}
+              unmapped={unmappedCount}
+              unmappedPeople={unmappedPeople}
+              namesLocked={namesLocked}
+            />
+          )
+        ) : (
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+            {batchYearCounts.map(({ year, count }) => (
+              <button
+                key={year}
+                onClick={() => openBatch(String(year))}
+                className="card-elevated group flex flex-col items-center rounded-[var(--radius)] border border-border bg-card p-4 pt-3.5 transition-[border-color,transform] duration-200 hover:border-canopy/40 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
-                {results.map((user) => (
-                  <ProfileCard key={user.id} user={user} />
-                ))}
-              </div>
-              {cursor && (
-                <div className="flex justify-center pt-6">
-                  <Button
-                    variant="outline"
-                    onClick={handleLoadMore}
-                    disabled={loadingMore}
-                    className="rounded-full"
-                  >
-                    {loadingMore ? "Loading..." : "Load more"}
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      ) : browseView === "map" ? (
-        cityPins.length === 0 && unmappedCount === 0 ? (
-          <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
-            <p className="font-heading text-lg tracking-tight text-foreground">
-              {hasFilter
-                ? "No one on the map matches these filters."
-                : "The map fills in as people add their city."}
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {hasFilter
-                ? "Try the People view, widen a filter, or clear your search."
-                : "Add yours from your profile and watch the valley spread across the world."}
-            </p>
-            {hasFilter && (
-              <Button variant="outline" className="mt-4 rounded-full" onClick={clearAll}>
-                Clear all
-              </Button>
+                <span className="font-heading text-lg font-bold tracking-tight text-foreground group-hover:text-primary">
+                  &apos;{String(year).slice(-2)}
+                </span>
+                <span className="mt-1 text-xs text-muted-foreground">
+                  {count} {count === 1 ? "person" : "people"}
+                </span>
+              </button>
+            ))}
+            {facultyCount > 0 && (
+              <button
+                onClick={() => openBatch("faculty")}
+                className="card-elevated group flex flex-col items-center rounded-[var(--radius)] border border-border bg-card p-4 pt-3.5 transition-[border-color,transform] duration-200 hover:border-canopy/40 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                <span className="font-heading text-base font-bold tracking-tight text-foreground group-hover:text-primary">
+                  Faculty
+                </span>
+                <span className="mt-1 text-xs text-muted-foreground">
+                  {facultyCount} {facultyCount === 1 ? "teacher" : "teachers"}
+                </span>
+              </button>
             )}
           </div>
-        ) : (
-          /* Just the map. The "Top cities" card that used to sit under it is
-             gone (owner, 2026-08-03), and its wrapper went with it: a
-             space-y-4 stack separating one child from nothing is not a
-             layout. The cities it listed are the five biggest pins, which is
-             what the map is already showing, at their real positions. */
-          <AlumniMap
-            pins={cityPins}
-            unmapped={unmappedCount}
-            unmappedPeople={unmappedPeople}
-            namesLocked={namesLocked}
-          />
-        )
-      ) : (
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-          {batchYearCounts.map(({ year, count }) => (
-            <button
-              key={year}
-              onClick={() => updateFilters("year", String(year))}
-              className="card-elevated group flex flex-col items-center rounded-[var(--radius)] border border-border bg-card p-4 pt-3.5 transition-[border-color,transform] duration-200 hover:border-canopy/40 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-              <span className="font-heading text-lg font-bold tracking-tight text-foreground group-hover:text-primary">
-                &apos;{String(year).slice(-2)}
-              </span>
-              <span className="mt-1 text-xs text-muted-foreground">
-                {count} {count === 1 ? "person" : "people"}
-              </span>
-            </button>
-          ))}
-          {facultyCount > 0 && (
-            <button
-              onClick={() => updateFilters("year", "faculty")}
-              className="card-elevated group flex flex-col items-center rounded-[var(--radius)] border border-border bg-card p-4 pt-3.5 transition-[border-color,transform] duration-200 hover:border-canopy/40 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-              <span className="font-heading text-base font-bold tracking-tight text-foreground group-hover:text-primary">
-                Faculty
-              </span>
-              <span className="mt-1 text-xs text-muted-foreground">
-                {facultyCount} {facultyCount === 1 ? "teacher" : "teachers"}
-              </span>
-            </button>
-          )}
-        </div>
-      )}
+        )}
+          </m.div>
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
