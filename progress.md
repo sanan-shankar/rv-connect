@@ -1,5 +1,71 @@
 # Progress Log
 
+## 2026-08-28 — contributing is a room in a pop-up, and the photographs develop
+
+Collection rework phase 6, the part of spec sec. 8 that is the interface. The owner asked
+twice, and the second time was blunt: *"the contribute panel is still not nice at all. like
+when you click on it it's very unappealing. let's think of something totally different and
+just dopamine inducing when you look at it."*
+
+**One idea carries it: the photographs are the interface, from the first instant.** They do
+not become a list of filenames with progress bars. They land straight into the justified
+rows they will live in on /collection, and then they DEVELOP -- each sits half-faded until
+its bytes are in the bucket and comes up to full as it lands. For a photograph archive that
+is the right metaphor, and it is the difference between watching a queue drain and watching
+your own pictures arrive.
+
+Everything else follows. **Every photograph is selected when it lands**, so the school
+photographer's hundred are one caption and one bucket press from being filed -- the
+five-minute job the spec asks for, against the "I can't ask him to do it one by one" that
+motivated the whole campaign. **The questions are beside the wall, in plain words**: "What
+is this?", six large bucket tiles with their own duotone glyphs, when, and where. **Nothing
+is required**, because a contribution refused for want of a tag is a contribution that does
+not happen.
+
+**Three ways in, all named**, at his request: paste, drop or browse. Paste is the one nobody
+builds and it is the one that saves a round trip through Save As.
+
+**It is a pop-up, and that reverses the spec.** Sec. 8.2 argued a modal is the wrong container
+for something you might spend twenty minutes on. Built as a room at /collection/add first;
+he looked at both and chose: *"i'm not sure I like the contribute being a separate page. I
+feel like it should a pop up but can be prettier."* So it is a large one, most of the glass,
+with its own scroll, and the route is gone.
+
+**Four things went wrong on the way and all four were worth finding.**
+
+1. **Contributing was broken, and he found it before I did** -- "there's a prisma error
+   showing when I try to upload". `takenKey` is a Postgres GENERATED column; I had declared
+   it `@default(0)`, which is a PRISMA-side default, so Prisma wrote the column into every
+   INSERT and Postgres refuses a non-DEFAULT value for a generated column. `dbgenerated()`
+   is how Prisma is told the database owns it.
+2. **And the running dev server would not have picked that fix up.** The stale-client guard
+   in `prisma.ts` hashes model names and field names; a field's ATTRIBUTES are invisible to
+   it. In development it now folds in a hash of `schema.prisma` itself, so any schema change
+   at all rebuilds the client. Never in production, where there is no hot reload.
+3. **Three upload lanes all grabbed the same photograph.** They start in the same tick and
+   `setPhotos` has not committed by the time the second reads the wall. Claimed in a ref now,
+   which is the only thing that is true immediately.
+4. **The remove control was invisible.** `opacity-0 group-hover:opacity-100` on a wrapper
+   with no `group` class, so at every width and on every device there was no way to take a
+   photograph back out -- which the owner hit within a minute of looking at it. Always there
+   now.
+
+**One rate limit was raised, deliberately.** Forty uploads an hour was written for a dialog
+that took one photograph at a time, and a contribution spends two of it (the presigned door
+and the action that makes the row). Twenty an hour: the photographer's drop was not slowed
+down, it was impossible. Collection contributions have their own meter at 400 now, and the
+argument is that this does not raise what an abusive account can COST us -- the per-account
+ceiling of a thousand photographs already bounds the total, and this only decides how long
+reaching it takes. The `uploads` meter for post images is untouched.
+
+Verified by adding one real photograph end to end and then removing it: the row carried its
+caption, its bucket and a generated `takenKey`, and its bytes went to the purge queue.
+`npm run check` green, 85/85. `npm run visual` 23/23, no baseline moved. Measured at
+1440x900 and 390x844.
+
+Still owed from sec. 8: the LLM suggestion pass (sec. 8.3), the uploader's crop handle
+(sec. 9), and the admin control that marks somebody trusted.
+
 ## 2026-08-28 — the Collection is a river, and the controls are one line of words
 
 Collection rework phase 5 (spec sec. 6, 7 and 10). The owner set the problem and

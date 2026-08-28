@@ -1,6 +1,8 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { BUCKET_VALUES, ERA_VALUES } from "@/lib/collection";
+import { isPhotoAutoApproved } from "@/lib/collection-photo";
+import { MAX_PHOTOS_PER_ACCOUNT } from "@/lib/upload-shared";
 import { loadPhotos, myPendingPhotos, type RiverOrder, type RiverFilters } from "./actions";
 
 /* ------------------------------------------------------------------ *
@@ -66,10 +68,20 @@ export async function collectionPageData(filters: RiverFilters = { order: "newes
      locally, and 2.9 SECONDS on a throttled connection, all of it skeleton.
      The moment a filter, an order or a search changes, the client takes over
      exactly as before. */
-  const [pending, approvedCount, firstPage] = await Promise.all([
+  /* The two things the contribute pop-up has to be honest about BEFORE a file
+     is chosen, because each changes what it promises: whether this member's
+     photographs go straight in or wait for review, and how much room is left
+     on their account (audit M17's quota). Fetched here rather than when the
+     pop-up opens, so it never says one thing and then another. */
+  const [pending, approvedCount, firstPage, me, mine] = await Promise.all([
     myPendingPhotos(),
     prisma.photo.count({ where: { approved: true, isHidden: false } }),
     loadPhotos(filters),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { photoTrusted: true },
+    }),
+    prisma.photo.count({ where: { uploaderId: session.user.id } }),
   ]);
 
   return {
@@ -78,5 +90,7 @@ export async function collectionPageData(filters: RiverFilters = { order: "newes
     firstPage,
     filters,
     isAdmin: session.user.role === "admin",
+    autoApproved: isPhotoAutoApproved({ role: session.user.role, ...me }),
+    roomLeft: Math.max(0, MAX_PHOTOS_PER_ACCOUNT - mine),
   };
 }

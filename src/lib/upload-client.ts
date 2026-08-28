@@ -17,7 +17,14 @@
  */
 export async function directUploadPut(
   file: File,
-  kind: "post" | "collection"
+  kind: "post" | "collection",
+  /** A deadline for the PUT itself. Without one a request that neither
+   *  answers nor fails holds its caller open for ever -- which a single
+   *  photograph in a composer can afford and a wall of two hundred cannot,
+   *  because the lanes uploading them are a fixed pool and three stuck files
+   *  stall the other hundred and ninety-seven. On abort this falls back to the
+   *  server proxy exactly as a blocked PUT does. */
+  opts?: { signal?: AbortSignal }
 ): Promise<{ key: string; publicUrl: string } | null> {
   let presign: {
     direct?: boolean;
@@ -69,6 +76,7 @@ export async function directUploadPut(
       // signature.
       headers: { "Content-Type": presign.contentType ?? file.type },
       body: file,
+      signal: opts?.signal,
     });
     if (!put.ok) {
       console.warn(
@@ -81,7 +89,7 @@ export async function directUploadPut(
        named in the bucket's CORS allowlist -- or the S3 endpoint is missing
        from the CSP's connect-src, which is the pair that hid this for weeks.
        Fall back rather than strand the upload, but say so (audit C-158). */
-    console.warn("[upload] direct PUT blocked; falling back to the server proxy", err);
+    console.warn("[upload] direct PUT blocked or timed out; falling back to the server proxy", err);
     return null;
   }
 

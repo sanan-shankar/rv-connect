@@ -65,12 +65,12 @@ const ImageViewer = dynamic(
   () => import("@/components/common/image-viewer").then((m) => m.ImageViewer),
   { ssr: false }
 );
-const ContributeDialog = dynamic(
-  () => import("./contribute-dialog").then((m) => m.ContributeDialog),
-  { ssr: false }
-);
 const ConfirmDialog = dynamic(
   () => import("@/components/common/confirm-dialog").then((m) => m.ConfirmDialog),
+  { ssr: false }
+);
+const ContributeDialog = dynamic(
+  () => import("./contribute-room").then((m) => m.ContributeDialog),
   { ssr: false }
 );
 const ModerationDialog = dynamic(
@@ -115,10 +115,17 @@ export function CollectionClient({
   firstPage,
   filters,
   isAdmin = false,
+  autoApproved = false,
+  roomLeft = 0,
   openPhoto = null,
 }: {
   pending: PhotoData[];
   hasApprovedPhotos: boolean;
+  /** Whether this member's contributions go straight in, and how many more
+   *  their account may hold. Both are things the contribute pop-up promises
+   *  before a file is chosen, so both arrive with the page. */
+  autoApproved?: boolean;
+  roomLeft?: number;
   /** Site moderation. An admin gets the remove-with-a-note flow on somebody
    *  else's photograph, which is what /collection/[id] used to carry. */
   isAdmin?: boolean;
@@ -327,9 +334,17 @@ export function CollectionClient({
     return () => io.disconnect();
   }, [cursor, more]);
 
+  /* Latched: once opened the pop-up stays mounted, which is what its close
+     animation needs, and what lets a half-filled wall survive a stray press
+     on the backdrop. */
+  const [contributing, setContributing] = useState(false);
+  const [contributeMounted, setContributeMounted] = useState(false);
+  const openContribute = () => {
+    setContributeMounted(true);
+    setContributing(true);
+  };
+
   /* ---------------- the viewer ---------------- */
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMounted, setDialogMounted] = useState(false);
   const [viewerMounted, setViewerMounted] = useState(Boolean(openPhoto));
   const [viewer, setViewer] = useState<{ list: ViewerList; index: number } | null>(
     /* A shared link lands here with the viewer already open on its
@@ -412,11 +427,6 @@ export function CollectionClient({
   const trulyEmpty = !hasQuery && pendingPhotos.length === 0 && !hasApprovedPhotos;
   const noMatches = !loading && hasQuery && photos.length === 0;
 
-  const openContribute = () => {
-    setDialogMounted(true);
-    setDialogOpen(true);
-  };
-
   return (
     <div>
       <PageHeader
@@ -439,6 +449,9 @@ export function CollectionClient({
               />
             )}
             {!trulyEmpty && (
+              /* A room with an address, not a modal. Twenty minutes with two
+                 hundred photographs is not something to do inside a dialog
+                 (spec sec. 8.2). */
               <Button variant="primary" className="rounded-full" onClick={openContribute}>
                 <Plus className="h-4 w-4" />
                 <span className="hidden sm:inline">Contribute</span>
@@ -459,7 +472,7 @@ export function CollectionClient({
           </p>
           <Button variant="primary" className="mt-5 rounded-full" onClick={openContribute}>
             <Plus className="h-4 w-4" />
-            Contribute a photo
+            Add the first one
           </Button>
         </div>
       ) : (
@@ -571,6 +584,15 @@ export function CollectionClient({
       {/* Taking a photograph down. The member's own is a plain confirm; an
           admin removing somebody else's takes the warm note, which is the same
           flow /collection/[id] carried and the same one the feed uses. */}
+      {contributeMounted && (
+        <ContributeDialog
+          open={contributing}
+          onOpenChange={setContributing}
+          autoApproved={autoApproved}
+          roomLeft={roomLeft}
+        />
+      )}
+
       {removing?.isOwn && (
         <ConfirmDialog
           open
@@ -599,8 +621,6 @@ export function CollectionClient({
           }}
         />
       )}
-
-      {dialogMounted && <ContributeDialog open={dialogOpen} onOpenChange={setDialogOpen} />}
     </div>
   );
 }

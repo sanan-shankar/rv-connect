@@ -272,10 +272,13 @@ model Photo {
   ///
   /// GENERATED ALWAYS ... STORED in Postgres, computed from photoYear,
   /// photoMonth and era -- see prisma/migrations-manual/2026-08-28-collection-river.sql.
-  /// NOTHING MAY WRITE THIS. Prisma only sends the fields it is handed and no
-  /// write path hands it this one; an INSERT or UPDATE that names it is
-  /// refused by the database.
-  takenKey      Int       @default(0)
+  ///
+  /// `dbgenerated()`, and it has to be. A plain `@default(0)` is a PRISMA-side
+  /// default, which Prisma applies by writing the column into every INSERT --
+  /// and Postgres refuses a non-DEFAULT value for a generated column, so every
+  /// contribution failed the moment this column existed. `dbgenerated()` is
+  /// how Prisma is told the database owns it: it is read and never written.
+  takenKey      Int       @default(dbgenerated())
 
   approved     Boolean   @default(false)
   isHidden     Boolean   @default(false)

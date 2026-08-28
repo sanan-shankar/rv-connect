@@ -44,9 +44,15 @@ type Vetted = { ok: true; userId: string } | { ok: false; response: NextResponse
  *     each of these endpoints is reachable straight from a console whatever
  *     the composer allows.
  *  4. One hourly uploads allowance per account, shared across every route
- *     bytes can travel through (audit M2).
+ *     bytes can travel through (audit M2). WHICH allowance is the caller's to
+ *     say: a Collection contribution is metered separately and far more
+ *     generously, because that path has a hard per-account ceiling bounding
+ *     its total and the post path does not (see rate-limit.ts).
  */
-export async function vetUploadRequest(request: Request): Promise<Vetted> {
+export async function vetUploadRequest(
+  request: Request,
+  meter: "uploads" | "collectionUploads" = "uploads"
+): Promise<Vetted> {
   if (!originAllowed(request.headers.get("origin"), request.headers.get("host"))) {
     return {
       ok: false,
@@ -64,7 +70,7 @@ export async function vetUploadRequest(request: Request): Promise<Vetted> {
     return { ok: false, response: NextResponse.json({ error: gate.error }, { status: 403 }) };
   }
 
-  const limited = await rateLimit("uploads", session.user.id);
+  const limited = await rateLimit(meter, session.user.id);
   if (!limited.ok) {
     return { ok: false, response: NextResponse.json({ error: limited.error }, { status: 429 }) };
   }
