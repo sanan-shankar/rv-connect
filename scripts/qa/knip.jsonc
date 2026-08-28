@@ -6,19 +6,26 @@
   //
   // Everything under `entry` is reachable, just not from src: the unit gate
   // discovers *.test.mjs by glob, the QA and dev scripts are run by hand or by
-  // check.mjs, Playwright loads e2e/, the Prisma CLI loads prisma.config.ts,
-  // and Puppeteer reads .puppeteerrc.cjs.
+  // check.mjs, Playwright loads e2e/, and the Prisma CLI loads
+  // prisma.config.ts. (Puppeteer's settings moved into package.json on
+  // 2026-08-28, so there is no longer an rc file to list here.)
   //
   // With it the list is short enough that every line on it is a real question.
-  // Run: npx knip
+  //
+  // Run: npx knip --config scripts/qa/knip.jsonc
+  //
+  // The flag is required. knip is not a dependency of this project -- it is an
+  // occasional `npx` download -- and it only discovers a config at the repo
+  // root, which is exactly where this file is NOT, by choice: a root entry for
+  // a tool nobody has installed was not paying for itself. Globs below stay
+  // relative to the repo root, because that is the directory knip runs in.
   "entry": [
     "src/**/*.test.mjs",
     "src/lib/test-kit.mjs",
     "src/lib/test-fn-body.mjs",
     "scripts/**/*.{mjs,mts,ts}",
     "e2e/**/*.ts",
-    "prisma.config.ts",
-    ".puppeteerrc.cjs"
+    "prisma.config.ts"
   ],
 
   // `.claude` is imported skills and agents; `docs` holds the audits' own

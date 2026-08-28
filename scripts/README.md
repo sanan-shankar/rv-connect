@@ -19,7 +19,25 @@ Most QA scripts need the dev server running (`npm run dev`) and sign in as the
 admin via `/api/dev-login`, so `ADMIN_EMAIL` and `DEV_LOGIN_SECRET` must both
 be set in `.env`. That route answers 404 unless NODE_ENV is not production and
 the secret matches, so it exists only on a developer's machine.
-Screenshots land in `temporary screenshots/`.
+Screenshots land in `e2e/.shots/`, gitignored scratch beside Playwright's own
+run output. It used to be `temporary screenshots/` at the repo root; the path
+moved on 2026-08-28 to keep the root readable, and nothing but these scripts
+ever read it.
+
+**Puppeteer never downloads its own Chrome.** `package.json` carries
+`"puppeteer": { "skipDownload": true }`, and that key is load-bearing: without
+it the install step pulls a ~130MB Chrome into `~/.cache/puppeteer` on EVERY
+Vercel build, into a cache directory Vercel does not restore, and again on every
+local install after a puppeteer bump. Nothing that runs on Vercel launches a
+browser, and the bundled one does not work on this machine anyway
+(`puppeteer.launch()` with no `executablePath` dies with "Failed to launch the
+browser process" -- CLAUDE.md gotcha 2, re-proved 2026-08-26). The scripts go
+around it: `screenshot.mjs` and `screenshot-auth.mjs` default to
+`/Applications/Google Chrome`, and `verify-shot.mjs` and `crawl.mjs` require
+`PUPPETEER_EXECUTABLE_PATH` pointed there. This setting lived in a
+`.puppeteerrc.cjs` at the root until 2026-08-28; puppeteer reads `package.json`
+first of all its search places (`getConfiguration.ts:112`), so the file was one
+root entry buying nothing.
 
 ## Wired into `npm run`
 

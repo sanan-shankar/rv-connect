@@ -314,8 +314,10 @@ localhost clicking cannot pollute the funnels.
 
 ## 8. knip — what nothing points at any more
 
-**Fires:** when you ask. `npx knip`. Not a dependency and not in the gate; it is the tool
-you reach for at the start of a cleanup, and once a release.
+**Fires:** when you ask. `npx knip --config scripts/qa/knip.jsonc`. Not a dependency and
+not in the gate; it is the tool you reach for at the start of a cleanup, and once a release.
+The flag is not optional: knip only looks for a config at the repo root, and this one was
+moved out of the root on 2026-08-28 (see below).
 
 It answers one question — which files and exports nothing imports — and it was answering it
 uselessly. Almost nothing here is reachable from `src`: the unit gate discovers its 74 test
@@ -324,10 +326,12 @@ files by glob, the QA and dev scripts are run by hand or by `check.mjs`, Playwri
 reported **131 unused files**, 75 of them tests. A list that long is a list nobody reads,
 which is why the 2026-08-25 audit had to find the dead code by hand.
 
-`knip.jsonc` names those as entry points. The list is now **5**, and all five are the
-landing showcase, which is genuinely unreferenced because the flag that rendered it is off
-(report §4 #1, still the owner's call). That is the tool working: what remains is a
-question, not noise.
+`scripts/qa/knip.jsonc` names those as entry points. It sat at the repo root until
+2026-08-28 and moved because a root entry for a tool that is not installed was not paying
+for itself; its globs are still written relative to the root, which is where knip runs.
+The list is now **5**, and all five are the landing showcase, which is genuinely
+unreferenced because the flag that rendered it is off (report §4 #1, still the owner's
+call). That is the tool working: what remains is a question, not noise.
 
 The export list (~58) is mostly `/lab`, which is a deliberate exception — a lab room's
 exports exist to be read, not imported.

@@ -28,7 +28,7 @@ const route = rest[0] || '/feed';
 const label = rest[1] || route.replace(/\W+/g, '-').replace(/^-|-$/g, '') || 'root';
 
 const BASE = 'http://localhost:3000';
-const outDir = './temporary screenshots';
+const outDir = './e2e/.shots';
 mkdirSync(outDir, { recursive: true });
 
 const adminEmail = process.env.ADMIN_EMAIL;

@@ -36,8 +36,9 @@ next-env.d.ts
 # only the optimised landing.jpeg is committed.
 public/images/landing-original.jpeg
 
-# screenshots
-temporary screenshots/
+# Screenshot scratch from the QA scripts. Lives under e2e/ beside Playwright's
+# own run output; was `temporary screenshots/` at the root until 2026-08-28.
+/e2e/.shots/
 
 # A build cache moved aside by hand when Turbopack corrupts it (see CLAUDE.md).
 # Trailing wildcard: the move is by convention `mv .next .next-stale-$(date

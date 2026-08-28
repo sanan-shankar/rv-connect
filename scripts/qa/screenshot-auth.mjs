@@ -24,7 +24,7 @@ if (!adminEmail) {
   process.exit(1);
 }
 
-const screenshotsDir = './temporary screenshots';
+const screenshotsDir = './e2e/.shots';
 mkdirSync(screenshotsDir, { recursive: true });
 
 // Auto-increment screenshot number

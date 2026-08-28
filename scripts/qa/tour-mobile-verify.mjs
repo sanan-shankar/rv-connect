@@ -20,7 +20,7 @@ if (!adminEmail) {
   process.exit(1);
 }
 
-const screenshotsDir = './temporary screenshots';
+const screenshotsDir = './e2e/.shots';
 mkdirSync(screenshotsDir, { recursive: true });
 const existing = existsSync(screenshotsDir) ? readdirSync(screenshotsDir).filter(f => f.endsWith('.png')) : [];
 const nums = existing.map(f => parseInt(f.match(/screenshot-(\d+)/)?.[1] ?? '0')).filter(Boolean);
