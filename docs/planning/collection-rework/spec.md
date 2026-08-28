@@ -453,6 +453,16 @@ of their own: `docs/spec/lab-voice.md`.
 
 ### 8.3 RECOMMENDED — the suggestions
 
+> **SUPERSEDED IN SHAPE, 2026-08-28, by the owner. Read `handover.md` D37 before this
+> section.** Everything below assumes a paid Claude API call, and he declined one: *"I
+> wasn't actually gonna do it through API. I was gonna orchestrate it through my regular
+> Claude Max subscription on a session in VS Code. It can access all the photos and that
+> should be more than enough."* What shipped is a picker, a skill and an applier
+> (`.claude/skills/tag-photos/SKILL.md`) — no key, no billing, nothing in the deployed
+> bundle. The classification rules, the vocabulary and the glossary below all still hold
+> and are now in `src/lib/photo-suggest.ts`; the transport is what changed. The one thing
+> genuinely lost is the LIVE suggestion in the contribute room, which needed the API call.
+
 The owner's own proposal, and the same shape as the directory's professions: *"pass the
 descriptions and maybe the images through an LLM... it assigns the tags."*
 
