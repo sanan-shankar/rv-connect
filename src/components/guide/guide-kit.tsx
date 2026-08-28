@@ -61,10 +61,17 @@ export function P({ children }: { children: React.ReactNode }) {
   return <p className="mt-3 text-[15px] leading-[1.65] text-foreground/88">{children}</p>;
 }
 
-/** The way back into the product. A chapter that only stops is a dead end. */
+/**
+ * The way back into the product. A chapter that only stops is a dead end.
+ *
+ * No rule above it: the button is already the heaviest thing on the page, so a
+ * line drawn to announce it says nothing the button has not (owner, 2026-08-28).
+ * 40px does the separating -- a step past the 36px between sections, enough to
+ * read as the end of the chapter without leaving the void the rule used to fill.
+ */
 export function Doorway({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <footer className="mt-10 border-t border-border pt-6">
+    <footer className="mt-10">
       <Link
         href={href}
         className="state-layer inline-flex items-center rounded-full bg-canopy px-5 py-2.5 text-[13.5px] font-semibold text-white outline-none transition-transform duration-150 ease-out hover:-translate-y-px active:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"

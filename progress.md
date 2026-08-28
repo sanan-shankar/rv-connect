@@ -5812,3 +5812,20 @@ search while the box went on showing what they typed.
 pair -- the control and an arm that can actually match somebody -- and still fail the day a
 profession column appears in the schema, telling that session to point the arm at the tag
 and drop the contains.
+
+## 2026-08-28 — the guide chapters lose the rule above their last button
+
+Every chapter ended the same way: a hairline across the column, 24px of nothing, then the
+button back into the product. The line was drawn to announce the button, which is already
+the heaviest thing on the page and needs no announcing (owner: "they're useless"). One
+`border-t` in `Doorway` served all six chapters, so it came out in one place.
+
+Deleting it left the gap it used to fill, which is the other half of the job. The footer
+was `mt-10 border-t pt-6` -- 40 above the line, 24 below it. Straight removal reads as a
+void, so the whole gap is now one `mt-10`: 40px, a step past the 36px between sections,
+enough to say the chapter has ended without stranding the button. Measured in the sheet at
+1440 and 390: 40px above the button, 55px of the sheet's own `pb-14` below it.
+
+`/lab/guide` carried its own copy of the same rule in `.gd-close`. It is the room a future
+session transplants from, so it moved too, or the line comes back the next time somebody
+follows the lab.

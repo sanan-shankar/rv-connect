@@ -260,8 +260,9 @@ const GUIDE_CSS = `
 .gd-naming-face { width:34px; height:34px; border-radius:999px; flex:none;
   background:var(--surface-2); box-shadow:inset 0 0 0 1px var(--border); }
 
-/* the way back into the product */
-.gd-close { margin-top:40px; padding-top:22px; border-top:1px solid var(--border); }
+/* the way back into the product, with no rule over it: the button is the
+   heaviest thing on the page already, so the gap does the separating */
+.gd-close { margin-top:40px; }
 .gd-go { display:inline-block; background:var(--primary); color:var(--primary-ink);
   text-decoration:none; border-radius:999px; padding:11px 21px; font-size:13.5px;
   font-weight:600; transition:transform .16s var(--ease-pop); }
