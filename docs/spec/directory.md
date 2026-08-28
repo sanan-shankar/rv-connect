@@ -185,6 +185,8 @@ Tags come from a **curated starter set** (Open to mentoring, Hosting visitors, H
 
 ### 3.4 Profession
 
+**SUPERSEDED 2026-08-28 -- the paragraph below is kept for the reasoning, not the recommendation.** It proposed treating the onboarding industry `<select>` list as the canonical profession enum for the filter. That select has since been deleted, and measured on the live database the vocabulary matched 0 of 63 members: `workplace` holds a free-text ORGANISATION and the role lives in `jobTitle`, so what somebody does is only readable from the PAIR and no single column can be filtered on. What shipped instead is `User.professionTags`, a text[] derived from the pair by a hand-run pass and typed by nobody -- vocabulary, rules and caps in `src/lib/profession-tags.ts`, procedure in `.claude/skills/tag-professions/SKILL.md`. The original text follows.
+
 `workplace` (used as "industry" in onboarding, see `onboarding/page.tsx:69-91`) and `jobTitle` already exist and are sufficient. We do not add a new model. We do treat the onboarding industry `<select>` list as the canonical profession enum for the filter dropdown. Note the current code conflates "industry" and "workplace" (the field is literally named `workplace` but populated from an industry select). The spec recommendation: rename the user-facing label to "Field of work" everywhere and keep using `workplace` as the column to avoid a migration, OR add a dedicated `industry` column. Either is fine; the directory filter reads whichever column holds the enum value.
 
 ### 3.5 Migration and backfill plan (SQLite local, Postgres on Render)

@@ -215,10 +215,10 @@ test("the Profession facet is on the panel, matching what members typed", () => 
      28 had a workplace, because workplace now holds a free-text ORGANISATION
      and the role lives in jobTitle.
 
-     The owner asked for it back on 2026-08-28, ahead of the tags. What makes
-     that honest rather than decorative is the arm underneath: a contains over
-     jobTitle AND workplace, which finds 28 of 63 on the same database. So what
-     is pinned here is the pair -- the control and a filter that can match
+     The owner asked for it back on 2026-08-28, ahead of the tags, and the
+     tags landed the same day: the arm underneath is now an exact match on
+     `professionTags`, the derived text[] the hand-run pass writes. So what is
+     pinned here is the pair -- the control and a filter that can match
      somebody -- never the control on its own. */
   assert.ok(/label="Profession"/.test(CLIENT), "the Profession facet is gone from the panel");
   const branch = WHERE.slice(WHERE.indexOf("if (filters.profession)"), WHERE.indexOf("if (filters.house)"));
@@ -227,8 +227,11 @@ test("the Profession facet is on the panel, matching what members typed", () => 
     /where\.workplace = filters\.profession/,
     "the exact-equality arm is back; it matched 0 of 63 members, so the facet would be decorative"
   );
-  assert.match(branch, /jobTitle: \{ contains/, "the arm does not read jobTitle, which is where the role actually lives");
-  assert.match(branch, /workplace: \{ contains/, "the arm no longer falls back to workplace");
+  assert.match(
+    branch,
+    /where\.professionTags = \{ has:/,
+    "the arm no longer reads the derived tag column, so the facet is decorative again"
+  );
 });
 
 test("the profession arm cannot clobber the search", () => {
@@ -238,7 +241,12 @@ test("the profession arm cannot clobber the search", () => {
      which is why both of those are folds now. */
   const branch = WHERE.slice(WHERE.indexOf("if (filters.profession)"), WHERE.indexOf("if (filters.house)"));
   assert.doesNotMatch(branch, /where\.OR =/, "the profession arm assigns where.OR, which the q search already owns");
-  assert.match(branch, /where\.AND =/, "the profession arm no longer combines with AND");
+  /* `where.AND` used to be REQUIRED here, as the workaround that kept the
+     contains' own OR off the search's. One clause on one column needs neither,
+     so the workaround is gone -- and this now pins that it stays gone, because
+     re-introducing an AND array would be the sign the arm had grown a second
+     clause and the hazard with it. */
+  assert.doesNotMatch(branch, /where\.AND =/, "the profession arm is back to combining clauses; one tag column needs one clause");
 });
 
 test("a profession tag column takes the contains arm with it", () => {
@@ -269,3 +277,31 @@ test("the profession filter arm survives for bookmarked links", () => {
      boundary in the same commit. */
   assert.match(WHERE, /if \(filters\.profession\)/, "the profession arm is gone; C-098's slice boundary above now points at nothing");
 });
+
+test("the Profession control hides rather than offer a single choice", () => {
+  /* The server hands down only the tags that clear TAG_FLOOR, cut to
+     TAG_VISIBLE_MAX. What survives can be ONE: measured on the live database
+     on 2026-08-28, "Studying" holds 25 of the 34 people who have said anything
+     about their work and nothing else reaches five. A dropdown offering a
+     single choice reads as a broken control rather than as a young directory,
+     so it waits until there is something to choose between and arrives on its
+     own as the membership fills in.
+
+     Pinned because the failure is invisible in a screenshot of today's data --
+     the control is absent either way, whether that is the rule working or the
+     prop having quietly become undefined. */
+  const guard = /\{professions\.length >= 2 && \(/;
+  assert.match(CLIENT, guard, "the single-option gate on the Profession facet is gone");
+  const gateAt = CLIENT.search(guard);
+  const facetAt = CLIENT.indexOf('label="Profession"');
+  assert.ok(gateAt !== -1 && gateAt < facetAt, "the Profession facet is no longer inside its gate");
+  /* The CHIP is deliberately outside it. A bookmarked ?profession= for a tag
+     below the floor must still draw something the member can read and clear,
+     exactly as the removed House filter's chip does. */
+  assert.match(
+    CLIENT,
+    /label: tagLabel\(initialFilters\.profession\)/,
+    "the profession chip no longer renders, or no longer reads the vocabulary's label"
+  );
+});
+

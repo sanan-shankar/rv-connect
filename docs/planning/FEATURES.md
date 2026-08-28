@@ -31,17 +31,17 @@ Legend: [have] exists today · [ask] you asked for · [idea] my suggestion · (s
 - [idea] Map view: pins of alumni by city worldwide. "12 alumni in Berlin."
 - [idea] "In this city" so a traveller can instantly find locals.
 - [idea] Batch pages: a page per graduating batch with everyone in it (great for reunions).
-- [plan] **Profession browse, LLM-bucketed** (owner, 2026-08-26). The intent is firm: profession
-  filtering stays, long term. The method: once there are ~150 members, pass every
-  `workplace` + `jobTitle` pair through an LLM, let it propose the profession buckets worth
-  having, assign each member to one, and store the result as a **backend tag** nobody types.
-  Why it has to work that way — measured 2026-08-26 on the live database: 63 members, 28 with
-  a workplace filled in, and **0 matching the current filter's vocabulary**. `workplace` holds
-  the organisation ("Rishi Valley School", "Tufts University") and `jobTitle` the role
-  ("Teacher", "Student", "Doctor"), so the bucket is only derivable from the PAIR — no single
-  free-text column can be filtered on directly. Note this needs a new column: today's filter
-  is `where.workplace = <exact value>`, which the tag will not reuse. See the shipped filter's
-  status in `docs/audit-fix/2026-08-25-refactor-audit-1/` (directory-profile-05).
+- [have] **Profession browse, LLM-tagged** (shipped 2026-08-28). `User.professionTags`, a
+  text[] nobody types, written by a hand-run pass (`scripts/dev/tag-professions-*.mjs`,
+  `.claude/skills/tag-professions/SKILL.md`) on the owner's own subscription. The vocabulary,
+  the rules for creating a tag and the three caps are in `src/lib/profession-tags.ts`.
+  Multi-tag, so a status and a field share one column: the medical student is
+  `["studying","healthcare"]` -- the owner's call, against a "student" boolean, *"not that
+  scalable"*. Built at 63 members rather than the 150 first guessed, because the display
+  floor makes an early run safe: a tag is offered only at five people and only the twelve
+  largest are offered, so today exactly one clears and the control hides itself rather than
+  show a dropdown of one. Buckets appear on their own as the membership grows, with no
+  re-run. Changing the vocabulary -- add, split, merge, remove -- needs no migration.
 - [idea] Privacy controls: choose what's visible in the directory vs private.
 
 ## 3. Feed & posts

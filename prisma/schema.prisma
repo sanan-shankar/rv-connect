@@ -30,6 +30,26 @@ model User {
   birdPickedAt  DateTime? // when the supporter last spent a pick; a paid contribution NEWER than this grants another (see chooseBird)
   workplace     String?
   jobTitle      String?
+  /// Derived profession tags. NOBODY TYPES THIS -- it is written only by the
+  /// hand-run pass in scripts/dev/tag-professions-*.mjs, because the bucket a
+  /// member belongs in is only readable from the PAIR above: `workplace` holds
+  /// the organisation ("Tufts University") and `jobTitle` the role ("Student"),
+  /// so no single column can be filtered on directly.
+  ///
+  /// Plain TEXT[] with NO enum and NO check constraint, deliberately. The
+  /// vocabulary lives in src/lib/profession-tags.ts and has to be able to
+  /// change -- a tag added, split in two, merged or dropped -- and one database
+  /// serves production and local dev, so a constraint would turn every
+  /// vocabulary edit into a migration with an outage window. The database holds
+  /// strings; profession-tags.ts is what says which strings mean anything.
+  professionTags String[] @default([])
+  /// The exact (jobTitle, workplace) pair the tags above were judged from, as
+  /// JSON. Lets the pick script find people whose text has CHANGED since they
+  /// were tagged, without re-judging everybody. Deliberately not a vocabulary
+  /// version stamp: that would mark the whole membership stale every time one
+  /// tag is added, forcing a full re-run for a small change. Re-judging is
+  /// targeted (--tag, --all), never automatic.
+  professionTagSource String?
   phone         String?
   phones        String?   // JSON string of string[] (bare numbers; the first one is mirrored into legacy `phone`)
   instagram     String?
@@ -160,6 +180,12 @@ model User {
   catchupPrefs    CatchupPref[]      @relation("CatchupPrefs")
 
   contributions   Contribution[]     @relation("Contributions")
+
+  // GIN, because the directory filters this column with `has` (a Postgres `@>`
+  // containment) and counts it with `unnest`. A B-tree cannot answer either:
+  // it would index the array as one opaque value, so every profession filter
+  // would be a sequential scan over the whole membership.
+  @@index([professionTags], type: Gin)
 }
 
 /// What we know about the bytes at one stored image URL: its true shape, where
