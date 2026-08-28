@@ -5959,34 +5959,6 @@ One thing the move exposed: with a search live and no facet set, there were no t
 select the text and delete it. SearchPill now carries a clear button inside the open pill, which
 Escape has always done on a keyboard.
 
-## 2026-08-28 — the world map fills its card
-
-Owner: "the map window now doesn't fill the screen there's a gap at the bottom can you make it
-extend. there's still empty parts of the map on the left and right so that should be possible."
-
-The card was `min(72vh, 640px)`, which left a dead band under it on every desktop window, and
-inside it the whole sphere -- both ice caps, the empty Pacific margins -- was fitted into a box
-of a different shape, so the world sat small in the middle of its own frame. The height is now
-measured from the card's own top to the bottom of the window (the chrome above it is not a
-constant: a wrapped filter token moves it by 30px), and the viewBox is computed from the box the
-map is actually in.
-
-The framing rule took three tries and the first two were wrong in instructive ways. Fitting the
-pins alone punched a hole through the Pacific and read as a zoomed-in map rather than a world.
-Taking the aspect straight from the card cropped a pole off on a short window, which is the one
-thing a world map must not do -- and the owner's word for it was "way too punched in ... it's
-nice to have some borders and really look at it and feel dang that's the whole world". The rule
-that survives is about SCALE, not cropping: the whole sphere plus a border must fit the card's
-height, and whatever zoom is left over after that is spent trimming the emptiest ocean at the
-two edges. On a short window there is nothing left over and the map draws exactly the world it
-always did.
-
-Pins widen the frame so it can never crop one off -- except an isolated one. A single member in
-Nuku'alofa was pulling the west edge out to the antimeridian and charging everybody a band of
-empty Pacific for it; a pin further than ~50 degrees of longitude from its nearest neighbour no
-longer re-frames the map, and is still one drag away. The rule dissolves itself: the day a second
-pin appears near them, the pair stops being isolated and the frame goes and gets them.
-
 ## 2026-08-28 — a photograph appears when you choose it
 
 Owner: "make sure the composer expanding when the photo is added is done very smoothly. not just
@@ -6044,3 +6016,20 @@ page.tsx -- the people query was gated on `hasFilter`, from the days when the vi
 while filtering, so an unfiltered People got an empty array (fixed in the profession-tag commit
 that touched the same file). The copy now holds up its end too: unfiltered, it says the directory
 fills up as people join, and the "Clear all" button stays behind `hasFilter` as before.
+
+## 2026-08-28 — the map framing is reverted, whole
+
+Three passes at reframing the world map, and the owner's verdict on the result was "bro you're
+fucked up the map. just make it look like how it looked before." So it does: `git revert` of the
+framing commit, which puts back `viewBox="0 0 900 460"` and the `min(72vh, 640px)` card, pins and
+all.
+
+Worth writing down rather than quietly dropping, because the reasoning was sound and the result
+still was not. The card really does stop short of the window bottom, and the sphere really is
+fitted into a box of a different shape. But every rule that fills that box costs something a
+world map cannot spend: fitting the pins punched a hole through the Pacific; taking the aspect
+from the card cropped a pole off on a short window; and the version that kept the globe whole
+made the pins read as "humongous circles", because the marker layer counter-scales against
+`box.s`, the CSS pixels one viewBox unit occupies -- change the frame and every pin changes size
+with it. That coupling is the thing to solve first if this is ever tried again: the frame and the
+marker scale are one problem, not two.
