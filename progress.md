@@ -5829,3 +5829,17 @@ enough to say the chapter has ended without stranding the button. Measured in th
 `/lab/guide` carried its own copy of the same rule in `.gd-close`. It is the room a future
 session transplants from, so it moved too, or the line comes back the next time somebody
 follows the lab.
+
+## 2026-08-28 — /lab/guide deleted
+
+The room that picked the container (page, side panel, one long document, sheet over the
+app, all four holding the same Catch-ups chapter) is gone at the owner's word. It had
+done its job: the sheet shipped weeks-of-decisions ago, the chapter it prototyped now
+exists for real in `src/components/guide/chapters/`, and a prototype kept past its pick
+is a second copy of the design that drifts -- which is exactly what happened an hour
+earlier, when the rule above the Doorway had to be removed in two places.
+
+723 lines, one registry entry, and three pointers in `docs/spec/guide.md`, which now
+sends the reader to the shipped `chapters/catchups.tsx` as the worked example and states
+in 2.2 what the four stages settled, so the reasoning outlives the room. `/lab` shows 11
+active rooms and 45 registered.

@@ -3,10 +3,10 @@
 How the site explains itself. One chapter per area, opened from somewhere quiet enough
 that nobody who is not looking for it ever sees it.
 
-Decided with the owner on 2026-08-26 and 2026-08-27. The room that settled the
-destination is `/lab/guide` ("The same words, four containers"); read it before
-building, because two of the calls below are only obvious once you have seen the four
-side by side.
+Decided with the owner on 2026-08-26 and 2026-08-27. The container was picked by
+building all four (page, side panel, one long document, sheet over the app) in a lab
+room and looking at them side by side; the room was deleted on 2026-08-28 once the
+sheet shipped. What it settled is written down in 2.2, so nothing is lost with it.
 
 ---
 
@@ -41,7 +41,7 @@ job. Nobody is obliged to read it, so it has to earn the read. A chapter is buil
 the product's own material with short lines beside it, not paragraphs under headings. See
 section 5.
 
-**2.2 It opens as a page over the page.** Stage D in the lab room. The chapter is a real
+**2.2 It opens as a page over the page.** Stage D of the four, the one he picked. The chapter is a real
 route with a real address, and when you open it from inside the app it appears over the
 page you were on, which stays where you left it. Next 16 does this with intercepting
 routes. Rejected: a side panel, because the chapter's diagrams stop being pictures at
@@ -149,7 +149,7 @@ become one.
 
 ## 5. What a chapter is made of
 
-Worked example: `src/app/lab/guide/_content.tsx`, the Catch-ups chapter. The rule it
+Worked example: `src/components/guide/chapters/catchups.tsx`. The rule it
 follows is that the chapter shows the product's own things and writes short lines beside
 them.
 
@@ -183,7 +183,7 @@ Each has to answer two different questions, and the second one is the one he car
 | Directory | How to find someone, what a batch filter does, what you control about your own entry | That the entry is a real person's contact details and not a lead list |
 | Collection | How to contribute, what happens after you do | The archive standard. Not snapshots from school, things worth keeping |
 | Letters | That a letter goes to one person and is private | Why it exists next to a public feed |
-| Catch-ups | Written. See the lab room | Written |
+| Catch-ups | Written. See `chapters/catchups.tsx` | Written |
 
 Catch-ups is done and is the reference for the other four.
 
