@@ -1,29 +1,156 @@
-// The Valley Collection: faceted taxonomy (fixed enums, stored as strings).
-// Shared by the validator, the contribute form, and the filter rail.
+// The Valley Collection: the taxonomy, and when a photograph was taken.
+// Shared by the validator, the contribute form, the river and the viewer.
 
-const SUBJECTS = [
-  { value: "birds", label: "Birds" },
-  { value: "wildlife", label: "Wildlife" },
-  { value: "landscape", label: "Landscape" },
-  { value: "campus", label: "Campus" },
-  { value: "buildings", label: "Buildings" },
-  { value: "banyan", label: "The Banyan" },
-  { value: "rishi-konda", label: "Rishi Konda" },
-  { value: "hills", label: "Hills" },
-  { value: "weather-sky", label: "Weather & Sky" },
-  { value: "flora", label: "Flora" },
-  { value: "assembly-dining", label: "Assembly & Dining" },
-  { value: "arts-music", label: "Arts & Music" },
-  { value: "sport-outdoors", label: "Sport & Outdoors" },
-  { value: "historical", label: "Historical" },
+/* ------------------------------------------------------------------ *
+ *  The buckets.
+ *
+ *  Six, and the sixth is a pressure valve. This replaces the fourteen
+ *  values that were here before (birds, wildlife, landscape, campus,
+ *  buildings, banyan, rishi-konda, hills, weather-sky, flora,
+ *  assembly-dining, arts-music, sport-outdoors, historical), which were
+ *  drawn up under the old frame of "the place, not people" and so had
+ *  nowhere at all to file a class photograph. The owner widened the
+ *  frame to the school's whole visual memory (D2), which made that list
+ *  wrong rather than short.
+ *
+ *  Six because a contributor picks from six without thinking and
+ *  fourteen makes them read. The archive literature is consistent on
+ *  this and prior-art.md sec. "organising the archive" has the reasoning:
+ *  a small controlled spine for browsing, free text underneath it for
+ *  searching. Anything more specific than these six -- "the big banyan
+ *  tree", "behind junior Adi under the trees" -- is prose, and prose is
+ *  searched, never offered as a dropdown (sec. 7.2, and it is the one
+ *  rule in this area that is absolute).
+ *
+ *  OTHER IS A SENSOR, NOT A BIN. Every archive taxonomy is wrong on the
+ *  day it ships and the useful question is how you find out. Two hundred
+ *  photographs landing in Other with "sports day" in their captions is
+ *  not a mess, it is the evidence for a seventh bucket arriving without
+ *  anyone having had to guess in advance. The admin side reads it.
+ *
+ *  The column behind this is still called `subject`. It is not renamed:
+ *  one database serves production and local dev, so a rename breaks
+ *  every Collection query running in production for as long as it takes
+ *  the next deploy to land, and legibility is not worth an outage
+ *  window. The values are what changed.
+ * ------------------------------------------------------------------ */
+
+export const BUCKETS = [
+  {
+    value: "people",
+    label: "People",
+    /** What belongs, in the words a contributor would use. */
+    hint: "Portraits, class photographs, groups, faces you know",
+  },
+  {
+    value: "birds",
+    label: "Birds",
+    hint: "The sanctuary's own",
+  },
+  {
+    value: "nature",
+    label: "Nature",
+    hint: "The land itself: trees, the hills, weather, flowers, animals",
+  },
+  {
+    value: "campus",
+    label: "Campus",
+    hint: "The built valley: the buildings, the study, the banyan amphitheatre",
+  },
+  {
+    value: "school-life",
+    label: "School life",
+    hint: "What happens here: assembly, sport, plays, music, dining, reunions",
+  },
+  {
+    value: "other",
+    label: "Other",
+    hint: "Anything with nowhere else to go. We read this one.",
+  },
 ] as const;
 
-const AREAS = [
-  { value: "junior-school", label: "Junior School" },
-  { value: "senior-school", label: "Senior School" },
-  { value: "whole-campus", label: "Whole Campus" },
-  { value: "off-campus", label: "Off Campus" },
-] as const;
+export type BucketValue = (typeof BUCKETS)[number]["value"];
+
+export const BUCKET_VALUES = BUCKETS.map((b) => b.value);
+
+/* Every value the fourteen-item list could have written, mapped onto the
+   six. Kept in the app and not only in the migration, because a row can
+   still arrive carrying an old value: the demo database seeds its own
+   photographs, and a member's browser can be holding a form built before
+   the deploy. A value that maps to nothing reads as Other rather than
+   disappearing from every bucket. */
+const LEGACY_BUCKETS: Record<string, BucketValue> = {
+  birds: "birds",
+  wildlife: "nature",
+  landscape: "nature",
+  flora: "nature",
+  "weather-sky": "nature",
+  hills: "nature",
+  // Rishi Konda is a hill before it is a place of ours.
+  "rishi-konda": "nature",
+  campus: "campus",
+  buildings: "campus",
+  // The banyan here means the amphitheatre under it, which is where the
+  // school assembles -- the tree alone would be nature.
+  banyan: "campus",
+  "assembly-dining": "school-life",
+  "arts-music": "school-life",
+  "sport-outdoors": "school-life",
+  // "Historical" was a date wearing a subject's clothes. When is its own
+  // axis now (the decade rail), so this is the evidence Other exists for.
+  historical: "other",
+};
+
+const BUCKET_LABELS = Object.fromEntries(BUCKETS.map((b) => [b.value, b.label]));
+
+/** One stored value as a person reads it, old vocabulary included. Anything
+ *  from neither vocabulary reads as Other, exactly as `bucketsOf` files it. */
+export function bucketLabel(v: string): string {
+  return BUCKET_LABELS[v] ?? BUCKET_LABELS[LEGACY_BUCKETS[v] ?? "other"];
+}
+
+/** A stored, comma-joined `subject` string as the six buckets it means.
+ *
+ *  De-duplicated, because four of the old values collapse onto Nature. A
+ *  value nobody recognises reads as **Other** rather than vanishing from
+ *  every bucket -- the same answer the migration writes into the column, and
+ *  the reason Other is a sensor: something unaccounted for should show up
+ *  where we are looking, not disappear. */
+export function bucketsOf(subject: string | null | undefined): BucketValue[] {
+  if (!subject) return [];
+  const seen = new Set<BucketValue>();
+  for (const raw of subject.split(",")) {
+    const v = raw.trim();
+    if (!v) continue;
+    seen.add(
+      (BUCKET_VALUES as readonly string[]).includes(v)
+        ? (v as BucketValue)
+        : LEGACY_BUCKETS[v] ?? "other"
+    );
+  }
+  return [...seen];
+}
+
+/* ------------------------------------------------------------------ *
+ *  Where in the valley.
+ *
+ *  Free text since the 2026-07-18 rework, and it stays free text: this
+ *  is the field that would otherwise reach two thousand near-duplicate
+ *  values and make its own dropdown unusable, which the owner reasoned
+ *  out himself during the brief. It is searched now, never filtered
+ *  (sec. 7.2). The four values below are the fixed picklist it used to be,
+ *  kept only so a row written before that rework still reads as a
+ *  sentence rather than as a slug.
+ * ------------------------------------------------------------------ */
+
+const LEGACY_AREAS: Record<string, string> = {
+  "junior-school": "Junior School",
+  "senior-school": "Senior School",
+  "whole-campus": "Whole Campus",
+  "off-campus": "Off Campus",
+};
+
+export const areaLabel = (v: string) => LEGACY_AREAS[v] ?? v;
 
 export const ERAS = [
   { value: "pre-1960s", label: "Pre-1960s" },
@@ -39,12 +166,8 @@ export const ERAS = [
 
 export const ERA_VALUES = ERAS.map((e) => e.value);
 
-const SUBJECT_LABELS = Object.fromEntries(SUBJECTS.map((s) => [s.value, s.label]));
-const AREA_LABELS = Object.fromEntries(AREAS.map((a) => [a.value, a.label]));
 const ERA_LABELS = Object.fromEntries(ERAS.map((e) => [e.value, e.label]));
 
-export const subjectLabel = (v: string) => SUBJECT_LABELS[v] ?? v;
-export const areaLabel = (v: string) => AREA_LABELS[v] ?? v;
 export const eraLabel = (v: string) => ERA_LABELS[v] ?? v;
 
 /** The oldest year the contribute form's year dropdown offers. */
@@ -58,6 +181,35 @@ export function eraFromYear(year: number): string {
   const bucket = `${decade}s`;
   return (ERA_VALUES as readonly string[]).includes(bucket) ? bucket : "unknown";
 }
+
+/* ------------------------------------------------------------------ *
+ *  The decade rail's own ordering.
+ *
+ *  A decade sorts by the year it starts. "pre-1960s" is everything
+ *  before that, so it takes the year the school was founded rather than
+ *  a sentinel -- if a photograph of 1931 ever gets an exact year it
+ *  lands next to the ones that only said "before 1960", which is the
+ *  whole point of putting them on one axis. "unknown" is not a decade
+ *  at all and sorts last wherever it appears, which is why it answers
+ *  null rather than a number.
+ *
+ *  This is the SAME mapping the `takenYear` generated column uses in
+ *  Postgres (prisma/migrations-manual/2026-08-28-collection-river.sql).
+ *  If one changes the other must, and the test named for it says so.
+ * ------------------------------------------------------------------ */
+
+export const ERA_START_YEAR: Record<string, number> = {
+  "pre-1960s": 1926,
+  "1960s": 1960,
+  "1970s": 1970,
+  "1980s": 1980,
+  "1990s": 1990,
+  "2000s": 2000,
+  "2010s": 2010,
+  "2020s": 2020,
+};
+
+export const eraSortYear = (era: string): number | null => ERA_START_YEAR[era] ?? null;
 
 /* ------------------------------------------------------------------ *
  *  When a photograph was TAKEN, in words.
@@ -105,4 +257,19 @@ export function takenLabel(photo: {
     return month ? `${month} ${photoYear}` : String(photoYear);
   }
   return eraPhrase(photo.era ?? "");
+}
+
+/** The year on a tile, which is the shortest true thing we can say: an
+ *  exact year when there is one, "1970s" when the contributor only knew
+ *  the decade, and nothing at all otherwise. The owner asked for the
+ *  person and the year on hover and for the caption and the love count to
+ *  come off it. */
+export function takenShort(photo: {
+  photoYear?: number | null;
+  era?: string | null;
+}): string | null {
+  if (photo.photoYear) return String(photo.photoYear);
+  const era = photo.era ?? "";
+  if (!era || era === "unknown") return null;
+  return eraLabel(era);
 }

@@ -173,6 +173,13 @@ export const REGISTRY: LabEntry[] = [
     note: "Every shape somebody can post, twice: the photograph as it arrived with the part we remove shaded out, and the post as it actually renders. Plus two, three and four together. Throwaway: delete it, public/lab/crop/ and this row once the rules are settled.",
   },
   {
+    href: "/lab/collection",
+    title: "An archive with something in it",
+    group: "Delight",
+    status: "active",
+    note: "The rebuilt Collection page, live, against 240 made-up photographs -- the real one holds two. Press a bucket and watch the underline glide, press a decade on the right-hand rail whose marks are how many each holds, or switch the order to Through time and scroll past the decades.",
+  },
+  {
     href: "/lab/viewer",
     title: "The photograph owns the screen",
     group: "Delight",

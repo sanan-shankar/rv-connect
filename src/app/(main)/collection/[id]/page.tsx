@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { PageHeader } from "@/components/layout/page-header";
 import { CollectionClient } from "@/components/collection/collection-client";
 import { recordView } from "@/lib/content-view";
 import { collectionPageData } from "../collection-data";
@@ -80,10 +79,5 @@ export default async function PhotoPage({
      then shown a 404 is not a view of anything. */
   after(() => recordView(session.user.id, "photo", id));
 
-  return (
-    <div>
-      <PageHeader guide="collection" title="The Valley Collection" />
-      <CollectionClient {...data} openPhoto={photo} />
-    </div>
-  );
+  return <CollectionClient {...data} openPhoto={photo} />;
 }

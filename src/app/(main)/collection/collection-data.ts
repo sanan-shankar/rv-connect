@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { loadPhotos, myPendingPhotos } from "./actions";
+import { BUCKET_VALUES, ERA_VALUES } from "@/lib/collection";
+import { loadPhotos, myPendingPhotos, type RiverOrder, type RiverFilters } from "./actions";
 
 /* ------------------------------------------------------------------ *
  *  What the Collection page needs before it can draw anything.
@@ -9,46 +10,73 @@ import { loadPhotos, myPendingPhotos } from "./actions";
  *  which since the viewer rebuild is the same page with the viewer
  *  already open on one photograph (spec sec. 5). One function, so the
  *  second route cannot quietly drift from the first -- which is what
- *  would happen the day the grid grows a facet and only one of them
+ *  would happen the day the river grows a facet and only one of them
  *  fetches it.
  * ------------------------------------------------------------------ */
 
-export async function collectionPageData() {
+const ORDERS: RiverOrder[] = ["newest", "oldest", "taken", "loved"];
+
+/* ------------------------------------------------------------------ *
+ *  A view of the archive has an address.
+ *
+ *  Filtering happens IN PLACE -- press a bucket and the river cross-fades
+ *  rather than navigating (spec sec. 6) -- but the state it lands in is
+ *  written into the URL as it goes, so a bucket, a decade or a search is
+ *  something you can send somebody. This reads the other end of that: a
+ *  link arriving cold renders its own first page on the server, at the
+ *  filters it names, instead of painting the whole archive and then
+ *  replacing it.
+ *
+ *  Every value is checked against the vocabulary rather than trusted. A
+ *  search param is input, and an unknown bucket must read as "no bucket"
+ *  and not as a filter that matches nothing.
+ * ------------------------------------------------------------------ */
+export function riverFiltersFrom(
+  params: Record<string, string | string[] | undefined> | undefined
+): RiverFilters {
+  const one = (k: string) => {
+    const v = params?.[k];
+    return typeof v === "string" ? v : Array.isArray(v) ? v[0] : undefined;
+  };
+  const bucket = one("bucket");
+  const era = one("when");
+  const order = one("order");
+  const search = one("q")?.slice(0, 100).trim();
+
+  return {
+    bucket: bucket && (BUCKET_VALUES as readonly string[]).includes(bucket) ? bucket : undefined,
+    era: era && (ERA_VALUES as readonly string[]).includes(era) ? era : undefined,
+    search: search || undefined,
+    order: order && (ORDERS as string[]).includes(order) ? (order as RiverOrder) : "newest",
+  };
+}
+
+export async function collectionPageData(filters: RiverFilters = { order: "newest" }) {
   const session = await auth();
   if (!session?.user) return null;
 
-  // Part of school has no fixed vocabulary (upload's `area` field is free
-  // text -- see src/lib/collection-facets.ts), so its filter options are the
-  // live distinct values already on approved photos, same pattern as
-  // Directory's City facet.
-  // Whether the toolbar (search + filters) has anything to act on at all is
-  // resolved here, server-side, so the client never has to guess before its
-  // first photo fetch resolves -- see CollectionClient's `trulyEmpty`.
-  /* The grid's FIRST page is fetched here, not from the client after mount.
-     It used to be a server action fired from an effect, which meant a cold
-     visit paid hydration and then a whole round trip before a single
-     photograph appeared: measured on a production build at 778 ms after first
-     paint locally, and 2.9 SECONDS on a throttled connection, all of it
-     skeleton. The query is the same one the action runs for the default view
-     (newest, no filters); the moment a filter, a sort or a search changes, the
-     client takes over exactly as before. */
-  const [pending, areaGroups, approvedCount, firstPage] = await Promise.all([
+  /* Whether the river's controls have anything to act on at all is resolved
+     here, server-side, so the client never has to guess before its first
+     fetch resolves -- see CollectionClient's `trulyEmpty`.
+
+     The FIRST page is fetched here too, not from the client after mount. It
+     used to be a server action fired from an effect, which meant a cold visit
+     paid hydration and then a whole round trip before a single photograph
+     appeared: measured on a production build at 778 ms after first paint
+     locally, and 2.9 SECONDS on a throttled connection, all of it skeleton.
+     The moment a filter, an order or a search changes, the client takes over
+     exactly as before. */
+  const [pending, approvedCount, firstPage] = await Promise.all([
     myPendingPhotos(),
-    prisma.photo.groupBy({
-      by: ["area"],
-      where: { approved: true, isHidden: false, area: { not: null } },
-      _count: { area: true },
-      orderBy: [{ _count: { area: "desc" } }, { area: "asc" }],
-    }),
     prisma.photo.count({ where: { approved: true, isHidden: false } }),
-    loadPhotos({ page: 0, sortBy: "newest" }),
+    loadPhotos(filters),
   ]);
 
   return {
     pending,
-    areaOptions: areaGroups.map((g) => g.area!).filter(Boolean),
     hasApprovedPhotos: approvedCount > 0,
     firstPage,
+    filters,
     isAdmin: session.user.role === "admin",
   };
 }

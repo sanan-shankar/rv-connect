@@ -41,13 +41,16 @@ const WIDE_ROUTES = [
 
 /**
  * Single-column surfaces that happen to live under a wide section, and so
- * have to opt back out: the "Start a Catch-up" form (one narrow form would
- * otherwise sit stranded against the left edge of a 1100px band), and every
- * Collection photo's own page, which is a detail view, not the gallery.
- * A trailing slash means "any child of", so `/collection` stays wide while
- * `/collection/<id>` does not.
+ * have to opt back out: the "Start a Catch-up" form, where one narrow form
+ * would otherwise sit stranded against the left edge of a 1100px band.
+ *
+ * `/collection/<id>` used to be here, as a detail view rather than a gallery.
+ * It is not a detail view any more -- since the 2026-08-28 viewer rebuild the
+ * route renders the Collection itself with the viewer already open on that
+ * photograph, so a narrow column would have left the river behind the viewer
+ * laid out differently from the one at /collection.
  */
-const CENTERED_EXCEPTIONS = ["/catchups/new", "/collection/"];
+const CENTERED_EXCEPTIONS = ["/catchups/new"];
 
 function isWideRoute(pathname: string): boolean {
   if (CENTERED_EXCEPTIONS.some((r) => pathname === r || pathname.startsWith(r))) return false;

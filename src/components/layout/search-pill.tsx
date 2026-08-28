@@ -11,11 +11,17 @@ import { cn } from "@/lib/utils";
  * search + filter row. It rests as a compact 40px icon and expands into a live
  * input on click (as an absolute overlay, so it never reflows the header).
  *
- * Posts only: this box searches posts on the feed and submits to `/feed?q=`.
- * A name typed here matches posts by their AUTHOR (owner, 2026-08-04), which
- * is still a search for posts. Searching for a person is the directory's job
- * -- its own search box handles that separately, so there is no scope toggle
- * here.
+ * By default it searches POSTS and submits to `/feed?q=`. A name typed there
+ * matches posts by their AUTHOR (owner, 2026-08-04), which is still a search
+ * for posts; searching for a PERSON is the directory's job.
+ *
+ * Pass `value`/`onChange` and it becomes a controlled, live box instead --
+ * every keystroke goes to the caller and nothing navigates. That is what the
+ * Collection's river uses (spec sec. 6: search is an icon on the title line
+ * that opens into a field, not a bar eating a whole row). The whole of this
+ * component is the tuned EXPANSION, and there is exactly one of those in the
+ * app: a second copy would be 200 lines of springs nobody would remember to
+ * keep in step.
  *
  * The expansion animates real `width`/`padding` values directly (never
  * Motion's `layout` FLIP animation). `layout` interpolates by scaling the box
@@ -61,10 +67,32 @@ const OPEN_WIDTH = 320; // px cap (20rem); `maxWidth: 68vw` below clamps on narr
 const OPEN_PADDING_LEFT = 13; // px, was 16 (16 / 1.272 = half-step down)
 const ICON_TEXT_GAP = 13; // px, was a non-functional `gap: 10` (10 x 1.272 = half-step up)
 
-export function SearchPill() {
+export function SearchPill({
+  value: controlled,
+  onChange,
+  placeholder = "Search posts or a name",
+  label = "Search posts, by their words or by who wrote them",
+  restLabel = "Search posts",
+}: {
+  /** Controlled mode: the caller owns the text and gets every keystroke. */
+  value?: string;
+  onChange?: (v: string) => void;
+  placeholder?: string;
+  /** The expanded input's accessible name. */
+  label?: string;
+  /** The resting circle's accessible name, before it is opened. */
+  restLabel?: string;
+} = {}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [value, setValue] = useState("");
+  const live = onChange !== undefined;
+  /* Opens itself when the caller arrives already holding a query: a shared
+     link to /collection?q=banyan must show what it searched for, not a closed
+     circle with a filtered river under it. A lazy initial value rather than an
+     effect, so it is open on the first paint and never flickers shut. */
+  const [open, setOpen] = useState(() => live && Boolean(controlled));
+  const [internal, setInternal] = useState("");
+  const value = live ? controlled ?? "" : internal;
+  const setValue = live ? onChange : setInternal;
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -85,6 +113,9 @@ export function SearchPill() {
   }, [open, value]);
 
   function submit() {
+    // Live mode has already reported every keystroke; Enter has nothing left
+    // to do and must not navigate away from the river it is filtering.
+    if (live) return;
     const q = value.trim();
     if (!q) return;
     router.push(`/feed?q=${encodeURIComponent(q)}`);
@@ -178,8 +209,8 @@ export function SearchPill() {
                   setOpen(false);
                 }
               }}
-              placeholder="Search posts or a name"
-              aria-label="Search posts, by their words or by who wrote them"
+              placeholder={placeholder}
+              aria-label={label}
               className="min-w-0 flex-1 bg-transparent text-[13.5px] text-foreground outline-none placeholder:text-muted-foreground/75"
             />
           )}
@@ -204,7 +235,7 @@ export function SearchPill() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.16, ease: "easeOut" }}
               onClick={() => setOpen(true)}
-              aria-label="Search posts"
+              aria-label={restLabel}
               aria-expanded={open}
               className="state-layer absolute inset-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             />

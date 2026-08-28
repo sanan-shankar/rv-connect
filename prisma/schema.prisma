@@ -242,10 +242,16 @@ model Photo {
   /// the proxied path, which has no staged key of its own.
   sourceKey    String?   @unique
 
-  // faceted taxonomy (fixed enums validated by Zod; comma-joined where multi).
-  // subject/freeTags are no longer collected by the contribute form (2026-07-18
-  // rework) but stay on the model for old rows and any other Collection reader.
-  subject      String    // e.g. "banyan,landscape"
+  // The six buckets, comma-joined: "people,school-life". Validated by Zod
+  // against src/lib/collection.ts BUCKETS, which replaced the fourteen-value
+  // list this column used to hold (2026-08-28 -- the old vocabulary was drawn
+  // up under "the place, not people" and had nowhere to file a class
+  // photograph). The COLUMN is deliberately not renamed to `buckets`: one
+  // database serves production and local dev, so a rename breaks every
+  // Collection query in production until the next deploy lands, and
+  // legibility does not buy an outage window. `bucketsOf()` reads it and maps
+  // any surviving old value on the way through.
+  subject      String    // e.g. "campus,school-life"
   area         String?   // free text, "Part of school" (was a fixed picklist)
   era          String    @default("unknown") // decade bucket, derived from photoYear when given
   freeTags     String?   // comma-joined free text, mainly bird/species names
@@ -257,6 +263,19 @@ model Photo {
   photoYear     Int?
   photoMonth    Int?      // 1-12; only meaningful alongside photoYear
   datePrecision String?   // "month" | "year" | "decade" | "unknown"
+
+  /// When it was taken, as ONE sortable integer: year * 100 + month, so
+  /// March 1978 is 197803, a bare 1978 is 197800, "the 1970s" is 197000 and
+  /// an undated photograph is 0 (sorting last under DESC with no NULLS
+  /// clause, and giving the keyset cursor a plain two-column comparison
+  /// instead of a three-branch OR with a null case in it).
+  ///
+  /// GENERATED ALWAYS ... STORED in Postgres, computed from photoYear,
+  /// photoMonth and era -- see prisma/migrations-manual/2026-08-28-collection-river.sql.
+  /// NOTHING MAY WRITE THIS. Prisma only sends the fields it is handed and no
+  /// write path hands it this one; an INSERT or UPDATE that names it is
+  /// refused by the database.
+  takenKey      Int       @default(0)
 
   approved     Boolean   @default(false)
   isHidden     Boolean   @default(false)
@@ -274,6 +293,13 @@ model Photo {
   @@index([era])
   // 'Photos by this member', and the purge's own lookup (B-090).
   @@index([uploaderId])
+  // The river's two orders and the decade rail's grouped count. Each ends in
+  // the tiebreak that makes its ordering total, which is what lets the page
+  // be cursored instead of offset: a keyset page over a partial ordering can
+  // repeat a row and skip another (audit B-122).
+  @@index([approved, isHidden, takenKey(sort: Desc), id(sort: Desc)], name: "Photo_river_taken_idx")
+  @@index([approved, isHidden, createdAt(sort: Desc), id(sort: Desc)], name: "Photo_river_added_idx")
+  @@index([approved, isHidden, era], name: "Photo_river_era_idx")
 }
 
 model PhotoLove {
