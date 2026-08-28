@@ -539,6 +539,70 @@ unless it says otherwise.
   A caption in a verdicts file is **dropped, counted and reported**, not refused: a field whose
   correct handling is to ignore it must not cost a batch of good buckets.
 
+### His second pass, an hour later (2026-08-28, session 7)
+
+- **D47. The decade ladder reaches the school's founding, and Pre-1960s is gone.** His:
+  *"have for 1950s and 1940s as well."* Adding them beside Pre-1960s would have given a 1955
+  photograph two true answers, so Pre-1960s became **Pre-1940s** and the 1940s and 1950s are
+  decades of their own. `takenKey` is a GENERATED column whose CASE is the SQL half of
+  `ERA_START_YEAR`, so this needed a migration
+  (`prisma/migrations-manual/2026-08-28-era-1940s-1950s.sql`, applied to both databases): a
+  generated column cannot be altered in place, so it and the river's keyset index are dropped
+  and rebuilt inside one transaction. `pre-1960s` stays in the CASE and in `ERA_START_YEAR`
+  and is offered nowhere — no row has ever held it, but a stale browser can still post it and
+  a value falling through to NULL sorts as undated rather than as what it says.
+  **HE ASKED FOR A NOTE, AND IT IS ABOVE `ERAS` IN `src/lib/collection.ts`**: if nothing is
+  ever uploaded from the 1940s or 1950s, those two pills are dead weight on every
+  contributor's screen and the bottom of the ladder should collapse back. The query that
+  answers it is in that comment. Nothing before the 2020s exists yet, so there is nothing to
+  read — wait until the archive is real.
+
+- **D48. There IS an "I don't know" pill, and D45 was wrong to refuse one.** D45's argument
+  was that it and an empty row mean the same thing to the archive, so it is a control whose
+  pressed and unpressed states are identical. He overruled it, and the reason he is right is
+  about the person rather than the database: an empty row is a question still hanging over
+  you; a lit "I don't know" is an answer you have given and can walk away from. The hedge
+  that used to be printed beside the heading ("if you know") went with it — it was
+  apologising for a question the row can now answer for itself. `decade` therefore has three
+  states: `""` untouched, `"unknown"` said-so, or a decade. The last two encode identically,
+  and that is the right place for the difference to stop.
+
+- **D49. The finer questions GROW, they do not appear.** His: *"clicking on those pills
+  doesn't animate the extension it just jumps to the next thing shoul dbe smoothly."* The
+  first version animated opacity and y on the revealed row, so the panel's own height stepped
+  in a single frame. **This is the one place in this campaign where height animates**, and
+  deliberately: the block genuinely takes up space it did not before, and translating it
+  would slide it over what is beneath instead of making room. 44px, once per press, inside a
+  dialog — nowhere near what the transform-and-opacity-only rule exists to avoid.
+
+- **D50. One photograph is not a small wall.** His: *"right now this UI is made for uploading
+  multiple photos. so much white space. photo so small. not nice. it should be great for
+  both."* Measured before the fix: a single portrait dropped into this room was drawn
+  **99x176 inside a 780px column of an 1152px pop-up**, because the row solver is tuned for a
+  hundred at once. Two shapes now. One photograph is a COLUMN — the picture at the top, big
+  (222x394 at 1440, 185x329 at 390), the questions under it, the bucket tiles in three
+  columns instead of two, and no count line or select-all, because there is no set. Several
+  is the wall-and-panel it was. **And the glass sizes to what is in it**: 512 / 620 / 900 /
+  1152 by count.
+  **The width is an inline style, not a `sm:max-w-*` class, and that is the part worth
+  remembering.** A class this codebase has never written before is a brand-new rule in the
+  generated stylesheet, so a browser holding a cached sheet from before the edit matches
+  nothing and falls back to full width. That is exactly what he saw the first time this grew
+  a rung: *"why tf is this full screen now"*. A style attribute is in the markup and cannot
+  be missing, and one `min()` carries the small-screen inset at every width with no
+  breakpoint at all.
+
+- **D51. The "Banyan Tree tag" was `Photo.area`, and both rows are cleared.** He was right
+  that something was there and right to call it a tag: the viewer prints `area` above the
+  caption, where it reads exactly like one. It is the answer to the "Where in the valley?"
+  box he deleted in the same round (D43), so nothing writes it any more and it was the only
+  thing that could still put a tag there. Cleared by
+  `prisma/migrations-manual/2026-08-28-clear-legacy-where.sql`, scoped to the two ids rather
+  than to `WHERE area IS NOT NULL` so it cannot grow teeth if re-run. **The old values are in
+  that file's header** — `'asdf'` and `'Big Banyan Tree'` — so the second can be typed back
+  into a caption if he wants it. The column stays: search reads it, the viewer prints it
+  where a row has one, and it is deprecated rather than deleted.
+
 ## Findings from reading the code (2026-08-26, session 1)
 
 - **F1. The Vercel billing question, answered.** `/_next/image` is Vercel's *metered*

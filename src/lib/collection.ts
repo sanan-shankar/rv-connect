@@ -152,8 +152,34 @@ const LEGACY_AREAS: Record<string, string> = {
 
 export const areaLabel = (v: string) => LEGACY_AREAS[v] ?? v;
 
+/* ------------------------------------------------------------------ *
+ *  The decades.
+ *
+ *  The ladder used to stop at "Pre-1960s", which put thirty-four years of
+ *  the school -- it was founded in 1926 -- into one bucket labelled with a
+ *  decade nobody photographed in. The owner extended it on 2026-08-28:
+ *  "have for 1950s and 1940s as well." Pre-1960s became **Pre-1940s**
+ *  rather than surviving beside them, because a 1955 photograph offered
+ *  both "1950s" and "Pre-1960s" has two true answers, and a vocabulary
+ *  with two true answers is a vocabulary that gets filled in at random.
+ *
+ *  **REVISIT THIS, and he asked for the note.** If nothing is ever
+ *  uploaded from the 1940s or the 1950s, those two pills are two presses
+ *  of dead weight on every contributor's screen and the bottom of the
+ *  ladder should collapse back. The query that answers it:
+ *    SELECT era, count(*) FROM "Photo" GROUP BY era ORDER BY era;
+ *  Nothing has been uploaded from before the 2020s as of 2026-08-28, so
+ *  there is nothing to read yet -- wait until the archive is real.
+ *
+ *  `pre-1960s` is deliberately NOT in this list and deliberately still in
+ *  ERA_START_YEAR and in the migration's CASE below: no row has ever held
+ *  it, but a value that can still arrive from a stale browser must sort
+ *  and label rather than fall to the bottom as undated.
+ * ------------------------------------------------------------------ */
 export const ERAS = [
-  { value: "pre-1960s", label: "Pre-1960s" },
+  { value: "pre-1940s", label: "Pre-1940s" },
+  { value: "1940s", label: "1940s" },
+  { value: "1950s", label: "1950s" },
   { value: "1960s", label: "1960s" },
   { value: "1970s", label: "1970s" },
   { value: "1980s", label: "1980s" },
@@ -176,7 +202,7 @@ export const PHOTO_YEAR_MIN = 1926;
 /** Map an exact year to its ERA_VALUES decade bucket, so a contributor who
  *  gives a precise year still shows up under the right era filter. */
 export function eraFromYear(year: number): string {
-  if (year < 1960) return "pre-1960s";
+  if (year < 1940) return "pre-1940s";
   const decade = Math.floor(year / 10) * 10;
   const bucket = `${decade}s`;
   return (ERA_VALUES as readonly string[]).includes(bucket) ? bucket : "unknown";
@@ -199,6 +225,10 @@ export function eraFromYear(year: number): string {
  * ------------------------------------------------------------------ */
 
 export const ERA_START_YEAR: Record<string, number> = {
+  "pre-1940s": 1926,
+  "1940s": 1940,
+  "1950s": 1950,
+  /* Legacy, and not offered anywhere. See the note above ERAS. */
   "pre-1960s": 1926,
   "1960s": 1960,
   "1970s": 1970,
@@ -238,6 +268,7 @@ const MONTHS = [
 /** "the 1970s", "before 1960" -- an era value as it reads in a sentence. */
 export function eraPhrase(era: string): string | null {
   if (!era || era === "unknown") return null;
+  if (era === "pre-1940s") return "before 1940";
   if (era === "pre-1960s") return "before 1960";
   return /^\d{4}s$/.test(era) ? `the ${era}` : eraLabel(era);
 }

@@ -136,7 +136,8 @@ type Staged = {
 type Meta = {
   caption: string;
   buckets: string[];
-  /** An ERAS value, or "" when nobody has said. */
+  /** An ERAS decade, `"unknown"` when they pressed "I don't know", or "" when
+   *  nobody has touched the row at all. The last two encode the same way. */
   decade: string;
   /** Digits as typed. Only counts once it is a real four-digit year. */
   year: string;
@@ -171,9 +172,14 @@ function dateMeta(meta: Meta) {
       ? { photoYear: Number(meta.year), photoMonth: monthIndex + 1, datePrecision: "month" }
       : { photoYear: Number(meta.year), datePrecision: "year" };
   }
+  /* "" (untouched) and "unknown" (the I-don't-know pill) encode identically.
+     They are two different things to say to a person and the same thing to
+     say to the archive, which is exactly the right place for that difference
+     to stop. */
+  const said = meta.decade && meta.decade !== "unknown";
   return {
-    era: meta.decade || "unknown",
-    datePrecision: meta.decade ? "decade" : "unknown",
+    era: said ? meta.decade : "unknown",
+    datePrecision: said ? "decade" : "unknown",
   };
 }
 
@@ -234,6 +240,10 @@ function measure(file: File): Promise<{ preview: string; width: number; height: 
  *  which reads as the space opening up for your pictures, not as a jump.
  *  Not animated: width is neither transform nor opacity.
  * ------------------------------------------------------------------ */
+/** How much glass the room needs, given how many photographs are on the wall.
+ *  Three rungs and no more: an invitation, a photograph, a contact sheet. */
+const GLASS_WIDTH = (wall: number) => (wall === 0 ? 512 : wall === 1 ? 620 : wall <= 4 ? 900 : 1152);
+
 export function ContributeDialog({
   open,
   onOpenChange,
@@ -256,20 +266,23 @@ export function ContributeDialog({
       }}
     >
       <DialogContent
-        className={cn(
-          "flex max-h-[90vh] w-full max-w-[calc(100%-1.5rem)] flex-col overflow-hidden p-0",
-          /* `sm:max-w-lg` and `sm:max-w-6xl` deliberately, and both are
-             classes this codebase already ships (the crop dialog uses the
-             first, this room already used the second). An earlier pass here
-             reached for `sm:max-w-2xl`, which no other file had ever
-             written -- so it was a brand-new rule in the generated
-             stylesheet, and a browser holding a cached sheet from before
-             the edit fell back to `max-w-[calc(100%-1.5rem)]` and drew the
-             pop-up edge to edge. That is what the owner saw: "why tf is
-             this full screen now". Picking a utility already in the sheet
-             costs nothing and cannot do that. */
-          wall > 0 ? "sm:max-w-6xl" : "sm:max-w-lg"
-        )}
+        className="flex max-h-[90vh] w-full flex-col overflow-hidden p-0"
+        /* THE GLASS IS AS WIDE AS WHAT IS IN IT. Nothing dropped yet is one
+           sentence and one button; one photograph is a picture with its
+           questions under it; a hundred is a wall with a panel beside it.
+           A pop-up that opens at 1152px for all three is a letterbox twice.
+
+           An inline style rather than a `sm:max-w-*` class, and that is the
+           one thing here worth remembering. A width ladder needs a class per
+           rung, and a class this codebase has never written before is a
+           BRAND-NEW rule in the generated stylesheet -- so a browser holding
+           a cached sheet from before the edit matches nothing and falls back
+           to full width. That is exactly what the owner saw the first time
+           this grew a rung: "why tf is this full screen now". A style
+           attribute is in the markup, so it cannot be missing, and the
+           `min()` carries the small-screen inset that `max-w-[calc(100%-
+           1.5rem)]` used to, at every width, with no breakpoint. */
+        style={{ maxWidth: `min(100% - 1.5rem, ${GLASS_WIDTH(wall)}px)` }}
       >
         <DialogHeader
           className={cn(
@@ -763,6 +776,8 @@ export function ContributeRoom({
   /* ---------------- what to draw ---------------- */
 
   const allSelected = selected.length === photos.length && photos.length > 0;
+  /** One photograph is a different room from a wall of them. See below. */
+  const single = photos.length === 1;
 
   if (added !== null) {
     return (
@@ -823,30 +838,54 @@ export function ContributeRoom({
           onChoose={() => fileInput.current?.click()}
         />
       ) : (
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+        /* ONE PHOTOGRAPH IS NOT A SMALL WALL, and treating it as one is
+           what the owner saw: "right now this UI is made for uploading
+           multiple photos. so much white space. photo so small." Measured
+           before the fix, a single portrait dropped into this room was drawn
+           99x176 inside a 780px column, because the wall's row solver is
+           tuned for a hundred photographs at once.
+
+           So the room has two shapes. With one photograph it is a column --
+           the picture at the top, big, and the questions under it, which is
+           the shape a composer has and the shape somebody sharing ONE thing
+           expects. With several it is the wall-and-panel it was, because
+           then the selection is the interaction and the panel has to stay
+           beside what it is answering for. The glass around it sizes to
+           match (see ContributeDialog). */
+        <div
+          className={cn(
+            "flex flex-col",
+            single ? "gap-5" : "gap-6 lg:flex-row lg:items-start lg:gap-8"
+          )}
+        >
           {/* The wall. The same justified rows these photographs will live in
               on /collection, so the first thing a contributor sees is their
               own pictures already looking like the archive. */}
           <div className="min-w-0 flex-1">
             <div className="mb-3 flex items-center gap-3 text-[13px] text-muted-foreground">
-              <span className="tabular-nums">
-                {photos.length} {photos.length === 1 ? "photograph" : "photographs"}
-              </span>
-              <span className="dotsep" aria-hidden>
-                ·
-              </span>
-              <button
-                type="button"
-                onClick={() =>
-                  setChosen(allSelected ? new Set() : new Set(photos.map((p) => p.id)))
-                }
-                className="font-medium text-canopy underline-offset-2 transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
-              >
-                {allSelected ? "Select none" : "Select all"}
-              </button>
-              <span className="dotsep" aria-hidden>
-                ·
-              </span>
+              {/* The count and the select-all are about a SET. With one
+                  photograph there is no set: it says "1 photograph" beside a
+                  button offering to select none of it. */}
+              {!single && (
+                <>
+                  <span className="tabular-nums">{photos.length} photographs</span>
+                  <span className="dotsep" aria-hidden>
+                    ·
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setChosen(allSelected ? new Set() : new Set(photos.map((p) => p.id)))
+                    }
+                    className="font-medium text-canopy underline-offset-2 transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
+                  >
+                    {allSelected ? "Select none" : "Select all"}
+                  </button>
+                  <span className="dotsep" aria-hidden>
+                    ·
+                  </span>
+                </>
+              )}
               <button
                 type="button"
                 onClick={() => fileInput.current?.click()}
@@ -869,9 +908,16 @@ export function ContributeRoom({
               /* A fraction of the WALL, not of the viewport, so a phone gets
                  two or three across at a size worth looking at and a laptop
                  gets four. At 22% a phone packed five, each about 55px wide
-                 with a 28px remove button sitting on it. */
-              targetHeight="min(150px, 34%)"
-              maxScale={1.6}
+                 with a 28px remove button sitting on it.
+
+                 Three rungs, because the right size of a photograph on this
+                 wall depends entirely on how many are on it. One is a
+                 photograph you are looking at; a hundred are a contact sheet
+                 you are selecting on. */
+              targetHeight={
+                single ? "min(380px, 100%)" : photos.length <= 4 ? "min(250px, 46%)" : "min(150px, 34%)"
+              }
+              maxScale={single ? 1.9 : 1.6}
             >
               {(p, i, cell) => (
                 <m.div
@@ -932,20 +978,30 @@ export function ContributeRoom({
           </div>
 
           {/* The asking. Beside the wall, not under it, and in plain words. */}
-          <aside className="w-full shrink-0 lg:sticky lg:top-0 lg:w-[336px]">
+          <aside
+            className={cn(
+              "w-full shrink-0",
+              !single && "lg:sticky lg:top-0 lg:w-[336px]"
+            )}
+          >
             {/* No card around the questions. They used to sit on a paper panel
                 inside a Float-white pop-up, with paper bucket tiles on top of
                 it -- so the tiles, the one thing here that has to look
                 pressable, had nothing to stand against. On the white they
                 read. */}
             <div>
-              <p className="mb-3 text-[13px] font-semibold text-foreground">
-                {selected.length === 0
-                  ? "Nothing selected"
-                  : selected.length === photos.length
-                    ? `All ${photos.length} ${photos.length === 1 ? "photograph" : "photographs"}`
-                    : `${selected.length} of ${photos.length} selected`}
-              </p>
+              {/* Which photographs the answers below will land on. Silent
+                  when there is only one: "All 1 photograph" is a sentence
+                  that exists to describe a choice nobody made. */}
+              {!single && (
+                <p className="mb-3 text-[13px] font-semibold text-foreground">
+                  {selected.length === 0
+                    ? "Nothing selected"
+                    : selected.length === photos.length
+                      ? `All ${photos.length} photographs`
+                      : `${selected.length} of ${photos.length} selected`}
+                </p>
+              )}
 
               {/* THE DESCRIPTION, and it is the one field left.
                   Three things changed here on 2026-08-28, all the owner's:
@@ -988,7 +1044,14 @@ export function ContributeRoom({
                 value={shown.buckets}
                 mixed={mixedBuckets}
                 onChange={(next) => answer({ buckets: next })}
-                className={cn(!selected.length && "pointer-events-none opacity-50")}
+                className={cn(
+                  /* Two columns in the 336px panel beside a wall; three when
+                     the panel is the full width of the pop-up, under a single
+                     photograph, where two would draw six tiles 280px wide and
+                     82px tall and nothing in them would be near the middle. */
+                  single && "sm:grid-cols-3",
+                  !selected.length && "pointer-events-none opacity-50"
+                )}
               />
 
               <WhenAsked
@@ -1036,7 +1099,7 @@ export function ContributeRoom({
  *  This is the same three facts, asked in the order people actually know
  *  them, and it costs one tap for most photographs:
  *
- *    ROUGHLY WHEN?   eight decades as pills, newest first, in the
+ *    ROUGHLY WHEN?   ten decades as pills, newest first, in the
  *                    Collection's own vocabulary and its own order (the
  *                    decade rail reads top-down from 2020s). One tap. Press
  *                    the lit one again to unsay it.
@@ -1046,9 +1109,20 @@ export function ContributeRoom({
  *    MONTH?          appears only once the year is a real year. The rarest
  *                    thing anybody knows, so it is last and it is small.
  *
- *  Nothing lit means nobody said, which files under Undated. There is no
- *  "Not sure" pill, on purpose: it would have been a control whose pressed
- *  and unpressed states meant the same thing.
+ *  AND AN "I DON'T KNOW" PILL, which the first version of this deliberately
+ *  did not have -- the argument being that it and an empty row mean the same
+ *  thing to the archive, so it is a control whose pressed and unpressed
+ *  states are identical. The owner overruled it, and he is right for a
+ *  reason about the person rather than the database: an empty row is a
+ *  question still hanging over you, and a lit "I don't know" is an answer
+ *  you have given and can walk away from. The hedge that used to be printed
+ *  beside the heading ("if you know") is gone with it -- it was apologising
+ *  for a question the row can now answer for itself.
+ *
+ *  So `decade` has three states, not two: "" for untouched, `"unknown"` for
+ *  said-so, and a decade. The last two encode identically (era "unknown",
+ *  precision "unknown"); the difference is entirely on this screen, which is
+ *  where it matters.
  * ------------------------------------------------------------------ */
 function WhenAsked({
   meta,
@@ -1060,12 +1134,10 @@ function WhenAsked({
   onAnswer: (patch: Partial<Meta>) => void;
 }) {
   const hasYear = yearGiven(meta.year);
+  const dated = Boolean(meta.decade) && meta.decade !== "unknown";
   return (
     <div className={cn("mt-5", disabled && "pointer-events-none opacity-50")}>
-      <p className="mb-2 text-[13px] font-semibold text-foreground">
-        When was it taken?{" "}
-        <span className="font-normal text-muted-foreground">if you know</span>
-      </p>
+      <p className="mb-2 text-[13px] font-semibold text-foreground">When was it taken?</p>
 
       <div className="flex flex-wrap gap-1.5">
         {DECADE_PILLS.map((e) => {
@@ -1099,21 +1171,56 @@ function WhenAsked({
             </m.button>
           );
         })}
+        {/* Set apart by its words rather than by a rule or a gap: it is one
+            of the answers, not a way out of answering. */}
+        <m.button
+          type="button"
+          aria-pressed={meta.decade === "unknown"}
+          whileTap={{ scale: 0.94 }}
+          transition={SPRINGS.snappy}
+          onClick={() =>
+            onAnswer(
+              meta.decade === "unknown"
+                ? { decade: "", year: "", month: "" }
+                : { decade: "unknown", year: "", month: "" }
+            )
+          }
+          className={cn(
+            "rounded-full border px-3 py-1.5 text-[13px] font-medium",
+            "transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+            meta.decade === "unknown"
+              ? "border-canopy bg-canopy text-white"
+              : "state-layer border-border text-muted-foreground"
+          )}
+        >
+          I don&rsquo;t know
+        </m.button>
       </div>
 
-      {/* The finer questions, and they arrive rather than waiting. Height
-          and opacity are what an accordion has to animate; this is a small
-          block at the bottom of a panel, so nothing below it moves. */}
+      {/* The finer questions, and they GROW rather than appearing. The first
+          version animated opacity and y on the row alone, so the panel's own
+          height stepped in one frame and the pills below jumped -- the owner:
+          "clicking on those pills doesn't animate the extension it just jumps
+          to the next thing shoul dbe smoothly."
+
+          Height is the one property this cannot do with transform alone: the
+          block genuinely takes up space it did not before, and translating it
+          would slide it over what is under it instead of making room. `height:
+          auto` measures once and tweens; `overflow-hidden` keeps the contents
+          from spilling while the box is shorter than they are. It is a 44px
+          block in a dialog, animated once per press, so this is nowhere near
+          the cost the transform-and-opacity-only rule exists to avoid. */}
       <AnimatePresence initial={false}>
-        {meta.decade && (
+        {dated && (
           <m.div
             key="finer"
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.18, ease: EASE_OUT_SMOOTH }}
-            className="mt-2.5 flex items-center gap-2"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.24, ease: EASE_OUT_SMOOTH }}
+            className="overflow-hidden"
           >
+          <div className="mt-2.5 flex items-center gap-2">
             <label
               htmlFor="contribute-year"
               className="shrink-0 text-[13px] text-muted-foreground"
@@ -1127,7 +1234,9 @@ function WhenAsked({
               pattern="[0-9]*"
               autoComplete="off"
               maxLength={4}
-              placeholder={meta.decade === "pre-1960s" ? "1957" : meta.decade.slice(0, 3) + "4"}
+              /* An example inside the decade that is lit, so the box shows
+                 the shape of the answer rather than a generic "YYYY". */
+              placeholder={meta.decade.startsWith("pre-") ? "1931" : `${meta.decade.slice(0, 3)}4`}
               value={meta.year}
               onChange={(e) =>
                 onAnswer({ year: e.target.value.replace(/\D/g, "").slice(0, 4), month: "" })
@@ -1158,6 +1267,7 @@ function WhenAsked({
                 </SelectContent>
               </Select>
             )}
+          </div>
           </m.div>
         )}
       </AnimatePresence>
