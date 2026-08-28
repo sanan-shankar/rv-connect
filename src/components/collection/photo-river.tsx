@@ -86,7 +86,7 @@ export function Tile({
 /* ------------------------------------------------------------------ *
  *  Reading the river in time order.
  *
- *  "Through time" is the only order where a heading means anything, and
+ *  "Chronological" is the only order where a heading means anything, and
  *  there it means a great deal: it is the foldering the owner wanted
  *  ("all the organization foldering that we do, we have to do in a really
  *  beautiful way") delivered INLINE, at the cost of no clicks at all. You

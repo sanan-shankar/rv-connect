@@ -6399,3 +6399,35 @@ the `pg` adapter means no query engine ships to Vercel.
 The point of the block is not the silence. Approvals are pinned to a version, so a Prisma bump
 re-raises the question, and any new dependency that wants to run code at install time now has to
 be answered for rather than noticed.
+
+
+## 2026-08-28 — the Collection's controls line up, and the dot is drawn
+
+Two things the owner spotted on one line of the Collection: *"the middle dot between the number of
+photographs and the sorting isn't actually in the middle of the line, it's like almost a full stop
+at the bottom"*, and *"the 1 photograph / newest line isn't in line with the buckets line"*.
+
+The dot was a typed `·`, which sits at half the x-height. That is where it belongs between two
+lowercase words and nowhere near where it belongs between "1,240 photographs" and "Newest", whose
+optical centre is a third higher; the old rule's `top: 1px` then pushed it further the wrong way.
+No font-relative nudge fixes a glyph whose own metrics are the problem, so `.dotsep` now keeps the
+character as its text and draws the dot itself -- a round `em`-sized box, so it scales with
+whatever line it punctuates. All eighteen sites at once. `overflow: hidden` on it is load-bearing
+rather than tidiness: it is what makes an inline-block take its bottom margin edge as its baseline,
+which turns `vertical-align` into a plain statement about where the dot's underside sits.
+
+The misalignment was 6px, measured. `items-end` aligns the two children's bottom EDGES, and they
+are not built alike: a bucket word is one 13.5px line set `leading-none`, the count is a 13px line
+sharing a centred flex row with a dropdown trigger carrying its own `py-0.5`. Equal bottoms, two
+different baselines. `items-baseline` cannot rescue it either, because the bucket nav is an
+`overflow-x-auto` scroller and a box with non-visible overflow has no baseline to offer. So the
+baseline is placed by hand, and the number is measured rather than guessed: the drift falls
+one-for-one with the padding (8px: 6, 4px: 2, 3px: 1, 2px: 0), so `pb-0.5` is the value. On a
+phone the row wraps to its own line and the same change reads as 6px less air under the toolbar,
+which is the direction this session was going anyway.
+
+The order menu lost its second lines in the same pass -- "Most recently added", "By when it was
+taken", set at 11.5px. The owner: *"that font is just getting too small, we're just not respecting
+the user enough, the mobile user."* Four words that each explain themselves do not need eight more
+underneath them in type nobody reads. "Through time" became "Chronological" while it was open,
+because he read the menu back to himself that way.
