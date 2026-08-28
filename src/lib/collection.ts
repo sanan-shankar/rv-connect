@@ -199,6 +199,69 @@ export const eraLabel = (v: string) => ERA_LABELS[v] ?? v;
 /** The oldest year the contribute form's year dropdown offers. */
 export const PHOTO_YEAR_MIN = 1926;
 
+/* ------------------------------------------------------------------ *
+ *  WHAT A CONTRIBUTOR TYPED INTO ONE BOX, AS A DATE THE ARCHIVE STORES.
+ *
+ *  The contribute room used to ask this with ten decade pills, an "I
+ *  don't know" pill and a separate year field, so the contributor had to
+ *  decide which control matched how much they remembered before they
+ *  could answer at all. The owner scrapped that (2026-08-28) for one
+ *  numeric box, and these three functions are what makes a single box
+ *  able to say three different amounts:
+ *
+ *      ""      -> unknown          nobody said, which is also what
+ *                                  leaving it blank means
+ *      "197"   -> the 1970s        decade precision
+ *      "1978"  -> 1978             year precision
+ *      + March -> March 1978       month precision
+ *
+ *  They live here rather than in the dialog because this is the rule for
+ *  what goes INTO the archive, not a detail of one screen -- and here
+ *  they are pure, so `collection-date.test.mjs` can hold the ladder
+ *  still. Getting this wrong mis-files a photograph in a way nobody
+ *  notices until the decade rail is wrong.
+ * ------------------------------------------------------------------ */
+
+/** Is what has been typed actually a year? The valley's own year is the
+ *  ceiling, matching the server validator that will judge it. */
+export function yearGiven(typed: string, thisYear: number): boolean {
+  const n = Number(typed);
+  return typed.length === 4 && n >= PHOTO_YEAR_MIN && n <= thisYear;
+}
+
+/** The decade a HALF-TYPED year names, or null if it names nothing yet.
+ *
+ *  This is the whole of what the ten decade pills used to do, at three
+ *  keystrokes on a number pad. "193" is pre-1940s, which `eraFromYear`
+ *  already knows; "19" is not an answer yet, and neither is "99", because
+ *  `eraFromYear` refuses a decade the archive has no bucket for. */
+export function eraFromPartial(typed: string): string | null {
+  if (typed.length !== 3) return null;
+  const era = eraFromYear(Number(typed) * 10);
+  return era === "unknown" ? null : era;
+}
+
+/** A decade said out loud, for a sentence rather than a filter chip. */
+export const eraSaid = (era: string) =>
+  era === "pre-1940s" ? "the years before 1940" : `the ${eraLabel(era)}`;
+
+/** The date fields exactly as both contribute paths encode them. */
+export function photoDate(
+  typed: { year: string; month: string },
+  thisYear: number
+) {
+  if (yearGiven(typed.year, thisYear)) {
+    const monthIndex = MONTHS.indexOf(typed.month);
+    return monthIndex >= 0
+      ? { photoYear: Number(typed.year), photoMonth: monthIndex + 1, datePrecision: "month" }
+      : { photoYear: Number(typed.year), datePrecision: "year" };
+  }
+  const era = eraFromPartial(typed.year);
+  return era
+    ? { era, datePrecision: "decade" }
+    : { era: "unknown", datePrecision: "unknown" };
+}
+
 /** Map an exact year to its ERA_VALUES decade bucket, so a contributor who
  *  gives a precise year still shows up under the right era filter. */
 export function eraFromYear(year: number): string {
@@ -260,7 +323,10 @@ export const eraSortYear = (era: string): number | null => ERA_START_YEAR[era] ?
  *  themselves decide and the precision only narrows.
  * ------------------------------------------------------------------ */
 
-const MONTHS = [
+/** The months, in the one order they are ever in. Exported since the
+ *  contribute room's month menu and `photoDate` both read it, and a second
+ *  copy in a component is how the two drift. */
+export const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];

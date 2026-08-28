@@ -137,6 +137,7 @@ export function FloatArea({
   id,
   label,
   hint,
+  bare = false,
   className,
   containerClassName,
   ...areaProps
@@ -145,6 +146,14 @@ export function FloatArea({
   label: string;
   /** What goes behind the (i). Omit it and no icon is drawn. */
   hint?: ReactNode;
+  /** Drop the box's own frame, for when it is a ROW inside a grouped card
+   *  rather than a field standing on its own. Two stacked fields each drawing
+   *  their own border is two borders where the eye wants one shape -- the
+   *  owner on the contribute room's question panel (2026-08-28): "it just has
+   *  an excess of elements and border, it's not smart and sleek at all." The
+   *  group draws the frame and a hairline between its rows; this draws
+   *  nothing. */
+  bare?: boolean;
   containerClassName?: string;
 }) {
   /* IT GROWS AS YOU TYPE, and starts at whatever `rows` says rather than at
@@ -154,19 +163,25 @@ export function FloatArea({
      drawn at its maximum is asking for an essay before a word is typed, which
      on a phone is most of the screen spent on emptiness.
 
-     The floor is MEASURED, once, rather than computed: it is whatever height
-     the `rows` attribute gave the box before anything touched it, so this
-     stays true if a caller changes `rows` or the line-height moves. */
+     The floor is MEASURED EVERY TIME rather than cached, and that is worth a
+     sentence. It used to be read once on mount and kept in a ref, which is
+     wrong twice: a webfont that finishes loading after mount changes the line
+     height under it, and so does anything that restyles the box. Both leave
+     the box a few pixels off forever, which is exactly the kind of difference
+     that gets noticed when this sits in a grouped card beside a fixed-height
+     row. Clearing the inline height first asks the browser what `rows` says
+     right now; two extra layout reads per keystroke on one textarea is
+     nothing, and it cannot go stale. */
   const area = useRef<HTMLTextAreaElement>(null);
-  const floor = useRef(0);
   const grow = useCallback(() => {
     const el = area.current;
     if (!el) return;
-    if (!floor.current) floor.current = el.clientHeight;
+    el.style.height = "";
+    const floor = el.clientHeight;
     /* `auto` first: without it the box can only ever get taller, because
        scrollHeight of an element with an explicit height is that height. */
     el.style.height = "auto";
-    el.style.height = `${Math.max(floor.current, el.scrollHeight)}px`;
+    el.style.height = `${Math.max(floor, el.scrollHeight)}px`;
   }, []);
 
   /* Keyed on the value, so it is right after a paste, after the room fills
@@ -184,10 +199,25 @@ export function FloatArea({
         // can stand in for "empty" -- same trick as FloatField.
         placeholder=" "
         className={cn(
-          "peer w-full resize-none rounded-[var(--radius-input)] border border-border bg-transparent",
-          "px-4 pb-3 pt-[1.625rem] text-base leading-snug text-foreground outline-none",
-          "transition-colors duration-150 focus:border-canopy disabled:opacity-50",
-          "placeholder:text-transparent",
+          /* `block`, and it is load-bearing: a textarea is inline-block by
+             default, so its wrapper grows a line box around it and adds ~6px
+             of descender space underneath. Invisible on a field standing
+             alone, and immediately visible when this is one row of a grouped
+             card next to a row that does not have it.
+
+             `pb-2`, not `pb-3`, for the same reason: 26 + 22 + 8 makes an
+             empty one-row box exactly 56px, which is the height of the date
+             row above it. The owner: "why is the second box bigger than the
+             first?" It was 66 against 56 -- four pixels of padding and six of
+             phantom line box. */
+          "peer block w-full resize-none bg-transparent",
+          "px-4 pb-2 pt-[1.625rem] text-base leading-snug text-foreground outline-none",
+          "disabled:opacity-50 placeholder:text-transparent",
+          /* A grouped row has no frame and no focus colour of its own: the
+             caret and the label rising are its focus state, which is the same
+             call FloatField made ("I don't want the green outline on boxes"). */
+          !bare &&
+            "rounded-[var(--radius-input)] border border-border transition-colors duration-150 focus:border-canopy",
           hint && "pr-10",
           className
         )}
@@ -205,8 +235,31 @@ export function FloatArea({
         {label}
       </label>
       {hint && (
-        <div className="absolute right-2.5 top-2.5">
-          <InfoTooltip label="What to write" side="bottom">{hint}</InfoTooltip>
+        /* ANCHORED TO THE LABEL, not to the corner. It used to sit at
+           `right-2.5 top-2.5`, which lined up with nothing: 2.5px off the
+           label's centre and inset 10px against the text's own 16px, so it
+           read as loose. The owner: "it's not aligned to anything, just
+           hanging, I can't see why it's there."
+
+           `top-[1.1875rem]` is measured, not derived: a 20px icon box there
+           puts its centre on the resting label's centre exactly, so the icon
+           and the words "Add a description" sit on one line across the row,
+           which is what says the icon belongs to them. (17px, the label's own
+           `top`, leaves it 2px high -- the label's line box is taller than its
+           font size.) `right-4` is the text's own inset mirrored, so the row
+           is even.
+
+           Once the box is filled the label floats and the icon stays, which
+           is correct rather than a compromise: it becomes the box's corner
+           affordance at exactly the moment the label has stopped being a
+           question. */
+        <div className="absolute right-4 top-[1.1875rem] flex h-5 items-center">
+          {/* `end`, because this icon lives in the box's top-right corner:
+              the note hangs back across the field it belongs to instead of
+              off the right of the screen. */}
+          <InfoTooltip label="What to write" side="bottom" align="end">
+            {hint}
+          </InfoTooltip>
         </div>
       )}
     </div>
