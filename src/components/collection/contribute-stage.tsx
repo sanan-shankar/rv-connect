@@ -24,11 +24,11 @@
  *
  *  THREE THINGS MAKE IT NOT A BASIC CAROUSEL:
  *
- *  1. THE STAGE IS A FIXED HEIGHT AND THE PHOTOGRAPH IS CONTAINED IN IT.
- *     Every other option was tried in <PhotoCarousel> and each was wrong
- *     somewhere (see its notes on shared shape and shared height). Here
- *     the answer is different from the feed's because the JOB is
- *     different: this is a filing surface, and a panel that changed
+ *  1. THE STAGE IS ONE HEIGHT FOR THE WHOLE DROP, and the photograph is
+ *     contained in it. Every other option was tried in <PhotoCarousel> and
+ *     each was wrong somewhere (see its notes on shared shape and shared
+ *     height). Here the answer is different from the feed's because the
+ *     JOB is different: this is a filing surface, and a panel that changed
  *     height under the questions every time you swiped would move the
  *     controls you are reaching for. The owner asked for exactly this --
  *     "we have to make sure we manage the different sizing of the panel
@@ -36,6 +36,10 @@
  *     thumb is already on its way to a bucket tile. Contained, so a
  *     portrait is never cropped and never bedded on blur; centred, which
  *     fixes the left-alignment he spotted.
+ *
+ *     One height for the drop, though, not one height for the app: it is
+ *     the tallest photograph you dropped, capped. See `stageHeight` -- a
+ *     flat ceiling left 140px of white paper around a panorama.
  *  2. IT CROSS-FADES, IT DOES NOT SLIDE, and it is the SAME dissolve the
  *     full-screen viewer already uses. The owner named it: "when you move
  *     from one picture to another in the image viewer it doesn't slide,
@@ -64,6 +68,7 @@
  *     have been floating on white half the time anyway.
  * ------------------------------------------------------------------ */
 
+import type { CSSProperties } from "react";
 import { m, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
 import { CarouselArrow } from "@/components/common/carousel-arrow";
@@ -104,6 +109,35 @@ const PICTURE_BOX = (p: StagePhoto) => ({
   width: `min(100%, calc(var(--stage-h) * ${p.width} / ${p.height}))`,
   aspectRatio: `${p.width} / ${p.height}`,
 });
+
+/** How tall the stage is: as tall as it needs to be, and never taller.
+ *
+ *  It used to be a flat 240px, which is right when a portrait is in the drop
+ *  and wasteful when nothing is. A 16:5 panorama drew 99px of picture with
+ *  140px of white paper around it, and the owner's rule for that is the
+ *  obvious one: "make 240px the max, but if the tallest photo is less than
+ *  that then make it that."
+ *
+ *  The tallest photograph is the one with the SMALLEST width/height, and drawn
+ *  across the full stage it wants `width / ratio` of height. So the stage is
+ *  `min(the ceiling, that)`, and every other photograph in the drop is wider
+ *  than the tallest one and therefore fits by construction.
+ *
+ *  Note this settles per DROP, not per swipe: the height is the same for all
+ *  twelve photographs, so the questions underneath still never move while you
+ *  are going through them. That was the point of the fixed stage and it
+ *  survives intact -- what is gone is only the paper nobody needed.
+ *
+ *  `cqw` is what keeps this arithmetic rather than measurement. The stage's
+ *  own width is not a number CSS can otherwise put in a `calc`, so the parent
+ *  becomes a query container and 100cqw is that width -- correct on the first
+ *  frame, through every resize, with no ResizeObserver and no state. The
+ *  custom property has to be declared on the CHILD, because an element cannot
+ *  query itself. */
+const stageHeight = (photos: StagePhoto[]) => {
+  const tallest = Math.min(...photos.map((p) => p.width / p.height));
+  return `min(var(--stage-max), calc(100cqw / ${tallest.toFixed(6)}))`;
+};
 
 /** The step, and every number in it is <ImageViewer>'s. Equal durations keep
  *  it symmetric, so forward and back feel identical; the opposite curves are
@@ -158,9 +192,12 @@ export function ContributeStage({
   if (!showing) return null;
 
   return (
-    <div>
+    /* The query container, and the ceiling. Both live out here because the
+       stage inside reads them: an element cannot be its own container. */
+    <div className="[--stage-max:240px] [container-type:inline-size] sm:[--stage-max:380px]">
       <div
         tabIndex={0}
+        style={{ "--stage-h": stageHeight(photos) } as CSSProperties}
         role="group"
         aria-roledescription="carousel"
         aria-label={`${photos.length} photographs to describe`}
@@ -175,15 +212,12 @@ export function ContributeStage({
           }
         }}
         className={cn(
-          /* THE ONE FIXED NUMBER IN THE ROOM. 240px on a phone leaves the
-             first question ("What is it of?") above the fold at 390x844
-             with the header and the counter above it; 380px on a laptop,
-             where the stage stands beside a 500px column of questions
-             rather than above them. */
-          /* The height is a CSS variable rather than a plain class because
-             `PICTURE_BOX` above has to do arithmetic with it. */
+          /* The ceiling: 240px on a phone leaves the first question ("What is
+             it of?") above the fold at 390x844 with the header and the counter
+             above it; 380px on a laptop, where the stage stands beside a 500px
+             column of questions rather than above them. `--stage-h` is the
+             height it actually settles on -- see `stageHeight`. */
           "relative h-[var(--stage-h)] overflow-hidden rounded-[var(--radius-md)]",
-          "[--stage-h:240px] sm:[--stage-h:380px]",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         )}
       >
@@ -217,7 +251,13 @@ export function ContributeStage({
               initial="enter"
               animate="here"
               exit="leave"
-              className="absolute inset-0 flex items-center justify-center px-1"
+              /* No inset. `stageHeight` solves for the picture at the stage's
+                 FULL width, so four pixels of horizontal padding would make
+                 the picture four pixels narrower than the height was computed
+                 for, and leave a couple of pixels of paper under it. There is
+                 nothing for the padding to protect against either: with no bed
+                 behind the picture, the stage is now exactly its size. */
+              className="absolute inset-0 flex items-center justify-center"
             >
               {/* Shrink-wrapped to the picture, which is the whole reason it
                   exists: `object-contain` centres a portrait in a stage twice
