@@ -562,11 +562,35 @@
     overflow: hidden;
     width: 0.23em;
     height: 0.23em;
-    vertical-align: 0.215em;
     border-radius: 9999px;
     background-color: var(--muted-foreground);
     color: transparent;
     opacity: 0.7;
+    /* TWO CORRECTIONS, because this dot lives in two kinds of box and CSS
+       centres them by different rules. Both are in `em`, so they hold at every
+       size; both are measured off Source Sans 3, which is the body font
+       everywhere this appears.
+
+       `top` is for the FLEX rows, which is most of the eighteen sites. A flex
+       item is blockified, so `vertical-align` is ignored outright and
+       `align-items: center` governs -- and it centres the LINE BOX, not the
+       text. A line box carries descender space under the baseline that no
+       capital or digit reaches, so its middle sits below the middle of the
+       ink beside it. Measured against the cap band of "1,240 photographs ·
+       Newest": 1.02px low at 13px, which is 0.078em.
+
+       `vertical-align` is for the four INLINE sites (house-picker,
+       alumni-map), where flex alignment does not apply and this does. It is
+       0.135em rather than the 0.215em that would centre the dot on the caps
+       on its own, because `top` above has already lifted it 0.078em and
+       applies in both contexts: 0.328 (half the cap height) - 0.115 (half the
+       dot) - 0.078 = 0.135.
+
+       Verified by injection against the live row and a reproduction of the
+       inline usage: 0.008px and 0.024px off centre respectively. */
+    position: relative;
+    top: -0.078em;
+    vertical-align: 0.135em;
   }
   /* Frosted glass: a translucent --card with a backdrop blur, for sticky bars
      and overlays (e.g. the sticky nav). */
