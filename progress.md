@@ -5958,3 +5958,31 @@ One thing the move exposed: with a search live and no facet set, there were no t
 "Clear all" -- and with the back arrow gone, a phone had no way at all to end a search but to
 select the text and delete it. SearchPill now carries a clear button inside the open pill, which
 Escape has always done on a keyboard.
+
+## 2026-08-28 — the world map fills its card
+
+Owner: "the map window now doesn't fill the screen there's a gap at the bottom can you make it
+extend. there's still empty parts of the map on the left and right so that should be possible."
+
+The card was `min(72vh, 640px)`, which left a dead band under it on every desktop window, and
+inside it the whole sphere -- both ice caps, the empty Pacific margins -- was fitted into a box
+of a different shape, so the world sat small in the middle of its own frame. The height is now
+measured from the card's own top to the bottom of the window (the chrome above it is not a
+constant: a wrapped filter token moves it by 30px), and the viewBox is computed from the box the
+map is actually in.
+
+The framing rule took three tries and the first two were wrong in instructive ways. Fitting the
+pins alone punched a hole through the Pacific and read as a zoomed-in map rather than a world.
+Taking the aspect straight from the card cropped a pole off on a short window, which is the one
+thing a world map must not do -- and the owner's word for it was "way too punched in ... it's
+nice to have some borders and really look at it and feel dang that's the whole world". The rule
+that survives is about SCALE, not cropping: the whole sphere plus a border must fit the card's
+height, and whatever zoom is left over after that is spent trimming the emptiest ocean at the
+two edges. On a short window there is nothing left over and the map draws exactly the world it
+always did.
+
+Pins widen the frame so it can never crop one off -- except an isolated one. A single member in
+Nuku'alofa was pulling the west edge out to the antimeridian and charging everybody a band of
+empty Pacific for it; a pin further than ~50 degrees of longitude from its nearest neighbour no
+longer re-frames the map, and is still one drag away. The rule dissolves itself: the day a second
+pin appears near them, the pair stops being isolated and the frame goes and gets them.
