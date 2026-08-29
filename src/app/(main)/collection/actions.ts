@@ -41,6 +41,12 @@ import {
   gridThumb,
   photoRowData,
 } from "@/lib/collection-photo";
+import {
+  classKey,
+  decidePhotoVisibility,
+  photoScopeWhere,
+  type PhotoScope,
+} from "@/lib/photo-visibility-rule";
 import { notifyAdminNote } from "@/lib/admin-note";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
@@ -91,6 +97,10 @@ export type PhotoData = {
    *  maybe, that would be good." */
   takenShort: string | null;
   approved: boolean;
+  /** Which half of the Collection this belongs to. Carried on the shape so a
+   *  permalink can put the RIGHT river behind the viewer, rather than opening
+   *  a class photograph over the valley's. */
+  scope: PhotoScope;
   loveCount: number;
   loved: boolean;
   isOwn: boolean;
@@ -102,7 +112,7 @@ function shape(
   p: {
     id: string; thumbUrl: string; url: string; width: number; height: number;
     caption: string | null; subject: string; area: string | null; era: string;
-    freeTags: string | null; approved: boolean; uploaderId: string; createdAt: Date;
+    freeTags: string | null; approved: boolean; scope: string; uploaderId: string; createdAt: Date;
     photoYear: number | null; photoMonth: number | null; datePrecision: string | null;
     uploader: { id: string; name: string };
     _count: { loves: number }; loves: { id: string }[];
@@ -127,6 +137,11 @@ function shape(
     takenLabel: takenLabel(p),
     takenShort: takenShort(p),
     approved: p.approved,
+    /* Read strictly, the same way `isValley` reads it: anything that is not
+       the literal "valley" is treated as class-scoped. A shape that guessed
+       "valley" for an unrecognised value would put a private photograph over
+       the public river. */
+    scope: p.scope === "valley" ? "valley" : "class",
     loveCount: p._count.loves,
     loved: p.loves.length > 0,
     isOwn: p.uploaderId === userId,
@@ -155,6 +170,48 @@ async function photoQuotaError(userId: string): Promise<string | null> {
   return null;
 }
 
+/* ------------------------------------------------------------------ *
+ *  Where a contribution is going, resolved server-side.
+ *
+ *  The client says WHICH HALF ("valley" or "class"); the server says WHOSE
+ *  CLASS. A server action is a public HTTP endpoint, so a member scripting one
+ *  could otherwise post into any class's private archive by naming a year --
+ *  which is why `classYears` is derived from the row here and never read off
+ *  the form (spec sec. 4.3).
+ *
+ *  Anything that is not the literal string "class" resolves to the valley. A
+ *  contribution whose destination could not be understood must publish
+ *  PUBLICLY and visibly, never land under-scoped in a private archive where
+ *  nobody would notice it was misfiled.
+ *
+ *  Returns an error string when the member asked for a class they have no
+ *  claim on: not verified (spec sec. 2.4), or no batch year on their profile.
+ * ------------------------------------------------------------------ */
+async function contributionScope(
+  userId: string,
+  asked: unknown
+): Promise<
+  | { ok: true; scope: "valley" | "class"; classYears: string | null }
+  | { ok: false; error: string }
+> {
+  if (asked !== "class") return { ok: true, scope: "valley", classYears: null };
+
+  const me = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { verifyState: true, batchYear: true },
+  });
+  const key = classKey(me?.batchYear);
+  if (me?.verifyState !== "verified" || !key) {
+    /* One message for both refusals. Splitting them would tell a caller which
+       of the two facts about somebody else's account it had guessed right. */
+    return {
+      ok: false,
+      error: "Only verified members with a batch year on their profile can add to the Class Collection.",
+    };
+  }
+  return { ok: true, scope: "class", classYears: key };
+}
+
 export async function contributePhoto(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
@@ -175,6 +232,12 @@ export async function contributePhoto(formData: FormData) {
 
   const quota = await photoQuotaError(session.user.id);
   if (quota) return { error: quota };
+
+  /* Resolved BEFORE a byte is read. A refusal here costs nothing; the same
+     refusal after the re-encode would have spent the CPU, the R2 PUT and the
+     member's upload for an answer that was knowable up front. */
+  const destination = await contributionScope(session.user.id, formData.get("scope"));
+  if (!destination.ok) return { error: destination.error };
 
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No photo provided" };
@@ -250,7 +313,13 @@ export async function contributePhoto(formData: FormData) {
     where: { id: session.user.id },
     select: { photoTrusted: true },
   });
-  const autoApprove = isPhotoAutoApproved({ role: session.user.role, ...me });
+  /* A class contribution auto-approves whoever makes it (spec sec. 7.3): a
+     private archive among people who know each other does not queue for the
+     owner to read first, and a hundred classes' queues would never be read at
+     all. The valley's queue is untouched. */
+  const autoApprove =
+    destination.scope === "class" ||
+    isPhotoAutoApproved({ role: session.user.role, ...me });
 
   await createPhotoRow({
     data: photoRowData({
@@ -261,6 +330,8 @@ export async function contributePhoto(formData: FormData) {
       height,
       meta,
       autoApprove,
+      scope: destination.scope,
+      classYears: destination.classYears,
     }),
   }, [url, thumbUrl]);
 
@@ -332,6 +403,10 @@ const COLLECTION_ORIGINAL_KEY =
  */
 export async function contributePhotoDirect(input: {
   key: string;
+  /** Which half of the Collection this is going into. The AUDIENCE is not
+   *  here and never will be: `contributionScope` derives it from the caller's
+   *  own row, so naming a class is not a way into it. */
+  scope?: string;
   caption?: string;
   area?: string;
   buckets?: string[];
@@ -366,7 +441,7 @@ export async function contributePhotoDirect(input: {
      (audit C-063). So every way out of this function that is not a created row
      goes through `refuse`, and adding a new refusal cannot forget the cleanup
      -- it would have to write a bare `return { error }` that the shape test in
-     collection-rule.test.mjs refuses to let past. */
+     image-purge-rule.test.mjs refuses to let past. */
   const refuse = async (error: string) => {
     await purgeImageKey(input.key, "staged");
     return { error };
@@ -385,6 +460,14 @@ export async function contributePhotoDirect(input: {
 
   const quota = await photoQuotaError(session.user.id);
   if (quota) return refuse(quota);
+
+  /* Through `refuse`, not a bare return. The browser has ALREADY PUT the
+     full-resolution original to R2 by the time this action is called, so every
+     refusal on this path owes that staged object a purge -- the invariant
+     image-purge-rule.test.mjs enforces by asserting no error leaves this
+     function by any door but `refuse` (audit C-063). */
+  const destination = await contributionScope(session.user.id, input.scope);
+  if (!destination.ok) return refuse(destination.error);
 
   const parsed = parsePhotoMeta({
     caption: input.caption,
@@ -482,7 +565,10 @@ export async function contributePhotoDirect(input: {
   }
 
   const me = await mePromise;
-  const autoApprove = isPhotoAutoApproved({ role: session.user.role, ...me });
+  // Same rule as the form path above: a class contribution skips the queue.
+  const autoApprove =
+    destination.scope === "class" ||
+    isPhotoAutoApproved({ role: session.user.role, ...me });
 
   try {
     await createPhotoRow({
@@ -500,6 +586,8 @@ export async function contributePhotoDirect(input: {
         height,
         meta,
         autoApprove,
+        scope: destination.scope,
+        classYears: destination.classYears,
       }),
     }, [url, thumbUrl]);
   } catch (err) {
@@ -542,6 +630,10 @@ export async function contributePhotoDirect(input: {
 export type { RiverOrder };
 
 export type RiverFilters = {
+  /** Which half of the Collection is being read. Defaults to "valley"
+   *  everywhere, so a caller that has not thought about scope gets the public
+   *  archive rather than a query spanning both (spec sec. 4). */
+  scope?: PhotoScope;
   bucket?: string;
   /** Not a filter -- a decade to SEEK to. `loadPhotos` reads this only when
    *  there is no cursor yet, jumps the first page to that decade's newest
@@ -557,9 +649,19 @@ export type RiverFilters = {
  *  hundred-kilobyte `contains` is a slow query for nothing. */
 const MAX_SEARCH = 100;
 
-function buildCollectionWhere(opts?: RiverFilters) {
+/* The scope fragment is a REQUIRED argument, not something read off `opts`
+   here, and that is the whole design: a caller cannot build a Collection
+   `where` without having first resolved which half of it the viewer is
+   entitled to. `photoScopeWhere` returns null for a viewer who is entitled to
+   neither, and a null can never reach this function -- the caller answers an
+   empty page instead. See src/lib/security-regressions.test.mjs. */
+function buildCollectionWhere(
+  scopeWhere: { scope: string; classYears?: string },
+  opts?: RiverFilters
+) {
   const search = opts?.search?.slice(0, MAX_SEARCH).trim();
   return {
+    ...scopeWhere,
     approved: true,
     isHidden: false,
     ...(opts?.bucket ? { subject: { contains: escapeLike(opts.bucket), ...insensitive } } : {}),
@@ -607,7 +709,31 @@ export async function loadPhotos(
   const session = await auth();
   if (!session?.user?.id) return { photos: [], nextCursor: null, decades: [] };
 
-  const filters = buildCollectionWhere(opts);
+  /* WHICH HALF OF THE COLLECTION, resolved before a single row is asked for.
+     The two facts it turns on -- verification and batch year -- are read off
+     the row rather than the JWT, because a session token is minted at sign-in
+     and a member who verified or corrected their year an hour ago must not be
+     answered from a stale claim. One extra lookup per fresh river query, on
+     the primary key. */
+  const viewer =
+    opts?.scope === "class"
+      ? await prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: { verifyState: true, batchYear: true },
+        })
+      : null;
+
+  const scopeWhere = photoScopeWhere(opts?.scope ?? "valley", {
+    id: session.user.id,
+    role: session.user.role,
+    verifyState: viewer?.verifyState,
+    batchYear: viewer?.batchYear,
+  });
+  /* Entitled to neither: an empty page, never an unscoped query. A member with
+     no class year yet reaches this, and so does one who is not verified. */
+  if (!scopeWhere) return { photos: [], nextCursor: null, decades: [] };
+
+  const filters = buildCollectionWhere(scopeWhere, opts);
 
   /* ---------------------------------------------------------------- *
    *  Climbing back up out of a seek.
@@ -719,17 +845,45 @@ export async function loadPhoto(id: string): Promise<PhotoData | null> {
     where: { id },
     include: includeFor(session.user.id),
   });
-  if (!row || row.isHidden) return null;
-  const isOwn = row.uploaderId === session.user.id;
-  if (!row.approved && !isOwn && session.user.role !== "admin") return null;
+  if (!row) return null;
+
+  /* THE RULE ITSELF here, not a hand-written repeat of it. This is the path a
+     shared link takes, and audits M30/M31 are both the same story: a list and
+     a permalink disagreeing about who may see something, so a row absent from
+     every river stayed reachable at its own URL. One function decides both.
+
+     The viewer's verification and class are read off the row for the reason
+     given in loadPhotos: a JWT claim can be an hour stale. */
+  const me = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { verifyState: true, batchYear: true },
+  });
+  const seen = decidePhotoVisibility(row, {
+    id: session.user.id,
+    role: session.user.role,
+    verifyState: me?.verifyState,
+    batchYear: me?.batchYear,
+  });
+  if (!seen.ok) return null;
+
   return shape(row, session.user.id);
 }
 
-export async function myPendingPhotos(): Promise<PhotoData[]> {
+/** The member's own queue, for the half of the Collection they are looking at.
+ *
+ *  SCOPED, though every row is the caller's own and none of it is a leak: a
+ *  photograph awaiting review sits above the river it belongs to, and showing
+ *  a pending valley contribution over the Class Collection would say it is
+ *  going somewhere it is not. Class contributions auto-approve (spec sec.
+ *  7.3), so in practice this is empty there -- but it must be empty because
+ *  the query said so, not by luck. */
+export async function myPendingPhotos(
+  scope: PhotoScope = "valley"
+): Promise<PhotoData[]> {
   const session = await auth();
   if (!session?.user?.id) return [];
   const rows = await prisma.photo.findMany({
-    where: { uploaderId: session.user.id, approved: false, isHidden: false },
+    where: { scope, uploaderId: session.user.id, approved: false, isHidden: false },
     include: includeFor(session.user.id),
     orderBy: { createdAt: "desc" },
   });

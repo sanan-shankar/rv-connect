@@ -321,6 +321,31 @@ model Photo {
   /// how Prisma is told the database owns it: it is read and never written.
   takenKey      Int       @default(dbgenerated())
 
+  /// Which half of the Collection this photograph belongs to: "valley" (the
+  /// school's shared visual memory, which every member sees) or "class" (a
+  /// member's own class, which only that class sees).
+  ///
+  /// An EXPLICIT discriminator, and never a nullable audience column meaning
+  /// "everyone" -- a null that reads as public is how a default-open leak
+  /// gets written. Every read path names a scope positively; the rule is
+  /// src/lib/photo-visibility-rule.ts and the sweep is pinned by
+  /// src/lib/security-regressions.test.mjs.
+  scope        String    @default("valley")
+
+  /// The classes that may see a class-scoped photograph, as a comma list of
+  /// batch years ("2004"). Null for every valley-scoped row.
+  ///
+  /// A LIST though exactly one is ever written today. The audience is exact
+  /// batch-year equality (docs/planning/class-collection/spec.md sec. 2), and
+  /// the one thing that might widen it later is letting an uploader name the
+  /// class above as well. A list costs nothing now and saves a migration on a
+  /// table that will by then hold tens of thousands of rows.
+  ///
+  /// Read with classYearsOf()/classYearsInclude() in photo-visibility-rule.ts,
+  /// which match TOKEN-EXACTLY: a plain `contains` matches a stored "20111"
+  /// against a viewer keyed "2011" and shows a photograph to the wrong class.
+  classYears   String?
+
   approved     Boolean   @default(false)
   isHidden     Boolean   @default(false)
   approvedAt   DateTime?
@@ -344,6 +369,12 @@ model Photo {
   @@index([approved, isHidden, takenKey(sort: Desc), id(sort: Desc)], name: "Photo_river_taken_idx")
   @@index([approved, isHidden, createdAt(sort: Desc), id(sort: Desc)], name: "Photo_river_added_idx")
   @@index([approved, isHidden, era], name: "Photo_river_era_idx")
+  // The Class Collection's river. Mirrors Photo_river_taken_idx and keeps the
+  // property that one depends on: it ends in the tiebreak that makes the
+  // ordering total, which is what lets the page be cursored instead of
+  // offset. A keyset page over a partial ordering can repeat a row and skip
+  // another (audit B-122) -- do not drop the trailing id from this one either.
+  @@index([scope, classYears, approved, isHidden, takenKey(sort: Desc), id(sort: Desc)], name: "Photo_class_river_idx")
 }
 
 model PhotoLove {
