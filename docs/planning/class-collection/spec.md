@@ -407,14 +407,27 @@ This is the whole of the safeguard, and it is enough because it is the first thi
 it is read before a file is chosen. §7.3 explains why it carries more weight than it looks
 like it does.
 
-### 7.2 Ask for almost nothing, and take fifty at once
+### 7.2 Ask for almost nothing — and the bulk path already existed
 
 Caption, and optionally when. No bucket, no "Part of school".
 
-A reunion is two hundred photographs. The Valley contribute room is built for the careful
-filing of one scanned print and it is the wrong instrument here. **The bulk path is its own
-phase** (§13, phase 4) and most of the build effort: drop fifty, they go in, captions
-optional, done.
+**This section was wrong when it was written, and building it proved so.** It said the bulk
+path was its own phase and most of the effort, on the assumption that the contribute room
+filed one scanned print at a time. It does not: `ContributeRoom` already takes a whole drop,
+holds them on a wall, caps the batch against the account quota and files them one by one.
+A reunion's two hundred photographs were always going to work.
+
+So phase 4 shrank to two real numbers:
+
+- **`MAX_PHOTOS_PER_DROP = 200`** (owner's call). A whole camera card.
+- **The hourly meter had to move with it**, and this is the part that would have bitten.
+  A direct-path contribution spends TWO tokens of `collectionUploads` — one at
+  `/api/upload/presign`, one at `contributePhotoDirect` — so a 200-photograph drop costs
+  400, and the meter stood at exactly 400. A full drop would have spent its entire hour, and
+  the last photograph could be refused by anything racing it: a refusal arriving *after* the
+  member has waited for the upload, which is the worst moment to refuse anybody. Raised to
+  1000, with the arithmetic written into the limit's own comment and pinned by
+  `upload-shared.test.mjs` so changing one number without the other fails the gate.
 
 ### 7.3 No approval queue, and no way back out
 
@@ -429,14 +442,21 @@ their own photographs, so this costs a re-upload and nothing else — but it put
 weight of preventing the mistake on the contribute dialog's title (§7.1). Write that title
 accordingly, and check it on both viewports.
 
-### 7.4 The quota
+### 7.4 The quota — two pools, not one
 
-`MAX_PHOTOS_PER_ACCOUNT` is 1000 and today it is one pool. A hundred classes at five
-hundred photographs each dwarfs the Valley Collection. The bytes are not the problem — R2
-at roughly 250KB a photograph puts fifty thousand of them near 12GB, which is pennies a
-month. The pressure is on the quota, the purge queue and the nightly backup. **Decide
-before phase 4** whether class uploads share the account pool or get their own; the pop-up
-already promises `roomLeft` honestly before a file is chosen and must keep doing so.
+**Decided: a separate pool per half** (owner, 2026-08-29). `MAX_PHOTOS_PER_ACCOUNT` stays
+at 1000 and is now counted per `scope`, so emptying a reunion into your Class Collection
+never spends the room you had for the school's own archive. They are different acts.
+
+The cost ceiling this defends therefore doubles, which is accepted rather than overlooked:
+at roughly 250KB a photograph, a member who genuinely filled both pools costs about half a
+gigabyte on R2 — pennies a month. The pressure here was never the bytes.
+
+`photoQuotaError` takes the scope, and both contribute paths now resolve their destination
+**before** checking the quota, because there is no number to check against until you know
+which half. `collectionPageData` counts per scope too, so the pop-up's promise of remaining
+room is true of the half it is about — promising the valley's number over the Class
+Collection is a lie the member would only discover two hundred photographs in.
 
 ---
 
@@ -510,10 +530,18 @@ edit and any moved visual baseline together.
 
 ---
 
-## 13. Open, and owed by the owner
+## 13. Open
 
-Nothing blocks phase 1. Two answers are wanted before phase 4:
+Both questions this section held are answered and built (§7.2, §7.4): separate quota pools,
+and a 200-photograph drop ceiling with the hourly meter raised to carry it.
 
-- **Does the class side share the account photo quota, or get its own?** (§7.4)
-- **The bulk path's ceiling**: how many photographs may one drop hold? A number is needed
-  for the copy, the client-side batching and the purge booking.
+What is left is phase 5, and none of it blocks anything:
+
+- **The year rail and EXIF dates.** Note for whoever takes it: the bulk path did NOT move
+  where the bytes are read. A drop still goes direct-to-R2 via `/api/upload/presign` and is
+  re-encoded server-side in `contributePhotoDirect`, with the proxied `contributePhoto` as
+  the fallback for anything over Vercel's body cap. EXIF date pre-fill in the dialog is
+  therefore unaffected by anything phase 4 changed.
+- **Notifications**, coalesced per uploader per day (§8).
+- **The profile-side nudge** for a member whose missing batch year is all that stands
+  between them and a class archive (§2.5).

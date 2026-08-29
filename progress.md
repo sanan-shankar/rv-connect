@@ -1,5 +1,42 @@
 # Progress Log
 
+## 2026-08-29 — phase 4 was mostly already built, and the number that would have bitten
+
+The Class Collection's bulk path (`docs/planning/class-collection/spec.md` §7.2, §7.4).
+
+**The spec was wrong and building it proved so.** §7.2 called the bulk path "its own phase and
+most of the build effort", on the assumption that the contribute room filed one scanned print
+at a time. It does not: `ContributeRoom` already takes a whole drop, holds it on a wall, caps
+it against the quota and files them one by one. A reunion's two hundred photographs were
+always going to work. The section is rewritten to say so rather than quietly reframed.
+
+So phase 4 came down to two numbers, and **the second is the one that would have bitten**:
+
+- **`MAX_PHOTOS_PER_DROP = 200`**, the owner's call. A whole camera card.
+- **The hourly meter had to move with it.** A direct-path contribution spends TWO tokens of
+  `collectionUploads` -- one at `/api/upload/presign`, one at `contributePhotoDirect` -- so a
+  200-photograph drop costs 400, and the meter stood at exactly 400. The first real reunion
+  upload would have spent its whole hour, and the last photograph could be refused by anything
+  racing it: a refusal arriving AFTER the member has waited for the upload, which is the worst
+  possible moment to refuse anybody. Raised to 1000. The arithmetic is in the limit's own
+  comment and pinned by `upload-shared.test.mjs`, so changing one of the two numbers without
+  the other fails the gate rather than shipping.
+
+**Two quota pools, not one** (owner's call): `MAX_PHOTOS_PER_ACCOUNT` is now counted per
+`scope`, so emptying a reunion into your Class Collection never spends the room you had for
+the school's own archive. Both contribute paths resolve their destination BEFORE checking the
+quota now -- there is no number to check against until you know which half. The pop-up's
+promise of remaining room is per half too; the valley's number shown over the Class Collection
+is a lie a member discovers two hundred photographs in.
+
+**For the scrubber session's EXIF work:** phase 4 did NOT move where the bytes are read. A drop
+still goes direct-to-R2 through `/api/upload/presign` and is re-encoded in
+`contributePhotoDirect`, with the proxied `contributePhoto` as the over-the-body-cap fallback.
+
+One process note worth keeping: `npm run check` and `npm run visual` run against the same dev
+server, and running them concurrently made `collection mobile` and `support mobile` fail with a
+whole-page pixel shift. Both passed alone. Do not interleave them.
+
 ## 2026-08-29 — the Class Collection becomes visible, and it is one control
 
 Phase 3 of `docs/planning/class-collection/spec.md`: the switch. The `<h1>` becomes "The

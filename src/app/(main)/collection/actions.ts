@@ -162,10 +162,19 @@ const includeFor = (userId: string) => ({
  * object costing money — and refuses a new contribution once the ceiling is
  * reached. Returns an error string, or null when there is room.
  */
-async function photoQuotaError(userId: string): Promise<string | null> {
-  const count = await prisma.photo.count({ where: { uploaderId: userId } });
+async function photoQuotaError(
+  userId: string,
+  scope: PhotoScope
+): Promise<string | null> {
+  /* SCOPED, so the two halves have a thousand each. Emptying a reunion into
+     your Class Collection must not spend the room you had for the school's own
+     archive -- they are different acts and the owner made them different
+     pools. */
+  const count = await prisma.photo.count({ where: { uploaderId: userId, scope } });
   if (count >= MAX_PHOTOS_PER_ACCOUNT) {
-    return "You've reached the limit of photos one account can add to the Collection. Message the admin if you have more to share.";
+    return scope === "class"
+      ? "You've reached the number of photographs one account can add to the Class Collection. Message the admin if you have more to share."
+      : "You've reached the limit of photos one account can add to the Collection. Message the admin if you have more to share.";
   }
   return null;
 }
@@ -230,14 +239,16 @@ export async function contributePhoto(formData: FormData) {
   const limited = await rateLimit("collectionUploads", session.user.id);
   if (!limited.ok) return { error: limited.error };
 
-  const quota = await photoQuotaError(session.user.id);
-  if (quota) return { error: quota };
-
-  /* Resolved BEFORE a byte is read. A refusal here costs nothing; the same
+  /* Resolved BEFORE a byte is read, and before the quota -- the quota is now
+     PER HALF, so which half this is going to has to be known before there is
+     a number to check it against. A refusal here costs nothing; the same
      refusal after the re-encode would have spent the CPU, the R2 PUT and the
      member's upload for an answer that was knowable up front. */
   const destination = await contributionScope(session.user.id, formData.get("scope"));
   if (!destination.ok) return { error: destination.error };
+
+  const quota = await photoQuotaError(session.user.id, destination.scope);
+  if (quota) return { error: quota };
 
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No photo provided" };
@@ -458,16 +469,18 @@ export async function contributePhotoDirect(input: {
   const limited = await rateLimit("collectionUploads", session.user.id);
   if (!limited.ok) return refuse(limited.error);
 
-  const quota = await photoQuotaError(session.user.id);
-  if (quota) return refuse(quota);
-
   /* Through `refuse`, not a bare return. The browser has ALREADY PUT the
      full-resolution original to R2 by the time this action is called, so every
      refusal on this path owes that staged object a purge -- the invariant
      image-purge-rule.test.mjs enforces by asserting no error leaves this
-     function by any door but `refuse` (audit C-063). */
+     function by any door but `refuse` (audit C-063).
+
+     Before the quota, because the quota is per half and needs to know which. */
   const destination = await contributionScope(session.user.id, input.scope);
   if (!destination.ok) return refuse(destination.error);
+
+  const quota = await photoQuotaError(session.user.id, destination.scope);
+  if (quota) return refuse(quota);
 
   const parsed = parsePhotoMeta({
     caption: input.caption,
