@@ -386,6 +386,38 @@ register IS the template, and it lives in exactly one file - `src/components/ui/
 
 ---
 
+## 10. Mobile-first (2026-08-29)
+
+Most sessions design against a 1440px screenshot first and check mobile after, because that's the
+screenshot already open. The owner's estimate is 60% of members are on a phone. Design and build for
+the phone first; confirm the desktop version reads just as well, not the other way round. A pattern
+that would be caught here was found live in the app on 2026-08-29: a form field that stole focus on
+open, a touch tap that fired three state changes instead of one, a fixed footer padded for a screen
+with no home indicator.
+
+- **Never open the keyboard uninvited.** A text field should gain focus only when someone has asked to
+  type, never just because a panel opened. This is a solved problem, not a per-component judgment
+  call: `useDeferredAutofocus` (`src/components/common/use-deferred-autofocus.ts`) gates any
+  `autoFocus`-shaped need behind `(hover: hover) and (pointer: fine)`, and Base UI's own Popover/Dialog
+  primitives already refuse to focus a field on a touch open by default — so the actual bug is usually
+  a raw `autoFocus` prop *fighting* that default, not a missing feature. Never add `autoFocus` to a
+  field inside a popover, sheet, or dialog without checking one of these two mechanisms first.
+- **A tap is one state change, not a sequence.** `pointerenter`/`pointerleave` are a mouse's hover
+  vocabulary; routing touch through them produces exactly the enter → leave → click flicker a real
+  tap fires in that order. Gate hover handlers to non-touch pointers (`e.pointerType !== "touch"`) and
+  let touch answer to `click` alone.
+- **Fixed bottom bars pad for `env(safe-area-inset-bottom)`**, not a guessed flat value — the root
+  layout already opts into `viewport-fit=cover`, so that inset is real screen the home indicator sits
+  over. Pattern: `style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}`.
+- **44px is the finger, not the eye.** A control's visible size can stay small; its hit area (padding,
+  not a bigger icon) must reach 44px, the same way `<GuideDoor>` grows its tap target with `py-[7px]
+  -my-[7px]` rather than a bigger glyph.
+- **Screenshot mobile first**, not last. The Hard Rules already require both viewports for every
+  desktop UI change; treat the 390×844 shot as the one that decides whether the work is done, and the
+  1440 shot as the confirmation.
+
+---
+
 ## How to use this doc
 
 Before building any UI, read this file plus the relevant `docs/spec/*` for the feature. After building,
