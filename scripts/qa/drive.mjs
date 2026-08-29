@@ -204,6 +204,44 @@ const SCENARIOS = {
   },
 
   /**
+   * The field focus recipe (2026-08-29): focus the composer's textarea and
+   * read the computed border/ring, then keyboard-focus a button and read its
+   * outline. Numbers, not squinting.
+   */
+  async focusStates({ page, shot }) {
+    // /messages has a ui/Textarea sitting directly on the page.
+    await page.goto(`${BASE}/messages`, { waitUntil: "networkidle2" });
+    // Click INTO the field like a person, then read. (Programmatic .focus()
+    // left :focus-visible unmatched in headless, which measured the resting
+    // state and looked like a regression.)
+    await page.waitForSelector("textarea", { timeout: 15000 });
+    const box = await (await page.$("textarea")).boundingBox();
+    await page.mouse.click(box.x + box.width / 2, box.y + 20);
+    await sleep(150);
+    const field = await page.evaluate(() => {
+      const ta = document.querySelector("textarea");
+      const cs = getComputedStyle(ta);
+      return {
+        matchesFV: ta.matches(":focus-visible"),
+        borderColor: cs.borderColor,
+        ring: cs.boxShadow.split("),").pop().trim().slice(0, 70),
+        outline: cs.outline,
+      };
+    });
+    console.log("textarea focused:", JSON.stringify(field));
+    await shot("textarea-focus");
+    // Real keyboard travel, so :focus-visible actually matches.
+    await page.keyboard.press("Tab");
+    const btn = await page.evaluate(() => {
+      const b = document.activeElement;
+      if (!b || b.tagName !== "BUTTON") return { error: `active is ${b?.tagName}` };
+      const cs = getComputedStyle(b);
+      return { outline: cs.outline, offset: cs.outlineOffset, matchesFV: b.matches(":focus-visible") };
+    });
+    console.log("button focused:", JSON.stringify(btn));
+  },
+
+  /**
    * Measure the landing -> /login photo slide. Prints displacement over time so
    * the CURVE is visible, not just the duration: an ease-in-out should crawl
    * out of 0%, cover most of the distance in the middle third, and settle

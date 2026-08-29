@@ -6858,3 +6858,23 @@ to 44px on coarse pointers only (the comments trigger measured 22px, under even 
 only admins see the item and the shield glyph already carries the rest. The item rules are
 written into DESIGN-SYSTEM.md's menu section. Verified live: own-post menu shows Edit,
 hairline, Delete in red, and Delete opens the app's ConfirmDialog.
+
+## 2026-08-29 — one focus ring, three treatments, zero improvisation
+
+Spec #4, closing the pass. The design system's focus section was a two-line stub executed
+on Input alone; it is now a real spec with three treatments chosen by what the element is:
+boxed fields glow snug (border-ring + 3px ring/50, Input's recipe, now worn verbatim by
+Textarea and the Select trigger), floating-label fields keep their deliberate ringless
+answer (caret + rising label, the 2026-08-14 ruling), and controls keep the offset outline
+— all Leaf, all on focus-visible (browsers treat text fields as always focus-visible, so
+the old focus:/focus-visible: split was solving a problem that does not exist). Fields
+gained the transparent-outline fallback without which Windows High Contrast has no focus
+state at all (box-shadow is dropped there). Button's per-variant ring zoo went — Apple
+draws the system ring on every button whatever its fill — and its destructive variant's
+focus classes turned out to be rotted duplicates with a stray bare `dark:`. The deepest
+find: the shadcn scaffold's base layer painted every element's outline colour at leaf/50,
+which is 1.78:1 against the page — the owner's "thicker lighter one" was any control
+inheriting that under-specified wash. Now full alpha. focus-recipe.test.mjs pins all of
+it; verified live by real click and real Tab (programmatic .focus() doesn't match
+:focus-visible in headless and measures the resting state — the drive scenario learned
+that the hard way).

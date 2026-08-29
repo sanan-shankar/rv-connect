@@ -366,8 +366,15 @@
  */
 
 @layer base {
+  /* outline-ring at FULL alpha, not the shadcn scaffold's /50: this base rule
+     is the outline colour every control inherits when it declares a focus
+     width without a colour, and leaf at half alpha measures 1.78:1 against
+     the page (button.tsx's own arithmetic) -- under the 3:1 a focus
+     indicator needs. It was also the owner's "thicker lighter one": the same
+     ring, washed out, wherever a component under-specified. One ring, one
+     colour, solid (DESIGN-SYSTEM "Focus states", 2026-08-29). */
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   /* Only background and border animate, and quickly. Colour is NEVER transitioned, so the
      like heart can switch to red on the first frame (no fade through a dark value). */

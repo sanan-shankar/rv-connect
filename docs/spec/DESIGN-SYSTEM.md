@@ -144,10 +144,31 @@ Shift off).
 - **Cinnamon `#C2622F` is the second accent** — expand its use (Events, saved, the hoopoe). (The Directory
   map's single-city pin stays leaf green per owner, 2026-07-02; do not cinnamon-ify it.)
 
-### Focus states
+### Focus states (rewritten 2026-08-29; the old two-line stub was executed on one component and ignored by the rest)
 
-- **One focus ring** (Leaf), a single outline. Remove the doubled / thicker outline currently drawn
-  around focused inputs.
+One colour — Leaf, the `--ring` token — and exactly three treatments, chosen by what the
+element is. Never a fourth. All on `focus-visible:` (browsers treat text fields as always
+focus-visible, so fields light on click AND keyboard with the same pseudo-class).
+
+1. **Plain boxed fields** (Input, Textarea, the Select trigger, comboboxes): the BOX lights
+   up — `border-ring` plus a snug `ring-[3px] ring-ring/50` halo hugging the border, no
+   offset. The recipe lives in `ui/input.tsx` and is pinned by `focus-recipe.test.mjs`.
+   The invalid state composes, never replaces: `aria-invalid:` red border + red-tinted
+   ring on the same 3px geometry.
+2. **Floating-label fields** (FloatField, FloatArea): no ring, by the 2026-08-14 ruling
+   ("I don't want the green outline on boxes"). Their focus state is the caret plus the
+   label rising, and the framed FloatArea tints its border canopy. This is a designed
+   answer, not an omission.
+3. **Controls** (buttons, links, menu triggers, anything without a glow-able border):
+   `outline-2 outline-offset-2 outline-ring`, with `outline-solid` (Tailwind v4 zeroes
+   the style under `outline-none`; without solid the ring is invisible). The offset gap
+   is transparent, which is what lets one leaf ring sit on any fill — no per-variant
+   ring colours, ever (the button zoo of canopy/red rings was removed).
+
+Forced-colors survival: box-shadow rings vanish in Windows High Contrast, so treatment 1
+carries `focus-visible:outline-solid outline-2 outline-transparent` — invisible normally,
+recoloured to a visible system colour there. Treatment 3 already uses outline and needs
+nothing.
 
 ### Dark mode
 
