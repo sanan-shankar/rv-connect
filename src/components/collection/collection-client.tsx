@@ -28,7 +28,7 @@
  *  real thing).
  * ------------------------------------------------------------------ */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ import { SearchPill } from "@/components/layout/search-pill";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { useHeartToggle } from "@/components/posts/use-engagement";
-import { appendUnseen } from "@/lib/append-page";
+import { appendUnseen, prependUnseen } from "@/lib/append-page";
 import { PhotoStream } from "@/components/common/photo-rows";
 import type { ViewerImage } from "@/components/common/image-viewer";
 import {
@@ -144,6 +144,10 @@ export function CollectionClient({
   /* ---------------- the river ---------------- */
   const [photos, setPhotos] = useState<PhotoData[]>(firstPage.photos);
   const [cursor, setCursor] = useState<string | null>(firstPage.nextCursor);
+  /* The other edge: a cursor for climbing back UP toward newer photographs,
+     which only exists once the decade rail has seeked mid-river. See
+     `loadNewer` and the note on `RiverPage.topCursor`. */
+  const [topCursor, setTopCursor] = useState<string | null>(firstPage.topCursor ?? null);
   const [total, setTotal] = useState<number | undefined>(firstPage.total);
   const [decades, setDecades] = useState<DecadeCount[]>(firstPage.decades ?? []);
 
@@ -163,6 +167,7 @@ export function CollectionClient({
     setSeed(firstPage);
     setPhotos(firstPage.photos);
     setCursor(firstPage.nextCursor);
+    setTopCursor(firstPage.topCursor ?? null);
     setTotal(firstPage.total);
     setDecades(firstPage.decades ?? []);
   }
@@ -179,26 +184,63 @@ export function CollectionClient({
 
   /* ---------------- what is being asked for ---------------- */
   const [bucket, setBucket] = useState(filters.bucket ?? "");
-  const [era, setEra] = useState(filters.era ?? "");
   const [order, setOrder] = useState<RiverOrder>(filters.order ?? "newest");
   const [searchInput, setSearchInput] = useState(filters.search ?? "");
   const [search, setSearch] = useState(filters.search ?? "");
+  const [loadingNewer, setLoadingNewer] = useState(false);
+
+  /* WHERE THE RIVER STARTS, which is the whole of what the decade rail sets.
+     It is not a filter and it does not narrow anything: the server reads it
+     on the first page only, to pick the row to begin at, and ignores it on
+     every page after (see `RiverFilters.era`). So it rides in the query state
+     beside the bucket and the search rather than being fetched by hand --
+     which is what makes pressing a decade a single state change that the one
+     query effect below already knows how to service, instead of a second
+     copy of that fetch racing it. */
+  const [seekEra, setSeekEra] = useState(filters.era ?? "");
+
+  /* The decade the rail LIGHTS, which is a different fact from the one above:
+     where the reader currently is, read off the page as they scroll
+     (`onActiveEraChange` -> `useActiveBand`). It parts company with `seekEra`
+     the moment they scroll away from where they landed. */
+  const [activeEra, setActiveEra] = useState(filters.era ?? "");
+
+  /** A new bucket or a new search is a NEW RIVER, and a seek left over from
+   *  the old one would start it in the wrong place -- or, if that decade
+   *  holds nothing under the new bucket, at no place at all: an empty grid
+   *  for a bucket that is not empty. Both setters therefore clear it. */
+  const chooseBucket = useCallback((next: string) => {
+    setBucket(next);
+    setSeekEra("");
+  }, []);
 
   const debounce = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
     if (debounce.current) clearTimeout(debounce.current);
-    debounce.current = setTimeout(() => setSearch(searchInput), 300);
+    debounce.current = setTimeout(() => {
+      // Guarded, because this timer also fires once on mount with nothing
+      // changed -- and clearing the seek there would throw away the one a
+      // `?when=` link arrived with before the reader had done anything.
+      if (searchInput === search) return;
+      setSearch(searchInput);
+      setSeekEra("");
+    }, 300);
     return () => {
       if (debounce.current) clearTimeout(debounce.current);
     };
-  }, [searchInput]);
+  }, [searchInput, search]);
 
   /* The view, in the address bar. Filtering does not navigate -- the river
      cross-fades in place -- but the state it lands in is written into the URL
-     as it goes, so a bucket, a decade or a search is something you can send
-     somebody, and the server renders their first page already filtered.
+     as it goes, so a bucket or a search is something you can send somebody,
+     and the server renders their first page already filtered.
      `history.replaceState` rather than the router: this must not refetch the
      route, and Next supports exactly this for search params.
+
+     `when` is the decade the river was STARTED at, not one it is filtered to,
+     so the link it makes opens the archive at that decade with everything
+     above and below it still there. It is cleared whenever the bucket or the
+     search changes, so it can never describe a river it is no longer true of.
 
      NOT UNTIL SOMETHING HAS ACTUALLY MOVED, and that guard is load-bearing
      rather than tidy. On /collection/<id> -- which is this same page with the
@@ -217,31 +259,34 @@ export function CollectionClient({
     if (!moved.current) {
       const still =
         bucket === (asked.current.bucket ?? "") &&
-        era === (asked.current.era ?? "") &&
         search === (asked.current.search ?? "") &&
-        order === (asked.current.order ?? "newest");
+        order === (asked.current.order ?? "newest") &&
+        seekEra === (asked.current.era ?? "");
       if (still) return;
       moved.current = true;
     }
     const q = new URLSearchParams();
     if (bucket) q.set("bucket", bucket);
-    if (era) q.set("when", era);
     if (search) q.set("q", search);
+    if (seekEra) q.set("when", seekEra);
     if (order !== "newest") q.set("order", order);
     const qs = q.toString();
     window.history.replaceState(null, "", `/collection${qs ? `?${qs}` : ""}`);
-  }, [bucket, era, search, order]);
+  }, [bucket, search, order, seekEra]);
 
   const fetchPage = useCallback(
     (c: string | null) =>
       loadPhotos({
         cursor: c,
         bucket: bucket || undefined,
-        era: era || undefined,
         search: search || undefined,
         order,
+        /* Only the first page is ever seeked; the server ignores this the
+           moment a cursor is present, so it can ride along on every page
+           without the decade leaking into what the river holds. */
+        era: seekEra || undefined,
       }),
-    [bucket, era, search, order]
+    [bucket, search, order, seekEra]
   );
 
   /* Bumped whenever the query behind this river changes, so a page already in
@@ -277,17 +322,37 @@ export function CollectionClient({
       }
       setPhotos(data.photos);
       setCursor(data.nextCursor);
+      setTopCursor(data.topCursor ?? null);
       setTotal(data.total);
       setDecades(data.decades ?? []);
+      /* A new river, so the old scroll position is not a fact about it any
+         more: back to the decade asked for, or to nothing -- which the rail
+         reads as "wherever the first photograph is" (see `railActive`). */
+      setActiveEra(seekEra);
       setLoading(false);
+      /* A seek is a journey to somewhere, so it has to ARRIVE -- pressing
+         "1970s" from six screens down and staying six screens down would
+         land the reader in the middle of the decade they asked for. Not
+         smooth: the photographs under them have already been replaced, so
+         there is nothing continuous left to travel over, and a long smooth
+         scroll across a river that is no longer the same one reads as a
+         glitch rather than as movement. */
+      if (jump.current) {
+        jump.current = false;
+        window.scrollTo({ top: 0 });
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [fetchPage]);
+    // `seekEra` cannot change without changing `fetchPage` with it; it is
+    // listed because this body reads it, not because it can move on its own.
+  }, [fetchPage, seekEra]);
 
   const more = useCallback(async () => {
-    if (!cursor || loadingMore) return;
+    // ...and not while one is arriving at the head, for the reason given on
+    // `loadNewer`: the scroll correction cannot tell the two apart.
+    if (!cursor || loadingMore || loadingNewer) return;
     const mine = generation.current;
     setLoadingMore(true);
     try {
@@ -309,7 +374,7 @@ export function CollectionClient({
       // (audit B-042).
       setLoadingMore(false);
     }
-  }, [cursor, loadingMore, fetchPage]);
+  }, [cursor, loadingMore, loadingNewer, fetchPage]);
 
   /* Batches arrive as you reach the bottom, which is what the owner noticed
      on his reference gallery: "it was lazy load... it doesn't load all the
@@ -333,6 +398,115 @@ export function CollectionClient({
     io.observe(el);
     return () => io.disconnect();
   }, [cursor, more]);
+
+  /* ---------------- the decade rail's seek ---------------- */
+
+  /** Set while a press on the rail is waiting for its page, so the query
+   *  effect knows to land the reader at the top when it arrives. A ref
+   *  rather than state: it changes what that one fetch DOES, not what the
+   *  page looks like, and it must not cause a render of its own. */
+  const jump = useRef(false);
+
+  /* Pressing a decade. Two state changes and nothing else -- no fetch here:
+     `seekEra` is part of the query, so the effect above sees a new
+     `fetchPage` and services this exactly the way it services a new bucket,
+     with the same generation guard, the same cross-fade and the same single
+     round trip.
+
+     It also turns the order to Chronological, because that is the only order
+     with a date spine to seek along: "the 1970s" means nothing in a river
+     sorted by upload date or by love. The rail stays visible in every order
+     regardless -- it is a picture of the archive's shape, which is worth
+     having at rest -- and pressing it is what commits to reading in time. */
+  const seekTo = useCallback(
+    (era: string) => {
+      /* Pressing the decade the river already starts at changes no state, so
+         no fetch is coming to do the travelling -- but it is still a request
+         to go back to the top of that decade, and it is answered here. */
+      if (era === seekEra && order === "taken") {
+        window.scrollTo({ top: 0 });
+        return;
+      }
+      jump.current = true;
+      setSeekEra(era);
+      setOrder("taken");
+      setActiveEra(era);
+    },
+    [seekEra, order]
+  );
+
+  /* Climbing back out of a seek: the one place the river is walked UPWARD,
+     toward newer photographs, prepended at the head instead of appended at
+     the foot. `prependUnseen` is `appendUnseen`'s own mirror, same
+     guarantee reversed (see its docblock). */
+  const scrollAnchor = useRef<{ height: number; top: number } | null>(null);
+  const loadNewer = useCallback(async () => {
+    /* Never while a page is arriving at the FOOT, and `more` returns the
+       same courtesy. The correction below reads one number -- how much
+       taller the document got -- and attributes all of it to content that
+       landed above; if an append committed in the same frame, its height
+       would be counted too and the reader would be shoved down by it. The
+       two directions are therefore never in the air at once. Nothing is
+       lost by waiting: both observers re-arm as these flags settle. */
+    if (!topCursor || loadingNewer || loadingMore) return;
+    const mine = generation.current;
+    setLoadingNewer(true);
+    try {
+      const data = await callAction(() =>
+        loadPhotos({
+          cursor: topCursor,
+          direction: "newer",
+          bucket: bucket || undefined,
+          search: search || undefined,
+          order: "taken",
+        })
+      );
+      if (mine !== generation.current) return;
+      if ("error" in data) {
+        toast.error(data.error);
+        return;
+      }
+      /* The whole feel of this: the photograph under the reader's eye must
+         not move when a page arrives ABOVE it. Measured before the DOM
+         changes and corrected in a layout effect below, before the browser
+         paints -- a `requestAnimationFrame` correction runs one frame too
+         late and the jump is visible for it. */
+      const scroller = document.scrollingElement;
+      if (scroller) scrollAnchor.current = { height: scroller.scrollHeight, top: scroller.scrollTop };
+      setPhotos((prev) => prependUnseen(data.photos, prev));
+      setTopCursor(data.topCursor ?? null);
+    } finally {
+      setLoadingNewer(false);
+    }
+  }, [topCursor, loadingNewer, loadingMore, bucket, search]);
+
+  useLayoutEffect(() => {
+    if (!scrollAnchor.current) return;
+    const { height, top } = scrollAnchor.current;
+    scrollAnchor.current = null;
+    const scroller = document.scrollingElement;
+    if (!scroller) return;
+    scroller.scrollTop = top + (scroller.scrollHeight - height);
+  }, [photos]);
+
+  /* The mirror of the foot sentinel: sits above the river, so a page that
+     exists above the fold gets pulled in and scroll-anchored into place
+     before the reader ever scrolls far enough to see the seam. Only ever
+     mounted where `topCursor` can be truthy at all -- a seek short of the
+     newest decade -- so this is a no-op everywhere else. */
+  const head = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = head.current;
+    if (!el || !topCursor) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) void loadNewer();
+      },
+      { rootMargin: "1200px 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [topCursor, loadNewer]);
 
   /* Latched: once opened the pop-up stays mounted, which is what its close
      animation needs, and what lets a half-filled wall survive a stray press
@@ -419,13 +593,28 @@ export function CollectionClient({
   }
 
   /* ---------------- what to draw ---------------- */
-  const hasQuery = !!(bucket || era || search);
+  // A decade is not in this list any more: seeking to one can never return
+  // an empty river (the rail only ever offers a decade that already holds a
+  // photograph), so it is not a "query" that can leave the grid with
+  // nothing to show.
+  const hasQuery = !!(bucket || search);
   // Truly empty: nothing has ever been added, no filter is even active.
   // Distinct from filtered-to-zero. Resolved from the server-computed
   // `hasApprovedPhotos`, not from client fetch state, which only settles after
   // mount and so flashed the controls in on first paint and out again.
   const trulyEmpty = !hasQuery && pendingPhotos.length === 0 && !hasApprovedPhotos;
   const noMatches = !loading && hasQuery && photos.length === 0;
+
+  /* What the rail lights, DERIVED rather than stored: the scrollspy's answer
+     when it has one, else the decade the top photograph belongs to, and
+     nothing at all in the orders where a decade is not a position. Derived
+     because the fallback has to survive every route into a new list of
+     photographs -- including the server re-seeding this component after a
+     contribution, which replaces the river without anybody scrolling. And it
+     earns its place: when one decade fills the whole first page there is no
+     heading for the scrollspy to observe (a single band has nothing to
+     fold), so nothing else would light the rail at all. */
+  const railActive = order === "taken" ? activeEra || photos[0]?.era || "" : "";
 
   return (
     <div>
@@ -501,25 +690,20 @@ export function CollectionClient({
         <>
           <RiverControls
             bucket={bucket}
-            onBucket={setBucket}
+            onBucket={chooseBucket}
             order={order}
             onOrder={setOrder}
             total={loading ? undefined : total}
           />
-          {/* NO DECADE STRIP BELOW 1280px. It was a scrolling line of decade
-              words under the buckets -- the same index as the right-hand rail,
-              in the one shape a narrow screen had room for -- and the owner's
-              read of it on a phone was flat: "remove the decades and undated
-              thing from mobile, it looks really bad." Two words with no marks
-              beside them were carrying none of what makes the rail worth
-              having; they were just a second row of filters competing with the
-              buckets.
-
-              This does mean there is no way to filter by decade under 1280px
-              at all, which is a real gap rather than a tidy-up -- and it is
-              the open question in the rail's redesign, not something to paper
-              over with a smaller version of the thing he just rejected.
-              <DecadeStrip> stays in decade-rail.tsx until that is settled. */}
+          {/* NO WAY TO JUMP BY DECADE BELOW 1280px, still. A scrolling line of
+              decade words under the buckets shipped here once, in the one
+              shape a narrow screen had room for, and the owner's read of it
+              on a phone was flat: "remove the decades and undated thing from
+              mobile, it looks really bad." Two words with no marks beside
+              them carried none of what makes the rail worth having, and it
+              is gone rather than kept unrendered -- a real scrubber down the
+              right edge is a later, separate piece, not a smaller version of
+              the thing he just rejected. */}
 
           {/* The controls sit closer to the river than the title sits to the
               controls (16px against the header's 24px), so the line of buckets
@@ -556,31 +740,52 @@ export function CollectionClient({
                     {search
                       ? `No photograph mentions "${search}".`
                       : "No photograph has been filed under this."}{" "}
-                    Try a wider bucket, or another decade.
+                    Try a wider bucket.
                   </p>
                   <Button
                     variant="outline"
                     className="mt-5 rounded-full"
                     onClick={() => {
                       setBucket("");
-                      setEra("");
                       setSearchInput("");
                       setSearch("");
+                      setSeekEra("");
                     }}
                   >
                     Show everything
                   </Button>
                 </div>
               ) : (
-                <PhotoRiver
-                  photos={photos}
-                  order={order}
-                  dimmed={loading}
-                  onOpen={(index) => {
-                    setViewerMounted(true);
-                    setViewer({ list: "main", index });
-                  }}
-                />
+                <>
+                  {/* The head. The rail's own sentinel, pulling in whatever
+                      sits above a seek before the reader scrolls into the
+                      seam -- see `loadNewer`. A no-op everywhere `topCursor`
+                      is not set, which is everywhere except just after one.
+
+                      `-mb-px` cancels its own `h-px`, so it contributes
+                      NOTHING to the layout. It keeps a real one-pixel box
+                      because that is what an IntersectionObserver needs to
+                      see (a zero-height target has zero area, which the spec
+                      leaves ambiguous) -- but the foot sentinel can afford
+                      that pixel at the end of the river and this one cannot
+                      at the start: unmargined, it pushed the entire grid
+                      down by exactly 1px, which the visual suite caught on
+                      both viewports. */}
+                  <div ref={head} aria-hidden className="h-px -mb-px" />
+                  <PhotoRiver
+                    photos={photos}
+                    order={order}
+                    dimmed={loading}
+                    onActiveEraChange={order === "taken" ? setActiveEra : undefined}
+                    /* Off for a seeked river, where pages arrive above the
+                       reader and a skipped band would resize under them. */
+                    windowed={!seekEra}
+                    onOpen={(index) => {
+                      setViewerMounted(true);
+                      setViewer({ list: "main", index });
+                    }}
+                  />
+                </>
               )}
 
               {/* The foot. A sentinel the observer watches, and a line that
@@ -593,7 +798,13 @@ export function CollectionClient({
               )}
             </div>
 
-            <DecadeRail decades={decades} value={era} onChange={setEra} />
+            {/* In EVERY order, because the marks are a picture of what the
+                archive holds and that is worth having at rest -- but lit
+                only in Chronological, where "which decade am I in" is a
+                question the river has an answer to. Pressing a mark in any
+                other order turns the river to Chronological and travels
+                there (see `seekTo`). */}
+            <DecadeRail decades={decades} active={railActive} onSeek={seekTo} />
           </div>
         </>
       )}

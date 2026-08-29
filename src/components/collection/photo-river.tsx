@@ -15,7 +15,7 @@
  *  filters an array in memory -- and everything you can SEE lives here.
  * ------------------------------------------------------------------ */
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { PhotoStream, type PhotoCell } from "@/components/common/photo-rows";
 import { eraLabel } from "@/lib/collection";
 import type { PhotoData, RiverOrder } from "@/app/(main)/collection/actions";
@@ -111,11 +111,92 @@ export function bandsOf(photos: PhotoData[], order: RiverOrder): Band[] {
 
 const bandLabel = (era: string) => (era === "unknown" ? "Undated" : eraLabel(era));
 
+/* ------------------------------------------------------------------ *
+ *  Which decade the reader is IN, read off the page rather than set.
+ *
+ *  The rail used to light whatever era it had just filtered to; now that
+ *  pressing it seeks instead, there is no such value to light -- the mark
+ *  that glows has to be a fact about where the reader has scrolled to.
+ *
+ *  THE ANSWER IS READ FROM RECTS, AND THE OBSERVER IS ONLY THE TRIGGER.
+ *  The obvious version -- "the last heading currently inside a band at the
+ *  top of the viewport" -- is right going down and wrong coming back up.
+ *  Two headings are usually further apart than the band is tall, so between
+ *  them NO heading is inside it, and the reading holds whatever it last saw.
+ *  Scrolling down that is correct (you are still in the decade you entered);
+ *  scrolling up it is a lie, because the moment you cross above a heading
+ *  you are in the decade ABOVE it and nothing fires to say so until the next
+ *  heading arrives. So the rule is positional instead: the current decade is
+ *  the last heading whose top has passed the reading line, which is true in
+ *  both directions at every scroll position. The observer's root ends on
+ *  that same line, so a heading crossing it always wakes this up.
+ * ------------------------------------------------------------------ */
+
+/** How far down the viewport a heading counts as "reached", as a fraction of
+ *  its height. Matches the observer's bottom root margin below: the two are
+ *  the same line and have to move together. */
+const READING_LINE = 0.2;
+
+function useActiveBand(bands: Band[], onChange?: (era: string) => void) {
+  const headings = useRef(new Map<string, HTMLElement>());
+  // One stable callback ref per era, cached rather than built fresh in every
+  // render's JSX -- a fresh function each render reads to React as a
+  // different ref, which unmounts and remounts the DOM node's entry on every
+  // unrelated re-render instead of only when a heading actually appears.
+  const refs = useRef(new Map<string, (el: HTMLElement | null) => void>());
+
+  useEffect(() => {
+    if (!onChange || bands.length < 2) return;
+    const eras = bands.map((b) => b.era).filter(Boolean);
+
+    const settle = () => {
+      const line = window.innerHeight * READING_LINE;
+      let current = "";
+      for (const era of eras) {
+        const el = headings.current.get(era);
+        if (el && el.getBoundingClientRect().top <= line) current = era;
+      }
+      /* Above the first heading there is nothing to have passed, and the
+         band being read is the first one -- not "no decade", which would
+         blank the rail every time the reader returned to the very top. */
+      onChange(current || eras[0]);
+    };
+
+    const io = new IntersectionObserver(settle, {
+      rootMargin: `0px 0px -${(1 - READING_LINE) * 100}% 0px`,
+      threshold: 0,
+    });
+    for (const era of eras) {
+      const el = headings.current.get(era);
+      if (el) io.observe(el);
+    }
+    // A new page of photographs can add bands without moving the reader, so
+    // the answer is recomputed when the bands change, not only when one of
+    // them crosses the line.
+    settle();
+    return () => io.disconnect();
+  }, [bands, onChange]);
+
+  return (era: string) => {
+    let ref = refs.current.get(era);
+    if (!ref) {
+      ref = (el: HTMLElement | null) => {
+        if (el) headings.current.set(era, el);
+        else headings.current.delete(era);
+      };
+      refs.current.set(era, ref);
+    }
+    return ref;
+  };
+}
+
 export function PhotoRiver({
   photos,
   order,
   onOpen,
   dimmed = false,
+  onActiveEraChange,
+  windowed = true,
   className,
 }: {
   photos: PhotoData[];
@@ -125,9 +206,18 @@ export function PhotoRiver({
   onOpen: (index: number) => void;
   /** True while a new query's first page is in the air. */
   dimmed?: boolean;
+  /** The decade heading currently in view, for the rail to light -- read
+   *  from scroll position, never from a filter (see `useActiveBand`). Fires
+   *  only in "taken" order, where headings exist at all. */
+  onActiveEraChange?: (era: string) => void;
+  /** Whether bands below the fold may be skipped at paint (see the note on
+   *  the `<section>` below). FALSE while the river can grow UPWARD, which is
+   *  the one case where skipping is not free. */
+  windowed?: boolean;
   className?: string;
 }) {
   const bands = useMemo(() => bandsOf(photos, order), [photos, order]);
+  const headingRef = useActiveBand(bands, onActiveEraChange);
 
   return (
     /* The cross-fade. Changing a bucket dims the river the moment the query
@@ -154,9 +244,23 @@ export function PhotoRiver({
              Only past the first band. The fold is never skipped (it is the
              largest thing painted), and chopping ONE continuous river into
              windowed chunks would break a justified row at every seam. A
-             decade boundary is a real seam and its rows already end there. */
+             decade boundary is a real seam and its rows already end there.
+
+             AND ONLY WHILE THE RIVER GROWS DOWNWARD. A skipped band stands
+             in at its intrinsic 600px until it is scrolled near, which is
+             free when it is below you and ruinous when it is above: after
+             the decade rail seeks, pages arrive at the TOP, and a band
+             prepended above the viewport would be laid out at 600px, then
+             swell to its real height as it came into view -- moving
+             everything under it, which is the one thing the seek promises
+             not to do. Chrome's scroll anchoring hides that; Safari has
+             none, so on a phone it is a visible jump. Windowing is
+             therefore off for the whole of a seeked river, where the pages
+             the reader has loaded are few enough not to need it. */
           style={
-            bi > 0 ? { contentVisibility: "auto", containIntrinsicSize: "auto 600px" } : undefined
+            windowed && bi > 0
+              ? { contentVisibility: "auto", containIntrinsicSize: "auto 600px" }
+              : undefined
           }
         >
           {band.era && bands.length > 1 && (
@@ -172,7 +276,7 @@ export function PhotoRiver({
                So: no band, no rule, no blur. The decade, the count under
                it, and a clear breath above so the eye reads a new section
                starting rather than a label attached to the row above. */
-            <h2 className={cn("mb-4", bi > 0 && "mt-12")}>
+            <h2 ref={headingRef(band.era)} data-era={band.era} className={cn("mb-4", bi > 0 && "mt-12")}>
               <span className="block font-heading text-[22px] leading-none tracking-[-0.02em] text-foreground">
                 {bandLabel(band.era)}
               </span>

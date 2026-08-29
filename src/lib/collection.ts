@@ -304,6 +304,23 @@ export const ERA_START_YEAR: Record<string, number> = {
 
 export const eraSortYear = (era: string): number | null => ERA_START_YEAR[era] ?? null;
 
+/** The `takenKey` boundary the decade rail seeks to: one past the top of
+ *  `era`, so "everything with a smaller `takenKey`" is exactly that decade
+ *  and everything older. `null` means no boundary exists -- either `era` is
+ *  the newest real decade (nothing sits above it, so seeking there is the
+ *  same as a fresh, unfiltered first page) or an era outside `ERAS`
+ *  altogether, which asks for nothing and gets nothing. "unknown" is not a
+ *  decade and has no ceiling of its own; `takenKey` is 0 for every undated
+ *  row, so 1 is the boundary that keeps exactly those and nothing dated. */
+export function eraSeekBoundary(era: string): number | null {
+  if (era === "unknown") return 1;
+  const at = ERAS.findIndex((e) => e.value === era);
+  if (at < 0) return null;
+  const next = ERAS[at + 1];
+  if (!next || next.value === "unknown") return null;
+  return ERA_START_YEAR[next.value] * 100;
+}
+
 /* ------------------------------------------------------------------ *
  *  When a photograph was TAKEN, in words.
  *

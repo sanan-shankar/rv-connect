@@ -10,46 +10,164 @@
  *  (handover F26, F33).
  *
  *  What is worth pressing: a bucket, and watch the underline glide and
- *  the river cross-fade; a decade on the right-hand rail, whose marks
- *  are how many photographs each decade holds; "Chronological" in the
- *  order menu, which turns the decades into headings you scroll past.
+ *  the river cross-fade; "Chronological" in the order menu, which turns
+ *  the decades into headings you scroll past and brings up the rail;
+ *  a decade on it, which SEEKS -- the grid does not empty out, it jumps
+ *  to that stretch of one continuous river and scrolling either way
+ *  keeps going, with nothing shifting under your eye as it does.
+ *
+ *  The seek and the bidirectional load are reimplemented here rather
+ *  than shared with `<CollectionClient>`, and deliberately: there is no
+ *  server to page against, so what stands in for it is array slicing
+ *  over the 240 made-up records rather than the real opaque cursor.
+ *  What is NOT reimplemented is the FEEL -- the scroll-anchored prepend
+ *  and the scrollspy that lights the rail are the same shapes
+ *  `collection-client.tsx` uses, because that feel is the thing this
+ *  room exists to let the owner judge.
  * ------------------------------------------------------------------ */
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import { RiverControls } from "@/components/collection/river-controls";
-import { DecadeRail, DecadeStrip } from "@/components/collection/decade-rail";
+import { DecadeRail } from "@/components/collection/decade-rail";
 import { PhotoRiver } from "@/components/collection/photo-river";
 import { ImageViewer, type ViewerImage } from "@/components/common/image-viewer";
 import { bucketLabel } from "@/lib/collection";
 import type { RiverOrder } from "@/app/(main)/collection/actions";
 import { LAB_ARCHIVE, takenKeyOf } from "./_archive";
 
+/** The real river's own page size (`PAGE_SIZE` in `collection/actions.ts`),
+ *  so a scroll here takes the same number of pulls to reach the bottom. */
+const PAGE_SIZE = 48;
+
 export default function CollectionRoom() {
   const [bucket, setBucket] = useState("");
-  const [era, setEra] = useState("");
   const [order, setOrder] = useState<RiverOrder>("newest");
   const [at, setAt] = useState<number | null>(null);
+  const [activeEra, setActiveEra] = useState("");
 
-  /* The same three filters and four orders the server applies, done here in
-     memory. It is the one thing in this room that is a stand-in, and it is a
-     stand-in for a `where` clause rather than for anything you can see. */
-  const photos = useMemo(() => {
-    const kept = LAB_ARCHIVE.filter(
-      (p) => (!bucket || p.subject.includes(bucket)) && (!era || p.era === era)
+  /* The full "taken" order, sorted once per bucket -- the array a real
+     cursor would be walking. Everything below is a WINDOW onto it, by
+     index rather than by opaque token, which is the one thing standing in
+     for the server here. */
+  const takenSorted = useMemo(() => {
+    const kept = LAB_ARCHIVE.filter((p) => !bucket || p.subject.includes(bucket));
+    return [...kept].sort(
+      (a, b) => takenKeyOf(b) - takenKeyOf(a) || b.createdAt.localeCompare(a.createdAt)
     );
+  }, [bucket]);
+
+  /* [top, bottom) into `takenSorted`. Reset to the first page whenever the
+     bucket changes underneath it, same as a fresh query on the real river. */
+  const [top, setTop] = useState(0);
+  const [bottom, setBottom] = useState(Math.min(PAGE_SIZE, takenSorted.length));
+  // Adjust-during-render, the same pattern `collection-client.tsx` uses to
+  // reseed from a changed prop: a ref read during render is exactly what
+  // React's own compiler now refuses to allow, `useState` is not.
+  const [seenBucket, setSeenBucket] = useState(bucket);
+  if (bucket !== seenBucket) {
+    setSeenBucket(bucket);
+    setTop(0);
+    setBottom(Math.min(PAGE_SIZE, takenSorted.length));
+  }
+
+  const takenWindow = useMemo(() => takenSorted.slice(top, bottom), [takenSorted, top, bottom]);
+
+  /* What the rail lights, DERIVED rather than stored: the scrollspy's answer
+     when it has one, else the decade the top photograph belongs to. The
+     fallback earns its place -- when one decade fills the whole page there is
+     no heading to observe (a single band has nothing to fold), so nothing
+     would light the rail at all. */
+  const railActive = order === "taken" ? activeEra || takenWindow[0]?.era || "" : "";
+
+  /* Every other order shows the whole filtered set at once, exactly as this
+     room always has -- pagination only matters where the rail's seek lives. */
+  const photos = useMemo(() => {
+    if (order === "taken") return takenWindow;
+    const kept = LAB_ARCHIVE.filter((p) => !bucket || p.subject.includes(bucket));
     const by = {
       newest: (a: (typeof kept)[number], b: (typeof kept)[number]) =>
         b.createdAt.localeCompare(a.createdAt),
       oldest: (a: (typeof kept)[number], b: (typeof kept)[number]) =>
         a.createdAt.localeCompare(b.createdAt),
-      taken: (a: (typeof kept)[number], b: (typeof kept)[number]) =>
-        takenKeyOf(b) - takenKeyOf(a) || b.createdAt.localeCompare(a.createdAt),
       loved: (a: (typeof kept)[number], b: (typeof kept)[number]) => b.loveCount - a.loveCount,
-    }[order];
+    }[order as "newest" | "oldest" | "loved"];
     return [...kept].sort(by);
-  }, [bucket, era, order]);
+  }, [bucket, order, takenWindow]);
+
+  /* Pressing a decade: the newest photograph in it is the first occurrence
+     in `takenSorted`, because it is already sorted newest-first -- the same
+     fact the real seek boundary (`eraSeekBoundary`) exists to compute
+     without a table scan. */
+  const seekTo = useCallback(
+    (era: string) => {
+      const at = takenSorted.findIndex((p) => p.era === era);
+      if (at < 0) return;
+      setTop(at);
+      setBottom(Math.min(at + PAGE_SIZE, takenSorted.length));
+      setActiveEra(era);
+      // The rail turns the river to Chronological on a press, same as the
+      // real one: a decade is a position, and only this order has a spine
+      // for it to be a position along.
+      setOrder("taken");
+      window.scrollTo({ top: 0 });
+    },
+    [takenSorted]
+  );
+
+  const more = useCallback(() => {
+    setBottom((b) => Math.min(b + PAGE_SIZE, takenSorted.length));
+  }, [takenSorted.length]);
+
+  /* Climbing back up. Scroll-anchored exactly the way `collection-client.tsx`
+     anchors it: measured before the DOM grows, corrected in a layout effect
+     before the browser paints, so the photograph under the reader's eye does
+     not move. */
+  const scrollAnchor = useRef<{ height: number; top: number } | null>(null);
+  const loadNewer = useCallback(() => {
+    if (top === 0) return;
+    const scroller = document.scrollingElement;
+    if (scroller) scrollAnchor.current = { height: scroller.scrollHeight, top: scroller.scrollTop };
+    setTop((t) => Math.max(0, t - PAGE_SIZE));
+  }, [top]);
+
+  useLayoutEffect(() => {
+    if (!scrollAnchor.current) return;
+    const { height, top: prevTop } = scrollAnchor.current;
+    scrollAnchor.current = null;
+    const scroller = document.scrollingElement;
+    if (!scroller) return;
+    scroller.scrollTop = prevTop + (scroller.scrollHeight - height);
+  }, [photos]);
+
+  const head = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = head.current;
+    if (!el || order !== "taken" || top === 0) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) loadNewer();
+      },
+      { rootMargin: "1200px 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [order, top, loadNewer]);
+
+  const foot = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = foot.current;
+    if (!el || order !== "taken" || bottom >= takenSorted.length) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) more();
+      },
+      { rootMargin: "1200px 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [order, bottom, takenSorted.length, more]);
 
   /* The rail's marks, counted under whatever bucket is on -- exactly what the
      server's grouped query does, so pressing a decade can never return an
@@ -103,16 +221,26 @@ export default function CollectionRoom() {
           onBucket={setBucket}
           order={order}
           onOrder={setOrder}
-          total={photos.length}
+          total={order === "taken" ? takenSorted.length : photos.length}
           markerId="lab-bucket"
         />
-        <DecadeStrip decades={decades} value={era} onChange={setEra} className="mt-1" />
 
         <div className="mt-4 flex items-start gap-6 xl:gap-8">
           <div className="min-w-0 flex-1">
-            <PhotoRiver photos={photos} order={order} onOpen={setAt} />
+            {/* `-mb-px` cancels its own height: a sentinel at the START of
+                the river must add nothing to the layout. See the note on
+                the same element in `collection-client.tsx`. */}
+            {order === "taken" && <div ref={head} aria-hidden className="h-px -mb-px" />}
+            <PhotoRiver
+              photos={photos}
+              order={order}
+              onOpen={setAt}
+              onActiveEraChange={order === "taken" ? setActiveEra : undefined}
+              windowed={top === 0}
+            />
+            {order === "taken" && <div ref={foot} aria-hidden className="h-px" />}
           </div>
-          <DecadeRail decades={decades} value={era} onChange={setEra} />
+          <DecadeRail decades={decades} active={railActive} onSeek={seekTo} />
         </div>
       </div>
 

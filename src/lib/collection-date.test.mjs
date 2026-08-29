@@ -4,6 +4,7 @@ import {
   eraFromPartial,
   eraPhrase,
   eraSaid,
+  eraSeekBoundary,
   photoDate,
   takenLabel,
 } from "./collection.ts";
@@ -151,4 +152,27 @@ test("what the contribute box writes is what the viewer reads back", () => {
   assert.equal(takenLabel(date("1978")), "1978");
   assert.equal(takenLabel(date("1978", "March")), "March 1978");
   assert.equal(takenLabel(date("")), null);
+});
+
+/* ------------------------------------------------------------------ *
+ *  The decade rail's own boundary: where a seek into one era stops
+ *  belonging to it and starts belonging to the next one up.
+ * ------------------------------------------------------------------ */
+
+test("a decade's boundary is the next decade's start, times 100", () => {
+  assert.equal(eraSeekBoundary("1970s"), 198000);
+  assert.equal(eraSeekBoundary("pre-1940s"), 194000);
+});
+
+test("the newest real decade has nothing above it to seek past", () => {
+  assert.equal(eraSeekBoundary("2020s"), null);
+});
+
+test("undated has no ceiling of its own -- 1, since its key is always 0", () => {
+  assert.equal(eraSeekBoundary("unknown"), 1);
+});
+
+test("an era outside the vocabulary asks for nothing and gets nothing", () => {
+  assert.equal(eraSeekBoundary("1930s"), null);
+  assert.equal(eraSeekBoundary(""), null);
 });

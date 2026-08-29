@@ -2,11 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
+import { balancedBody, decomment } from "./test-kit.mjs";
+
 import {
   afterCursor,
+  beforeCursor,
   decodeCursor,
   encodeCursor,
   orderByFor,
+  orderByForTakenAscending,
+  seekOlder,
 } from "./river-cursor.ts";
 
 /* ------------------------------------------------------------------ *
@@ -115,6 +120,200 @@ test("the cursor's two directions agree with the order they page", () => {
       `${order} sorts ${direction} but pages with ${comparison}`
     );
   }
+});
+
+/* ------------------------------------------------------------------ *
+ *  Walking the river the other way: the decade rail's seek.
+ *
+ *  Everywhere else "more" means "older" -- one direction, appended at the
+ *  bottom. The rail's seek lands mid-river and has to walk BOTH ways from
+ *  there, which is new, so it gets the same scrutiny as the cursor itself:
+ *  the boundary between two decades must drop nothing and repeat nothing,
+ *  and undated (`takenKey` 0) must never surface from the upward walk.
+ * ------------------------------------------------------------------ */
+
+test("beforeCursor is afterCursor's mirror: strictly past the row, upward", () => {
+  const where = beforeCursor(decodeCursor("taken", encodeCursor("taken", ROW, 0)));
+  assert.equal(where.OR.length, 2);
+  assert.deepEqual(where.OR[0], { takenKey: { gt: ROW.takenKey } });
+  assert.deepEqual(where.OR[1], { takenKey: ROW.takenKey, id: { gt: ROW.id } });
+});
+
+test("beforeCursor is nothing for no cursor, and nothing for an offset cursor", () => {
+  assert.deepEqual(beforeCursor(null), {});
+  assert.deepEqual(beforeCursor({ offset: 48 }), {});
+});
+
+test("the ascending order is orderByFor('taken'), field for field reversed", () => {
+  const desc = orderByFor("taken");
+  const asc = orderByForTakenAscending();
+  assert.deepEqual(asc, [{ takenKey: "asc" }, { id: "asc" }]);
+  assert.deepEqual(desc, [{ takenKey: "desc" }, { id: "desc" }]);
+  assert.deepEqual(asc.map(Object.keys), desc.map(Object.keys));
+});
+
+test("seekOlder is strictly below the boundary, with no boundary at the newest decade", () => {
+  assert.deepEqual(seekOlder(198000), { takenKey: { lt: 198000 } });
+  // The newest real decade has nothing above it: no boundary, no filter.
+  assert.deepEqual(seekOlder(null), {});
+  // A row exactly ON the boundary (a decade-only 1980s photograph) belongs
+  // to the NEXT decade up, not the one just seeked to.
+  const boundary = 198000; // the 1980s' own start -- 1970s' seek boundary
+  const { lt } = seekOlder(boundary).takenKey;
+  assert.equal(boundary < lt, false);
+  assert.equal(boundary - 1 < lt, true);
+});
+
+/* ------------------------------------------------------------------ *
+ *  ...and the same thing asserted against ROWS rather than against the
+ *  shape of an object literal.
+ *
+ *  Everything above pins what the clauses look like, which is worth
+ *  having and is not the same as pinning what they RETURN. A seek walks
+ *  a river in two directions across a boundary, and the failure it can
+ *  produce -- one photograph falling down the seam between the last page
+ *  going down and the first page coming up -- is invisible in the shape
+ *  of a where clause and obvious the moment you page a whole archive
+ *  through it. So: a tiny evaluator for the fragment of Prisma's
+ *  grammar these clauses use, and an archive walked end to end.
+ * ------------------------------------------------------------------ */
+
+/** `{}` matches everything; `OR` matches if any branch does; a branch is an
+ *  AND over its fields, each a literal or one of lt/gt/gte. */
+function matches(where, row) {
+  if (!where || Object.keys(where).length === 0) return true;
+  if (where.OR) return where.OR.some((branch) => matches(branch, row));
+  return Object.entries(where).every(([field, test]) => {
+    const value = row[field];
+    if (test && typeof test === "object") {
+      if ("lt" in test && !(value < test.lt)) return false;
+      if ("gt" in test && !(value > test.gt)) return false;
+      if ("gte" in test && !(value >= test.gte)) return false;
+      return true;
+    }
+    return value === test;
+  });
+}
+
+const byId = (a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+/** How Postgres returns the river: newest first, id breaking the tie. */
+const descending = (a, b) => b.takenKey - a.takenKey || byId(b, a);
+const ascending = (a, b) => a.takenKey - b.takenKey || byId(a, b);
+
+/** An archive with every shape that has ever broken a cursor: two rows on
+ *  the same key, a decade holding exactly one, and undated rows, which sort
+ *  last on a key of 0 and are a real answer rather than a missing one. */
+const ARCHIVE = [
+  { id: "a1", takenKey: 202400 }, { id: "a2", takenKey: 202400 }, // tied
+  { id: "b1", takenKey: 201503 },
+  { id: "c1", takenKey: 198100 }, { id: "c2", takenKey: 198507 },
+  { id: "d1", takenKey: 197803 }, { id: "d2", takenKey: 197000 },
+  { id: "e1", takenKey: 195000 },                                  // alone
+  { id: "z1", takenKey: 0 }, { id: "z2", takenKey: 0 },             // undated
+].sort(descending);
+
+/** One page of the river, the way `loadPhotos` builds it. */
+const pageDown = (where, take) => ARCHIVE.filter((r) => matches(where, r)).sort(descending).slice(0, take);
+/** ...and one page of the climb back up, fetched ascending and turned round
+ *  before it is shown, which is what the caller does. */
+const pageUp = (where, take) =>
+  ARCHIVE.filter((r) => matches(where, r)).sort(ascending).slice(0, take).reverse();
+
+test("paging down from a seek reaches every older photograph, once, in order", () => {
+  const boundary = 198000; // seek to the 1970s
+  const expected = ARCHIVE.filter((r) => r.takenKey < boundary).sort(descending);
+
+  const seen = [];
+  let where = { ...seekOlder(boundary) };
+  for (let guard = 0; guard < 50; guard++) {
+    const rows = pageDown(where, 2);
+    if (!rows.length) break;
+    seen.push(...rows);
+    const last = rows[rows.length - 1];
+    where = { ...seekOlder(boundary), ...afterCursor("taken", { takenKey: last.takenKey, id: last.id }) };
+  }
+  assert.deepEqual(seen.map((r) => r.id), expected.map((r) => r.id));
+  // Undated sits at the bottom of the seek, not outside it.
+  assert.deepEqual(seen.slice(-2).map((r) => r.id), ["z2", "z1"]);
+});
+
+test("climbing back up from a seek reaches every newer photograph, once, in order", () => {
+  const boundary = 198000;
+  const landed = pageDown(seekOlder(boundary), 2)[0]; // the row the seek lands on
+  const expected = ARCHIVE.filter((r) => descending(r, landed) < 0).sort(descending);
+
+  const seen = [];
+  let cursor = { takenKey: landed.takenKey, id: landed.id };
+  for (let guard = 0; guard < 50; guard++) {
+    const rows = pageUp(beforeCursor(cursor), 2);
+    if (!rows.length) break;
+    seen.unshift(...rows); // pages arrive above what is already on screen
+    const top = rows[0];
+    cursor = { takenKey: top.takenKey, id: top.id };
+  }
+  assert.deepEqual(seen.map((r) => r.id), expected.map((r) => r.id));
+});
+
+test("the seam holds: down plus up is the whole archive, nothing twice", () => {
+  /* The one that matters. A seek splits the river in two at a row, and the
+     two halves are fetched by different clauses in different directions --
+     which is exactly where a photograph goes missing without anything
+     looking wrong. */
+  const boundary = 198000;
+  const landed = pageDown(seekOlder(boundary), 2)[0];
+
+  const below = ARCHIVE.filter((r) => matches(seekOlder(boundary), r));
+  const above = ARCHIVE.filter((r) =>
+    matches(beforeCursor({ takenKey: landed.takenKey, id: landed.id }), r)
+  );
+  // `landed` and everything under it are in one half; everything over it in
+  // the other; and the two halves do not overlap by a single row.
+  const ids = [...above, ...below].map((r) => r.id);
+  assert.equal(new Set(ids).size, ids.length, "a photograph is in both halves");
+  assert.deepEqual([...ids].sort(), ARCHIVE.map((r) => r.id).sort());
+});
+
+test("undated never surfaces from the upward climb", () => {
+  /* Undated sorts last on a key of 0, so it belongs to the bottom of the
+     river and must never be reachable by walking UP out of a real decade --
+     which would put photographs with no date above ones that have one. */
+  for (const from of ARCHIVE.filter((r) => r.takenKey > 0)) {
+    const up = ARCHIVE.filter((r) => matches(beforeCursor({ takenKey: from.takenKey, id: from.id }), r));
+    assert.equal(up.some((r) => r.takenKey === 0), false, `undated surfaced above ${from.id}`);
+  }
+});
+
+test("a tie is split, not dropped and not shown twice", () => {
+  // a1 and a2 share 202400. Paging one at a time must return both.
+  const first = pageDown({}, 1)[0];
+  const next = pageDown(afterCursor("taken", { takenKey: first.takenKey, id: first.id }), 1)[0];
+  assert.equal(first.takenKey, next.takenKey, "the fixture no longer holds a tie");
+  assert.notEqual(first.id, next.id);
+  // ...and climbing back up off the second returns the first, exactly once.
+  const back = pageUp(beforeCursor({ takenKey: next.takenKey, id: next.id }), 5);
+  assert.deepEqual(back.map((r) => r.id), [first.id]);
+});
+
+test("a decade is where the river STARTS, never a filter on what it holds", () => {
+  /* The bug this design replaced, and the reason it cannot come back by
+     accident. `era` used to be a `where` clause, so pressing "2020s"
+     narrowed the archive to it -- and the rail, whose marks are counted
+     through that same clause, collapsed to a single mark and hid itself,
+     taking the only control that could undo it: "doing that has locked me
+     into 2020s... the only way to bring up that sidebar type thing is to
+     reload" (owner, 2026-08-29).
+
+     A decade now picks the row the first page begins at and nothing else,
+     so there is no clause left that could narrow anything -- and the facet
+     count, which is the thing that broke, is free to use the very same
+     `where` the river does. If `era` ever reappears in here, that whole
+     failure is back. */
+  const src = decomment(
+    readFileSync(new URL("../app/(main)/collection/actions.ts", import.meta.url), "utf8")
+  );
+  const where = balancedBody(src, "function buildCollectionWhere(");
+  assert.ok(where, "buildCollectionWhere has been renamed or removed");
+  assert.doesNotMatch(where, /\bera\b/, "a decade is filtering the river again");
 });
 
 test("the river never asks Prisma for an offset it does not need", () => {

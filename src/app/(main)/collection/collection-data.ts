@@ -45,11 +45,19 @@ export function riverFiltersFrom(
   const order = one("order");
   const search = one("q")?.slice(0, 100).trim();
 
+  const when = era && (ERA_VALUES as readonly string[]).includes(era) ? era : undefined;
+  const asked = order && (ORDERS as string[]).includes(order) ? (order as RiverOrder) : undefined;
+
   return {
     bucket: bucket && (BUCKET_VALUES as readonly string[]).includes(bucket) ? bucket : undefined,
-    era: era && (ERA_VALUES as readonly string[]).includes(era) ? era : undefined,
+    era: when,
     search: search || undefined,
-    order: order && (ORDERS as string[]).includes(order) ? (order as RiverOrder) : "newest",
+    /* A `?when=` with no order named means Chronological, because that is the
+       only order a decade is a position in: `when` asks the river to START at
+       the 1970s, and starting somewhere is meaningless in a river sorted by
+       upload date. Links this page writes always name both, so this is for
+       the ones a person shortens, types or kept from an older build. */
+    order: asked ?? (when ? "taken" : "newest"),
   };
 }
 
