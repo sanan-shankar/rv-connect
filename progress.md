@@ -6844,3 +6844,17 @@ speak the admin panel's own words for block and delete — same act, same senten
 gained the member's name plus the typed-name gate the panel already had for deletion.
 Verified live on desktop and mobile via a new drive.mjs confirmDelete scenario, which also
 listens for native dialogs and saw none.
+
+## 2026-08-29 — the menus grow up at the item level
+
+Spec #3. The panel was already one material (2026-07-30); the items never got the same
+treatment. Three fixes across every "more" menu: a `DropdownMenuSeparator` now exists (the
+primitive simply wasn't in ui/dropdown-menu, which is why no menu ever drew one) and sits
+above every destructive group per Apple and Carbon — the gap is the warning; bare-glyph
+"..." triggers wear `MENU_TRIGGER_HIT`, an ::after box that silently widens the hit area
+to 44px on coarse pointers only (the comments trigger measured 22px, under even WCAG's
+24px fine-pointer floor — its padding also grew a step); and "Remove (admin)" became
+"Remove post"/"Remove letter", because a role annotation in parentheses is not a label —
+only admins see the item and the shield glyph already carries the rest. The item rules are
+written into DESIGN-SYSTEM.md's menu section. Verified live: own-post menu shows Edit,
+hairline, Delete in red, and Delete opens the app's ConfirmDialog.

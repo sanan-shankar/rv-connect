@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MENU_TRIGGER_HIT } from "@/components/ui/menu-material";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { PersonName } from "@/components/common/person-name";
 import { LoveButton } from "@/components/common/love-button";
@@ -677,7 +678,10 @@ function CommentItem({
                   on touch, where there is no hover to reveal it (owner,
                   2026-08-13: "would Instagram do it like that?"). Same menu
                   material and destructive item as the post card's own menu. */}
-              <DropdownMenuTrigger className="state-layer ml-auto rounded-md p-1 text-muted-foreground opacity-0 transition-opacity duration-150 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100 [@media(pointer:coarse)]:opacity-100 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+              {/* p-1.5, not the old p-1: 14px glyph + 8px padding was a 22px
+                  target, under even WCAG's 24px fine-pointer floor. 28px now,
+                  and MENU_TRIGGER_HIT carries it to 44px for thumbs. */}
+              <DropdownMenuTrigger className={`${MENU_TRIGGER_HIT} state-layer ml-auto rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity duration-150 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100 [@media(pointer:coarse)]:opacity-100 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}>
                 <MoreHorizontal className="h-3.5 w-3.5" />
                 <span className="sr-only">Comment options</span>
               </DropdownMenuTrigger>

@@ -9,8 +9,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MENU_TRIGGER_HIT } from "@/components/ui/menu-material";
 import { callAction } from "@/lib/call-action";
 import { useHeartToggle, useBookmarkToggle } from "./use-engagement";
 import { IdentityRow } from "@/components/common/identity-row";
@@ -364,7 +366,7 @@ export function PostCard({
                 measured +2.06 dL*, at the ~2 just-noticeable threshold. It also keeps the
                 trigger lit while its own menu is open, since Base UI marks an open trigger
                 data-popup-open and the state-layer selector already covers that. */}
-            <DropdownMenuTrigger className="state-layer -mr-2 rounded-md p-1.5 text-muted-foreground hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+            <DropdownMenuTrigger className={`${MENU_TRIGGER_HIT} state-layer -mr-2 rounded-md p-1.5 text-muted-foreground hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}>
               <MoreHorizontal className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -374,6 +376,9 @@ export function PostCard({
                     <Pencil className="mr-2 h-4 w-4" />
                     Edit
                   </DropdownMenuItem>
+                  {/* Apple, Carbon and Radix all put a divider above the
+                      destructive group: the gap is the warning. */}
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => !demo && setShowDelete(true)}
                     variant="destructive"
@@ -389,10 +394,13 @@ export function PostCard({
                     Report
                   </DropdownMenuItem>
                   {post.viewerIsAdmin && (
-                    <DropdownMenuItem onClick={() => setShowModeration(true)} variant="destructive">
-                      <ShieldAlert className="mr-2 h-4 w-4" />
-                      Remove (admin)
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setShowModeration(true)} variant="destructive">
+                        <ShieldAlert className="mr-2 h-4 w-4" />
+                        {isLetter ? "Remove letter" : "Remove post"}
+                      </DropdownMenuItem>
+                    </>
                   )}
                 </>
               )}

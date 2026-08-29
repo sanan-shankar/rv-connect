@@ -57,8 +57,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MENU_TRIGGER_HIT } from "@/components/ui/menu-material";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { useUserSearch, type SearchedPerson } from "@/components/common/use-user-search";
 import { FadeRise, SPRINGS } from "@/components/common/motion";
@@ -459,7 +461,7 @@ function PersonRow({
           <DropdownMenuTrigger
             aria-label={`Options for ${person.name}`}
             disabled={busy}
-            className="state-layer shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:text-foreground active:scale-95 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className={`${MENU_TRIGGER_HIT} state-layer shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:text-foreground active:scale-95 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
           >
             {busy ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -472,6 +474,7 @@ function PersonRow({
               <Sprout className="mr-2 h-4 w-4" />
               {person.isKeeper ? "Remove as Keeper" : "Make a Keeper"}
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setConfirmingRemove(true)} variant="destructive">
               <UserMinus className="mr-2 h-4 w-4" />
               Remove from catch-up
