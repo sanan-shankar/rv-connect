@@ -14,25 +14,42 @@
  * quicker fired overlapping fades as the pointer swept the row and read as a
  * flicker (owner, twice).
  *
- * "Active" is two different gestures. A mouse hovers, so pointerenter/leave
- * is immediate and self-clearing -- the row never asks a mouse user to do
- * anything. A touch has no hover to leave, so a tap sets the same state AND
- * starts a timer that clears it on its own after TAP_HOLD_MS; without the
- * timer the highlight would stick until something else was tapped, which
- * read as the row being stuck open (owner, 2026-08-22, replacing a version
- * that only revealed a name on a press-and-hold). */
+ * "Active" is two different gestures, and they do not share event handlers
+ * any more. A mouse hovers, so pointerenter/leave is immediate and
+ * self-clearing -- the row never asks a mouse user to do anything. A touch
+ * has no hover to leave, so it used to run through the SAME pointerenter/
+ * pointerleave handlers as the mouse: a tap fires pointerdown, pointerenter
+ * (highlight on), pointerup, then a touch pointer counts as having "left"
+ * the moment it lifts, so the row's pointerleave fired next (highlight off),
+ * and only then did click fire (highlight back on, timer armed) -- three
+ * state flips for one tap, which read as a flash-clear-flash glitch rather
+ * than a highlight (owner, 2026-08-29). Gated on pointerType instead: a
+ * touch pointer is ignored by enter/leave entirely and only ever answers to
+ * click, so a tap is the one state change it has ever been meant to be. A
+ * tap sets the same state AND starts a timer that clears it on its own after
+ * TAP_HOLD_MS; without the timer the highlight would stick until something
+ * else was tapped, which read as the row being stuck open (owner,
+ * 2026-08-22, replacing a version that only revealed a name on a
+ * press-and-hold). A mouse click is left alone -- hover already shows and
+ * hides the bird it is resting on, so click has nothing to add for it. */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { m } from "motion/react";
 import { BirdGlyphV2 } from "@/components/common/bird-avatar-v2";
 import { EASE_OUT_SMOOTH, SPRINGS } from "@/components/common/motion";
 import { PLATE } from "./plate-data";
 
-const TAP_HOLD_MS = 7000;
+/** How long a tapped bird stays highlighted before it fades on its own. */
+const TAP_HOLD_MS = 3000;
 
 export function BirdPlate() {
   const [over, setOver] = useState<number | null>(null);
   const clearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Set on pointerdown, read in onClick: React's click event carries no
+  // pointerType of its own, so this is the only place left to ask "was this
+  // a tap or a click" by the time click fires.
+  const usedTouch = useRef(false);
 
   // Re-armed on every tap so tapping a second bird before the first one
   // fades resets the clock, rather than the new bird inheriting whatever was
@@ -56,7 +73,10 @@ export function BirdPlate() {
   return (
     <div>
       <ul
-        onPointerLeave={() => setOver(null)}
+        onPointerLeave={(e: ReactPointerEvent) => {
+          if (e.pointerType === "touch") return;
+          setOver(null);
+        }}
         className="mt-[var(--space-m)] grid grid-cols-4 gap-x-[var(--space-xs)] gap-y-[var(--space-s)] sm:grid-cols-6 sm:gap-x-[var(--space-s)] sm:gap-y-[var(--space-m)]"
       >
         {PLATE.map(({ name, index, seed }, i) => (
@@ -68,8 +88,15 @@ export function BirdPlate() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...SPRINGS.gentle, delay: i * 0.03 }}
-            onPointerEnter={() => setOver(i)}
+            onPointerDown={(e) => {
+              usedTouch.current = e.pointerType === "touch";
+            }}
+            onPointerEnter={(e) => {
+              if (e.pointerType === "touch") return;
+              setOver(i);
+            }}
             onClick={() => {
+              if (!usedTouch.current) return;
               setOver(i);
               armAutoClear(i);
             }}
