@@ -72,11 +72,22 @@ export function GuideDoor({ area, children }: { area: string; children: React.Re
          the sheet even existed to animate. See src/lib/guide-open.ts. */
       href={`/guide/${area}`}
       className={cn(
-        "group inline-flex items-baseline rounded-lg text-inherit no-underline outline-none",
+        /* `inline`, not `inline-flex`: a flex row lays the title text and the
+           mark out as two side-by-side boxes, so once the title itself wraps
+           (every "Collection" on a 390px screen) the mark sits at the end of
+           the text's whole bounding box -- the end of line one -- rather than
+           after the actual last word on line two. Plain inline flow puts both
+           in the SAME line box, so the mark rides wherever the text's own
+           wrapping puts it. Baseline alignment falls out of that for free
+           (an inline-block's default vertical-align), so items-baseline was
+           never doing anything flex-specific worth keeping either. */
+        "group inline rounded-lg text-inherit no-underline outline-none",
         /* A 30px line of type is a 30px finger target, under the 44px everyone
            agrees on. The padding buys the height and the equal negative margin
            gives it straight back to the layout, so the target grows and the
-           heading does not move a pixel. */
+           heading does not move a pixel. (Margin is a no-op on an inline
+           element -- kept anyway so this reads the same if display ever
+           changes back.) */
         "py-[7px] -my-[7px]",
         "[-webkit-tap-highlight-color:transparent]",
         "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-leaf"
