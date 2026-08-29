@@ -23,6 +23,13 @@ import { ROOT, read, decomment } from "../../lib/test-kit.mjs";
 test("field-focus.ts: tint on click, one snug 2px edge on Tab, never a halo or an offset", () => {
   const src = decomment(read("src/components/ui/field-focus.ts"));
   assert.ok(src.includes("focus-visible:border-ring"), "the click tint is gone");
+  // The browser's own ring (outline: auto, blue on a Mac) must be off INSIDE
+  // the constant: the support amount field leaked it when only callers were
+  // expected to carry outline-none.
+  for (const name of ["FIELD_FOCUS =", "FIELD_FOCUS_SHELL =", "FIELD_FOCUS_WITHIN ="]) {
+    const i = src.indexOf(name);
+    assert.ok(i >= 0 && src.slice(i, i + 80).includes("outline-none"), `${name} does not start with outline-none`);
+  }
   // Every keyboard-only token must be LITERAL in the source: Tailwind reads
   // class names out of files as text, so a `${prefix}:ring-1` compiles to no
   // CSS at all (which is exactly how the first draft shipped an invisible
