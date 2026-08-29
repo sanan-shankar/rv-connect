@@ -312,6 +312,29 @@ register IS the template, and it lives in exactly one file - `src/components/ui/
   trays, no full-width buttons, no per-dialog title sizes. Inner boxes step down the radius
   ladder (12px inputs/tiles inside the 20.8px panel). Button *variants* carry the semantics
   (primary / destructive); the layout never changes per dialog.
+- **Two text levels, and the second must earn its place (2026-08-29).** A dialog is a
+  title plus at most one description line — no system on earth permits more (Apple: title
+  + optional informative text; M3 marks even the *headline* optional; five levels has no
+  precedent anywhere). The description exists only if it changes which button you press
+  (Carbon's test: title "Edit object", purpose to edit an object → no description). Never
+  restate the title in the body, never explain the buttons, never describe input methods
+  the UI below already shows — that inversion (an sr-only title behind a 22px paragraph
+  listing "drag and drop, browse or paste") is what made the contribute dialog feel wrong
+  before anyone could say why. Left-aligned; centring is for a short icon-anchored block
+  only (M3: centre WITH icon, start without).
+- **Dialog copy (2026-08-29; the research is in docs/planning/dialog-*-research.md).**
+  Statement titles naming the object ("Delete post", never "Are you sure?" — banned by
+  every system that mentions it). Sentence case, no terminal punctuation, no exclamation
+  marks in functional UI. Buttons are the verb, one or two words, never Yes/No/OK/Done;
+  the same verb for the same act everywhere (a menu's "Remove post" opens a dialog that
+  says remove, not delete). Consequence lines are uncontracted ("This cannot be undone" —
+  GOV.UK: negative contractions get misread as their opposite) and appear only on
+  genuinely irreversible acts. Destructive confirms: Cancel left, red action trailing,
+  nothing auto-focused so Enter cannot destroy; typed confirmation only where a mis-click
+  is unrecoverable (asking otherwise "is theatre" — confirm-dialog.tsx). Warmth budget:
+  one warm line per surface, spent on a title or success state, never on buttons, errors
+  or anything destructive (owner: dial from 7.5/10 to ~4.5 — "don't strip it and make it
+  a corporate app. but use it smartly").
 - **Short interactions only.** A dialog is for something done in seconds (report, flag,
   contact, a quick edit). Anything immersive (writing a letter) gets a page, not a dialog.
 - **Enforcement:** every modal imports from `ui/dialog`. `aria-modal` appearing anywhere
