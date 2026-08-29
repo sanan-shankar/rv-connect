@@ -18,6 +18,14 @@ export const SPRINGS = {
   gentle: { type: "spring", stiffness: 210, damping: 24, mass: 0.9 } as const, // enters, route changes
   snappy: { type: "spring", stiffness: 420, damping: 30 } as const, // pills, presses, avatars
   settle: { type: "spring", stiffness: 160, damping: 22 } as const, // ambient, breathing
+  /* Large-surface presses (the attach wells, anything card-sized that acts as
+     a button). `snappy`'s damping ratio is 0.73 -- underdamped on purpose, so
+     a 100px pill gets a lively bounce on release. On a ~360px surface the
+     same overshoot is tens of pixels of visible wobble; the owner, 2026-08-29:
+     "that spring is too loose." 38 puts the ratio at 0.93 -- it still snaps,
+     but it settles instead of bouncing past. Pair with a shallow whileTap
+     (~0.985): big things press less, exactly as iOS does it. */
+  firm: { type: "spring", stiffness: 420, damping: 38 } as const, // large-surface presses
 };
 
 /* ease curves for multi-keyframe tweens (never pair 3+ keyframes with a spring) */

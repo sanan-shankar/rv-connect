@@ -17,9 +17,15 @@
  *  its own validation right after the file leaves here; duplicating
  *  that here would just let the two drift). <AttachImageDialog> wraps
  *  it in THE dialog material (`src/components/ui/dialog.tsx`) for sites
- *  that don't already have one open. The Collection's contribute dialog
- *  IS already a dialog, so it embeds `<AttachImageWell>` directly rather
- *  than nesting a modal inside a modal.
+ *  that don't already have one open.
+ *
+ *  The Collection's contribute room does NOT embed the well component
+ *  (this comment used to claim it did; it never had). The room's drop
+ *  target is the whole window and its paste listener already exists, so
+ *  embedding this one would double the paste delivery. What the room
+ *  shares is the LOOK: `wellClass` + `WELL_PRESS` below, so both drop
+ *  surfaces are one material with two sets of plumbing, each right for
+ *  its room.
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState } from "react";
@@ -27,14 +33,56 @@ import { ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { isImageFile } from "@/lib/upload-shared";
-import { SpringPress } from "@/components/common/motion";
+import { SpringPress, SPRINGS } from "@/components/common/motion";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
+
+/* THE WELL MATERIAL. One dashed box means "photographs go in here", exactly as
+   MENU_PANEL_CLASS means "this floats": the class string lives here and is
+   worn by every drop surface -- this file's well and the Collection's
+   invitation (src/components/collection/contribute-room.tsx) -- so the two can
+   never drift apart again (they had: the Collection hand-rolled its own empty
+   state, and this file's header claimed otherwise for a month).
+
+   Dashed is the one border style reserved for this meaning plus the editable
+   slots on profiles; a solid box is a card, a dashed box is an invitation.
+   The drag-over state swaps to leaf because that is the same answer the
+   Collection's full-viewport canopy frame gives: green means "yes, here". */
+export function wellClass(dragActive: boolean) {
+  return cn(
+    "flex w-full flex-col items-center gap-2 rounded-[var(--radius-md)] border border-dashed text-center transition-colors",
+    dragActive
+      ? "border-leaf bg-leaf/10 text-foreground"
+      : "border-border bg-paper/50 text-muted-foreground hover:border-leaf/50 hover:text-foreground"
+  );
+}
+
+/* The press every well shares: shallow and firm. A ~360px surface at snappy's
+   0.93 collapsed ~25px and wobbled on release -- the owner: "compresses a bit
+   too much. that spring is too loose." Big things press less. */
+export const WELL_PRESS = { whileTap: { scale: 0.985 }, transition: SPRINGS.firm } as const;
+
+/** Does this device have a cursor to drag with and a paste this surface can
+ *  hear? `hover` + `fine` is the honest test -- not width: a 1024px iPad has
+ *  neither, a small laptop window has both. False on the server and the first
+ *  client frame, so the copy never swaps under a reader; the safe default is
+ *  the shorter sentence. (Moved here from the Collection's contribute room so
+ *  both wells ask the same question the same way.) */
+export function usePointerFine(): boolean {
+  const [fine, setFine] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const sync = () => setFine(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return fine;
+}
 
 /* `.items` (not `.files`) on purpose: a `ClipboardEvent`'s `clipboardData` is
    a `DataTransfer` too, so the same walk covers both a drop and a paste, and
@@ -103,15 +151,26 @@ export function AttachImageWell({
     return () => document.removeEventListener("paste", onPaste);
   }, [active]);
 
+  const pointerFine = usePointerFine();
+  /* ONE line, chosen by what the device can actually do. It used to be two
+     stacked "or" clauses under a DialogDescription that said all three methods
+     again -- every door named twice (owner, 2026-08-29: "make sure no
+     information is repeated"). Paste still works; it is a shortcut for people
+     who already paste, not a door a first-timer needs read to them. */
+  const line = dragActive
+    ? "Drop it in"
+    : pointerFine
+      ? `Drop ${multiple ? "photos" : "a photo"} here, or click to browse`
+      : `Add ${multiple ? "photos" : "a photo"}`;
+
   return (
     <SpringPress
       as="button"
       onClick={() => inputRef.current?.click()}
+      {...WELL_PRESS}
       className={cn(
-        "flex w-full flex-col items-center gap-2 rounded-[var(--radius-md)] border border-dashed py-10 text-center text-muted-foreground transition-colors state-layer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-        dragActive
-          ? "border-leaf bg-leaf/10 text-foreground"
-          : "border-border bg-paper/50 hover:border-leaf/50 hover:text-foreground",
+        wellClass(dragActive),
+        "py-10 state-layer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         className
       )}
       {...({
@@ -140,10 +199,7 @@ export function AttachImageWell({
         }}
       />
       <ImagePlus className="h-7 w-7" />
-      <span className="text-sm font-medium">
-        {dragActive ? "Drop it in" : `Drop ${multiple ? "photos" : "a photo"} here, or click to browse`}
-      </span>
-      <span className="text-xs text-muted-foreground/80">or paste from your clipboard</span>
+      <span className="text-sm font-medium">{line}</span>
     </SpringPress>
   );
 }
@@ -166,9 +222,11 @@ export function AttachImageDialog({
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>{title ?? (multiple ? "Add photos" : "Add a photo")}</DialogTitle>
-          <DialogDescription>
-            Browse your computer, drag a file in, or paste from your clipboard.
-          </DialogDescription>
+          {/* No description. It said "Browse your computer, drag a file in, or
+              paste from your clipboard" -- all three of the well's doors,
+              restated one line above the well that shows them. Carbon's test:
+              if the title and the purpose are clear, a description is not
+              needed. A DialogTitle carries the accessible name on its own. */}
         </DialogHeader>
         <AttachImageWell
           active={open}
