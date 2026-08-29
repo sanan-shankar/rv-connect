@@ -134,12 +134,17 @@ export async function collectionPageData(filters: RiverFilters = { order: "newes
     isAdmin: session.user.role === "admin",
     autoApproved: isPhotoAutoApproved({ role: session.user.role, ...me }),
     roomLeft: Math.max(0, MAX_PHOTOS_PER_ACCOUNT - mine),
-    /* What the switch needs to know: whether to offer the Class Collection,
-       and if not, which of the two things the member is missing -- those are
-       different empty states (spec sec. 2.5, 6.3) and only one of them is
-       something they can act on from here. */
+    /* What the switch needs, and no more: whether to offer the Class
+       Collection at all, and which class is empty when it is.
+
+       Deliberately NOT "and if not, why not". A member with no class -- a
+       teacher, or a profile still missing its batch year -- gets no switch
+       rather than a switch that explains itself, because a control drawn only
+       to say it does not work is one more element on a page whose whole brief
+       was to stay quiet (spec sec. 2.5). Telling them the feature exists is a
+       real thing worth doing and it belongs where the missing field is, not
+       here. */
     canSeeClass: classWhere !== null,
     myClassYear: classKey(me?.batchYear),
-    isVerified: me?.verifyState === "verified",
   };
 }

@@ -267,7 +267,12 @@ export default function CollectionRoom() {
           </p>
         </div>
 
+        {/* The room shows the VALLEY half against fixture data. No switch:
+            there is no class fixture to switch to, and a dead segment here
+            would be the room lying about what it is showing. */}
         <RiverControls
+          scope="valley"
+          onScope={() => {}}
           bucket={bucket}
           onBucket={chooseBucket}
           order={order}
