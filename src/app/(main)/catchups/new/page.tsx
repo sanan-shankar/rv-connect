@@ -80,15 +80,17 @@ export default async function NewCatchupPage() {
   }
 
   return (
-    /* This route rides the CENTERED 768px column (content-column.tsx), but
-       a three-field form only needs a 576px (max-w-xl) measure. The mx-auto
-       centres that narrower measure INSIDE the column with the title
-       travelling along, flush with the card's left edge; without it the
-       card left-pinned 96px off the page's centre, i.e. (768 - 576) / 2
-       (owner, 2026-07-30: "weirdly to the left"). A narrower reading
-       measure inside the centered column is the sanctioned exception to
-       the no-page-level-widths rule; see content-column.tsx. */
-    <div className="mx-auto max-w-xl">
+    // This route rides the CENTERED 768px column (content-column.tsx) at its
+    // full standard measure. It used to narrow further to max-w-xl (576px)
+    // on the reasoning that "a three-field form only needs it" -- correct
+    // about the fields, wrong about the page: on an actual wide desktop
+    // monitor that left a small card adrift in a great deal of empty canopy
+    // background, which read as the one surface in the app that did not
+    // "match any of the margins we've standardised to" (owner, 2026-08-29).
+    // The fix keeps the form exactly as short as it was and gives the
+    // now-available width to the form's OWN layout instead of to the page
+    // margin -- see the two-column arrangement in CreateCatchupForm.
+    <div>
       <PageHeader title="Start a Catch-up" />
       <CreateCatchupForm
         cadenceLabels={CADENCE_LABELS}

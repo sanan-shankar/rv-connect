@@ -98,10 +98,21 @@ export function CreateCatchupForm({
   }
 
   return (
-    // Width comes from the page's own centred max-w-xl wrapper (new/page.tsx),
-    // not from this card, so the title above and the card share one edge.
-    <div className="card-elevated space-y-[var(--space-l)] rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)] sm:p-[var(--space-l)]">
-      <div>
+    // Width comes from the page's own centred column (new/page.tsx), not
+    // from this card, so the title above and the card share one edge.
+    //
+    // Two columns from `sm` up, not one stretched the whole 768px: Name and
+    // Rhythm are both a single short control that a wide column would only
+    // pad with dead space, while With (search, the batch shortcut, the
+    // picked chips) is the one field with real content to grow into. So the
+    // compact pair stacks in a fixed left column and With takes the rest,
+    // spanning both of their rows -- the extra room the wider page gave this
+    // card goes INTO the layout rather than sitting empty beside it. DOM
+    // order stays Name, With, Rhythm, Start (tab order and the mobile
+    // single-column stack are both unaffected; the grid positions below are
+    // sm-and-up only).
+    <div className="card-elevated grid grid-cols-1 gap-[var(--space-l)] rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)] sm:grid-cols-[340px_1fr] sm:p-[var(--space-l)]">
+      <div className="sm:col-start-1 sm:row-start-1">
         <label
           htmlFor="catchup-name"
           className="text-[11px] font-bold uppercase tracking-[0.13em] text-muted-foreground"
@@ -118,14 +129,14 @@ export function CreateCatchupForm({
         />
       </div>
 
-      <div>
+      <div className="sm:col-start-2 sm:row-start-1 sm:row-span-2">
         <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-muted-foreground">With</p>
         <div className="mt-[var(--space-xs)]">
           <PeoplePicker value={people} onChange={setPeople} myBatchYear={myBatchYear} me={me} />
         </div>
       </div>
 
-      <div>
+      <div className="sm:col-start-1 sm:row-start-2">
         <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-muted-foreground">Rhythm</p>
         <div className="mt-[var(--space-xs)]">
           <CadenceControl value={cadence} onChange={setCadence} labels={cadenceLabels} />
@@ -136,8 +147,9 @@ export function CreateCatchupForm({
           2026-07-25: "why is everything left aligned and then start the
           first round is right aligned"), and spacing instead of a rule above
           it -- the border was the odd stray line the owner flagged, not a
-          real section break. */}
-      <div className="flex items-center pt-[var(--space-l)]">
+          real section break. Spans both columns: it is the one row that
+          closes the whole form, not a third column entry. */}
+      <div className="flex items-center pt-[var(--space-l)] sm:col-span-2 sm:row-start-3">
         <Button
           variant="primary"
           size="default"
