@@ -283,31 +283,54 @@ phase-4 diffs.
 half they are in, one of them will eventually put a private photograph into the public
 archive, or believe a public one is private. That requirement decides the mechanism.
 
-### 5.2 What ships
+### 5.2 What ships — one caret on the title
 
-`<SegmentedPills>` (`src/components/common/segmented-pills.tsx`) at the **left of the
-controls line**, two segments: `Valley` and `Class`. The app's existing control for
-switching between panels — the profile's writing switcher, the directory's view toggle —
-canopy-filled thumb gliding on a shared `layoutId`. No new design language, and it is also
-the Apple answer for two to five mutually exclusive views.
+**A single caret, inline, immediately after the title's last word.** Muted, 13px, on the
+title's own baseline. Press it and the collection swaps and the caret flips. Nothing is
+added to the controls line; that row is byte-identical to what it was.
 
-**The `<h1>` changes with it.** "The Valley Collection" / "The Class Collection". The title
-is the *state*; the segment is the *affordance*; they are not redundant, and a control that
-is also the only indicator is the weak version of this.
+The title already says which half you are in, which makes the title the only honest place
+for the thing that changes it. One glyph rather than the owner's suggested up-and-down pair:
+with exactly two halves there is nowhere to travel, only somewhere to return from, and a
+second arrow is a second mark earning nothing. If a third collection ever exists, that is
+the assumption that breaks, and a stacked pair is what it breaks into.
 
-Watch one detail: a gliding canopy segment thumb and a gliding canopy bucket underline on
-the same line are two competing markers. Separate `layoutId` namespaces, and consider
-whether both should ever be visible at once.
+It is inline **inside** the `<h1>` rather than beside it in the header, because "The Valley
+Collection" wraps on a phone: anchored to the block it would strand itself to the right of
+"The Valley" with two lines of nothing beneath. Inline, it follows "Collection" down.
+`PageHeader` gained one `afterTitle` slot for it, and it is deliberately outside `GuideDoor`
+— the words open the guide chapter, the mark beside them swaps the collection, and nesting
+one button in another is both an accessibility error and a way to open the guide on every
+swap.
 
-### 5.3 What was rejected, and why
+### 5.3 What was tried and was wrong
+
+**A `<SegmentedPills>` switch on the controls line shipped in one commit and was reverted.**
+It is recorded here rather than quietly dropped, because the reasoning that produced it was
+plausible and will be produced again.
+
+The argument was: it is the house component, it is what the profile switcher and the
+directory toggle use, and Apple's HIG reaches for a segmented control with two mutually
+exclusive views. All true, and all beside the point. **The controls line is the one place in
+this app whose brief was explicitly *no pills, no borders*** — `river-controls.tsx`'s own
+header says so, quoting the owner. Putting a filled white capsule beside bare 13.5px bucket
+words produced two selection idioms, at two sizes, on two baselines, in two visual
+languages. The owner's read: *"one of the ugliest things I've seen."*
+
+**The lesson, stated so it survives: a control does not become appropriate because it is the
+house component. The house component belongs where the house put it.** A shared primitive
+carries the design system's answer to a question; it does not carry permission to ask that
+question on a surface that already answered it differently.
+
+Also rejected, and these still stand:
 
 | | |
 |---|---|
-| **Title as a menu** (`The Valley Collection ⌄`) | The second half's existence is invisible at rest, which is fatal for something nobody is looking for. And the title is already taken: `PageHeader`'s `guide` prop makes the `<h1>` the door into the guide chapter. |
-| **Swipe between the two** | Collides with the viewer's own swipe and the horizontally scrolling bucket line, breaks scroll restoration across two infinite lists, and leaves no persistent indicator. Fine as a bonus gesture later; not the mechanism. |
-| **A card on the Valley page** | One-way, and navigation-by-content is what the Collection spec rejects outright ("no folder screen at any point"). |
-| **A sidebar sub-row** | Two implementations (the desktop rail and the Radix-portal mobile drawer), and on mobile the indicator vanishes with the drawer. Fails §5.1. |
-| **"Your class" as a seventh bucket word** | The tempting one, and a category error. The bucket line means *what is in the photograph*. Putting audience on the subject axis makes a private page and a public archive look identical, which is precisely the accident this design exists to prevent. |
+| **A menu on the title** | With two halves a menu is a press to reveal one option. And the title is already the guide's door. |
+| **Swipe between the two** | Collides with the viewer's own swipe and the bucket scroller, breaks scroll restoration across two infinite lists, leaves no indicator. |
+| **A card on the Valley page** | One-way, and navigation-by-content is what the Collection spec rejects outright. |
+| **A sidebar sub-row** | Two implementations, and on mobile the indicator vanishes with the drawer. |
+| **"Your class" as a seventh bucket word** | A category error: the bucket line means *what is in the photograph*. Audience on the subject axis makes a private page and a public archive look identical. |
 
 ### 5.4 The transition
 

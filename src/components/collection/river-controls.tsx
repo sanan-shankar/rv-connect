@@ -39,7 +39,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NAV_MARKER_SPRING } from "@/components/common/motion";
-import { SegmentedPills } from "@/components/common/segmented-pills";
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import { BUCKETS } from "@/lib/collection";
 import type { RiverOrder } from "@/app/(main)/collection/actions";
@@ -111,63 +110,8 @@ function BucketWord({
   );
 }
 
-/* ------------------------------------------------------------------ *
- *  The switch, and it is the ONE control this page gains.
- *
- *  The app's own segmented control (the profile's writing switcher, the
- *  directory's view toggle), so it introduces no new design language -- and
- *  it is what Apple's HIG reaches for with two mutually exclusive views.
- *  NOT a menu on the title: the second half's existence would then be
- *  invisible at rest, which is fatal for something nobody is looking for,
- *  and the title is already the door into the guide's own chapter.
- *
- *  The <h1> says WHICH half you are in; this says you may leave. Both,
- *  because a control that is also the only indicator is the weak version.
- *
- *  ITS OWN COMPONENT rather than a branch inside RiverControls, and that is
- *  not tidiness. The Collection hides its whole controls row when a half has
- *  nothing in it (`trulyEmpty`), and EVERY class starts empty -- so a switch
- *  living only inside that row would strand a member on their empty Class
- *  Collection with no way back to the valley. The empty state is exactly
- *  where you most need to leave. Rendered in both places, from here.
- *
- *  Absent entirely for a member with no class -- a teacher, or a profile
- *  without a batch year yet -- rather than drawn and dead.
- * ------------------------------------------------------------------ */
-export function ScopeSwitch({
-  scope,
-  onScope,
-  canSeeClass = false,
-  className,
-}: {
-  scope: PhotoScope;
-  onScope: (v: PhotoScope) => void;
-  canSeeClass?: boolean;
-  className?: string;
-}) {
-  if (!canSeeClass) return null;
-  return (
-    <SegmentedPills
-      segments={[
-        { key: "valley", label: "Valley" },
-        { key: "class", label: "Class" },
-      ]}
-      value={scope}
-      onChange={onScope}
-      ariaLabel="Which collection"
-      /* Its own namespace. The bucket line carries a gliding canopy marker of
-         its own on `markerId`, and two controls sharing one layoutId make
-         Motion try to fly a single element between them. */
-      layoutId="collection-scope"
-      className={cn("shrink-0 bg-card", className)}
-    />
-  );
-}
-
 export function RiverControls({
   scope,
-  onScope,
-  canSeeClass = false,
   bucket,
   onBucket,
   order,
@@ -175,12 +119,15 @@ export function RiverControls({
   markerId = "collection-bucket",
   className,
 }: {
-  /** Which half of the Collection is on screen. */
+  /** Which half is on screen. Read for ONE reason: to drop the bucket line on
+   *  the class side. The swap itself is not here -- it lives on the title, as
+   *  a caret (see <ScopeCaret>). Nothing was added to this row.
+   *
+   *  A segmented pill sat here for one commit and it was wrong: this is the
+   *  line whose whole brief was "no pills, no borders" (see the file header,
+   *  in the owner's own words), and a filled capsule next to bare 13.5px
+   *  words put two selection idioms at two sizes on two baselines. */
   scope: PhotoScope;
-  onScope: (v: PhotoScope) => void;
-  /** Whether this member has a Class Collection to switch to. When false the
-   *  switch is not drawn at all and this row is exactly what it always was. */
-  canSeeClass?: boolean;
   /** "" is All, which is the resting state and not a bucket. */
   bucket: string;
   onBucket: (v: string) => void;
@@ -196,26 +143,6 @@ export function RiverControls({
        "the 4 photos newest needs to be moved a touch down, it's too close to
        the navigation" (owner, 2026-08-29). */
     <div className={cn("flex flex-wrap items-end justify-between gap-x-6 gap-y-3", className)}>
-      {/* The switch and the buckets are ONE left-anchored group, not two
-          children of the `justify-between` row. Left as siblings, the row
-          distributed all three and pushed the bucket line into the middle of
-          the page, floating with nothing under its left edge -- the switch
-          took the alignment with the title that the buckets used to hold.
-          Grouped, the switch takes that edge and the buckets follow it. */}
-      {/* `basis-full` UNTIL sm, and that is a measured mobile decision rather
-          than a default. Sharing the row from 390px squeezed the bucket
-          scroller from six visible words to five, because the order dropdown
-          took width the nav used to have -- and the baseline this page
-          shipped with gives the buckets the whole row and lets "Newest" wrap
-          below them. Full width here restores exactly that; from sm up there
-          is room for all three and the group sits beside the order again. */}
-      <div className="flex basis-full flex-wrap items-end gap-x-5 gap-y-3 sm:min-w-0 sm:flex-1 sm:basis-auto">
-      <ScopeSwitch
-        scope={scope}
-        onScope={onScope}
-        canSeeClass={canSeeClass}
-      />
-
       {/* The buckets. A horizontal scroller on a phone rather than a wrap,
           because a wrapped second line of them reads as a form again -- and
           the scroll is the same gesture the decade strip below it takes.
@@ -250,7 +177,6 @@ export function RiverControls({
         ))}
       </nav>
       )}
-      </div>
 
       {/* The order alone, and no count beside it any more. "240 photographs"
           used to open this sentence; the owner cut it -- "I feel like we can
