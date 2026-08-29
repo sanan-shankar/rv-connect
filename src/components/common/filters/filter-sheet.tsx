@@ -34,7 +34,18 @@ export function FilterSheet({
           <SheetTitle className="font-heading text-xl tracking-tight">{title}</SheetTitle>
         </SheetHeader>
         <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">{children}</div>
-        <div className="flex items-center gap-3 border-t border-border bg-background p-4">
+        {/* This is the one sheet in the app with a persistent CTA sitting
+            flush against the screen's own bottom edge -- house-picker and
+            guide-overlay's bottom sheets are either short of full height or
+            already generously padded, but this footer's plain `p-4` put
+            "Show N" right up against a home indicator with nothing but 16px
+            between them (viewport-fit=cover in the root layout means that
+            area is real, not decoration -- see layout.tsx). Same
+            max(16px, env(...)) pattern image-viewer.tsx already uses. */}
+        <div
+          className="flex items-center gap-3 border-t border-border bg-background px-4 pt-4"
+          style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+        >
           {hasActive && (
             <button
               type="button"
