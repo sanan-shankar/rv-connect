@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils"
 // the brightness animate past its target and back, so the colour appeared to
 // change twice on a single hover.
 const CANOPY_FILL =
-  "bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] hover:brightness-[1.08] focus-visible:outline-canopy"
+  "bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] hover:brightness-[1.08]"
 
 const buttonVariants = cva(
   // OWNER RULE (2026-07-25): hover NEVER moves a control. No lift, no grow.
@@ -55,6 +55,13 @@ const buttonVariants = cva(
   // and would show a wrong-coloured halo on the other two. The gap matters
   // because a green ring drawn straight onto a canopy-filled button is 1.78:1
   // against its own fill; the transparent 2px gap is what separates them.
+  // ONE ring colour (2026-08-29): variants used to override this to canopy
+  // (primary) and red (destructive), a per-variant zoo — and the destructive
+  // override had rotted into duplicated classes with a stray bare `dark:`.
+  // Apple draws the system ring on every button whatever its fill; the leaf
+  // ring here is that system colour, and the offset gap above is why it works
+  // on any of them.
+  //
   // focus-visible:outline-solid is load-bearing, not belt-and-suspenders: in
   // Tailwind v4 `outline-none` zeroes the --tw-outline-style custom property
   // on the element itself, and `focus-visible:outline-2` only restores the
@@ -102,7 +109,7 @@ const buttonVariants = cva(
         // /10 -> /20 is -5.3 dL* plus a chroma jump, deeper than the neutral
         // layer's -4.2.
         destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark: focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive",
+          "bg-destructive/10 text-destructive hover:bg-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30",
         link: "text-primary underline-offset-4 hover:underline active:scale-100",
       },
       size: {
