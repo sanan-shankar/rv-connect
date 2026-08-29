@@ -31,7 +31,7 @@ import Link from "next/link";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import { RiverControls } from "@/components/collection/river-controls";
 import { DecadeRail } from "@/components/collection/decade-rail";
-import { PhotoRiver } from "@/components/collection/photo-river";
+import { PhotoRiver, warmThumbs } from "@/components/collection/photo-river";
 import { ImageViewer, type ViewerImage } from "@/components/common/image-viewer";
 import { bucketLabel } from "@/lib/collection";
 import type { RiverOrder } from "@/app/(main)/collection/actions";
@@ -76,9 +76,9 @@ export default function CollectionRoom() {
 
   /* What the rail lights, DERIVED rather than stored: the scrollspy's answer
      when it has one, else the decade the top photograph belongs to. The
-     fallback earns its place -- when one decade fills the whole page there is
-     no heading to observe (a single band has nothing to fold), so nothing
-     would light the rail at all. */
+     fallback earns its place -- when one decade fills the whole page the
+     scrollspy sits out (`useActiveBand` has nothing to compare below two
+     bands), so nothing would light the rail at all. */
   const railActive = order === "taken" ? activeEra || takenWindow[0]?.era || "" : "";
 
   /* Every other order shows the whole filtered set at once, exactly as this
@@ -99,11 +99,20 @@ export default function CollectionRoom() {
   /* Pressing a decade: the newest photograph in it is the first occurrence
      in `takenSorted`, because it is already sorted newest-first -- the same
      fact the real seek boundary (`eraSeekBoundary`) exists to compute
-     without a table scan. */
+     without a table scan.
+
+     The two feel decisions ride along from `collection-client.tsx`, because
+     this room is where the owner judges them: the first screenful decodes
+     BEFORE the swap (no tile-by-tile pop-in), and the landing is the one
+     scroll position where the sticky rail does not move -- its flow offset
+     equal to its stuck offset, river top 24px (top-6) below the viewport
+     edge. */
+  const riverTop = useRef<HTMLDivElement>(null);
   const seekTo = useCallback(
-    (era: string) => {
+    async (era: string) => {
       const at = takenSorted.findIndex((p) => p.era === era);
       if (at < 0) return;
+      await warmThumbs(takenSorted.slice(at, at + 12));
       setTop(at);
       setBottom(Math.min(at + PAGE_SIZE, takenSorted.length));
       setActiveEra(era);
@@ -111,7 +120,11 @@ export default function CollectionRoom() {
       // real one: a decade is a position, and only this order has a spine
       // for it to be a position along.
       setOrder("taken");
-      window.scrollTo({ top: 0 });
+      const row = riverTop.current;
+      const target = row
+        ? Math.max(0, Math.round(row.getBoundingClientRect().top + window.scrollY) - 24)
+        : 0;
+      if (window.scrollY > target) window.scrollTo({ top: target });
     },
     [takenSorted]
   );
@@ -123,13 +136,14 @@ export default function CollectionRoom() {
   /* Climbing back up. Scroll-anchored exactly the way `collection-client.tsx`
      anchors it: measured before the DOM grows, corrected in a layout effect
      before the browser paints, so the photograph under the reader's eye does
-     not move. */
+     not move. Half-pages upward, same as the real river's UP_PAGE_SIZE: a
+     chunk landing above the reader is laid out while they watch. */
   const scrollAnchor = useRef<{ height: number; top: number } | null>(null);
   const loadNewer = useCallback(() => {
     if (top === 0) return;
     const scroller = document.scrollingElement;
     if (scroller) scrollAnchor.current = { height: scroller.scrollHeight, top: scroller.scrollTop };
-    setTop((t) => Math.max(0, t - PAGE_SIZE));
+    setTop((t) => Math.max(0, t - PAGE_SIZE / 2));
   }, [top]);
 
   useLayoutEffect(() => {
@@ -221,11 +235,10 @@ export default function CollectionRoom() {
           onBucket={setBucket}
           order={order}
           onOrder={setOrder}
-          total={order === "taken" ? takenSorted.length : photos.length}
           markerId="lab-bucket"
         />
 
-        <div className="mt-4 flex items-start gap-6 xl:gap-8">
+        <div ref={riverTop} className="mt-4 flex items-start gap-6 xl:gap-8">
           <div className="min-w-0 flex-1">
             {/* `-mb-px` cancels its own height: a sentinel at the START of
                 the river must add nothing to the layout. See the note on
@@ -236,7 +249,6 @@ export default function CollectionRoom() {
               order={order}
               onOpen={setAt}
               onActiveEraChange={order === "taken" ? setActiveEra : undefined}
-              windowed={top === 0}
             />
             {order === "taken" && <div ref={foot} aria-hidden className="h-px" />}
           </div>

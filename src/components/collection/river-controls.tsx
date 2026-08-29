@@ -114,7 +114,6 @@ export function RiverControls({
   onBucket,
   order,
   onOrder,
-  total,
   markerId = "collection-bucket",
   className,
 }: {
@@ -123,9 +122,6 @@ export function RiverControls({
   onBucket: (v: string) => void;
   order: RiverOrder;
   onOrder: (v: RiverOrder) => void;
-  /** How many photographs the current view holds, or undefined while a
-   *  filter's first page is still in the air. */
-  total?: number;
   markerId?: string;
   className?: string;
 }) {
@@ -163,38 +159,23 @@ export function RiverControls({
         ))}
       </nav>
 
-      {/* The count and the order, as one sentence. `tabular-nums` so the
-          number does not jitter as a filter narrows the river.
+      {/* The order alone, and no count beside it any more. "240 photographs"
+          used to open this sentence; the owner cut it -- "I feel like we can
+          dispense of the number of photographs anywhere, who actually cares"
+          -- and the rail's marks already carry the same fact in the only
+          form anybody reads, as proportion. The dot separator left with it,
+          since a sentence of one word has nothing to separate.
 
-          `pb-0.5`, and it is a MEASURED optical correction rather than a
-          spacing choice -- the owner: "the 1 photograph / newest line isn't
-          in line with the buckets line."
-
-          The row cannot inherit the alignment, because `items-end` on the
-          parent aligns the two children's BOTTOM EDGES and these two children
-          are not built the same: a bucket word is one 13.5px line set
-          `leading-none`, while this is a 13px line sharing a centred flex row
-          with a dropdown trigger that carries its own `py-0.5`. Equal bottoms,
-          two different baselines. Nor can the parent switch to
-          `items-baseline`: the bucket nav is an `overflow-x-auto` scroller, and
-          a box with non-visible overflow has no baseline to align to -- it
-          synthesises one from its bottom margin edge, which puts us back where
-          we started.
-
-          So the baseline is placed by hand. Measured at 1440px in Source Sans
-          3: at `pb-2` this row's baseline sat exactly 6px above the nav's, and
-          the drift falls one-for-one with the padding (pb-4px: 2, pb-3px: 1,
-          pb-2px: 0). Two pixels is the number that lands them on the same
-          line. */}
+          `pb-0.5` is a MEASURED optical correction rather than a spacing
+          choice -- the owner: "the 1 photograph / newest line isn't in line
+          with the buckets line." The parent's `items-end` aligns bottom
+          edges, not baselines (and cannot switch to `items-baseline`: the
+          bucket nav is an `overflow-x-auto` scroller, which has no baseline
+          to give). Measured at 1440px in Source Sans 3, 2px lands this
+          13px line on the nav's own baseline; that geometry is unchanged by
+          the count leaving, because the dropdown trigger that remains is
+          the same line-height this row always had. */}
       <div className="flex shrink-0 items-center gap-1.5 pb-0.5 text-[13px] text-muted-foreground">
-        {total !== undefined && (
-          <span className="tabular-nums">
-            {total.toLocaleString()} {total === 1 ? "photograph" : "photographs"}
-          </span>
-        )}
-        <span className="dotsep" aria-hidden>
-          ·
-        </span>
         <DropdownMenu>
           <DropdownMenuTrigger
             className="state-layer -mx-1 inline-flex items-center gap-1 rounded-[var(--radius-sm)] px-1 py-0.5 font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"

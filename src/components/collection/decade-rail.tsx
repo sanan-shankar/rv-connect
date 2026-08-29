@@ -43,6 +43,14 @@
  *  them carried none of what makes the rail worth having.
  * ------------------------------------------------------------------ */
 
+import { useRef } from "react";
+import {
+  m,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  type MotionValue,
+} from "motion/react";
 import { ERAS } from "@/lib/collection";
 import { cn } from "@/lib/utils";
 
@@ -73,6 +81,99 @@ function useRailRows(decades: DecadeCount[]) {
   return { rows, most };
 }
 
+/* ------------------------------------------------------------------ *
+ *  The dock. "Maybe some kind of subtle magnification while hovering
+ *  over them, like a mac dock" (owner, 2026-08-29) -- so the rows do
+ *  what the Dock does: swell toward the pointer and settle as it
+ *  leaves, on a spring, with the neighbours carrying a share of it.
+ *
+ *  Transform only, anchored to the right edge, so the right-aligned
+ *  labels stay a clean column while the rows grow leftward into the
+ *  margin -- and the BUTTONS never move, only their paint: the hit
+ *  targets hold still under the cursor, which keeps the house rule
+ *  ("hover never moves a control") in the sense that matters.
+ *
+ *  Subtle is the whole brief: 1.16 at the pointer, falling to rest
+ *  over about three rows. Any more and eleven rows of 11px type read
+ *  as a funhouse mirror.
+ * ------------------------------------------------------------------ */
+const DOCK_REACH = 64; // px of falloff either side of the pointer
+const DOCK_PEAK = 1.16;
+const DOCK_SPRING = { stiffness: 400, damping: 28 };
+
+function RailRow({
+  era,
+  label,
+  count,
+  mark,
+  isActive,
+  pointerY,
+  onSeek,
+}: {
+  era: string;
+  label: string;
+  count: number;
+  /** The mark's length in px, already scaled to the archive's shape. */
+  mark: number;
+  isActive: boolean;
+  /** The pointer's clientY while it is over the rail; far away otherwise. */
+  pointerY: MotionValue<number>;
+  onSeek: (era: string) => void;
+}) {
+  const ref = useRef<HTMLButtonElement>(null);
+  /* Distance from the pointer to this row's centre, measured live: the rail
+     is sticky, so the row's screen position depends on scroll and cannot be
+     precomputed. Reading the rect here is fine -- this runs per pointer
+     event, never during render. */
+  const distance = useTransform(pointerY, (y: number) => {
+    const box = ref.current?.getBoundingClientRect();
+    return box ? y - (box.top + box.height / 2) : 1e5;
+  });
+  const scale = useSpring(
+    useTransform(distance, [-DOCK_REACH, 0, DOCK_REACH], [1, DOCK_PEAK, 1]),
+    DOCK_SPRING
+  );
+
+  return (
+    <m.button
+      ref={ref}
+      type="button"
+      onClick={() => onSeek(era)}
+      aria-current={isActive ? "true" : undefined}
+      title={`${count.toLocaleString()} ${count === 1 ? "photograph" : "photographs"}`}
+      style={{ scale, transformOrigin: "right center" }}
+      className={cn(
+        "group flex w-full items-center justify-end gap-2 rounded-[var(--radius-sm)] py-[3px] pr-1 text-right",
+        "transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        isActive ? "text-canopy" : "text-muted-foreground hover:text-foreground"
+      )}
+    >
+      <span
+        aria-hidden
+        /* An ink tint, not `--border`. The rail sits on the page base
+           rather than on a card, and border #DFD8CB against background
+           #E4E1D5 is well under the just-noticeable step, so the marks
+           were invisible in the first screenshot -- nine labels with
+           nothing beside them. A translucent ink also lifts on dark,
+           where a fixed hairline colour would sink. */
+        className={cn(
+          "h-[2px] shrink-0 rounded-full transition-colors duration-150",
+          isActive ? "bg-canopy" : "bg-foreground/25 group-hover:bg-foreground/50"
+        )}
+        style={{ width: mark }}
+      />
+      <span
+        className={cn(
+          "shrink-0 text-[11px] tabular-nums tracking-[0.04em]",
+          isActive ? "font-semibold" : "font-medium"
+        )}
+      >
+        {label}
+      </span>
+    </m.button>
+  );
+}
+
 /** The wide-screen rail: marks in the margin. */
 export function DecadeRail({
   decades,
@@ -89,62 +190,38 @@ export function DecadeRail({
   className?: string;
 }) {
   const { rows, most } = useRailRows(decades);
+  /* Far away, not zero: 1e5 keeps every row's distance outside DOCK_REACH,
+     so the rail rests flat until a pointer actually arrives. */
+  const pointerY = useMotionValue(1e5);
   // One decade is not a shape, it is a fact, and a rail of one mark is noise.
   if (rows.length < 2) return null;
 
   return (
     <nav
       aria-label="Jump to when the photograph was taken"
+      onPointerMove={(e) => pointerY.set(e.clientY)}
+      onPointerLeave={() => pointerY.set(1e5)}
       /* Sticky, so the index stays with you down twenty thousand photographs
          the way a thumb index stays with a book. `top-6` clears the sticky
          page chrome above it. */
       className={cn("sticky top-6 hidden w-[92px] shrink-0 flex-col items-end gap-px xl:flex", className)}
     >
-      {rows.map((r) => {
-        const isActive = active === r.era;
-        /* The mark. Length is the decade's share of the biggest decade, with
-           a floor -- a decade holding three photographs must still be
-           pressable and still read as present, and a mark shorter than about
-           5px reads as a speck of dust rather than as a quantity. */
-        const mark = Math.max(5, Math.round((r.count / most) * 40));
-        return (
-          <button
-            key={r.era}
-            type="button"
-            onClick={() => onSeek(r.era)}
-            aria-current={isActive ? "true" : undefined}
-            title={`${r.count.toLocaleString()} ${r.count === 1 ? "photograph" : "photographs"}`}
-            className={cn(
-              "group flex w-full items-center justify-end gap-2 rounded-[var(--radius-sm)] py-[3px] pr-1 text-right",
-              "transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-              isActive ? "text-canopy" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <span
-              aria-hidden
-              /* An ink tint, not `--border`. The rail sits on the page base
-                 rather than on a card, and border #DFD8CB against background
-                 #E4E1D5 is well under the just-noticeable step, so the marks
-                 were invisible in the first screenshot -- nine labels with
-                 nothing beside them. A translucent ink also lifts on dark,
-                 where a fixed hairline colour would sink. */
-              className={cn(
-                "h-[2px] shrink-0 rounded-full transition-colors duration-150",
-                isActive ? "bg-canopy" : "bg-foreground/25 group-hover:bg-foreground/50"
-              )}
-              style={{ width: mark }}
-            />
-            <span
-              className={cn(
-                "shrink-0 text-[11px] tabular-nums tracking-[0.04em]",
-                isActive ? "font-semibold" : "font-medium"
-              )}
-            >
-              {r.label}
-            </span>
-          </button>
-        );
-      })}
+      {rows.map((r) => (
+        <RailRow
+          key={r.era}
+          era={r.era}
+          label={r.label}
+          count={r.count}
+          /* The mark. Length is the decade's share of the biggest decade,
+             with a floor -- a decade holding three photographs must still be
+             pressable and still read as present, and a mark shorter than
+             about 5px reads as a speck of dust rather than as a quantity. */
+          mark={Math.max(5, Math.round((r.count / most) * 40))}
+          isActive={active === r.era}
+          pointerY={pointerY}
+          onSeek={onSeek}
+        />
+      ))}
     </nav>
   );
 }

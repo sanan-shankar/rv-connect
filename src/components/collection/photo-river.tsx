@@ -26,6 +26,26 @@ import { cn } from "@/lib/utils";
  *  clicked on picture. Okay. Loaded." */
 export const preloadViewer = () => void import("@/components/common/image-viewer");
 
+/** Decode the first screenful BEFORE the river swaps, so a new view arrives
+ *  formed instead of assembling itself tile by tile -- the owner, on exactly
+ *  that: "it's a full reloading and things populate unevenly, it's not
+ *  pretty." The old river stays up (dimmed) while this runs, so the swap is
+ *  one movement: dim, then the new photographs, whole.
+ *
+ *  Bounded by patience, not by success: a slow network gets the old
+ *  behaviour after 450ms rather than a page that refuses to change. A
+ *  decode that fails is a tile that pops late, which is the status quo,
+ *  so failures resolve rather than reject. */
+export async function warmThumbs(photos: { thumbUrl: string }[], count = 12, patience = 450) {
+  if (typeof window === "undefined" || photos.length === 0) return;
+  const jobs = photos.slice(0, count).map((p) => {
+    const img = new window.Image();
+    img.src = p.thumbUrl;
+    return img.decode().catch(() => {});
+  });
+  await Promise.race([Promise.all(jobs), new Promise((r) => setTimeout(r, patience))]);
+}
+
 export function Tile({
   photo,
   cell,
@@ -60,7 +80,32 @@ export function Tile({
         height={photo.height}
         loading="lazy"
         decoding="async"
-        className="h-full w-full object-cover"
+        /* Materialise, never pop. The tile's box is reserved by aspect-ratio,
+           so a loading image cannot shift anything -- but it used to CUT from
+           paper to pixels the frame it arrived, and a screen of tiles doing
+           that at different moments is the unevenness the owner called out.
+           A 300ms opacity ease turns each arrival into a breath.
+
+           The ref callback, not just onLoad: a cached image can be complete
+           before hydration ever attaches the listener, and an image whose
+           load event has already fired would then stay at opacity 0 for
+           ever. onError resolves the same way -- a broken file gets the alt
+           text, not an invisible tile. */
+        ref={(el) => {
+          if (el && el.complete) el.dataset.loaded = "";
+        }}
+        onLoad={(e) => {
+          e.currentTarget.dataset.loaded = "";
+        }}
+        onError={(e) => {
+          e.currentTarget.dataset.loaded = "";
+        }}
+        /* And the magnification the owner asked for -- "some kind of subtle
+           magnification while hovering over them, like a mac dock". The
+           photograph swells 3% INSIDE its fixed, overflow-hidden frame, so
+           the control itself never moves (the standing rule) while the
+           picture leans toward the cursor. Transform and opacity only. */
+        className="h-full w-full object-cover opacity-0 transition-[opacity,transform] duration-300 ease-out data-[loaded]:opacity-100 group-hover:scale-[1.03] group-focus-visible:scale-[1.03]"
       />
       {!photo.approved && (
         <span className="absolute left-2 top-2 rounded-full bg-foreground/80 px-2 py-0.5 text-[10.5px] font-semibold text-background">
@@ -196,7 +241,6 @@ export function PhotoRiver({
   onOpen,
   dimmed = false,
   onActiveEraChange,
-  windowed = true,
   className,
 }: {
   photos: PhotoData[];
@@ -210,10 +254,6 @@ export function PhotoRiver({
    *  from scroll position, never from a filter (see `useActiveBand`). Fires
    *  only in "taken" order, where headings exist at all. */
   onActiveEraChange?: (era: string) => void;
-  /** Whether bands below the fold may be skipped at paint (see the note on
-   *  the `<section>` below). FALSE while the river can grow UPWARD, which is
-   *  the one case where skipping is not free. */
-  windowed?: boolean;
   className?: string;
 }) {
   const bands = useMemo(() => bandsOf(photos, order), [photos, order]);
@@ -231,39 +271,20 @@ export function PhotoRiver({
       )}
     >
       {bands.map((band, bi) => (
-        <section
-          key={band.era || "all"}
-          /* Windowing, and it is the browser's rather than ours. Everything
-             well below the fold is skipped at layout and paint until it is
-             scrolled near, which is what keeps a twenty-thousand photograph
-             archive smooth without a virtualiser measuring rows. A
-             virtualiser is what this campaign's D16 ruled out: measuring
-             means laying out after the first paint, which is the page-jump
-             the whole thing exists to end.
-
-             Only past the first band. The fold is never skipped (it is the
-             largest thing painted), and chopping ONE continuous river into
-             windowed chunks would break a justified row at every seam. A
-             decade boundary is a real seam and its rows already end there.
-
-             AND ONLY WHILE THE RIVER GROWS DOWNWARD. A skipped band stands
-             in at its intrinsic 600px until it is scrolled near, which is
-             free when it is below you and ruinous when it is above: after
-             the decade rail seeks, pages arrive at the TOP, and a band
-             prepended above the viewport would be laid out at 600px, then
-             swell to its real height as it came into view -- moving
-             everything under it, which is the one thing the seek promises
-             not to do. Chrome's scroll anchoring hides that; Safari has
-             none, so on a phone it is a visible jump. Windowing is
-             therefore off for the whole of a seeked river, where the pages
-             the reader has loaded are few enough not to need it. */
-          style={
-            windowed && bi > 0
-              ? { contentVisibility: "auto", containIntrinsicSize: "auto 600px" }
-              : undefined
-          }
-        >
-          {band.era && bands.length > 1 && (
+        /* NO `content-visibility` WINDOWING, any more, and it was removed for
+           cause rather than tidied away. A skipped band stands in at a
+           600px guess until it is scrolled near; the real bands run to
+           thousands of pixels, and the moment one was reached, the page
+           re-learned its own height by that difference. Browser scroll
+           anchoring papers over most of that -- except with justified rows
+           it misfired often enough that scrolling "just glitched and took
+           me elsewhere" (owner, 2026-08-29), which is strictly worse than
+           the layout cost of a few hundred tiles. If the archive ever
+           reaches the size where windowing earns its place again, the
+           estimate must be COMPUTED from the rows' known aspect ratios,
+           never guessed. */
+        <section key={band.era || "all"}>
+          {band.era && (
             /* The foldering, inline and free -- and it is a chapter opening
                now rather than a bar.
                It used to be sticky, which meant it needed a background to
@@ -273,16 +294,21 @@ export function PhotoRiver({
                price of the stickiness, and the stickiness was buying very
                little: the decade rail on the right already says where you
                are, permanently, without covering anything.
-               So: no band, no rule, no blur. The decade, the count under
-               it, and a clear breath above so the eye reads a new section
-               starting rather than a label attached to the row above. */
+
+               A SINGLE band gets its heading too. It used to be suppressed
+               when the whole page was one decade, on the logic that one
+               chapter needs no chapter openings -- and the owner read that
+               as a bug, correctly: "when i'm on All and chronological why's
+               there sometimes no 2020s heading." In an order whose whole
+               point is time, the decade you are reading is never noise.
+
+               No count under it. "I feel like we can dispense of the number
+               of photographs anywhere, who actually cares" -- the rail's
+               marks already say how much each decade holds, as proportion,
+               which is the only form anybody reads. */
             <h2 ref={headingRef(band.era)} data-era={band.era} className={cn("mb-4", bi > 0 && "mt-12")}>
               <span className="block font-heading text-[22px] leading-none tracking-[-0.02em] text-foreground">
                 {bandLabel(band.era)}
-              </span>
-              <span className="mt-1.5 block text-[12.5px] tabular-nums text-muted-foreground">
-                {band.photos.length}{" "}
-                {band.photos.length === 1 ? "photograph" : "photographs"}
               </span>
             </h2>
           )}
