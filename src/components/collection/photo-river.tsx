@@ -36,6 +36,41 @@ export const preloadViewer = () => void import("@/components/common/image-viewer
  *  behaviour after 450ms rather than a page that refuses to change. A
  *  decode that fails is a tile that pops late, which is the status quo,
  *  so failures resolve rather than reject. */
+/** Scroll the document to `want`, LENGTHENING IT FIRST if it is too short
+ *  to get there. A scroll position only exists if there is document below
+ *  it, and an archive of four photographs has none: the seek landed
+ *  Undated at the head, the 2020s band arrived above it, and the scroll
+ *  correction that should have held Undated still was clamped to zero --
+ *  so the reader who pressed Undated watched 2020s slide in on top of it.
+ *  `tail` is an empty element after the river whose height is grown by
+ *  exactly the deficit, and by nothing when there is none: a long river
+ *  never sees it, and a short one gains only the blank it needs to keep
+ *  its promise. Grown, never shrunk mid-river; a new river resets it. */
+export function landAt(want: number, tail: HTMLElement | null) {
+  const scroller = document.scrollingElement;
+  if (!scroller) return;
+  /* Measured from where the content actually ENDS, which is the tail's own
+     position -- not from scrollHeight, which is floored at the viewport and
+     so cannot see the slack under a page shorter than the window. The
+     furthest the window can scroll is (content end + tail) - viewport, and
+     `want` has to fit under that. Never shrunk here: a tail already taller
+     than needed keeps its height until a new river resets it. */
+  if (tail) {
+    const contentEnd = tail.getBoundingClientRect().top + scroller.scrollTop;
+    const needed = want + scroller.clientHeight - contentEnd;
+    const current = parseFloat(tail.style.height || "0");
+    if (needed > current) tail.style.height = `${Math.ceil(needed)}px`;
+  }
+  scroller.scrollTop = want;
+}
+
+/** Every thumbnail this session has finished loading, by resolved URL. Read
+ *  in <Tile>'s ref callback to decide whether an image should fade in (new
+ *  to the reader) or simply appear (seen before, remounted by a re-flow).
+ *  Module-level and monotonic: a few hundred short strings, never cleared,
+ *  and a wrong answer only costs one fade. */
+const seenThumbs = new Set<string>();
+
 export async function warmThumbs(photos: { thumbUrl: string }[], count = 12, patience = 450) {
   if (typeof window === "undefined" || photos.length === 0) return;
   const jobs = photos.slice(0, count).map((p) => {
@@ -86,15 +121,31 @@ export function Tile({
            that at different moments is the unevenness the owner called out.
            A 300ms opacity ease turns each arrival into a breath.
 
-           The ref callback, not just onLoad: a cached image can be complete
-           before hydration ever attaches the listener, and an image whose
-           load event has already fired would then stay at opacity 0 for
-           ever. onError resolves the same way -- a broken file gets the alt
-           text, not an invisible tile. */
+           ONCE. A thumbnail the browser has already shown is set visible in
+           the ref callback -- before first paint, so no transition runs --
+           and only a thumbnail arriving for the first time fades. Without
+           that latch the fade replayed on every REMOUNT, and remounts are
+           routine: a page landing above the reader re-flows the justified
+           rows of the band it joins, and a tile that changes row changes
+           parent, which React can only do by destroying and recreating it.
+           So the photographs under the reader's eye went blank and faded
+           back in every time the river grew upward -- "they turn white for
+           a beat and then they come back" (owner, 2026-08-29).
+
+           The ref callback rather than onLoad alone, for the same reason:
+           a cached image can be complete before hydration attaches any
+           listener, and would then sit at opacity 0 for ever. onError
+           resolves the same way -- a broken file gets the alt text, not an
+           invisible tile. */
         ref={(el) => {
-          if (el && el.complete) el.dataset.loaded = "";
+          if (!el) return;
+          if (el.complete || seenThumbs.has(el.src)) {
+            seenThumbs.add(el.src);
+            el.dataset.loaded = "";
+          }
         }}
         onLoad={(e) => {
+          seenThumbs.add(e.currentTarget.src);
           e.currentTarget.dataset.loaded = "";
         }}
         onError={(e) => {
@@ -262,10 +313,17 @@ export function PhotoRiver({
   return (
     /* The cross-fade. Changing a bucket dims the river the moment the query
        changes and brings the new one up when it lands, so the change reads as
-       one movement instead of a flash of skeletons. Opacity only. */
+       one movement instead of a flash of skeletons. Opacity only.
+
+       `overflow-anchor: none`, because the river anchors its own scroll: a
+       page landing above the reader is compensated by hand in a layout
+       effect (`loadNewer`), and the browser's built-in anchoring, left on,
+       applies its own correction to the same insertion against whatever
+       node it happened to pick. Two hands on one wheel is exactly the
+       "sometimes" class of jump. */
     <div
       className={cn(
-        "transition-opacity duration-200 ease-out",
+        "transition-opacity duration-200 ease-out [overflow-anchor:none]",
         dimmed && "pointer-events-none opacity-40",
         className
       )}

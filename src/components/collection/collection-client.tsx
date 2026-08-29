@@ -51,7 +51,7 @@ import {
   type RiverPage,
 } from "@/app/(main)/collection/actions";
 import { areaLabel, bucketLabel } from "@/lib/collection";
-import { PhotoRiver, Tile, warmThumbs } from "./photo-river";
+import { PhotoRiver, Tile, landAt, warmThumbs } from "./photo-river";
 import { RiverControls } from "./river-controls";
 import { DecadeRail, type DecadeCount } from "./decade-rail";
 
@@ -160,14 +160,33 @@ export function CollectionClient({
      once and never listened again.
 
      Adjust-during-render, React's own pattern, rather than an effect that
-     would paint the stale river for a frame first. */
+     would paint the stale river for a frame first.
+
+     ONLY WHEN THE SERVER HAS SOMETHING THE RIVER LACKS. The prop also
+     arrives, unasked, after every server action: Next re-fetches this
+     route's tree once an action completes (measured -- one RSC GET per
+     `loadPhotos` call, `navigateToUnknownRoute` in the trace, with
+     PostHog's history patch sitting between Next's router and its own
+     patched `replaceState`). Re-seeding blindly on each of those threw
+     away every page the reader had scrolled into, and with a `?when=` in
+     the address it was a closed loop: the server's page is seeked to that
+     decade, so it carries a `topCursor`; adopting it re-armed the head
+     sentinel; the prepend it fired was itself an action; and the tree came
+     back again. The owner watched it run: "a weird loop of switching from
+     2020s to undated ... forever until I reload." A server page whose every
+     photograph is already on screen is not news, and is ignored. */
   const [seed, setSeed] = useState(firstPage);
   if (firstPage !== seed) {
     setSeed(firstPage);
-    setPhotos(firstPage.photos);
-    setCursor(firstPage.nextCursor);
-    setTopCursor(firstPage.topCursor ?? null);
-    setDecades(firstPage.decades ?? []);
+    // Asked through the shared dedupe rather than a Set of ids here, and the
+    // helper's answer IS the question: would appending the server's page add
+    // a single photograph the river does not already show?
+    if (appendUnseen(photos, firstPage.photos).length > photos.length) {
+      setPhotos(firstPage.photos);
+      setCursor(firstPage.nextCursor);
+      setTopCursor(firstPage.topCursor ?? null);
+      setDecades(firstPage.decades ?? []);
+    }
   }
 
   const [pendingPhotos, setPendingPhotos] = useState<PhotoData[]>(pending);
@@ -209,6 +228,17 @@ export function CollectionClient({
    *  for a bucket that is not empty. Both setters therefore clear it. */
   const chooseBucket = useCallback((next: string) => {
     setBucket(next);
+    setSeekEra("");
+  }, []);
+
+  /** An order picked from the menu abandons the seek too. Left in state, a
+   *  seek survived a trip through Newest and resurfaced the moment the
+   *  reader came back to Chronological -- the archive opening at 1970s when
+   *  they had asked for the archive. An order chosen by hand starts at its
+   *  own head; only the rail's own press sets a decade, and it sets the
+   *  order with it (`seekTo`). */
+  const chooseOrder = useCallback((next: RiverOrder) => {
+    setOrder(next);
     setSeekEra("");
   }, []);
 
@@ -302,6 +332,19 @@ export function CollectionClient({
      rather than re-show a seed that is by then minutes old. */
   const seeded = useRef(fetchPage);
 
+  /** The flex row holding the river and the rail -- the landing target for a
+   *  seek. Its top is the rail's flow position, which is what makes the
+   *  "rail does not move" arithmetic possible. */
+  const riverTop = useRef<HTMLDivElement>(null);
+
+  /** The river's head as a scroll position: its top exactly `top-6` (24px)
+   *  below the viewport edge, which is where the sticky rail already sits,
+   *  so landing there moves the river and not the rail. */
+  const headOfRiver = useCallback(() => {
+    const row = riverTop.current;
+    return row ? Math.max(0, Math.round(row.getBoundingClientRect().top + window.scrollY) - 24) : 0;
+  }, []);
+
   useEffect(() => {
     if (seeded.current === fetchPage) return;
     let cancelled = false;
@@ -335,37 +378,51 @@ export function CollectionClient({
          reads as "wherever the first photograph is" (see `railActive`). */
       setActiveEra(seekEra);
       setLoading(false);
-      /* A seek is a journey to somewhere, so it has to ARRIVE -- pressing
-         "1970s" from six screens down and staying six screens down would
-         land the reader in the middle of the decade they asked for. Not
-         smooth: the photographs under them have already been replaced, so
-         there is nothing continuous left to travel over.
+      /* EVERY NEW RIVER STARTS AT ITS HEAD, and the head is one place. Not
+         the top of the page: landing at scroll 0 moved the sticky rail from
+         where it was pinned (top-6 below the viewport edge) back down to
+         its flow position under the page header, so the very control being
+         pressed lurched -- "the decade bar adjusts its position when you
+         click, it goes to the top of the screen" (owner). The head is the
+         one scroll position where the rail does not move AT ALL: its flow
+         offset equals its stuck offset, i.e. the river's top sits exactly
+         `top-6` (24px) below the viewport edge.
 
-         But NOT to the top of the page. Landing at scroll 0 moved the
-         sticky rail from where it was pinned (top-6 below the viewport
-         edge) back down to its flow position under the page header, so the
-         very control being pressed lurched -- "the decade bar adjusts its
-         position when you click, it goes to the top of the screen" (owner).
-         The landing is instead the one scroll position where the rail does
-         not move AT ALL: its flow offset equals its stuck offset, i.e. the
-         river's top sits exactly `top-6` (24px) below the viewport edge.
-         A reader already above that point stays put -- the river's top is
-         on their screen and nothing needs to travel. */
-      if (jump.current) {
-        jump.current = false;
-        const row = riverTop.current;
-        const target = row
-          ? Math.max(0, Math.round(row.getBoundingClientRect().top + window.scrollY) - 24)
-          : 0;
-        if (window.scrollY > target) window.scrollTo({ top: target });
-      }
+         A seek goes there unconditionally. It used to stay put for a reader
+         who was above the head already, on the logic that the river's top
+         was on their screen -- which put the decade they had just asked for
+         a third of the way down the page under the header and controls,
+         while the same press from deeper landed it flush at the top:
+         "sometimes I click 2000s and instead of 2000s being at the top it's
+         partway down the screen ... where the decades take you depends on
+         which mode you're in" (owner). One landing, every time.
+
+         A change of bucket, search or order only PULLS UP to the head. It
+         never scrolls a reader down away from the page header they may be
+         reading, but a reader deep in a long river gets the new one from
+         its start rather than from wherever the browser clamped them when
+         a shorter river arrived -- which is "I switch to Newest and it
+         scrolls to a point below, random". */
+      /* Decided here, DONE after the commit. Whether to travel is a fact
+         about where the reader is now, against the river they are looking
+         at; where to land is a fact about the river that is about to
+         replace it, which does not exist in the DOM yet. Scrolling now
+         measured the old river -- a four-photograph page above a one-
+         photograph seek grew the tail by the old, larger content's slack,
+         and the moment the shorter river committed the browser clamped the
+         scroll straight back to zero. `pendingLanding` carries the decision
+         across to the layout effect below, which runs once the new river
+         is laid out and before it is painted. */
+      const wasDeep = window.scrollY > headOfRiver();
+      pendingLanding.current = jump.current ? "seek" : wasDeep ? "pull" : null;
+      jump.current = false;
     })();
     return () => {
       cancelled = true;
     };
     // `seekEra` cannot change without changing `fetchPage` with it; it is
     // listed because this body reads it, not because it can move on its own.
-  }, [fetchPage, seekEra]);
+  }, [fetchPage, seekEra, headOfRiver]);
 
   const more = useCallback(async () => {
     // ...and not while one is arriving at the head, for the reason given on
@@ -425,10 +482,6 @@ export function CollectionClient({
    *  page looks like, and it must not cause a render of its own. */
   const jump = useRef(false);
 
-  /** The flex row holding the river and the rail -- the landing target for a
-   *  seek. Its top is the rail's flow position, which is what makes the
-   *  "rail does not move" arithmetic in the query effect possible. */
-  const riverTop = useRef<HTMLDivElement>(null);
 
   /* Pressing a decade. Two state changes and nothing else -- no fetch here:
      `seekEra` is part of the query, so the effect above sees a new
@@ -503,14 +556,31 @@ export function CollectionClient({
     }
   }, [topCursor, loadingNewer, loadingMore, bucket, search]);
 
+  /** The blank after the river that `landAt` may grow -- see its docblock. */
+  const tail = useRef<HTMLDivElement>(null);
+
+  /** A landing the query effect decided on and this layout effect carries
+   *  out once the new river is in the DOM: "seek" goes to the head
+   *  unconditionally, "pull" only because the reader was deep. */
+  const pendingLanding = useRef<"seek" | "pull" | null>(null);
+
   useLayoutEffect(() => {
+    /* A new river has just committed. Reset the blank the old one may have
+       needed, then land -- measured against THIS river, which is the whole
+       point of doing it here rather than where the decision was made. */
+    if (pendingLanding.current) {
+      pendingLanding.current = null;
+      if (tail.current) tail.current.style.height = "0px";
+      landAt(headOfRiver(), tail.current);
+      return;
+    }
     if (!scrollAnchor.current) return;
     const { height, top } = scrollAnchor.current;
     scrollAnchor.current = null;
     const scroller = document.scrollingElement;
     if (!scroller) return;
-    scroller.scrollTop = top + (scroller.scrollHeight - height);
-  }, [photos]);
+    landAt(top + (scroller.scrollHeight - height), tail.current);
+  }, [photos, headOfRiver]);
 
   /* The mirror of the foot sentinel: sits above the river, so a page that
      exists above the fold gets pulled in and scroll-anchored into place
@@ -714,7 +784,7 @@ export function CollectionClient({
             bucket={bucket}
             onBucket={chooseBucket}
             order={order}
-            onOrder={setOrder}
+            onOrder={chooseOrder}
           />
           {/* NO WAY TO JUMP BY DECADE BELOW 1280px, still. A scrolling line of
               decade words under the buckets shipped here once, in the one
@@ -814,6 +884,9 @@ export function CollectionClient({
                   {loadingMore ? "Gathering more..." : " "}
                 </p>
               )}
+              {/* Zero-height until a scroll position the river is too short
+                  to reach is asked for; see `landAt`. */}
+              <div ref={tail} aria-hidden />
             </div>
 
             {/* In EVERY order, because the marks are a picture of what the

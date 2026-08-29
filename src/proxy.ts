@@ -368,13 +368,33 @@ export function proxy(request: NextRequest) {
   withPath.set("x-visit-id", visitId);
 
   const res = NextResponse.next({ request: { headers: withPath } });
-  res.cookies.set(VISIT_COOKIE, visitId, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: request.nextUrl.protocol === "https:",
-    path: "/",
-    maxAge: VISIT_TTL_SECONDS,
-  });
+
+  /* NEVER ON A SERVER ACTION. Next treats any cookie modified while an action
+     runs as a revalidation (`isCookieRevalidated` in its action handler), and
+     answers a revalidated action the way it answers a navigation: it renders
+     the page again on the server, re-applies the tree on the client, and
+     scrolls to the top. Sliding this cookie on an action POST therefore
+     turned every `loadPhotos` call -- a page of photographs, nothing more --
+     into a full re-render of /collection with a jump to the top of it, and
+     with a `?when=` in the address it closed a loop the owner had to reload
+     out of. Measured on the action's own response: `set-cookie: rv-visit`
+     beside `x-action-revalidated: 1`, and an RSC GET straight after.
+
+     An action is not a page view, so it has nothing to say about the
+     visit's 30-minute window; the page and RSC requests around it keep the
+     cookie sliding exactly as before. The `x-visit-id` header still goes
+     through above, so anything the action records is attributed to the
+     same sitting. */
+  const isServerAction = request.method === "POST" && request.headers.has("next-action");
+  if (!isServerAction) {
+    res.cookies.set(VISIT_COOKIE, visitId, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: request.nextUrl.protocol === "https:",
+      path: "/",
+      maxAge: VISIT_TTL_SECONDS,
+    });
+  }
   return res;
 }
 
