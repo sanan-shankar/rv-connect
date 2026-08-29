@@ -98,7 +98,11 @@ export async function collectionPageData(filters: RiverFilters = { order: "newes
       where: { id: session.user.id },
       select: { photoTrusted: true, verifyState: true, batchYear: true },
     }),
-    prisma.photo.count({ where: { uploaderId: session.user.id } }),
+    /* SCOPED to the half being looked at, because the quota is per half. The
+       pop-up promises the room left before a file is chosen, and promising
+       the valley's number over the Class Collection would be a lie the member
+       only discovers two hundred photographs in. */
+    prisma.photo.count({ where: { uploaderId: session.user.id, scope } }),
   ]);
 
   /* Whether this member may see the Class Collection AT ALL, answered from

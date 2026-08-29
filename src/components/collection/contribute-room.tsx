@@ -83,7 +83,7 @@ import { contributePhoto, contributePhotoDirect } from "@/app/(main)/collection/
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import { directUploadPut } from "@/lib/upload-client";
 import { shrinkForUpload } from "@/lib/image-downscale";
-import { MAX_UPLOAD_BYTES, isImageFile } from "@/lib/upload-shared";
+import { MAX_PHOTOS_PER_DROP, MAX_UPLOAD_BYTES, isImageFile } from "@/lib/upload-shared";
 import { valleyYear } from "@/lib/utils";
 import { BucketTiles } from "./bucket-tiles";
 import { ContributeStage } from "./contribute-stage";
@@ -387,16 +387,30 @@ export function ContributeRoom({
       }
       if (!ok.length) return;
 
-      /* The quota is the server's rule, checked per contribution. Saying it
-         here means nobody drops two hundred photographs and finds out at the
-         end that only forty could go. */
-      const room = Math.max(0, roomLeft - photos.length);
+      /* TWO ceilings, and the tighter one wins.
+
+         The quota is the server's rule, checked per contribution, and saying
+         it here means nobody drops two hundred photographs and finds out at
+         the end that only forty could go.
+
+         The DROP ceiling is this room's own, and it is not about storage: a
+         drop is two tokens of the hourly meter per photograph (the presign and
+         the contribution), so an unbounded drop can exhaust its own allowance
+         part-way through and strand the tail -- the worst possible failure,
+         because it happens after the member has waited. Refusing the surplus
+         up front, with the number said out loud, is the honest version. */
+      const room = Math.min(
+        Math.max(0, roomLeft - photos.length),
+        Math.max(0, MAX_PHOTOS_PER_DROP - photos.length)
+      );
       const taking = ok.slice(0, room);
       if (taking.length < ok.length) {
         toast.error(
           room === 0
-            ? "This account has reached the number of photographs it can add. Message the admins if you have more to share."
-            : `Only ${room} more photographs will fit on this account, so that many were taken.`
+            ? photos.length >= MAX_PHOTOS_PER_DROP
+              ? `${MAX_PHOTOS_PER_DROP} photographs is as many as one go can take. Add these, then start another.`
+              : "This account has reached the number of photographs it can add. Message the admins if you have more to share."
+            : `Only ${room} more photographs will fit, so that many were taken.`
         );
       }
       if (!taking.length) return;

@@ -39,8 +39,31 @@ export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
  * who reaches it is exactly the person to mark `photoTrusted` and raise it for.
  * Post images are not counted here: they are capped at three per post and
  * gated by the same hourly meter.
+ *
+ * COUNTED PER HALF of the Collection, not across both (owner's call,
+ * 2026-08-29): valley-scoped and class-scoped rows have a thousand each, so a
+ * reunion emptied into somebody's Class Collection never eats the room they
+ * had for the school's own archive. `photoQuotaError` is where that counting
+ * happens. The cost ceiling this defends is therefore twice what it was, which
+ * is accepted rather than overlooked -- at roughly 250KB a photograph, a member
+ * who genuinely filled both pools costs about half a gigabyte on R2. The
+ * pressure here was never the bytes.
  */
 export const MAX_PHOTOS_PER_ACCOUNT = 1000;
+
+
+/**
+ * How many photographs one drop may hold. Two hundred (owner's call): a whole
+ * camera card after a reunion, which is the thing the Class Collection exists
+ * to catch.
+ *
+ * NOT the same limit as the account quota, and it must stay well under the
+ * hourly meter -- see `collectionUploads` in rate-limit.ts, where the
+ * arithmetic that ties these two numbers together is written down. A drop that
+ * cannot finish because it exhausted its own allowance is worse than a drop
+ * that was refused up front.
+ */
+export const MAX_PHOTOS_PER_DROP = 200;
 
 /**
  * The four formats the pipeline can decode and store, mapped to the extension

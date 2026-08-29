@@ -6,6 +6,7 @@ import {
   publicBaseFor,
   describeProcessingError,
   MAX_INPUT_PIXELS,
+  MAX_PHOTOS_PER_DROP,
   storedImageFormat,
   stillPictureNotice,
 } from "./upload-shared.ts";
@@ -227,4 +228,41 @@ test("C-073: the sentence names the file when there is one to name", () => {
   assert.match(stillPictureNotice("holi.gif"), /"holi\.gif"/);
   assert.match(stillPictureNotice(), /^That photo/);
   assert.equal(stillPictureNotice("a.gif").replace('"a.gif"', "That photo"), stillPictureNotice());
+});
+
+/* ------------------------------------------------------------------ *
+ *  The drop ceiling and the hourly meter are TIED, and the tie is easy
+ *  to break by changing one number.
+ *
+ *  A direct-path contribution spends two tokens of `collectionUploads`:
+ *  one at /api/upload/presign, one at contributePhotoDirect. So a drop of
+ *  MAX_PHOTOS_PER_DROP costs twice that. When the meter stood at 400 and
+ *  the ceiling at 200 those were exactly equal, which meant a full drop
+ *  spent its entire hour and the last photograph could be refused by
+ *  anything racing it -- a failure that lands AFTER the member has waited
+ *  for the upload, which is the worst moment to refuse anybody.
+ * ------------------------------------------------------------------ */
+
+test("the hourly meter can carry a full drop, with room to spare", async () => {
+  /* Read off the SOURCE rather than imported: rate-limit.ts does not export
+     its LIMITS table, and importing it would construct the Upstash client. The
+     same static-shape approach security-regressions.test.mjs takes, and for
+     the same reason. */
+  const { readFileSync } = await import("node:fs");
+  const { fileURLToPath } = await import("node:url");
+  const src = readFileSync(
+    fileURLToPath(new URL("./rate-limit.ts", import.meta.url)),
+    "utf8"
+  );
+  const found = /collectionUploads:\s*\{\s*tokens:\s*(\d+)/.exec(src);
+  assert.ok(found, "collectionUploads is no longer a plain tokens/window entry");
+
+  const meter = Number(found[1]);
+  const costOfOneDrop = MAX_PHOTOS_PER_DROP * 2;
+  assert.ok(
+    meter > costOfOneDrop,
+    `collectionUploads (${meter}/h) must exceed one full drop (${costOfOneDrop} tokens). ` +
+      "Raise the meter or lower MAX_PHOTOS_PER_DROP -- a drop that cannot finish " +
+      "is worse than one refused up front."
+  );
 });

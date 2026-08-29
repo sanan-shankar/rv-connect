@@ -88,7 +88,20 @@ const LIMITS = {
    *  per-account quota lands", and that quota landed. Two hundred photographs
    *  an hour is a long sitting for a real contributor and still five hours to
    *  the ceiling for anybody else. */
-  collectionUploads: { tokens: 400, window: "1 h" },
+  /* Per account, and SHARED with the presigned door: however the bytes
+     travel, one account gets one hourly allowance (audit M2).
+
+     THE ARITHMETIC, because these two numbers are tied and the tie is not
+     obvious. A direct-path contribution spends TWO tokens -- one at
+     /api/upload/presign, one at contributePhotoDirect -- so a drop of N
+     photographs costs 2N. At the previous 400 this exactly equalled ONE drop
+     of MAX_PHOTOS_PER_DROP (200), which meant the owner's first real reunion
+     upload would have spent its whole hour and the 200th photograph could be
+     refused by any other contribution racing it. 1000 leaves room for two
+     full drops and the retries around them, and the real backstop against a
+     single account amplifying storage cost was never this meter -- it is
+     MAX_PHOTOS_PER_ACCOUNT, which is a lifetime ceiling rather than a rate. */
+  collectionUploads: { tokens: 1000, window: "1 h" },
   /** Per user. Reporting is for summoning a human, and ten summonses a
    *  day is already a campaign; Phase 7 adds the per-pair dedupe. */
   reports: { tokens: 10, window: "24 h" },
