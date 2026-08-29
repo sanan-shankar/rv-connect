@@ -287,7 +287,10 @@ const SCENARIOS = {
     }
     for (const r of results) console.log(JSON.stringify(r));
     const ok = results.filter((r) => !r.error);
-    const tabEdges = new Set(ok.map((r) => `${r.tab.border}|${r.tab.ring}|${r.tab.outline}`));
+    // Compare the SHAPE of the edge, not its colour: the Support card rescopes
+    // --ring to sky on purpose, so its edge is the same 2px inset at a different hue.
+    const shape = (t) => `${t.border.split(" ")[0]}|${t.ring.replace(/rgb\([^)]*\)|oklab\([^)]*\)/g, "C")}|${t.outline.replace(/rgba?\([^)]*\)/g, "C")}`;
+    const tabEdges = new Set(ok.map((r) => shape(r.tab)));
     const clickRings = ok.filter((r) => r.click.ring !== "none");
     console.log(tabEdges.size === 1 ? "TAB: one 2px edge on every field ✓" : `TAB: ${tabEdges.size} different edges ✗`);
     console.log(clickRings.length === 0 ? "CLICK: no ring on any field ✓" : `CLICK: ring on ${clickRings.map((r) => r.label).join(", ")} ✗`);

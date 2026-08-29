@@ -269,7 +269,18 @@ export function SupportContribute({ admissionNumber }: { admissionNumber: number
   }
 
   return (
-    <div className="flex flex-col gap-[var(--space-m)]">
+    /* [--ring:var(--sky)]: this card runs on sky (the Other pill, the
+       Contribute button, per the header note: office blue stays the one
+       primary action), so its focus colour follows. One line rescopes the
+       ring token for everything inside -- the amount field's click tint and
+       Tab edge, the button's keyboard ring -- and FIELD_FOCUS stays one
+       recipe. Owner, 2026-08-30, on seeing a blue ring here by accident: "I
+       do like the idea of making this one blue." It is --ring, the RAW token,
+       because globals.css declares `@theme inline`: every ring-ring /
+       border-ring utility compiles to var(--ring) itself, and no
+       --color-ring exists at runtime to override. (A first attempt set
+       --color-ring and changed nothing, measured.) */
+    <div className="flex flex-col gap-[var(--space-m)] [--ring:var(--sky)]">
       <div>
         {/* No "PICK AN AMOUNT" eyebrow: the card is titled Contribute and the
             row is five rupee figures, so a label above it was the same fact a
@@ -388,7 +399,7 @@ export function SupportContribute({ admissionNumber }: { admissionNumber: number
           "inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-sky px-[var(--space-l)] text-[15px] font-semibold text-white sm:w-auto sm:self-start",
           "shadow-[0_6px_16px_-12px_var(--color-sky)]",
           "transition-[transform,filter,opacity] duration-150 ease-out",
-          "hover:brightness-[1.06] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky",
+          "hover:brightness-[1.06] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
           "disabled:pointer-events-none disabled:opacity-50",
         )}
       >

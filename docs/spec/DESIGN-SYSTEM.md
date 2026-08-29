@@ -166,6 +166,13 @@ focus-visible, so fields light on click AND keyboard with the same pseudo-class)
 2. **Fields with no box** (the profile pen's underline, a search line in a popover
    header, a year digit in a grouped row): nothing to light; the caret and the container
    are the state. The test's BORDERLESS list names each one with its reason.
+3. **A surface with its own accent rescopes the colour, never the recipe.** The Support
+   card runs on sky, so it sets `[--ring:var(--sky)]` once on its root and every focus
+   treatment inside (the amount field, the button's Tab ring) turns sky (owner,
+   2026-08-30: "I do like the idea of making this one blue"). It is the RAW `--ring`
+   token: `globals.css` declares `@theme inline`, so `ring-ring` and `border-ring` compile
+   to `var(--ring)` directly and there is no `--color-ring` at runtime to override.
+   No surface writes its own focus classes to get a colour.
 3. **Controls** (buttons, links, menu triggers, anything without a glow-able border):
    `outline-2 outline-offset-2 outline-ring`, with `outline-solid` (Tailwind v4 zeroes
    the style under `outline-none`; without solid the ring is invisible). The offset gap

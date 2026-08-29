@@ -7134,3 +7134,20 @@ The split rides on html[data-modality], set by <FocusModality> in the root layou
 :focus-visible treats a clicked text box the same as a tabbed one. Inset ring, so nothing
 clips inside animating wrappers; transparent outline, so Windows High Contrast still has a
 ring. Verified live with a real click and a real Tab on five different fields.
+
+## 2026-08-30 — the same field, still wrong, then blue on purpose
+
+The owner clicked the Support amount box again and it still had two rings: the leaf tint
+and a thick blue one. The blue was Chrome's own focus ring (`outline: auto`), which paints
+on any input that never had `outline-none`; that box was the one field whose base classes
+lacked it, and the probe had printed "auto 1px" the day before while a session called it
+fine. `outline-none` now sits inside FIELD_FOCUS itself, first, and the test checks it, so
+no field can leak the browser's ring again.
+
+He liked the blue, though, and the Support card already runs on sky. So the card rescopes
+the ring token once on its root and every focus treatment inside follows: a sky tint on
+click, a sky 2px edge on Tab, a sky keyboard ring on the Contribute button. It is the raw
+`--ring` token, not `--color-ring`: globals.css declares `@theme inline`, so the utilities
+compile to `var(--ring)` directly and there is no `--color-ring` at runtime. The first
+attempt overrode the wrong one and changed nothing, which the probe caught (leaf where sky
+was expected) before it could ship. Rule 3 in the focus section records the mechanism.

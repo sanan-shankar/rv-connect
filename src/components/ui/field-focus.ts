@@ -32,6 +32,14 @@
  * compiled to nothing -- the tracker flipped, the class was on the element,
  * and no CSS existed for it. Keep every token literal.
  *
+ * `outline-none` is INSIDE the constant, first. The support amount field was
+ * the one box whose own classes lacked it, and Chrome's native focus ring
+ * (`outline: auto`, blue on a Mac) painted around the leaf border: a thin
+ * green line and a thick blue one, on the very field the owner had picked
+ * at random the day before. The probe even printed "auto 1px" and a session
+ * called it fine. A recipe that relies on every caller remembering a base
+ * class is not a recipe.
+ *
  * Details that are not decoration:
  * - INSET ring: the composer and the comment box each grew a bespoke ring
  *   because an outward one got clipped by their animating overflow-hidden
@@ -51,15 +59,15 @@
 
 /** A field with a visible border: tint on click, edge on Tab. */
 export const FIELD_FOCUS =
-  "focus-visible:border-ring [html[data-modality=keyboard]_&]:focus-visible:ring-1 [html[data-modality=keyboard]_&]:focus-visible:ring-inset [html[data-modality=keyboard]_&]:focus-visible:ring-ring [html[data-modality=keyboard]_&]:focus-visible:outline-solid [html[data-modality=keyboard]_&]:focus-visible:outline-2 [html[data-modality=keyboard]_&]:focus-visible:outline-transparent";
+  "outline-none focus-visible:border-ring [html[data-modality=keyboard]_&]:focus-visible:ring-1 [html[data-modality=keyboard]_&]:focus-visible:ring-inset [html[data-modality=keyboard]_&]:focus-visible:ring-ring [html[data-modality=keyboard]_&]:focus-visible:outline-solid [html[data-modality=keyboard]_&]:focus-visible:outline-2 [html[data-modality=keyboard]_&]:focus-visible:outline-transparent";
 
 /** The mist floating-label shell: nothing on click, edge on Tab. */
 export const FIELD_FOCUS_SHELL =
-  "[html[data-modality=keyboard]_&]:focus-visible:border-ring [html[data-modality=keyboard]_&]:focus-visible:ring-1 [html[data-modality=keyboard]_&]:focus-visible:ring-inset [html[data-modality=keyboard]_&]:focus-visible:ring-ring [html[data-modality=keyboard]_&]:focus-visible:outline-solid [html[data-modality=keyboard]_&]:focus-visible:outline-2 [html[data-modality=keyboard]_&]:focus-visible:outline-transparent";
+  "outline-none [html[data-modality=keyboard]_&]:focus-visible:border-ring [html[data-modality=keyboard]_&]:focus-visible:ring-1 [html[data-modality=keyboard]_&]:focus-visible:ring-inset [html[data-modality=keyboard]_&]:focus-visible:ring-ring [html[data-modality=keyboard]_&]:focus-visible:outline-solid [html[data-modality=keyboard]_&]:focus-visible:outline-2 [html[data-modality=keyboard]_&]:focus-visible:outline-transparent";
 
 /** A bordered wrapper around the focused element. */
 export const FIELD_FOCUS_WITHIN =
-  "focus-within:border-ring [html[data-modality=keyboard]_&]:focus-within:ring-1 [html[data-modality=keyboard]_&]:focus-within:ring-inset [html[data-modality=keyboard]_&]:focus-within:ring-ring [html[data-modality=keyboard]_&]:focus-within:outline-solid [html[data-modality=keyboard]_&]:focus-within:outline-2 [html[data-modality=keyboard]_&]:focus-within:outline-transparent";
+  "outline-none focus-within:border-ring [html[data-modality=keyboard]_&]:focus-within:ring-1 [html[data-modality=keyboard]_&]:focus-within:ring-inset [html[data-modality=keyboard]_&]:focus-within:ring-ring [html[data-modality=keyboard]_&]:focus-within:outline-solid [html[data-modality=keyboard]_&]:focus-within:outline-2 [html[data-modality=keyboard]_&]:focus-within:outline-transparent";
 
 export const FIELD_INVALID =
   "aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-inset aria-invalid:ring-destructive aria-invalid:focus-visible:border-destructive aria-invalid:focus-visible:ring-destructive";
