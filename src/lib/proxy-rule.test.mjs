@@ -199,3 +199,33 @@ test("C-117/C-200: both sign-in gates carry the destination, not just the proxy"
     "currentTarget no longer reads x-search"
   );
 });
+
+test("the visit cookie is never set on a server action", () => {
+  /* Next treats any cookie modified during a server action as a
+     revalidation, and answers a revalidated action like a navigation: the
+     page renders again on the server, the tree is re-applied on the client,
+     and the window scrolls to the top (isCookieRevalidated, in Next's
+     action handler). Sliding the rolling visit cookie on action POSTs
+     therefore made EVERY action in the app re-render its page under the
+     reader -- and on /collection, where a `?when=` address hands the
+     re-render a page that fires another action, a loop the owner had to
+     reload out of (2026-08-29). Measured on the response itself:
+     `set-cookie: rv-visit` beside `x-action-revalidated: 1`.
+
+     Pinned as a shape rather than exercised, for the reason at the top of
+     this file: proxy.ts is edge-bundled and cannot be imported. The guard
+     has to name the `next-action` header, which is how Next marks an
+     action request, and the set has to sit inside it. */
+  const src = decomment(PROXY);
+  const guard = src.match(
+    /const isServerAction = request\.method === "POST" && request\.headers\.has\("next-action"\);/
+  );
+  assert.ok(guard, "the proxy no longer recognises a server action by its next-action header");
+  const setter = src.indexOf("res.cookies.set(VISIT_COOKIE");
+  assert.notEqual(setter, -1, "the visit cookie is no longer set at all; the sitting cannot be attributed");
+  const between = src.slice(guard.index, setter);
+  assert.ok(
+    /if \(!isServerAction\) \{\s*$/.test(between),
+    "the visit cookie is set outside the server-action guard again -- every action is a navigation"
+  );
+});

@@ -31,7 +31,7 @@ import Link from "next/link";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import { RiverControls } from "@/components/collection/river-controls";
 import { DecadeRail } from "@/components/collection/decade-rail";
-import { PhotoRiver, warmThumbs } from "@/components/collection/photo-river";
+import { PhotoRiver, landAt, warmThumbs } from "@/components/collection/photo-river";
 import { ImageViewer, type ViewerImage } from "@/components/common/image-viewer";
 import { bucketLabel } from "@/lib/collection";
 import type { RiverOrder } from "@/app/(main)/collection/actions";
@@ -108,6 +108,17 @@ export default function CollectionRoom() {
      equal to its stuck offset, river top 24px (top-6) below the viewport
      edge. */
   const riverTop = useRef<HTMLDivElement>(null);
+  /** The blank after the river that `landAt` may grow -- see its docblock. */
+  const tail = useRef<HTMLDivElement>(null);
+  /** The river's head: the scroll position that puts its top exactly 24px
+   *  (`top-6`) below the viewport edge, where the sticky rail already sits. */
+  const landing = useCallback(() => {
+    const row = riverTop.current;
+    return row ? Math.max(0, Math.round(row.getBoundingClientRect().top + window.scrollY) - 24) : 0;
+  }, []);
+  /** A landing decided by a press and carried out by the layout effect below
+   *  once the photographs it applies to are in the DOM. */
+  const pendingLanding = useRef<"seek" | "pull" | null>(null);
   const seekTo = useCallback(
     async (era: string) => {
       const at = takenSorted.findIndex((p) => p.era === era);
@@ -120,13 +131,32 @@ export default function CollectionRoom() {
       // real one: a decade is a position, and only this order has a spine
       // for it to be a position along.
       setOrder("taken");
-      const row = riverTop.current;
-      const target = row
-        ? Math.max(0, Math.round(row.getBoundingClientRect().top + window.scrollY) - 24)
-        : 0;
-      if (window.scrollY > target) window.scrollTo({ top: target });
+      // Unconditionally, same as the real river: one landing for a seek,
+      // whichever direction it is travelling from -- carried out by the
+      // layout effect once the new window of photographs is in the DOM.
+      pendingLanding.current = "seek";
     },
     [takenSorted]
+  );
+
+  /* A change of bucket or order only pulls the reader UP to the river's
+     head, never down -- the same rule as `collection-client.tsx`, for the
+     same reason: a shorter river arriving while the reader is deep in a
+     longer one otherwise leaves them wherever the browser clamped them.
+     Decided against the river on screen now; done against the next one. */
+  const chooseBucket = useCallback(
+    (next: string) => {
+      setBucket(next);
+      pendingLanding.current = window.scrollY > landing() ? "pull" : null;
+    },
+    [landing]
+  );
+  const chooseOrder = useCallback(
+    (next: RiverOrder) => {
+      setOrder(next);
+      pendingLanding.current = window.scrollY > landing() ? "pull" : null;
+    },
+    [landing]
   );
 
   const more = useCallback(() => {
@@ -147,13 +177,20 @@ export default function CollectionRoom() {
   }, [top]);
 
   useLayoutEffect(() => {
+    // A new river: forget the blank the old one needed, then land on this one.
+    if (pendingLanding.current) {
+      pendingLanding.current = null;
+      if (tail.current) tail.current.style.height = "0px";
+      landAt(landing(), tail.current);
+      return;
+    }
     if (!scrollAnchor.current) return;
     const { height, top: prevTop } = scrollAnchor.current;
     scrollAnchor.current = null;
     const scroller = document.scrollingElement;
     if (!scroller) return;
-    scroller.scrollTop = prevTop + (scroller.scrollHeight - height);
-  }, [photos]);
+    landAt(prevTop + (scroller.scrollHeight - height), tail.current);
+  }, [photos, landing]);
 
   const head = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -232,9 +269,9 @@ export default function CollectionRoom() {
 
         <RiverControls
           bucket={bucket}
-          onBucket={setBucket}
+          onBucket={chooseBucket}
           order={order}
-          onOrder={setOrder}
+          onOrder={chooseOrder}
           markerId="lab-bucket"
         />
 
@@ -251,6 +288,9 @@ export default function CollectionRoom() {
               onActiveEraChange={order === "taken" ? setActiveEra : undefined}
             />
             {order === "taken" && <div ref={foot} aria-hidden className="h-px" />}
+            {/* Zero-height until a scroll position the river is too short
+                to reach is asked for; see `landAt`. */}
+            <div ref={tail} aria-hidden />
           </div>
           <DecadeRail decades={decades} active={railActive} onSeek={seekTo} />
         </div>

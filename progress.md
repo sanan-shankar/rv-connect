@@ -1,5 +1,53 @@
 # Progress Log
 
+## 2026-08-29 — every server action was a navigation, and the Collection paid for it
+
+*"when I click undated, it enters a weird loop of switching from 2020s to undated and my
+computer just keeps switching between the two forever ... sometimes I click 2000s and I'm
+taken to the middle of 2010s ... where the decades take you depends on which mode you're
+in. so weird. no attention to detail."* All on the real tab; none of it in the lab room. That
+asymmetry was the clue, and the trace behind it is worth keeping:
+
+**`proxy.ts` slid the `rv-visit` cookie on every request, server-action POSTs included.**
+Next counts any cookie modified during an action as a revalidation (`isCookieRevalidated`
+in its action handler) and answers a revalidated action like a navigation: the page renders
+again on the server, the tree is re-applied on the client, and the window scrolls to the
+top. Read straight off a `loadPhotos` response: `set-cookie: rv-visit` beside
+`x-action-revalidated: 1`, and an RSC GET after it. So every page of photographs fetched
+re-rendered /collection under the reader and jumped them to the top -- and with `?when=` in
+the address the re-render came back seeked, my reseed adopted it, the head sentinel fired
+another action, and the loop the owner reloaded out of was closed. **Fixed at the source:
+an action is not a page view and no longer touches the cookie.** This was app-wide -- every
+action in every list has been doing it since the cookie shipped -- so anything that felt
+like a flicker or a scroll-reset after a click may quietly stop.
+
+Around that, four more, each measured:
+
+- **The reseed no longer clobbers.** It adopts the server's page only when that page holds a
+  photograph the river does not already show -- asked through `appendUnseen`, per the rule
+  `append-page.test.mjs` enforces -- so a re-render can never throw away pages the reader
+  scrolled into. Loop dead: one state and zero RSC fetches in the four seconds after the press.
+- **"They turn white for a beat and come back."** A page landing above re-flows the justified
+  rows of the band it joins; a tile that changes row changes parent, which React does by
+  remounting it, and the fade-in replayed on every remount. Thumbnails the session has
+  already shown are now set visible before first paint; only a first arrival fades.
+- **One landing.** A seek used to stay put for a reader above the river's head, so "2000s"
+  landed flush at the top from deep and a third of the way down from the top of the page. It
+  now lands at the head unconditionally; a bucket, search or order change only pulls UP to it
+  (which also ends "switch to Newest and it scrolls somewhere random" -- the browser clamping
+  a deep reader when a shorter river arrived). An order picked by hand drops the seek, so it
+  cannot resurface on the way back to Chronological. Decided against the river on screen,
+  carried out in the layout effect against the one that replaced it -- done synchronously it
+  measured the old river, and the shorter new one clamped the scroll straight back to zero.
+- **A river too short to scroll can still keep its promise.** Four photographs cannot hold
+  Undated at the head once 2020s lands above it; `landAt` grows an empty tail by exactly the
+  length the document lacks (measured from where the content ends, since `scrollHeight` is
+  floored at the viewport and cannot see the slack). Real tab, after the press: Undated lit,
+  rail at 24px, the 2020s band above it, 607px of tail.
+
+Native scroll anchoring is off on the river (`overflow-anchor: none`): with the prepend
+compensated by hand, the browser's own correction was a second hand on the wheel.
+
 ## 2026-08-29 — the polish the scrubber shipped without
 
 His read of the seek, verbatim: *"it's a full relaoding and things populate unevenly it's not
