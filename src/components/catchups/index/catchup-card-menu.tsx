@@ -27,8 +27,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MENU_TRIGGER_HIT } from "@/components/ui/menu-material";
 import { RECENTLY_DELETED_DAYS } from "@/lib/catchup-shelf";
 import { setCatchupArchived, setCatchupDeleted } from "@/app/(main)/catchups/actions";
 
@@ -94,7 +96,7 @@ export function CatchupCardMenu({
           // pill on a phone, where a 28px square is a small thing to hit. The
           // design system's rule for a target that has to grow is to grow the
           // PADDING, which also lands it on the pill's own height.
-          className="state-layer pointer-events-auto shrink-0 rounded-full p-2.5 text-muted-foreground transition-colors duration-150 hover:text-foreground active:scale-95 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className={`${MENU_TRIGGER_HIT} state-layer pointer-events-auto shrink-0 rounded-full p-2.5 text-muted-foreground transition-colors duration-150 hover:text-foreground active:scale-95 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
         >
           {pending ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -108,10 +110,13 @@ export function CatchupCardMenu({
             Archive
           </DropdownMenuItem>
           {canDelete && (
-            <DropdownMenuItem onClick={() => setConfirming(true)} variant="destructive">
-              <Trash2 className="mr-2 size-4" aria-hidden />
-              Delete
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setConfirming(true)} variant="destructive">
+                <Trash2 className="mr-2 size-4" aria-hidden />
+                Delete
+              </DropdownMenuItem>
+            </>
           )}
         </DropdownMenuContent>
       </DropdownMenu>

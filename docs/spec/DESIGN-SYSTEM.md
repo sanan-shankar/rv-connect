@@ -261,6 +261,15 @@ is the same object:
   edge on a different page.
 - **Motion:** one origin animation — scale/fade from the trigger corner on `EASE_POP`,
   ~140ms, exit faster than enter. No slide-downs on one page and pops on another.
+- **The item level (2026-08-29).** Destructive items sit LAST, in red, with a
+  `DropdownMenuSeparator` above them — the gap is the warning (Apple and Carbon both
+  specify it; Carbon: divider-separated, "below the primary set of actions"). Labels are
+  bare verbs or verb+noun, sentence case, never a parenthetical role note ("Remove (admin)"
+  is what this rule replaced). A destructive menu item never acts directly: it opens
+  `ConfirmDialog`. Icons in a menu are all-or-nothing per group (Apple, June 2026: "provide
+  icons for all menu items in a group, or none of them"). Bare-glyph "..." triggers wear
+  `MENU_TRIGGER_HIT` (menu-material.ts): drawn small for a cursor, silently 44px for a
+  thumb — Primer's 24-fine/44-coarse split, the one system that writes it down.
 - **Enforcement:** these live in the shared primitives (`ui/dropdown-menu`, `ui/select`,
   `ui/popover`, `pill-shell`); a page may not override radius, colour, offset or animation.
   If a surface needs something a menu primitive can't do, it isn't a menu.

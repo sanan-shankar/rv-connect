@@ -94,9 +94,27 @@ function DropdownMenuItem({
   )
 }
 
+/* The divider above a menu's destructive group. This primitive simply did
+   not exist until 2026-08-29, which is why no menu in the app drew one --
+   Apple, Carbon and Radix's own examples all put a rule above Delete (Carbon
+   states it: significant-change actions "are separated by a divider and live
+   below the primary set of actions"). -mx-1 bleeds it across the popup's 4px
+   inset so it spans the panel, not the row width; the hairline is the same
+   warm `--border` as every other hairline. */
+function DropdownMenuSeparator({ className, ...props }: MenuPrimitive.Separator.Props) {
+  return (
+    <MenuPrimitive.Separator
+      data-slot="dropdown-menu-separator"
+      className={cn("-mx-1 my-1 h-px bg-border", className)}
+      {...props}
+    />
+  )
+}
+
 export {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 }

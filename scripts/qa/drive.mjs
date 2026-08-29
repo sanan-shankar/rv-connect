@@ -171,18 +171,20 @@ const SCENARIOS = {
       }, i);
       if (state === "out of triggers") break;
       await sleep(350);
-      const hit = await page.evaluate(() => {
-        const item = [...document.querySelectorAll('[role="menuitem"]')].find((el) =>
+      const hasDelete = await page.evaluate(
+        () => !![...document.querySelectorAll('[role="menuitem"]')].find((el) =>
           /delete/i.test(el.textContent || "")
-        );
-        if (!item) {
-          document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-          return false;
-        }
-        item.click();
-        return true;
-      });
-      if (hit) {
+        )
+      );
+      if (hasDelete) {
+        // The viewer's own menu, open: Edit, the divider, Delete in red.
+        await shot("own-post-menu");
+        await page.evaluate(() => {
+          const item = [...document.querySelectorAll('[role="menuitem"]')].find((el) =>
+            /delete/i.test(el.textContent || "")
+          );
+          item?.click();
+        });
         pressed = `pressed delete on card ${i}`;
         break;
       }
