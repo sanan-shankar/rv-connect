@@ -1,8 +1,15 @@
 export default function LettersLoading() {
   return (
     <div>
-      <header className="mb-6">
-        <div className="skeleton-warm h-8 w-32 rounded-md" />
+      {/* PageHeader's own shape (title left, one canopy button right) --
+          a lone title bar with nothing opposite it left this looking like a
+          much smaller header than the one it flashes into, which is what
+          read as "so tiny" (owner, 2026-08-29). Same fix as directory's
+          skeleton: match the real control's height and rough width rather
+          than a single generic bar. */}
+      <header className="mb-6 flex items-start justify-between gap-4">
+        <div className="skeleton-warm h-10 w-32 rounded-md" />
+        <div className="skeleton-warm h-10 w-[150px] rounded-full" />
       </header>
 
       <div className="space-y-5">
