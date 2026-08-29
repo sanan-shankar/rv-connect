@@ -209,27 +209,88 @@ const SCENARIOS = {
    * outline. Numbers, not squinting.
    */
   async focusStates({ page, shot }) {
-    // /messages has a ui/Textarea sitting directly on the page.
-    await page.goto(`${BASE}/messages`, { waitUntil: "networkidle2" });
-    // Click INTO the field like a person, then read. (Programmatic .focus()
-    // left :focus-visible unmatched in headless, which measured the resting
-    // state and looked like a regression.)
-    await page.waitForSelector("textarea", { timeout: 15000 });
-    const box = await (await page.$("textarea")).boundingBox();
-    await page.mouse.click(box.x + box.width / 2, box.y + 20);
-    await sleep(150);
-    const field = await page.evaluate(() => {
-      const ta = document.querySelector("textarea");
-      const cs = getComputedStyle(ta);
-      return {
-        matchesFV: ta.matches(":focus-visible"),
-        borderColor: cs.borderColor,
-        ring: cs.boxShadow.split("),").pop().trim().slice(0, 70),
-        outline: cs.outline,
-      };
-    });
-    console.log("textarea focused:", JSON.stringify(field));
-    await shot("textarea-focus");
+    // Five DIFFERENT fields, each clicked into like a person (programmatic
+    // .focus() leaves :focus-visible unmatched in headless and measures the
+    // resting state). They must all report the same edge: border leaf, one
+    // inset 1px ring of leaf, transparent 2px outline. The owner's test was
+    // exactly this -- two random boxes -- so the harness does five.
+    const FIELDS = [
+      { label: "messages textarea", url: "/messages", sel: "textarea" },
+      { label: "composer contentEditable", url: "/feed", open: /share a memory/i, sel: '[role="textbox"][contenteditable]' },
+      { label: "comment box", url: "/feed", comments: true, sel: 'input[placeholder^="Write a comment"]' },
+      { label: "support amount", url: "/support", other: true, sel: "#contribute-amount" },
+      // The real mist shell: the login Email field. Signed OUT for this one
+      // (the session cookie is dropped first), since a signed-in visit to
+      // /login bounces to /feed. The shell must show NOTHING on click.
+      { label: "login FloatField shell", url: "/login", noauth: true, sel: 'input[type="email"]' },
+    ];
+    const results = [];
+    for (const f of FIELDS) {
+      if (f.noauth) {
+        const cookies = await page.cookies();
+        for (const c of cookies) if (/session-token/.test(c.name)) await page.deleteCookie(c);
+      }
+      await page.goto(`${BASE}${f.url}`, { waitUntil: "networkidle2" });
+      if (f.open) {
+        await page.evaluate((re) => {
+          const b = [...document.querySelectorAll("button")].find((x) => new RegExp(re, "i").test(x.textContent || ""));
+          b?.click();
+        }, f.open.source);
+        await sleep(700);
+      }
+      if (f.comments) {
+        await page.waitForSelector("svg.lucide-message-circle, button[aria-label*='comments' i]", { timeout: 15000 }).catch(() => {});
+        await page.evaluate(() => {
+          const b = [...document.querySelectorAll("button")].find((x) => /show comments/i.test(x.getAttribute("aria-label") || ""));
+          b?.click();
+        });
+        await sleep(900);
+      }
+      if (f.other) {
+        await page.evaluate(() => {
+          const b = [...document.querySelectorAll("button")].find((x) => /^other$/i.test((x.textContent || "").trim()));
+          b?.click();
+        });
+        await sleep(400);
+      }
+      const el = await page.waitForSelector(f.sel, { timeout: 15000 }).catch(() => null);
+      if (!el) {
+        results.push({ label: f.label, error: "not found" });
+        continue;
+      }
+      const box = await el.boundingBox();
+      await page.mouse.click(box.x + box.width / 2, box.y + Math.min(20, box.height / 2));
+      await sleep(200);
+      const read = (sel) => page.evaluate((sel) => {
+        const n = document.querySelector(sel);
+        const cs = getComputedStyle(n);
+        const layers = cs.boxShadow.split(/,(?![^(]*\))/).map((s) => s.trim());
+        return {
+          modality: document.documentElement.dataset.modality,
+          border: `${cs.borderTopWidth} ${cs.borderTopColor}`,
+          ring: layers.find((l) => /inset/.test(l)) || "none",
+          outline: cs.outline,
+        };
+      }, sel);
+      const clicked = await read(f.sel);
+      // Now arrive by keyboard: blur, Shift+Tab away is unreliable, so Tab off
+      // and Shift+Tab back onto the same field.
+      await page.keyboard.press("Tab");
+      await page.keyboard.down("Shift"); await page.keyboard.press("Tab"); await page.keyboard.up("Shift");
+      // 300, not 150: border-color and outline-color transitions run 120-150ms,
+      // and reading at 150 caught two fields mid-fade (alpha 0.996 / 0.008) and
+      // called five identical edges three different ones.
+      await sleep(300);
+      const tabbed = await read(f.sel);
+      results.push({ label: f.label, click: clicked, tab: tabbed });
+      await shot(f.label.replace(/\s+/g, "-"));
+    }
+    for (const r of results) console.log(JSON.stringify(r));
+    const ok = results.filter((r) => !r.error);
+    const tabEdges = new Set(ok.map((r) => `${r.tab.border}|${r.tab.ring}|${r.tab.outline}`));
+    const clickRings = ok.filter((r) => r.click.ring !== "none");
+    console.log(tabEdges.size === 1 ? "TAB: one 2px edge on every field ✓" : `TAB: ${tabEdges.size} different edges ✗`);
+    console.log(clickRings.length === 0 ? "CLICK: no ring on any field ✓" : `CLICK: ring on ${clickRings.map((r) => r.label).join(", ")} ✗`);
     // Real keyboard travel, so :focus-visible actually matches.
     await page.keyboard.press("Tab");
     const btn = await page.evaluate(() => {

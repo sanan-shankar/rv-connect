@@ -92,7 +92,11 @@ export function RichTextArea({
       }}
       style={minHeight ? { minHeight } : undefined}
       className={cn(
-        "block w-full resize-none whitespace-pre-wrap break-words text-foreground outline-none focus-visible:outline-none",
+        // No focus-visible:outline-none here: this primitive takes its box
+        // AND its focus edge from the caller's className (FIELD_FOCUS on a
+        // bordered box, or FIELD_FOCUS_WITHIN on a framing wrapper), and a
+        // hard outline-none would cancel the forced-colors fallback in it.
+        "block w-full resize-none whitespace-pre-wrap break-words text-foreground outline-none",
         // Same native-highlight suppression as the composer: WebKit's
         // square-cornered tap flash reads as a broken ring on a rounded field.
         "[-webkit-tap-highlight-color:transparent]",

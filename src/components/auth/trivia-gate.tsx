@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { FIELD_FOCUS_SHELL } from "@/components/ui/field-focus";
 import { AnimatePresence, m } from "motion/react";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -239,9 +240,8 @@ export function TriviaGate({
           ref={answerFocusRef}
           className={cn(
             FIELD_SHELL,
-            // No focus ring, same owner call as FloatField: the caret is the
-            // focus state on a text box.
             "px-4 text-center text-base text-foreground outline-none",
+            FIELD_FOCUS_SHELL,
             "placeholder:text-muted-foreground",
             "autofill:[-webkit-box-shadow:0_0_0_1000px_var(--color-mist)_inset] autofill:[-webkit-text-fill-color:var(--color-foreground)]"
           )}

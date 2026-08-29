@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FIELD_FOCUS } from "@/components/ui/field-focus";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ImagePlus, X, BarChart3, Feather, Plus, MapPin, Check, Images } from "lucide-react";
@@ -615,14 +616,14 @@ export function CreatePostForm({
           onPaste={handlePaste}
           style={{ minHeight: immersive ? "55vh" : isLetter ? 260 : 96 }}
           className={cn(
-            "peer block w-full resize-none whitespace-pre-wrap break-words text-foreground outline-none focus-visible:outline-none",
+            "peer block w-full resize-none whitespace-pre-wrap break-words text-foreground outline-none",
             // Immersive: no box at all - the page's paper sheet IS the field's
             // surface, and the body composes at the reading page's own face
             // (Libre Baskerville 16px/1.8) so nothing changes at publish. The
             // caret is the focus indicator on a writing page.
             immersive
               ? "bg-transparent font-heading text-[16px] leading-[1.8]"
-              : "rounded-[var(--radius-input)] border border-border bg-card px-3.5 py-3 text-base leading-[1.7]",
+              : `rounded-[var(--radius-input)] border border-border bg-card px-3.5 py-3 text-base leading-[1.7] ${FIELD_FOCUS}`,
             // Kill WebKit's own tap-highlight flash on touch/trackpad taps: it
             // paints a square-cornered highlight over this rounded field, which
             // reads as an uneven ring (thicker at the corners) for an instant
@@ -632,30 +633,11 @@ export function CreatePostForm({
             "data-[empty=true]:before:pointer-events-none data-[empty=true]:before:text-muted-foreground data-[empty=true]:before:content-[attr(data-placeholder)]"
           )}
         />
-        {/* Focus ring, drawn ENTIRELY INSIDE the field's border box (an INSET
-            shadow, never an outward spread) and with NO transition, so its very
-            first painted frame is already the final, even shape.
-
-            Why inset matters here: the feed composer's expand keeps this field
-            inside a wrapper that stays overflow:hidden for the whole ~1s height
-            spring (until `settled` flips it to visible). The field is flush to
-            that wrapper's top/left/right edges, so any ring that spread OUTWARD
-            past the border box got clipped to nothing along those straight edges
-            while the rounded corners -- which recede inward from the wrapper's
-            square corner -- kept their spread in the corner pocket. That is what
-            read as a ring "thicker at the corners" for about a second before the
-            wrapper stopped clipping. An inset ring has nothing outside the border
-            box to clip, so it is even on every frame, expanding or settled. */}
-        {!immersive && (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-[var(--radius-input)] opacity-0 peer-focus:opacity-100"
-            style={{
-              boxShadow: "inset 0 0 0 2px color-mix(in srgb, var(--color-leaf) 42%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--color-leaf) 60%, var(--border))",
-            }}
-          />
-        )}
+        {/* No ring overlay any more. This field used to draw its own inset
+            ring in a sibling span because an outward ring got clipped by the
+            expand animation's overflow-hidden wrapper ("thicker at the
+            corners"). FIELD_FOCUS is inset for exactly that reason, so the
+            shared recipe serves here without a bespoke copy of it. */}
         {mentionQuery !== null && (
           <MentionDropdown query={mentionQuery} onSelect={handleMentionSelect} />
         )}

@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { RichTextArea } from "@/components/common/rich-text-area";
+import { FIELD_FOCUS } from "@/components/ui/field-focus";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { editPost } from "@/app/(main)/feed/actions";
@@ -98,7 +99,7 @@ export function EditPostDialog({
             initialValue={initialContent}
             onChange={setContent}
             ariaLabel={isLetter ? "Edit your letter" : "Edit your post"}
-            className="rounded-[var(--radius-input)] border border-border bg-card px-3.5 py-3 text-base leading-[1.7]"
+            className={`rounded-[var(--radius-input)] border border-border bg-card px-3.5 py-3 text-base leading-[1.7] ${FIELD_FOCUS}`}
             minHeight={isLetter ? 240 : 120}
           />
 

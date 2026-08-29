@@ -205,6 +205,13 @@ export const REGISTRY: LabEntry[] = [
     note: "A progress bar drawn near-flat against its own card, animated with a count-up that counts to zero, above a caption saying it does not matter if it never fills.",
   },
   {
+    href: "/lab/focus",
+    title: "Eleven rings, and the five worth choosing between",
+    group: "Delight",
+    status: "active",
+    note: "The same four text fields in five columns, one focus treatment per column. Click in, Tab down, pick one; field-focus.ts becomes it.",
+  },
+  {
     href: "/lab/support-ideas",
     title: "Four ways to ask",
     group: "Delight",

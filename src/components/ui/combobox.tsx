@@ -1,6 +1,7 @@
 "use client"
 
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox"
+import { FIELD_FOCUS_WITHIN } from "@/components/ui/field-focus"
 
 import { cn } from "@/lib/utils"
 import { MENU_PANEL_CLASS } from "@/components/ui/menu-material"
@@ -30,7 +31,7 @@ function ComboboxInputGroup({
     <ComboboxPrimitive.InputGroup
       data-slot="combobox-input-group"
       className={cn(
-        "flex h-10 w-full items-center gap-2 rounded-[var(--radius-input)] border border-input bg-transparent px-3 transition-colors outline-none focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 has-[input:disabled]:pointer-events-none has-[input:disabled]:opacity-50",
+        `flex h-10 w-full items-center gap-2 rounded-[var(--radius-input)] border border-input bg-transparent px-3 transition-colors outline-none ${FIELD_FOCUS_WITHIN} has-[input:disabled]:pointer-events-none has-[input:disabled]:opacity-50`,
         className
       )}
       {...props}
