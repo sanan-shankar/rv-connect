@@ -151,6 +151,8 @@ export const LAB_ARCHIVE: PhotoData[] = Array.from({ length: 240 }, (_, n) => {
     takenLabel: takenLabel({ photoYear: year, photoMonth: month, era, datePrecision: month ? "month" : year ? "year" : "decade" }),
     takenShort: takenShort({ photoYear: year, era }),
     approved: true,
+    // The lab room shows the Valley Collection; the class half has no fixture.
+    scope: "valley" as const,
     loveCount: Math.floor(spin(n, 47) * 40),
     loved: spin(n, 53) > 0.86,
     isOwn: n % 17 === 0,

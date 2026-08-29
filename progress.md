@@ -1,5 +1,64 @@
 # Progress Log
 
+## 2026-08-29 — the Collection grows a second half, and it is enforced before it is visible
+
+The owner wants a Class Collection: photographs a member's own class uploads, seen only by
+that class. Designed first (`docs/planning/class-collection/spec.md`), then built from the
+inside out — schema, rule, every read path — with no UI at all, so the boundary exists and is
+tested before anything can reach it.
+
+**The one design argument worth keeping.** A class collection is NOT the Valley Collection
+with a `WHERE` clause, and building it that way would look finished and be wrong. Every
+organising mechanism over there answers a problem this does not have: six buckets exist for
+twenty thousand photographs from strangers across a century; the decade rail exists because
+"when" spans 1930 to 2026. A class is a few hundred photographs from a five-to-seven-year
+window, contributed by people who all know each other. So *when* collapses to one decade,
+*what* collapses to People and School life, and *who* becomes the axis — the one the Valley
+Collection has no equivalent for. Share the plumbing, diverge on the spine.
+
+**The audience is `batchYear` alone, never `batchTargetKey`.** That `"ISC-2004"`-shaped
+composite splits one cohort in two: a member who left after 10th sat beside the ISC leavers
+for six years. Post targeting can be wrong about that; a page called The Class Collection
+cannot.
+
+**One table, and the cost paid deliberately.** Class photographs live in `Photo` beside
+public ones, which buys the viewer, the loves, the purge booking, the quota and both upload
+paths, and costs a security surface on every photo query in the app. So: `scope` as an
+explicit NOT NULL discriminator (never a nullable audience meaning "everyone" — that is how
+default-open gets written), the decision as a pure importless rule with 22 attack-shaped
+tests, and seven pins in `security-regressions.test.mjs` that fail the gate the moment a
+query loses its scope.
+
+Found while sweeping, each real:
+
+- **`generateMetadata` on `/collection/[id]` hand-rolled its own visibility check.** Correct
+  while hidden and unapproved were the only two, and a caption leak the moment a photograph
+  could be private — a caption is content and that function puts it in the page title. It
+  decides through the rule now, as does `loadPhoto`; M30/M31 are both the story of a list and
+  a permalink disagreeing.
+- **The feed rail's Collection card is rendered with no session in it**, so an unscoped
+  `findFirst` there would put whichever class uploaded last in front of the whole membership.
+  Valley-only, and pinned.
+- **The profile's photographs tab reads `Post`, not `Photo`.** Listed as a risk in the spec;
+  it does not exist. Said plainly rather than claimed as a fix.
+- `contributionScope` derives the audience from the caller's own row. The client says which
+  half; the server says whose class. `photoRowData` defaults to the **public** half, so a
+  caller who has not thought about scope publishes visibly rather than writing an
+  under-scoped row that looks private — which is what `collection-intake.ts` relies on.
+- A stale reference to `collection-rule.test.mjs`, a file that does not exist, corrected to
+  the test that actually guards that invariant.
+
+Both databases migrated, main and demo — skipping the demo is the drift that broke
+`showEmail` once. **Restart the dev server**: the client's rebuild key derives from
+`Prisma.ModelName`, and adding columns to an existing model does not change the model list.
+
+Accepted and written down rather than hidden (spec 2.4): a member who is already verified can
+edit their batch year and keep their verification, because `roster.ts` never demotes. Gated
+on verified, logged on change, residual accepted by the owner.
+
+Next: the switch itself (segmented control, the `<h1>`, scope as a fifth `fetchPage`
+dimension), then the bulk contribute path.
+
 ## 2026-08-29 — every server action was a navigation, and the Collection paid for it
 
 *"when I click undated, it enters a weird loop of switching from 2020s to undated and my

@@ -276,3 +276,123 @@ test("C-013: the details box cannot compose a string the server refuses", () => 
   assert.equal(caps.length, 1, `expected one shared server cap, found ${caps.length}`);
   assert.equal(caps[0], 500, `the report path refuses at ${caps[0]}, but the dialog derives its box from 500`);
 });
+
+/* --------------------------------- The Class Collection's scope boundary */
+
+/* The Class Collection puts private photographs in the same table as public
+   ones (docs/planning/class-collection/spec.md sec. 3.1). That trade buys the
+   viewer, the loves, the purge booking, the quota and both upload paths, and
+   it costs a security surface on every photo query in the app. These pins are
+   the ongoing payment: they fail the moment a query loses its scope, whoever
+   drops it and however innocently. */
+
+test("class: the river cannot be queried without a resolved scope", () => {
+  const src = decomment(read("src/app/(main)/collection/actions.ts"));
+
+  /* buildCollectionWhere takes the scope fragment as its FIRST, REQUIRED
+     argument rather than reading it off the optional filters. That is the
+     whole guard: a caller physically cannot build a Collection `where`
+     without having resolved which half the viewer is entitled to. */
+  assert.ok(
+    /function buildCollectionWhere\(\s*scopeWhere:/.test(src),
+    "buildCollectionWhere no longer takes a mandatory scope fragment"
+  );
+  assert.ok(
+    /\.\.\.scopeWhere,/.test(src),
+    "buildCollectionWhere stopped spreading the scope fragment into its where"
+  );
+
+  // And the fragment comes from the shared rule, never hand-built here.
+  assert.ok(
+    /photoScopeWhere\(/.test(src),
+    "loadPhotos stopped asking photoScopeWhere which half it may read"
+  );
+  // An ineligible viewer gets an empty page, never an unscoped query.
+  assert.ok(
+    /if \(!scopeWhere\) return \{ photos: \[\], nextCursor: null, decades: \[\] \};/.test(src),
+    "loadPhotos no longer bails when the viewer is entitled to neither scope"
+  );
+});
+
+test("class: the permalink and its page title both use the rule", () => {
+  // Audits M30/M31 twice over: a list and a permalink disagreeing about who
+  // may see something. loadPhoto AND generateMetadata each decide through
+  // decidePhotoVisibility rather than restating the checks inline -- the
+  // metadata one matters because a caption is content and it goes in a title.
+  const actions = decomment(read("src/app/(main)/collection/actions.ts"));
+  assert.ok(
+    /decidePhotoVisibility\(/.test(actions),
+    "loadPhoto stopped deciding through the shared rule"
+  );
+  const page = decomment(read("src/app/(main)/collection/[id]/page.tsx"));
+  assert.ok(
+    /decidePhotoVisibility\(/.test(page),
+    "generateMetadata stopped deciding through the shared rule"
+  );
+});
+
+test("class: the feed rail's Collection card stays valley-only", () => {
+  /* Rendered into every member's rail with no session in it, so an unscoped
+     findFirst here puts whichever class most recently uploaded in front of
+     the whole membership. */
+  const src = decomment(read("src/components/feed/rail/collection-module.tsx"));
+  assert.ok(
+    /where: \{ scope: "valley",/.test(src),
+    "the feed rail's Collection card lost its valley scope"
+  );
+});
+
+test("class: a contribution's audience is derived, never taken from input", () => {
+  const src = decomment(read("src/app/(main)/collection/actions.ts"));
+
+  // classYears is read off the CALLER'S OWN ROW inside contributionScope and
+  // nowhere else. A form field or an action argument named classYears would
+  // be a member choosing which class's private archive to write into.
+  assert.ok(
+    /async function contributionScope\(/.test(src),
+    "contributionScope is gone; the destination is being resolved somewhere else"
+  );
+  assert.ok(
+    !/formData\.get\(["']classYears["']\)/.test(src),
+    "a contribution reads classYears off the form"
+  );
+  assert.ok(
+    !/input\.classYears/.test(src),
+    "a contribution reads classYears off its action input"
+  );
+  // Both write paths go through it.
+  assert.equal(
+    [...src.matchAll(/await contributionScope\(/g)].length,
+    2,
+    "expected exactly the two contribute paths to resolve a destination"
+  );
+  assert.equal(
+    [...src.matchAll(/classYears: destination\.classYears,/g)].length,
+    2,
+    "a contribute path stopped writing the destination it resolved"
+  );
+});
+
+test("class: photoRowData defaults to the PUBLIC half", () => {
+  /* The failure direction that matters. A caller who has not thought about
+     scope must publish publicly and be seen doing it -- never write an
+     under-scoped row that looks private and is not. src/lib/collection-intake.ts
+     relies on exactly this default. */
+  const src = decomment(read("src/lib/collection-photo.ts"));
+  assert.ok(
+    /scope = "valley", classYears = null,/.test(src),
+    "photoRowData's scope no longer defaults to valley"
+  );
+  assert.ok(
+    /classYears: scope === "class" \? classYears : null,/.test(src),
+    "photoRowData can write an audience onto a valley row"
+  );
+});
+
+test("class: an unrecognised scope value is never treated as public", () => {
+  const src = decomment(read("src/lib/photo-visibility-rule.ts"));
+  assert.ok(
+    /return scope === "valley";/.test(src),
+    "isValley stopped reading the literal, so a typo could read as public"
+  );
+});

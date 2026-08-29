@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { CollectionClient } from "@/components/collection/collection-client";
 import { recordView } from "@/lib/content-view";
+import { decidePhotoVisibility } from "@/lib/photo-visibility-rule";
 import { collectionPageData } from "../collection-data";
 import { loadPhoto } from "../actions";
 
@@ -35,15 +36,35 @@ export async function generateMetadata({
   const session = await auth();
   if (!session?.user) return { title: "Collection" };
 
-  const photo = await prisma.photo.findUnique({
-    where: { id },
-    select: { caption: true, isHidden: true, approved: true, uploaderId: true },
-  });
-  if (!photo || photo.isHidden) return { title: "Collection" };
+  /* THE RULE, not a second hand-written copy of it. This used to restate the
+     hidden/unapproved checks inline, which was correct for as long as those
+     were the only two -- and stopped being correct the moment a photograph
+     could be private to one class, because a caption is content and this
+     function puts it in the page title. A caption reading "Ravi's leaving
+     do, 2004" is exactly the kind of thing the Class Collection exists to
+     keep in one class. */
+  const [photo, me] = await Promise.all([
+    prisma.photo.findUnique({
+      where: { id },
+      select: {
+        id: true, caption: true, isHidden: true, approved: true,
+        uploaderId: true, scope: true, classYears: true,
+      },
+    }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { verifyState: true, batchYear: true },
+    }),
+  ]);
+  if (!photo) return { title: "Collection" };
 
-  const isOwn = photo.uploaderId === session.user.id;
-  const isAdmin = session.user.role === "admin";
-  if (!photo.approved && !isOwn && !isAdmin) return { title: "Collection" };
+  const seen = decidePhotoVisibility(photo, {
+    id: session.user.id,
+    role: session.user.role,
+    verifyState: me?.verifyState,
+    batchYear: me?.batchYear,
+  });
+  if (!seen.ok) return { title: "Collection" };
 
   const caption = photo.caption?.trim();
   if (!caption) return { title: "Collection" };
@@ -62,9 +83,19 @@ export default async function PhotoPage({
   // `loadPhoto` carries the visibility rules (hidden, and unapproved for
   // anyone but its uploader and an admin), so they live in one place rather
   // than being restated here.
-  const [photo, data] = await Promise.all([loadPhoto(id), collectionPageData()]);
-  if (!data) return null;
+  /* The photograph first, because WHICH RIVER goes behind it depends on which
+     half it belongs to: a class photograph opened from a link should have its
+     own class's river underneath, not the valley's. Sequential rather than
+     parallel for that reason, and it costs one round trip on a route that is
+     already a link somebody followed rather than a page anybody idles on. */
+  const photo = await loadPhoto(id);
   if (!photo) notFound();
+
+  const data = await collectionPageData({
+    scope: photo.scope,
+    order: "newest",
+  });
+  if (!data) return null;
 
   /* after(), not the old `void`: this page still renders at the same speed
      either way, but a bare `void` write raced the response back to the

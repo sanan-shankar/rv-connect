@@ -8,10 +8,19 @@ import { RailCard } from "./rail-card";
  * Valley Collection archive. Hides entirely while the archive has no
  * approved photo yet (it currently has none) rather than shipping a dark
  * placeholder tile.
+ *
+ * VALLEY ONLY, and pinned by src/lib/security-regressions.test.mjs. This card
+ * is rendered into every member's feed rail with no reference to who is
+ * reading it, so it is the one Collection query in the app that CANNOT be
+ * made class-aware safely -- an unscoped `findFirst` here would put whichever
+ * class most recently uploaded a photograph in front of the entire
+ * membership. Showing a member their own class's newest photograph would be a
+ * nice card; it is a different component with a session in it, not a where
+ * clause on this one.
  */
 export async function CollectionModule() {
   const photo = await prisma.photo.findFirst({
-    where: { approved: true, isHidden: false },
+    where: { scope: "valley", approved: true, isHidden: false },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,

@@ -158,10 +158,29 @@ export function photoRowData(args: {
   autoApprove: boolean;
   /** The staged key, held unique (audit C-129), on the direct path only. */
   sourceKey?: string;
+  /** Which half of the Collection this is going into, and for a class
+   *  contribution the audience it is going to.
+   *
+   *  BOTH ARE THE CALLER'S TO DERIVE FROM THE SESSION and neither is ever
+   *  read off the form: a server action is a public HTTP endpoint, so a
+   *  client-supplied `classYears` is a member choosing which class's private
+   *  archive to write into. Defaulting to the valley is deliberate -- a
+   *  caller that has not thought about scope must publish publicly and be
+   *  seen doing it, never write an under-scoped row that looks private. */
+  scope?: "valley" | "class";
+  classYears?: string | null;
 }) {
-  const { uploaderId, url, thumbUrl, width, height, meta, autoApprove, sourceKey } = args;
+  const {
+    uploaderId, url, thumbUrl, width, height, meta, autoApprove, sourceKey,
+    scope = "valley", classYears = null,
+  } = args;
   return {
     uploaderId,
+    scope,
+    /* Never an audience on a valley row: the column means nothing there, and
+       a stray year in it would be a class photograph one edited `scope` away
+       from existing. */
+    classYears: scope === "class" ? classYears : null,
     ...(sourceKey ? { sourceKey } : {}),
     thumbUrl,
     url,
