@@ -15,21 +15,32 @@
  *  answer: "is there like another way we could do it which is even more
  *  space efficient and beautiful."
  *
- *  It is a FILTER, not a scroll position. That is deliberate and it is
- *  honest: the river is keyset-paginated, so the rows past the current
- *  page do not exist in the browser yet and a scrubber mapping pixels to
- *  dates would be inventing them. Pressing a decade asks the server for
- *  that decade, which cannot lie.
+ *  IT SEEKS. IT DOES NOT FILTER. That is a correction, not the original
+ *  design: pressing a decade used to narrow the grid to it, which meant
+ *  landing there had no way back except a reload -- "I now have no way
+ *  to go back? ... doing that has locked me into 2020s" (owner,
+ *  2026-08-29). The rail now travels one continuous river to that
+ *  stretch of it; photographs above and below still exist and scrolling
+ *  either way keeps going. `active` therefore is not a filter you set,
+ *  it is read off what is actually on screen (`useActiveBand` in
+ *  `photo-river.tsx`) -- the rail reports where you are rather than
+ *  deciding it.
  *
  *  It also answers the owner's "year should not be the primary
  *  organising axis": time is a lens down the right-hand edge, never a
  *  gate you pass through to reach the photographs.
  *
- *  Two shapes, one component. On a wide screen it is a vertical index in
- *  the margin the 1600px column was wasting anyway; below 1280px, where
- *  that margin does not exist, it is a quiet scrolling line under the
- *  buckets -- the same words, the same gesture as the bucket line beside
- *  it, and no marks, because a 4px bar in a 36px slot says nothing.
+ *  Only in "Chronological" order, where a `takenKey` spine exists to
+ *  seek along at all -- every other order sorts by something else
+ *  (upload date, love count), and a decade mark would be seeking along
+ *  an axis the river is not currently walking.
+ *
+ *  Below 1280px this margin does not exist; the phone scrubber down the
+ *  right edge of the grid is its own component, not a second shape of
+ *  this one -- a narrow scrolling line of decade words shipped here once
+ *  and was rejected on sight ("remove the decades and undated thing
+ *  from mobile, it looks really bad"): two words with no marks beside
+ *  them carried none of what makes the rail worth having.
  * ------------------------------------------------------------------ */
 
 import { ERAS } from "@/lib/collection";
@@ -65,14 +76,16 @@ function useRailRows(decades: DecadeCount[]) {
 /** The wide-screen rail: marks in the margin. */
 export function DecadeRail({
   decades,
-  value,
-  onChange,
+  active,
+  onSeek,
   className,
 }: {
   decades: DecadeCount[];
-  /** "" is every decade, which is the resting state. */
-  value: string;
-  onChange: (era: string) => void;
+  /** The decade currently on screen, read from scroll position. "" while
+   *  nothing has settled yet (the very first paint, before the observer's
+   *  first callback). */
+  active: string;
+  onSeek: (era: string) => void;
   className?: string;
 }) {
   const { rows, most } = useRailRows(decades);
@@ -81,14 +94,14 @@ export function DecadeRail({
 
   return (
     <nav
-      aria-label="Filter by when the photograph was taken"
+      aria-label="Jump to when the photograph was taken"
       /* Sticky, so the index stays with you down twenty thousand photographs
          the way a thumb index stays with a book. `top-6` clears the sticky
          page chrome above it. */
       className={cn("sticky top-6 hidden w-[92px] shrink-0 flex-col items-end gap-px xl:flex", className)}
     >
       {rows.map((r) => {
-        const active = value === r.era;
+        const isActive = active === r.era;
         /* The mark. Length is the decade's share of the biggest decade, with
            a floor -- a decade holding three photographs must still be
            pressable and still read as present, and a mark shorter than about
@@ -98,13 +111,13 @@ export function DecadeRail({
           <button
             key={r.era}
             type="button"
-            onClick={() => onChange(active ? "" : r.era)}
-            aria-pressed={active}
+            onClick={() => onSeek(r.era)}
+            aria-current={isActive ? "true" : undefined}
             title={`${r.count.toLocaleString()} ${r.count === 1 ? "photograph" : "photographs"}`}
             className={cn(
               "group flex w-full items-center justify-end gap-2 rounded-[var(--radius-sm)] py-[3px] pr-1 text-right",
               "transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-              active ? "text-canopy" : "text-muted-foreground hover:text-foreground"
+              isActive ? "text-canopy" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <span
@@ -117,66 +130,18 @@ export function DecadeRail({
                  where a fixed hairline colour would sink. */
               className={cn(
                 "h-[2px] shrink-0 rounded-full transition-colors duration-150",
-                active ? "bg-canopy" : "bg-foreground/25 group-hover:bg-foreground/50"
+                isActive ? "bg-canopy" : "bg-foreground/25 group-hover:bg-foreground/50"
               )}
               style={{ width: mark }}
             />
             <span
               className={cn(
                 "shrink-0 text-[11px] tabular-nums tracking-[0.04em]",
-                active ? "font-semibold" : "font-medium"
+                isActive ? "font-semibold" : "font-medium"
               )}
             >
               {r.label}
             </span>
-          </button>
-        );
-      })}
-    </nav>
-  );
-}
-
-/** The same index below 1280px, where there is no margin to put it in. */
-export function DecadeStrip({
-  decades,
-  value,
-  onChange,
-  className,
-}: {
-  decades: DecadeCount[];
-  value: string;
-  onChange: (era: string) => void;
-  className?: string;
-}) {
-  const { rows } = useRailRows(decades);
-  if (rows.length < 2) return null;
-
-  return (
-    <nav
-      aria-label="Filter by when the photograph was taken"
-      className={cn(
-        "-mx-1 flex items-center gap-3.5 overflow-x-auto px-1 py-1 xl:hidden",
-        "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-        className
-      )}
-    >
-      {rows.map((r) => {
-        const active = value === r.era;
-        return (
-          <button
-            key={r.era}
-            type="button"
-            onClick={() => onChange(active ? "" : r.era)}
-            aria-pressed={active}
-            className={cn(
-              "shrink-0 whitespace-nowrap text-[12px] tracking-[0.02em] transition-colors duration-150",
-              "active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-              active
-                ? "font-semibold text-canopy"
-                : "font-medium text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {r.label}
           </button>
         );
       })}

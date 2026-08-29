@@ -17,12 +17,15 @@ import { drainPendingImagePurges } from "@/lib/account-purge";
 import { escapeLike, insensitive } from "@/lib/db-text";
 import {
   afterCursor,
+  beforeCursor,
   decodeCursor,
   encodeCursor,
   orderByFor,
+  orderByForTakenAscending,
+  seekOlder,
   type RiverOrder,
 } from "@/lib/river-cursor";
-import { bucketsOf, takenLabel, takenShort } from "@/lib/collection";
+import { bucketsOf, eraSeekBoundary, takenLabel, takenShort } from "@/lib/collection";
 import {
   MAX_UPLOAD_BYTES,
   MAX_PHOTOS_PER_ACCOUNT,
@@ -531,6 +534,10 @@ export type { RiverOrder };
 
 export type RiverFilters = {
   bucket?: string;
+  /** Not a filter -- a decade to SEEK to. `loadPhotos` reads this only when
+   *  there is no cursor yet, jumps the first page to that decade's newest
+   *  photograph, and forgets it from then on; the rail is a scroll position,
+   *  not something that narrows the grid (see the note on `loadPhotos`). */
   era?: string;
   search?: string;
   order?: RiverOrder;
@@ -547,7 +554,6 @@ function buildCollectionWhere(opts?: RiverFilters) {
     approved: true,
     isHidden: false,
     ...(opts?.bucket ? { subject: { contains: escapeLike(opts.bucket), ...insensitive } } : {}),
-    ...(opts?.era ? { era: opts.era } : {}),
     ...(search
       ? {
           OR: [
@@ -577,35 +583,73 @@ export type DecadeCount = { era: string; count: number };
 export type RiverPage = {
   photos: PhotoData[];
   nextCursor: string | null;
+  /** A cursor for climbing back UP from the top of this page, toward newer
+   *  photographs -- the direction only the decade rail's seek ever needs.
+   *  `undefined` everywhere seeking is not in play; `null` once a climb has
+   *  reached the newest photograph there is. */
+  topCursor?: string | null;
   total?: number;
   decades?: DecadeCount[];
 };
 
 export async function loadPhotos(
-  opts?: RiverFilters & { cursor?: string | null }
+  opts?: RiverFilters & { cursor?: string | null; direction?: "newer" }
 ): Promise<RiverPage> {
   const session = await auth();
   if (!session?.user?.id) return { photos: [], nextCursor: null, total: 0, decades: [] };
 
-  const order: RiverOrder = opts?.order ?? "newest";
   const filters = buildCollectionWhere(opts);
-  /* THE RAIL'S OWN COUNTS EXCLUDE THE RAIL'S OWN FILTER, which is the one
-     rule a facet has to obey and the one this broke. Counting decades through
-     a `where` that already pins `era` returns exactly one row, so pressing
-     "2020s" left the rail with a single mark -- and <DecadeRail> hides itself
-     below two, because a rail of one mark is noise. The rail therefore
-     DISAPPEARED at the moment you used it, taking the only control that could
-     undo it: "doing that has locked me into 2020s... the only way to bring up
-     that sidebar type thing is to reload" (owner, 2026-08-29).
 
-     Bucket and search stay in, deliberately. A decade's mark should say how
-     many BIRD photographs the 1970s holds while Birds is the filter, or
-     pressing a decade with twelve beside it returns nothing. It is only the
-     era that must not narrow its own tally. */
-  const facetFilters = buildCollectionWhere({ ...opts, era: undefined });
+  /* ---------------------------------------------------------------- *
+   *  Climbing back up out of a seek.
+   *
+   *  Every other page of the river is walked one way -- older, appended at
+   *  the foot -- and this is the one direction that walks the other way,
+   *  because the decade rail lands mid-river rather than at either end of
+   *  it. Only "taken" order ever calls this (the rail is hidden in every
+   *  other order) and only once a real row above the seek point has
+   *  already been loaded, so there is always a real cursor to page from --
+   *  the boundary that bootstraps the very first upward step lives in the
+   *  branch below instead.
+   * ---------------------------------------------------------------- */
+  if (opts?.direction === "newer") {
+    const cursor = decodeCursor("taken", opts.cursor);
+    const where = { ...filters, ...beforeCursor(cursor) };
+    const rows = await prisma.photo.findMany({
+      where,
+      include: includeFor(session.user.id),
+      orderBy: orderByForTakenAscending(),
+      take: PAGE_SIZE + 1,
+    });
+    const hasMore = rows.length > PAGE_SIZE;
+    const trimmed = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
+    // Fetched ascending -- nearest the boundary first, so the row nearest
+    // "newer" lands LAST here -- and reversed before it reaches a reader
+    // who always sees newest at the top.
+    const newTop = trimmed[trimmed.length - 1];
+    return {
+      photos: [...trimmed].reverse().map((p) => shape(p, session.user.id)),
+      nextCursor: null, // this page never extends the OLDER edge
+      topCursor: hasMore && newTop ? encodeCursor("taken", newTop, 0) : null,
+    };
+  }
+
+  const order: RiverOrder = opts?.order ?? "newest";
   const cursor = decodeCursor(order, opts?.cursor);
   const first = cursor === null;
-  const where = { ...filters, ...afterCursor(order, cursor) };
+  /* A seek only ever applies to the FIRST page of a fresh "taken" query --
+     once a cursor exists the reader is already travelling the river the
+     normal way, and an `era` riding along on a later page is the request
+     that asked for THAT page, not a fresh jump (see the note on
+     `RiverFilters.era`). `null` means the seek landed on the newest real
+     decade, which has no boundary because nothing sits above it; `undefined`
+     means this is not a seek at all. */
+  const seekBoundary =
+    first && order === "taken" && opts?.era ? eraSeekBoundary(opts.era) : undefined;
+  const where = {
+    ...filters,
+    ...(seekBoundary !== undefined ? seekOlder(seekBoundary) : afterCursor(order, cursor)),
+  };
   const skip: number = cursor && "offset" in cursor ? cursor.offset : 0;
 
   const rows = await prisma.photo.findMany({
@@ -627,12 +671,27 @@ export async function loadPhotos(
     nextCursor,
   };
 
+  // A seek that landed short of the newest decade has somewhere to climb
+  // back up to; hand back a cursor for it rather than making the reader
+  // discover the gap by scrolling into nothing.
+  if (order === "taken" && trimmed.length > 0 && typeof seekBoundary === "number") {
+    page.topCursor = encodeCursor("taken", trimmed[0], 0);
+  }
+
   if (first) {
+    /* THE RAIL'S OWN COUNTS EXCLUDE ITS OWN FILTER, which is the one rule a
+       facet has to obey and the one this broke when `era` was still a
+       lingering filter: counting decades through a `where` that already
+       pinned it returned exactly one row, so pressing "2020s" left the rail
+       with a single mark and DecadeRail hides itself below two -- the rail
+       vanished at the moment you used it (owner, 2026-08-29). Now that a
+       decade is a seek rather than a filter, `filters` never pins `era` in
+       the first place, so there is nothing left to strip here. */
     const [total, byEra] = await Promise.all([
       prisma.photo.count({ where: filters }),
       prisma.photo.groupBy({
         by: ["era"],
-        where: facetFilters,
+        where: filters,
         _count: { era: true },
       }),
     ]);

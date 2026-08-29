@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { decomment } from "./test-kit.mjs";
-import { appendUnseen } from "./append-page.ts";
+import { appendUnseen, prependUnseen } from "./append-page.ts";
 
 const row = (id) => ({ id, caption: id });
 
@@ -66,6 +66,19 @@ test("C-179: the Collection river drops a page that answers the previous query",
   assert.ok(src.indexOf("generation.current += 1;") < start, "the bump is not in the filter effect");
   // The append itself is the deduping one.
   assert.match(loadMore, /appendUnseen\(prev, data\.photos\)/);
+});
+
+test("prependUnseen: the mirror, threaded onto the front", () => {
+  const shown = [row("c"), row("d")];
+  const arriving = [row("a"), row("b")];
+  assert.deepEqual(prependUnseen(arriving, shown).map((p) => p.id), ["a", "b", "c", "d"]);
+  // A row already mounted keeps its copy, same as appendUnseen.
+  const mounted = { id: "c", caption: "the mounted node" };
+  const arrived = { id: "c", caption: "a fresh object" };
+  const [kept] = prependUnseen([arrived], [mounted]).filter((p) => p.id === "c");
+  assert.equal(kept, mounted);
+  // A page that repeats what is already at the top adds nothing.
+  assert.deepEqual(prependUnseen([row("a")], [row("a")]).map((p) => p.id), ["a"]);
 });
 
 test("C-071: every paged list appends through appendUnseen, not its own Set", () => {

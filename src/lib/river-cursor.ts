@@ -105,6 +105,47 @@ export function afterCursor(order: RiverOrder, cursor: DecodedCursor | null) {
       };
 }
 
+/** The mirror of `afterCursor`, for the one place the river is walked
+ *  upward instead of down: the decade rail's seek, once real rows are
+ *  loaded above the seek point and the reader keeps scrolling toward
+ *  "newer". Only meaningful for "taken" order -- the rail is hidden in
+ *  every other order, so nothing else ever calls this. */
+export function beforeCursor(cursor: DecodedCursor | null) {
+  if (!cursor || !("takenKey" in cursor)) return {};
+  return {
+    OR: [
+      { takenKey: { gt: cursor.takenKey } },
+      { takenKey: cursor.takenKey, id: { gt: cursor.id } },
+    ],
+  };
+}
+
+/** `orderByFor("taken")`, reversed. A page walked upward is fetched
+ *  ascending -- nearest the boundary first, so `take N` returns the N rows
+ *  adjacent to what is already on screen rather than the N oldest rows in
+ *  the whole river -- and the caller reverses the result before showing
+ *  it, because the reader always sees newest-first. */
+export function orderByForTakenAscending() {
+  return [{ takenKey: "asc" as const }, { id: "asc" as const }];
+}
+
+/** The `where` fragment for jumping straight to a decade: not resuming
+ *  from a row the reader has already seen, so unlike `afterCursor` this is
+ *  not a two-branch OR against a real tiebreak -- it is the plain half of
+ *  one, strictly below the boundary. `null` means no boundary applies (the
+ *  newest real decade) and the fragment is omitted entirely, same as no
+ *  cursor at all.
+ *
+ *  There is no `seekNewer` beside it. The obvious mirror -- `takenKey: {
+ *  gte: boundary }`, for the first step back up out of a seek -- turns out
+ *  never to be needed: `loadPhotos` hands back a cursor built from the
+ *  seeked page's own top ROW, a real one, so every climb back up pages from
+ *  `beforeCursor` like any other, and a synthetic boundary for that
+ *  direction never gets bootstrapped at all. */
+export function seekOlder(boundary: number | null) {
+  return boundary === null ? {} : { takenKey: { lt: boundary } };
+}
+
 export function orderByFor(order: RiverOrder) {
   switch (order) {
     case "oldest":

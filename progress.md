@@ -1,5 +1,56 @@
 # Progress Log
 
+## 2026-08-29 — the decade rail stops filtering and starts travelling
+
+*"let's brainstorm how we can best use that side number panel. I love the idea and I love
+showing how many photos in each year with the grey line... it's definiitely not in it's full
+potential now. can be much better and tie in with the ui better instead of just suddenly
+changing the positions of phtoos when you click on it."* Asked to choose, he took **seek**
+over filter, and **both directions** over the cheaper jump-down-and-page-onward.
+
+**A decade is now a position, not a predicate.** `era` left `buildCollectionWhere` entirely;
+the server reads it on the first page only, to pick the row to begin at (`eraSeekBoundary`,
+the `takenKey` one above that decade's top), and ignores it the moment a cursor exists. So
+the photographs above and below are still there and you scroll into them. That also dissolves
+the bug underneath the old one rather than patching it: the rail's marks are counted through
+the very same `where` the river uses, because there is no longer a clause that could narrow
+its own tally.
+
+Walking UP is the new half — `beforeCursor`, the mirror of `afterCursor`, fetched ascending so
+`take N` gets the rows adjacent to the seam rather than the N oldest in the archive, then
+turned round before it is shown. Pinned by an evaluator that runs the clauses against real
+rows: paging down, climbing up, and the seam between them holding with nothing dropped and
+nothing repeated. Three deliberate mutations (drop the tiebreak, make the boundary inclusive,
+forget the reversal) each fail it.
+
+**What the rail lights is read off the page, not set.** A heading is current when its top has
+passed a line a fifth down the viewport — positional, because the obvious "last heading inside
+a band" version is right going down and lies coming up: two headings are further apart than
+the band is tall, so between them nothing fires and the rail keeps naming the decade you just
+left. Measured on a live page: climbing out of the 1970s relit 1980s, then 1990s.
+
+**Nothing moves under the reader.** A page arriving above is measured before the DOM changes
+and corrected in a layout effect before paint. Verified as a number: 3227px of photographs
+landed above and the tile being watched moved 0px. `e2e/collection-seek.spec.ts` remembers it,
+and fails by hundreds of pixels if the correction goes. Two things fell out of building it:
+browser windowing is now off for a seeked river (a skipped band above the viewport stands in
+at 600px and swells when reached — Chrome's scroll anchoring hides that, Safari has none), and
+the two directions are never in flight together, since the correction reads one number and
+cannot tell an append from a prepend.
+
+**The rail stays drawn in every order** — the marks are a picture of the archive and worth
+having at rest — but lit only in Chronological, and pressing one turns the river to it. That
+was the open question in the handover; hiding it outside Chronological was the alternative and
+it would have taken the thing he likes off the default view.
+
+The visual suite earned its keep on the last lap: a red `/collection` on both viewports, which
+measured out as the grid sitting **exactly 1px lower**. The head sentinel is `h-px` and I had
+put it at the *start* of the river, where the foot's identical pixel costs nothing. `-mb-px`
+cancels it, and the baselines did not move at all.
+
+Still owed, both untouched: the phone scrubber down the right edge (there is deliberately no
+decade control under 1280px), and EXIF pre-fill for 2010-or-earlier dates.
+
 ## 2026-08-28 — the Collection's plus, off centre in a button that was not a circle
 
 *"in collection mobile the plus icon isn't not centered in the button. it's not a circles."*
