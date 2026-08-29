@@ -1,5 +1,44 @@
 # Progress Log
 
+## 2026-08-29 — the polish the scrubber shipped without
+
+His read of the seek, verbatim: *"it's a full relaoding and things populate unevenly it's not
+pretty... the decade bar adjusts it's position when you click. it goes to the top of the
+screen... some decades and some section just glitch and take me elsewhere. there'ss really no
+polish here at all."* Seven findings, each one traced:
+
+- **The full-reload feel.** The river swapped the moment data landed, then every thumbnail
+  arrived on its own schedule. Now the old river holds (dimmed) while the new view's first
+  screenful DECODES — `warmThumbs`, bounded at 450ms so a slow network degrades to the old
+  behaviour rather than a page that refuses to change — and the swap is one movement. Same
+  path serves buckets, which had the same complaint.
+- **Tiles materialise instead of popping.** Each image fades in over 300ms when it loads
+  (ref-callback + onLoad, because a cached image completes before hydration attaches any
+  listener; onError resolves too, so a broken file can never mean an invisible tile).
+- **The dock he asked for** — "subtle magnification while hovering over them, like a mac
+  dock." Rail rows swell toward the pointer on springs: measured 1.16 at the cursor, 1.10 and
+  1.04 on the neighbours, flat beyond ±64px. Transform only, anchored right, so the labels
+  stay a column and the hit targets never move. And the photographs lean in too: 3% scale
+  inside their fixed overflow-hidden frames.
+- **The rail jumped on press** because the landing was scroll-0, which un-stuck the sticky
+  rail back to its flow position. The landing is now the one scroll position where flow
+  offset equals stuck offset (river top exactly `top-6` below the viewport edge): measured
+  24px → 24px on a deep press, zero movement of the control being pressed.
+- **"Why's there sometimes no 2020s heading"** — a lone band's heading was suppressed as
+  self-evident. He read that as a bug, correctly; a single band now opens with its decade.
+- **Counts are gone everywhere** — "who actually cares." The toolbar's "N photographs" (and
+  its dot), the count under each decade heading, and with them the `COUNT(*)` the database
+  ran on every fresh view. The rail's marks already carry the fact as proportion.
+- **"Glitch and take me elsewhere"** was `content-visibility` windowing: skipped bands stood
+  in at a 600px guess against real heights in the thousands, and the correction misfired
+  under justified rows. Removed outright — if it ever returns at real scale, the estimate
+  must be computed from known aspect ratios, not guessed. Upward pages also halved to 24
+  rows, because a chunk landing above the reader is laid out while they watch.
+
+All of it verified in numbers on a live page, both viewports screenshotted, 23/23 visual
+(collection rebaselined for the count line — the diff was that line and nothing else), and
+the seek spec still holds the 0px-drift promise.
+
 ## 2026-08-29 — the decade rail stops filtering and starts travelling
 
 *"let's brainstorm how we can best use that side number panel. I love the idea and I love
@@ -6720,3 +6759,44 @@ gains 6px between its lines, and a SINGLE-LINE title gains 6px of box height, wh
 viewports, and the About diff is the whole story -- the title shifting a few pixels and one paragraph
 following it. That is the suite doing its job on a change with a wider blast radius than the request
 implied.
+
+
+## 2026-08-29 — a mobile-first pass: the question mark, the bird, the keyboard, the margins
+
+The owner: *"on mobile the question mark next to collection is at the end of the top line even
+though the word collection wraps around."* The mark lives in `<GuideDoor>`, wrapping every page
+title that opens a guide chapter, and the anchor around title-plus-mark was `inline-flex`. A flex
+row does not wrap the way plain text does: the title text became one flex item, the "?" a sibling
+item beside it, so once the title itself wrapped in two lines the mark stayed pinned to the end of
+the item's whole box -- the end of line one -- instead of trailing the actual last word. `inline`
+puts both back in one line box, so the mark rides wherever the text's own wrapping puts it. Fixes
+every guide-door title at once, Collection included, with no page-level patch.
+
+The support page's bird plate had a real bug hiding behind "it's buggy": a touch tap fires
+pointerenter, pointerup, then the row's own pointerleave (a lifted touch counts as "leaving"), then
+click last -- highlight on, off, on again, for one tap. Gated pointerenter/pointerleave to mouse
+only; touch now answers to click alone, one clean transition. Hold time also dropped from 7s to the
+3s the owner asked for.
+
+*"many actions on desktop automatically pop open the typing box... on mobile that instantly means
+half the screen is a keyboard, and all they wanted was to see the cities."* Signup, login and the
+gates already deferred `autoFocus` to a device-capability check (`hover: hover and pointer: fine`).
+The city/house filter's search field did not -- it carried a raw `autoFocus`, unconditional, every
+open. The interesting finding: Base UI's Popover already refuses to focus a field on a touch open
+by default (its own comment: "prevent the virtual keyboard from opening"), and the app's `autoFocus`
+was overriding that default rather than needing to extend it. Removing the attribute was the whole
+fix. Verified with real touch/mouse events, not a programmatic `.click()`, which does not carry
+enough pointer data for the library's own branch to see the tap.
+
+Two margin drifts, one page each. "Start a Catch-up" narrowed itself to `max-w-xl` inside the
+already-centred column, on the reasoning that a three-field form did not need more; right about the
+fields, wrong about a wide monitor, where it read as a small card lost in a great deal of empty
+canopy. Restored to the standard measure, and the extra room went into the form's own layout: Name
+and Rhythm now share a fixed left column, With takes the rest, so the width serves the card instead
+of the page around it. And the Round page's "In this Round" rail was a hand-built
+`grid-cols-[minmax(0,1fr)_220px]` on its own `lg:` breakpoint rather than the shared `RAIL_GRID`
+every other two-column surface uses.
+
+Also found and fixed: the mobile filter sheet's sticky footer ("Show N") padded its bottom edge
+with a flat 16px, no `env(safe-area-inset-bottom)`, on a layout that already opts into
+`viewport-fit=cover`. One more fixed bottom bar than the ones already covered.

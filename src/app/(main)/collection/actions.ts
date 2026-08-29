@@ -58,6 +58,15 @@ import { isForeignKeyViolation, isUniqueViolation } from "@/lib/prisma-errors";
  * next batch." (That gallery held 35 of ~300 in the DOM.) */
 const PAGE_SIZE = 48;
 
+/* Half that for the climb back UP out of a seek. A page appended at the foot
+ * is laid out below the fold where nobody sees the work; a page landing
+ * ABOVE the reader is laid out while they watch, and 48 justified rows of
+ * images arriving in one commit is a visible hitch even with the scroll
+ * anchored. Smaller batches, gentler frames -- and the head sentinel's
+ * 1200px margin refills between them, so the seam still stays ahead of the
+ * reader. */
+const UP_PAGE_SIZE = 24;
+
 export type PhotoData = {
   id: string;
   thumbUrl: string;
@@ -576,10 +585,11 @@ function buildCollectionWhere(opts?: RiverFilters) {
  *  with twelve beside it returns nothing. */
 export type DecadeCount = { era: string; count: number };
 
-/** What the river hands back. `total` and `decades` ride only on the first
- *  page: neither can change while paging through one query, and counting
- *  twenty thousand rows again per page is the second thing offset
- *  pagination was making the database do for nothing. */
+/** What the river hands back. `decades` rides only on the first page: it
+ *  cannot change while paging through one query. There is no `total` any
+ *  more -- the toolbar count it fed was cut ("I feel like we can dispense of
+ *  the number of photographs anywhere, who actually cares"), which also
+ *  retired a COUNT(*) the database ran on every fresh view for nothing. */
 export type RiverPage = {
   photos: PhotoData[];
   nextCursor: string | null;
@@ -588,7 +598,6 @@ export type RiverPage = {
    *  `undefined` everywhere seeking is not in play; `null` once a climb has
    *  reached the newest photograph there is. */
   topCursor?: string | null;
-  total?: number;
   decades?: DecadeCount[];
 };
 
@@ -596,7 +605,7 @@ export async function loadPhotos(
   opts?: RiverFilters & { cursor?: string | null; direction?: "newer" }
 ): Promise<RiverPage> {
   const session = await auth();
-  if (!session?.user?.id) return { photos: [], nextCursor: null, total: 0, decades: [] };
+  if (!session?.user?.id) return { photos: [], nextCursor: null, decades: [] };
 
   const filters = buildCollectionWhere(opts);
 
@@ -619,10 +628,10 @@ export async function loadPhotos(
       where,
       include: includeFor(session.user.id),
       orderBy: orderByForTakenAscending(),
-      take: PAGE_SIZE + 1,
+      take: UP_PAGE_SIZE + 1,
     });
-    const hasMore = rows.length > PAGE_SIZE;
-    const trimmed = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
+    const hasMore = rows.length > UP_PAGE_SIZE;
+    const trimmed = hasMore ? rows.slice(0, UP_PAGE_SIZE) : rows;
     // Fetched ascending -- nearest the boundary first, so the row nearest
     // "newer" lands LAST here -- and reversed before it reaches a reader
     // who always sees newest at the top.
@@ -687,15 +696,11 @@ export async function loadPhotos(
        vanished at the moment you used it (owner, 2026-08-29). Now that a
        decade is a seek rather than a filter, `filters` never pins `era` in
        the first place, so there is nothing left to strip here. */
-    const [total, byEra] = await Promise.all([
-      prisma.photo.count({ where: filters }),
-      prisma.photo.groupBy({
-        by: ["era"],
-        where: filters,
-        _count: { era: true },
-      }),
-    ]);
-    page.total = total;
+    const byEra = await prisma.photo.groupBy({
+      by: ["era"],
+      where: filters,
+      _count: { era: true },
+    });
     page.decades = byEra.map((g) => ({ era: g.era, count: g._count.era }));
   }
 

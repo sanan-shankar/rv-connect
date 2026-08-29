@@ -51,7 +51,7 @@ import {
   type RiverPage,
 } from "@/app/(main)/collection/actions";
 import { areaLabel, bucketLabel } from "@/lib/collection";
-import { PhotoRiver, Tile } from "./photo-river";
+import { PhotoRiver, Tile, warmThumbs } from "./photo-river";
 import { RiverControls } from "./river-controls";
 import { DecadeRail, type DecadeCount } from "./decade-rail";
 
@@ -148,7 +148,6 @@ export function CollectionClient({
      which only exists once the decade rail has seeked mid-river. See
      `loadNewer` and the note on `RiverPage.topCursor`. */
   const [topCursor, setTopCursor] = useState<string | null>(firstPage.topCursor ?? null);
-  const [total, setTotal] = useState<number | undefined>(firstPage.total);
   const [decades, setDecades] = useState<DecadeCount[]>(firstPage.decades ?? []);
 
   /* The server has answered again -- a contribution landed and called
@@ -168,7 +167,6 @@ export function CollectionClient({
     setPhotos(firstPage.photos);
     setCursor(firstPage.nextCursor);
     setTopCursor(firstPage.topCursor ?? null);
-    setTotal(firstPage.total);
     setDecades(firstPage.decades ?? []);
   }
 
@@ -320,10 +318,17 @@ export function CollectionClient({
         setLoading(false);
         return;
       }
+      /* HOLD THE OLD RIVER UNTIL THE NEW ONE IS READY TO BE SEEN. The rows
+         used to swap the moment the data landed, and then every thumbnail
+         arrived on its own schedule -- "a full reloading and things populate
+         unevenly, it's not pretty" (owner). Decoding the first screenful
+         first (bounded at 450ms, see `warmThumbs`) turns the change into
+         one movement: the dim, then the new view, whole. */
+      await warmThumbs(data.photos);
+      if (cancelled) return;
       setPhotos(data.photos);
       setCursor(data.nextCursor);
       setTopCursor(data.topCursor ?? null);
-      setTotal(data.total);
       setDecades(data.decades ?? []);
       /* A new river, so the old scroll position is not a fact about it any
          more: back to the decade asked for, or to nothing -- which the rail
@@ -334,12 +339,25 @@ export function CollectionClient({
          "1970s" from six screens down and staying six screens down would
          land the reader in the middle of the decade they asked for. Not
          smooth: the photographs under them have already been replaced, so
-         there is nothing continuous left to travel over, and a long smooth
-         scroll across a river that is no longer the same one reads as a
-         glitch rather than as movement. */
+         there is nothing continuous left to travel over.
+
+         But NOT to the top of the page. Landing at scroll 0 moved the
+         sticky rail from where it was pinned (top-6 below the viewport
+         edge) back down to its flow position under the page header, so the
+         very control being pressed lurched -- "the decade bar adjusts its
+         position when you click, it goes to the top of the screen" (owner).
+         The landing is instead the one scroll position where the rail does
+         not move AT ALL: its flow offset equals its stuck offset, i.e. the
+         river's top sits exactly `top-6` (24px) below the viewport edge.
+         A reader already above that point stays put -- the river's top is
+         on their screen and nothing needs to travel. */
       if (jump.current) {
         jump.current = false;
-        window.scrollTo({ top: 0 });
+        const row = riverTop.current;
+        const target = row
+          ? Math.max(0, Math.round(row.getBoundingClientRect().top + window.scrollY) - 24)
+          : 0;
+        if (window.scrollY > target) window.scrollTo({ top: target });
       }
     })();
     return () => {
@@ -406,6 +424,11 @@ export function CollectionClient({
    *  rather than state: it changes what that one fetch DOES, not what the
    *  page looks like, and it must not cause a render of its own. */
   const jump = useRef(false);
+
+  /** The flex row holding the river and the rail -- the landing target for a
+   *  seek. Its top is the rail's flow position, which is what makes the
+   *  "rail does not move" arithmetic in the query effect possible. */
+  const riverTop = useRef<HTMLDivElement>(null);
 
   /* Pressing a decade. Two state changes and nothing else -- no fetch here:
      `seekEra` is part of the query, so the effect above sees a new
@@ -587,7 +610,6 @@ export function CollectionClient({
     setPhotos((prev) => prev.filter((p) => p.id !== id));
     setPendingPhotos((prev) => prev.filter((p) => p.id !== id));
     setLinked((prev) => prev.filter((p) => p.id !== id));
-    setTotal((t) => (t === undefined ? t : Math.max(0, t - 1)));
     setViewer(null);
     setRemoving(null);
   }
@@ -611,9 +633,9 @@ export function CollectionClient({
      because the fallback has to survive every route into a new list of
      photographs -- including the server re-seeding this component after a
      contribution, which replaces the river without anybody scrolling. And it
-     earns its place: when one decade fills the whole first page there is no
-     heading for the scrollspy to observe (a single band has nothing to
-     fold), so nothing else would light the rail at all. */
+     earns its place: when one decade fills the whole first page the
+     scrollspy sits out entirely (`useActiveBand` has nothing to compare
+     below two bands), so nothing else would light the rail at all. */
   const railActive = order === "taken" ? activeEra || photos[0]?.era || "" : "";
 
   return (
@@ -693,7 +715,6 @@ export function CollectionClient({
             onBucket={chooseBucket}
             order={order}
             onOrder={setOrder}
-            total={loading ? undefined : total}
           />
           {/* NO WAY TO JUMP BY DECADE BELOW 1280px, still. A scrolling line of
               decade words under the buckets shipped here once, in the one
@@ -709,7 +730,7 @@ export function CollectionClient({
               controls (16px against the header's 24px), so the line of buckets
               reads as belonging to the photographs under it rather than
               floating between the two. It was 4px, which read as glued on. */}
-          <div className="mt-4 flex items-start gap-6 xl:gap-8">
+          <div ref={riverTop} className="mt-4 flex items-start gap-6 xl:gap-8">
             <div className="min-w-0 flex-1">
               {pendingPhotos.length > 0 && (
                 <div className="mb-6">
@@ -777,9 +798,6 @@ export function CollectionClient({
                     order={order}
                     dimmed={loading}
                     onActiveEraChange={order === "taken" ? setActiveEra : undefined}
-                    /* Off for a seeked river, where pages arrive above the
-                       reader and a skipped band would resize under them. */
-                    windowed={!seekEra}
                     onOpen={(index) => {
                       setViewerMounted(true);
                       setViewer({ list: "main", index });

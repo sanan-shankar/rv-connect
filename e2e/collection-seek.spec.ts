@@ -41,12 +41,10 @@ async function readInChronologicalOrder(page: import("@playwright/test").Page) {
   await page.getByRole("button", { name: /^Order:/ }).click();
   await page.getByRole("menuitem", { name: "Chronological" }).click();
 
-  /* Readiness is the LIT MARK, not a heading -- and that is a fact about
-     this archive worth stating. The newest decade alone fills the first
-     page, so the river is a single band and renders no heading whatsoever
-     (there is nothing to fold). The rail is lit anyway, because what it
-     shows falls back to the decade the top photograph belongs to; waiting
-     on a heading here waits forever. */
+  /* Readiness is the LIT MARK: the rail lights the moment the order lands
+     (from the top photograph's own era when the scrollspy has nothing to
+     say yet), which makes it the one signal that exists in every state --
+     including the first page being a single decade. */
   await expect(rail(page).locator('button[aria-current="true"]')).toBeVisible();
 }
 
