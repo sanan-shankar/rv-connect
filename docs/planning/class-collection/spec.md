@@ -142,11 +142,14 @@ session does not have to rediscover the mechanism.
 
 - **Teachers.** `taughtFrom`/`taughtUntil`, no `batchYear`. They have no class and the
   switch does not offer them one. "The years you taught" is a different feature; §11.
-- **Incomplete profiles.** No `batchYear` yet. The switch is present and leads to a prompt
-  to fill the year in, linking to the profile editor — not absent, which would make the
-  feature invisible to exactly the people one field away from using it.
-- **Unverified accounts.** Switch present, leads to whatever the app's existing "get
-  verified" path is.
+- **Incomplete profiles and unverified accounts.** **The switch is simply absent**, and this
+  reverses what an earlier draft of this section said. The draft had it present and leading
+  to a prompt; building it made the cost obvious — a control drawn only in order to explain
+  that it does not work is one more element on a page whose entire brief was to stay quiet.
+  The honest place to tell somebody their class archive is one field away is beside the
+  missing field, in the profile editor, not on a page they have already navigated to.
+  **Logged for phase 5**, and it is a real gap until then: a member one field short of the
+  feature currently has no way to learn it exists.
 
 ### 2.6 A class of one
 
@@ -499,7 +502,8 @@ Each of these is a real idea being declined for v1, not an oversight:
 3. **The switch**: segmented control, title, privacy line, the class side as a scoped river
    with buckets dropped. First visible commit.
 4. **The bulk contribute path**, §7.2. The largest piece.
-5. **The year rail, EXIF dates, notifications.**
+5. **The year rail, EXIF dates, notifications**, and the profile-side nudge that tells a
+   member with no batch year that a class archive is waiting behind that field (§2.5).
 
 Each phase is a commit that can be reverted whole: code, test, `progress.md` line, spec
 edit and any moved visual baseline together.

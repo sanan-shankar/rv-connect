@@ -51,8 +51,9 @@ import {
   type RiverPage,
 } from "@/app/(main)/collection/actions";
 import { areaLabel, bucketLabel } from "@/lib/collection";
+import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import { PhotoRiver, Tile, landAt, warmThumbs } from "./photo-river";
-import { RiverControls } from "./river-controls";
+import { RiverControls, ScopeSwitch } from "./river-controls";
 import { DecadeRail, type DecadeCount } from "./decade-rail";
 
 /* ------------------------------------------------------------------ *
@@ -112,6 +113,8 @@ function toViewerImage(p: PhotoData, isAdmin: boolean): ViewerImage {
 export function CollectionClient({
   pending,
   hasApprovedPhotos,
+  canSeeClass = false,
+  myClassYear = null,
   firstPage,
   filters,
   isAdmin = false,
@@ -121,6 +124,14 @@ export function CollectionClient({
 }: {
   pending: PhotoData[];
   hasApprovedPhotos: boolean;
+  /** Whether this member may read a Class Collection at all: verified, with a
+   *  batch year. Resolved server-side through the SAME `photoScopeWhere` the
+   *  river and the permalink use, so the switch cannot offer a half the
+   *  server would then refuse. */
+  canSeeClass?: boolean;
+  /** Their class, as four digits, or null. Only ever used to say which class
+   *  is empty; the audience itself is never taken from the client. */
+  myClassYear?: string | null;
   /** Whether this member's contributions go straight in, and how many more
    *  their account may hold. Both are things the contribute pop-up promises
    *  before a file is chosen, so both arrive with the page. */
@@ -200,6 +211,13 @@ export function CollectionClient({
   const [loadingMore, setLoadingMore] = useState(false);
 
   /* ---------------- what is being asked for ---------------- */
+  /* WHICH HALF of the Collection. A fifth query dimension beside the bucket,
+     the search, the order and the seek -- deliberately NOT delivered as a new
+     server-rendered `firstPage`, which would fight the reseed guard above
+     instead of using it. Routed through `fetchPage` it inherits the whole
+     apparatus for nothing: the dim-hold-swap, the thumbnail pre-warm, the
+     landing rules and the URL sync (spec sec. 5.5). */
+  const [scope, setScope] = useState<PhotoScope>(filters.scope ?? "valley");
   const [bucket, setBucket] = useState(filters.bucket ?? "");
   const [order, setOrder] = useState<RiverOrder>(filters.order ?? "newest");
   const [searchInput, setSearchInput] = useState(filters.search ?? "");
@@ -239,6 +257,23 @@ export function CollectionClient({
    *  order with it (`seekTo`). */
   const chooseOrder = useCallback((next: RiverOrder) => {
     setOrder(next);
+    setSeekEra("");
+  }, []);
+
+  /** The other half is not a filtered view of this one, it is a different
+   *  archive -- so everything narrowing this one goes with it.
+   *
+   *  The seek for the reason above: a decade seeked in the valley would
+   *  otherwise resurface in a class that has no photographs in it. The bucket
+   *  and the search because they are worse than stale, they are misleading:
+   *  searching "banyan", switching, and meeting an empty page reads as an
+   *  empty Class Collection rather than as a search that found nothing, and
+   *  that is the first impression the feature gets exactly once. */
+  const chooseScope = useCallback((next: PhotoScope) => {
+    setScope(next);
+    setBucket("");
+    setSearchInput("");
+    setSearch("");
     setSeekEra("");
   }, []);
 
@@ -286,6 +321,7 @@ export function CollectionClient({
   useEffect(() => {
     if (!moved.current) {
       const still =
+        scope === (asked.current.scope ?? "valley") &&
         bucket === (asked.current.bucket ?? "") &&
         search === (asked.current.search ?? "") &&
         order === (asked.current.order ?? "newest") &&
@@ -294,18 +330,23 @@ export function CollectionClient({
       moved.current = true;
     }
     const q = new URLSearchParams();
+    /* Named only when it is not the resting state, like `order` below -- so
+       the Valley Collection keeps the bare /collection address it has always
+       had, and only the class half carries a param. */
+    if (scope === "class") q.set("scope", "class");
     if (bucket) q.set("bucket", bucket);
     if (search) q.set("q", search);
     if (seekEra) q.set("when", seekEra);
     if (order !== "newest") q.set("order", order);
     const qs = q.toString();
     window.history.replaceState(null, "", `/collection${qs ? `?${qs}` : ""}`);
-  }, [bucket, search, order, seekEra]);
+  }, [scope, bucket, search, order, seekEra]);
 
   const fetchPage = useCallback(
     (c: string | null) =>
       loadPhotos({
         cursor: c,
+        scope,
         bucket: bucket || undefined,
         search: search || undefined,
         order,
@@ -314,7 +355,7 @@ export function CollectionClient({
            without the decade leaking into what the river holds. */
         era: seekEra || undefined,
       }),
-    [bucket, search, order, seekEra]
+    [scope, bucket, search, order, seekEra]
   );
 
   /* Bumped whenever the query behind this river changes, so a page already in
@@ -712,7 +753,12 @@ export function CollectionClient({
     <div>
       <PageHeader
         guide="collection"
-        title="The Valley Collection"
+        /* THE TITLE IS THE WHOLE INDICATOR. No lock beside it, no line under
+           it saying who can see this -- the owner cut both: "it's pretty
+           obvious. please don't worsen the good things we have in
+           collections." The word "Class" carries it, and two more elements
+           saying it again is how a good page becomes a worse one. */
+        title={scope === "class" ? "The Class Collection" : "The Valley Collection"}
         actions={
           <>
             {!trulyEmpty && (
@@ -724,9 +770,13 @@ export function CollectionClient({
               <SearchPill
                 value={searchInput}
                 onChange={setSearchInput}
-                placeholder="Search the Collection"
+                placeholder={
+                  scope === "class" ? "Search your class" : "Search the Collection"
+                }
                 label="Search photographs by caption, place or contributor"
-                restLabel="Search the Collection"
+                restLabel={
+                  scope === "class" ? "Search your class" : "Search the Collection"
+                }
               />
             )}
             {!trulyEmpty && (
@@ -764,14 +814,44 @@ export function CollectionClient({
         }
       />
 
+      {/* THE SWITCH SURVIVES THE EMPTY STATE, and it has to: every class is
+          empty on its first day, `trulyEmpty` hides the whole controls row,
+          and a member who switched into an empty Class Collection would have
+          had no way back to the valley. The empty state is precisely where
+          you most need to leave. Rendered here only when the row below is
+          not, so it never appears twice. */}
+      {trulyEmpty && (
+        <ScopeSwitch
+          scope={scope}
+          onScope={chooseScope}
+          canSeeClass={canSeeClass}
+          className="mb-5"
+        />
+      )}
+
       {trulyEmpty ? (
+        /* THE SAME EMPTY STATE with different words, not a second component.
+           Every class has none of these on its first day, so this is what the
+           Class Collection IS for its first month -- but the shape that was
+           right for the valley is right here too (spec sec. 6.3). */
         <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-14 text-center">
           <p className="font-heading text-xl tracking-tight text-foreground">
-            The collection is just beginning.
+            {scope === "class"
+              ? "Nothing from your class yet."
+              : "The collection is just beginning."}
           </p>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-            The first photographs of the valley will live here: the banyan, Rishi Konda, the
-            birds, the light. Add the first one.
+            {scope === "class" ? (
+              <>
+                Photographs added here stay with the class of {myClassYear}. Nobody else in
+                the school can see them.
+              </>
+            ) : (
+              <>
+                The first photographs of the valley will live here: the banyan, Rishi Konda,
+                the birds, the light. Add the first one.
+              </>
+            )}
           </p>
           <Button variant="primary" className="mt-5 rounded-full" onClick={openContribute}>
             <Plus className="h-4 w-4" />
@@ -781,6 +861,9 @@ export function CollectionClient({
       ) : (
         <>
           <RiverControls
+            scope={scope}
+            onScope={chooseScope}
+            canSeeClass={canSeeClass}
             bucket={bucket}
             onBucket={chooseBucket}
             order={order}
@@ -831,7 +914,9 @@ export function CollectionClient({
                     {search
                       ? `No photograph mentions "${search}".`
                       : "No photograph has been filed under this."}{" "}
-                    Try a wider bucket.
+                    {/* There is no bucket line on the class side, so there is
+                        no wider bucket to try. */}
+                    {scope === "class" ? "" : "Try a wider bucket."}
                   </p>
                   <Button
                     variant="outline"
@@ -923,6 +1008,13 @@ export function CollectionClient({
           flow /collection/[id] carried and the same one the feed uses. */}
       {contributeMounted && (
         <ContributeDialog
+          /* The destination, in the dialog's OWN title rather than a new line
+             inside it. With no "move to the Valley Collection" -- the owner:
+             "if they wanted it they could've just put it there instead" --
+             the only correction for a misfile is delete and re-upload, so
+             this title is the whole of the safeguard and it is read before a
+             file is chosen (spec sec. 7.1, 7.3). */
+          scope={scope}
           open={contributing}
           onOpenChange={setContributing}
           autoApproved={autoApproved}

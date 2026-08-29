@@ -1,5 +1,52 @@
 # Progress Log
 
+## 2026-08-29 — the Class Collection becomes visible, and it is one control
+
+Phase 3 of `docs/planning/class-collection/spec.md`: the switch. The `<h1>` becomes "The
+Class Collection", `<SegmentedPills>` gains a `Valley | Class` segment at the left of the
+controls line, and scope joins the bucket, the search, the order and the seek as a fifth
+`fetchPage` dimension — so the swap inherits the dim-hold, the pre-warm, the landing rules
+and the URL sync for nothing. `?scope=class` is an address you can send somebody.
+
+**Counted, because the brief was to stay quiet.** One control added. The six bucket words
+*removed* on the class side — five of them would be permanently empty there, and a control
+that is always empty teaches a reader to stop reading controls. The class half has FEWER
+controls than the valley half; that is the test. The title, the contribute dialog's title
+and the empty state's copy all change rather than gaining anything. The decade rail, the
+search pill, Contribute, the river and the viewer are untouched.
+
+**An earlier draft had a lock icon beside the title and a line reading "Only the class of
+2004 can see this."** The owner cut both: *"it's pretty obvious. please don't worsen the
+good things we have in collections."* He is right — the word "Class" is the indicator, and
+two more elements repeating it is how a good page becomes a worse one.
+
+Three things the screenshots caught that reasoning had not:
+
+- **The switch vanished exactly where it was needed.** `trulyEmpty` hides the whole controls
+  row, and every class starts empty — so switching into your own Class Collection stranded
+  you there with no way back to the valley. `<ScopeSwitch>` is its own component now,
+  rendered in both branches.
+- **`justify-between` stranded the bucket line in the middle of the page.** With three
+  children the row distributed them and the switch took the left-edge alignment with the
+  title that the buckets used to hold. Switch and buckets are one left-anchored group now.
+- **That group then squeezed mobile.** Sharing the row at 390px cost the bucket scroller a
+  visible word; the shipped baseline gives it the whole row and lets "Newest" wrap below.
+  `basis-full` until `sm`.
+
+`/collection?scope=class` joins the visual suite — its own line, because it is a different
+page and the valley baseline would never notice any of it moving. Two baselines moved
+deliberately and are staged here; `login desktop` is red for the focus-ring session's
+change, not this one.
+
+**Verified in a real authed browser**, by rv-connect-06 rather than here: driving it needs
+the dev-login secret, and `_dev-login.mjs` is explicit that the secret must never enter page
+JavaScript, which rules out the MCP's `evaluate_script`. Read off the page — pressing Class
+gives `/collection?scope=class` and "The Class Collection"; pressing Valley gives back a bare
+`/collection`, so the default scope is omitted rather than written as `?scope=valley`; a cold
+`?scope=class` renders the right half. **Zero RSC refetches on either press** and `scrollY`
+held at 0, so the action-navigation class of bug 9fec6f6 fixed has not come back through this
+door. Nothing from the valley leaked into the class half.
+
 ## 2026-08-29 — the Collection grows a second half, and it is enforced before it is visible
 
 The owner wants a Class Collection: photographs a member's own class uploads, seen only by

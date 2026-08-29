@@ -33,6 +33,13 @@ const ROUTES: Route[] = [
   { path: "/letters", name: "letters", why: "the reading surface: the narrow measure the serif needs", live: "band" },
   { path: "/catchups", name: "catchups", why: "rebuilt surface, most recent churn", live: "band" },
   { path: "/collection", name: "collection", why: "photo grid; catches image-sizing regressions" },
+  /* The Collection's other half. Its own line because it is a DIFFERENT page
+     -- a different title, the scope switch, and no bucket line at all -- and
+     the valley baseline above would never notice any of it moving. Not live:
+     the admin account's own class has no photographs, so this shoots the
+     empty state, which is what every class sees on its first day and the one
+     view most likely to be quietly broken by an unrelated change. */
+  { path: "/collection?scope=class", name: "collection-class", why: "the class half: the switch, the title, the empty state every class starts at" },
   { path: "/support", name: "support", why: "the tree backdrop + CostBar, retuned three times" },
   { path: "/birds", name: "birds", why: "50 avatar glyphs; catches a broken plumage path fast" },
   { path: "/about", name: "about", why: "static copy; a canary for global token drift" },

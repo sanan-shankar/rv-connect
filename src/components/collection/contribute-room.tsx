@@ -80,6 +80,7 @@ import { ContributedHoopoe } from "@/components/mascot/moments/contributed-hoopo
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { eraFromPartial, eraSaid, MONTHS, photoDate, yearGiven } from "@/lib/collection";
 import { contributePhoto, contributePhotoDirect } from "@/app/(main)/collection/actions";
+import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import { directUploadPut } from "@/lib/upload-client";
 import { shrinkForUpload } from "@/lib/image-downscale";
 import { MAX_UPLOAD_BYTES, isImageFile } from "@/lib/upload-shared";
@@ -205,11 +206,17 @@ export function ContributeDialog({
   onOpenChange,
   autoApproved,
   roomLeft,
+  scope = "valley",
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   autoApproved: boolean;
   roomLeft: number;
+  /** Which half of the Collection this contribution is going into, fixed by
+   *  the side Contribute was pressed from and NOT switchable in here: a
+   *  switchable destination is a second way to get it wrong. The audience is
+   *  still derived server-side; this only says which half to ask for. */
+  scope?: PhotoScope;
 }) {
   const [wall, setWall] = useState(0);
   return (
@@ -262,8 +269,17 @@ export function ContributeDialog({
           {/* 20px on a phone: at 23px "Add to the valley's memory" wraps to two
               lines inside 326px of Libre Baskerville, which is 30px of exactly
               the height this pass exists to give back. */}
+          {/* THE DESTINATION IS THE TITLE, not a line added under it. With no
+              way to move a photograph between the halves afterwards, this is
+              the whole of what stops a misfile, and it is the first thing
+              read. The valley's line keeps its warmth -- it is the one warm
+              line on this surface and it already names the valley; the class
+              one is plain, because a statement of where something private is
+              going is not the place for a house voice. */}
           <DialogTitle className="pr-10 font-heading text-[20px] leading-tight tracking-[-0.02em] sm:text-[23px]">
-            Add to the valley&rsquo;s memory
+            {scope === "class"
+              ? "Add to the Class Collection"
+              : "Add to the valley\u2019s memory"}
           </DialogTitle>
           {/* No description under the title. It said "Paste, drop or browse.
               As many photographs as you like, all at once" -- the same
@@ -274,6 +290,7 @@ export function ContributeDialog({
         </DialogHeader>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-3 pb-5 sm:px-6 sm:pb-6">
           <ContributeRoom
+            scope={scope}
             autoApproved={autoApproved}
             roomLeft={roomLeft}
             active={open}
@@ -290,9 +307,12 @@ export function ContributeRoom({
   autoApproved,
   roomLeft,
   active = true,
+  scope = "valley",
   onWall,
   onDone,
 }: {
+  /** Which half this contribution is going into. See ContributeDialog. */
+  scope?: PhotoScope;
   /** How many photographs are on the wall right now. The pop-up around this
    *  sizes itself from it; the standalone lab room ignores it. */
   onWall?: (count: number) => void;
@@ -613,7 +633,9 @@ export function ContributeRoom({
     };
 
     if (p.key) {
-      const res = await contributePhotoDirect({ key: p.key, ...common });
+      /* WHICH HALF only. The server derives whose class from the caller's own
+         row, so naming a scope is not a way into somebody else's. */
+      const res = await contributePhotoDirect({ key: p.key, scope, ...common });
       if (res.error) throw new Error(res.error);
       if (res.notice) notices.current.add(res.notice);
       return true;
@@ -627,6 +649,7 @@ export function ContributeRoom({
     if (!ready.ok) throw new Error(ready.error);
     const fd = new FormData();
     fd.set("file", ready.files[0]);
+    fd.set("scope", scope);
     if (common.caption) fd.set("caption", common.caption);
     for (const b of m0.buckets) fd.append("buckets", b);
     if (common.photoYear !== undefined) fd.set("photoYear", String(common.photoYear));
