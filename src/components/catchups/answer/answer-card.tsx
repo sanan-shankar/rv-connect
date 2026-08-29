@@ -18,6 +18,7 @@
  * ------------------------------------------------------------------ */
 
 import { useRef, useState } from "react";
+import { FIELD_FOCUS_WITHIN } from "@/components/ui/field-focus";
 import Link from "next/link";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { Button } from "@/components/ui/button";
@@ -99,7 +100,7 @@ export function AnswerCard({
       <div className="mt-[var(--space-m)] space-y-[var(--space-m)]">
         {prompt.kind === "text" && (
           <>
-            <div className="overflow-hidden rounded-[var(--radius-input)] border border-border hover:border-leaf/40 focus-within:border-leaf/60 focus-within:ring-2 focus-within:ring-leaf/30">
+            <div className={`overflow-hidden rounded-[var(--radius-input)] border border-border hover:border-leaf/40 ${FIELD_FOCUS_WITHIN}`}>
               {/* The same writing surface as the composer (owner, 2026-08-13:
                   "bold italics etc in every text box... not just the feed"):
                   a contentEditable on the shared markdown primitives, so

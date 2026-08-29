@@ -668,7 +668,7 @@ export function SignupForm({
             type="checkbox"
             name="consent"
             required
-            className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-canopy outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
+            className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-canopy outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           />
           <span>
             I agree to the{" "}

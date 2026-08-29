@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { FIELD_FOCUS } from "@/components/ui/field-focus";
 import { Reply, ArrowUp, X, ShieldAlert, Feather, MoreHorizontal, Trash2 } from "lucide-react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import {
@@ -108,7 +109,6 @@ export function CommentsSection({
      with two notifications (audit M35). The ref is set synchronously, so the
      second call in a frame sees it. Same shape as loadingMoreRef below. */
   const submittingRef = useRef(false);
-  const [focused, setFocused] = useState(false);
   // The comment currently targeted by the admin moderation dialog, if any.
   const [moderatingId, setModeratingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -452,23 +452,13 @@ export function CommentsSection({
               animation can never clip it into a stray shape). */}
           <input
             type="text"
-            className="h-9 flex-1 rounded-full border bg-card px-4 text-sm text-foreground outline-none transition-[box-shadow,border-color] duration-150 ease-out placeholder:text-muted-foreground"
+            className={`h-9 flex-1 rounded-full border border-border bg-card px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground ${FIELD_FOCUS}`}
             placeholder={
               replyTo ? `Reply to ${replyTo.name}...` : "Write a comment..."
             }
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
             maxLength={1000}
-            style={{
-              borderColor: focused
-                ? "color-mix(in srgb, var(--color-leaf) 55%, var(--border))"
-                : "var(--border)",
-              boxShadow: focused
-                ? "inset 0 0 0 2px color-mix(in srgb, var(--color-leaf) 28%, transparent)"
-                : "none",
-            }}
           />
           <SpringPress
             // Same 1.08 as CANOPY_FILL in ui/button.tsx. Hand-rolled rather than a

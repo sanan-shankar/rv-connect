@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, type ComponentProps, type ReactNode } from "react";
+import { FIELD_FOCUS, FIELD_FOCUS_SHELL } from "@/components/ui/field-focus";
 import { InfoTooltip } from "@/components/common/info-tooltip";
 import { cn } from "@/lib/utils";
 
@@ -34,8 +35,11 @@ import { cn } from "@/lib/utils";
  *  ladder agrees - paper is a card surface, mist is the well you put
  *  something into. On the page background mist sits +2.6 dL*, clearly a
  *  box, without the white-slab glare (2026-08-14). */
+/* `border border-transparent`: the shell has no visible edge at rest, but
+   FIELD_FOCUS lights a field by turning its border leaf, so the border has
+   to exist (transparent, inside the 56px box) for the focus edge to land. */
 export const FIELD_SHELL =
-  "h-14 w-full rounded-[var(--radius-input)] bg-mist";
+  "h-14 w-full rounded-[var(--radius-input)] border border-transparent bg-mist";
 
 /** Label base: absolute, vertically centred, ready to transform. */
 export const FLOAT_LABEL_BASE =
@@ -80,12 +84,13 @@ export function FloatField({
         className={cn(
           FIELD_SHELL,
           FIELD_PAD,
-          // No focus ring, on purpose (owner, 2026-08-14: "I don't want the
-          // green outline on boxes" - inputs match :focus-visible even on a
-          // tap, so the ring flashed on every touch). The field's focus
-          // state is the caret plus the label floating up; buttons and links
-          // keep their rings for keyboard travel.
+          // FIELD_FOCUS_SHELL: on a click or tap this shell shows NOTHING on
+          // its edge, exactly the 2026-08-14 ruling ("I don't want the green
+          // outline on boxes"); the label floating up is the focus state. A
+          // Tab gets the 2px leaf edge like every field (owner's pick from
+          // /lab/focus, column A, 2026-08-29).
           "peer min-w-0 text-base text-foreground outline-none",
+          FIELD_FOCUS_SHELL,
           "placeholder:text-muted-foreground/70 placeholder:opacity-0 placeholder:transition-opacity placeholder:duration-200 focus:placeholder:opacity-100",
           "autofill:[-webkit-box-shadow:0_0_0_1000px_var(--color-mist)_inset] autofill:[-webkit-text-fill-color:var(--color-foreground)]",
           trailing && "pr-11",
@@ -217,7 +222,7 @@ export function FloatArea({
              caret and the label rising are its focus state, which is the same
              call FloatField made ("I don't want the green outline on boxes"). */
           !bare &&
-            "rounded-[var(--radius-input)] border border-border transition-colors duration-150 focus:border-canopy",
+            `rounded-[var(--radius-input)] border border-border ${FIELD_FOCUS}`,
           hint && "pr-10",
           className
         )}

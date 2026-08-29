@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { MascotFlightLayer } from "@/components/mascot/mascot-flight-layer";
 import { PostHogProvider } from "@/components/analytics/posthog-provider";
 import { MotionFeatures } from "@/components/common/motion-features";
+import { FocusModality } from "@/components/common/focus-modality";
 import { getThemeCookie } from "@/lib/theme";
 import "./globals.css";
 
@@ -96,6 +97,7 @@ export default async function RootLayout({
           defaultTheme={theme}
           enableSystem={false}
         >
+          <FocusModality />
           {children}
           {/* The ONE hoopoe, mid-flight: renders nothing until a landing CTA
               launches a button-to-perch flight, then carries the puppet across

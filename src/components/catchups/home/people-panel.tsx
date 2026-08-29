@@ -26,6 +26,7 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { FIELD_FOCUS } from "@/components/ui/field-focus";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -664,7 +665,7 @@ function InviteLink({ token }: { token: string }) {
           value={url}
           onFocus={(e) => e.currentTarget.select()}
           aria-label="Invite link"
-          className="min-w-0 flex-1 rounded-[var(--radius-input)] border border-border bg-muted px-3 py-2 text-[12.5px] text-muted-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+          className={`min-w-0 flex-1 rounded-[var(--radius-input)] border border-border bg-muted px-3 py-2 text-[12.5px] text-muted-foreground outline-none ${FIELD_FOCUS}`}
         />
         <Button variant="outline" size="sm" className="shrink-0" onClick={copy}>
           {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}

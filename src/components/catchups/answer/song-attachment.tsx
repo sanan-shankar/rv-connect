@@ -26,6 +26,7 @@
  * ------------------------------------------------------------------ */
 
 import { MusicNotes } from "@phosphor-icons/react";
+import { FIELD_FOCUS } from "@/components/ui/field-focus";
 
 export function SongNameField({
   value,
@@ -57,7 +58,7 @@ export function SongNameField({
         }}
         placeholder="Song name and artist"
         aria-label="Song name and artist"
-        className="w-full rounded-[var(--radius-input)] border border-border bg-card py-3 pl-11 pr-4 text-[15px] text-foreground placeholder:text-foreground/40 hover:border-leaf/40 focus:border-leaf/60 focus:outline-none focus:ring-2 focus:ring-leaf/30"
+        className={`w-full rounded-[var(--radius-input)] border border-border bg-card py-3 pl-11 pr-4 text-[15px] text-foreground placeholder:text-foreground/40 hover:border-leaf/40 outline-none ${FIELD_FOCUS}`}
       />
     </div>
   );

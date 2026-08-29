@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
+import { FIELD_FOCUS } from "@/components/ui/field-focus";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, m } from "motion/react";
 import { IndianRupee, Loader2, ShieldCheck } from "lucide-react";
@@ -349,11 +350,13 @@ export function SupportContribute({ admissionNumber }: { admissionNumber: number
                     // repeats its container's radius.
                     "h-12 w-full rounded-[var(--radius-input)] border border-border bg-card pl-[calc(var(--space-s)+1.5rem)] pr-[var(--space-s)]",
                     "text-[15px] font-semibold tabular-nums text-foreground placeholder:font-normal placeholder:text-muted-foreground",
-                    // Same focus treatment as src/components/ui/input.tsx: one
-                    // offset ring in the neutral ring colour. An extra sky
-                    // border underneath it read as two concentric rings.
+                    // FIELD_FOCUS, imported, not a copy: the comment that used
+                    // to sit here said "same as ui/input.tsx" and had been
+                    // false for two weeks -- the owner picked this box at
+                    // random and it was the odd one out.
                     "transition-[border-color] duration-150 ease-out",
-                    "hover:border-sky/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                    "hover:border-sky/40",
+                    FIELD_FOCUS,
                   )}
                 />
               </div>

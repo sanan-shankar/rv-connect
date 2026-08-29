@@ -150,15 +150,22 @@ One colour — Leaf, the `--ring` token — and exactly three treatments, chosen
 element is. Never a fourth. All on `focus-visible:` (browsers treat text fields as always
 focus-visible, so fields light on click AND keyboard with the same pseudo-class).
 
-1. **Plain boxed fields** (Input, Textarea, the Select trigger, comboboxes): the BOX lights
-   up — `border-ring` plus a snug `ring-[3px] ring-ring/50` halo hugging the border, no
-   offset. The recipe lives in `ui/input.tsx` and is pinned by `focus-recipe.test.mjs`.
-   The invalid state composes, never replaces: `aria-invalid:` red border + red-tinted
-   ring on the same 3px geometry.
-2. **Floating-label fields** (FloatField, FloatArea): no ring, by the 2026-08-14 ruling
-   ("I don't want the green outline on boxes"). Their focus state is the caret plus the
-   label rising, and the framed FloatArea tints its border canopy. This is a designed
-   answer, not an omission.
+1. **Text fields** (every one: Input, Textarea, Select, the combobox shell, the composer's
+   contentEditable, the comment pill, the support amount, the float family): ONE constant,
+   `FIELD_FOCUS` in `ui/field-focus.ts`, chosen by the owner from `/lab/focus` (column A)
+   and pinned by `focus-recipe.test.mjs`, which walks every file that renders a text
+   field. What it does: **click or tap** tints a bordered box's border leaf and leaves the
+   mist floating-label shell alone (its label rising is the state; the 2026-08-14 "no
+   green outline on boxes" ruling, kept exactly); **Tab** gets one solid 2px leaf edge
+   hugging the box (border + 1px inset ring, one line). The split rides on
+   `html[data-modality]`, set by `<FocusModality>` in the root layout, because
+   `:focus-visible` cannot tell a clicked text box from a tabbed one. Never a half-alpha
+   halo ("the thin ring and the thick ring"), never an offset ("separated from the box").
+   Invalid composes on its own properties: red border + red inset ring, and stays red
+   while focused.
+2. **Fields with no box** (the profile pen's underline, a search line in a popover
+   header, a year digit in a grouped row): nothing to light; the caret and the container
+   are the state. The test's BORDERLESS list names each one with its reason.
 3. **Controls** (buttons, links, menu triggers, anything without a glow-able border):
    `outline-2 outline-offset-2 outline-ring`, with `outline-solid` (Tailwind v4 zeroes
    the style under `outline-none`; without solid the ring is invisible). The offset gap

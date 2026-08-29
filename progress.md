@@ -7069,3 +7069,29 @@ inheriting that under-specified wash. Now full alpha. focus-recipe.test.mjs pins
 it; verified live by real click and real Tab (programmatic .focus() doesn't match
 :focus-visible in headless and measures the resting state — the drive scenario learned
 that the hard way).
+
+## 2026-08-29 — the focus ring, chosen properly this time
+
+The first focus commit (822a389) fixed three primitives that most fields do not use and
+called the job done. The owner clicked two boxes at random and they differed; there were
+eleven treatments in all. This entry is the real work, and the way it was decided.
+
+Every text field with a box now imports one constant, `FIELD_FOCUS` (ui/field-focus.ts),
+in the menu-material pattern: input, textarea, select, the combobox shell, the composer's
+contentEditable (its bespoke inset overlay deleted), the comment pill (its JS-driven ring
+deleted), the support amount, the song field, the answer card, the invite link, the edit
+dialog's RichTextArea, and the float family. focus-recipe.test.mjs walks every file that
+renders a text field and fails on any that does not wear it, with a reasoned allowlist for
+fields that have no box (the profile pen, a popover search line, a year digit in a grouped
+row, the unstyled RichTextArea primitive).
+
+The treatment was NOT chosen in a comment. /lab/focus shows the same four fields in five
+columns, one treatment each, including the two he had already rejected, and he picked A:
+click or tap tints a bordered box's border and leaves the mist shell alone (the August
+"no green outline on boxes" ruling, kept exactly); Tab gets one solid 2px leaf edge (WCAG's
+2px perimeter, 3:1 on every surface). A and C looked identical to him because they are
+identical on click; they differ only for the keyboard, where C leaves a 1px colour change.
+The split rides on html[data-modality], set by <FocusModality> in the root layout, because
+:focus-visible treats a clicked text box the same as a tabbed one. Inset ring, so nothing
+clips inside animating wrappers; transparent outline, so Windows High Contrast still has a
+ring. Verified live with a real click and a real Tab on five different fields.

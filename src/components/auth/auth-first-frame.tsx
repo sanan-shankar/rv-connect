@@ -1,6 +1,7 @@
 "use client";
 
 import { m } from "motion/react";
+import { FIELD_FOCUS_SHELL } from "@/components/ui/field-focus";
 import { ArrowLeft } from "lucide-react";
 import { SPRINGS } from "@/components/common/motion";
 import { FIELD_SHELL, FloatField } from "@/components/common/float-field";
@@ -88,6 +89,7 @@ function SignupBody() {
           className={cn(
             FIELD_SHELL,
             "px-4 text-center text-base text-foreground outline-none",
+            FIELD_FOCUS_SHELL,
             "placeholder:text-muted-foreground"
           )}
         />
