@@ -101,12 +101,23 @@ export function FacetSearchSelect({
           {/* p-0 + overflow-hidden: the option list below is a square-edged
               scroller flush with the panel bottom; without the clip its row
               highlight paints past the panel's 12px corner (the spill the
-              owner saw on the City/House lists). */}
+              owner saw on the City/House lists).
+
+              The search input below used to carry a raw `autoFocus`, which
+              is what was popping the keyboard on every open, including
+              touch. Base UI's Popup already has the right behaviour without
+              being told: opened by touch, it focuses the popup panel itself
+              rather than a field (its own comment says so -- "prevent the
+              virtual keyboard from opening"); opened by mouse or keyboard,
+              it focuses the first tabbable descendant, which is this input.
+              `autoFocus` was fighting that default rather than working with
+              it. Removing it, with no `initialFocus` override needed, is the
+              whole fix (verified: mobile now focuses nothing, desktop still
+              gets a ready caret). */}
           <FacetPanel className="w-64 overflow-hidden p-0">
             <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
               <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
               <input
-                autoFocus
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={searchPlaceholder ?? `Search ${label.toLowerCase()}...`}
