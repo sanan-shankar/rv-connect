@@ -6788,14 +6788,12 @@ was overriding that default rather than needing to extend it. Removing the attri
 fix. Verified with real touch/mouse events, not a programmatic `.click()`, which does not carry
 enough pointer data for the library's own branch to see the tap.
 
-Two margin drifts, one page each. "Start a Catch-up" narrowed itself to `max-w-xl` inside the
-already-centred column, on the reasoning that a three-field form did not need more; right about the
-fields, wrong about a wide monitor, where it read as a small card lost in a great deal of empty
-canopy. Restored to the standard measure, and the extra room went into the form's own layout: Name
-and Rhythm now share a fixed left column, With takes the rest, so the width serves the card instead
-of the page around it. And the Round page's "In this Round" rail was a hand-built
-`grid-cols-[minmax(0,1fr)_220px]` on its own `lg:` breakpoint rather than the shared `RAIL_GRID`
-every other two-column surface uses.
+"The new catch-ups thing is so compressed on desktop, it doesn't match any of the margins we've
+standardised to" turned out to be "Start a Catch-up": it narrowed itself to `max-w-xl` inside the
+already-centred column, on the reasoning that a three-field form did not need more -- right about
+the fields, wrong about a wide monitor, where it read as a small card lost in a great deal of empty
+canopy. Restored to the standard measure, and the extra room went into the form's own layout rather
+than the page around it: Name and Rhythm now share a fixed left column, With takes the rest.
 
 Also found and fixed: the mobile filter sheet's sticky footer ("Show N") padded its bottom edge
 with a flat 16px, no `env(safe-area-inset-bottom)`, on a layout that already opts into
