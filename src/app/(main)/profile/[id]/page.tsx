@@ -412,6 +412,7 @@ export default async function ProfilePage({
         isAdmin && !isOwnProfile ? (
           <AdminProfileTools
             userId={user.id}
+            name={user.name}
             isBlocked={user.isBlocked}
             adminNote={user.adminNote}
             verifyState={user.verifyState}

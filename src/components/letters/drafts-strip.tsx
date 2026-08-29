@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { deleteDraft } from "@/app/(main)/feed/actions";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 
 export type DraftSummary = {
   id: string;
@@ -55,9 +56,9 @@ export function DraftsStrip({ drafts }: { drafts: DraftSummary[] }) {
   }
   const [listRef] = useAutoAnimate();
 
+  const [deleting, setDeleting] = useState<DraftSummary | null>(null);
+
   async function handleDelete(draft: DraftSummary) {
-    const label = draft.title?.trim() || "this untitled letter";
-    if (!confirm(`Delete the draft of ${label}? This cannot be undone.`)) return;
     setItems((prev) => prev.filter((d) => d.id !== draft.id));
     const result = await callAction(() => deleteDraft(draft.id));
     if (result.error) {
@@ -103,7 +104,7 @@ export function DraftsStrip({ drafts }: { drafts: DraftSummary[] }) {
             </Link>
             <button
               type="button"
-              onClick={() => handleDelete(d)}
+              onClick={() => setDeleting(d)}
               aria-label={`Delete draft: ${d.title?.trim() || "Untitled letter"}`}
               /* Same 8.8px row radius; hover is a colour change only (never
                  movement), warning red reserved for the destructive moment. */
@@ -114,6 +115,19 @@ export function DraftsStrip({ drafts }: { drafts: DraftSummary[] }) {
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        title="Delete draft"
+        description={`This deletes your draft of ${
+          deleting?.title?.trim() || "this untitled letter"
+        } for good.`}
+        actionLabel="Delete"
+        onConfirm={async () => {
+          if (deleting) await handleDelete(deleting);
+        }}
+      />
     </div>
   );
 }

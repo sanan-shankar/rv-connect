@@ -6823,3 +6823,24 @@ press at 0.985: big surfaces press less and settle without the wobble the owner 
 loose". `attach-well.test.mjs` pins all of it; drive.mjs gained a `wells` scenario and its
 --mobile mode now emulates touch, without which the pointer-aware wording can't be tested
 honestly. Verified two rounds, desktop and mobile.
+
+## 2026-08-29 — the browser's grey confirm box is dead
+
+Spec #2 of the dialog-standards pass. Eight call sites still handed members the browser's
+native confirm() — posts, comments, letter drafts, both catch-up panels, and three admin
+actions on the profile page — a year after ConfirmDialog was built to end exactly that.
+All eight now raise the app's dialog, and confirm-dialog.test.mjs makes a ninth impossible
+(decommented-source scan of src/app + src/components for every native-dialog shape).
+
+The component itself lost its caution triangle: Apple's rule is that the warning symbol
+marks destruction somebody did not choose, and a member who pressed Delete chose it — the
+red button and the title already carry the meaning. `description` went optional (Carbon's
+test: a description exists only if it changes which button you press), so "Unblock member"
+no longer needs a second line. Copy across all eight follows the research digests:
+statement titles naming the object ("Delete post", "Remove {name}"), consequence-only
+descriptions ("This cannot be undone", "Anything they have written stays"), bare-verb
+buttons, Cancel leading, nothing that lets Enter destroy. The profile admin tools now
+speak the admin panel's own words for block and delete — same act, same sentence — and
+gained the member's name plus the typed-name gate the panel already had for deletion.
+Verified live on desktop and mobile via a new drive.mjs confirmDelete scenario, which also
+listens for native dialogs and saw none.
