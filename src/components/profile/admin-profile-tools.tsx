@@ -5,6 +5,7 @@ import { Shield, Ban, Trash2, StickyNote, BadgeCheck, BadgeX } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import {
   adminBlockUser,
   adminDeleteUser,
@@ -15,11 +16,15 @@ import {
 
 export function AdminProfileTools({
   userId,
+  name,
   isBlocked,
   adminNote,
   verifyState,
 }: {
   userId: string;
+  /** Named in every confirmation: the one thing a confirmation for an
+   *  irreversible act has to say is WHICH member (confirm-dialog.tsx). */
+  name: string;
   isBlocked: boolean;
   adminNote: string | null;
   verifyState: string;
@@ -30,10 +35,10 @@ export function AdminProfileTools({
   const [verifying, setVerifying] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const [dialog, setDialog] = useState<"block" | "delete" | "verify" | null>(null);
+
   async function handleBlock() {
     const action = blocked ? "unblock" : "block";
-    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
-
     try {
       const result = await adminBlockUser(userId, !blocked);
       if (result.error) {
@@ -48,13 +53,6 @@ export function AdminProfileTools({
   }
 
   async function handleDelete() {
-    if (
-      !confirm(
-        "Are you sure you want to delete this user and all their data? This cannot be undone."
-      )
-    )
-      return;
-
     try {
       const result = await adminDeleteUser(userId);
       if (result.error) {
@@ -74,15 +72,6 @@ export function AdminProfileTools({
 
   async function handleVerifyToggle() {
     const action = verified ? "unverify" : "verify";
-    if (
-      !confirm(
-        verified
-          ? "Take back this member's verification? Their leaf mark disappears and they return to the review queue."
-          : "Verify this member manually?"
-      )
-    )
-      return;
-
     setVerifying(true);
     try {
       const result = verified
@@ -153,7 +142,7 @@ export function AdminProfileTools({
           <Button
             variant="outline"
             size="sm"
-            onClick={handleVerifyToggle}
+            onClick={() => setDialog("verify")}
             disabled={verifying}
             className={
               verified
@@ -167,7 +156,7 @@ export function AdminProfileTools({
           <Button
             variant="outline"
             size="sm"
-            onClick={handleBlock}
+            onClick={() => setDialog("block")}
             className={
               blocked
                 ? "rounded-full text-leaf hover:text-leaf"
@@ -180,7 +169,7 @@ export function AdminProfileTools({
           <Button
             variant="outline"
             size="sm"
-            onClick={handleDelete}
+            onClick={() => setDialog("delete")}
             className="rounded-full text-destructive hover:text-destructive"
           >
             <Trash2 className="h-4 w-4" />
@@ -188,6 +177,46 @@ export function AdminProfileTools({
           </Button>
         </div>
       </div>
+
+      {/* The same words the admin panel's person-detail uses for the same
+          acts (Material's rule: one verb per act, everywhere). Verify is the
+          one non-destructive act here, and the one with nothing to add under
+          its title, so it has no description. */}
+      <ConfirmDialog
+        open={dialog === "verify"}
+        onClose={() => setDialog(null)}
+        title={verified ? `Unverify ${name}` : `Verify ${name}`}
+        description={
+          verified
+            ? "Their leaf mark disappears and they return to the review queue."
+            : undefined
+        }
+        actionLabel={verified ? "Remove verification" : "Verify"}
+        destructive={verified}
+        onConfirm={handleVerifyToggle}
+      />
+      <ConfirmDialog
+        open={dialog === "block"}
+        onClose={() => setDialog(null)}
+        title={blocked ? `Unblock ${name}` : `Block ${name}`}
+        description={
+          blocked
+            ? undefined
+            : "They stay in the database and keep everything they wrote, but they cannot sign in. You can undo this from the same button."
+        }
+        actionLabel={blocked ? "Unblock" : "Block them"}
+        destructive={!blocked}
+        onConfirm={handleBlock}
+      />
+      <ConfirmDialog
+        open={dialog === "delete"}
+        onClose={() => setDialog(null)}
+        title={`Delete ${name}`}
+        description="Their account, posts, comments, photos and messages go for good. Contributions survive without a name attached. There is no undo."
+        actionLabel="Delete for good"
+        confirmWord={name}
+        onConfirm={handleDelete}
+      />
     </section>
   );
 }

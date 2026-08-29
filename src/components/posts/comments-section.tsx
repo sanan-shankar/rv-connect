@@ -13,6 +13,7 @@ import { BirdAvatar } from "@/components/common/bird-avatar";
 import { PersonName } from "@/components/common/person-name";
 import { LoveButton } from "@/components/common/love-button";
 import { ModerationDialog } from "@/components/admin/moderation-dialog";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import Link from "next/link";
 import { formatTimeAgo } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
@@ -109,6 +110,7 @@ export function CommentsSection({
   const [focused, setFocused] = useState(false);
   // The comment currently targeted by the admin moderation dialog, if any.
   const [moderatingId, setModeratingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   // `createComment` refuses an unconfirmed address server-side; this turns that
   // into a dialog with the fix in it.
   const emailGate = useEmailGate();
@@ -269,12 +271,8 @@ export function CommentsSection({
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this comment? This cannot be undone.")) return;
     const result = await callAction(() => deleteComment(id));
-    if (result.error) {
-      toast.error(result.error);
-      return;
-    }
+    if (result.error) return result;
     removeLocally(id);
   }
 
@@ -363,7 +361,7 @@ export function CommentsSection({
                     onLikeToggle={handleLikeToggle}
                     viewerIsAdmin={viewerIsAdmin}
                     onModerate={() => setModeratingId(comment.id)}
-                    onDelete={() => handleDelete(comment.id)}
+                    onDelete={() => setDeletingId(comment.id)}
                   />
                 )}
                 {replies && replies.length > 0 && (
@@ -390,7 +388,7 @@ export function CommentsSection({
                           onLikeToggle={handleLikeToggle}
                           viewerIsAdmin={viewerIsAdmin}
                           onModerate={() => setModeratingId(reply.id)}
-                          onDelete={() => handleDelete(reply.id)}
+                          onDelete={() => setDeletingId(reply.id)}
                         />
                       </li>
                     ))}
@@ -495,6 +493,15 @@ export function CommentsSection({
           onConfirm={handleModerationConfirm}
         />
       )}
+
+      <ConfirmDialog
+        open={deletingId !== null}
+        onClose={() => setDeletingId(null)}
+        title="Delete comment"
+        description="This cannot be undone."
+        actionLabel="Delete"
+        onConfirm={() => handleDelete(deletingId!)}
+      />
     </div>
     </>
   );

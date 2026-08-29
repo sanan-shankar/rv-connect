@@ -141,6 +141,67 @@ const SCENARIOS = {
   },
 
   /**
+   * The delete-post confirmation (2026-08-29): opens the viewer's own post's
+   * "..." menu and presses Delete, which must now raise the app's
+   * ConfirmDialog -- NEVER the browser's confirm(). Screenshots the dialog and
+   * then CANCELS it; nothing is deleted (this drives the live database).
+   */
+  async confirmDelete({ page, shot }) {
+    await page.goto(`${BASE}/feed`, { waitUntil: "networkidle2" });
+    page.on("dialog", async (d) => {
+      console.log("NATIVE DIALOG APPEARED:", d.message());
+      await d.dismiss();
+    });
+    // The feed streams in behind a shimmer; menus only exist once real cards
+    // have replaced it (the mobile run raced this and found nothing).
+    await page
+      .waitForSelector("svg.lucide-ellipsis, svg.lucide-more-horizontal", { timeout: 15000 })
+      .catch(() => console.log("no menus appeared within 15s"));
+    // Open each card's menu in turn until one belongs to the viewer (its menu
+    // holds Delete); press it there.
+    let pressed = "no delete item in any menu";
+    for (let i = 0; i < 12; i++) {
+      const state = await page.evaluate((idx) => {
+        const triggers = [
+          ...document.querySelectorAll("article button, main button"),
+        ].filter((b) => b.querySelector("svg.lucide-ellipsis, svg.lucide-more-horizontal"));
+        if (idx >= triggers.length) return "out of triggers";
+        triggers[idx].click();
+        return "opened";
+      }, i);
+      if (state === "out of triggers") break;
+      await sleep(350);
+      const hit = await page.evaluate(() => {
+        const item = [...document.querySelectorAll('[role="menuitem"]')].find((el) =>
+          /delete/i.test(el.textContent || "")
+        );
+        if (!item) {
+          document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+          return false;
+        }
+        item.click();
+        return true;
+      });
+      if (hit) {
+        pressed = `pressed delete on card ${i}`;
+        break;
+      }
+      await page.keyboard.press("Escape");
+      await sleep(200);
+    }
+    console.log("item:", pressed);
+    await sleep(700);
+    await shot("delete-confirm");
+    await page.evaluate(() => {
+      const cancel = [...document.querySelectorAll('[role="dialog"] button')].find((b) =>
+        /^cancel$/i.test((b.textContent || "").trim())
+      );
+      cancel?.click();
+    });
+    await sleep(300);
+  },
+
+  /**
    * Measure the landing -> /login photo slide. Prints displacement over time so
    * the CURVE is visible, not just the duration: an ease-in-out should crawl
    * out of 0%, cover most of the distance in the middle third, and settle

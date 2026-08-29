@@ -11,6 +11,7 @@
 import { useState } from "react";
 import { PauseCircle, PlayCircle, Settings2, XOctagon } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { callAction } from "@/lib/call-action";
 import { m } from "motion/react";
 import {
@@ -81,8 +82,9 @@ export function KeeperSettingsDialog({
     }
   }
 
+  const [confirmingEnd, setConfirmingEnd] = useState(false);
+
   async function handleEnd() {
-    if (!confirm("End this Catch-up? Past Rounds stay readable, but no new one will open.")) return;
     setBusy(true);
     try {
       const result = await callAction(() => endCatchup(catchupId));
@@ -177,7 +179,7 @@ export function KeeperSettingsDialog({
               variant="destructive"
               className="w-full justify-center"
               disabled={busy}
-              onClick={handleEnd}
+              onClick={() => setConfirmingEnd(true)}
             >
               <XOctagon className="h-4 w-4" />
               End this Catch-up
@@ -185,6 +187,15 @@ export function KeeperSettingsDialog({
           </div>
         )}
       </DialogContent>
+
+      <ConfirmDialog
+        open={confirmingEnd}
+        onClose={() => setConfirmingEnd(false)}
+        title="End catch-up"
+        description="Past Rounds stay readable, but no new one will open."
+        actionLabel="End catch-up"
+        onConfirm={handleEnd}
+      />
     </Dialog>
   );
 }

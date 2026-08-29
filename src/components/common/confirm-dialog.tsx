@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +29,18 @@ import { callAction } from "@/lib/call-action";
  *  It lived under `admin/` until 2026-08-21, when the Catch-up bin needed the
  *  same "are you sure" and there was no reason for a member surface to reach
  *  into the admin folder for a dialog with nothing admin about it.
+ *
+ *  No caution triangle any more (2026-08-29). Apple's rule: the warning
+ *  symbol marks destruction somebody did NOT choose; a member who pressed
+ *  Delete chose this, and the red button and the title already carry it.
+ *  The icon was one more element saying what two others said.
+ *
+ *  `description` went optional the same day: Carbon's test is that a
+ *  description exists only if it changes which button you press. "Unblock
+ *  member" needs no second line, and an empty <p> under a title is worse
+ *  than none. Anti-drift: this component is THE confirmation -- the eight
+ *  `window.confirm` call sites it replaced are pinned deleted by
+ *  confirm-dialog.test.mjs.
  * ------------------------------------------------------------------ */
 
 export function ConfirmDialog({
@@ -45,7 +56,7 @@ export function ConfirmDialog({
   open: boolean;
   onClose: () => void;
   title: string;
-  description: React.ReactNode;
+  description?: React.ReactNode;
   actionLabel: string;
   /** Require this to be typed before the action unlocks. Irreversible only. */
   confirmWord?: string;
@@ -86,20 +97,9 @@ export function ConfirmDialog({
   return (
     <Dialog open={open} onOpenChange={(o) => !o && close()}>
       <DialogContent>
-        <div className="flex items-start gap-2.5">
-          <span
-            className={
-              destructive
-                ? "mt-0.5 grid size-7 shrink-0 place-items-center rounded-full border border-destructive/35 bg-destructive/[0.10] text-destructive"
-                : "mt-0.5 grid size-7 shrink-0 place-items-center rounded-full border border-sky/35 bg-sky/[0.10] text-sky"
-            }
-          >
-            <AlertTriangle className="size-4" strokeWidth={1.9} />
-          </span>
-          <div className="flex flex-col gap-1">
-            <DialogTitle className="leading-tight">{title}</DialogTitle>
-            <DialogDescription>{description}</DialogDescription>
-          </div>
+        <div className="flex flex-col gap-1 pr-8">
+          <DialogTitle className="leading-tight">{title}</DialogTitle>
+          {description != null && <DialogDescription>{description}</DialogDescription>}
         </div>
 
         <div className="space-y-4">

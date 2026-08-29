@@ -401,10 +401,9 @@ function PersonRow({
     }
   }
 
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
+
   async function handleRemove() {
-    if (!confirm(`Remove ${person.name} from this catch-up? Anything they have written stays.`)) {
-      return;
-    }
     setBusy(true);
     try {
       const result = await callAction(() => removeCatchupMember(catchupId, person.id));
@@ -473,13 +472,21 @@ function PersonRow({
               <Sprout className="mr-2 h-4 w-4" />
               {person.isKeeper ? "Remove as Keeper" : "Make a Keeper"}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleRemove} variant="destructive">
+            <DropdownMenuItem onClick={() => setConfirmingRemove(true)} variant="destructive">
               <UserMinus className="mr-2 h-4 w-4" />
               Remove from catch-up
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )}
+      <ConfirmDialog
+        open={confirmingRemove}
+        onClose={() => setConfirmingRemove(false)}
+        title={`Remove ${person.name}`}
+        description="Anything they have written stays."
+        actionLabel="Remove"
+        onConfirm={handleRemove}
+      />
     </li>
   );
 }

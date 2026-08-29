@@ -25,6 +25,7 @@ import { PhotoRows } from "@/components/common/photo-rows";
 import { PhotoCarousel } from "@/components/common/photo-carousel";
 import type { StoredPhoto } from "@/lib/photo-layout";
 import { MetaDots } from "@/components/common/meta-dots";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { PersonName } from "@/components/common/person-name";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { LoveButton } from "@/components/common/love-button";
@@ -35,7 +36,6 @@ import { PollDisplay } from "./poll-display";
 import { cn, formatTimeAgo, formatDisplayDate, parseJsonArray, batchLine, letterTitle, plainExcerpt, readMinutes } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
 import { toggleLike, deletePost, toggleBookmark, adminRemovePost } from "@/app/(main)/feed/actions";
-import { toast } from "sonner";
 import { m, AnimatePresence } from "motion/react";
 import { SPRINGS, EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { safeTruncateIndex } from "@/lib/rich-truncate";
@@ -194,6 +194,7 @@ export function PostCard({
   const [showReport, setShowReport] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showModeration, setShowModeration] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
   const [removed, setRemoved] = useState(false);
   const [viewerAt, setViewerAt] = useState<number | null>(null);
   /* Latched rather than derived from `viewerAt`: the viewer must STAY mounted
@@ -287,13 +288,8 @@ export function PostCard({
   }
 
   async function handleDelete() {
-    if (demo) return;
-    if (!confirm("Delete this post? This cannot be undone.")) return;
     const result = await callAction(() => deletePost(post.id));
-    if (result.error) {
-      toast.error(result.error);
-      return;
-    }
+    if (result.error) return result;
     // The card goes now, not on the next full load. Same move the moderation
     // path already made (B-041).
     setRemoved(true);
@@ -378,7 +374,10 @@ export function PostCard({
                     <Pencil className="mr-2 h-4 w-4" />
                     Edit
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleDelete} variant="destructive">
+                  <DropdownMenuItem
+                    onClick={() => !demo && setShowDelete(true)}
+                    variant="destructive"
+                  >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete
                   </DropdownMenuItem>
@@ -668,6 +667,15 @@ export function PostCard({
           onConfirm={handleModerationConfirm}
         />
       )}
+
+      <ConfirmDialog
+        open={showDelete}
+        onClose={() => setShowDelete(false)}
+        title={isLetter ? "Delete letter" : "Delete post"}
+        description="This cannot be undone."
+        actionLabel="Delete"
+        onConfirm={handleDelete}
+      />
     </>
   );
 }
