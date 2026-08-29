@@ -1,5 +1,44 @@
 # Progress Log
 
+## 2026-08-29 — the swap becomes one caret, and the pill is deleted
+
+The owner, on the segmented switch that shipped an hour earlier: *"omfg you actually thought
+this looked good it's one of the ugliest things I've seen in my life. I said it shouldn't be
+intrusive."* He is right, and the specific failure is worse than ugly.
+
+**I put a filled pill on the one line in this app whose brief was "no pills, no borders."**
+`river-controls.tsx`'s own header says exactly that, in his words, and I had read it -- I
+quoted its reasoning in my own analysis and then put the loudest possible version of the
+pattern on that very row. A white capsule with a canopy fill beside bare 13.5px bucket words:
+two selection idioms, two sizes, two baselines, two visual languages. He had also told me the
+shape he wanted -- something tiny beside the title -- and I argued myself out of it.
+
+**The lesson, written into the spec so it survives this session: a control does not become
+appropriate because it is the house component. The house component belongs where the house
+put it.** A shared primitive carries the design system's answer to a question; it does not
+carry permission to ask that question on a surface that already answered it differently.
+
+What ships instead: **one caret, inline, after the title's last word.** Muted, 13px, on the
+title's baseline; press it and the collection swaps and the caret flips. `RiverControls` is
+back to exactly what it was. `PageHeader` gained one `afterTitle` slot, and the caret sits
+INSIDE the h1 rather than beside it because the title wraps on a phone -- anchored to the
+block it would strand itself to the right of "The Valley" with two lines of nothing under it.
+Outside `GuideDoor`, so the words still open the guide and a swap does not.
+
+One glyph, not the up-and-down pair he suggested: with exactly two halves there is nowhere to
+travel, only somewhere to return from. Recorded as the assumption a third collection breaks.
+
+**A separate real finding: `/collection` is a LIVE route and was not marked as one.** The
+archive held four photographs for long enough to look like fixed content; it went to twelve
+mid-session and the baseline failed on photographs alone with every pixel of chrome
+identical. That is the cry-wolf failure masking exists to prevent -- a red run nobody can act
+on is how people learn to run `visual:update` without looking. Now `live: "band"`, so the
+header, the title, the caret, the sidebar and `spine()` are still compared. `collection-class`
+is deliberately left unmasked with a note saying it wants the band the day that class gains a
+photograph.
+
+Gate green: 93/93, and `npm run visual` is 25/25 for the first time this session.
+
 ## 2026-08-29 — phase 4 was mostly already built, and the number that would have bitten
 
 The Class Collection's bulk path (`docs/planning/class-collection/spec.md` §7.2, §7.4).

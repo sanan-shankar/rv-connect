@@ -24,6 +24,7 @@ import { GuideDoor } from "@/components/guide/guide-door";
  */
 export function PageHeader({
   title,
+  afterTitle,
   subtitle,
   showSearch = false,
   unreadCount,
@@ -32,6 +33,10 @@ export function PageHeader({
   children,
 }: {
   title: string;
+  /** A small mark rendered inline, immediately after the title's last word.
+   *  For an affordance that belongs to the title itself rather than to the
+   *  page's action cluster. Not a general slot: keep it to one glyph. */
+  afterTitle?: React.ReactNode;
   subtitle?: string;
   showSearch?: boolean;
   /** Slug from GUIDE_AREAS. Turns the title into the way into that chapter. */
@@ -85,8 +90,21 @@ export function PageHeader({
             escape hatch is how that starts again. The cost is six pixels of
             height on single-line headers, which is the honest price of a
             leading that does not collide. */}
+        {/* `afterTitle` is INSIDE the h1 and after the words on purpose. The
+            Collection's swap caret is the only user, and it has to follow the
+            last letter rather than sit at the end of the header: "The Valley
+            Collection" wraps on a phone, and a mark anchored to the block
+            would strand itself out to the right of "The Valley" with two
+            lines of nothing under it. Inline, it follows "Collection" down to
+            the second line where it belongs.
+
+            It is deliberately not part of the GuideDoor: the words open the
+            guide chapter, the mark beside them does its own thing, and
+            nesting one button in another is both an accessibility error and
+            a way to open the guide every time somebody swaps. */}
         <h1 className="font-heading text-[30px] leading-[1.2] tracking-[-0.02em] text-foreground">
           {guide ? <GuideDoor area={guide}>{title}</GuideDoor> : title}
+          {afterTitle}
         </h1>
         {subtitle && (
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">

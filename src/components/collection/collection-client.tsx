@@ -53,7 +53,8 @@ import {
 import { areaLabel, bucketLabel } from "@/lib/collection";
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import { PhotoRiver, Tile, landAt, warmThumbs } from "./photo-river";
-import { RiverControls, ScopeSwitch } from "./river-controls";
+import { RiverControls } from "./river-controls";
+import { ScopeCaret } from "./scope-caret";
 import { DecadeRail, type DecadeCount } from "./decade-rail";
 
 /* ------------------------------------------------------------------ *
@@ -759,6 +760,13 @@ export function CollectionClient({
            collections." The word "Class" carries it, and two more elements
            saying it again is how a good page becomes a worse one. */
         title={scope === "class" ? "The Class Collection" : "The Valley Collection"}
+        /* The swap lives HERE, on the title, and nowhere else. The title is
+           what says which half you are in, so it is the only honest place for
+           the thing that changes it -- and it keeps the controls line exactly
+           as it was, which is the whole point. */
+        afterTitle={
+          <ScopeCaret scope={scope} onScope={chooseScope} canSeeClass={canSeeClass} />
+        }
         actions={
           <>
             {!trulyEmpty && (
@@ -814,21 +822,6 @@ export function CollectionClient({
         }
       />
 
-      {/* THE SWITCH SURVIVES THE EMPTY STATE, and it has to: every class is
-          empty on its first day, `trulyEmpty` hides the whole controls row,
-          and a member who switched into an empty Class Collection would have
-          had no way back to the valley. The empty state is precisely where
-          you most need to leave. Rendered here only when the row below is
-          not, so it never appears twice. */}
-      {trulyEmpty && (
-        <ScopeSwitch
-          scope={scope}
-          onScope={chooseScope}
-          canSeeClass={canSeeClass}
-          className="mb-5"
-        />
-      )}
-
       {trulyEmpty ? (
         /* THE SAME EMPTY STATE with different words, not a second component.
            Every class has none of these on its first day, so this is what the
@@ -862,8 +855,6 @@ export function CollectionClient({
         <>
           <RiverControls
             scope={scope}
-            onScope={chooseScope}
-            canSeeClass={canSeeClass}
             bucket={bucket}
             onBucket={chooseBucket}
             order={order}

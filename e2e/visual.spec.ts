@@ -32,14 +32,27 @@ const ROUTES: Route[] = [
   { path: "/directory", name: "directory", why: "the map is the distinctive draw and the most fragile layout", live: "map" },
   { path: "/letters", name: "letters", why: "the reading surface: the narrow measure the serif needs", live: "band" },
   { path: "/catchups", name: "catchups", why: "rebuilt surface, most recent churn", live: "band" },
-  { path: "/collection", name: "collection", why: "photo grid; catches image-sizing regressions" },
+  /* LIVE as of 2026-08-29, and it had not been marked so. The archive held
+     four photographs for long enough that the grid looked like fixed content;
+     it went to twelve mid-session and the baseline failed on photographs
+     alone, with every pixel of chrome identical. That is the cry-wolf failure
+     the masking exists to prevent -- a red run nobody can act on teaches
+     people to run visual:update without looking, which is the one way to make
+     this suite worthless. What is still compared is what this route was added
+     for: the header band, the serif title and its swap caret, the sidebar, the
+     background, and spine(). */
+  { path: "/collection", name: "collection", why: "the header band and the spine; the grid below it is live", live: "band" },
   /* The Collection's other half. Its own line because it is a DIFFERENT page
-     -- a different title, the scope switch, and no bucket line at all -- and
-     the valley baseline above would never notice any of it moving. Not live:
-     the admin account's own class has no photographs, so this shoots the
-     empty state, which is what every class sees on its first day and the one
-     view most likely to be quietly broken by an unrelated change. */
-  { path: "/collection?scope=class", name: "collection-class", why: "the class half: the switch, the title, the empty state every class starts at" },
+     -- a different title, a flipped caret, no bucket line at all -- and the
+     valley baseline above would never notice any of it moving.
+
+     NOT masked, deliberately, and this is conditional rather than permanent:
+     it shoots the empty state, which is what every class sees on its first day
+     and is worth comparing whole. The day the admin account's own class gains
+     a photograph this route becomes as live as the one above and wants
+     `live: "band"` too. If you are reading this because it just went red on
+     photographs rather than layout, that day has arrived. */
+  { path: "/collection?scope=class", name: "collection-class", why: "the class half: the flipped caret, the title, the empty state every class starts at" },
   { path: "/support", name: "support", why: "the tree backdrop + CostBar, retuned three times" },
   { path: "/birds", name: "birds", why: "50 avatar glyphs; catches a broken plumage path fast" },
   { path: "/about", name: "about", why: "static copy; a canary for global token drift" },
