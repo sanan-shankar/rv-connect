@@ -74,7 +74,8 @@ import {
   FLOAT_LABEL_UP,
   FloatArea,
 } from "@/components/common/float-field";
-import { EASE_OUT_SMOOTH, SPRINGS } from "@/components/common/motion";
+import { EASE_OUT_SMOOTH, SPRINGS, SpringPress } from "@/components/common/motion";
+import { wellClass, WELL_PRESS, usePointerFine } from "@/components/common/attach-image-dialog";
 import { ContributedHoopoe } from "@/components/mascot/moments/contributed-hoopoe";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { eraFromPartial, eraSaid, MONTHS, photoDate, yearGiven } from "@/lib/collection";
@@ -156,26 +157,8 @@ const EMPTY_META: Meta = {
    what gets stored rather than a detail of this screen, and because it is
    pure there and pinned by `collection-date.test.mjs`. */
 
-/** Whether this is a machine with a cursor and a clipboard you can paste
- *  from -- which is the honest test for "should the invitation say the word
- *  clipboard". Not a width: a 1024px iPad has neither, and a small laptop
- *  window has both.
- *
- *  False until the first effect runs, so the server and the first client
- *  frame agree and the heading never swaps under a reader. The safe default
- *  is the shorter sentence: a phone that briefly reads "drag and drop or
- *  browse" is right, a desktop that briefly omits paste loses nothing. */
-function usePointerFine(): boolean {
-  const [fine, setFine] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
-    const sync = () => setFine(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-  return fine;
-}
+/* usePointerFine (cursor + clipboard test for the invitation's wording) moved
+   to attach-image-dialog.tsx so both attach wells ask it the same way. */
 
 /** Read a file's own shape, which is what the justified rows are solved from.
  *  Resolves to null for anything the browser will not decode, so one bad file
@@ -258,28 +241,21 @@ export function ContributeDialog({
         style={{ maxWidth: `min(100% - 1.5rem, ${GLASS_WIDTH(wall)}px)` }}
       >
         <DialogHeader
-          className={cn(
-            "shrink-0 text-left",
-            /* ONE HEADING ON SCREEN AT A TIME, and which one depends on
-               what the room is doing.
-
-               With photographs on the wall this is the room's name and it
-               sits where a dialog title belongs. With nothing dropped yet
-               the invitation below owns the words -- the owner asked for
-               "drag and drop, browse or paste from your clipboard" to be
-               THE heading -- and a second, smaller heading above it read
-               as a mistake rather than a hierarchy: "the title small than
-               the rest it looks so ruined". So the title goes to the
-               screen readers only, and the sentence he asked for is the
-               only thing set large. */
-            /* TIGHTER. Between the title and the first picture sat the
-               header's 20px, the scroller's 16px and a 13px meta row with
-               12px under it -- about 55px of nothing, on the screen whose
-               whole problem is height. The owner: "there's a big gap between
-               the title and the first picture." The meta row is deleted
-               outright (see the stage) and these two are trimmed. */
-            wall > 0 ? "px-5 pt-4 sm:px-6 sm:pt-5" : "sr-only"
-          )}
+          /* The title is visible in BOTH states now. On 2026-08-28 the empty
+             state hid it (sr-only) and let a 22px "Drag and drop, browse or
+             paste from your clipboard" line stand in as the heading; a day
+             later the owner named that inversion as the thing he could feel
+             but not place -- the loudest element was a list of input methods
+             while the dialog's actual subject was hidden. Today's shape is
+             the one every design system's dialog anatomy describes: the
+             title says what the room is FOR, and the well below shows the
+             ways in. The 2026-08-28 "small title looks so ruined" complaint
+             was about the title fighting that larger line, which no longer
+             exists -- nothing below the title is set bigger than 14px. */
+          /* TIGHTER (kept from the carousel pass): the meta row is deleted
+             and the paddings trimmed, because the wall screen's whole
+             problem is height. */
+          className="shrink-0 px-5 pt-4 text-left sm:px-6 sm:pt-5"
         >
           {/* pr-10 clears the close button, which sits inside the panel at
               the top right: at 390px the title ran straight into it. */}
@@ -296,14 +272,7 @@ export function ContributeDialog({
               copies of one instruction is one too many (owner, 2026-08-28).
               A DialogTitle carries the accessible name on its own. */}
         </DialogHeader>
-        <div
-          className={cn(
-            "min-h-0 flex-1 overflow-y-auto px-5 pb-5 sm:px-6 sm:pb-6",
-            // With the title hidden, the close button has nothing above the
-            // content to sit beside, so the room makes room for it itself.
-            wall > 0 ? "pt-3" : "pt-11 sm:pt-12"
-          )}
-        >
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-3 pb-5 sm:px-6 sm:pb-6">
           <ContributeRoom
             autoApproved={autoApproved}
             roomLeft={roomLeft}
@@ -1182,20 +1151,24 @@ function WhenField({
   );
 }
 
-/** Before anything has been dropped.
+/** Before anything has been dropped: the title above says what the room is
+ *  for, and this is the one thing under it -- a dashed well you can drop on,
+ *  press, or (where a clipboard exists) paste into.
  *
- *  Three things the owner changed on 2026-08-28, and each is visible here:
+ *  This replaces the 2026-08-28 stack of icon + 22px sentence + subtitle +
+ *  "Browse your photographs" pill: four centred elements to say one thing,
+ *  with the input methods set as the heading and no drawn target to aim at.
+ *  The owner, 2026-08-29: "I like the dotted line and the clear box to drop
+ *  in... I don't want a CTA, this is much nicer" -- which also reverses that
+ *  pass's "no dashes" call, deliberately. The well wears the same material as
+ *  every other drop surface (`wellClass`, the menu-material pattern), so
+ *  "dashed box = photographs go here" is now one fact about the whole app.
  *
- *  1. IT IS SMALLER. It used to reserve `min-h-[54vh]` and 64px of vertical
- *     padding around a 64px glyph -- "make the box smaller it's
- *     unnecessarily big" -- for a screen whose whole job is one sentence and
- *     one button.
- *  2. IT IS NOT CREAM. `bg-card` on a pure-white pop-up is the "yellowing"
- *     he asked to be rid of. The box keeps its border, which is what tells
- *     you where to drop; there is nothing else it needs.
- *  3. THE HEADING NAMES THE THREE WAYS IN, and names the clipboard only
- *     where there is one. A phone has no paste, and offering it there is a
- *     door painted on a wall.
+ *  No drop/paste wiring here -- the room already listens on the WINDOW
+ *  (better than any box), and the full-viewport canopy frame answers a drag.
+ *  The well stays quiet while that frame is up; two green signals for one
+ *  gesture would be noise. It is a button whose look promises what the room
+ *  around it delivers.
  */
 function Invitation({
   reading,
@@ -1206,47 +1179,50 @@ function Invitation({
   autoApproved: boolean;
   onChoose: () => void;
 }) {
-  const canPaste = usePointerFine();
+  const canDrag = usePointerFine();
   return (
-    /* No box. There used to be a bordered card here holding the invitation,
-       inside a bordered white pop-up holding the card -- two frames around
-       one sentence, and the inner one was the "unnecessarily big" thing.
-       The pop-up is small now and IS the place to aim; the moment a file is
-       actually over the window, the canopy frame that spans the whole
-       viewport says so far more clearly than a rectangle could. No dashes
-       anywhere either: a dashed rectangle is the one shape that would make
-       this look like the file manager the owner said it must not be. */
-    <div className="flex flex-col items-center justify-center px-2 pb-8 text-center">
-      <m.span
-        aria-hidden
-        initial={{ opacity: 0, scale: 0.94 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={SPRINGS.gentle}
-        className="mb-4 text-canopy"
+    /* No bottom padding of its own: the scroller's pb-5/6 already closes the
+       panel, and matching the header's 20px keeps the frame symmetric --
+       44px under the well against 20px over the title read bottom-heavy. */
+    <div className="flex flex-col px-2">
+      <SpringPress
+        as="button"
+        onClick={onChoose}
+        {...WELL_PRESS}
+        className={cn(
+          wellClass(false),
+          "py-12 state-layer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        )}
+        {...({ type: "button" } as object)}
       >
-        <Images size={44} weight="duotone" />
-      </m.span>
-      <p className="max-w-xl font-heading text-[22px] leading-snug tracking-[-0.015em] text-foreground">
-        {reading > 0
-          ? `Reading ${reading} photographs...`
-          : canPaste
-            ? "Drag and drop, browse or paste from your clipboard"
-            : /* A phone has neither a cursor to drag with nor a paste this
-                 room can hear, so it is told what it can actually do. */
-              "Add your photographs"}
-      </p>
-      <p className="mt-2 max-w-md text-[14.5px] leading-relaxed text-muted-foreground">
-        As many photos as you like. Please provide descriptions if possible!
-      </p>
-      <Button variant="primary" className="mt-6 rounded-full px-6" onClick={onChoose}>
-        Browse your photographs
-      </Button>
+        <m.span
+          aria-hidden
+          initial={{ opacity: 0, scale: 0.94 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={SPRINGS.gentle}
+          className="text-canopy"
+        >
+          {/* 36, not the 44 the old stack used: next to a 14px line inside a
+              bordered well, 44 dwarfed its own caption; 36 keeps the icon the
+              anchor without making it the headline. */}
+          <Images size={36} weight="duotone" />
+        </m.span>
+        <span className="text-sm font-medium">
+          {reading > 0
+            ? `Reading ${reading} photographs...`
+            : canDrag
+              ? "Drop photographs here, or click to browse"
+              : /* A phone has no cursor to drag with, so it is told the one
+                   thing a tap actually does. */
+                "Add your photographs"}
+        </span>
+      </SpringPress>
       {/* Only the half of this that is news. "Yours go straight into the
           Collection" told a trusted contributor the default, which is not
           worth a line; that an admin will look first genuinely changes what
           the next screen means, so that one stays. */}
       {!autoApproved && (
-        <p className="mt-4 text-[12px] text-muted-foreground">
+        <p className="mt-3 text-center text-[12px] text-muted-foreground">
           An admin looks at new photographs before they appear.
         </p>
       )}

@@ -90,6 +90,57 @@ const NO_AUTH = new Set(["slide"]);
 
 const SCENARIOS = {
   /**
+   * The two attach wells (2026-08-29 dialog-standards pass): the Collection's
+   * contribute invitation and the post composer's Add-photos dialog, which now
+   * share one well material. Captures both so the pair can be compared.
+   */
+  async wells({ page, shot }) {
+    await page.goto(`${BASE}/collection`, { waitUntil: "networkidle2" });
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll("button")].find((b) =>
+        /contribute/i.test(b.textContent || "")
+      );
+      btn?.click();
+    });
+    await sleep(900); // dialog enter + icon spring
+    const diag = await page.evaluate(() => {
+      const well = document.querySelector('[role="dialog"] button.border-dashed');
+      if (!well) return { error: "no dashed well in dialog" };
+      const cs = getComputedStyle(well);
+      return {
+        focused: document.activeElement === well,
+        borderStyle: cs.borderStyle,
+        borderColor: cs.borderColor,
+        outline: cs.outline,
+        rect: { w: well.offsetWidth, h: well.offsetHeight },
+      };
+    });
+    console.log("well:", JSON.stringify(diag));
+    await shot("collection-contribute");
+    // The resting look, without the dialog's initial focus on the well.
+    await page.evaluate(() => document.activeElement?.blur());
+    await sleep(200);
+    await shot("collection-contribute-resting");
+
+    await page.goto(`${BASE}/feed`, { waitUntil: "networkidle2" });
+    await page.evaluate(() => {
+      const opener = [...document.querySelectorAll("button")].find((b) =>
+        /share a memory/i.test(b.textContent || "")
+      );
+      opener?.click();
+    });
+    await sleep(600);
+    await page.evaluate(() => {
+      const add = [...document.querySelectorAll("button")].find((b) =>
+        /add a photo|add photo/i.test((b.getAttribute("aria-label") || b.textContent || ""))
+      );
+      add?.click();
+    });
+    await sleep(900);
+    await shot("feed-attach");
+  },
+
+  /**
    * Measure the landing -> /login photo slide. Prints displacement over time so
    * the CURVE is visible, not just the duration: an ease-in-out should crawl
    * out of 0%, cover most of the distance in the middle third, and settle
@@ -318,7 +369,14 @@ const browser = await puppeteer.launch({
   args: ["--no-sandbox", "--disable-setuid-sandbox"],
 });
 const page = await browser.newPage();
-await page.setViewport(mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 });
+/* hasTouch/isMobile, not just a narrow window: surfaces now branch on
+   `(hover: hover) and (pointer: fine)` (the attach wells' wording), and a
+   390px viewport with a fine pointer is a squeezed laptop, not a phone. */
+await page.setViewport(
+  mobile
+    ? { width: 390, height: 844, isMobile: true, hasTouch: true }
+    : { width: 1440, height: 900 }
+);
 // The dev server recompiles on every edit, and this repo is often being edited
 // by other work while QA runs, so first paint of a cold route can take a while.
 page.setDefaultNavigationTimeout(120000);

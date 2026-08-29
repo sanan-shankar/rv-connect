@@ -6798,3 +6798,28 @@ than the page around it: Name and Rhythm now share a fixed left column, With tak
 Also found and fixed: the mobile filter sheet's sticky footer ("Show N") padded its bottom edge
 with a flat 16px, no `env(safe-area-inset-bottom)`, on a layout that already opts into
 `viewport-fit=cover`. One more fixed bottom bar than the ones already covered.
+
+## 2026-08-29 — one well for the whole app, and a title allowed to be seen
+
+The owner asked for the Collection's contribute dialog and the composer's Add-photos dialog
+to take the best of each other, and the diagnosis turned out bigger than either dialog:
+in every area he flagged (dialog hierarchy, redundant copy, the loose press spring, focus
+rings, native confirm()s, menu items), a correct standard already existed in this repo and
+had simply never been enforced past the surface it was written on. The full evidence map is
+`docs/planning/dialog-standards-findings.md`; three research digests (destructive dialogs +
+copy, menus + focus states, dialog hierarchy + reading psychology) sit beside it, built
+from the primary sources with Apple HIG as the standing tiebreaker.
+
+This commit is spec #1 of four. The contribute dialog's real title ("Add to the valley's
+memory" — the one warm line, kept by name) is visible again instead of sr-only behind a
+22px paragraph listing input methods; the four-element centred stack became one dashed
+well with one pointer-aware line; the CTA pill is gone because the well is the button. The
+well's look now lives once, in `wellClass` + `WELL_PRESS` (attach-image-dialog.tsx, the
+menu-material pattern), worn by both surfaces; the Collection keeps its superior
+window-level drop/paste plumbing — sharing the face, not the listeners, so no double paste
+delivery. The composer dialog lost its DialogDescription (it restated all three of the
+well's doors, one verbatim). SPRINGS grew `firm` (damping 38 ≈ ratio 0.93) and the wells
+press at 0.985: big surfaces press less and settle without the wobble the owner called "too
+loose". `attach-well.test.mjs` pins all of it; drive.mjs gained a `wells` scenario and its
+--mobile mode now emulates touch, without which the pointer-aware wording can't be tested
+honestly. Verified two rounds, desktop and mobile.
