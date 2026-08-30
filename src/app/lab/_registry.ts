@@ -171,6 +171,13 @@ export const REGISTRY: LabEntry[] = [
     group: "Delight",
     status: "active",
     note: "The rebuilt Collection page, live, against 240 made-up photographs -- the real one holds two. Press a bucket and watch the underline glide, press a decade on the right-hand rail whose marks are how many each holds, or switch the order to Chronological and scroll past the decades.",
+    children: [
+      {
+        href: "/lab/collection/swap",
+        title: "Four changes pretending to be one",
+        note: "The caret between the two halves, four ways. Today's swap is reproduced beat for beat beside three replacements, so the second of grey it spends can be judged against something.",
+      },
+    ],
   },
   {
     href: "/lab/viewer",
