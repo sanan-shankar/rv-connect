@@ -7,7 +7,7 @@ import { GuideDoor } from "@/components/guide/guide-door";
  * PageHeader: the title block at the top of every main surface.
  *
  * Left: title + optional subtitle.
- * Right (actions slot): the expand-on-click search pill, the notification bell,
+ * Right (actions slot): the search glass that draws into a line, the bell,
  * and a per-page primary CTA. This is what replaces the old always-on
  * search + filter row that used to sit above each feed.
  *
@@ -50,7 +50,7 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "mb-6 flex flex-nowrap items-start justify-between gap-4",
+        "group/header mb-6 flex flex-nowrap items-start justify-between gap-4",
         /* items-START, not items-center (owner, 2026-08-28: "the search icon
            and filters sits higher than the directory text. make sure the top
            of the D aligns with the top of the pills").
@@ -102,7 +102,27 @@ export function PageHeader({
             guide chapter, the mark beside them does its own thing, and
             nesting one button in another is both an accessibility error and
             a way to open the guide every time somebody swaps. */}
-        <h1 className="font-heading text-[30px] leading-[1.2] tracking-[-0.02em] text-foreground">
+        {/* The title steps aside for an open search, and only on a phone.
+            The search line has no box of its own (see SearchPill: it is a rule
+            you write on), so anything under it shows through the words. On a
+            wide header there is nothing under it -- the line draws into the
+            gap between the title and the actions. At 390px there is no gap:
+            68vw of line lands straight across "The Valley Collection" and both
+            become unreadable. Opacity only, so the row never reflows and the
+            title is exactly where it was when the line retracts.
+            `group-has`, rather than a prop threaded through three call sites:
+            the Collection and the directory pass their own <SearchPill> in via
+            `actions`, so this component never sees one and could not be told.
+            All three are inside this header, and all three set
+            data-search-open. */}
+        <h1
+          className={cn(
+            "font-heading text-[30px] leading-[1.2] tracking-[-0.02em] text-foreground",
+            "transition-opacity duration-200 ease-out",
+            "group-has-[[data-search-open]]/header:pointer-events-none group-has-[[data-search-open]]/header:opacity-0",
+            "sm:group-has-[[data-search-open]]/header:pointer-events-auto sm:group-has-[[data-search-open]]/header:opacity-100"
+          )}
+        >
           {guide ? <GuideDoor area={guide}>{title}</GuideDoor> : title}
           {afterTitle}
         </h1>

@@ -515,10 +515,12 @@ export function DirectoryClient({
           same weight, in the corner where every other page in the app keeps
           its actions, which leaves the row below to be one thing rather than
           a hodgepodge.
-          The search pill has to live up here rather than in that row: it opens
-          as an OVERLAY rather than reflowing, and at 390px an open field is
-          68vw, so in the row it swallowed the toggle whole. Over a title it
-          covers nothing anybody can press. */}
+          The search has to live up here rather than in that row: it opens as
+          an OVERLAY rather than reflowing, and at 390px an open field is 68vw,
+          so in the row it swallowed the toggle whole. Over a title it covers
+          nothing anybody can press, and since 2026-08-30 it does not even
+          cover that -- the field is a rule with no box, so PageHeader fades
+          the title out from under it on a phone. */}
       <PageHeader
         guide="directory"
         title="Directory"

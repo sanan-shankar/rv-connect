@@ -205,13 +205,6 @@ export const REGISTRY: LabEntry[] = [
     note: "A progress bar drawn near-flat against its own card, animated with a count-up that counts to zero, above a caption saying it does not matter if it never fills.",
   },
   {
-    href: "/lab/search",
-    title: "Seven ways the search opens",
-    group: "Delight",
-    status: "active",
-    note: "The shipped pill against six alternatives, all live in a real header row, including the account menu's own motion transplanted onto it. Fire them all at once, slow them down, pick one.",
-  },
-  {
     href: "/lab/focus",
     title: "Eleven rings, and the five worth choosing between",
     group: "Delight",

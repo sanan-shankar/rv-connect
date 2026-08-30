@@ -4,12 +4,13 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
 import { AnimatePresence, m } from "motion/react";
+import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 
 /**
- * SearchPill: the header search affordance that replaces the old always-on
- * search + filter row. It rests as a compact 40px icon and expands into a live
- * input on click (as an absolute overlay, so it never reflows the header).
+ * SearchPill: the header search affordance. It rests as a bare magnifying
+ * glass and opens into a line you write on. No box grows, because there is
+ * no box.
  *
  * By default it searches POSTS and submits to `/feed?q=`. A name typed there
  * matches posts by their AUTHOR (owner, 2026-08-04), which is still a search
@@ -17,55 +18,78 @@ import { cn } from "@/lib/utils";
  *
  * Pass `value`/`onChange` and it becomes a controlled, live box instead --
  * every keystroke goes to the caller and nothing navigates. That is what the
- * Collection's river uses (spec sec. 6: search is an icon on the title line
- * that opens into a field, not a bar eating a whole row). The whole of this
- * component is the tuned EXPANSION, and there is exactly one of those in the
- * app: a second copy would be 200 lines of springs nobody would remember to
- * keep in step.
+ * Collection's river and the directory use (Collection spec sec. 6: search is
+ * an icon on the title line that opens into a field, not a bar eating a whole
+ * row). There is exactly one expansion in the app; a second copy would be
+ * springs nobody would remember to keep in step.
  *
- * The expansion animates real `width`/`padding` values directly (never
- * Motion's `layout` FLIP animation). `layout` interpolates by scaling the box
- * with a transform and un-scaling its children back to size every frame; on
- * an 8x width change like 40px -> 320px that scale/counter-scale is exactly
- * what read as "stretching". Animating the actual CSS values instead means
- * the browser reflows the pill each frame like a normal transition, so nested
- * content (the icon) just glides with it instead of getting warped.
+ * WHY IT IS A LINE (owner, 2026-08-30). The version before this grew a 40px
+ * circle into a 320px pill on a bouncing spring while the magnifying glass
+ * rode the moving left edge the whole way and the text faded in once it
+ * arrived: "the speed and just the overall un-calm nature of it. It's not
+ * neat." Three things moving, one of them the size of the box, on two
+ * different springs. The reference he reached for was the account menu in the
+ * sidebar, which never animates a size at all -- its rows appear into space
+ * that was already free.
  *
- * Motion feel (per owner): opening is one clean expansion with only a slight,
- * well-damped bounce. Closing has zero overshoot: a critically damped spring
- * that eases to rest with no stretch or wobble. The two directions
- * intentionally use different springs (see constants below). The icon itself
- * is a plain, non-animated element -- it only moves because the parent's
- * padding moves under it (plus its own static right margin when expanded),
- * so it can't be scaled or skewed independently and stays visually centered
- * throughout.
+ * Seven answers were built side by side in a real header row and this one
+ * won. They lived at /lab/search, deleted the same day on his instruction
+ * once the pick was made; `git show 6fbf46d` is the whole room if the
+ * question ever reopens. What this one borrows from the account menu: one
+ * thing moves, not three; the glass never travels a pixel; and leaving is
+ * much quicker than arriving.
+ * What it does instead of appearing-in-place, because a header has no free
+ * space to appear into, is draw. A rule extends out from under the glass and
+ * the words settle onto it, which is a gesture rather than a mechanic, and it
+ * is the only one of the seven that never looked like a widget.
  */
 
-// Opening: `bounce` is Motion's 0-1 "how springy" dial (0 = no overshoot,
-// 1 = extremely springy). 0.15 gives a small, controlled settle-past-target
-// -- a bounce you can feel but that never reads as jumpy.
-const OPEN_SPRING = { type: "spring", bounce: 0.15, duration: 0.32 } as const;
-// Closing: bounce 0 is a critically damped spring -- mathematically
-// guaranteed to approach its target without ever overshooting it, so the bar
-// tucks away with zero stretch.
-const CLOSE_SPRING = { type: "spring", bounce: 0, duration: 0.22 } as const;
+/* Drawing is slower than growing was, on purpose. The old open was 0.32s of
+   spring; the owner asked for it slower twice (2026-08-30, "ship D slower",
+   then "make the expansion 20% slower"), which is 0.42 x 1.2. Half a second
+   of pure deceleration, so the line is still moving when the eye picks it up
+   and then settles, rather than arriving and bouncing.
 
-const CLOSED_WIDTH = 40; // px, matches the resting h-10 w-10 circle
-const OPEN_WIDTH = 320; // px cap (20rem); `maxWidth: 68vw` below clamps on narrow screens
+   Only the OPENING is slow. Closing stays at 0.26s, which is the account
+   menu's rule and the reason the slow open never feels like a wait: a thing
+   should get out of the way faster than it turns up. */
+const OPEN_SECONDS = 0.5;
+const CLOSE_SECONDS = 0.26;
 
-// Expanded-state optical correction (owner feedback): the icon should tuck
-// slightly into the pill's curved left cap rather than sitting flush after
-// the straight wall starts, and the typed text needs more breathing room off
-// the icon. Both are LiftKit "half-step" nudges (x/sqrt(phi) ~= x/1.272) off
-// the original 16/10 pair -- a small, deliberate move in each direction, not
-// a full golden-ratio step (that would overshoot and read as obviously
-// off-center). Note: the gap is applied as a static `marginRight` on the
-// icon (below), not as flex `gap` on the m.form -- Motion does not
-// animate the CSS `gap`/`column-gap` properties (confirmed: they freeze at
-// their initial value no matter the target), so a real gap has to live on
-// the icon itself.
-const OPEN_PADDING_LEFT = 13; // px, was 16 (16 / 1.272 = half-step down)
-const ICON_TEXT_GAP = 13; // px, was a non-functional `gap: 10` (10 x 1.272 = half-step up)
+/* The words fade in behind the drawing line rather than with it, and they
+   ride the open at a fixed share of it (0.38 of the way in, over the next
+   0.58) so the two stay one gesture whenever the number above changes. By
+   then the rule is most of the way out, so the words land on a line that
+   already exists instead of racing it. Out fast, so the line never retracts
+   around live text. */
+const INK_IN_DELAY = OPEN_SECONDS * 0.38;
+const INK_IN_SECONDS = OPEN_SECONDS * 0.58;
+const INK_OUT_SECONDS = 0.12;
+
+/* The rule under the glass has no width to draw, so it fades instead, across
+   the whole opening rather than a slice of it: a hairline appearing under the
+   glyph in a quarter of the time reads as a separate event from the line
+   leaving it. */
+const GLASS_RULE_IN = OPEN_SECONDS * 0.72;
+const GLASS_RULE_OUT = 0.16;
+
+/* How far the line runs: 300px, or the whole width of the page's content
+   column when that is less. The glass is inside it.
+
+   It used to be 68% of the viewport, which is what the old pill clamped to,
+   and on a phone that put the far end of the line at no particular place
+   (owner, 2026-08-30: "it doesn't align on the left to anything, you just
+   take a random amount. Why not extend it to the left border of the UI"). So
+   it is measured against the header it sits in, whose left edge IS the
+   column's left edge -- the same line the page title and every row below it
+   start on. On a phone the line now reaches it exactly; on a desktop 300
+   still wins, because a line the width of a 1100px header is not a field.
+
+   Measured rather than expressed in CSS because the text inside is laid out
+   at this width too: a fixed inner width inside a vw-clamped outer one
+   silently cuts the first word off the placeholder. */
+const FULL_WIDTH = 300;
+const GLASS_WIDTH = 40;
 
 export function SearchPill({
   value: controlled,
@@ -80,31 +104,67 @@ export function SearchPill({
   placeholder?: string;
   /** The expanded input's accessible name. */
   label?: string;
-  /** The resting circle's accessible name, before it is opened. */
+  /** The resting glass's accessible name, before it is opened. */
   restLabel?: string;
 } = {}) {
   const router = useRouter();
   const live = onChange !== undefined;
   /* Opens itself when the caller arrives already holding a query: a shared
      link to /collection?q=banyan must show what it searched for, not a closed
-     circle with a filtered river under it. A lazy initial value rather than an
+     glass with a filtered river under it. A lazy initial value rather than an
      effect, so it is open on the first paint and never flickers shut. */
   const [open, setOpen] = useState(() => live && Boolean(controlled));
   const [internal, setInternal] = useState("");
-  const value = live ? controlled ?? "" : internal;
+  const value = live ? (controlled ?? "") : internal;
   const setValue = live ? onChange : setInternal;
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
+  /* The rule's length, measured off the header. Starts at the full design
+     width so the server and the first client render agree, then corrects
+     after mount -- the field is closed at that point, so nothing is seen to
+     change. All three callers put this inside <PageHeader>'s <header>; if one
+     ever does not, it falls back to the design width rather than to nothing. */
+  const [full, setFull] = useState(FULL_WIDTH);
   useEffect(() => {
-    if (open) inputRef.current?.focus();
+    function measure() {
+      const wrap = wrapRef.current;
+      const column = wrap?.closest("header");
+      if (!wrap || !column) return;
+      const reach =
+        wrap.getBoundingClientRect().right -
+        column.getBoundingClientRect().left;
+      setFull(Math.min(FULL_WIDTH, Math.round(reach)));
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+  const ruleWidth = full - GLASS_WIDTH;
+
+  /* The keyboard's focus indicator, and the reason it is state rather than a
+     class: this field has no border to light, so it is on the borderless list
+     in focus-recipe.test.mjs alongside the profile pen, and the rule IS the
+     edge. Tab in and it doubles to the 2px WCAG 2.4.13 asks for; click in and
+     it stays a hairline, which is the recipe's own split (a pointer user
+     never sees the loud edge). `data-modality` is set by <FocusModality> in
+     the root layout. */
+  const [keyboardFocus, setKeyboardFocus] = useState(false);
+  const ruleHeight = keyboardFocus ? "h-0.5" : "h-px";
+
+  useEffect(() => {
+    if (open) inputRef.current?.focus({ preventScroll: true });
   }, [open]);
 
   // Collapse when clicking away with no query.
   useEffect(() => {
     if (!open) return;
     function onDown(e: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node) && !value) {
+      if (
+        wrapRef.current &&
+        !wrapRef.current.contains(e.target as Node) &&
+        !value
+      ) {
         setOpen(false);
       }
     }
@@ -122,156 +182,178 @@ export function SearchPill({
   }
 
   return (
-    <div ref={wrapRef} className="relative h-10 w-10">
-      {/* One persistent element morphs between the resting icon and the full
-          bar. Width and padding are driven as plain numeric style values
-          under one spring per direction, so the pill reflows smoothly
-          instead of scaling. */}
+    /* data-search-open is read by PageHeader, which fades the page title out
+       from under an open line on a phone. See the note there. */
+    <div
+      ref={wrapRef}
+      data-search-open={open || undefined}
+      className="relative h-10 w-10"
+    >
+      {/* Right-anchored and absolutely placed, so opening never reflows the
+          header row it sits in. It draws leftward into the gap between the
+          page title and the actions. */}
       <m.form
-        animate={{
-          width: open ? OPEN_WIDTH : CLOSED_WIDTH,
-          paddingLeft: open ? OPEN_PADDING_LEFT : 0,
-          paddingRight: open ? 8 : 0,
-        }}
-        transition={open ? OPEN_SPRING : CLOSE_SPRING}
         onSubmit={(e) => {
           e.preventDefault();
           submit();
         }}
-        style={{ maxWidth: "68vw" }}
-        className={cn(
-          "group absolute right-0 top-0 z-20 flex h-10 items-center overflow-hidden rounded-full bg-card",
-          open
-            ? "border border-primary shadow-[0_4px_14px_rgba(30,28,22,0.12)]"
-            : "border border-border shadow-[0_1px_2px_rgba(30,28,22,0.04)]"
-        )}
+        className="absolute right-0 top-0 z-20 flex h-10 items-center justify-end"
       >
-        {/* Soft focus ring blooms in (opacity only) when expanded, and snaps out
-            quickly on collapse so it never trails the contracting bar. */}
-        <AnimatePresence>
-          {open && (
-            <m.span
-              key="ring"
-              aria-hidden
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
-              className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-ring/30"
-            />
-          )}
-        </AnimatePresence>
+        {/* The well. Only this animates, and only its width: one property,
+            one curve, no spring. Everything inside is laid out at the final
+            width from the first frame, so the line uncovers the field rather
+            than reflowing it every frame. */}
+        <m.div
+          animate={{ width: open ? ruleWidth : 0 }}
+          transition={{
+            duration: open ? OPEN_SECONDS : CLOSE_SECONDS,
+            ease: EASE_OUT_SMOOTH,
+          }}
+          className="relative h-10 overflow-hidden"
+        >
+          {/* Mounted only while open, and this is not a detail. Laid out at
+              the final width from its first frame, it never reflows as the
+              line draws -- the well uncovers it. But left mounted while
+              CLOSED it is a 260px-wide box with nothing in it, invisible
+              because the well clips it, and still real to anything that reads
+              geometry: the visual suite walks <main> marking every element
+              that starts more than 50px down, and a phantom box in the header
+              moved the mask by 260px on two routes (2026-08-30). The old pill
+              mounted its input the same way, for none of these reasons. */}
+          <AnimatePresence initial={false}>
+            {open && (
+              <m.div
+                key="field"
+                initial={{ opacity: 0 }}
+                animate={{
+                  opacity: 1,
+                  transition: {
+                    duration: INK_IN_SECONDS,
+                    ease: "easeOut",
+                    delay: INK_IN_DELAY,
+                  },
+                }}
+                exit={{
+                  opacity: 0,
+                  transition: { duration: INK_OUT_SECONDS, ease: "easeOut" },
+                }}
+                className="absolute right-0 top-0 flex h-10 items-center gap-2"
+                style={{ width: ruleWidth }}
+              >
+                <input
+                  ref={inputRef}
+                  value={value}
+                  onChange={(e) => setValue?.(e.target.value)}
+                  onFocus={() =>
+                    setKeyboardFocus(
+                      document.documentElement.dataset.modality === "keyboard",
+                    )
+                  }
+                  onBlur={() => setKeyboardFocus(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      setValue?.("");
+                      setOpen(false);
+                    }
+                  }}
+                  placeholder={placeholder}
+                  aria-label={label}
+                  className="min-w-0 flex-1 bg-transparent text-[13.5px] text-foreground outline-none placeholder:text-muted-foreground/75"
+                />
 
-        {/* The magnifying glass is a plain, non-motion element that stays a
-            constant size in both states. It never scales or resizes -- its
-            only motion comes from the parent's padding shifting under it (and,
-            expanded, its own static right margin below), so it stays visually
-            stable and centered throughout. Closed, it gets a tiny left optical
-            correction so it reads centered in the 40px pill. */}
-        <span
-          aria-hidden
+                {/* The way OUT, for a finger. Escape has always cleared and closed
+                this, and on a keyboard that was enough; on a phone a field
+                holding a query could only be emptied by selecting the text and
+                deleting it, and until it was empty it would not collapse. The
+                directory made that plain (2026-08-28): with a search live and
+                no facet set, the count line has no "Clear all" to offer
+                either, so this was the only escape and it did not exist. */}
+                <AnimatePresence>
+                  {value && (
+                    <m.button
+                      key="clear"
+                      type="button"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.14, ease: "easeOut" }}
+                      onClick={() => {
+                        setValue?.("");
+                        setOpen(false);
+                        if (!live) inputRef.current?.focus();
+                      }}
+                      aria-label="Clear the search"
+                      className="state-layer grid size-6 shrink-0 place-items-center rounded-full text-muted-foreground transition-transform hover:text-foreground active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    >
+                      <XIcon weight="bold" size={12} />
+                    </m.button>
+                  )}
+                </AnimatePresence>
+              </m.div>
+            )}
+          </AnimatePresence>
+
+          {/* The ink. On the text's baseline, not under the box, because the
+              box is not a thing anybody should be able to see. */}
+          <span
+            aria-hidden
+            className={cn(
+              "absolute bottom-[7px] left-0 right-0 bg-primary transition-[height] duration-150 ease-out",
+              ruleHeight,
+            )}
+          />
+        </m.div>
+
+        {/* The glass. It never moves and it never changes size in either
+            state, which is the whole point: the thing you pressed is still
+            under your finger when the line finishes. */}
+        <button
+          type="button"
+          onClick={() => {
+            /* Open, or close an empty one. A field holding a live query is
+               never thrown away by the control that opened it -- the × and
+               Escape are how a query goes -- so with text in it this just
+               puts the caret back. */
+            if (!open) setOpen(true);
+            else if (!value) setOpen(false);
+            else inputRef.current?.focus();
+          }}
+          aria-label={open ? label : restLabel}
+          aria-expanded={open}
           className={cn(
-            "grid shrink-0 place-items-center leading-none text-muted-foreground transition-transform duration-150 ease-out",
+            "relative grid size-10 shrink-0 place-items-center rounded-full transition-colors duration-150 ease-out",
+            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
             open
-              ? "h-auto w-auto"
-              : "h-10 w-10 group-hover:text-foreground group-active:scale-95"
+              ? "text-primary"
+              : "text-muted-foreground hover:text-foreground active:scale-95",
           )}
-          style={open ? { marginRight: ICON_TEXT_GAP } : undefined}
         >
           <MagnifyingGlassIcon
             weight="regular"
             size={17}
             stroke="currentColor"
             strokeWidth={6}
+            /* The glyph's handle hangs bottom-right, so its bounding box sits
+               a hair right of its optical centre. Three quarters of a pixel
+               back is the correction, measured against the rendered pixels. */
+            className="pointer-events-none block -translate-x-[0.75px]"
+          />
+          {/* The rule carries on under the glass, so the line does not stop
+              short and leave the glyph floating beside it. `right-1` ends it
+              just inside the touch target rather than at its edge. */}
+          <m.span
+            aria-hidden
+            animate={{ opacity: open ? 1 : 0 }}
+            transition={{
+              duration: open ? GLASS_RULE_IN : GLASS_RULE_OUT,
+              ease: "easeOut",
+            }}
             className={cn(
-              "pointer-events-none block",
-              !open && "-translate-x-[0.75px]"
+              "absolute bottom-[7px] left-0 right-1 bg-primary transition-[height] duration-150 ease-out",
+              ruleHeight,
             )}
           />
-        </span>
-
-        {/* Input and placeholder fade in just after the bar starts growing, and
-            fade out fast on collapse so the bar contracts behind faded content
-            and never reads as a stretch closing around live text. */}
-        <AnimatePresence initial={false}>
-          {open && (
-            <m.input
-              key="input"
-              ref={inputRef}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1, transition: { duration: 0.2, ease: "easeOut", delay: 0.06 } }}
-              exit={{ opacity: 0, transition: { duration: 0.12, ease: "easeOut" } }}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  setValue("");
-                  setOpen(false);
-                }
-              }}
-              placeholder={placeholder}
-              aria-label={label}
-              className="min-w-0 flex-1 bg-transparent text-[13.5px] text-foreground outline-none placeholder:text-muted-foreground/75"
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Resting affordance: a real focusable button overlaying the closed
-            pill so the control stays keyboard-operable (Tab + Enter / Space)
-            and announces its expanded state. It fades away as the bar opens so
-            it never sits over the live input or steals its clicks.
-            It also carries the hover: `state-layer` here rather than on the
-            form, because the form is the same element in both states and an
-            open search box must not tint when the pointer crosses it. The
-            button is transparent, so the tint composites over the pill's own
-            bg-card underneath and clips to the shared rounded-full. */}
-        <AnimatePresence>
-          {!open && (
-            <m.button
-              key="open"
-              type="button"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.16, ease: "easeOut" }}
-              onClick={() => setOpen(true)}
-              aria-label={restLabel}
-              aria-expanded={open}
-              className="state-layer absolute inset-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            />
-          )}
-        </AnimatePresence>
-
-        {/* The way OUT, for a finger. Escape has always cleared and closed
-            this, and on a keyboard that was enough; on a phone a pill holding
-            a query could only be emptied by selecting the text and deleting
-            it, and until it was empty it would not collapse. The directory
-            made that plain (2026-08-28): with a search live and no facet set,
-            the count line has no "Clear all" to offer either, so this was the
-            only escape and it did not exist.
-            Inside the pill rather than beside it, so the row's geometry never
-            changes -- it appears in padding the form already carries. */}
-        <AnimatePresence>
-          {open && value && (
-            <m.button
-              key="clear"
-              type="button"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.14, ease: "easeOut" }}
-              onClick={() => {
-                setValue?.("");
-                setOpen(false);
-                if (!live) inputRef.current?.focus();
-              }}
-              aria-label="Clear the search"
-              className="state-layer grid size-6 shrink-0 place-items-center rounded-full text-muted-foreground transition-transform hover:text-foreground active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-              <XIcon weight="bold" size={12} />
-            </m.button>
-          )}
-        </AnimatePresence>
+        </button>
       </m.form>
     </div>
   );
