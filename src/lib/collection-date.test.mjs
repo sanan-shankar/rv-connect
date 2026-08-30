@@ -9,6 +9,7 @@ import {
   photoDate,
   takenLabel,
   typedDate,
+  yearUnreadable,
 } from "./collection.ts";
 
 /* The viewer says WHEN A PHOTOGRAPH WAS TAKEN, at the precision the
@@ -214,4 +215,43 @@ test("a month the contributor did not mean is not seeded back in", () => {
 test("nothing stored puts nothing in the box", () => {
   assert.deepEqual(typedDate({ era: "unknown" }), { year: "", month: "" });
   assert.deepEqual(typedDate({}), { year: "", month: "" });
+});
+
+/* ------------------------------------------------------------------ *
+ *  THE DAY THE ARCHIVE ATE FIFTEEN YEARS.
+ *
+ *  Between 2026-08-29 and 2026-08-30 every photograph contributed arrived
+ *  with a caption, a bucket and no date, from somebody certain she had
+ *  typed a year into all of them. She had. `photoDate` is total -- it
+ *  files what it cannot read as "unknown" -- and the field renders the
+ *  digits out of the same state, so the box showed them back while the
+ *  filing threw them away, and nothing said so.
+ * ------------------------------------------------------------------ */
+
+test("a year the rule cannot read is reported, not swallowed", () => {
+  // The shape of the loss: a full box that files as though it were empty.
+  assert.equal(photoDate({ year: "2019", month: "" }, NaN).datePrecision, "unknown");
+  assert.equal(yearUnreadable({ year: "2019", month: "" }, NaN), true);
+});
+
+test("an empty box is not an unreadable one", () => {
+  // Nobody said, which is a legitimate answer and must never be refused.
+  assert.equal(yearUnreadable({ year: "", month: "" }, 2026), false);
+});
+
+test("everything the box legitimately understands stays readable", () => {
+  for (const year of ["1978", "2019", "197", "192"]) {
+    assert.equal(
+      yearUnreadable({ year, month: "" }, 2026),
+      false,
+      `${year} should file`
+    );
+  }
+});
+
+test("digits that name no year and no decade are refused", () => {
+  // One or two digits name nothing; a future year is not a photograph.
+  for (const year of ["2", "20", "2031"]) {
+    assert.equal(yearUnreadable({ year, month: "" }, 2026), true, `${year} should refuse`);
+  }
 });

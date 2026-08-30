@@ -1,5 +1,45 @@
 # Progress Log
 
+## 2026-08-30 — a portrait photograph was showing its middle third, and a year was being eaten in silence
+
+**Portrait photographs were cropped in the review room.** The owner: *"portrait photos show
+halfway in the viewer."* Measured: a 1262x1676 original rendering at 671x642, so the top and
+bottom were simply gone.
+
+The picture was centred in a `grid place-items-center`, which makes it a grid item in an
+AUTO-SIZED track — so the track sized itself to the picture, and every percentage height the
+picture asked for (`max-h-full`, then `h-full`) resolved against its own height and
+constrained nothing. Width was still capped, which is why **landscape photographs looked
+perfect and hid it for a whole session of screenshots.** The stage's `overflow-hidden` then
+cropped what overflowed. Fixed by removing the circularity rather than the symptom: the frame
+is a plain block with a definite height (`absolute inset-0` minus its padding), the image
+fills it outright, and `object-contain` centres and letterboxes with nothing left to resolve.
+Verified at both viewports: portrait now 486x642 against a source ratio of 0.753, landscape
+unchanged at 1.347.
+
+**And the real one.** Afya contributed fifteen photographs certain she had put a year on every
+one. All fifteen are undated. `takenKey` is 0 and `era` "unknown" from the moment of creation,
+so nothing wiped them later — the year never left her browser, while her captions and buckets,
+which travel in the same object, all arrived.
+
+`photoDate` is total: it files what it cannot read as "unknown". That is right for an empty box
+and quietly wrong for a full one, because **the field renders the digits out of the same state
+the filing is computed from** — so the box shows the year back to you while the filing throws
+it away, and nothing anywhere says so. The gate is `yearGiven(year, valleyYear())`, and
+`valleyYear()` parsed the first four characters of a `toLocaleDateString("en-CA")` with no
+check: any runtime whose locale data formats that some other way returns NaN, every comparison
+against NaN is false, and every year is rejected. That hole is now closed with a
+`getFullYear()` fallback.
+
+The mechanism in her particular browser is NOT proven — she is on Safari/macOS and the
+successful uploads were Chrome, but the one-box date field also shipped in the same window, so
+the two are confounded and the sample either side is one person each. What is fixed is the
+class of failure: `yearUnreadable` now separates "nobody said" from "somebody said and we could
+not read it", and both rooms refuse out loud instead of filing undated. A visible refusal costs
+one retry; a silent drop costs the archive the date for ever, because by then the original
+carrying its own metadata has been purged.
+
+
 ## 2026-08-30 — the photo queue stopped being a filter and became a room
 
 The owner, on the review queue as it stood: *"i can barely see what i'm reviewing... there's

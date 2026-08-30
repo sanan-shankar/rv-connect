@@ -28,9 +28,23 @@ export function valleyYear(now: Date = new Date()): number {
   // Read the year out of a formatted IST date rather than doing arithmetic on
   // the UTC offset: one call, no drift, and it stays right if the offset ever
   // changes. "en-CA" gives YYYY-MM-DD, so the year is the first four chars.
-  return Number(
+  const said = Number(
     now.toLocaleDateString("en-CA", { timeZone: VALLEY_TIME_ZONE }).slice(0, 4)
   )
+
+  /* THE FALLBACK IS NOT DEFENSIVE PADDING. This runs in the BROWSER as well as
+     on the server, and it is the ceiling `yearGiven` compares a contributor's
+     typed year against. A runtime whose Intl data does not honour "en-CA"
+     formats the date some other way -- "30/08/2026", "8/30/2026" -- and then
+     the first four characters are not a year and this returns NaN. Every
+     comparison against NaN is false, so `yearGiven` rejects EVERY year, and
+     `photoDate` files the photograph as undated while the digits sit there on
+     screen looking accepted. That is silent data loss on a heritage archive,
+     from a locale table.
+     `getFullYear()` is the local calendar year: off by a few hours from the
+     valley's around New Year, which costs nothing here -- it is a ceiling on
+     "not in the future", not a date anything is filed under. */
+  return Number.isInteger(said) ? said : now.getFullYear()
 }
 
 /** Today's date in the valley as YYYY-MM-DD. */

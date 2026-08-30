@@ -65,7 +65,7 @@ import { EASE_OUT_SMOOTH, SPRINGS, SpringPress } from "@/components/common/motio
 import { wellClass, WELL_PRESS, usePointerFine } from "@/components/common/attach-image-dialog";
 import { ContributedHoopoe } from "@/components/mascot/moments/contributed-hoopoe";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
-import { photoDate } from "@/lib/collection";
+import { photoDate, yearUnreadable } from "@/lib/collection";
 import { contributePhoto, contributePhotoDirect } from "@/app/(main)/collection/actions";
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import { directUploadPut } from "@/lib/upload-client";
@@ -598,6 +598,19 @@ export function ContributeRoom({
 
   async function fileOne(p: Staged): Promise<boolean> {
     const m0 = meta[p.id] ?? EMPTY_ANSWERS;
+
+    /* REFUSE RATHER THAN DROP IT. `photoDate` is total: it files anything it
+       cannot read as "unknown", which is right for an empty box and silently
+       wrong for a full one. Fifteen photographs went into the archive undated
+       this way while the contributor watched her years sit in the field --
+       see `yearUnreadable` in lib/collection.ts. This turns that into one
+       sentence she can act on. */
+    if (yearUnreadable(m0, valleyYear())) {
+      throw new Error(
+        `"${m0.year}" is not a year we can file. Use four digits for a year, or three for a decade.`
+      );
+    }
+
     const common = {
       caption: m0.caption.trim() || undefined,
       buckets: m0.buckets,

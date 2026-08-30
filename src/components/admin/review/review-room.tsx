@@ -63,7 +63,7 @@ import {
 } from "@/components/collection/photo-questions";
 import { callAction } from "@/lib/call-action";
 import { tidyCaption } from "@/lib/caption-tidy";
-import { MONTHS, photoDate } from "@/lib/collection";
+import { MONTHS, photoDate, yearUnreadable } from "@/lib/collection";
 import { cn, formatTimeAgo, valleyYear } from "@/lib/utils";
 import type { ReviewMode, ReviewPhoto } from "@/lib/admin-review";
 import { declineReview, saveReview } from "@/app/(main)/admin/review/actions";
@@ -190,6 +190,13 @@ export function ReviewRoom({
           }
           drop(id);
           toast.success("Declined. The contributor has been told.");
+          return;
+        }
+
+        /* The same refusal the contribute room makes, for the same reason: a
+           year this cannot read must not be filed as "no year given". */
+        if (yearUnreadable(answers, valleyYear())) {
+          toast.error(`"${answers.year}" is not a year we can file. Four digits for a year, three for a decade.`);
           return;
         }
 
@@ -331,7 +338,15 @@ export function ReviewRoom({
             style={{ background: STAGE }}
           >
             <m.div
-              className="absolute inset-0 grid place-items-center p-3 sm:p-5"
+              /* A PLAIN BLOCK, not `grid place-items-center`, and that is the
+                 whole of the portrait fix. As a grid item the picture sat in
+                 an auto-sized track, so the track sized itself to the picture
+                 and every percentage height the picture asked for resolved
+                 against its own height -- no constraint. Here the box is
+                 definite (absolute inset-0, minus the padding), the image
+                 fills it outright, and `object-contain` centres and
+                 letterboxes inside it with nothing left to resolve. */
+              className="absolute inset-0 p-3 sm:p-5"
               style={{ x }}
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
@@ -359,7 +374,23 @@ export function ReviewRoom({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.18, ease: EASE_OUT_SMOOTH }}
-                  className="max-h-full max-w-full rounded-[var(--radius-sm)] object-contain"
+                  /* `h-full w-full`, NOT `max-h-full max-w-full`.
+                     A percentage max-height only resolves against a parent
+                     whose height is definite, and this one's is not: the image
+                     is centred in an auto-sized track, so the track sizes
+                     itself to the image and `max-h-full` becomes the image's
+                     own height -- no constraint at all. Width was still capped,
+                     so a LANDSCAPE photograph looked perfect and hid the bug;
+                     a PORTRAIT one rendered at its natural height, overflowed,
+                     and the stage's overflow-hidden cropped it (owner:
+                     "portrait photos show halfway in the viewer").
+
+                     Filling the box outright and letting `object-contain` do
+                     the letterboxing needs no percentage to resolve at all. */
+                  className="h-full w-full rounded-[var(--radius-sm)] object-contain"
+                  /* No centring class anywhere: `object-contain` defaults to
+                     object-position 50% 50%, so the picture is already centred
+                     in the box it fills. */
                 />
               </AnimatePresence>
             </m.div>
