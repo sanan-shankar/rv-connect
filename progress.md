@@ -1,5 +1,55 @@
 # Progress Log
 
+## 2026-08-31 — the swap between the Collection's two halves is four changes, not one
+
+The owner, on the caret between the Valley and Class Collections: *"I like the chevron way of
+accessing it. but the transition itself is a bit jittery and not that pleasing and dopamine
+inducing yet."* Measured in chrome-devtools at 1440 with a warm cache, and it is not one
+transition:
+
+| t | what happens |
+|---|---|
+| 0ms | the press |
+| 185ms | first visible frame. Title, caret and the whole bucket line change with no animation on any of them |
+| 200-400ms | the river fades to 40% |
+| 400-862ms | nothing. 466ms greyed |
+| 862ms | the photographs cut out in one frame, page height 1054 -> 900 |
+| 862-1062ms | fade back up |
+
+Three hard cuts and a wait, and the header arrives 700ms before the pictures it describes.
+Two jumps nobody had noticed rode along with it: dropping the bucket line un-wraps the
+controls row, so on a phone the river lurches up 38px at the press, and the row is
+`justify-between`, so with the buckets gone "Newest" walks from the right edge of the page to
+the left.
+
+`/lab/collection/swap` is the room he asked for: one Collection at full size with a real
+caret, and a picker for what that caret does. "Today" reproduces the shipped behaviour beat
+for beat including the 460ms wait, so the three replacements are judged against the thing
+itself. The Turn travels in the direction the caret points and reverses with it. The Dissolve
+is the film dissolve. The Sheet lays the class over the valley and takes it off again coming
+back. A switch changes the title one word at a time, gliding the rest of the line across the
+width difference instead of teleporting the caret 12px.
+
+Four things the room taught, all of them by breaking first:
+
+- **Drawing the leaving half as a fresh copy costs 190ms of blocked main thread.** React
+  unmounted the old river and mounted a duplicate in the same commit, and the exit was over
+  before it painted. The layers are a keyed list now, so the half that is leaving keeps its
+  DOM and only takes a new class name.
+- **A setTimeout started at the click is on a different clock from a CSS animation started at
+  the commit.** The leaving river was being deleted at 40% opacity, mid-fade. Both ends listen
+  for their own `animationend`.
+- **A layer told to leave must have its `enter` cleared in the same breath**, or it carries
+  both attributes and the browser runs whichever selector wins on specificity. A river left
+  the page by playing its own arrival backwards.
+- **`[style*="flex-grow"]` matches nothing.** With grow, shrink and basis all set, the browser
+  serialises the style attribute as the `flex` shorthand. The row stagger finds photographs by
+  the label `<Tile>` puts on every one.
+
+No rail in the room, and not by oversight: `decade-rail.tsx` was being replaced by
+`year-rail.tsx` in this same tree while the room was written. The fourth idea, the rail
+restating the archive's shape as the new half arrives, waits for that to settle.
+
 ## 2026-08-30 — what the date field does when you empty it, and what it did not do to Afya's fifteen
 
 **The month control was still being painted after it faded.** The owner: *"when you delete
