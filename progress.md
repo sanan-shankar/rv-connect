@@ -41,6 +41,24 @@ one and putting a toggle under the Enter key; and `canRemove`/`onRemove` are **g
 `ImageViewer` rather than left beside `canEdit`, since the Collection was their only caller
 and a shared primitive with a spare unused affordance is how the next drift starts.
 
+**Then: *"just make sure you animate into and out of it elegantly."*** Two bugs, and neither
+was the animation — the dialog material already draws both directions. The first: mounting the
+panel from `{target && <Dialog open>}` unmounts it on the same frame the close is asked for,
+so the exit never ran. The panel did not close, it vanished. The second only bit the FIRST
+press: these dialogs are `dynamic()`'d off the first paint, so the chunk arrived *after* the
+dialog had been told to open, and a panel that has never been closed has no closed state to
+fade out of — measured on rAF, opacity 1 and scale 1 on every frame. `import()`ing the module
+early does not fix it; the loader `dynamic()` holds is its own.
+
+So `useClosingDialog` holds the row past the close and flips a separate flag, and the dialogs
+are now rendered CLOSED from whatever the *viewer* is showing rather than from what has been
+pressed — a closed dialog puts no portal in the DOM, so it costs nothing and the chunk is
+there before the press. Cold, measured: 0.00 → 0.69 → 1.00 on the way in, 1.00 → 0.00 with the
+scale settling to 0.957 on the way out, gone at 218ms. The edit → delete handover waits 180ms
+so the two panels hand over instead of stacking two backdrops. What it deliberately does not
+do is key the dialog per open — that was the first cut, and a new key is a new mount, which is
+the second bug again by another door; the form re-seeds on its own open edge instead.
+
 **The other half of the question answered itself.** *"shouldn't we have a place where people
 can see all the photos they're uploaded... maybe I just search. actually yeah that works."*
 It already does: Collection search reads `uploader.name` alongside caption, area and free
