@@ -437,13 +437,68 @@ profile) and this page should share one component rather than drift into two.
 New. One list of everything members have made: posts, letters, comments, photos. Type filter,
 author filter, search, newest first.
 
-The photo approval queue becomes the `Photos awaiting review` filter here rather than its own
-section, and keeps its existing approve and decline actions. Approved photos are reachable too, so
-something can be taken down after the fact (gap in the current panel: only unapproved is visible).
+The photo approval queue **used to be** the `Photos awaiting review` filter here. It moved out to
+its own room on 2026-08-30 (§9.5b below); what stays on this page is the count, as a link. Approved
+photos are still reachable through the normal `Photos` type filter, so something can be taken down
+after the fact (gap in the old panel: only unapproved was visible).
 
 Removal reuses `ModerationDialog` and the existing `adminRemovePost` / `adminRemoveComment` /
 `adminRemovePhoto` actions, note to the author included. This section builds no new moderation
 machinery; it builds the missing way to find the thing.
+
+### 9.5b Review (`/admin/review`)
+
+Where photographs are actually looked at. Split out of §9.5 on 2026-08-30 after the owner saw the
+queue as a filtered list: *"i can barely see what i'm reviewing... there's a million pills so much
+useless functionality. no thought has been put into this design. this is an atrocity."*
+
+The diagnosis was that two jobs were sharing one surface. The content list is for **finding one
+thing among everything members have made**; a review queue is **a known pile, taken one at a time,
+with a decision at the end of each**. Sharing meant the queue inherited a search box, a facet panel,
+a match count, a filter chip and a "Clear all", then repeated a "Photo" pill, the contributor's
+name, a relative time and a "Waiting for you" chip on every row of a list that was by definition all
+photos, by the same contributor, waiting for the same person. And it gave the photograph 64 pixels.
+
+**The shape.** One photograph, large, on the warm-ink ground the Collection's own viewer uses. The
+three questions beside it (`components/collection/photo-questions.tsx`, the same component the
+contribute room and the edit dialog ask from — three rooms, one form). Two full-height buttons.
+Everything that was repeated per row is said once in the header.
+
+**Two piles, and they are deliberately not the same job.**
+
+| Pile | Predicate | Actions | Order |
+|---|---|---|---|
+| Waiting | `approved: false, isHidden: false` | Approve, Decline | oldest first, so nothing sits behind fresher arrivals |
+| Undated | `approved: true`, no `photoYear` and no era | Save, Skip | the ones whose *file* offered a date first — each of those is one press |
+
+**The date never gates the decision.** Asked whether an undated photograph should be stopped at the
+door, the owner drew the line himself: *"approval is not just for year, it's also for suitability of
+the photo and everything else."* So there is no check, no confirm and no nag on an empty year box.
+Approving is a judgement about whether a photograph belongs here; dating is clerical work about one
+that already does. One room, never one gate.
+
+**What the file says.** New `Photo.exifYear` / `exifMonth`, read off the original in the seconds
+between it arriving and the re-encode stripping it (`src/lib/exif-date.ts`, `exifDateOf`). Offered
+in the panel as *"The file says March 2019"* with a **Use it** button — never applied on its own,
+and the wording is load-bearing: on a scanned print this is the **scan** date, right about the file
+and wrong about the picture, and only a person looking at the photograph can tell which. The reader
+is deliberately ignorant of every tag but the four date ones, so there is no location in it to leak
+(audit M12). No backfill is possible: the originals of existing rows were purged at contribution
+time. The Undated pile is the rescue for those.
+
+**Captions** are tidied mechanically on the way into the panel — whitespace, sentence capitals, a
+lonely `i` (`src/lib/caption-tidy.ts`). Shape only, never words. It runs **in front of somebody**,
+in an editable box, and is deliberately not wired into the contribute path: rewriting what a member
+typed without showing them is what this project refuses to do everywhere else.
+
+**Decline asks twice.** It erases the row and purges the bytes, and there is no undo anywhere in the
+product. One click was survivable at one decision a minute; in a room built for a queue of two
+hundred with a thumb-swipe bound to it, it is not. The button arms for four seconds rather than
+opening a dialog — a modal per decline would cost the speed the room exists for.
+
+**Gestures.** Swipe right approves; swipe left **arms** Decline rather than doing it. Keyboard:
+`←`/`→` move, `A` approves or saves, `D` arms and confirms Decline — all standing down while a text
+field has focus, arrows included, because the caret owns them first.
 
 Also here: **post as the office account** (gap 11) and **announcements** (gap 10). Both are
 "the admin writes something everyone sees", they share a composer, and they are the same job.

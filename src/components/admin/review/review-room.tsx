@@ -1,0 +1,738 @@
+"use client";
+
+/* ------------------------------------------------------------------ *
+ *  ONE PHOTOGRAPH, BIG, WITH THE THREE QUESTIONS BESIDE IT.
+ *
+ *  What this replaces: the photo queue was a FILTER on the general
+ *  content-moderation list, so reviewing a photograph meant reading a
+ *  row that carried a search box, a Filters button, a match count, a
+ *  filter chip, a "Clear all", a "Photo" pill, the contributor's name,
+ *  a relative time and a "Waiting for you" chip -- the last four
+ *  repeated identically down every row of a list that was, by
+ *  definition, all photos by the same contributor waiting for the same
+ *  person. And a 64px thumbnail. The owner, 2026-08-30: "i can barely
+ *  see what i'm reviewing... there's a million pills so much useless
+ *  functionality. no thought has been put into this design."
+ *
+ *  So the photograph is the room. Everything that was repeated is said
+ *  once, in the header. What is left beside the picture is the only
+ *  thing an admin can actually do something about: what it is of, when
+ *  it was taken, and what it says.
+ *
+ *  THE QUESTIONS ARE THE CONTRIBUTE ROOM'S OWN, imported rather than
+ *  rebuilt (../../collection/photo-questions). Three rooms now ask them
+ *  -- contribute, edit, review -- and a seventh bucket or a change to
+ *  what the date box understands has to reach all three. The only
+ *  reliable way to make that true is for there to be one form.
+ *
+ *  TWO PILES, AND THEY ARE NOT THE SAME JOB.
+ *    Waiting  -> Approve or Decline. A judgement about whether a
+ *                photograph belongs in the Collection.
+ *    Undated  -> Save. Clerical work on photographs that are already in
+ *                it, because 18 of the first 21 have no date at all.
+ *  The owner drew that line himself: "approval is not just for year,
+ *  it's also for suitability of the photo and everything else." So
+ *  nothing here ever makes a date a condition of approval. There is no
+ *  nag, no confirm and no refusal on an empty year box.
+ *
+ *  DECLINE IS THE ONE IRREVERSIBLE THING IN THE ROOM. It erases the row
+ *  and purges the bytes; there is no undo anywhere in the product. In
+ *  the old list it was a single click, which was survivable at one
+ *  decision a minute. In a room built for a queue of two hundred, with
+ *  a thumb-swipe bound to it, it is not -- so it asks a second time, in
+ *  place, on the button itself. No dialog: a modal per decline would
+ *  cost the speed the room exists for, and a button that changes its
+ *  own mind for four seconds is enough deliberation to stop a slip.
+ * ------------------------------------------------------------------ */
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { m, AnimatePresence, useMotionValue, useTransform, type MotionValue } from "motion/react";
+import { ArrowLeft, ArrowRight, Check, ImageOff, Sparkles, X } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { MetaDots } from "@/components/common/meta-dots";
+import { SegmentedPills } from "@/components/common/segmented-pills";
+import { EASE_OUT_SMOOTH } from "@/components/common/motion";
+import {
+  answersFor,
+  EMPTY_ANSWERS,
+  PhotoQuestions,
+  type PhotoAnswers,
+} from "@/components/collection/photo-questions";
+import { callAction } from "@/lib/call-action";
+import { tidyCaption } from "@/lib/caption-tidy";
+import { MONTHS, photoDate } from "@/lib/collection";
+import { cn, formatTimeAgo, valleyYear } from "@/lib/utils";
+import type { ReviewMode, ReviewPhoto } from "@/lib/admin-review";
+import { declineReview, saveReview } from "@/app/(main)/admin/review/actions";
+
+/** The stage's ground. The same warm ink the Collection's own viewer uses
+ *  (components/common/image-viewer.tsx), and for the same reason: a
+ *  photograph is judged against a neutral dark ground, and anything warm
+ *  behind a contained picture reads as a stain on it. Two rooms looking at
+ *  one photograph should be looking at it on one material. */
+const STAGE = "rgba(24, 25, 20, 0.94)";
+
+/** How far a thumb has to travel before a swipe is a decision.
+ *
+ *  Deliberately further than the contribute stage's 70px, which is the same
+ *  gesture doing something else: there, a swipe moves to the next photograph
+ *  and a mis-swipe costs one swipe back. Here it approves or declines, and one
+ *  of those cannot be taken back. A decision should cost more travel than a
+ *  page turn. */
+const SWIPE_PX = 110;
+const SWIPE_VELOCITY = 560;
+
+/** How long Decline stays armed before it forgets it was asked. Long enough
+ *  to move a thumb to the second press, short enough that walking away from
+ *  the screen never leaves a loaded gun on it. */
+const ARMED_MS = 4000;
+
+export function ReviewRoom({
+  mode,
+  photos,
+  counts,
+  capped,
+}: {
+  mode: ReviewMode;
+  photos: ReviewPhoto[];
+  counts: { waiting: number; undated: number };
+  /** True when the pile is longer than what was loaded, so the room can say so
+   *  rather than looking finished when it is not. */
+  capped: boolean;
+}) {
+  const router = useRouter();
+
+  /* The pile is LOCAL and shrinks as decisions are made. A router.refresh()
+     per decision would refetch sixty rows and re-render the whole room between
+     one photograph and the next, which is the thing that makes a queue feel
+     like work. The server is told (the actions revalidate); this just does not
+     wait to be told back. */
+  const [pile, setPile] = useState(photos);
+  const [at, setAt] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [armed, setArmed] = useState(false);
+
+  /* Edits keyed by photograph, so walking back with the left arrow finds what
+     you typed still there. Seeded lazily: a pile of sixty should not build
+     sixty answer objects for the fifty-nine nobody will touch. */
+  const [edits, setEdits] = useState<Record<string, PhotoAnswers>>({});
+
+  const showing = pile[at] ?? null;
+  const total = pile.length;
+
+  /* The caption as the room will save it: tidied on the way in, so what is on
+     screen IS what a press writes. Nothing is corrected behind anybody's back
+     -- see the note at the top of lib/caption-tidy.ts. */
+  const answers: PhotoAnswers = useMemo(() => {
+    if (!showing) return EMPTY_ANSWERS;
+    return (
+      edits[showing.id] ?? {
+        ...answersFor(showing),
+        caption: tidyCaption(showing.caption),
+      }
+    );
+  }, [showing, edits]);
+
+  const answer = useCallback(
+    (patch: Partial<PhotoAnswers>) => {
+      if (!showing) return;
+      setEdits((prev) => ({ ...prev, [showing.id]: { ...answers, ...patch } }));
+    },
+    [showing, answers]
+  );
+
+  /* Any move at all disarms Decline. Arming is about THIS photograph; carrying
+     it to the next one would be the exact accident it exists to prevent. */
+  const go = useCallback(
+    (next: number) => {
+      setArmed(false);
+      setAt(() => Math.min(Math.max(next, 0), Math.max(0, total - 1)));
+    },
+    [total]
+  );
+
+  /** Take one out of the pile and land on whatever moved up into its place. */
+  const drop = useCallback((id: string) => {
+    setArmed(false);
+    setPile((prev) => {
+      const next = prev.filter((p) => p.id !== id);
+      setAt((i) => Math.min(i, Math.max(0, next.length - 1)));
+      return next;
+    });
+  }, []);
+
+  /* The next photograph's bytes, fetched while this one is being looked at.
+     These are full-size images, so the difference between a warmed cache and a
+     cold one is the difference between the room feeling instant and feeling
+     like a slideshow on a bad connection. Only ONE ahead: sixty full-size
+     preloads would be worse than the problem. */
+  useEffect(() => {
+    const next = pile[at + 1];
+    if (!next) return;
+    const img = new window.Image();
+    img.src = next.url;
+  }, [pile, at]);
+
+  const decide = useCallback(
+    async (kind: "approve" | "save" | "decline") => {
+      if (!showing || busy) return;
+      setBusy(true);
+      const id = showing.id;
+      try {
+        if (kind === "decline") {
+          const res = await callAction(() => declineReview(id));
+          if ("error" in res && res.error) {
+            toast.error(res.error);
+            return;
+          }
+          drop(id);
+          toast.success("Declined. The contributor has been told.");
+          return;
+        }
+
+        const res = await callAction(() =>
+          saveReview({
+            id,
+            approve: kind === "approve",
+            answers: {
+              caption: answers.caption.trim(),
+              buckets: answers.buckets,
+              /* The one date rule, out of lib/collection.ts, exactly as the
+                 contribute paths and the edit dialog encode it. */
+              ...photoDate(answers, valleyYear()),
+            },
+          })
+        );
+        if ("error" in res && res.error) {
+          toast.error(res.error);
+          return;
+        }
+        drop(id);
+        toast.success(kind === "approve" ? "In the Collection." : "Saved.");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [showing, answers, busy, drop]
+  );
+
+  /* Decline asks twice. The first press arms it and the button says so; the
+     second, within four seconds, does it. */
+  const declinePressed = useCallback(() => {
+    if (armed) {
+      void decide("decline");
+      return;
+    }
+    setArmed(true);
+  }, [armed, decide]);
+
+  useEffect(() => {
+    if (!armed) return;
+    const t = setTimeout(() => setArmed(false), ARMED_MS);
+    return () => clearTimeout(t);
+  }, [armed, at]);
+
+  /* THE KEYBOARD, which is half of what the owner asked for on a computer.
+     Bound on the window rather than on a focused element, because the natural
+     place for a cursor in this room is the description box and a shortcut that
+     only works when nothing is focused works nowhere. Which is also why every
+     binding stands down while a field HAS focus: "d" belongs to the caption
+     the moment somebody is typing one. */
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+
+      /* Somebody is writing a caption. EVERY binding stands down, arrows
+         included: left and right belong to the caret first, and a room that
+         changed the photograph while you were fixing a word in its
+         description would be unusable for the one job it exists for. */
+      const typing =
+        Boolean(el?.isContentEditable) ||
+        el?.tagName === "INPUT" ||
+        el?.tagName === "TEXTAREA" ||
+        el?.closest("[role='dialog']") != null;
+
+      /* Escape disarms from anywhere, because the armed Decline is the one
+         state somebody might urgently want out of. */
+      if (e.key === "Escape" && armed) {
+        setArmed(false);
+        return;
+      }
+      if (typing) return;
+
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        go(at + 1);
+        return;
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        go(at - 1);
+        return;
+      }
+
+      /* Enter belongs to whatever is focused if that thing answers to Enter.
+         Without this, tabbing to "Use it" and pressing Enter took the file's
+         date AND approved the photograph in one keystroke -- two acts from
+         one press, and the second one irreversible in the pile next door. */
+      const onAControl = el?.closest("button, a, [role='checkbox'], select") != null;
+      if (e.key === "Enter" && onAControl) return;
+
+      if (e.key === "Enter" || e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        void decide(mode === "waiting" ? "approve" : "save");
+      }
+      if (e.key.toLowerCase() === "d" && mode === "waiting") {
+        e.preventDefault();
+        declinePressed();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [at, go, decide, declinePressed, mode, armed]);
+
+  /* The drag, and the two tints it drives. `x` is read by the overlays rather
+     than by state, so leaning on a photograph costs no re-render of a panel
+     holding a form. */
+  const x = useMotionValue(0);
+  const approveTint = useTransform(x, [0, SWIPE_PX], [0, 0.85]);
+  const declineTint = useTransform(x, [-SWIPE_PX, 0], [0.85, 0]);
+
+  const primaryLabel = mode === "waiting" ? "Approve" : "Save";
+  const dirty = Boolean(showing && edits[showing.id]);
+
+  return (
+    <div className="flex min-h-0 w-full flex-1 flex-col gap-4">
+      <Header
+        mode={mode}
+        counts={counts}
+        at={at}
+        total={total}
+        capped={capped}
+        onMode={(next) => router.push(`/admin/review?pile=${next}`)}
+        onGo={go}
+      />
+
+      {!showing ? (
+        <Done mode={mode} counts={counts} />
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row lg:gap-6">
+          {/* THE STAGE. `min-h-0` on both axes of the chain is what lets it
+              actually shrink to the window instead of pushing the buttons off
+              the bottom of a laptop screen -- a flex child's default
+              `min-height: auto` refuses to go below its content, and the
+              content here is a full-size photograph. */}
+          <div
+            className="relative min-h-[44svh] flex-1 overflow-hidden rounded-[var(--radius-lg)] lg:min-h-0"
+            style={{ background: STAGE }}
+          >
+            <m.div
+              className="absolute inset-0 grid place-items-center p-3 sm:p-5"
+              style={{ x }}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.5}
+              dragDirectionLock
+              dragTransition={{ bounceStiffness: 600, bounceDamping: 60 }}
+              onDragEnd={(_, info) => {
+                const right = info.offset.x > SWIPE_PX || info.velocity.x > SWIPE_VELOCITY;
+                const left = info.offset.x < -SWIPE_PX || info.velocity.x < -SWIPE_VELOCITY;
+                /* Right is the safe one and it acts. Left ARMS rather than
+                   declines: a swipe that erased a photograph and its bytes
+                   with no second thought is the one gesture this room must not
+                   have. The button beside it is already asking. */
+                if (right) void decide(mode === "waiting" ? "approve" : "save");
+                else if (left && mode === "waiting") setArmed(true);
+              }}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                <m.img
+                  key={showing.id}
+                  src={showing.url}
+                  alt=""
+                  draggable={false}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18, ease: EASE_OUT_SMOOTH }}
+                  className="max-h-full max-w-full rounded-[var(--radius-sm)] object-contain"
+                />
+              </AnimatePresence>
+            </m.div>
+
+            {/* What the thumb is about to do, drawn while it is still
+                deciding. Opacity only, driven straight off the drag. */}
+            <Verdict side="right" opacity={approveTint} label="Approve" tone="canopy" />
+            {mode === "waiting" && (
+              <Verdict side="left" opacity={declineTint} label="Decline" tone="heart" />
+            )}
+          </div>
+
+          {/* THE PANEL. 380px, which is what the six bucket tiles were drawn
+              for -- the contribute pop-up gives them 360 and the tiles land at
+              115px each, comfortably past the 44px target. */}
+          <div className="flex w-full shrink-0 flex-col lg:min-h-0 lg:w-[380px]">
+            {/* NO `overflow-hidden` HERE, however much the rounded corners want
+                it. An ancestor with overflow hidden or clip silently kills
+                `position: sticky` in every browser -- the sticky element gets
+                that box as its scrollport, and since the box does not scroll,
+                it never sticks. That cost the phone its Approve button once
+                already. The footer rounds its own two corners instead. */}
+            <div className="flex min-h-0 flex-1 flex-col rounded-[var(--radius-lg)] border border-border bg-card">
+              {/* Scrolls on a laptop, where the card is pinned to the stage's
+                  height. On a phone it does not: an inner scroll area inside a
+                  page that also scrolls is two scrollbars fighting over one
+                  thumb. */}
+              <div className="min-h-0 flex-1 p-4 lg:overflow-y-auto">
+                <Provenance photo={showing} />
+                <FileSays photo={showing} answers={answers} onAnswer={answer} />
+                <div className="mt-4">
+                  <PhotoQuestions
+                    idPrefix={`review-${showing.id}`}
+                    value={answers}
+                    onAnswer={answer}
+                  />
+                </div>
+              </div>
+
+              {/* THE ACTIONS ARE THE CARD'S FOOTER, and that is two fixes.
+                  On a laptop the stage is ~680px tall and the questions are
+                  ~390px, so floating the buttons under the card left 220px of
+                  blank paper inside a bordered box with the two most-pressed
+                  controls in the room orphaned below it. Pinned to the foot,
+                  the card ends flush with the photograph and the actions are
+                  always in the same place whatever the questions do.
+
+                  `sticky` is the phone. There the column is not height-bounded
+                  -- the page scrolls -- so the footer sat below the fold and
+                  Approve could not be reached without scrolling past the
+                  thing being approved. */}
+              <div className="sticky bottom-0 mt-auto rounded-b-[calc(var(--radius-lg)-1px)] border-t border-border bg-card p-3">
+                <Decide
+                  mode={mode}
+                  busy={busy}
+                  armed={armed}
+                  dirty={dirty}
+                  primaryLabel={primaryLabel}
+                  onPrimary={() => decide(mode === "waiting" ? "approve" : "save")}
+                  onDecline={declinePressed}
+                  onSkip={() => go(at + 1)}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ *  Everything the old list repeated on every row, said once.
+ * ------------------------------------------------------------------ */
+function Header({
+  mode,
+  counts,
+  at,
+  total,
+  capped,
+  onMode,
+  onGo,
+}: {
+  mode: ReviewMode;
+  counts: { waiting: number; undated: number };
+  at: number;
+  total: number;
+  capped: boolean;
+  onMode: (mode: ReviewMode) => void;
+  onGo: (next: number) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-3 lg:gap-x-4">
+      <SegmentedPills
+        segments={[
+          { key: "waiting", label: "Waiting", count: counts.waiting },
+          { key: "undated", label: "Undated", count: counts.undated },
+        ]}
+        value={mode}
+        onChange={onMode}
+        ariaLabel="Which pile to work through"
+        layoutId="review-pile"
+        className="bg-card"
+      />
+
+      {total > 0 && (
+        <div className="flex items-center gap-1">
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label="The one before"
+            disabled={at === 0}
+            onClick={() => onGo(at - 1)}
+          >
+            <ArrowLeft className="size-4" strokeWidth={2} />
+          </Button>
+          <span className="min-w-[3.25rem] text-center text-[12.5px] tabular-nums text-muted-foreground">
+            {at + 1} of {total}
+            {capped ? "+" : ""}
+          </span>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label="The next one"
+            disabled={at >= total - 1}
+            onClick={() => onGo(at + 1)}
+          >
+            <ArrowRight className="size-4" strokeWidth={2} />
+          </Button>
+        </div>
+      )}
+
+      {/* The shortcuts, said where they are used and only where a keyboard
+          exists to use them. */}
+      {/* `gap-1.5`, because `.dotsep` carries no horizontal margin of its own --
+          it is a 0.23em circle that relies on its flex parent for the air
+          either side of it. Without the gap the hint read "to move·A approve".
+          See the dot's note in globals.css. */}
+      <p className="ml-auto hidden items-center gap-1.5 text-[12px] text-muted-foreground lg:flex">
+        <MetaDots
+          parts={[
+            <>
+              <Key>←</Key> <Key>→</Key> to move
+            </>,
+            <>
+              <Key>A</Key> {mode === "waiting" ? "approve" : "save"}
+            </>,
+            mode === "waiting" && (
+              <>
+                <Key>D</Key> decline
+              </>
+            ),
+          ]}
+        />
+      </p>
+    </div>
+  );
+}
+
+const Key = ({ children }: { children: React.ReactNode }) => (
+  <kbd className="rounded-[4px] border border-border bg-card px-1 py-px font-sans text-[11px] text-foreground">
+    {children}
+  </kbd>
+);
+
+/** Who sent it and when they sent it. One line, and the only place in the room
+ *  either fact appears -- it was on every row of the list it replaces. */
+function Provenance({ photo }: { photo: ReviewPhoto }) {
+  return (
+    <p className="flex flex-wrap items-baseline gap-x-2 text-[13px]">
+      <Link
+        href={`/admin/people/${photo.uploaderId}`}
+        className="rounded-sm font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      >
+        {photo.uploaderName}
+      </Link>
+      <span className="text-muted-foreground">{formatTimeAgo(new Date(photo.createdAt))}</span>
+      {photo.scope === "class" && (
+        <span className="text-[12px] text-muted-foreground">
+          · the {photo.classYears} class only
+        </span>
+      )}
+    </p>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ *  WHAT THE FILE SAYS.
+ *
+ *  The whole reason the EXIF date is captured at all. The owner: "if
+ *  they haven't put a year, i want to see the year that the metadata
+ *  says so i can either pick it or leave it as undated... we have to
+ *  use the metadata like google photos does."
+ *
+ *  "The file says" and not "Taken in", and the difference is the whole
+ *  honesty of the feature: on a scanned print this is the date it was
+ *  SCANNED. A 1978 photograph scanned in 2019 says 2019, correctly,
+ *  about the file and wrongly about the picture -- and the only thing
+ *  in the world that can tell those apart is a person looking at the
+ *  photograph, which is exactly who is standing here. So it is offered,
+ *  never applied, and the offer names its source out loud.
+ *
+ *  It keeps offering after a year has been typed, because the second
+ *  most useful moment for it is when the year on the row is WRONG. It
+ *  stands down only when the box already holds what it would put there.
+ * ------------------------------------------------------------------ */
+function FileSays({
+  photo,
+  answers,
+  onAnswer,
+}: {
+  photo: ReviewPhoto;
+  answers: PhotoAnswers;
+  onAnswer: (patch: Partial<PhotoAnswers>) => void;
+}) {
+  if (!photo.exifYear) return null;
+
+  const month = photo.exifMonth ? MONTHS[photo.exifMonth - 1] : "";
+  const said = month ? `${month} ${photo.exifYear}` : String(photo.exifYear);
+  const already = answers.year === String(photo.exifYear) && answers.month === month;
+
+  return (
+    <div className="mt-3 flex items-center gap-2 rounded-[var(--radius-md)] bg-mist px-3 py-2">
+      <Sparkles className="size-3.5 shrink-0 text-cinnamon" strokeWidth={2} aria-hidden />
+      <p className="min-w-0 flex-1 text-[12.5px] text-muted-foreground">
+        The file says <span className="font-medium text-foreground">{said}</span>
+      </p>
+      {already ? (
+        <span className="text-[12px] text-muted-foreground">Used</span>
+      ) : (
+        <Button
+          size="xs"
+          variant="outline"
+          onClick={() => onAnswer({ year: String(photo.exifYear), month })}
+        >
+          Use it
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/** The tint that rises under a thumb mid-swipe. */
+function Verdict({
+  side,
+  opacity,
+  label,
+  tone,
+}: {
+  side: "left" | "right";
+  opacity: MotionValue<number>;
+  label: string;
+  tone: "canopy" | "heart";
+}) {
+  return (
+    <m.div
+      aria-hidden
+      style={{ opacity }}
+      className={cn(
+        /* Not `lg:hidden`. The drag works with a mouse as well as a thumb, and
+           an approval with no feedback on the way to it is worse on the big
+           screen, not better -- there is more room for the pointer to wander. */
+        "pointer-events-none absolute inset-y-0 grid w-1/2 place-items-center",
+        side === "right" ? "right-0" : "left-0"
+      )}
+    >
+      <span
+        className={cn(
+          "rounded-full px-4 py-2 text-sm font-semibold text-white shadow-[0_2px_10px_rgba(30,28,22,0.4)]",
+          tone === "canopy" ? "bg-canopy" : "bg-heart"
+        )}
+      >
+        {label}
+      </span>
+    </m.div>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ *  The two big targets, which is the other half of what was asked for.
+ *
+ *  A ROW on a phone and a row on a laptop: they are two answers to one
+ *  question and stacking them makes the second look like an afterthought
+ *  of the first. `h-12` rather than the default `h-10` -- these are the
+ *  only controls in the room a person presses hundreds of times, and the
+ *  owner asked for "big touch targets" in as many words.
+ * ------------------------------------------------------------------ */
+function Decide({
+  mode,
+  busy,
+  armed,
+  dirty,
+  primaryLabel,
+  onPrimary,
+  onDecline,
+  onSkip,
+}: {
+  mode: ReviewMode;
+  busy: boolean;
+  armed: boolean;
+  dirty: boolean;
+  primaryLabel: string;
+  onPrimary: () => void;
+  onDecline: () => void;
+  onSkip: () => void;
+}) {
+  return (
+    <div className="flex shrink-0 items-center gap-2.5">
+      <Button
+        variant="primary"
+        disabled={busy || (mode === "undated" && !dirty)}
+        onClick={onPrimary}
+        className="h-12 flex-1 text-[15px]"
+      >
+        <Check className="size-4" strokeWidth={2.5} />
+        {primaryLabel}
+      </Button>
+
+      {mode === "waiting" ? (
+        <Button
+          variant={armed ? "destructive" : "outline"}
+          disabled={busy}
+          onClick={onDecline}
+          /* The armed state is announced, not only drawn: a screen reader
+             hears the button change its mind the same way the eye does. */
+          aria-label={armed ? "Press again to decline for good" : "Decline"}
+          className={cn("h-12 flex-1 text-[15px]", armed && "font-semibold")}
+        >
+          {armed ? (
+            "Really decline?"
+          ) : (
+            <>
+              <X className="size-4" strokeWidth={2.5} />
+              Decline
+            </>
+          )}
+        </Button>
+      ) : (
+        <Button variant="outline" disabled={busy} onClick={onSkip} className="h-12 flex-1 text-[15px]">
+          Skip
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/** The pile is empty. Says so, and points at the other one if it is not.
+ *
+ *  No celebration and no mascot: this is a room somebody works in, and the
+ *  fifth time you clear a queue a party is an obstacle between you and the
+ *  next thing. */
+function Done({ mode, counts }: { mode: ReviewMode; counts: { waiting: number; undated: number } }) {
+  const other = mode === "waiting" ? counts.undated : counts.waiting;
+  return (
+    <div className="grid flex-1 place-items-center rounded-[var(--radius-lg)] border border-border bg-card p-10">
+      <div className="flex max-w-sm flex-col items-center gap-3 text-center">
+        <ImageOff className="size-6 text-muted-foreground" strokeWidth={1.5} aria-hidden />
+        <p className="text-[15px] font-medium text-foreground">
+          {mode === "waiting" ? "Nothing is waiting." : "Everything in the Collection has a date."}
+        </p>
+        {other > 0 && (
+          <Button
+            variant="outline"
+            render={
+              <Link href={`/admin/review?pile=${mode === "waiting" ? "undated" : "waiting"}`} />
+            }
+          >
+            {mode === "waiting"
+              ? `${other} in the Collection have no date`
+              : `${other} waiting to be reviewed`}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}

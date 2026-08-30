@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { requireAdminPage } from "@/lib/admin";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
@@ -27,6 +28,13 @@ export default async function AdminContentPage({
   // lib/admin.ts).
   await requireAdminPage();
   const sp = await searchParams;
+
+  /* The review queue used to be a filter on this page and is now a room of its
+     own. Anything still pointing here -- a bookmark, an old notification, the
+     browser's back button -- lands where the job actually is now rather than
+     on a list quietly ignoring the filter it was asked for. */
+  if (sp.type === "pending") redirect("/admin/review");
+
   const filters = readContentFilters(sp);
 
   const [items, pending, author] = await Promise.all([

@@ -109,6 +109,19 @@ const LIMITS = {
    *  in a sitting, and 120 an hour leaves that untouched while still capping
    *  a script rewriting captions across the Collection. */
   photoEdits: { tokens: 120, window: "1 h" },
+  /** Per admin. The review room's own meter, and it is deliberately six times
+   *  photoEdits above.
+   *
+   *  Same act, different workload. `photoEdits` is a member correcting a
+   *  photograph now and then; this is the one surface whose PURPOSE is
+   *  clearing a queue, and MAX_PHOTOS_PER_DROP is 200 -- so one contributor's
+   *  reunion upload is 200 decisions in a sitting, and the backlog pass behind
+   *  it is however many hundred are undated. A meter that stops the admin
+   *  half-way through the job it exists for is a bug wearing a security
+   *  jacket. It is still metered rather than free, because a compromised admin
+   *  session should not be able to rewrite the whole archive at machine speed,
+   *  and 600 an hour is far below machine speed and far above a person. */
+  photoReview: { tokens: 600, window: "1 h" },
   /** Per user. Reporting is for summoning a human, and ten summonses a
    *  day is already a campaign; Phase 7 adds the per-pair dedupe. */
   reports: { tokens: 10, window: "24 h" },
