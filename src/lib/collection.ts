@@ -262,6 +262,35 @@ export function photoDate(
     : { era: "unknown", datePrecision: "unknown" };
 }
 
+/**
+ * The box holds something, and the date rule could make nothing of it.
+ *
+ * `photoDate` is deliberately total -- it always returns a filing, and when it
+ * cannot read what was typed that filing is "unknown". That is right for an
+ * EMPTY box, which means "I do not know", and quietly wrong for a FULL one,
+ * which means "I told you and you lost it".
+ *
+ * The distinction earns its own function because of what it cost. Every
+ * photograph contributed between 2026-08-29 and 2026-08-30 arrived with a
+ * caption, a bucket and no date at all, from a contributor who was certain she
+ * had typed years into all of them -- and she had: the digits render straight
+ * out of the same state the filing is computed from, so the box showed them
+ * back to her while `yearGiven` rejected every one and `photoDate` filed the
+ * lot as undated. Nothing anywhere said so.
+ *
+ * So a room that asks for a date checks this before it files, and refuses out
+ * loud rather than dropping the answer. A visible refusal costs somebody one
+ * retry; a silent drop costs the archive the date for ever, because by the
+ * time anyone notices, the original with its own metadata has been purged.
+ */
+export function yearUnreadable(
+  typed: { year: string; month: string },
+  thisYear: number
+): boolean {
+  if (typed.year === "") return false;
+  return photoDate(typed, thisYear).datePrecision === "unknown";
+}
+
 /** A STORED ROW, back in the one box that wrote it -- `photoDate` run
  *  backwards, so the edit dialog can seed the date field with what is already
  *  on the photograph and a save that never touched it changes nothing.
