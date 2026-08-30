@@ -1,12 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  ERAS,
   eraFromPartial,
   eraPhrase,
   eraSaid,
   eraSeekBoundary,
   photoDate,
   takenLabel,
+  typedDate,
 } from "./collection.ts";
 
 /* The viewer says WHEN A PHOTOGRAPH WAS TAKEN, at the precision the
@@ -175,4 +177,41 @@ test("undated has no ceiling of its own -- 1, since its key is always 0", () => 
 test("an era outside the vocabulary asks for nothing and gets nothing", () => {
   assert.equal(eraSeekBoundary("1930s"), null);
   assert.equal(eraSeekBoundary(""), null);
+});
+
+/* ------------------------------------------------------------------ *
+ *  The box, run backwards. Editing a photograph seeds the date field
+ *  from what is already stored, so `typedDate` has to be the exact
+ *  inverse of `photoDate` -- otherwise opening a 1970s photograph and
+ *  pressing Save, having touched nothing, files it somewhere else.
+ * ------------------------------------------------------------------ */
+
+test("every era the archive offers survives a trip through the box", () => {
+  for (const { value } of ERAS) {
+    const back = photoDate(typedDate({ era: value }), 2026);
+    assert.equal(back.era, value, `${value} did not come back as itself`);
+    assert.equal(back.photoYear, undefined);
+  }
+});
+
+test("an exact date survives it too, at the precision it was given", () => {
+  assert.deepEqual(
+    photoDate(typedDate({ photoYear: 1978, photoMonth: 3, datePrecision: "month" }), 2026),
+    { photoYear: 1978, photoMonth: 3, datePrecision: "month" }
+  );
+  assert.deepEqual(
+    photoDate(typedDate({ photoYear: 1978, photoMonth: null, datePrecision: "year" }), 2026),
+    { photoYear: 1978, datePrecision: "year" }
+  );
+});
+
+test("a month the contributor did not mean is not seeded back in", () => {
+  // Same stale-month case takenLabel guards: precision says "year", so the
+  // column's month is not an answer and the box must not offer it as one.
+  assert.equal(typedDate({ photoYear: 1978, photoMonth: 5, datePrecision: "year" }).month, "");
+});
+
+test("nothing stored puts nothing in the box", () => {
+  assert.deepEqual(typedDate({ era: "unknown" }), { year: "", month: "" });
+  assert.deepEqual(typedDate({}), { year: "", month: "" });
 });

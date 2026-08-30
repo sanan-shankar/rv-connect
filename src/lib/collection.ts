@@ -262,6 +262,46 @@ export function photoDate(
     : { era: "unknown", datePrecision: "unknown" };
 }
 
+/** A STORED ROW, back in the one box that wrote it -- `photoDate` run
+ *  backwards, so the edit dialog can seed the date field with what is already
+ *  on the photograph and a save that never touched it changes nothing.
+ *
+ *  A decade comes back as its three digits ("197"), which is exactly what a
+ *  contributor types for a decade, so the field's own label reads "Filed under
+ *  the 1970s" over a value it can round-trip. Pre-1940s is "192" for the same
+ *  reason: it is the only three digits `eraFromPartial` maps back to that
+ *  bucket, and the label says "the years before 1940" over it rather than
+ *  leaving the reader to read 192 as a decade.
+ *
+ *  The one value that does NOT round-trip is the legacy `pre-1960s`, which
+ *  comes back as pre-1940s. No row has ever held it (see the note above ERAS)
+ *  and nothing offers it, so re-saving one is not a case that exists; a
+ *  three-digit box cannot represent it, and inventing a fourth date control
+ *  for a value with no rows behind it would be worse.
+ *
+ *  Pinned against `photoDate` in collection-date.test.mjs: for every era the
+ *  archive offers, writing back what this returns must land on the same era. */
+export function typedDate(row: {
+  photoYear?: number | null;
+  photoMonth?: number | null;
+  datePrecision?: string | null;
+  era?: string | null;
+}): { year: string; month: string } {
+  if (row.photoYear) {
+    /* The same guard `takenLabel` applies: the form keeps a month in state
+       while the precision drops back to a year, so the column can hold one
+       the contributor did not mean, and seeding the box with it would put it
+       back deliberately. */
+    const month =
+      row.datePrecision !== "year" && row.photoMonth && row.photoMonth >= 1 && row.photoMonth <= 12
+        ? MONTHS[row.photoMonth - 1]
+        : "";
+    return { year: String(row.photoYear), month };
+  }
+  const start = ERA_START_YEAR[row.era ?? ""];
+  return { year: start ? String(Math.floor(start / 10)) : "", month: "" };
+}
+
 /** Map an exact year to its ERA_VALUES decade bucket, so a contributor who
  *  gives a precise year still shows up under the right era filter. */
 export function eraFromYear(year: number): string {

@@ -522,6 +522,32 @@ an admin-only one.
 This matters more, not less, now that trusted contributors publish instantly: with no queue
 in front of them, a delete is the *only* correction available.
 
+**A member can EDIT their own photograph, and an admin can edit anybody's** (shipped
+2026-08-30). The owner: "instead of delete photo button, have an edit icon. there let it
+pull up a dialog similar to the contribute where they can retag, recaption, and add year all
+that stuff. give me ability to do that for everyone's photo regardless of my uploading them
+or not." So the viewer's trash can became a pencil, and the delete moved inside the dialog
+it opens -- an irreversible act had been sitting one pixel from Download.
+
+Three consequences worth writing down:
+
+- **The dialog asks the contribute room's questions, out of the contribute room's own
+  component** (`components/collection/photo-questions.tsx`). A seventh bucket or a reworded
+  hint reaches both rooms or neither. What it does NOT ask for is `area`: the form stopped
+  offering it in the 2026-08-28 rework, and a form that no longer asks a question must not
+  answer it with a blank, so an old row keeps whatever it was given.
+- **`typedDate` is the exact inverse of `photoDate`** (`lib/collection.ts`, pinned by
+  `collection-date.test.mjs`). The date box holds three digits for a decade and four for a
+  year, so seeding it from a stored row is a real conversion, and getting it wrong would
+  re-file a photograph nobody edited. Every era the archive offers survives the round trip;
+  the legacy `pre-1960s`, which no row has ever held, does not, and the test says so.
+- **Editing is filing, not moderation.** `editPhoto` is gated uploader-or-admin, the same
+  gate as the delete, and an admin editing somebody else's photograph raises no note and no
+  notification -- it is the same act the hand-run tagging pass already performs on members'
+  rows. Taking something DOWN still goes through the warm note. Nothing about `approved`,
+  `isHidden`, `scope` or the stored bytes moves, so an edit cannot publish a queued
+  photograph or push an approved one back into the queue.
+
 **Trusted contributors auto-approve.** `User.photoTrusted` already exists and is already
 honoured by `isPhotoAutoApproved`; there is simply no way to set it. An admin gets a control
 on a member's profile, and the admin queue gets select-all and approve-page so a batch is

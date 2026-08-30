@@ -7,7 +7,7 @@
  *  module, not a copy) against the Collection's own photographs, with
  *  every state reachable: a photograph that fills the screen, a long
  *  caption that has more behind it, the buckets and the Where line, the
- *  heart, an uploader's delete, a multi-photograph set with its counter,
+ *  heart, the uploader's pencil, a multi-photograph set with its counter,
  *  and a single one with no caption at all.
  *
  *  It matters that this is the real component: there are two approved
@@ -38,8 +38,8 @@ const ARCHIVE: ViewerImage[] = [
     href: "/collection/preview",
     loved: false,
     loveCount: 12,
-    canRemove: true,
-    removeLabel: "Delete this photo",
+    canEdit: true,
+    editLabel: "Edit this photo",
   },
   {
     src: "/images/collection/c1.webp",
@@ -179,7 +179,7 @@ export default function ViewerRoom() {
         onClose={() => setArchiveAt(null)}
         showCount={false}
         onToggleLove={(i) => setLoves((prev) => prev.map((v, n) => (n === i ? !v : v)))}
-        onRemove={() => toast.success("The real one asks first, then deletes the file too.")}
+        onEdit={() => toast.success("The real one opens the edit dialog, which is also where Delete lives now.")}
       />
       <ImageViewer
         images={POST}
