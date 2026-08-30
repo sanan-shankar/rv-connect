@@ -1,5 +1,56 @@
 # Progress Log
 
+## 2026-08-30 — the photo queue stopped being a filter and became a room
+
+The owner, on the review queue as it stood: *"i can barely see what i'm reviewing... there's
+a million pills so much useless functionality. no thought has been put into this design...
+this is an atrocity."*
+
+He was right, and the diagnosis was that **two jobs were sharing one surface.** The content
+list is for finding one thing among everything members have made; a review queue is a known
+pile, taken one at a time, with a decision at the end of each. Sharing meant the queue
+inherited a search box, a facet panel, a match count, a filter chip and a "Clear all", then
+repeated a "Photo" pill, the contributor's name, a relative time and a "Waiting for you" chip
+on **every row of a list that was by definition all photos, by the same contributor, waiting
+for the same person.** And it gave the photograph 64 pixels.
+
+`/admin/review` is one photograph, large, on the warm ink the Collection's own viewer uses,
+with the three questions beside it — asked from `photo-questions.tsx`, so contribute, edit
+and review are three rooms and one form. Everything that was repeated is said once.
+
+**Two piles, and the line between them is the owner's.** Asked whether an undated photograph
+should be blocked from approval he said: *"approval is not just for year, it's also for
+suitability of the photo and everything else."* So Waiting has Approve and Decline, Undated
+has Save and Skip, and **the date never gates the decision** — no check, no confirm, no nag
+on an empty year box. Approving is a judgement about whether a photograph belongs here;
+dating is clerical work about one that already does.
+
+The Undated pile sorts the photographs whose *file* offered a date to the front, because each
+of those is one press: a sitting there front-loads every win before reaching the ones that
+need somebody to actually remember something.
+
+**Decline asks twice.** It erases the row and purges the bytes and there is no undo anywhere
+in the product. One click survived at one decision a minute; in a room built for a queue of
+two hundred with a thumb-swipe bound to it, it does not. The button arms for four seconds
+rather than opening a dialog, and swipe-left *arms* rather than declines.
+
+Captions are tidied mechanically on the way in — whitespace, sentence capitals, a lonely `i`.
+Shape only, never words; real grammar stays the hand-run pass. It runs **in front of
+somebody**, in an editable box, and is deliberately not wired into contribute: rewriting what
+a member typed without showing them is what this project refuses to do everywhere else.
+
+Two things the screenshots caught that reasoning had not. `overflow-hidden` on the panel card
+silently killed `position: sticky`, which cost the phone its Approve button — it sat below
+the fold, so the most-pressed control in the room needed a scroll past the thing being
+approved. And the arrow keys were bound before the is-somebody-typing check, so left and
+right moved the photograph instead of the caret while you were fixing a caption.
+
+**Not mine, flagged:** `npm run visual` fails on `collection` (desktop). The baseline was last
+written at `78a6b9e`; `9528ed1` then changed `collection-client.tsx` and `image-viewer.tsx`
+without rebaselining. Left alone deliberately — accepting it here would absorb an unreviewed
+visual change into an unrelated commit.
+
+
 ## 2026-08-30 — the archive now reads the date off the file, before it throws the file away
 
 21 photographs in the Collection, 3 with a year on them. The owner: *"at the rate we're

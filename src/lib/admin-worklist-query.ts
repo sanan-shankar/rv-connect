@@ -145,7 +145,7 @@ export async function loadWorklist(): Promise<WorkItem[]> {
       queue: "photo" as const,
       title: `${p.uploader.name} added a photo`,
       detail: p.caption?.slice(0, 120) ?? "No caption",
-      href: "/admin/content?type=pending",
+      href: "/admin/review",
       at: p.createdAt.toISOString(),
     })),
     ...flagged.map((u) => ({

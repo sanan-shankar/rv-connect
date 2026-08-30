@@ -181,6 +181,10 @@ export interface AdminCounts {
   waiting: number;
   messages: number;
   reports: number;
+  /** Photographs nobody has decided about yet -- the Review room's own row.
+   *  Already counted by `worklistCounts()` for the Overview total, so this is
+   *  the same number surfaced rather than a seventh query. */
+  photos: number;
   people: number;
 }
 
@@ -201,6 +205,7 @@ export async function loadAdminCounts(): Promise<AdminCounts> {
     waiting: w.total,
     messages: w.messages,
     reports: w.reports,
+    photos: w.photos,
     people,
   };
 }

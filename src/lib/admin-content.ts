@@ -21,11 +21,18 @@ export const TYPE_OPTIONS: FacetOption[] = [
   { value: "letter", label: "Letters" },
   { value: "comment", label: "Comments" },
   { value: "photo", label: "Photos" },
-  // The old panel's whole "Photos to review" section, demoted to what it
-  // always was: one filter over the photos. It kept a heading and an empty
-  // state on the front page on every one of the days when nothing was
-  // waiting, which was most of them.
-  { value: "pending", label: "Photos awaiting review" },
+  /* "Photos awaiting review" WAS the sixth option here, and reviewing
+     photographs was this list wearing a filter. It moved out to /admin/review
+     on 2026-08-30, because the two jobs want opposite surfaces: this list is
+     for finding one thing among everything members have made, and a review
+     queue is a known pile taken one at a time with a decision at the end of
+     each. Sharing one surface gave a photograph a 64px thumbnail under four
+     chips that said the same thing on every row (owner: "i can barely see
+     what i'm reviewing").
+
+     `pending` is still UNDERSTOOD by readContentFilters below, and the page
+     redirects it -- see the note there. An option nobody can pick, that an old
+     link still resolves. */
 ];
 
 export function typeLabel(v: string): string {

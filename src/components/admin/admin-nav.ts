@@ -1,6 +1,7 @@
 import {
   ListChecks,
   Inbox,
+  Images,
   Flag,
   Users,
   FileText,
@@ -26,7 +27,7 @@ import {
  * ------------------------------------------------------------------ */
 
 /** Which count from `loadAdminCounts()` belongs on the row, if any. */
-export type AdminCountKey = "waiting" | "messages" | "reports" | "people";
+export type AdminCountKey = "waiting" | "messages" | "reports" | "photos" | "people";
 
 export interface AdminSectionDef {
   href: string;
@@ -53,6 +54,13 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         icon: ListChecks,
         blurb: "Everything that needs you, in one list.",
         countKey: "waiting",
+      },
+      {
+        href: "/admin/review",
+        label: "Review",
+        icon: Images,
+        blurb: "Photographs waiting to be let in, and the ones with no date.",
+        countKey: "photos",
       },
       {
         href: "/admin/messages",

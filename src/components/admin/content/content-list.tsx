@@ -3,7 +3,16 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, ExternalLink, EyeOff, MoreHorizontal, Search, Trash2, X } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  ExternalLink,
+  EyeOff,
+  MoreHorizontal,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAdminAct } from "@/components/admin/use-admin-act";
 import { AdminFilterBar, useAdminFilterParams } from "@/components/admin/admin-filter-bar";
@@ -175,16 +184,19 @@ export function ContentList({
         maxTokens={3}
         sheetShowLabel={`Show ${items.length} ${items.length === 1 ? "thing" : "things"}`}
         banner={
-          /* The queue is a filter, so the panel says how long it is here
-             rather than keeping a permanent section for it. */
-          pendingPhotos > 0 && type !== "pending" ? (
-            <button
-              type="button"
-              onClick={() => setParam("type", "pending")}
+          /* THE COUNT STAYS, THE FILTER DOES NOT. Reviewing photographs moved
+             to /admin/review on 2026-08-30; this is the door to it, and it is
+             still here because this is where an admin is when they think about
+             what members have made. It used to set `type=pending` on this same
+             list, which is the surface the owner called an atrocity. */
+          pendingPhotos > 0 ? (
+            <Link
+              href="/admin/review"
               className="state-layer flex w-fit items-center gap-2 rounded-full border border-cinnamon/30 bg-cinnamon/[0.07] px-3 py-1.5 text-[12.5px] font-medium text-cinnamon focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               {pendingPhotos} {pendingPhotos === 1 ? "photo is" : "photos are"} waiting for you
-            </button>
+              <ArrowRight className="size-3.5" strokeWidth={2} aria-hidden />
+            </Link>
           ) : null
         }
       />
