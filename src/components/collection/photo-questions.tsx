@@ -287,9 +287,22 @@ function WhenField({
             width, so the month has always had its place whether or not it is
             drawn yet. */}
         <div
+          /* `invisible`, not just `opacity-0`, and the transition names
+             visibility alongside opacity so it flips only once the fade has
+             finished.
+
+             An element at opacity 0 is still PAINTED, and Safari has been seen
+             leaving that paint behind inside a rounded, overflow-hidden card
+             like this one -- the owner, 2026-08-30: "when you delete the year
+             only the right part of the month gets deleted, the left few words
+             remain". It does not reproduce in Chrome at any keystroke, so this
+             hardens the mechanism rather than chasing the symptom: at the end
+             of the fade the box is genuinely not rendered, and there is
+             nothing left for a compositor to keep. It still holds its place --
+             the year is a fixed width, so the row never moves. */
           className={cn(
-            "ml-auto transition-opacity duration-200",
-            exact ? "opacity-100" : "pointer-events-none opacity-0"
+            "ml-auto transition-[opacity,visibility] duration-200",
+            exact ? "visible opacity-100" : "invisible pointer-events-none opacity-0"
           )}
         >
           <DropdownMenu>
