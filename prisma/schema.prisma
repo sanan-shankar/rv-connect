@@ -305,6 +305,25 @@ model Photo {
   photoMonth    Int?      // 1-12; only meaningful alongside photoYear
   datePrecision String?   // "month" | "year" | "decade" | "unknown"
 
+  /// What the FILE said, as opposed to what the contributor said. Read off
+  /// the original's EXIF in the seconds it exists, before the re-encode
+  /// strips it and the original is deleted.
+  ///
+  /// A SUGGESTION, NEVER AN ANSWER. Nothing derives from these two columns:
+  /// `takenKey` does not read them, no filter groups by them, and a
+  /// photograph with an exifYear and no photoYear is undated in every sense
+  /// the Collection means it. They exist so the review room can say "the file
+  /// says 2019" and an admin can take it in one press -- which writes
+  /// photoYear like any other answer. The reason for the distance is that on
+  /// a scanned print this is the SCAN date, not the photograph's: right about
+  /// the file, wrong about the picture, and only a person looking at the
+  /// picture can tell which.
+  ///
+  /// Date only. The reader (src/lib/exif-date.ts) does not know the GPS tags
+  /// exist, so there is no location here to leak (audit M12).
+  exifYear      Int?
+  exifMonth     Int?      // 1-12, or null when the stamp had only a year
+
   /// When it was taken, as ONE sortable integer: year * 100 + month, so
   /// March 1978 is 197803, a bare 1978 is 197800, "the 1970s" is 197000 and
   /// an undated photograph is 0 (sorting last under DESC with no NULLS

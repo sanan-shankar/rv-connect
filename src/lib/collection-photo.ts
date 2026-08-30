@@ -18,6 +18,8 @@
 
 import { sharpImage } from "@/lib/image";
 import { eraFromYear } from "@/lib/collection";
+import { exifDate, type ExifDate } from "@/lib/exif-date";
+import { valleyYear } from "@/lib/utils";
 import { photoSchema } from "@/lib/validators";
 
 /** The 480px grid rendition every contribution ends up with. */
@@ -118,6 +120,29 @@ export function isPhotoAutoApproved(who: {
 }
 
 /**
+ * When the ORIGINAL claims it was taken, for the seconds the original exists.
+ *
+ * Both contribute paths re-encode through sharp, which drops the metadata, and
+ * then delete the raw file -- so this is the only window in which the archive
+ * can ever learn what the camera or the scanner wrote. Call it on the raw
+ * input buffer, before either of those.
+ *
+ * IT CANNOT FAIL A CONTRIBUTION. A photograph whose metadata block is
+ * truncated, absent or nonsense is a photograph with no suggested date, which
+ * is the same state as most of them; throwing out of the middle of an upload
+ * over a field nobody asked for would be a poor trade. `exifDate` swallows a
+ * malformed block on its own, and this swallows a decode that never got that
+ * far.
+ */
+export async function exifDateOf(original: Buffer): Promise<ExifDate | null> {
+  try {
+    return exifDate((await sharpImage(original).metadata()).exif, valleyYear());
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The grid thumbnail: 480px longest side, WebP at 72.
  *
  * `alreadyUpright` is the one real difference between the callers, and it is
@@ -169,10 +194,15 @@ export function photoRowData(args: {
    *  seen doing it, never write an under-scoped row that looks private. */
   scope?: "valley" | "class";
   classYears?: string | null;
+  /** What the file itself claimed, read before the re-encode stripped it.
+   *  Kept well away from `meta`: that is the contributor's answer, this is
+   *  the file's, and the archive must never confuse the two. Absent on any
+   *  path that no longer has the original bytes. */
+  exif?: ExifDate | null;
 }) {
   const {
     uploaderId, url, thumbUrl, width, height, meta, autoApprove, sourceKey,
-    scope = "valley", classYears = null,
+    scope = "valley", classYears = null, exif = null,
   } = args;
   return {
     uploaderId,
@@ -194,6 +224,13 @@ export function photoRowData(args: {
     photoYear: meta.photoYear,
     photoMonth: meta.photoMonth,
     datePrecision: meta.datePrecision,
+    /* Recorded beside the contributor's answer and never merged into it. A
+       photograph with an exifYear and no photoYear is UNDATED, in the river,
+       in the decade rail and in `takenKey` -- this is only what the review
+       room offers a person, and a person accepting it is what writes
+       photoYear. See the columns' note in schema.prisma. */
+    exifYear: exif?.year ?? null,
+    exifMonth: exif?.month ?? null,
     approved: autoApprove,
     approvedAt: autoApprove ? new Date() : null,
     approvedById: autoApprove ? uploaderId : null,

@@ -1,5 +1,42 @@
 # Progress Log
 
+## 2026-08-30 — the archive now reads the date off the file, before it throws the file away
+
+21 photographs in the Collection, 3 with a year on them. The owner: *"at the rate we're
+going we're going to have 10% dated and everything undated. we have to use the metadata
+like google photos does."*
+
+The reason it was 14% is that **nothing anywhere knew what the files said.** Every upload is
+re-encoded through sharp, which drops the metadata, and the raw original is deleted straight
+afterwards — because a phone photograph's EXIF carries GPS and this archive will not publish
+a member's coordinates (audit M12). That was right, and nobody had counted its cost.
+
+So the date is read in the seconds between the original arriving and being purged, and only
+the date. `src/lib/exif-date.ts` walks the IFDs looking for four ASCII date tags and **does
+not know the GPS tags exist** — a general parser plus a promise to use one field is a
+promise; a parser that cannot name a latitude is a property.
+
+Two columns, `exifYear` and `exifMonth`, and nothing derives from either. `takenKey` does not
+read them, no filter groups by them, and a photograph with an exifYear and no photoYear is
+undated in every sense the Collection means it. They exist so a person can be *offered* the
+date. The reason for that distance is that **on a scanned print this is the scan date** —
+right about the file, wrong about the picture, and only somebody looking at the picture can
+tell which.
+
+The floor is `PHOTO_YEAR_MIN` (1926), not "the year digital cameras existed", which is the
+tempting version. The owner's own sidecar-merge tool writes recovered Google Takeout
+timestamps back into `DateTimeOriginal`, so a scanned 1978 print here legitimately carries a
+1978 stamp — and that is the single most valuable date this mechanism will ever see.
+
+**No backfill is possible.** The originals of the existing rows were purged at contribution
+time and the stored copies are the stripped re-encodes. Every row that exists today keeps a
+NULL for ever; the rescue for those is the review room's Undated pile.
+
+Pinned by `exif-date.test.mjs` against bytes **sharp actually wrote**, plus one hand-built
+big-endian block, because sharp only ever emits little-endian and half the spec would
+otherwise be untested.
+
+
 ## 2026-08-30 — the trash can became a pencil, and one form now serves both rooms
 
 The owner: *"instead of delete photo button, have an edit icon. there let it pull up a dialog
