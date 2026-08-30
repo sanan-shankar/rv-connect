@@ -134,6 +134,8 @@ export const LAB_ARCHIVE: PhotoData[] = Array.from({ length: 240 }, (_, n) => {
      "Chronological" are visibly DIFFERENT orders rather than the same list. */
   const added = new Date(Date.UTC(2026, 7, 28) - n * 86_400_000);
 
+  const datePrecision = month ? "month" : year ? "year" : "decade";
+
   return {
     id: `lab-${n}`,
     thumbUrl: shape.src,
@@ -148,8 +150,11 @@ export const LAB_ARCHIVE: PhotoData[] = Array.from({ length: 240 }, (_, n) => {
     /* Through the app's own two functions, not spelled out here, so the room
        shows the real phrasing at the real precision: "May 1978", "1978",
        "the 1970s", or nothing at all when nobody said. */
-    takenLabel: takenLabel({ photoYear: year, photoMonth: month, era, datePrecision: month ? "month" : year ? "year" : "decade" }),
+    takenLabel: takenLabel({ photoYear: year, photoMonth: month, era, datePrecision }),
     takenShort: takenShort({ photoYear: year, era }),
+    photoYear: year,
+    photoMonth: month,
+    datePrecision,
     approved: true,
     // The lab room shows the Valley Collection; the class half has no fixture.
     scope: "valley" as const,

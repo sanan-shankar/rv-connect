@@ -1,5 +1,51 @@
 # Progress Log
 
+## 2026-08-30 — the trash can became a pencil, and one form now serves both rooms
+
+The owner: *"instead of delete photo button, have an edit icon. there let it pull up a dialog
+similar to the contribute where they can retag, recaption, and add year all that stuff. give
+me ability to do that for everyone's photo regardless of my uploading them or not."*
+
+Until today the Collection had exactly one correction and it was **delete and upload it
+again** — which, for a scanned negative, means losing the file, the hearts and the permalink
+to fix a typo. There is now an `editPhoto` action behind the same uploader-or-admin gate the
+delete uses, and the viewer's top row carries a pencil where the trash can was. Taking a
+photograph down still exists; it moved inside the dialog, which is a better home for an
+irreversible act than one pixel from Download.
+
+**The dialog does not have its own form.** The three questions — what it is of, when, what
+you remember — came out of the contribute room into
+`components/collection/photo-questions.tsx`, and both rooms ask from there. Two copies of one
+form is the thing that drifts: a seventh bucket, a reworded hint, a change to what the date
+box understands. It is the plain dialog material rather than the contribute pop-up's glass
+(`max-w-sm`, standard title, standard footer) because this is one row already in the archive,
+not a wall of files climbing to a bucket.
+
+**The trap was the date, and it is the one thing here that could have quietly destroyed
+data.** That box holds *three* digits for a decade and four for a year, so seeding it from a
+stored row is a real conversion — and getting it wrong means opening a 1970s photograph,
+pressing Save without touching anything, and re-filing it as undated. `typedDate` is that
+conversion, it lives beside `photoDate` in `lib/collection.ts` rather than in the dialog, and
+`collection-date.test.mjs` walks *every* era the archive offers through both directions. One
+value does not survive the trip: the legacy `pre-1960s`, which a three-digit box cannot
+represent and which no row has ever held. The test names it rather than hiding it.
+
+Verified end to end against the live database with a self-restoring round trip: type 1978,
+save, watch the viewer's date line change in place with no reload, reopen, clear it, save
+again — then read the row back in SQL to confirm `era`, `photoYear` and the generated
+`takenKey` are exactly where they started.
+
+Two smaller calls, both visible: the dialog focuses its own **panel**, not the first bucket
+tile, which was drawing a canopy focus ring around an *unselected* bucket beside the selected
+one and putting a toggle under the Enter key; and `canRemove`/`onRemove` are **gone** from
+`ImageViewer` rather than left beside `canEdit`, since the Collection was their only caller
+and a shared primitive with a spare unused affordance is how the next drift starts.
+
+**The other half of the question answered itself.** *"shouldn't we have a place where people
+can see all the photos they're uploaded... maybe I just search. actually yeah that works."*
+It already does: Collection search reads `uploader.name` alongside caption, area and free
+tags, so typing your own name returns your contributions. Nothing was built for it.
+
 ## 2026-08-30 — a blank letter was 510px wide, and the skeleton you saw was never its own
 
 The owner: *"why is the write a letter window smaller than the editing a draft window."* It

@@ -74,7 +74,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, Download, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Pencil, X } from "lucide-react";
 import Link from "next/link";
 import { AnimatePresence, m } from "motion/react";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
@@ -106,10 +106,18 @@ export interface ViewerImage {
   /** The love state, when the surface has one to give. */
   loved?: boolean;
   loveCount?: number;
-  /** Whether this member may take this photograph down. The caller owns the
-   *  confirmation and the action; this only draws the affordance. */
-  canRemove?: boolean;
-  removeLabel?: string;
+  /** Whether this member may change this photograph: its buckets, its
+   *  caption, when it was taken -- and, inside the dialog that opens, take it
+   *  down. The caller owns the dialog and the writes; this only draws the
+   *  affordance.
+   *
+   *  This replaced a `canRemove`/`removeLabel` pair that drew a trash can in
+   *  the same slot. The owner, 2026-08-30: "instead of delete photo button,
+   *  have an edit icon." Deleting from the viewer's top row put an
+   *  irreversible act one pixel from Download; it is now something you read a
+   *  dialog to reach, which is where every system puts it. */
+  canEdit?: boolean;
+  editLabel?: string;
 }
 
 const BACKDROP = "rgba(24, 25, 20, 0.94)"; // warm ink, never pure black
@@ -192,7 +200,7 @@ export function ImageViewer({
   onClose,
   showCount = true,
   onToggleLove,
-  onRemove,
+  onEdit,
 }: {
   images: ViewerImage[];
   initialIndex?: number;
@@ -204,7 +212,7 @@ export function ImageViewer({
    *  least in collection"). */
   showCount?: boolean;
   onToggleLove?: (index: number) => void;
-  onRemove?: (index: number) => void;
+  onEdit?: (index: number) => void;
 }) {
   const [index, setIndex] = useState(initialIndex);
   /* "shown" is the resting state; "idle" is the chrome having withdrawn on its
@@ -568,14 +576,14 @@ export function ImageViewer({
                 <button type="button" onClick={download} aria-label="Download photo" className={ICON_BUTTON}>
                   <Download className="h-[18px] w-[18px]" />
                 </button>
-                {current.canRemove && onRemove && (
+                {current.canEdit && onEdit && (
                   <button
                     type="button"
-                    onClick={() => onRemove(at)}
-                    aria-label={current.removeLabel ?? "Delete photo"}
-                    className={cn(ICON_BUTTON, "hover:bg-heart/25 hover:text-white")}
+                    onClick={() => onEdit(at)}
+                    aria-label={current.editLabel ?? "Edit this photo"}
+                    className={ICON_BUTTON}
                   >
-                    <Trash2 className="h-[18px] w-[18px]" />
+                    <Pencil className="h-[17px] w-[17px]" />
                   </button>
                 )}
                 <button type="button" onClick={onClose} aria-label="Close viewer" className={ICON_BUTTON}>

@@ -79,6 +79,10 @@ const ModerationDialog = dynamic(
   () => import("@/components/admin/moderation-dialog").then((m) => m.ModerationDialog),
   { ssr: false }
 );
+const EditPhotoDialog = dynamic(
+  () => import("./edit-photo-dialog").then((m) => m.EditPhotoDialog),
+  { ssr: false }
+);
 
 /** The three strips a viewer can be browsing: the member's own queue, the
  *  river, and the single photograph a shared link landed on. */
@@ -106,8 +110,15 @@ function toViewerImage(p: PhotoData, isAdmin: boolean): ViewerImage {
     href: `/collection/${p.id}`,
     loved: p.loved,
     loveCount: p.loveCount,
-    canRemove: p.isOwn || isAdmin,
-    removeLabel: p.isOwn ? "Delete this photo" : "Remove this photo",
+    /* An EDIT, not a delete, and deliberately instead of one. The owner,
+       2026-08-30: "instead of delete photo button, have an edit icon."
+       Taking the photograph down is inside the dialog this opens, where a
+       destructive act is read rather than pressed by mistake beside
+       Download. Same gate as the delete it replaced -- your own photograph,
+       or an admin's, which is the gate `deleteOwnPhoto` enforces server-side
+       and `editPhoto` now enforces alongside it. */
+    canEdit: p.isOwn || isAdmin,
+    editLabel: p.isOwn ? "Edit this photo" : "Edit this photo's details",
   };
 }
 
@@ -666,6 +677,12 @@ export function CollectionClient({
   );
   const [linked, setLinked] = useState<PhotoData[]>(openPhoto ? [openPhoto] : []);
   const [removing, setRemoving] = useState<PhotoData | null>(null);
+  /* WHICH STRIP as well as which photograph: an edit made from the pending
+     queue or from a shared link has to be written back into the list it came
+     from, exactly as the heart is. */
+  const [editing, setEditing] = useState<{ list: ViewerList; photo: PhotoData } | null>(
+    null
+  );
 
   const listFor = useCallback(
     (list: ViewerList) => (list === "pending" ? pendingPhotos : list === "linked" ? linked : photos),
@@ -990,7 +1007,10 @@ export function CollectionClient({
              thing is important, at least in collection". */
           showCount={false}
           onToggleLove={handleToggleLove}
-          onRemove={(i) => setRemoving(viewerList[i] ?? null)}
+          onEdit={(i) => {
+            const photo = viewer && viewerList[i];
+            if (photo) setEditing({ list: viewer.list, photo });
+          }}
         />
       )}
 
@@ -1010,6 +1030,26 @@ export function CollectionClient({
           onOpenChange={setContributing}
           autoApproved={autoApproved}
           roomLeft={roomLeft}
+        />
+      )}
+
+      {/* Retagging, recaptioning, redating -- the same three questions the
+          contribute room asks, of a photograph already in the archive. It
+          hands the taking-down straight back to the two dialogs below, which
+          already own it. */}
+      {editing && (
+        <EditPhotoDialog
+          open
+          photo={editing.photo}
+          onClose={() => setEditing(null)}
+          onSaved={(fields) => {
+            patch(editing.list, editing.photo.id, (p) => ({ ...p, ...fields }));
+            setEditing(null);
+          }}
+          onDelete={() => {
+            setRemoving(editing.photo);
+            setEditing(null);
+          }}
         />
       )}
 

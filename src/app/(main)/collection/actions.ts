@@ -96,6 +96,13 @@ export type PhotoData = {
    *  number of likes. We could just show the person. The person and the year
    *  maybe, that would be good." */
   takenShort: string | null;
+  /* The three date columns as stored, which is what the edit dialog seeds its
+     one date box from (`typedDate`). Carried rather than re-fetched when the
+     dialog opens: they arrive on a row the river has already queried, so the
+     alternative is a round trip to learn three numbers we are holding. */
+  photoYear: number | null;
+  photoMonth: number | null;
+  datePrecision: string | null;
   approved: boolean;
   /** Which half of the Collection this belongs to. Carried on the shape so a
    *  permalink can put the RIGHT river behind the viewer, rather than opening
@@ -136,6 +143,9 @@ function shape(
     freeTags: p.freeTags ? p.freeTags.split(",").map((t) => t.trim()).filter(Boolean) : [],
     takenLabel: takenLabel(p),
     takenShort: takenShort(p),
+    photoYear: p.photoYear,
+    photoMonth: p.photoMonth,
+    datePrecision: p.datePrecision,
     approved: p.approved,
     /* Read strictly, the same way `isValley` reads it: anything that is not
        the literal "valley" is treated as class-scoped. A shape that guessed
@@ -1146,4 +1156,111 @@ export async function adminRemovePhoto(photoId: string, note?: string) {
   revalidatePath("/collection");
   revalidatePath(`/collection/${photoId}`);
   return { success: true };
+}
+
+/* ------------------------------------------------------------------ *
+ *  CORRECTING A PHOTOGRAPH THAT IS ALREADY HERE.
+ *
+ *  Until now the only correction was delete and re-upload, which for a
+ *  scanned negative means the file is gone and the love count with it.
+ *  The owner, 2026-08-30: "instead of delete photo button, have an edit
+ *  icon. there let it pull up a dialog similar to the contribute where
+ *  they can retag, recaption, and add year all that stuff. give me
+ *  ability to do that for everyone's photo regardless of my uploading
+ *  them or not."
+ *
+ *  So: the uploader OR an admin, which is the same gate `deleteOwnPhoto`
+ *  uses for the other correction. An admin editing somebody else's
+ *  photograph raises no note and no notification -- this is filing, not
+ *  moderation, and it is the same act the hand-run tagging pass
+ *  (docs/spec/hand-run-passes.md) already performs on members' rows.
+ *  Taking something DOWN still goes through the warm-note flow.
+ *
+ *  THE BYTES ARE NOT TOUCHED, and neither is `approved`: this changes
+ *  what we know about a photograph, never whether it is in the archive,
+ *  so an edit cannot quietly publish something still in the queue or
+ *  push an approved one back into it. `area` is left alone as well --
+ *  the form stopped asking for it (see photo-questions.tsx) and a form
+ *  that no longer asks a question must not answer it with a blank.
+ * ------------------------------------------------------------------ */
+export async function editPhoto(input: {
+  id: string;
+  caption?: string;
+  buckets?: string[];
+  era?: string;
+  datePrecision?: string;
+  photoYear?: number;
+  photoMonth?: number;
+}) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+  if (IS_DEMO) {
+    return { error: "The demo does not take changes to the Collection. Everything in it is yours to browse." };
+  }
+
+  /* The same Stage 2 gate the contribution itself passed. A caption on a
+     Collection photograph is text in front of the whole community, so a
+     member whose verification was withdrawn does not get to rewrite one. */
+  const gate = await requireVerifiedMember();
+  if (!gate.ok) return { error: gate.error };
+
+  const limited = await rateLimit("photoEdits", session.user.id);
+  if (!limited.ok) return { error: limited.error };
+
+  const photo = await prisma.photo.findUnique({
+    where: { id: input.id },
+    select: { uploaderId: true },
+  });
+  if (!photo) return { error: "Photo not found" };
+  if (photo.uploaderId !== session.user.id && session.user.role !== "admin") {
+    return { error: "Not authorized" };
+  }
+
+  const parsed = parsePhotoMeta({
+    caption: input.caption || undefined,
+    buckets: input.buckets?.filter(Boolean),
+    era: input.era || undefined,
+    datePrecision: input.datePrecision || undefined,
+    photoYear: input.photoYear,
+    photoMonth: input.photoMonth,
+  });
+  if ("error" in parsed) return { error: parsed.error };
+  const { meta } = parsed;
+
+  /* updateMany, not update: two people editing the same photograph as one of
+     them deletes it would otherwise throw P2025 out of a member's Save
+     button, the same race `approvePhoto` and `erasePhoto` answer this way. */
+  const changed = await prisma.photo.updateMany({
+    where: { id: input.id },
+    data: {
+      caption: meta.caption,
+      subject: meta.buckets,
+      era: meta.era,
+      photoYear: meta.photoYear,
+      photoMonth: meta.photoMonth,
+      datePrecision: meta.datePrecision,
+    },
+  });
+  if (changed.count === 0) return { error: "That photo is no longer here." };
+
+  revalidatePath("/collection");
+  revalidatePath(`/collection/${input.id}`);
+
+  /* Handed straight back rather than left for a refetch, so the tile and the
+     open viewer show the new answers on the frame the dialog closes. Derived
+     HERE through the same helpers `shape` uses -- a client recomputing
+     "1978" from what it typed is a second implementation of the date rule. */
+  return {
+    success: true,
+    patch: {
+      caption: meta.caption,
+      subject: bucketsOf(meta.buckets),
+      era: meta.era,
+      photoYear: meta.photoYear,
+      photoMonth: meta.photoMonth,
+      datePrecision: meta.datePrecision,
+      takenLabel: takenLabel(meta),
+      takenShort: takenShort(meta),
+    },
+  };
 }

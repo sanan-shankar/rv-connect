@@ -102,6 +102,13 @@ const LIMITS = {
      single account amplifying storage cost was never this meter -- it is
      MAX_PHOTOS_PER_ACCOUNT, which is a lifetime ceiling rather than a rate. */
   collectionUploads: { tokens: 1000, window: "1 h" },
+  /** Per user. Editing what we KNOW about a photograph already in the
+   *  archive -- no bytes, no new row, so this is not the upload meter. The
+   *  number is set by the real workload rather than by suspicion: filing a
+   *  batch of untagged photographs by hand is one save per photograph, done
+   *  in a sitting, and 120 an hour leaves that untouched while still capping
+   *  a script rewriting captions across the Collection. */
+  photoEdits: { tokens: 120, window: "1 h" },
   /** Per user. Reporting is for summoning a human, and ten summonses a
    *  day is already a campaign; Phase 7 adds the per-pair dedupe. */
   reports: { tokens: 10, window: "24 h" },
