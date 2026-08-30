@@ -40,6 +40,7 @@ import {
   isPhotoAutoApproved,
   gridThumb,
   photoRowData,
+  exifDateOf,
 } from "@/lib/collection-photo";
 import {
   classKey,
@@ -296,6 +297,9 @@ export async function contributePhoto(formData: FormData) {
   let height: number;
   /** Anything we changed about the photograph, to be said out loud. */
   let notice: string | undefined;
+  /** What the file claimed, before the re-encode below stops it claiming
+   *  anything. A suggestion for the review room; never an answer. */
+  let exif: Awaited<ReturnType<typeof exifDateOf>> = null;
   try {
     const input = Buffer.from(await file.arrayBuffer());
     // The bytes, not the client's MIME string, decide it is an image (M13).
@@ -304,6 +308,13 @@ export async function contributePhoto(formData: FormData) {
     }
     // An animated GIF is about to become a still (audit C-073).
     if ((await countImageFrames(input)) > 1) notice = stillPictureNotice(file.name);
+
+    /* Before the re-encode, because after it there is nothing to read. This
+       path is the FALLBACK, and it usually has less to offer than the direct
+       one does: the browser canvas-downscales for it (Vercel's body cap), and
+       a canvas keeps no metadata. Worth asking anyway -- a small enough file
+       goes through `shrinkForUpload` untouched and still has its EXIF. */
+    exif = await exifDateOf(input);
 
     const id = createId();
     const dir = ownerPrefix("collection", session.user.id);
@@ -351,6 +362,7 @@ export async function contributePhoto(formData: FormData) {
       height,
       meta,
       autoApprove,
+      exif,
       scope: destination.scope,
       classYears: destination.classYears,
     }),
@@ -515,6 +527,9 @@ export async function contributePhotoDirect(input: {
   let width: number;
   let height: number;
   let notice: string | undefined;
+  /** What the original claimed, read in the window between it arriving and it
+   *  being purged. A suggestion for the review room; never an answer. */
+  let exif: Awaited<ReturnType<typeof exifDateOf>> = null;
   try {
     // Size is checked with a HEAD before the object is pulled into memory: a
     // presigned PUT cannot enforce a limit (R2 has no content-length-range), so
@@ -537,6 +552,14 @@ export async function contributePhotoDirect(input: {
     // An animated GIF is about to become a still (audit C-073). This path
     // never sees a filename, so the sentence names no file.
     if ((await countImageFrames(original)) > 1) notice = stillPictureNotice();
+
+    /* THE ONE MOMENT THE ARCHIVE CAN LEARN WHEN THIS WAS TAKEN. Below, the
+       re-encode drops the metadata and `purgeImageKey` deletes the original;
+       after those two lines the question is unanswerable for ever, which is
+       how 18 of the first 21 photographs came to be undated. This is the
+       better of the two paths for it -- the browser sends the untouched
+       full-resolution file here, EXIF and all. */
+    exif = await exifDateOf(original);
 
     const dir = ownerPrefix("collection", session.user.id);
 
@@ -609,6 +632,7 @@ export async function contributePhotoDirect(input: {
         height,
         meta,
         autoApprove,
+        exif,
         scope: destination.scope,
         classYears: destination.classYears,
       }),
