@@ -90,6 +90,152 @@ const NO_AUTH = new Set(["slide"]);
 
 const SCENARIOS = {
   /**
+   * THE DATE FIELD, typed into and then emptied again.
+   *
+   * Two questions at once, both from 2026-08-30. The owner: "when you type the
+   * year the month pops up and when you delete the year only the right part of
+   * the month gets deleted. the left few words remain." And, behind that, the
+   * one that matters: fifteen photographs were contributed with no date by a
+   * contributor certain she had typed years on all of them, and every read of
+   * the code says the year cannot be lost between the box and the row.
+   *
+   * So this types a year, reads back what the form would actually FILE, then
+   * deletes it a character at a time and photographs each step. `state` is the
+   * payload the contribute room would send -- if that carries the year, the
+   * pipeline is exonerated and the loss is in front of the keyboard.
+   */
+  async dateField({ page, shot }) {
+    await page.goto(`${BASE}/collection`, { waitUntil: "networkidle2" });
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll("button")].find((b) =>
+        /contribute/i.test(b.textContent || "")
+      );
+      btn?.click();
+    });
+    await sleep(900);
+
+    // Stage one photograph, which is what makes the questions panel exist.
+    const input = await page.$('[role="dialog"] input[type="file"]');
+    if (!input) throw new Error("no file input in the contribute dialog");
+    await input.uploadFile("./e2e/.shots/date-probe.jpg");
+    await sleep(2500); // read + preview + presigned PUT
+
+    const year = await page.$("#contribute-year");
+    if (!year) throw new Error("no year box -- the questions panel never appeared");
+
+    /** What the field shows, and what the row would be filed under. */
+    const read = async () =>
+      page.evaluate(() => {
+        const box = document.getElementById("contribute-year");
+        const row = box?.closest(".relative");
+        const label = row?.querySelector("label");
+        const monthWrap = row?.querySelector("label")?.parentElement?.querySelector(".ml-auto");
+        const card = row?.parentElement;
+        const trig = monthWrap?.querySelector("button");
+        const r = (el) => {
+          if (!el) return null;
+          const b = el.getBoundingClientRect();
+          return { x: Math.round(b.left), right: Math.round(b.right), w: Math.round(b.width) };
+        };
+        return {
+          typed: box?.value ?? null,
+          label: label?.innerText?.trim() ?? null,
+          month: monthWrap?.textContent?.trim() ?? null,
+          monthOpacity: monthWrap ? getComputedStyle(monthWrap).opacity : null,
+          monthVis: monthWrap ? getComputedStyle(monthWrap).visibility : null,
+          monthRect: r(monthWrap),
+          triggerRect: r(trig),
+          cardRect: r(card),
+          triggerScrollW: trig ? trig.scrollWidth : null,
+          triggerClientW: trig ? trig.clientWidth : null,
+        };
+      });
+
+    await year.click();
+    await page.keyboard.type("2019", { delay: 90 });
+    await sleep(500);
+    console.log("typed 2019:", JSON.stringify(await read()));
+    await shot("year-typed");
+
+    // One character off: the year stops being a year and becomes a decade.
+    await page.keyboard.press("Backspace");
+    await sleep(500);
+    console.log("after 1 backspace:", JSON.stringify(await read()));
+    await shot("year-minus-one");
+
+    await page.keyboard.press("Backspace");
+    await page.keyboard.press("Backspace");
+    await sleep(500);
+    console.log("after 3 backspaces:", JSON.stringify(await read()));
+    await shot("year-minus-three");
+
+    await page.keyboard.press("Backspace");
+    await sleep(600);
+    console.log("emptied:", JSON.stringify(await read()));
+    await shot("year-emptied");
+
+    // And the whole point: does a typed year survive into what would be sent?
+    await year.click();
+    await page.keyboard.type("1987", { delay: 90 });
+    await sleep(600);
+    console.log("refilled 1987:", JSON.stringify(await read()));
+    await shot("year-refilled");
+
+    /* NOW WITH A MONTH ON IT, which is what the owner actually did and the
+       case the steps above never reach: a month is only pickable once the
+       year is real, so deleting the year has to take the month with it. */
+    await page.evaluate(() => {
+      const row = document.getElementById("contribute-year")?.closest(".relative");
+      row?.querySelector(".ml-auto button")?.click();
+    });
+    await sleep(500);
+    await page.evaluate(() => {
+      const item = [...document.querySelectorAll('[role="menuitem"]')].find(
+        (i) => i.textContent?.trim() === "March"
+      );
+      item?.click();
+    });
+    await sleep(600);
+    console.log("month picked:", JSON.stringify(await read()));
+    await shot("month-picked");
+
+    await page.click("#contribute-year");
+    await page.keyboard.press("Backspace");
+    await sleep(120);
+    console.log("mid-fade after backspace:", JSON.stringify(await read()));
+    await shot("month-mid-fade");
+
+    await sleep(700);
+    console.log("settled after backspace:", JSON.stringify(await read()));
+    await shot("month-settled");
+
+    /* All the way down with a month on it, a frame per keystroke. This is the
+       exact sequence the owner described -- "when you delete the year only the
+       right part of the month gets deleted, the left few words remain". */
+    await page.click("#contribute-year");
+    await page.keyboard.type("4", { delay: 60 });          // back to 1984
+    await page.evaluate(() => {
+      const row = document.getElementById("contribute-year")?.closest(".relative");
+      row?.querySelector(".ml-auto button")?.click();
+    });
+    await sleep(400);
+    await page.evaluate(() => {
+      const item = [...document.querySelectorAll('[role="menuitem"]')].find(
+        (i) => i.textContent?.trim() === "February"
+      );
+      item?.click();
+    });
+    await sleep(500);
+    await page.click("#contribute-year");
+    for (let i = 1; i <= 4; i++) {
+      await page.keyboard.press("Backspace");
+      await sleep(260);
+      console.log(`delete ${i}:`, JSON.stringify(await read()));
+      await shot(`delete-${i}`);
+    }
+  },
+
+  /**
    * The two attach wells (2026-08-29 dialog-standards pass): the Collection's
    * contribute invitation and the post composer's Add-photos dialog, which now
    * share one well material. Captures both so the pair can be compared.

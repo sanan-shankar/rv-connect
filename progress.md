@@ -1,5 +1,41 @@
 # Progress Log
 
+## 2026-08-30 — what the date field does when you empty it, and what it did not do to Afya's fifteen
+
+**The month control was still being painted after it faded.** The owner: *"when you delete
+the year only the right part of the month gets deleted. the left few words remain."* It does
+not reproduce in Chrome — a new `dateField` scenario in `scripts/qa/drive.mjs` types a year,
+picks a month and deletes the year a keystroke at a time, and the state is clean at every one.
+But `opacity: 0` still paints, and the harness proved it: the hidden control's `innerText`
+still read "Month". It now transitions `visibility` alongside opacity, so at the end of the
+fade the box is genuinely not rendered and `innerText` is empty. It keeps its place either
+way — the year is a fixed width, so the row never moves.
+
+**Afya's fifteen undated photographs: the pipeline is exonerated.** Traced end to end against
+the exact commits she ran, not against today's code:
+
+- `contribute-room.tsx` `fileOne` builds one object carrying caption, buckets and
+  `...photoDate(m0, valleyYear())` — byte-identical at `2873faf`, `35bdd5b` and now.
+- `contributePhotoDirect` accepted `photoYear`/`photoMonth` and passed both to
+  `parsePhotoMeta` at those same commits.
+- `photoDate`, `yearGiven` and `eraFromPartial` were untouched by the refactor; only
+  `typedDate` was added.
+- The field works in her browser: the owner typed a year in Safari and the Month control
+  appeared, which is gated on the identical `yearGiven(year, valleyYear())` the save uses.
+- `toLocaleDateString("en-CA", {timeZone})` returns "2026-08-30" in that Safari, so the NaN
+  hole (closed anyway) was not it.
+- `takenKey` is 0 and `era` "unknown" from creation on all fifteen, so nothing wiped them
+  later — and her captions and buckets, which travel in the SAME object as the year, all
+  arrived.
+
+The year therefore was never in `meta[photo.id].year` when the batch was filed. The code
+cannot lose it; something between the contributor and the box did. The per-photo model is the
+likeliest candidate — the panel answers only the photograph currently in the carousel, and
+fifteen distinct captions say she moved through them one at a time. Not proven, and not
+guessed at further: what is now true is that a year the rule cannot read is refused out loud
+rather than filed as "no year given".
+
+
 ## 2026-08-30 — a portrait photograph was showing its middle third, and a year was being eaten in silence
 
 **Portrait photographs were cropped in the review room.** The owner: *"portrait photos show
