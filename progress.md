@@ -7196,3 +7196,25 @@ click, a sky 2px edge on Tab, a sky keyboard ring on the Contribute button. It i
 compile to `var(--ring)` directly and there is no `--color-ring` at runtime. The first
 attempt overrode the wrong one and changed nothing, which the probe caught (leaf where sky
 was expected) before it could ship. Rule 3 in the focus section records the mechanism.
+
+## 2026-08-30 — seven ways the search opens
+
+The owner on the header search: "that animation sticks out like a sore thumb", then the
+part that mattered, "the speed and just the overall un-calm nature of it, it's not neat",
+and a reference: "something like how the profile menu expands."
+
+The account menu is a written answer already, in sidebar.tsx. Nothing there animates size,
+ever. The rows appear into space that was free, on transform and opacity, staggered out of
+the pill they came from, icon first and label 50ms behind. Leaving takes 140ms with no
+stagger, because a menu should get out of the way faster than it turns up. The shipped
+search pill does the opposite of all four: it grows 40px to 320px on a bouncing spring
+while the glass rides the moving edge and the text arrives late.
+
+/lab/search puts seven side by side in a real header row. A is the real component,
+imported, so the baseline cannot drift; a synthetic click and an Escape drive it from the
+room's controls. B is the account menu's grammar transplanted, and it is the one to beat.
+C keeps the growing box but fixes the two things that make it read as a trick. D draws a
+rule instead of a box, E hands search the whole row, F unrolls a drawer, G opens a panel.
+Fire them all at once, or drop to 0.15x, which slows springs by scaling stiffness by s²
+and damping by s so the damping ratio survives the slow motion. `?open=1` opens all seven
+for a screenshot. Nothing shipped: this is the choice, not the fix.
