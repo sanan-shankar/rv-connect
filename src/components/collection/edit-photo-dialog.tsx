@@ -89,6 +89,20 @@ export function EditPhotoDialog({
   const [saving, setSaving] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
 
+  /* RE-SEEDED ON THE OPEN EDGE, not by being remounted. The dialog is kept in
+     the tree across its close so its exit animation can run
+     (use-closing-dialog.ts), which means it also keeps whatever was typed --
+     so reopening it, on this photograph or another, would show the half-typed
+     year somebody abandoned a minute ago. A `key` per open would fix that and
+     break the enter: a new key is a new mount, and a panel that mounts open
+     has no closed state to animate out of. React's own adjust-during-render
+     instead, which re-seeds before the reopened dialog paints once. */
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setAnswers(answersFor(photo));
+  }
+
   /* Nothing changed, nothing to write. A Save that spends an action and a
      revalidate storing the values already in the row is a round trip for a
      no-op, and a disabled button says "this is already what it says" without

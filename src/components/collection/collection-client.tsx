@@ -36,6 +36,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { SearchPill } from "@/components/layout/search-pill";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
+import { useClosingDialog } from "@/components/common/use-closing-dialog";
 import { useHeartToggle } from "@/components/posts/use-engagement";
 import { appendUnseen, prependUnseen } from "@/lib/append-page";
 import { PhotoStream } from "@/components/common/photo-rows";
@@ -676,13 +677,15 @@ export function CollectionClient({
     openPhoto ? { list: "linked", index: 0 } : null
   );
   const [linked, setLinked] = useState<PhotoData[]>(openPhoto ? [openPhoto] : []);
-  const [removing, setRemoving] = useState<PhotoData | null>(null);
-  /* WHICH STRIP as well as which photograph: an edit made from the pending
-     queue or from a shared link has to be written back into the list it came
-     from, exactly as the heart is. */
-  const [editing, setEditing] = useState<{ list: ViewerList; photo: PhotoData } | null>(
-    null
-  );
+  /* BOTH HOLD THEIR PHOTOGRAPH PAST THE CLOSE, which is what lets the dialog
+     material's own exit run instead of the panel blinking out of existence --
+     see use-closing-dialog.ts, which is where the whole argument lives.
+
+     The edit carries WHICH STRIP as well as which photograph: an edit made
+     from the pending queue or from a shared link has to be written back into
+     the list it came from, exactly as the heart is. */
+  const removing = useClosingDialog<PhotoData>();
+  const editing = useClosingDialog<{ list: ViewerList; photo: PhotoData }>();
 
   const listFor = useCallback(
     (list: ViewerList) => (list === "pending" ? pendingPhotos : list === "linked" ? linked : photos),
@@ -703,6 +706,34 @@ export function CollectionClient({
     () => viewerList.map((p) => toViewerImage(p, isAdmin)),
     [viewerList, isAdmin]
   );
+
+  /* ---------------- mounted closed, so they can open ---------------- *
+   *
+   *  All three dialogs below are dynamic()'d off the first paint, which is
+   *  right: /collection is a gallery and should not ship a form nobody has
+   *  asked for. But a chunk that arrives AFTER its dialog has been asked to
+   *  open mounts the panel ALREADY OPEN, and a panel that has never been
+   *  closed has no closed state to animate out of. Measured on rAF, cold: the
+   *  first press of the pencil produced a quarter-second of nothing and then
+   *  a dialog at full opacity, no fade, no rise -- while every later press got
+   *  the whole material. `import()`ing them early does not fix it; the loader
+   *  the bundler hands `dynamic()` is its own.
+   *
+   *  So the target is resolved from what the VIEWER is showing, not from what
+   *  has been pressed. The moment a photograph this member may change is on
+   *  screen, the dialogs render CLOSED -- which costs nothing on the page (a
+   *  closed dialog puts no portal in the DOM) and everything in feel: the
+   *  chunk lands, the root mounts closed, and pressing the pencil is a flag
+   *  flip with a real closed state behind it. A held subject always wins, so
+   *  nothing moves under a dialog that is already open.
+   * ------------------------------------------------------------------ */
+  const canEditHere = viewer ? viewerImages[viewer.index]?.canEdit ?? false : false;
+  const editTarget =
+    editing.subject ??
+    (canEditHere && viewer
+      ? { list: viewer.list, photo: viewerList[viewer.index] }
+      : null);
+  const removeTarget = removing.subject ?? editTarget?.photo ?? null;
 
   /** Rewrite one photograph in whichever strip it belongs to. */
   const patch = useCallback(
@@ -740,7 +771,7 @@ export function CollectionClient({
     setPendingPhotos((prev) => prev.filter((p) => p.id !== id));
     setLinked((prev) => prev.filter((p) => p.id !== id));
     setViewer(null);
-    setRemoving(null);
+    removing.close();
   }
 
   /* ---------------- what to draw ---------------- */
@@ -1009,7 +1040,7 @@ export function CollectionClient({
           onToggleLove={handleToggleLove}
           onEdit={(i) => {
             const photo = viewer && viewerList[i];
-            if (photo) setEditing({ list: viewer.list, photo });
+            if (photo) editing.show({ list: viewer.list, photo });
           }}
         />
       )}
@@ -1037,46 +1068,53 @@ export function CollectionClient({
           contribute room asks, of a photograph already in the archive. It
           hands the taking-down straight back to the two dialogs below, which
           already own it. */}
-      {editing && (
+      {editTarget && (
         <EditPhotoDialog
-          open
-          photo={editing.photo}
-          onClose={() => setEditing(null)}
+          open={editing.open}
+          photo={editTarget.photo}
+          onClose={editing.close}
           onSaved={(fields) => {
-            patch(editing.list, editing.photo.id, (p) => ({ ...p, ...fields }));
-            setEditing(null);
+            patch(editTarget.list, editTarget.photo.id, (p) => ({ ...p, ...fields }));
+            editing.close();
           }}
+          /* Closed FIRST, and the confirmation raised a beat later, so the two
+             panels hand over rather than stacking: one backdrop fading out
+             under another fading in reads as a flicker and briefly doubles the
+             scrim. 180ms is the exit ui/dialog.tsx draws. */
           onDelete={() => {
-            setRemoving(editing.photo);
-            setEditing(null);
+            const { photo } = editTarget;
+            editing.close();
+            window.setTimeout(() => removing.show(photo), 180);
           }}
         />
       )}
 
-      {removing?.isOwn && (
+      {removeTarget?.isOwn && (
         <ConfirmDialog
-          open
-          onClose={() => setRemoving(null)}
+          open={removing.open}
+          onClose={removing.close}
           title="Delete this photograph?"
           description="It leaves the Collection for everyone, and the file itself is deleted. This cannot be undone."
           actionLabel="Delete"
           onConfirm={async () => {
-            const res = await callAction(() => deleteOwnPhoto(removing.id));
+            const res = await callAction(() => deleteOwnPhoto(removeTarget.id));
             if ("error" in res && res.error) return { error: res.error };
-            forget(removing.id);
+            forget(removeTarget.id);
             toast.success("The photograph has been taken down.");
           }}
         />
       )}
-      {removing && !removing.isOwn && (
+      {removeTarget && !removeTarget.isOwn && (
         <ModerationDialog
-          open
-          onClose={() => setRemoving(null)}
+          open={removing.open}
+          onClose={removing.close}
           itemLabel="photo"
           onConfirm={async (note) => {
-            const res = await callAction(() => adminRemovePhoto(removing.id, note || undefined));
+            const res = await callAction(() =>
+              adminRemovePhoto(removeTarget.id, note || undefined)
+            );
             if ("error" in res && res.error) return { error: res.error };
-            forget(removing.id);
+            forget(removeTarget.id);
             return {};
           }}
         />
