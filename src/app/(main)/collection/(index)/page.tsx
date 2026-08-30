@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { CollectionClient } from "@/components/collection/collection-client";
-import { collectionPageData, riverFiltersFrom } from "./collection-data";
+import { collectionPageData, riverFiltersFrom } from "../collection-data";
 
 export const metadata: Metadata = {
   title: "Collection",

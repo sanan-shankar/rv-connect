@@ -134,6 +134,30 @@ fresh socket; Safari reports "the server unexpectedly dropped the connection". D
 `Connection: close` so there is never an idle socket to reuse. It does not touch hot reload: a
 websocket upgrade never passes through `headers()`.
 
+**A `loading.tsx` covers its own segment AND every segment below it, and the OUTER boundary is
+the one that paints.** `letters/loading.tsx` sat beside `letters/page.tsx` and was therefore the
+fallback for `/letters/new`, `/letters/<id>` and `/letters/<id>/edit` as well: pressing "Write a
+letter" flashed three fake letter cards before the writing desk, and the three per-route skeletons
+were dead files that had never once rendered (owner, 2026-08-30: "a lot of the letter loading
+skeletons are messed up"). The fix is a route group — the index page and its skeleton move into
+`letters/(index)/`, which the URL does not see and the fallback stops at. Eight segments needed it
+(`letters/`, `letters/[id]/`, `catchups/`, `catchups/[catchupId]/`, `admin/` and its catchups,
+messages and people tables, `collection/`, `messages/`) and seventeen skeletons came back to life.
+**`src/lib/loading-boundary-rule.test.mjs` now fails the gate if a loading.tsx ever sits above
+another one again**, which is the only reason this stays fixed: it is invisible in a file tree.
+
+**A skeleton nobody can see is a skeleton nobody maintains.** `collection/[id]/loading.tsx` was
+still drawing the detail page that the 2026-08-28 viewer rebuild deleted -- a back link over a 4/3
+card in a narrow column, for a route that now renders the whole Collection with the viewer open.
+Wrong for two days and unnoticeable, because the parent was painting over it. Expect the same of
+any fallback the fix above uncovers: look at each one before trusting it.
+
+**A loading frame can be photographed.** Serve only the FIRST FLUSH of the streamed document —
+everything from React's `<div hidden id="S:0">` onwards is the resolved page — with JavaScript
+disabled so hydration cannot tear down the truncated tree, and the fallback holds still for a
+screenshot. `e2e/loading-fallbacks.spec.ts` is the worked example; it asserts rather than
+photographs, because which skeleton shows is invisible in a diff.
+
 ## Serving images
 
 **Moving the public image host is FIVE changes, not one.** On 2026-08-21 serving moved from
@@ -186,6 +210,16 @@ when it passes. Cloudflare is saying 110200, "domain not allowed". **An env var 
 Vercel bakes env vars in at build time, so nothing you change in code or config reaches a
 deployment that already exists.** The Cloudflare hostname list is the only lever that applies
 retroactively; `vercel.app` is on it now, and `turnstile-origin-rule.ts` is what keeps that safe.
+
+**A flex item with `mx-auto` does not stretch — it shrink-wraps.** `align-self: stretch` applies
+only when the cross-size is auto AND the cross-axis margins are not auto; auto margins absorb the
+free space instead. Every page root in this app is a direct child of `ContentColumn`, which is a
+flex COLUMN, so `mx-auto max-w-[760px]` (no `w-full`) sized the letter desk to its own contents:
+an empty letter hugged its toolbar at 510px while a draft with prose in it filled the 760 cap —
+the same page, two widths, depending on what had been typed into it (owner, 2026-08-30). The tell
+is a box that fits its content suspiciously well. Write `mx-auto w-full max-w-*` on anything that
+is a page root, and remember that percentage-width children (`w-3/4`, `w-full`) contribute NOTHING
+to a shrink-to-fit width, so an all-percentage skeleton inside one collapses to its own padding.
 
 **`overflow-hidden` on a wrapper that is usually empty costs you a `space-y` gap.** Hidden overflow
 makes the element a block formatting context, and a BFC stops margins collapsing THROUGH it. The

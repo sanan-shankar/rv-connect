@@ -1,5 +1,50 @@
 # Progress Log
 
+## 2026-08-30 — a blank letter was 510px wide, and the skeleton you saw was never its own
+
+The owner: *"why is the write a letter window smaller than the editing a draft window."* It
+was, by 250px, and the cause is one missing word.
+
+`mx-auto max-w-[760px]` on a direct child of the centered column, which is a **flex** column.
+A flex item with auto side margins does not stretch -- the auto margins absorb the free space
+instead -- so the sheet was shrink-to-fit. An empty letter hugged its own toolbar at 510px; a
+draft with prose in it grew to the 760 cap. The same desk, two widths, depending on what was
+typed into it. `w-full` fixes it, and the same word was missing on the letter reader, the
+error card and three other page roots that had quietly been sizing to their own contents.
+
+Then: *"a lot of the letter loading skeletons are messed up like the new letter one."* They
+were, and worse than messed up -- **most of them never rendered.** A `loading.tsx` covers its
+own segment *and everything below it*, and the outer boundary is the one that paints. So
+`letters/loading.tsx`, sitting beside the index page, was the fallback for `/letters/new`,
+`/letters/<id>` and the draft desk too: press "Write a letter" and you got three fake letter
+cards, then the writing desk. Eight segments were in that state -- `letters/`, `letters/[id]/`,
+`catchups/`, `catchups/[catchupId]/`, `admin/` (standing in for all nine admin screens) and its
+catchups, messages and people tables, `collection/`, `messages/` -- and seventeen skeletons had
+never once been seen. Each is fixed by a route group: the index page and its skeleton move into
+`(index)/`, which the URL never sees and the fallback stops at.
+
+**The thing that keeps it fixed is `src/lib/loading-boundary-rule.test.mjs`, not the eight
+moves.** No `loading.tsx` may sit above another; it runs in `npm run check`, needs no server,
+and it is what found the last two (the draft desk hiding behind the reader's skeleton, the
+Catch-up answer screen behind its home's). This is invisible in review -- both layouts look
+correct in a file tree, and moving one page back out of its group breaks it in silence.
+
+**And the corollary, which is why this was worth doing rather than deleting the dead files: a
+skeleton nobody can see is a skeleton nobody maintains.** The desk's was a 214px sliver against
+a 683px sheet; it now carries the editor's own 55vh floor and its control row. The index's drew
+a drafts card that `DraftsStrip` returns null for on nearly every account. `collection/[id]`'s
+was still the detail page the 2026-08-28 viewer rebuild deleted -- a back link over a 4/3 card
+in a narrow column -- for a route that now renders the whole Collection with the viewer already
+open; it shares the Collection's grid skeleton now, since the two routes are the same page.
+Every uncovered fallback was photographed against the page it hands over to.
+
+Two things worth keeping. **A loading frame can be photographed**: serve only the first flush of
+the streamed document (everything from React's `<div hidden id="S:0">` on is the resolved page)
+with JS off, and the fallback holds still. And `e2e/loading-fallbacks.spec.ts` reads that first
+flush for four routes, so the rule above is pinned to what the browser is actually served.
+
+Gate green: 94/94. `npm run visual` 25/25. Every moved route asserted 200.
+
 ## 2026-08-29 — the swap becomes one caret, and the pill is deleted
 
 The owner, on the segmented switch that shipped an hour earlier: *"omfg you actually thought

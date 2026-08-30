@@ -49,7 +49,15 @@ export function LetterDesk({
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
 
   return (
-    <div className="mx-auto max-w-[760px]">
+    /* w-full is load-bearing, not habit: this div is a direct child of the
+       centered ContentColumn, which is a flex column, and a flex item with
+       auto side margins does NOT stretch (the auto margins eat the free space
+       instead). Without it the sheet was shrink-to-fit, so an EMPTY letter
+       hugged its own toolbar at 510px while a draft with prose in it filled
+       the full 760 -- the same desk, two different widths (owner, 2026-08-30:
+       "why is the write a letter window smaller than the editing a draft
+       window"). */
+    <div className="mx-auto w-full max-w-[760px]">
       <div className="mb-5 flex items-center justify-between gap-3">
         <Link
           href="/letters"

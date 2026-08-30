@@ -126,7 +126,7 @@ test("B-060: resume re-arms the rhythm rather than leaving a dead Catch-up", () 
 });
 
 test("B-062: the header does not count down a Catch-up whose clock is stopped", () => {
-  const src = decomment(read("src/app/(main)/catchups/[catchupId]/page.tsx"));
+  const src = decomment(read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx"));
   assert.match(
     src,
     /catchup\.status === "active"\s*\?\s*editionCountdownLabel/,
@@ -297,7 +297,7 @@ test("C-026: a whole-group fanout fired outside a transition is metered", () => 
 });
 
 test("C-029: two questions sharing a position still render in one stable order", () => {
-  const home = decomment(read("src/app/(main)/catchups/[catchupId]/page.tsx"));
+  const home = decomment(read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx"));
   // The console sorts in JS after filtering, so the tiebreak has to be there
   // too -- the query's own orderBy does not survive the filter+sort.
   assert.match(

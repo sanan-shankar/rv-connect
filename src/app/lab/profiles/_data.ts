@@ -101,7 +101,7 @@ export interface ProfileVariantProps {
   profile: MockProfile;
 }
 
-/** Mirrors the real letter page's word-count formula (see (main)/letters/[id]/page.tsx). */
+/** Mirrors the real letter page's word-count formula (see (main)/letters/[id]/(read)/page.tsx). */
 export function readMinutes(content: string): number {
   const words = content.trim().split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.round(words / 200));

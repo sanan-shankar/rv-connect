@@ -289,7 +289,7 @@ const CHECKS = [
       return sec.length ? ok(`${sec.length} security-related test file(s)`) : open(`${tests.length} test files, none covering authorization`);
     }},
   { id: "H18", sev: "high", title: "Unbounded queries that will OOM", probe: () => {
-      const admin = read("src/app/(main)/admin/page.tsx");
+      const admin = read("src/app/(main)/admin/(index)/page.tsx");
       const byBatch = read("src/app/api/users-by-batch/route.ts");
       const bad = [];
       if (/user\.findMany\(\{(?![^}]*take:)/s.test(admin) && !/take:/.test(admin)) bad.push("admin/page.tsx");

@@ -135,8 +135,8 @@ test("C-057: admin-opened notices are outside the member's new-thread budget", (
 
 test("C-058/C-081: every capped thread list carries a count and an escape", () => {
   const lists = [
-    ["src/app/(main)/messages/page.tsx", "THREAD_PAGE", "/messages?all=1"],
-    ["src/app/(main)/admin/messages/page.tsx", "OPEN_PAGE", "/admin/messages?open=all"],
+    ["src/app/(main)/messages/(index)/page.tsx", "THREAD_PAGE", "/messages?all=1"],
+    ["src/app/(main)/admin/messages/(index)/page.tsx", "OPEN_PAGE", "/admin/messages?open=all"],
   ];
   for (const [file, cap, escape] of lists) {
     const src = decomment(read(file));
@@ -147,7 +147,7 @@ test("C-058/C-081: every capped thread list carries a count and an escape", () =
     assert.match(src, /Show \{[a-zA-Z]+\} older/, `${file} says nothing about what it is hiding`);
   }
   // The admin open list was the unbounded one; make sure it is not again.
-  const admin = decomment(read("src/app/(main)/admin/messages/page.tsx"));
+  const admin = decomment(read("src/app/(main)/admin/messages/(index)/page.tsx"));
   const openQuery = admin.slice(admin.indexOf('where: { status: { not: "closed" } }'));
   assert.match(openQuery.slice(0, 300), /take: OPEN_PAGE/, "the open queue is unbounded again");
 });

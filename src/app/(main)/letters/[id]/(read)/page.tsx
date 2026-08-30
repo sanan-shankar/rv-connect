@@ -128,7 +128,7 @@ export default async function LetterPage({
   return (
     // A reading measure (line length), not a page width: the column itself is
     // the shell's. Centered inside it so the text sits under its own title.
-    <article className="mx-auto max-w-[680px]">
+    <article className="mx-auto w-full max-w-[680px]">
       <Link
         href="/letters"
         className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
