@@ -7282,3 +7282,38 @@ rule instead of a box, E hands search the whole row, F unrolls a drawer, G opens
 Fire them all at once, or drop to 0.15x, which slows springs by scaling stiffness by s²
 and damping by s so the damping ratio survives the slow motion. `?open=1` opens all seven
 for a screenshot. Nothing shipped: this is the choice, not the fix.
+
+## 2026-08-30 — the search opens as a line now
+
+D shipped, from the seven. The header search no longer grows a pill: there is no pill. A
+Canopy rule draws out from under the magnifying glass and you write on the line. The glass
+never moves a pixel in either state, which is the account menu's discipline applied to a
+header that has no free space to appear into.
+
+Timings, twice slowed on his word ("ship D slower", then "make the expansion 20% slower"):
+0.5s to draw on EASE_OUT_SMOOTH, 0.26s to retract. The words and the glass's own rule are
+expressed as fractions of the open (0.38 delay, 0.58 duration, 0.72 for the glass rule) so
+changing one number keeps the gesture together. Only the opening is slow.
+
+Three things the transplant needed that the lab room did not.
+
+The line runs to the LEFT EDGE OF THE CONTENT COLUMN, not to 68vw ("it doesn't align to
+anything, you just take a random amount"). It measures its own header, whose left edge is
+the line every row on the page starts on, and takes 300px or that reach, whichever is less.
+So a phone gets a line flush with the page and a desktop still gets a field.
+
+The page title fades out from under it below `sm`, via `group-has-[[data-search-open]]`
+on PageHeader. A field with no box cannot overlap text, and at 390px it lands straight
+across "The Valley Collection". Opacity only: the row never reflows.
+
+And the field is MOUNTED ONLY WHILE OPEN. Left mounted, it is a 260px box in the header
+with nothing in it, clipped and invisible and still perfectly real to the visual suite,
+which walks <main> marking anything that starts 50px down: the mask jumped 260px on feed
+and collection. The old pill mounted its input the same way, for none of these reasons.
+
+The field is now on the reasoned BORDERLESS list in focus-recipe.test.mjs, beside the
+profile pen. It has no border to tint, so it carries the recipe's split rather than its
+classes: a hairline on click, 2px on Tab, read off the same html[data-modality].
+
+/lab/search is deleted, on his instruction, once the pick was made. `git show 6fbf46d`
+is the whole room.
