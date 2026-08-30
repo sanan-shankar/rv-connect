@@ -1,6 +1,6 @@
 export default function WelcomeLoading() {
   return (
-    <div className="mx-auto max-w-[440px] space-y-6 py-10">
+    <div className="mx-auto w-full max-w-[440px] space-y-6 py-10">
       <div className="flex justify-center gap-2">
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="skeleton-warm h-2 w-2 rounded-full" />

@@ -104,8 +104,8 @@ test("C-015: the directory search goes through escapeLike", () => {
 test("C-003: no _count.comments filter is hand-rolled", () => {
   const files = [
     "src/app/(main)/feed/actions.ts",
-    "src/app/(main)/letters/page.tsx",
-    "src/app/(main)/letters/[id]/page.tsx",
+    "src/app/(main)/letters/(index)/page.tsx",
+    "src/app/(main)/letters/[id]/(read)/page.tsx",
   ];
   let seen = 0;
   for (const f of files) {

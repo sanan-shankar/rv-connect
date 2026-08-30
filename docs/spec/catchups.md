@@ -853,7 +853,9 @@ Runs `prisma generate`. *Deliverable:* schema + client + pure helpers with unit-
 urls + `resolveSpotify`), `toggleEntryLove`, `closeAndPrepare`, `publishNow`, `setReminderPref`,
 `nudgeGroup`. Enforces the 7 permission rules and calls WP1 helpers. Depends on WP1.
 
-**WP3 - Index + create flow.** *Owns:* `src/app/(main)/catchups/page.tsx`, `.../catchups/loading.tsx`,
+**WP3 - Index + create flow.** *Owns:* `src/app/(main)/catchups/(index)/page.tsx` + `.../(index)/loading.tsx`
+(the route group keeps the index's skeleton off /catchups/new and the Catch-up home; see
+`e2e/loading-fallbacks.spec.ts`),
 `src/app/(main)/catchups/new/page.tsx` + `.../new/loading.tsx`, and
 `src/components/catchups/create/*` (group picker, cadence control, seed-questions picker, preview
 card) + `src/components/catchups/index/*` (explainer band, your-catchups card, fresh-off-the-press

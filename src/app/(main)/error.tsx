@@ -32,7 +32,7 @@ export default function MainError({
   reset: () => void;
 }) {
   return (
-    <div className="card-elevated mx-auto max-w-lg rounded-[var(--radius)] border border-border bg-card p-[var(--space-l)] text-center">
+    <div className="card-elevated mx-auto w-full max-w-lg rounded-[var(--radius)] border border-border bg-card p-[var(--space-l)] text-center">
       <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground">
         This page did not load
       </h1>

@@ -150,7 +150,7 @@ test("C-014: the one surface that writes letter drafts actually supplies an id",
 /* ---- C-008: an author keeps sight of their own letter ----------- */
 
 test("C-008: the letters index uses the shared audience builder", () => {
-  const src = read("src/app/(main)/letters/page.tsx");
+  const src = read("src/app/(main)/letters/(index)/page.tsx");
   assert.match(src, /audienceWhere\(session\.user, viewerCities\)/, "the index hand-rolls its audience again");
   assert.doesNotMatch(src, /AND: \[cityScopeWhere\(viewerCities\)\]/, "the exemption-less city arm is back");
   // And the builder really carries the author exemption on both arms.
