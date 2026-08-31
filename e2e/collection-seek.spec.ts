@@ -87,6 +87,14 @@ async function settled(page: import("@playwright/test").Page) {
  *  goes straight for the year waits for ever on a row the closed rail is
  *  deliberately covering. */
 async function openDecade(page: import("@playwright/test").Page, decade: string) {
+  /* Off the rail first, so it is closed before we point. An open decade's
+     years cover the closed-list rows beneath it -- deliberately, so that
+     reading them cannot re-choose the decade -- which means you cannot jump
+     straight from one decade to another one below it. Leaving and coming
+     back is the gesture a hand makes, and it is the one the rail is built
+     for. */
+  await page.mouse.move(20, 400);
+  await settled(page);
   const at = (await rail(page).getByRole("button", { name: decade, exact: true }).boundingBox())!;
   await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
   /* Ready when ANY year of that decade is out -- not when the decade's own
@@ -233,6 +241,83 @@ test("nothing is ever left half-drawn", async ({ page }, testInfo) => {
   await page.mouse.move(20, 400);
   await settled(page);
   expect((await drawn(page)).halfDrawn, "greys after it closed again").toBe(0);
+});
+
+/* ------------------------------------------------------------------ *
+ *  The years are always BELOW your hand.
+ *
+ *  "Sometimes the menu opens above sometimes below" (owner,
+ *  2026-08-31), and it was arithmetic rather than a slip: crossing out
+ *  of the foot of an open decade used to open the next one, but opening
+ *  it collapses the one you left, which lifts the list by a whole block
+ *  and lands the new years ABOVE the pointer. Measured on the version
+ *  that shipped: arriving fresh on the 1970s put its years 7px below the
+ *  pointer, walking down into the 1960s put them 161px above.
+ *
+ *  The decade that opens is now always the one whose OWN ROW is at the
+ *  pointer's height in the closed list, so after it opens its row is
+ *  still exactly there. Checked from every direction, because the whole
+ *  complaint was that one direction behaved differently from another.
+ * ------------------------------------------------------------------ */
+
+/** Point at a height in the rail and report where the years landed
+ *  relative to the pointer. */
+async function yearsRelativeTo(
+  page: import("@playwright/test").Page,
+  rowFromTop: number,
+  { fresh = true } = {},
+) {
+  const box = (await rail(page).boundingBox())!;
+  /* From a closed rail unless asked otherwise, because "below the pointer"
+     is a promise about the moment a decade OPENS. Once you have travelled
+     down into its years some of them are above you, which is what being
+     inside a menu means and not what the complaint was about. */
+  if (fresh) {
+    await page.mouse.move(20, 400);
+    await settled(page);
+  }
+  const y = box.y + rowFromTop * 17 + 8;
+  await page.mouse.move(box.x + box.width - 10, y);
+  await settled(page);
+  return rail(page).evaluate((nav, at) => {
+    const years = [...nav.querySelectorAll("button")].filter(
+      (r) => Number(getComputedStyle(r).opacity) > 0.5 && /^\d{4}$/.test(r.getAttribute("aria-label") ?? ""),
+    );
+    if (!years.length) return { open: false, firstYearBelowPointer: 0 };
+    return {
+      open: true,
+      firstYearBelowPointer: Math.round(years[0].getBoundingClientRect().top - at),
+    };
+  }, y);
+}
+
+test("a decade's years always open below the pointer, from every direction", async ({
+  page,
+}, testInfo) => {
+  desktopOnly(testInfo.project.name);
+  await page.goto("/lab/collection");
+  await expect(rail(page)).toBeVisible();
+
+  // Arriving fresh, part way down the list.
+  const fresh = await yearsRelativeTo(page, 5);
+  expect(fresh.open).toBeTruthy();
+  expect(fresh.firstYearBelowPointer).toBeGreaterThanOrEqual(0);
+
+  /* Travelling DOWN out of the years closes the rail rather than opening the
+     next decade from somewhere above you -- which is the half of the trade
+     the owner chose, and it has to stay chosen deliberately. */
+  const past = await yearsRelativeTo(page, 18, { fresh: false });
+  expect(past.open, "moving below the list should close it, not re-open above").toBeFalsy();
+
+  // Back up onto an older decade, and up again to a newer one.
+  for (const row of [7, 2, 9, 0]) {
+    const at = await yearsRelativeTo(page, row);
+    expect(at.open, `row ${row} should open`).toBeTruthy();
+    expect(
+      at.firstYearBelowPointer,
+      `row ${row} opened ${-at.firstYearBelowPointer}px ABOVE the pointer`,
+    ).toBeGreaterThanOrEqual(0);
+  }
 });
 
 /* ------------------------------------------------------------------ *
