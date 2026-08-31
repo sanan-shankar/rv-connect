@@ -37,6 +37,49 @@ const desktopOnly = (name: string) =>
 const rail = (page: import("@playwright/test").Page) =>
   page.locator('nav[aria-label^="Jump to when"]');
 
+/** How many rows and how many names the rail is currently painting. Every
+ *  row is in the DOM at every moment -- what changes is whether it is drawn
+ *  and where it sits -- so this reads opacity, not visibility. */
+const drawn = (page: import("@playwright/test").Page) =>
+  rail(page).evaluate((nav) => {
+    const rows = [...nav.querySelectorAll("button")];
+    const on = (el: Element) => Number(getComputedStyle(el).opacity) > 0.5;
+    return {
+      rows: rows.length,
+      height: Math.round(nav.getBoundingClientRect().height),
+      shown: rows.filter(on).length,
+      names: rows.filter((r) => on(r.querySelector("span:last-child")!)).length,
+    };
+  });
+
+/** Put a pointer in the rail and wait for it to finish opening -- BOTH
+ *  halves of that. Opening is sixty rows travelling on a spring, and every
+ *  row is fully drawn long before it has arrived, so waiting on opacity
+ *  alone hands back a rail whose rows are still moving: the box you read is
+ *  not the box that will be there, and the pointer lands a few pixels off
+ *  the row you meant. Geometry is the readiness signal, per CLAUDE.md's rule
+ *  for animated UI. */
+async function openRail(page: import("@playwright/test").Page) {
+  const box = (await rail(page).boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + 8);
+  await expect.poll(async () => (await drawn(page)).shown).toBe((await drawn(page)).rows);
+
+  let last = -1;
+  await expect
+    .poll(
+      async () => {
+        const now = await rail(page).evaluate(
+          (nav) => Math.round(nav.querySelectorAll("button")[nav.querySelectorAll("button").length - 1]!.getBoundingClientRect().top),
+        );
+        const still = now === last;
+        last = now;
+        return still;
+      },
+      { message: "the rail never stopped moving" },
+    )
+    .toBeTruthy();
+}
+
 async function readInChronologicalOrder(page: import("@playwright/test").Page) {
   await page.goto("/lab/collection");
   await page.getByRole("button", { name: /^Order:/ }).click();
@@ -49,11 +92,19 @@ async function readInChronologicalOrder(page: import("@playwright/test").Page) {
   await expect(rail(page).locator('button[aria-current="true"]')).toBeVisible();
 }
 
-/** The rail names every year it holds, and only the decades keep their
- *  lettering once the rows get tight -- so a row is addressed by its label
- *  rather than by its visible text, which is what `aria-label` is for. */
-const year = (page: import("@playwright/test").Page, name: string) =>
-  rail(page).getByRole("button", { name, exact: true });
+/** Press a year. The rail has to be OPEN first and that is not a test
+ *  workaround, it is the gesture: closed, the years are hidden behind the
+ *  decade they belong to and take no pointer events, so a hand reaches one
+ *  by arriving at the rail, letting it open, and then travelling to the
+ *  year. Playwright hit-tests before it moves the mouse, so without this it
+ *  waits for ever on a row the closed rail is deliberately covering.
+ *
+ *  Addressed by `aria-label` rather than by visible text, because only the
+ *  decades keep their lettering when the rows get tight. */
+async function pressYear(page: import("@playwright/test").Page, name: string) {
+  await openRail(page);
+  await rail(page).getByRole("button", { name, exact: true }).click();
+}
 
 test("pressing a year travels there, and leaves the rest of the river in place", async ({
   page,
@@ -61,7 +112,7 @@ test("pressing a year travels there, and leaves the rest of the river in place",
   desktopOnly(testInfo.project.name);
   await readInChronologicalOrder(page);
 
-  await year(page, "1953").click();
+  await pressYear(page, "1953");
 
   /* The year asked for is on the page... */
   await expect(page.locator('h2[data-band="1953"]')).toBeVisible();
@@ -99,7 +150,7 @@ test("pressing a year from another order turns the river to Chronological", asyn
   // Nothing is lit, because "which year am I in" has no answer here.
   await expect(rail(page).locator('button[aria-current="true"]')).toHaveCount(0);
 
-  await year(page, "1953").click();
+  await pressYear(page, "1953");
 
   await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Chronological/);
   await expect(page.locator('h2[data-band="1953"]')).toBeVisible();
@@ -123,18 +174,6 @@ test("pressing a year from another order turns the river to Chronological", asyn
  *  never move -- and what changes is whether they are painted.
  * ------------------------------------------------------------------ */
 
-/** How many marks and how many names the rail is currently painting. */
-const drawn = (page: import("@playwright/test").Page) =>
-  rail(page).evaluate((nav) => {
-    const rows = [...nav.querySelectorAll("button")];
-    const on = (el: Element | null) => Number(getComputedStyle(el!).opacity) > 0.5;
-    return {
-      rows: rows.length,
-      marks: rows.filter((r) => on(r.querySelector("span"))).length,
-      names: rows.filter((r) => on(r.querySelector("span:last-child"))).length,
-    };
-  });
-
 test("the rail rests as decades and goes granular under the pointer", async ({
   page,
 }, testInfo) => {
@@ -149,11 +188,19 @@ test("the rail rests as decades and goes granular under the pointer", async ({
      would make this test fail every time a photograph moves year. What
      matters is that it is nothing like the row count. */
   expect(atRest.names).toBeLessThan(atRest.rows / 3);
-  expect(atRest.marks).toBe(atRest.names);
+  expect(atRest.shown).toBe(atRest.names);
 
-  const box = (await rail(page).boundingBox())!;
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await expect.poll(async () => (await drawn(page)).marks).toBe(atRest.rows);
+  await openRail(page);
+  const open = await drawn(page);
+  expect(open.shown).toBe(open.rows);
+  /* And it really is an EXPANSION -- "I want it to expand only when you
+     hover" -- so the rail is taller open than closed rather than merely
+     busier. */
+  expect(open.height).toBeGreaterThan(atRest.height * 2);
+
+  // And it closes again when the pointer goes elsewhere.
+  await page.mouse.move(20, 400);
+  await expect.poll(async () => (await drawn(page)).shown).toBe(atRest.names);
 });
 
 /* ------------------------------------------------------------------ *
@@ -173,9 +220,10 @@ test("the row that swells is the row that names itself, at any window size", asy
   desktopOnly(testInfo.project.name);
   await page.goto("/lab/collection");
   await expect(rail(page)).toBeVisible();
+  await openRail(page);
 
-  /* A row the rail does NOT name at rest, so what is read below can only
-     have come from the pointer being on it. */
+  /* A row the rail does NOT name of its own accord, so what is read below
+     can only have come from the pointer being on it. */
   const target = await rail(page).evaluate((nav) =>
     [...nav.querySelectorAll("button")]
       .find((r) => Number(getComputedStyle(r.querySelector("span:last-child")!).opacity) < 0.5)
@@ -184,6 +232,7 @@ test("the row that swells is the row that names itself, at any window size", asy
   expect(target, "every row was already named; nothing to reveal").not.toBe("");
 
   const agree = async () => {
+    await openRail(page);
     const at = (await rail(page).getByRole("button", { name: target, exact: true }).boundingBox())!;
     await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
     return expect
@@ -232,6 +281,8 @@ test("every year is reachable without scrolling the rail or the page", async ({
   desktopOnly(testInfo.project.name);
   await page.goto("/lab/collection");
   await expect(rail(page)).toBeVisible();
+  // Open, because that is the state every year has to be reachable in.
+  await openRail(page);
 
   const fit = await rail(page).evaluate((nav) => {
     const rows = [...nav.querySelectorAll("button")];
@@ -262,7 +313,7 @@ test("a page arriving above the reader does not move the photograph they are loo
 }, testInfo) => {
   desktopOnly(testInfo.project.name);
   await readInChronologicalOrder(page);
-  await year(page, "1953").click();
+  await pressYear(page, "1953");
   await expect(page.locator('h2[data-band="1953"]')).toBeVisible();
 
   /* Mark a photograph in the middle of the viewport -- the one whose
