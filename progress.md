@@ -1,5 +1,46 @@
 # Progress Log
 
+## 2026-08-31 — the rail is a list of decades, and the one you point at opens into its years
+
+*"There's so many instances where it's these different shades of grey ... two numbers showing
+and they're both kind of half showing ... I have [the pointer] over 2026 then it ... expands
+but then 2026 is kind of grey[ed] out almost like invisible ... why isn't it just correct and
+like intuitive? ... it's just coming off as still so janky."*
+
+He is right and the cause was structural, not a set of small faults. Two versions in a row
+tried to fit **every year of the archive down the column at once** — sixty rows at eleven
+pixels — which no eleven-pixel label fits beside. Both therefore grew a proximity-driven
+opacity field to keep the labels from colliding. That field worked exactly as designed, and
+what it produces is partial greys as the *resting state* rather than as an edge case, plus
+anchors that delete themselves to dodge a neighbour. 2026 going invisible was not a bug in it.
+It was the feature.
+
+So the fading is gone entirely, and it was gone by removing the thing that made it necessary.
+A decade holds at most ten years, ten years is a short list, and a short list fits at 17px a
+row with room for every label. The rail is a list of decades; the one under the pointer opens
+into its years; every label on screen is fully there or not there at all. `nothing is ever
+left half-drawn` in `collection-seek.spec.ts` counts rows sitting between 2% and 98% opacity
+and requires zero, at rest and with each of four decades open.
+
+**Every open decade is ten rows tall, whoever it is,** and each year sits at its own place
+inside those ten. Two things fall out. The gaps become honest — 1979, then nothing, then 1976
+— which is a true statement about the archive. And the rail stops being able to cascade: with
+heights that varied, one twenty-pixel move out of a nine-year decade fell straight through a
+one-year decade and two more below it, and the rail walked three decades on a gesture that
+meant one. Walking the pointer down the rail now opens each decade in turn, one per row of
+travel, monotonically.
+
+The box never changes size either, so there is no edge for the pointer to fall off, and the
+decades above an opening one never move at all.
+
+Also: the expand and collapse spring is about a quarter slower, as asked. And the spec found
+one real defect — a collapsed decade and the hidden year inside it both carried
+`aria-current`, so a row nobody can see was announcing itself beside the row that can.
+
+A small archive is not grouped at all: if every year fits down the column at full row height
+they are simply all listed, always. The live Collection is four bands and is exactly the rail
+that shipped before any of this.
+
 ## 2026-08-31 — the Collection's rail is a decade index that opens into a year ruler
 
 Third pass at the same rail, and the one the owner was describing all along: *"decade spaced
