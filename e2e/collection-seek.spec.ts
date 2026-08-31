@@ -37,39 +37,39 @@ const desktopOnly = (name: string) =>
 const rail = (page: import("@playwright/test").Page) =>
   page.locator('nav[aria-label^="Jump to when"]');
 
-/** How many rows and how many names the rail is currently painting. Every
- *  row is in the DOM at every moment -- what changes is whether it is drawn
- *  and where it sits -- so this reads opacity, not visibility. */
+/** What the rail is drawing right now. Every row is in the DOM at every
+ *  moment -- what changes is whether it is painted and where it sits -- so
+ *  this reads opacity, not visibility. */
 const drawn = (page: import("@playwright/test").Page) =>
   rail(page).evaluate((nav) => {
     const rows = [...nav.querySelectorAll("button")];
-    const on = (el: Element) => Number(getComputedStyle(el).opacity) > 0.5;
+    const shade = (el: Element) => Number(getComputedStyle(el).opacity);
     return {
       rows: rows.length,
       height: Math.round(nav.getBoundingClientRect().height),
-      shown: rows.filter(on).length,
-      names: rows.filter((r) => on(r.querySelector("span:last-child")!)).length,
+      shown: rows.filter((r) => shade(r) > 0.5).map((r) => r.getAttribute("aria-label") ?? ""),
+      /* The one number the owner's complaint reduces to. A rail that is
+         resting must be all-or-nothing: "there's so many instances where it's
+         these different shades of grey ... two numbers showing and they're
+         both kind of half showing" (2026-08-31). */
+      halfDrawn: rows.filter((r) => shade(r) > 0.02 && shade(r) < 0.98).length,
     };
   });
 
-/** Put a pointer in the rail and wait for it to finish opening -- BOTH
- *  halves of that. Opening is sixty rows travelling on a spring, and every
- *  row is fully drawn long before it has arrived, so waiting on opacity
- *  alone hands back a rail whose rows are still moving: the box you read is
- *  not the box that will be there, and the pointer lands a few pixels off
- *  the row you meant. Geometry is the readiness signal, per CLAUDE.md's rule
- *  for animated UI. */
-async function openRail(page: import("@playwright/test").Page) {
-  const box = (await rail(page).boundingBox())!;
-  await page.mouse.move(box.x + box.width / 2, box.y + 8);
-  await expect.poll(async () => (await drawn(page)).shown).toBe((await drawn(page)).rows);
-
-  let last = -1;
+/** Wait for the rail to stop moving. Opening a decade is a dozen rows on a
+ *  spring, and every one of them is fully painted long before it has
+ *  arrived, so waiting on opacity alone hands back a rail whose rows are
+ *  still travelling -- the box you read is not the box that will be there.
+ *  Geometry is the readiness signal, per CLAUDE.md's rule for animated UI. */
+async function settled(page: import("@playwright/test").Page) {
+  let last = "";
   await expect
     .poll(
       async () => {
-        const now = await rail(page).evaluate(
-          (nav) => Math.round(nav.querySelectorAll("button")[nav.querySelectorAll("button").length - 1]!.getBoundingClientRect().top),
+        const now = await rail(page).evaluate((nav) =>
+          [...nav.querySelectorAll("button")]
+            .map((r) => Math.round(r.getBoundingClientRect().top))
+            .join(","),
         );
         const still = now === last;
         last = now;
@@ -80,6 +80,26 @@ async function openRail(page: import("@playwright/test").Page) {
     .toBeTruthy();
 }
 
+/** Point at a decade and wait for it to open. This is the whole gesture the
+ *  rail has: closed, a decade's years are parked underneath it and take no
+ *  pointer events, so a hand reaches 1953 by arriving at "1950s" and letting
+ *  it open. Playwright hit-tests BEFORE it moves the mouse, so a spec that
+ *  goes straight for the year waits for ever on a row the closed rail is
+ *  deliberately covering. */
+async function openDecade(page: import("@playwright/test").Page, decade: string) {
+  const at = (await rail(page).getByRole("button", { name: decade, exact: true }).boundingBox())!;
+  await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+  /* Ready when ANY year of that decade is out -- not when the decade's own
+     first year is, which the archive need not hold at all: the 1950s in the
+     fixture is one photograph from 1953. */
+  await expect
+    .poll(async () =>
+      (await drawn(page)).shown.some((l) => /^\d{4}$/.test(l) && l.startsWith(decade.slice(0, 3))),
+    )
+    .toBeTruthy();
+  await settled(page);
+}
+
 async function readInChronologicalOrder(page: import("@playwright/test").Page) {
   await page.goto("/lab/collection");
   await page.getByRole("button", { name: /^Order:/ }).click();
@@ -87,23 +107,15 @@ async function readInChronologicalOrder(page: import("@playwright/test").Page) {
 
   /* Readiness is the LIT MARK: the rail lights the moment the order lands
      (from the top photograph's own year when the scrollspy has nothing to
-     say yet), which makes it the one signal that exists in every state --
-     including the first page being a single year. */
+     say yet), which makes it the one signal that exists in every state. */
   await expect(rail(page).locator('button[aria-current="true"]')).toBeVisible();
 }
 
-/** Press a year. The rail has to be OPEN first and that is not a test
- *  workaround, it is the gesture: closed, the years are hidden behind the
- *  decade they belong to and take no pointer events, so a hand reaches one
- *  by arriving at the rail, letting it open, and then travelling to the
- *  year. Playwright hit-tests before it moves the mouse, so without this it
- *  waits for ever on a row the closed rail is deliberately covering.
- *
- *  Addressed by `aria-label` rather than by visible text, because only the
- *  decades keep their lettering when the rows get tight. */
-async function pressYear(page: import("@playwright/test").Page, name: string) {
-  await openRail(page);
-  await rail(page).getByRole("button", { name, exact: true }).click();
+/** Press a year: open its decade, then press it. Addressed by `aria-label`,
+ *  which every row carries whether or not it is currently painted. */
+async function pressYear(page: import("@playwright/test").Page, year: string) {
+  await openDecade(page, `${year.slice(0, 3)}0s`);
+  await rail(page).getByRole("button", { name: year, exact: true }).click();
 }
 
 test("pressing a year travels there, and leaves the rest of the river in place", async ({
@@ -127,10 +139,14 @@ test("pressing a year travels there, and leaves the rest of the river in place",
   expect(bands.some((b) => /^\d{4}$/.test(b) && Number(b) > 1953)).toBeTruthy(); // and newer
 
   /* The rail says where the reader now is, and it is a fact read off the
-     page rather than the filter they set. */
+     page rather than the filter they set. Read with the pointer taken away,
+     so the rail is closed: a collapsed decade lights when the reader is
+     anywhere inside it, which is how the rail keeps answering "where am I"
+     while the year itself is folded under it. */
+  await page.mouse.move(20, 400);
   await expect(rail(page).locator('button[aria-current="true"]')).toHaveAttribute(
     "aria-label",
-    "1953",
+    "1950s",
   );
 });
 
@@ -154,114 +170,69 @@ test("pressing a year from another order turns the river to Chronological", asyn
 
   await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Chronological/);
   await expect(page.locator('h2[data-band="1953"]')).toBeVisible();
+  await page.mouse.move(20, 400);
   await expect(rail(page).locator('button[aria-current="true"]')).toHaveAttribute(
     "aria-label",
-    "1953",
+    "1950s",
   );
 });
 
 /* ------------------------------------------------------------------ *
- *  Decades at rest, years under the pointer.
+ *  A list of decades, and the one you point at opens into its years.
  *
- *  "Eh too many ticks ... maybe just decades but it beautifully expands
- *  becoming granular when you hover" (owner, 2026-08-31). Sixty marks
- *  standing there read as texture rather than as a scale, so at rest the
- *  rail draws about one row per decade and the rest of the years arrive
- *  with the pointer.
- *
- *  Asserted on computed opacity rather than on visibility: every row is
- *  in the DOM and laid out at every moment -- that is the point, the rows
- *  never move -- and what changes is whether they are painted.
+ *  Two versions before this one tried to fit every year of the archive
+ *  down the column at once and needed a proximity-driven opacity field
+ *  to keep sixty eleven-pixel labels from colliding. It worked as
+ *  designed and read as a mess: "so many instances where it's these
+ *  different shades of grey ... two numbers showing and they're both
+ *  kind of half showing ... it's just coming off as still so janky"
+ *  (owner, 2026-08-31). The nesting does that job now, and the rule the
+ *  fading broke is pinned here: at rest, nothing is half-drawn.
  * ------------------------------------------------------------------ */
 
-test("the rail rests as decades and goes granular under the pointer", async ({
-  page,
-}, testInfo) => {
+test("the rail rests as decades and opens the one you point at", async ({ page }, testInfo) => {
   desktopOnly(testInfo.project.name);
   await page.goto("/lab/collection");
   await expect(rail(page)).toBeVisible();
 
   const atRest = await drawn(page);
   expect(atRest.rows, "the fixture should span dozens of years").toBeGreaterThan(20);
-  /* About one per decade, plus the two ends and Undated. The bound is loose
-     on purpose -- the exact count is the fixture's business, and pinning it
-     would make this test fail every time a photograph moves year. What
-     matters is that it is nothing like the row count. */
-  expect(atRest.names).toBeLessThan(atRest.rows / 3);
-  expect(atRest.shown).toBe(atRest.names);
+  /* Only decades and Undated, so a good deal fewer rows than the archive has
+     years. Loose on purpose: the exact count is the fixture's business. */
+  expect(atRest.shown.length).toBeLessThan(atRest.rows / 3);
+  expect(atRest.shown.every((l) => /s$/.test(l) || l === "Undated")).toBeTruthy();
 
-  await openRail(page);
+  await openDecade(page, "1970s");
   const open = await drawn(page);
-  expect(open.shown).toBe(open.rows);
-  /* And it really is an EXPANSION -- "I want it to expand only when you
-     hover" -- so the rail is taller open than closed rather than merely
-     busier. */
-  expect(open.height).toBeGreaterThan(atRest.height * 2);
+  expect(open.shown, "the decade's own years should be out").toContain("1974");
+  /* And ONLY that decade's -- one open at a time is what keeps the rail's
+     height constant and stops a move switching you twice. */
+  expect(open.shown.filter((l) => /^\d{4}$/.test(l)).every((l) => l.startsWith("197"))).toBeTruthy();
+  // The box never changes size, so there is no edge for the pointer to fall off.
+  expect(open.height).toBe(atRest.height);
 
-  // And it closes again when the pointer goes elsewhere.
+  // And it closes again when the pointer leaves.
   await page.mouse.move(20, 400);
-  await expect.poll(async () => (await drawn(page)).shown).toBe(atRest.names);
+  await expect.poll(async () => (await drawn(page)).shown).toEqual(atRest.shown);
 });
 
-/* ------------------------------------------------------------------ *
- *  The name that lights and the mark that swells are the same row.
- *
- *  "Sometimes after resizing window the highlight number is one higher
- *  than the highlighted ticks" (owner, 2026-08-31). The reveal used to
- *  interpolate across a fixed input range built from the row height, and
- *  a resize changes the row height without rebuilding the range -- so the
- *  swell (which reads the live rect) and the name (which did not) drifted
- *  apart by a row. Pinned at two window heights, because one window can
- *  never catch it.
- * ------------------------------------------------------------------ */
-test("the row that swells is the row that names itself, at any window size", async ({
-  page,
-}, testInfo) => {
+test("nothing is ever left half-drawn", async ({ page }, testInfo) => {
   desktopOnly(testInfo.project.name);
   await page.goto("/lab/collection");
   await expect(rail(page)).toBeVisible();
-  await openRail(page);
 
-  /* A row the rail does NOT name of its own accord, so what is read below
-     can only have come from the pointer being on it. */
-  const target = await rail(page).evaluate((nav) =>
-    [...nav.querySelectorAll("button")]
-      .find((r) => Number(getComputedStyle(r.querySelector("span:last-child")!).opacity) < 0.5)
-      ?.getAttribute("aria-label") ?? "",
-  );
-  expect(target, "every row was already named; nothing to reveal").not.toBe("");
+  expect((await drawn(page)).halfDrawn, "greys before anything was touched").toBe(0);
 
-  const agree = async () => {
-    await openRail(page);
-    const at = (await rail(page).getByRole("button", { name: target, exact: true }).boundingBox())!;
-    await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
-    return expect
-      .poll(async () =>
-        rail(page).evaluate((nav) => {
-          const rows = [...nav.querySelectorAll("button")];
-          let swollen = "";
-          let peak = 0;
-          for (const r of rows) {
-            const s = new DOMMatrixReadOnly(getComputedStyle(r).transform).a;
-            if (s > peak) {
-              peak = s;
-              swollen = r.getAttribute("aria-label") ?? "";
-            }
-          }
-          const revealed = rows
-            .filter((r) => Number(getComputedStyle(r.querySelector("span:last-child")!).opacity) > 0.9)
-            .map((r) => r.getAttribute("aria-label"));
-          return { swollen, named: revealed.includes(swollen) };
-        }),
-      )
-      .toEqual({ swollen: target, named: true });
-  };
+  /* Every decade in turn, settling on each. A row is either a row or it is
+     not; there is no state in which one is a shade of the other. */
+  for (const decade of ["2010s", "1990s", "1970s", "1950s"]) {
+    await openDecade(page, decade);
+    expect((await drawn(page)).halfDrawn, `greys while ${decade} was open`).toBe(0);
+  }
 
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await agree();
-  // The same gesture again, at a height that gives every row a different size.
-  await page.setViewportSize({ width: 1440, height: 1040 });
-  await agree();
+  await page.mouse.move(20, 400);
+  await settled(page);
+  expect((await drawn(page)).halfDrawn, "greys after it closed again").toBe(0);
 });
 
 /* ------------------------------------------------------------------ *
@@ -269,11 +240,11 @@ test("the row that swells is the row that names itself, at any window size", asy
  *  list of decades any more.
  *
  *  "Make sure you're easily able to reach say 1956. Think about what
- *  you'd have to scroll" (owner, 2026-08-30). The answer is nothing:
- *  every year the archive holds is on screen at once, at rest, before a
- *  single scroll. The failure this pins is the one the first build had
- *  -- rows measured against the height the rail has once it STICKS,
- *  which put its oldest three years below the fold on arrival.
+ *  you'd have to scroll" (owner, 2026-08-30). The answer is nothing: two
+ *  moves, no scroll of the rail and no scroll of the page. The failure
+ *  this pins is the one an early build had -- the rail sized against the
+ *  height it has once it STICKS, which put its foot below the fold on
+ *  arrival.
  * ------------------------------------------------------------------ */
 test("every year is reachable without scrolling the rail or the page", async ({
   page,
@@ -281,26 +252,29 @@ test("every year is reachable without scrolling the rail or the page", async ({
   desktopOnly(testInfo.project.name);
   await page.goto("/lab/collection");
   await expect(rail(page)).toBeVisible();
-  // Open, because that is the state every year has to be reachable in.
-  await openRail(page);
+  // The tallest state there is: one decade open. It is the same height
+  // whichever decade that is, so any of them answers for all of them.
+  await openDecade(page, "1970s");
 
   const fit = await rail(page).evaluate((nav) => {
-    const rows = [...nav.querySelectorAll("button")];
-    const last = rows[rows.length - 1].getBoundingClientRect();
+    const painted = [...nav.querySelectorAll("button")].filter(
+      (r) => Number(getComputedStyle(r).opacity) > 0.5,
+    );
+    const last = painted[painted.length - 1].getBoundingClientRect();
     return {
-      rows: rows.length,
+      rows: painted.length,
       bottom: last.bottom,
       viewport: window.innerHeight,
       /* A scroll container inside a scroll container is the thing this design
          exists to avoid, so the assertion is on OVERFLOW rather than on
-         scrollHeight: an 11px label in an 11px row makes the nav's content
-         box two pixels taller than the nav, with nothing scrollable about
+         scrollHeight: an 11px label in a 17px row can make the nav's content
+         box a pixel or two taller than the nav with nothing scrollable about
          it, and a scrollHeight comparison reads that as a scrollbar. */
       overflow: getComputedStyle(nav).overflowY,
     };
   });
 
-  expect(fit.rows, "the fixture should span dozens of years").toBeGreaterThan(20);
+  expect(fit.rows, "a decade and its years should both be on show").toBeGreaterThan(10);
   expect(fit.overflow, "the rail became a scroll container").toBe("visible");
   expect(
     fit.bottom,

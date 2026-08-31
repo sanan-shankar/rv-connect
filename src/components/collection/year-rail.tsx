@@ -7,64 +7,56 @@
  *  A dropdown tells you nothing until you open it and then makes you
  *  guess; the same values drawn as marks whose length is how many
  *  photographs each holds tell you, at rest and without a click, what
- *  shape the archive is. Google Photos' scrubber is the same idea and it
- *  is what makes a hundred thousand photographs navigable with no
- *  folders at all.
+ *  shape the archive is.
  *
- *  DECADES AT REST. IT OPENS INTO YEARS UNDER THE POINTER, AND ONLY
- *  THEN. It listed decades until 2026-08-30, then every year, and every
- *  year standing there was wrong -- "eh too many ticks", sixty
- *  near-identical marks reading as texture rather than as a scale. What
- *  the owner asked for instead, twice, is a real expansion: "just
- *  decades but it beautifully expands becoming granular when you hover,
- *  keep the magnification effect", then "decade spaced like before ...
- *  they're hidden but they'll show on hover. I want it to expand only
- *  when you hover."
+ *  IT IS A LIST OF DECADES, AND THE ONE YOU POINT AT OPENS INTO ITS
+ *  YEARS. Nothing else moves, nothing fades to a half tone, and every
+ *  label on screen is either fully there or not there at all.
  *
- *  So there are two layouts and the rail springs between them.
+ *  THAT LAST SENTENCE IS THE WHOLE DESIGN, and it is written down
+ *  because two versions failed by not honouring it. Both tried to fit
+ *  every year of the archive down one column at once -- sixty rows at
+ *  eleven pixels -- which no eleven-pixel label fits beside, so both
+ *  grew a system for fading labels in and out by proximity to the
+ *  pointer. That system worked exactly as designed and was terrible:
+ *  "there's so many instances where it's these different shades of grey
+ *  ... two numbers showing and they're both kind of half showing ...
+ *  I have [the pointer] over 2026 then ... 2026 is kind of grey[ed] out
+ *  almost like invisible ... it's just coming off as still so janky"
+ *  (owner, 2026-08-31). A continuous opacity field means partial greys
+ *  are not an edge case, they are the resting state, and an anchor
+ *  stepping aside to dodge a collision is a label deleting itself for a
+ *  reason no reader can see.
  *
- *    AT REST, the decades stack from the top at the row height the rail
- *    has always used, adjacent, about ten of them: the compact index it
- *    was before any of this.
+ *  So there is no opacity field. A decade holds at most ten years, ten
+ *  years is a short list, and a short list fits at the row height this
+ *  rail has always used with room for every label. The nesting does the
+ *  work the fading was trying to do.
  *
- *    OPEN, every year the archive holds takes its own place down the
- *    full column, which is the ruler you can pick 1956 off. The decades
- *    travel from their compact slots to their true ones and the years
- *    come out from behind the decade they belong to.
+ *  HOW IT HOLDS STILL. Only one decade is ever open and every open
+ *  decade is the same height, so the rail's total height never changes
+ *  and neither does its hit box. An opening decade grows DOWNWARD from
+ *  its own header, which does not move -- so the pointer that opened it
+ *  is still inside it afterwards, and the decades above it never move at
+ *  all. Crossing out of the bottom of one decade lands you inside the
+ *  next; crossing out of the top lands you inside the one above. There
+ *  is no arrangement in which a move switches you twice.
  *
- *  Both layouts are the same rows in the same DOM: a row's position is
- *  a `y` transform between two numbers, never a reflow, so the page
- *  underneath never learns any of this happened. The rail's own hit box
- *  grows with it, which is what makes the open state stable -- to leave
- *  you have to leave the BIG box, so there is no edge to flicker on.
- *
- *  A DECADE'S ANCHOR IS A REAL YEAR, the row nearest that decade's start
- *  rather than the decade itself. Nothing is filed under "the 1950s" as
- *  a position on this scale -- there is a row for 1953 because there are
- *  photographs from 1953 -- and inventing an empty 1950 row to hang the
- *  word on would put a mark on the scale for a year nobody photographed.
- *  So the 1950s reads as "1953", which is both the anchor the eye needs
- *  and the truth about what is there.
- *
- *  A SMALL ARCHIVE SKIPS ALL OF IT. While there is room for every year
- *  to be named -- rows at 15px or better -- they all simply are, at rest,
- *  the two layouts are the same layout, and nothing ever expands. The
+ *  A SMALL ARCHIVE IS NOT GROUPED. If every year the archive holds fits
+ *  down the column at full row height, they are simply all listed, all
+ *  named, always -- there is nothing a decade could usefully hide. The
  *  live Collection is four bands and looks exactly like the rail that
  *  shipped before any of this.
  *
  *  IT SEEKS. IT DOES NOT FILTER. Pressing a year used to narrow the grid
  *  to it, which meant landing there had no way back except a reload --
  *  "I now have no way to go back? ... doing that has locked me into
- *  2020s" (owner, 2026-08-29). The rail now travels one continuous river
- *  to that stretch of it; photographs above and below still exist and
+ *  2020s" (owner, 2026-08-29). The rail travels one continuous river to
+ *  that stretch of it; photographs above and below still exist and
  *  scrolling either way keeps going. `active` therefore is not a filter
  *  you set, it is read off what is actually on screen (`useActiveBand`
  *  in `photo-river.tsx`) -- the rail reports where you are rather than
  *  deciding it.
- *
- *  It also answers the owner's "year should not be the primary
- *  organising axis": time is a lens down the right-hand edge, never a
- *  gate you pass through to reach the photographs.
  *
  *  Below 1280px this margin does not exist; the phone scrubber down the
  *  right edge of the grid is its own component, not a second shape of
@@ -73,51 +65,56 @@
  *  from mobile, it looks really bad").
  * ------------------------------------------------------------------ */
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import {
-  m,
-  useMotionValue,
-  useSpring,
-  useTransform,
-  type MotionValue,
-} from "motion/react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { m, useMotionValue, useSpring, useTransform, type MotionValue } from "motion/react";
 import { bandLabel } from "@/lib/collection";
 import { cn } from "@/lib/utils";
 
 export type BandCount = { key: string; count: number };
 
+/** One row, everywhere, at every level. The rail has used it since it was a
+ *  list of decades and there is no longer any state in which it changes:
+ *  every label is a full-size label, which is what makes the thing legible. */
+const ROW = 17;
+
 /* ------------------------------------------------------------------ *
- *  How tall a row is, and what that buys.
+ *  A DECADE IS TEN ROWS TALL WHEN IT IS OPEN, always, however many years
+ *  it actually holds, and each year sits at its own place inside those ten
+ *  rather than being packed against the top.
  *
- *  ROW_REST is the row the rail has used since it was a list of decades,
- *  and the closed state is exactly that list again -- "decade spaced like
- *  before" (owner, 2026-08-31).
+ *  Two things fall out of that and both are the point.
  *
- *  ROW_MIN is where a mark stops reading as a mark once the rail is open and
- *  a century has to fit: below about six pixels two neighbours merge into a
- *  smear. ROW_NAMED is the row height at which a label fits beside its own
- *  mark -- the type is 11px, and two 11px labels on 15px rows already touch
- *  at the ascender. An archive whose years all clear it never needs an open
- *  state at all.
+ *  The gaps become honest. A decade with photographs from 1979, 1976 and
+ *  1974 draws three marks with the empty years between them left empty --
+ *  which is a true statement about the archive, and the same statement the
+ *  rail makes at every other level.
+ *
+ *  And the rail stops being able to cascade. Every open decade being the
+ *  SAME height is what makes crossing out of one land you inside the next
+ *  instead of two past it: with heights that varied, one twenty-pixel move
+ *  out of a nine-year decade fell straight through a one-year decade and
+ *  two more below it, and the rail walked three decades on a gesture that
+ *  meant one. Packing the years and padding the remainder at the foot gives
+ *  the same guarantee but leaves a visible hole under a sparse decade;
+ *  spreading them over their real positions costs nothing and reads as a
+ *  scale.
  * ------------------------------------------------------------------ */
-const ROW_REST = 17;
-const ROW_MIN = 6;
-const ROW_NAMED = 15;
+const DECADE_SLOTS = 10;
 
 /** The gap that lifts "Undated" off the years. It is not a year and does not
  *  belong in their run; a plain row would read as the year before the oldest. */
 const UNDATED_GAP = 10;
 
-/** What the rail leaves below itself when open, so the oldest year is not
- *  welded to the bottom of the window. */
+/** What the rail leaves below itself, so its foot is not welded to the
+ *  bottom of the window. */
 const RAIL_FOOT = 24;
 
 /* ------------------------------------------------------------------ *
  *  The dock. "Maybe some kind of subtle magnification while hovering
- *  over them, like a mac dock" (owner, 2026-08-29), and kept on purpose
- *  through two redesigns since ("keep the magnification effect?") -- so
- *  the rows do what the Dock does: swell toward the pointer and settle
- *  as it leaves, on a spring, with the neighbours carrying a share of it.
+ *  over them, like a mac dock" (owner, 2026-08-29), and asked for again
+ *  every time this rail has been rebuilt. The rows swell toward the
+ *  pointer and settle as it leaves, on a spring, with the neighbours
+ *  carrying a share of it.
  *
  *  Transform only, anchored to the right edge, so the right-aligned
  *  labels stay a clean column while the rows grow leftward into the
@@ -127,22 +124,11 @@ const DOCK_REACH = 64; // px of falloff either side of the pointer
 const DOCK_PEAK = 1.16;
 const DOCK_SPRING = { stiffness: 400, damping: 28 };
 
-/** The opening itself. Slower and softer than the dock: this one moves sixty
- *  rows at once and wants to read as a thing unfolding, not as a thing
- *  snapping. */
-const OPEN_SPRING = { stiffness: 260, damping: 30, mass: 0.9 };
-
-/** How far from the pointer a year still says its own name, as a multiple of
- *  the row height -- so it is always about one row either side, whatever the
- *  rows currently measure. Deliberately far tighter than DOCK_REACH: the
- *  swell covers eight rows and reads as one soft bulge, and eight labels at
- *  once in a column this tight is a stack of overlapping numbers. */
-const NAME_REACH_ROWS = 1.4;
-
-/** Where a name has faded out entirely, as a fraction of that reach. Under
- *  it the pointer's own row is naming itself; over it an anchor row is
- *  coming back. */
-const NAME_FALLOFF = 0.55;
+/** The opening and the closing. Deliberately about a quarter slower than the
+ *  first version of it -- "I'd slow the expansion and compression animations
+ *  by maybe 20-30%" (owner, 2026-08-31) -- and just short of critically
+ *  damped, so it arrives without a bounce. */
+const OPEN_SPRING = { stiffness: 150, damping: 23, mass: 0.9 };
 
 /* ------------------------------------------------------------------ *
  *  How much height there actually is, which is NOT the window.
@@ -150,19 +136,12 @@ const NAME_FALLOFF = 0.55;
  *  The rail is sticky at `top-6`, so once you have scrolled it has the
  *  window minus 24px to work with. Before you have scrolled it starts
  *  wherever the river starts -- about 164px down, under the page title and
- *  the bucket row -- and that is the state it is FIRST opened in. Sizing the
- *  open layout against the stuck height put the oldest years below the fold,
- *  which is the exact thing the open state exists not to do.
- *
- *  So it measures its own top in the document and sizes for THERE, the
- *  tightest position it is ever in, and carries a little slack at the foot
- *  once it sticks. Slack you never see beats years you cannot reach.
+ *  the bucket row -- and that is the state it is FIRST opened in. This
+ *  measures its own top in the document and sizes for THERE, the tightest
+ *  position it is ever in.
  * ------------------------------------------------------------------ */
 function useColumnHeight(rowCount: number) {
   const nav = useRef<HTMLElement>(null);
-  /* 560 is not a guess at the reader's window, it is a deliberately SHORT
-     first pass: erring tight and growing is invisible, while drawing 17px
-     rows and snapping them to 8px a frame later is a lurch. */
   const [height, setHeight] = useState(560);
   const measure = useCallback(() => {
     const el = nav.current;
@@ -185,170 +164,213 @@ function useColumnHeight(rowCount: number) {
 }
 
 type Row = {
+  /** The band this row seeks to. A decade header seeks to the newest year it
+   *  holds, which is a real band; there is nothing filed under "the 1950s"
+   *  as a position in the river. */
   key: string;
   label: string;
   count: number;
-  /** A decade, an end of the scale, or Undated: drawn in both layouts. */
-  anchor: boolean;
-  /** The mark's length in px, already scaled to the archive's shape. */
+  /** Length in px, scaled to the archive's shape. */
   mark: number;
-  /** Where this row sits with the rail closed, and where it sits open. The
-   *  only difference between the two layouts, and a transform either way. */
-  restY: number;
-  openY: number;
+  /** Which decade this belongs to, as an index into `groups`. Undated is not
+   *  a decade and answers -1. */
+  group: number;
+  /** True for the decade's own row; false for a year inside it. */
+  header: boolean;
+  /** A year's place inside its decade's ten slots, counted from the newest
+   *  year that decade actually holds -- so the newest sits under the header
+   *  and every gap below it is a year nobody photographed. */
+  slot: number;
+  /** Every band key this row stands for, so a collapsed decade can light up
+   *  when the reader is anywhere inside it. */
+  covers: string[];
 };
 
-function useRailRows(bands: BandCount[], columnHeight: number) {
-  const held = new Map(bands.map((b) => [b.key, b.count]));
-  /* Newest first, matching the river's own direction, with "Undated" last --
-     it is not a year and cannot be sorted among them. Only years that hold
-     something get a row: an empty year is not a fact about the archive, and
-     pressing one could only ever land on the year below it. */
-  const span = [...held.keys()]
-    .filter((k) => k !== "unknown")
-    .map(Number)
-    .filter((n) => Number.isFinite(n))
-    .sort((a, b) => b - a);
-  const undated = held.has("unknown");
-  const keys = [...span.map(String), ...(undated ? ["unknown"] : [])];
+function useRailModel(bands: BandCount[], columnHeight: number) {
+  return useMemo(() => {
+    const held = new Map(bands.map((b) => [b.key, b.count]));
+    /* Newest first, matching the river's own direction, with "Undated" last
+       -- it is not a year and cannot be sorted among them. Only years that
+       hold something get a row: an empty year is not a fact about the
+       archive, and pressing one could only ever land on the year below it. */
+    const years = [...held.keys()]
+      .filter((k) => k !== "unknown")
+      .map(Number)
+      .filter((n) => Number.isFinite(n))
+      .sort((a, b) => b - a);
+    const undated = held.has("unknown");
 
-  /* The biggest YEAR, not the biggest band: a third of the archive being
-     undated is a real fact, but scaling the years against it flattens every
-     one of them into the same stub and throws away the shape the rail exists
-     to draw. Undated is clamped to the same ceiling instead. */
-  const most = span.reduce((m, y) => Math.max(m, held.get(String(y)) ?? 0), 0) || 1;
-
-  /* ---------------------------------------------------------------- *
-   *  WHAT THE CLOSED RAIL IS MADE OF.
-   *
-   *  The two ends, because a ruler is read by its ends first -- they say how
-   *  far back the archive goes, which is the most useful thing the rail can
-   *  tell somebody at rest. Undated, because it is not a year and an
-   *  unlabelled mark below a gap is unreadable rather than merely
-   *  unlabelled. And one row per decade in between.
-   *
-   *  MIN_APART is what stops two of them printing through each other once
-   *  the rail is OPEN and the rows are eight pixels tall: a decade whose
-   *  nearest year is crowded against an anchor already chosen simply does
-   *  not get one. The decade above it is close enough for the eye, and a
-   *  collision is worse than a gap. */
-  const MIN_APART = 3;
-  const anchors: number[] = [];
-  const room = (i: number) => anchors.every((a) => Math.abs(i - a) >= MIN_APART);
-  if (span.length) {
-    anchors.push(0);
-    if (span.length - 1 > 0 && room(span.length - 1)) anchors.push(span.length - 1);
-    /* Newest decade first, so the ones nearest today -- where the archive is
-       densest and the reader most often is -- win any crowding contest. */
-    for (let d = Math.floor(span[0] / 10) * 10; d >= span[span.length - 1]; d -= 10) {
-      let best = -1;
-      for (let i = 0; i < span.length; i++) {
-        if (best < 0 || Math.abs(span[i] - d) < Math.abs(span[best] - d)) best = i;
+    const decades: number[] = [];
+    const byDecade = new Map<number, number[]>();
+    for (const y of years) {
+      const d = Math.floor(y / 10) * 10;
+      if (!byDecade.has(d)) {
+        byDecade.set(d, []);
+        decades.push(d);
       }
-      if (best >= 0 && !anchors.includes(best) && room(best)) anchors.push(best);
+      byDecade.get(d)!.push(y);
     }
+
+    const fits = Math.floor(columnHeight / ROW);
+    /* GROUPED ONLY WHEN IT HAS TO BE. If every year fits down the column at
+       full height there is nothing a decade could usefully hide, so they are
+       all simply listed -- which is the live Collection, and the rail that
+       shipped before any of this. */
+    const grouped = years.length + (undated ? 1 : 0) > fits;
+
+    /* TWO SCALES, ONE PER LEVEL, because the two are never read against each
+       other: closed, you are comparing decades; open, you are comparing the
+       years of one decade. Sharing a scale would squash every year of a thin
+       decade into the same stub and throw away the shape the rail exists to
+       draw. Undated takes the coarse one -- it is a pile, not a year, and a
+       third of the archive being undated must not set the year scale. */
+    const biggestYear = years.reduce((m, y) => Math.max(m, held.get(String(y)) ?? 0), 0) || 1;
+    const biggestDecade = [...byDecade.values()].reduce(
+      (m, ys) => Math.max(m, ys.reduce((t, y) => t + (held.get(String(y)) ?? 0), 0)),
+      0
+    );
+    const bar = (n: number, of: number) => Math.max(5, Math.min(40, Math.round((n / (of || 1)) * 40)));
+    const yearMark = (n: number) => bar(n, biggestYear);
+    const coarseMark = (n: number) => bar(n, grouped ? biggestDecade : biggestYear);
+
+    const rows: Row[] = [];
+    if (!grouped) {
+      for (const y of years) {
+        const key = String(y);
+        rows.push({
+          key,
+          label: key,
+          count: held.get(key) ?? 0,
+          mark: yearMark(held.get(key) ?? 0),
+          group: -1,
+          header: true,
+          slot: 0,
+          covers: [key],
+        });
+      }
+    } else {
+      decades.forEach((d, g) => {
+        const ys = byDecade.get(d)!;
+        const total = ys.reduce((t, y) => t + (held.get(String(y)) ?? 0), 0);
+        rows.push({
+          key: String(ys[0]),
+          label: `${d}s`,
+          count: total,
+          mark: coarseMark(total),
+          group: g,
+          header: true,
+          slot: 0,
+          covers: ys.map(String),
+        });
+        for (const y of ys) {
+          const key = String(y);
+          rows.push({
+            key,
+            label: key,
+            count: held.get(key) ?? 0,
+            mark: yearMark(held.get(key) ?? 0),
+            group: g,
+            header: false,
+            /* From the newest year this decade HOLDS rather than from the
+               decade's own last year: in the current decade that would open
+               with three empty slots for years that have not happened. */
+            slot: ys[0] - y,
+            covers: [key],
+          });
+        }
+      });
+    }
+    if (undated) {
+      rows.push({
+        key: "unknown",
+        label: bandLabel("unknown"),
+        count: held.get("unknown") ?? 0,
+        mark: coarseMark(held.get("unknown") ?? 0),
+        group: -1,
+        slot: 0,
+        header: true,
+        covers: ["unknown"],
+      });
+    }
+
+    return { rows, grouped, decadeCount: decades.length, undated };
+  }, [bands, columnHeight]);
+}
+
+/** Where every row sits, given which decade is open. Pure arithmetic on the
+ *  model, so the hit-testing and the drawing can never disagree about which
+ *  decade a given pixel belongs to. */
+function layout(rows: Row[], open: number | null) {
+  const y: number[] = new Array(rows.length).fill(0);
+  /** Each decade's extent in the CURRENT layout, which is what the pointer is
+   *  tested against. */
+  const extent = new Map<number, { top: number; bottom: number }>();
+  let at = 0;
+  let i = 0;
+  while (i < rows.length) {
+    const r = rows[i];
+    if (r.group < 0) {
+      if (r.key === "unknown") at += UNDATED_GAP;
+      y[i] = at;
+      at += ROW;
+      i += 1;
+      continue;
+    }
+    const g = r.group;
+    const top = at;
+    y[i] = at; // the decade's own row
+    at += ROW;
+    i += 1;
+    while (i < rows.length && rows[i].group === g) {
+      /* Open, a year sits at its own place in the decade's ten slots. Closed,
+         it is parked on its own decade's row, hidden -- so opening slides it
+         out from under the decade it belongs to rather than materialising it
+         somewhere unrelated. */
+      y[i] = g === open ? top + ROW + rows[i].slot * ROW : top;
+      i += 1;
+    }
+    const bottom = top + (g === open ? (1 + DECADE_SLOTS) * ROW : ROW);
+    at = bottom;
+    extent.set(g, { top, bottom });
   }
-  const isAnchor = new Set(anchors);
-  if (undated) isAnchor.add(keys.length - 1);
-
-  /* THE OPEN ROW, and whether an open state is needed at all. An archive
-     whose every year clears ROW_NAMED is simply drawn, all of it, always --
-     there is nothing an expansion could add. */
-  const spare = columnHeight - (undated ? UNDATED_GAP : 0);
-  const open = Math.max(ROW_MIN, Math.min(ROW_REST, Math.floor(spare / Math.max(keys.length, 1))));
-  const expands = open < ROW_NAMED;
-
-  let rank = 0;
-  let behind = 0; // where the last anchor sits in the CLOSED layout
-  const rows: Row[] = keys.map((key, i) => {
-    const anchor = isAnchor.has(i);
-    const gap = key === "unknown" ? UNDATED_GAP : 0;
-    const openY = i * open + gap;
-    /* Closed, the anchors stack from the top and every year hides behind the
-       decade it belongs to -- so opening slides it out from under that
-       decade rather than materialising it somewhere unrelated. One spring,
-       no stagger: the rows near the top barely travel and the ones at the
-       foot travel the length of the column, so the fan falls out of the
-       distances themselves. */
-    if (anchor) behind = rank++ * ROW_REST + gap;
-    return {
-      key,
-      label: bandLabel(key),
-      count: held.get(key) ?? 0,
-      anchor,
-      /* Length is the year's share of the biggest year, with a floor -- a
-         year holding three photographs must still be pressable and still
-         read as present, and a mark shorter than about 5px reads as a speck
-         of dust rather than as a quantity. */
-      mark: Math.max(5, Math.min(40, Math.round(((held.get(key) ?? 0) / most) * 40))),
-      restY: expands ? behind : openY,
-      openY,
-    };
-  });
-
-  return {
-    rows,
-    /** The row height while open, which is what the naming maths reads. */
-    open,
-    expands,
-    /** The rail's own height in each state -- its hit box as much as its
-     *  drawing. Closed it is only as tall as the decades it shows, so
-     *  passing the margin does not open it from three hundred pixels away. */
-    restHeight: expands ? rank * ROW_REST + (undated ? UNDATED_GAP : 0) : columnHeight,
-  };
+  return { y, extent, height: at };
 }
 
 function RailRow({
-  row: { key, label, count, anchor, mark, restY, openY },
-  height,
-  /** True while the rail is open: every year is drawn. */
-  open,
-  /** The same fact as a motion value, because the naming transform has to
-   *  RECOMPUTE when it changes rather than wait for a render. */
-  openness,
-  /** The open row height, likewise. */
-  rowHeight,
+  row,
+  y,
+  shown,
   isActive,
-  /** The pointer's clientY while it is over the rail; far away otherwise. */
   pointerY,
   onSeek,
 }: {
   row: Row;
-  height: number;
-  open: boolean;
-  openness: MotionValue<number>;
-  rowHeight: MotionValue<number>;
+  y: number;
+  shown: boolean;
   isActive: boolean;
+  /** The pointer's clientY while it is over the rail; far away otherwise. */
   pointerY: MotionValue<number>;
   onSeek: (key: string) => void;
 }) {
   const ref = useRef<HTMLButtonElement>(null);
-  /* WHERE THIS ROW IS, as a spring between the two layouts. A motion value
-     rather than an `animate` prop because the naming below has to be able to
-     ask, at any frame, how far the pointer is from this row -- see the note
-     on `distance`.
-
-     The target is its own motion value rather than the plain number, which
-     is not a style choice: `useSpring(number)` takes that number as a
-     STARTING point in this version and never re-targets when it changes, so
-     the rows sat at their closed positions for ever while everything else
-     behaved as though the rail had opened. Springing from a motion value
-     tracks. */
-  const target = useMotionValue(open ? openY : restY);
+  /* WHERE THIS ROW IS, as a spring. A motion value rather than an `animate`
+     prop because the swell below has to be able to ask, at any frame, how far
+     the pointer is from this row -- and `useSpring(number)` takes its
+     argument as a starting point and never re-targets in this version, which
+     once left every row parked at its closed position while the rest of the
+     component behaved as though the rail had opened. */
+  const target = useMotionValue(y);
   useLayoutEffect(() => {
-    target.set(open ? openY : restY);
-  }, [target, open, openY, restY]);
-  const y = useSpring(target, OPEN_SPRING);
+    target.set(y);
+  }, [target, y]);
+  const springY = useSpring(target, OPEN_SPRING);
 
   /* Distance from the pointer to this row's centre. The rect is read live,
-     because the rail is sticky and its rows travel; `y` is an input for the
-     same reason `openness` is one below -- a transform recomputes when an
-     INPUT moves, and while the rail opens it is the ROWS that are moving and
-     the pointer that is holding still. Without `y` here, the six years that
-     had been stacked behind the 1970 anchor kept the distance they had while
-     they were stacked, and all six named themselves in a heap on top of each
-     other after they had fanned out. */
-  const distance = useTransform([pointerY, y], ([py]: number[]) => {
+     because the rail is sticky and its rows travel; `springY` is an input for
+     the same reason -- a transform recomputes when an INPUT moves, and while
+     a decade opens it is the ROWS that are moving and the pointer that is
+     holding still. */
+  const distance = useTransform([pointerY, springY], ([py]: number[]) => {
     const box = ref.current?.getBoundingClientRect();
     return box ? py - (box.top + box.height / 2) : 1e5;
   });
@@ -357,63 +379,22 @@ function RailRow({
     DOCK_SPRING
   );
 
-  /* WHEN THIS ROW SAYS ITS NAME.
-       - the pointer's own row names itself, falling off over NAME_FALLOFF
-       - an anchor row is named whenever the pointer is far away, and STEPS
-         ASIDE as it comes near a neighbour, or the reveal would print
-         through it
-       - everything else is silent unless the pointer is on it
-
-     EVERY FACT THIS DEPENDS ON IS AN INPUT, which is the whole lesson of the
-     two bugs this handful of lines has had.
-
-     The first was the owner's. It used to interpolate across a fixed input
-     range, `[-near, ..., near]`, and `near` is a multiple of the row height
-     -- which changes the moment the window is resized. The range did not
-     follow, so the name that lit was one row off the mark that swelled:
-     "sometimes after resizing window the highlight number is one higher than
-     the highlighted ticks" (2026-08-31). Computing it instead of
-     interpolating fixes the arithmetic.
-
-     The second was mine, and only a Playwright click found it: a transform
-     recomputes when an INPUT moves, and "is the rail open" was React state,
-     which no motion value hears about. A pointer that entered and STOPPED
-     DEAD drew its marks and named nothing, and any further movement hid it
-     -- which is exactly why probing it by hand missed it.
-
-     So both arrive as motion values. `anchor` is the one fact left in a ref,
-     and it can only change when the archive itself does. */
-  const anchored = useRef(anchor);
-  useLayoutEffect(() => {
-    anchored.current = anchor;
-  }, [anchor]);
-  const named = useSpring(
-    useTransform([distance, openness, rowHeight], ([d, on, h]: number[]) => {
-      if (h >= ROW_NAMED) return 1;
-      const t = Math.min(1, Math.abs(d) / (NAME_REACH_ROWS * h));
-      const mine = on ? Math.max(0, 1 - t / NAME_FALLOFF) : 0;
-      if (!anchored.current) return mine;
-      return Math.max(mine, Math.max(0, (t - NAME_FALLOFF) / (1 - NAME_FALLOFF)));
-    }),
-    DOCK_SPRING
-  );
-
-  const shown = anchor || open;
-
   return (
     <m.button
       ref={ref}
       type="button"
-      onClick={() => onSeek(key)}
+      onClick={() => onSeek(row.key)}
       aria-current={isActive ? "true" : undefined}
-      aria-label={label}
-      title={`${label}: ${count.toLocaleString()} ${count === 1 ? "photograph" : "photographs"}`}
-      /* Absolutely placed and moved by transform, so opening the rail is
-         sixty rows travelling and nothing at all reflowing. */
-      style={{ scale, y, transformOrigin: "right center", height }}
+      aria-label={row.label}
+      aria-hidden={!shown}
+      tabIndex={shown ? undefined : -1}
+      title={`${row.label}: ${row.count.toLocaleString()} ${row.count === 1 ? "photograph" : "photographs"}`}
+      /* Absolutely placed and moved by transform, so opening a decade is a
+         handful of rows travelling and nothing at all reflowing. */
+      style={{ scale, y: springY, transformOrigin: "right center", height: ROW }}
       animate={{ opacity: shown ? 1 : 0 }}
       initial={false}
-      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         "group absolute inset-x-0 top-0 flex items-center justify-end gap-2 rounded-[var(--radius-sm)] pr-1 text-right",
         "transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
@@ -433,21 +414,22 @@ function RailRow({
           "h-[2px] shrink-0 rounded-full transition-colors duration-150",
           isActive ? "bg-canopy" : "bg-foreground/25 group-hover:bg-foreground/50"
         )}
-        style={{ width: mark }}
+        style={{ width: row.mark }}
       />
-      <m.span
+      <span
         aria-hidden
         /* Fixed width, so the marks all start from the same line however many
            digits the label has -- a ragged left edge would read as noise in
-           the bar chart rather than as typography. */
+           the bar chart rather than as typography. A year inside a decade is
+           indented by the label column alone, not by a smaller size: it is
+           the same kind of thing as its parent and reads as one. */
         className={cn(
-          "w-[34px] shrink-0 text-[11px] leading-none tabular-nums tracking-[0.04em]",
-          isActive ? "font-semibold" : "font-medium"
+          "w-[38px] shrink-0 text-[11px] leading-none tabular-nums tracking-[0.04em]",
+          isActive ? "font-semibold" : row.header ? "font-medium" : "font-normal"
         )}
-        style={{ opacity: named }}
       >
-        {label}
-      </m.span>
+        {row.label}
+      </span>
     </m.button>
   );
 }
@@ -468,62 +450,78 @@ export function YearRail({
   className?: string;
 }) {
   const { nav, height: columnHeight } = useColumnHeight(bands.length);
-  const { rows, open: openRow, expands, restHeight } = useRailRows(bands, columnHeight);
+  const model = useRailModel(bands, columnHeight);
+  const [open, setOpen] = useState<number | null>(null);
   /* Far away, not zero: 1e5 keeps every row's distance outside DOCK_REACH,
      so the rail rests flat until a pointer actually arrives. */
   const pointerY = useMotionValue(1e5);
-  /* WHETHER THE RAIL IS OPEN, as React state for the layout and as a motion
-     value for the naming -- see the long note in `RailRow` for why one is
-     not enough. It turns on when a pointer enters the closed box and off
-     when one leaves the OPEN box, which is bigger; there is no edge where
-     those two disagree, so there is nothing to flicker. */
-  const [open, setOpen] = useState(false);
-  const openness = useMotionValue(0);
-  const rowHeight = useMotionValue(openRow);
-  useLayoutEffect(() => {
-    rowHeight.set(openRow);
-  }, [rowHeight, openRow]);
+
+  const placed = layout(model.rows, open);
+  /* The box is sized for one decade being open, ALWAYS, so it never changes
+     size and there is no edge for the pointer to fall off. Which decade is
+     open makes no difference to the total -- that is the whole point of
+     DECADE_SLOTS -- so asking about the first one answers for all of them. */
+  const boxed = layout(model.rows, model.grouped ? 0 : null).height;
+
+  const track = (clientY: number) => {
+    pointerY.set(clientY);
+    if (!model.grouped) return;
+    const box = nav.current?.getBoundingClientRect();
+    if (!box) return;
+    const local = clientY - box.top;
+    /* The decade the pointer is actually inside, in the layout as it stands.
+       Anywhere else -- the gap above Undated, the slack under a sparse
+       decade, the padding at the foot -- changes nothing, which is what stops
+       a switch from bouncing between two decades that keep moving each
+       other. */
+    for (const [g, e] of placed.extent) {
+      if (local >= e.top && local < e.bottom) {
+        if (g !== open) setOpen(g);
+        return;
+      }
+    }
+  };
 
   // One year is not a shape, it is a fact, and a rail of one mark is noise.
-  if (rows.length < 2) return null;
+  if (model.rows.length < 2) return null;
 
   return (
     <nav
       ref={nav}
       aria-label="Jump to when the photograph was taken"
-      onPointerMove={(e) => {
-        openness.set(1);
-        pointerY.set(e.clientY);
-        if (!open) setOpen(true);
-      }}
+      onPointerMove={(e) => track(e.clientY)}
       onPointerLeave={() => {
-        openness.set(0);
         pointerY.set(1e5);
-        setOpen(false);
+        setOpen(null);
       }}
       /* Sticky, so the index stays with you down twenty thousand photographs
          the way a thumb index stays with a book. `top-6` clears the sticky
-         page chrome above it. The height is the hit box as much as the
-         drawing, and it is a plain style rather than an animated one: the
-         box has to be the BIG one the instant the rail opens, or the pointer
-         can find itself outside a box that is still growing. */
-      style={{ height: open || !expands ? columnHeight : restHeight }}
+         page chrome above it. */
+      style={{ height: boxed }}
       className={cn(
-        "sticky top-6 hidden w-[92px] shrink-0 flex-col items-end xl:flex",
+        "sticky top-6 hidden w-[92px] shrink-0 xl:block",
         // Relative, because every row inside is placed by transform.
         "relative",
         className
       )}
     >
-      {rows.map((r) => (
+      {model.rows.map((r, i) => (
         <RailRow
-          key={r.key}
+          key={`${r.group}:${r.key}:${r.header ? "d" : "y"}`}
           row={r}
-          height={openRow}
-          open={open || !expands}
-          openness={openness}
-          rowHeight={rowHeight}
-          isActive={active === r.key}
+          y={placed.y[i]}
+          shown={r.header || r.group === open}
+          /* EXACTLY ONE ROW IS EVER CURRENT. A collapsed decade lights when
+             the reader is anywhere inside it, so the rail always says where
+             you are even when the year itself is folded away -- and the year
+             inside it must then NOT also claim to be, or a row nobody can see
+             is announcing itself to a screen reader beside the row that can.
+             Found by the spec, which could no longer find "the lit mark". */
+          isActive={
+            r.header
+              ? r.group !== open && r.covers.includes(active)
+              : r.group === open && r.key === active
+          }
           pointerY={pointerY}
           onSeek={onSeek}
         />
