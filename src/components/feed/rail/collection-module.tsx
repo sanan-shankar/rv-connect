@@ -4,8 +4,8 @@ import { batchLine, metaLine } from "@/lib/utils";
 import { RailCard } from "./rail-card";
 
 /**
- * "From the Collection": the most recently approved, visible photo from the
- * Valley Collection archive. Hides entirely while the archive has no
+ * "From the Collection": the most recently approved, visible landscape photo
+ * from the Valley Collection archive. Hides entirely while the archive has no
  * approved photo yet (it currently has none) rather than shipping a dark
  * placeholder tile.
  *
@@ -20,7 +20,15 @@ import { RailCard } from "./rail-card";
  */
 export async function CollectionModule() {
   const photo = await prisma.photo.findFirst({
-    where: { scope: "valley", approved: true, isHidden: false },
+    /* LANDSCAPE ONLY. The tile below is a fixed 150px band across the rail,
+       so it asks for a photograph around 2:1; a portrait one arrives as a
+       centre-cropped sliver with its subject's head and feet outside the
+       card. A field reference (width > height) rather than an aspect ratio,
+       because the rule is "does this shape survive the crop", not a number:
+       a square is cropped just as hard here and is excluded too. If the
+       archive holds no landscape photograph yet the card hides, which is the
+       same thing it already does when it holds none at all. */
+    where: { scope: "valley", approved: true, isHidden: false, width: { gt: prisma.photo.fields.height } },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,

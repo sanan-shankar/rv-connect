@@ -1,5 +1,18 @@
 # Progress Log
 
+## 2026-08-31 — From the Collection features landscape photographs only
+
+The feed rail's Collection card is a fixed 150px band across a 284px column, near enough
+two to one. It takes the newest approved valley photograph, and today that was a 3024x4032
+portrait: centre-cropped to a sliver with the subject's head and feet outside the card.
+
+The query now asks for `width > height`. A field reference rather than an aspect-ratio
+threshold, because the question is whether the shape survives the crop, not how far off
+some number it is — a square is cropped just as hard here and is out too. Of the seventeen
+approved valley photographs, fourteen qualify; the card now shows a sports-day line-up at
+1.53:1 instead. If the archive ever holds no landscape photograph the card hides itself,
+which is what it already does when it holds none at all.
+
 ## 2026-08-31 — the rail rests as decades and goes granular under your hand
 
 Same day, second answer. Every year drawn at rest was wrong: *"eh too many ticks."* Sixty
