@@ -1,5 +1,44 @@
 # Progress Log
 
+## 2026-08-31 — the rail rests as decades and goes granular under your hand
+
+Same day, second answer. Every year drawn at rest was wrong: *"eh too many ticks."* Sixty
+near-identical marks standing there read as texture, not as a scale. *"Maybe just decades but
+it beautifully expands becoming granular when you hover, keep the magnification effect?"*
+
+The rows did not change — *"I like the spacing, font sizes and all of the currently pushed
+version, let's work with that"* — and they do not move, ever. Every year the archive holds
+keeps the slot it already had. What changes is what is painted: at rest, one row per decade
+plus the two ends and Undated, about ten marks; bring a pointer near and the years fade in
+exactly where they already were, unfurling outward from the row you arrived on at six
+milliseconds a row. Nothing reflows, so nothing can jump under your hand.
+
+**A decade's anchor is a real year, not the decade.** Nothing is filed under "the 1950s" as a
+position on this scale — there is a row for 1953 because there are photographs from 1953 —
+and inventing an empty 1950 row to hang the word on would put a mark on the scale for a year
+nobody photographed. So the 1950s reads as "1953". Anchors closer than three rows to one
+already chosen are dropped: at eleven pixels a row, two labels two rows apart touch.
+
+**Two bugs in the same five lines, and the same cause both times: a fact the transform
+depended on was not one of its inputs.**
+
+The owner's: *"sometimes after resizing window the highlight number is one higher than the
+highlighted ticks."* The reveal interpolated across a fixed input range built from the row
+height, and a resize changes the row height without rebuilding the range — so the swell,
+which reads the live rect, and the name, which did not, drifted apart by a row. Computing it
+instead of interpolating fixes the arithmetic.
+
+Mine, which only a Playwright click found: a transform recomputes when an *input* moves, and
+"is there a pointer in the rail" was React state. `arrive` sets the pointer position first and
+flips granular second, so the one evaluation that ran still believed the rail was at rest and
+nothing asked it again — a pointer that entered and **stopped dead** drew its marks and named
+nothing. Any further movement hid it, which is exactly why probing it by hand missed it. Both
+facts are motion values now. Pinned at two window heights in `collection-seek.spec.ts`,
+because one window can never catch the first one.
+
+A small archive skips all of it: while rows are 15px or better every year is named at rest and
+there is nothing to expand. The live Collection is four bands and is untouched by any of this.
+
 ## 2026-08-31 — the Collection's rail counts in years, and all of them fit on one screen
 
 *"Can you make the siderail on collection show each year instead of decades"*, then, before a

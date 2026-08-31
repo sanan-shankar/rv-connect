@@ -110,6 +110,112 @@ test("pressing a year from another order turns the river to Chronological", asyn
 });
 
 /* ------------------------------------------------------------------ *
+ *  Decades at rest, years under the pointer.
+ *
+ *  "Eh too many ticks ... maybe just decades but it beautifully expands
+ *  becoming granular when you hover" (owner, 2026-08-31). Sixty marks
+ *  standing there read as texture rather than as a scale, so at rest the
+ *  rail draws about one row per decade and the rest of the years arrive
+ *  with the pointer.
+ *
+ *  Asserted on computed opacity rather than on visibility: every row is
+ *  in the DOM and laid out at every moment -- that is the point, the rows
+ *  never move -- and what changes is whether they are painted.
+ * ------------------------------------------------------------------ */
+
+/** How many marks and how many names the rail is currently painting. */
+const drawn = (page: import("@playwright/test").Page) =>
+  rail(page).evaluate((nav) => {
+    const rows = [...nav.querySelectorAll("button")];
+    const on = (el: Element | null) => Number(getComputedStyle(el!).opacity) > 0.5;
+    return {
+      rows: rows.length,
+      marks: rows.filter((r) => on(r.querySelector("span"))).length,
+      names: rows.filter((r) => on(r.querySelector("span:last-child"))).length,
+    };
+  });
+
+test("the rail rests as decades and goes granular under the pointer", async ({
+  page,
+}, testInfo) => {
+  desktopOnly(testInfo.project.name);
+  await page.goto("/lab/collection");
+  await expect(rail(page)).toBeVisible();
+
+  const atRest = await drawn(page);
+  expect(atRest.rows, "the fixture should span dozens of years").toBeGreaterThan(20);
+  /* About one per decade, plus the two ends and Undated. The bound is loose
+     on purpose -- the exact count is the fixture's business, and pinning it
+     would make this test fail every time a photograph moves year. What
+     matters is that it is nothing like the row count. */
+  expect(atRest.names).toBeLessThan(atRest.rows / 3);
+  expect(atRest.marks).toBe(atRest.names);
+
+  const box = (await rail(page).boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await expect.poll(async () => (await drawn(page)).marks).toBe(atRest.rows);
+});
+
+/* ------------------------------------------------------------------ *
+ *  The name that lights and the mark that swells are the same row.
+ *
+ *  "Sometimes after resizing window the highlight number is one higher
+ *  than the highlighted ticks" (owner, 2026-08-31). The reveal used to
+ *  interpolate across a fixed input range built from the row height, and
+ *  a resize changes the row height without rebuilding the range -- so the
+ *  swell (which reads the live rect) and the name (which did not) drifted
+ *  apart by a row. Pinned at two window heights, because one window can
+ *  never catch it.
+ * ------------------------------------------------------------------ */
+test("the row that swells is the row that names itself, at any window size", async ({
+  page,
+}, testInfo) => {
+  desktopOnly(testInfo.project.name);
+  await page.goto("/lab/collection");
+  await expect(rail(page)).toBeVisible();
+
+  /* A row the rail does NOT name at rest, so what is read below can only
+     have come from the pointer being on it. */
+  const target = await rail(page).evaluate((nav) =>
+    [...nav.querySelectorAll("button")]
+      .find((r) => Number(getComputedStyle(r.querySelector("span:last-child")!).opacity) < 0.5)
+      ?.getAttribute("aria-label") ?? "",
+  );
+  expect(target, "every row was already named; nothing to reveal").not.toBe("");
+
+  const agree = async () => {
+    const at = (await rail(page).getByRole("button", { name: target, exact: true }).boundingBox())!;
+    await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+    return expect
+      .poll(async () =>
+        rail(page).evaluate((nav) => {
+          const rows = [...nav.querySelectorAll("button")];
+          let swollen = "";
+          let peak = 0;
+          for (const r of rows) {
+            const s = new DOMMatrixReadOnly(getComputedStyle(r).transform).a;
+            if (s > peak) {
+              peak = s;
+              swollen = r.getAttribute("aria-label") ?? "";
+            }
+          }
+          const revealed = rows
+            .filter((r) => Number(getComputedStyle(r.querySelector("span:last-child")!).opacity) > 0.9)
+            .map((r) => r.getAttribute("aria-label"));
+          return { swollen, named: revealed.includes(swollen) };
+        }),
+      )
+      .toEqual({ swollen: target, named: true });
+  };
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await agree();
+  // The same gesture again, at a height that gives every row a different size.
+  await page.setViewportSize({ width: 1440, height: 1040 });
+  await agree();
+});
+
+/* ------------------------------------------------------------------ *
  *  And the rail itself fits, which is the whole reason it is not a
  *  list of decades any more.
  *
