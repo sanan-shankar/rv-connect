@@ -34,13 +34,33 @@
  *  work the fading was trying to do.
  *
  *  HOW IT HOLDS STILL. Only one decade is ever open and every open
- *  decade is the same height, so the rail's total height never changes
- *  and neither does its hit box. An opening decade grows DOWNWARD from
- *  its own header, which does not move -- so the pointer that opened it
- *  is still inside it afterwards, and the decades above it never move at
- *  all. Crossing out of the bottom of one decade lands you inside the
- *  next; crossing out of the top lands you inside the one above. There
- *  is no arrangement in which a move switches you twice.
+ *  decade is the same eleven rows, so the rail's total height never
+ *  changes and neither does its hit box. A decade grows DOWNWARD from
+ *  its own row, which does not move.
+ *
+ *  AND THE YEARS ARE ALWAYS BELOW YOUR HAND, never above it. That is a
+ *  rule, and it costs something, and the owner chose to pay: "sometimes
+ *  the menu opens above sometimes below" (2026-08-31). The cause is
+ *  arithmetic rather than a slip. Crossing out of the foot of an open
+ *  decade used to open the next one straight away -- but opening it
+ *  collapses the one you left, which lifts the whole list by the height
+ *  of a block, so the new years landed ABOVE the pointer. Measured on
+ *  the version that shipped: arriving fresh on the 1970s put its years
+ *  7px below the pointer and 178px below it; walking down into the
+ *  1960s put them 161px ABOVE.
+ *
+ *  So the decade that opens is always the one whose OWN ROW is at the
+ *  pointer's height in the closed list -- which means, after it opens,
+ *  its row is still exactly there and its years run down from it. Every
+ *  time, from every direction.
+ *
+ *  What that costs: while a decade is open you can only switch upward,
+ *  to a newer one, in a single move. Its own years occupy the space
+ *  below it, and travelling through them must not re-choose the decade
+ *  or you could not read them. Going OLDER means moving down past the
+ *  years, which closes the rail, and then back up into the list. Two
+ *  moves. The trade is a menu that never jumps for a decade that
+ *  sometimes takes two gestures to reach.
  *
  *  A SMALL ARCHIVE IS NOT GROUPED. If every year the archive holds fits
  *  down the column at full row height, they are simply all listed, all
@@ -177,9 +197,9 @@ type Row = {
   group: number;
   /** True for the decade's own row; false for a year inside it. */
   header: boolean;
-  /** A year's place inside its decade's ten slots, counted from the newest
-   *  year that decade actually holds -- so the newest sits under the header
-   *  and every gap below it is a year nobody photographed. */
+  /** A year's place inside its decade's ten slots. The newest year a decade
+   *  holds takes the first slot and the oldest takes the last, with whatever
+   *  lies between spread across the rest in proportion. */
   slot: number;
   /** Every band key this row stands for, so a collapsed decade can light up
    *  when the reader is anywhere inside it. */
@@ -252,6 +272,10 @@ function useRailModel(bands: BandCount[], columnHeight: number) {
       decades.forEach((d, g) => {
         const ys = byDecade.get(d)!;
         const total = ys.reduce((t, y) => t + (held.get(String(y)) ?? 0), 0);
+        /* How many years this decade actually reaches across, which is what
+           the ten slots are stretched over. Zero when it holds a single year,
+           which then simply sits on the decade's own line. */
+        const span = ys[0] - ys[ys.length - 1];
         rows.push({
           key: String(ys[0]),
           label: `${d}s`,
@@ -271,10 +295,21 @@ function useRailModel(bands: BandCount[], columnHeight: number) {
             mark: yearMark(held.get(key) ?? 0),
             group: g,
             header: false,
-            /* From the newest year this decade HOLDS rather than from the
-               decade's own last year: in the current decade that would open
-               with three empty slots for years that have not happened. */
-            slot: ys[0] - y,
+            /* STRETCHED TO FILL THE TEN SLOTS, newest at the top and oldest
+               flush against the decade below.
+
+               Counting from the decade's own first year instead leaves a hole
+               under any decade whose years do not happen to span the full ten
+               -- and a hole whose size changes from decade to decade, which
+               is the whole of "sometimes there's a gap to the next decade
+               sometimes there isn't" (owner, 2026-08-31). The block is now
+               the same eleven rows whoever opens it AND ends where the next
+               decade begins, every time.
+
+               The proportions inside survive the stretch: a decade with a
+               run of consecutive years still draws them evenly, and one with
+               a five-year hole in the middle still shows it. */
+            slot: span ? ((ys[0] - y) * (DECADE_SLOTS - 1)) / span : 0,
             covers: [key],
           });
         }
@@ -469,17 +504,29 @@ export function YearRail({
     const box = nav.current?.getBoundingClientRect();
     if (!box) return;
     const local = clientY - box.top;
-    /* The decade the pointer is actually inside, in the layout as it stands.
-       Anywhere else -- the gap above Undated, the slack under a sparse
-       decade, the padding at the foot -- changes nothing, which is what stops
-       a switch from bouncing between two decades that keep moving each
-       other. */
-    for (const [g, e] of placed.extent) {
-      if (local >= e.top && local < e.bottom) {
-        if (g !== open) setOpen(g);
-        return;
-      }
+
+    /* Inside the open decade's own block, nothing changes. That is where its
+       years are, and travelling through them to read one must not re-choose
+       the decade they belong to. */
+    if (open !== null) {
+      const e = placed.extent.get(open);
+      if (e && local >= e.top && local < e.bottom) return;
     }
+
+    /* Otherwise the decade is whichever one's OWN ROW is at this height in
+       the CLOSED list. That is the whole of "the years are always below your
+       hand": the decade this picks is, once it opens, sitting exactly where
+       the pointer is, so its years can only run downward from there. It also
+       cannot bounce -- the row it chooses is by construction inside the block
+       that opening it creates, so the very next reading of the pointer takes
+       the branch above and stops. Below the list there is no decade to pick,
+       and the rail closes. */
+    const at = Math.floor(local / ROW);
+    const next =
+      local >= 0 && local < model.decadeCount * ROW
+        ? Math.min(at, model.decadeCount - 1)
+        : null;
+    if (next !== open) setOpen(next);
   };
 
   // One year is not a shape, it is a fact, and a rail of one mark is noise.

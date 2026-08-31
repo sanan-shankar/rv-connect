@@ -1,5 +1,40 @@
 # Progress Log
 
+## 2026-08-31 — two refinements to the rail, and one of them was a choice rather than a fix
+
+*"Sometimes the menu opens above sometimes below? Sometimes there's a gap to the next decade
+sometimes there isn't."* Both real, both measured before anything was touched, and one of them
+turned out to be a trade rather than a defect. (A rebuild into two columns was started and
+reverted on his word — *"I liked how it was previous just needed a bit of refining"* — so this
+is the same rail, refined.)
+
+**The gap.** An open decade is eleven rows whoever it is, and its years were placed at their
+true positions inside those ten slots. A decade whose years span the full ten therefore ended
+flush against the next decade and one spanning six left four rows of hole. The years are
+stretched across the slots now — newest on the decade's own line, oldest flush against the
+decade below — so the block always ends where the next one begins. The proportions inside
+survive: 1979, a double gap for 1978 and 1977, then 1976.
+
+**The direction, which is arithmetic and not a slip.** Measured on the shipped version:
+arriving fresh on the 1970s put its years 7px below the pointer and 178px below; walking down
+into the 1960s put them 161px ABOVE. Crossing out of the foot of an open decade opened the
+next one, but opening it collapses the one you left, which lifts the whole list by a block.
+
+The decade that opens is now always the one whose OWN ROW is at the pointer's height in the
+closed list — so after it opens, its row is still exactly there and its years can only run
+downward. Verified from four directions: first year 8px below the pointer, every time.
+
+**What that costs, and he chose to pay it.** While a decade is open you can only switch upward,
+to a newer one, in a single move: its years occupy the space below it and travelling through
+them must not re-choose the decade or you could not read them. Going older means moving down
+past the years, which closes the rail, then back up into the list. Two moves. A menu that never
+jumps, for a decade that sometimes takes two gestures to reach.
+
+The specs took the same lesson: `openDecade` now leaves the rail before pointing at the next
+decade, because that is the gesture a hand makes, and "the years are below the pointer" is
+asserted at the moment a decade OPENS rather than continuously — once you are inside a menu,
+some of it is above you, which is what being inside a menu means.
+
 ## 2026-08-31 — the rail is a list of decades, and the one you point at opens into its years
 
 *"There's so many instances where it's these different shades of grey ... two numbers showing
