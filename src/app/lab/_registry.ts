@@ -175,7 +175,7 @@ export const REGISTRY: LabEntry[] = [
       {
         href: "/lab/collection/swap",
         title: "Four changes pretending to be one",
-        note: "The caret between the two halves, four ways. Today's swap is reproduced beat for beat beside three replacements, so the second of grey it spends can be judged against something.",
+        note: "The caret between the two halves, four ways. Both archives are built and decoded at load, so nothing ever populates and only the half you are leaving moves: the archive opens down its middle, or is drawn up into the header, or advances like film. Today's swap sits beside them, reproduced beat for beat including its second of grey.",
       },
     ],
   },
