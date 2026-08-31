@@ -174,8 +174,8 @@ export const REGISTRY: LabEntry[] = [
     children: [
       {
         href: "/lab/collection/swap",
-        title: "Four changes pretending to be one",
-        note: "The caret between the two halves, four ways. Both archives are built and decoded at load, so nothing ever populates and only the half you are leaving moves: the archive opens down its middle, or is drawn up into the header, or advances like film. Today's swap sits beside them, reproduced beat for beat including its second of grey.",
+        title: "Nothing until everything",
+        note: "The caret between the two halves. The title turns over, a small mark holds the place while the page is genuinely fetched and decoded, and then the photographs arrive whole instead of filling in. Today's swap sits beside it, reproduced beat for beat including its half second of grey.",
       },
     ],
   },
