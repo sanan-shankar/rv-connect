@@ -1,5 +1,50 @@
 # Progress Log
 
+## 2026-08-31 — the Collection's rail is a decade index that opens into a year ruler
+
+Third pass at the same rail, and the one the owner was describing all along: *"decade spaced
+like before but when you hover over it expands into years ... they're hidden but they'll show
+on hover. I want it to expand only when you hover."* The pass before this showed the decades
+at their true positions down the whole column and faded years in between them — nothing moved,
+which was the point, and it also meant nothing ever *expanded*.
+
+So there are two layouts and the rail springs between them. Closed, the decades stack from the
+top at 17px a row, adjacent: the compact index it was before any of this, about ten marks.
+Open, every year the archive holds takes its place down the full column — the ruler you can
+pick 1956 off. Rows are absolutely placed and moved by `y`, so sixty rows travel and nothing
+reflows; the rail's own hit box grows with it, so leaving means leaving the *big* box and
+there is no edge to flicker on. The years slide out from behind the decade they were hiding
+under, all on one spring: the top rows barely travel and the foot travels the length of the
+column, so the fan falls out of the distances rather than out of a stagger.
+
+**The trade this buys and what it costs.** Compact-closed and full-height-open cannot both be
+true without the rows moving, so the year under your cursor when the rail opens is not the
+decade you touched — the rail is an overview, and touching it hands you the ruler. Once open,
+nothing moves again.
+
+**Three bugs, one cause: a fact the transform depended on was not one of its inputs.**
+
+The owner's, from the last pass: the reveal interpolated across a range built from the row
+height, so after a resize the name that lit was one row off the mark that swelled.
+
+Then: "is the rail open" was React state, so a pointer that entered and stopped dead drew its
+marks and named nothing.
+
+Then, once the rows started moving: `distance` recomputed only when the *pointer* moved, and
+during an expansion it is the rows that move. Six years that had been stacked behind the 1970
+anchor kept the distance they had while stacked and all named themselves in a heap after they
+fanned out. The row's own `y` is an input now.
+
+And one that was not a transform at all: **`useSpring(number)` takes that number as a starting
+point and never re-targets when it changes** in this version. The rows sat at their closed
+positions for ever while every other signal behaved as though the rail had opened. Springing
+from a `useMotionValue` tracks.
+
+**Two Playwright lessons worth keeping.** Playwright hit-tests *before* it moves the mouse, so
+it could never click a year the closed rail was covering — the spec opens the rail first,
+which is the real gesture anyway. And opening is sixty rows on a spring: every row is fully
+drawn long before it has arrived, so `openRail` waits on geometry going still, not on opacity.
+
 ## 2026-08-31 — From the Collection features landscape photographs only
 
 The feed rail's Collection card is a fixed 150px band across a 284px column, near enough
