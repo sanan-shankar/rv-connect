@@ -88,6 +88,45 @@ No rail in the room, and not by oversight: `decade-rail.tsx` was being replaced 
 `year-rail.tsx` in this same tree while the room was written. The fourth idea, the rail
 restating the archive's shape as the new half arrives, waits for that to settle.
 
+**Round two, because round one was three flavours of one idea.** The owner on the cross-fade,
+the dissolve and the sheet: *"these are so mid ... I didn't mean just cross dissolve wipe etc.
+think bigger and more creative these are so boring."* And, more usefully, the two things that
+made even the good bits cheap: *"I still see them being populated in, it looks weird"* and
+*"why are the pictures moving and enlarging in some of them."*
+
+The second version starts from a rule instead of an animation. **Both archives are built and
+decoded when the page loads**, stacked in the same box, one hidden — *"once we have the basic
+page loaded, we can show it. the next photos can load quietly in the background."* Nothing is
+ever arriving, so there is nothing to populate. From that rule the rest falls out: only the
+half you are LEAVING moves, and there is now no opacity keyframe and no scale on a photograph
+anywhere in the file.
+
+Three ways out, different in kind rather than in flavour. **The parting**, where the archive
+opens down its own middle: every photograph leaves by the edge it is nearest, row by row from
+the top, each with a degree of tilt. **The gather**, where the page is drawn up into the
+header and the caret stops being a chevron and becomes a door. **The advance**, where the two
+halves are two frames of one film strip and both move by the same distance in the same
+direction, with a 3% overshoot at 86% for the seat.
+
+Two things the second round taught:
+
+- **Sending whole rows left and right alternately is noise.** A row crossing the full width
+  passes over every photograph above and below it. Each one going to the edge it is already
+  nearest means nothing crosses the middle, and the movement reads as the grid opening rather
+  than as a shuffle.
+- **Forty-eight photographs aimed at one point is a heap.** They all pass through the same
+  corridor and arrive on top of each other. At four tenths of the horizontal distance they
+  keep the spread they had, and the page reads as being drawn upward rather than swept into a
+  corner.
+
+The title now just changes, with nothing animating it. Rolling the changing word read to the
+owner as *"a weird glitching near the Valley/Class word"*, which is where subpixel text
+rendering goes when two absolutely positioned words cross under a transform. A fixed-width box
+holding the longer word fixes the caret in place and leaves a visible hole: "The Class [gap]
+Collection". So the caret moves 12px, and under a movement this size nobody will see it. It
+was never the 12px that was wrong; it was that the 12px was the only thing happening for the
+next 600ms.
+
 ## 2026-08-30 — what the date field does when you empty it, and what it did not do to Afya's fifteen
 
 **The month control was still being painted after it faded.** The owner: *"when you delete

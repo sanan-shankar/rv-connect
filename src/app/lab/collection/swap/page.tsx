@@ -1,38 +1,49 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  The swap between the Collection's two halves, four ways.
+ *  The swap between the Collection's two halves.
  *
- *  What is wrong today, measured in the browser at 1440 with a warm
- *  cache. You press the caret. Nothing happens for 185ms. Then the
- *  title, the caret and the whole bucket line change in a single frame
- *  with no animation on any of them. Then the photographs fade to 40%
- *  and sit there for 466ms. Then they cut out in one frame and the new
- *  ones fade up. One second, four events, three of them hard cuts, and
- *  the header arrives 700ms before the pictures it is describing.
+ *  ROUND TWO. The first three ideas in this room were a cross-fade, a
+ *  dissolve and a slide, and the owner was right about all of them:
+ *  *"these are so mid ... I didn't mean just cross dissolve wipe etc.
+ *  think bigger and more creative these are so boring."* He also named
+ *  the two things that made even the good bits feel cheap. *"I still see
+ *  them being populated in, it looks weird"* and *"why are the pictures
+ *  moving and enlarging in some of them."*
  *
- *  On a phone it is worse: dropping the bucket line un-wraps the
- *  controls row, so the river jumps up 37px the instant you press.
+ *  So this version starts from a rule rather than from an animation.
  *
- *  So this room is one Collection at full size with a real caret on it,
- *  and a picker for what that caret does. "Today" is the shipped
- *  behaviour reproduced beat for beat, including the 460ms wait, so the
- *  three proposals are judged against the thing itself rather than
- *  against a memory of it.
+ *  BOTH ARCHIVES ARE ALREADY ON THE PAGE. Not fetched on the press, not
+ *  mounted on the press: built and decoded at load, stacked in the same
+ *  box, one of them hidden. *"once we have the basic page loaded, we can
+ *  show it. the next photos can load quietly in the background."* So
+ *  nothing is ever arriving, and there is nothing to populate.
  *
- *  Every component under the picker is the real one: <ScopeCaret>,
- *  <RiverControls>, <PhotoRiver>, <SearchPill>. Only the archives are
- *  made up, for the reason /lab/collection already gives. The class half
- *  is fourteen photographs, or none, because his own class holds none and
- *  that is the arrival most members will get.
+ *  From that rule everything else follows. The half you are LEAVING is
+ *  the only thing that moves; the half you are going to does not fade,
+ *  does not scale, does not travel, because it was there all along. No
+ *  opacity on a photograph anywhere in this file. No scale on one either.
  *
- *  NO RAIL IN HERE, and it is not an oversight. A third idea belongs with
- *  these three: the rail restating the archive's own shape as the new
- *  half arrives, its marks growing in from the right. It is not built
- *  because `decade-rail.tsx` was being replaced by `year-rail.tsx` in
- *  this same working tree on 2026-08-31, and a transition designed
+ *  Three ways for the top half to get out of the way, different in kind
+ *  rather than in flavour:
+ *
+ *    The parting  rows slide out sideways, alternating, top to bottom,
+ *                 each with a degree of tilt, like prints sliding off a
+ *                 table.
+ *    The gather   every photograph flies to the caret and is swallowed
+ *                 by it. The caret stops being a chevron and becomes a
+ *                 door.
+ *    The advance  the two halves are two frames of one film strip and
+ *                 the caret advances the film. One rigid move, a carry
+ *                 and a seat, nothing per-tile.
+ *
+ *  "Today" is still here, reproduced beat for beat off the shipped page
+ *  including its 460ms of grey, because the only way to judge a
+ *  replacement is against the thing itself.
+ *
+ *  NO RAIL. `decade-rail.tsx` was being replaced by `year-rail.tsx` in
+ *  this same tree while this was written, and a transition designed
  *  against a component somebody is deleting is work thrown away twice.
- *  Bring it back once the year rail settles.
  * ------------------------------------------------------------------ */
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -55,16 +66,13 @@ import { LAB_ARCHIVE } from "../_archive";
  *  The two archives
  * ------------------------------------------------------------------ */
 
-/** ONE PAGE of the valley, not all 240, because one page is what a swap
- *  actually swaps: `PAGE_SIZE` in `collection/actions.ts` is 48 and the
- *  rest arrives on scroll. Mounting 240 tiles blocked the main thread for
- *  190ms in this room's first draft, which invented a lag the real page
- *  does not have. */
+/** ONE PAGE of the valley, not all 240: `PAGE_SIZE` in
+ *  `collection/actions.ts` is 48 and the rest arrives on scroll. */
 const VALLEY_ARCHIVE: PhotoData[] = LAB_ARCHIVE.slice(0, 48);
 
 /** A class archive is small and recent. Fourteen, off the same fixture, so
- *  both halves are the same photographs seen twice and nothing about the
- *  transition can be an artefact of one set looking nicer than the other. */
+ *  both halves are the same photographs seen twice and nothing here can be
+ *  an artefact of one set looking nicer than the other. */
 const CLASS_ARCHIVE: PhotoData[] = LAB_ARCHIVE.filter(
   (p) => p.era === "2010s" || p.era === "2020s"
 )
@@ -75,170 +83,104 @@ const CLASS_ARCHIVE: PhotoData[] = LAB_ARCHIVE.filter(
  *  What the caret does
  * ------------------------------------------------------------------ */
 
-type Variant = "today" | "turn" | "dissolve" | "sheet";
+type Variant = "today" | "parting" | "gather" | "advance";
 
-/** One river on screen. `enter` is set on the half arriving, `exit` on the
- *  half leaving, and both are null on the one at rest. */
-type Layer = {
-  run: number;
-  scope: PhotoScope;
-  enter: { v: Variant; dir: "down" | "up" } | null;
-  exit: { v: Variant; dir: "down" | "up" } | null;
-};
-
-/** Every number the four transitions run on, in one place, because the
- *  only way to judge two of these against each other is to know they are
- *  not secretly different lengths.
- *
- *  `today` is measured off the shipped page, not invented: 200ms down to
- *  40%, 466ms of nothing, a hard cut, 200ms back up. */
-const TIMING: Record<Variant, { exit: number; enterAt: number; enter: number }> = {
-  today: { exit: 200, enterAt: 660, enter: 200 },
-  /* The exit and the entrance overlap by 50ms, which is what stops the
-     page reading as two separate movements with a seam between them. */
-  turn: { exit: 240, enterAt: 190, enter: 340 },
-  dissolve: { exit: 380, enterAt: 0, enter: 380 },
-  sheet: { exit: 300, enterAt: 0, enter: 420 },
+/** How long the leaving half takes to be gone, in milliseconds, matching
+ *  the CSS below. Kept here only to release the press guard: nothing is
+ *  SEQUENCED off a timer any more, because a setTimeout started at the
+ *  click runs on a different clock from a CSS animation started at the
+ *  commit, and the gap between them is however long React took. */
+const SPENT: Record<Variant, number> = {
+  today: 900,
+  parting: 620,
+  gather: 620,
+  advance: 620,
 };
 
 const VARIANTS: { v: Variant; label: string; note: string }[] = [
   {
     v: "today",
     label: "Today",
-    note: "What ships. Header cuts at once, photographs 660ms later, greyed in between.",
+    note: "What ships. The header cuts at once, the photographs 660ms later, greyed in between.",
   },
   {
-    v: "turn",
-    label: "The Turn",
-    note: "Travel that obeys the caret. Down to the class, up to the valley, and it reverses. Rows lean out of the way top to bottom.",
+    v: "parting",
+    label: "The parting",
+    note: "The archive opens down its own middle. Every photograph leaves by the edge it is nearest, row by row from the top, each with a degree of tilt like a print sliding off a table. What is underneath was there the whole time.",
   },
   {
-    v: "dissolve",
-    label: "The Dissolve",
-    note: "The film dissolve. The old archive grows a touch and fades, the new one settles in from slightly under size.",
+    v: "gather",
+    label: "The gather",
+    note: "The page is drawn upward into the header, row by row, each photograph leaning toward the caret as it goes. The caret stops being a chevron and becomes a door.",
   },
   {
-    v: "sheet",
-    label: "The Sheet",
-    note: "The class half is a sheet laid over the valley, and coming back is dismissing it rather than a second arrival.",
+    v: "advance",
+    label: "The advance",
+    note: "Two frames of one film strip. The caret advances the film: one rigid move, a carry and a seat, nothing per-tile at all.",
   },
 ];
 
 /* ------------------------------------------------------------------ *
- *  The row stagger
+ *  Where every photograph is
  * ------------------------------------------------------------------ */
 
-/** Give every photograph in `root` the index of the row it sits on, as a
- *  CSS variable the stylesheet turns into a delay.
+/** Give every photograph the row it sits on and which way that row leaves.
  *
  *  <PhotoStream> justifies with flex-wrap, so a row is not an element and
  *  there is nothing to select. The photographs are found by the label
  *  <Tile> puts on every one, then grouped by their offsetTop.
  *
  *  The obvious selector, the inline `flex-grow` PhotoStream writes on each
- *  cell, does not work: with grow, shrink and basis all set, the browser
- *  serialises the style attribute as the `flex` shorthand, so a
+ *  cell, does not work: with grow, shrink and basis all set the browser
+ *  serialises the style attribute as the `flex` shorthand, so
  *  `[style*="flex-grow"]` matches nothing. Cost an hour.
  *
- *  ONLY THE MOVEMENT IS STAGGERED, never the fade. A staggered opacity is
- *  precisely the "full reloading and things populate unevenly" the river
- *  already had to be fixed for once. The layer fades as one sheet; the
- *  rows lean at slightly different moments underneath it. */
-function useRowIndex(root: React.RefObject<HTMLDivElement | null>, cap = 8) {
+ *  Runs once per layer per layout, not per swap: the answer only changes
+ *  when the rows reflow. */
+function useTileGeometry(root: React.RefObject<HTMLDivElement | null>, cap = 6) {
   useLayoutEffect(() => {
     for (const layer of root.current?.querySelectorAll<HTMLElement>("[data-layer]") ?? []) {
+      const mid = layer.offsetWidth / 2;
       let row = -1;
       let lastTop: number | null = null;
       for (const tile of layer.querySelectorAll<HTMLElement>("button[aria-label]")) {
         const top = tile.offsetTop;
-        // Not `Math.abs(top - lastTop) > 2` against a NaN seed: NaN fails every
-        // comparison, so the first row silently stayed at -1.
+        // Not `Math.abs(top - lastTop) > 2` against a NaN seed: NaN fails
+        // every comparison, so the first row silently stayed at -1.
         if (lastTop === null || Math.abs(top - lastTop) > 2) {
           row += 1;
           lastTop = top;
         }
         tile.style.setProperty("--row", String(Math.min(row, cap)));
-        tile.classList.add("swap-cell");
+        /* Which edge this photograph leaves by: the near one.
+           Alternating whole rows left and right was tried first and it is
+           noise -- a row travelling the full width passes over every
+           photograph in the rows above and below it, and with a page this
+           dense that reads as a shuffle rather than as a movement. Sending
+           each one to the edge it is already closest to means nothing ever
+           crosses the middle, and the grid opens down its own centre. */
+        tile.style.setProperty("--side", tile.offsetLeft + tile.offsetWidth / 2 < mid ? "-1" : "1");
+        tile.classList.add("swap-tile");
       }
     }
   });
 }
 
-/* ------------------------------------------------------------------ *
- *  The title that changes one word
- * ------------------------------------------------------------------ */
-
-/** "The Valley Collection" and "The Class Collection" share three of their
- *  four words, and today the whole line is replaced anyway: the caret
- *  teleports 12px sideways because "Class" is narrower than "Valley".
+/** Point every photograph in `layer` at the caret, as its own vector.
  *
- *  So only the word that changed changes. It rolls, and everything after
- *  it glides across the difference in width. The glide is a translate off
- *  a measured number, not an animated width, so no layout moves. */
-function SwapTitle({
-  scope,
-  glide,
-  caret,
-}: {
-  scope: PhotoScope;
-  glide: boolean;
-  caret: React.ReactNode;
-}) {
-  const valley = useRef<HTMLSpanElement>(null);
-  const klass = useRef<HTMLSpanElement>(null);
-  /* How much narrower "Class" is than "Valley", in the face actually
-     rendering. Measured ONCE: the two words never change, so this costs a
-     single extra render at mount and nothing per swap. */
-  const [narrower, setNarrower] = useState(0);
-
-  useLayoutEffect(() => {
-    const a = valley.current?.offsetWidth ?? 0;
-    const b = klass.current?.offsetWidth ?? 0;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- The layout engine IS the external system here: the only way to know how wide Libre Baskerville sets two words is to render them and read them back.
-    if (a && b) setNarrower(b - a);
-  }, []);
-
-  // The box is the wider word, so "Class" pulls the rest of the line left.
-  const dx = scope === "class" ? narrower : 0;
-
-  if (!glide) {
-    return (
-      <>
-        {scope === "class" ? "The Class Collection" : "The Valley Collection"}
-        {caret}
-      </>
-    );
+ *  Read at the press rather than at layout, because it is a fact about
+ *  where two things are on the SCREEN, and the caret is in the header
+ *  while the photographs scroll under it. */
+function aimAtTheDoor(layer: HTMLElement | null, door: HTMLElement | null) {
+  if (!layer || !door) return;
+  const d = door.getBoundingClientRect();
+  const dx = d.left + d.width / 2;
+  const dy = d.top + d.height / 2;
+  for (const tile of layer.querySelectorAll<HTMLElement>(".swap-tile")) {
+    const t = tile.getBoundingClientRect();
+    tile.style.setProperty("--gx", `${Math.round(dx - (t.left + t.width / 2))}px`);
+    tile.style.setProperty("--gy", `${Math.round(dy - (t.top + t.height / 2))}px`);
   }
-
-  return (
-    <span className="swap-title">
-      The{" "}
-      <span className="swap-word">
-        {/* An invisible copy of the wider word holds the box open, so the two
-            real words can sit on top of each other and roll. */}
-        <span className="invisible" aria-hidden>
-          Valley
-        </span>
-        <span ref={valley} data-on={scope === "valley"} aria-hidden>
-          Valley
-        </span>
-        <span ref={klass} data-on={scope === "class"} aria-hidden>
-          Class
-        </span>
-      </span>
-      {/* The space lives OUTSIDE the glide, because a leading space inside an
-          inline-block is collapsed away and the title read "ValleyCollection".
-          Out here it also stays put while the rest slides over it, which is
-          what keeps the gap after the word exactly one space wide in both
-          halves. */}{" "}
-      <span className="swap-rest" style={{ transform: `translateX(${dx}px)` }}>
-        Collection{caret}
-      </span>
-      <span className="sr-only">
-        {scope === "class" ? "The Class Collection" : "The Valley Collection"}
-      </span>
-    </span>
-  );
 }
 
 /* ------------------------------------------------------------------ *
@@ -246,34 +188,22 @@ function SwapTitle({
  * ------------------------------------------------------------------ */
 
 export default function SwapRoom() {
-  const [variant, setVariant] = useState<Variant>("turn");
-  const [glide, setGlide] = useState(true);
+  const [variant, setVariant] = useState<Variant>("parting");
   const [classEmpty, setClassEmpty] = useState(false);
 
-  /* What the header says. It changes the moment you press, in every
-     variant, because the caret has to answer the press in the first frame
-     -- 185ms of nothing is most of what "jittery" means. */
+  /* Which half the page is on. It changes at the press, in every variant,
+     because a control that does not answer in the first frame is most of
+     what "jittery" means. */
   const [scope, setScope] = useState<PhotoScope>("valley");
 
-  /* The rivers on screen: one at rest, two mid-swap.
-   *
-   *  A LIST, and keyed, for one reason that turned out to matter more than
-   *  anything else in this room. The first draft drew the leaving half as a
-   *  separate "ghost" element, which meant React unmounted the old river and
-   *  mounted a fresh copy of it in the same commit: 190ms of blocked main
-   *  thread, no first frame, and an exit that was over before it painted.
-   *  Here the leaving layer keeps the key it already had, so it keeps its
-   *  DOM and its decoded images and does nothing but take a new class name.
-   *  Only the arriving one is built. */
-  const [layers, setLayers] = useState<Layer[]>([
-    { run: 0, scope: "valley", enter: null, exit: null },
-  ]);
-  const runs = useRef(0);
+  /* The half on its way out, and how. Null at rest. */
+  const [leaving, setLeaving] = useState<{ scope: PhotoScope; v: Variant; dir: "down" | "up" } | null>(
+    null
+  );
 
   const [dim, setDim] = useState(false);
   const busy = useRef(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-
   useEffect(
     () => () => {
       for (const t of timers.current) clearTimeout(t);
@@ -281,82 +211,112 @@ export default function SwapRoom() {
     []
   );
 
-  const archiveOf = useCallback(
-    (s: PhotoScope) => (s === "class" ? (classEmpty ? [] : CLASS_ARCHIVE) : VALLEY_ARCHIVE),
-    [classEmpty]
-  );
-
-  /** The half the river is showing: the last layer in the list is always the
-   *  one arriving, or the only one there is. */
-  const live = layers[layers.length - 1];
-
-  const chooseScope = useCallback(
-    (next: PhotoScope) => {
-      if (busy.current) return;
-      busy.current = true;
-      const dir = next === "class" ? "down" : "up";
-      const t = TIMING[variant];
-      /* Only "today" is on a timer, and rightly: what it is reproducing IS a
-         wait for the network rather than an animation. */
-      const after = (ms: number, fn: () => void) => {
-        timers.current.push(setTimeout(fn, ms));
-      };
-
-      setScope(next);
-
-      if (variant === "today") {
-        /* Reproduced beat for beat. The header has already changed above;
-           the photographs stay put, greyed, until the fetch lands, and then
-           they are replaced without an entrance of any kind. */
-        setDim(true);
-        after(t.enterAt, () => {
-          runs.current += 1;
-          setLayers([{ run: runs.current, scope: next, enter: null, exit: null }]);
-          setDim(false);
-          busy.current = false;
-        });
-        return;
-      }
-
-      runs.current += 1;
-      const arriving = runs.current;
-      setLayers((prev) => [
-        /* Same key, same DOM: this one is only being told to leave. Its
-           `enter` is cleared in the same breath, or the element carries both
-           attributes and the browser runs whichever selector wins on
-           specificity: a river left the page by playing its own arrival
-           backwards from the last swap. */
-        { ...prev[prev.length - 1], enter: null, exit: { v: variant, dir } },
-        { run: arriving, scope: next, enter: { v: variant, dir }, exit: null },
-      ]);
-      /* Nothing is timed from here. A setTimeout started at the click runs on
-         a different clock from a CSS animation started at the commit, and the
-         gap between them is however long React took: the leaving river was
-         being deleted at 40% opacity, mid-fade, which is a hard cut wearing
-         the costume of a transition. Both ends now listen for their own
-         animationend instead. */
-    },
-    [variant]
-  );
+  const stage = useRef<HTMLDivElement>(null);
+  const door = useRef<HTMLSpanElement>(null);
+  useTileGeometry(stage);
 
   /* ---------------- the river's own state ---------------- */
   const [bucket, setBucket] = useState("");
   const [order, setOrder] = useState<RiverOrder>("newest");
   const [search, setSearch] = useState("");
-  const [at, setAt] = useState<number | null>(null);
+  const [at, setAt] = useState<{ scope: PhotoScope; index: number } | null>(null);
 
-  const photos = useMemo(() => {
-    const all = archiveOf(live.scope);
-    const kept = bucket ? all.filter((p) => p.subject.includes(bucket)) : all;
-    if (order === "oldest") return [...kept].reverse();
-    if (order === "loved") return [...kept].sort((a, b) => b.loveCount - a.loveCount);
-    return kept;
-  }, [archiveOf, live.scope, bucket, order]);
+  const archiveOf = useCallback(
+    (s: PhotoScope) => (s === "class" ? (classEmpty ? [] : CLASS_ARCHIVE) : VALLEY_ARCHIVE),
+    [classEmpty]
+  );
 
+  const photosOf = useCallback(
+    (s: PhotoScope) => {
+      const all = archiveOf(s);
+      // Only the valley has buckets, which is why the class side has no
+      // bucket line to press.
+      const kept = bucket && s === "valley" ? all.filter((p) => p.subject.includes(bucket)) : all;
+      if (order === "oldest") return [...kept].reverse();
+      if (order === "loved") return [...kept].sort((a, b) => b.loveCount - a.loveCount);
+      return kept;
+    },
+    [archiveOf, bucket, order]
+  );
 
+  /* ---------------- the press ---------------- */
+  const chooseScope = useCallback(
+    (next: PhotoScope) => {
+      if (busy.current) return;
+      busy.current = true;
+      const from: PhotoScope = next === "class" ? "valley" : "class";
+      const dir = next === "class" ? "down" : "up";
+      const release = () => {
+        timers.current.push(setTimeout(() => (busy.current = false), SPENT[variant]));
+      };
+
+      if (variant === "today") {
+        /* Reproduced beat for beat, and it is the one thing here that is
+           honestly on a timer: what it stands in for IS a wait for the
+           network. Header first, photographs 660ms later, grey between. */
+        setScope(next);
+        setDim(true);
+        timers.current.push(
+          setTimeout(() => {
+            setDim(false);
+            busy.current = false;
+          }, 660)
+        );
+        return;
+      }
+
+      if (variant === "gather") {
+        aimAtTheDoor(
+          stage.current?.querySelector<HTMLElement>(`[data-layer="${from}"]`) ?? null,
+          door.current
+        );
+      }
+
+      setScope(next);
+      setLeaving({ scope: from, v: variant, dir });
+      release();
+    },
+    [variant]
+  );
+
+  /* ---------------- how tall the box is ---------------- */
+  /* Both halves are absolutely positioned in the same box, so the box has
+     to be told its own height. It is the height of the half on screen --
+     except while one is leaving, when it is the TALLER of the two.
+     Shrinking to the arriving half at the press would clip the leaving
+     one's lower rows out of existence in the same frame, which is the
+     exact pop this whole version exists to avoid. */
+  const [heights, setHeights] = useState<Record<PhotoScope, number>>({ valley: 0, class: 0 });
+  useEffect(() => {
+    const el = stage.current;
+    if (!el) return;
+    const read = () => {
+      const next: Record<PhotoScope, number> = { valley: 0, class: 0 };
+      for (const layer of el.querySelectorAll<HTMLElement>("[data-layer]")) {
+        next[layer.dataset.layer as PhotoScope] = layer.offsetHeight;
+      }
+      setHeights((prev) =>
+        prev.valley === next.valley && prev.class === next.class ? prev : next
+      );
+    };
+    read();
+    const ro = new ResizeObserver(read);
+    for (const layer of el.querySelectorAll<HTMLElement>("[data-layer]")) ro.observe(layer);
+    return () => ro.disconnect();
+  }, [bucket, order, classEmpty]);
+
+  const boxHeight = leaving
+    ? Math.max(heights[scope], heights[leaving.scope])
+    : heights[scope] || undefined;
+
+  /* How far the film travels: the leaving frame's own height, plus the gap
+     between frames. Only "the advance" reads it. */
+  const filmTravel = leaving ? heights[leaving.scope] + 48 : 0;
+
+  const viewerPhotos = photosOf(at?.scope ?? scope);
   const images: ViewerImage[] = useMemo(
     () =>
-      photos.map((p) => ({
+      viewerPhotos.map((p) => ({
         src: p.url,
         caption: p.caption,
         author: p.uploader,
@@ -367,14 +327,8 @@ export default function SwapRoom() {
         loved: p.loved,
         loveCount: p.loveCount,
       })),
-    [photos]
+    [viewerPhotos]
   );
-
-
-  const stage = useRef<HTMLDivElement>(null);
-  useRowIndex(stage);
-
-  const holding = variant !== "today";
 
   return (
     <div className="min-h-screen bg-background px-5 py-6 sm:px-8">
@@ -415,19 +369,17 @@ export default function SwapRoom() {
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-3 text-[13px]">
-            <Switch on={glide} onToggle={() => setGlide((v) => !v)} label="Title changes one word" />
             <Switch
               on={classEmpty}
               onToggle={() => setClassEmpty((v) => !v)}
-              label="Class holds nothing"
+              label="Show the class side with no photographs in it, which is what yours has"
             />
           </div>
 
-          <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
-            The title switch rides on any of the three, so a pick can be a
-            combination. Open this on a phone too: today the river jumps up 37px
-            the moment the bucket line goes, and the other three hold that line
-            open.
+          <p className="mt-3 max-w-2xl text-[12.5px] leading-relaxed text-muted-foreground">
+            Both halves are built and decoded when the page loads, so nothing is
+            ever arriving. Only the half you are leaving moves. Press the caret
+            beside the title, and press it again to come back.
           </p>
         </div>
 
@@ -436,11 +388,25 @@ export default function SwapRoom() {
           <header className="group/header mb-6 flex flex-nowrap items-start justify-between gap-4">
             <div className="min-w-0">
               <h1 className="font-heading text-[30px] leading-[1.2] tracking-[-0.02em] text-foreground">
-                <SwapTitle
-                  scope={scope}
-                  glide={glide && variant !== "today"}
-                  caret={<ScopeCaret scope={scope} onScope={chooseScope} canSeeClass />}
-                />
+                {/* THE TITLE JUST CHANGES, with nothing animating it.
+                    Two things were tried here and both were worse. Rolling
+                    the changing word, with the rest of the line gliding
+                    across the width difference, read to the owner as "a weird
+                    glitching near the Valley/Class word": two absolutely
+                    positioned words crossing under a transform is where
+                    subpixel text rendering goes to die. Then a fixed-width
+                    box holding the longer word, so the caret could never
+                    move: it works, and it leaves a visible hole -- "The Class
+                    [gap] Collection".
+
+                    So the caret moves 12px, and that is fine. It was never
+                    the 12px that was wrong. It was that the 12px was the only
+                    thing happening for the next 600ms. Under a movement this
+                    size nobody will ever see it. */}
+                {scope === "class" ? "The Class Collection" : "The Valley Collection"}
+                <span ref={door} className="inline-block align-baseline">
+                  <ScopeCaret scope={scope} onScope={chooseScope} canSeeClass />
+                </span>
               </h1>
             </div>
             <div className="mt-px flex flex-nowrap items-center justify-end gap-2.5 shrink-0">
@@ -465,19 +431,17 @@ export default function SwapRoom() {
               renders nothing where the six words were, and the row is
               `justify-between`: with one child left, "Newest" walks from the
               right edge of the page to the left, and on a phone the row
-              un-wraps and pulls the river up 37px. Two jumps nobody asked
-              for, both at the moment of the press.
-
-              So the words go, the space they were in does not. The nav is
-              still there, faded out, holding the line open. Anything shipping
-              this owes the keyboard the same courtesy the mouse gets here:
-              `inert` on the nav, not just pointer-events. */}
+              un-wraps and pulls the river up 38px. Two jumps nobody asked
+              for, both at the moment of the press. So the words go and the
+              space they were in does not. Anything shipping this owes the
+              keyboard the same courtesy the mouse gets here: `inert` on the
+              nav, not just pointer-events. */}
           <div
-            className={holding ? "swap-chrome" : undefined}
-            data-buckets={holding && scope === "class" ? "off" : "on"}
+            className={variant === "today" ? undefined : "swap-chrome"}
+            data-buckets={variant !== "today" && scope === "class" ? "off" : "on"}
           >
             <RiverControls
-              scope={holding ? "valley" : scope}
+              scope={variant === "today" ? scope : "valley"}
               bucket={bucket}
               onBucket={setBucket}
               order={order}
@@ -486,58 +450,62 @@ export default function SwapRoom() {
             />
           </div>
 
-          <div className="mt-4 flex items-start gap-6 xl:gap-8">
-            <div ref={stage} className="relative min-w-0 flex-1">
-              {layers.map((layer) => (
+          <div
+            ref={stage}
+            className="swap-stage relative mt-4 min-w-0"
+            style={{ height: boxHeight }}
+          >
+            {(["valley", "class"] as PhotoScope[]).map((half) => {
+              const isLeaving = leaving?.scope === half;
+              const onScreen = scope === half || isLeaving;
+              return (
                 <div
-                  key={layer.run}
-                  data-layer
-                  aria-hidden={layer.exit ? true : undefined}
-                  data-enter={layer.enter?.v}
-                  data-exit={layer.exit?.v}
-                  data-dir={(layer.exit ?? layer.enter)?.dir}
+                  key={half}
+                  data-layer={half}
+                  data-leave={isLeaving ? leaving.v : undefined}
+                  data-dir={isLeaving ? leaving.dir : undefined}
+                  /* The film strip is the one variant where BOTH halves move,
+                     by the same distance, in the same direction, because that
+                     is what makes it one rigid object rather than two things
+                     passing each other. */
+                  data-ride={
+                    !isLeaving && leaving?.v === "advance" ? leaving.dir : undefined
+                  }
+                  aria-hidden={onScreen ? undefined : true}
                   onAnimationEnd={(e) => {
-                    // The cells' own animations bubble through here too.
                     if (e.target !== e.currentTarget) return;
-                    if (layer.exit) setLayers((prev) => prev.filter((l) => !l.exit));
-                    else busy.current = false;
+                    setLeaving(null);
                   }}
                   className={cn(
-                    "swap-live",
-                    /* The half that is leaving comes out of the flow, so the
-                       page is already the height of the one arriving and
-                       nothing below has to move twice. */
-                    layer.exit && "pointer-events-none absolute inset-x-0 top-0",
-                    /* Which of the two is on top, and for the Sheet it is the
-                       whole idea. Going down, the class is laid OVER the
-                       valley, so the arriving half wins. Coming back up, the
-                       sheet is being taken off, so the leaving half stays on
-                       top all the way out -- which it does by default, an
-                       absolutely positioned box painting above a static one.
-                       Everything else reads better with the arrival in front. */
-                    layer.enter &&
-                      !(layer.enter.v === "sheet" && layer.enter.dir === "up") &&
-                      "relative z-10",
-                    dim && "swap-dim"
+                    "absolute inset-x-0 top-0",
+                    /* Hidden, NOT unmounted, and this is the whole design:
+                       every photograph in both halves is decoded at load, so
+                       there is never anything to populate. `invisible` still
+                       lays out and still loads. */
+                    !onScreen && "invisible",
+                    isLeaving && "pointer-events-none z-10",
+                    dim && scope !== half && "swap-dim"
                   )}
                 >
                   <RiverOrEmpty
-                    photos={layer.run === live.run ? photos : archiveOf(layer.scope)}
+                    photos={photosOf(half)}
                     order={order}
-                    scope={layer.scope}
-                    onOpen={layer.exit ? undefined : setAt}
+                    scope={half}
+                    onOpen={(index) => setAt({ scope: half, index })}
                   />
                 </div>
-              ))}
-            </div>
-
+              );
+            })}
           </div>
         </div>
       </div>
 
+      {/* The advance needs one number the stylesheet cannot work out. */}
+      <style>{`.swap-stage { --film: ${filmTravel}px; }`}</style>
+
       <ImageViewer
         images={images}
-        initialIndex={at ?? 0}
+        initialIndex={at?.index ?? 0}
         open={at !== null}
         onClose={() => setAt(null)}
         showCount={false}
@@ -546,8 +514,6 @@ export default function SwapRoom() {
   );
 }
 
-/** The leaving half. It has to be able to draw the empty class too, or
- *  coming back from an empty class has nothing to animate out. */
 function RiverOrEmpty({
   photos,
   order,
@@ -557,10 +523,10 @@ function RiverOrEmpty({
   photos: PhotoData[];
   order: RiverOrder;
   scope: PhotoScope;
-  onOpen?: (index: number) => void;
+  onOpen: (index: number) => void;
 }) {
   if (scope === "class" && photos.length === 0) return <ClassEmpty />;
-  return <PhotoRiver photos={photos} order={order} onOpen={onOpen ?? (() => {})} />;
+  return <PhotoRiver photos={photos} order={order} onOpen={onOpen} />;
 }
 
 /** The real page's empty class, word for word, because for most members
@@ -608,74 +574,76 @@ function Switch({ on, onToggle, label }: { on: boolean; onToggle: () => void; la
 }
 
 /* ------------------------------------------------------------------ *
- *  The four transitions, as CSS
+ *  The three ways out, as CSS
  *
- *  Transform and opacity only, on the app's own ease tokens. The layer
- *  fades as one sheet; in "turn" the rows underneath it lean at 22ms
- *  intervals, which is the difference between a page moving and a page
- *  populating.
+ *  Transform only. There is no opacity keyframe on a photograph anywhere
+ *  in here, and no scale on one either: the owner asked why the pictures
+ *  were moving and enlarging, and the honest answer was that they had no
+ *  business doing it.
+ *
+ *  Every layer also runs `swapSpent`, an animation that changes nothing
+ *  and exists to fire one `animationend` when the whole staggered
+ *  sequence is over. Without it there is nothing to listen to, because
+ *  the layer itself does not move in two of the three.
  * ------------------------------------------------------------------ */
 const CSS = `
-.swap-live, [data-exit] { will-change: transform, opacity; }
+/* The box clips, so a photograph on its way out leaves the page rather
+   than stretching it. */
+.swap-stage { overflow: hidden; }
+.swap-dim { opacity: .4; transition: opacity 200ms ease-out; }
 
-.swap-dim { opacity: .4; pointer-events: none; }
-.swap-live { transition: opacity 200ms ease-out; }
+[data-leave] { animation: swapSpent 620ms linear both; }
+@keyframes swapSpent { from { opacity: 1; } to { opacity: 1; } }
 
-/* ---- the turn: down to the class, up to the valley, and it reverses ---- */
-[data-enter="turn"] { animation: swapFadeIn 340ms var(--ease-out-smooth) 190ms both; }
-[data-enter="turn"] .swap-cell {
-  animation: swapLean 340ms var(--ease-out-smooth) both;
-  animation-delay: calc(190ms + var(--row, 0) * 22ms);
+/* ---- the parting ---- */
+[data-leave="parting"] .swap-tile {
+  animation: swapPart 380ms ease-in both;
+  animation-delay: calc(var(--row, 0) * 30ms);
 }
-[data-exit="turn"] { animation: swapFadeOut 240ms ease-in both; }
-[data-exit="turn"] .swap-cell {
-  animation: swapLeanOut 240ms ease-in both;
-  animation-delay: calc(var(--row, 0) * 18ms);
+@keyframes swapPart {
+  from { transform: none; }
+  to { transform: translateX(calc(var(--side, 1) * 55vw)) rotate(calc(var(--side, 1) * 1.5deg)); }
 }
-[data-dir="down"] { --dy: 14px; --dy-out: -12px; }
-[data-dir="up"]   { --dy: -14px; --dy-out: 12px; }
 
-@keyframes swapLean { from { transform: translateY(var(--dy)); } to { transform: none; } }
-@keyframes swapLeanOut { from { transform: none; } to { transform: translateY(var(--dy-out)); } }
+/* ---- the gather ---- */
+/* Up and out under the header, leaning toward the caret rather than
+   piling on it. Aiming all forty-eight straight AT the door was tried and
+   it is a heap: they all pass through the same corridor and arrive on top
+   of each other. At four tenths of the horizontal distance they keep the
+   spread they had, so the page reads as being drawn upward into the
+   header rather than swept into a corner. No shrinking on the way -- the
+   box clips at the top of the river, so a photograph reaching the header
+   is simply gone. */
+[data-leave="gather"] .swap-tile {
+  animation: swapGather 330ms ease-in both;
+  animation-delay: calc(var(--row, 0) * 55ms);
+}
+@keyframes swapGather {
+  from { transform: none; }
+  to { transform: translate(calc(var(--gx, 0) * 0.4), var(--gy, 0)); }
+}
 
-/* ---- the dissolve ---- */
-[data-enter="dissolve"] { animation: swapDissolveIn 380ms var(--ease-out-smooth) both; }
-[data-exit="dissolve"] { animation: swapDissolveOut 380ms ease-out both; }
-@keyframes swapDissolveIn { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: none; } }
-@keyframes swapDissolveOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(1.02); } }
+/* ---- the advance ---- */
+/* Both halves move by the same distance in the same direction, which is
+   what makes it one strip rather than two things passing. The 3% overshoot
+   at 86% is the seat: a film advance stops by catching, not by easing. */
+[data-leave="advance"] { animation: swapFilmOut 520ms ease-out both; }
+[data-ride] { animation: swapFilmIn 520ms ease-out both; }
+[data-leave="advance"][data-dir="down"], [data-ride="down"] { --film-sign: -1; }
+[data-leave="advance"][data-dir="up"], [data-ride="up"] { --film-sign: 1; }
 
-/* ---- the sheet: presented on the way in, dismissed on the way out ---- */
-[data-enter="sheet"][data-dir="down"] { animation: swapSheetIn 420ms var(--ease-out-smooth) both; }
-[data-exit="sheet"][data-dir="down"] { animation: swapSheetUnder 300ms ease-out both; }
-[data-enter="sheet"][data-dir="up"] { animation: swapSheetBack 420ms var(--ease-out-smooth) both; }
-[data-exit="sheet"][data-dir="up"] { animation: swapSheetOff 300ms ease-in both; }
-
-@keyframes swapSheetIn { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
-@keyframes swapSheetUnder { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-6px) scale(.995); } }
-@keyframes swapSheetBack { from { opacity: .4; transform: scale(.99); } to { opacity: 1; transform: none; } }
-@keyframes swapSheetOff { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(34px); } }
-
-@keyframes swapFadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes swapFadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes swapFilmOut {
+  from { transform: none; }
+  86% { transform: translateY(calc(var(--film-sign) * (var(--film) + 14px))); }
+  to { transform: translateY(calc(var(--film-sign) * var(--film))); }
+}
+@keyframes swapFilmIn {
+  from { transform: translateY(calc(var(--film-sign) * -1 * var(--film))); }
+  86% { transform: translateY(calc(var(--film-sign) * 14px)); }
+  to { transform: none; }
+}
 
 /* ---- the controls line ---- */
 .swap-chrome nav[aria-label^="Filter"] { transition: opacity 220ms ease-out; }
 .swap-chrome[data-buckets="off"] nav[aria-label^="Filter"] { opacity: 0; pointer-events: none; }
-
-/* ---- the title that changes one word ---- */
-.swap-title { display: inline; }
-.swap-word { position: relative; display: inline-block; }
-.swap-word > span:not(.invisible) {
-  position: absolute;
-  left: 0;
-  top: 0;
-  white-space: nowrap;
-  transition: transform 260ms var(--ease-out-smooth), opacity 200ms ease-out;
-}
-.swap-word > span[data-on="false"] { opacity: 0; transform: translateY(-.36em); }
-.swap-word > span[data-on="true"] { opacity: 1; transform: none; }
-/* The word that is arriving comes up from below, the one leaving goes up. */
-.swap-word > span[data-on="false"]:last-child { transform: translateY(.36em); }
-.swap-rest { display: inline-block; transition: transform 260ms var(--ease-out-smooth); }
-
 `;
