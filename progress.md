@@ -166,6 +166,50 @@ Collection". So the caret moves 12px, and under a movement this size nobody will
 was never the 12px that was wrong; it was that the 12px was the only thing happening for the
 next 600ms.
 
+**Round three, and it is his design rather than mine.** He caught the cheat in round two
+immediately: *"in these all the photos are just fully loaded so we can't see how loading new
+photos would be handled so this isn't accurate."* Preloading both halves meant the room never
+showed the thing being designed, because the wait IS the thing being designed. And the
+ambitious versions were too much: *"advance is the closest thing but idk it's still a bit
+amateurish and too much motion."*
+
+His shape: *"something clean move in the title and somehow a cute loading that people won't
+even mind for a second until everything else comes and then it transitions to the photos ...
+now we're immediately showing the pictures and it's haphazardly loading."*
+
+So three beats and a rule. The title turns over. A small mark holds the place. The
+photographs arrive whole. The rule underneath is **nothing is shown until everything is
+ready**: not one tile until every thumbnail on the page has decoded, which is `warmThumbs`
+run over the whole page rather than its first twelve.
+
+Three facts now change at three different moments, and the separation is the design. `going`
+is where you are headed and it moves in the frame you press, so the caret answers instantly.
+`titled` is the words, a beat later. `shown` is the photographs, and they do not change until
+they are all ready. The caret sits outside the rolling line so it stays under your finger,
+and its 12px shift lands in the beat where the words beside it are not there.
+
+Four things this round taught:
+
+- **A `display: none` element runs no animation.** The grid carried `swap-leave` and `hidden`
+  in the same commit, so the photographs skipped their exit and simply blinked out. The two
+  are now mutually exclusive.
+- **The fetch starts at the press, not after the animation.** The title turning over and the
+  photographs leaving then cost no wall clock at all: they are spent inside the round trip
+  rather than added to it.
+- **The mark needs a floor, measured from when it appears.** 420ms. A loading state that shows
+  for 90ms reads as a flicker, and the owner asked for it to be seen.
+- **`<PhotoRiver>` re-renders all forty-eight tiles on any state change, and that is 152ms of
+  blocked main thread** between the click and the first painted frame. Holding the element in
+  a `useMemo` drops it to 58ms. The real page has the same problem and wants the same fix, one
+  `memo()` on PhotoRiver.
+
+Two title treatments were tried and rejected before this one. Rolling the single changed word
+while the rest of the line glided across the width difference is where subpixel text
+rendering goes to die, and it is what the owner saw as *"a weird glitching near the
+Valley/Class word"*. A fixed-width box holding the longer word fixes the caret in place and
+leaves a visible hole: "The Class [gap] Collection". The whole line turning over, out then in
+with no overlap, cannot do either.
+
 ## 2026-08-30 — what the date field does when you empty it, and what it did not do to Afya's fifteen
 
 **The month control was still being painted after it faded.** The owner: *"when you delete
