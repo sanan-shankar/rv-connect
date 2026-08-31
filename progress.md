@@ -210,6 +210,28 @@ Valley/Class word"*. A fixed-width box holding the longer word fixes the caret i
 leaves a visible hole: "The Class [gap] Collection". The whole line turning over, out then in
 with no overlap, cannot do either.
 
+**And then the photographs blinked.** The owner: *"why do the photos appear and then glitch
+and blink away and then reappear its so jarring that can't happen in the shipped app."* Two
+causes, both mine, both worth writing down.
+
+- **The grid's React key carried the phase.** `key={`${shown}-${phase === "arriving" ? "in" :
+  "at"}`}` meant that the instant the arrival animation finished, the key changed from
+  "class-in" to "class-at" and React tore the entire river down and built it again. Forty-eight
+  image elements removed and re-added, for nothing. A DOM observer over one swap counted four
+  mutations where there should be two. The key only ever has to change when the archive does.
+- **Every step was sequenced off a `setTimeout` started at the click, while the CSS animations
+  start when React commits, about 58ms later.** So each step was cut short by that difference:
+  the photographs were taken out of the layout a third of the way through their fade, and the
+  title's words were swapped while the old line was still at 40% opacity. Every step now waits
+  for its own `animationend`, with the old timings kept only as ceilings in case one never
+  arrives. Measured after: the words change at 0.00 opacity on every run, and one swap makes
+  exactly two DOM mutations.
+
+This is the third time the timer-versus-animation-clock mistake has been made in this room. It
+is written down here because the lesson is not "use animationend", it is that **any sequence
+where JavaScript decides when a CSS animation is over is already wrong**, however small the
+gap looks.
+
 ## 2026-08-30 — what the date field does when you empty it, and what it did not do to Afya's fifteen
 
 **The month control was still being painted after it faded.** The owner: *"when you delete

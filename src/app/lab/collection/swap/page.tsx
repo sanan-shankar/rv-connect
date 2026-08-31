@@ -80,18 +80,20 @@ const CLASS_ARCHIVE: PhotoData[] = LAB_ARCHIVE.filter(
  *  The beats
  * ------------------------------------------------------------------ */
 
-/** The title turns over in two halves rather than crossing itself. The
- *  old line goes, and only once it is gone does the new one arrive: two
- *  lines of 30px serif dissolving through each other in the same place is
- *  exactly the "weird glitching" the one-word roll was. The way back in
- *  takes 180ms and lives in the stylesheet: nothing here waits on it, so
- *  a second copy of the number here would only be a thing to get wrong. */
-const TITLE_OUT_MS = 140;
-/** How long the old photographs take to go. Short, and no travel at all:
- *  they are not the event, the title is. */
-const LEAVE_MS = 180;
-/** How long the new ones take to come up, all together. */
-const ARRIVE_MS = 320;
+/* EVERY DURATION LIVES IN THE STYLESHEET, and every step here waits for
+   the animation it belongs to to say it has finished.
+ *
+ *  This was got wrong twice. A `setTimeout` starts when the click handler
+ *  runs; a CSS animation starts when React commits, which on this page is
+ *  about 58ms later. Sequencing off the timer therefore cut every step
+ *  short: the photographs were taken out of the layout at roughly a third
+ *  of the way through their fade, and the title's text was swapped while
+ *  the old line was still half on screen. The owner saw both -- "the
+ *  photos appear and then glitch and blink away".
+ *
+ *  So the numbers below are ceilings, not schedules: if an `animationend`
+ *  somehow never arrives, the sequence carries on rather than hanging. */
+const SAFETY_MS = { title: 400, leave: 500, arrive: 700 };
 /** The mark's floor, measured from when it appears. A loading state that
  *  shows for 90ms and vanishes is worse than none: it reads as a flicker
  *  rather than as a wait. This is also the owner asking for it -- "a cute
@@ -133,7 +135,9 @@ export default function SwapRoom() {
   const [titled, setTitled] = useState<PhotoScope>("valley");
   const [shown, setShown] = useState<PhotoScope>("valley");
   const [phase, setPhase] = useState<Phase>("rest");
-  const [titleGone, setTitleGone] = useState(false);
+  /* "rest" carries NO animation class at all. It used to sit permanently on
+     `in-<dir>`, which meant any remount of the title replayed its arrival. */
+  const [titleTurn, setTitleTurn] = useState<"rest" | "out" | "in">("rest");
   /* Which way the title turns. Down to the class, up to the valley. */
   const [dir, setDir] = useState<"down" | "up">("down");
 
@@ -147,6 +151,27 @@ export default function SwapRoom() {
   );
   const after = (ms: number) =>
     new Promise<void>((r) => timers.current.push(setTimeout(r, ms)));
+
+  /* One slot per thing that can be waited on. `onAnimationEnd` fills
+     whichever is open; nothing else does. */
+  const titleEnd = useRef<(() => void) | null>(null);
+  const leaveEnd = useRef<(() => void) | null>(null);
+  const arriveEnd = useRef<(() => void) | null>(null);
+  const settle = useCallback(
+    async (slot: React.RefObject<(() => void) | null>, safety: number) => {
+      await Promise.race([
+        new Promise<void>((r) => (slot.current = r)),
+        new Promise<void>((r) => timers.current.push(setTimeout(r, safety))),
+      ]);
+      slot.current = null;
+    },
+    []
+  );
+  const finished = (slot: React.RefObject<(() => void) | null>) => (e: React.AnimationEvent) => {
+    // The tiles inside would otherwise report their own animations through here.
+    if (e.target !== e.currentTarget) return;
+    slot.current?.();
+  };
 
   const [bucket, setBucket] = useState("");
   const [order, setOrder] = useState<RiverOrder>("newest");
@@ -175,6 +200,7 @@ export default function SwapRoom() {
       setGoing(next);
 
       if (today) {
+        setTitleTurn("rest");
         setTitled(next);
         setPhase("waiting");
         await after(wait);
@@ -196,28 +222,31 @@ export default function SwapRoom() {
         await warmThumbs(photosOf(next), 999);
       })();
 
-      /* 1. The title turns over, and the old photographs go. */
-      setTitleGone(true);
+      /* 1. The title turns over while the old photographs fade. The words
+            are not swapped until the old line has actually finished
+            leaving, so the two never share the screen. */
+      setTitleTurn("out");
       setPhase("leaving");
-      await after(TITLE_OUT_MS);
+      await settle(titleEnd, SAFETY_MS.title);
       setTitled(next);
-      setTitleGone(false);
-      await after(LEAVE_MS - TITLE_OUT_MS);
+      setTitleTurn("in");
 
-      /* 2. The mark holds the place. The floor runs from HERE, not from
+      /* 2. The mark holds the place, and only once the photographs have
+            genuinely finished fading. The floor runs from HERE, not from
             the press, so it is a promise about how long the mark is seen
             rather than about how long the swap takes. */
+      await settle(leaveEnd, SAFETY_MS.leave);
       setPhase("waiting");
       await Promise.all([ready, after(MARK_FLOOR_MS)]);
 
       /* 3. And the photographs arrive whole. */
       setShown(next);
       setPhase("arriving");
-      await after(ARRIVE_MS);
+      await settle(arriveEnd, SAFETY_MS.arrive);
       setPhase("rest");
       busy.current = false;
     },
-    [today, wait, photosOf]
+    [today, wait, photosOf, settle]
   );
 
   const photos = useMemo(() => photosOf(shown), [photosOf, shown]);
@@ -333,9 +362,15 @@ export default function SwapRoom() {
                     move. */}
                 <span
                   key={titled}
+                  onAnimationEnd={(e) => {
+                    finished(titleEnd)(e);
+                    // The way back in is the end of the turn: drop the class
+                    // so a later remount cannot replay it.
+                    if (e.target === e.currentTarget && titleTurn === "in") setTitleTurn("rest");
+                  }}
                   className={cn(
                     "swap-title",
-                    !today && (titleGone ? `out-${dir}` : `in-${dir}`)
+                    !today && titleTurn !== "rest" && `${titleTurn}-${dir}`
                   )}
                 >
                   {titled === "class" ? "The Class Collection" : "The Valley Collection"}
@@ -390,7 +425,18 @@ export default function SwapRoom() {
             {waiting && <Holding mark={mark} />}
 
             <div
-              key={`${shown}-${phase === "arriving" ? "in" : "at"}`}
+              /* THE KEY IS THE HALF BEING SHOWN AND NOTHING ELSE.
+                 It used to carry the phase as well, so the moment the
+                 arrival finished the key changed from "class-in" to
+                 "class-at" -- and React tore the whole river down and built
+                 it again. Every photograph blinked out and came back, which
+                 is precisely what the owner saw. The key only has to change
+                 when the archive does, which is what makes the arrival
+                 animation replay. */
+              key={shown}
+              onAnimationEnd={(e) => {
+                finished(phase === "leaving" ? leaveEnd : arriveEnd)(e);
+              }}
               className={cn(
                 phase === "arriving" && "swap-arrive",
                 /* `swap-leave` and `hidden` are mutually exclusive and were
