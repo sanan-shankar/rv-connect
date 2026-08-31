@@ -7,7 +7,7 @@ import { SPECIMENS } from "../crop/_specimens";
  *
  *  There are two approved photographs in the real database and both say
  *  "asdf" (handover F26, F33). Nothing about the Collection page can be
- *  looked at against that: not justified rows, not the decade rail's
+ *  looked at against that: not justified rows, not the year rail's
  *  marks, not a bucket that narrows two hundred photographs to forty,
  *  not what happens when you reach the bottom.
  *
@@ -82,7 +82,7 @@ const CAPTIONS = [
   "",
 ];
 
-/* Weighted so the decade rail has a SHAPE rather than nine equal marks: an
+/* Weighted so the rail has a SHAPE rather than a flat run of equal marks: an
    archive fills up from the present backwards, and half of what people scan
    in is undated. That is the finding the rail exists to show. */
 const ERA_WEIGHTS: [string, number][] = [

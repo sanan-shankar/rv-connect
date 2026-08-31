@@ -18,7 +18,7 @@ export function appendUnseen<T extends { id: string }>(shown: T[], arriving: T[]
 }
 
 /** The mirror, for the one list walked upward instead of down: the
- *  Collection's decade rail, climbing back toward newer photographs after a
+ *  Collection's year rail, climbing back toward newer photographs after a
  *  seek. Same guarantee, reversed -- a row that arrives again keeps the copy
  *  already mounted, and the new page is threaded onto the FRONT. */
 export function prependUnseen<T extends { id: string }>(arriving: T[], shown: T[]): T[] {

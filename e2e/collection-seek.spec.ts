@@ -1,27 +1,28 @@
 import { test, expect } from "@playwright/test";
 
 /* ------------------------------------------------------------------ *
- *  The decade rail SEEKS, and nothing moves under the reader's eye.
+ *  The year rail SEEKS, and nothing moves under the reader's eye.
  *
  *  Two facts, both of which look fine in a screenshot and are only
  *  visible as numbers, so they are pinned here rather than watched.
  *
- *  1. Pressing a decade travels to it; it does not filter to it. The
- *     version this replaced narrowed the grid to the decade pressed,
+ *  1. Pressing a year travels to it; it does not filter to it. The
+ *     version this replaced narrowed the grid to the band pressed,
  *     which also collapsed the rail to a single mark and hid it --
  *     leaving no way back: "I now have no way to go back? ... doing that
  *     has locked me into 2020s" (owner, 2026-08-29). A river you can
  *     still scroll out of in both directions is the fix, and "there are
- *     other decades on the page afterwards" is how you can tell.
+ *     other years on the page afterwards" is how you can tell.
  *
  *  2. When a page of newer photographs arrives ABOVE the reader, the
  *     photograph they are looking at does not move. That is the whole
  *     feel of the thing and it is one arithmetic slip away from being
  *     a page that lurches every time it loads.
  *
- *  Driven against /lab/collection, because the live archive holds four
- *  photographs and cannot exercise any of this; the room's 240 are
- *  deterministic (see _archive.ts), so the decades below are stable.
+ *  Driven against /lab/collection, because the live archive holds a
+ *  handful of photographs and cannot exercise any of this; the room's
+ *  240 are deterministic (see _archive.ts), so 1953 below is a year that
+ *  is really there, with years on both sides of it.
  *
  *  Written AFTER the behaviour was measured by hand, per CLAUDE.md
  *  gotcha 7 -- these numbers were read off a live page first, never
@@ -31,7 +32,7 @@ import { test, expect } from "@playwright/test";
 /** The rail lives in the 1280px margin, so there is nothing to press below
  *  it -- deliberately, until the phone scrubber is built. */
 const desktopOnly = (name: string) =>
-  test.skip(name === "mobile", "the decade rail is xl-only; the phone gets its own scrubber");
+  test.skip(name === "mobile", "the year rail is xl-only; the phone gets its own scrubber");
 
 const rail = (page: import("@playwright/test").Page) =>
   page.locator('nav[aria-label^="Jump to when"]');
@@ -42,58 +43,112 @@ async function readInChronologicalOrder(page: import("@playwright/test").Page) {
   await page.getByRole("menuitem", { name: "Chronological" }).click();
 
   /* Readiness is the LIT MARK: the rail lights the moment the order lands
-     (from the top photograph's own era when the scrollspy has nothing to
+     (from the top photograph's own year when the scrollspy has nothing to
      say yet), which makes it the one signal that exists in every state --
-     including the first page being a single decade. */
+     including the first page being a single year. */
   await expect(rail(page).locator('button[aria-current="true"]')).toBeVisible();
 }
 
-test("pressing a decade travels there, and leaves the rest of the river in place", async ({
+/** The rail names every year it holds, and only the decades keep their
+ *  lettering once the rows get tight -- so a row is addressed by its label
+ *  rather than by its visible text, which is what `aria-label` is for. */
+const year = (page: import("@playwright/test").Page, name: string) =>
+  rail(page).getByRole("button", { name, exact: true });
+
+test("pressing a year travels there, and leaves the rest of the river in place", async ({
   page,
 }, testInfo) => {
   desktopOnly(testInfo.project.name);
   await readInChronologicalOrder(page);
 
-  await rail(page).getByRole("button", { name: /1970s/ }).click();
+  await year(page, "1953").click();
 
-  /* The decade asked for is on the page... */
-  await expect(page.locator('h2[data-era="1970s"]')).toBeVisible();
+  /* The year asked for is on the page... */
+  await expect(page.locator('h2[data-band="1953"]')).toBeVisible();
 
-  /* ...and so are decades on BOTH sides of it, which is the difference
+  /* ...and so are years on BOTH sides of it, which is the difference
      between a seek and a filter. A filter would leave exactly one. */
-  const eras = await page.locator("h2[data-era]").evaluateAll((hs) =>
-    hs.map((h) => (h as HTMLElement).dataset.era ?? ""),
+  const bands = await page.locator("h2[data-band]").evaluateAll((hs) =>
+    hs.map((h) => (h as HTMLElement).dataset.band ?? ""),
   );
-  expect(eras.length).toBeGreaterThan(1);
-  expect(eras).toContain("1960s"); // older than the one pressed
-  expect(eras.some((e) => /^(19[89]0s|20[0-2]0s)$/.test(e))).toBeTruthy(); // and newer
+  expect(bands.length).toBeGreaterThan(1);
+  expect(bands).toContain("1940"); // older than the one pressed
+  expect(bands.some((b) => /^\d{4}$/.test(b) && Number(b) > 1953)).toBeTruthy(); // and newer
 
   /* The rail says where the reader now is, and it is a fact read off the
      page rather than the filter they set. */
-  await expect(rail(page).locator('button[aria-current="true"]')).toHaveText(/1970s/);
+  await expect(rail(page).locator('button[aria-current="true"]')).toHaveAttribute(
+    "aria-label",
+    "1953",
+  );
 });
 
-test("pressing a decade from another order turns the river to Chronological", async ({
+test("pressing a year from another order turns the river to Chronological", async ({
   page,
 }, testInfo) => {
   desktopOnly(testInfo.project.name);
 
   /* The rail is drawn in EVERY order, because the marks are a picture of what
-     the archive holds and that is worth having at rest. But a decade is only
-     a position along a date spine, so pressing one in "Newest" -- where the
+     the archive holds and that is worth having at rest. But a year is only a
+     position along a date spine, so pressing one in "Newest" -- where the
      river is sorted by upload date -- has to commit to reading in time
      rather than quietly doing nothing. */
   await page.goto("/lab/collection");
   await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Newest/);
   await expect(rail(page)).toBeVisible();
-  // Nothing is lit, because "which decade am I in" has no answer here.
+  // Nothing is lit, because "which year am I in" has no answer here.
   await expect(rail(page).locator('button[aria-current="true"]')).toHaveCount(0);
 
-  await rail(page).getByRole("button", { name: /1970s/ }).click();
+  await year(page, "1953").click();
 
   await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Chronological/);
-  await expect(page.locator('h2[data-era="1970s"]')).toBeVisible();
-  await expect(rail(page).locator('button[aria-current="true"]')).toHaveText(/1970s/);
+  await expect(page.locator('h2[data-band="1953"]')).toBeVisible();
+  await expect(rail(page).locator('button[aria-current="true"]')).toHaveAttribute(
+    "aria-label",
+    "1953",
+  );
+});
+
+/* ------------------------------------------------------------------ *
+ *  And the rail itself fits, which is the whole reason it is not a
+ *  list of decades any more.
+ *
+ *  "Make sure you're easily able to reach say 1956. Think about what
+ *  you'd have to scroll" (owner, 2026-08-30). The answer is nothing:
+ *  every year the archive holds is on screen at once, at rest, before a
+ *  single scroll. The failure this pins is the one the first build had
+ *  -- rows measured against the height the rail has once it STICKS,
+ *  which put its oldest three years below the fold on arrival.
+ * ------------------------------------------------------------------ */
+test("every year is reachable without scrolling the rail or the page", async ({
+  page,
+}, testInfo) => {
+  desktopOnly(testInfo.project.name);
+  await page.goto("/lab/collection");
+  await expect(rail(page)).toBeVisible();
+
+  const fit = await rail(page).evaluate((nav) => {
+    const rows = [...nav.querySelectorAll("button")];
+    const last = rows[rows.length - 1].getBoundingClientRect();
+    return {
+      rows: rows.length,
+      bottom: last.bottom,
+      viewport: window.innerHeight,
+      /* A scroll container inside a scroll container is the thing this design
+         exists to avoid, so the assertion is on OVERFLOW rather than on
+         scrollHeight: an 11px label in an 11px row makes the nav's content
+         box two pixels taller than the nav, with nothing scrollable about
+         it, and a scrollHeight comparison reads that as a scrollbar. */
+      overflow: getComputedStyle(nav).overflowY,
+    };
+  });
+
+  expect(fit.rows, "the fixture should span dozens of years").toBeGreaterThan(20);
+  expect(fit.overflow, "the rail became a scroll container").toBe("visible");
+  expect(
+    fit.bottom,
+    `the oldest year sits ${Math.round(fit.bottom - fit.viewport)}px below the fold`,
+  ).toBeLessThanOrEqual(fit.viewport);
 });
 
 test("a page arriving above the reader does not move the photograph they are looking at", async ({
@@ -101,8 +156,8 @@ test("a page arriving above the reader does not move the photograph they are loo
 }, testInfo) => {
   desktopOnly(testInfo.project.name);
   await readInChronologicalOrder(page);
-  await rail(page).getByRole("button", { name: /1970s/ }).click();
-  await expect(page.locator('h2[data-era="1970s"]')).toBeVisible();
+  await year(page, "1953").click();
+  await expect(page.locator('h2[data-band="1953"]')).toBeVisible();
 
   /* Mark a photograph in the middle of the viewport -- the one whose
      stillness is the promise -- and remember where it sits on SCREEN. */

@@ -2,6 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   ERAS,
+  bandKeyOf,
+  bandLabel,
+  bandSeekBoundary,
   eraFromPartial,
   eraPhrase,
   eraSaid,
@@ -77,7 +80,7 @@ test("a month out of range is not indexed into", () => {
  *  back as "the 1970s".
  *
  *  Worth pinning because a photograph mis-filed here is wrong in the
- *  decade rail, in the Chronological order and in every era filter, and
+ *  rail, in the Chronological order and in every era filter, and
  *  nobody notices until someone goes looking for the 1970s.
  *
  *  `thisYear` is passed in rather than read from the clock, so the
@@ -158,8 +161,8 @@ test("what the contribute box writes is what the viewer reads back", () => {
 });
 
 /* ------------------------------------------------------------------ *
- *  The decade rail's own boundary: where a seek into one era stops
- *  belonging to it and starts belonging to the next one up.
+ *  The rail's own boundary: where a seek into one band stops belonging
+ *  to it and starts belonging to the next one up.
  * ------------------------------------------------------------------ */
 
 test("a decade's boundary is the next decade's start, times 100", () => {
@@ -178,6 +181,51 @@ test("undated has no ceiling of its own -- 1, since its key is always 0", () => 
 test("an era outside the vocabulary asks for nothing and gets nothing", () => {
   assert.equal(eraSeekBoundary("1930s"), null);
   assert.equal(eraSeekBoundary(""), null);
+});
+
+/* ------------------------------------------------------------------ *
+ *  The rail's unit, which is the YEAR (2026-08-30).
+ *
+ *  Two facts hold this together and neither is visible in a screenshot:
+ *  a band key is derived the SAME way on the server (the grouped query
+ *  behind the rail's marks) and in the browser (the river's chapter
+ *  headings), so they cannot disagree about which year a photograph is
+ *  in; and a `?when=` link written before the change still opens the
+ *  archive where it used to.
+ * ------------------------------------------------------------------ */
+
+test("a photograph with a year bands under that year", () => {
+  assert.equal(bandKeyOf({ photoYear: 1956, era: "1950s" }), "1956");
+  assert.equal(bandKeyOf({ photoYear: 2026, era: "2020s" }), "2026");
+});
+
+test("a photograph that only knew its decade bands at the decade's first year", () => {
+  /* Not a band of its own, deliberately: `takenKey` files "the 1950s" at
+     195000, which is the same integer a bare 1950 gets, so a separate band
+     would interleave with 1950 in the river and the headings would
+     alternate. See the note above `bandKeyOf`. */
+  assert.equal(bandKeyOf({ photoYear: null, era: "1950s" }), "1950");
+  assert.equal(bandKeyOf({ photoYear: null, era: "pre-1940s" }), "1926");
+});
+
+test("a photograph nobody dated bands as undated", () => {
+  assert.equal(bandKeyOf({ photoYear: null, era: "unknown" }), "unknown");
+  assert.equal(bandKeyOf({}), "unknown");
+});
+
+test("a year's boundary is the next year's start, times 100", () => {
+  assert.equal(bandSeekBoundary("1956"), 195700);
+  assert.equal(bandSeekBoundary("2026"), 202700);
+});
+
+test("a `?when=` link written when the rail spoke decades still seeks", () => {
+  assert.equal(bandSeekBoundary("1970s"), 198000);
+  assert.equal(bandSeekBoundary("unknown"), 1);
+});
+
+test("a year label is the year; only the undated need a word", () => {
+  assert.equal(bandLabel("1956"), "1956");
+  assert.equal(bandLabel("unknown"), "Undated");
 });
 
 /* ------------------------------------------------------------------ *

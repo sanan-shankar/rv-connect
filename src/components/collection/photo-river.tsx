@@ -17,7 +17,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { PhotoStream, type PhotoCell } from "@/components/common/photo-rows";
-import { eraLabel } from "@/lib/collection";
+import { bandKeyOf, bandLabel } from "@/lib/collection";
 import type { PhotoData, RiverOrder } from "@/app/(main)/collection/actions";
 import { cn } from "@/lib/utils";
 
@@ -186,26 +186,30 @@ export function Tile({
  *  there it means a great deal: it is the foldering the owner wanted
  *  ("all the organization foldering that we do, we have to do in a really
  *  beautiful way") delivered INLINE, at the cost of no clicks at all. You
- *  scroll and the decades announce themselves.
+ *  scroll and the years announce themselves.
+ *
+ *  A CHAPTER IS A YEAR, not a decade, since 2026-08-30 -- the rail changed
+ *  unit and these are the headings the rail lights, so they change with it.
+ *  A decade of chapters was ten headings for eighty years of archive; a year
+ *  of them is the granularity somebody actually looks for a photograph at.
  *
  *  Consecutive runs, not a group-by: the rows arrive already ordered by
- *  `takenKey`, so a run of one era is contiguous by construction, and this
+ *  `takenKey`, so a run of one band is contiguous by construction, and this
  *  keeps working as each new page is appended to the end.
  * ------------------------------------------------------------------ */
-type Band = { era: string; photos: PhotoData[] };
+type Band = { key: string; photos: PhotoData[] };
 
 export function bandsOf(photos: PhotoData[], order: RiverOrder): Band[] {
-  if (order !== "taken") return [{ era: "", photos }];
+  if (order !== "taken") return [{ key: "", photos }];
   const out: Band[] = [];
   for (const p of photos) {
+    const key = bandKeyOf(p);
     const last = out[out.length - 1];
-    if (last && last.era === p.era) last.photos.push(p);
-    else out.push({ era: p.era, photos: [p] });
+    if (last && last.key === key) last.photos.push(p);
+    else out.push({ key, photos: [p] });
   }
   return out;
 }
-
-const bandLabel = (era: string) => (era === "unknown" ? "Undated" : eraLabel(era));
 
 /* ------------------------------------------------------------------ *
  *  Which decade the reader is IN, read off the page rather than set.
@@ -243,27 +247,27 @@ function useActiveBand(bands: Band[], onChange?: (era: string) => void) {
 
   useEffect(() => {
     if (!onChange || bands.length < 2) return;
-    const eras = bands.map((b) => b.era).filter(Boolean);
+    const keys = bands.map((b) => b.key).filter(Boolean);
 
     const settle = () => {
       const line = window.innerHeight * READING_LINE;
       let current = "";
-      for (const era of eras) {
-        const el = headings.current.get(era);
-        if (el && el.getBoundingClientRect().top <= line) current = era;
+      for (const key of keys) {
+        const el = headings.current.get(key);
+        if (el && el.getBoundingClientRect().top <= line) current = key;
       }
       /* Above the first heading there is nothing to have passed, and the
-         band being read is the first one -- not "no decade", which would
+         band being read is the first one -- not "no year", which would
          blank the rail every time the reader returned to the very top. */
-      onChange(current || eras[0]);
+      onChange(current || keys[0]);
     };
 
     const io = new IntersectionObserver(settle, {
       rootMargin: `0px 0px -${(1 - READING_LINE) * 100}% 0px`,
       threshold: 0,
     });
-    for (const era of eras) {
-      const el = headings.current.get(era);
+    for (const key of keys) {
+      const el = headings.current.get(key);
       if (el) io.observe(el);
     }
     // A new page of photographs can add bands without moving the reader, so
@@ -273,14 +277,14 @@ function useActiveBand(bands: Band[], onChange?: (era: string) => void) {
     return () => io.disconnect();
   }, [bands, onChange]);
 
-  return (era: string) => {
-    let ref = refs.current.get(era);
+  return (key: string) => {
+    let ref = refs.current.get(key);
     if (!ref) {
       ref = (el: HTMLElement | null) => {
-        if (el) headings.current.set(era, el);
-        else headings.current.delete(era);
+        if (el) headings.current.set(key, el);
+        else headings.current.delete(key);
       };
-      refs.current.set(era, ref);
+      refs.current.set(key, ref);
     }
     return ref;
   };
@@ -291,7 +295,7 @@ export function PhotoRiver({
   order,
   onOpen,
   dimmed = false,
-  onActiveEraChange,
+  onActiveBandChange,
   className,
 }: {
   photos: PhotoData[];
@@ -304,11 +308,11 @@ export function PhotoRiver({
   /** The decade heading currently in view, for the rail to light -- read
    *  from scroll position, never from a filter (see `useActiveBand`). Fires
    *  only in "taken" order, where headings exist at all. */
-  onActiveEraChange?: (era: string) => void;
+  onActiveBandChange?: (era: string) => void;
   className?: string;
 }) {
   const bands = useMemo(() => bandsOf(photos, order), [photos, order]);
-  const headingRef = useActiveBand(bands, onActiveEraChange);
+  const headingRef = useActiveBand(bands, onActiveBandChange);
 
   return (
     /* The cross-fade. Changing a bucket dims the river the moment the query
@@ -341,8 +345,8 @@ export function PhotoRiver({
            reaches the size where windowing earns its place again, the
            estimate must be COMPUTED from the rows' known aspect ratios,
            never guessed. */
-        <section key={band.era || "all"}>
-          {band.era && (
+        <section key={band.key || "all"}>
+          {band.key && (
             /* The foldering, inline and free -- and it is a chapter opening
                now rather than a bar.
                It used to be sticky, which meant it needed a background to
@@ -350,23 +354,23 @@ export function PhotoRiver({
                rule ran across the river at every decade. The owner: "the
                headings also have the weird bars behind them." They were the
                price of the stickiness, and the stickiness was buying very
-               little: the decade rail on the right already says where you
+               little: the year rail on the right already says where you
                are, permanently, without covering anything.
 
                A SINGLE band gets its heading too. It used to be suppressed
-               when the whole page was one decade, on the logic that one
+               when the whole page was one band, on the logic that one
                chapter needs no chapter openings -- and the owner read that
                as a bug, correctly: "when i'm on All and chronological why's
                there sometimes no 2020s heading." In an order whose whole
-               point is time, the decade you are reading is never noise.
+               point is time, the year you are reading is never noise.
 
                No count under it. "I feel like we can dispense of the number
                of photographs anywhere, who actually cares" -- the rail's
-               marks already say how much each decade holds, as proportion,
+               marks already say how much each year holds, as proportion,
                which is the only form anybody reads. */
-            <h2 ref={headingRef(band.era)} data-era={band.era} className={cn("mb-4", bi > 0 && "mt-12")}>
+            <h2 ref={headingRef(band.key)} data-band={band.key} className={cn("mb-4", bi > 0 && "mt-12")}>
               <span className="block font-heading text-[22px] leading-none tracking-[-0.02em] text-foreground">
-                {bandLabel(band.era)}
+                {bandLabel(band.key)}
               </span>
             </h2>
           )}

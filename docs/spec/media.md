@@ -22,7 +22,7 @@
 >   route (contributing is a pop-up).
 > - **§6, the grid page** — dead. No masonry, no filter rail of three
 >   Selects, no "A wander" sort. The page is a river of justified rows with
->   the six buckets on one line, a decade rail, search on the title line
+>   the six buckets on one line, a year rail, search on the title line
 >   and four orders (`src/components/collection/*`).
 > - **§4.3's "blur placeholder"** and the whole question of how a photograph
 >   is sized are answered by `src/lib/photo-layout.ts` and `<PhotoFrame>`,

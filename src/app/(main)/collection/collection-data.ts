@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { BUCKET_VALUES, ERA_VALUES } from "@/lib/collection";
+import { BUCKET_VALUES, ERA_VALUES, PHOTO_YEAR_MIN } from "@/lib/collection";
 import { classKey, photoScopeWhere, type PhotoScope } from "@/lib/photo-visibility-rule";
 import { isPhotoAutoApproved } from "@/lib/collection-photo";
 import { MAX_PHOTOS_PER_ACCOUNT } from "@/lib/upload-shared";
@@ -24,7 +24,7 @@ const ORDERS: RiverOrder[] = ["newest", "oldest", "taken", "loved"];
  *
  *  Filtering happens IN PLACE -- press a bucket and the river cross-fades
  *  rather than navigating (spec sec. 6) -- but the state it lands in is
- *  written into the URL as it goes, so a bucket, a decade or a search is
+ *  written into the URL as it goes, so a bucket, a year or a search is
  *  something you can send somebody. This reads the other end of that: a
  *  link arriving cold renders its own first page on the server, at the
  *  filters it names, instead of painting the whole archive and then
@@ -42,7 +42,7 @@ export function riverFiltersFrom(
     return typeof v === "string" ? v : Array.isArray(v) ? v[0] : undefined;
   };
   const bucket = one("bucket");
-  const era = one("when");
+  const when = one("when");
   const order = one("order");
   const search = one("q")?.slice(0, 100).trim();
   /* Anything that is not the literal "class" is the Valley Collection. A
@@ -53,20 +53,37 @@ export function riverFiltersFrom(
      claim to and would meet as an unexplained empty page. */
   const scope: PhotoScope = one("scope") === "class" ? "class" : "valley";
 
-  const when = era && (ERA_VALUES as readonly string[]).includes(era) ? era : undefined;
+  /* `?when=` is a YEAR now ("1956"), and was a decade until 2026-08-30. Both
+     are still read: a decade link somebody kept or sent still opens the
+     archive at the top of that decade (`bandSeekBoundary` handles it), it
+     simply is not a shape the rail writes any more. Bounded either way,
+     because an unbounded year seeks to a boundary no row can be under and
+     answers an empty archive -- the failure a search param must never have.
+     The ceiling is deliberately loose rather than "this year": the clock is
+     the reader's, and a photograph contributed on the far side of a date
+     line must not read as a bad link. */
+  const year = when && /^\d{4}$/.test(when) ? Number(when) : null;
+  const band =
+    year !== null
+      ? year >= PHOTO_YEAR_MIN && year <= 2100
+        ? when
+        : undefined
+      : when && (ERA_VALUES as readonly string[]).includes(when)
+        ? when
+        : undefined;
   const asked = order && (ORDERS as string[]).includes(order) ? (order as RiverOrder) : undefined;
 
   return {
     scope,
     bucket: bucket && (BUCKET_VALUES as readonly string[]).includes(bucket) ? bucket : undefined,
-    era: when,
+    band,
     search: search || undefined,
     /* A `?when=` with no order named means Chronological, because that is the
-       only order a decade is a position in: `when` asks the river to START at
-       the 1970s, and starting somewhere is meaningless in a river sorted by
+       only order a year is a position in: `when` asks the river to START at
+       1956, and starting somewhere is meaningless in a river sorted by
        upload date. Links this page writes always name both, so this is for
        the ones a person shortens, types or kept from an older build. */
-    order: asked ?? (when ? "taken" : "newest"),
+    order: asked ?? (band ? "taken" : "newest"),
   };
 }
 

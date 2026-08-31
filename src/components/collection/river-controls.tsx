@@ -26,7 +26,7 @@
  *  thousand near-duplicates -- the owner worked that out himself during
  *  the brief -- and spec sec. 7.2 makes it absolute that nothing written
  *  in prose is ever offered as a dropdown. It is searched instead. And
- *  no "When" dropdown: that is the decade rail, which is a picture of
+ *  no "When" dropdown: that is the year rail, which is a picture of
  *  the archive rather than a list of its decades.
  * ------------------------------------------------------------------ */
 

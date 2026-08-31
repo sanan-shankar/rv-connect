@@ -309,7 +309,7 @@ test("class: the river cannot be queried without a resolved scope", () => {
   );
   // An ineligible viewer gets an empty page, never an unscoped query.
   assert.ok(
-    /if \(!scopeWhere\) return \{ photos: \[\], nextCursor: null, decades: \[\] \};/.test(src),
+    /if \(!scopeWhere\) return \{ photos: \[\], nextCursor: null, bands: \[\] \};/.test(src),
     "loadPhotos no longer bails when the viewer is entitled to neither scope"
   );
 });

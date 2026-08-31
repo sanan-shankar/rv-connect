@@ -97,7 +97,7 @@ const LEGACY_BUCKETS: Record<string, BucketValue> = {
   "arts-music": "school-life",
   "sport-outdoors": "school-life",
   // "Historical" was a date wearing a subject's clothes. When is its own
-  // axis now (the decade rail), so this is the evidence Other exists for.
+  // axis now (the year rail), so this is the evidence Other exists for.
   historical: "other",
 };
 
@@ -219,7 +219,7 @@ export const PHOTO_YEAR_MIN = 1926;
  *  what goes INTO the archive, not a detail of one screen -- and here
  *  they are pure, so `collection-date.test.mjs` can hold the ladder
  *  still. Getting this wrong mis-files a photograph in a way nobody
- *  notices until the decade rail is wrong.
+ *  notices until the rail is wrong.
  * ------------------------------------------------------------------ */
 
 /** Is what has been typed actually a year? The valley's own year is the
@@ -341,7 +341,7 @@ export function eraFromYear(year: number): string {
 }
 
 /* ------------------------------------------------------------------ *
- *  The decade rail's own ordering.
+ *  The year rail's own ordering.
  *
  *  A decade sorts by the year it starts. "pre-1960s" is everything
  *  before that, so it takes the year the school was founded rather than
@@ -373,7 +373,7 @@ export const ERA_START_YEAR: Record<string, number> = {
 
 export const eraSortYear = (era: string): number | null => ERA_START_YEAR[era] ?? null;
 
-/** The `takenKey` boundary the decade rail seeks to: one past the top of
+/** The `takenKey` boundary a DECADE seeks to: one past the top of
  *  `era`, so "everything with a smaller `takenKey`" is exactly that decade
  *  and everything older. `null` means no boundary exists -- either `era` is
  *  the newest real decade (nothing sits above it, so seeking there is the
@@ -388,6 +388,63 @@ export function eraSeekBoundary(era: string): number | null {
   const next = ERAS[at + 1];
   if (!next || next.value === "unknown") return null;
   return ERA_START_YEAR[next.value] * 100;
+}
+
+/* ------------------------------------------------------------------ *
+ *  The rail's unit, which is the YEAR.
+ *
+ *  It was the decade until 2026-08-30 -- "can you make the siderail on
+ *  collection show each year instead of decades", then "show all" when
+ *  asked whether the years should hide inside a decade you open. So
+ *  every year the archive holds gets its own row, all of them on screen
+ *  at once, and the rail never scrolls (see `year-rail.tsx` for how a
+ *  hundred rows fit in one sticky column).
+ *
+ *  A BAND KEY IS A YEAR, OR "unknown". There is no third kind, and that
+ *  is a decision rather than an omission: a photograph filed only to a
+ *  decade ("the 1950s", `datePrecision: "decade"`) has no year of its
+ *  own, and giving it a row of its own would put a "1950s" mark
+ *  somewhere in the middle of 1959..1950 that the river cannot actually
+ *  hold -- `takenKey` files it at 195000, which is the same integer a
+ *  bare 1950 gets, so the two would interleave and the river's headings
+ *  would alternate 1950 / 1950s / 1950 all the way down. Instead it
+ *  bands at its decade's first year, which is exactly where the river
+ *  already puts it. The rail is a map of the river; the river decides.
+ *
+ *  If decade-only contributions ever become common enough that the
+ *  first year of each decade reads as suspiciously fat, the fix is a
+ *  migration giving those rows a distinct `takenKey` month (99, sorting
+ *  just above the bare year) and a band of their own here. Not worth a
+ *  generated-column rebuild on a shared production database until the
+ *  data asks for it -- as of 2026-08-30 no row has `datePrecision`
+ *  "decade" at all.
+ * ------------------------------------------------------------------ */
+export function bandKeyOf(row: { photoYear?: number | null; era?: string | null }): string {
+  if (row.photoYear) return String(row.photoYear);
+  const start = ERA_START_YEAR[row.era ?? ""];
+  return start ? String(start) : "unknown";
+}
+
+/** A band key as it reads on the rail. A year is already its own label. */
+export const bandLabel = (key: string) => (key === "unknown" ? "Undated" : key);
+
+/** The `takenKey` boundary a band seeks to: one past the top of it, so
+ *  "everything with a smaller `takenKey`" is that band and everything older.
+ *
+ *  Takes a DECADE as well as a year, because `?when=1970s` links were
+ *  shareable for two days before the rail changed unit and a link that used
+ *  to open the archive at the 1970s must keep doing so -- it delegates to
+ *  `eraSeekBoundary` for those, which is also what still answers `null` for
+ *  the newest decade.
+ *
+ *  A year always answers a number, even the newest one the archive holds:
+ *  the server cannot know which year that is without a second query, and the
+ *  cost of not knowing is one upward fetch that comes back empty the first
+ *  time somebody scrolls to the top of a seek they made to the newest year.
+ *  A query saved on every seek is worth more than a query wasted on that. */
+export function bandSeekBoundary(key: string): number | null {
+  if (/^\d{4}$/.test(key)) return (Number(key) + 1) * 100;
+  return eraSeekBoundary(key);
 }
 
 /* ------------------------------------------------------------------ *
