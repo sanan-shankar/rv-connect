@@ -1,5 +1,43 @@
 # Progress Log
 
+## 2026-08-31 — the Collection's rail counts in years, and all of them fit on one screen
+
+*"Can you make the siderail on collection show each year instead of decades"*, then, before a
+line was written: *"make sure you're easily able to reach say 1956. think about what you'd
+have to scroll."* Asked whether the years should fold inside a decade you open, he said
+**"show all"**.
+
+Two facts made that harder than a relabel. The archive can span 1926 to now, which is 101
+rows in a 92px gutter — 1700px of list in an 850px column, so the lazy version grows its own
+scrollbar and reaching 1956 means scrolling seventy years first, inside a page that is also
+scrolling. And a photograph filed only to a decade has no year at all.
+
+**The rows divide the height they are given.** Between 6px and 17px, whatever fits, so the
+rail never scrolls and never clips. While there is room every year is named; once rows drop
+under 15px only the decades keep their lettering, plus the newest year, the oldest year and
+Undated — a ruler read by its ends. The pointer names whatever it is over, and a decade one
+row away steps aside so two numbers never print through each other. Nothing is hidden: every
+year is always present, always pressable, always drawn to scale. Only the lettering thins.
+59 years in the lab room measure out at 11px; the live archive's four sit at 17px and all say
+their names.
+
+**Sizing against the height the rail has once it STICKS put the oldest three years below the
+fold on arrival** — 876px of window measured out into a slot that only has 712px until you
+scroll. It measures its own top in the document now and sizes for the tightest position it is
+ever in, carrying slack at the foot once it sticks. `e2e/collection-seek.spec.ts` pins it:
+every row on screen, no scrollbar on the nav.
+
+**A decade-only photograph bands at its decade's first year**, which is exactly where
+`takenKey` already files it. A band of its own would sort to the same integer as a bare 1950
+and the river's headings would alternate 1950 / 1950s / 1950 down the page. If those
+contributions ever get common the fix is a migration giving them a distinct `takenKey` month;
+no row has `datePrecision` "decade" today.
+
+Visible elsewhere, and worth saying out loud: **the river's chapter headings are years now
+too**, not decades. The rail is a map of the river, so they have to share a unit — press 1953
+and the chapter you land on says 1953. `?when=1970s` links from the old rail still open the
+archive at the top of that decade.
+
 ## 2026-08-31 — the swap between the Collection's two halves is four changes, not one
 
 The owner, on the caret between the Valley and Class Collections: *"I like the chevron way of

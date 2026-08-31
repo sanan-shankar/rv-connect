@@ -16,15 +16,15 @@
  *  So: PHOTOGRAPHS FIRST, ALWAYS. Organisation is a lens over them and
  *  never a gate in front of them. There is no folder screen at any
  *  point. /collection opens straight onto justified rows of
- *  photographs, and everything else -- the six buckets, the decade
+ *  photographs, and everything else -- the six buckets, the year
  *  rail, search, the order -- narrows what is already on the screen,
  *  in place, without navigating.
  *
  *  Three things carry that, each in its own file: <RiverControls> (the
  *  one line of controls that replaced a whole row of dropdown pills),
- *  <DecadeRail> (when, drawn as the archive's own shape rather than
+ *  <YearRail> (when, drawn as the archive's own shape rather than
  *  listed in a menu), and <PhotoRiver> (the justified rows and the
- *  decade headings, shared with /lab/collection so the room shows the
+ *  year headings, shared with /lab/collection so the room shows the
  *  real thing).
  * ------------------------------------------------------------------ */
 
@@ -51,12 +51,12 @@ import {
   type RiverOrder,
   type RiverPage,
 } from "@/app/(main)/collection/actions";
-import { areaLabel, bucketLabel } from "@/lib/collection";
+import { areaLabel, bandKeyOf, bucketLabel } from "@/lib/collection";
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import { PhotoRiver, Tile, landAt, warmThumbs } from "./photo-river";
 import { RiverControls } from "./river-controls";
 import { ScopeCaret } from "./scope-caret";
-import { DecadeRail, type DecadeCount } from "./decade-rail";
+import { YearRail, type BandCount } from "./year-rail";
 
 /* ------------------------------------------------------------------ *
  *  Both open on a press and neither has any presence on the page until
@@ -169,10 +169,10 @@ export function CollectionClient({
   const [photos, setPhotos] = useState<PhotoData[]>(firstPage.photos);
   const [cursor, setCursor] = useState<string | null>(firstPage.nextCursor);
   /* The other edge: a cursor for climbing back UP toward newer photographs,
-     which only exists once the decade rail has seeked mid-river. See
+     which only exists once the year rail has seeked mid-river. See
      `loadNewer` and the note on `RiverPage.topCursor`. */
   const [topCursor, setTopCursor] = useState<string | null>(firstPage.topCursor ?? null);
-  const [decades, setDecades] = useState<DecadeCount[]>(firstPage.decades ?? []);
+  const [bands, setBands] = useState<BandCount[]>(firstPage.bands ?? []);
 
   /* The server has answered again -- a contribution landed and called
      `router.refresh()`, or the reader came back to this route. Re-seeding from
@@ -209,7 +209,7 @@ export function CollectionClient({
       setPhotos(firstPage.photos);
       setCursor(firstPage.nextCursor);
       setTopCursor(firstPage.topCursor ?? null);
-      setDecades(firstPage.decades ?? []);
+      setBands(firstPage.bands ?? []);
     }
   }
 
@@ -237,46 +237,46 @@ export function CollectionClient({
   const [search, setSearch] = useState(filters.search ?? "");
   const [loadingNewer, setLoadingNewer] = useState(false);
 
-  /* WHERE THE RIVER STARTS, which is the whole of what the decade rail sets.
+  /* WHERE THE RIVER STARTS, which is the whole of what the year rail sets.
      It is not a filter and it does not narrow anything: the server reads it
      on the first page only, to pick the row to begin at, and ignores it on
-     every page after (see `RiverFilters.era`). So it rides in the query state
+     every page after (see `RiverFilters.band`). So it rides in the query state
      beside the bucket and the search rather than being fetched by hand --
-     which is what makes pressing a decade a single state change that the one
+     which is what makes pressing a year a single state change that the one
      query effect below already knows how to service, instead of a second
      copy of that fetch racing it. */
-  const [seekEra, setSeekEra] = useState(filters.era ?? "");
+  const [seekBand, setSeekBand] = useState(filters.band ?? "");
 
-  /* The decade the rail LIGHTS, which is a different fact from the one above:
+  /* The year the rail LIGHTS, which is a different fact from the one above:
      where the reader currently is, read off the page as they scroll
-     (`onActiveEraChange` -> `useActiveBand`). It parts company with `seekEra`
-     the moment they scroll away from where they landed. */
-  const [activeEra, setActiveEra] = useState(filters.era ?? "");
+     (`onActiveBandChange` -> `useActiveBand`). It parts company with
+     `seekBand` the moment they scroll away from where they landed. */
+  const [activeBand, setActiveBand] = useState(filters.band ?? "");
 
   /** A new bucket or a new search is a NEW RIVER, and a seek left over from
-   *  the old one would start it in the wrong place -- or, if that decade
+   *  the old one would start it in the wrong place -- or, if that year
    *  holds nothing under the new bucket, at no place at all: an empty grid
    *  for a bucket that is not empty. Both setters therefore clear it. */
   const chooseBucket = useCallback((next: string) => {
     setBucket(next);
-    setSeekEra("");
+    setSeekBand("");
   }, []);
 
   /** An order picked from the menu abandons the seek too. Left in state, a
    *  seek survived a trip through Newest and resurfaced the moment the
    *  reader came back to Chronological -- the archive opening at 1970s when
    *  they had asked for the archive. An order chosen by hand starts at its
-   *  own head; only the rail's own press sets a decade, and it sets the
+   *  own head; only the rail's own press sets a year, and it sets the
    *  order with it (`seekTo`). */
   const chooseOrder = useCallback((next: RiverOrder) => {
     setOrder(next);
-    setSeekEra("");
+    setSeekBand("");
   }, []);
 
   /** The other half is not a filtered view of this one, it is a different
    *  archive -- so everything narrowing this one goes with it.
    *
-   *  The seek for the reason above: a decade seeked in the valley would
+   *  The seek for the reason above: a year seeked in the valley would
    *  otherwise resurface in a class that has no photographs in it. The bucket
    *  and the search because they are worse than stale, they are misleading:
    *  searching "banyan", switching, and meeting an empty page reads as an
@@ -287,7 +287,7 @@ export function CollectionClient({
     setBucket("");
     setSearchInput("");
     setSearch("");
-    setSeekEra("");
+    setSeekBand("");
   }, []);
 
   const debounce = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -299,7 +299,7 @@ export function CollectionClient({
       // `?when=` link arrived with before the reader had done anything.
       if (searchInput === search) return;
       setSearch(searchInput);
-      setSeekEra("");
+      setSeekBand("");
     }, 300);
     return () => {
       if (debounce.current) clearTimeout(debounce.current);
@@ -313,8 +313,8 @@ export function CollectionClient({
      `history.replaceState` rather than the router: this must not refetch the
      route, and Next supports exactly this for search params.
 
-     `when` is the decade the river was STARTED at, not one it is filtered to,
-     so the link it makes opens the archive at that decade with everything
+     `when` is the year the river was STARTED at, not one it is filtered to,
+     so the link it makes opens the archive at that year with everything
      above and below it still there. It is cleared whenever the bucket or the
      search changes, so it can never describe a river it is no longer true of.
 
@@ -338,7 +338,7 @@ export function CollectionClient({
         bucket === (asked.current.bucket ?? "") &&
         search === (asked.current.search ?? "") &&
         order === (asked.current.order ?? "newest") &&
-        seekEra === (asked.current.era ?? "");
+        seekBand === (asked.current.band ?? "");
       if (still) return;
       moved.current = true;
     }
@@ -349,11 +349,11 @@ export function CollectionClient({
     if (scope === "class") q.set("scope", "class");
     if (bucket) q.set("bucket", bucket);
     if (search) q.set("q", search);
-    if (seekEra) q.set("when", seekEra);
+    if (seekBand) q.set("when", seekBand);
     if (order !== "newest") q.set("order", order);
     const qs = q.toString();
     window.history.replaceState(null, "", `/collection${qs ? `?${qs}` : ""}`);
-  }, [scope, bucket, search, order, seekEra]);
+  }, [scope, bucket, search, order, seekBand]);
 
   const fetchPage = useCallback(
     (c: string | null) =>
@@ -365,10 +365,10 @@ export function CollectionClient({
         order,
         /* Only the first page is ever seeked; the server ignores this the
            moment a cursor is present, so it can ride along on every page
-           without the decade leaking into what the river holds. */
-        era: seekEra || undefined,
+           without the year leaking into what the river holds. */
+        band: seekBand || undefined,
       }),
-    [scope, bucket, search, order, seekEra]
+    [scope, bucket, search, order, seekBand]
   );
 
   /* Bumped whenever the query behind this river changes, so a page already in
@@ -426,11 +426,11 @@ export function CollectionClient({
       setPhotos(data.photos);
       setCursor(data.nextCursor);
       setTopCursor(data.topCursor ?? null);
-      setDecades(data.decades ?? []);
+      setBands(data.bands ?? []);
       /* A new river, so the old scroll position is not a fact about it any
-         more: back to the decade asked for, or to nothing -- which the rail
+         more: back to the year asked for, or to nothing -- which the rail
          reads as "wherever the first photograph is" (see `railActive`). */
-      setActiveEra(seekEra);
+      setActiveBand(seekBand);
       setLoading(false);
       /* EVERY NEW RIVER STARTS AT ITS HEAD, and the head is one place. Not
          the top of the page: landing at scroll 0 moved the sticky rail from
@@ -444,7 +444,7 @@ export function CollectionClient({
 
          A seek goes there unconditionally. It used to stay put for a reader
          who was above the head already, on the logic that the river's top
-         was on their screen -- which put the decade they had just asked for
+         was on their screen -- which put the year they had just asked for
          a third of the way down the page under the header and controls,
          while the same press from deeper landed it flush at the top:
          "sometimes I click 2000s and instead of 2000s being at the top it's
@@ -474,9 +474,9 @@ export function CollectionClient({
     return () => {
       cancelled = true;
     };
-    // `seekEra` cannot change without changing `fetchPage` with it; it is
+    // `seekBand` cannot change without changing `fetchPage` with it; it is
     // listed because this body reads it, not because it can move on its own.
-  }, [fetchPage, seekEra, headOfRiver]);
+  }, [fetchPage, seekBand, headOfRiver]);
 
   const more = useCallback(async () => {
     // ...and not while one is arriving at the head, for the reason given on
@@ -528,7 +528,7 @@ export function CollectionClient({
     return () => io.disconnect();
   }, [cursor, more]);
 
-  /* ---------------- the decade rail's seek ---------------- */
+  /* ---------------- the year rail's seek ---------------- */
 
   /** Set while a press on the rail is waiting for its page, so the query
    *  effect knows to land the reader at the top when it arrives. A ref
@@ -537,32 +537,32 @@ export function CollectionClient({
   const jump = useRef(false);
 
 
-  /* Pressing a decade. Two state changes and nothing else -- no fetch here:
-     `seekEra` is part of the query, so the effect above sees a new
+  /* Pressing a year. Two state changes and nothing else -- no fetch here:
+     `seekBand` is part of the query, so the effect above sees a new
      `fetchPage` and services this exactly the way it services a new bucket,
      with the same generation guard, the same cross-fade and the same single
      round trip.
 
      It also turns the order to Chronological, because that is the only order
-     with a date spine to seek along: "the 1970s" means nothing in a river
-     sorted by upload date or by love. The rail stays visible in every order
+     with a date spine to seek along: "1956" means nothing in a river sorted
+     by upload date or by love. The rail stays visible in every order
      regardless -- it is a picture of the archive's shape, which is worth
      having at rest -- and pressing it is what commits to reading in time. */
   const seekTo = useCallback(
-    (era: string) => {
-      /* Pressing the decade the river already starts at changes no state, so
+    (key: string) => {
+      /* Pressing the year the river already starts at changes no state, so
          no fetch is coming to do the travelling -- but it is still a request
-         to go back to the top of that decade, and it is answered here. */
-      if (era === seekEra && order === "taken") {
+         to go back to the top of that year, and it is answered here. */
+      if (key === seekBand && order === "taken") {
         window.scrollTo({ top: 0 });
         return;
       }
       jump.current = true;
-      setSeekEra(era);
+      setSeekBand(key);
       setOrder("taken");
-      setActiveEra(era);
+      setActiveBand(key);
     },
-    [seekEra, order]
+    [seekBand, order]
   );
 
   /* Climbing back out of a seek: the one place the river is walked UPWARD,
@@ -640,7 +640,7 @@ export function CollectionClient({
      exists above the fold gets pulled in and scroll-anchored into place
      before the reader ever scrolls far enough to see the seam. Only ever
      mounted where `topCursor` can be truthy at all -- a seek short of the
-     newest decade -- so this is a no-op everywhere else. */
+     newest year -- so this is a no-op everywhere else. */
   const head = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = head.current;
@@ -775,8 +775,8 @@ export function CollectionClient({
   }
 
   /* ---------------- what to draw ---------------- */
-  // A decade is not in this list any more: seeking to one can never return
-  // an empty river (the rail only ever offers a decade that already holds a
+  // A year is not in this list any more: seeking to one can never return
+  // an empty river (the rail only ever offers a year that already holds a
   // photograph), so it is not a "query" that can leave the grid with
   // nothing to show.
   const hasQuery = !!(bucket || search);
@@ -788,15 +788,16 @@ export function CollectionClient({
   const noMatches = !loading && hasQuery && photos.length === 0;
 
   /* What the rail lights, DERIVED rather than stored: the scrollspy's answer
-     when it has one, else the decade the top photograph belongs to, and
-     nothing at all in the orders where a decade is not a position. Derived
+     when it has one, else the year the top photograph belongs to, and
+     nothing at all in the orders where a year is not a position. Derived
      because the fallback has to survive every route into a new list of
      photographs -- including the server re-seeding this component after a
      contribution, which replaces the river without anybody scrolling. And it
-     earns its place: when one decade fills the whole first page the
+     earns its place: when one year fills the whole first page the
      scrollspy sits out entirely (`useActiveBand` has nothing to compare
      below two bands), so nothing else would light the rail at all. */
-  const railActive = order === "taken" ? activeEra || photos[0]?.era || "" : "";
+  const railActive =
+    order === "taken" ? activeBand || (photos[0] ? bandKeyOf(photos[0]) : "") || "" : "";
 
   return (
     <div>
@@ -964,7 +965,7 @@ export function CollectionClient({
                       setBucket("");
                       setSearchInput("");
                       setSearch("");
-                      setSeekEra("");
+                      setSeekBand("");
                     }}
                   >
                     Show everything
@@ -991,7 +992,7 @@ export function CollectionClient({
                     photos={photos}
                     order={order}
                     dimmed={loading}
-                    onActiveEraChange={order === "taken" ? setActiveEra : undefined}
+                    onActiveBandChange={order === "taken" ? setActiveBand : undefined}
                     onOpen={(index) => {
                       setViewerMounted(true);
                       setViewer({ list: "main", index });
@@ -1015,11 +1016,11 @@ export function CollectionClient({
 
             {/* In EVERY order, because the marks are a picture of what the
                 archive holds and that is worth having at rest -- but lit
-                only in Chronological, where "which decade am I in" is a
+                only in Chronological, where "which year am I in" is a
                 question the river has an answer to. Pressing a mark in any
                 other order turns the river to Chronological and travels
                 there (see `seekTo`). */}
-            <DecadeRail decades={decades} active={railActive} onSeek={seekTo} />
+            <YearRail bands={bands} active={railActive} onSeek={seekTo} />
           </div>
         </>
       )}

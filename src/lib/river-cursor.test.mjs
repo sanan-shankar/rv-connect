@@ -123,7 +123,7 @@ test("the cursor's two directions agree with the order they page", () => {
 });
 
 /* ------------------------------------------------------------------ *
- *  Walking the river the other way: the decade rail's seek.
+ *  Walking the river the other way: the year rail's seek.
  *
  *  Everywhere else "more" means "older" -- one direction, appended at the
  *  bottom. The rail's seek lands mid-river and has to walk BOTH ways from

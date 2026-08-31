@@ -25,7 +25,7 @@ import {
   seekOlder,
   type RiverOrder,
 } from "@/lib/river-cursor";
-import { bucketsOf, eraSeekBoundary, takenLabel, takenShort } from "@/lib/collection";
+import { bandKeyOf, bandSeekBoundary, bucketsOf, takenLabel, takenShort } from "@/lib/collection";
 import {
   MAX_UPLOAD_BYTES,
   MAX_PHOTOS_PER_ACCOUNT,
@@ -662,8 +662,9 @@ export async function contributePhotoDirect(input: {
  *  the six values is a substring of another -- checked, and worth
  *  rechecking the day a seventh is added.
  *
- *  ERA is the decade rail: a filter as well as an index, so pressing 1978
- *  on the rail narrows the river to it rather than merely jumping there.
+ *  BAND is the year rail: a place in the river to START at, never a filter.
+ *  Pressing 1956 travels to 1956; everything above and below it still
+ *  exists and scrolling either way keeps going.
  *
  *  SEARCH reads everything anybody wrote in prose -- the caption, the Where
  *  line, the legacy free tags and the contributor's name -- and NOTHING
@@ -682,11 +683,12 @@ export type RiverFilters = {
    *  archive rather than a query spanning both (spec sec. 4). */
   scope?: PhotoScope;
   bucket?: string;
-  /** Not a filter -- a decade to SEEK to. `loadPhotos` reads this only when
-   *  there is no cursor yet, jumps the first page to that decade's newest
-   *  photograph, and forgets it from then on; the rail is a scroll position,
-   *  not something that narrows the grid (see the note on `loadPhotos`). */
-  era?: string;
+  /** Not a filter -- a YEAR to SEEK to ("1956"), or "unknown" for the
+   *  undated, or a legacy decade from an older `?when=` link. `loadPhotos`
+   *  reads this only when there is no cursor yet, jumps the first page to
+   *  that band's newest photograph, and forgets it from then on; the rail is
+   *  a scroll position, not something that narrows the grid. */
+  band?: string;
   search?: string;
   order?: RiverOrder;
 };
@@ -727,12 +729,12 @@ function buildCollectionWhere(
   };
 }
 
-/** How many photographs sit in each decade under the CURRENT bucket and
+/** How many photographs sit in each YEAR under the CURRENT bucket and
  *  search. The rail's marks are drawn in proportion to these, so it is a
  *  picture of the archive's own shape rather than a menu -- and it has to
- *  answer the question the person is actually asking, or pressing a decade
+ *  answer the question the person is actually asking, or pressing a year
  *  with twelve beside it returns nothing. */
-export type DecadeCount = { era: string; count: number };
+export type BandCount = { key: string; count: number };
 
 /** What the river hands back. `decades` rides only on the first page: it
  *  cannot change while paging through one query. There is no `total` any
@@ -743,18 +745,18 @@ export type RiverPage = {
   photos: PhotoData[];
   nextCursor: string | null;
   /** A cursor for climbing back UP from the top of this page, toward newer
-   *  photographs -- the direction only the decade rail's seek ever needs.
+   *  photographs -- the direction only the year rail's seek ever needs.
    *  `undefined` everywhere seeking is not in play; `null` once a climb has
    *  reached the newest photograph there is. */
   topCursor?: string | null;
-  decades?: DecadeCount[];
+  bands?: BandCount[];
 };
 
 export async function loadPhotos(
   opts?: RiverFilters & { cursor?: string | null; direction?: "newer" }
 ): Promise<RiverPage> {
   const session = await auth();
-  if (!session?.user?.id) return { photos: [], nextCursor: null, decades: [] };
+  if (!session?.user?.id) return { photos: [], nextCursor: null, bands: [] };
 
   /* WHICH HALF OF THE COLLECTION, resolved before a single row is asked for.
      The two facts it turns on -- verification and batch year -- are read off
@@ -778,7 +780,7 @@ export async function loadPhotos(
   });
   /* Entitled to neither: an empty page, never an unscoped query. A member with
      no class year yet reaches this, and so does one who is not verified. */
-  if (!scopeWhere) return { photos: [], nextCursor: null, decades: [] };
+  if (!scopeWhere) return { photos: [], nextCursor: null, bands: [] };
 
   const filters = buildCollectionWhere(scopeWhere, opts);
 
@@ -787,7 +789,7 @@ export async function loadPhotos(
    *
    *  Every other page of the river is walked one way -- older, appended at
    *  the foot -- and this is the one direction that walks the other way,
-   *  because the decade rail lands mid-river rather than at either end of
+   *  because the year rail lands mid-river rather than at either end of
    *  it. Only "taken" order ever calls this (the rail is hidden in every
    *  other order) and only once a real row above the seek point has
    *  already been loaded, so there is always a real cursor to page from --
@@ -821,13 +823,13 @@ export async function loadPhotos(
   const first = cursor === null;
   /* A seek only ever applies to the FIRST page of a fresh "taken" query --
      once a cursor exists the reader is already travelling the river the
-     normal way, and an `era` riding along on a later page is the request
+     normal way, and a `band` riding along on a later page is the request
      that asked for THAT page, not a fresh jump (see the note on
-     `RiverFilters.era`). `null` means the seek landed on the newest real
-     decade, which has no boundary because nothing sits above it; `undefined`
-     means this is not a seek at all. */
+     `RiverFilters.band`). `null` means there is no boundary to seek past --
+     a legacy decade link naming the newest decade, or a value nothing is
+     filed under; `undefined` means this is not a seek at all. */
   const seekBoundary =
-    first && order === "taken" && opts?.era ? eraSeekBoundary(opts.era) : undefined;
+    first && order === "taken" && opts?.band ? bandSeekBoundary(opts.band) : undefined;
   const where = {
     ...filters,
     ...(seekBoundary !== undefined ? seekOlder(seekBoundary) : afterCursor(order, cursor)),
@@ -853,7 +855,7 @@ export async function loadPhotos(
     nextCursor,
   };
 
-  // A seek that landed short of the newest decade has somewhere to climb
+  // A seek that landed short of the newest year has somewhere to climb
   // back up to; hand back a cursor for it rather than making the reader
   // discover the gap by scrolling into nothing.
   if (order === "taken" && trimmed.length > 0 && typeof seekBoundary === "number") {
@@ -862,19 +864,32 @@ export async function loadPhotos(
 
   if (first) {
     /* THE RAIL'S OWN COUNTS EXCLUDE ITS OWN FILTER, which is the one rule a
-       facet has to obey and the one this broke when `era` was still a
-       lingering filter: counting decades through a `where` that already
+       facet has to obey and the one this broke when the rail's value was
+       still a lingering filter: counting through a `where` that already
        pinned it returned exactly one row, so pressing "2020s" left the rail
-       with a single mark and DecadeRail hides itself below two -- the rail
-       vanished at the moment you used it (owner, 2026-08-29). Now that a
-       decade is a seek rather than a filter, `filters` never pins `era` in
-       the first place, so there is nothing left to strip here. */
-    const byEra = await prisma.photo.groupBy({
-      by: ["era"],
+       with a single mark and the rail hides itself below two -- it vanished
+       at the moment you used it (owner, 2026-08-29). Now that a band is a
+       seek rather than a filter, `filters` never pins it in the first place,
+       so there is nothing left to strip here.
+
+       GROUPED BY THE TWO COLUMNS A BAND IS DERIVED FROM rather than by a
+       band key Postgres knows nothing about: `photoYear` for everything with
+       a year, `era` for everything without one, folded to keys here. At most
+       a hundred-odd groups off a filtered index scan, and it runs the SAME
+       `bandKeyOf` the river's headings run, so the rail's rows and the
+       river's chapters can never disagree about which year a photograph is
+       in. */
+    const groups = await prisma.photo.groupBy({
+      by: ["photoYear", "era"],
       where: filters,
-      _count: { era: true },
+      _count: { _all: true },
     });
-    page.decades = byEra.map((g) => ({ era: g.era, count: g._count.era }));
+    const tally = new Map<string, number>();
+    for (const g of groups) {
+      const key = bandKeyOf(g);
+      tally.set(key, (tally.get(key) ?? 0) + g._count._all);
+    }
+    page.bands = [...tally].map(([key, count]) => ({ key, count }));
   }
 
   return page;

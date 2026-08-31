@@ -4,14 +4,14 @@
  *  Delight room: the Collection, with an archive in it.
  *
  *  Every component on this page is the REAL one -- <RiverControls>,
- *  <DecadeRail>, <PhotoRiver>, <ImageViewer>. Only the archive is made
+ *  <YearRail>, <PhotoRiver>, <ImageViewer>. Only the archive is made
  *  up, because the real one holds two photographs and both say "asdf",
  *  so nothing about this surface can be judged on /collection itself
  *  (handover F26, F33).
  *
  *  What is worth pressing: a bucket, and watch the underline glide and
  *  the river cross-fade; "Chronological" in the order menu, which turns
- *  the decades into headings you scroll past and brings up the rail;
+ *  the years into headings you scroll past and brings up the rail;
  *  a decade on it, which SEEKS -- the grid does not empty out, it jumps
  *  to that stretch of one continuous river and scrolling either way
  *  keeps going, with nothing shifting under your eye as it does.
@@ -30,10 +30,10 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import Link from "next/link";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import { RiverControls } from "@/components/collection/river-controls";
-import { DecadeRail } from "@/components/collection/decade-rail";
+import { YearRail } from "@/components/collection/year-rail";
 import { PhotoRiver, landAt, warmThumbs } from "@/components/collection/photo-river";
 import { ImageViewer, type ViewerImage } from "@/components/common/image-viewer";
-import { bucketLabel } from "@/lib/collection";
+import { bandKeyOf, bucketLabel } from "@/lib/collection";
 import type { RiverOrder } from "@/app/(main)/collection/actions";
 import { LAB_ARCHIVE, takenKeyOf } from "./_archive";
 
@@ -45,7 +45,7 @@ export default function CollectionRoom() {
   const [bucket, setBucket] = useState("");
   const [order, setOrder] = useState<RiverOrder>("newest");
   const [at, setAt] = useState<number | null>(null);
-  const [activeEra, setActiveEra] = useState("");
+  const [activeBand, setActiveBand] = useState("");
 
   /* The full "taken" order, sorted once per bucket -- the array a real
      cursor would be walking. Everything below is a WINDOW onto it, by
@@ -75,11 +75,12 @@ export default function CollectionRoom() {
   const takenWindow = useMemo(() => takenSorted.slice(top, bottom), [takenSorted, top, bottom]);
 
   /* What the rail lights, DERIVED rather than stored: the scrollspy's answer
-     when it has one, else the decade the top photograph belongs to. The
-     fallback earns its place -- when one decade fills the whole page the
+     when it has one, else the year the top photograph belongs to. The
+     fallback earns its place -- when one year fills the whole page the
      scrollspy sits out (`useActiveBand` has nothing to compare below two
      bands), so nothing would light the rail at all. */
-  const railActive = order === "taken" ? activeEra || takenWindow[0]?.era || "" : "";
+  const railActive =
+    order === "taken" ? activeBand || (takenWindow[0] ? bandKeyOf(takenWindow[0]) : "") : "";
 
   /* Every other order shows the whole filtered set at once, exactly as this
      room always has -- pagination only matters where the rail's seek lives. */
@@ -96,9 +97,9 @@ export default function CollectionRoom() {
     return [...kept].sort(by);
   }, [bucket, order, takenWindow]);
 
-  /* Pressing a decade: the newest photograph in it is the first occurrence
+  /* Pressing a year: the newest photograph in it is the first occurrence
      in `takenSorted`, because it is already sorted newest-first -- the same
-     fact the real seek boundary (`eraSeekBoundary`) exists to compute
+     fact the real seek boundary (`bandSeekBoundary`) exists to compute
      without a table scan.
 
      The two feel decisions ride along from `collection-client.tsx`, because
@@ -120,13 +121,13 @@ export default function CollectionRoom() {
    *  once the photographs it applies to are in the DOM. */
   const pendingLanding = useRef<"seek" | "pull" | null>(null);
   const seekTo = useCallback(
-    async (era: string) => {
-      const at = takenSorted.findIndex((p) => p.era === era);
+    async (key: string) => {
+      const at = takenSorted.findIndex((p) => bandKeyOf(p) === key);
       if (at < 0) return;
       await warmThumbs(takenSorted.slice(at, at + 12));
       setTop(at);
       setBottom(Math.min(at + PAGE_SIZE, takenSorted.length));
-      setActiveEra(era);
+      setActiveBand(key);
       // The rail turns the river to Chronological on a press, same as the
       // real one: a decade is a position, and only this order has a spine
       // for it to be a position along.
@@ -221,15 +222,16 @@ export default function CollectionRoom() {
   }, [order, bottom, takenSorted.length, more]);
 
   /* The rail's marks, counted under whatever bucket is on -- exactly what the
-     server's grouped query does, so pressing a decade can never return an
-     empty river. */
-  const decades = useMemo(() => {
+     server's grouped query does, through the same `bandKeyOf`, so pressing a
+     year can never return an empty river. */
+  const bands = useMemo(() => {
     const held = new Map<string, number>();
     for (const p of LAB_ARCHIVE) {
       if (bucket && !p.subject.includes(bucket)) continue;
-      held.set(p.era, (held.get(p.era) ?? 0) + 1);
+      const key = bandKeyOf(p);
+      held.set(key, (held.get(key) ?? 0) + 1);
     }
-    return [...held].map(([e, count]) => ({ era: e, count }));
+    return [...held].map(([key, count]) => ({ key, count }));
   }, [bucket]);
 
   const images: ViewerImage[] = useMemo(
@@ -287,14 +289,14 @@ export default function CollectionRoom() {
               photos={photos}
               order={order}
               onOpen={setAt}
-              onActiveEraChange={order === "taken" ? setActiveEra : undefined}
+              onActiveBandChange={order === "taken" ? setActiveBand : undefined}
             />
             {order === "taken" && <div ref={foot} aria-hidden className="h-px" />}
             {/* Zero-height until a scroll position the river is too short
                 to reach is asked for; see `landAt`. */}
             <div ref={tail} aria-hidden />
           </div>
-          <DecadeRail decades={decades} active={railActive} onSeek={seekTo} />
+          <YearRail bands={bands} active={railActive} onSeek={seekTo} />
         </div>
       </div>
 

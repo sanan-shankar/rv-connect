@@ -226,7 +226,7 @@ export function photoRowData(args: {
     datePrecision: meta.datePrecision,
     /* Recorded beside the contributor's answer and never merged into it. A
        photograph with an exifYear and no photoYear is UNDATED, in the river,
-       in the decade rail and in `takenKey` -- this is only what the review
+       in the year rail and in `takenKey` -- this is only what the review
        room offers a person, and a person accepting it is what writes
        photoYear. See the columns' note in schema.prisma. */
     exifYear: exif?.year ?? null,

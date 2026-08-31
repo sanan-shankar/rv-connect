@@ -106,7 +106,7 @@ export function afterCursor(order: RiverOrder, cursor: DecodedCursor | null) {
 }
 
 /** The mirror of `afterCursor`, for the one place the river is walked
- *  upward instead of down: the decade rail's seek, once real rows are
+ *  upward instead of down: the year rail's seek, once real rows are
  *  loaded above the seek point and the reader keeps scrolling toward
  *  "newer". Only meaningful for "taken" order -- the rail is hidden in
  *  every other order, so nothing else ever calls this. */
