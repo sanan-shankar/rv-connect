@@ -9,6 +9,11 @@ import { decidePhotoVisibility } from "@/lib/photo-visibility-rule";
 import { collectionPageData } from "../collection-data";
 import { loadPhoto } from "../actions";
 
+/** The permalink renders the same <CollectionClient>, so it hosts the same
+ *  contribute action and needs the same room. The reasoning is written out
+ *  once, on the index page beside it. */
+export const maxDuration = 60;
+
 /* ------------------------------------------------------------------ *
  *  A link to one photograph.
  *

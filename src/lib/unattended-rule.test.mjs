@@ -153,6 +153,34 @@ test("C-079: both cron routes declare a maxDuration", () => {
   }
 });
 
+/* ---- C-079, second half: so does anything that re-encodes an image ----
+
+   The finding was about a nightly pass, and the same hole was open on every
+   upload surface for the same reason. A 40MP photograph needs about 16 seconds
+   of CPU before either R2 round trip, and past the platform default the
+   invocation is KILLED -- the member sees a failed contribution and nothing is
+   reported anywhere, because the process dies before any error handler runs.
+   Measured 2026-09-02 (bugs.md item 21).
+
+   The two pages are here because a Server Action inherits its timeout from the
+   page that hosts it, not from the file it is written in: `maxDuration` on
+   `collection/actions.ts` would do nothing at all. */
+
+test("C-079: every surface that re-encodes an image declares a maxDuration", () => {
+  for (const file of [
+    "src/app/(main)/collection/(index)/page.tsx",
+    "src/app/(main)/collection/[id]/page.tsx",
+    "src/app/api/upload/route.ts",
+    "src/app/api/upload/finalize/route.ts",
+  ]) {
+    assert.match(
+      decomment(read(file)),
+      /export const maxDuration = \d+;/,
+      `${file} re-encodes photographs on the platform default, so a large one is cut off silently`
+    );
+  }
+});
+
 /* ---- C-106/C-083: the day's budget survives a dismissal --------- */
 
 test("C-106: dismissMail refuses to delete a row already counted against today", () => {

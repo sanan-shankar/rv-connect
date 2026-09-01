@@ -14,6 +14,11 @@ import {
   stillPictureNotice,} from "@/lib/upload-shared";
 import { vetUploadRequest } from "@/lib/api-gate";
 
+/** The proxied upload path: up to MAX_FILES images, each decoded and
+ *  re-encoded through sharp. Same reason as the Collection page's, which
+ *  carries the measurements (audit C-079). */
+export const maxDuration = 60;
+
 const MAX_FILES = 3;
 
 export async function POST(request: Request) {
