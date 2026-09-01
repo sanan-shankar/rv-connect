@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import sharp from "sharp";
-import { exifDate, exifStamp, parseExifStamp } from "./exif-date.ts";
+import { exifDate, exifFromPng, exifStamp, parseExifStamp } from "./exif-date.ts";
+import { crc32, deflateSync } from "node:zlib";
 
 /* The date a photograph's own file claims is the only thing standing between
    this archive and the owner's 2026-08-30 arithmetic: 21 photographs, 3 with a
@@ -197,4 +198,108 @@ test("the stored copy keeps the date and loses the coordinates", async () => {
      original's block above is larger. A size assertion is the honest form of
      "nothing else came along" for a reader that cannot enumerate tags. */
   assert.ok(block.length < 200, `stored EXIF block is ${block.length} bytes, expected only a date`);
+});
+
+/* ------------------------------------------------------------------ *
+ *  PNG, where the block is not where sharp looks.
+ *
+ *  `metadata().exif` comes back empty for a PNG that exiftool reads a
+ *  DateTimeOriginal out of without difficulty, and the archive filed
+ *  three of the owner's photographs undated because of it. These pin the
+ *  container reader that closes it -- against a PNG sharp actually
+ *  encoded, carrying a block sharp actually built, so neither half is a
+ *  fixture agreeing with the code that produced it.
+ * ------------------------------------------------------------------ */
+
+/** One PNG chunk, with a real CRC over type+body. sharp validates it. */
+function pngChunk(type, body) {
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(body.length);
+  const typed = Buffer.concat([Buffer.from(type, "latin1"), body]);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(typed));
+  return Buffer.concat([length, typed, crc]);
+}
+
+/** Splice a chunk in AFTER IHDR, which the spec requires to come first: put it
+ *  before and sharp rejects the whole file as a corrupt header, which would
+ *  make the premise below untestable rather than true. */
+function pngWithChunk(png, chunk) {
+  const ihdrEnd = 8 + 4 + 4 + 13 + 4;
+  return Buffer.concat([png.subarray(0, ihdrEnd), chunk, png.subarray(ihdrEnd)]);
+}
+
+/** ImageMagick's hex text profile: a newline, a name, a length, then the hex. */
+function rawProfile(block) {
+  return Buffer.from(
+    `\ngeneric profile\n${String(block.length).padStart(8)}\n${block.toString("hex")}\n`,
+    "latin1"
+  );
+}
+
+/** A zTXt chunk carrying a hex EXIF profile, the way Apple and ImageMagick write it. */
+function rawProfileChunk(block, keyword = "Raw profile type APP1") {
+  return pngChunk(
+    "zTXt",
+    Buffer.concat([
+      Buffer.from(keyword, "latin1"),
+      Buffer.from([0, 0]), // NUL terminator, then the compression method byte
+      deflateSync(rawProfile(block)),
+    ])
+  );
+}
+
+async function plainPng() {
+  return sharp({ create: { width: 8, height: 8, channels: 3, background: "#234455" } })
+    .png()
+    .toBuffer();
+}
+
+test("a PNG's date is found in a deflated Raw profile chunk", async () => {
+  const block = await exifBlock({ IFD2: { DateTimeOriginal: "2020:06:28 19:36:46" } });
+  const png = pngWithChunk(await plainPng(), rawProfileChunk(block));
+
+  /* THE PREMISE, ASSERTED RATHER THAN ASSUMED. If sharp ever learns to read
+     this chunk, the fallback stops being needed and this line is how anybody
+     finds out -- rather than the fallback quietly shadowing it for ever. */
+  assert.equal((await sharp(png).metadata()).exif, undefined);
+
+  const found = exifFromPng(png);
+  assert.ok(found, "the reader did not find the block sharp missed");
+  assert.equal(exifStamp(found, THIS_YEAR), "2020:06:28 19:36:46");
+  assert.deepEqual(exifDate(found, THIS_YEAR), { year: 2020, month: 6 });
+});
+
+test("the other keyword writers use is read too", async () => {
+  const block = await exifBlock({ IFD2: { DateTimeOriginal: "2001:09:11 06:30:00" } });
+  const png = pngWithChunk(await plainPng(), rawProfileChunk(block, "Raw profile type exif"));
+  assert.deepEqual(exifDate(exifFromPng(png) ?? undefined, THIS_YEAR), { year: 2001, month: 9 });
+});
+
+test("a PNG's date is found in the modern eXIf chunk too", async () => {
+  const block = await exifBlock({ IFD2: { DateTimeOriginal: "1998:03:14 09:12:00" } });
+  const png = pngWithChunk(await plainPng(), pngChunk("eXIf", block));
+  assert.deepEqual(exifDate(exifFromPng(png) ?? undefined, THIS_YEAR), { year: 1998, month: 3 });
+});
+
+test("a PNG with no profile, and a file that is not a PNG, are simply undated", async () => {
+  assert.equal(exifFromPng(await plainPng()), null);
+  assert.equal(exifFromPng(Buffer.from("not a png at all")), null);
+  assert.equal(exifFromPng(Buffer.alloc(0)), null);
+});
+
+/* Truncation and rubbish reach this from an upload, so it must return nothing
+   rather than throw out of the middle of a contribution. */
+test("a malformed PNG is undated, never an exception", async () => {
+  const rubbish = pngChunk(
+    "zTXt",
+    Buffer.concat([Buffer.from("Raw profile type APP1", "latin1"), Buffer.from([0, 0]), Buffer.from("not deflate data")])
+  );
+  assert.equal(exifFromPng(pngWithChunk(await plainPng(), rubbish)), null);
+
+  const block = await exifBlock({ IFD2: { DateTimeOriginal: "2020:06:28 19:36:46" } });
+  const good = pngWithChunk(await plainPng(), rawProfileChunk(block));
+  /* Cut the file off inside the profile chunk: the declared length now runs
+     past the end, which is the bounds check the reader exists to survive. */
+  assert.equal(exifFromPng(good.subarray(0, 60)), null, "a truncated file should not resolve");
 });

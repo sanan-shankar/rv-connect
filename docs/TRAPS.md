@@ -180,12 +180,17 @@ measured on the owner's album, capping the long edge at 4K costs the same bytes 
 and deletes 60% of a 24MP photograph to do it.
 
 
-**A PNG loses its date on the way in.** `exifDateOf` reads `sharp.metadata().exif`, which comes back
-empty for PNGs that exiftool can read a `DateTimeOriginal` out of perfectly well -- three were found
-in a 1,719-file album on 2026-09-02. So a PNG contributed through the app is filed undated, with no
-symptom anywhere. JPEGs are unaffected. If this is ever worth fixing, the fix is in `exif-date.ts`,
-which currently only knows how to walk a TIFF block.
-
+**A PNG carries its EXIF somewhere sharp does not look.** `sharp.metadata().exif` comes back
+**empty** for a PNG whose `DateTimeOriginal` exiftool reads without difficulty, and three photographs
+in a 1,719-file album were filed undated because of it before anyone noticed -- the contribution
+succeeds, so there is no symptom at all. PNG has two places to keep EXIF and libvips reads neither:
+the modern `eXIf` chunk (PNG 1.5), and the one Apple and ImageMagick actually write, a DEFLATED
+`zTXt` chunk keyed `Raw profile type APP1` holding the TIFF block **hex-encoded**. `exifFromPng` in
+`src/lib/exif-date.ts` now finds both and hands the bytes to the same tag walk as every other format;
+`exifBlockOf` in `collection-photo.ts` is the one place that decides which source to use, so the two
+readers cannot disagree about a file. **If you add a format, add it there, not at a call site** -- a
+fallback only one reader got would mean a photograph dated in the archive and undated in the file it
+hands back.
 
 **Moving the public image host is FIVE changes, not one.** On 2026-08-21 serving moved from
 `pub-<hash>.r2.dev` to `images.rishivalley.space`, and pointing `R2_PUBLIC_BASE_URL` at the new one
