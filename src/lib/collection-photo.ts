@@ -18,7 +18,7 @@
 
 import { sharpImage } from "@/lib/image";
 import { eraFromYear } from "@/lib/collection";
-import { exifDate, exifStamp, type ExifDate } from "@/lib/exif-date";
+import { exifDate, exifFromPng, exifStamp, type ExifDate } from "@/lib/exif-date";
 import { valleyYear } from "@/lib/utils";
 import { photoSchema } from "@/lib/validators";
 
@@ -131,15 +131,38 @@ export function isPhotoAutoApproved(who: {
  * truncated, absent or nonsense is a photograph with no suggested date, which
  * is the same state as most of them; throwing out of the middle of an upload
  * over a field nobody asked for would be a poor trade. `exifDate` swallows a
- * malformed block on its own, and this swallows a decode that never got that
- * far.
+ * malformed block on its own and `exifBlockOf` swallows a decode that never
+ * got far enough to have one, so nothing here has a way to throw.
  */
 export async function exifDateOf(original: Buffer): Promise<ExifDate | null> {
+  return exifDate(await exifBlockOf(original), valleyYear());
+}
+
+/**
+ * The raw EXIF block of an uploaded file, however its container happens to
+ * carry one.
+ *
+ * `sharp.metadata().exif` is the answer for a JPEG, a WebP and a HEIF, and it
+ * is EMPTY for a PNG whose date exiftool reads without difficulty -- libvips
+ * does not go looking in PNG's text chunks, which is where Apple and
+ * ImageMagick put it. Three photographs in the owner's 1,719-file album were
+ * silently filed undated because of it (2026-09-02), so the fallback is here
+ * rather than at one call site: both readers below need the same bytes, and a
+ * fix that only one of them got would mean a photograph dated in the archive
+ * and undated in the file it hands back.
+ *
+ * Undefined rather than null when there is nothing, because that is what
+ * `exifDate` and `exifStamp` already take.
+ */
+async function exifBlockOf(original: Buffer): Promise<Buffer | undefined> {
   try {
-    return exifDate((await sharpImage(original).metadata()).exif, valleyYear());
+    const fromSharp = (await sharpImage(original).metadata()).exif;
+    if (fromSharp?.length) return fromSharp;
   } catch {
-    return null;
+    /* A decode that never got far enough to have metadata. Fall through: the
+       PNG reader works off the raw bytes and may still manage. */
   }
+  return exifFromPng(original) ?? undefined;
 }
 
 /**
@@ -166,14 +189,8 @@ export async function exifDateOf(original: Buffer): Promise<ExifDate | null> {
 export async function dateOnlyExif(
   original: Buffer
 ): Promise<{ IFD2: { DateTimeOriginal: string } } | null> {
-  try {
-    const stamp = exifStamp((await sharpImage(original).metadata()).exif, valleyYear());
-    return stamp ? { IFD2: { DateTimeOriginal: stamp } } : null;
-  } catch {
-    /* Same trade as `exifDateOf` above: a metadata block this cannot decode is
-       a stored copy without a date, never a failed contribution. */
-    return null;
-  }
+  const stamp = exifStamp(await exifBlockOf(original), valleyYear());
+  return stamp ? { IFD2: { DateTimeOriginal: stamp } } : null;
 }
 
 /**
