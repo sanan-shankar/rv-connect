@@ -51,6 +51,14 @@
  *     dismisses it outright and a second press brings it back. Nothing
  *     is ever hidden while the caption is open or while a keyboard user
  *     is inside the chrome.
+ *  4. YOU CAN GET CLOSER (added 2026-09-02). Pinch, double tap, trackpad
+ *     pinch, wheel, or + and -, and pan around what you find. A viewer
+ *     that could not do this was the wrong place to keep scanned prints
+ *     of the 1970s, where the whole point is the face in the back row.
+ *     The gesture layer is `pinch-zoom.ts`, and the horizontal swipe
+ *     that steps photographs moved in there with it -- one hand has to
+ *     own every pointer, or a second finger landing mid-swipe is still
+ *     a swipe.
  *
  *  What did not change, because the owner settled it: moving between
  *  photographs is a straight cross dissolve, no x drift, no scale, no
@@ -81,6 +89,7 @@ import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { LoveButton } from "@/components/common/love-button";
 import { ShareButton } from "@/components/common/share-button";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
+import { usePinchZoom } from "@/components/common/pinch-zoom";
 import { cn } from "@/lib/utils";
 
 export interface ViewerImage {
@@ -238,6 +247,11 @@ export function ImageViewer({
   const at = Math.min(Math.max(index, 0), Math.max(count - 1, 0));
   const current = images[at];
 
+  /* Declared before the gesture layer, which calls it, and given a ref for
+     the zoom reset so the two are not circular: the gesture layer needs
+     `step`, and `step` needs to put the zoom back to fit. */
+  const resetZoomRef = useRef<() => void>(() => {});
+
   const step = useCallback(
     (dir: 1 | -1) => {
       setIndex((i) => {
@@ -247,9 +261,28 @@ export function ImageViewer({
       });
       setExpanded(false);
       setChrome("shown");
+      /* Every photograph arrives fitted to the screen. Carrying one
+         photograph's zoom onto the next would land you somewhere in the
+         middle of a picture you have not seen yet. */
+      resetZoomRef.current();
     },
     [count]
   );
+
+  /* Pinch, double tap, wheel, pan -- and the horizontal swipe that steps,
+     which lives in there too because one hand has to own every pointer.
+     See pinch-zoom.ts. */
+  const zoom = usePinchZoom({
+    enabled: open,
+    canSwipe: count > 1,
+    onStep: step,
+    onTapPhoto: () => {
+      setChrome((c) => (c === "shown" ? "off" : "shown"));
+      setExpanded(false);
+    },
+    onTapBackdrop: onClose,
+  });
+  resetZoomRef.current = zoom.reset;
 
   /* Fresh session each open: land on the pressed image, chrome shown.
      Adjusted during render (React's sanctioned adjust-state-on-prop-change
@@ -261,6 +294,7 @@ export function ImageViewer({
       setIndex(initialIndex);
       setChrome("shown");
       setExpanded(false);
+      zoom.reset();
     }
   }
 
@@ -286,11 +320,19 @@ export function ImageViewer({
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        /* Esc takes the topmost thing, and a zoomed-in photograph is one of
+           them: backing out of a close look should not also close the
+           viewer you were looking through. */
         if (expanded) setExpanded(false);
+        else if (zoom.zoomed) zoom.settleToFit();
         else onClose();
         return;
       }
-      if (e.key === "ArrowRight") step(1);
+      /* The keyboard's way in, for anyone without a trackpad or a touchscreen. */
+      if (e.key === "+" || e.key === "=") zoom.zoomByStep(1.5);
+      else if (e.key === "-" || e.key === "_") zoom.zoomByStep(1 / 1.5);
+      else if (e.key === "0") zoom.settleToFit();
+      else if (e.key === "ArrowRight") step(1);
       else if (e.key === "ArrowLeft") step(-1);
       else if (e.key === "Tab") {
         const root = dialogRef.current;
@@ -313,7 +355,7 @@ export function ImageViewer({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose, step, expanded]);
+  }, [open, onClose, step, expanded, zoom]);
 
   /* The chrome withdraws on stillness and comes back on movement. Movement is
      read through a ref and a single slow interval rather than state, because a
@@ -478,19 +520,14 @@ export function ImageViewer({
             onClick={(e) => e.stopPropagation()}
           >
             <m.div
-              className="absolute inset-0"
-              drag={count > 1 ? "x" : false}
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.14}
-              /* Release returns to rest with NO overshoot. Motion's default
-                 drag-release spring rebounds past 0 and back, which is exactly
-                 the "bouncing" the owner rejected; damping this high is
-                 critically damped, so the photo settles and stops. */
-              dragTransition={{ bounceStiffness: 600, bounceDamping: 60 }}
-              onDragEnd={(_, info) => {
-                if (info.offset.x < -70 || info.velocity.x < -420) step(1);
-                else if (info.offset.x > 70 || info.velocity.x > 420) step(-1);
-              }}
+              ref={zoom.surfaceRef}
+              {...zoom.handlers}
+              /* `touch-none` is load-bearing, not tidiness: without it the
+                 browser answers a two-finger pinch by zooming the PAGE, and
+                 you get two zooms at once on top of each other. Every gesture
+                 in here is ours. */
+              className="absolute inset-0 touch-none"
+              style={{ x: zoom.swipeX }}
             >
               <AnimatePresence mode="sync" initial={false}>
                 <m.div
@@ -500,24 +537,31 @@ export function ImageViewer({
                   animate="center"
                   exit="exit"
                   className="absolute inset-0 flex items-center justify-center"
-                  onClick={onClose}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <m.img
+                    ref={zoom.setImage}
                     src={current.src}
                     alt={current.alt ?? caption}
                     draggable={false}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setChrome((c) => (c === "shown" ? "off" : "shown"));
-                      setExpanded(false);
+                    /* The cursor belongs on the photograph, not on the
+                       surface: the surface also covers the wash beside it,
+                       where a press closes the viewer rather than zooming. */
+                    className={cn(
+                      "max-h-full max-w-full select-none object-contain",
+                      zoom.zoomed ? "cursor-grab active:cursor-grabbing" : "cursor-zoom-in"
+                    )}
+                    /* x/y/scale are the zoom, driven by motion values so a
+                       pinch never re-renders anything. The box shadow is the
+                       one thing drawn under the photograph: it does nothing
+                       when the picture reaches the edges, which is most of
+                       the time; when the file is too small to, it stops it
+                       reading as something that failed to load. */
+                    style={{
+                      boxShadow: "0 24px 80px -28px rgba(0,0,0,0.75)",
+                      x: zoom.x,
+                      y: zoom.y,
+                      scale: zoom.scale,
                     }}
-                    className="max-h-full max-w-full select-none object-contain"
-                    /* The one thing drawn under the photograph. It does
-                       nothing when the picture reaches the edges, which is
-                       most of the time; when the file is too small to, it
-                       stops it reading as something that failed to load. */
-                    style={{ boxShadow: "0 24px 80px -28px rgba(0,0,0,0.75)" }}
                   />
                 </m.div>
               </AnimatePresence>

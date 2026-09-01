@@ -1,5 +1,51 @@
 # Progress Log
 
+## 2026-09-02 — the photograph you can finally get closer to
+
+Owner: *"you can't really pinch zoom on the image viewer. make sure you can on mobile and
+desktop."* He was right, and it was the wrong gap for an archive of scanned prints, where the
+thing worth seeing is usually a face in the back row rather than the whole frame.
+
+**Why this was a rewrite rather than an addition.** The viewer handed horizontal swiping to
+Motion's `drag="x"`, and Motion's drag knows about exactly one finger: a second finger landing
+on the photograph did not begin a pinch, it carried on dragging. There is no way to bolt a
+two-finger gesture onto a one-finger library without the two fighting over the same pointer, so
+the swipe moved into `src/components/common/pinch-zoom.ts` beside the pinch and one state
+machine now owns every pointer. Its three tuned numbers carry over verbatim — 14% elastic
+follow, a 70px or 420px/s release, no overshoot home — because that feel was settled and this
+was a gesture rewrite, not a re-tuning.
+
+**Every way in.** Two fingers pinch, anchored on the midpoint you started with and panning as
+that midpoint travels. One finger pans when zoomed and steps when not. Double tap or double
+click goes to 2.5x on the point you hit, and back. A trackpad pinch arrives as a wheel event
+with `ctrlKey` set, which is the only way a browser reports one; a plain wheel notch zooms too,
+since a mouse has no pinch. `+`, `-` and `0` for the keyboard, and Esc now backs out of the zoom
+before it closes the viewer.
+
+**Two things that cost measurements.** The pan clamp was reading `offsetWidth`, which rounds to
+a whole pixel — half a pixel becomes four at 8x, and a photograph panned hard against the side
+of the screen left a 0.9px hairline of backdrop down its edge (measured). The fitted size is now
+arithmetic on the file's own dimensions, which is exactly what `max-w-full max-h-full` does, and
+all four corners land within 0.05px. And the zoom ceiling is the file's own 1:1 point rather
+than a constant, floored at 4x and capped at 8x: the owner has objected twice to photographs
+upscaled into grain, and an unbounded zoom is that complaint with a gesture attached.
+
+**A single tap on the photograph is held for 240ms** and there was no way around it: the first
+tap of a double tap is indistinguishable from a single one until the window closes, and firing
+the chrome toggle immediately would flash the chrome in and out under every zoom. A tap on the
+backdrop still closes instantly — closing must never feel hesitant, and a double tap out there
+means nothing anyway.
+
+Verified with a throwaway puppeteer probe rather than the usual `chrome-devtools` MCP, which did
+not load this session: real CDP touch events for the pinch and the swipe, real ctrl+wheel for
+the trackpad, at 1440x900 and 390x844. Anchoring holds to 0.005 of the frame, the pinch scales
+by the ratio of the fingers, a pan while zoomed never steps, and a step arrives fitted.
+`pinch-zoom.test.mjs` pins the seven mechanisms whose absence looks fine from the outside.
+
+`npm run visual` is 23 passed / 2 failed, and both failures are `/collection?scope=class`, whose
+baseline still expects the empty state another session has just filled with 1,719 photographs.
+Nothing to do with this change; that route wants a mask or a rebaseline from whoever owns it.
+
 ## 2026-09-01 — the Collection card never truncates its caption
 
 *"I don't want any ... in the from the collection. only pick photos for whom that wouldn't
