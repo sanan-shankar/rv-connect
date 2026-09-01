@@ -38,6 +38,16 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
 
 - **Containment**: all commands run inside `/Users/sanan/Documents/rv-connect/`. Never execute anything
   outside it without explicit permission.
+- **The repo root is closed**: never add a file or a folder to `/Users/sanan/Documents/rv-connect/`
+  itself. Owner, repeatedly, most recently 2026-09-01: *"I hate cluttering root directory."* The root
+  is config and entry points; everything else has a home already. A scratch probe, a one-off
+  measurement, a throwaway script goes in `/tmp` or is deleted by the same command that wrote it; a
+  script that stays goes in `scripts/dev/` or `scripts/qa/` with its working folder BESIDE it, never
+  above it (`scripts/qa/hand-run-passes.test.mjs` fails a pass whose `OUT` climbs to the root);
+  screenshots go to `e2e/.shots/`; notes go in `docs/`. Adding to the root needs a reason you can say
+  out loud AND no cleaner place to put it -- a tool that only reads config from the root is a reason,
+  "it was convenient" is not. **A scratch file is deleted in the same command that created it**, so a
+  crashed session cannot leave one behind.
 - **Deploys are git-only**: never run `vercel deploy`, `vercel --prod`, or any Vercel CLI command that
   ships code or edits project config. Both Vercel projects autodeploy from a push to this repo, and
   that push is the only way anything reaches production. Env vars, domains and settings are the
