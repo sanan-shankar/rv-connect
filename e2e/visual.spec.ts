@@ -46,13 +46,21 @@ const ROUTES: Route[] = [
      -- a different title, a flipped caret, no bucket line at all -- and the
      valley baseline above would never notice any of it moving.
 
-     NOT masked, deliberately, and this is conditional rather than permanent:
-     it shoots the empty state, which is what every class sees on its first day
-     and is worth comparing whole. The day the admin account's own class gains
-     a photograph this route becomes as live as the one above and wants
-     `live: "band"` too. If you are reading this because it just went red on
-     photographs rather than layout, that day has arrived. */
-  { path: "/collection?scope=class", name: "collection-class", why: "the class half: the flipped caret, the title, the empty state every class starts at" },
+     THAT DAY ARRIVED, 2026-09-02, exactly as the note here predicted: the
+     admin account's own class gained 1,719 photographs when the owner's album
+     was imported, and both viewports went red on photographs with every pixel
+     of chrome identical. So it is masked like the valley half now, and for the
+     same reason -- a red run nobody can act on teaches people to run
+     visual:update without looking, which is the one way to make this suite
+     worthless.
+
+     What it costs: the empty state, which is what every class sees on its
+     first day, is no longer compared. There is no account left to shoot it
+     from, so the honest answer is that it is uncovered rather than that it is
+     covered by this. What is still compared is what the route was added for:
+     the title, the flipped caret, the absent bucket line, the sidebar and
+     spine(). */
+  { path: "/collection?scope=class", name: "collection-class", why: "the class half: the flipped caret and the title; the grid below is live", live: "band" },
   { path: "/support", name: "support", why: "the tree backdrop + CostBar, retuned three times" },
   { path: "/birds", name: "birds", why: "50 avatar glyphs; catches a broken plumage path fast" },
   { path: "/about", name: "about", why: "static copy; a canary for global token drift" },
