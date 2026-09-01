@@ -28,6 +28,7 @@ import {
 import { bandKeyOf, bandSeekBoundary, bucketsOf, takenLabel, takenShort } from "@/lib/collection";
 import {
   MAX_UPLOAD_BYTES,
+  COLLECTION_WEBP_QUALITY,
   MAX_PHOTOS_PER_ACCOUNT,
   isUnsupportedHeic,
   describeProcessingError,
@@ -599,7 +600,7 @@ export async function contributePhotoDirect(input: {
     const encode = sharpImage(original)
       .rotate()
       .resize(box.width, box.height, { fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 90 });
+      .webp({ quality: COLLECTION_WEBP_QUALITY });
 
     const display = await (keepDate ? encode.withExif(keepDate) : encode).toBuffer({
       resolveWithObject: true,

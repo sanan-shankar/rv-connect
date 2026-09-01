@@ -160,6 +160,26 @@ photographs, because which skeleton shows is invisible in a diff.
 
 ## Serving images
 
+**The Collection does NOT downscale, and `toDisplayWebp` will tell you it does.** Two sessions have
+now read `src/lib/image.ts:63` -- a well-named, well-commented function whose docblock says *"The
+display copy of an uploaded photograph: uprighted, boxed to 1920, WebP at 80"* -- and concluded that
+the Collection stores 1920px copies. It does not. That function is the **feed's**, and its only
+callers are `/api/upload` and `/api/upload/finalize`. The Collection's real encode is an anonymous
+chain inside `contributePhotoDirect` (`src/app/(main)/collection/actions.ts`) using
+`storedResizeBox` + `COLLECTION_WEBP_QUALITY`: **full resolution**, bounded only by a 40-megapixel
+AREA cap that exists to stop a decompression bomb (audit M16) and touches almost nothing real. The
+owner, 2026-09-02, on the second occurrence: *"this is the second time a session has hallucinated
+that we're compressing collection photos why??"*
+
+Two habits stop a third time. **Grep for the caller, not the name** -- a function that sounds like
+the thing you are looking for is not evidence that it is the thing you are looking for. And **keep
+"downscale" and "re-compress" as separate words**: the Collection re-compresses (lossy WebP over
+already-lossy JPEG, a second generation) and never downscales, and a sentence that says "compress"
+without saying which one is how this error gets made. They are also not interchangeable levers --
+measured on the owner's album, capping the long edge at 4K costs the same bytes as dropping to q90
+and deletes 60% of a 24MP photograph to do it.
+
+
 **A PNG loses its date on the way in.** `exifDateOf` reads `sharp.metadata().exif`, which comes back
 empty for PNGs that exiftool can read a `DateTimeOriginal` out of perfectly well -- three were found
 in a 1,719-file album on 2026-09-02. So a PNG contributed through the app is filed undated, with no
