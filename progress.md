@@ -1,5 +1,31 @@
 # Progress Log
 
+## 2026-09-01 — the Collection card never truncates its caption
+
+*"I don't want any ... in the from the collection. only pick photos for whom that wouldn't
+occur."* The card had shown "Sports day closing ceremony (silent..." — a tile announcing it
+was too small for what it held.
+
+The fit is now decided where the photograph is chosen, on the server, because that is the
+only place a different photograph can still be picked. That needs the width of a line of
+Libre Baskerville without a browser to ask, which is `src/lib/text-width.ts`: advance widths
+per glyph in ems, measured off the live card with canvas measureText and divided by 14.
+
+**A character count would have been wrong twice.** Real captions run 6.5px to 8.1px a
+character, so any single cap both admits captions that overflow and throws out ones that fit:
+36 characters of "Senior hostel boys tunnel ball relay" clear the line by 14px while 30 of
+"Class 12 vs Staff – Tug of War" only just do. Summing the letters is the only true answer.
+
+The table reads WIDE — it adds advances and ignores kerning, which only ever pulls a pair
+closer — so it errs towards passing over a photograph rather than towards an ellipsis. Checked
+against the browser on all thirteen captions in the archive: 0.1px to 3.8px over, never under
+by more than a rounding error, every verdict the same. Two of the 260px line are left unspent
+anyway. The rail is a fixed 318px column, so 260 does not move with the viewport.
+
+It looks at the 24 most recent landscape photographs and takes the first that fits; a
+photograph with no caption has nothing to truncate and stays eligible. If none of the 24 fit,
+the card hides, which is what it already does when the archive is empty.
+
 ## 2026-08-31 — two refinements to the rail, and one of them was a choice rather than a fix
 
 *"Sometimes the menu opens above sometimes below? Sometimes there's a gap to the next decade
