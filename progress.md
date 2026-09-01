@@ -46,6 +46,113 @@ by the ratio of the fingers, a pan while zoomed never steps, and a step arrives 
 baseline still expects the empty state another session has just filled with 1,719 photographs.
 Nothing to do with this change; that route wants a mask or a rebaseline from whoever owns it.
 
+## 2026-09-02 — a decade of one class's photographs, dated one by one
+
+The owner's own album, 1,719 photographs spanning 2015 to 2023, into the Class Collection
+of 2023. `scripts/dev/import-album.mjs` is what put them there.
+
+**Why not the contribute room.** It already takes a bulk drop and is good at it, so the
+first instinct was to use it. Three of its limits are the wrong shape for seeding an
+archive: 200 per drop, 20MB per file (seven of these are bigger), and — the one that
+actually decides it — **one date for a whole drop**. An album spanning nine years needs a
+date per photograph or the year rail, which is the entire reason for putting it there, has
+nothing to draw.
+
+**The dates.** Read per file with `exifStamp`, the reader that deliberately cannot name a
+GPS tag. 1,688 carry a real camera stamp and are filed at month precision. 28 are filed at
+YEAR precision because `album-date-provenance.txt` marks them "owner gave the year only" —
+their files say 1 January midday and nobody should read that as January. Three PNGs fall
+back to the folder name, which is the owner's own filing rather than an invention, and the
+script lists them rather than doing it quietly. Every year count came out exactly equal to
+its folder's file count, so no photograph's EXIF disagreed with where it had been put.
+
+**The stored copy now keeps its date, and only its date.** The owner: *"I thought date
+metadata is already stored?? yes I want that stored."* It was — in the database, as
+`exifYear`/`photoYear`, which the viewer reads. It was not in the bytes, because the
+re-encode drops EXIF and audit M12 wanted it dropped: 356 of these files carry the GPS
+coordinates of a boarding school. So `dateOnlyExif` builds a FRESH block holding one tag
+and hands it to `withExif`. An allow-list of one, never the original block with things
+removed — a strip-list is wrong the first day a camera writes a tag nobody anticipated.
+Verified end to end on a real file fetched back off the CDN: 3264x2448 in, 3264x2448 out,
+`DateTimeOriginal` present, latitude and "iPhone 6 Plus" gone.
+
+Writing that needed `exifStamp`, which is `exifDate` handing back the string instead of the
+parsed pair, so the day and the second survive rather than being reconstructed from a year
+and a month. The round-trip test immediately caught what the parser never had to care
+about: **EXIF ASCII values are NUL-terminated and `trim()` does not remove a NUL**, so the
+stamp was being written back into files as `"2019:03:14 09:12:00\0"`.
+
+**q100, and two corrections owed to the owner.** Twice now a session has told him the
+Collection downscales to 1920px. It does not, and the reason is not carelessness: `image.ts`
+exports `toDisplayWebp`, a well-named function whose docblock says "The display copy of an
+uploaded photograph … boxed to 1920", and it belongs to the FEED. The Collection's real
+encode is an anonymous chain inside `contributePhotoDirect`. That pair is now in TRAPS.md,
+and the quality is a named `COLLECTION_WEBP_QUALITY` so it can be found by grep.
+The second correction: "zero dimension changes" was true of a 48-photo random sample and
+false of the album — seven 2021 shots are 60-62.8MP, above the 40MP anti-bomb cap, and do
+come down. The owner chose to let them.
+
+Measured before he chose, on his own photographs: q90 stores 38% of source bytes, q95 66%,
+q100 93%. He took q100 after asking what three terabytes would cost — about $46/month on R2,
+and about $18 on Backblaze B2, which is cheaper because Backblaze sells disk and Cloudflare
+sells network. B2 has no APAC data centre, which is what settles it for members in India.
+
+He then proposed the sharper version: *"not compressing so q100 until the resolution is above
+4k in which case we downscale to 4k."* Measured rather than argued, and it is the one idea in
+this session that had to be talked out of. 4K on the long edge is 9.8MP; the album averages
+14.7 and the Canon shoots 24, so a 4K cap shrank 11 of 14 sampled photographs. And it costs
+the SAME bytes as simply dropping to q90 — 39% of source against 38% — so it buys nothing it
+was reaching for. The asymmetry is the argument: q90 removes detail nobody can see and leaves
+a 24MP master to re-derive from; a resize removes the photograph. He took full resolution.
+
+**No ceiling for the archive keeper.** `MAX_PHOTOS_PER_ACCOUNT` is 1,000 per half and the
+album is 1,719. Owner: *"of course no limits for uploading should be there for me."* Admins
+are now exempt in `photoQuotaError` and in `roomLeft`, which have to agree or the drop room
+caps a batch the server would have taken. Same exemption, same shape, as
+`isPhotoAutoApproved`.
+
+**Two bugs found on the way, and then fixed on his instruction ("solve both").**
+
+The first: nothing outside the two nightly jobs declared a `maxDuration`, so every upload ran
+on the platform default. A 24MP photograph re-encodes in 1.5 seconds and a 40MP one in 16,
+before either R2 round trip — and past the limit the invocation is killed, so the member sees
+a contribution that failed and nothing is reported anywhere, the process having died before
+any error handler ran. Exactly the gap audit C-079 was about, still open on the paths doing
+the most work. Now 60 seconds on the two collection PAGES and the two upload routes. On the
+pages and not on `actions.ts`, because a Server Action inherits its timeout from the page
+hosting it: declared beside the action it would have looked right and done nothing. The
+C-079 test grew a second half that pins all four.
+
+The second: `sharp.metadata().exif` comes back EMPTY for a PNG whose `DateTimeOriginal`
+exiftool reads without difficulty, so the contribution succeeded and the photograph was filed
+undated with no symptom at all. PNG keeps EXIF in two places and libvips reads neither — the
+`eXIf` chunk, and the one Apple and ImageMagick actually write, a deflated `zTXt` chunk keyed
+"Raw profile type APP1" holding the TIFF block hex-encoded. `exifFromPng` finds both and hands
+the bytes to the same walk as every other format, so it is a container reader that parses no
+tags and the module still cannot name a GPS tag. `exifBlockOf` is now the single place that
+chooses a source, because a fallback only `exifDateOf` got would date a photograph in the
+archive and leave the downloaded file undated. Its test asserts sharp finds nothing, so the
+day sharp learns to, somebody hears about it rather than the fallback shadowing it for ever.
+
+All 1,719 are in, nothing failed, and every per-year count equals its folder's file count
+exactly: 6, 19, 23, 116, 206, 442, 234, 465, 208. 1,691 at month precision and 28 at year.
+Nine integrity checks are zero — scope, class, approval, uploader, `takenKey`, dimensions,
+duplicates. 18,818 megapixels stored, largest 40.0, which is the anti-bomb cap doing the only
+resizing in the archive. `?when=2018` lands the river on the 2018 chapter, which is the whole
+reason the dates had to be per photograph.
+
+The PNG fix landed mid-import and the three affected photographs had already gone in at year
+precision, so they were undone through the ledger and re-imported — which caught that the
+script needed the same fallback separately, `exifBlockOf` being unreachable behind the `@/lib`
+alias. Now 2020-06, 2020-06 and 2020-07, matching exiftool, with the date in the stored bytes.
+
+The script is dry by default, ledgers every write one line at a time before the next photograph
+starts, and `--undo` takes the rows and their stored objects back out — which matters because
+the app has no way to un-file a class photograph. `Photo.sourceKey` is unique and carries
+`album:<path>`, so a crashed run is resumed by running it again; a query up front means a resume
+does not re-encode what is already in. It began as one `pg.Client` shared by four workers, which
+pg serialises and pg@9 will refuse, and is now a pool.
+
 ## 2026-09-01 — the Collection card never truncates its caption
 
 *"I don't want any ... in the from the collection. only pick photos for whom that wouldn't
