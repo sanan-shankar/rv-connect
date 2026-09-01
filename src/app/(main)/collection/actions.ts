@@ -175,8 +175,17 @@ const includeFor = (userId: string) => ({
  */
 async function photoQuotaError(
   userId: string,
-  scope: PhotoScope
+  scope: PhotoScope,
+  role: string | null | undefined
 ): Promise<string | null> {
+  /* The ceiling is a member's, not the archive keeper's. It exists to stop one
+     account amplifying storage cost without anybody deciding to (audit M17),
+     and an admin filling the archive IS somebody deciding to -- the owner
+     seeding it from his own album is the case that made this concrete
+     (2026-09-01: "of course no limits for uploading should be there for me").
+     Same exemption, and the same shape, as `isPhotoAutoApproved`. */
+  if (role === "admin") return null;
+
   /* SCOPED, so the two halves have a thousand each. Emptying a reunion into
      your Class Collection must not spend the room you had for the school's own
      archive -- they are different acts and the owner made them different
@@ -258,7 +267,7 @@ export async function contributePhoto(formData: FormData) {
   const destination = await contributionScope(session.user.id, formData.get("scope"));
   if (!destination.ok) return { error: destination.error };
 
-  const quota = await photoQuotaError(session.user.id, destination.scope);
+  const quota = await photoQuotaError(session.user.id, destination.scope, session.user.role);
   if (quota) return { error: quota };
 
   const file = formData.get("file") as File | null;
@@ -501,7 +510,7 @@ export async function contributePhotoDirect(input: {
   const destination = await contributionScope(session.user.id, input.scope);
   if (!destination.ok) return refuse(destination.error);
 
-  const quota = await photoQuotaError(session.user.id, destination.scope);
+  const quota = await photoQuotaError(session.user.id, destination.scope, session.user.role);
   if (quota) return refuse(quota);
 
   const parsed = parsePhotoMeta({
