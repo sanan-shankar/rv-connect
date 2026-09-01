@@ -160,6 +160,13 @@ photographs, because which skeleton shows is invisible in a diff.
 
 ## Serving images
 
+**A PNG loses its date on the way in.** `exifDateOf` reads `sharp.metadata().exif`, which comes back
+empty for PNGs that exiftool can read a `DateTimeOriginal` out of perfectly well -- three were found
+in a 1,719-file album on 2026-09-02. So a PNG contributed through the app is filed undated, with no
+symptom anywhere. JPEGs are unaffected. If this is ever worth fixing, the fix is in `exif-date.ts`,
+which currently only knows how to walk a TIFF block.
+
+
 **Moving the public image host is FIVE changes, not one.** On 2026-08-21 serving moved from
 `pub-<hash>.r2.dev` to `images.rishivalley.space`, and pointing `R2_PUBLIC_BASE_URL` at the new one
 is only the first:

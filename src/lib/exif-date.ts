@@ -135,13 +135,25 @@ export function parseExifStamp(raw: string, thisYear: number): ExifDate | null {
 }
 
 /**
- * The date a photograph's own file claims, or null if it does not claim one.
+ * The date stamp a photograph's own file claims, VERBATIM, or null if it does
+ * not claim one this archive would file.
+ *
+ * The raw string rather than the parsed pair, because the one caller that
+ * needs it is writing the stamp straight back out: the stored copy carries
+ * the date the camera wrote, to the second, so a member who downloads it gets
+ * a file their own photo app can sort. Reconstructing "1978:03:14 09:12:00"
+ * from a year and a month would mean inventing a day, which is the one thing
+ * a date-provenance pass must never do.
+ *
+ * STILL ONLY DATE TAGS. This walks the same four and knows no others; the
+ * ignorance the file header describes is the property being preserved, and
+ * handing back a string the parser already validated does not widen it.
  *
  * `exif` is the buffer sharp hands back on `metadata().exif`, which begins
  * with the "Exif\0\0" marker JPEG puts in front of the TIFF block; the marker
  * is optional here because not every container carries it.
  */
-export function exifDate(exif: Buffer | undefined, thisYear: number): ExifDate | null {
+export function exifStamp(exif: Buffer | undefined, thisYear: number): string | null {
   if (!exif || exif.length < 8) return null;
 
   try {
@@ -177,8 +189,14 @@ export function exifDate(exif: Buffer | undefined, thisYear: number): ExifDate |
       zeroth.get(TAG_DATE_TIME),
     ]) {
       if (typeof value !== "string") continue;
-      const parsed = parseExifStamp(value, thisYear);
-      if (parsed) return parsed;
+      /* EXIF ASCII values are NUL-TERMINATED, and the terminator is inside the
+         declared length -- a 20-byte date stamp is 19 characters and a \0.
+         `trim()` does not remove it. `parseExifStamp` never noticed, because it
+         anchors at the START of the string; this does, because the string is
+         handed to `withExif` and written back into a file, where a trailing NUL
+         makes the tag it writes malformed. Found by the round-trip test. */
+      const clean = value.replace(/\0[\s\S]*$/, "").trim();
+      if (parseExifStamp(clean, thisYear)) return clean;
     }
     return null;
   } catch {
@@ -186,4 +204,16 @@ export function exifDate(exif: Buffer | undefined, thisYear: number): ExifDate |
        contribution. This runs inside the upload path. */
     return null;
   }
+}
+
+/**
+ * The date a photograph's own file claims, or null if it does not claim one.
+ *
+ * The archive's own two integers, parsed from the stamp above. Every existing
+ * caller wants this; `exifStamp` exists for the one that has to write the
+ * stamp back into the stored bytes.
+ */
+export function exifDate(exif: Buffer | undefined, thisYear: number): ExifDate | null {
+  const raw = exifStamp(exif, thisYear);
+  return raw ? parseExifStamp(raw, thisYear) : null;
 }

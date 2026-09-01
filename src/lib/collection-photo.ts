@@ -18,7 +18,7 @@
 
 import { sharpImage } from "@/lib/image";
 import { eraFromYear } from "@/lib/collection";
-import { exifDate, type ExifDate } from "@/lib/exif-date";
+import { exifDate, exifStamp, type ExifDate } from "@/lib/exif-date";
 import { valleyYear } from "@/lib/utils";
 import { photoSchema } from "@/lib/validators";
 
@@ -138,6 +138,40 @@ export async function exifDateOf(original: Buffer): Promise<ExifDate | null> {
   try {
     return exifDate((await sharpImage(original).metadata()).exif, valleyYear());
   } catch {
+    return null;
+  }
+}
+
+/**
+ * The ONE tag the stored copy is allowed to keep: when the shutter opened.
+ *
+ * Everything else in a photograph's EXIF block is dropped by the re-encode
+ * and that is deliberate -- a phone photograph carries GPS, and publishing a
+ * member's coordinates is not something this archive will do (audit M12). The
+ * date is the exception the owner asked for on 2026-09-01, because the file a
+ * classmate downloads should land in their photo app under the right year
+ * instead of under today.
+ *
+ * AN ALLOW-LIST OF ONE, and the shape matters more than the contents. This
+ * builds a fresh EXIF block holding a single tag rather than taking the
+ * original's block and removing what it should not keep: a strip-list is
+ * wrong the day a camera writes a tag nobody anticipated, and this cannot be.
+ * `IFD2` is sharp's name for the Exif sub-IFD, where `DateTimeOriginal`
+ * belongs; `exifStamp` has already refused anything that is not a date this
+ * archive would file.
+ *
+ * Returns null when the original claimed no date, and a stored copy with no
+ * date is the right answer for a file that never had one. Never invents.
+ */
+export async function dateOnlyExif(
+  original: Buffer
+): Promise<{ IFD2: { DateTimeOriginal: string } } | null> {
+  try {
+    const stamp = exifStamp((await sharpImage(original).metadata()).exif, valleyYear());
+    return stamp ? { IFD2: { DateTimeOriginal: stamp } } : null;
+  } catch {
+    /* Same trade as `exifDateOf` above: a metadata block this cannot decode is
+       a stored copy without a date, never a failed contribution. */
     return null;
   }
 }

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import sharp from "sharp";
-import { exifDate, parseExifStamp } from "./exif-date.ts";
+import { exifDate, exifStamp, parseExifStamp } from "./exif-date.ts";
 
 /* The date a photograph's own file claims is the only thing standing between
    this archive and the owner's 2026-08-30 arithmetic: 21 photographs, 3 with a
@@ -125,4 +125,76 @@ test("a year with no usable month is still a year", () => {
     year: 1998,
     month: null,
   });
+});
+
+/* ------------------------------------------------------------------ *
+ *  `exifStamp`: the same walk, handing back the string.
+ *
+ *  It exists so the stored copy can carry the date the camera wrote, to
+ *  the second, instead of a day reconstructed from a year and a month --
+ *  which would mean inventing one. The tests below pin the two things
+ *  that makes true: the stamp comes back verbatim, and NOTHING ELSE
+ *  travels with it.
+ * ------------------------------------------------------------------ */
+
+test("the stamp comes back verbatim, from the same tag exifDate would use", async () => {
+  const exif = await exifBlock({
+    IFD0: { DateTime: "2020:11:02 08:00:00" },
+    IFD2: { DateTimeOriginal: "1998:03:14 09:12:00" },
+  });
+  assert.equal(exifStamp(exif, THIS_YEAR), "1998:03:14 09:12:00");
+  /* And the two agree by construction: exifDate is now built on it. */
+  assert.deepEqual(exifDate(exif, THIS_YEAR), { year: 1998, month: 3 });
+});
+
+test("a stamp the archive would not file is not handed back either", async () => {
+  const exif = await exifBlock({ IFD2: { DateTimeOriginal: "2031:05:05 00:00:00" } });
+  assert.equal(exifStamp(exif, THIS_YEAR), null);
+  assert.equal(exifStamp(undefined, THIS_YEAR), null);
+});
+
+/* THE ONE THAT MATTERS. A phone photograph carries GPS, and publishing a
+   member's coordinates is what audit M12 exists to stop. The Collection now
+   writes ONE tag back into the stored copy, and this pins that the copy comes
+   out with the date and without the latitude -- against bytes sharp actually
+   wrote, end to end, rather than against an assertion about the code. */
+test("the stored copy keeps the date and loses the coordinates", async () => {
+  const original = await sharp({
+    create: { width: 8, height: 8, channels: 3, background: "#234455" },
+  })
+    .withExif({
+      IFD2: { DateTimeOriginal: "2019:03:14 09:12:00" },
+      IFD3: { GPSLatitude: "13/1 38/1 0/1", GPSLatitudeRef: "N" },
+    })
+    .jpeg()
+    .toBuffer();
+
+  /* Exactly what `dateOnlyExif` composes. It cannot be imported here: it lives
+     in collection-photo.ts, which imports through the `@/lib` alias that a
+     plain .test.mjs cannot resolve. So the SHAPE is pinned instead -- an
+     allow-list of one, built fresh, never the original block with tags
+     removed. */
+  const stamp = exifStamp((await sharp(original).metadata()).exif, THIS_YEAR);
+  assert.equal(stamp, "2019:03:14 09:12:00");
+
+  const stored = await sharp(original)
+    .rotate()
+    .webp({ quality: 90 })
+    .withExif({ IFD2: { DateTimeOriginal: stamp } })
+    .toBuffer();
+
+  assert.equal(exifStamp((await sharp(stored).metadata()).exif, THIS_YEAR), stamp);
+
+  /* The GPS tag numbers, spelled out rather than imported, because the reader
+     under test deliberately does not know they exist. 0x8825 is IFD0's pointer
+     to the GPS IFD and 0x0002 is the latitude inside it. */
+  const block = (await sharp(stored).metadata()).exif;
+  assert.ok(block, "the stored copy has no EXIF block at all");
+  assert.equal(block.includes(Buffer.from([0x25, 0x88])), false, "a GPS IFD pointer survived the re-encode");
+
+  /* And the whole block is small enough that it cannot be carrying a GPS IFD:
+     one ASCII date tag plus its IFD headers is under 200 bytes, while the
+     original's block above is larger. A size assertion is the honest form of
+     "nothing else came along" for a reader that cannot enumerate tags. */
+  assert.ok(block.length < 200, `stored EXIF block is ${block.length} bytes, expected only a date`);
 });
