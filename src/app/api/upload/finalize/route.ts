@@ -19,6 +19,11 @@ import {
 } from "@/lib/upload-shared";
 import { vetUploadRequest } from "@/lib/api-gate";
 
+/** The direct path's finish: reads each staged original back out of R2 and
+ *  re-encodes it, so it does the same work as the proxied route above.
+ *  Reasoning on the Collection page (audit C-079). */
+export const maxDuration = 60;
+
 /**
  * Step two of the direct-to-R2 POST-image path: the browser has PUT the
  * original(s) into `staging/` via a presigned URL; this turns each into the
