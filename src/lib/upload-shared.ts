@@ -66,6 +66,31 @@ export const MAX_PHOTOS_PER_ACCOUNT = 1000;
 export const MAX_PHOTOS_PER_DROP = 200;
 
 /**
+ * How hard the Collection re-encodes a contributed photograph.
+ *
+ * 100, and the number is the owner's (2026-09-02) after seeing what each
+ * setting costs on his own 1,719-photograph album: q90 stored 38% of the
+ * source bytes, q95 66%, q100 93%. The archive is a school's visual memory
+ * and the photographs are not re-shootable, so the second lossy generation
+ * this re-encode adds is bought down to nothing and the bytes are accepted.
+ *
+ * IT IS NOT A RESOLUTION, and the two are not interchangeable knobs. Nothing
+ * here downsizes: `storedResizeBox` bounds AREA at 40MP and only ever to stop
+ * a decompression bomb (audit M16), which on that album touched 7 photographs
+ * out of 1,719. Capping the long edge at 4K instead was considered and
+ * declined the same day, because it costs the SAME bytes as dropping to q90
+ * (measured: 39% of source against 38%) while deleting about 60% of the pixels
+ * of a 24MP photograph. Compression at this end of the scale removes detail
+ * nobody can see; a resize removes the photograph, and only one of the two can
+ * be undone by keeping a bigger file.
+ *
+ * The cost, so the next person changing it knows what they are moving: on
+ * Cloudflare R2 at $0.015/GB-month, three terabytes of stored photographs is
+ * about $46 a month at this setting and about $18 at q90.
+ */
+export const COLLECTION_WEBP_QUALITY = 100;
+
+/**
  * The four formats the pipeline can decode and store, mapped to the extension
  * their object key gets and the MIME type the presigned PUT is signed with.
  *
