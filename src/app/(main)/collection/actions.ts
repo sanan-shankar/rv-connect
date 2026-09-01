@@ -38,6 +38,7 @@ import {
 import {
   parsePhotoMeta,
   isPhotoAutoApproved,
+  dateOnlyExif,
   gridThumb,
   photoRowData,
   exifDateOf,
@@ -328,14 +329,20 @@ export async function contributePhoto(formData: FormData) {
     const id = createId();
     const dir = ownerPrefix("collection", session.user.id);
 
-    // Re-encoding through sharp drops EXIF (there is no .withMetadata()), so the
-    // stored image carries no camera or GPS metadata (M12 in spirit; this path
-    // already re-encoded, unlike the direct one).
-    const display = await sharpImage(input)
+    /* Re-encoding through sharp drops EXIF, so the stored image carries no
+       camera and no GPS metadata (M12 in spirit; this path already re-encoded,
+       unlike the direct one). `dateOnlyExif` then puts back exactly one tag --
+       an allow-list of one, built fresh rather than filtered, so a camera tag
+       nobody anticipated cannot ride along. */
+    const keepDate = await dateOnlyExif(input);
+    const encode = sharpImage(input)
       .rotate()
       .resize(1600, 1600, { fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 80 })
-      .toBuffer({ resolveWithObject: true });
+      .webp({ quality: 80 });
+
+    const display = await (keepDate ? encode.withExif(keepDate) : encode).toBuffer({
+      resolveWithObject: true,
+    });
     width = display.info.width;
     height = display.info.height;
 
@@ -585,11 +592,18 @@ export async function contributePhotoDirect(input: {
     // directly, so there is no orientation swap left to reason about.
     const box = storedResizeBox(await sharpImage(original).rotate().metadata());
 
-    const display = await sharpImage(original)
+    /* The one tag the stored copy keeps. Chained rather than passed, because
+       `withExif` with no date to write would put an empty EXIF block on every
+       undated photograph in the archive for nothing. */
+    const keepDate = await dateOnlyExif(original);
+    const encode = sharpImage(original)
       .rotate()
       .resize(box.width, box.height, { fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 90 })
-      .toBuffer({ resolveWithObject: true });
+      .webp({ quality: 90 });
+
+    const display = await (keepDate ? encode.withExif(keepDate) : encode).toBuffer({
+      resolveWithObject: true,
+    });
     width = display.info.width;
     height = display.info.height;
     if (!width || !height) throw new Error("unsupported image format");
