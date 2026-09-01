@@ -154,7 +154,14 @@ export async function collectionPageData(filters: RiverFilters = { order: "newes
     filters,
     isAdmin: session.user.role === "admin",
     autoApproved: isPhotoAutoApproved({ role: session.user.role, ...me }),
-    roomLeft: Math.max(0, MAX_PHOTOS_PER_ACCOUNT - mine),
+    /* An admin has no ceiling, matching `photoQuotaError`, which is the thing
+       that would actually refuse the upload. The two have to agree or the drop
+       room caps a batch the server would have accepted. `MAX_PHOTOS_PER_DROP`
+       still applies to everybody: it bounds one go, not one account. */
+    roomLeft:
+      session.user.role === "admin"
+        ? MAX_PHOTOS_PER_ACCOUNT
+        : Math.max(0, MAX_PHOTOS_PER_ACCOUNT - mine),
     /* What the switch needs, and no more: whether to offer the Class
        Collection at all, and which class is empty when it is.
 
