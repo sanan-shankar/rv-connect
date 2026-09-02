@@ -69,8 +69,11 @@ Docker. Worth doing if the discipline ever slips.
 ### `check.yml` — the gate, run by something other than memory
 **Fires:** every push to `main`. ~3 minutes.
 
-Runs `npm run check`. A push to this repo is a deploy, so this is the last thing between a
-bad commit and members seeing it.
+Runs `npm run check`, and deliberately nothing else. A push to this repo is a deploy, so
+this is the last thing between a bad commit and members seeing it — and it has to be the
+same list of gates the laptop runs, or a green local run still lands in your inbox as a
+failure email. `scripts/qa/ci-parity.test.mjs` fails the build if a step is added here
+that `npm run check` does not run.
 
 ### `backup.yml` — the one that must never be broken
 **Fires:** nightly at 02:00 IST, and on demand via **Actions → backup → Run workflow**.

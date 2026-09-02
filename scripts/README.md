@@ -126,7 +126,7 @@ of them will regenerate.
 | `tour-mobile-verify.mjs` | Checks the first-run walkthrough on mobile. Has a test. |
 | `hoopoe-idle-check.mjs` | Regression guard for the idle animation that used to restart whenever the tab was hidden and shown again (fixed 2026-08-11). |
 | `audit-status.mjs` | Where the security audit stands, proved from the code rather than from a document that can go stale. |
-| `npm-audit-gate.mjs` | The CI dependency gate (audit H16): `npm audit` with a documented per-advisory allowlist rather than a blanket pass/fail. Has a test. |
+| `npm-audit-gate.mjs` | The dependency gate (audit H16): `npm audit` with a documented per-advisory allowlist rather than a blanket pass/fail. A gate inside `npm run check`, so it is not something only CI sees. Has a test. |
 | `_dev-login.mjs` | Helper: one sign-in for every QA script, replacing nine hand-copied blocks (audit R6). The secret goes from Node, never into page JavaScript. |
 | `_probe-kit.mjs` | Helper: the ledger, the sign-in, the bootstrap and the database opener the phase probes share. |
 

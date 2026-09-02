@@ -177,6 +177,66 @@ const GATES = {
       };
     },
   },
+
+  /* The two gates below used to live only in .github/workflows/check.yml, as
+     steps AFTER `npm run check`. That made CI a strict superset of the gate
+     this project calls "the one gate": a tree that was green on the laptop
+     could be red on the push, and twice in a fortnight it was -- once on a
+     browserslist advisory published overnight, once on the audit status
+     board. The failure arrives as an email, minutes after the deploy, which
+     is the worst place to learn it. One list of gates, run the same way in
+     both places, is the fix; ci-parity.test.mjs keeps them from drifting
+     apart again. */
+
+  deps: {
+    label: "Dependency advisories",
+    blocking: true,
+    async run() {
+      const { code, out } = await run("node", ["scripts/qa/npm-audit-gate.mjs"]);
+      /* Exit 2 is "the audit could not run" -- no registry. On a laptop with
+         no network that is a warning, because a gate that cannot be run
+         offline is a gate that gets skipped; in CI it is a failure, because
+         there is no such excuse and an unchecked audit must not read green. */
+      if (code === 2) {
+        return {
+          ok: false,
+          soft: !process.env.CI,
+          detail: "could not reach the registry — not checked",
+          out,
+        };
+      }
+      const fails = (out.match(/^ {2}FAIL /gm) ?? []).length;
+      const allowed = (out.match(/^ {2}allowed /gm) ?? []).length;
+      return {
+        ok: code === 0,
+        detail:
+          code === 0
+            ? `clean${allowed ? `, ${allowed} allowlisted` : ""}`
+            : `${fails} new high/critical advisor${fails === 1 ? "y" : "ies"}`,
+        out,
+      };
+    },
+  },
+
+  security: {
+    label: "Security audit status",
+    blocking: true,
+    async run() {
+      const { code, out } = await run("node", [
+        "scripts/qa/audit-status.mjs",
+        "--fail-on-open=critical,high",
+      ]);
+      const m = out.match(/(\d+) checked --/);
+      // Same crash test as lint and protocol: no summary line AND non-zero is
+      // the board failing to read itself, not a finding it found.
+      if (!m && code !== 0) return { ok: false, detail: "tool crashed", out };
+      return {
+        ok: code === 0,
+        detail: code === 0 ? `${m[1]} tracked, none open at high` : "a high or critical finding is open",
+        out,
+      };
+    },
+  },
 };
 
 /* ------------------------------------------------------------------ */

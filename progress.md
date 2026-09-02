@@ -8234,3 +8234,33 @@ classes: a hairline on click, 2px on Tab, read off the same html[data-modality].
 
 /lab/search is deleted, on his instruction, once the pick was made. `git show 6fbf46d`
 is the whole room.
+
+## 2026-09-02 — the gate CI runs is the gate you run
+
+The owner has been getting "Run failed: check" emails minutes after pushing, on trees that
+were green when he ran `npm run check`. Both halves of that were true at once, because
+check.yml ran three steps, not one: `npm run check`, then the npm advisory gate, then the
+audit status board. CI was a strict superset of the local gate, so the two extra checks
+could only ever be discovered after the push — and a push to this repo is a deploy, so the
+email is always about code that already shipped. Twice in a fortnight it fired: a
+browserslist advisory published overnight (2026-09-02, run 33601328643) and an open high
+finding on the status board (2026-08-27, run 33071535024).
+
+Both are gates in check.mjs now, `deps` and `security`, and check.yml runs `npm run check`
+and nothing else. `scripts/qa/ci-parity.test.mjs` fails the build if a step is ever added
+back — one list of gates, in one place, and the test is what keeps it one.
+
+Making the advisory gate runnable on a laptop turned up a fail-open. `npm audit` answers
+`{ message, error }` with no `vulnerabilities` key when it cannot reach the registry, and
+gateVerdict read the missing key as an empty report: an audit that never happened returned
+a clean bill of health for dependencies it had never looked at. It now says so, and exits 2
+rather than 1, because "could not check" is a different answer from "checked and found
+nothing". check.mjs reads the difference — a warning on a laptop with no network, a failure
+under CI, where there is no such excuse. Two tests pin it.
+
+The H16 probe was reading check.yml for the two script names, so moving them turned it OPEN
+and failed the run. That is the probe doing its job: the mechanism moved, and the proof had
+to follow it to check.mjs. Its both-directions evidence is that it went open and then ok,
+observed, not argued.
+
+Gate 101/101, all seven green in 37s.

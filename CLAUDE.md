@@ -129,10 +129,15 @@ re-planning, and no tool calls beyond what counting requires. Continue your work
 
 ## `npm run check` (or the `/check` skill)
 
-The one gate. Runs TypeScript, ESLint, the shape+colour protocol audit, the lab registry audit and
-the unit-test suite (75 files as of 2026-08-25) in about 23 seconds. Run it after any change and
-before every commit. A single gate while iterating: `npm run check -- lint`. Details and how to read
-a failure: `.claude/skills/check/SKILL.md`.
+The one gate, and it is the SAME list CI runs on a push: TypeScript, ESLint, the shape+colour
+protocol audit, the lab registry audit, the unit-test suite (75 files as of 2026-08-25), the
+dependency advisory gate and the security audit status board, in about 30 seconds. Run it after any
+change and before every commit. A single gate while iterating: `npm run check -- lint`. Details and
+how to read a failure: `.claude/skills/check/SKILL.md`.
+
+`check.yml` runs `npm run check` and nothing else, on purpose: the two security gates used to be
+extra CI-only steps, so a green local run could still fail the push. Never add a step to that
+workflow — add a gate to `check.mjs`, or `scripts/qa/ci-parity.test.mjs` fails the build.
 
 Three things it will now tell you that it used to swallow (audit C-190/C-195): a lint or protocol
 run that CRASHED reports "tool crashed" rather than "clean", and the test gate fails if the suite

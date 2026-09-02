@@ -59,6 +59,29 @@ test("an empty audit passes", () => {
   assert.equal(gateVerdict({ vulnerabilities: {} }).ok, true);
 });
 
+/* The gate used to read a missing report as an empty one, which meant a
+   registry it could not reach produced a clean bill of health for
+   dependencies it had never looked at. That is the one failure a security
+   gate must not have, and `{}` vs absent is the whole distinction. */
+test("an audit that never reached the registry does not read as clean", () => {
+  const offline = {
+    message: "request to https://registry.npmjs.org/... failed, reason: ECONNREFUSED",
+    error: { summary: "", detail: "" },
+  };
+  const v = gateVerdict(offline);
+  assert.equal(v.ok, false);
+  assert.equal(v.unreachable, true);
+  assert.match(v.why, /ECONNREFUSED/);
+});
+
+test("garbage in place of an audit report does not read as clean", () => {
+  for (const junk of [null, undefined, {}, { vulnerabilities: null }]) {
+    const v = gateVerdict(junk);
+    assert.equal(v.ok, false, `${JSON.stringify(junk)} passed the gate`);
+    assert.equal(v.unreachable, true);
+  }
+});
+
 test("every allowlist entry carries a reason and an exit condition", () => {
   for (const [id, entry] of Object.entries(ALLOWLIST)) {
     assert.ok(entry.reason?.length > 20, `${id} has no real reason`);
