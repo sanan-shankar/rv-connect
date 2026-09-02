@@ -199,14 +199,31 @@ export function CollectionClient({
      sentinel; the prepend it fired was itself an action; and the tree came
      back again. The owner watched it run: "a weird loop of switching from
      2020s to undated ... forever until I reload." A server page whose every
-     photograph is already on screen is not news, and is ignored. */
+     photograph is already on screen is not news, and is ignored.
+
+     AND ONLY WHILE THE RIVER IS STILL THAT ONE PAGE. `firstPage` is page one
+     and adopting it REPLACES the river, so a reader who has walked away from
+     page one -- scrolled down into a second and a third, or climbed back up
+     out of a seek -- loses every one of them and lands somewhere they did not
+     ask to be. The owner, after taking a photograph down: "the page kinda
+     reloaded when it should stay the same cause now i've lost track of where I
+     was."
+
+     Both cursors answer that, because they are how the river records having
+     walked: `cursor` moves when a page arrives at the foot, `topCursor` when
+     one arrives at the head. Still equal to the seed's and the river is the
+     seed, so replacing it with its own successor costs nothing. Moved, and the
+     server's page one is no longer a description of what is on screen. The
+     price is that a contribution made from deep in a long river waits for the
+     next visit to show up, which is the cheaper of the two disappointments. */
   const [seed, setSeed] = useState(firstPage);
   if (firstPage !== seed) {
+    const walked = cursor !== seed.nextCursor || topCursor !== (seed.topCursor ?? null);
     setSeed(firstPage);
     // Asked through the shared dedupe rather than a Set of ids here, and the
     // helper's answer IS the question: would appending the server's page add
     // a single photograph the river does not already show?
-    if (appendUnseen(photos, firstPage.photos).length > photos.length) {
+    if (!walked && appendUnseen(photos, firstPage.photos).length > photos.length) {
       setPhotos(firstPage.photos);
       setCursor(firstPage.nextCursor);
       setTopCursor(firstPage.topCursor ?? null);
@@ -362,10 +379,23 @@ export function CollectionClient({
     window.history.replaceState(null, "", `/collection${qs ? `?${qs}` : ""}`);
   }, [scope, bucket, search, order, seekBand]);
 
+  /* EVERY page of this river is asked for here, in both directions, and that
+     is the point rather than a tidiness. `loadNewer` used to build its own
+     call, and the one dimension it forgot was `scope` -- which the server
+     reads as the Valley Collection, its safe default. So climbing back up out
+     of a seek in the Class Collection prepended VALLEY photographs above the
+     class ones, under the class heading: "it showed all the valley collection
+     photos under the heading of class collection" (owner, 2026-09-02). It also
+     drove the loop he saw before it, because each prepend made the next server
+     page look like news to the re-seed guard below.
+
+     One builder means a query dimension added later cannot be added to half
+     the river. */
   const fetchPage = useCallback(
-    (c: string | null) =>
+    (c: string | null, direction?: "newer") =>
       loadPhotos({
         cursor: c,
+        direction,
         scope,
         bucket: bucket || undefined,
         search: search || undefined,
@@ -589,15 +619,7 @@ export function CollectionClient({
     const mine = generation.current;
     setLoadingNewer(true);
     try {
-      const data = await callAction(() =>
-        loadPhotos({
-          cursor: topCursor,
-          direction: "newer",
-          bucket: bucket || undefined,
-          search: search || undefined,
-          order: "taken",
-        })
-      );
+      const data = await callAction(() => fetchPage(topCursor, "newer"));
       if (mine !== generation.current) return;
       if ("error" in data) {
         toast.error(data.error);
@@ -615,7 +637,7 @@ export function CollectionClient({
     } finally {
       setLoadingNewer(false);
     }
-  }, [topCursor, loadingNewer, loadingMore, bucket, search]);
+  }, [topCursor, loadingNewer, loadingMore, fetchPage]);
 
   /** The blank after the river that `landAt` may grow -- see its docblock. */
   const tail = useRef<HTMLDivElement>(null);
