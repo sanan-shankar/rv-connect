@@ -120,11 +120,15 @@ reach needs a deliberate allowlist decision.
 
 - `npm run check` — types, lint, protocol, lab registry, all 25+ unit test files (which include
   the security suites: `security-regressions`, `gate-coverage`, `rich-text`, `origin-rule`,
-  `password-rule`, `demo`, the `-rule` files).
-- CI (`check.yml`) additionally runs `scripts/qa/npm-audit-gate.mjs` — npm audit with a WRITTEN
-  allowlist (sole entry: the deepmerge-ts advisory via @prisma/config, build-time only, accepted
-  2026-08-20; clears when Prisma bumps it) — and `audit-status --fail-on-open=critical,high`, so a
-  new advisory or a re-opened finding stops the merge by name.
+  `password-rule`, `demo`, the `-rule` files), plus the two below.
+- `scripts/qa/npm-audit-gate.mjs` — npm audit with a WRITTEN allowlist (sole entry: the
+  deepmerge-ts advisory via @prisma/config, build-time only, accepted 2026-08-20; clears when
+  Prisma bumps it) — and `audit-status --fail-on-open=critical,high`, so a new advisory or a
+  re-opened finding stops the merge by name. Both ran only in CI until 2026-09-02, which meant a
+  green laptop could still push a red build; they are gates in `check.mjs` now, and
+  `ci-parity.test.mjs` fails if `check.yml` ever grows a step that `npm run check` does not run.
+  A registry the audit cannot reach is a warning locally and a failure in CI: an audit that did
+  not happen must never read as clean.
 - Behavioural probes, `scripts/qa/phase{3..10}-probe.mjs`: each proves its phase against the
   running server (and the real R2 bucket where relevant), refusals AND positive controls. Run the
   relevant one after touching its area. phase8/phase10 need the dev server started with

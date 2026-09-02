@@ -11,7 +11,8 @@
  * the merge.
  *
  * Usage: node scripts/qa/npm-audit-gate.mjs
- * Exit 0 when every high/critical advisory is allowlisted; 1 otherwise.
+ * Exit 0 when every high/critical advisory is allowlisted, 1 when one is not,
+ * 2 when the audit could not run at all (no registry).
  */
 import { execSync } from "node:child_process";
 
@@ -42,8 +43,23 @@ export const ALLOWLIST = {
  * set comes only from the objects.
  */
 export function gateVerdict(auditJson, allowlist = ALLOWLIST) {
+  /* An audit that never reached the registry answers `{ message, error }` with
+     no `vulnerabilities` key at all -- and an absent key read as "no
+     vulnerabilities" is this gate passing on an audit it never performed. That
+     is the C-190 shape: a tool that crashed reporting clean. `{}` is a real
+     empty report and still passes; a missing report is its own verdict. */
+  const vulns = auditJson?.vulnerabilities;
+  if (!vulns || typeof vulns !== "object") {
+    return {
+      ok: false,
+      unreachable: true,
+      blocking: [],
+      allowed: [],
+      why: auditJson?.message ?? "npm audit returned no vulnerability report",
+    };
+  }
   const advisories = new Map(); // GHSA id -> { severity, title }
-  for (const vuln of Object.values(auditJson.vulnerabilities ?? {})) {
+  for (const vuln of Object.values(vulns)) {
     for (const via of vuln.via ?? []) {
       if (typeof via !== "object" || !via.url) continue;
       if (via.severity !== "high" && via.severity !== "critical") continue;
@@ -67,11 +83,19 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     // stdout, which is the whole point of parsing it ourselves.
     out = err.stdout;
     if (!out) {
+      // Same class as the unreachable verdict below: no audit happened.
       console.error("npm-audit-gate: npm audit produced no output:", err.message);
-      process.exit(1);
+      process.exit(2);
     }
   }
   const verdict = gateVerdict(JSON.parse(out));
+  /* Exit 2, not 1: "could not check" is a different answer from "checked and
+     found something", and check.mjs reads the difference -- a warning on a
+     laptop with no network, a failure in CI where there is no such excuse. */
+  if (verdict.unreachable) {
+    console.error(`npm-audit-gate: the audit did not run -- ${verdict.why}`);
+    process.exit(2);
+  }
   for (const id of verdict.allowed) {
     console.log(`  allowed  ${id} — ${ALLOWLIST[id].reason.split(".")[0]}.`);
   }

@@ -1,17 +1,20 @@
 ---
 name: check
-description: Run every gate this repo already has (TypeScript, ESLint, the shape+colour protocol, the lab registry, the unit tests) and report what passed. Use after finishing any feature, before committing, and whenever asked whether the repo is clean.
+description: Run every gate this repo already has (TypeScript, ESLint, the shape+colour protocol, the lab registry, the unit tests, the dependency advisories, the security status board) and report what passed. Use after finishing any feature, before committing, and whenever asked whether the repo is clean.
 ---
 
 # check
 
-One command. Runs all five gates in parallel, around 25s from cold.
+One command. Runs all seven gates in parallel, around 30s from cold. It is the
+SAME list CI runs on a push -- `check.yml` runs this and nothing else -- so a
+green run here is a green build.
 
 ```bash
 npm run check
 ```
 
-Run a single gate while iterating: `npm run check -- types` (or `lint`, `protocol`, `lab`, `tests`).
+Run a single gate while iterating: `npm run check -- types` (or `lint`,
+`protocol`, `lab`, `tests`, `deps`, `security`).
 
 ## Why this exists
 
@@ -30,7 +33,7 @@ template had been deleted and ESLint was never run.
 |---|---|
 | `ok` | clean |
 | `warn` | findings that are a matter of degree; read them, decide, do not ignore |
-| `FAIL` | a real defect. `types`, `lab` and `tests` are blocking; the run exits 1 |
+| `FAIL` | a real defect. `types`, `lab`, `tests`, `deps` and `security` are blocking; the run exits 1 |
 
 `lint` and `protocol` are deliberately non-blocking. `eslint.config.mjs` sets
 every design rule to `warn`, never `error`, on purpose: per DESIGN-SYSTEM these
@@ -54,6 +57,14 @@ every design rule to `warn`, never `error`, on purpose: per DESIGN-SYSTEM these
   it finds fewer than the floor in `check.mjs` (`MIN_TEST_FILES`). A floor, not a
   count: this line used to say 14 while the suite was 75. Each throws on
   failure; the run prints the failing file's output.
+- **Dependency advisories** — `scripts/qa/npm-audit-gate.mjs`. A new high or
+  critical advisory in a production dependency. Upgrade it, or pin a patched
+  version through `overrides` in `package.json`; allowlisting is the owner's
+  call and needs a reason and an exit condition. `warn` here means the registry
+  was unreachable, so nothing was checked — in CI that is a `FAIL`.
+- **Security audit status** — `scripts/qa/audit-status.mjs`. A critical or high
+  finding from a past security audit has regressed to open, which means a fix
+  was undone. Read the row it names.
 
 ## What it deliberately does not do
 

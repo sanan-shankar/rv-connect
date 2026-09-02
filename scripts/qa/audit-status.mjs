@@ -276,12 +276,18 @@ const CHECKS = [
   { id: "H16", sev: "high", title: "No CI/CD, no branch protection, no security gate", probe: () => {
       if (!has(".github/workflows/check.yml")) return open("no check workflow");
       const w = read(".github/workflows/check.yml");
+      if (!/npm run check/.test(w)) return open("the workflow does not run the gate");
       // The real mechanisms, not a keyword: the allowlisted npm-audit gate
       // (a bare `npm audit` would be permanently red on the accepted
-      // residual) and this very script as a regression tripwire.
-      if (!/npm-audit-gate\.mjs/.test(w)) return open("CI runs check but not the npm-audit gate");
-      if (!/audit-status\.mjs --fail-on-open/.test(w)) return open("CI does not fail on a re-opened critical/high");
-      return ok("CI runs check + the npm-audit gate + audit-status --fail-on-open");
+      // residual) and this very script as a regression tripwire. Both were
+      // extra CI-only STEPS until 2026-09-02, which is why this used to read
+      // check.yml for them; that arrangement made CI a superset of the local
+      // gate, so a clean `npm run check` could still fail the push. They are
+      // gates inside check.mjs now, and that is where the proof lives.
+      const c = read("scripts/qa/check.mjs");
+      if (!/npm-audit-gate\.mjs/.test(c)) return open("the gate does not run the npm-audit gate");
+      if (!/audit-status\.mjs"[\s\S]{0,80}--fail-on-open/.test(c)) return open("nothing fails on a re-opened critical/high");
+      return ok("CI runs `npm run check`, which includes the npm-audit gate and audit-status --fail-on-open");
     }},
   { id: "H17", sev: "high", title: "No security tests", probe: () => {
       const tests = walk("src", [".test.mjs", ".test.ts"]).concat(walk("e2e", [".spec.ts"]));

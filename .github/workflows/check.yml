@@ -48,19 +48,13 @@ jobs:
 
       - run: npm ci
 
+      # THE ONLY GATE STEP, and it must stay that way. The two security gates
+      # (npm-audit-gate, audit-status -- audit H16) used to be extra steps
+      # here, which made CI a strict superset of `npm run check`: a laptop
+      # could be green and the push red, and the only place that showed up was
+      # a failure email after the deploy had already gone out. Both now run
+      # inside check.mjs, so what you see locally is what CI sees.
+      #
+      # Adding a step here that `npm run check` does not run re-opens exactly
+      # that gap; scripts/qa/ci-parity.test.mjs fails the build if you do.
       - run: npm run check
-
-      # The security gate (audit H16). Two halves:
-      #   npm-audit-gate  -- `npm audit` for production dependencies, failing
-      #                      on any high/critical advisory that is not in its
-      #                      written allowlist (a bare `npm audit` would be
-      #                      permanently red on the one owner-accepted
-      #                      residual, and a gate that is always red is a
-      #                      gate nobody reads);
-      #   audit-status    -- the security-audit status board, failing the
-      #                      build if any critical or high finding has
-      #                      regressed to open. A fix that is quietly undone
-      #                      now stops the merge instead of shipping.
-      - run: node scripts/qa/npm-audit-gate.mjs
-
-      - run: node scripts/qa/audit-status.mjs --fail-on-open=critical,high
