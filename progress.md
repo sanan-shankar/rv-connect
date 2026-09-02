@@ -1,5 +1,21 @@
 # Progress Log
 
+## 2026-09-02 — four fast-uri advisories, closed with an override
+
+The push went green through Vercel and red through the `check` workflow: four new high
+advisories in `fast-uri` 3.1.5, published upstream between the local run and the push. Not
+code, and not something the local gate could have caught -- `npm audit` reads a registry
+that had changed underneath it.
+
+All three paths in are build-time tooling (`@sentry/webpack-plugin`'s webpack, `prisma`'s
+dev server, the `shadcn` CLI), every one of them through `ajv`, so nothing reachable at
+runtime -- but this repo closes advisories rather than reasoning about reachability, and
+`5dbb402` set the precedent with three others last week.
+
+`overrides: { "fast-uri": "^3.1.7" }`. The 3.x line carries the patch, so no major bump and
+no `ajv` compatibility question: all four resolutions move 3.1.5 -> 3.1.7 and the tree is
+otherwise untouched. Six lines of lockfile.
+
 ## 2026-09-02 — the white flash was mine, and scrolling up is smooth now
 
 **The section key I introduced this afternoon caused the thing he escalated about.** Keyed
