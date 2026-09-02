@@ -57,6 +57,7 @@ import { PhotoRiver, Tile, landAt, warmThumbs } from "./photo-river";
 import { RiverControls } from "./river-controls";
 import { ScopeCaret } from "./scope-caret";
 import { YearRail, type BandCount } from "./year-rail";
+import { PhotoScrubber } from "./photo-scrubber";
 
 /* ------------------------------------------------------------------ *
  *  Both open on a press and neither has any presence on the page until
@@ -1022,6 +1023,18 @@ export function CollectionClient({
                 there (see `seekTo`). */}
             <YearRail bands={bands} active={railActive} onSeek={seekTo} />
           </div>
+
+          {/* The same index, for a thumb. Below 1280px the rail's margin does
+              not exist, so the phone gets a Google-Photos-style scrubber that
+              is invisible until the river moves. Only in Chronological, where
+              "which year am I in" is a question the river can answer -- see
+              its own docblock. */}
+          <PhotoScrubber
+            bands={bands}
+            active={railActive}
+            onSeek={seekTo}
+            enabled={order === "taken"}
+          />
         </>
       )}
 

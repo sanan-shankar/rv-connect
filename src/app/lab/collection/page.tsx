@@ -31,6 +31,7 @@ import Link from "next/link";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import { RiverControls } from "@/components/collection/river-controls";
 import { YearRail } from "@/components/collection/year-rail";
+import { PhotoScrubber } from "@/components/collection/photo-scrubber";
 import { PhotoRiver, landAt, warmThumbs } from "@/components/collection/photo-river";
 import { ImageViewer, type ViewerImage } from "@/components/common/image-viewer";
 import { bandKeyOf, bucketLabel } from "@/lib/collection";
@@ -298,6 +299,16 @@ export default function CollectionRoom() {
           </div>
           <YearRail bands={bands} active={railActive} onSeek={seekTo} />
         </div>
+
+        {/* The phone's half of the same index, here for the same reason the
+            rail is: this room is where 240 photographs exist to judge it
+            against, and four do not exercise a scrubber. */}
+        <PhotoScrubber
+          bands={bands}
+          active={railActive}
+          onSeek={seekTo}
+          enabled={order === "taken"}
+        />
       </div>
 
       <ImageViewer

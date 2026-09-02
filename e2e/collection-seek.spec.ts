@@ -449,3 +449,142 @@ test("a page arriving above the reader does not move the photograph they are loo
   const drift = after!.top - marked!.top - climbed;
   expect(Math.abs(drift), `the page jumped ${Math.round(drift)}px`).toBeLessThanOrEqual(1);
 });
+
+/* ------------------------------------------------------------------ *
+ *  Where the reader is, after a JUMP rather than a scroll.
+ *
+ *  The scrollspy hangs off an IntersectionObserver whose root is the top
+ *  fifth of the window, so it fires when a heading crosses THAT strip --
+ *  which is what continuous scrolling does and what a jump does not.
+ *  Landing with no heading inside the strip at either end changes no
+ *  intersection state, delivers no callback, and leaves the reading
+ *  stuck wherever it last settled: measured, the reader at the 2000
+ *  heading with the rail lit on "Undated". It went unnoticed while it
+ *  was only a mark glowing in a margin; the phone's scrubber prints the
+ *  answer on screen, so it had to be right.
+ * ------------------------------------------------------------------ */
+test("the rail says where the reader is after a jump, not only after a scroll", async ({
+  page,
+}, testInfo) => {
+  desktopOnly(testInfo.project.name);
+  await readInChronologicalOrder(page);
+
+  /* Far enough down that plenty of bands have loaded, then straight to a
+     position no gradual scrolling reached. */
+  await page.mouse.wheel(0, 12000);
+  await expect.poll(async () => page.evaluate(() => Math.round(window.scrollY))).toBeGreaterThan(4000);
+
+  for (const to of [3000, 9000, 1500]) {
+    await page.evaluate((y) => window.scrollTo(0, y), to);
+    await expect
+      .poll(async () =>
+        page.evaluate(() => {
+          let at = "";
+          for (const h of document.querySelectorAll("h2[data-band]")) {
+            if (h.getBoundingClientRect().top <= window.innerHeight * 0.2) {
+              at = (h as HTMLElement).dataset.band ?? "";
+            }
+          }
+          const lit = document
+            .querySelector('nav[aria-label^="Jump to when"] button[aria-current="true"]')
+            ?.getAttribute("aria-label");
+          /* The rail lights the DECADE when its years are folded away, so a
+             match is the lit row covering the band the reader is in. */
+          return !at || !lit ? "" : lit.startsWith(at.slice(0, 3)) || lit === at ? "match" : `${lit} vs ${at}`;
+        }),
+      )
+      .toBe("match");
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ *  The phone's half of the same index.
+ *
+ *  "You have to think of an ingenious non-intrusive way of doing it on
+ *  phone as well, something like the google photos scroller" (owner,
+ *  2026-09-02). Non-intrusive is the part with teeth, so it is the part
+ *  pinned first: at rest there is nothing there at all.
+ *
+ *  It scrubs the BANDS rather than the page, which is why it can be
+ *  trusted on a cursor-paginated river: what is loaded is a window onto
+ *  the archive, so a scrollbar's arithmetic would call 1978 by a
+ *  different name every time another page arrived.
+ * ------------------------------------------------------------------ */
+
+const scrubber = (page: import("@playwright/test").Page) =>
+  page.locator('button[aria-label^="Jump to when"]');
+
+/** The rail is the desktop's; the scrubber is the phone's. */
+const mobileOnly = (name: string) =>
+  test.skip(name !== "mobile", "the scrubber is the phone's half; the desktop gets the rail");
+
+async function readChronologicallyOnAPhone(page: import("@playwright/test").Page) {
+  await page.goto("/lab/collection");
+  await page.getByRole("button", { name: /^Order:/ }).click();
+  await page.getByRole("menuitem", { name: "Chronological" }).click();
+  await expect(page.locator("h2[data-band]").first()).toBeVisible();
+}
+
+test("the phone's scrubber is not there until the river moves", async ({ page }, testInfo) => {
+  mobileOnly(testInfo.project.name);
+  await readChronologicallyOnAPhone(page);
+
+  // Nothing at rest. No track, no rule, no furniture down the edge.
+  await expect(scrubber(page)).toHaveCount(0);
+
+  await page.mouse.wheel(0, 3000);
+  await expect(scrubber(page)).toBeVisible();
+  /* And it says where you are, in the same words the river's own headings
+     use -- the band, not a percentage. Read off the accessible name rather
+     than the thumb's text, because the thumb HAS no text: it is a hairline,
+     and the year only appears, large, once it is held. */
+  await expect(scrubber(page)).toHaveAttribute("aria-label", /Now at (\d{4}|Undated)$/);
+  /* Nothing large is drawn until it is held -- the whole of "non-intrusive". */
+  await expect(page.locator("[data-scrub-year]")).toHaveCount(0);
+
+  // And it goes again once the river stops.
+  await expect(scrubber(page)).toHaveCount(0, { timeout: 6000 });
+});
+
+test("dragging the scrubber travels to the band it was let go on", async ({ page }, testInfo) => {
+  mobileOnly(testInfo.project.name);
+  await readChronologicallyOnAPhone(page);
+
+  await page.mouse.wheel(0, 3000);
+  await expect(scrubber(page)).toBeVisible();
+
+  const from = (await scrubber(page).boundingBox())!;
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  /* Down the track in steps, the way a thumb travels -- and the label has to
+     follow it, or the reader is dragging blind. */
+  const bandNow = async () =>
+    ((await scrubber(page).getAttribute("aria-label")) ?? "").replace(/^.*Now at /, "");
+  const seen = new Set<string>();
+  for (const y of [0.35, 0.5, 0.65, 0.8]) {
+    await page.mouse.move(from.x + from.width / 2, page.viewportSize()!.height * y);
+    seen.add(await bandNow());
+  }
+  expect(seen.size, "the year should change as the thumb travels").toBeGreaterThan(1);
+
+  /* And it is SAID, not merely tracked: the year reads out large beside the
+     thumb while it is held. */
+  await expect(page.locator("[data-scrub-year]")).toHaveText(await bandNow());
+
+  const landed = await bandNow();
+  await page.mouse.up();
+
+  /* Released, the river is AT that band -- read off the heading the river's
+     own scrollspy is reading, not off the pill that asked for it. */
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        let at = "";
+        for (const h of document.querySelectorAll("h2[data-band]")) {
+          if (h.getBoundingClientRect().top <= window.innerHeight * 0.2) at = (h as HTMLElement).dataset.band ?? "";
+        }
+        return at === "unknown" ? "Undated" : at;
+      }),
+    )
+    .toBe(landed);
+});
