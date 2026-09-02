@@ -1,5 +1,28 @@
 # Progress Log
 
+## 2026-09-02 — the dev server can be opened on a phone now
+
+**`allowedDevOrigins`, three private ranges.** Since Next 15.2 the dev server answers
+`/_next/*` with a 403 to any request whose Origin is not localhost. The Mac's server binds
+to every interface, so `http://192.168.x.x:3000` from a phone on the same Wi-Fi returns the
+HTML fine -- and then every script 403s. Nothing hydrates, and every element still sitting
+at the `opacity: 0` start of an entrance animation stays invisible, so /login rendered its
+background and the word "Back" and nothing else. A blank page with no error on it, which is
+the worst shape a failure can take: the owner spent twenty minutes turning off iPhone
+settings, and the network was never the problem.
+
+Reproduced exactly by loading the same LAN address in Chrome here rather than guessing at
+his phone -- 15 resources 403, the HMR socket refused, `isSecureContext` false. One line of
+config, and the form paints.
+
+The three RFC1918 ranges rather than one machine's address: the router reassigns, and a
+config that needs editing to keep working will be wrong on the day it is needed. It widens
+dev access from "this Mac" to "anything already on this Wi-Fi", which is the trust boundary
+the dev server has anyway. Production builds ignore the option entirely.
+
+Worth having beyond one bug: this project is mobile-first and had no way to look at a change
+on a real iPhone short of deploying.
+
 ## 2026-09-02 — the Class Collection was showing the valley's photographs
 
 **One forgotten word, `scope`.** The river is walked in two directions: older, appended at
