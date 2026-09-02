@@ -1,5 +1,45 @@
 # Progress Log
 
+## 2026-09-02 — the phone gets a scrubber, and the scrollspy stops lying
+
+*"You have to think of an ingenious non-intrusive way of doing it on phone as well, something
+like the google photos scroller."* Then, on the first attempt: *"that green mobile scroller
+looks a bit cringe. Maybe not a full colour background way of doing it. Something more elegant.
+Maybe the background fades out while you're doing it and we kinda make it a spectacle of a
+scroller that people can get such a thrill out of using."*
+
+**Three states, and the first is nothing.** At rest there is no scrubber — no track, no rule,
+no furniture down the edge of the photographs, which is the state the Collection is in almost
+all of the time and the reason the other two are allowed to be as loud as they are. Scrolling
+raises a single three-pixel hairline against the right edge, an iOS scroll indicator near
+enough, with no lettering at all; it leaves a second and a half after the river stops. Held is
+the spectacle: the photographs fade back to the page's own paper, every band the archive holds
+comes up the edge as a scale with the ticks lengthening toward your thumb, and the year reads
+out beside it in Libre Baskerville at forty pixels.
+
+**Nothing in it has a fill.** The Canopy pill was wrong twice over: Canopy is this project's CTA
+colour and a position readout is not a CTA, and a solid lozenge riding over the photographs is
+a widget sitting on the work when the whole idea is for the work to step back and let the index
+through. The scrim is the page's own background rather than a shadow, and stops at 88% so a
+ghost of the photographs stays under it — go opaque and it stops being the Collection stepping
+back and starts being a different screen.
+
+**It scrubs the BANDS, not the page.** The river is cursor-paginated, so a scrollbar's
+arithmetic — position over document height — would map a thumb's travel onto whatever happened
+to have loaded and call 1978 by a different name every time another page arrived. The drag maps
+onto `orderBandKeys`, which is now shared with the rail rather than derived twice: they are
+different shapes for different hands but indexes of the same sequence, and two copies of "which
+band comes after this one" is two copies that can disagree.
+
+**And the scrollspy had been lying.** `useActiveBand` hangs off an IntersectionObserver whose
+root is the top fifth of the window, so it only fires when a heading crosses THAT strip — which
+is what continuous scrolling does and what a jump does not. Landing from 28,872px to 14,002px
+with no heading inside the strip at either end changes no intersection state, delivers no
+callback, and leaves the reading wherever it last settled: measured, the reader at the 2000
+heading with the rail lit on "Undated". It went unnoticed for as long as it was only a mark
+glowing in a margin. The scrubber prints the answer on screen, so it had to be right — one
+reading per frame, on scroll, and only while the page is moving.
+
 ## 2026-09-02 — the rail goes back to the deployed metrics, and starts sticking again
 
 Four things, and the most important of them was a regression I put there.

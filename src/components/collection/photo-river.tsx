@@ -270,11 +270,37 @@ function useActiveBand(bands: Band[], onChange?: (era: string) => void) {
       const el = headings.current.get(key);
       if (el) io.observe(el);
     }
+    /* AND ON SCROLL, because the observer alone is not enough and the gap is
+       not a small one. Its root is the top fifth of the window, so it only
+       ever fires when a heading crosses THAT strip -- which is exactly what
+       continuous scrolling does, and exactly what a jump does not. Landing
+       from 28,872px to 14,002px with no heading inside the strip at either
+       end changes no intersection state, delivers no callback, and leaves the
+       reading stuck wherever it last happened to settle: measured, the reader
+       at the 2000 heading with the rail lit on "Undated". Harmless enough
+       when it was only a mark glowing in a margin, wrong out loud now that
+       the phone's scrubber prints the answer on a pill.
+
+       One reading per frame, and only while the page is actually moving. */
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        settle();
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+
     // A new page of photographs can add bands without moving the reader, so
     // the answer is recomputed when the bands change, not only when one of
     // them crosses the line.
     settle();
-    return () => io.disconnect();
+    return () => {
+      io.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, [bands, onChange]);
 
   return (key: string) => {

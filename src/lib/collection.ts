@@ -428,6 +428,25 @@ export function bandKeyOf(row: { photoYear?: number | null; era?: string | null 
 /** A band key as it reads on the rail. A year is already its own label. */
 export const bandLabel = (key: string) => (key === "unknown" ? "Undated" : key);
 
+/** Every band the archive holds, in the order the river runs: newest year
+ *  first, "Undated" last because it is not a year and cannot be sorted among
+ *  them.
+ *
+ *  Shared rather than derived twice. The wide-screen rail and the phone's
+ *  scrubber are different shapes for different hands, but they are indexes of
+ *  the SAME sequence, and two copies of "which band comes after this one" is
+ *  two copies that can disagree about where 1978 sits. */
+export function orderBandKeys(keys: Iterable<string>): string[] {
+  const all = [...keys];
+  const years = all
+    .filter((k) => k !== "unknown")
+    .map(Number)
+    .filter((n) => Number.isFinite(n))
+    .sort((a, b) => b - a)
+    .map(String);
+  return all.includes("unknown") ? [...years, "unknown"] : years;
+}
+
 /** The `takenKey` boundary a band seeks to: one past the top of it, so
  *  "everything with a smaller `takenKey`" is that band and everything older.
  *
