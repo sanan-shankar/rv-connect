@@ -1,5 +1,30 @@
 # Progress Log
 
+## 2026-09-02 — the phone's scrubber travels instead of teleporting
+
+*"The scrolling bar should never jump from place to place. It does that now."*
+Measured on the class archive: the thumb sat on **the same pixel through
+nineteen thousand pixels of scrolling** and then jumped 75px when the year
+changed. It was placed at `indexOf(active) / count` -- the band and nothing
+else -- so within a year there was nothing for it to say.
+
+It now sits at the band PLUS how far through the band the reader has got, which
+is the difference between a signpost and a scrollbar. Deliberately not the raw
+scroll fraction: in a lazily loaded river that is a fraction of what happens to
+be loaded rather than of the archive, and it would put the thumb nowhere near
+the tick that names where you are.
+
+The interpolation is one function, `readBandPosition`, and both indexes call it
+-- the river off the heading refs it already holds, the scrubber off the same
+headings' `data-band` in the DOM. Two implementations of "which year am I in"
+is how the rail and the scrubber would come to disagree, which on this page has
+happened before.
+
+After: 176, 184, 193, 201, 210, 218, 226, 235 down the track over the same
+scroll that used to produce two positions; no step over 12px across 26 samples.
+The scrubber's scroll read is now rAF-throttled too, since it touches layout and
+a scroll event fires more often than the screen refreshes.
+
 ## 2026-09-02 — the seek, on a phone, and the year that can go further up
 
 Three more from the same read, all of them the same shape: something that
