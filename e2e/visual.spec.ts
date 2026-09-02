@@ -98,6 +98,16 @@ function volatileRegions(page: Page) {
      * for. The bell has its own behaviour covered by the notification tests;
      * this suite watches the pages it sits on. */
     page.getByRole("button", { name: /notifications/i }),
+    /* The phone's Collection scrubber is a TIMER, not a state: it is raised by
+     * a scroll and takes itself away a second and a half later, so whether it
+     * is drawn at the instant of a screenshot depends on how long the page
+     * took to settle. Caught on 2026-09-02 -- mobile /collection red on a
+     * three-pixel hairline at the right edge, mid-fade, with everything around
+     * it clean. Exactly the crying wolf this list exists for.
+     *
+     * No coverage lost: it has three checks of its own in
+     * e2e/collection-seek.spec.ts, including that it is NOT there at rest. */
+    page.locator('button[aria-label^="Jump to when"]'),
   ];
 }
 

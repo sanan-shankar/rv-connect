@@ -86,6 +86,29 @@ const TRACK_FOOT = 40;
 const THUMB = 28;
 const TARGET = 44;
 
+/* ------------------------------------------------------------------ *
+ *  WHAT YOU HOLD AND WHAT YOU READ ARE NOT IN THE SAME PLACE.
+ *
+ *  The hairline stays on the right edge, because that is where a thumb
+ *  goes. Everything you are meant to LOOK at moves inboard of it, because
+ *  that is where a thumb is not: "my thumb covers the ticks so I can't see
+ *  them ... the year is a bit hidden by my finger sometimes" (owner,
+ *  2026-09-02).
+ *
+ *  A thumb and the hand behind it occlude roughly the outer 45mm of the
+ *  screen, which on a 390pt phone is about the outer 50pt. So the scale
+ *  starts just past that and the year clears it entirely, and the two keep
+ *  their own relationship: the year's right edge sits a little inside the
+ *  longest tick, so it reads as a label on a ruler rather than as two
+ *  things that happen to share a row.
+ * ------------------------------------------------------------------ */
+const TICKS_INSET = 54;
+const YEAR_INSET = 92;
+
+/** How far in the whole apparatus reaches, which is only a hit box and a
+ *  drawing surface -- it never takes a pointer event except on the thumb. */
+const REACH = 260;
+
 /** How near the thumb a tick is drawn at its full length, as a fraction of
  *  the track. The scale is legible as a whole and emphatic where you are,
  *  which is the same idea as the dock on the wide-screen rail. */
@@ -237,7 +260,7 @@ export function PhotoScrubber({
       <div
         ref={rail}
         className="absolute right-0"
-        style={{ top: TRACK_TOP, bottom: TRACK_FOOT, width: TARGET }}
+        style={{ top: TRACK_TOP, bottom: TRACK_FOOT, width: REACH }}
       >
         {/* THE SCALE. One tick per band, the whole archive at once, drawn only
             while a thumb is on it. Longest and inked where you are, falling
@@ -253,8 +276,11 @@ export function PhotoScrubber({
                 <m.span
                   key={key}
                   aria-hidden
-                  className="absolute right-0 block h-px rounded-full bg-foreground"
-                  style={{ top: `calc(${seat} * (100% - ${THUMB}px) + ${THUMB / 2}px)` }}
+                  className="absolute block h-px rounded-full bg-foreground"
+                  style={{
+                    top: `calc(${seat} * (100% - ${THUMB}px) + ${THUMB / 2}px)`,
+                    right: TICKS_INSET,
+                  }}
                   initial={{ opacity: 0 }}
                   animate={{
                     opacity: 0.24 + near * 0.68,
@@ -275,8 +301,12 @@ export function PhotoScrubber({
             <m.span
               aria-hidden
               data-scrub-year
-              className="absolute right-10 block whitespace-nowrap font-heading text-[40px] leading-none tracking-[-0.02em] text-foreground tabular-nums"
-              style={{ top: `calc(${at} * (100% - ${THUMB}px) + ${THUMB / 2}px)`, y: "-50%" }}
+              className="absolute block whitespace-nowrap font-heading text-[40px] leading-none tracking-[-0.02em] text-foreground tabular-nums"
+              style={{
+                top: `calc(${at} * (100% - ${THUMB}px) + ${THUMB / 2}px)`,
+                right: YEAR_INSET,
+                y: "-50%",
+              }}
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 10 }}
@@ -298,6 +328,7 @@ export function PhotoScrubber({
               style={{
                 top: `calc(${at} * (100% - ${THUMB}px))`,
                 height: THUMB,
+                width: TARGET,
                 touchAction: "none",
               }}
               onPointerDown={grab}
@@ -315,7 +346,9 @@ export function PhotoScrubber({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 6 }}
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              className="pointer-events-auto absolute right-0 flex w-full items-center justify-end pr-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              /* The only thing that takes a pointer, and it stays on the
+                 edge where the thumb already is. */
+              className="pointer-events-auto absolute right-0 flex items-center justify-end pr-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <m.span
                 aria-hidden

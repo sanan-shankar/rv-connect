@@ -187,9 +187,18 @@ function useRailModel(bands: BandCount[], columnHeight: number) {
     }
     const fullest = decades.reduce((m, d) => Math.max(m, byDecade.get(d)!.length), 0);
 
-    /* GROUPED ONLY WHEN IT HAS TO BE, and the test is the WORST case rather
-       than the resting one: a rail that lists every year at rest and then has
-       nowhere to put an open decade is not a rail that fits. */
+    /* GROUPED ONLY WHEN THE YEARS STOP FITTING, and the test is the WORST
+       case rather than the resting one: a rail that lists every year and then
+       has nowhere to put an open decade is not a rail that fits.
+
+       Which means a young archive lists its years plainly -- 2026, 2022, 2021
+       -- and only folds into decades once there are more of them than the
+       column can hold, about twenty-nine at this row height. That surprised
+       the owner, who had approved the decade rail and was seeing years:
+       offered the alternative of grouping the moment a second decade exists,
+       he chose to keep this. "Let it show as separate years until they fit,
+       that's a good idea" (2026-09-02). Recorded because it looks like an
+       oversight and is not one. */
     const flatRows = years.length + (undated ? 1 : 0);
     const groupedRows = decades.length + fullest + (undated ? 1 : 0);
     const grouped = flatRows * ROW > columnHeight;
