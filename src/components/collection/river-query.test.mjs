@@ -86,17 +86,25 @@ test("loadNewer does not build its own query", () => {
  * a reload could clear. Measured 2026-09-02: eight scope swaps grew the
  * valley's 17 photographs to 41 nodes.
  */
-test("the river's sections are keyed by a photograph, not by a year", () => {
+test("the river's sections are keyed by something unique AND still", () => {
   assert.doesNotMatch(
     river,
-    /<section key=\{band\.key/,
-    "PhotoRiver is keying a band by its year again. A year repeats; the row a " +
-      "run starts at does not."
+    /<section key=\{band\.key\b/,
+    "PhotoRiver is keying a band by its year again. A year repeats, React stops " +
+      "reconciling, and whole sections are left behind."
   );
+  assert.doesNotMatch(
+    river,
+    /<section key=\{band\.photos/,
+    "PhotoRiver is keying a band by a photograph again. A page arriving above " +
+      "changes which photograph a year starts at, so the key moves, so React " +
+      "rebuilds the year and every tile in it goes white."
+  );
+  assert.match(river, /<section key=\{band\.id\}/, "the section key is neither of the two known-good forms");
   assert.match(
     river,
-    /<section key=\{band\.photos\[0\]\?\.id/,
-    "PhotoRiver's section key is no longer the band's first photograph id"
+    /id: `\$\{key\}#\$\{nth\}`/,
+    "bandsOf no longer numbers repeated years, which is what makes the key unique"
   );
 });
 

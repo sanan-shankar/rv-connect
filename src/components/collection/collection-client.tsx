@@ -767,7 +767,7 @@ export function CollectionClient({
      toward newer photographs, prepended at the head instead of appended at
      the foot. `prependUnseen` is `appendUnseen`'s own mirror, same
      guarantee reversed (see its docblock). */
-  const scrollAnchor = useRef<{ height: number; top: number } | null>(null);
+  const scrollAnchor = useRef<{ height: number; top: number; seam: number } | null>(null);
   const loadNewer = useCallback(async () => {
     /* Never while a page is arriving at the FOOT, and `more` returns the
        same courtesy. The correction below reads one number -- how much
@@ -798,7 +798,19 @@ export function CollectionClient({
          paints -- a `requestAnimationFrame` correction runs one frame too
          late and the jump is visible for it. */
       const scroller = document.scrollingElement;
-      if (scroller) scrollAnchor.current = { height: scroller.scrollHeight, top: scroller.scrollTop };
+      if (scroller)
+        scrollAnchor.current = {
+          height: scroller.scrollHeight,
+          top: scroller.scrollTop,
+          /* WHERE THE PAGE IS ABOUT TO BE INSERTED. The correction assumes
+             every pixel the document gains was added above the reader, which
+             is true of everyone reading the river and false of the one person
+             who has scrolled off the top of it: for them the new page lands
+             BELOW, and correcting by its height shoves them out of the header
+             and back into photographs they had just left. That is the second
+             half of "it brings me down". */
+          seam: (head.current?.getBoundingClientRect().top ?? 0) + scroller.scrollTop,
+        };
       setPhotos((prev) => prependUnseen(data.photos, prev));
       setTopCursor(data.topCursor ?? null);
     } finally {
@@ -848,10 +860,14 @@ export function CollectionClient({
       return;
     }
     if (!scrollAnchor.current) return;
-    const { height, top } = scrollAnchor.current;
+    const { height, top, seam } = scrollAnchor.current;
     scrollAnchor.current = null;
     const scroller = document.scrollingElement;
     if (!scroller) return;
+    // Above the seam, nothing that arrived is above the reader, so there is
+    // nothing to correct for and moving them would be the bug rather than
+    // the fix.
+    if (top < seam) return;
     landAt(top + (scroller.scrollHeight - height), tail.current);
     syncScrollWatch();
   }, [photos, headOfRiver, topOfBand, syncScrollWatch]);
@@ -896,7 +912,17 @@ export function CollectionClient({
         headNear.current = entries.some((e) => e.isIntersecting);
         if (headNear.current && wantsNewer()) void loadNewer();
       },
-      { rootMargin: "1200px 0px" }
+      /* FURTHER AHEAD THAN THE FOOT'S, and for a reason the foot does not
+         have: a page appended below the fold is invisible until the reader
+         arrives, so 1200px of warning is plenty. Climbing UP, the reader is
+         travelling toward the edge at flick speed and the page has a round
+         trip to make -- 1200px is under two frames of a fast flick, so they
+         reached the empty edge, met the page header where the previous year
+         should be, and were then pushed back down when it landed. "I still
+         hit the title then the photos load and it brings me down" (owner,
+         2026-09-02). 3000px is roughly two pages of warning at this page
+         size, which is what it takes to stay in front of a hand. */
+      { rootMargin: "3000px 0px" }
     );
     io.observe(el);
     return () => {
