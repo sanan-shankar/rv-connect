@@ -240,6 +240,11 @@ for (const f of srcFiles()) {
    metaLine/MetaDots). String literals passed TO metaLine are fine. */
 for (const f of srcFiles()) {
   if (f === "src/lib/utils.ts") continue; // metaLine's own implementation
+  /* A table of character WIDTHS, in which "·" is one of the characters being
+     measured rather than a separator being drawn. The rule looks for a dot
+     between two quotes, which is exactly what a keyed lookup of glyph metrics
+     is made of, so this is a false positive rather than an exemption. */
+  if (f === "src/lib/text-width.ts") continue;
   const src = readSource(f);
   if (src === null) continue;
   const raw = src.split("\n");
