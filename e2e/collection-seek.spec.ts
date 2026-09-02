@@ -244,80 +244,91 @@ test("nothing is ever left half-drawn", async ({ page }, testInfo) => {
 });
 
 /* ------------------------------------------------------------------ *
- *  The years are always BELOW your hand.
+ *  You can walk the whole rail without ever leaving it.
  *
- *  "Sometimes the menu opens above sometimes below" (owner,
- *  2026-08-31), and it was arithmetic rather than a slip: crossing out
- *  of the foot of an open decade used to open the next one, but opening
- *  it collapses the one you left, which lifts the list by a whole block
- *  and lands the new years ABOVE the pointer. Measured on the version
- *  that shipped: arriving fresh on the 1970s put its years 7px below the
- *  pointer, walking down into the 1960s put them 161px above.
+ *  "I don't want to have to exit the siderail and enter again to get the
+ *  next row" (owner, 2026-09-02). Travelling out of an open decade opens
+ *  the next one, one at a time, in both directions.
  *
- *  The decade that opens is now always the one whose OWN ROW is at the
- *  pointer's height in the closed list, so after it opens its row is
- *  still exactly there. Checked from every direction, because the whole
- *  complaint was that one direction behaved differently from another.
+ *  Both halves of that are load-bearing. Opening whichever decade's
+ *  block happens to contain the pointer looks right and is not: packed
+ *  years give blocks of different heights, so leaving a ten-year decade
+ *  drops the pointer clean past a one-year decade and into whatever is
+ *  under THAT. Measured before the fix, a steady drag went 2020s, 2010s,
+ *  2000s, 1970s, 1940s -- four decades skipped. Stepping one at a time
+ *  fixes the leap and a travel brake fixes the speed.
  * ------------------------------------------------------------------ */
 
-/** Point at a height in the rail and report where the years landed
- *  relative to the pointer. */
-async function yearsRelativeTo(
-  page: import("@playwright/test").Page,
-  rowFromTop: number,
-  { fresh = true } = {},
-) {
+/** Drag the pointer down (or up) the rail and report the decades it opened,
+ *  in order, with the repeats collapsed. */
+async function walkTheRail(page: import("@playwright/test").Page, dir: "down" | "up") {
   const box = (await rail(page).boundingBox())!;
-  /* From a closed rail unless asked otherwise, because "below the pointer"
-     is a promise about the moment a decade OPENS. Once you have travelled
-     down into its years some of them are above you, which is what being
-     inside a menu means and not what the complaint was about. */
-  if (fresh) {
-    await page.mouse.move(20, 400);
-    await settled(page);
+  const x = box.x + box.width - 10;
+  const from = dir === "down" ? 6 : 600;
+  const to = dir === "down" ? 600 : 6;
+  const step = dir === "down" ? 12 : -12;
+  const seen: string[] = [];
+  for (let dy = from; dir === "down" ? dy < to : dy > to; dy += step) {
+    await page.mouse.move(x, box.y + dy);
+    const open = await rail(page).evaluate((nav) => {
+      const years = [...nav.querySelectorAll("button")]
+        .filter((r) => Number(getComputedStyle(r).opacity) > 0.5)
+        .map((r) => r.getAttribute("aria-label") ?? "")
+        .filter((l) => /^\d{4}$/.test(l));
+      return years.length ? `${Math.floor(Number(years[0]) / 10) * 10}s` : "";
+    });
+    if (open && seen[seen.length - 1] !== open) seen.push(open);
   }
-  const y = box.y + rowFromTop * 17 + 8;
-  await page.mouse.move(box.x + box.width - 10, y);
-  await settled(page);
-  return rail(page).evaluate((nav, at) => {
-    const years = [...nav.querySelectorAll("button")].filter(
-      (r) => Number(getComputedStyle(r).opacity) > 0.5 && /^\d{4}$/.test(r.getAttribute("aria-label") ?? ""),
-    );
-    if (!years.length) return { open: false, firstYearBelowPointer: 0 };
-    return {
-      open: true,
-      firstYearBelowPointer: Math.round(years[0].getBoundingClientRect().top - at),
-    };
-  }, y);
+  return seen;
 }
 
-test("a decade's years always open below the pointer, from every direction", async ({
-  page,
-}, testInfo) => {
+test("the rail can be walked decade by decade without leaving it", async ({ page }, testInfo) => {
   desktopOnly(testInfo.project.name);
   await page.goto("/lab/collection");
   await expect(rail(page)).toBeVisible();
 
-  // Arriving fresh, part way down the list.
-  const fresh = await yearsRelativeTo(page, 5);
-  expect(fresh.open).toBeTruthy();
-  expect(fresh.firstYearBelowPointer).toBeGreaterThanOrEqual(0);
+  const down = await walkTheRail(page, "down");
+  expect(down.length, "a drag down the rail should open several decades").toBeGreaterThan(4);
+  /* IN ORDER AND WITHOUT SKIPPING, which is the whole assertion: every
+     decade the drag opened is exactly one older than the last. */
+  const older = (a: string, b: string) => Number(b.slice(0, 4)) === Number(a.slice(0, 4)) - 10;
+  expect(down.every((d, i) => i === 0 || older(down[i - 1], d)), down.join(" \u2192 ")).toBeTruthy();
 
-  /* Travelling DOWN out of the years closes the rail rather than opening the
-     next decade from somewhere above you -- which is the half of the trade
-     the owner chose, and it has to stay chosen deliberately. */
-  const past = await yearsRelativeTo(page, 18, { fresh: false });
-  expect(past.open, "moving below the list should close it, not re-open above").toBeFalsy();
+  await page.mouse.move(20, 400);
+  const up = await walkTheRail(page, "up");
+  expect(up.length).toBeGreaterThan(4);
+  expect(up.every((d, i) => i === 0 || older(d, up[i - 1])), up.join(" \u2192 ")).toBeTruthy();
+});
 
-  // Back up onto an older decade, and up again to a newer one.
-  for (const row of [7, 2, 9, 0]) {
-    const at = await yearsRelativeTo(page, row);
-    expect(at.open, `row ${row} should open`).toBeTruthy();
-    expect(
-      at.firstYearBelowPointer,
-      `row ${row} opened ${-at.firstYearBelowPointer}px ABOVE the pointer`,
-    ).toBeGreaterThanOrEqual(0);
-  }
+/* ------------------------------------------------------------------ *
+ *  And it stays with you down the whole river.
+ *
+ *  "The siderail shouldn't disappear when I scroll down, cause if I'm at
+ *  1987 the only way to navigate is to scroll to the top?" (owner,
+ *  2026-09-02). It had stopped being sticky: a `relative` class beside
+ *  the `sticky` one, and Tailwind emits position utilities in its own
+ *  order rather than the class string's, so `relative` won. Measured
+ *  2312px off the top of the window after a scroll.
+ * ------------------------------------------------------------------ */
+test("the rail stays with the reader down the river", async ({ page }, testInfo) => {
+  desktopOnly(testInfo.project.name);
+  await page.goto("/lab/collection");
+  await expect(rail(page)).toBeVisible();
+
+  await page.mouse.wheel(0, 2500);
+  await expect
+    .poll(async () => page.evaluate(() => Math.round(window.scrollY)))
+    .toBeGreaterThan(1000);
+
+  const where = await rail(page).evaluate((nav) => ({
+    top: Math.round(nav.getBoundingClientRect().top),
+    onScreen:
+      nav.getBoundingClientRect().bottom > 0 &&
+      nav.getBoundingClientRect().top < window.innerHeight,
+    position: getComputedStyle(nav).position,
+  }));
+  expect(where.position, "the rail stopped being sticky").toBe("sticky");
+  expect(where.onScreen, `the rail sat at ${where.top}px, off screen`).toBeTruthy();
 });
 
 /* ------------------------------------------------------------------ *

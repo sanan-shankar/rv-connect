@@ -1,5 +1,43 @@
 # Progress Log
 
+## 2026-09-02 — the rail goes back to the deployed metrics, and starts sticking again
+
+Four things, and the most important of them was a regression I put there.
+
+**The rail had stopped being sticky.** *"The siderail shouldn't disappear when I scroll down,
+cause if I'm at 1987 the only way to navigate is to scroll to the top?"* Measured: after
+scrolling 2500px the rail sat 2312px above the window, and its computed position was
+`relative`. The rewrite had added a `relative` class beside `sticky` to give the absolute rows
+a containing block — and Tailwind emits position utilities in its own order rather than the
+class string's, so `relative` won. `sticky` is a positioned element in its own right and needed
+no help. One class deleted.
+
+**The metrics are the deployed rail's, measured off it rather than remembered.** A row was
+23.5px there (22.5 plus a 1px gap, an 11px label at the inherited 16.5px line height) and had
+drifted to 17px here — *"in general all the decades are cramped together"* — which is also the
+answer to *"you have a lot less magnification"*: the dock's three numbers were already
+identical, but the same 1.16 on a smaller row is a smaller swell. `ROW` and `ROW_H` are now
+copied from the shipped file with the measurement written down beside them.
+
+**The years are packed.** No slot left for a year the archive does not hold, none stretched to
+fill a block. The stretch is what made *"under 2010s it's okay but 2020s for some reason is so
+much wider"* — the 2020s holds three years across a five-year span and was being pulled over
+ten slots. Every tick in the rail is now the same distance from the next, at every level, in
+every decade, whatever the archive holds.
+
+**And the rail can be walked without leaving it.** *"I don't want to have to exit the siderail
+and enter again to get the next row."* Packed years mean blocks of different heights, and
+opening whichever decade's block contains the pointer looks right and is not: leaving a
+ten-year decade drops the pointer clean past a one-year decade and into whatever is under THAT.
+Measured, a steady drag went 2020s, 2010s, 2000s, 1970s, 1940s — four skipped. It steps ONE
+decade in the direction you left, no more than once per row of travel, which is exactly the
+sensitivity the closed list already has. Both directions verified monotonic.
+
+Also: `protocol-audit` was failing on `src/lib/text-width.ts`, a table of character WIDTHS in
+which "·" is one of the characters being measured. The rule looks for a dot between two quotes,
+which is what a keyed lookup of glyph metrics is made of. Exempted in the audit rather than
+bent in the component, beside the existing exemption for metaLine's own implementation.
+
 ## 2026-09-02 — the photograph you can finally get closer to
 
 Owner: *"you can't really pinch zoom on the image viewer. make sure you can on mobile and

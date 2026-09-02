@@ -10,63 +10,38 @@
  *  shape the archive is.
  *
  *  IT IS A LIST OF DECADES, AND THE ONE YOU POINT AT OPENS INTO ITS
- *  YEARS. Nothing else moves, nothing fades to a half tone, and every
- *  label on screen is either fully there or not there at all.
+ *  YEARS, PACKED, UNDER IT. Everything below shifts down to make room
+ *  and shifts back when you leave.
  *
- *  THAT LAST SENTENCE IS THE WHOLE DESIGN, and it is written down
- *  because two versions failed by not honouring it. Both tried to fit
- *  every year of the archive down one column at once -- sixty rows at
- *  eleven pixels -- which no eleven-pixel label fits beside, so both
- *  grew a system for fading labels in and out by proximity to the
- *  pointer. That system worked exactly as designed and was terrible:
- *  "there's so many instances where it's these different shades of grey
- *  ... two numbers showing and they're both kind of half showing ...
- *  I have [the pointer] over 2026 then ... 2026 is kind of grey[ed] out
- *  almost like invisible ... it's just coming off as still so janky"
- *  (owner, 2026-08-31). A continuous opacity field means partial greys
- *  are not an edge case, they are the resting state, and an anchor
- *  stepping aside to dodge a collision is a label deleting itself for a
- *  reason no reader can see.
+ *  THE METRICS ARE NOT NEGOTIABLE and they are not this file's to
+ *  choose: ROW, the type size, and the dock's three numbers are copied
+ *  from the rail that shipped, measured off it rather than remembered.
+ *  "I want you to remember that font size, magnification and spacing
+ *  between the rows ... in general all the decades are cramped together,
+ *  why can't we have it like it is in the pushed version" (owner,
+ *  2026-09-02). The rail had drifted to a 17px row against the shipped
+ *  23.5px, which is also why the same dock numbers read as less
+ *  magnification: the swell is the same multiple of a smaller row.
  *
- *  So there is no opacity field. A decade holds at most ten years, ten
- *  years is a short list, and a short list fits at the row height this
- *  rail has always used with room for every label. The nesting does the
- *  work the fading was trying to do.
+ *  THE YEARS ARE PACKED. No slot is left for a year the archive does not
+ *  hold and none is stretched to fill a block -- "I don't want to leave
+ *  empty spaces for years that aren't there", and the stretch is what
+ *  made one decade's ticks twice as far apart as another's ("under 2010s
+ *  it's okay but 2020s for some reason is so much wider"). Every tick in
+ *  the rail is now the same distance from the next, at every level, in
+ *  every decade, whatever the archive happens to hold.
  *
- *  HOW IT HOLDS STILL. Only one decade is ever open and every open
- *  decade is the same eleven rows, so the rail's total height never
- *  changes and neither does its hit box. A decade grows DOWNWARD from
- *  its own row, which does not move.
+ *  WHICH MEANS BLOCKS HAVE DIFFERENT HEIGHTS, and that is what
+ *  `SWITCH_TRAVEL` is for. Crossing out of a tall decade into a short
+ *  one can leave the pointer past the short one entirely, and without a
+ *  brake the rail would run down three or four decades on one gesture.
+ *  One decade per row of travel is the brake, which is exactly the
+ *  sensitivity the closed list already has.
  *
- *  AND THE YEARS ARE ALWAYS BELOW YOUR HAND, never above it. That is a
- *  rule, and it costs something, and the owner chose to pay: "sometimes
- *  the menu opens above sometimes below" (2026-08-31). The cause is
- *  arithmetic rather than a slip. Crossing out of the foot of an open
- *  decade used to open the next one straight away -- but opening it
- *  collapses the one you left, which lifts the whole list by the height
- *  of a block, so the new years landed ABOVE the pointer. Measured on
- *  the version that shipped: arriving fresh on the 1970s put its years
- *  7px below the pointer and 178px below it; walking down into the
- *  1960s put them 161px ABOVE.
- *
- *  So the decade that opens is always the one whose OWN ROW is at the
- *  pointer's height in the closed list -- which means, after it opens,
- *  its row is still exactly there and its years run down from it. Every
- *  time, from every direction.
- *
- *  What that costs: while a decade is open you can only switch upward,
- *  to a newer one, in a single move. Its own years occupy the space
- *  below it, and travelling through them must not re-choose the decade
- *  or you could not read them. Going OLDER means moving down past the
- *  years, which closes the rail, and then back up into the list. Two
- *  moves. The trade is a menu that never jumps for a decade that
- *  sometimes takes two gestures to reach.
- *
- *  A SMALL ARCHIVE IS NOT GROUPED. If every year the archive holds fits
- *  down the column at full row height, they are simply all listed, all
- *  named, always -- there is nothing a decade could usefully hide. The
- *  live Collection is four bands and looks exactly like the rail that
- *  shipped before any of this.
+ *  A SMALL ARCHIVE IS NOT GROUPED. If every year fits down the column at
+ *  full row height they are simply all listed, all named, always. The
+ *  live Collection is four bands and is, to the pixel, the rail that
+ *  shipped.
  *
  *  IT SEEKS. IT DOES NOT FILTER. Pressing a year used to narrow the grid
  *  to it, which meant landing there had no way back except a reload --
@@ -75,14 +50,11 @@
  *  that stretch of it; photographs above and below still exist and
  *  scrolling either way keeps going. `active` therefore is not a filter
  *  you set, it is read off what is actually on screen (`useActiveBand`
- *  in `photo-river.tsx`) -- the rail reports where you are rather than
- *  deciding it.
+ *  in `photo-river.tsx`).
  *
- *  Below 1280px this margin does not exist; the phone scrubber down the
- *  right edge of the grid is its own component, not a second shape of
- *  this one -- a narrow scrolling line of decade words shipped here once
- *  and was rejected on sight ("remove the decades and undated thing
- *  from mobile, it looks really bad").
+ *  Below 1280px this margin does not exist and the phone gets
+ *  `<PhotoScrubber>` instead, which is a different shape for a different
+ *  hand rather than this one squeezed.
  * ------------------------------------------------------------------ */
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -92,73 +64,60 @@ import { cn } from "@/lib/utils";
 
 export type BandCount = { key: string; count: number };
 
-/** One row, everywhere, at every level. The rail has used it since it was a
- *  list of decades and there is no longer any state in which it changes:
- *  every label is a full-size label, which is what makes the thing legible. */
-const ROW = 17;
-
 /* ------------------------------------------------------------------ *
- *  A DECADE IS TEN ROWS TALL WHEN IT IS OPEN, always, however many years
- *  it actually holds, and each year sits at its own place inside those ten
- *  rather than being packed against the top.
+ *  Measured off the rail that shipped, not chosen here.
  *
- *  Two things fall out of that and both are the point.
- *
- *  The gaps become honest. A decade with photographs from 1979, 1976 and
- *  1974 draws three marks with the empty years between them left empty --
- *  which is a true statement about the archive, and the same statement the
- *  rail makes at every other level.
- *
- *  And the rail stops being able to cascade. Every open decade being the
- *  SAME height is what makes crossing out of one land you inside the next
- *  instead of two past it: with heights that varied, one twenty-pixel move
- *  out of a nine-year decade fell straight through a one-year decade and
- *  two more below it, and the rail walked three decades on a gesture that
- *  meant one. Packing the years and padding the remainder at the foot gives
- *  the same guarantee but leaves a visible hole under a sparse decade;
- *  spreading them over their real positions costs nothing and reads as a
- *  scale.
+ *  A row was `py-[3px]` around an 11px label at the inherited 16.5px
+ *  line-height -- 22.5px -- in a column with `gap-px` between rows, so the
+ *  pitch is 23.5. Both numbers are kept because the difference is the gap,
+ *  and a row that fills its pitch would close it.
  * ------------------------------------------------------------------ */
-const DECADE_SLOTS = 10;
+const ROW = 23.5;
+const ROW_H = 22.5;
 
-/** The gap that lifts "Undated" off the years. It is not a year and does not
- *  belong in their run; a plain row would read as the year before the oldest. */
+/** The floor the rows may be squeezed to, and only on a window too short to
+ *  hold the rail at full size -- an overflowing rail is worse than a tight
+ *  one, and a tight one is still better than a scrollbar. */
+const ROW_MIN = 17;
+
+/** The gap that lifts "Undated" off the decades. It is not a decade and does
+ *  not belong in their run. */
 const UNDATED_GAP = 10;
 
 /** What the rail leaves below itself, so its foot is not welded to the
  *  bottom of the window. */
 const RAIL_FOOT = 24;
 
+/** How far the pointer must travel before the rail will change decade again.
+ *  One row: the same sensitivity the closed list has, and enough of a brake
+ *  that crossing out of a ten-year decade into a one-year decade cannot run
+ *  away down the rest of the rail. */
+const SWITCH_TRAVEL = ROW;
+
 /* ------------------------------------------------------------------ *
- *  The dock. "Maybe some kind of subtle magnification while hovering
- *  over them, like a mac dock" (owner, 2026-08-29), and asked for again
- *  every time this rail has been rebuilt. The rows swell toward the
- *  pointer and settle as it leaves, on a spring, with the neighbours
- *  carrying a share of it.
- *
- *  Transform only, anchored to the right edge, so the right-aligned
- *  labels stay a clean column while the rows grow leftward into the
- *  margin -- and the swell never moves a row, only its paint.
+ *  The dock, copied from the shipped rail exactly. "Maybe some kind of
+ *  subtle magnification while hovering over them, like a mac dock"
+ *  (owner, 2026-08-29). Transform only, anchored to the right edge, so
+ *  the right-aligned labels stay a clean column while the rows grow
+ *  leftward -- and the swell never moves a row, only its paint.
  * ------------------------------------------------------------------ */
 const DOCK_REACH = 64; // px of falloff either side of the pointer
 const DOCK_PEAK = 1.16;
 const DOCK_SPRING = { stiffness: 400, damping: 28 };
 
-/** The opening and the closing. Deliberately about a quarter slower than the
- *  first version of it -- "I'd slow the expansion and compression animations
- *  by maybe 20-30%" (owner, 2026-08-31) -- and just short of critically
- *  damped, so it arrives without a bounce. */
+/** Opening and closing. About a quarter slower than the first version of it,
+ *  as asked, and just short of critically damped so it arrives without a
+ *  bounce. */
 const OPEN_SPRING = { stiffness: 150, damping: 23, mass: 0.9 };
+const FADE = { duration: 0.26, ease: [0.22, 1, 0.36, 1] as const };
 
 /* ------------------------------------------------------------------ *
  *  How much height there actually is, which is NOT the window.
  *
  *  The rail is sticky at `top-6`, so once you have scrolled it has the
- *  window minus 24px to work with. Before you have scrolled it starts
- *  wherever the river starts -- about 164px down, under the page title and
- *  the bucket row -- and that is the state it is FIRST opened in. This
- *  measures its own top in the document and sizes for THERE, the tightest
- *  position it is ever in.
+ *  window minus 24px. Before you have scrolled it starts wherever the river
+ *  starts -- about 164px down, under the page title and the bucket row --
+ *  and that is the state it is first opened in, so it sizes for THERE.
  * ------------------------------------------------------------------ */
 function useColumnHeight(rowCount: number) {
   const nav = useRef<HTMLElement>(null);
@@ -184,25 +143,21 @@ function useColumnHeight(rowCount: number) {
 }
 
 type Row = {
-  /** The band this row seeks to. A decade header seeks to the newest year it
-   *  holds, which is a real band; there is nothing filed under "the 1950s"
-   *  as a position in the river. */
+  /** The band this row seeks to. A decade seeks to the newest year it holds,
+   *  which is a real band; there is nothing filed under "the 1950s" as a
+   *  position in the river. */
   key: string;
   label: string;
   count: number;
   /** Length in px, scaled to the archive's shape. */
   mark: number;
-  /** Which decade this belongs to, as an index into `groups`. Undated is not
-   *  a decade and answers -1. */
+  /** Which decade this belongs to. Undated, and every row of an ungrouped
+   *  rail, answer -1. */
   group: number;
-  /** True for the decade's own row; false for a year inside it. */
-  header: boolean;
-  /** A year's place inside its decade's ten slots. The newest year a decade
-   *  holds takes the first slot and the oldest takes the last, with whatever
-   *  lies between spread across the rest in proportion. */
-  slot: number;
-  /** Every band key this row stands for, so a collapsed decade can light up
-   *  when the reader is anywhere inside it. */
+  /** True for the decade's own row; false for a year nested under it. */
+  head: boolean;
+  /** Every band key this row stands for, so a closed decade can light up when
+   *  the reader is anywhere inside it. */
   covers: string[];
 };
 
@@ -230,28 +185,34 @@ function useRailModel(bands: BandCount[], columnHeight: number) {
       }
       byDecade.get(d)!.push(y);
     }
+    const fullest = decades.reduce((m, d) => Math.max(m, byDecade.get(d)!.length), 0);
 
-    const fits = Math.floor(columnHeight / ROW);
-    /* GROUPED ONLY WHEN IT HAS TO BE. If every year fits down the column at
-       full height there is nothing a decade could usefully hide, so they are
-       all simply listed -- which is the live Collection, and the rail that
-       shipped before any of this. */
-    const grouped = years.length + (undated ? 1 : 0) > fits;
+    /* GROUPED ONLY WHEN IT HAS TO BE, and the test is the WORST case rather
+       than the resting one: a rail that lists every year at rest and then has
+       nowhere to put an open decade is not a rail that fits. */
+    const flatRows = years.length + (undated ? 1 : 0);
+    const groupedRows = decades.length + fullest + (undated ? 1 : 0);
+    const grouped = flatRows * ROW > columnHeight;
 
-    /* TWO SCALES, ONE PER LEVEL, because the two are never read against each
-       other: closed, you are comparing decades; open, you are comparing the
-       years of one decade. Sharing a scale would squash every year of a thin
-       decade into the same stub and throw away the shape the rail exists to
-       draw. Undated takes the coarse one -- it is a pile, not a year, and a
-       third of the archive being undated must not set the year scale. */
+    /* One row height for every row in every state, squeezed only if the
+       window is too short to hold the rail's tallest state at full size. */
+    const need = (grouped ? groupedRows : flatRows) * ROW + (undated ? UNDATED_GAP : 0);
+    const unit =
+      need <= columnHeight || need <= 0
+        ? ROW
+        : Math.max(ROW_MIN, (ROW * columnHeight) / need);
+    const rowH = unit - (ROW - ROW_H);
+
     const biggestYear = years.reduce((m, y) => Math.max(m, held.get(String(y)) ?? 0), 0) || 1;
     const biggestDecade = [...byDecade.values()].reduce(
       (m, ys) => Math.max(m, ys.reduce((t, y) => t + (held.get(String(y)) ?? 0), 0)),
       0
     );
+    /* TWO SCALES, ONE PER LEVEL, because the two are never read against each
+       other: closed you are comparing decades, open you are comparing the
+       years of one. Undated takes the coarse one -- it is a pile, not a year,
+       and a third of the archive being undated must not set the year scale. */
     const bar = (n: number, of: number) => Math.max(5, Math.min(40, Math.round((n / (of || 1)) * 40)));
-    const yearMark = (n: number) => bar(n, biggestYear);
-    const coarseMark = (n: number) => bar(n, grouped ? biggestDecade : biggestYear);
 
     const rows: Row[] = [];
     if (!grouped) {
@@ -261,10 +222,9 @@ function useRailModel(bands: BandCount[], columnHeight: number) {
           key,
           label: key,
           count: held.get(key) ?? 0,
-          mark: yearMark(held.get(key) ?? 0),
+          mark: bar(held.get(key) ?? 0, biggestYear),
           group: -1,
-          header: true,
-          slot: 0,
+          head: true,
           covers: [key],
         });
       }
@@ -272,18 +232,13 @@ function useRailModel(bands: BandCount[], columnHeight: number) {
       decades.forEach((d, g) => {
         const ys = byDecade.get(d)!;
         const total = ys.reduce((t, y) => t + (held.get(String(y)) ?? 0), 0);
-        /* How many years this decade actually reaches across, which is what
-           the ten slots are stretched over. Zero when it holds a single year,
-           which then simply sits on the decade's own line. */
-        const span = ys[0] - ys[ys.length - 1];
         rows.push({
           key: String(ys[0]),
           label: `${d}s`,
           count: total,
-          mark: coarseMark(total),
+          mark: bar(total, biggestDecade),
           group: g,
-          header: true,
-          slot: 0,
+          head: true,
           covers: ys.map(String),
         });
         for (const y of ys) {
@@ -292,24 +247,9 @@ function useRailModel(bands: BandCount[], columnHeight: number) {
             key,
             label: key,
             count: held.get(key) ?? 0,
-            mark: yearMark(held.get(key) ?? 0),
+            mark: bar(held.get(key) ?? 0, biggestYear),
             group: g,
-            header: false,
-            /* STRETCHED TO FILL THE TEN SLOTS, newest at the top and oldest
-               flush against the decade below.
-
-               Counting from the decade's own first year instead leaves a hole
-               under any decade whose years do not happen to span the full ten
-               -- and a hole whose size changes from decade to decade, which
-               is the whole of "sometimes there's a gap to the next decade
-               sometimes there isn't" (owner, 2026-08-31). The block is now
-               the same eleven rows whoever opens it AND ends where the next
-               decade begins, every time.
-
-               The proportions inside survive the stretch: a decade with a
-               run of consecutive years still draws them evenly, and one with
-               a five-year hole in the middle still shows it. */
-            slot: span ? ((ys[0] - y) * (DECADE_SLOTS - 1)) / span : 0,
+            head: false,
             covers: [key],
           });
         }
@@ -320,22 +260,21 @@ function useRailModel(bands: BandCount[], columnHeight: number) {
         key: "unknown",
         label: bandLabel("unknown"),
         count: held.get("unknown") ?? 0,
-        mark: coarseMark(held.get("unknown") ?? 0),
+        mark: bar(held.get("unknown") ?? 0, grouped ? biggestDecade : biggestYear),
         group: -1,
-        slot: 0,
-        header: true,
+        head: true,
         covers: ["unknown"],
       });
     }
 
-    return { rows, grouped, decadeCount: decades.length, undated };
+    return { rows, grouped, decades: decades.length, unit, rowH };
   }, [bands, columnHeight]);
 }
 
 /** Where every row sits, given which decade is open. Pure arithmetic on the
  *  model, so the hit-testing and the drawing can never disagree about which
  *  decade a given pixel belongs to. */
-function layout(rows: Row[], open: number | null) {
+function layout(rows: Row[], unit: number, open: number | null) {
   const y: number[] = new Array(rows.length).fill(0);
   /** Each decade's extent in the CURRENT layout, which is what the pointer is
    *  tested against. */
@@ -347,26 +286,24 @@ function layout(rows: Row[], open: number | null) {
     if (r.group < 0) {
       if (r.key === "unknown") at += UNDATED_GAP;
       y[i] = at;
-      at += ROW;
+      at += unit;
       i += 1;
       continue;
     }
     const g = r.group;
     const top = at;
-    y[i] = at; // the decade's own row
-    at += ROW;
+    y[i] = at;
+    at += unit;
     i += 1;
     while (i < rows.length && rows[i].group === g) {
-      /* Open, a year sits at its own place in the decade's ten slots. Closed,
-         it is parked on its own decade's row, hidden -- so opening slides it
-         out from under the decade it belongs to rather than materialising it
-         somewhere unrelated. */
-      y[i] = g === open ? top + ROW + rows[i].slot * ROW : top;
+      /* Packed, one after another, no slot left for a year that is not
+         there. Closed, every year parks on its own decade's row, so opening
+         slides it out from under the decade it belongs to. */
+      y[i] = g === open ? at : top;
+      if (g === open) at += unit;
       i += 1;
     }
-    const bottom = top + (g === open ? (1 + DECADE_SLOTS) * ROW : ROW);
-    at = bottom;
-    extent.set(g, { top, bottom });
+    extent.set(g, { top, bottom: at });
   }
   return { y, extent, height: at };
 }
@@ -374,16 +311,18 @@ function layout(rows: Row[], open: number | null) {
 function RailRow({
   row,
   y,
+  height,
   shown,
   isActive,
+  /** The pointer's clientY while it is over the rail; far away otherwise. */
   pointerY,
   onSeek,
 }: {
   row: Row;
   y: number;
+  height: number;
   shown: boolean;
   isActive: boolean;
-  /** The pointer's clientY while it is over the rail; far away otherwise. */
   pointerY: MotionValue<number>;
   onSeek: (key: string) => void;
 }) {
@@ -426,10 +365,10 @@ function RailRow({
       title={`${row.label}: ${row.count.toLocaleString()} ${row.count === 1 ? "photograph" : "photographs"}`}
       /* Absolutely placed and moved by transform, so opening a decade is a
          handful of rows travelling and nothing at all reflowing. */
-      style={{ scale, y: springY, transformOrigin: "right center", height: ROW }}
+      style={{ scale, y: springY, transformOrigin: "right center", height }}
       animate={{ opacity: shown ? 1 : 0 }}
       initial={false}
-      transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+      transition={FADE}
       className={cn(
         "group absolute inset-x-0 top-0 flex items-center justify-end gap-2 rounded-[var(--radius-sm)] pr-1 text-right",
         "transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
@@ -455,12 +394,12 @@ function RailRow({
         aria-hidden
         /* Fixed width, so the marks all start from the same line however many
            digits the label has -- a ragged left edge would read as noise in
-           the bar chart rather than as typography. A year inside a decade is
-           indented by the label column alone, not by a smaller size: it is
-           the same kind of thing as its parent and reads as one. */
+           the bar chart rather than as typography. No `leading-none`: the
+           shipped rail let the label take the inherited 16.5px line box, and
+           that is a third of the row's height. */
         className={cn(
-          "w-[38px] shrink-0 text-[11px] leading-none tabular-nums tracking-[0.04em]",
-          isActive ? "font-semibold" : row.header ? "font-medium" : "font-normal"
+          "w-[34px] shrink-0 text-[11px] tabular-nums tracking-[0.04em]",
+          isActive ? "font-semibold" : row.head ? "font-medium" : "font-normal"
         )}
       >
         {row.label}
@@ -490,13 +429,18 @@ export function YearRail({
   /* Far away, not zero: 1e5 keeps every row's distance outside DOCK_REACH,
      so the rail rests flat until a pointer actually arrives. */
   const pointerY = useMotionValue(1e5);
+  /** Where the pointer was when the decade last changed. See SWITCH_TRAVEL. */
+  const lastSwitch = useRef(-1e5);
 
-  const placed = layout(model.rows, open);
-  /* The box is sized for one decade being open, ALWAYS, so it never changes
-     size and there is no edge for the pointer to fall off. Which decade is
-     open makes no difference to the total -- that is the whole point of
-     DECADE_SLOTS -- so asking about the first one answers for all of them. */
-  const boxed = layout(model.rows, model.grouped ? 0 : null).height;
+  const placed = layout(model.rows, model.unit, open);
+  /* The box is sized for the FULLEST decade being open, always, so it never
+     changes size and there is no edge for the pointer to fall off. */
+  const boxed = model.grouped
+    ? Math.max(
+        placed.height,
+        ...[...placed.extent.keys()].map((g) => layout(model.rows, model.unit, g).height)
+      )
+    : placed.height;
 
   const track = (clientY: number) => {
     pointerY.set(clientY);
@@ -505,28 +449,45 @@ export function YearRail({
     if (!box) return;
     const local = clientY - box.top;
 
+    /* NOTHING OPEN: the closed list is one row per decade, so the row under
+       the pointer is the decade under the pointer. */
+    if (open === null) {
+      for (const [g, e] of placed.extent) {
+        if (local >= e.top && local < e.bottom) {
+          setOpen(g);
+          lastSwitch.current = clientY;
+          return;
+        }
+      }
+      return;
+    }
+
     /* Inside the open decade's own block, nothing changes. That is where its
        years are, and travelling through them to read one must not re-choose
        the decade they belong to. */
-    if (open !== null) {
-      const e = placed.extent.get(open);
-      if (e && local >= e.top && local < e.bottom) return;
-    }
+    const e = placed.extent.get(open);
+    if (!e) return;
+    if (local >= e.top && local < e.bottom) return;
 
-    /* Otherwise the decade is whichever one's OWN ROW is at this height in
-       the CLOSED list. That is the whole of "the years are always below your
-       hand": the decade this picks is, once it opens, sitting exactly where
-       the pointer is, so its years can only run downward from there. It also
-       cannot bounce -- the row it chooses is by construction inside the block
-       that opening it creates, so the very next reading of the pointer takes
-       the branch above and stops. Below the list there is no decade to pick,
-       and the rail closes. */
-    const at = Math.floor(local / ROW);
-    const next =
-      local >= 0 && local < model.decadeCount * ROW
-        ? Math.min(at, model.decadeCount - 1)
-        : null;
-    if (next !== open) setOpen(next);
+    /* Outside it, the rail steps ONE decade in the direction you left, and
+       only once per row of travel.
+
+       Both halves are load-bearing and both were learned the hard way.
+       Opening whichever decade's extent happens to contain the pointer looks
+       right and is not: packed years give blocks of different heights, so
+       leaving a ten-year decade drops the pointer clean past a one-year
+       decade and into whatever is under THAT -- a measured drag down the rail
+       went 2020s, 2010s, 2000s, 1970s, 1940s, skipping four. Stepping one at
+       a time fixes the leap; the travel brake fixes the speed. Together they
+       are exactly the sensitivity the closed list already has: one row of
+       movement, one decade. */
+    if (Math.abs(clientY - lastSwitch.current) < SWITCH_TRAVEL) return;
+    const step = local < e.top ? -1 : 1;
+    const next = Math.min(Math.max(open + step, 0), model.decades - 1);
+    if (next !== open) {
+      setOpen(next);
+      lastSwitch.current = clientY;
+    }
   };
 
   // One year is not a shape, it is a fact, and a rail of one mark is noise.
@@ -539,35 +500,34 @@ export function YearRail({
       onPointerMove={(e) => track(e.clientY)}
       onPointerLeave={() => {
         pointerY.set(1e5);
+        lastSwitch.current = -1e5;
         setOpen(null);
       }}
       /* Sticky, so the index stays with you down twenty thousand photographs
-         the way a thumb index stays with a book. `top-6` clears the sticky
-         page chrome above it. */
-      style={{ height: boxed }}
-      className={cn(
-        "sticky top-6 hidden w-[92px] shrink-0 xl:block",
-        // Relative, because every row inside is placed by transform.
-        "relative",
-        className
-      )}
+         the way a thumb index stays with a book -- and NOT `relative` beside
+         it, which is what broke it: both are position utilities, Tailwind
+         emits them in its own order rather than the class string's, and
+         `relative` won. The rail scrolled away, so at 1987 the only way back
+         was the top of the page (owner, 2026-09-02). `sticky` is a positioned
+         element in its own right, so the absolute rows inside it need no
+         help. */
+      style={{ height: boxed, width: 92 }}
+      className={cn("sticky top-6 hidden shrink-0 xl:block", className)}
     >
       {model.rows.map((r, i) => (
         <RailRow
-          key={`${r.group}:${r.key}:${r.header ? "d" : "y"}`}
+          key={`${r.group}:${r.key}:${r.head ? "d" : "y"}`}
           row={r}
           y={placed.y[i]}
-          shown={r.header || r.group === open}
-          /* EXACTLY ONE ROW IS EVER CURRENT. A collapsed decade lights when
-             the reader is anywhere inside it, so the rail always says where
-             you are even when the year itself is folded away -- and the year
-             inside it must then NOT also claim to be, or a row nobody can see
-             is announcing itself to a screen reader beside the row that can.
-             Found by the spec, which could no longer find "the lit mark". */
+          height={model.rowH}
+          shown={r.head || r.group === open}
+          /* EXACTLY ONE ROW IS EVER CURRENT. A closed decade lights when the
+             reader is anywhere inside it, so the rail always says where you
+             are even with the years put away -- and the year must then NOT
+             also claim it, or a row nobody can see announces itself to a
+             screen reader beside the row that can. */
           isActive={
-            r.header
-              ? r.group !== open && r.covers.includes(active)
-              : r.group === open && r.key === active
+            r.head ? r.group !== open && r.covers.includes(active) : r.group === open && r.key === active
           }
           pointerY={pointerY}
           onSeek={onSeek}
