@@ -4,7 +4,13 @@ import { BUCKET_VALUES, defaultOrderFor, ERA_VALUES, PHOTO_YEAR_MIN } from "@/li
 import { classKey, photoScopeWhere, type PhotoScope } from "@/lib/photo-visibility-rule";
 import { isPhotoAutoApproved } from "@/lib/collection-photo";
 import { MAX_PHOTOS_PER_ACCOUNT } from "@/lib/upload-shared";
-import { loadPhotos, myPendingPhotos, type RiverOrder, type RiverFilters } from "./actions";
+import {
+  loadPhotos,
+  myPendingPhotos,
+  type PhotoData,
+  type RiverOrder,
+  type RiverFilters,
+} from "./actions";
 
 /* ------------------------------------------------------------------ *
  *  What the Collection page needs before it can draw anything.
@@ -18,6 +24,13 @@ import { loadPhotos, myPendingPhotos, type RiverOrder, type RiverFilters } from 
  * ------------------------------------------------------------------ */
 
 const ORDERS: RiverOrder[] = ["newest", "oldest", "taken", "loved"];
+
+/** The three per-half facts, for each half this member may read. See the
+ *  block that builds it for why both are computed rather than the one being
+ *  rendered. */
+export type ScopeFacts = Partial<
+  Record<PhotoScope, { pending: PhotoData[]; hasApprovedPhotos: boolean; roomLeft: number }>
+> & { valley: { pending: PhotoData[]; hasApprovedPhotos: boolean; roomLeft: number } };
 
 
 /* ------------------------------------------------------------------ *
@@ -105,23 +118,12 @@ export async function collectionPageData(filters: RiverFilters = { order: "newes
      exactly as before. */
   const scope: PhotoScope = filters.scope ?? "valley";
 
-  /* The two things the contribute pop-up has to be honest about BEFORE a file
-     is chosen, because each changes what it promises: whether this member's
-     photographs go straight in or wait for review, and how much room is left
-     on their account (audit M17's quota). Fetched here rather than when the
-     pop-up opens, so it never says one thing and then another. */
-  const [pending, me, mine] = await Promise.all([
-    myPendingPhotos(scope),
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { photoTrusted: true, verifyState: true, batchYear: true },
-    }),
-    /* SCOPED to the half being looked at, because the quota is per half. The
-       pop-up promises the room left before a file is chosen, and promising
-       the valley's number over the Class Collection would be a lie the member
-       only discovers two hundred photographs in. */
-    prisma.photo.count({ where: { uploaderId: session.user.id, scope } }),
-  ]);
+  /* Whether this member's photographs go straight in or wait for review, and
+     the two fields the class rule turns on. Everything per-half is below. */
+  const me = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { photoTrusted: true, verifyState: true, batchYear: true },
+  });
 
   /* Whether this member may see the Class Collection AT ALL, answered from
      the same function the river and the permalink use rather than by
@@ -134,35 +136,78 @@ export async function collectionPageData(filters: RiverFilters = { order: "newes
     batchYear: me?.batchYear,
   });
 
-  /* "Is this half of the Collection empty?" -- the question CollectionClient's
-     `trulyEmpty` asks before it decides whether to draw controls at all. It
-     has to be asked of the half being LOOKED AT: counting every approved
-     photograph in the table would tell the Class Collection it was full on
-     the strength of the valley's contents, and draw a bucket line and a
-     search box over nothing. */
-  const scopeWhere = scope === "class" ? classWhere : { scope: "valley" };
-  const [approvedCount, firstPage] = await Promise.all([
-    scopeWhere
-      ? prisma.photo.count({ where: { ...scopeWhere, approved: true, isHidden: false } })
-      : Promise.resolve(0),
-    loadPhotos(filters),
-  ]);
+  /* ---------------------------------------------------------------- *
+   *  BOTH HALVES' FACTS, NOT JUST THE ONE BEING RENDERED.
+   *
+   *  Three things on this page are per-half: the member's own queue awaiting
+   *  review, whether the half holds any approved photograph at all (which is
+   *  what decides between the controls and the empty state), and how much
+   *  room is left on their account here.
+   *
+   *  All three used to be computed for `filters.scope` alone -- the half the
+   *  SERVER was asked for. Swapping halves happens entirely in the browser,
+   *  by design, so after one press all three described the other collection:
+   *  the Awaiting-review strip showed the valley's queue over the Class
+   *  Collection, an empty class drew a bucket line and a search box over
+   *  nothing instead of its own empty state, and the contribute room promised
+   *  a quota belonging to the other half.
+   *
+   *  Answered for both halves here rather than fetched again on the swap. It
+   *  costs two indexed counts and one small findMany more per page load, and
+   *  it buys a swap that needs no round trip and can never be caught halfway.
+   *  Only for halves this member may actually read: no class, no second set.
+   * ---------------------------------------------------------------- */
+  const readable: PhotoScope[] = classWhere ? ["valley", "class"] : ["valley"];
+  const factPairs = await Promise.all(
+    readable.map(async (half) => {
+      const where = half === "class" ? classWhere! : { scope: "valley" };
+      const [pending, approvedCount, mine] = await Promise.all([
+        myPendingPhotos(half),
+        /* "Is this half empty?" -- counting every approved photograph in the
+           table would tell the Class Collection it was full on the strength
+           of the valley's contents. */
+        prisma.photo.count({ where: { ...where, approved: true, isHidden: false } }),
+        /* SCOPED, because the quota is per half. The pop-up promises the room
+           left before a file is chosen, and promising the valley's number over
+           the Class Collection would be a lie the member only discovers two
+           hundred photographs in. */
+        prisma.photo.count({ where: { uploaderId: session.user.id, scope: half } }),
+      ]);
+      return [
+        half,
+        {
+          pending,
+          hasApprovedPhotos: approvedCount > 0,
+          /* An admin has no ceiling, matching `photoQuotaError`, which is the
+             thing that would actually refuse the upload. The two have to agree
+             or the drop room caps a batch the server would have accepted.
+             `MAX_PHOTOS_PER_DROP` still applies to everybody: it bounds one
+             go, not one account. */
+          roomLeft:
+            session.user.role === "admin"
+              ? MAX_PHOTOS_PER_ACCOUNT
+              : Math.max(0, MAX_PHOTOS_PER_ACCOUNT - mine),
+        },
+      ] as const;
+    })
+  );
+  const scopeFacts = Object.fromEntries(factPairs) as ScopeFacts;
+  const here = scopeFacts[scope] ?? scopeFacts.valley;
+
+  const firstPage = await loadPhotos(filters);
 
   return {
-    pending,
-    hasApprovedPhotos: approvedCount > 0,
+    scopeFacts,
+    /* The half being rendered, spread out flat as well, because that is what
+       every consumer already reads and the client only needs the map when the
+       reader swaps. */
+    pending: here.pending,
+    hasApprovedPhotos: here.hasApprovedPhotos,
+    roomLeft: here.roomLeft,
     firstPage,
     filters,
     isAdmin: session.user.role === "admin",
     autoApproved: isPhotoAutoApproved({ role: session.user.role, ...me }),
-    /* An admin has no ceiling, matching `photoQuotaError`, which is the thing
-       that would actually refuse the upload. The two have to agree or the drop
-       room caps a batch the server would have accepted. `MAX_PHOTOS_PER_DROP`
-       still applies to everybody: it bounds one go, not one account. */
-    roomLeft:
-      session.user.role === "admin"
-        ? MAX_PHOTOS_PER_ACCOUNT
-        : Math.max(0, MAX_PHOTOS_PER_ACCOUNT - mine),
     /* What the switch needs, and no more: whether to offer the Class
        Collection at all, and which class is empty when it is.
 
