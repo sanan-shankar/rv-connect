@@ -197,16 +197,36 @@ export function Tile({
  *  `takenKey`, so a run of one band is contiguous by construction, and this
  *  keeps working as each new page is appended to the end.
  * ------------------------------------------------------------------ */
-type Band = { key: string; photos: PhotoData[] };
+type Band = { key: string; photos: PhotoData[]; id: string };
 
 export function bandsOf(photos: PhotoData[], order: RiverOrder): Band[] {
-  if (order !== "taken") return [{ key: "", photos }];
+  if (order !== "taken") return [{ key: "", photos, id: "all" }];
   const out: Band[] = [];
+  /* HOW MANY TIMES THIS YEAR HAS ALREADY APPEARED, which is what makes the
+     React key both unique and STILL. A year is not unique -- runs are cut
+     consecutively, so the same year returns as several bands whenever the
+     list is not sorted by year, which is every render between asking for
+     Chronological and its page arriving. Keyed by the year alone React got
+     the same key twice, stopped reconciling, and left whole sections behind.
+     Keyed by the band's FIRST PHOTOGRAPH it was unique -- and moved: a page
+     arriving above changes which photograph a year begins at, so the key
+     changed, so React destroyed and rebuilt the entire year. Every tile in it
+     went white and faded back in, which is what the reader sees as "the
+     photos appear then all turn white then reappear" (owner, 2026-09-02).
+     The occurrence index is the one identity that is unique in the bad state
+     and unchanged in the good one: in a properly ordered river every year is
+     `2021#0` for ever, however much arrives above or below it. */
+  const seen = new Map<string, number>();
   for (const p of photos) {
     const key = bandKeyOf(p);
     const last = out[out.length - 1];
-    if (last && last.key === key) last.photos.push(p);
-    else out.push({ key, photos: [p] });
+    if (last && last.key === key) {
+      last.photos.push(p);
+      continue;
+    }
+    const nth = seen.get(key) ?? 0;
+    seen.set(key, nth + 1);
+    out.push({ key, photos: [p], id: `${key}#${nth}` });
   }
   return out;
 }
@@ -414,22 +434,12 @@ export function PhotoRiver({
            reaches the size where windowing earns its place again, the
            estimate must be COMPUTED from the rows' known aspect ratios,
            never guessed. */
-        /* KEYED BY THE PHOTOGRAPH THE BAND STARTS AT, not by the year.
-           A year is not unique. `bandsOf` cuts consecutive runs, so the same
-           year appears as several bands the moment the list is not sorted by
-           year -- which is every render between asking for Chronological and
-           the Chronological page arriving, because `order` flips at the press
-           and `photos` does not. React then gets `key="2021"` four times over,
-           cannot reconcile the list, and LEAVES NODES BEHIND: sections that
-           belong to a query nobody is looking at, still on the page, showing
-           photographs twice, under headings the current order does not even
-           draw. Only a reload cleared them.
-           "Photos just disappear ... everything takes a reload to fix"
-           (owner, 2026-09-02) is this, and so is the 2021-twice screenshot.
-           A run is identified by the row it begins at, which is unique by
-           construction; `band.key` is kept as the fallback for the single
-           unheaded band, whose photos array is never empty either. */
-        <section key={band.photos[0]?.id ?? band.key ?? "all"}>
+        /* `band.id` -- the year and how many times it has occurred. See
+           `bandsOf` for why it is neither the year (not unique: React left
+           whole sections behind) nor the band's first photograph (not still:
+           a page arriving above rebuilt the year and every tile in it went
+           white). */
+        <section key={band.id}>
           {band.key && (
             /* The foldering, inline and free -- and it is a chapter opening
                now rather than a bar.

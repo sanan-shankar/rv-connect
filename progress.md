@@ -1,5 +1,37 @@
 # Progress Log
 
+## 2026-09-02 — the white flash was mine, and scrolling up is smooth now
+
+**The section key I introduced this afternoon caused the thing he escalated about.** Keyed
+by the year, React got duplicates and left sections behind; I keyed it by the band's first
+PHOTOGRAPH, which is unique -- and which MOVES. A page arriving above changes which
+photograph a year begins at, so the key changed, so React destroyed and rebuilt the entire
+year and every tile in it went white and faded back: *"very frequently the photos appear and
+then turn white and then reappear ... and all i'm doing is freaking scrolling?!?!"* He was
+testing a regression I had shipped an hour earlier.
+
+The key is now the year and how many times it has occurred -- `2021#0`. Unique in the bad
+state, where a year repeats; unchanged in the good one, however much arrives above or below
+it. Measured with a MutationObserver over a fast climb out of a seek: **144 images added, 0
+removed, 0 sections rebuilt.** Nothing is destroyed, so nothing can flash.
+
+**You could outrun the loader.** The head sentinel looked 1200px ahead, which is under two
+frames of a fast upward flick against a round trip, so the reader reached the empty edge,
+met the page header where the previous year should be, and was pushed back down when the
+page landed. 3000px now -- roughly two pages of warning, which is what it takes to stay in
+front of a hand. The foot keeps 1200: a page appended below the fold is invisible until you
+arrive.
+
+**And the anchor was shoving the one reader it was meant to protect.** It corrects the
+scroll by everything the document gained, on the assumption that all of it landed above the
+reader. True of everyone in the river, false of the one person who has scrolled off the top
+of it -- for them the page lands BELOW, and the correction pushed them out of the header and
+back into photographs they had just left. It now records where the seam is and leaves a
+reader above it alone.
+
+Measured over thirty 900px upward steps out of a 2020 seek: 0 images removed, 0 times the
+bare edge was reached, 0 downward shoves, and it arrives at the top of the archive.
+
 ## 2026-09-02 — a seek is a scroll now, not a rebuild; and the page is driven as a journey
 
 **"It's like navigating to a point in a pdf."** *"Why can't I just jump to that point
