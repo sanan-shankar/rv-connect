@@ -235,7 +235,59 @@ export function bandsOf(photos: PhotoData[], order: RiverOrder): Band[] {
 /** How far down the viewport a heading counts as "reached", as a fraction of
  *  its height. Matches the observer's bottom root margin below: the two are
  *  the same line and have to move together. */
-const READING_LINE = 0.2;
+export const READING_LINE = 0.2;
+
+/* ------------------------------------------------------------------ *
+ *  WHERE THE READER IS, IN BAND SPACE: which band, and how far through it.
+ *
+ *  The second half is the one that was missing. The rail and the phone's
+ *  scrubber both placed their marker at the BAND -- index over count -- so it
+ *  did not move at all while you read a year and then teleported when you
+ *  crossed into the next. Measured on the class archive: the thumb sat on the
+ *  same pixel through nineteen thousand pixels of scrolling and then jumped
+ *  75px. "The scrolling bar should never jump from place to place. It does
+ *  that now" (owner, 2026-09-02).
+ *
+ *  A progress fraction inside the band turns that into continuous travel
+ *  without giving up the thing the band model buys: the marker still lines up
+ *  with the tick that names where you are, which a raw scroll fraction cannot
+ *  do in a lazily loaded river.
+ *
+ *  ONE FUNCTION, TWO CALLERS, and that is deliberate. The river reads it off
+ *  the heading refs it already holds; the scrubber reads it off the same
+ *  headings' `data-band` in the DOM. Two implementations of "which year am I
+ *  in" is how the rail and the scrubber would come to disagree, which on this
+ *  page has happened before.
+ * ------------------------------------------------------------------ */
+export function readBandPosition(
+  keys: string[],
+  at: (key: string) => HTMLElement | null | undefined
+): { key: string; progress: number } {
+  const line = window.innerHeight * READING_LINE;
+  let i = -1;
+  for (let k = 0; k < keys.length; k += 1) {
+    const el = at(keys[k]);
+    if (el && el.getBoundingClientRect().top <= line) i = k;
+  }
+  /* Above the first heading there is nothing to have passed, and the band
+     being read is the first one -- not "no year", which would blank the rail
+     every time the reader returned to the very top. */
+  if (i < 0) return { key: keys[0] ?? "", progress: 0 };
+
+  const here = at(keys[i])!.getBoundingClientRect().top;
+  /* The band ends where the next one begins, or -- for the last band on
+     screen, which is usually the last one LOADED rather than the last one in
+     the archive -- at the foot of the document. */
+  const nextEl = at(keys[i + 1]);
+  const end = nextEl
+    ? nextEl.getBoundingClientRect().top
+    : document.documentElement.scrollHeight - window.scrollY;
+  const span = end - here;
+  return {
+    key: keys[i],
+    progress: span > 0 ? Math.min(1, Math.max(0, (line - here) / span)) : 0,
+  };
+}
 
 function useActiveBand(bands: Band[], onChange?: (era: string) => void) {
   const headings = useRef(new Map<string, HTMLElement>());
@@ -250,16 +302,7 @@ function useActiveBand(bands: Band[], onChange?: (era: string) => void) {
     const keys = bands.map((b) => b.key).filter(Boolean);
 
     const settle = () => {
-      const line = window.innerHeight * READING_LINE;
-      let current = "";
-      for (const key of keys) {
-        const el = headings.current.get(key);
-        if (el && el.getBoundingClientRect().top <= line) current = key;
-      }
-      /* Above the first heading there is nothing to have passed, and the
-         band being read is the first one -- not "no year", which would
-         blank the rail every time the reader returned to the very top. */
-      onChange(current || keys[0]);
+      onChange(readBandPosition(keys, (k) => headings.current.get(k)).key);
     };
 
     const io = new IntersectionObserver(settle, {

@@ -68,6 +68,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, m } from "motion/react";
 import { bandLabel, orderBandKeys } from "@/lib/collection";
+import { readBandPosition } from "./photo-river";
 import { cn } from "@/lib/utils";
 
 export type BandCount = { key: string; count: number };
@@ -151,27 +152,64 @@ export function PhotoScrubber({
   const rail = useRef<HTMLDivElement>(null);
 
   /* WHERE THE THUMB SITS WHEN NOBODY IS HOLDING IT: at the band it is naming,
-     DERIVED, not stored. Storing it and syncing on change is the same value
-     kept in two places, and the two disagree for a frame every time the river
-     settles on a new band -- a thumb that twitches while you scroll. */
-  const bandAtRest = keys.length > 1 ? Math.max(0, keys.indexOf(active)) / (keys.length - 1) : 0;
-  const at = held !== null ? dragAt : inTimeOrder ? bandAtRest : scrollAt;
+     PLUS how far through that band the reader has got.
+
+     The second term is the whole difference between a scrollbar and a
+     signpost. Without it the thumb is `indexOf(active) / count`, which does
+     not move at all while you read a year and then teleports when you cross
+     into the next: measured on the class archive, the same pixel through
+     nineteen thousand pixels of scrolling, then a 75px jump. "The scrolling
+     bar should never jump from place to place. It does that now" (owner,
+     2026-09-02).
+
+     Read from the river's own headings through the same function the river
+     uses (`readBandPosition`), so the two indexes cannot come to disagree
+     about which year you are in -- and NOT from the raw scroll fraction,
+     which in a lazily loaded river is a fraction of what happens to be
+     loaded rather than of the archive, and would put the thumb nowhere near
+     the tick that names where you are. */
+  const [bandSeat, setBandSeat] = useState(0);
+  const at = held !== null ? dragAt : inTimeOrder ? bandSeat : scrollAt;
 
   /* Raised by scrolling and by nothing else. No entrance on load. */
   useEffect(() => {
-    const wake = () => {
-      setShown(true);
+    const read = () => {
       const room = document.documentElement.scrollHeight - window.innerHeight;
       if (room > 0) setScrollAt(Math.min(1, Math.max(0, window.scrollY / room)));
+      /* The band, interpolated. `keys` is every band the ARCHIVE holds, not
+         only the ones loaded, so the thumb travels the whole index; bands
+         with no heading in the DOM yet simply have not been reached. */
+      if (keys.length > 1) {
+        const { key, progress } = readBandPosition(keys, (k) =>
+          document.querySelector<HTMLElement>(`[data-band="${CSS.escape(k)}"]`)
+        );
+        const i = keys.indexOf(key);
+        if (i >= 0) setBandSeat(Math.min(1, (i + progress) / (keys.length - 1)));
+      }
       clearTimeout(hide.current);
       if (!holding.current) hide.current = setTimeout(() => setShown(false), LINGER);
     };
+    /* One reading per frame while the page is moving. `read` touches layout,
+       and a scroll event can fire far more often than the screen refreshes. */
+    let frame = 0;
+    const wake = () => {
+      setShown(true);
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        read();
+      });
+    };
     window.addEventListener("scroll", wake, { passive: true });
+    // Once at mount, so the thumb is in the right place before the first
+    // scroll rather than starting at the top of the track and jumping.
+    read();
     return () => {
       window.removeEventListener("scroll", wake);
       clearTimeout(hide.current);
+      if (frame) cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [keys]);
 
   /* THE RIGHT EDGE IS THE SCRUBBER'S while it is mounted. The browser's own
      overlay scroll bar appears at the same moment and in the same place, so
