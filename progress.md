@@ -1,5 +1,39 @@
 # Progress Log
 
+## 2026-09-02 — session close-out: the scrubber gets out of your hand's way
+
+**The "errors on localhost" were the dev server, not the app.** `verify:crawl` came back 200
+on every route with no console errors; the one timeout, `/pick-bird`, answers 200 with no
+errors on its own. The server had been serving a pre-change module for `?scope=class` through a
+touch and a real content edit, its HMR channel had stopped answering, and an e2e run that takes
+one minute took fourteen and a half. It has since been restarted, and on the fresh server the
+class half correctly opens on `taken` and the valley on `newest` -- the change was right all
+along. The five specs that failed against the sick server pass 13/13 against the healthy one.
+
+**The rail shows years rather than decades on the live Collection, and that is deliberate.**
+The rail folds into decades only once the years stop fitting down the column, which at a 23.5px
+row is about twenty-nine of them; the live archive has three. Offered the alternative -- group
+the moment a second decade exists, so the approved decade rail appears far sooner -- the owner
+kept the fit-based rule: *"let it show as separate years until they fit, that's a good idea."*
+Written down beside the line, because it reads like an oversight and is not one.
+
+**The scrubber's readout moved out from under the thumb.** *"My thumb covers the ticks so I
+can't see them ... the year is a bit hidden by my finger sometimes. I like the big text, the
+focus, the ticks, just need to tweak how it's done."* So what you HOLD and what you READ are no
+longer in the same place: the hairline stays on the right edge where a thumb goes, and
+everything meant to be looked at moves inboard of the ~50pt a thumb and the hand behind it
+occlude. The scale starts at 54px, the year's right edge at 92px, and the year still sits just
+inside the longest tick so the two read as a label on a ruler.
+
+**Two visual baselines updated, both examined first.** Mobile `collection` and
+`collection-class` carried two intentional differences: the scrubber's hairline is a TIMER
+rather than a state -- raised by a scroll, gone a second and a half later -- so it is masked in
+`volatileRegions()` now, and the baselines predated `8a10763`, the approved change that opens
+the header search as a line rather than a box. The differing pixels were bounded to
+(279,77)-(390,124) and read before anything was rewritten.
+
+Gate green (99/99), seek specs 13/13 across both viewports, visual 25/25, `npm audit` 0.
+
 ## 2026-09-02 — the scrubber was unreachable, a class opens in time, and three advisories closed
 
 **The scrubber could not be found, and the reason was a bad decision of mine.** *"How do you
