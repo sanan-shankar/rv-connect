@@ -1,5 +1,47 @@
 # Progress Log
 
+## 2026-09-02 — the seek, on a phone, and the year that can go further up
+
+Three more from the same read, all of them the same shape: something that
+scrolls the reader assumed a number it should have measured.
+
+**A pressed year landed underneath the app bar.** `headOfRiver` put the river's
+top 24px below the VIEWPORT top -- 24 being the wide-screen rail's own `top-6`,
+hardcoded. On a phone there is a 56px sticky bar over that, so the year you
+pressed arrived 32px under the bar you pressed it from: *"2017 wasn't at the top
+of the page it was just above the top so not visible."* The bar now carries
+`data-app-bar` and the landing measures it, so one expression is right at both
+widths and follows the bar if it ever changes height.
+
+**And then you could not climb back out.** The upward seam is driven by an
+IntersectionObserver, and an observer reports TRANSITIONS. After a seek the seam
+enters range once, that one callback runs at the landing -- where the answer is
+correctly "no, the reader has not asked" -- and it never fires again, because the
+seam never leaves range. So scrolling up did nothing at all: *"all the years
+above 2017 have disappeared ... above 2018 instead of 2018 is the title of the
+page. WHY"*. The scroll listener now asks the same question on every scroll. And
+`wantsNewer` has a second clause that is not a nicety: at the top of the document
+there is no upward gesture to make, so at scroll zero the absence of one IS the
+request. It fires once, the page lands anchored above, and the ordinary rule
+takes over from there.
+
+Ten of ten seeks now land on the year pressed, at the top, rail lit, no
+duplicates -- against three of six landing wrong before today.
+
+**The class page's first year sits on the order's line.** With no bucket line
+beside it, the controls row was one short word on the right and a thousand empty
+pixels to its left, and it pushed the first year heading 42px down for nothing:
+*"the 2026 can go further up. still too much space. maybe align the tops of that
+and the chronological."* On a wide class page the order is lifted out of that row
+onto the river's own first line, so "2026" and "Chronological" share a top edge.
+Measured after: both at y=105, and the order's right edge is 1404 in BOTH halves
+-- the same pixel, which is the other thing he asked for. The rail keeps its
+place with a 42px offset, exactly the row it replaces. Below 1280px nothing
+changes: there is no rail column down there for the order to sit beside.
+
+One visual baseline moved, examined first: a single horizontal band where the
+heading rose, nothing else on the page.
+
 ## 2026-09-02 — the Collection's river, and the one bug wearing four costumes
 
 The owner, after a minute on the page: *"there's still soooo many usage bugs in collection

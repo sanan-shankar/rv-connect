@@ -202,33 +202,63 @@ export function RiverControls({
           collection, i dk why it's switching spots" (owner, 2026-09-02). A
           control that moves when you change what you are looking at, rather
           than when you use it, is the thing this row was built to avoid. */}
-      <div className="ml-auto flex shrink-0 items-center gap-1.5 pb-0.5 text-[13px] text-muted-foreground">
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            className="state-layer -mx-1 inline-flex items-center gap-1 rounded-[var(--radius-sm)] px-1 py-0.5 font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            aria-label={`Order: ${orderLabel(order)}. Change`}
-          >
-            {orderLabel(order)}
-            <CaretDown size={11} weight="bold" aria-hidden />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-auto min-w-44">
-            {RIVER_ORDERS.map((o) => (
-              <DropdownMenuItem
-                key={o.value}
-                onClick={() => onOrder(o.value)}
-                /* One line each, so the row is a comfortable target rather
-                   than a stacked label-and-note squeezed into the same
-                   height. */
-                className="px-2 py-2"
-              >
-                <span className={cn("text-[14px]", order === o.value && "font-semibold text-canopy")}>
-                  {o.label}
-                </span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      <OrderMenu order={order} onOrder={onOrder} className="ml-auto" />
+    </div>
+  );
+}
+
+/** The order, alone, so the class side can put it somewhere else.
+ *
+ *  Its own component and not a copy: the class half has no bucket line, so the
+ *  row above the river holds this and nothing else -- which left the first year
+ *  heading sitting 42px under an otherwise empty line. The owner: *"the 2026 can
+ *  go further up. still too much space. maybe align the tops of that and the
+ *  chronological."* On a wide screen it is lifted out of the flow and set on the
+ *  river's own first line instead, so the year and the order share a top edge and
+ *  the space between them is gone. Same component, same styling, one instance
+ *  either way -- the thing that must never happen here is two of these drifting
+ *  apart, which is what a second copy would eventually do. */
+export function OrderMenu({
+  order,
+  onOrder,
+  className,
+}: {
+  order: RiverOrder;
+  onOrder: (v: RiverOrder) => void;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex shrink-0 items-center gap-1.5 pb-0.5 text-[13px] text-muted-foreground",
+        className
+      )}
+    >
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          className="state-layer -mx-1 inline-flex items-center gap-1 rounded-[var(--radius-sm)] px-1 py-0.5 font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          aria-label={`Order: ${orderLabel(order)}. Change`}
+        >
+          {orderLabel(order)}
+          <CaretDown size={11} weight="bold" aria-hidden />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-auto min-w-44">
+          {RIVER_ORDERS.map((o) => (
+            <DropdownMenuItem
+              key={o.value}
+              onClick={() => onOrder(o.value)}
+              /* One line each, so the row is a comfortable target rather
+                 than a stacked label-and-note squeezed into the same
+                 height. */
+              className="px-2 py-2"
+            >
+              <span className={cn("text-[14px]", order === o.value && "font-semibold text-canopy")}>
+                {o.label}
+              </span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
