@@ -307,7 +307,7 @@ export default function CollectionRoom() {
           bands={bands}
           active={railActive}
           onSeek={seekTo}
-          enabled={order === "taken"}
+          inTimeOrder={order === "taken"}
         />
       </div>
 

@@ -51,7 +51,7 @@ import {
   type RiverOrder,
   type RiverPage,
 } from "@/app/(main)/collection/actions";
-import { areaLabel, bandKeyOf, bucketLabel } from "@/lib/collection";
+import { areaLabel, bandKeyOf, bucketLabel, defaultOrderFor } from "@/lib/collection";
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import { PhotoRiver, Tile, landAt, warmThumbs } from "./photo-river";
 import { RiverControls } from "./river-controls";
@@ -285,6 +285,12 @@ export function CollectionClient({
    *  that is the first impression the feature gets exactly once. */
   const chooseScope = useCallback((next: PhotoScope) => {
     setScope(next);
+    /* And the ORDER goes with them, to whatever that half opens on -- a
+       class on Chronological, the valley on Newest. Everything else here is
+       cleared because the other half is a different archive rather than a
+       filtered view of this one, and the order it is read in is part of
+       that. */
+    setOrder(defaultOrderFor(next));
     setBucket("");
     setSearchInput("");
     setSearch("");
@@ -1033,7 +1039,7 @@ export function CollectionClient({
             bands={bands}
             active={railActive}
             onSeek={seekTo}
-            enabled={order === "taken"}
+            inTimeOrder={order === "taken"}
           />
         </>
       )}

@@ -698,3 +698,29 @@
   -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 82%);
   mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 82%);
 }
+
+/* ------------------------------------------------------------------ *
+ *  The phone's scrubber owns the right edge while it is on screen.
+ *
+ *  Both indicators appear at the same moment and in the same place -- the
+ *  browser's overlay scroll bar shows while the page is moving, which is
+ *  exactly when `<PhotoScrubber>` raises its hairline -- so the two draw on
+ *  top of each other: "we'd have to disable the default scroll cause they're
+ *  overlapping right now" (owner, 2026-09-02).
+ *
+ *  Scoped three ways rather than turned off product-wide. The class is put
+ *  on <html> only while the Collection's scrubber is mounted; the media
+ *  query keeps it under 1280px, where the scrubber is the index and the
+ *  wide-screen rail is not there; and `scrollbar-gutter: stable` above
+ *  already reserves the column, so nothing shifts when the bar stops being
+ *  drawn. Everywhere else in the app keeps its scroll bar.
+ * ------------------------------------------------------------------ */
+@media (width < 80rem) {
+  html.has-scrubber {
+    scrollbar-width: none;
+  }
+  html.has-scrubber::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
