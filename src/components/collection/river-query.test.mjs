@@ -158,7 +158,8 @@ test("the scroll re-asks for the seam, not only the observer", () => {
  * underneath the bar it was pressed from.
  */
 test("the landing measures what is pinned over the viewport", () => {
-  const start = source.indexOf("const headOfRiver = useCallback");
+  const start = source.indexOf("const pinnedInset = useCallback");
+  assert.notEqual(start, -1, "pinnedInset has been renamed; this pin needs updating");
   const body = source.slice(start, source.indexOf("}, []);", start));
-  assert.match(body, /data-app-bar/, "headOfRiver is back to assuming the desktop rail's 24px");
+  assert.match(body, /data-app-bar/, "the landing is back to assuming the desktop rail's 24px");
 });

@@ -371,7 +371,18 @@ function RailRow({
       aria-label={row.label}
       aria-hidden={!shown}
       tabIndex={shown ? undefined : -1}
-      title={`${row.label}: ${row.count.toLocaleString()} ${row.count === 1 ? "photograph" : "photographs"}`}
+      /* NO `title`. It carried the count -- "2022: 4 photographs" -- and the
+         browser drew it as a native tooltip: an unstyled grey box that
+         appears after a pause, sits over the photographs, and cannot be
+         positioned, themed or dismissed. The owner: "I dont want that dialog
+         box interfering with what im seeing" (2026-09-02).
+         The count is not lost. The mark's own LENGTH is the count, drawn to
+         scale, which is the form this rail was built to say it in and the
+         reason the owner cut the number from the controls line as well: "I
+         feel like we can dispense of the number of photographs anywhere, who
+         actually cares." A hover box repeating it in words was the one place
+         that decision had not reached. `aria-label` still names the year, so
+         a screen reader is unaffected. */
       /* Absolutely placed and moved by transform, so opening a decade is a
          handful of rows travelling and nothing at all reflowing. */
       style={{ scale, y: springY, transformOrigin: "right center", height }}
