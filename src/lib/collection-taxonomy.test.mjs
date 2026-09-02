@@ -9,6 +9,7 @@ import {
   ERA_START_YEAR,
   bucketLabel,
   bucketsOf,
+  defaultOrderFor,
   eraSortYear,
   takenShort,
 } from "./collection.ts";
@@ -112,4 +113,41 @@ test("the tile says the shortest true thing about when, or nothing", () => {
   // viewer was a date that was not the photograph's.
   assert.equal(takenShort({ photoYear: null, era: "unknown" }), null);
   assert.equal(takenShort({}), null);
+});
+
+/* ------------------------------------------------------------------ *
+ *  Which order each half of the Collection opens in.
+ *
+ *  Pinned here rather than trusted to a look at the page, because the dev
+ *  server served the pre-change module for this route long after the change
+ *  landed (CLAUDE.md gotcha 1) and a manual check would have "proved" the
+ *  opposite of what the code says.
+ *
+ *  It also lives in `collection.ts` rather than beside `riverFiltersFrom`,
+ *  where it reads more naturally, for a reason worth keeping: the client
+ *  imports it, and `collection-data.ts` pulls auth, `next/server`, Prisma
+ *  and sharp behind it. Importing it from the client rendered a blank
+ *  Collection with `tsc` perfectly happy.
+ * ------------------------------------------------------------------ */
+
+test("a class opens on Chronological and the valley opens on Newest", () => {
+  assert.equal(defaultOrderFor("class"), "taken");
+  assert.equal(defaultOrderFor("valley"), "newest");
+});
+
+test("the order default lives somewhere the browser can import", () => {
+  /* The whole point of its address. If it moves back into the page's data
+     module, the Collection goes blank on the client and only a runtime check
+     catches it. */
+  const lib = readFileSync(new URL("./collection.ts", import.meta.url), "utf8");
+  assert.match(lib, /export const defaultOrderFor/);
+  const data = readFileSync(
+    new URL("../app/(main)/collection/collection-data.ts", import.meta.url),
+    "utf8"
+  );
+  assert.doesNotMatch(
+    data,
+    /export const defaultOrderFor/,
+    "defaultOrderFor moved back into the server-only module; the client imports it"
+  );
 });

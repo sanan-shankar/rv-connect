@@ -1,3 +1,5 @@
+import type { PhotoScope } from "./photo-visibility-rule";
+import type { RiverOrder } from "./river-cursor";
 // The Valley Collection: the taxonomy, and when a photograph was taken.
 // Shared by the validator, the contribute form, the river and the viewer.
 
@@ -532,3 +534,27 @@ export function takenShort(photo: {
   if (!era || era === "unknown") return null;
   return eraLabel(era);
 }
+
+/* ------------------------------------------------------------------ *
+ *  Each half of the Collection opens the way it is actually read.
+ *
+ *  The valley opens on Newest, because it is a place people come back to
+ *  and what they came back for is what has arrived since.
+ *
+ *  A CLASS OPENS ON CHRONOLOGICAL (owner, 2026-09-02). It is not a feed of
+ *  arrivals, it is one batch's own record of itself, and the question a
+ *  member brings to it is "what have we got, from when" rather than "what
+ *  turned up this week" -- which is also the only order the rail and the
+ *  phone's scrubber can index, so the half that most wants an index gets
+ *  one on arrival rather than after a trip through a menu.
+ *
+ *  IT LIVES HERE, in the client-safe module, and that is not filing. It
+ *  was written in `collection-data.ts` first, where it reads naturally
+ *  beside `riverFiltersFrom` -- and importing it from the client dragged
+ *  that module's whole server graph into the browser bundle: auth, then
+ *  `next/server`, then Prisma, then sharp. `tsc` was perfectly happy and
+ *  the Collection rendered a blank page. The types below are imported as
+ *  TYPES only, which erase, so nothing follows them at runtime.
+ * ------------------------------------------------------------------ */
+export const defaultOrderFor = (scope: PhotoScope): RiverOrder =>
+  scope === "class" ? "taken" : "newest";

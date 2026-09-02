@@ -1,5 +1,53 @@
 # Progress Log
 
+## 2026-09-02 — the scrubber was unreachable, a class opens in time, and three advisories closed
+
+**The scrubber could not be found, and the reason was a bad decision of mine.** *"How do you
+access the side rail on mobile, can't find it."* I had gated it to Chronological, on the
+argument that a year label means nothing in a river sorted by upload date. But the Collection
+OPENS on Newest — so on a phone, on the real page, there was simply nothing there. The rail has
+always been drawn in every order and pressing it commits to reading in time; the scrubber now
+does the same. What changes with the order is only what the thumb REPORTS at rest: running in
+time it sits at the band you are in, otherwise it rides the scroll and claims no year. Held, it
+is the same index either way, and letting go turns the river to Chronological and travels
+there. Verified end to end on the real page: opens on Newest, drag, release, and the URL is
+`?when=2021&order=taken`.
+
+**A class opens on Chronological** (owner). It is not a feed of arrivals, it is one batch's
+record of itself, and "what have we got, from when" is the question people bring to it — which
+is also the only order the rail and the scrubber can index, so the half that most wants an
+index gets one on arrival rather than after a trip through a menu. Switching halves takes that
+half's default with it, alongside the bucket and search that were already cleared.
+
+**The right edge is the scrubber's.** The browser's overlay scroll bar shows at exactly the
+moment the scrubber raises its hairline, in exactly the same place, so the two drew on top of
+each other. The native bar is hidden — scoped to under 1280px and only while the Collection's
+scrubber is mounted, with `scrollbar-gutter: stable` already app-wide so nothing shifts.
+
+**A trap worth writing down: `defaultOrderFor` cannot live beside `riverFiltersFrom`.** That is
+where it reads most naturally, and putting it there dragged `collection-data.ts`'s whole server
+graph into the browser bundle — auth, then `next/server`, then Prisma, then sharp. `tsc` was
+perfectly happy; the Collection rendered a blank page. It lives in `collection.ts` with
+type-only imports, and a test asserts it has not moved back.
+
+**And the dev server lied about it.** After the fix, `?scope=class` still came back `newest`
+from the running server while `?when=2021` correctly came back `taken` — the pre-change module
+for that one route, surviving a touch and a real content edit (CLAUDE.md gotcha 1). Isolated in
+node, the function was right all along. That is why the behaviour is pinned in the unit suite
+rather than confirmed by looking at the page: a manual check would have "proved" the opposite
+of what the code says. **The dev server needs a restart before the class default shows up
+locally.** It is not this session's process to restart.
+
+**Three dependency advisories closed rather than accepted.** `mysql2` (high, auth-plugin
+downgrade leaking plaintext credentials) arrives only through the Prisma CLI, which bundles a
+driver for every database it supports; this app is Postgres and never opens a MySQL connection,
+so it was unreachable — but Prisma pins it at exactly 3.15.3, so no update could reach it and an
+override was the only route. `postcss-selector-parser` (low) comes via the shadcn CLI, and
+`browserslist` (high, two advisories) via Sentry's webpack plugin and shadcn — both build-time,
+both already in the pushed lockfile. All three are `overrides`, beside the existing
+`deepmerge-ts` entry: `npm audit` reports 0, and the repo's own gate is clean without adding a
+single new allowlist entry.
+
 ## 2026-09-02 — the phone gets a scrubber, and the scrollspy stops lying
 
 *"You have to think of an ingenious non-intrusive way of doing it on phone as well, something

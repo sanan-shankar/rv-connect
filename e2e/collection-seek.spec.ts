@@ -527,23 +527,56 @@ async function readChronologicallyOnAPhone(page: import("@playwright/test").Page
 
 test("the phone's scrubber is not there until the river moves", async ({ page }, testInfo) => {
   mobileOnly(testInfo.project.name);
-  await readChronologicallyOnAPhone(page);
+  /* THE ORDER THE COLLECTION ACTUALLY OPENS IN, not the one that suits the
+     scrubber. It was gated to Chronological once, which meant that on a
+     phone, on the real page, there was nothing there at all: "how do you
+     access the side rail on mobile, can't find it" (owner, 2026-09-02). */
+  await page.goto("/lab/collection");
+  await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Newest/);
 
   // Nothing at rest. No track, no rule, no furniture down the edge.
   await expect(scrubber(page)).toHaveCount(0);
 
   await page.mouse.wheel(0, 3000);
   await expect(scrubber(page)).toBeVisible();
+  /* And in an order sorted by upload date it does NOT claim a year, because
+     there is no year to claim -- it is an indicator and says so. */
+  await expect(scrubber(page)).toHaveAttribute("aria-label", "Jump to when the photograph was taken");
   /* And it says where you are, in the same words the river's own headings
      use -- the band, not a percentage. Read off the accessible name rather
      than the thumb's text, because the thumb HAS no text: it is a hairline,
      and the year only appears, large, once it is held. */
-  await expect(scrubber(page)).toHaveAttribute("aria-label", /Now at (\d{4}|Undated)$/);
   /* Nothing large is drawn until it is held -- the whole of "non-intrusive". */
   await expect(page.locator("[data-scrub-year]")).toHaveCount(0);
 
   // And it goes again once the river stops.
   await expect(scrubber(page)).toHaveCount(0, { timeout: 6000 });
+});
+
+test("using the scrubber from another order turns the river to Chronological", async ({
+  page,
+}, testInfo) => {
+  mobileOnly(testInfo.project.name);
+  await page.goto("/lab/collection");
+  await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Newest/);
+
+  await page.mouse.wheel(0, 3000);
+  await expect(scrubber(page)).toBeVisible();
+
+  const from = (await scrubber(page).boundingBox())!;
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(from.x + from.width / 2, page.viewportSize()!.height * 0.6);
+  /* Held, it is the same index in every order -- the year reads out even
+     though the river is not running in time yet. */
+  await expect(page.locator("[data-scrub-year]")).toHaveText(/^(\d{4}|Undated)$/);
+  const landed = await page.locator("[data-scrub-year]").innerText();
+  await page.mouse.up();
+
+  /* Letting go commits to reading in time, which is exactly what pressing
+     the wide-screen rail does. */
+  await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Chronological/);
+  await expect(scrubber(page)).toHaveAttribute("aria-label", new RegExp(`Now at ${landed}$`));
 });
 
 test("dragging the scrubber travels to the band it was let go on", async ({ page }, testInfo) => {

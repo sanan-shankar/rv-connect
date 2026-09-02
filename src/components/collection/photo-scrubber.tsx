@@ -48,10 +48,21 @@
  *  which is the same sequence the rail indexes and the same one the
  *  server counted.
  *
- *  ONLY IN CHRONOLOGICAL. "Which year am I in" is a question the river
- *  can only answer when it is running in time; in Newest or Most loved
- *  the readout would be naming a year that has nothing to do with where
- *  the reader is.
+ *  IN EVERY ORDER, exactly as the rail is, and for the same reason: the
+ *  archive's shape is worth reaching at rest, and pressing it is what
+ *  commits to reading in time. Gating it to Chronological was a mistake
+ *  and a bad one -- the Collection OPENS in Newest, so on a phone there
+ *  was simply nothing there: "how do you access the side rail on mobile,
+ *  can't find it" (owner, 2026-09-02).
+ *
+ *  What does change with the order is what the thumb is reporting when
+ *  nobody is holding it. Running in time it sits at the band you are in
+ *  and can be trusted to name it. In Newest or Most loved there is no
+ *  such answer -- the river is sorted by upload date or by love, and a
+ *  year would be a number with nothing behind it -- so it rides the
+ *  scroll instead, an indicator and no more. Held, it is the same index
+ *  either way, and letting go turns the river to Chronological and
+ *  travels there, which is precisely what pressing the rail does.
  * ------------------------------------------------------------------ */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -84,15 +95,16 @@ export function PhotoScrubber({
   bands,
   active,
   onSeek,
-  enabled,
+  inTimeOrder,
   className,
 }: {
   bands: BandCount[];
   /** The band currently on screen, read from scroll position by the river. */
   active: string;
   onSeek: (key: string) => void;
-  /** False in every order but Chronological. */
-  enabled: boolean;
+  /** Whether the river is running in time. It decides what the thumb
+   *  REPORTS at rest, never whether the scrubber exists. */
+  inTimeOrder: boolean;
   className?: string;
 }) {
   const keys = useMemo(() => orderBandKeys(bands.map((b) => b.key)), [bands]);
@@ -101,6 +113,9 @@ export function PhotoScrubber({
   const [held, setHeld] = useState<string | null>(null);
   /** Where the thumb is while it IS held, 0..1 down the track. */
   const [dragAt, setDragAt] = useState(0);
+  /** How far down the document the reader is, 0..1. Only consulted in the
+   *  orders where a band cannot be. */
+  const [scrollAt, setScrollAt] = useState(0);
   const hide = useRef<ReturnType<typeof setTimeout>>(undefined);
   const holding = useRef(false);
 
@@ -116,14 +131,15 @@ export function PhotoScrubber({
      DERIVED, not stored. Storing it and syncing on change is the same value
      kept in two places, and the two disagree for a frame every time the river
      settles on a new band -- a thumb that twitches while you scroll. */
-  const restAt = keys.length > 1 ? Math.max(0, keys.indexOf(active)) / (keys.length - 1) : 0;
-  const at = held !== null ? dragAt : restAt;
+  const bandAtRest = keys.length > 1 ? Math.max(0, keys.indexOf(active)) / (keys.length - 1) : 0;
+  const at = held !== null ? dragAt : inTimeOrder ? bandAtRest : scrollAt;
 
   /* Raised by scrolling and by nothing else. No entrance on load. */
   useEffect(() => {
-    if (!enabled) return;
     const wake = () => {
       setShown(true);
+      const room = document.documentElement.scrollHeight - window.innerHeight;
+      if (room > 0) setScrollAt(Math.min(1, Math.max(0, window.scrollY / room)));
       clearTimeout(hide.current);
       if (!holding.current) hide.current = setTimeout(() => setShown(false), LINGER);
     };
@@ -132,7 +148,18 @@ export function PhotoScrubber({
       window.removeEventListener("scroll", wake);
       clearTimeout(hide.current);
     };
-  }, [enabled]);
+  }, []);
+
+  /* THE RIGHT EDGE IS THE SCRUBBER'S while it is mounted. The browser's own
+     overlay scroll bar appears at the same moment and in the same place, so
+     the two drew on top of each other. The rule this class turns on lives in
+     globals.css and is bounded to under 1280px; `scrollbar-gutter: stable` is
+     already set app-wide, so nothing shifts when the bar stops being drawn. */
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add("has-scrubber");
+    return () => root.classList.remove("has-scrubber");
+  }, []);
 
   const bandAt = useCallback(
     (clientY: number) => {
@@ -182,7 +209,7 @@ export function PhotoScrubber({
     hide.current = setTimeout(() => setShown(false), LINGER);
   };
 
-  if (!enabled || keys.length < 2) return null;
+  if (keys.length < 2) return null;
 
   const dragging = held !== null;
   const label = bandLabel(held ?? active ?? keys[0]);
@@ -277,7 +304,13 @@ export function PhotoScrubber({
               onPointerMove={move}
               onPointerUp={release}
               onPointerCancel={release}
-              aria-label={`Jump to when the photograph was taken. Now at ${label}`}
+              /* Only claims a band when the river is actually running in
+                 time, or when a thumb is on it and has chosen one. */
+              aria-label={
+                inTimeOrder || held !== null
+                  ? `Jump to when the photograph was taken. Now at ${label}`
+                  : "Jump to when the photograph was taken"
+              }
               initial={{ opacity: 0, x: 6 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 6 }}

@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { BUCKET_VALUES, ERA_VALUES, PHOTO_YEAR_MIN } from "@/lib/collection";
+import { BUCKET_VALUES, defaultOrderFor, ERA_VALUES, PHOTO_YEAR_MIN } from "@/lib/collection";
 import { classKey, photoScopeWhere, type PhotoScope } from "@/lib/photo-visibility-rule";
 import { isPhotoAutoApproved } from "@/lib/collection-photo";
 import { MAX_PHOTOS_PER_ACCOUNT } from "@/lib/upload-shared";
@@ -18,6 +18,7 @@ import { loadPhotos, myPendingPhotos, type RiverOrder, type RiverFilters } from 
  * ------------------------------------------------------------------ */
 
 const ORDERS: RiverOrder[] = ["newest", "oldest", "taken", "loved"];
+
 
 /* ------------------------------------------------------------------ *
  *  A view of the archive has an address.
@@ -83,7 +84,7 @@ export function riverFiltersFrom(
        1956, and starting somewhere is meaningless in a river sorted by
        upload date. Links this page writes always name both, so this is for
        the ones a person shortens, types or kept from an older build. */
-    order: asked ?? (band ? "taken" : "newest"),
+    order: asked ?? (band ? "taken" : defaultOrderFor(scope)),
   };
 }
 
