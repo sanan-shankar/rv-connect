@@ -40,6 +40,7 @@ import { useClosingDialog } from "@/components/common/use-closing-dialog";
 import { useHeartToggle } from "@/components/posts/use-engagement";
 import { appendUnseen, prependUnseen } from "@/lib/append-page";
 import { PhotoStream } from "@/components/common/photo-rows";
+import { cn } from "@/lib/utils";
 import type { ViewerImage } from "@/components/common/image-viewer";
 import {
   adminRemovePhoto,
@@ -54,7 +55,7 @@ import {
 import { areaLabel, bandKeyOf, bucketLabel, defaultOrderFor } from "@/lib/collection";
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import { PhotoRiver, Tile, landAt, warmThumbs } from "./photo-river";
-import { RiverControls } from "./river-controls";
+import { OrderMenu, RiverControls } from "./river-controls";
 import { ScopeCaret } from "./scope-caret";
 import { YearRail, type BandCount } from "./year-rail";
 import { PhotoScrubber } from "./photo-scrubber";
@@ -440,12 +441,27 @@ export function CollectionClient({
    *  "rail does not move" arithmetic possible. */
   const riverTop = useRef<HTMLDivElement>(null);
 
-  /** The river's head as a scroll position: its top exactly `top-6` (24px)
-   *  below the viewport edge, which is where the sticky rail already sits,
-   *  so landing there moves the river and not the rail. */
+  /** The river's head as a scroll position: its top just below whatever is
+   *  already pinned over the top of the viewport.
+   *
+   *  On a wide screen that is 24px, the rail's own `top-6`, and landing there
+   *  is the one position where the rail does not move at all -- its flow
+   *  offset equals its stuck offset. That number was hardcoded, and on a
+   *  phone it was simply wrong: the app bar is 56px of sticky, so a pressed
+   *  year landed 32px UNDERNEATH the bar and the reader arrived at a year
+   *  they could not see. "2017 wasn't at the top of the page it was just
+   *  above the top so not visible" (owner, 2026-09-02).
+   *
+   *  Measured off the bar itself rather than written down twice. Below its
+   *  breakpoint the element is not rendered at all, so this reads 0 and falls
+   *  back to the rail's 24 -- one expression, correct at both widths, and it
+   *  follows the bar if the bar ever changes height. */
   const headOfRiver = useCallback(() => {
     const row = riverTop.current;
-    return row ? Math.max(0, Math.round(row.getBoundingClientRect().top + window.scrollY) - 24) : 0;
+    if (!row) return 0;
+    const bar = document.querySelector("[data-app-bar]");
+    const pinned = Math.max(24, Math.round(bar?.getBoundingClientRect().height ?? 0) + 8);
+    return Math.max(0, Math.round(row.getBoundingClientRect().top + window.scrollY) - pinned);
   }, []);
 
   /* ---------------- which way the reader is going ---------------- *
@@ -467,11 +483,34 @@ export function CollectionClient({
    * ---------------------------------------------------------------- */
   const lastScrollY = useRef(0);
   const movingUp = useRef(false);
+  /** Whether the seam above the river is within reach, kept by the head
+   *  observer below. A boolean it maintains rather than a decision it makes. */
+  const headNear = useRef(false);
+  /** The current `loadNewer`, so the scroll listener can call it without being
+   *  torn down and rebuilt every time its dependencies change. */
+  const pullNewer = useRef<() => void>(() => {});
 
   const syncScrollWatch = useCallback(() => {
     lastScrollY.current = window.scrollY;
     movingUp.current = false;
   }, []);
+
+  /** Does the reader want the year above the one they are looking at?
+   *
+   *  Two ways to say yes, and the second is not a nicety. Travelling upward
+   *  is the ordinary one. But a seek can land at the very top of the
+   *  document -- a `?when=` link opens there, with nothing above the river
+   *  but the page header -- and a reader who is already at zero HAS NO WAY
+   *  to scroll up. Waiting for a gesture they cannot make stranded them at
+   *  the year they had asked for with the page title where 2018 should be:
+   *  "all the years above 2017 have disappeared" (owner, 2026-09-02).
+   *
+   *  So at the top of the document the absence of a gesture IS the request.
+   *  It fires once: the page that arrives is anchored above them, which puts
+   *  the scroll off zero, and from there the ordinary rule takes over. What
+   *  it must never do is fire at a landing the reader can still climb out of
+   *  by hand, which is why this is not simply "the seam is on screen". */
+  const wantsNewer = useCallback(() => movingUp.current || window.scrollY <= 0, []);
 
   useEffect(() => {
     lastScrollY.current = window.scrollY;
@@ -483,10 +522,21 @@ export function CollectionClient({
       if (y < lastScrollY.current - 2) movingUp.current = true;
       else if (y > lastScrollY.current + 2) movingUp.current = false;
       lastScrollY.current = y;
+      /* THE PULL IS DECIDED HERE, not in the observer, and that is the whole
+         point of this line. An IntersectionObserver reports TRANSITIONS: the
+         seam enters range once, the callback runs once, and after a seek that
+         one run happens at the landing when the reader is not moving. It then
+         never fires again, because the seam never leaves range -- so scrolling
+         up did nothing at all and the reader was stranded at the year they had
+         pressed with the page title above it: "all the years above 2017 have
+         disappeared ... above 2018 instead of 2018 is the title of the page.
+         WHY" (owner, 2026-09-02). Asking on every scroll costs a ref read and
+         answers the question the reader is actually asking with their finger. */
+      if (headNear.current && wantsNewer()) pullNewer.current();
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [wantsNewer]);
 
   useEffect(() => {
     if (seeded.current === fetchPage) return;
@@ -700,6 +750,10 @@ export function CollectionClient({
     }
   }, [topCursor, loadingNewer, loadingMore, loading, fetchPage]);
 
+  useEffect(() => {
+    pullNewer.current = () => void loadNewer();
+  }, [loadNewer]);
+
   /** The blank after the river that `landAt` may grow -- see its docblock. */
   const tail = useRef<HTMLDivElement>(null);
 
@@ -748,9 +802,9 @@ export function CollectionClient({
     if (!el || !topCursor) return;
     const io = new IntersectionObserver(
       (entries) => {
-        /* ONLY WHILE THE READER IS TRAVELLING UPWARD, and this is the whole
-           difference between a seam that fills itself and a page that runs
-           away from you.
+        /* ONLY WHEN THE READER HAS ASKED (see `wantsNewer`), and this is the
+           whole difference between a seam that fills itself and a page that
+           runs away from you.
 
            A seek lands the reader AT the head of the river, which is exactly
            where this sentinel lives -- so on arrival it is on screen, it
@@ -763,19 +817,28 @@ export function CollectionClient({
            the fix: three of six seeks landed on the wrong year.
 
            Nobody who has just asked to start at 2020 wants 2021 fetched over
-           their head. They want it the moment they scroll UP toward it, and
-           not one moment before -- which is a fact about the reader's
-           direction, not about what is on screen. `movingUp` is false at
-           every landing and after every prepend (see `syncScrollWatch`), so
-           the chain cannot start itself; a real upward flick sets it and the
-           seam fills ahead of them exactly as before. */
-        if (movingUp.current && entries.some((e) => e.isIntersecting)) void loadNewer();
+           their head. They want it the moment they reach for it -- which is a
+           fact about the reader, not about what is on screen. `movingUp` is
+           false at every landing and after every prepend (see
+           `syncScrollWatch`), so the chain cannot start itself; a real upward
+           flick sets it and the seam fills ahead of them exactly as before.
+
+           This callback is only half of it. An IntersectionObserver reports
+           transitions, and after a seek the seam enters range once and never
+           leaves, so this runs once -- at the landing, when the answer is no
+           -- and never again. The scroll listener asks the same question on
+           every scroll, which is what actually lets a reader climb out. */
+        headNear.current = entries.some((e) => e.isIntersecting);
+        if (headNear.current && wantsNewer()) void loadNewer();
       },
       { rootMargin: "1200px 0px" }
     );
     io.observe(el);
-    return () => io.disconnect();
-  }, [topCursor, loadNewer]);
+    return () => {
+      io.disconnect();
+      headNear.current = false;
+    };
+  }, [topCursor, loadNewer, wantsNewer]);
 
   /* Latched: once opened the pop-up stays mounted, which is what its close
      animation needs, and what lets a half-filled wall survive a stray press
@@ -1024,12 +1087,24 @@ export function CollectionClient({
         </div>
       ) : (
         <>
+          {/* HIDDEN ON A WIDE CLASS PAGE, where the order moves onto the
+              river's own first line instead -- see the river row below. With
+              no bucket line beside it this row is one short word on the right
+              and an empty 1000px to its left, and it pushed the first year
+              heading 42px down for nothing: "the 2026 can go further up.
+              still too much space. maybe align the tops of that and the
+              chronological" (owner, 2026-09-02).
+
+              Kept below 1280px because there is no rail column down there for
+              the order to sit beside, and the row is the only place it can
+              be. */}
           <RiverControls
             scope={scope}
             bucket={bucket}
             onBucket={chooseBucket}
             order={order}
             onOrder={chooseOrder}
+            className={cn(scope === "class" && "xl:hidden")}
           />
           {/* NO WAY TO JUMP BY DECADE BELOW 1280px, still. A scrolling line of
               decade words under the buckets shipped here once, in the one
@@ -1045,7 +1120,29 @@ export function CollectionClient({
               controls (16px against the header's 24px), so the line of buckets
               reads as belonging to the photographs under it rather than
               floating between the two. It was 4px, which read as glued on. */}
-          <div ref={riverTop} className="mt-4 flex items-start gap-6 xl:gap-8">
+          <div
+            ref={riverTop}
+            className={cn(
+              "relative mt-4 flex items-start gap-6 xl:gap-8",
+              /* No control row above it on a wide class page, so the river
+                 starts where that row would have: the first year heading and
+                 the order share a top edge, which is the alignment asked for.
+                 `relative` is for the order that now hangs in this row's own
+                 top-right corner. */
+              scope === "class" && "xl:mt-0"
+            )}
+          >
+            {scope === "class" && (
+              <OrderMenu
+                order={order}
+                onOrder={chooseOrder}
+                /* Out of flow, so it cannot push the year heading beside it
+                   down again -- which is the whole point. Its right edge is
+                   the content column's, the same pixel the valley's order
+                   sits on, so swapping halves still does not move it. */
+                className="absolute right-0 top-0 z-10 hidden xl:flex"
+              />
+            )}
             <div className="min-w-0 flex-1">
               {pendingPhotos.length > 0 && (
                 <div className="mb-6">
@@ -1142,7 +1239,20 @@ export function CollectionClient({
                 question the river has an answer to. Pressing a mark in any
                 other order turns the river to Chronological and travels
                 there (see `seekTo`). */}
-            <YearRail bands={bands} active={railActive} onSeek={seekTo} />
+            <YearRail
+              bands={bands}
+              active={railActive}
+              onSeek={seekTo}
+              /* The order now sits at the top of this column on the class
+                 side, so the rail starts below it rather than under it. 42px
+                 is exactly the row that used to be there -- the control's own
+                 26px line box plus this page's 16px between a control and
+                 what it acts on -- so the rail's first mark stays on the
+                 pixel it has always been on (measured at 1440: 147). Margin
+                 only: `sticky` pins to `top-6` once the reader moves, so
+                 nothing about the stuck position changes. */
+              className={cn(scope === "class" && "xl:mt-[42px]")}
+            />
           </div>
 
           {/* The same index, for a thumb. Below 1280px the rail's margin does

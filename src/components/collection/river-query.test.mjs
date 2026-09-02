@@ -118,16 +118,47 @@ test("the river is grouped by the order its photographs came back in", () => {
 /**
  * The head sentinel sits exactly where a seek lands the reader, so "is it on
  * screen" is true the moment they arrive and cannot be the reason to fetch.
- * Without the direction gate, pressing 2020 walked the river back to 2026 on
- * its own: three of six seeks landed on the wrong year.
+ * Ungated, pressing 2020 walked the river back to 2026 on its own: three of
+ * six seeks landed on the wrong year.
  */
-test("the upward pull needs the reader to be moving upward", () => {
+test("the upward pull needs the reader to have asked", () => {
   const start = source.indexOf("const head = useRef");
   assert.notEqual(start, -1, "the head sentinel has been renamed; this pin needs updating");
   const body = source.slice(start, source.indexOf("}, [topCursor", start));
   assert.match(
     body,
-    /movingUp\.current &&/,
+    /wantsNewer\(\)/,
     "the head sentinel fires on visibility alone again, which is true at every landing"
   );
+});
+
+/**
+ * ...and the observer cannot be the only thing that asks. It reports
+ * TRANSITIONS: after a seek the seam enters range once, that one callback
+ * runs at the landing when the answer is no, and it never fires again because
+ * the seam never leaves range. The reader was then stranded at the year they
+ * pressed with the page title where the year above should be. The scroll
+ * listener re-asks on every scroll, which is the half that makes climbing out
+ * possible at all.
+ */
+test("the scroll re-asks for the seam, not only the observer", () => {
+  const start = source.indexOf("const onScroll = () =>");
+  assert.notEqual(start, -1, "the scroll watcher has been renamed; this pin needs updating");
+  const body = source.slice(start, start + 1600);
+  assert.match(
+    body,
+    /headNear\.current && wantsNewer\(\)/,
+    "only the IntersectionObserver asks for the seam again, and it only fires on transitions"
+  );
+});
+
+/**
+ * A landing must clear the whole viewport that is already pinned, not a
+ * hardcoded 24px. On a phone the app bar is 56px, so a pressed year landed
+ * underneath the bar it was pressed from.
+ */
+test("the landing measures what is pinned over the viewport", () => {
+  const start = source.indexOf("const headOfRiver = useCallback");
+  const body = source.slice(start, source.indexOf("}, []);", start));
+  assert.match(body, /data-app-bar/, "headOfRiver is back to assuming the desktop rail's 24px");
 });

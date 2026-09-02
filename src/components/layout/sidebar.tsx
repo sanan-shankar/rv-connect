@@ -657,7 +657,19 @@ export function Sidebar({
 
       {/* Mobile: slim top bar with a hamburger that opens a slide-over drawer
           (a left Sheet, scrim + slide at z-50, so it covers everything). */}
-      <header className="sticky top-0 z-40 flex h-14 items-center gap-1.5 bg-sidebar px-3 md:hidden">
+      {/* `data-app-bar` is a measurement hook, not styling. Anything that
+          scrolls a member to a precise place has to know how much of the
+          viewport is already spoken for, and on a phone that is this bar: the
+          Collection landed a pressed year 24px below the VIEWPORT top, which
+          is 32px underneath these 56 pixels, so the year you asked for was
+          hidden behind the bar you asked from -- "2017 wasn't at the top of
+          the page it was just above the top so not visible" (owner,
+          2026-09-02). Measured off the live element rather than hardcoded, so
+          the two can never drift. */}
+      <header
+        data-app-bar
+        className="sticky top-0 z-40 flex h-14 items-center gap-1.5 bg-sidebar px-3 md:hidden"
+      >
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger
             aria-label="Open menu"
