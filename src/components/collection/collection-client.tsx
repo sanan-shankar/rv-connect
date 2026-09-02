@@ -54,6 +54,7 @@ import {
 } from "@/app/(main)/collection/actions";
 import { areaLabel, bandKeyOf, bucketLabel, defaultOrderFor } from "@/lib/collection";
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
+import type { ScopeFacts } from "@/app/(main)/collection/collection-data";
 import { PhotoRiver, Tile, landAt, warmThumbs } from "./photo-river";
 import { OrderMenu, RiverControls } from "./river-controls";
 import { ScopeCaret } from "./scope-caret";
@@ -128,6 +129,7 @@ function toViewerImage(p: PhotoData, isAdmin: boolean): ViewerImage {
 export function CollectionClient({
   pending,
   hasApprovedPhotos,
+  scopeFacts,
   canSeeClass = false,
   myClassYear = null,
   firstPage,
@@ -139,6 +141,11 @@ export function CollectionClient({
 }: {
   pending: PhotoData[];
   hasApprovedPhotos: boolean;
+  /** The same three facts for EVERY half this member may read, because
+   *  swapping halves happens in the browser and all three are per-half. The
+   *  flat props above are the rendered half's, kept because that is what the
+   *  permalink route and the tests pass; this is what a swap reads. */
+  scopeFacts?: ScopeFacts;
   /** Whether this member may read a Class Collection at all: verified, with a
    *  batch year. Resolved server-side through the SAME `photoScopeWhere` the
    *  river and the permalink use, so the switch cannot offer a half the
@@ -244,11 +251,24 @@ export function CollectionClient({
     }
   }
 
-  const [pendingPhotos, setPendingPhotos] = useState<PhotoData[]>(pending);
+  /* THE QUEUE IS PER HALF, so it is held per half. Kept as one record rather
+     than one list reset on every swap: a list would have to be re-seeded at
+     the exact moment `scope` changes, and getting that ordering wrong is how
+     the valley's queue ended up drawn over the Class Collection. Indexed, it
+     is simply always the right one. */
+  const [queues, setQueues] = useState<Partial<Record<PhotoScope, PhotoData[]>>>(() => ({
+    valley: scopeFacts?.valley.pending ?? [],
+    class: scopeFacts?.class?.pending ?? [],
+    [filters.scope ?? "valley"]: pending,
+  }));
   const [prevPending, setPrevPending] = useState(pending);
   if (pending !== prevPending) {
     setPrevPending(pending);
-    setPendingPhotos(pending);
+    setQueues({
+      valley: scopeFacts?.valley.pending ?? [],
+      class: scopeFacts?.class?.pending ?? [],
+      [filters.scope ?? "valley"]: pending,
+    });
   }
 
   const [loading, setLoading] = useState(false);
@@ -262,6 +282,12 @@ export function CollectionClient({
      apparatus for nothing: the dim-hold-swap, the thumbnail pre-warm, the
      landing rules and the URL sync (spec sec. 5.5). */
   const [scope, setScope] = useState<PhotoScope>(filters.scope ?? "valley");
+  /* The half on screen's own facts. `scopeFacts` is the server's answer for
+     every half this member may read; the flat props are the rendered half's,
+     and stand in for a route that has not been taught the map. */
+  const facts = scopeFacts?.[scope] ?? { pending, hasApprovedPhotos, roomLeft };
+  const pendingPhotos = queues[scope] ?? facts.pending;
+
   const [bucket, setBucket] = useState(filters.bucket ?? "");
   const [order, setOrder] = useState<RiverOrder>(filters.order ?? "newest");
   const [searchInput, setSearchInput] = useState(filters.search ?? "");
@@ -878,11 +904,14 @@ export function CollectionClient({
   );
   const setListFor = useCallback(
     (list: ViewerList, next: (prev: PhotoData[]) => PhotoData[]) => {
-      if (list === "pending") setPendingPhotos(next);
+      // The queue is per half, so a write to it goes to the half on screen --
+      // which is the only one the viewer can be showing a "pending" strip of.
+      if (list === "pending")
+        setQueues((prev) => ({ ...prev, [scope]: next(prev[scope] ?? []) }));
       else if (list === "linked") setLinked(next);
       else setPhotos(next);
     },
-    []
+    [scope]
   );
   // Memoized so the whole (paginated, unbounded) list isn't re-mapped on every
   // unrelated re-render while the viewer sits closed.
@@ -953,7 +982,13 @@ export function CollectionClient({
    *  viewer, which was showing the thing that no longer exists. */
   function forget(id: string) {
     setPhotos((prev) => prev.filter((p) => p.id !== id));
-    setPendingPhotos((prev) => prev.filter((p) => p.id !== id));
+    // Every queue, not the one on screen: the viewer can be open on a
+    // photograph from either half (a shared link), and a row that is gone is
+    // gone from both.
+    setQueues((prev) => ({
+      valley: (prev.valley ?? []).filter((p) => p.id !== id),
+      class: (prev.class ?? []).filter((p) => p.id !== id),
+    }));
     setLinked((prev) => prev.filter((p) => p.id !== id));
     setViewer(null);
     removing.close();
@@ -969,7 +1004,7 @@ export function CollectionClient({
   // Distinct from filtered-to-zero. Resolved from the server-computed
   // `hasApprovedPhotos`, not from client fetch state, which only settles after
   // mount and so flashed the controls in on first paint and out again.
-  const trulyEmpty = !hasQuery && pendingPhotos.length === 0 && !hasApprovedPhotos;
+  const trulyEmpty = !hasQuery && pendingPhotos.length === 0 && !facts.hasApprovedPhotos;
   const noMatches = !loading && hasQuery && photos.length === 0;
 
   /* What the rail lights, DERIVED rather than stored: the scrollspy's answer

@@ -1,5 +1,30 @@
 # Progress Log
 
+## 2026-09-02 — three facts on the Collection described the wrong half
+
+Not one he reported: found reading the swap path for the bugs he did report,
+and it would have been the next one he hit.
+
+Three things on this page are per-half -- the member's own queue awaiting
+review, whether the half holds any approved photograph at all (which decides
+between the controls and the empty state), and how much room is left on their
+account here. All three were computed for `filters.scope`, the half the SERVER
+was asked for. Swapping halves happens entirely in the browser by design, so
+after one press all three described the other collection: the Awaiting-review
+strip drew the valley's queue over the Class Collection, an empty class got a
+bucket line and a search box over nothing instead of its own empty state, and
+the contribute room promised the other half's quota.
+
+Answered for both halves on the server now, and only for halves the member may
+actually read. Two indexed counts and one small findMany more per page load,
+against a swap that needs no round trip and cannot be caught halfway. The queue
+is held as a record keyed by half rather than one list reset on the swap: a list
+has to be re-seeded at the exact moment `scope` changes, and getting that
+ordering wrong is precisely how the valley's queue ended up over the class.
+
+Six swaps, stable: 17 valley photographs and 48 class ones, every time, no
+duplicates, no leftover sections.
+
 ## 2026-09-02 — the phone's scrubber travels instead of teleporting
 
 *"The scrolling bar should never jump from place to place. It does that now."*
