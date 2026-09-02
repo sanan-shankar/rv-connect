@@ -12,18 +12,19 @@
  *  It adds no pixels to any page, because it adds nothing: the word
  *  already at the top of the page becomes the way in.
  *
- *  TWO BEHAVIOURS, ONE MARK.
+ *  NO MARK. There was a small `?` here that faded in on hover and, on a
+ *  phone, on the first tap. The owner took it off every title: "ditch the
+ *  question marks when you click on page titles. on desktop I can say just
+ *  click the title for the guide. and on phone let it work the same just
+ *  remove the question mark" (2026-09-02). Telling people the title is the
+ *  door is a sentence he can say once; a glyph on every heading is a mark
+ *  every reader carries forever.
  *
- *  With a mouse: nothing at rest, and the mark fades in on hover. The
- *  mark's space is reserved at rest, so the heading never moves (the
- *  owner's standing rule: hover never moves a control).
- *
- *  With a finger there is no hover, so the first tap reveals the mark
- *  and the second one goes (owner's idea, 2026-08-27). This is better
- *  than the permanent mark this file was going to carry: it keeps every
- *  page clean, it teaches what the heading does at the moment somebody
- *  pokes it, and it means a stray tap while scrolling costs a fade
- *  rather than a navigation.
+ *  THE TWO-STEP ON TOUCH SURVIVES IT. With a finger there is no hover, so
+ *  a single tap on a 30px heading somebody is scrolling past would open the
+ *  guide by accident. The first tap still only arms; the second one goes.
+ *  Nothing is drawn either way -- the arming is now invisible, which is
+ *  what "let it work the same" asks for.
  *
  *  Pointer type comes from the event, not from a media query, because
  *  a laptop with a touchscreen is both and the media query has to
@@ -35,7 +36,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { openGuide } from "@/lib/guide-open";
 
-/** How long a revealed mark stays armed before it fades back out. */
+/** How long a first tap stays armed before the two-step resets. */
 const ARMED_MS = 4000;
 
 export function GuideDoor({ area, children }: { area: string; children: React.ReactNode }) {
@@ -45,9 +46,11 @@ export function GuideDoor({ area, children }: { area: string; children: React.Re
 
   const disarm = useCallback(() => setArmed(false), []);
 
-  /* An armed mark is a state nobody asked to keep. It goes on the next scroll,
-     on a touch anywhere else, and on its own after a few seconds, so the page
-     is never left with a stray question mark on it. */
+  /* Being armed is a state nobody asked to keep, and an invisible one is
+     worth expiring MORE carefully than a visible one was: nothing on screen
+     says a second tap will navigate. It resets on the next scroll, on a touch
+     anywhere else, and on its own after a few seconds, so a tap now and a tap
+     a minute later are two first taps. */
   useEffect(() => {
     if (!armed) return;
     const timer = window.setTimeout(disarm, ARMED_MS);
@@ -72,16 +75,11 @@ export function GuideDoor({ area, children }: { area: string; children: React.Re
          the sheet even existed to animate. See src/lib/guide-open.ts. */
       href={`/guide/${area}`}
       className={cn(
-        /* `inline`, not `inline-flex`: a flex row lays the title text and the
-           mark out as two side-by-side boxes, so once the title itself wraps
-           (every "Collection" on a 390px screen) the mark sits at the end of
-           the text's whole bounding box -- the end of line one -- rather than
-           after the actual last word on line two. Plain inline flow puts both
-           in the SAME line box, so the mark rides wherever the text's own
-           wrapping puts it. Baseline alignment falls out of that for free
-           (an inline-block's default vertical-align), so items-baseline was
-           never doing anything flex-specific worth keeping either. */
-        "group inline rounded-lg text-inherit no-underline outline-none",
+        /* `inline`, not `inline-flex` or `inline-block`: the title wraps on a
+           phone (every "Collection" at 390px) and only plain inline flow lets
+           a wrapped heading keep its own line boxes. A block-level box here
+           would make the whole title one unbreakable rect. */
+        "inline rounded-lg text-inherit no-underline outline-none",
         /* A 30px line of type is a 30px finger target, under the 44px everyone
            agrees on. The padding buys the height and the equal negative margin
            gives it straight back to the layout, so the target grows and the
@@ -100,9 +98,10 @@ export function GuideDoor({ area, children }: { area: string; children: React.Re
            mean "open this somewhere else", and taking those over is rude. */
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
         e.preventDefault();
-        /* A mouse has already seen the mark on hover and the keyboard reports
-           no pointer type at all, so both open on the first press. A finger
-           gets the two-step: this press reveals the mark, the next one opens. */
+        /* A mouse and a keyboard open on the first press: a click is aimed
+           and a keypress is deliberate. A finger gets the two-step, because a
+           tap on a heading is as often a scroll that started badly: this press
+           only arms, the next one opens. */
         if (usedTouch.current && !armed) {
           setArmed(true);
           return;
@@ -111,29 +110,6 @@ export function GuideDoor({ area, children }: { area: string; children: React.Re
       }}
     >
       {children}
-      {/* Zero width, overflowing on purpose.
-
-          Reserving real space for this mark was the obvious way to stop the
-          heading moving when it appears, and it was wrong: the extra width
-          pushed "The Birds of the Valley" onto a second line at 390px and shoved
-          the entire page down 30px. Caught by the visual suite, which is exactly
-          the page nobody was looking at.
-
-          A zero-width box that paints outside itself cannot change a line break,
-          cannot change the heading's rect, and still puts the glyph after the
-          last word. It only ever overhangs into the gap before the action row. */}
-      <span
-        aria-hidden="true"
-        className={cn(
-          "inline-block w-0 translate-x-[0.3em] select-none overflow-visible",
-          "font-body text-[0.5em] font-semibold leading-none text-muted-foreground",
-          "opacity-0 transition-opacity duration-200 ease-out motion-reduce:transition-none",
-          "group-hover:opacity-100 group-focus-visible:opacity-100",
-          armed && "opacity-100"
-        )}
-      >
-        ?
-      </span>
     </a>
   );
 }

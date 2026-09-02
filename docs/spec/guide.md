@@ -111,29 +111,31 @@ Zero pixels. Nothing is added to any page, because nothing is added: a word that
 already there does a second job. And it is the right word. When somebody is lost, the
 first thing their eye lands on is the thing naming the page.
 
-**The hover, on desktop.** Nothing at rest. On hover a small muted question mark fades in
-after the title. Owner's pick from three, 2026-08-27.
+**There is no mark at all.** A small muted `?` faded in after the title on hover, and on
+the first tap on a phone. It was the owner's pick from three on 2026-08-27 and he removed
+it on 2026-09-02: *"ditch the question marks when you click on page titles. on desktop I
+can say just click the title for the guide. and on phone let it work the same just remove
+the question mark."* Which is the honest reading of a shortcut. The door was always meant
+to be invisible; a glyph on every heading is a mark every reader carries so that a few can
+be told a thing that can be told in a sentence.
 
-**On a phone, one tap reveals and the next one goes.** His idea, and better than the
-permanent mark this was going to carry. A permanent mark would have rebuilt the clutter
-the whole exercise exists to avoid; this keeps every page clean, teaches what the heading
-does at the moment somebody pokes it, and makes a stray tap while scrolling cost a fade
-rather than a navigation.
+**On a phone the two-step stays.** First tap arms, second tap opens. It is invisible now,
+which is what "let it work the same" asks for, and it is still worth having: a tap on a
+30px heading is as often a scroll that started badly, and without the two-step that costs
+a navigation.
 
 Pointer type is read off the event, not from a `hover:` media query, because a laptop with
-a touchscreen is both and the query has to guess. Mouse and keyboard skip the two-step.
+a touchscreen is both and the query has to guess. Mouse and keyboard skip the two-step: a
+click is aimed and a keypress is deliberate.
 
-**Four details, because these are what make a touch control feel wrong.**
+**Three details, because these are what make a touch control feel wrong.**
 
 - The tap target is padded to 44px and given the height straight back as negative margin,
   so the target grows and the heading stays 30px and does not move. Measured, not assumed.
 - `-webkit-tap-highlight-color` is off, so there is no grey flash.
-- An armed mark disarms on scroll, on a touch anywhere else, and after four seconds, so no
-  page is left wearing a stray question mark.
-- The mark is **zero width and paints outside its own box**. Reserving real space for it
-  pushed "The Birds of the Valley" onto a second line at 390px and moved the whole page
-  down 30px. Anything occupying horizontal space beside a title can change where that
-  title wraps.
+- An armed title disarms on scroll, on a touch anywhere else, and after four seconds. That
+  matters MORE now that nothing is drawn: with no mark on screen, a tap five minutes after
+  the last one must be a first tap again, not the second half of a forgotten pair.
 
 **Implementation note.** `PageHeader` is a server component. The title becomes
 `<GuideDoor area="...">`, a small client component, so the header itself does not have to
