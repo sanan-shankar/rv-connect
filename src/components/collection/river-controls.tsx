@@ -194,7 +194,15 @@ export function RiverControls({
           13px line on the nav's own baseline; that geometry is unchanged by
           the count leaving, because the dropdown trigger that remains is
           the same line-height this row always had. */}
-      <div className="flex shrink-0 items-center gap-1.5 pb-0.5 text-[13px] text-muted-foreground">
+      {/* `ml-auto` and not `justify-between` alone: with the bucket line gone
+          on the class side this is the row's ONLY child, and `justify-between`
+          puts a lone child at the START. So the order jumped from the right
+          edge to the left the moment you swapped halves -- "the position of
+          newest chronological etc should be the same in valley and in
+          collection, i dk why it's switching spots" (owner, 2026-09-02). A
+          control that moves when you change what you are looking at, rather
+          than when you use it, is the thing this row was built to avoid. */}
+      <div className="ml-auto flex shrink-0 items-center gap-1.5 pb-0.5 text-[13px] text-muted-foreground">
         <DropdownMenu>
           <DropdownMenuTrigger
             className="state-layer -mx-1 inline-flex items-center gap-1 rounded-[var(--radius-sm)] px-1 py-0.5 font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"

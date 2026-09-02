@@ -30,3 +30,11 @@ declines when either has moved from the seed's. The price is that a contribution
 deep in a long river waits for the next visit; the alternative is losing your place every
 time you correct something.
 
+**Chronological stopped moving between the two halves.** The controls row is
+`justify-between`, and the class side drops the bucket line, which left the order dropdown as
+the row's only child -- and a lone child in `justify-between` sits at the START. So it jumped
+from the right edge to the left the moment you swapped halves: *"the position of newest
+chronological etc should be the same in valley and in collection, i dk why it's switching
+spots."* `ml-auto` on the order block, so it is pinned right whether or not the buckets are
+beside it.
+
