@@ -482,13 +482,36 @@ export function CollectionClient({
    *  breakpoint the element is not rendered at all, so this reads 0 and falls
    *  back to the rail's 24 -- one expression, correct at both widths, and it
    *  follows the bar if the bar ever changes height. */
+  const pinnedInset = useCallback(() => {
+    const bar = document.querySelector("[data-app-bar]");
+    return Math.max(24, Math.round(bar?.getBoundingClientRect().height ?? 0) + 8);
+  }, []);
+
   const headOfRiver = useCallback(() => {
     const row = riverTop.current;
     if (!row) return 0;
-    const bar = document.querySelector("[data-app-bar]");
-    const pinned = Math.max(24, Math.round(bar?.getBoundingClientRect().height ?? 0) + 8);
-    return Math.max(0, Math.round(row.getBoundingClientRect().top + window.scrollY) - pinned);
-  }, []);
+    return Math.max(
+      0,
+      Math.round(row.getBoundingClientRect().top + window.scrollY) - pinnedInset()
+    );
+  }, [pinnedInset]);
+
+  /** Where a given year's heading sits, as a scroll position -- the landing
+   *  target for a seek now that a seek keeps the years above it. Null when
+   *  that heading is not in the river, which is the caller's cue to fall back
+   *  to the river's own head. */
+  const topOfBand = useCallback(
+    (key: string) => {
+      if (!key) return null;
+      const el = document.querySelector<HTMLElement>(`[data-band="${CSS.escape(key)}"]`);
+      if (!el) return null;
+      return Math.max(
+        0,
+        Math.round(el.getBoundingClientRect().top + window.scrollY) - pinnedInset()
+      );
+    },
+    [pinnedInset]
+  );
 
   /* ---------------- which way the reader is going ---------------- *
    *
@@ -588,7 +611,11 @@ export function CollectionClient({
          one movement: the dim, then the new view, whole. */
       await warmThumbs(data.photos);
       if (cancelled) return;
-      setPhotos(data.photos);
+      /* A SEEK ARRIVES WITH THE YEAR ABOVE IT ALREADY IN THE RIVER. The
+         server sends it (see `RiverPage.above`), so the archive is continuous
+         from the first frame instead of the reader landing against the page
+         header and watching the years above trickle in behind them. */
+      setPhotos(data.above?.length ? [...data.above, ...data.photos] : data.photos);
       setCursor(data.nextCursor);
       setTopCursor(data.topCursor ?? null);
       setBands(data.bands ?? []);
@@ -636,6 +663,9 @@ export function CollectionClient({
          is laid out and before it is painted. */
       const wasDeep = window.scrollY > headOfRiver();
       pendingLanding.current = jump.current ? "seek" : wasDeep ? "pull" : null;
+      // Which year to land ON, now that a seek is a scroll through a
+      // continuous river rather than a landing at its head.
+      landOn.current = jump.current ? seekBand : "";
       jump.current = false;
     })();
     return () => {
@@ -787,6 +817,8 @@ export function CollectionClient({
    *  out once the new river is in the DOM: "seek" goes to the head
    *  unconditionally, "pull" only because the reader was deep. */
   const pendingLanding = useRef<"seek" | "pull" | null>(null);
+  /** The year that landing is for, "" when it is not for one. */
+  const landOn = useRef("");
 
   useLayoutEffect(() => {
     /* A new river has just committed. Reset the blank the old one may have
@@ -804,7 +836,14 @@ export function CollectionClient({
          should STAY. */
       scrollAnchor.current = null;
       if (tail.current) tail.current.style.height = "0px";
-      landAt(headOfRiver(), tail.current);
+      /* The pressed year's own heading, or the river's head when there is no
+         year to aim at (a bucket, a search, an order). The two used to be the
+         same thing because a seek started the river at the year pressed; now
+         that it keeps the years above, the head of the river is one page
+         EARLIER than where the reader asked to be. */
+      const want = topOfBand(landOn.current) ?? headOfRiver();
+      landOn.current = "";
+      landAt(want, tail.current);
       syncScrollWatch();
       return;
     }
@@ -815,7 +854,7 @@ export function CollectionClient({
     if (!scroller) return;
     landAt(top + (scroller.scrollHeight - height), tail.current);
     syncScrollWatch();
-  }, [photos, headOfRiver, syncScrollWatch]);
+  }, [photos, headOfRiver, topOfBand, syncScrollWatch]);
 
   /* The mirror of the foot sentinel: sits above the river, so a page that
      exists above the fold gets pulled in and scroll-anchored into place

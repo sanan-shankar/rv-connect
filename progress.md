@@ -1,5 +1,46 @@
 # Progress Log
 
+## 2026-09-02 — a seek is a scroll now, not a rebuild; and the page is driven as a journey
+
+**"It's like navigating to a point in a pdf."** *"Why can't I just jump to that point
+with the photos already above and below it??????? you don't lose the stuff above where you
+navigate to momentarily do you?!?"* He is right and it was the design, not a bug in it:
+pressing a year returned that year and everything older and NOTHING above, then trickled
+the years above back in as the reader scrolled into an empty edge. So you landed against
+the page header where 2020 should have been.
+
+A seek now brings its context with it. `loadPhotos` returns `above`, the page before the
+boundary, in the same query -- the "newer" branch was already there, so it is one function
+called twice rather than a second query shape -- and the client prepends it before the
+landing commits. The landing then aims at the pressed year's own heading rather than at the
+head of the river, because those stopped being the same place the moment the river kept
+what is above. Measured: pressing 2021 arrives with 1262px of 2022 already above it, 2019
+with 1268px, 2023 with 410px, each with its own heading at the top of the viewport.
+
+**The rail's tooltip is gone.** `title` on every row drew the browser's own grey box over
+the photographs -- "I dont want that dialog box interfering with what im seeing." The count
+it carried is still there in the form this rail was built to say it: the mark's length. That
+is the same decision as cutting the number from the controls line, reaching the last place
+it had not.
+
+**And the page is now tested as a journey.** `e2e/collection-journeys.spec.ts`. Everything
+else pointed here looks at the page standing still -- the visual suite screenshots it, the
+unit tests read its source, `collection-seek` drives the lab room, which has its own state
+and exercises none of `CollectionClient`. Every bug this week lived in a TRANSITION, which
+is a state no screenshot of a settled page is ever taken of.
+
+It asserts invariants over sequences and nothing about what the archive holds, because it
+shares a database with production: a photograph appears once after any sequence; a pressed
+year lands at the top, lit, with the archive continuous above it; headings exist in
+Chronological and nowhere else; a swap and back returns the river you started with. It runs
+the seek loop on the deepest half the account can reach, because the failure needs an
+archive bigger than a screen.
+
+Verified by reverting: with the section key and the `riverOrder` grouping both put back,
+three of the four go red with the owner's own symptoms, including `Expected: 17, Received:
+25` -- the river growing under him. Either fix alone is enough, which is worth knowing;
+they were kept as belt and braces.
+
 ## 2026-09-02 — three facts on the Collection described the wrong half
 
 Not one he reported: found reading the swap path for the bugs he did report,

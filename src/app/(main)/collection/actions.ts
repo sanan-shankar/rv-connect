@@ -773,6 +773,10 @@ export type RiverPage = {
    *  `undefined` everywhere seeking is not in play; `null` once a climb has
    *  reached the newest photograph there is. */
   topCursor?: string | null;
+  /** The page ABOVE a seek, so pressing a year arrives with the years above
+   *  it already there rather than with the page header where they should be.
+   *  Only ever present on the first page of a seeked "taken" query. */
+  above?: PhotoData[];
   bands?: BandCount[];
 };
 
@@ -820,25 +824,35 @@ export async function loadPhotos(
    *  the boundary that bootstraps the very first upward step lives in the
    *  branch below instead.
    * ---------------------------------------------------------------- */
-  if (opts?.direction === "newer") {
-    const cursor = decodeCursor("taken", opts.cursor);
-    const where = { ...filters, ...beforeCursor(cursor) };
+  /** One page ABOVE a point in the river, newest-last, reversed for a reader
+   *  who always sees newest at the top. Used twice: by an explicit
+   *  `direction: "newer"` request as the reader climbs, and by a seek, which
+   *  now brings its own context with it (see below). */
+  const pageAbove = async (cursorText: string | null | undefined) => {
+    const cursor = decodeCursor("taken", cursorText);
     const rows = await prisma.photo.findMany({
-      where,
+      where: { ...filters, ...beforeCursor(cursor) },
       include: includeFor(session.user.id),
       orderBy: orderByForTakenAscending(),
       take: UP_PAGE_SIZE + 1,
     });
     const hasMore = rows.length > UP_PAGE_SIZE;
+    // Fetched ascending -- nearest the boundary first, so the row furthest
+    // "newer" lands LAST here.
     const trimmed = hasMore ? rows.slice(0, UP_PAGE_SIZE) : rows;
-    // Fetched ascending -- nearest the boundary first, so the row nearest
-    // "newer" lands LAST here -- and reversed before it reaches a reader
-    // who always sees newest at the top.
     const newTop = trimmed[trimmed.length - 1];
     return {
       photos: [...trimmed].reverse().map((p) => shape(p, session.user.id)),
-      nextCursor: null, // this page never extends the OLDER edge
       topCursor: hasMore && newTop ? encodeCursor("taken", newTop, 0) : null,
+    };
+  };
+
+  if (opts?.direction === "newer") {
+    const above = await pageAbove(opts.cursor);
+    return {
+      photos: above.photos,
+      nextCursor: null, // this page never extends the OLDER edge
+      topCursor: above.topCursor,
     };
   }
 
@@ -879,11 +893,27 @@ export async function loadPhotos(
     nextCursor,
   };
 
-  // A seek that landed short of the newest year has somewhere to climb
-  // back up to; hand back a cursor for it rather than making the reader
-  // discover the gap by scrolling into nothing.
+  /* A SEEK BRINGS ITS CONTEXT WITH IT.
+   *
+   *  Pressing 2021 used to return 2021 and everything older, and nothing at
+   *  all above it -- the reader landed with the page title where 2020 should
+   *  be, and the years above trickled in afterwards as they scrolled. The
+   *  owner: "why can't I just jump to that point with the photos already
+   *  above and below it??????? it's like navigating to a point in a pdf, you
+   *  don't lose the stuff above where you navigate to momentarily do you?!?"
+   *
+   *  He is right, and it is one query rather than a round trip the reader has
+   *  to trigger by arriving at an empty edge. The page above rides back with
+   *  the seek and the client prepends it before the landing commits, so the
+   *  archive is continuous from the first frame and the landing is a scroll
+   *  rather than a rebuild. `topCursor` then describes the top of THAT page,
+   *  since that is where a further climb starts from. */
   if (order === "taken" && trimmed.length > 0 && typeof seekBoundary === "number") {
-    page.topCursor = encodeCursor("taken", trimmed[0], 0);
+    const above = await pageAbove(encodeCursor("taken", trimmed[0], 0));
+    page.above = above.photos;
+    page.topCursor = above.photos.length > 0
+      ? above.topCursor
+      : encodeCursor("taken", trimmed[0], 0);
   }
 
   if (first) {
