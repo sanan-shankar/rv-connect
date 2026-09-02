@@ -371,7 +371,22 @@ export function PhotoRiver({
            reaches the size where windowing earns its place again, the
            estimate must be COMPUTED from the rows' known aspect ratios,
            never guessed. */
-        <section key={band.key || "all"}>
+        /* KEYED BY THE PHOTOGRAPH THE BAND STARTS AT, not by the year.
+           A year is not unique. `bandsOf` cuts consecutive runs, so the same
+           year appears as several bands the moment the list is not sorted by
+           year -- which is every render between asking for Chronological and
+           the Chronological page arriving, because `order` flips at the press
+           and `photos` does not. React then gets `key="2021"` four times over,
+           cannot reconcile the list, and LEAVES NODES BEHIND: sections that
+           belong to a query nobody is looking at, still on the page, showing
+           photographs twice, under headings the current order does not even
+           draw. Only a reload cleared them.
+           "Photos just disappear ... everything takes a reload to fix"
+           (owner, 2026-09-02) is this, and so is the 2021-twice screenshot.
+           A run is identified by the row it begins at, which is unique by
+           construction; `band.key` is kept as the fallback for the single
+           unheaded band, whose photos array is never empty either. */
+        <section key={band.photos[0]?.id ?? band.key ?? "all"}>
           {band.key && (
             /* The foldering, inline and free -- and it is a chapter opening
                now rather than a bar.
