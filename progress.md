@@ -1,5 +1,48 @@
 # Progress Log
 
+## 2026-09-02 — the Collection's river, and the one bug wearing four costumes
+
+The owner, after a minute on the page: *"there's still soooo many usage bugs in collection
+it's crazy ... photos just disappear ... everything takes a reload to fix. we've considered
+0 edge cases, 0 scenarios."* He was right, and the four things he named were mostly two
+faults.
+
+**A year is not a React key.** `<section key={band.key}>`. `bandsOf` cuts CONSECUTIVE runs,
+so the same year comes back as several bands the moment the list is not sorted by year --
+which is every render between pressing Chronological and the chronological page arriving,
+because `order` flips at the press and `photos` does not. React got `key="2021"` four times,
+stopped being able to reconcile the list, and left nodes behind: sections belonging to a
+query nobody was looking at, still on the page, showing the same photographs again, under
+headings the current order does not draw. Measured: eight scope swaps grew the valley's 17
+photographs to 41 nodes with 24 duplicates, and the leftover section carried `mt-12` while
+sitting first in the DOM -- a corpse React had lost track of. His "2021 twice under Newest"
+screenshot is this, and so is "photos just disappear" and "everything takes a reload".
+
+Keyed by the photograph a run starts at now, which is unique by construction. And the
+second half of the same fault: the river is grouped by `riverOrder`, the order the
+photographs on screen were actually FETCHED in, committed alongside them -- never by the
+order that has been asked for.
+
+**The seek ran away from you.** Pressing a year lands the reader at the head of the river,
+which is exactly where the upward sentinel lives -- so on arrival it was on screen, it
+fired, `loadNewer` prepended the year above, and that armed it again. Press 2020 and the
+river climbed back toward 2026 while you watched: *"it goes to chron but brings 2022 to the
+top of the page but the siderail says 2026."* Measured before: three of six seeks landed on
+the wrong year. It now needs the reader to be travelling UPWARD, which is a fact about them
+and not about what is on screen. After: eight of eight land on the year pressed, at the top,
+with the rail lit on it.
+
+Two smaller ones found in the same read. A landing left its scroll anchor in the ref, so the
+next page to arrive "corrected" the scroll by the difference between two unrelated documents
+and threw the reader somewhere arbitrary. And `more`/`loadNewer` could fire while a new
+river was in the air, fetching from a cursor cut in the archive nobody is looking at any
+more -- the generation guard only catches pages already in flight, not ones started
+afterwards.
+
+Four pins in `river-query.test.mjs`, all structural: they fail if a year becomes a key
+again, if the requested order reaches the river, or if the head sentinel goes back to
+firing on visibility alone.
+
 ## 2026-09-02 — the dev server can be opened on a phone now
 
 **`allowedDevOrigins`, three private ranges.** Since Next 15.2 the dev server answers

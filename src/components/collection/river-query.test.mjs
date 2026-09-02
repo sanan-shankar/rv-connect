@@ -31,6 +31,7 @@ import test from "node:test";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(join(here, "collection-client.tsx"), "utf8");
+const river = readFileSync(join(here, "photo-river.tsx"), "utf8");
 
 /** Call sites only: the import at the top of the file is not one. */
 const callSites = [...source.matchAll(/\bloadPhotos\s*\(/g)].filter(
@@ -70,5 +71,63 @@ test("loadNewer does not build its own query", () => {
     body,
     /fetchPage\(\s*topCursor\s*,\s*"newer"\s*\)/,
     "loadNewer asks for its page some other way than through `fetchPage`"
+  );
+});
+
+/**
+ * A YEAR IS NOT A REACT KEY.
+ *
+ * `bandsOf` cuts consecutive runs, so the same year comes back as several
+ * bands whenever the list is not sorted by year -- which is every render
+ * between pressing Chronological and the chronological page arriving.
+ * `key={band.key}` therefore emitted `key="2021"` four times, React stopped
+ * being able to reconcile the list, and sections it no longer owned stayed on
+ * the page: photographs shown twice, year headings under Newest, a river only
+ * a reload could clear. Measured 2026-09-02: eight scope swaps grew the
+ * valley's 17 photographs to 41 nodes.
+ */
+test("the river's sections are keyed by a photograph, not by a year", () => {
+  assert.doesNotMatch(
+    river,
+    /<section key=\{band\.key/,
+    "PhotoRiver is keying a band by its year again. A year repeats; the row a " +
+      "run starts at does not."
+  );
+  assert.match(
+    river,
+    /<section key=\{band\.photos\[0\]\?\.id/,
+    "PhotoRiver's section key is no longer the band's first photograph id"
+  );
+});
+
+/**
+ * The river draws time from the order its photographs were FETCHED in, never
+ * from the order that has been asked for. The two differ for the second the
+ * new page is in the air, and drawing the request is what cut an
+ * upload-ordered list into year chapters in the first place.
+ */
+test("the river is grouped by the order its photographs came back in", () => {
+  // The JSX element, not the "<PhotoRiver>" the file header names in prose.
+  const at = source.search(/<PhotoRiver\s*\n/);
+  assert.notEqual(at, -1, "PhotoRiver is no longer rendered here; this pin needs updating");
+  const props = source.slice(at, source.indexOf("/>", at));
+  assert.match(props, /order=\{riverOrder\}/, "PhotoRiver is being given the requested order again");
+  assert.doesNotMatch(props, /order=\{order\}/, "PhotoRiver is being given the requested order again");
+});
+
+/**
+ * The head sentinel sits exactly where a seek lands the reader, so "is it on
+ * screen" is true the moment they arrive and cannot be the reason to fetch.
+ * Without the direction gate, pressing 2020 walked the river back to 2026 on
+ * its own: three of six seeks landed on the wrong year.
+ */
+test("the upward pull needs the reader to be moving upward", () => {
+  const start = source.indexOf("const head = useRef");
+  assert.notEqual(start, -1, "the head sentinel has been renamed; this pin needs updating");
+  const body = source.slice(start, source.indexOf("}, [topCursor", start));
+  assert.match(
+    body,
+    /movingUp\.current &&/,
+    "the head sentinel fires on visibility alone again, which is true at every landing"
   );
 });

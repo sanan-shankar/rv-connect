@@ -175,6 +175,17 @@ export function CollectionClient({
   const [topCursor, setTopCursor] = useState<string | null>(firstPage.topCursor ?? null);
   const [bands, setBands] = useState<BandCount[]>(firstPage.bands ?? []);
 
+  /* THE ORDER THE PHOTOGRAPHS ON SCREEN WERE FETCHED IN, which is a different
+     fact from `order` below -- that one is the order that has been ASKED for.
+     They part company for the second or two between pressing Chronological
+     and the chronological page arriving, and everything the river draws about
+     time has to follow this one rather than the request.
+     Drawn from `order`, the river spent that second cutting an
+     upload-ordered list into year chapters, which is where the duplicate
+     section keys came from (see PhotoRiver) and why a year heading appeared
+     under Newest at all. The rail lit the wrong year in the same window. */
+  const [riverOrder, setRiverOrder] = useState<RiverOrder>(filters.order ?? "newest");
+
   /* The server has answered again -- a contribution landed and called
      `router.refresh()`, or the reader came back to this route. Re-seeding from
      the new prop is what makes a newly added photograph appear WITHOUT a
@@ -228,6 +239,7 @@ export function CollectionClient({
       setCursor(firstPage.nextCursor);
       setTopCursor(firstPage.topCursor ?? null);
       setBands(firstPage.bands ?? []);
+      setRiverOrder(filters.order ?? "newest");
     }
   }
 
@@ -436,6 +448,46 @@ export function CollectionClient({
     return row ? Math.max(0, Math.round(row.getBoundingClientRect().top + window.scrollY) - 24) : 0;
   }, []);
 
+  /* ---------------- which way the reader is going ---------------- *
+   *
+   *  One boolean, and the head sentinel is the only thing that reads it.
+   *  "Is the seam above me on screen" is not a good enough reason to fetch
+   *  the year above: after a seek it is always on screen, which is how
+   *  pressing 2020 could walk itself back to 2026 (see the observer below).
+   *  "Is the reader moving toward it" is the real question, and only a
+   *  scroll can answer it.
+   *
+   *  OUR OWN SCROLLS MUST NOT COUNT. Landing after a seek scrolls down;
+   *  anchoring after a prepend scrolls down; both would otherwise register as
+   *  travel the reader never made, and the anchor's is upward-adjacent enough
+   *  to matter. `syncScrollWatch` is called immediately after each one, from
+   *  the layout effect, so the scroll event that follows sees no delta and
+   *  the direction survives untouched. It also parks the flag at false, which
+   *  is what stops a prepend from arming the next prepend.
+   * ---------------------------------------------------------------- */
+  const lastScrollY = useRef(0);
+  const movingUp = useRef(false);
+
+  const syncScrollWatch = useCallback(() => {
+    lastScrollY.current = window.scrollY;
+    movingUp.current = false;
+  }, []);
+
+  useEffect(() => {
+    lastScrollY.current = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      // A dead band, because a trackpad emits sub-pixel jitter in both
+      // directions and a single stray upward pixel is not a reader asking
+      // for another page.
+      if (y < lastScrollY.current - 2) movingUp.current = true;
+      else if (y > lastScrollY.current + 2) movingUp.current = false;
+      lastScrollY.current = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   useEffect(() => {
     if (seeded.current === fetchPage) return;
     let cancelled = false;
@@ -464,6 +516,8 @@ export function CollectionClient({
       setCursor(data.nextCursor);
       setTopCursor(data.topCursor ?? null);
       setBands(data.bands ?? []);
+      // Committed WITH the photographs it describes, never before them.
+      setRiverOrder(order);
       /* A new river, so the old scroll position is not a fact about it any
          more: back to the year asked for, or to nothing -- which the rail
          reads as "wherever the first photograph is" (see `railActive`). */
@@ -511,14 +565,15 @@ export function CollectionClient({
     return () => {
       cancelled = true;
     };
-    // `seekBand` cannot change without changing `fetchPage` with it; it is
-    // listed because this body reads it, not because it can move on its own.
-  }, [fetchPage, seekBand, headOfRiver]);
+    // Neither `seekBand` nor `order` can change without changing `fetchPage`
+    // with it; both are listed because this body reads them, not because
+    // either can move on its own.
+  }, [fetchPage, seekBand, order, headOfRiver]);
 
   const more = useCallback(async () => {
     // ...and not while one is arriving at the head, for the reason given on
     // `loadNewer`: the scroll correction cannot tell the two apart.
-    if (!cursor || loadingMore || loadingNewer) return;
+    if (!cursor || loadingMore || loadingNewer || loading) return;
     const mine = generation.current;
     setLoadingMore(true);
     try {
@@ -540,7 +595,7 @@ export function CollectionClient({
       // (audit B-042).
       setLoadingMore(false);
     }
-  }, [cursor, loadingMore, loadingNewer, fetchPage]);
+  }, [cursor, loadingMore, loadingNewer, loading, fetchPage]);
 
   /* Batches arrive as you reach the bottom, which is what the owner noticed
      on his reference gallery: "it was lazy load... it doesn't load all the
@@ -615,7 +670,13 @@ export function CollectionClient({
        would be counted too and the reader would be shoved down by it. The
        two directions are therefore never in the air at once. Nothing is
        lost by waiting: both observers re-arm as these flags settle. */
-    if (!topCursor || loadingNewer || loadingMore) return;
+    /* `loading` too: while a NEW river is in the air, `topCursor` still
+       belongs to the old one. Fetching from it returns a page cut at a
+       position in an archive nobody is looking at any more, and the
+       generation guard below only catches the pages that were already in
+       flight when the query changed -- not one started afterwards from a
+       stale cursor. Same reasoning on `more`. */
+    if (!topCursor || loadingNewer || loadingMore || loading) return;
     const mine = generation.current;
     setLoadingNewer(true);
     try {
@@ -637,7 +698,7 @@ export function CollectionClient({
     } finally {
       setLoadingNewer(false);
     }
-  }, [topCursor, loadingNewer, loadingMore, fetchPage]);
+  }, [topCursor, loadingNewer, loadingMore, loading, fetchPage]);
 
   /** The blank after the river that `landAt` may grow -- see its docblock. */
   const tail = useRef<HTMLDivElement>(null);
@@ -653,8 +714,18 @@ export function CollectionClient({
        point of doing it here rather than where the decision was made. */
     if (pendingLanding.current) {
       pendingLanding.current = null;
+      /* AND THE ANCHOR GOES WITH IT. A prepend that committed in the same
+         pass as a landing left its {height, top} sitting in the ref, measured
+         against a river that no longer exists; the next page to arrive then
+         "corrected" the scroll by the difference between two unrelated
+         documents and threw the reader somewhere arbitrary. A landing
+         supersedes an anchor by definition -- it is a decision about where
+         the reader should be, and the anchor is a decision about where they
+         should STAY. */
+      scrollAnchor.current = null;
       if (tail.current) tail.current.style.height = "0px";
       landAt(headOfRiver(), tail.current);
+      syncScrollWatch();
       return;
     }
     if (!scrollAnchor.current) return;
@@ -663,7 +734,8 @@ export function CollectionClient({
     const scroller = document.scrollingElement;
     if (!scroller) return;
     landAt(top + (scroller.scrollHeight - height), tail.current);
-  }, [photos, headOfRiver]);
+    syncScrollWatch();
+  }, [photos, headOfRiver, syncScrollWatch]);
 
   /* The mirror of the foot sentinel: sits above the river, so a page that
      exists above the fold gets pulled in and scroll-anchored into place
@@ -676,7 +748,28 @@ export function CollectionClient({
     if (!el || !topCursor) return;
     const io = new IntersectionObserver(
       (entries) => {
-        if (entries.some((e) => e.isIntersecting)) void loadNewer();
+        /* ONLY WHILE THE READER IS TRAVELLING UPWARD, and this is the whole
+           difference between a seam that fills itself and a page that runs
+           away from you.
+
+           A seek lands the reader AT the head of the river, which is exactly
+           where this sentinel lives -- so on arrival it is on screen, it
+           fired, `loadNewer` prepended the year above, that page put the
+           sentinel back in range, and it fired again. Press 2020 and the
+           river climbed back to 2026 on its own while you watched, with the
+           rail lighting whatever it ended on: "when i'm on newest and i click
+           2021 ... it goes to chron but brings 2022 to the top of the page
+           but the siderail says 2026" (owner, 2026-09-02). Measured before
+           the fix: three of six seeks landed on the wrong year.
+
+           Nobody who has just asked to start at 2020 wants 2021 fetched over
+           their head. They want it the moment they scroll UP toward it, and
+           not one moment before -- which is a fact about the reader's
+           direction, not about what is on screen. `movingUp` is false at
+           every landing and after every prepend (see `syncScrollWatch`), so
+           the chain cannot start itself; a real upward flick sets it and the
+           seam fills ahead of them exactly as before. */
+        if (movingUp.current && entries.some((e) => e.isIntersecting)) void loadNewer();
       },
       { rootMargin: "1200px 0px" }
     );
@@ -826,7 +919,7 @@ export function CollectionClient({
      scrollspy sits out entirely (`useActiveBand` has nothing to compare
      below two bands), so nothing else would light the rail at all. */
   const railActive =
-    order === "taken" ? activeBand || (photos[0] ? bandKeyOf(photos[0]) : "") || "" : "";
+    riverOrder === "taken" ? activeBand || (photos[0] ? bandKeyOf(photos[0]) : "") || "" : "";
 
   return (
     <div>
@@ -1019,9 +1112,9 @@ export function CollectionClient({
                   <div ref={head} aria-hidden className="h-px -mb-px" />
                   <PhotoRiver
                     photos={photos}
-                    order={order}
+                    order={riverOrder}
                     dimmed={loading}
-                    onActiveBandChange={order === "taken" ? setActiveBand : undefined}
+                    onActiveBandChange={riverOrder === "taken" ? setActiveBand : undefined}
                     onOpen={(index) => {
                       setViewerMounted(true);
                       setViewer({ list: "main", index });
@@ -1061,7 +1154,7 @@ export function CollectionClient({
             bands={bands}
             active={railActive}
             onSeek={seekTo}
-            inTimeOrder={order === "taken"}
+            inTimeOrder={riverOrder === "taken"}
           />
         </>
       )}
