@@ -170,6 +170,30 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   serverExternalPackages: ["sharp"],
   devIndicators: false,
+  /* WHO MAY LOAD THE DEV SERVER'S ASSETS. Development only -- Next ignores
+   * this in a production build.
+   *
+   * Since Next 15.2 the dev server answers /_next/* with a 403 to any request
+   * whose Origin is not localhost. That is a sensible default (a page on the
+   * open web should not be able to read your dev bundle) and it has one
+   * casualty: looking at the site on your own phone. The Mac's dev server is
+   * reachable at http://192.168.x.x:3000 and the HTML arrives fine, so the
+   * page renders its background and its one server-rendered word -- and then
+   * every script 403s, nothing hydrates, and every element still sitting at
+   * the opacity-0 start of an entrance animation stays invisible. It reads as
+   * a blank page with no error on it, which cost a session on 2026-09-02.
+   *
+   * The three RFC1918 ranges, not one machine's address, because the router
+   * hands out a different one every so often and a config that needs editing
+   * to keep working is a config that will be wrong when it matters. This
+   * widens dev access from "this Mac" to "anything already on your home
+   * Wi-Fi", which is the same trust boundary the dev server has always had:
+   * it binds to every interface regardless.
+   *
+   * This is what makes `npm run dev` testable on a real iPhone -- which for a
+   * mobile-first project is the difference between checking a change and
+   * deploying to find out. */
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*", "172.16.*.*"],
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
