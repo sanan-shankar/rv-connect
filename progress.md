@@ -8511,3 +8511,35 @@ to follow it to check.mjs. Its both-directions evidence is that it went open and
 observed, not argued.
 
 Gate 101/101, all seven green in 37s.
+
+## 2026-09-03 — the viewer stops letting go of the page, and of its own controls
+
+Two complaints, one photograph session. "Don't fade out the controls on the image viewer if
+we're hovering over anything... I click next picture and it exits and I've totally lost track
+of where I was." And: "don't allow me to scroll or interact with whatever's behind the image
+viewer while I'm in it."
+
+They turned out to be one shape twice. A mouse parked on the Next arrow sends no pointermove,
+so the idle timer counted a cursor that was AIMING at a control as stillness; the arrow faded
+to `pointer-events-none` and the click went through it to the wash beside the photograph,
+which closes the viewer. The timer now also bails while `[data-viewer-chrome]:hover` matches,
+asked only where `(hover: hover)` is true because a touchscreen leaves the state stuck after a
+tap. A wheel counts as activity too: a trackpad zoom or a scrolled caption moves no pointer at
+all, and the chrome used to withdraw in the middle of it. A press deliberately does not
+count: `onTapPhoto` toggles the chrome, so a pointerdown that first set "shown" would invert
+the tap and a phone tapping a withdrawn chrome would put it away again.
+
+The scroll lock was worse: `document.body.style.overflow = "hidden"` had never locked anything.
+Body overflow only propagates to the viewport when the root element's own overflow is `visible`
+in both axes, and globals.css sets `overflow-x: clip` on `<html>` as a sideways backstop — so
+the lock read as a lock and the page scrolled on underneath. It is on `<html>` now, where
+globals.css already says the app puts it, with a non-passive wheel/touchmove guard for the
+rubber-band. The guard asks two questions before it prevents anything: not inside our own
+`[data-viewer-scroll]` caption box, and inside this overlay at all — the Edit dialog opens on
+top of a viewer that stays open behind it and its 90vh body has to keep scrolling.
+
+Measured in chrome-devtools rather than argued: cursor on the arrow, chrome still at opacity 1
+after 20s; cursor on the photograph, still gone by 18s; `html` computed `overflow-y: hidden`
+while open and `visible` after close, with the scroll position intact. Four pins in
+`image-viewer-chrome.test.mjs`, since every one of these fails invisibly. Gate 102/102, visual
+25/25.
