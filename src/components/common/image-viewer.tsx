@@ -46,11 +46,11 @@
  *     same press puts it back. The fold-up panel and its dismiss pill
  *     are gone entirely: there is no small exact target anywhere in
  *     this component.
- *  3. THE CHROME GETS OUT OF THE WAY BY ITSELF. It fades after 2.6s of
+ *  3. THE CHROME GETS OUT OF THE WAY BY ITSELF. It fades after 3.6s of
  *     stillness and returns on any movement; a press on the photograph
  *     dismisses it outright and a second press brings it back. Nothing
- *     is ever hidden while the caption is open or while a keyboard user
- *     is inside the chrome.
+ *     is ever hidden while the caption is open, while a keyboard user is
+ *     inside the chrome, or while the cursor is resting on a control.
  *  4. YOU CAN GET CLOSER (added 2026-09-02). Pinch, double tap, trackpad
  *     pinch, wheel, or + and -, and pan around what you find. A viewer
  *     that could not do this was the wrong place to keep scanned prints
@@ -298,15 +298,45 @@ export function ImageViewer({
     }
   }
 
-  /* Scroll lock + focus containment while open. */
+  /* Scroll lock + focus containment while open.
+
+     The lock goes on <html>, NOT on <body>, and that is the whole fix: a
+     body `overflow: hidden` only reaches the viewport when the root element's
+     own overflow is `visible` in both axes, and ours is not -- globals.css
+     sets `overflow-x: clip` on <html> as a sideways backstop. So the old body
+     lock silently did nothing and the page went on scrolling underneath the
+     photograph (owner, 2026-09-03: "don't allow me to scroll or interact with
+     whatever's behind the image viewer while i'm in it"). globals.css already
+     says the app locks the page on this element; now this actually does.
+
+     Wheel and touch are stopped too. Locking the viewport is not enough on
+     its own: <html> cannot scroll, but iOS still rubber-bands a touchmove,
+     and a wheel over the chrome has no business doing anything either. Two
+     things are left alone, which is what the guard is asking about: a scroll
+     box we put there ourselves (an opened caption taller than its 42vh), and
+     anything OUTSIDE this overlay -- the Edit dialog opens on top of a viewer
+     that stays open behind it, and its own 90vh body has to keep scrolling.
+     Both listeners are non-passive, since a passive handler cannot
+     preventDefault. */
   useEffect(() => {
     if (!open) return;
     restoreFocusRef.current = document.activeElement as HTMLElement | null;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const root = document.documentElement;
+    const prevOverflow = root.style.overflow;
+    root.style.overflow = "hidden";
     stageRef.current?.focus();
+    const block = (e: Event) => {
+      const target = e.target as HTMLElement | null;
+      if (!target || !dialogRef.current?.contains(target)) return;
+      if (target.closest?.("[data-viewer-scroll]")) return;
+      e.preventDefault();
+    };
+    window.addEventListener("wheel", block, { passive: false });
+    window.addEventListener("touchmove", block, { passive: false });
     return () => {
-      document.body.style.overflow = prevOverflow;
+      root.style.overflow = prevOverflow;
+      window.removeEventListener("wheel", block);
+      window.removeEventListener("touchmove", block);
       restoreFocusRef.current?.focus?.();
     };
   }, [open]);
@@ -369,10 +399,18 @@ export function ImageViewer({
       lastNudge.current = performance.now();
       setChrome((c) => (c === "idle" ? "shown" : c));
     };
+    /* A wheel counts. Zooming a photograph with the trackpad, or scrolling a
+       long caption, moves no pointer at all, so the chrome used to withdraw
+       in the middle of the one gesture that proves somebody is using it.
+       A press does NOT count, and must not: `onTapPhoto` toggles the chrome,
+       so a pointerdown that first set "shown" would invert the tap -- on a
+       phone, tapping a withdrawn chrome would put it away again. */
     window.addEventListener("pointermove", nudge, { passive: true });
+    window.addEventListener("wheel", nudge, { passive: true });
     window.addEventListener("keydown", nudge);
     return () => {
       window.removeEventListener("pointermove", nudge);
+      window.removeEventListener("wheel", nudge);
       window.removeEventListener("keydown", nudge);
     };
   }, [open]);
@@ -380,11 +418,22 @@ export function ImageViewer({
   useEffect(() => {
     if (!open || chrome !== "shown" || expanded) return;
     lastNudge.current = performance.now();
+    const hoverCapable = window.matchMedia("(hover: hover)").matches;
     const id = setInterval(() => {
       /* Never while a control has focus: a keyboard user tabbing through the
          chrome is not idle, however still their mouse is. */
       const active = document.activeElement;
       if (active && active !== stageRef.current && dialogRef.current?.contains(active)) return;
+      /* And never while the cursor is resting ON a control. The mouse parked
+         over the Next arrow generates no pointermove, so the arrow faded out
+         from under a cursor that was aiming at it; the click then fell
+         through the `pointer-events-none` arrow onto the wash beside the
+         photograph, which closes the viewer (owner, 2026-09-03: "I click next
+         picture and it exits and I've totally lost track of where I was").
+         `:hover` answers this without a listener per control, and it is asked
+         only where hover is a real thing -- on a touchscreen the state sticks
+         after a tap, which would leave the chrome up for good. */
+      if (hoverCapable && dialogRef.current?.querySelector("[data-viewer-chrome]:hover")) return;
       if (performance.now() - lastNudge.current >= IDLE_MS) setChrome("idle");
     }, 400);
     return () => clearInterval(id);
@@ -573,6 +622,7 @@ export function ImageViewer({
                 type="button"
                 onClick={() => step(-1)}
                 aria-label="Previous photo"
+                data-viewer-chrome
                 className={cn(
                   "absolute left-4 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/85 transition-[background-color,opacity] duration-200 hover:bg-white/20 hover:text-white active:scale-95 sm:flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
                   hidden && "pointer-events-none opacity-0"
@@ -586,6 +636,7 @@ export function ImageViewer({
                 type="button"
                 onClick={() => step(1)}
                 aria-label="Next photo"
+                data-viewer-chrome
                 className={cn(
                   "absolute right-4 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/85 transition-[background-color,opacity] duration-200 hover:bg-white/20 hover:text-white active:scale-95 sm:flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
                   hidden && "pointer-events-none opacity-0"
@@ -597,7 +648,7 @@ export function ImageViewer({
           </div>
 
           {/* TOP: the counter, and the things you do to the file. */}
-          <div className={cn(chromeClass, "top-0")} onClick={(e) => e.stopPropagation()}>
+          <div data-viewer-chrome className={cn(chromeClass, "top-0")} onClick={(e) => e.stopPropagation()}>
             <div
               className="pointer-events-none absolute inset-x-0 top-0 h-28"
               style={{ backgroundImage: TOP_SCRIM }}
@@ -641,7 +692,7 @@ export function ImageViewer({
               One block, anchored to the bottom edge and growing upward, so
               opening it moves nothing that was already being read. */}
           {(caption || current.author || onToggleLove) && (
-            <div className={cn(chromeClass, "bottom-0")} onClick={(e) => e.stopPropagation()}>
+            <div data-viewer-chrome className={cn(chromeClass, "bottom-0")} onClick={(e) => e.stopPropagation()}>
               <div
                 className="pointer-events-none absolute inset-x-0 bottom-0 top-[-8rem]"
                 style={{ backgroundImage: BOTTOM_SCRIM }}
@@ -688,6 +739,7 @@ export function ImageViewer({
                     >
                       <p
                         ref={captionRef}
+                        data-viewer-scroll={expanded ? "" : undefined}
                         className={cn(
                           "text-[14.5px] leading-[1.55] text-white/92",
                           expanded
