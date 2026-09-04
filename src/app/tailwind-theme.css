@@ -16,6 +16,51 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* The five variants this project actually uses out of shadcn/tailwind.css,
+   inlined so the `shadcn` package can leave node_modules; it was 234 lockfile
+   entries and ~66 MB for these forty lines, installed on every Vercel build.
+   The other four it ships (data-checked, data-unchecked, data-selected,
+   data-active), its no-scrollbar utility and its accordion keyframes have no
+   caller here. `npx shadcn add <component>` still works off components.json.
+
+   Do not assume Tailwind's built-in `data-*:` shorthand can replace these.
+   It resolves data-horizontal: to [data-horizontal], and Base UI's Separator
+   writes data-orientation="horizontal" instead, so separator.tsx would lose
+   both its rules. The other four differ more quietly: they exclude the
+   ="false" case that React renders for a false-valued data attribute. */
+@custom-variant data-open {
+  &:where([data-state="open"]),
+  &:where([data-open]:not([data-open="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-closed {
+  &:where([data-state="closed"]),
+  &:where([data-closed]:not([data-closed="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-disabled {
+  &:where([data-disabled="true"]),
+  &:where([data-disabled]:not([data-disabled="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-horizontal {
+  &:where([data-orientation="horizontal"]) {
+    @slot;
+  }
+}
+
+@custom-variant data-vertical {
+  &:where([data-orientation="vertical"]) {
+    @slot;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

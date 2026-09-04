@@ -8639,3 +8639,26 @@ Measured off two production builds: **238,434 -> 160,915 bytes raw on every rout
 24,716 gzipped.** The lab sheet is 147,185 bytes on 48 routes, all of them under `/lab`, none
 member-facing. `npm run check` green, all 25 visual tests unchanged, and `/lab/v2`, `/lab/craft`,
 `/lab/profiles` and `/lab/landings` screenshotted intact.
+
+## 2026-09-05 — forty lines of CSS stop costing 234 packages
+
+Refactor audit 2, Phase A, row A2. The `shadcn` package was installed for one import in
+`globals.css` and nothing else: no code in `src/`, `scripts/` or `e2e/` imports it, and it is
+run, if ever, as `npx shadcn add`, which fetches its own copy. It brought **234 lockfile entries,
+21.6% of the whole file**, and installed on every Vercel build.
+
+Of the 95 lines it contributes, five variants have callers: `data-open` and `data-closed` in
+`dialog.tsx`, `data-disabled` in the combobox, dropdown menu and select, and `data-horizontal` /
+`data-vertical` in `separator.tsx`. Those are now in `tailwind-theme.css`. Its other four
+variants, its `no-scrollbar` utility and its accordion keyframes have no caller here; this
+project's accordion is a hand-rolled spring.
+
+They are inlined verbatim rather than swapped for Tailwind's built-in `data-*:` shorthand,
+which is not the same thing. `data-horizontal:` natively resolves to `[data-horizontal]`, and
+Base UI's Separator writes `data-orientation="horizontal"`, so the swap would have quietly
+dropped both of that component's rules. The other four exclude the `="false"` case React renders
+for a false-valued data attribute; the built-in variant matches on presence alone.
+
+Lockfile 1,083 -> 849 entries. The shipped stylesheet is **byte-identical** across the change,
+compared chunk to chunk between two production builds. `components.json` is untouched, so
+`npx shadcn add <component>` still works.
