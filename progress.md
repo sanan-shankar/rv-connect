@@ -8717,3 +8717,25 @@ without fixing the path would have produced an untracked folder and still no rep
 
 Both fixed. A local run now writes `e2e/.report/index.html`, `visual:report` serves it (checked:
 HTTP 200), and `git status` stays clean.
+
+## 2026-09-05 — a security pin on a corpse
+
+Refactor audit 2, Phase A, row A6, first half. `ae5bc9a` removed the hoopoe tour on 2026-08-27,
+"total rather than a flag". `scripts/qa/tour-mobile-verify.mjs` still looked for
+`[role="dialog"][aria-label="Product tour"]` and a button reading "hoopoe tour" on `/admin`.
+Neither has existed for nine days; run today it would retry four times and exit 2, INCONCLUSIVE,
+which is the one exit code a reader blames on their dev server rather than on the script.
+
+Its test passed on every `npm run check` throughout, because it asserts only that the script's
+**source** still contains `requireLoopbackBaseUrl`, `assertSameOriginAfterNavigation` and a
+Node-side `fetch` to `/api/dev-login`. A source-reading pin cannot tell a live script from a dead
+one; the source is still there either way. Worth remembering about this repo's rule-test pattern.
+
+Both files gone, 274 lines, and the ledger row with them. `cookieDomainForBaseUrl` loses its only
+non-test caller and stays: three lines against a real trap (Chrome wants `[::1]` bracketed), now
+with a comment saying it is deliberately unused rather than leaving it looking wired up.
+`_dev-login.mjs`'s docblock cited the deleted script as the one of nine that got the secret
+handling right; it now says so in the past tense.
+
+The tests gate reads 101 files, down from 102. Note for the next session: `scripts-ledger.test.mjs`
+reads `git ls-files`, so a deletion only passes once it is staged.

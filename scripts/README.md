@@ -123,7 +123,6 @@ of them will regenerate.
 | `_dir-chrome-probe.mjs` | Measures the live directory chrome so `/lab/directory`'s stated numbers stay true. Named in that room's UI. |
 | `_dir-room-shots.mjs` | Section-by-section capture of `/lab/directory`. |
 | `local-base-url.mjs` | Helper: finds which port the dev server is on. Has a test. |
-| `tour-mobile-verify.mjs` | Checks the first-run walkthrough on mobile. Has a test. |
 | `hoopoe-idle-check.mjs` | Regression guard for the idle animation that used to restart whenever the tab was hidden and shown again (fixed 2026-08-11). |
 | `audit-status.mjs` | Where the security audit stands, proved from the code rather than from a document that can go stale. |
 | `npm-audit-gate.mjs` | The dependency gate (audit H16): `npm audit` with a documented per-advisory allowlist rather than a blanket pass/fail. A gate inside `npm run check`, so it is not something only CI sees. Has a test. |
