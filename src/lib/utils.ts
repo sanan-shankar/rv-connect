@@ -244,6 +244,33 @@ export function formatDisplayDateLong(date: Date | string): string {
 }
 
 /**
+ * The same date with the clock time on it: "4 Sept 2026, 23:34 IST".
+ *
+ * For the surfaces where the day is not the answer -- the contributions
+ * ledger, where the owner is matching a row against the same payment in
+ * Razorpay's dashboard and two gifts can land in the same minute.
+ *
+ * The zone is spelled out in the string rather than left to be assumed. Both
+ * of the other clock times in this app (the verify-email banner, the mail
+ * queue's refill hour) say "IST" out loud for the same reason: an unlabelled
+ * 23:34 is read as the reader's own hour, and neither the owner nor an
+ * alumnus is reliably in India. The hour is 2-digit where the rest of the
+ * date is not, so a column of these lines up at a glance instead of ragging
+ * between "8:34" and "23:34". The date half formats exactly as
+ * formatDisplayDate does, so no surface spells one day two ways.
+ */
+export function formatDisplayDateTime(date: Date | string): string {
+  return `${new Date(date).toLocaleString("en-GB", {
+    timeZone: VALLEY_TIME_ZONE,
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })} IST`
+}
+
+/**
  * The single line shown under a person's name everywhere. Alumni get
  * "Batch of '09"; teachers get a role label since they have no batch.
  *

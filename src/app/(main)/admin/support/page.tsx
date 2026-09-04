@@ -23,7 +23,7 @@ import {
  *  aggregates over the whole history, so nothing here is a total. */
 const LEDGER_LIMIT = 100;
 import { Chip } from "@/components/admin/admin-chip";
-import { formatDisplayDate, formatPaise, metaLine, valleyDayKey, valleyMidnight } from "@/lib/utils";
+import { formatDisplayDateTime, formatPaise, metaLine, valleyDayKey, valleyMidnight } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Support",
@@ -307,9 +307,15 @@ function Ledger({ rows }: { rows: LedgerRow[] }) {
                 />
               )}
             </p>
+            {/* The clock time, not just the day (owner, 2026-09-04). This is
+                the row you hold beside Razorpay's dashboard to decide whether
+                two gifts of the same amount are one payment or two, and a
+                date alone cannot answer that. paidAt for a payment that went
+                through, createdAt for one that stopped: for the second kind
+                there is no payment time, only the moment the order opened. */}
             <p className="mt-0.5 text-[12px] text-muted-foreground">
               {metaLine(
-                formatDisplayDate(new Date(r.paidAt ?? r.createdAt)),
+                formatDisplayDateTime(r.paidAt ?? r.createdAt),
                 r.method ? r.method.toUpperCase() : null
               )}
             </p>

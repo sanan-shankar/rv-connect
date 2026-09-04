@@ -8602,3 +8602,18 @@ moving `touchLastSeen` into `after()` would throw in production and log nothing,
 `headers()`.
 
 One thing was fixed rather than filed, on the owner's answer, and it has its own entry above.
+
+## 2026-09-04 — the ledger says the hour
+
+The admin Support ledger printed a payment's day and nothing else, so two gifts of the same amount
+on the same afternoon read identically, and no row could be held beside Razorpay's dashboard and
+matched to a payment there. Every row now reads `4 Sept 2026, 16:37 IST`.
+
+The zone is in the string, not implied. Both clock times this app already prints — the
+verify-email banner, the mail queue's refill hour — name IST out loud for the same reason: an
+unlabelled 16:37 is read as the reader's own, and the owner is not always in India. The formatter
+is `formatDisplayDateTime` in `utils.ts`, spelling its date half exactly as `formatDisplayDate`
+does so no surface says one day two ways, with a 2-digit hour so a column of rows lines up instead
+of ragging between "8:34" and "23:34". Pinned at the IST/UTC seam in `valley-day.test.mjs`.
+Rows in "Attempts that stopped" have no payment time and still show `createdAt`, the moment the
+order opened; the comment on the row says so.

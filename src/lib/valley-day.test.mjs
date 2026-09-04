@@ -6,6 +6,7 @@ import { ROOT, decomment, walk, SKIP_DIRS } from "./test-kit.mjs";
 
 import {
   formatDisplayDate,
+  formatDisplayDateTime,
   formatTimeAgo,
   valleyDayKey,
   valleyDayStart,
@@ -29,6 +30,17 @@ test("formatDisplayDate: a letter written at 00:30 IST shows that day, not the o
   assert.equal(formatDisplayDate(new Date("2026-06-15T18:29:00Z")), "15 Jun 2026");
   // One minute later it is the next.
   assert.equal(formatDisplayDate(new Date("2026-06-15T18:30:00Z")), "16 Jun 2026");
+});
+
+test("formatDisplayDateTime: the clock face is the valley's, and it says so", () => {
+  // The admin ledger's payment time. 00:30 IST on 15 June is 19:00 UTC on the
+  // 14th: the date half must agree with formatDisplayDate above, and the hour
+  // must be the one a person in the valley saw on the wall, not the server's.
+  assert.equal(formatDisplayDateTime(new Date("2026-06-14T19:00:00Z")), "15 Jun 2026, 00:30 IST");
+  // Padded, so a stack of rows lines up rather than ragging at the colon.
+  assert.equal(formatDisplayDateTime(new Date("2026-09-04T03:04:23Z")), "4 Sept 2026, 08:34 IST");
+  // The last minute of the valley's day is still that day.
+  assert.equal(formatDisplayDateTime(new Date("2026-06-15T18:29:00Z")), "15 Jun 2026, 23:59 IST");
 });
 
 test("formatTimeAgo: the older-than-four-weeks fallback is an IST date too", () => {
