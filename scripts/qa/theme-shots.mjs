@@ -42,7 +42,15 @@ const browser = await puppeteer.launch({
 });
 
 for (const theme of ['light', 'dark']) {
-  for (const [vp, size] of [['desktop', { width: 1440, height: 900 }], ['mobile', { width: 390, height: 844 }]]) {
+  /* A phone is not a narrow desktop. Without deviceScaleFactor/isMobile/hasTouch
+     Chrome keeps desktop pointer semantics at 390px, so `(hover: hover)` matches
+     when it should not and `(pointer: coarse)` does not match when it should, and
+     the shot shows affordances a phone never draws. screenshot.mjs and
+     map-cluster-verify.mjs have had these three since they were written. */
+  for (const [vp, size] of [
+    ['desktop', { width: 1440, height: 900 }],
+    ['mobile', { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true }],
+  ]) {
     const page = await browser.newPage();
     await page.setViewport(size);
     await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 20000 });

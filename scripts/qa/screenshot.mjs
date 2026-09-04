@@ -39,7 +39,9 @@ const browser = await puppeteer.launch({
   args: ['--no-sandbox', '--disable-setuid-sandbox'],
 });
 const page = await browser.newPage();
-// `--mobile` gives the same 390x844 iPhone viewport screenshot-auth.mjs uses,
+// `--mobile` gives the same 390x844 iPhone viewport screenshot-auth.mjs uses
+// (true since 2026-09-05; until then that script set the size and none of the
+// three pointer properties, so its "mobile" shots had desktop hover semantics),
 // so a public page can be checked at both sizes without going through the
 // admin bypass. It was documented in the CLAUDE.md table but only ever
 // implemented in the auth variant, so passing it here was silently ignored
