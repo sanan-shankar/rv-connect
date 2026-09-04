@@ -1,0 +1,8 @@
+✓ Running next.config.ts took 349ms
+  Analyzing a production build...
+(node:11938) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✓ Analyze completed in 18.9s. Results written to /Users/sanan/Documents/rv-connect/.scratch/audit2-build/.next/diagnostics/analyze.
+To explore the analyze results interactively, run `next experimental-analyze` without `--output`.
+npx next experimental-analyze -o  104.57s user 7.85s system 492% cpu 22.834 total
+exit=0

@@ -1,0 +1,9 @@
+- Finding files
+app/(main)/forbidden.tsx
+components/common/filters/active-filter-chips.tsx
+components/common/filters/result-count.tsx
+components/landing/showcase.tsx
+generated/prisma/browser.ts
+instrumentation.ts
+lib/photo-suggest.ts
+proxy.ts

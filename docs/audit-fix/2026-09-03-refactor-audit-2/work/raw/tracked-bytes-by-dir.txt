@@ -1,0 +1,9 @@
+     13.03 MB    33 files  e2e
+      6.83 MB   771 files  src
+      6.49 MB    58 files  public
+      3.27 MB   129 files  docs
+      1.15 MB    15 files  (root)
+      0.69 MB   104 files  .claude
+      0.51 MB    71 files  scripts
+      0.20 MB    66 files  prisma
+      0.02 MB     5 files  .github

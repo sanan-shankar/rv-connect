@@ -1,0 +1,5 @@
+scripts/dev/merge-cities.ts(22,7): error TS6133: 'CANONICAL_PLACE_ID' is declared but its value is never read.
+src/components/catchups/round/answer-photos.tsx(149,11): error TS6133: 'photo' is declared but its value is never read.
+src/components/collection/photo-river.tsx(472,18): error TS6133: 'i' is declared but its value is never read.
+src/components/posts/post-card.tsx(553,23): error TS6133: 'photo' is declared but its value is never read.
+npx tsc --noEmit --noUnusedLocals --noUnusedParameters  17.03s user 1.40s system 146% cpu 12.574 total

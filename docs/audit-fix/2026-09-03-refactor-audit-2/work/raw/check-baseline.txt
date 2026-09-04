@@ -1,0 +1,16 @@
+
+> rv-connect@0.1.0 check
+> node scripts/qa/check.mjs
+
+
+  ok   TypeScript               no errors
+  ok   ESLint                   clean
+  ok   Shape + colour protocol  clean
+  ok   Lab registry             47 routes registered
+  ok   Unit tests               102/102 passing
+  ok   Dependency advisories    clean
+  ok   Security audit status    74 tracked, none open at high
+
+24.8s
+npm run check  61.84s user 6.43s system 273% cpu 25.008 total
+exit=0

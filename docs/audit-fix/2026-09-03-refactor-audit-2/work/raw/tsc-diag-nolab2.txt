@@ -1,0 +1,6 @@
+Files:                         6207
+Lines of TypeScript:         186367
+Types:                       215785
+Instantiations:              787561
+Check time:                   5.00s
+Total time:                   7.36s

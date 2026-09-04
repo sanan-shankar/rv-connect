@@ -1,0 +1,4 @@
+src/lib/email.ts:178:    // strength of a console.log.
+src/lib/email-queue.ts:106: * members' mail got marked sent off a console.log (2026-08-12).
+src/lib/email-queue.ts:129:     with a `sentAt` off a console.log. The queue's whole invariant is that
+src/lib/email-queue.ts:709:  // marked a real member's mail sent off a console.log.

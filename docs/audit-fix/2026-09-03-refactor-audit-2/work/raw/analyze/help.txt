@@ -1,0 +1,17 @@
+Usage: next experimental-analyze [options] [directory]
+
+Analyze production bundle output with an interactive web ui. Does not produce
+an application build. Only compatible with Turbopack.
+
+Arguments:
+  [directory]    A directory on which to analyze the application. If no
+                 directory is provided, the current directory will be used.
+
+Options:
+  --no-mangling  Disables mangling.
+  --profile      Enables production profiling for React.
+  -o, --output   Only write analysis files to disk. Does not start the server.
+  --port <port>  Specify a port number to serve the analyzer on. (default:
+                 4000, env: PORT)
+  -h, --help     Displays this message.
+npx next experimental-analyze --help  0.23s user 0.07s system 108% cpu 0.281 total

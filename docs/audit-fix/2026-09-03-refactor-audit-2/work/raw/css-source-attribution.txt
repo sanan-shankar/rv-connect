@@ -1,0 +1,21 @@
+stylesheet 232.8 KB, 3058 class rules, 1864 scanned files
+shipped    1615 rules    96.1 KB
+lab-only    895 rules    49.8 KB
+prose        40 rules     2.5 KB
+none        508 rules    66.0 KB
+prose-only rules by the first non-src file that mentions the token:
+     5  docs/spec/DESIGN-SYSTEM.md
+     4  docs/history/progress-2026-06.md
+     4  docs/spec/media.md
+     3  progress.md
+     3  .claude/skills/liftkit-spacing/SKILL.md
+     3  docs/planning/dialog-standards-findings.md
+     2  docs/audit-fix/2026-08-25-refactor-audit-1/work/agents/bundle-build.md
+     2  src/lib/identity-row-overflow-rule.test.mjs
+     1  docs/audit-fix/2026-08-25-refactor-audit-1/work/agents/landing-mascot-avatars.md
+     1  docs/audit-fix/2026-08-25-refactor-audit-1/work/agents/data-layer.md
+     1  docs/audit-fix/2026-08-25-refactor-audit-1/work/brief-common.md
+     1  docs/audit-fix/2026-08-25-refactor-audit-1/work/verify/v-member-admin.md
+     1  docs/audit-fix/2026-08-25-refactor-audit-1/work/agents/member-surfaces.md
+     1  docs/spec/admin.md
+     1  docs/planning/collection-rework/handover.md

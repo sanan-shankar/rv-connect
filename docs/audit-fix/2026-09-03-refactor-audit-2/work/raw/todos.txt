@@ -1,0 +1,5 @@
+src/components/catchups/answer/types.ts:22: * songs prompt (see the TODO in song-attachment.tsx for why a named song lives
+src/components/catchups/answer/song-attachment.tsx:13: *  ── TODO (needs a migration, deliberately not done in this pass) ──────
+src/lib/catchups-core.ts:316: * These were three copies in three page files, and the round reader's TODO had
+src/components/catchups/round/answer-card.tsx:40:  // column yet - see the TODO in answer/song-attachment.tsx, and note that
+src/lib/catchups-round-view.ts:165:      // typed song name in `body` (see the TODO in answer/song-attachment.tsx
