@@ -1,0 +1,29 @@
+src/app/lab/_kit.tsx:86:// variant (a bare `variants={staggerChild}` motion element renders static, which is what we want).
+src/app/not-found.tsx:134:// await in this file goes through here. Resolves TRUE if the awaited thing
+src/app/lab/type/_specimens.tsx:57:  // variable file is loaded and would otherwise quietly interpolate.
+src/app/lab/directory/_maps.tsx:872:      // <path> with a fill; counting the former is what "objects you can
+src/app/api/upload/finalize/route.ts:114:        // returns null and falls through to here).
+src/components/landing/landing-footer.tsx:36:            // <Button>, so keep it in lockstep by hand.
+src/components/ui/button.tsx:144:// <Plus/> element (its `type` is the component object), while a Server
+src/components/posts/create-post-form.tsx:435:    // returned { error }) threw straight out of this function and left the
+src/components/posts/create-post-form.tsx:1092:                // letter and save as a draft ctas can be as big as the normal
+src/app/(main)/catchups/actions.ts:156://     functions, so every internal helper/schema/constant below stays local) ──
+src/components/auth/signup-form.tsx:422:        // returns above pass through the finally too, and on those nothing
+src/components/directory/alumni-map.tsx:467:      // var(--surface-2, #EEE8DA) referenced a token that never existed, so
+src/components/support/bird-picker.tsx:62:      // return to re-test.)
+src/components/posts/comments-section.tsx:465:            // <Button>, and it had no hover at all before: SpringPress only
+src/components/mascot/hoopoe.tsx:776:      // let its keyframes race the warps for the same properties, and a caller
+src/components/mascot/hoopoe.tsx:1035:    // function then awaited. A superseded animation's `.finished` never
+src/lib/upload-shared.test.mjs:37:  // function is what vouches for a URL before it is embedded (audit M10).
+src/lib/mail-policy.test.mjs:159:  // variable reintroducing the incident the set one guards against. The empty
+src/lib/mail-policy.test.mjs:242:  // returned to the queue by the drain and by nothing else, so a precheck that
+src/components/catchups/index/filed-away.tsx:112:      // return different success shapes, and unifying them inside the thunk
+src/lib/email-verification.ts:27:// importing `auth()` -- and with it NextAuth and Prisma -- into the browser
+src/lib/email.ts:251:// import. The implementation lives in its own dependency-free file because the
+scripts/qa/npm-audit-gate.mjs:76:// import gateVerdict without triggering an npm audit.
+src/lib/demo-seed/seed.ts:468:    // variable (not called twice) so the notification below can name the
+scripts/qa/hoopoe-landing-check.mjs:83:  // <section>.
+scripts/qa/hoopoe-zoom-probe.mjs:40:  // let layout settle at the new zoom
+src/lib/city-coords.ts:3:// variants (Bangalore/Bengaluru, Gurgaon/Gurugram) both included.
+src/lib/city-coords.ts:163:  // return an inherited member (Object, Object.prototype) -- truthy, no
+src/lib/auth-tokens.ts:220:  // function the instant a response streams, which raced this delete and lost

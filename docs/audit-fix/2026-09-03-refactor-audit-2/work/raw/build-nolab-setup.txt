@@ -1,0 +1,8 @@
+Preparing worktree (detached HEAD 72b5a1d)
+HEAD is now at 72b5a1d fix(viewer): the chrome stays under a resting cursor, and the page behind stays put
+lab moved aside inside the scratch worktree only: (auth) (main) (policies) api apple-icon.png catchups error.tsx favicon.ico globals.css hoopoe icon.svg layout.tsx manifest.ts not-found.tsx page.tsx robots.ts sitemap.ts 
+17:07  up  6:39, 1 user, load averages: 15.44 6.34 6.04
+lab sources now outside the worktree scan root: /Users/sanan/Documents/rv-connect/.scratch/audit2-build-nolab/../lab-aside/app-lab
+/Users/sanan/Documents/rv-connect/.scratch/audit2-build-nolab/../lab-aside/public-lab
+17:09  up  6:41, 1 user, load averages: 13.72 8.78 7.05
+17:10  up  6:43, 1 user, load averages: 11.61 9.58 7.52

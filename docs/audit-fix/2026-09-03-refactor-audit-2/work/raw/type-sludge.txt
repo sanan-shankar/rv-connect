@@ -1,0 +1,131 @@
+any:
+src/app/(main)/directory/page.tsx:239:  // here -- otherwise the "has any place" guard is added on top.
+src/app/(main)/catchups/actions.ts:20: *  The lazy-advance touchpoint (spec 2.4): any action that reads a Round's
+src/components/collection/collection-client.tsx:65: *  Both open on a press and neither has any presence on the page until
+src/components/mascot/hoopoe-playground.tsx:189:    // rather than asking the scene for its first <svg>: any icon dropped into
+src/components/admin/analytics/compare.tsx:6: *  Compare: any measure, any way of grouping people.
+src/components/directory/alumni-map.tsx:281:  const zoomBehavior = useRef<any>(null);
+src/components/common/photo-frame.tsx:100:  /** The rungs, when the surface has any. Absent means one file, as-is. */
+src/components/catchups/answer/song-attachment.tsx:11: *  song answer saves through the same path as any other answer.
+src/lib/prisma.ts:99:// commit as any schema change. That is a rule which works right up until
+src/lib/profession-tags.ts:250: * are free text: any separator character a person could not type is also
+src/lib/demo-seed/seed.ts:20: *  database legible when something goes wrong: any cuid in the demo
+src/lib/normalize.ts:46:      // If the word already has any uppercase letter beyond the first
+src/lib/admin-content.ts:12: *  exist was any way to FIND the thing: you had to already be looking at it
+
+as unknown as:
+src/generated/prisma/internal/prismaNamespace.ts:3991:export const defineExtension = runtime.Extensions.defineExtension as unknown as runtime.Types.Extensions.ExtendsHook<"define", TypeMapCb, runtime.Types.Extensions.DefaultArgs>
+src/generated/prisma/internal/class.ts:573:  return runtime.getPrismaClient(config) as unknown as PrismaClientConstructor
+src/components/mascot/hoopoe.tsx:238:  const anim = animate as unknown as (
+src/components/mascot/hoopoe.tsx:247:  const NOOP = { finished: Promise.resolve(), stop() {} } as unknown as AnimationPlaybackControls;
+src/components/mascot/hoopoe.tsx:1130:      const fn = (api as unknown as Record<string, (...a: unknown[]) => Promise<void>>)[name];
+src/components/directory/alumni-map.tsx:109:  const land = feature(topo, topo.objects.countries) as unknown as {
+src/components/support/support-contribute.tsx:113:    if ((window as unknown as { Razorpay?: RazorpayCtor }).Razorpay) return resolve();
+src/components/support/support-contribute.tsx:186:    const Razorpay = (window as unknown as { Razorpay?: RazorpayCtor }).Razorpay;
+src/components/common/motion.tsx:162:  const Comp = (m as unknown as Record<string, typeof m.button>)[as] ?? m.button;
+src/lib/prisma.ts:7:const globalForPrisma = globalThis as unknown as {
+src/lib/prisma.ts:90:  }) as unknown as PrismaClient;
+src/lib/prisma.ts:147:const globalForPrismaKey = globalThis as unknown as { prismaKey: string | undefined };
+src/lib/prisma.ts:151:  Object.entries(Prisma as unknown as Record<string, unknown>)
+
+eslint-disable:
+src/generated/prisma/models.ts:3:/* eslint-disable */
+src/generated/prisma/commonInputTypes.ts:3:/* eslint-disable */
+src/generated/prisma/client.ts:3:/* eslint-disable */
+src/generated/prisma/internal/prismaNamespaceBrowser.ts:3:/* eslint-disable */
+src/generated/prisma/internal/prismaNamespace.ts:3:/* eslint-disable */
+src/generated/prisma/models/PollVote.ts:3:/* eslint-disable */
+src/generated/prisma/models/Report.ts:3:/* eslint-disable */
+src/generated/prisma/models/Group.ts:3:/* eslint-disable */
+src/generated/prisma/models/Contribution.ts:3:/* eslint-disable */
+src/generated/prisma/models/Photo.ts:3:/* eslint-disable */
+src/generated/prisma/internal/class.ts:3:/* eslint-disable */
+src/generated/prisma/models/OutboundEmail.ts:3:/* eslint-disable */
+src/generated/prisma/models/CatchupPrompt.ts:3:/* eslint-disable */
+src/generated/prisma/browser.ts:3:/* eslint-disable */
+src/generated/prisma/models/Image.ts:3:/* eslint-disable */
+src/generated/prisma/enums.ts:3:/* eslint-disable */
+src/generated/prisma/models/UserPlace.ts:3:/* eslint-disable */
+src/generated/prisma/models/GroupMember.ts:3:/* eslint-disable */
+src/generated/prisma/models/RosterEntry.ts:3:/* eslint-disable */
+src/generated/prisma/models/CommentLike.ts:3:/* eslint-disable */
+src/generated/prisma/models/AuditLog.ts:3:/* eslint-disable */
+src/generated/prisma/models/Like.ts:3:/* eslint-disable */
+src/generated/prisma/models/ContentView.ts:3:/* eslint-disable */
+src/generated/prisma/models/PhotoLove.ts:3:/* eslint-disable */
+src/generated/prisma/models/CatchupEdition.ts:3:/* eslint-disable */
+src/generated/prisma/models/AuthToken.ts:3:/* eslint-disable */
+src/generated/prisma/models/AdminMessage.ts:3:/* eslint-disable */
+src/generated/prisma/models/Comment.ts:3:/* eslint-disable */
+src/generated/prisma/models/PendingImagePurge.ts:3:/* eslint-disable */
+src/generated/prisma/models/Visit.ts:3:/* eslint-disable */
+src/generated/prisma/models/Place.ts:3:/* eslint-disable */
+src/generated/prisma/models/CatchupPref.ts:3:/* eslint-disable */
+src/generated/prisma/models/MetricSnapshot.ts:3:/* eslint-disable */
+src/generated/prisma/models/LoginAttempt.ts:3:/* eslint-disable */
+src/generated/prisma/models/SearchLog.ts:3:/* eslint-disable */
+src/generated/prisma/models/CatchupEntry.ts:3:/* eslint-disable */
+src/generated/prisma/models/User.ts:3:/* eslint-disable */
+src/generated/prisma/models/Catchup.ts:3:/* eslint-disable */
+src/generated/prisma/models/QueueLease.ts:3:/* eslint-disable */
+src/generated/prisma/models/Post.ts:3:/* eslint-disable */
+src/generated/prisma/models/Bookmark.ts:3:/* eslint-disable */
+src/app/not-found.tsx:366:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/generated/prisma/models/CatchupEntryLove.ts:3:/* eslint-disable */
+src/generated/prisma/models/Notification.ts:3:/* eslint-disable */
+src/generated/prisma/models/AdminThread.ts:3:/* eslint-disable */
+src/generated/prisma/models/PollOption.ts:3:/* eslint-disable */
+src/generated/prisma/models/LabRoomState.ts:3:/* eslint-disable */
+src/app/(main)/profile/[id]/page.tsx:361:            {/* eslint-disable-next-line @next/next/no-img-element */}
+src/app/(main)/catchups/[catchupId]/answer/page.tsx:1:/* eslint-disable react-hooks/error-boundaries --
+src/app/(auth)/reset-password/reset-client.tsx:153:      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+src/components/demo/demo-bar.tsx:72:      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the hard reload IS the point; see above.
+src/components/settings/nightfall.tsx:66:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/landing/landing-hero.tsx:190:      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reveals from the image's load state, including the cache-hit case where the element is already complete and onLoad will never fire.
+src/components/landing/landing-hero.tsx:387:                  /* eslint-disable-next-line no-restricted-syntax -- "surfaces are never pure
+src/components/landing/section-reveal.tsx:32:    // eslint-disable-next-line react-hooks/set-state-in-effect -- Arms the hidden start state, then reveals from an IntersectionObserver.
+src/components/posts/use-composer-uploads.ts:141:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/posts/post-card.tsx:555:                        {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/posts/use-letter-persistence.ts:270:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/posts/use-letter-persistence.ts:363:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/posts/create-post-form.tsx:239:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/posts/create-post-form.tsx:718:                  {/* eslint-disable-next-line @next/next/no-img-element -- local
+src/components/collection/photo-river.tsx:110:      {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/admin/content/content-list.tsx:253:                  {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/mascot/use-flight-arrival.ts:168:    // eslint-disable-next-line react-hooks/set-state-in-effect -- deliberate pre-paint lift; see the comment above
+src/components/mascot/hoopoe.tsx:1150:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/mascot/hoopoe.tsx:1161:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/mascot/hoopoe.tsx:1248:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/mascot/sidebar-hoopoe.tsx:84:    // eslint-disable-next-line react-hooks/set-state-in-effect -- Subscribes to the md breakpoint and mirrors it into state, so the idle machinery only ever arms on desktop.
+src/components/mascot/sidebar-hoopoe.tsx:99:      // eslint-disable-next-line react-hooks/set-state-in-effect -- Tears the idle machinery down when the breakpoint stops matching, rather than leaving a bird stranded mid-flight.
+src/components/mascot/moments/one-hoopoe-guard.ts:33:    // eslint-disable-next-line react-hooks/set-state-in-effect -- Asks the DOM whether another hoopoe is already on screen. Only answerable after mount.
+src/components/mascot/moments/celebration-detector.tsx:161:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/directory/alumni-map.tsx:280:  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+src/components/directory/alumni-map.tsx:392:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/common/rich-text-area.tsx:61:    // eslint-disable-next-line react-hooks/exhaustive-deps -- initial value only; later edits live in the DOM
+src/components/common/verified-mark.tsx:67:    // eslint-disable-next-line react-hooks/set-state-in-effect -- Measures the tooltip against the viewport and flips it to the other side if it would overflow. Pure measure-then-position; the opacity fade hides the one-frame correction.
+src/components/auth/signup-form.tsx:37:    // eslint-disable-next-line react-hooks/set-state-in-effect -- Asks matchMedia whether the device has a real pointer. A media query has no server-side answer, so this has to happen after mount.
+src/components/common/photo-aim.tsx:287:          {/* eslint-disable-next-line @next/next/no-img-element -- an R2 url
+src/components/profile/house-chain-editor.tsx:115:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/profile/admin-profile-tools.tsx:65:        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+src/components/feed/rail/pulse-module.tsx:1:/* eslint-disable react-hooks/purity --
+src/components/mascot/moments/celebration-signals.tsx:1:/* eslint-disable react-hooks/purity --
+src/components/common/photo-frame.tsx:63:    // eslint-disable-next-line @next/next/no-img-element
+src/components/common/photo-frame.tsx:130:      // eslint-disable-next-line @next/next/no-img-element
+src/components/common/photo-frame.tsx:148:      {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/feed/rail/letters-module.tsx:1:/* eslint-disable react-hooks/purity --
+src/components/common/location-picker.tsx:147:      // eslint-disable-next-line react-hooks/set-state-in-effect -- Clears the result list the moment the query empties, before any request is issued.
+src/components/common/location-picker.tsx:274:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/common/photo-carousel.tsx:246:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/common/photo-carousel.tsx:324:              {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/catchups/answer/answer-redirect.tsx:20:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/catchups/answer/photo-attachments.tsx:136:            {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/catchups/round/answer-photos.tsx:151:            {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/catchups/round/answer-photos.tsx:171:            {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/onboarding/onboarding-flow.tsx:122:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/catchups/round/photo-wall.tsx:63:              {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/feed/rail/collection-module.tsx:104:          {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/catchups/round/spotify-card.tsx:30:        // eslint-disable-next-line @next/next/no-img-element
+
+@ts-ignore/@ts-expect-error:
+src/app/lab/hoopoe/page.tsx:340:    // @ts-expect-error spread of mixed step tuples

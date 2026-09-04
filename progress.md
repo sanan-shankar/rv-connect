@@ -8565,3 +8565,40 @@ Four comments elsewhere cited the old year and are now false: `post-notification
 audience is notification rows minted before 2026-07-24, so at thirty days it has resolved
 nothing since 2026-08-23. It is now retirable, and says so; deleting it is a fix session's job,
 not an audit's. Gate green, 102/102.
+
+## 2026-09-04 — the second refactor audit, and what it found by looking twice
+
+Twenty-two readers over one tree: sixteen territories sized so each could read every file it owns,
+six cross-cutting lenses for the questions that fall between them. **369 findings.** The whole
+apparatus is in `docs/audit-fix/2026-09-03-refactor-audit-2/`; a fix session starts by @-ing its
+`fix-prompt.md` and nothing else.
+
+The five that matter: **the design lab's stylesheet ships to every member** — 74 KB of the 233 KB
+shared sheet exists only because a `/lab` file uses those classes, it is render-blocking, and it is
+on the signed-out landing page. **The sign-in pages carry a tooltip they never draw**, about 150 KB
+of popover library on the first four screens a new alumnus sees. **`shadcn` and `world-atlas` are
+paying no rent** — 234 packages, a fifth of the lockfile, for forty lines of CSS, and a 7.8 MB
+production dependency kept alive by one lab file still doing what the shipped map was fixed to stop
+doing. **Every
+authenticated page runs seven queries before its own.** And **the QA tooling has been lying**: every
+mobile screenshot of a signed-in page was taken with desktop hover semantics, so controls appear in
+them a phone never draws; and `visual:report`, the tool behind the rule about never rebaselining
+blind, has never worked here, because the reporter is registered only under CI.
+
+The method that earned its keep was overlap. Territory readers and lenses were deliberately not
+partitioned cleanly, and twenty findings arrived from two directions at once — which is how the lab's
+CSS got measured three ways, how audit 1's half-executed hoopoe deferral surfaced from both the shell
+and the mascot side, and how three lenses independently reached the retention divergence. The
+correction that best repays it: `/lab/directory` still compiles a 105 KB atlas into a module, the
+exact antipattern the shipped map's own comment documents as wrong — the lab room that prototyped a
+fix never received it. **When a shipped file is fixed, the room that prototyped it is the second
+place the fix has to land, or the room becomes a museum of the bug.**
+
+Then twenty-five adversarial verifiers, each told to default to *refuted*. Eighty-four findings
+re-tested: **none refuted, forty-five corrected in a detail.** That ratio is the audit's most useful
+output, and it is now the fix prompt's first instruction — trust the finding, re-check the line
+numbers. Seven corrections killed a recommendation rather than a citation, the sharpest being that
+moving `touchLastSeen` into `after()` would throw in production and log nothing, because it calls
+`headers()`.
+
+One thing was fixed rather than filed, on the owner's answer, and it has its own entry above.

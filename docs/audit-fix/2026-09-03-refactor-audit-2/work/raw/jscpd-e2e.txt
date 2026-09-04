@@ -1,0 +1,25 @@
+[1mClone found (typescript)[22m
+ - [1m[32mcollection-seek.spec.ts[39m[22m [111:40 - 119:16] (9 lines, 58 tokens)
+   collection-seek.spec.ts [521:43 - 525:16]
+[1mClone found (typescript)[22m
+ - [1m[32mcollection-seek.spec.ts[39m[22m [129:80 - 142:8] (14 lines, 51 tokens)
+   collection-seek.spec.ts [381:89 - 391:8]
+[1mClone found (typescript)[22m
+ - [1m[32mcollection-seek.spec.ts[39m[22m [478:57 - 484:75] (7 lines, 53 tokens)
+   collection-seek.spec.ts [608:23 - 617:73]
+[1mClone found (typescript)[22m
+ - [1m[32mcollection-seek.spec.ts[39m[22m [561:82 - 568:27] (8 lines, 80 tokens)
+   collection-seek.spec.ts [584:41 - 591:27]
+[90m┌────────────┬────────────────┬─────────────┬──────────────┬──────────────┬──────────────────┬───────────────────┐[39m
+[90m│[39m[31m Format     [39m[90m│[39m[31m Files analyzed [39m[90m│[39m[31m Total lines [39m[90m│[39m[31m Total tokens [39m[90m│[39m[31m Clones found [39m[90m│[39m[31m Duplicated lines [39m[90m│[39m[31m Duplicated tokens [39m[90m│[39m
+[90m├────────────┼────────────────┼─────────────┼──────────────┼──────────────┼──────────────────┼───────────────────┤[39m
+[90m│[39m typescript [90m│[39m 9              [90m│[39m 1625        [90m│[39m 7944         [90m│[39m 4            [90m│[39m 34 (2.09%)       [90m│[39m 242 (3.05%)       [90m│[39m
+[90m├────────────┼────────────────┼─────────────┼──────────────┼──────────────┼──────────────────┼───────────────────┤[39m
+[90m│[39m [1mTotal:[22m     [90m│[39m 9              [90m│[39m 1625        [90m│[39m 7944         [90m│[39m 4            [90m│[39m 34 (2.09%)       [90m│[39m 242 (3.05%)       [90m│[39m
+[90m└────────────┴────────────────┴─────────────┴──────────────┴──────────────┴──────────────────┴───────────────────┘[39m
+[90mFound 4 clones.[39m
+[90mtime: 5.877ms[39m
+
+[90m💡 Auto-refactor with AI: [1m[39mnpx skills add https://github.com/kucherenko/jscpd --skill dry-refactoring[90m[22m
+[90m🎩 New: Gangsta Agents — discipline your AI coding → gangsta.page[39m
+[90m💖 Support jscpd project → https://opencollective.com/jscpd[39m

@@ -1,0 +1,5 @@
+stylesheet 232.8 KB; 3058 class rules parsed (214.3 KB in rules)
+lab-only utilities: 890 rules, 49.2 KB
+used by shipped code: 97.1 KB
+unattributed (base, theme, @utility, non-class selectors): 68.0 KB
+sample lab-only utilities: -inset-3 inset-3 -inset-x-10 inset-x-2 -inset-y-8 -inset-y-10 -top-2.5 -top-3 -top-4 -top-5 -top-9 -top-10 -top-24 -top-40 -top-[5px] -top-[7px] -top-[9px] -top-[10px] -top-[11px] top-1/3 top-20 top-[4%] top-[8%] top-[13%] top-[14px] top-[22%] top-[23%] top-[46%] top-[53px] top-[62%] top-[100px] -right-2.5 -right-3 -right-4 -right-14 -right-24 -right-[5px] right-5 right-8 right-9

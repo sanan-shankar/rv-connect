@@ -1,0 +1,342 @@
+Unused files (187)
+.claude/skills/front-refactor/examples/css/card.applied.css             
+.claude/skills/front-refactor/examples/css/card.css                     
+.claude/skills/front-refactor/examples/js/order-utils.applied.js        
+.claude/skills/front-refactor/examples/js/order-utils.js                
+.claude/skills/front-review/examples/css/dashboard.css                  
+.claude/skills/front-review/examples/js/cart-service.js                 
+docs/audit-fix/2026-08-25-refactor-audit-1/work/raw/depcruise.config.cjs
+docs/audit-fix/2026-08-25-refactor-audit-1/work/raw/extract-findings.mjs
+docs/audit-fix/2026-08-25-refactor-audit-1/work/raw/route-js.mjs        
+docs/audit-fix/2026-08-25-refactor-audit-1/work/workflow-find.js        
+docs/audit-fix/2026-08-25-refactor-audit-1/work/workflow-verify.js      
+e2e/auth.setup.ts                                                       
+scripts/demo/add-photos.mjs                                             
+scripts/demo/apply-schema.mjs                                           
+scripts/demo/seed-demo.mts                                              
+scripts/demo/verify-guard.mts                                           
+scripts/dev/_env.mjs                                                    
+scripts/dev/apple-edge/compare.mjs                                      
+scripts/dev/apple-edge/look.mjs                                         
+scripts/dev/apple-edge/measure.mjs                                      
+scripts/dev/apple-edge/truth-profile.mjs                                
+scripts/dev/apple-edge/truth.mjs                                        
+scripts/dev/backfill-image-dimensions.mjs                               
+scripts/dev/build-app-icon.mjs                                          
+scripts/dev/centroid.mjs                                                
+scripts/dev/city-alias-scan.ts                                          
+scripts/dev/email-mark.mjs                                              
+scripts/dev/generate-icons.mjs                                          
+scripts/dev/import-album.mjs                                            
+scripts/dev/import-places.mjs                                           
+scripts/dev/import-roster.mjs                                           
+scripts/dev/merge-cities.ts                                             
+scripts/dev/run-sql.mjs                                                 
+scripts/dev/seed-curated-content.ts                                     
+scripts/dev/set-password.mjs                                            
+scripts/dev/shot-clip.mjs                                               
+scripts/dev/shot-svg.mjs                                                
+scripts/dev/sweep-stranded-originals.mjs                                
+scripts/dev/tag-photos-apply.mjs                                        
+scripts/dev/tag-photos-pick.mjs                                         
+scripts/dev/tag-professions-apply.mjs                                   
+scripts/dev/tag-professions-pick.mjs                                    
+scripts/ops/prune.mjs                                                   
+scripts/ops/snapshot.mjs                                                
+scripts/qa/_dev-login.mjs                                               
+scripts/qa/_dir-chrome-probe.mjs                                        
+scripts/qa/_dir-room-shots.mjs                                          
+scripts/qa/_probe-kit.mjs                                               
+scripts/qa/audit-status.mjs                                             
+scripts/qa/check.mjs                                                    
+scripts/qa/ci-parity.test.mjs                                           
+scripts/qa/crawl.mjs                                                    
+scripts/qa/drive.mjs                                                    
+scripts/qa/hand-run-passes.test.mjs                                     
+scripts/qa/hoopoe-idle-check.mjs                                        
+scripts/qa/hoopoe-landing-check.mjs                                     
+scripts/qa/hoopoe-zoom-probe.mjs                                        
+scripts/qa/hover-probe.mjs                                              
+scripts/qa/lab-audit.mjs                                                
+scripts/qa/local-base-url.mjs                                           
+scripts/qa/local-base-url.test.mjs                                      
+scripts/qa/map-cluster-verify.mjs                                       
+scripts/qa/npm-audit-gate.mjs                                           
+scripts/qa/npm-audit-gate.test.mjs                                      
+scripts/qa/phase10-probe.mjs                                            
+scripts/qa/phase3-probe.mjs                                             
+scripts/qa/phase4-probe.mjs                                             
+scripts/qa/phase4-prod-check.mjs                                        
+scripts/qa/phase5-probe.mjs                                             
+scripts/qa/phase6-probe.mjs                                             
+scripts/qa/phase7-probe.mjs                                             
+scripts/qa/phase8-probe.mjs                                             
+scripts/qa/phase9-probe.mjs                                             
+scripts/qa/protocol-audit.mjs                                           
+scripts/qa/screenshot-auth.mjs                                          
+scripts/qa/screenshot.mjs                                               
+scripts/qa/scripts-ledger.test.mjs                                      
+scripts/qa/theme-shots.mjs                                              
+scripts/qa/tour-mobile-verify.mjs                                       
+scripts/qa/tour-mobile-verify.test.mjs                                  
+scripts/qa/verify-shot.mjs                                              
+src/components/auth/auth-first-frame.test.mjs                           
+src/components/collection/river-query.test.mjs                          
+src/components/common/attach-well.test.mjs                              
+src/components/common/confirm-dialog.test.mjs                           
+src/components/common/filters/active-filter-chips.tsx                   
+src/components/common/filters/result-count.tsx                          
+src/components/common/image-viewer-chrome.test.mjs                      
+src/components/common/motion-namespace-rule.test.mjs                    
+src/components/common/pinch-zoom.test.mjs                               
+src/components/common/verified-mark.test.mjs                            
+src/components/landing/feature-section.tsx                              
+src/components/landing/footer-hoopoe.tsx                                
+src/components/landing/landing-footer.tsx                               
+src/components/landing/showcase.tsx                                     
+src/components/landing/trust-section.tsx                                
+src/components/layout/sidebar-support-icon.test.mjs                     
+src/components/mascot/perch-report.test.mjs                             
+src/components/ui/focus-recipe.test.mjs                                 
+src/lib/admin-guard-rule.test.mjs                                       
+src/lib/admin-rule.test.mjs                                             
+src/lib/app-icon-safe-zone.test.mjs                                     
+src/lib/append-page.test.mjs                                            
+src/lib/auth-flow-rule.test.mjs                                         
+src/lib/avatar.test.mjs                                                 
+src/lib/batch-line.test.mjs                                             
+src/lib/batch-year.test.mjs                                             
+src/lib/call-action.test.mjs                                            
+src/lib/caption-tidy.test.mjs                                           
+src/lib/cascade-rule.test.mjs                                           
+src/lib/catchup-lifecycle.test.mjs                                      
+src/lib/catchup-shelf.test.mjs                                          
+src/lib/catchups-core.test.mjs                                          
+src/lib/collection-date.test.mjs                                        
+src/lib/collection-taxonomy.test.mjs                                    
+src/lib/composer-rule.test.mjs                                          
+src/lib/contribution-state.test.mjs                                     
+src/lib/db-pool-rule.test.mjs                                           
+src/lib/db-text.test.mjs                                                
+src/lib/demo-seed/content.test.mjs                                      
+src/lib/demo.test.mjs                                                   
+src/lib/directory-rule.test.mjs                                         
+src/lib/directory-where.test.mjs                                        
+src/lib/draft-rule.test.mjs                                             
+src/lib/email-normalization-rule.test.mjs                               
+src/lib/exif-date.test.mjs                                              
+src/lib/feed-write-rule.test.mjs                                        
+src/lib/gate-coverage.test.mjs                                          
+src/lib/group-succession.test.mjs                                       
+src/lib/heart.test.mjs                                                  
+src/lib/house-spans.test.mjs                                            
+src/lib/houses.test.mjs                                                 
+src/lib/human-pass-rule.test.mjs                                        
+src/lib/identity-row-overflow-rule.test.mjs                             
+src/lib/image-facts.test.mjs                                            
+src/lib/image-fit.test.mjs                                              
+src/lib/image-purge-rule.test.mjs                                       
+src/lib/index-coverage.test.mjs                                         
+src/lib/keyset.test.mjs                                                 
+src/lib/loading-boundary-rule.test.mjs                                  
+src/lib/login-attempt-rule.test.mjs                                     
+src/lib/mail-policy.test.mjs                                            
+src/lib/mail-queue-rule.test.mjs                                        
+src/lib/map-cluster.test.mjs                                            
+src/lib/mark-centring.test.mjs                                          
+src/lib/normalize.test.mjs                                              
+src/lib/notification-links.test.mjs                                     
+src/lib/notification-reach.test.mjs                                     
+src/lib/origin-rule.test.mjs                                            
+src/lib/password-rule.test.mjs                                          
+src/lib/people-search-rule.test.mjs                                     
+src/lib/photo-layout.test.mjs                                           
+src/lib/photo-suggest.test.mjs                                          
+src/lib/photo-suggest.ts                                                
+src/lib/photo-visibility-rule.test.mjs                                  
+src/lib/place-input.test.mjs                                            
+src/lib/post-caps.test.mjs                                              
+src/lib/post-visibility-rule.test.mjs                                   
+src/lib/presence-rule.test.mjs                                          
+src/lib/prisma-errors.test.mjs                                          
+src/lib/profession-tags.test.mjs                                        
+src/lib/profile-editor-rule.test.mjs                                    
+src/lib/profile-email.test.mjs                                          
+src/lib/proxy-rule.test.mjs                                             
+src/lib/purge-rule.test.mjs                                             
+src/lib/rich-text-editing.test.mjs                                      
+src/lib/rich-text.test.mjs                                              
+src/lib/rich-truncate.test.mjs                                          
+src/lib/river-cursor.test.mjs                                           
+src/lib/roster-rule.test.mjs                                            
+src/lib/search-continuation.test.mjs                                    
+src/lib/security-regressions.test.mjs                                   
+src/lib/session-revocation.test.mjs                                     
+src/lib/test-fn-body.mjs                                                
+src/lib/test-kit.mjs                                                    
+src/lib/text-shape.test.mjs                                             
+src/lib/text-width.test.mjs                                             
+src/lib/threads-rule.test.mjs                                           
+src/lib/turnstile-origin-rule.test.mjs                                  
+src/lib/unattended-rule.test.mjs                                        
+src/lib/upload-ownership-rule.test.mjs                                  
+src/lib/upload-shared.test.mjs                                          
+src/lib/upload-size-rule.test.mjs                                       
+src/lib/valley-day.test.mjs                                             
+src/lib/valley-year.test.mjs                                            
+src/lib/vcard.test.mjs                                                  
+src/lib/verify-outcome-rule.test.mjs                                    
+Unused dependencies (2)
+@prisma/client  package.json:40:6
+prisma          package.json:56:6
+Unused exports (136)
+BASE_CSS                           src/app/lab/_kit.tsx:234:14                          
+FilterPanel              function  src/app/lab/directory/_chrome.tsx:73:17              
+describeFilters          function  src/app/lab/directory/_chrome.tsx:313:17             
+SentenceLine             function  src/app/lab/directory/_chrome.tsx:327:17             
+PLACES                             src/app/lab/directory/_data.ts:69:14                 
+makeMembers              function  src/app/lab/directory/_data.ts:257:17                
+WorldCanvas              function  src/app/lab/directory/_maps.tsx:66:17                
+usePoints                function  src/app/lab/directory/_maps.tsx:901:17               
+ShippedCard              function  src/app/lab/directory/_people.tsx:40:17              
+PersonRow                function  src/app/lab/directory/_people.tsx:68:17              
+CompactCard              function  src/app/lab/directory/_people.tsx:94:17              
+RuledRow                 function  src/app/lab/directory/_people.tsx:119:17             
+LIVE_ROWS                          src/app/lab/directory/_profession.tsx:21:14          
+LIVE_TOTAL                         src/app/lab/directory/_profession.tsx:36:14          
+TAGGED                             src/app/lab/directory/_profession.tsx:41:14          
+FIELDS                             src/app/lab/directory/_profession.tsx:65:14          
+STAGES                             src/app/lab/directory/_profession.tsx:71:14          
+PEOPLE                             src/app/lab/groups-rethink/_data.ts:6:14             
+BirdAvatar                         src/app/lab/groups-rethink/_shell.tsx:32:10          
+H                                  src/app/lab/hoopoe-marks/_parts.tsx:25:10            
+Feather                  function  src/app/lab/hoopoe-marks/_parts.tsx:75:17            
+Eye                      function  src/app/lab/hoopoe-marks/_parts.tsx:83:17            
+Bill                     function  src/app/lab/hoopoe-marks/_parts.tsx:90:17            
+yearRange                function  src/app/lab/profiles/_chain-kit.tsx:101:17           
+VIEWPORT                           src/app/lab/spine/_columns.tsx:19:14                 
+SIDEBAR                            src/app/lab/spine/_columns.tsx:20:14                 
+UNI_LEFT                           src/app/lab/spine/_columns.tsx:156:14                
+PLEDGE                             src/app/lab/support-ideas/_shared.tsx:39:14          
+SEGMENTS                           src/app/lab/support-ideas/_shared.tsx:45:14          
+MONTHLY                            src/app/lab/support-ideas/_shared.tsx:51:14          
+BUILD_COST                         src/app/lab/support-ideas/_shared.tsx:53:14          
+BUILD_RECOVERED                    src/app/lab/support-ideas/_shared.tsx:54:14          
+BUILD_COST                         src/app/lab/support/_bars.tsx:15:14                  
+LETTERS                            src/app/lab/tiles/_specimens.tsx:344:14              
+GATES                              src/app/lab/tiles/_specimens.tsx:834:14              
+SURFACES                           src/app/lab/tiles/_specimens.tsx:869:14              
+verdictFor               function  src/app/lab/tiles/_specimens.tsx:1010:17             
+libre                              src/app/lab/type/_fonts.ts:46:14                     
+sourceSans                         src/app/lab/type/_fonts.ts:52:14                     
+fraunces                           src/app/lab/type/_fonts.ts:60:14                     
+newsreader                         src/app/lab/type/_fonts.ts:68:14                     
+instrument                         src/app/lab/type/_fonts.ts:76:14                     
+literata                           src/app/lab/type/_fonts.ts:84:14                     
+publicSans                         src/app/lab/type/_fonts.ts:94:14                     
+inter                              src/app/lab/type/_fonts.ts:105:14                    
+figtree                            src/app/lab/type/_fonts.ts:112:14                    
+SHIPPED_SET_WIDTH                  src/app/lab/type/_fonts.ts:170:14                    
+Sheared                  function  src/app/lab/type/_specimens.tsx:38:17                
+preloadViewer                      src/components/collection/photo-river.tsx:27:14      
+bandsOf                  function  src/components/collection/photo-river.tsx:202:17     
+READING_LINE                       src/components/collection/photo-river.tsx:258:14     
+RIVER_ORDERS                       src/components/collection/river-controls.tsx:63:14   
+orderLabel                         src/components/collection/river-controls.tsx:70:14   
+SortPill                 function  src/components/common/filters/facet-select.tsx:116:17
+PEAK_SPAN                          src/components/layout/peaks-mark.tsx:33:14           
+PEAK_CENTRE                        src/components/layout/peaks-mark.tsx:34:14           
+useMomentAutoplay        function  src/components/mascot/moments/moment-hoopoe.tsx:43:17
+hashToken                function  src/lib/auth-tokens.ts:77:17                         
+BIRD_SPECIES_COUNT                 src/lib/avatar.ts:44:14                              
+BIRD_POSE_COUNT                    src/lib/avatar.ts:47:14                              
+HOOPOE_HASH_REMAP_INDEX            src/lib/avatar.ts:110:14                             
+FIRST_BATCH_YEAR                   src/lib/batch-year.ts:24:14                          
+LAST_BATCH_YEAR                    src/lib/batch-year.ts:25:14                          
+ACTION_FAILED                      src/lib/call-action.ts:23:14                         
+captionNeedsTidying                src/lib/caption-tidy.ts:95:14                        
+DAY_MS                             src/lib/catchups-core.ts:80:14                       
+HOUR_MS                            src/lib/catchups-core.ts:81:14                       
+REMINDER_TWO_DAYS                  src/lib/catchups-core.ts:106:14                      
+REMINDER_LAST_DAY                  src/lib/catchups-core.ts:107:14                      
+REMINDER_EXTENDED                  src/lib/catchups-core.ts:108:14                      
+dailyBucket              function  src/lib/catchups-core.ts:144:17                      
+withDailyBucket          function  src/lib/catchups-core.ts:149:17                      
+daysLeftUntil            function  src/lib/catchups-core.ts:158:17                      
+TICK_GRACE_MS                      src/lib/catchups-core.ts:393:14                      
+computeStatus            function  src/lib/catchups-core.ts:401:17                      
+valleyDaysLeft           function  src/lib/catchups-core.ts:746:17                      
+THUMB_PX                           src/lib/collection-photo.ts:26:14                    
+ERAS                               src/lib/collection.ts:181:14                         
+eraLabel                           src/lib/collection.ts:199:14                         
+ERA_START_YEAR                     src/lib/collection.ts:361:14                         
+eraSortYear                        src/lib/collection.ts:376:14                         
+eraSeekBoundary          function  src/lib/collection.ts:386:17                         
+eraPhrase                function  src/lib/collection.ts:499:17                         
+CONTRIBUTION_STATUSES              src/lib/contribution-state.ts:22:14                  
+canBecomePaid            function  src/lib/contribution-state.ts:42:17                  
+DEMO_CLOSED_PATHS                  src/lib/demo.ts:283:14                               
+HOUSE_OPTIONS                      src/lib/directory-facets.ts:14:14                    
+dailyBudget              function  src/lib/email-queue.ts:394:23                        
+SEND_TIMEOUT_MS                    src/lib/email.ts:77:14                               
+parseExifStamp           function  src/lib/exif-date.ts:128:17                          
+H                                  src/lib/hoopoe-geometry.ts:32:14                     
+PEEK_AXIS                          src/lib/hoopoe-geometry.ts:320:14                    
+PEEK_VIEW                          src/lib/hoopoe-geometry.ts:324:14                    
+PEEK_CREST                         src/lib/hoopoe-geometry.ts:331:14                    
+peekPrims                function  src/lib/hoopoe-geometry.ts:334:17                    
+primsToSvg               function  src/lib/hoopoe-geometry.ts:346:17                    
+UPLOAD_BODY_LIMIT                  src/lib/image-downscale.ts:88:14                     
+MAX_STORED_PIXELS                  src/lib/image.ts:71:14                               
+storedPixelFit           function  src/lib/image.ts:82:17                               
+WEBP_MAX_DIM                       src/lib/image.ts:100:14                              
+UNKNOWN_FOCAL                      src/lib/image.ts:184:14                              
+meanChroma               function  src/lib/image.ts:235:17                              
+isGreyscale              function  src/lib/image.ts:250:17                              
+focalFraction            function  src/lib/image.ts:263:17                              
+SESSION_GAP_MIN                    src/lib/last-seen.ts:18:14                           
+drainEligible            function  src/lib/mail-policy.ts:109:17                        
+drainHasWork             function  src/lib/mail-policy.ts:328:17                        
+TAP_MIN_PX                         src/lib/map-cluster.ts:66:14                         
+hitRadiusU               function  src/lib/map-cluster.ts:119:17                        
+TALL_TARGET                        src/lib/photo-layout.ts:49:14                        
+PHOTO_MAX_HEIGHT                   src/lib/photo-layout.ts:88:14                        
+AIM_Y                              src/lib/photo-layout.ts:121:14                       
+AIM_WIDE_Y                         src/lib/photo-layout.ts:135:14                       
+CROP_BUDGET                        src/lib/photo-layout.ts:159:14                       
+drawnRows                function  src/lib/photo-layout.ts:571:17                       
+PHOTO_SCOPES                       src/lib/photo-visibility-rule.ts:23:14               
+MAX_CLASS_YEARS                    src/lib/photo-visibility-rule.ts:70:14               
+classYearsOf             function  src/lib/photo-visibility-rule.ts:96:17               
+storedClassYears         function  src/lib/photo-visibility-rule.ts:116:17              
+classYearsInclude        function  src/lib/photo-visibility-rule.ts:129:17              
+isValley                 function  src/lib/photo-visibility-rule.ts:144:17              
+PHOTO_NOT_VISIBLE                  src/lib/photo-visibility-rule.ts:152:14              
+MAX_PLACES                         src/lib/place-input.ts:23:14                         
+batchTargetsInclude      function  src/lib/post-visibility-rule.ts:155:17               
+PROFESSION_TAGS                    src/lib/profession-tags.ts:39:14                     
+TAG_VALUES                         src/lib/profession-tags.ts:91:14                     
+TAG_MAX_PER_PERSON                 src/lib/profession-tags.ts:149:14                    
+VOCAB_MAX                          src/lib/profession-tags.ts:162:14                    
+TAG_RULES                          src/lib/profession-tags.ts:300:14                    
+FORMAT_SHORTCUTS                   src/lib/rich-text-editing.ts:89:14                   
+stripRosterInitials      function  src/lib/roster-rule.ts:34:17                         
+ownUploadsPrefix         function  src/lib/upload-ownership-rule.ts:37:17               
+MAX_IMAGES                         src/lib/upload-ownership.ts:5:10                     
+MAX_IMAGE_URL                      src/lib/upload-ownership.ts:5:22                     
+firstGrapheme            function  src/lib/utils.ts:152:17                              
+truncateGraphemes        function  src/lib/utils.ts:170:17                              
+Unused exported types (12)
+BandCount        type       src/app/(main)/collection/actions.ts:761:13    
+LabStatus        type       src/app/lab/_registry.ts:37:13                 
+LabChildEntry    interface  src/app/lab/_registry.ts:47:18                 
+Place            type       src/app/lab/directory/_data.ts:59:13           
+ScaleKey         type       src/app/lab/directory/_data.ts:419:13          
+Person           type       src/app/lab/groups-rethink/_data.ts:4:13       
+Shot             type       src/app/lab/landings/_shared.ts:20:22          
+ChainMetrics     interface  src/app/lab/profiles/_chain-kit.tsx:186:18     
+MockLinkKind     type       src/app/lab/profiles/_data.ts:18:13            
+SurfaceScore     type       src/app/lab/tiles/_specimens.tsx:861:13        
+AdminSectionDef  interface  src/components/admin/admin-nav.ts:32:18        
+ComposerScope    type       src/components/posts/create-post-form.tsx:74:13
+npx --yes knip --no-progress --production  1.86s user 0.40s system 141% cpu 1.598 total

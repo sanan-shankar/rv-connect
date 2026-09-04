@@ -1,0 +1,4 @@
+
+✔ no dependency violations found (156 modules, 133 dependencies cruised)
+
+npx --yes dependency-cruiser@16 --config $R/depcruise.config.cjs  "^src"   sr  1.51s user 0.55s system 65% cpu 3.133 total

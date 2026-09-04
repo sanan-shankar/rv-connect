@@ -1,0 +1,43 @@
+top-level (file-level) durations from node --test --test-reporter=tap, one process, 2026-09-03:
+   1592.6 ms  src/lib/avatar.test.mjs
+   1123.9 ms  a 108MP photo is refused in words that name the way out
+   1064.0 ms  overflow-*-visible is always written with the other axis clipped
+    220.5 ms  every Collection photo's recorded size matches the file on disk
+    218.1 ms  C-069: nothing calls delImage directly except the two places allowed to
+    191.5 ms  the crop is aimed at the subject, whatever shape the photograph is
+    188.7 ms  nothing links a member to /settings, which does not exist
+    169.9 ms  a stored image is measured at the size it will be served
+    165.4 ms  nothing anywhere mints a link to the retired /admin?thread= route
+    163.8 ms  a photograph with no colour in it is recognised as one
+    139.9 ms  C-141: the countdown, the page sentence and the bell agree, hour by hour
+    118.7 ms  no time-ordered query pages by naming a row
+    114.7 ms  C-067/C-070: sharp still behaves the way the box assumes
+    113.3 ms  no native confirm/alert/prompt dialogs in app code
+    101.4 ms  no money surface reads a contribution sum's gross amount
+     99.3 ms  every people-search caller either asks for alumni only or says why not
+     99.3 ms  every place writer mirrors the legacy columns from the one helper
+     93.7 ms  every lookup by email goes through the canonical form
+     87.0 ms  C-074/C-130: concurrent moderation is answered, not thrown at
+     85.8 ms  every text field with a box wears FIELD_FOCUS (or is on the reasoned borderless list)
+     85.2 ms  no date is rendered without a time zone in a server-rendered file
+     81.9 ms  an unrecorded year breaks the span instead of being claimed
+     72.9 ms  every loading.tsx sits beside the page it stands in for
+     65.4 ms  a square photograph is measured too, rather than coming back as NaN
+     65.2 ms  the stored copy keeps the date and loses the coordinates
+     57.9 ms  every way a post stops being readable clears the bell rows that named it
+     51.8 ms  the ordinary tap: the server agrees with the flip
+     49.0 ms  C1-c: the admin email is not compiled into the browser bundle
+     48.3 ms  no page refuses a post ahead of the rule
+     45.2 ms  the README names no script that has been deleted
+     42.2 ms  every tracked script has a line in the README
+     41.8 ms  every SQL date bucket converts to the valley's zone before truncating
+     39.7 ms  every exported action in src/app/(main)/catchups/actions.ts is gated or deliberately public
+     39.3 ms  a stamp the archive would not file is not handed back either
+     38.6 ms  C2: every write path that accepts image URLs runs the ownership gate
+     33.1 ms  a PNG's date is found in the modern eXIf chunk too
+     31.6 ms  no app file animates through the full `motion` namespace
+     31.5 ms  the shutter time is preferred to everything else
+     30.9 ms  no photograph is ever drawn taller than the ceiling
+     30.3 ms  an ordinary published post is visible to any member
+
+top-level entries: 1004; sum 8304 ms

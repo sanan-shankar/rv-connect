@@ -1,0 +1,96 @@
+Unused files (7)
+src/components/common/filters/active-filter-chips.tsx
+src/components/common/filters/result-count.tsx       
+src/components/landing/feature-section.tsx           
+src/components/landing/footer-hoopoe.tsx             
+src/components/landing/landing-footer.tsx            
+src/components/landing/showcase.tsx                  
+src/components/landing/trust-section.tsx             
+Unused dependencies (1)
+@prisma/client  package.json:40:6
+Unused exports (70)
+BASE_CSS                      src/app/lab/_kit.tsx:234:14                          
+FilterPanel         function  src/app/lab/directory/_chrome.tsx:73:17              
+describeFilters     function  src/app/lab/directory/_chrome.tsx:313:17             
+SentenceLine        function  src/app/lab/directory/_chrome.tsx:327:17             
+PLACES                        src/app/lab/directory/_data.ts:69:14                 
+makeMembers         function  src/app/lab/directory/_data.ts:257:17                
+WorldCanvas         function  src/app/lab/directory/_maps.tsx:66:17                
+usePoints           function  src/app/lab/directory/_maps.tsx:901:17               
+ShippedCard         function  src/app/lab/directory/_people.tsx:40:17              
+PersonRow           function  src/app/lab/directory/_people.tsx:68:17              
+CompactCard         function  src/app/lab/directory/_people.tsx:94:17              
+RuledRow            function  src/app/lab/directory/_people.tsx:119:17             
+LIVE_ROWS                     src/app/lab/directory/_profession.tsx:21:14          
+LIVE_TOTAL                    src/app/lab/directory/_profession.tsx:36:14          
+TAGGED                        src/app/lab/directory/_profession.tsx:41:14          
+FIELDS                        src/app/lab/directory/_profession.tsx:65:14          
+STAGES                        src/app/lab/directory/_profession.tsx:71:14          
+PEOPLE                        src/app/lab/groups-rethink/_data.ts:6:14             
+BirdAvatar                    src/app/lab/groups-rethink/_shell.tsx:32:10          
+H                             src/app/lab/hoopoe-marks/_parts.tsx:25:10            
+Feather             function  src/app/lab/hoopoe-marks/_parts.tsx:75:17            
+Eye                 function  src/app/lab/hoopoe-marks/_parts.tsx:83:17            
+Bill                function  src/app/lab/hoopoe-marks/_parts.tsx:90:17            
+yearRange           function  src/app/lab/profiles/_chain-kit.tsx:101:17           
+VIEWPORT                      src/app/lab/spine/_columns.tsx:19:14                 
+SIDEBAR                       src/app/lab/spine/_columns.tsx:20:14                 
+UNI_LEFT                      src/app/lab/spine/_columns.tsx:156:14                
+PLEDGE                        src/app/lab/support-ideas/_shared.tsx:39:14          
+SEGMENTS                      src/app/lab/support-ideas/_shared.tsx:45:14          
+MONTHLY                       src/app/lab/support-ideas/_shared.tsx:51:14          
+BUILD_COST                    src/app/lab/support-ideas/_shared.tsx:53:14          
+BUILD_RECOVERED               src/app/lab/support-ideas/_shared.tsx:54:14          
+BUILD_COST                    src/app/lab/support/_bars.tsx:15:14                  
+LETTERS                       src/app/lab/tiles/_specimens.tsx:344:14              
+GATES                         src/app/lab/tiles/_specimens.tsx:834:14              
+SURFACES                      src/app/lab/tiles/_specimens.tsx:869:14              
+verdictFor          function  src/app/lab/tiles/_specimens.tsx:1010:17             
+libre                         src/app/lab/type/_fonts.ts:46:14                     
+sourceSans                    src/app/lab/type/_fonts.ts:52:14                     
+fraunces                      src/app/lab/type/_fonts.ts:60:14                     
+newsreader                    src/app/lab/type/_fonts.ts:68:14                     
+instrument                    src/app/lab/type/_fonts.ts:76:14                     
+literata                      src/app/lab/type/_fonts.ts:84:14                     
+publicSans                    src/app/lab/type/_fonts.ts:94:14                     
+inter                         src/app/lab/type/_fonts.ts:105:14                    
+figtree                       src/app/lab/type/_fonts.ts:112:14                    
+SHIPPED_SET_WIDTH             src/app/lab/type/_fonts.ts:170:14                    
+Sheared             function  src/app/lab/type/_specimens.tsx:38:17                
+preloadViewer                 src/components/collection/photo-river.tsx:27:14      
+bandsOf             function  src/components/collection/photo-river.tsx:202:17     
+READING_LINE                  src/components/collection/photo-river.tsx:258:14     
+RIVER_ORDERS                  src/components/collection/river-controls.tsx:63:14   
+orderLabel                    src/components/collection/river-controls.tsx:70:14   
+SortPill            function  src/components/common/filters/facet-select.tsx:116:17
+useMomentAutoplay   function  src/components/mascot/moments/moment-hoopoe.tsx:43:17
+hashToken           function  src/lib/auth-tokens.ts:77:17                         
+BIRD_SPECIES_COUNT            src/lib/avatar.ts:44:14                              
+BIRD_POSE_COUNT               src/lib/avatar.ts:47:14                              
+THUMB_PX                      src/lib/collection-photo.ts:26:14                    
+HOUSE_OPTIONS                 src/lib/directory-facets.ts:14:14                    
+dailyBudget         function  src/lib/email-queue.ts:394:23                        
+SEND_TIMEOUT_MS               src/lib/email.ts:77:14                               
+H                             src/lib/hoopoe-geometry.ts:32:14                     
+PEEK_CREST                    src/lib/hoopoe-geometry.ts:331:14                    
+SESSION_GAP_MIN               src/lib/last-seen.ts:18:14                           
+TAP_MIN_PX                    src/lib/map-cluster.ts:66:14                         
+PHOTO_SCOPES                  src/lib/photo-visibility-rule.ts:23:14               
+FORMAT_SHORTCUTS              src/lib/rich-text-editing.ts:89:14                   
+MAX_IMAGES                    src/lib/upload-ownership.ts:5:10                     
+MAX_IMAGE_URL                 src/lib/upload-ownership.ts:5:22                     
+Unused exported types (11)
+LabStatus        type       src/app/lab/_registry.ts:37:13                 
+LabChildEntry    interface  src/app/lab/_registry.ts:47:18                 
+Place            type       src/app/lab/directory/_data.ts:59:13           
+ScaleKey         type       src/app/lab/directory/_data.ts:419:13          
+Person           type       src/app/lab/groups-rethink/_data.ts:4:13       
+Shot             type       src/app/lab/landings/_shared.ts:20:22          
+ChainMetrics     interface  src/app/lab/profiles/_chain-kit.tsx:186:18     
+MockLinkKind     type       src/app/lab/profiles/_data.ts:18:13            
+SurfaceScore     type       src/app/lab/tiles/_specimens.tsx:861:13        
+AdminSectionDef  interface  src/components/admin/admin-nav.ts:32:18        
+ComposerScope    type       src/components/posts/create-post-form.tsx:74:13
+Configuration hints (2)
+src/generated/**    scripts/qa/knip.jsonc  Remove from ignore            
+prisma.config.ts    scripts/qa/knip.jsonc  Remove redundant entry pattern

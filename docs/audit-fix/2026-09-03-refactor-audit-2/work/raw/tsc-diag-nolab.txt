@@ -1,0 +1,16 @@
+Files:                         6321
+Lines of Library:             53142
+Lines of Definitions:        423766
+Lines of TypeScript:         231547
+Lines of JavaScript:             87
+Lines of JSON:                  260
+Lines of Other:                   0
+Identifiers:                 741313
+Symbols:                     889365
+Types:                       275937
+Instantiations:              923289
+Memory used:               1055201K
+Parse time:                   0.94s
+Bind time:                    0.42s
+Check time:                   7.96s
+Total time:                  10.52s

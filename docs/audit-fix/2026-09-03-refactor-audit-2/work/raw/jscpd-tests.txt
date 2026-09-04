@@ -1,0 +1,19 @@
+[1mClone found (javascript)[22m
+ - [1m[32mlib/photo-layout.test.mjs[39m[22m [431:83 - 441:51] (11 lines, 54 tokens)
+   lib/photo-layout.test.mjs [453:86 - 458:51]
+[1mClone found (javascript)[22m
+ - [1m[32mlib/purge-rule.test.mjs[39m[22m [35:58 - 40:6] (6 lines, 55 tokens)
+   lib/purge-rule.test.mjs [131:81 - 139:6]
+[90m┌────────────┬────────────────┬─────────────┬──────────────┬──────────────┬──────────────────┬───────────────────┐[39m
+[90m│[39m[31m Format     [39m[90m│[39m[31m Files analyzed [39m[90m│[39m[31m Total lines [39m[90m│[39m[31m Total tokens [39m[90m│[39m[31m Clones found [39m[90m│[39m[31m Duplicated lines [39m[90m│[39m[31m Duplicated tokens [39m[90m│[39m
+[90m├────────────┼────────────────┼─────────────┼──────────────┼──────────────┼──────────────────┼───────────────────┤[39m
+[90m│[39m javascript [90m│[39m 102            [90m│[39m 15126       [90m│[39m 84489        [90m│[39m 2            [90m│[39m 15 (0.10%)       [90m│[39m 109 (0.13%)       [90m│[39m
+[90m├────────────┼────────────────┼─────────────┼──────────────┼──────────────┼──────────────────┼───────────────────┤[39m
+[90m│[39m [1mTotal:[22m     [90m│[39m 102            [90m│[39m 15126       [90m│[39m 84489        [90m│[39m 2            [90m│[39m 15 (0.10%)       [90m│[39m 109 (0.13%)       [90m│[39m
+[90m└────────────┴────────────────┴─────────────┴──────────────┴──────────────┴──────────────────┴───────────────────┘[39m
+[90mFound 2 clones.[39m
+[90mtime: 21.279ms[39m
+
+[90m💡 Auto-refactor with AI: [1m[39mnpx skills add https://github.com/kucherenko/jscpd --skill dry-refactoring[90m[22m
+[90m🎩 New: Gangsta Agents — discipline your AI coding → gangsta.page[39m
+[90m💖 Support jscpd project → https://opencollective.com/jscpd[39m

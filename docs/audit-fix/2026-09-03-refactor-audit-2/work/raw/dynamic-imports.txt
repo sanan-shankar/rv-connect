@@ -1,0 +1,52 @@
+src/app/not-found.tsx:6:import dynamic from "next/dynamic";
+src/app/not-found.tsx:23: * onReady rather than ref: next/dynamic returns a wrapper that does not
+src/app/not-found.tsx:29:  () => import("@/components/mascot/hoopoe").then((m) => m.Hoopoe),
+src/components/collection/collection-client.tsx:32:import dynamic from "next/dynamic";
+src/components/collection/collection-client.tsx:71:  () => import("@/components/common/image-viewer").then((m) => m.ImageViewer),
+src/components/collection/collection-client.tsx:75:  () => import("@/components/common/confirm-dialog").then((m) => m.ConfirmDialog),
+src/components/collection/collection-client.tsx:79:  () => import("./contribute-room").then((m) => m.ContributeDialog),
+src/components/collection/collection-client.tsx:83:  () => import("@/components/admin/moderation-dialog").then((m) => m.ModerationDialog),
+src/components/collection/collection-client.tsx:87:  () => import("./edit-photo-dialog").then((m) => m.EditPhotoDialog),
+src/components/collection/collection-client.tsx:998:   *  the whole material. `import()`ing them early does not fix it; the loader
+src/components/collection/photo-river.tsx:27:export const preloadViewer = () => void import("@/components/common/image-viewer");
+src/components/settings/avatar-upload.ts:103:      const { shrinkForUpload } = await import("@/lib/image-downscale");
+src/components/letters/letter-images.tsx:8:import dynamic from "next/dynamic";
+src/components/letters/letter-images.tsx:19:  () => import("@/components/common/image-viewer").then((m) => m.ImageViewer),
+src/components/letters/letter-images.tsx:51:            onPointerEnter={() => void import("@/components/common/image-viewer")}
+src/components/posts/create-post-form.tsx:5:import dynamic from "next/dynamic";
+src/components/posts/create-post-form.tsx:35:const PollCreator = dynamic(() => import("./poll-creator").then((m) => m.PollCreator), {
+src/components/posts/create-post-form.tsx:39:  () => import("./mention-dropdown").then((m) => m.MentionDropdown),
+src/components/posts/create-post-form.tsx:43:  () => import("@/components/common/attach-image-dialog").then((m) => m.AttachImageDialog),
+src/components/posts/create-post-form.tsx:314:    void import("./poll-creator");
+src/components/posts/create-post-form.tsx:315:    void import("./mention-dropdown");
+src/components/posts/create-post-form.tsx:316:    void import("@/components/common/attach-image-dialog");
+src/components/posts/post-card.tsx:4:import dynamic from "next/dynamic";
+src/components/posts/post-card.tsx:64:  () => import("./comments-section").then((m) => m.CommentsSection),
+src/components/posts/post-card.tsx:68:  () => import("@/components/common/image-viewer").then((m) => m.ImageViewer),
+src/components/posts/post-card.tsx:72:  () => import("./edit-post-dialog").then((m) => m.EditPostDialog),
+src/components/posts/post-card.tsx:76:  () => import("@/components/admin/moderation-dialog").then((m) => m.ModerationDialog),
+src/components/posts/post-card.tsx:79:const preloadComments = () => void import("./comments-section");
+src/components/posts/post-card.tsx:80:const preloadViewer = () => void import("@/components/common/image-viewer");
+src/components/mascot/mascot-flight-layer.tsx:30:import dynamic from "next/dynamic";
+src/components/mascot/mascot-flight-layer.tsx:48:const Hoopoe = dynamic<HoopoeProps>(() => import("./hoopoe").then((m) => m.Hoopoe), { ssr: false });
+src/components/profile/letterhead-profile.tsx:47:import dynamic from "next/dynamic";
+src/components/profile/letterhead-profile.tsx:128:  () => import("@/components/common/location-picker").then((m) => m.LocationPicker),
+src/components/profile/letterhead-profile.tsx:137:  import("@/components/profile/house-chain-editor").then((m) => m.HouseChainEditor)
+src/components/profile/letterhead-profile.tsx:140:  () => import("@/components/profile/contacts-editor").then((m) => m.ContactsEditor),
+src/components/profile/letterhead-profile.tsx:144:  () => import("@/components/common/attach-image-dialog").then((m) => m.AttachImageDialog),
+src/components/profile/letterhead-profile.tsx:148:  () => import("@/components/settings/avatar-crop-dialog").then((m) => m.AvatarCropDialog),
+src/components/profile/letterhead-profile.tsx:421:    void import("@/components/profile/house-chain-editor");
+src/components/profile/letterhead-profile.tsx:422:    void import("@/components/profile/contacts-editor");
+src/components/profile/letterhead-profile.tsx:423:    void import("@/components/common/location-picker");
+src/components/profile/letterhead-profile.tsx:424:    void import("@/components/common/attach-image-dialog");
+src/components/profile/letterhead-profile.tsx:425:    void import("@/components/settings/avatar-crop-dialog");
+src/components/common/motion-features.tsx:31:const loadDomMax = () => import("motion/react").then((mod) => mod.domMax);
+src/components/mascot/hoopoe-warmup.tsx:56:    void import("./hoopoe");
+src/components/catchups/round/answer-photos.tsx:24:import dynamic from "next/dynamic";
+src/components/catchups/round/answer-photos.tsx:37:  () => import("@/components/common/image-viewer").then((m) => m.ImageViewer),
+src/components/catchups/round/answer-photos.tsx:40:const preloadViewer = () => void import("@/components/common/image-viewer");
+src/components/catchups/round/photo-wall.tsx:21:import dynamic from "next/dynamic";
+src/components/catchups/round/photo-wall.tsx:30:  () => import("@/components/common/image-viewer").then((m) => m.ImageViewer),
+src/components/catchups/round/photo-wall.tsx:33:const preloadViewer = () => void import("@/components/common/image-viewer");
+src/components/analytics/posthog-client.ts:62:  void import("posthog-js")
+src/lib/storage.ts:202:      const { stat } = await import("fs/promises");

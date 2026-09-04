@@ -1,0 +1,5 @@
+Preparing worktree (detached HEAD 72b5a1d)
+HEAD is now at 72b5a1d fix(viewer): the chrome stays under a resting cursor, and the page behind stays put
+cp -Rl /Users/sanan/Documents/rv-connect/node_modules node_modules  0.12s user 32.93s system 89% cpu 36.877 total
+setup done Thu Sep  3 16:46:15 IST 2026
+16:46  up  6:18, 1 user, load averages: 10.15 5.79 4.85
