@@ -1,5 +1,4 @@
 @import "tailwindcss" source("../");
-@import "shadcn/tailwind.css";
 @import "./tailwind-theme.css";
 
 /* tailwind-theme.css holds the three things Tailwind needs at compile time:
