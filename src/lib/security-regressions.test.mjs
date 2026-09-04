@@ -323,9 +323,17 @@ test("class: the permalink and its page title both use the rule", () => {
   // may see something. loadPhoto AND generateMetadata each decide through
   // decidePhotoVisibility rather than restating the checks inline -- the
   // metadata one matters because a caption is content and it goes in a title.
-  const actions = decomment(read("src/app/(main)/collection/actions.ts"));
+  //
+  // Reads collection-data.ts, not actions.ts: loadPhoto moved there on
+  // 2026-09-05 so it would stop being a client-callable action endpoint. The
+  // pin follows the function, not the filename.
+  const data = decomment(read("src/app/(main)/collection/collection-data.ts"));
   assert.ok(
-    /decidePhotoVisibility\(/.test(actions),
+    /export async function loadPhoto\(/.test(data),
+    "loadPhoto is no longer in collection-data.ts; this pin is reading the wrong file"
+  );
+  assert.ok(
+    /decidePhotoVisibility\(/.test(data),
     "loadPhoto stopped deciding through the shared rule"
   );
   const page = decomment(read("src/app/(main)/collection/[id]/page.tsx"));

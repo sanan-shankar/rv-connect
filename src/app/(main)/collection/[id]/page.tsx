@@ -7,7 +7,7 @@ import { CollectionClient } from "@/components/collection/collection-client";
 import { recordView } from "@/lib/content-view";
 import { decidePhotoVisibility } from "@/lib/photo-visibility-rule";
 import { collectionPageData } from "../collection-data";
-import { loadPhoto } from "../actions";
+import { loadPhoto } from "../collection-data";
 
 /** The permalink renders the same <CollectionClient>, so it hosts the same
  *  contribute action and needs the same room. The reasoning is written out

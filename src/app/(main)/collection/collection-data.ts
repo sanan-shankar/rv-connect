@@ -6,11 +6,11 @@ import { isPhotoAutoApproved } from "@/lib/collection-photo";
 import { MAX_PHOTOS_PER_ACCOUNT } from "@/lib/upload-shared";
 import {
   loadPhotos,
-  myPendingPhotos,
-  type PhotoData,
   type RiverOrder,
   type RiverFilters,
 } from "./actions";
+import { decidePhotoVisibility } from "@/lib/photo-visibility-rule";
+import { includeFor, shape, type PhotoData } from "@/lib/collection-shape";
 
 /* ------------------------------------------------------------------ *
  *  What the Collection page needs before it can draw anything.
@@ -221,4 +221,73 @@ export async function collectionPageData(filters: RiverFilters = { order: "newes
     canSeeClass: classWhere !== null,
     myClassYear: classKey(me?.batchYear),
   };
+}
+
+/* ------------------------------------------------------------------ *
+ *  The two reads that are NOT server actions.
+ *
+ *  They were exports of collection/actions.ts until 2026-09-05, which made
+ *  each of them a client-callable HTTP endpoint with its own action ID
+ *  (every export of a `"use server"` file is), for functions whose only
+ *  callers are server modules -- this file and /collection/[id]/page.tsx.
+ *  Both authenticate correctly, so this was never a hole; it was surface,
+ *  and that file's own comments say twice over that a server action is a
+ *  public HTTP endpoint. Two fewer things to reason about.
+ * ------------------------------------------------------------------ */
+
+/** One photograph, for a link straight to it. Same visibility rules as the
+ *  grid: a hidden photograph is nothing to anybody, and one still awaiting
+ *  review is visible only to whoever uploaded it and to an admin. Returns the
+ *  same shape the grid uses, because /collection/[id] is now that grid with
+ *  the viewer already open (spec sec. 5). */
+export async function loadPhoto(id: string): Promise<PhotoData | null> {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+  const row = await prisma.photo.findUnique({
+    where: { id },
+    include: includeFor(session.user.id),
+  });
+  if (!row) return null;
+
+  /* THE RULE ITSELF here, not a hand-written repeat of it. This is the path a
+     shared link takes, and audits M30/M31 are both the same story: a list and
+     a permalink disagreeing about who may see something, so a row absent from
+     every river stayed reachable at its own URL. One function decides both.
+
+     The viewer's verification and class are read off the row for the reason
+     given in loadPhotos: a JWT claim can be an hour stale. */
+  const me = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { verifyState: true, batchYear: true },
+  });
+  const seen = decidePhotoVisibility(row, {
+    id: session.user.id,
+    role: session.user.role,
+    verifyState: me?.verifyState,
+    batchYear: me?.batchYear,
+  });
+  if (!seen.ok) return null;
+
+  return shape(row, session.user.id);
+}
+
+/** The member's own queue, for the half of the Collection they are looking at.
+ *
+ *  SCOPED, though every row is the caller's own and none of it is a leak: a
+ *  photograph awaiting review sits above the river it belongs to, and showing
+ *  a pending valley contribution over the Class Collection would say it is
+ *  going somewhere it is not. Class contributions auto-approve (spec sec.
+ *  7.3), so in practice this is empty there -- but it must be empty because
+ *  the query said so, not by luck. */
+export async function myPendingPhotos(
+  scope: PhotoScope = "valley"
+): Promise<PhotoData[]> {
+  const session = await auth();
+  if (!session?.user?.id) return [];
+  const rows = await prisma.photo.findMany({
+    where: { scope, uploaderId: session.user.id, approved: false, isHidden: false },
+    include: includeFor(session.user.id),
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map((p) => shape(p, session.user.id));
 }
