@@ -68,13 +68,17 @@ const RATE_LIMIT: Record<TokenKind, { max: number; windowMinutes: number }> = {
  * inside a `$transaction` callback it would not join that transaction, just
  * run a second unrelated statement on its own connection. So the claim is
  * repeated against `tx` -- see `claimToken` below, which is where that now
- * lives -- and it must hash the token the same way this file does. One import
- * rather than a second copy:
- * two implementations of one hash is the drift that would make every
- * confirmation and reset in the app stop working, on the day somebody changed
- * one of them.
+ * lives -- and it must hash the token the same way this file does. One
+ * function rather than a second copy: two implementations of one hash is the
+ * drift that would make every confirmation and reset in the app stop working,
+ * on the day somebody changed one of them.
+ *
+ * Not exported. It was, back when the caller lived in another file; `claimToken`
+ * below replaced that caller and is three functions down from here, so the
+ * export had no importer left (checked 2026-09-05). Keep it private: a hash
+ * helper that anything can reach is a second implementation waiting to happen.
  */
-export function hashToken(raw: string): string {
+function hashToken(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
 }
 
