@@ -170,7 +170,7 @@ focus-visible, so fields light on click AND keyboard with the same pseudo-class)
    card runs on sky, so it sets `[--ring:var(--sky)]` once on its root and every focus
    treatment inside (the amount field, the button's Tab ring) turns sky (owner,
    2026-08-30: "I do like the idea of making this one blue"). It is the RAW `--ring`
-   token: `globals.css` declares `@theme inline`, so `ring-ring` and `border-ring` compile
+   token: `tailwind-theme.css` declares `@theme inline`, so `ring-ring` and `border-ring` compile
    to `var(--ring)` directly and there is no `--color-ring` at runtime to override.
    No surface writes its own focus classes to get a colour.
 3. **Controls** (buttons, links, menu triggers, anything without a glow-able border):

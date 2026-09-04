@@ -1,0 +1,15 @@
+/* The design lab's utilities, kept out of the stylesheet members download.
+ *
+ * globals.css scans src/ but excludes ./lab, so nothing here would otherwise
+ * get a rule. This sheet compiles the same utilities over the lab folder alone
+ * and the lab layout loads it on top of globals.css, which still supplies the
+ * preflight, the token values, the base layer and the components.
+ *
+ * It references tailwind-theme.css rather than globals.css on purpose: a
+ * negated @source applies to every sheet that reaches it, so referencing
+ * globals.css here would exclude ./lab from this scan too and emit nothing.
+ * Verified: with globals.css referenced, this file compiles to 84 bytes. */
+@reference "tailwindcss";
+@reference "../tailwind-theme.css";
+
+@import "tailwindcss/utilities.css" layer(utilities) source("./");
