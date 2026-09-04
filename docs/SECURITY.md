@@ -82,11 +82,18 @@ gate or a written public-by-design reason.
 | Admin messages | 2 years |
 | Reports | 3 years |
 | Payment records | 10 years |
-| Notifications | 1 year |
+| Notifications | 30 days |
 | Login + audit logs | 1 year |
 | Sent-email log | 180 days |
 | Presence + search telemetry (`Visit`, `SearchLog`) | 90 days |
 | Deleted accounts | purged 60 days after the request |
+
+*Notifications cut from 1 year to 30 days on 2026-09-04 (refactor audit 2, ORCH-04). They had
+been deleted at 30 days all along -- `snapshot.yml` called `prune.mjs --days 30` -- while this
+table, `retention.ts` and the privacy page all promised a year. M55 had spotted the same split and
+fixed it the other way, raising the code to 365 without touching the workflow flag, so the promise
+and the behaviour still disagreed. The owner kept the behaviour and moved the promise; the flag is
+deleted, so the window now lives only in `KEEP_DAYS.notifications`.*
 
 *Presence added 2026-08-21 (bug audit B-093): both tables were created after the sweep was written
 and neither had any expiry at all. Cut from 180 to 90 on 2026-08-25 (bug-report-2 C-164): `Visit` is

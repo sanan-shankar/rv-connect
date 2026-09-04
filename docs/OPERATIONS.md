@@ -114,7 +114,7 @@ aws s3 cp "s3://$R2_BACKUP_BUCKET/media/<key>" "s3://rv-alumni-media/<key>" --en
 
 One `curl` to `https://rishivalley.space/api/retention/sweep` carrying `CRON_SECRET`
 (security audit M34). The route applies the owner's retention schedule (admin messages
-2y, reports 3y, payments 10y, notifications 1y, login/audit logs 1y, sent-email log
+2y, reports 3y, payments 10y, notifications 30d, login/audit logs 1y, sent-email log
 180d) and makes 60-day-old deletion requests final, erasing the account's rows AND its
 R2 images (audits H9/M35). It lives in Actions rather than a Vercel cron because the
 Hobby plan allows two crons and both are spent (the Catch-up tick, the demo reset).
@@ -150,8 +150,10 @@ recorded, so a vendor being down never costs us the database numbers, which are 
 ones. A backfill records PostHog alone, because the other sources are point-in-time counts
 with no history and labelling today's counts as an older day's would be a lie (Low 104).
 
-The same job then runs `scripts/ops/prune.mjs --days 30`. Notifications are the one table
-here that grows without bound — ~0.8KB each, and 2,000 members at 500 apiece is ~800MB
+The same job then runs `scripts/ops/prune.mjs`. No `--days` flag: the window lives in
+`KEEP_DAYS.notifications` and the script's default follows it, because a flag here and a
+number there is exactly how the policy and the practice came apart (refactor audit 2,
+ORCH-04). Notifications are the one table here that grows without bound — ~0.8KB each, and 2,000 members at 500 apiece is ~800MB
 against a 500MB free tier.
 
 ### Minute budget
