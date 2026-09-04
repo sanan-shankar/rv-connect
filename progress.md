@@ -8867,3 +8867,26 @@ pin nobody remembers making. It had already happened four times over.
 
 Also dropped `"msw": false` from `allowScripts`: `msw` left the tree with `shadcn` yesterday, and
 denying an install script for a package nobody installs is noise in a block that exists to be read.
+
+## 2026-09-05 — an auth wrapper that wrapped nothing, and a hash that needed no export
+
+Refactor audit 2, Phase A, row A14, with both halves needing a correction first.
+
+`(auth)/layout.tsx` was called a no-op. It was not: it rendered
+`<div className="min-h-screen bg-background">`. Both halves turn out to be said elsewhere already.
+`globals.css:315` applies `bg-background text-foreground` to `body` for the whole product, and
+`auth-panel.tsx:126,129` sets its own `min-h-screen`, which is exactly what the layout's own
+comment claimed ("each auth page owns its own layout"). Measured after removing it: on `/signup`
+at 390x844 the panel spans 0 to 844, the document is 844 tall, and the mascot sits at y=235 fully
+inside. `npm run visual` unchanged on `/login` at both viewports; the other four auth routes
+screenshotted.
+
+`hashToken` was called an unused export. It has three callers -- all three inside its own file.
+What is unused is the `export`: its docblock explains it exists so a caller in another file can
+share one hash, and that caller is now `claimToken`, three functions further down the same file.
+So the function stays and the keyword goes, with the reason written down, because a hash helper
+anything can reach is a second implementation waiting to happen.
+
+Trap worth knowing: deleting a `layout.tsx` reds TypeScript until a build runs, because Next's
+generated `.next/types/validator.ts` still imports it and neither a dev-server request nor
+`tsc` regenerates that file. `npm run build` does.
