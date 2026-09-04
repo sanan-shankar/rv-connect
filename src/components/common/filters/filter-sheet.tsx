@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 /**
  * FilterSheet — the mobile bottom sheet that carries the full labelled facet
  * stack, with a sticky `Clear all` / `Show N` footer (filters-rework.md
- * sec. 5.2 / 6.2). Same shell for Directory and Collection; the facets
- * themselves are passed as children.
+ * sec. 5.2 / 6.2). Same shell for the Directory and the admin lists; the
+ * facets themselves are passed as children. The Collection left this kit in
+ * 8a0ba37 and owns its own river controls.
  */
 export function FilterSheet({
   open,
@@ -55,7 +56,7 @@ export function FilterSheet({
               // read as a stray swatch next to the solid Show button. The
               // press is the scale, and transform is what the transition is
               // for -- nothing here changes colour. Kept identical to the
-              // Clear all in active-filter-chips.tsx, its desktop twin.
+              // Clear all in sentence-line.tsx, its desktop counterpart.
               className="shrink-0 rounded-full px-1 text-sm font-semibold text-canopy underline-offset-2 outline-none transition-transform hover:underline active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
             >
               Clear all

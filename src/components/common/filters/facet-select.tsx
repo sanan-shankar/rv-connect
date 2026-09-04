@@ -25,17 +25,16 @@ function FacetOptionRow({ value, label }: { value: string; label: string }) {
   );
 }
 
-/**
- * The dropdown body shared by FacetSelect and SortPill: same portal/positioner/
- * popup/list/item tree, differing only in whether an "Any ..." clear row is
- * prepended.
- */
+/** The dropdown body: portal, positioner, popup, list, and an "Any ..." clear
+ *  row above the options. It was shared with SortPill until 2026-09-05, which
+ *  is why `anyItem` was optional; FacetSelect is the only caller now and always
+ *  passes one. */
 function FacetOptionsPopup({
   options,
   anyItem,
 }: {
   options: FacetOption[];
-  anyItem?: { value: string; label: string };
+  anyItem: { value: string; label: string };
 }) {
   return (
     <SelectPrimitive.Portal>
@@ -47,9 +46,7 @@ function FacetOptionsPopup({
       >
         <SelectPrimitive.Popup className={FACET_POPUP_CLASS}>
           <SelectPrimitive.List className="flex flex-col gap-0.5">
-            {anyItem && (
-              <FacetOptionRow value={anyItem.value} label={anyItem.label} />
-            )}
+            <FacetOptionRow value={anyItem.value} label={anyItem.label} />
             {options.map((o) => (
               <FacetOptionRow key={o.value} value={o.value} label={o.label} />
             ))}
@@ -103,44 +100,6 @@ export function FacetSelect({
         {set && <FacetClearButton label={label} onClear={() => onChange("")} />}
       </div>
       <FacetOptionsPopup options={options} anyItem={{ value: ANY, label: anyLabel ?? `Any ${label.toLowerCase()}` }} />
-    </SelectPrimitive.Root>
-  );
-}
-
-/**
- * SortPill — a FacetSelect variant that always has a value and is never
- * removable (no "Any" row, no `x`). Reads `Sort: Newest`. Stays neutral
- * (never canopy-tinted) even though it always carries a value: canopy means
- * "narrowing your results", and sort never narrows.
- */
-export function SortPill({
-  value,
-  onChange,
-  options,
-  className,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  options: FacetOption[];
-  className?: string;
-}) {
-  const selected = options.find((o) => o.value === value) ?? options[0];
-
-  return (
-    <SelectPrimitive.Root
-      value={selected.value}
-      onValueChange={(v) => onChange(String(v ?? selected.value))}
-    >
-      <div className={facetPillClass(false, className)}>
-        <SelectPrimitive.Trigger
-          data-facet-trigger=""
-          className="flex min-w-0 flex-1 items-center gap-1.5 py-2 outline-none"
-        >
-          <span className="truncate">Sort: {selected.label}</span>
-          <ChevronDown className="size-3.5 shrink-0 opacity-70" aria-hidden />
-        </SelectPrimitive.Trigger>
-      </div>
-      <FacetOptionsPopup options={options} />
     </SelectPrimitive.Root>
   );
 }

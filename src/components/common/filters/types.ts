@@ -1,4 +1,4 @@
-// Shared types for the Directory + Collection filter kit
+// Shared types for the Directory + admin filter kit
 // (src/components/common/filters/*).
 
 export interface FacetOption {

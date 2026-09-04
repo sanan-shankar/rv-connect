@@ -118,7 +118,7 @@ export function SentenceLine({
             onClick={onClearAll}
             // Text action, so the rule is its hover rather than a state layer:
             // a tint behind two words would read as a stray token. Matches its
-            // twins in active-filter-chips.tsx and filter-sheet.tsx.
+            // twin in filter-sheet.tsx, the mobile one.
             className="shrink-0 whitespace-nowrap rounded-full px-2 py-1 text-[12.5px] font-semibold text-canopy underline-offset-2 transition-transform hover:underline active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
           >
             Clear all
