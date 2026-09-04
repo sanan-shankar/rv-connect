@@ -8543,3 +8543,25 @@ after 20s; cursor on the photograph, still gone by 18s; `html` computed `overflo
 while open and `visible` after close, with the scroll position intact. Four pins in
 `image-viewer-chrome.test.mjs`, since every one of these fails invisibly. Gate 102/102, visual
 25/25.
+
+## 2026-09-04 — thirty days, said in one place
+
+Refactor audit 2 found the split M55 thought it had closed. `snapshot.yml` ran
+`prune.mjs --days 30` nightly; `retention.ts`, `docs/SECURITY.md` and the privacy page all
+promised a year. M55 had seen the same disagreement and fixed it the wrong way round, raising
+the code's default to 365 without touching the flag in the workflow, so the override survived
+its own repair and members' notifications kept going at thirty days while the published policy
+said 365.
+
+The owner chose the behaviour over the promise: "30 days is good. you can update the privacy
+policy to 30 days for notifications." So `KEEP_DAYS.notifications` is 30, `DEFAULT_DAYS` in
+prune.mjs is 30, the privacy table and the SECURITY.md retention table say 30 days, and the
+`--days` flag is deleted from the workflow — the number now exists in one place with a comment
+saying why, which is the only shape that survives the next person to read it.
+
+Four comments elsewhere cited the old year and are now false: `post-notifications.ts` and
+`notification-reach.test.mjs` explain the 404-link cleanup by how long a bell row lives, and
+`/notice/[id]` dated its own retirement from it. That last one is the interesting one — its
+audience is notification rows minted before 2026-07-24, so at thirty days it has resolved
+nothing since 2026-08-23. It is now retirable, and says so; deleting it is a fix session's job,
+not an audit's. Gate green, 102/102.

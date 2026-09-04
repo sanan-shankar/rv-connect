@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <article>
-      <DocTitle updated="20 August 2026">Privacy policy</DocTitle>
+      <DocTitle updated="4 September 2026">Privacy policy</DocTitle>
 
       <Section title="The short version">
         <P>
@@ -147,7 +147,7 @@ export default function PrivacyPage() {
             ["Messages to the admin", "2 years"],
             ["Reports and moderation records", "3 years"],
             ["Contribution records", "10 years, in line with tax record keeping"],
-            ["Notifications", "1 year"],
+            ["Notifications", "30 days"],
             ["Sign-in and security logs", "1 year"],
             ["Email delivery records", "180 days"],
             ["A deleted account", "Fully erased 60 days after you ask (see below)"],

@@ -12,8 +12,8 @@ import { ROOT, read, decomment } from "./test-kit.mjs";
  *     post links to, and nothing read the fragment. PostFeed fetches after
  *     mount, so the anchor does not exist when the router commits.
  *   - Deleting or hiding a letter left the bell rows pointing at
- *     `/letters/<id>`, which then answers 404 -- for up to a year, since
- *     notifications are kept until the 365-day sweep. Catch-ups had cleaned
+ *     `/letters/<id>`, which then answers 404 -- for up to a month, since
+ *     notifications are kept until the 30-day sweep. Catch-ups had cleaned
  *     up after itself since it was written; the feed never did.
  *
  *  The scroll's behaviour is pinned in e2e/deeplink.spec.ts (both navigation

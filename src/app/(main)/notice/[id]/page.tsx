@@ -13,11 +13,13 @@ import { openAdminNoticeThread } from "@/lib/admin-threads-server";
  * first time it is opened, repoints the notification at that thread, and
  * hands over.
  *
- * RETIRE AFTER 2027-08-01. This is a shim with a knowable expiry, not a
- * permanent route. Its whole audience is Notification rows minted before the
- * moderation-notes-to-messages migration of 2026-07-24, and retention.ts caps
- * notifications at 365 days, so by then no row that predates the migration can
- * still exist and this resolves nothing ever again. At that point: delete
+ * RETIRE NOW; the expiry has passed. This is a shim with a knowable expiry,
+ * not a permanent route. Its whole audience is Notification rows minted before
+ * the moderation-notes-to-messages migration of 2026-07-24, and retention.ts
+ * caps notifications at 30 days -- it said 365 until 2026-09-04, which is where
+ * the old "retire after 2027-08-01" date came from, but snapshot.yml had been
+ * pruning at 30 all along. So no row this could resolve has existed since
+ * 2026-08-23, and it resolves nothing ever again. To retire it: delete
  * src/app/(main)/notice/ (this file and its loading.tsx), drop the `createdAt`
  * override plumbing from `openAdminNoticeThread` if this is still its only
  * caller, and reword the four history comments that cite the route

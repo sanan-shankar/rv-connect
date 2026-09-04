@@ -8,7 +8,7 @@ import { postNotificationLink } from "@/lib/notification-links";
  * and nothing reconciled those rows with the post's own life: delete a letter
  * and the "X replied to your comment" in somebody else's bell still pointed at
  * `/letters/<id>`, which answers 404. Notifications are kept until the
- * 365-day sweep, so the window is a year (bug-report-2 C-054). Catch-ups has
+ * 30-day sweep, so the window is a month (bug-report-2 C-054). Catch-ups has
  * done this since it was written -- `clearCatchupNotifications` is the
  * in-repo counterexample this mirrors.
  *

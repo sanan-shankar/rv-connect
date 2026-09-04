@@ -86,10 +86,13 @@ jobs:
       # without bound -- ~0.8KB each, and 2,000 members at 500 apiece is ~800MB
       # against a 500MB free tier. Everything else is either fixed reference
       # data (Place) or lives in R2.
-      - name: Prune notifications older than 30 days
+      # No --days flag ON PURPOSE. It used to say 30 here and 365 in
+      # retention.ts, which is the split M55 thought it had fixed; the window
+      # lives in KEEP_DAYS.notifications now and this follows it.
+      - name: Prune stale notifications
         env:
           DIRECT_URL: ${{ secrets.SUPABASE_DIRECT_URL }}
-        run: node scripts/ops/prune.mjs --days 30
+        run: node scripts/ops/prune.mjs
 
       - name: Report
         run: echo "### Snapshot collected and notifications pruned" >> "$GITHUB_STEP_SUMMARY"

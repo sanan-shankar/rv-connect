@@ -38,8 +38,20 @@ const KEEP_DAYS = {
   reports: 1095,
   /** Payment records: 10 years, the outer bound of tax-record obligations. */
   contributions: 3650,
-  /** Notifications: 1 year. Purely transient by design. */
-  notifications: 365,
+  /** Notifications: 30 days. Purely transient by design, and the shortest
+   *  window here because the bell answers "what happened while I was away",
+   *  not "what has ever happened" -- and the per-user cap of 100 already
+   *  means an active member never scrolls back a month anyway.
+   *
+   *  It said 365 until 2026-09-04. snapshot.yml had been calling prune.mjs
+   *  with --days 30 the whole time, so the table was really emptied at 30
+   *  while this file, docs/SECURITY.md and the privacy policy all promised a
+   *  year (refactor audit 2, ORCH-04). M55 had fixed that split by moving
+   *  this number UP to match the promise; it missed the flag in the workflow,
+   *  so the split survived the fix. The owner chose the behaviour over the
+   *  promise: 30 days everywhere, and the flag is gone so there is one number
+   *  in one place again. */
+  notifications: 30,
   /** LoginAttempt and AuditLog: 1 year. Enough to investigate any incident
    *  someone actually notices; not a permanent behavioural record. */
   securityLogs: 365,
