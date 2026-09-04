@@ -221,12 +221,24 @@ this site has. Security fixes ignore the schedule.
 
 **A Playwright bump means re-running `npm run visual`** — the PR carries a label saying so.
 
-**One `overrides` entry lives in `package.json`, and it is not permanent.** `@prisma/config`
-pins `deepmerge-ts` to an exact `7.1.5`, which carries GHSA-ggr8-5vv4-36mx (stack exhaustion
-on recursive object graphs), and npm's only offered fix was downgrading the Prisma CLI two
-majors. The override forces `^8.0.2` instead; `prisma validate` and `prisma generate` were
-both run against it. Delete the entry the moment `@prisma/config` ships depending on 8 —
-an override that outlives its reason is a pin nobody remembers making.
+**Two `overrides` entries live in `package.json`, and neither is permanent.** Both exist for
+the same reason: a Prisma package pins a transitive dependency to an EXACT version that carries
+an advisory, so npm's only offered fix is downgrading the Prisma CLI two majors.
+
+| Override | Forced to | Pinned by | Closes | Delete it when |
+|---|---|---|---|---|
+| `deepmerge-ts` | `^8.0.2` | `@prisma/config` → exact `7.1.5` | GHSA-ggr8-5vv4-36mx, stack exhaustion on recursive object graphs | `@prisma/config` depends on 8 |
+| `mysql2` | `^3.24.3` | `prisma` → exact `3.15.3` | its advisory is in a MySQL driver this Postgres-only project never loads; the override exists to satisfy a scanner, not to close an exposure | `prisma` ships a newer pin |
+
+`prisma validate` and `prisma generate` were both run against them.
+
+**Three more used to be here and were doing nothing** (`browserslist`, `postcss-selector-parser`,
+`fast-uri`). Every parent asking for those was asking with a caret range, so a fresh resolution
+already picked a version at or above the pin. Removed 2026-09-05, after `npm install` proved the
+counterfactual: every resolved version came back identical and the advisory gate stayed clean.
+That paragraph's own closing sentence is why it was worth checking, and it is still the rule:
+**an override that outlives its reason is a pin nobody remembers making.** The proof is
+`npm run check`, which runs both security gates, not anybody's reading of a range.
 
 ---
 

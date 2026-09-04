@@ -8840,3 +8840,30 @@ listed `https://*.posthog.com`. Checked live rather than reasoned about: `/login
 resources, four of them PostHog's, **every one first-party at `/ingest`, none to posthog.com**.
 Both lines gone, no CSP violation in the console. `security-regressions.test.mjs` permitted three
 wildcard hosts and now permits two, so putting it back has to argue for itself.
+
+## 2026-09-05 — three overrides that were overriding nothing
+
+Refactor audit 2, Phase A, row A15. `package.json` carried five npm `overrides`; `OPERATIONS.md`
+§4 opened *"One `overrides` entry lives in `package.json`"* and described one of them. Both
+numbers were wrong.
+
+Two are load-bearing, and for the same reason: `@prisma/config` pins `deepmerge-ts` to an exact
+`7.1.5` and `prisma` pins `mysql2` to an exact `3.15.3`, so npm's only offered fix for either
+advisory is a two-major Prisma downgrade. An exact pin upstream is unambiguous.
+
+The other three -- `browserslist`, `postcss-selector-parser`, `fast-uri` -- were asked for only
+with caret ranges, so a fresh resolution already picked a version at or above the pin. Proved
+rather than reasoned: removed all three, ran `npm install`, and every resolved version came back
+**identical** (`browserslist` 4.28.8, `fast-uri` 3.1.7), the lockfile stayed at 848 entries, and
+the advisory gate stayed clean. `postcss-selector-parser` is not even in the tree any more; its
+only asker was `shadcn`.
+
+`fast-uri`'s override is nine days old (`a13a8a9`, 2026-09-02). It closed four real advisories at
+the time by moving the *lockfile* off 3.1.5; what it did not need to be was permanent.
+
+§4 is now a table -- override, what it forces, who pins it, what it closes, when it can go --
+because that paragraph's own last sentence is the rule: an override that outlives its reason is a
+pin nobody remembers making. It had already happened four times over.
+
+Also dropped `"msw": false` from `allowScripts`: `msw` left the tree with `shadcn` yesterday, and
+denying an install script for a package nobody installs is noise in a block that exists to be read.
