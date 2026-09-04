@@ -13,3 +13,18 @@
 @reference "../tailwind-theme.css";
 
 @import "tailwindcss/utilities.css" layer(utilities) source("./");
+
+/* The v2 login concept's hoopoe: wings open like curtains to reveal the eyes.
+ * Hand-written CSS rather than a utility, so `@source not "./lab"` cannot
+ * reach it -- it shipped to every member page until it moved here on
+ * 2026-09-05. /lab/v2/page.tsx is the only thing in the repository that
+ * renders .hoopoe, .wing, .wing-l, .wing-r or .covered. */
+.hoopoe .wing {
+  transform-box: view-box;
+  transform-origin: 40px 49px;
+  transition: transform 0.45s cubic-bezier(0.34, 1.5, 0.64, 1);
+}
+.hoopoe:not(.covered) .wing-l { transform: rotate(-82deg); }
+.hoopoe:not(.covered) .wing-r { transform: rotate(82deg); }
+.hoopoe .eye { transition: opacity 0.2s ease 0.08s; }
+.hoopoe.covered .eye { opacity: 0; }
