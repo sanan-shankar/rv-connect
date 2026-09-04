@@ -28,10 +28,15 @@
 >   is sized are answered by `src/lib/photo-layout.ts` and `<PhotoFrame>`,
 >   which store real dimensions and reserve the space (campaign phases 1–3).
 >
-> What is still true here: §1 (the name), §4.1–4.2 and §4.4 (variants and
-> the storage budget), §8 (admin approval), §9 (the data model, plus the
-> columns added since), and §7's principle that the archive is reusable
-> across the app.
+> - **§4.2's variant table and §4.4's budget** — corrected 2026-09-05, having
+>   been blessed as "still true" here while teaching a three-variant pipeline
+>   that has never existed. Two variants ship, not three, and the display one
+>   is encoded two different ways depending on which path the upload took.
+>   Both sections now say so; read them, not this line.
+>
+> What is still true here: §1 (the name), §4.1 (R2 as the store), §8 (admin
+> approval), §9 (the data model, plus the columns added since), and §7's
+> principle that the archive is reusable across the app.
 >
 > **2026-07-02.** Storage is Cloudflare R2 (not Vercel Blob) via the
 > `putImage`/`delImage` shim in `src/lib/storage.ts`; hosting is Vercel (compute
@@ -115,17 +120,34 @@ The existing pipeline (`src/app/api/upload/route.ts`) already does the right thi
 
 **Decision: Cloudflare R2 as the photo store.** R2 has zero egress fees, which matters a lot for a public gallery that people browse repeatedly (egress, not storage, is what kills photo-app bills). It is S3-compatible (`@aws-sdk/client-s3`) and reachable from any host, so it does not couple the photo store to Vercel. The abstraction is exactly the one-file shim this section originally recommended: `src/lib/storage.ts` exports `putImage(buffer, subdir, filename)` and `delImage(url)`; the upload route and `deletePost` call the shim rather than any storage SDK directly, so a future provider swap stays a one-file change.
 
-### 4.2 Variants: thumbnail, display, original
+### 4.2 Variants: thumbnail and display
 
-A gallery cannot serve 1920px WebPs into a grid; that is the expensive mistake. Generate **three derivatives per upload** in the same `sharp` pass and store all three URLs on the `Photo` row:
+> **Corrected 2026-09-05 against the code.** This section proposed three
+> variants and was quoted for months as if all three shipped. **Two ship**, and
+> the display one has two different encodes. What follows is what the tree
+> actually does; if it disagrees with the code, the code is right.
 
-| Variant | Long edge | sharp settings | Used by |
-|---------|-----------|----------------|---------|
-| `thumbUrl` | 480px | `.resize(480,480,{fit:"inside",withoutEnlargement:true}).webp({quality:72})` | The masonry grid (the only thing 99% of page-views load). Tiny, ~20-50KB each. |
-| `url` (display) | 1600px | `.webp({quality:80})` | The `/collection/[id]` detail/lightbox view, and reuse as a post image / group cover (section 7). |
-| `originalUrl` | up to 3000px, capped | `.webp({quality:82})` | Download/full-view only, lazy fetched on explicit click. Optional; can be dropped to halve storage if cost bites. |
+**Two derivatives per contribution**, stored as two columns on `Photo`
+(`prisma/schema.prisma:269-270`). There is no `originalUrl` and there never
+has been.
 
-The grid loads only `thumbUrl`; the detail view loads `url`; `originalUrl` is fetched only when someone clicks "view full size." This is the difference between a page weighing 1MB and 40MB.
+| Variant | Long edge | sharp settings | Where |
+|---------|-----------|----------------|-------|
+| `thumbUrl` | 480px | `.resize(480,480,{fit:"inside",withoutEnlargement:true}).webp({quality:72})` | `src/lib/collection-photo.ts:212-213`. The river; the only thing most page-views load. |
+| `url` (display), **direct path** | **full resolution**, bounded only by a 40-megapixel AREA cap | `storedResizeBox(...)` then `.webp({quality:100})` | `src/app/(main)/collection/actions.ts:600-603`, `COLLECTION_WEBP_QUALITY` in `upload-shared.ts:91`. This is what nearly every contribution takes. The cap exists to stop a decompression bomb (audit M16), not to make the picture smaller. |
+| `url` (display), **FormData fallback** | 1600px | `.resize(1600,1600,{fit:"inside",withoutEnlargement:true}).webp({quality:80})` | `src/app/(main)/collection/actions.ts:341-342`. The path taken when the direct-to-R2 upload is unavailable. |
+
+**The two display encodes do not match, and that is a live question, not a
+design.** A contributor who falls back gets a visibly smaller photograph than
+one who does not, and is told nothing. It is §4 #20 of the 2026-09-03 refactor
+audit, awaiting the owner: match the direct path, or say "saved at reduced
+size" out loud.
+
+The river loads `thumbUrl`; the viewer loads `url`. **Do not** reach for
+`toDisplayWebp` in `src/lib/image.ts` when working here: its docblock says
+"boxed to 1920, WebP at 80" and it is the **feed's** encode, called only by
+`/api/upload` and `/api/upload/finalize`. Two sessions have read it and
+concluded the Collection stores 1920px copies. See `docs/TRAPS.md`.
 
 Implementation note: the current route hard-caps file input at `5 * 1024 * 1024` (5MB) and rejects non-`image/` types. For the archive, **raise the input cap to 15MB** (people want to contribute good DSLR shots, the owner explicitly wants "higher-quality shots") but keep the *output* tightly compressed via the three-variant pass, so storage stays bounded regardless of input size. Reject HEIC up front with a clear message, or add `heic-convert`; sharp's HEIC support depends on the libvips build and is not guaranteed on every deploy target, so guard it.
 
@@ -139,7 +161,15 @@ Implementation note: the current route hard-caps file input at `5 * 1024 * 1024`
 ### 4.4 Storage budget guardrails
 
 - Per-user soft cap surfaced in the UI ("you have contributed 38 photos"); a hard per-upload batch limit of, say, 10 photos to prevent a single bulk dump.
-- The three-variant WebP approach means an average contributed photo costs roughly: thumb ~35KB + display ~250KB + original ~600KB ≈ under 1MB stored per accepted photo. 5,000 accepted photos ≈ under 5GB. R2 storage cost past the 10GB free tier is a flat per-GB rate with no egress charge, so a public gallery that gets browsed heavily stays cheap regardless of traffic. If `originalUrl` is dropped, halve the storage figure.
+- **The arithmetic that used to be here assumed three variants and a 1600px
+  display copy, and both were wrong** (corrected 2026-09-05). What ships is a
+  ~35KB thumbnail plus a display copy that, on the direct path, is a
+  full-resolution WebP at quality 100 -- so the per-photograph cost is set by
+  what people contribute, not by a box this spec chose. Budget from the real
+  numbers in R2 rather than from a figure in a document. R2 storage past the
+  10GB free tier is a flat per-GB rate with no egress charge, so a public
+  gallery that gets browsed heavily stays cheap regardless of traffic; that
+  part was always true and is the reason the store was chosen.
 - Declined photos are deleted from storage immediately on rejection (admin decline calls `delImage` on all variants), so the storage cost is only ever *approved* content.
 
 ## 5. Cataloging: the tag taxonomy (decision-bearing)
@@ -180,7 +210,9 @@ Reuse the directory's proven structure (`directory-client.tsx`): URL-driven filt
 
 This is where the archive earns its keep instead of being a silo. The owner wants pictures usable as post images and profile/cover photos, and cover images for groups/events.
 
-1. **Shared upload pipeline.** The archive uses the *same* `/api/upload` route and `sharp` settings as the composer; the only delta is generating three variants and returning `{thumbUrl, url, originalUrl, width, height, blurhash}` instead of a flat `urls` array. To avoid breaking the existing `create-post-form.tsx` (which expects `{urls}`), add a `?variants=1` query flag or a second route `/api/upload/photo`; the composer path stays untouched. This honours the project's "shared composer / shared feed" modular goal.
+1. **Shared upload pipeline.** *(Proposal, and not what shipped: the Collection has its own
+   contribute path with its own encode, and returns two variants. See the corrected §4.2.)*
+   The archive uses the *same* `/api/upload` route and `sharp` settings as the composer; the only delta is generating three variants and returning `{thumbUrl, url, originalUrl, width, height, blurhash}` instead of a flat `urls` array. To avoid breaking the existing `create-post-form.tsx` (which expects `{urls}`), add a `?variants=1` query flag or a second route `/api/upload/photo`; the composer path stays untouched. This honours the project's "shared composer / shared feed" modular goal.
 
 2. **"Add from the Collection" picker.** A small reusable `<CollectionPicker>` client component (a dialog showing the masonry of approved photos with single/multi select) becomes the *shared image source* across the app:
    - In the **post composer** (`create-post-form.tsx`), beside the existing "Photo" upload button, add a "From the Collection" button. Selecting a photo pushes its `url` (the 1600px display variant) into the existing `images` state array; nothing else in the post flow changes, because posts already store `images` as a JSON array of URLs (`Post.images`, `parseJsonArray`). This means a beautiful banyan shot someone uploaded can be reused in a post without re-uploading or re-storing bytes.
@@ -212,9 +244,11 @@ model Photo {
   uploaderId    String
 
   // storage variants (all WebP, produced in one sharp pass)
-  thumbUrl      String    // 480px  — grid
-  url           String    // 1600px — detail view, reusable as post/cover image
-  originalUrl   String?   // up to 3000px — full-view/download only (optional, droppable to save space)
+  // SHIPPED (2026-09-05): two columns, not three. `originalUrl` was never
+  // added; `url`'s size depends on the upload path. See the corrected §4.2
+  // and prisma/schema.prisma:269-270, which is the live shape.
+  thumbUrl      String    // 480px  — the river
+  url           String    // full resolution on the direct path, 1600px on the fallback
   blurhash      String?   // tiny LQIP for no-reflow loading
   width         Int       // intrinsic dims so the masonry never reflows
   height        Int
@@ -318,7 +352,9 @@ Honouring the "No `transition-all`, only `transform`/`opacity`, spring easing" r
 
 ## 12. Open questions / decisions to confirm with the owner
 
-1. **Keep `originalUrl`?** It roughly doubles per-photo storage. Recommend launching *without* it (display 1600px is plenty for screens; add download-original later if demand appears).
+1. ~~**Keep `originalUrl`?**~~ **Resolved by what shipped:** it was never built. The
+   Collection stores two variants and the display copy is itself full resolution on the
+   direct path, so there is nothing an "original" would add. See the corrected §4.2.
 2. ~~Vercel Blob vs Cloudflare R2 at launch.~~ **Resolved:** shipped on R2 behind the `storage.ts` shim (see banner and section 4.1).
 3. **Photo reporting at launch?** Recommend MVP relies solely on the upfront approval gate and admin takedown; defer user-facing photo reports (and the `Report.photoId` change) to v2.
 4. **Auto-approve trust flag (`photoTrusted`)** at launch or later? Recommend later, once the queue actually feels heavy.

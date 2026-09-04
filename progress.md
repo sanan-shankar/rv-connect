@@ -8915,3 +8915,36 @@ read as 20. They passed, for the wrong reason -- and a `query_timeout` of `600_0
 would have read as 600 and passed too. That is what deleting `max: 5` caught and loosening
 `query_timeout` did not. Fixed, both mutations now go red naming the file, and the real values
 are inside their bands.
+
+## 2026-09-05 — the spec that taught the hallucination the owner complained about twice
+
+Refactor audit 2, Phase A, row A11. `CLAUDE.md` sends a media session to `docs/spec/media.md`, and
+that file's own banner blessed §4.2 and §4.4 as "still true". §4.2 taught a **three**-variant image
+pipeline. Two variants ship. The third, `originalUrl`, has never existed in any schema.
+
+That is the same wrong belief the owner has now objected to twice, most recently 2026-09-02: *"this
+is the second time a session has hallucinated that we're compressing collection photos why??"* --
+and it was written down, in the file a session is told to read first.
+
+The audit's first draft of this correction overcorrected and called all three rows wrong. Checked
+line by line against both encode sites instead:
+
+- `thumbUrl` 480px at q72 is **right** (`collection-photo.ts:212-213`).
+- `url` 1600px at q80 is right **for the FormData fallback only** (`actions.ts:341-342`).
+- The direct path, which nearly every contribution takes, stores **full resolution at WebP q100**,
+  bounded only by a 40-megapixel AREA cap against decompression bombs (`actions.ts:600-603`).
+- `originalUrl` at 3000px never existed.
+
+So §4.2 is now a three-row table of **two** variants with the display copy's two encodes spelled
+out separately, and it points at `toDisplayWebp` by name as the thing not to reach for. §4.4's
+budget arithmetic, which multiplied the three imaginary variants, is replaced by "budget from R2,
+not from a document". §9's schema block, §12's "keep originalUrl?" question and §7's return shape
+all said three; all three now say what shipped.
+
+`TRAPS.md` had the same gap facing the other way. Its flat "the Collection does NOT downscale" is
+true of the direct path and false of the fallback, so a session reading it would be wrong about
+half the contributions. It now names the exception, and `schema.prisma:270`'s own `// 1600px`
+comment -- wrong for the direct path -- says what is really stored.
+
+The divergence itself (fallback silently gives a smaller photograph) is the owner's call, filed as
+§4 #20 of the audit. This commit documents it rather than deciding it.
