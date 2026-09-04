@@ -20,6 +20,14 @@ const advisory = (ghsa, severity, title = "crafted advisory") => ({
 
 const auditJson = (vias) => ({ vulnerabilities: { somepkg: { severity: "high", via: vias } } });
 
+/* The allowlist path is proved against a CRAFTED allowlist, not the live one.
+   These two tests read `Object.keys(ALLOWLIST)[0]` until 2026-09-05, so the
+   day the real allowlist emptied they would have asserted on `undefined`
+   instead of failing. gateVerdict takes the allowlist as a parameter for
+   exactly this. */
+const ALLOWED_ID = "GHSA-allw-list-0001";
+const CRAFTED = { [ALLOWED_ID]: { reason: "crafted, for this test only", clearsWhen: "never" } };
+
 test("a novel high advisory blocks", () => {
   const v = gateVerdict(auditJson([advisory("GHSA-new1-high-0001", "high")]));
   assert.equal(v.ok, false);
@@ -32,15 +40,16 @@ test("a novel critical advisory blocks", () => {
 });
 
 test("the allowlisted advisory alone passes, and is reported as allowed", () => {
-  const [id] = Object.keys(ALLOWLIST);
-  const v = gateVerdict(auditJson([advisory(id, "high")]));
+  const v = gateVerdict(auditJson([advisory(ALLOWED_ID, "high")]), CRAFTED);
   assert.equal(v.ok, true);
-  assert.deepEqual(v.allowed, [id]);
+  assert.deepEqual(v.allowed, [ALLOWED_ID]);
 });
 
 test("an allowlisted advisory does not smuggle a novel one through beside it", () => {
-  const [id] = Object.keys(ALLOWLIST);
-  const v = gateVerdict(auditJson([advisory(id, "high"), advisory("GHSA-new3-high-0003", "high")]));
+  const v = gateVerdict(
+    auditJson([advisory(ALLOWED_ID, "high"), advisory("GHSA-new3-high-0003", "high")]),
+    CRAFTED,
+  );
   assert.equal(v.ok, false);
   assert.equal(v.blocking.length, 1);
 });

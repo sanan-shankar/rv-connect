@@ -8739,3 +8739,25 @@ handling right; it now says so in the past tense.
 
 The tests gate reads 101 files, down from 102. Note for the next session: `scripts-ledger.test.mjs`
 reads `git ls-files`, so a deletion only passes once it is staged.
+
+## 2026-09-05 — the security allowlist empties, and phase9 stops failing quietly
+
+Refactor audit 2, Phase A, row A7. `npm-audit-gate.mjs` allowlisted GHSA-ggr8-5vv4-36mx
+(deepmerge-ts stack exhaustion through `@prisma/config`) because npm's only offered fix was a
+two-major Prisma downgrade. The `deepmerge-ts: ^8.0.2` override then fixed it outright:
+`deepmerge-ts` resolves to 8.0.2 today and the tree has **zero** high or critical advisories.
+
+So the entry was accepting an advisory that no longer existed, and worse, if the override were
+ever removed the entry would have accepted its return silently instead of failing loudly. The
+allowlist is now empty, which is the healthy state, and the gate says which kind of clean it
+means rather than one sentence for both.
+
+Two tests read `Object.keys(ALLOWLIST)[0]`, so the day the allowlist emptied they would have
+asserted on `undefined` rather than failing. `gateVerdict` already took the allowlist as a
+parameter; they now use a crafted one and prove the mechanism whatever the live list holds.
+
+`phase9-probe.mjs` had **three** stale assertions, not the one the audit found, and nothing runs
+it automatically so all three had been failing for weeks. One named the advisory the gate no
+longer prints. The other two asserted that `check.yml` runs the two security gates -- which it
+stopped doing the day they moved inside `check.mjs`, the change `ci-parity.test.mjs` exists to
+protect. They now read `check.mjs`. The probe reports 13 passed, 0 failed.
