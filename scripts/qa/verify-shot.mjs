@@ -14,7 +14,14 @@ process.chdir(repoRoot);
 config({ path: ".env" });
 
 const [route, out = "shot.png", mobile] = process.argv.slice(2);
-const vp = mobile === "mobile" ? { width: 390, height: 844 } : { width: 1440, height: 900 };
+/* A phone is not a narrow desktop. Without deviceScaleFactor/isMobile/hasTouch
+   Chrome keeps desktop pointer semantics at 390px, so `(hover: hover)` matches
+   when it should not and `(pointer: coarse)` does not match when it should, and
+   the shot shows affordances a phone never draws. screenshot.mjs and
+   map-cluster-verify.mjs have had these three since they were written. */
+const vp = mobile === "mobile"
+  ? { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true }
+  : { width: 1440, height: 900 };
 const browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox"] });
 const page = await browser.newPage();
 await page.setViewport(vp);

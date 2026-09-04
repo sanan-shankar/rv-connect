@@ -8680,3 +8680,24 @@ they map over the array. It also drops an `any` cast and its `eslint-disable`.
 
 32 runtime dependencies and 17 dev, down from 33 and 18. `/lab/directory` screenshotted with the
 coastlines and all 45 place circles drawn, no console errors.
+
+## 2026-09-05 — "mobile" screenshots stop having desktop hands
+
+Refactor audit 2, Phase A, row A4. `screenshot.mjs` and `map-cluster-verify.mjs` set
+`deviceScaleFactor: 2, isMobile: true, hasTouch: true` alongside 390x844.
+`screenshot-auth.mjs`, `verify-shot.mjs` and `theme-shots.mjs` set the size and none of the
+three. Since the interesting surfaces are all behind a login, that is nearly every mobile shot
+anyone has looked at for weeks.
+
+Measured on the running page rather than argued. At 390x844 with the size alone,
+`(hover: hover)` is **true** and `(pointer: coarse)` is **false**; with the three properties both
+invert. So the shipped stylesheet's seven `@media (hover:hover)` blocks were applying in shots of
+a phone that would never match them.
+
+The clearest thing it was hiding: `install-app-tile.tsx:80` returns `hidden` unless
+`(pointer: coarse)` matches, so the PWA install tile has been absent from every mobile shot of a
+profile and present on every real phone. The Playwright projects were always honest -- the mobile
+project sets `isMobile`/`hasTouch` -- so this is the Puppeteer half only.
+
+`screenshot.mjs`'s comment claimed the auth variant already did this. It now says when that
+became true.
