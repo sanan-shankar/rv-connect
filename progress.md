@@ -8890,3 +8890,28 @@ anything can reach is a second implementation waiting to happen.
 Trap worth knowing: deleting a `layout.tsx` reds TypeScript until a build runs, because Next's
 generated `.next/types/validator.ts` still imports it and neither a dev-server request nor
 `tsc` regenerates that file. `npm run build` does.
+
+## 2026-09-05 — the pool rule was reading 20_000 as 20
+
+Refactor audit 2, Phase A, row A16. `/api/demo/reset` builds its own Prisma client per call --
+correctly, because the demo write policy would refuse nearly every statement the seed makes -- and
+built it with `new PrismaPg({ connectionString })` and nothing else. That is exactly the bare form
+`src/lib/prisma.ts:18-25` spends twenty lines calling dangerous (pg defaults: max 10 per instance,
+and no checkout timeout at all, so a checkout with no free connection waits forever). It now
+carries `max: 5`, `connectionTimeoutMillis: 5_000` and a deliberately loose `query_timeout` of
+60s, since the seed's own transaction already caps any single statement at 30s.
+
+It also declares `maxDuration = 120`, which its two sibling crons in `vercel.json` have had since
+audit C-079 and it never did.
+
+`db-pool-rule.test.mjs` could not see any of this: it read one hard-coded path. It now walks
+`src/`, finds every file constructing a `PrismaPg`, and asserts the bands on each, with a count
+guard so a broken walk cannot empty the loop and pass by testing nothing.
+
+Then the mutation test found something the widening was not looking for. **The band checks have
+been reading the wrong numbers since they were written.** They matched with `\d+`, which stops at
+a JS numeric separator, so `connectionTimeoutMillis: 5_000` read as 5 and `query_timeout: 20_000`
+read as 20. They passed, for the wrong reason -- and a `query_timeout` of `600_000`, ten minutes,
+would have read as 600 and passed too. That is what deleting `max: 5` caught and loosening
+`query_timeout` did not. Fixed, both mutations now go red naming the file, and the real values
+are inside their bands.

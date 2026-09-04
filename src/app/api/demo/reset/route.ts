@@ -31,6 +31,14 @@ import { requireCronSecret } from "@/lib/api-gate";
 
 export const dynamic = "force-dynamic";
 
+/* seed.ts runs the whole rewrite inside one transaction with timeout 30s and
+ * maxWait 10s, so a slow reset can legitimately spend 40s before it counts a
+ * row. Its two sibling crons in vercel.json already declare a ceiling
+ * (retention/sweep 300, catchups/tick 120) for the reason audit C-079 gave and
+ * which applies word for word here: an invocation cut off part-way dies
+ * without reaching its reportSwallowed, so the failure is silent. */
+export const maxDuration = 120;
+
 /**
  * Shortest gap between two resets, in ms. Best-effort only: serverless
  * instances do not share memory, so this bounds one instance rather than the
@@ -49,7 +57,18 @@ async function runReset() {
   // unguarded client is ever left sitting in the module graph where some
   // future import could reach for it by mistake.
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+    // Bounded and impatient for the reasons src/lib/prisma.ts:18-44 sets out
+    // at length: a bare `new PrismaPg({ connectionString })` takes pg's
+    // defaults, which are max 10 per instance and NO checkout timeout, so a
+    // checkout with no free connection waits forever. query_timeout is loose
+    // here on purpose -- the seed's own transaction already caps any single
+    // statement at 30s, so 60s can only ever catch something genuinely stuck.
+    adapter: new PrismaPg({
+      connectionString: process.env.DATABASE_URL,
+      max: 5,
+      connectionTimeoutMillis: 5_000,
+      query_timeout: 60_000,
+    }),
   });
   try {
     return await seedDemo(prisma);
