@@ -110,7 +110,6 @@ const buttonVariants = cva(
         // layer's -4.2.
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-        link: "text-primary underline-offset-4 hover:underline active:scale-100",
       },
       size: {
         // Optical centering: an icon glyph carries less ink than its box and
@@ -127,9 +126,7 @@ const buttonVariants = cva(
         sm: "h-9 gap-1.5 px-3.5 text-[0.8rem] data-[leading-icon]:pl-2.5 data-[trailing-icon]:pr-2.5 [&_svg:not([class*='size-'])]:size-3.5",
         lg: "h-11 gap-2 px-6 text-base data-[leading-icon]:pl-5 data-[trailing-icon]:pr-5",
         icon: "size-10",
-        "icon-xs": "size-8 [&_svg:not([class*='size-'])]:size-3",
         "icon-sm": "size-9",
-        "icon-lg": "size-11",
       },
     },
     defaultVariants: {

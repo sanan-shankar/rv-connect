@@ -8785,3 +8785,11 @@ has. The audit said no test named these files; one reaches them by enumeration.
 
 `/directory`, `/admin/people` and `/admin/content` all load clean, and the visual suite is
 unchanged.
+
+## 2026-09-05 — three button variants nothing has ever asked for
+
+Refactor audit 2, Phase A, row A8, second piece. `button.tsx` offered a `link` variant and
+`icon-xs` / `icon-lg` sizes with zero call sites anywhere in `src`, the lab included, and no
+computed `variant:`/`size:` string that could reach them. Their neighbours are all busy:
+`icon-sm` has eight sites, `primary` 64, `outline` 62. Three cva lines, about 200 bytes out of a
+chunk that rides all 52 non-lab routes.
