@@ -89,7 +89,6 @@ const csp: Record<string, string[]> = {
     // the browser refuses every image on the site and the only sign is a
     // console line, so the page looks broken with no error.
     ...imageHosts.map((h) => `https://${h}`),
-    "https://*.posthog.com",
     "https://*.razorpay.com",
     "https://i.scdn.co", // Spotify album art on Catch-up answers
   ],
@@ -118,7 +117,6 @@ const csp: Record<string, string[]> = {
     ...imageHosts.map((h) => `https://${h}`),
     "https://api.razorpay.com",
     "https://lumberjack.razorpay.com",
-    "https://*.posthog.com",
   ],
   "frame-src": [
     "https://challenges.cloudflare.com",
@@ -334,7 +332,7 @@ const nextConfig: NextConfig = {
 /* Sentry wraps last so it sees the final config. Every option here is set
  * against a default we did not want -- see src/instrumentation.ts for the
  * server-only decision this enforces at build time. */
-export default withSentryConfig(nextConfig, {
+const sentryNextConfig = withSentryConfig(nextConfig, {
   org: "sanan-l0",
   project: "javascript-nextjs",
 
@@ -349,6 +347,11 @@ export default withSentryConfig(nextConfig, {
   /* Quiet during builds; a monitoring tool narrating itself in the deploy
    * log is how real build errors get missed. */
   silent: true,
+
+  /* No build-time telemetry to Sentry. It reports the bundler, the SDK
+   * version and build timings on every deploy, and none of it is anything
+   * this project gets back. */
+  telemetry: false,
 
   /* NO RELEASE PER DEPLOY. Owner, 2026-08-20: "don't let sentry send me
    * emails for each commit or deployment... I don't need an email from them
@@ -385,3 +388,19 @@ export default withSentryConfig(nextConfig, {
     automaticVercelMonitors: false,
   },
 });
+
+/* Sentry's wrapper sets `experimental.clientTraceMetadata` unconditionally on
+ * Next >= 15 (getFinalConfigObjectUtils.ts, maybeSetClientTraceMetadataOption),
+ * which stamps <meta name="sentry-trace"> and <meta name="baggage"> into every
+ * HTML document -- about 400 bytes carrying the Sentry public key, the org id
+ * and a sample rate. They exist for a BROWSER SDK to read and continue the
+ * server's trace from, and there is no browser SDK here on purpose
+ * (src/instrumentation.ts). So nothing has ever read them.
+ *
+ * There is no option for this: the only early return in that function is for
+ * `cacheComponents`. Deleting the key off the returned object is the whole
+ * mechanism. If a browser SDK is ever added, delete these lines with the same
+ * commit that adds it. */
+delete sentryNextConfig.experimental?.clientTraceMetadata;
+
+export default sentryNextConfig;

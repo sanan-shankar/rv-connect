@@ -8815,3 +8815,28 @@ returns **0 rows against production and 0 against the demo**.
 Separately, `.hoopoe .wing` and its four siblings moved from `globals.css` into `lab.css`. They are
 hand-written rules rather than utilities, so A1's `@source not "./lab"` could not reach them and
 they were still shipping to every member page for a delight only `/lab/v2/page.tsx` renders.
+
+## 2026-09-05 — two meta tags on every page for a reader that does not exist
+
+Refactor audit 2, Phase A, row A9. `withSentryConfig` sets `experimental.clientTraceMetadata`
+unconditionally on Next 15 and up, which stamped `<meta name="sentry-trace">` and
+`<meta name="baggage">` into every HTML document this site serves: about 400 bytes carrying the
+Sentry public key, the org id, a trace id and a sample rate. They exist for a **browser** SDK to
+read and continue the server's trace from, and there is no browser SDK here on purpose
+(`instrumentation.ts` argues that at length: ~30 KB gzipped against a standing constraint that
+monitoring may not slow the site down).
+
+The SDK has no option for it. Its only early return is for `cacheComponents`, and it *prepends*
+its two names to whatever the config already holds, so setting the key cannot unset it. Deleting
+the key off the object `withSentryConfig` returns is the whole mechanism. The build's Experiments
+list no longer prints `clientTraceMetadata`, and a live page now serves **0** of those tags.
+
+`telemetry: false` while in the file: the build plugin reported the bundler, SDK version and
+build timings to Sentry on every deploy for nothing this project reads.
+
+And the CSP: the comment governing the whole directive block says *"PostHog is same-origin
+(proxied through /ingest) so it needs no host here"*, and then `img-src` and `connect-src` both
+listed `https://*.posthog.com`. Checked live rather than reasoned about: `/login` loads 43
+resources, four of them PostHog's, **every one first-party at `/ingest`, none to posthog.com**.
+Both lines gone, no CSP violation in the console. `security-regressions.test.mjs` permitted three
+wildcard hosts and now permits two, so putting it back has to argue for itself.
