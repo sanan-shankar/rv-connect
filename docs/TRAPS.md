@@ -171,6 +171,14 @@ AREA cap that exists to stop a decompression bomb (audit M16) and touches almost
 owner, 2026-09-02, on the second occurrence: *"this is the second time a session has hallucinated
 that we're compressing collection photos why??"*
 
+**One exception, added 2026-09-05, because a flat sentence is how the next session gets this wrong
+in the other direction.** There are TWO contribute encodes. The direct-to-R2 path is the one above.
+The **FormData fallback** at `collection/actions.ts:341-342` does `.resize(1600, 1600)` at q80 --
+so a contributor who falls back gets a visibly smaller photograph than one who does not, and is
+told nothing. That divergence is a real open question for the owner (2026-09-03 audit §4 #20), not
+a design. Say "the direct path does not downscale" rather than "the Collection does not
+downscale."
+
 Two habits stop a third time. **Grep for the caller, not the name** -- a function that sounds like
 the thing you are looking for is not evidence that it is the thing you are looking for. And **keep
 "downscale" and "re-compress" as separate words**: the Collection re-compresses (lossy WebP over

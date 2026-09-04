@@ -266,8 +266,13 @@ model Photo {
   id           String    @id @default(cuid())
   uploaderId   String
 
-  thumbUrl     String    // 480px  — grid
-  url          String    // 1600px — detail view, reusable as a post/cover image
+  thumbUrl     String    // 480px  — the river
+  // NOT 1600px, whatever this comment said until 2026-09-05. The direct
+  // contribute path stores full resolution at WebP q100, bounded only by a
+  // 40MP AREA cap against decompression bombs; only the FormData fallback
+  // boxes to 1600 at q80. Both encodes are in collection/actions.ts, and
+  // docs/spec/media.md §4.2 has the table.
+  url          String    // full resolution (direct) or 1600px (fallback) — viewer, reusable as a post/cover image
   width        Int
   height       Int
 
