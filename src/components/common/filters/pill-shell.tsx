@@ -7,7 +7,7 @@ import { MENU_PANEL_CLASS } from "@/components/ui/menu-material";
 
 /**
  * Shared visual language for every facet pill (FacetSelect, FacetSearchSelect,
- * RangeFacetPill, SortPill). Idle sits on the warm `--secondary` surface with
+ * RangeFacetPill). Idle sits on the warm `--secondary` surface with
  * a `--border` hairline; Set tints canopy. Full pill,
  * Hover is a colour change only (owner, 2026-07-25: hover never moves a
  * control); the press sink stays (docs/spec/DESIGN-SYSTEM.md, filters-rework.md sec. 4).

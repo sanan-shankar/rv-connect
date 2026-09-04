@@ -8761,3 +8761,27 @@ it automatically so all three had been failing for weeks. One named the advisory
 longer prints. The other two asserted that `check.yml` runs the two security gates -- which it
 stopped doing the day they moved inside `check.mjs`, the change `ci-parity.test.mjs` exists to
 protect. They now read `check.mjs`. The probe reports 13 passed, 0 failed.
+
+## 2026-09-05 — the filter kit stops describing a consumer it lost
+
+Refactor audit 2, Phase A, row A8, first piece. The Collection left
+`src/components/common/filters/*` in `8a0ba37` and grew its own river controls; the directory
+chrome became one sentence in `bfabfea`. Between them they orphaned `active-filter-chips.tsx`
+(61 lines), `result-count.tsx` (19) and `SortPill` (37), and left five comments across the kit
+still naming Collection as its second consumer and `active-filter-chips.tsx` as a live twin. The
+kit's actual second consumer is admin: People, Content and their filter sheets.
+
+`HOUSE_OPTIONS` went dead when the owner removed house filtering on 2026-08-28, which left
+`src/lib/directory-facets.ts` as a nine-line header explaining what is *not* in it plus a
+two-entry array with one reader, whose name collided with a different `TYPE_OPTIONS` in
+`admin-content.ts`. The array moved into `directory-client.tsx`, the file went, and the one
+sentence worth keeping (City and Profession are live sets, not static ones) went with it.
+
+`FacetOptionsPopup`'s `anyItem` was optional only for SortPill's sake, so it is required now.
+
+Note for the next session: `focus-recipe.test.mjs` enumerates **tracked** files, so a deletion
+reds `npm run check` with an ENOENT until it is staged -- the same trap `scripts-ledger.test.mjs`
+has. The audit said no test named these files; one reaches them by enumeration.
+
+`/directory`, `/admin/people` and `/admin/content` all load clean, and the visual suite is
+unchanged.

@@ -15,7 +15,7 @@ import { FilterButton, FilterPopover } from "@/components/common/filters/filter-
 import { FilterSheet } from "@/components/common/filters/filter-sheet";
 import { RangeFacetPill } from "@/components/common/filters/range-facet-pill";
 import { SentenceLine, type SentenceToken } from "@/components/common/filters/sentence-line";
-import { TYPE_OPTIONS } from "@/lib/directory-facets";
+import type { FacetOption } from "@/components/common/filters/types";
 import { tagLabel } from "@/lib/profession-tags";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
@@ -76,6 +76,16 @@ interface DirectoryClientProps {
    *  actions.ts); this only makes it legible. */
   namesLocked?: boolean;
 }
+
+/* The directory's one static option list. Neither City nor Profession is here:
+   both are LIVE sets fetched per request in page.tsx -- city from the distinct
+   UserPlace.city values, profession from the User.professionTags histogram with
+   its floor and cap. A static list is only right for a vocabulary where every
+   value is worth offering whether or not anybody is in it. */
+const TYPE_OPTIONS: FacetOption[] = [
+  { value: "alumni", label: "Alumni" },
+  { value: "teachers", label: "Teachers" },
+];
 
 function batchRangeText(from: string, to: string): string {
   if (from && to) return `Batch: ${from} to ${to}`;
