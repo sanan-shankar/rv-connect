@@ -8701,3 +8701,19 @@ project sets `isMobile`/`hasTouch` -- so this is the Puppeteer half only.
 
 `screenshot.mjs`'s comment claimed the auth variant already did this. It now says when that
 became true.
+
+## 2026-09-05 — the rule against rebaselining blind gets its tool back
+
+Refactor audit 2, Phase A, row A5. `npm run visual:report` has never worked on this machine, and
+OPERATIONS' one rule about never accepting a red visual run without looking at the diff depends
+on it.
+
+Two faults, where the audit found one. The HTML reporter was registered only under
+`process.env.CI`, so a local run wrote no report at all. And its `outputFolder` was spelled
+`e2e/.report`, which Playwright resolves against the **config's** directory, exactly as
+`outputDir: ".output"` beside it does -- so even in CI it wrote `e2e/e2e/.report`: a path the npm
+script does not read and `.gitignore`'s `/e2e/.report/` does not cover. Registering the reporter
+without fixing the path would have produced an untracked folder and still no report.
+
+Both fixed. A local run now writes `e2e/.report/index.html`, `visual:report` serves it (checked:
+HTTP 200), and `git status` stays clean.
