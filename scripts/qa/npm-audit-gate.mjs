@@ -21,14 +21,17 @@ import { execSync } from "node:child_process";
  * what would clear it — an entry with no exit condition is a rug.
  */
 export const ALLOWLIST = {
-  "GHSA-ggr8-5vv4-36mx": {
-    reason:
-      "deepmerge-ts stack exhaustion, pulled only via @prisma/config. Build/config-time " +
-      "code that never receives attacker-controlled object graphs in this app; the only " +
-      "offered fix is a MAJOR downgrade to prisma 6. Accepted by the owner, 2026-08-20 " +
-      "(Phase 6 session log).",
-    clearsWhen: "prisma ships a 7.x release that bumps deepmerge-ts to >=8",
-  },
+  /* Empty since 2026-09-05, and that is the healthy state.
+   *
+   * Its one entry accepted GHSA-ggr8-5vv4-36mx (deepmerge-ts stack exhaustion
+   * via @prisma/config) because npm's only offered fix was a two-major Prisma
+   * downgrade. The `deepmerge-ts: ^8.0.2` override in package.json then fixed
+   * it outright, so the entry was accepting an advisory the tree no longer
+   * had -- and if that override were ever removed, the entry would have
+   * silently accepted the advisory's return instead of failing loudly.
+   *
+   * npm-audit-gate.test.mjs proves both directions against a crafted
+   * allowlist, so this being empty costs no coverage. */
 };
 
 /**
@@ -106,5 +109,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.error("\nnpm-audit-gate: new high/critical advisories; fix or (with the owner) allowlist with a reason.");
     process.exit(1);
   }
-  console.log("npm-audit-gate: clean (every high/critical advisory is allowlisted with a reason)");
+  console.log(
+    verdict.allowed.length
+      ? "npm-audit-gate: clean (every high/critical advisory is allowlisted with a reason)"
+      : "npm-audit-gate: clean (no high/critical advisories, nothing allowlisted)",
+  );
 }

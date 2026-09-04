@@ -35,8 +35,17 @@ const run = (cmd) => {
 console.log("\n-- H16: the npm-audit gate, both directions");
 {
   const live = run("node scripts/qa/npm-audit-gate.mjs");
-  L.check("the gate passes the real tree (accepted residual allowlisted)", live.code === 0, live.out.trim());
-  L.check("  ...and names the allowlisted advisory out loud", /GHSA-ggr8-5vv4-36mx/.test(live.out));
+  L.check("the gate passes the real tree", live.code === 0, live.out.trim());
+  /* Until 2026-09-05 this asserted the gate named GHSA-ggr8-5vv4-36mx out
+     loud. The deepmerge-ts override had already fixed that advisory, so the
+     gate stopped naming it and this check had been failing for weeks, in a
+     probe nothing runs automatically. What still has to be true is that the
+     gate says WHICH clean it means rather than one word for both. */
+  L.check(
+    "  ...and says whether anything is allowlisted",
+    /nothing allowlisted|allowlisted with a reason/.test(live.out),
+    live.out.trim(),
+  );
   const unit = run("node scripts/qa/npm-audit-gate.test.mjs");
   L.check("the unit test proves a crafted novel advisory is refused", unit.code === 0, unit.out.slice(-200));
 }
@@ -79,8 +88,14 @@ console.log("\n-- the workflow wires all of it");
 {
   const w = readFileSync(".github/workflows/check.yml", "utf8");
   L.check("check.yml runs npm run check (which runs every *.test.mjs)", /npm run check/.test(w));
-  L.check("check.yml runs the npm-audit gate", /npm-audit-gate\.mjs/.test(w));
-  L.check("check.yml fails on a re-opened critical/high", /audit-status\.mjs --fail-on-open=critical,high/.test(w));
+  /* The two security gates are asserted against check.mjs, not check.yml.
+     They were extra CI-only steps in the workflow until the day a green local
+     run could still fail the push; ci-parity.test.mjs now forbids the
+     workflow from running anything `npm run check` does not. These two lines
+     kept reading check.yml and had been failing ever since. */
+  const c = readFileSync("scripts/qa/check.mjs", "utf8");
+  L.check("npm run check runs the npm-audit gate", /npm-audit-gate\.mjs/.test(c));
+  L.check("npm run check fails on a re-opened critical/high", /--fail-on-open=critical,high/.test(c));
 }
 
 L.finish();
