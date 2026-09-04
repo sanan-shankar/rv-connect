@@ -8793,3 +8793,25 @@ Refactor audit 2, Phase A, row A8, second piece. `button.tsx` offered a `link` v
 computed `variant:`/`size:` string that could reach them. Their neighbours are all busy:
 `icon-sm` has eight sites, `primary` 64, `outline` 62. Three cva lines, about 200 bytes out of a
 chunk that rides all 52 non-lab routes.
+
+## 2026-09-05 — 410 KB of tracked binaries nothing has ever loaded, and a delight that shipped to everyone
+
+Refactor audit 2, Phase A, row A8, third piece. Four tracked files under `public/` that no
+`src` attribute names and no `readdir` reaches: `lab/crop/pano-21x9.webp` (153,150 B),
+`lab/crop/phone-9x16.webp` (141,394), `lab/crop/grainy-420.webp` (38,124) and
+`images/collection/c3-thumb.webp` (87,682). 420,350 bytes, deployed to Vercel's CDN on every
+build since August.
+
+The three crop files were the room's first cut on 2026-08-27 and were superseded the next day by
+`6fb0780`, which rewrote `_specimens.ts` around the eleven `shape-*.webp` fixtures; nobody deleted
+the originals. `c3-thumb` is the file audit 1's finding 17 missed, because `77dc9da` matched on
+display copies and `c3.webp` is live. Its header comment now says which files "delete these files"
+means.
+
+`c3-thumb` needed a database check, since a June seed wrote local paths into `Photo` rows and grep
+cannot see a database. `SELECT ... WHERE url LIKE '%/images/collection/%' OR "thumbUrl" LIKE ...`
+returns **0 rows against production and 0 against the demo**.
+
+Separately, `.hoopoe .wing` and its four siblings moved from `globals.css` into `lab.css`. They are
+hand-written rules rather than utilities, so A1's `@source not "./lab"` could not reach them and
+they were still shipping to every member page for a delight only `/lab/v2/page.tsx` renders.

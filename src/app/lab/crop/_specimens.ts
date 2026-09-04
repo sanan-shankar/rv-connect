@@ -15,7 +15,10 @@
  *  taking on trust.
  *
  *  Throwaway, with the room. Delete these files, public/lab/crop/ and the
- *  registry row once the layout rules are settled.
+ *  registry row once the layout rules are settled. "These files" means the
+ *  eleven shape-*.webp fixtures SPECIMENS lists below and nothing else:
+ *  pano-21x9, phone-9x16 and grainy-420 were this room's first cut, were
+ *  superseded the next day by 6fb0780, and went on 2026-09-05.
  * ------------------------------------------------------------------ */
 
 export type Specimen = {
