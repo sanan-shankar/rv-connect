@@ -25,7 +25,6 @@ import { geoNaturalEarth1, geoPath } from "d3-geo";
 import { select } from "d3-selection";
 import { zoom as d3zoom, zoomIdentity, type ZoomTransform } from "d3-zoom";
 import { feature } from "topojson-client";
-import worldData from "world-atlas/countries-110m.json";
 import type { Feature, Geometry } from "geojson";
 import { cn } from "@/lib/utils";
 import {
@@ -42,14 +41,46 @@ const PAD = 8;
 const projection = geoNaturalEarth1().fitExtent([[PAD, PAD], [W - PAD, H - PAD]], { type: "Sphere" });
 const pathGen = geoPath(projection);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const land = feature(worldData as any, (worldData as any).objects.countries) as unknown as {
-  features: Feature<Geometry>[];
-};
-const LAND = land.features.map((f) => ({
-  d: pathGen(f) ?? "",
-  name: (f.properties as { name?: string } | null)?.name ?? "",
-}));
+/* The atlas is FETCHED, not imported, for the reason alumni-map.tsx sets out
+   at length above its own copy of this: `import worldData from
+   "world-atlas/countries-110m.json"` compiles 105 KB of JSON into a JavaScript
+   module and parses it on the main thread. This room was the last importer in
+   the repository, and world-atlas was a PRODUCTION dependency because of it.
+   Same static file the shipped map reads, cached immutable by next.config.ts. */
+const ATLAS_URL = "/geo/countries-110m.json";
+
+type Topology = Parameters<typeof feature>[0];
+type LandPath = { d: string; name: string };
+
+/* Empty until the atlas lands, which both consumers already cope with: they
+   map over it, and an empty array renders no <path>. The markers are the
+   concept being judged; the land is the backdrop. */
+function useLand(): LandPath[] {
+  const [land, setLand] = useState<LandPath[]>([]);
+  useEffect(() => {
+    const ac = new AbortController();
+    void (async () => {
+      try {
+        const res = await fetch(ATLAS_URL, { signal: ac.signal });
+        if (!res.ok) throw new Error(`atlas ${res.status}`);
+        const topo = (await res.json()) as Topology;
+        const world = feature(topo, topo.objects.countries) as unknown as {
+          features: Feature<Geometry>[];
+        };
+        setLand(
+          world.features.map((f) => ({
+            d: pathGen(f) ?? "",
+            name: (f.properties as { name?: string } | null)?.name ?? "",
+          })),
+        );
+      } catch (err) {
+        if (!ac.signal.aborted) console.warn("[lab/directory] world atlas failed to load", err);
+      }
+    })();
+    return () => ac.abort();
+  }, []);
+  return land;
+}
 
 function project(lng: number, lat: number): [number, number] {
   return projection([lng, lat]) ?? [0, 0];
@@ -82,6 +113,7 @@ export function WorldCanvas({
   chrome?: (t: ZoomTransform) => React.ReactNode;
   className?: string;
 }) {
+  const LAND = useLand();
   const [t, setT] = useState<ZoomTransform>(zoomIdentity);
   const svgRef = useRef<SVGSVGElement | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -802,6 +834,7 @@ export function MapGazetteer({
 export function MapChoropleth({
   points, height,
 }: { points: CityPoint[]; height?: number }) {
+  const LAND = useLand();
   const byCountry = useMemo(() => {
     const m = new Map<string, number>();
     for (const p of points) m.set(p.country, (m.get(p.country) ?? 0) + p.count);

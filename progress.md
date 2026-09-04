@@ -8662,3 +8662,21 @@ for a false-valued data attribute; the built-in variant matches on presence alon
 Lockfile 1,083 -> 849 entries. The shipped stylesheet is **byte-identical** across the change,
 compared chunk to chunk between two production builds. `components.json` is untouched, so
 `npx shadcn add <component>` still works.
+
+## 2026-09-05 — the lab stops holding a production dependency open
+
+Refactor audit 2, Phase A, row A3. `world-atlas` was a **production** dependency, 7.8 MB,
+installed on every Vercel build, and the only importer left in the repository was one lab file:
+`src/app/lab/directory/_maps.tsx:28`, `import worldData from "world-atlas/countries-110m.json"`.
+
+That is the exact antipattern the shipped map documents as wrong. `alumni-map.tsx:83-101` was
+changed in audit 1 to fetch `/geo/countries-110m.json` instead, and spends eighteen lines
+explaining why: a static import compiles 105 KB of JSON into a JavaScript module and parses it on
+the main thread. The room that prototyped the map kept the version the shipped file warns about.
+
+The room now uses the same static file through a `useLand()` hook, with the same abort signal and
+the same "empty until the atlas lands" behaviour, which both consumers already coped with because
+they map over the array. It also drops an `any` cast and its `eslint-disable`.
+
+32 runtime dependencies and 17 dev, down from 33 and 18. `/lab/directory` screenshotted with the
+coastlines and all 45 place circles drawn, no console errors.
