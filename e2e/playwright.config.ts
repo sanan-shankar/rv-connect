@@ -1,6 +1,12 @@
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig, devices, type ReporterDescription } from "@playwright/test";
 import { config as loadEnv } from "dotenv";
 import { requireLoopbackBaseUrl } from "../scripts/qa/local-base-url.mjs";
+
+/* `.report`, not `e2e/.report`: outputFolder resolves against the CONFIG's
+ * directory, the same way `outputDir: ".output"` above does. Spelled with the
+ * e2e/ prefix it wrote e2e/e2e/.report -- a path `npm run visual:report` does
+ * not read and .gitignore's `/e2e/.report/` does not cover. */
+const HTML_REPORT: ReporterDescription = ["html", { open: "never", outputFolder: ".report" }];
 
 /* ------------------------------------------------------------------ *
  *  Playwright - the picture-memory and the flow tests.
@@ -54,7 +60,15 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? [["github"], ["html", { open: "never", outputFolder: "e2e/.report" }]] : [["list"]],
+  /* The HTML report is written locally as well as in CI. OPERATIONS' one rule
+   * about never rebaselining blind rests on `npm run visual:report`, which
+   * opens e2e/.report -- and until 2026-09-05 that folder was only ever
+   * written under CI, so the command had never worked on this machine. The
+   * rule had no tool behind it. `open: "never"` keeps a red run from
+   * launching a browser mid-suite; the script opens it when you ask. */
+  reporter: process.env.CI
+    ? [["github"], HTML_REPORT]
+    : [["list"], HTML_REPORT],
 
   expect: {
     toHaveScreenshot: {
