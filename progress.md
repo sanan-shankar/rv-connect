@@ -8948,3 +8948,27 @@ comment -- wrong for the direct path -- says what is really stored.
 
 The divergence itself (fallback silently gives a smaller photograph) is the owner's call, filed as
 §4 #20 of the audit. This commit documents it rather than deciding it.
+
+## 2026-09-05 — two Collection reads stop being public endpoints
+
+Refactor audit 2, Phase A, row A12. Every export of a `"use server"` file is registered as a
+client-callable server action with its own action ID, whether or not any client calls it.
+`loadPhoto` and `myPendingPhotos` were exports of `collection/actions.ts` and their only callers
+are server modules: `collection-data.ts` and `/collection/[id]/page.tsx`.
+
+Both authenticate correctly, so this was never a hole. It was surface -- and that file's own
+comments say twice over, at `:208` and `:722`, that a server action is a public HTTP endpoint.
+
+Moving them needed a seam first. `shape`, `includeFor` and `PhotoData` are shared with
+`loadPhotos`, which is genuinely client-called and stays; a `"use server"` file may only export
+async functions, so they cannot be exported from where they were. They are now
+`src/lib/collection-shape.ts`, and `actions.ts` re-exports the `PhotoData` *type* so the client
+components and two lab rooms that import it from there keep working -- a type export erases, so it
+mints no endpoint.
+
+`security-regressions.test.mjs:321` pinned the M30/M31 rule by reading `actions.ts` for
+`decidePhotoVisibility`, and went red the moment `loadPhoto` left. It reads `collection-data.ts`
+now, and asserts `loadPhoto` is actually in the file it is reading, so the pin cannot pass by
+looking at the wrong place next time.
+
+`/collection`, `/collection?scope=class` and a real permalink all load clean; visual unchanged.
