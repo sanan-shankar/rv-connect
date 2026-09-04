@@ -15,8 +15,9 @@
  *     stops checking whether the sign-in worked.
  *  2. The secret must not enter page JavaScript. Eight of the nine copies
  *     did the fetch inside page.evaluate, which serializes its arguments
- *     into the page's main world -- app-controlled ground. Only
- *     tour-mobile-verify.mjs got this right, with a comment explaining why.
+ *     into the page's main world -- app-controlled ground. Exactly one of
+ *     the nine got this right (tour-mobile-verify.mjs, deleted 2026-09-05
+ *     with the tour it checked), with a comment explaining why.
  *     That is now what everybody does: the request goes from Node, and only
  *     the resulting HttpOnly cookie is copied into the browser.
  */

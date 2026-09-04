@@ -26,7 +26,12 @@ export function assertSameOriginAfterNavigation(trustedOrigin, currentUrl) {
   }
 }
 
-/** Chrome expects IPv6 cookie domains in the bracketed form URL.hostname returns. */
+/** Chrome expects IPv6 cookie domains in the bracketed form URL.hostname returns.
+ *
+ * Kept deliberately with no caller since tour-mobile-verify.mjs went on
+ * 2026-09-05: three lines against a real trap, for the next script that has to
+ * set a cookie against `[::1]`. Its two assertions in local-base-url.test.mjs
+ * are what keep it honest. Delete it if that next script never arrives. */
 export function cookieDomainForBaseUrl(baseUrl) {
   return new URL(baseUrl).hostname;
 }
