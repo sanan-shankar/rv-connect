@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
+import "./lab.css";
 
 /**
  * The dev/preview rooms are admin-only (audit M19; owner decision: "/lab is

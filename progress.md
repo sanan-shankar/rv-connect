@@ -8617,3 +8617,25 @@ does so no surface says one day two ways, with a 2-digit hour so a column of row
 of ragging between "8:34" and "23:34". Pinned at the IST/UTC seam in `valley-day.test.mjs`.
 Rows in "Attempts that stopped" have no payment time and still show `createdAt`, the moment the
 order opened; the comment on the row says so.
+
+## 2026-09-05 — the lab's stylesheet stops riding on every member's page
+
+Refactor audit 2, Phase A, row A1 and A1b. One stylesheet served all 100 routes, and about a
+third of it existed only because a file under `/lab` used those classes. It is render-blocking
+and it was on the signed-out landing page.
+
+Two lines in `globals.css` do it. `source("../")` narrows Tailwind's scan from the whole
+repository to `src/`, which is how `min-w-[640px]`, `h-[86dvh]` and `pt-[106px]` were shipping
+to members from markdown files that merely quoted them. `@source not "./lab"` holds the design
+lab out; the lab compiles its own utilities in `src/app/lab/lab.css`, loaded by the lab layout.
+
+The audit's recipe for that second sheet does not work, and the failure is silent: a negated
+`@source` applies to every sheet that reaches it, including through `@reference`, so a lab sheet
+referencing `globals.css` excludes the lab from its own scan and compiles to 84 bytes. Hence
+`tailwind-theme.css` — `@theme inline`, `@custom-variant`, `state-layer`, the three things
+Tailwind needs at compile time — referenced by both sheets. Token values did not move.
+
+Measured off two production builds: **238,434 -> 160,915 bytes raw on every route, and 33,666 ->
+24,716 gzipped.** The lab sheet is 147,185 bytes on 48 routes, all of them under `/lab`, none
+member-facing. `npm run check` green, all 25 visual tests unchanged, and `/lab/v2`, `/lab/craft`,
+`/lab/profiles` and `/lab/landings` screenshotted intact.
