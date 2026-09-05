@@ -9717,3 +9717,29 @@ Prisma issues as its own statement. That is three off **every authenticated page
 `catchup-lifecycle.test.mjs`'s B-061 pin moved from the literal nesting to the property: it slices
 `advanceDueCatchups` and asserts the query still narrows to active Catch-ups and to the viewer's
 scope. Mutation-tested by deleting `status: "active"` and watching it go red.
+
+## 2026-09-05 — the schema stops lying about eleven indexes, and one of them is a trap
+
+Refactor audit 2, Phase C, row C10 (`data-layer-05`). `docs/TRAPS.md` said "two expression indexes
+exist that Prisma cannot see". There are **eleven**, counted from `pg_indexes` on 2026-09-05: two
+`lower()` uniques, three `lower()` btrees, five GIN trigram indexes and one partial. None is
+expressible in `schema.prisma`, so `prisma migrate diff` offers to create or drop every one of them,
+every time, and a session that trusts the schema thinks Collection search and people search are
+unindexed. The authoritative list now lives in the schema's own header with the migration file each
+one came from, and TRAPS points at it rather than keeping a second copy.
+
+**The audit's own instruction here was the trap.** It said to add `@@index([lastSeenAt])` to `User`,
+on the reasoning that `User_lastSeenAt_idx` is "a plain btree Prisma CAN express and the schema never
+received". It is not plain — `2026-08-19-analytics.sql:22-23` creates it `WHERE "lastSeenAt" IS NOT
+NULL`. A plain `@@index` is a *different* index, so following the instruction would have made the
+next routine `migrate diff` propose dropping a live partial index and building a worse replacement:
+the exact failure the entry exists to prevent, introduced by the entry's own fix. The schema says so
+where the temptation is.
+
+Found doing the census: **the demo database has seven of the eleven.** `Place_asciiName_idx`,
+`Place_name_idx`, `UserPlace_city_idx` and `User_lastSeenAt_idx` never reached it, because the
+migrations that created them predate the demo project. Nothing is broken at demo data size, so it is
+a note in `docs/planning/bugs.md` with the idempotent repair written out, not a live schema change
+made without asking. The full `pg_indexes` dump of both databases is saved beside the audit at
+`work/db-indexes-live.json` — 131 indexes on production, 129 on demo — which is the thing audit 1
+wanted and could not take.

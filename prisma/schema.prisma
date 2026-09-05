@@ -7,6 +7,48 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─────────────────────────────────────────────────────────────────────
+//  ELEVEN INDEXES EXIST THAT THIS FILE CANNOT DESCRIBE.
+//
+//  They are expression, trigram and partial indexes. Prisma has no syntax
+//  for any of the three, so `prisma migrate diff` reads this file, does not
+//  find them, and offers to create or DROP them. It is wrong every time.
+//  This is the authoritative list; counted from `pg_indexes` on 2026-09-05.
+//
+//    User_email_lower_key        UNIQUE (lower(email))
+//                                2026-08-21-email-canonical.sql
+//    User_name_trgm_idx          GIN (name gin_trgm_ops)
+//    Photo_caption_trgm_idx      GIN (caption gin_trgm_ops)
+//    Photo_area_trgm_idx         GIN (area gin_trgm_ops)
+//    Photo_freeTags_trgm_idx     GIN (freeTags gin_trgm_ops)
+//                                2026-08-28-collection-river.sql
+//    Place_altNames_trgm_idx     GIN (altNames gin_trgm_ops)
+//                                2026-08-21-gazetteer-trigram.sql
+//    Place_name_idx              btree (lower(name) text_pattern_ops)
+//    Place_asciiName_idx         btree (lower(asciiName) text_pattern_ops)
+//    UserPlace_city_idx          btree (lower(city))
+//                                2026-07-18-round6.sql
+//    Report_open_post_per_reporter_key
+//                                UNIQUE (reporterId, postId) WHERE targetType
+//                                = 'post' AND status = 'pending' AND postId
+//                                IS NOT NULL
+//                                2026-08-25-report-one-open-per-post.sql
+//    User_lastSeenAt_idx         btree (lastSeenAt) WHERE lastSeenAt IS NOT NULL
+//                                2026-08-19-analytics.sql
+//
+//  The last one is the trap inside the trap. It looks like a plain index
+//  Prisma could express, and refactor audit 2 was told to add
+//  `@@index([lastSeenAt])` to User for it. Do not: it is PARTIAL, and a plain
+//  @@index is a different index, so declaring one makes `migrate diff` want to
+//  drop the live partial one and build a worse replacement. It serves the two
+//  range counts in admin-analytics.ts's loadPeople and loadFaces's
+//  `lastSeenAt IS NOT NULL`, and it serves them from SQL alone.
+//
+//  The demo database has only SEVEN of the eleven -- the four created before
+//  the demo project existed (2026-08-21) never reached it. Logged in
+//  docs/planning/bugs.md; check both before assuming.
+// ─────────────────────────────────────────────────────────────────────
+
 model User {
   id            String    @id @default(cuid())
   name          String
@@ -186,6 +228,13 @@ model User {
   // it would index the array as one opaque value, so every profession filter
   // would be a sequential scan over the whole membership.
   @@index([professionTags], type: Gin)
+  // Three more exist in the database and cannot appear here -- see the header:
+  // the unique on lower(email) that makes address canonicalisation real, the
+  // GIN trigram on name that serves every people search, and the PARTIAL index
+  // on lastSeenAt that serves the analytics room's activity counts. None of
+  // them is expressible in this file. Do not add a plain @@index in their
+  // place: a plain one is a different index, and declaring it is how a routine
+  // `migrate diff` ends up proposing to drop a live one.
 }
 
 /// What we know about the bytes at one stored image URL: its true shape, where
@@ -399,6 +448,10 @@ model Photo {
   // offset. A keyset page over a partial ordering can repeat a row and skip
   // another (audit B-122) -- do not drop the trailing id from this one either.
   @@index([scope, classYears, approved, isHidden, takenKey(sort: Desc), id(sort: Desc)], name: "Photo_class_river_idx")
+  // Three GIN trigram indexes on caption, area and freeTags exist in the
+  // database and cannot appear here -- see the header. Collection search is
+  // `contains`, which is `ILIKE '%x%'`, which nothing but a trigram index
+  // serves. It is not unindexed; do not "fix" it.
 }
 
 model PhotoLove {
