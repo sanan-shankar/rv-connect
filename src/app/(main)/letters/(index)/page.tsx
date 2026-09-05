@@ -97,7 +97,13 @@ export default async function LettersPage({
   // never leak someone else's unpublished draft.
   const draftsQuery = prisma.post.findMany({
     where: { kind: "letter", authorId: session.user.id, status: "draft" },
-    select: { id: true, title: true, content: true, updatedAt: true },
+    /* No `content`. The strip draws a title, a date and nothing else, and a
+       letter body is capped at 20,000 characters -- so twenty drafts pulled up
+       to 400 KB through the pooler on every visit here to be dropped on the
+       floor. (If "Untitled letter" ever wants to become the first line of the
+       body, the way `letterTitle` does for published letters, select it back
+       then and call that function in the mapping.) */
+    select: { id: true, title: true, updatedAt: true },
     orderBy: { updatedAt: "desc" },
     take: 20,
   });
