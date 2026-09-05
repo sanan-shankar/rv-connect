@@ -17,7 +17,6 @@ import { read, decomment, hasLoneSurrogate } from "./test-kit.mjs";
 
 
 const ACTIONS = decomment(read("src/app/(main)/messages/actions.ts"));
-const NOTICE = decomment(read("src/app/(main)/notice/[id]/page.tsx"));
 
 /* ---- C-059: a cut never lands inside a character ---------------- */
 
@@ -152,37 +151,11 @@ test("C-058/C-081: every capped thread list carries a count and an escape", () =
   assert.match(openQuery.slice(0, 300), /take: OPEN_PAGE/, "the open queue is unbounded again");
 });
 
-/* ---- C-115: two first-opens of one legacy note make one thread --- */
-
-test("the legacy notice resolution is serialised on the notification row", () => {
-  /* M46 claimed to have fixed this and had not: a findFirst followed by a
-     create is idempotent only if something stops two concurrent readers from
-     both seeing nothing, and AdminThread has no unique key for (memberId,
-     kind, createdAt). Proved live before the fix -- two simultaneous opens
-     left two identical conversations about one note.
-
-     The lock is the notification row, taken FOR UPDATE inside the same
-     transaction as the create, so the second request waits and then sees the
-     link the first one wrote. */
-  assert.ok(NOTICE.length > 400, "the notice page did not read; this test is vacuous");
-  assert.ok(/\$transaction\(/.test(NOTICE), "the resolution left its transaction (C-115)");
-  const tx = NOTICE.slice(NOTICE.indexOf("$transaction("));
-  assert.ok(
-    /FOR UPDATE/.test(tx),
-    "the notification row is no longer locked, so both readers see no thread again"
-  );
-  assert.ok(
-    tx.indexOf("FOR UPDATE") < tx.indexOf("openAdminNoticeThread"),
-    "the create happens before the lock is taken, which is no lock at all"
-  );
-  assert.ok(
-    /db: tx/.test(tx),
-    "openAdminNoticeThread is called on the global client, so the create commits " +
-      "outside the lock that was taken to serialise it"
-  );
-  assert.ok(
-    /tx\.notification\.update/.test(tx),
-    "the link write left the transaction: the thread would commit without the " +
-      "record that says which thread it is"
-  );
-});
+/* C-115's pin lived here: it read /notice/[id]/page.tsx and asserted that the
+   legacy-note resolution took the notification row FOR UPDATE, created inside
+   that transaction and wrote the link inside it too. The route was retired on
+   2026-09-05 -- its whole audience was notifications minted before the
+   2026-07-24 migration, and at a 30-day retention none has existed since
+   2026-08-23 (checked live: 0 rows before that date and 0 with a /notice/ link,
+   on production and on demo). The race it closed cannot be reached because the
+   code that could race is gone. `db` came off openAdminNoticeThread with it. */

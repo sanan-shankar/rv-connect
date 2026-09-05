@@ -17,7 +17,8 @@ export const metadata: Metadata = {
  * One conversation between a member and the admins.
  *
  * This is where a moderation note lands (it used to be a read-only page at
- * /notice/[id] that a member could not answer). The heading band carries the
+ * a /notice/[id] page, retired 2026-09-05, that a member could not answer).
+ * The heading band carries the
  * title only: the time sits with each message, where a timestamp belongs,
  * rather than floating in the header.
  */
