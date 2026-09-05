@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { downscaleImage } from "@/lib/image-downscale";
-import { directUploadPut } from "@/lib/upload-client";
+import { announceUploadNotices, directUploadPut, factsByUrl, postImages } from "@/lib/upload-client";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
 import type { PhotoFacts } from "@/lib/photo-layout";
 import { myImageFacts } from "@/app/(main)/image-aim";
@@ -19,8 +19,6 @@ import { myImageFacts } from "@/app/(main)/image-aim";
  *  read). That narrow seam is why this half comes out cleanly while the editor
  *  body, which closes over twenty pieces of state, stays where it is.
  * ------------------------------------------------------------------ */
-
-const UPLOAD_TIMEOUT_MS = 60_000;
 
 /** One photograph in the composer. `preview` is what is on screen from the
  *  first frame (a local object url, or a resumed draft's stored url); `url`
@@ -110,15 +108,8 @@ export function useComposerUploads({
    *  `{ urls, images }`, and an `images` shorter than `urls` is a supported
    *  state: an image sharp could not measure still uploads and still posts, it
    *  simply gets no crop handle. */
-  function keep(images: unknown) {
-    if (!Array.isArray(images)) return;
-    setFacts((prev) => {
-      const next = { ...prev };
-      for (const f of images as ({ url?: string } & PhotoFacts)[]) {
-        if (f?.url) next[f.url] = f;
-      }
-      return next;
-    });
+  function keep(measured: Record<string, PhotoFacts>) {
+    setFacts((prev) => ({ ...prev, ...measured }));
   }
 
   /* A resumed draft arrives holding urls and nothing else, so its
@@ -163,10 +154,9 @@ export function useComposerUploads({
       });
       const data = await fin.json().catch(() => ({}));
       if (fin.ok && data.urls?.[0]) {
-        // Same as the classic path below: anything the server changed about
-        // the file is said out loud (audit M15/C-073).
-        for (const notice of (data.notices ?? []) as string[]) toast.info(notice);
-        keep(data.images);
+        // Same as the classic path below (audit M15/C-073).
+        announceUploadNotices(data.notices);
+        keep(factsByUrl(data.images));
         return data.urls[0] as string;
       }
       throw new Error(data.error || `"${original.name}" failed to upload`);
@@ -175,40 +165,12 @@ export function useComposerUploads({
     return uploadOneFile(shrunk);
   }
 
+  /** The proxied fallback. Named, because a batch uploads one file at a time
+   *  and a failure two thumbnails in has to say which photograph it was. */
   async function uploadOneFile(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append("files", file);
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
-    let res: Response;
-    try {
-      res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-        signal: controller.signal,
-      });
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        throw new Error(`"${file.name}" timed out. Check your connection and try again.`);
-      }
-      throw new Error(`"${file.name}" failed to upload. Check your connection and try again.`);
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({ error: null }));
-      throw new Error(data.error || `"${file.name}" failed to upload`);
-    }
-
-    const { urls, images, notices } = await res.json();
-    keep(images);
-    // Anything the server changed about the file, said out loud (audit M15).
-    // A toast rather than inline copy: it is information about one upload that
-    // has already succeeded, not a condition to fix before carrying on.
-    for (const notice of (notices ?? []) as string[]) toast.info(notice);
-    return urls[0] as string;
+    const { urls, facts: measured } = await postImages([file], { subject: `"${file.name}"` });
+    keep(measured);
+    return urls[0];
   }
 
   async function handleImageFiles(files: File[]) {
