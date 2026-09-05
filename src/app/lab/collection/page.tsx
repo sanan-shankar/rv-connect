@@ -33,7 +33,12 @@ import { RiverControls } from "@/components/collection/river-controls";
 import { YearRail } from "@/components/collection/year-rail";
 import { PhotoScrubber } from "@/components/collection/photo-scrubber";
 import { PhotoRiver, landAt, warmThumbs } from "@/components/collection/photo-river";
-import { ImageViewer, type ViewerImage } from "@/components/common/image-viewer";
+import type { ViewerImage } from "@/components/common/image-viewer";
+/* Lazily, exactly as every shipped surface loads it. A lab room importing the
+   REAL module is the point of /lab/viewer; importing it the real way keeps
+   that true -- and these three rooms were the only thing on the server side
+   of the viewer, which is what its SSR portal guard existed for. */
+import { LazyImageViewer as ImageViewer } from "@/components/common/lazy-image-viewer";
 import { bandKeyOf, bucketLabel } from "@/lib/collection";
 import type { RiverOrder } from "@/app/(main)/collection/actions";
 import { LAB_ARCHIVE, takenKeyOf } from "./_archive";

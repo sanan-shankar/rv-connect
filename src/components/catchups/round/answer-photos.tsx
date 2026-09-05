@@ -20,8 +20,6 @@
  *  two are a carousel, all of it from src/lib/photo-layout.ts.
  * ------------------------------------------------------------------ */
 
-import { useState } from "react";
-import dynamic from "next/dynamic";
 import { PhotoFrame } from "@/components/common/photo-frame";
 import { PhotoRows } from "@/components/common/photo-rows";
 import { PhotoCarousel } from "@/components/common/photo-carousel";
@@ -29,15 +27,12 @@ import { PHOTO_SIZES_CENTERED_FULL } from "@/lib/image-cdn";
 import type { StoredPhoto } from "@/lib/photo-layout";
 import type { CatchupPersonRef } from "@/lib/catchups-types";
 import { cn, formatDisplayDate } from "@/lib/utils";
+import {
+  LazyImageViewer,
+  preloadImageViewer,
+  useImageViewer,
+} from "@/components/common/lazy-image-viewer";
 
-/* Fetched on the press, and warmed the moment a pointer arrives on a
-   photograph, which is what stops the first open waiting on the network
-   (the owner, on the Collection's: "this doesn't even load... Okay. Loaded"). */
-const ImageViewer = dynamic(
-  () => import("@/components/common/image-viewer").then((m) => m.ImageViewer),
-  { ssr: false }
-);
-const preloadViewer = () => void import("@/components/common/image-viewer");
 
 /** One photograph, as a press that opens the viewer at it. */
 function Opener({
@@ -57,8 +52,8 @@ function Opener({
     <button
       type="button"
       onClick={() => onOpen(index)}
-      onPointerEnter={preloadViewer}
-      onFocus={preloadViewer}
+      onPointerEnter={preloadImageViewer}
+      onFocus={preloadImageViewer}
       aria-label={
         count > 1
           ? `View photo ${index + 1} of ${count} full screen`
@@ -87,12 +82,7 @@ export function AnswerPhotos({
   body: string | null;
   createdAt: Date | string;
 }) {
-  const [at, setAt] = useState<number | null>(null);
-  const [mounted, setMounted] = useState(false);
-  const open = (index: number) => {
-    setMounted(true);
-    setAt(index);
-  };
+  const viewer = useImageViewer();
 
   const viewerImages = images.map((src) => ({
     src,
@@ -112,7 +102,7 @@ export function AnswerPhotos({
   let content: React.ReactNode;
   if (images.length === 1) {
     content = (
-      <Opener index={0} count={1} onOpen={open} className="mt-[var(--space-s)] border border-border">
+      <Opener index={0} count={1} onOpen={viewer.open} className="mt-[var(--space-s)] border border-border">
         {/* The bucket's own url, not an optimiser transform. A Catch-up is a
             newsletter: everyone opens the same Round within a day of each
             other, so a cold transform is not amortised across viewers the way
@@ -134,8 +124,8 @@ export function AnswerPhotos({
         className="mt-[var(--space-s)]"
         photos={images.map((src, i) => ({ src, photo: photos[i] ?? null }))}
         sizes={PHOTO_SIZES_CENTERED_FULL}
-        onOpen={open}
-        onPreload={preloadViewer}
+        onOpen={viewer.open}
+        onPreload={preloadImageViewer}
       />
     );
   } else {
@@ -147,7 +137,7 @@ export function AnswerPhotos({
     content = shapes ? (
       <PhotoRows photos={shapes as StoredPhoto[]} className="mt-[var(--space-s)]">
         {(photo, i, cell) => (
-          <Opener index={i} count={images.length} onOpen={open} className="h-full border border-border">
+          <Opener index={i} count={images.length} onOpen={viewer.open} className="h-full border border-border">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={images[i]}
@@ -167,7 +157,7 @@ export function AnswerPhotos({
     ) : (
       <div className="mt-[var(--space-s)] grid grid-cols-2 gap-2">
         {images.map((src, i) => (
-          <Opener key={i} index={i} count={images.length} onOpen={open} className="border border-border">
+          <Opener key={i} index={i} count={images.length} onOpen={viewer.open} className="border border-border">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={src} alt="" loading="lazy" className="aspect-square w-full object-cover" />
           </Opener>
@@ -179,12 +169,12 @@ export function AnswerPhotos({
   return (
     <>
       {content}
-      {mounted && (
-        <ImageViewer
+      {viewer.mounted && (
+        <LazyImageViewer
           images={viewerImages}
-          initialIndex={at ?? 0}
-          open={at !== null}
-          onClose={() => setAt(null)}
+          initialIndex={viewer.at ?? 0}
+          open={viewer.at !== null}
+          onClose={viewer.close}
         />
       )}
     </>

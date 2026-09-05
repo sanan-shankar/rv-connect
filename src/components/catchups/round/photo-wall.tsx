@@ -17,27 +17,24 @@
  *  photographs.
  * ------------------------------------------------------------------ */
 
-import { useState } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { EntryLoveButton } from "@/components/catchups/round/entry-love-button";
 import { renderRichText } from "@/lib/rich-text";
 import { PhotoStream } from "@/components/common/photo-rows";
+import {
+  LazyImageViewer,
+  preloadImageViewer,
+  useImageViewer,
+} from "@/components/common/lazy-image-viewer";
 import type { RoundEntry } from "@/components/catchups/round/answer-card";
 import { formatDisplayDate } from "@/lib/utils";
 
-const ImageViewer = dynamic(
-  () => import("@/components/common/image-viewer").then((m) => m.ImageViewer),
-  { ssr: false }
-);
-const preloadViewer = () => void import("@/components/common/image-viewer");
 
 /** A photograph nobody has measured keeps the square it has always had. */
 const UNMEASURED = { width: 1, height: 1 };
 
 export function PhotoWall({ entries }: { entries: RoundEntry[] }) {
-  const [at, setAt] = useState<number | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const viewer = useImageViewer();
 
   const cells = entries.map((entry) => ({
     entry,
@@ -51,12 +48,9 @@ export function PhotoWall({ entries }: { entries: RoundEntry[] }) {
           <div id={`entry-${entry.id}`} className="min-w-0">
             <button
               type="button"
-              onClick={() => {
-                setMounted(true);
-                setAt(i);
-              }}
-              onPointerEnter={preloadViewer}
-              onFocus={preloadViewer}
+              onClick={() => viewer.open(i)}
+              onPointerEnter={preloadImageViewer}
+              onFocus={preloadImageViewer}
               aria-label={`View ${entry.author.name}'s photo full screen`}
               className="block w-full overflow-hidden rounded-[var(--radius-md)] border border-border transition-opacity duration-150 hover:opacity-95 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
@@ -101,17 +95,17 @@ export function PhotoWall({ entries }: { entries: RoundEntry[] }) {
           </div>
         )}
       </PhotoStream>
-      {mounted && (
-        <ImageViewer
+      {viewer.mounted && (
+        <LazyImageViewer
           images={entries.map((entry) => ({
             src: entry.images[0],
             author: entry.author,
             date: formatDisplayDate(entry.createdAt),
             caption: entry.body,
           }))}
-          initialIndex={at ?? 0}
-          open={at !== null}
-          onClose={() => setAt(null)}
+          initialIndex={viewer.at ?? 0}
+          open={viewer.at !== null}
+          onClose={viewer.close}
         />
       )}
     </>

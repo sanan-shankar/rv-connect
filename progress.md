@@ -1,5 +1,34 @@
 # Progress Log
 
+## 2026-09-05 — one way into the image viewer, and the SSR guard that only three lab rooms needed
+
+Refactor audit 2, row B10, absorbing A18 (deferred from Phase A for exactly this). Six files knew
+the viewer's module path and each wrote the same four things: the `dynamic()`, the bare `import()`
+that warms it, a `mounted`/`at` pair set together in an `open(i)`, and the latched render. Five
+copies of a latch, and only one of them carried the argument for why it is a latch.
+
+`common/lazy-image-viewer.tsx` now holds `LazyImageViewer`, `preloadImageViewer` and
+`useImageViewer()`, with post-card's argument moved in. Net -24 lines across ten files.
+
+**The three lab rooms were the whole reason the viewer had an SSR portal guard.** They imported
+`ImageViewer` directly, so Next rendered it on the server, so the component held its portal target
+in state and returned null on the first render -- and `portal` had to be a dependency of the
+caption's `useLayoutEffect`, because otherwise it measured nothing once and never again. They come
+through the shared module now, every caller is `ssr: false`, and the state, the effect and the
+dependency are gone: `createPortal(..., document.body)`.
+
+Verified the viewer opens and Escape closes it on **all eight surfaces** -- /feed, a letter, the
+Collection, a Catch-up round, a profile, and /lab/viewer, /lab/collection, /lab/collection/swap.
+The caption affordance the removed dependency protected still works: at 390px the lab viewer's long
+caption reads `aria-expanded="false"` clamped to 45px and opens to 90px on a press.
+`collection-permalink.spec.ts` green, `npm run visual` 25/25.
+
+Measured between builds: **/lab/viewer -136,869 B, /lab/collection -115,359 B,
+/lab/collection/swap -67,631 B** raw first-load JS; shipped routes gain 321-435 B for the shared
+wrapper. Eleven built chunks still carry the viewer, so the finding's hope of "possibly fewer
+viewer chunks" did not land -- that duplication is Turbopack's chunking, not the call sites, which
+is B9's question.
+
 ## 2026-09-05 — a profile arrives with its Writing tab already filled
 
 Refactor audit 2, row B13. The Writing tab fetched its first page from a mount effect after

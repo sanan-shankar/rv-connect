@@ -28,6 +28,11 @@ import { PhotoCarousel } from "@/components/common/photo-carousel";
 import type { StoredPhoto } from "@/lib/photo-layout";
 import { MetaDots } from "@/components/common/meta-dots";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import {
+  LazyImageViewer,
+  preloadImageViewer,
+  useImageViewer,
+} from "@/components/common/lazy-image-viewer";
 import { PersonName } from "@/components/common/person-name";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { LoveButton } from "@/components/common/love-button";
@@ -45,9 +50,10 @@ import { safeTruncateIndex } from "@/lib/rich-truncate";
  *  Four pieces of this card only exist after somebody asks for them,
  *  and until now every one of them shipped inside the feed's first load
  *  to render nothing: the comment thread (718 lines), the full-screen
- *  viewer (444, and the app's only `drag` user), the edit dialog and the
- *  admin moderation dialog. Each already had its render gate; only the
- *  import changes.
+ *  viewer (444), the edit dialog and the admin moderation dialog. Each
+ *  already had its render gate; only the import changes. The viewer's
+ *  `dynamic()`, its preload and its latch now live in
+ *  common/lazy-image-viewer.tsx, which five surfaces share.
  *
  *  ReportDialog is the fifth, and it used to be excluded from this list on
  *  the grounds that it is mounted unconditionally -- so its own
@@ -69,10 +75,6 @@ const CommentsSection = dynamic(
 const ReportDialog = dynamic(() => import("./report-dialog").then((m) => m.ReportDialog), {
   ssr: false,
 });
-const ImageViewer = dynamic(
-  () => import("@/components/common/image-viewer").then((m) => m.ImageViewer),
-  { ssr: false }
-);
 const EditPostDialog = dynamic(
   () => import("./edit-post-dialog").then((m) => m.EditPostDialog),
   { ssr: false }
@@ -82,7 +84,6 @@ const ModerationDialog = dynamic(
   { ssr: false }
 );
 const preloadComments = () => void import("./comments-section");
-const preloadViewer = () => void import("@/components/common/image-viewer");
 
 /**
  * One photograph in a post, as a button that opens the shared viewer at it
@@ -212,16 +213,7 @@ export function PostCard({
   const [showModeration, setShowModeration] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [removed, setRemoved] = useState(false);
-  const [viewerAt, setViewerAt] = useState<number | null>(null);
-  /* Latched rather than derived from `viewerAt`: the viewer must STAY mounted
-     after it closes, so its own exit animation has something to play out of,
-     but it must not mount before the first open or the deferred chunk would be
-     fetched by every card on the page. True once, then true forever. */
-  const [viewerMounted, setViewerMounted] = useState(false);
-  const openViewerAt = (index: number) => {
-    setViewerMounted(true);
-    setViewerAt(index);
-  };
+  const viewer = useImageViewer();
   // What the member last saved from the edit dialog, when they have.
   //
   // Every surface that renders a PostCard -- the feed, a group feed, the
@@ -535,8 +527,8 @@ export function PostCard({
                       photo: post.photos?.[i] ?? null,
                     }))}
                     sizes={columnSizes}
-                    onOpen={openViewerAt}
-                    onPreload={preloadViewer}
+                    onOpen={viewer.open}
+                    onPreload={preloadImageViewer}
                   />
                 ) : images.length === 1 || !rowPhotos ? (
                   images.map((img, i) => (
@@ -544,8 +536,8 @@ export function PostCard({
                       key={i}
                       index={i}
                       count={images.length}
-                      onOpen={openViewerAt}
-                      onPreload={preloadViewer}
+                      onOpen={viewer.open}
+                      onPreload={preloadImageViewer}
                       className={!rowPhotos && images.length > 1 ? "mb-2 last:mb-0" : undefined}
                     >
                       <PhotoFrame
@@ -565,7 +557,7 @@ export function PostCard({
                      the Catch-up letterbox. */
                   <PhotoRows photos={rowPhotos} columnSizes={columnSizes}>
                     {(photo, i, cell) => (
-                      <PhotoButton index={i} count={images.length} onOpen={openViewerAt} onPreload={preloadViewer} className="h-full">
+                      <PhotoButton index={i} count={images.length} onOpen={viewer.open} onPreload={preloadImageViewer} className="h-full">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={photoSrc(images[i])}
@@ -651,12 +643,12 @@ export function PostCard({
         </AnimatePresence>
       </article>
 
-      {images.length > 0 && viewerMounted && (
-        <ImageViewer
+      {images.length > 0 && viewer.mounted && (
+        <LazyImageViewer
           images={viewerImages}
-          initialIndex={viewerAt ?? 0}
-          open={viewerAt !== null}
-          onClose={() => setViewerAt(null)}
+          initialIndex={viewer.at ?? 0}
+          open={viewer.at !== null}
+          onClose={viewer.close}
         />
       )}
 

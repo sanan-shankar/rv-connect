@@ -232,11 +232,6 @@ export function ImageViewer({
   const [chrome, setChrome] = useState<"shown" | "idle" | "off">("shown");
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
-  /* Where the overlay is actually drawn. Null until mount, so the server and
-     the first client render agree (this component is imported directly by
-     /lab/viewer, which renders it on the server). */
-  const [portal, setPortal] = useState<HTMLElement | null>(null);
-  useEffect(() => setPortal(document.body), []);
   const stageRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const captionRef = useRef<HTMLParagraphElement>(null);
@@ -456,15 +451,21 @@ export function ImageViewer({
   /* Does the caption run past its two lines? Measured rather than guessed
      from a character count, because the answer depends on the glyphs and on
      how wide the screen is. Layout effect, so "More" never flickers in.
-     `portal` is in the dependencies and has to be: the first render returns
-     null while it is still null, so this ran once against nothing and, with
-     every other dependency already settled, never ran again -- a clamped
-     caption with no way to open it, measured at 90px in a 45px box. */
+
+     There used to be a `portal` state in these dependencies, and it had to be:
+     this component held its portal target in state so the server and the first
+     client render could agree, so the first render returned null and this ran
+     once against nothing and never again -- a clamped caption with no way to
+     open it, measured at 90px in a 45px box. Nothing renders this on a server
+     any more (every caller, the three lab rooms included, comes through
+     common/lazy-image-viewer.tsx with `ssr: false`), so `document.body` is
+     there on the first render and the dependency, the state and the effect
+     that set it are all gone. */
   useLayoutEffect(() => {
     const el = captionRef.current;
     if (!el || expanded) return;
     setOverflows(el.scrollHeight - el.clientHeight > 1);
-  }, [open, at, expanded, current?.caption, portal]);
+  }, [open, at, expanded, current?.caption]);
 
   async function download() {
     if (!current) return;
@@ -525,7 +526,6 @@ export function ImageViewer({
 
   /* AnimatePresence stays mounted across open/close so the closing fade
      actually plays; only the dialog inside it comes and goes. */
-  if (!portal) return null;
   return createPortal(
     <AnimatePresence>
       {open && current && (
@@ -799,6 +799,6 @@ export function ImageViewer({
         </m.div>
       )}
     </AnimatePresence>,
-    portal
+    document.body
   );
 }
