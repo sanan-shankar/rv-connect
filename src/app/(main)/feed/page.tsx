@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { FeedColumn } from "@/components/posts/feed-column";
 import { PageHeader } from "@/components/layout/page-header";
+import { SearchPill } from "@/components/layout/search-pill";
 import { RAIL_GRID, RAIL_ASIDE } from "@/components/layout/rail-grid";
 import { FeedRail } from "@/components/feed/feed-rail";
 import { NewPostCTA } from "@/components/feed/new-post-cta";
@@ -73,7 +74,7 @@ export default async function FeedPage({
           <PageHeader
         guide="feed"
             title="Feed"
-            showSearch
+            search={<SearchPill />}
             unreadCount={unreadCount}
             actions={<NewPostCTA />}
           />

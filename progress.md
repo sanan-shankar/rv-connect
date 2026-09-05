@@ -1,5 +1,22 @@
 # Progress Log
 
+## 2026-09-05 — the search pill stops riding twenty-two headers that never draw it
+
+Refactor audit 2, row B3. `PageHeader` took a `showSearch` boolean and imported `SearchPill`
+itself, and a server component that imports a client component ships that module whether or not
+the branch renders. So SearchPill and its two Phosphor icons were in the first load of
+twenty-six routes for a pill exactly one of them draws.
+
+`search` takes the node now, not a flag, and /feed passes `search={<SearchPill />}`. The
+audit's remedy was to fold it into `actions`, matching how Collection and the directory pass
+theirs -- but `actions` renders after the bell, so on /feed that would have reordered search and
+bell in front of the owner. The slot stays; only the import moves.
+
+Measured between builds: **-7.5 KB raw first-load JS on 22 non-lab routes** (-164 KB across the
+app), plus -23 KB on /lab/support-ideas. Verified at 1440 and 390: the cluster is still search,
+bell, New post; the glass still draws its line into the gap; the title still fades on the phone
+and holds on the desktop. `npm run visual` green.
+
 ## 2026-09-05 — the sidebar's bird stops riding along on pages it never lands on
 
 Refactor audit 2, row B2, and the second half of audit 1's finding 08. `sidebar-hoopoe.tsx`
