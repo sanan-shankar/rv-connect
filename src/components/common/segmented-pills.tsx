@@ -29,6 +29,10 @@
  *   - `fill`: signup's toggle sits in a `grid grid-cols-2` beside an
  *     InfoTip and must stretch to fill its row; every other call site
  *     sizes to its labels and never grows past them.
+ *  A fourth field, `warm`, was added per segment on 2026-09-05. It is not a
+ *  fourth axis of variance -- it draws nothing and changes nothing about the
+ *  control -- it is a hover hook for a segment whose panel is behind a lazy
+ *  chunk. One segment in the app uses it: the directory's Map.
  *  Track background/shadow (profile's `bg-card` + soft shadow, directory's
  *  bare `bg-card`, signup's `bg-paper`, Catch-ups' `bg-muted/40`) is
  *  deliberately NOT baked in - it is the one thing that differs for a
@@ -47,6 +51,13 @@ export interface SegmentedPillsSegment<T extends string> {
   /** Trailing count badge (profile's post/letter/photo counts). Omit the
    *  field entirely on segments that should show no badge. */
   count?: number;
+  /** Fired on pointer-enter and on focus, before the press. For a segment
+   *  whose panel is behind a lazy chunk: the directory's Map is 66 KB of d3
+   *  that only arrives when somebody asks for it, and asking is what a hover
+   *  is. Per segment rather than per control, and optional, for the same
+   *  reason `count` is -- exactly one segment in the app has anything to
+   *  warm. Must be idempotent; it fires on every pass of the cursor. */
+  warm?: () => void;
 }
 
 export function SegmentedPills<T extends string>({
@@ -120,6 +131,8 @@ export function SegmentedPills<T extends string>({
             role={itemRole}
             {...(role === "tablist" ? { "aria-selected": active } : { "aria-checked": active })}
             onClick={() => onChange(segment.key)}
+            onPointerEnter={segment.warm}
+            onFocus={segment.warm}
             className={cn(
               "relative inline-flex h-8 items-center justify-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold transition-colors duration-200 active:scale-[0.97] sm:px-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               !fill && "shrink-0",

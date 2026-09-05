@@ -1,5 +1,40 @@
 # Progress Log
 
+## 2026-09-05 — the Map segment warms on hover, and the world arrives whole
+
+The owner, on B7's placeholder beat: *"do that"*. So: `SegmentedPills` segments take an optional
+`warm`, fired on pointer-enter and focus, and the directory's Map segment passes one. It is a
+fourth field on the segment rather than a fourth prop on the control, for the same reason `count`
+is one -- exactly one segment in the app has anything to warm, and it draws nothing.
+
+**Measuring it said the module was never the beat.** On a production build, pressing Map fetched
+its chunks at 63 ms, drew the empty card at 155 ms, and reached the map at 465 ms. The hover moved
+two of three chunks earlier and changed that number by nothing. What it did expose is where the
+time actually went: the atlas -- `countries-110m.json`, 105 KB of coastlines -- was requested at
+**464 ms, after the map had mounted**, because `loadLandPaths` started in the mount effect. So the
+land always arrived last, behind a beat nobody was waiting on for a good reason.
+
+It starts at module scope now, memoised and browser-guarded, so the request goes out with the
+chunk -- which the hover has already fetched. Measured on `next start`, Fast 3G, an empty cache,
+three runs each:
+
+| | first map frame | coastlines |
+|---|---|---|
+| no hover | 494-525 ms | **719-732 ms** |
+| hover first | 530-542 ms | **530-542 ms** |
+
+So the hover does not make the map appear sooner -- it is ~25 ms later, honestly -- it makes it
+arrive **whole**, 190 ms sooner, with no window where a drawn map has no land in it.
+
+The `AbortController` went with the change: there is nothing useful to abort. The response is a
+static file behind an immutable cache header, a remount wants the same promise, and an unmount
+mid-flight now drops the result rather than cancelling work already paid for. Verified: opening
+Full screen remounts the map with **0 atlas refetches**, and a People-first arrival that never
+touches the toggle still fetches **0 atlas and 0 d3**, so B7's saving is intact.
+
+The ~500 ms to the first map frame is the view crossfade plus the map's own first render of 177
+country paths. It is not network and this could not have fixed it.
+
 ## 2026-09-05 — Turbopack's duplicate chunks: measured, and left alone
 
 Refactor audit 2, row B9, which the audit wrote as an experiment with a revert condition rather
