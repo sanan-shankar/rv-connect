@@ -1,3 +1,7 @@
+import { toast } from "sonner";
+
+import type { PhotoFacts } from "@/lib/photo-layout";
+
 /**
  * The client half of the direct-to-R2 upload path, shared by the post
  * composer and the Collection contribute dialog so the presign contract
@@ -94,4 +98,105 @@ export async function directUploadPut(
   }
 
   return { key: presign.key, publicUrl: presign.publicUrl };
+}
+
+/* ------------------------------------------------------------------ *
+ *  The classic server-proxied upload, and the two things every caller
+ *  does with what comes back.
+ *
+ *  Three surfaces POST to /api/upload -- the post composer's fallback, a
+ *  Catch-up answer's attachments and the support-message composer -- and
+ *  each used to spell the whole ceremony out. They had drifted: only the
+ *  composer had a deadline, and the three of them said a failed upload
+ *  three different ways.
+ *
+ *  `shrinkForUpload` deliberately stays at the CALL SITES rather than
+ *  moving in here. `upload-size-rule.test.mjs` greps each sending file for
+ *  it by name, and a helper that swallowed the shrink would turn that pin
+ *  red for the right reason: the pin's whole job is to notice a fourth
+ *  surface that forgot.
+ * ------------------------------------------------------------------ */
+
+/** A request that neither answers nor fails holds its caller open for ever,
+ *  and every one of these callers leaves a button reading "Adding..." until
+ *  it settles. Sixty seconds is long enough for a shrunk photograph on a
+ *  train and short enough that nobody sits looking at a dead control
+ *  (the wedged-busy shape of audit B-042). */
+const UPLOAD_TIMEOUT_MS = 60_000;
+
+type UploadResponse = {
+  urls?: string[];
+  images?: unknown;
+  notices?: unknown;
+  error?: string;
+};
+
+/**
+ * Anything the server changed about a file, said out loud (audit M15).
+ *
+ * A toast rather than inline copy: it is information about an upload that has
+ * already succeeded, not a condition to fix before carrying on. Exported
+ * because the finalize route answers the same `notices` array on a path that
+ * does not come through `postImages`.
+ */
+export function announceUploadNotices(notices: unknown): void {
+  for (const notice of (notices ?? []) as string[]) toast.info(notice);
+}
+
+/**
+ * What the server measured about each stored url, keyed by it.
+ *
+ * Kept rather than thrown away: it is the crop handle's starting position,
+ * and without it the handle opens at dead centre while the card draws the
+ * machine's own aim. Keyed rather than parallel to `urls`, because callers
+ * splice their photo lists and a second list would have to be spliced in step
+ * for ever. An `images` shorter than `urls` is a supported state -- a
+ * photograph sharp could not measure still uploads, it simply gets no handle.
+ */
+export function factsByUrl(images: unknown): Record<string, PhotoFacts> {
+  const out: Record<string, PhotoFacts> = {};
+  if (!Array.isArray(images)) return out;
+  for (const f of images as ({ url?: string } & PhotoFacts)[]) {
+    if (f?.url) out[f.url] = f;
+  }
+  return out;
+}
+
+/**
+ * POST already-shrunk files to /api/upload and hand back where they landed.
+ *
+ * Throws rather than returning an error, because every caller's response to a
+ * failure is the same shape: release the busy state and toast the sentence.
+ * `subject` is what that sentence calls the file -- the composer names it,
+ * since it uploads one at a time and a batch of three wants to say which one
+ * failed; the others let it stand as "That photo".
+ */
+export async function postImages(
+  files: File[],
+  opts: { timeoutMs?: number; subject?: string } = {}
+): Promise<{ urls: string[]; facts: Record<string, PhotoFacts> }> {
+  const { timeoutMs = UPLOAD_TIMEOUT_MS, subject = "That photo" } = opts;
+
+  const body = new FormData();
+  for (const file of files) body.append("files", file);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetch("/api/upload", { method: "POST", body, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error(`${subject} timed out. Check your connection and try again.`);
+    }
+    throw new Error(`${subject} did not upload. Check your connection and try again.`);
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const data: UploadResponse = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `${subject} did not upload. Try again.`);
+
+  announceUploadNotices(data.notices);
+  return { urls: (data.urls ?? []) as string[], facts: factsByUrl(data.images) };
 }

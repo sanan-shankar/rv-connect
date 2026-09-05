@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { shrinkForUpload } from "@/lib/image-downscale";
+import { postImages } from "@/lib/upload-client";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Send, X } from "lucide-react";
@@ -69,19 +70,10 @@ export function MessageComposer({
         toast.error(ready.error);
         return;
       }
-      const form = new FormData();
-      form.append("files", ready.files[0]);
-      const res = await fetch("/api/upload", { method: "POST", body: form });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "That image didn't upload. Try another one?");
-        return;
-      }
-      // Anything the server changed about the file, said out loud (audit M15).
-      for (const notice of (data.notices ?? []) as string[]) toast.info(notice);
-      setImageUrl(data.urls?.[0] ?? null);
-    } catch {
-      toast.error("That image didn't upload. Try again in a moment?");
+      const { urls } = await postImages(ready.files);
+      setImageUrl(urls[0] ?? null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "That photo did not upload. Try again.");
     } finally {
       setUploading(false);
     }

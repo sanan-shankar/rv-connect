@@ -15,6 +15,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { shrinkForUpload } from "@/lib/image-downscale";
+import { postImages } from "@/lib/upload-client";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -23,8 +24,6 @@ import { AttachImageDialog } from "@/components/common/attach-image-dialog";
 import { PhotoAimButton } from "@/components/common/photo-aim";
 import type { PhotoFacts } from "@/lib/photo-layout";
 import { cn } from "@/lib/utils";
-
-const MAX_BYTES = 5 * 1024 * 1024;
 
 export function PhotoAttachments({
   images,
@@ -65,51 +64,28 @@ export function PhotoAttachments({
       return;
     }
     const picked = files.slice(0, remaining);
-    for (const file of picked) {
-      if (file.size > MAX_BYTES) {
-        toast.error("Each photo must be under 5MB.");
-        return;
-      }
-    }
 
     setUploading(true);
-    // Shrunk here, not on the server: three 5MB photos are 15MB on the wire and
-    // Vercel refuses a body over about 4.5MB before /api/upload ever runs
-    // (bug audit B-030). The check that follows is for what downscaling
-    // deliberately passes through, an animated GIF or a HEIC.
+    /* Shrunk here, not on the server: three 5MB photos are 15MB on the wire and
+       Vercel refuses a body over about 4.5MB before /api/upload ever runs
+       (bug audit B-030). There is no per-file ceiling in front of this any
+       more. There used to be a 5MB one, which refused an ordinary phone
+       photograph on this page and nowhere else -- the shrinker exists to make
+       exactly that file uploadable, and it already refuses what it cannot
+       shrink, by name (an animated GIF, a HEIC). */
     const ready = await shrinkForUpload(picked);
     if (!ready.ok) {
       setUploading(false);
       toast.error(ready.error);
       return;
     }
-    const formData = new FormData();
-    ready.files.forEach((file) => formData.append("files", file));
 
     try {
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || "That photo would not upload. Try again.");
-        return;
-      }
-      // Anything the server changed about the file, said out loud (audit M15).
-      for (const notice of (data.notices ?? []) as string[]) toast.info(notice);
-      /* What the server measured, kept rather than dropped: it is the crop
-         handle's starting position, and without it the handle would open at
-         dead centre while the card draws the machine's aim. */
-      if (Array.isArray(data.images)) {
-        setFacts((prev) => {
-          const next = { ...prev };
-          for (const f of data.images as ({ url?: string } & PhotoFacts)[]) {
-            if (f?.url) next[f.url] = f;
-          }
-          return next;
-        });
-      }
-      onChange([...imagesRef.current, ...(data.urls as string[])]);
-    } catch {
-      toast.error("That photo would not upload. Try again.");
+      const { urls, facts: measured } = await postImages(ready.files);
+      setFacts((prev) => ({ ...prev, ...measured }));
+      onChange([...imagesRef.current, ...urls]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "That photo did not upload. Try again.");
     } finally {
       setUploading(false);
     }

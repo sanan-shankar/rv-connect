@@ -208,9 +208,34 @@ test("C-073: every path that re-encodes counts the frames and says the same sent
   const collection = readFileSync(new URL(paths["collection contribute (both actions)"], import.meta.url), "utf8");
   assert.equal([...collection.matchAll(/countImageFrames\(/g)].length, 2);
 
-  // ...and both surfaces show what comes back.
+  /* ...and both of the composer's paths show what comes back. The proxied
+     one says it through `postImages`, which is now the single client for
+     /api/upload; the direct one still reads the finalize response itself. */
   const composer = readFileSync(new URL("../components/posts/use-composer-uploads.ts", import.meta.url), "utf8");
-  assert.equal([...composer.matchAll(/toast\.info\(notice\)/g)].length, 2, "the direct path drops the notice");
+  assert.match(composer, /announceUploadNotices\(data\.notices\)/, "the direct path drops the notice");
+  assert.match(composer, /postImages\(/, "the proxied path no longer goes through the shared client");
+
+  /* Delegation is not the whole answer: gut the helper and the two
+     assertions above would still pass. Every surface that POSTs to
+     /api/upload announces through this one function. */
+  const client = readFileSync(new URL("./upload-client.ts", import.meta.url), "utf8");
+  assert.match(client, /toast\.info\(notice\)/, "announceUploadNotices says nothing");
+  const postImagesBody = client.slice(client.indexOf("export async function postImages"));
+  assert.match(
+    postImagesBody,
+    /announceUploadNotices\(data\.notices\)/,
+    "postImages drops the notice for all three of its callers"
+  );
+  for (const sender of [
+    "../components/catchups/answer/photo-attachments.tsx",
+    "../components/messages/message-composer.tsx",
+  ]) {
+    assert.match(
+      readFileSync(new URL(sender, import.meta.url), "utf8"),
+      /postImages\(/,
+      `${sender} hand-rolls the upload again, so its notices are its own problem`
+    );
+  }
   /* The contribute dialog became the contribute room on 2026-08-28 (spec
      sec. 8.2), and the room files a BATCH -- so it collects the notices and
      says them once at the end rather than once per file. Both paths through

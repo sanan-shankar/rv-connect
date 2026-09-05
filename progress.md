@@ -9800,3 +9800,35 @@ plain `@@index` for an index that is partial — which is precisely how a routin
 to offer to drop a live one, the trap the row exists to close.
 
 `npm run check`, `npm run visual` (25/25) and `npm run verify:crawl` (20/20) green at the end.
+
+## 2026-09-05 — Phase E, E1: one client for /api/upload
+
+Three surfaces POSTed to `/api/upload` and each spelled the whole ceremony out: FormData, fetch,
+`res.json()`, the `!res.ok` toast, the M15 notices loop, the facts merge. They had drifted, and both
+drifts were member-visible.
+
+**Only the post composer had a deadline.** The Catch-up attachments and the support-message composer
+reset their busy state in `finally` alone, so a fetch that never settles — a phone losing signal
+mid-upload — left the button reading "Adding..." for the rest of the session. That is the wedged-busy
+shape B-042 fixed in three other places. Both have the 60 s abort now, because it lives in the helper.
+
+**The Catch-up answer refused photographs the rest of the app accepts.** It checked `file.size > 5MB`
+*before* calling `shrinkForUpload`, so an ordinary 6 MB phone JPEG — exactly the file the shrinker
+exists to make uploadable — was turned away on that one page. The pre-check is gone; `shrinkForUpload`
+already refuses what it cannot shrink, by name (an animated GIF, a HEIC), which is a better sentence
+than "Each photo must be under 5MB."
+
+`postImages`, `announceUploadNotices` and `factsByUrl` now live beside `directUploadPut` in
+`upload-client.ts`. `shrinkForUpload` deliberately stays at the call sites: `upload-size-rule.test.mjs`
+greps each sending file for it by name, and its whole job is to notice the fourth surface that forgets.
+
+One failure sentence replaces three. A member who was told "That photo would not upload. Try again." /
+"That image didn't upload. Try another one?" is now told the same thing on both, and the composer keeps
+naming the file because it uploads a batch one at a time.
+
+Verified live as Jerry: a 16 MB JPEG through the support composer, a two-frame GIF through the post
+composer (the notice toasted, the crop handle got its aim), and the wire contract probed against the
+running route. `npm run check` green.
+
+C-073's pin moved with the refactor and was re-pointed in the same commit, then mutation-tested: gut
+`announceUploadNotices`, or stop `postImages` calling it, and the suite goes red.
