@@ -1,6 +1,6 @@
 ---
 name: writing-for-agents
-description: Use when writing anything that another AI session will work from — a prompt to paste into a new session, a spec, a handover, a fix-prompt, an implementation plan, a subagent's task, or a rewrite of any of those. Two failures to avoid: distilling the owner's brief until the nuance is gone, and over-directing until the receiving session cannot use its own judgment.
+description: Use when writing anything that another AI session will work from — a prompt to paste into a new session, a spec, a handover, a fix-prompt, an implementation plan, a subagent's task, or a rewrite of any of those. Two failures to avoid: distilling the owner's brief until the nuance is gone, and over-directing until the receiving session cannot use its own judgment. When the brief is the owner's, his words travel verbatim to every worker; when one session hands its own work to the next, its judgment is enough.
 ---
 
 # Writing for another session
@@ -43,7 +43,8 @@ What gets lost first, and matters most:
 
 1. **The owner's own words go on disk verbatim, in full**, in a file the handover points at
    and instructs the reader to open first. Never only your paraphrase. A transcript is
-   cheap; a rebuilt-from-summary feature is not.
+   cheap; a rebuilt-from-summary feature is not. A transcript cleaned of nothing but noise
+   counts as verbatim; see "Whose words are you carrying?" below for exactly what may go.
 2. **A rewrite is not a summary.** When asked to rewrite or tighten something:
    > "rewritten should be pretty exactly the same with the grammar tightened up but every
    > single thing still conveyed."
@@ -54,6 +55,59 @@ What gets lost first, and matters most:
 4. **Index, don't replace.** A long brief plus a numbered ledger of every discrete ask,
    each with a status, beats a tidy summary. The ledger points into the brief; it is not a
    substitute for reading it, and it should say so.
+
+## Whose words are you carrying?
+
+Two kinds of handover, and the verbatim rule applies to only one of them. The owner drew the
+line himself on 2026-09-05, while a session was turning his brief into a campaign:
+
+> "When the brief has come from me, and then it is you who is relaying it, either to a
+> subagent or to another session, I would not like the important parts, or at least most of
+> it, to be summarised. I would like a good part of it to be verbatim, or at least reference
+> some content where what I have said is verbatim. Because when you do this summarisation,
+> that's where you get the lower quality of output, because these subagents or future agents
+> are not able to capture the nuance in what I'm saying. They have to work off this
+> reductionist view of the previous agent's judgment of what they thought was important in
+> what I've said, and then I don't get exactly what I want."
+
+> "Obviously, the skill will be called when I have not provided the brief, when it's just one
+> session talking to another session, not much intervention from me, in which case it doesn't
+> have to do this part of it, the verbatim part. It is more than competent enough to decide
+> what needs to be said."
+
+> "I would not want your four-bullet-point summarisation of it to go to the next session, and
+> then that session does a horrible job."
+
+**The brief came from the owner**, and you are relaying it: to a subagent, a next session, a
+fix-prompt, a room brief, a prompt for him to paste. Then:
+
+- His words are on disk in a file, cleaned of nothing but noise, and the handover says read
+  it first (rule 1).
+- The parts a worker needs are **quoted into its prompt**, paragraph by paragraph, not
+  described. An `Agent` prompt for owner-briefed work carries his paragraphs and the path to
+  the file. "The owner wants the list redesigned" is the failure this section exists for.
+- Your reading of what he meant goes **beneath** his words, labelled as yours, never in place
+  of them. Where you had to interpret a reversal or an ambiguity, quote both sides and say
+  which you took.
+- The test: could the worker, reading your prompt, tell which sentences are his and which
+  are yours? If not, rewrite.
+
+**Cleaning a transcript is allowed; summarising it is not.** He said what may go:
+
+> "Maybe you can delete the uhs and the ahs and the other grammatical quirks, but I'd like
+> the main content and nuance to be there."
+
+So: remove fillers ("um", "uh", "like", "you know", "okay" as a tic); merge stutters and
+restarts; correct a mis-hearing only when it is unambiguous, and put the original in square
+brackets when it is not. Keep the order, the emphasis, the swearing, the reversals, the
+asides and the "I don't know"s. Number the paragraphs so a ledger can point at them. If a
+sentence of yours would replace a sentence of his, you have crossed the line.
+
+**No owner brief behind it**: one session handing its own work to the next, what it found,
+what it decided, what is left. You are the author, and your judgment about what to say is
+the right one. The verbatim rule does not apply; every other rule in this file does. Where
+the owner did speak during your session (a pick, an answer to a question, a correction),
+that fragment is his and travels verbatim under the rule above, however short it is.
 
 ## Failure two: you over-directed it
 
@@ -119,6 +173,7 @@ else. Then:
 ## Checklist
 
 - [ ] Owner's words captured verbatim in a file, and the handover says read it first
+- [ ] If the brief is his: the paragraphs a worker needs are quoted into the worker's prompt, not paraphrased
 - [ ] Numbered ledger of every discrete ask, each with a status, pointing into that file
 - [ ] Every decision marked LOCKED / RECOMMENDED / OPEN
 - [ ] Autonomy granted explicitly, by section
@@ -132,6 +187,9 @@ else. Then:
 
 - `docs/planning/collection-rework/` — `brief.md` is the verbatim pattern; `handover.md` is
   the ledger pattern.
+- `docs/planning/catchups-rework/` — `brief.md` is the cleaned-transcript pattern with
+  numbered paragraphs; `handover.md` writes one prompt per session and quotes the brief into
+  each by paragraph number.
 - `docs/audit-fix/*/fix-prompt.md` — the living handover; a fix session is started by
   @-ing it and nothing else.
 - Any `Agent` tool prompt. A subagent gets one message and cannot ask a follow-up.
