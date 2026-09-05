@@ -75,19 +75,16 @@ lockfile entries, −420,350 B tracked, one route, and four quality tools that s
 truth. `node_modules` did not move measurably; quote the lockfile count, not the disk figure.
 A18 and A19 are the two rows not done — the ledger says why.
 
-### Phase B — bundle levers (9 rows, T2/T3)
-One root cause, four times over: *a server component that statically imports a client component puts
-that module in the route's bundle whether the branch renders or not.* **Measure before and after with
-`work/raw/route-js.mjs` against a fresh build — a row that does not move the number is a row that did
-not work.** B1 is the largest single lever on a public route. B2 carries a trap: `next/dynamic` does
-not forward refs, so fill the hoopoe controller from `onReady` or the bird is silently inert — and
-**correct `not-found.tsx:20-22` in the same commit**, because it tells you the sidebar shows the bird
-at first paint, and it does not.
+### Phase B — bundle levers — **DONE 2026-09-05.** See the ledger. Start at Phase C.
+All thirteen rows. Median non-lab first load **1,094 -> 992 KB**; the five public routes are
+**-149 KB each**. B9 was an experiment and it reverted; its numbers and the trap it found are in
+the ledger and in `docs/TRAPS.md`. A18 landed inside B10, as Phase A said it would.
 
-### Phase C — the query floor (9 rows, T2)
-Nine changes take an authenticated page from seven queries before its own down to four or five. C1, C2
-and C5 share one idiom (`cache()`, and the `FILTER` aggregate the same files already use). C4 is the
-one with the correction above.
+### Phase C — the query floor (11 rows, T2) — **START HERE**
+Eleven changes take an authenticated page from seven queries before its own down to four or five. C1,
+C2 and C5 share one idiom (`cache()`, and the `FILTER` aggregate the same files already use). C4 is
+the one with the correction above. **C3's `getViewerCities` half is already done** -- B13 needed it
+and `src/lib/city-scope.ts` is `cache()`d as of 2026-09-05; check the rest of C3 against that.
 
 ### Phase D — switched-off subsystems (owner-gated)
 Nine subsystems that work and nobody can reach. **Every one that touches a database column carries a
@@ -284,6 +281,7 @@ you could not do and why.
 | Date | Phase | Rows done | Measured result | Notes / what the next session must know |
 |---|---|---|---|---|
 | 2026-09-04 | — | audit closed | see `report.md` §1b | Nothing fixed yet except ORCH-04 (`74cc61a`). Verification covered 84 of 369 findings; the other 285 have orchestrator spot-checks only. |
+| 2026-09-05 | **B — complete** | B1, B2, B3, B4, B5, B6 (both halves), B7 (both halves), B8, B10 (+ A18 + media-viewer-03), B11, B12, B13. B9 measured and **reverted** | Non-lab first-load JS: median **1,094 -> 992 KB**, sum across 51 routes **53.10 -> 48.99 MB (-4.11 MB)**. `/login` 906 -> 756, `/` 899 -> 749, `/signup` 920 -> 771, `/welcome` 1,190 -> 1,042, `/letters/[id]` 1,116 -> 984, `/directory` 1,229 -> 1,126, `/about` 1,063 -> 963, `/collection` 1,104 -> 1,030, `/profile/[id]` 1,258 -> 1,199, `/feed` 1,224 -> 1,201. Lab sum 37.48 -> 36.70 MB. Post-hydration: the 72,472 B motion barrel chunk gone. Source: **-113 lines** net across the two de-duplications. Every row measured between two production builds; `npm run check`, `npm run visual` (25/25) and `npm run verify:crawl` (20/20) green at the end. 16 commits, `7c47594`..`387477a`. | Read the six rows below before Phase C. |
 | 2026-09-05 | **A — complete** | A1, A1b, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17. **A18 deferred to B10, A19 declined** (see below) | CSS on every route **238,434 → 160,420 B raw**, 33,666 → 24,594 gz (−32.7% / −26.9%), measured between two production builds. Lab sheet 147,484 B on 48 routes, **0 non-lab**. Lockfile **1,083 → 848** (−235). Deps **33+18 → 32+17**. Tracked −420,350 B. Routes 52 → 51. Test files 102 → 101. `npm run check` and `npm run visual` green throughout; 21 commits, `e16c585`..`94f76d9`. | Read the four rows below before Phase B. |
 
 ### What Phase A actually taught, beyond the rows
@@ -340,3 +338,51 @@ member-visible mistake.** Every row below was re-derived before it was applied.
   '/notice/%') FROM "Notification"` → **0 and 0, on production and demo**; oldest row 2026-08-05.
   That is what let `/notice/[id]` go eleven months early (A10).
 - Still **unrun**: the stranded-originals dry run, and the `SELECT`s for every Phase D column drop.
+
+### What Phase B actually taught, beyond the rows
+
+**Every row beat its estimate, and two beat it by more than double.** The audit's figures were
+floors, not ceilings, because a finder attributes a chunk to the module it grepped for and a
+deferral takes that module's whole graph with it.
+
+1. **B2 was estimated at -28 KB and delivered -74.4 KB on 26 routes.** The hoopoe chunk was
+   dragging more than the puppet. B12 was estimated at ~22.6 KB and delivered -40.7 KB. B6's
+   `/welcome` half was ~115 KB and delivered -129.4 KB; its person-detail half ~53 KB and
+   delivered -56.8 KB. **Do not trust a saving downward either** -- B3 landed on 22 routes, not
+   the 26 the finding named, because four of them keep the chunk another way.
+2. **`ssr: false` is not the default answer, and three rows here did not take it.** The admin
+   city picker, the letter page's comments block and the onboarding steps are all drawn AT REST,
+   so the split has to be a client-chunk split with the server render intact. The bytes leave
+   first-load either way -- measured, not assumed: `/welcome` lost 129 KB with SSR on. Reach for
+   `ssr: false` only when the thing genuinely opens on a press.
+3. **The audit's warning that B7 would break the `/directory` visual mask did not happen.**
+   `settle()` in `e2e/visual.spec.ts` waits on `networkidle` **twice**, which covers a dynamic
+   chunk fetch, so `main svg.touch-none` is in the DOM by the time the screenshot is taken. Any
+   future `ssr: false` on a masked element is safe for the same reason.
+4. **Two findings' supporting facts were wrong in a way that would have changed the fix.**
+   `bundle-build-05` says the admin `LocationPicker` "sits behind the admin's edit affordance";
+   it is drawn at rest in `PlacesCard`, and `ssr: false` would have popped a control in under an
+   admin's cursor. `media-viewer-03` warns that adopting `Opener` verbatim strips post-card's
+   border -- true, but `Opener`'s base lacks the border only because **all three** of its call
+   sites pass it, so the answer was to put it in the base and delete three copies, not to keep
+   two components.
+5. **B13 would have traded a round trip for a duplicate query** if `getViewerCities` had not been
+   `cache()`d in the same commit: `/profile/[id]` reads it for its counts and `loadPosts` reads it
+   again. Phase C will meet this shape repeatedly -- **check what a server-side seed re-runs.**
+6. **B9 is closed as a not-finding, with numbers.** The duplicate chunks are real and got worse,
+   not better, after B8 (**29 pairs at token-Jaccard 1.0000, 453,882 B**, against the audit's 23
+   pairs / 305 KB). `generateComponentChunks: true` costs 0.9% on a cold /feed to save 1.0% across
+   a three-page session, which is the audit's own revert condition; `requestCost: 100000` is
+   byte-for-byte identical to no flag at all. **The trap it found is in `docs/TRAPS.md` and
+   matters to every future bundle number**: under `generateComponentChunks`,
+   `route-bundle-stats.json` reports 431-440 KB per route instead of 774-1,230 KB, because the
+   component chunks are fetched and not counted. Measure chunking changes in a browser against
+   `next start`, never from the JSON.
+
+### How to measure a Phase C row, since the apparatus is now built
+
+`next start` on port **3100** with `AUTH_URL=http://localhost:3100 NEXTAUTH_URL=http://localhost:3100
+AUTH_TRUST_HOST=1`, and sign in by minting a cookie on the **dev** server (`fetchSessionCookie` from
+`scripts/qa/_dev-login.mjs`) and setting it on 3100 -- cookies ignore the port, and without those
+env vars NextAuth looks for the `__Secure-` name and bounces you to /login. That is the only way to
+measure a production build signed in; `/api/dev-login` 404s on a production build by design.
