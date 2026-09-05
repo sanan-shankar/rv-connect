@@ -197,16 +197,13 @@ export interface AdminCounts {
  * two read from `worklistCounts()` rather than each writing their own `where`.
  */
 export async function loadAdminCounts(): Promise<AdminCounts> {
-  const [w, people] = await Promise.all([
-    worklistCounts(),
-    prisma.user.count(),
-  ]);
+  const w = await worklistCounts();
   return {
     waiting: w.total,
     messages: w.messages,
     reports: w.reports,
     photos: w.photos,
-    people,
+    people: w.people,
   };
 }
 
@@ -219,6 +216,9 @@ interface WorklistCounts {
   failedMail: number;
   stuckCatchups: number;
   total: number;
+  /** Not a queue -- the headcount the rail prints beside them. It rides here
+   *  because it comes off `User`, which the two verify queues already scan. */
+  people: number;
 }
 
 /** Anything still overdue after the lazy advance has had its chance. */
@@ -235,11 +235,17 @@ export function overdueEditionWhere(now: Date) {
 /**
  * The six queues behind the Overview list, counted rather than fetched.
  *
- * Deliberately six `count()`s and not one clever aggregate: they hit six
+ * Deliberately separate `count()`s and not one clever aggregate: they hit six
  * different tables, they run concurrently, and each one is an index lookup.
  * The thing this replaces fetched every row of three of them.
  *
- * On the Overview route these six counts run alongside `loadWorklist()`, which
+ * The exception proves the rule. The two verify queues and the headcount are
+ * three questions of ONE table, so they were three passes over `User` on every
+ * /admin/* render; they are one `FILTER` aggregate now, the same instrument
+ * `loadJourney` in admin-analytics.ts already uses. Different tables stay
+ * different queries.
+ *
+ * On the Overview route these counts run alongside `loadWorklist()`, which
  * queries the same six predicates for rows. That overlap is deliberate and is
  * the cheaper of the two options: the alternative is for every one of the
  * other ten admin routes to fetch worklist ROWS just so the rail can report a
@@ -248,20 +254,30 @@ export function overdueEditionWhere(now: Date) {
  */
 async function worklistCounts(): Promise<WorklistCounts> {
   const now = new Date();
-  const [messages, reports, photos, flagged, pendingVerify, failedMail, stuckCatchups] =
+  const [messages, reports, photos, users, failedMail, stuckCatchups] =
     await Promise.all([
       prisma.adminThread.count({ where: { adminUnread: true } }),
       prisma.report.count({ where: { status: "pending" } }),
       prisma.photo.count({ where: { approved: false, isHidden: false } }),
-      prisma.user.count({ where: { isBlocked: false, verifyState: "flagged" } }),
-      prisma.user.count({ where: { isBlocked: false, verifyState: "pending" } }),
+      prisma.$queryRaw<{ flagged: number; pendingVerify: number; people: number }[]>`
+        SELECT count(*) FILTER (WHERE "isBlocked" = false AND "verifyState" = 'flagged')::int AS flagged,
+               count(*) FILTER (WHERE "isBlocked" = false AND "verifyState" = 'pending')::int AS "pendingVerify",
+               count(*)::int                                                                  AS people
+        FROM "User"
+      `,
       prisma.outboundEmail.count({ where: { status: "failed" } }),
       prisma.catchupEdition.count({ where: overdueEditionWhere(now) }),
     ]);
+  const { flagged, pendingVerify, people } = users[0] ?? {
+    flagged: 0,
+    pendingVerify: 0,
+    people: 0,
+  };
   return {
     messages,
     reports,
     photos,
+    people,
     flagged,
     pendingVerify,
     failedMail,

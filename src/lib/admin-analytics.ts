@@ -70,31 +70,41 @@ export async function countMembers() {
   return prisma.user.count();
 }
 
+/** The nine headline numbers, all of them one question of `User` asked with a
+ *  different predicate. */
+type PeopleTally = {
+  total: number;
+  verified: number;
+  blocked: number;
+  dark: number;
+  withPhoto: number;
+  active7: number;
+  active30: number;
+  neverSeen: number;
+  joined30: number;
+};
+
 export async function loadPeople() {
-  const [
-    total,
-    verified,
-    blocked,
-    dark,
-    withPhoto,
-    placed,
-    active7,
-    active30,
-    neverSeen,
-    joined30,
-    byType,
-    byBatch,
-  ] = await Promise.all([
-    prisma.user.count(),
-    prisma.user.count({ where: { emailVerified: { not: null } } }),
-    prisma.user.count({ where: { isBlocked: true } }),
-    prisma.user.count({ where: { theme: "dark" } }),
-    prisma.user.count({ where: { photoUrl: { not: null } } }),
+  const [tally, placed, byType, byBatch] = await Promise.all([
+    /* Nine predicates, one pass. They used to be nine `user.count()`s in this
+       same Promise.all -- nine index-or-sequential scans over the same rows,
+       run three-at-a-time on a five-connection pool, for one row of numbers.
+       `loadJourney` below has always used this instrument; there was no reason
+       these did not. The two groupBys and the distinct stay as they are: those
+       are different questions, and one of them is a different table. */
+    prisma.$queryRaw<PeopleTally[]>`
+      SELECT count(*)::int                                                  AS total,
+             count(*) FILTER (WHERE "emailVerified" IS NOT NULL)::int       AS verified,
+             count(*) FILTER (WHERE "isBlocked")::int                       AS blocked,
+             count(*) FILTER (WHERE theme = 'dark')::int                    AS dark,
+             count(*) FILTER (WHERE "photoUrl" IS NOT NULL)::int            AS "withPhoto",
+             count(*) FILTER (WHERE "lastSeenAt" >= ${ago(7)})::int         AS "active7",
+             count(*) FILTER (WHERE "lastSeenAt" >= ${ago(30)})::int        AS "active30",
+             count(*) FILTER (WHERE "lastSeenAt" IS NULL)::int              AS "neverSeen",
+             count(*) FILTER (WHERE "createdAt" >= ${ago(30)})::int         AS "joined30"
+      FROM "User"
+    `,
     prisma.userPlace.findMany({ distinct: ["userId"], select: { userId: true } }),
-    prisma.user.count({ where: { lastSeenAt: { gte: ago(7) } } }),
-    prisma.user.count({ where: { lastSeenAt: { gte: ago(30) } } }),
-    prisma.user.count({ where: { lastSeenAt: null } }),
-    prisma.user.count({ where: { createdAt: { gte: ago(30) } } }),
     prisma.user.groupBy({ by: ["accountType"], _count: { _all: true } }),
     prisma.user.groupBy({
       by: ["batchYear"],
@@ -103,6 +113,12 @@ export async function loadPeople() {
       orderBy: { batchYear: "desc" },
     }),
   ]);
+
+  const { total, verified, blocked, dark, withPhoto, active7, active30, neverSeen, joined30 } =
+    tally[0] ?? {
+      total: 0, verified: 0, blocked: 0, dark: 0, withPhoto: 0,
+      active7: 0, active30: 0, neverSeen: 0, joined30: 0,
+    };
 
   /* Decades, not individual years. Fifty-one people spread over forty years
    * makes a bar chart of 1s; the shape only becomes readable when grouped. */
@@ -175,11 +191,16 @@ export async function loadGeography() {
 const PUBLISHED = { status: "published", isHidden: false } as const;
 
 export async function loadContent() {
-  const [posts, letters, drafts, comments, likes, bookmarks, photos, topAuthors] =
+  const [tally, comments, likes, bookmarks, photos, topAuthors] =
     await Promise.all([
-      prisma.post.count({ where: { kind: "post", ...PUBLISHED } }),
-      prisma.post.count({ where: { kind: "letter", ...PUBLISHED } }),
-      prisma.post.count({ where: { status: "draft" } }),
+      // Three predicates over Post, one pass. See loadPeople. The four counts
+      // below stay separate: they are four other tables.
+      prisma.$queryRaw<{ posts: number; letters: number; drafts: number }[]>`
+        SELECT count(*) FILTER (WHERE kind = 'post'   AND status = 'published' AND "isHidden" = false)::int AS posts,
+               count(*) FILTER (WHERE kind = 'letter' AND status = 'published' AND "isHidden" = false)::int AS letters,
+               count(*) FILTER (WHERE status = 'draft')::int                                                AS drafts
+        FROM "Post"
+      `,
       prisma.comment.count(),
       prisma.like.count(),
       prisma.bookmark.count(),
@@ -192,6 +213,8 @@ export async function loadContent() {
         take: 8,
       }),
     ]);
+
+  const { posts, letters, drafts } = tally[0] ?? { posts: 0, letters: 0, drafts: 0 };
 
   /* Names resolved in one follow-up rather than a join, because groupBy
    * cannot include a relation. Eight ids is one cheap `in` query. */
@@ -250,14 +273,24 @@ export async function loadCatchups() {
  * ---------------------------------------------------------------- */
 
 export async function loadMail() {
-  const [sent, queued, delivered, bounced, complained, byKind] = await Promise.all([
-    prisma.outboundEmail.count({ where: { status: "sent" } }),
-    prisma.outboundEmail.count({ where: { status: { in: ["queued", "sending"] } } }),
-    prisma.outboundEmail.count({ where: { deliveredAt: { not: null } } }),
-    prisma.outboundEmail.count({ where: { bouncedAt: { not: null } } }),
-    prisma.outboundEmail.count({ where: { complainedAt: { not: null } } }),
+  const [tally, byKind] = await Promise.all([
+    // Five predicates over one table, one pass. See loadPeople.
+    prisma.$queryRaw<
+      { sent: number; queued: number; delivered: number; bounced: number; complained: number }[]
+    >`
+      SELECT count(*) FILTER (WHERE status = 'sent')::int                  AS sent,
+             count(*) FILTER (WHERE status IN ('queued', 'sending'))::int  AS queued,
+             count(*) FILTER (WHERE "deliveredAt" IS NOT NULL)::int        AS delivered,
+             count(*) FILTER (WHERE "bouncedAt" IS NOT NULL)::int          AS bounced,
+             count(*) FILTER (WHERE "complainedAt" IS NOT NULL)::int       AS complained
+      FROM "OutboundEmail"
+    `,
     prisma.outboundEmail.groupBy({ by: ["kind"], _count: { _all: true } }),
   ]);
+
+  const { sent, queued, delivered, bounced, complained } = tally[0] ?? {
+    sent: 0, queued: 0, delivered: 0, bounced: 0, complained: 0,
+  };
 
   return {
     sent,
