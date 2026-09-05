@@ -9647,3 +9647,38 @@ Proved by rendering both Catch-up homes before and after and diffing the teaser 
 Honest limit on the number — this database has one Round with answers in it, so today's measured
 delta is zero. The saving is one query per published Round up to six, and it arrives when a group has
 a shelf.
+
+## 2026-09-05 — the feed stops re-rendering a server tree that holds none of what changed
+
+Refactor audit 2, Phase C, row C7 (`feed-posts-02` + `10` + `16`). Three separate wastes, one idea:
+a refresh nobody reads.
+
+**Five `revalidatePath("/feed")` calls.** `/feed`'s server tree renders no post, no comment and no
+poll — it fetches the unread count, the member's cities, the "new since" marker and the four rail
+modules; posts arrive through `loadPosts` into client state. `toggleLike`, `toggleBookmark` and
+`toggleCommentLike` had this call removed when it turned out to be the root cause of the heart
+scroll-jump, and the note explaining that is still in the file. `votePoll`, `createComment`,
+`deleteComment`, `adminRemoveComment` and `editPost`'s `/feed` half were never fixed. They are now,
+and the note has grown a paragraph stating the rule and listing what still revalidates and why, so
+the next writer does not put one back.
+
+**Two `revalidatePath("/")` calls** on mark-read. A literal `/` is the signed-out landing hero and
+nothing else — only `revalidatePath("/", "layout")` means everything — so tapping a notification
+purged a page the member is not on and refreshed nothing the bell reads.
+
+**The bell's per-open prune.** Two queries on every first-page open to delete each member's read
+notifications past the hundredth, under a comment reading "no scheduled job does either". One does,
+and has since the retention sweep learned this table. The cap is a `step("notificationCap", …)` in
+`retention.ts` now, beside the age cutoff and every other number that says how long this app keeps
+things — and a cap enforced only for members who open the bell was never a bound anyway. The SQL
+reproduces today's meaning rather than the audit's proposal: rank each member's notifications
+newest-first including unread ones, delete the READ ones past the hundredth. The audit's version
+partitioned on `WHERE read` first, which would have let a member with ninety unread keep a hundred
+read rows instead of ten. Dry-run before it shipped: **0 rows** would be deleted today, and the
+busiest member holds 24.
+
+Proved live as Jerry, on the owner's own post so nobody else was touched: commented, and the scroll
+position moved **0 pixels** while the comment appeared; navigated to `/directory` and back, and the
+fresh server render shows the comment and a count of 2 where it said 1; deleted it, 0 pixels again.
+Test rows removed afterwards — Jerry has 0 comments and there are no notifications from the last
+half hour.

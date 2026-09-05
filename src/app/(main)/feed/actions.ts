@@ -446,7 +446,9 @@ export async function votePoll(postId: string, optionId: string) {
     await prisma.pollVote.updateMany({ where: vote, data: { pollOptionId: optionId } });
   }
 
-  revalidatePath("/feed");
+  // No revalidatePath: see the note in toggleLike below. PollDisplay applies
+  // the vote optimistically and reverts on error, and /feed's server tree
+  // renders no poll.
   return { success: true };
 }
 
@@ -694,7 +696,9 @@ export async function editPost(postId: string, formData: FormData) {
   // work the nightly sweep will redo.
   if (removedImages.length > 0) await drainPendingImagePurges(removedImages);
 
-  revalidatePath("/feed");
+  /* /letters only. The letter index and the reading page are server-rendered
+     and do show the new words; /feed's server tree renders no post, and
+     EditPostDialog hands them back to the card through `onSaved` (B-041). */
   if (isLetter) {
     revalidatePath("/letters");
     revalidatePath(`/letters/${postId}`);
@@ -786,6 +790,17 @@ export async function toggleLike(postId: string) {
   // action resolves, and that refresh was landing as an occasional scroll-to-top on the heart
   // click (root cause of the "heart scroll-jump" bug). Comment likes had the same call and the
   // same symptom; see toggleCommentLike below.
+  //
+  // THE RULE, since audit 2 took the last five out: an action whose result the
+  // client already holds does not revalidate /feed. That server tree renders
+  // no post, no comment and no poll -- it fetches the unread count, the
+  // member's cities, the "new since" marker and the four rail modules. Posts
+  // arrive through `loadPosts` into client state. So votePoll, createComment,
+  // deleteComment, adminRemoveComment and editPost's /feed call are all gone
+  // for this reason. What still revalidates does so because a SERVER-rendered
+  // surface changed: createPost and publishDraft move the rail's "Signs of
+  // life", deletePost and adminRemovePost move the pulse count, and the
+  // /letters calls feed a page that really is rendered on the server.
   return { success: true, liked: true };
 }
 
@@ -955,7 +970,7 @@ export async function createComment(formData: FormData) {
     }
   }
 
-  revalidatePath("/feed");
+  // No revalidatePath: see the note in toggleLike above.
   // The full mapped comment, so the client can slot it into the thread
   // locally: with the thread paginated, "refetch everything" is no longer a
   // cheap way to make a fresh comment appear.
@@ -1003,7 +1018,8 @@ export async function deleteComment(commentId: string) {
     where: { id: commentId },
     data: { deletedAt: new Date(), content: "" },
   });
-  revalidatePath("/feed");
+  // No revalidatePath: see the note in toggleLike above. `removeLocally`
+  // handles both comment removals in client state.
   return { success: true };
 }
 
@@ -1032,7 +1048,7 @@ export async function adminRemoveComment(commentId: string, note?: string) {
   // No author left to write to when the account has been purged (audit M34).
   if (trimmedNote && comment.authorId) await notifyAdminNote(comment.authorId, trimmedNote);
 
-  revalidatePath("/feed");
+  // No revalidatePath: see the note in toggleLike above.
   return { success: true };
 }
 
