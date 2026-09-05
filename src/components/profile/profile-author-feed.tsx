@@ -23,6 +23,9 @@ export function ProfileAuthorFeed({
   emptyBody,
   expectedCount,
   layout = "sheet",
+  initialPosts,
+  initialCursor = null,
+  initialHasMore = false,
 }: {
   authorId: string;
   firstName: string;
@@ -52,11 +55,25 @@ export function ProfileAuthorFeed({
    * bordered box is the box-in-a-box the design system rules out.
    */
   layout?: "sheet" | "cards";
+  /**
+   * The first page, rendered on the server in the same request that drew the
+   * page. When it is given, the mount fetch below does not run at all: the
+   * list is already right, and the skeleton it would have shown is a frame
+   * nobody needs to look at.
+   *
+   * Only the "all" scope gets one. The segmented switcher remounts this with a
+   * fresh `key` per scope, so Posts and Letters arrive unseeded and keep the
+   * effect, the skeleton and `expectedCount`.
+   */
+  initialPosts?: PostData[];
+  initialCursor?: string | null;
+  initialHasMore?: boolean;
 }) {
-  const [posts, setPosts] = useState<PostData[]>([]);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const seeded = initialPosts !== undefined;
+  const [posts, setPosts] = useState<PostData[]>(initialPosts ?? []);
+  const [cursor, setCursor] = useState<string | null>(initialCursor);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [loading, setLoading] = useState(!seeded);
   const [loadingMore, setLoadingMore] = useState(false);
   /** The same flag, readable in the same tick. See handleLoadMore. */
   const loadingMoreRef = useRef(false);
@@ -69,6 +86,9 @@ export function ProfileAuthorFeed({
   // restores the skeleton properly rather than flashing the previous scope's
   // posts under a new heading.
   useEffect(() => {
+    // Seeded from the server: there is nothing to go and get, and re-fetching
+    // the page we are already rendering would put the round trip back.
+    if (seeded) return;
     let cancelled = false;
     (async () => {
       // callAction: a rejected fetch (deploy skew, dropped network, expired
@@ -89,7 +109,7 @@ export function ProfileAuthorFeed({
     return () => {
       cancelled = true;
     };
-  }, [authorId, kind]);
+  }, [authorId, kind, seeded]);
 
   async function handleLoadMore() {
     // Synchronous guard and an id-dedupe, the same pair PostFeed carries and

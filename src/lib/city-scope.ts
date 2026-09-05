@@ -1,15 +1,26 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 // The one definition of the Postgres-only `mode: "insensitive"` gate (audit R6).
 import { insensitive as searchInsensitive } from "@/lib/db-text";
 
-/** Cities the given user has listed (UserPlace.city), for feed cityScope matching. */
-export async function getViewerCities(userId: string): Promise<string[]> {
+/** Cities the given user has listed (UserPlace.city), for feed cityScope matching.
+ *
+ *  `cache()`d per request. /profile/[id] reads this itself for its counts and
+ *  then calls `loadPosts`, which reads it again -- so seeding the Writing tab
+ *  on the server (audit 2 B13) would have traded a browser round trip for a
+ *  duplicate query. React's cache dedupes them inside one render, and every
+ *  other caller that happens to ask twice gets the same for free. Server-only:
+ *  every importer of this module is a page, an action or a lib the server
+ *  reaches. */
+export const getViewerCities = cache(async function getViewerCities(
+  userId: string
+): Promise<string[]> {
   const places = await prisma.userPlace.findMany({
     where: { userId },
     select: { city: true },
   });
   return places.map((p) => p.city);
-}
+});
 
 /**
  * Prisma where-fragment for city-scoped posts: cityScope IS NULL, or it

@@ -72,6 +72,7 @@ import {
   useAutoSave,
 } from "@/components/profile/pen";
 import { ProfileAuthorFeed } from "@/components/profile/profile-author-feed";
+import type { PostData } from "@/components/posts/post-card";
 import { SavedPostsFeed } from "@/components/profile/saved-posts-feed";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import { SPRINGS, EASE_OUT_SMOOTH, FadeRise } from "@/components/common/motion";
@@ -300,6 +301,9 @@ export function LetterheadProfile({
   photoCount,
   savedCount,
   photosNode,
+  initialAuthorPosts,
+  initialAuthorCursor,
+  initialAuthorHasMore,
   adminNode,
   flagNode,
   installNode,
@@ -332,6 +336,10 @@ export function LetterheadProfile({
   photoCount: number;
   savedCount: number;
   photosNode: ReactNode;
+  /** The All tab's first page, fetched on the server. See ProfileAuthorFeed. */
+  initialAuthorPosts?: PostData[];
+  initialAuthorCursor?: string | null;
+  initialAuthorHasMore?: boolean;
   adminNode: ReactNode;
   flagNode: ReactNode;
   /** The "add it to your phone" tile, or null. A node rather than a boolean
@@ -1442,6 +1450,9 @@ export function LetterheadProfile({
                 photoCount={photoCount}
                 savedCount={savedCount}
                 photosNode={photosNode}
+                initialAuthorPosts={initialAuthorPosts}
+                initialAuthorCursor={initialAuthorCursor}
+                initialAuthorHasMore={initialAuthorHasMore}
               />
             </m.div>
           )}
@@ -1871,6 +1882,9 @@ function Writing({
   photoCount,
   savedCount,
   photosNode,
+  initialAuthorPosts,
+  initialAuthorCursor,
+  initialAuthorHasMore,
 }: {
   authorId: string;
   firstName: string;
@@ -1880,6 +1894,9 @@ function Writing({
   photoCount: number;
   savedCount: number;
   photosNode: ReactNode;
+  initialAuthorPosts?: PostData[];
+  initialAuthorCursor?: string | null;
+  initialAuthorHasMore?: boolean;
 }) {
   const TABS: { key: TabKey; label: string; count: number }[] = [
     { key: "all", label: "All", count: postCount + letterCount },
@@ -1922,6 +1939,12 @@ function Writing({
             isOwnProfile={isOwnProfile}
             kind={tab === "all" ? undefined : tab === "posts" ? "post" : "letter"}
             expectedCount={openCount}
+            /* Only the All tab is seeded: it is the one the page opens on, so
+               it is the one whose round trip a reader waits through. Posts and
+               Letters are a press away and keep their skeleton. */
+            initialPosts={tab === "all" ? initialAuthorPosts : undefined}
+            initialCursor={initialAuthorCursor}
+            initialHasMore={initialAuthorHasMore}
             layout="cards"
             emptyTitle={
               tab === "letters"
