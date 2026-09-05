@@ -1,5 +1,31 @@
 # Progress Log
 
+## 2026-09-05 — Catch-ups reconnaissance (S1)
+
+Forty-three findings, measured on the running app rather than felt: 24 confirm something the
+owner named, 2 are marked NOT REPRODUCED, and 17 are new. `docs/planning/catchups-rework/recon.md`
+groups them by surface with a root cause per bug and a ranked ten at the end; `flows.md` is the
+click map and the intent-by-state matrix he asked for.
+
+**The green bar that seventy members can see is root-caused, and the fix is not the bar.** A
+pasted Spotify link's scheme-host-path is 54 characters and 369px with no break opportunity; the
+reader's answer paragraph is 316px and has no `break-words`; none of its fourteen ancestors clips;
+only `html{overflow-x:clip}` holds the page still, and the mobile header is `position: sticky`, so
+it cannot follow a sideways pan. Also root-caused: the divider that curves (a `border-t` on a
+`rounded-md` box, so CSS draws it along the corner arc), the hover with no padding on three sides,
+the rail item that reflows when it bolds, the viewer's 552-to-311px size snap, and the heart whose
+pop waits on a lazy-motion chunk that lands at 5,239ms on a 49,464px page.
+
+**Two groups are named "Batch of 2024".** The real batch has no Catch-up; a hand-made snapshot has
+it, and an alumnus who joined five days later is not in it. Recovering the history answered the
+owner's question about the batch Catch-up disappearing: it never existed. He asked for one on
+2026-07-25, got a one-tap shortcut, and removed its broken leftovers himself on 2026-08-21.
+
+The whole of Catch-ups now exports to a rebuildable folder — 5.8 MB, photographs copied beside the
+JSON — and a pressure corpus sits on each real cap. Two of the campaign's own decisions were
+corrected in passing: it had asked for extremes the app cannot produce, and for members' words to
+be committed to git.
+
 ## 2026-09-05 — Catch-ups rework, day zero
 
 The owner's brief on Catch-ups ran to fifty paragraphs across two sittings and a typed

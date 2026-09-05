@@ -18,10 +18,13 @@
    prompt than those guys do."* And ¶49: *"beyond that, there is no granular detail that will
    be useful in that."* Take the nouns and the mechanics from it. Take no design, no copy and
    no scope fence from it. Where it and the brief disagree, the brief wins.
-4. **Read [`prior-art.md`](prior-art.md)** before disagreeing with a recommendation; the
+4. **Read [`recon.md`](recon.md)** — what is actually wrong, 43 findings, measured, with a root
+   cause per bug and a ranked ten at the end. Its section 13 is the list S3 reads first. Then
+   [`flows.md`](flows.md), the click map and the intent-by-state matrix he asked for in ¶36.
+5. **Read [`prior-art.md`](prior-art.md)** before disagreeing with a recommendation; the
    disagreement may already be answered there, with its confidence marked. Read its closing
    "The gaps" before leaning on any number in it.
-5. **Before your session ends, edit this file**: status board, findings, decisions, session
+6. **Before your session ends, edit this file**: status board, findings, decisions, session
    log. The next session starts by @-ing it alone, so whatever is not written here is lost.
 
 `.claude/skills/writing-for-agents/SKILL.md` governs how you edit this file and anything else
@@ -142,17 +145,17 @@ too, which he allowed in ¶28.
 | Skill amended (¶22) | DONE | "Whose words are you carrying?" and "A hedge is content"; the user-level copy in `~/.claude/skills/` matches |
 | Owner questions 1 to 5 | DONE | answered 2026-09-05, ¶51 and ¶52; readings under "Owner answers"; question 6 is open |
 | Ledger and decisions checked against the brief | DONE | two critics, about sixty findings, folded in on 2026-09-05; see the log |
-| S1 Reconnaissance | OPEN | |
+| S1 Reconnaissance | DONE | `recon.md` (43 findings), `flows.md`, the export, the pressure fixture, one `[Recon]` Catch-up left in place. Gaps listed at the end of `recon.md` |
 | S2 Prior art | DONE | `prior-art.md`, inside S0, 2026-09-05; F15 says how far to trust each part |
-| S3 Directions | OPEN | blocked on S1 |
+| S3 Directions | OPEN | unblocked; read `recon.md` section 13 first |
 | S4 Rooms | OPEN | blocked on S3 |
 | Owner browses the rooms | OWNER-GATED | |
 | S3b Second round | OPEN | only if he asks for it after the rooms |
 | S5 Pick and spec | OPEN | blocked on the pick |
 | S6+ Build | OPEN | blocked on S5 |
-| M1 Magazine design | OPEN | blocked on S1 |
+| M1 Magazine design | OPEN | unblocked. D27 is answered in `recon.md` section 6: photographs are boxed to 1920px, which is 164 dpi at A4 full-bleed |
 | M2+ Magazine build | OPEN | blocked on M1 |
-| X Fast fixes | OPEN | blocked on S1's root causes |
+| X Fast fixes | OPEN | unblocked. Root causes for R6/F8, I9, R4, V1 and R13 are in `recon.md`; V2 and V3 need a real iPhone first |
 | Old spec rewritten to describe what shipped | OPEN | last, with the final build phase |
 
 Statuses are `DONE`, `PARTIAL`, `OPEN`, `OWNER-GATED`, `DECLINED`, the same five words the
@@ -284,6 +287,40 @@ Numbered so later sessions can cite and correct them. **Verified** means a sessi
   `scripts/qa/scripts-ledger.test.mjs` wants a row for each in `scripts/dev/README.md` is
   unverified; check it.
 
+- **F17, the batch Catch-up never existed, and one has already drifted (S1, verified).** Two
+  groups are named "Batch of 2024": the real batch (`batchYear: 2024`, 11 members, **no
+  Catch-up**) and a hand-made snapshot (`batchYear: null`, 11 members, **the Catch-up**). A 2024
+  alumnus made it on 2026-08-23 through `/catchups/new`, which always mints a NEW group;
+  a real 2024 alumnus who joined the site on 2026-08-28 is not in it. Its Round 1 is in
+  `preparing` with 8 answers from one author of eleven. The history is three commits:
+  2026-07-25 (`063896c`) recorded his instruction *"the Catch-up with your batch is
+  automatically there"* and shipped a one-tap shortcut instead; 2026-08-21 (`31f84c9`) removed
+  the "Start one" row, with his own reasoning that a private naming choice must not rename a
+  shared batch group. `recon.md` section 9. **This corrects B4: nothing regressed, it was never
+  built.**
+- **F18, the phone overflow, root-caused (S1, verified).** A pasted Spotify link's
+  scheme-host-path is 54 characters and 369px with no break opportunity; the reader's answer
+  paragraph is 316px and carries no `break-words`; nothing between it and `<html>` clips; only
+  `html { overflow-x: clip }` (globals.css:325) holds the page still, and the green bar is
+  `position: sticky` so it does not follow a pan. `recon.md` section 0. **This closes F8.**
+- **F19, the real ceilings (S1, verified in the validators).** Answer body 6,000 characters;
+  **3 photos per answer**; question 300 characters; 40 questions per Round; 100 people per
+  Catch-up; photographs boxed to **1920px** on the long edge. **D35 asks for two things the app
+  cannot produce** (a 3,000-word answer, a ten-photo answer) and `recon.md` section 6 corrects
+  it. The pressure fixture is built to the real caps and one row over each.
+- **F20, the export exists and everything fits in 5.8 MB (S1, run).**
+  `scripts/dev/export-catchups.mjs`, shape in `src/lib/catchups-export.ts`, ledger row added,
+  `scripts-ledger.test.mjs` passes. 3 Catch-ups, 4 Rounds, 21 questions, 141 answers, **36
+  photographs**, 520 hearts, verified regenerable (every file fetched, every byte recorded, no
+  invite token exported). **F16 was right that the pass protocol does not apply; the ledger it
+  DOES need is `scripts/README.md`, not `scripts/dev/README.md`.**
+- **F21, a paused Catch-up hides a live Round (S1, verified).** Pausing replaces the whole left
+  column with a banner. "in the loop" is paused **and has a Round 2 in `collecting`**; nothing
+  on its home says so. `flows.md` section 2.
+- **F22, the "catch-up" suffix is his own July decision (S1, verified).**
+  `catchupSurfaceTitle`'s docblock cites *"owner review 2026-07-25"*. In ¶25 he reverses it. The
+  name is printed **seven** ways today. Record it in the spec as a reversal, not a bug.
+
 ---
 
 ## The ledger: every ask in the brief
@@ -307,7 +344,7 @@ independent critics on 2026-09-05 and repaired; if you find a gap, add the row.
 | P8 | Do not reinvent the palette; it must still be this app; new things are allowed; the Apple Action Button analogy: bespoke, unmistakably of the app; reusing the same pill-and-status-pill vocabulary everywhere is the named failure, *"a higher level of abstraction"* is the ask | 42 | open |
 | P9 | Letterloop is the floor and we are under it (*"ours just looks so much worse than theirs"*); we must be much better; Letterloop's things are too fixed | 17, 49, 50 | open |
 | P10 | Past specs and prompts are guidance, not law; heavily outdated; only what Catch-ups is *for* is worth taking from them | 48, 49, 50 | open |
-| P11 | Existing content is not deleted; export it to a file that is *"totally regeneratable"*; but do not let that lower the scale of the rework | 45, 51 | open |
+| P11 | Existing content is not deleted; export it to a file that is *"totally regeneratable"*; but do not let that lower the scale of the rework | 45, 51 | done, `scripts/dev/export-catchups.mjs`, F20 |
 | P12 | Say which sessions on which models at which effort; ultracode is the session's call; time not a constraint; tokens not wasted; not everything on Fable | 46, 51 | done, "The sessions" |
 | P13 | Catch-ups is the weakest part, hidden from demos; the one genuinely creative feature; *"do me proud"* | 44, 47 | open |
 | P14 | Amend the writing-for-agents skill: his brief travels verbatim when relayed; when one session hands its own work to the next, its judgment is enough | 22 | done, S0 |
@@ -319,8 +356,8 @@ independent critics on 2026-09-05 and repaired; if you find a gap, add the row.
 | P20 | Scope fence: no refactor pass yet, and not the backend-architectural bug hunt; UI/UX first | 20 | open |
 | P21 | His severity ranking: Fresh off the press has *"the most bugs"* and *"severe problems"*; the rest of the index is *"just tweaking"* | 9 | open |
 | P22 | Enumerate the Letterloop parity gaps: *"a lot of the things that were there in Letterloop aren't there"*, including the small pretty ones | 49 | open |
-| P23 | Recon's first duty: how every state looks and how every sequence of events through the states looks | 51 | open |
-| P24 | Robustness by pressure testing: a fake Catch-up or two filled with every type of content; survive the most varying input | 51 | open |
+| P23 | Recon's first duty: how every state looks and how every sequence of events through the states looks | 51 | done, `recon.md` §11 |
+| P24 | Robustness by pressure testing: a fake Catch-up or two filled with every type of content; survive the most varying input | 51 | partial: the corpus exists (`_fixtures/pressure.ts`); the rooms that must survive it are S4 |
 | P25 | `/lab/catchups/` is the sandbox for any test, *"whatever we want"* | 52 | open |
 | P26 | Seventy beta testers are on this today: live members, live Rounds mid-flight; the rework lands on a live surface and a migration cannot orphan an open Round | 44 | open |
 
@@ -360,8 +397,8 @@ independent critics on 2026-09-05 and repaired; if you find a gap, add the row.
 | B1 | Exists by default for every batch; everyone in the batch is automatically in; sees the history of Rounds; can take part in future Rounds; someone who joins the site later has access to the earlier issues | 4, 51 | open |
 | B2 | No adding or removing members; the members are fixed, the batch; *"can't edit people in and out"* | 4, 51 | open |
 | B3 | Who is the Keeper? Who may start a Round? A question he asked, not answered | 4 | open |
-| B4 | It used to exist and disappeared; recover why | 4 | open |
-| B5 | Bug today: "Start one" on a batch routes to the add-members page, which a batch Catch-up must never have | 4 | open |
+| B4 | It used to exist and disappeared; recover why | 4 | done, `recon.md` §9 and F17: it never existed |
+| B5 | Bug today: "Start one" on a batch routes to the add-members page, which a batch Catch-up must never have | 4 | answered: the button was removed on 2026-08-21; `/catchups/new` replaced it and has the same fault (F17) |
 | B6 | Batch and people Catch-ups both exist and are listed together; people Catch-ups are *"how you'd expect"* | 51 | open |
 
 ### A Catch-up's home, `/catchups/[id]` (H)
@@ -554,7 +591,13 @@ stays LOCKED and the session's reading sits beside it as RECOMMENDED.
   pipeline), enough for most magazine pages and not for a full-bleed A4 at 300 dpi. Whether
   Catch-ups should start keeping the original the way the Collection does is a data decision
   for S5; M1 says what it needs.
-- **D33** Variety and volume come from **fixtures, not fake members.** A live throwaway
+- **D33** *(narrowed by S1, 2026-09-05, and said out loud: the committed fixtures do NOT contain
+  the two real published Rounds. The export folder is gitignored precisely because it holds
+  members' words, and copying them into `src/` would put them in git under another name. What he
+  approved in owner question 5 was that ROOMS show real data, and a room can read the live
+  database directly, which is what the lab already does. So real Rounds come from Prisma at render
+  time and only the invented corpus is committed. `recon.md` §7.)* Variety and volume come from
+  **fixtures, not fake members.** A live throwaway
   Catch-up holds only the owner's account and Jerry Maguire, because every Round event
   notifies its members (F14) and because invented accounts would appear in the directory
   and the member counts seventy real people look at. The pressure corpus (D30) is JSON in
@@ -563,7 +606,10 @@ stays LOCKED and the session's reading sits beside it as RECOMMENDED.
   from the export. Rooms and the magazine engine render fixtures through the same loader as
   live data. If a live test genuinely needs many real authors, that is a question for the
   owner, not a thing to do.
-- **D35** The pressure corpus covers, at least: an answer of one word and one of 3,000
+- **D35** *(corrected by S1, 2026-09-05; see `recon.md` §6 and F19. Two items below cannot exist:
+  the answer cap is 6,000 characters, not 3,000 words, and the photo cap is 3 per answer, not ten.
+  The corpus in `src/app/lab/catchups/_fixtures/pressure.ts` sits on each real cap and steps one
+  row over it, which is the useful extreme.)* The pressure corpus covers, at least: an answer of one word and one of 3,000
   words; a question with one answer and one with forty; a Round with one question and one
   with twelve; zero photos, one photo in each orientation, three portraits together, ten
   photos on one answer, a two-hundred-photo wall; a song link from Spotify, YouTube and an
@@ -1198,3 +1244,45 @@ is not needed.
 (D34); S3 and M1 gained their ultracode shapes; S4 gained the fixture switch and the pressure
 room; `docs/README.md` gained the two rework campaigns under `docs/planning/`; a sixth owner
 question (caption lines) is open with a default.
+
+### 2026-09-05, S1, reconnaissance (Opus max, no ultracode, one browser)
+
+Read `brief.md` in full, then the handover, the old spec, the design system and the dialog
+findings. Everything below was measured on the running app against the live database, signed in as
+the owner, `chrome-devtools`, four viewports. **Nothing was fixed.**
+
+**Produced.** `recon.md` (43 findings: 24 confirming something he named, 2 marked NOT REPRODUCED,
+17 new, each tagged with its ledger id, with a ranked ten at the end); `flows.md` (the click map,
+the intent-by-state matrix he asked for in ¶36, and the counts); `scripts/dev/export-catchups.mjs`
+plus `src/lib/catchups-export.ts` and a ledger row; `src/app/lab/catchups/_fixtures/pressure.ts`;
+24 shots in `e2e/.shots/catchups-recon/`. Committed in two: the machinery, then the documents.
+
+**The green bar is root-caused and X is unblocked.** A member's pasted Spotify link has a
+54-character, 369px run with no break opportunity; the reader's answer paragraph is 316px wide and
+carries no `break-words`; not one of its fourteen ancestors clips; only `html{overflow-x:clip}`
+holds the page still, and the mobile bar is `position: sticky`, so it cannot follow a pan. Two
+lines fix it and neither is the bar. Also root-caused: the curved divider (a `border-t` on a
+`rounded-md` box, so CSS draws it along the corner arc), the hover with 0px padding on three
+sides, the rail's bold reflow (item 5 of 11, +17.9px), the viewer's 552px-to-311px size snap (the
+carousel next door already interpolates height and the viewer does not), and the heart's late pop
+(the lazy-motion chunk lands at 5,239ms here against 1,930ms on the feed, because this page is
+49,464px). V2 and V3 could not be reproduced and are marked so: `step` has never wrapped, and the
+"fix" would be changing correct code. They need a real iPhone.
+
+**The finding that changes the campaign.** There are two groups called "Batch of 2024". The real
+batch has no Catch-up; a hand-made snapshot has it, and a 2024 alumnus who joined on 2026-08-28 is
+not in it. The history is in F17: he asked for a default batch Catch-up on 2026-07-25, got a
+one-tap shortcut, and removed its broken leftovers himself on 2026-08-21 for a reason that is
+still the right constraint on B3. **B4's answer is that it never existed.**
+
+**Two corrections to this file's own decisions**, both made rather than left: D35 asked for
+extremes the app cannot produce (the caps are 6,000 characters and 3 photos), and D33 would have
+put members' words into git. Both are annotated on the decisions themselves.
+
+**One throwaway is left in place**, `[Recon] the happy path`, owner and Jerry only, driven through
+create, collecting, answering, preparing, published, archived, binned and back. Every transition
+used the Keeper's own controls; two `CatchupReminderPref` timestamps on that row were set and
+cleared by hand, because the bin cannot be reached any other way. Nothing else was written.
+
+**Not covered**, and listed at the end of `recon.md`: the join flow, notifications received and
+tapped, `/admin/catchups`, dark mode, and a plain member's view.
