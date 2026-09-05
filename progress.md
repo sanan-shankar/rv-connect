@@ -1,5 +1,20 @@
 # Progress Log
 
+## 2026-09-05 — a letter stops carrying the comments stack and an admin dialog in its first load
+
+Refactor audit 2, row B12. `post-card.tsx` defers both `CommentsSection` and `ModerationDialog`;
+`letter-engagement.tsx` imported both statically, so the same two modules were in /letters/[id]'s
+first load and not /feed's. It was written after the card and did not copy the shape.
+
+The comments block keeps its **server** render -- no `ssr: false` -- because it is `alwaysOpen`
+on a letter and draws its own skeleton rows from `expectedCount`; taking it out of the HTML would
+leave a hole under the letter until hydration. The moderation dialog is admin-only and opens on a
+press, so it gets `ssr: false` behind the `viewerIsAdmin` guard that already existed.
+
+Measured between builds: **-40,719 B raw first-load JS on /letters/[id]** (1,048 KB -> 1,007 KB).
+The audit estimated ~22.6 KB for both. Verified at 1440 and 390: the comments block and its
+composer are there, and the admin's Remove opens "Remove this letter".
+
 ## 2026-09-05 — the report dialog stops mounting twenty times a feed
 
 Refactor audit 2, row B11. Four of `post-card.tsx`'s five deferred pieces were already dynamic;

@@ -1,15 +1,35 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useHeartToggle, useBookmarkToggle } from "@/components/posts/use-engagement";
 import { ShieldAlert } from "lucide-react";
 import { toggleLike, toggleBookmark, adminRemovePost } from "@/app/(main)/feed/actions";
-import { CommentsSection } from "@/components/posts/comments-section";
-import { ModerationDialog } from "@/components/admin/moderation-dialog";
 import { LoveButton } from "@/components/common/love-button";
 import { BookmarkButton } from "@/components/common/bookmark-button";
 import { ShareButton } from "@/components/common/share-button";
+
+/* The two heaviest things on a letter page, deferred the way post-card.tsx
+   already defers both of them. They were static here only because this file
+   was written after that one and did not copy the shape: on /feed neither is
+   in the first load, on /letters/[id] both were.
+
+   The comments block keeps its SERVER render (no `ssr: false`) because it is
+   `alwaysOpen` on a letter and draws its own skeleton rows from
+   `expectedCount` -- taking that out of the HTML would leave a hole under the
+   letter until hydration. This is a client-chunk split only.
+
+   The moderation dialog is admin-only and opens on a press, so it gets
+   `ssr: false` and the `viewerIsAdmin` guard below keeps it unfetched for
+   everybody else. */
+const CommentsSection = dynamic(() =>
+  import("@/components/posts/comments-section").then((m) => m.CommentsSection)
+);
+const ModerationDialog = dynamic(
+  () => import("@/components/admin/moderation-dialog").then((m) => m.ModerationDialog),
+  { ssr: false }
+);
 
 export function LetterEngagement({
   postId,
