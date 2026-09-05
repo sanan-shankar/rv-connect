@@ -1,3 +1,5 @@
+import { CANONICAL_ORIGIN } from "./origin.ts";
+
 /* ------------------------------------------------------------------ *
  *  The look of an email from Rishi Valley.
  *
@@ -38,7 +40,7 @@ const C = {
  *  every environment, and a localhost src would render as a broken image in a
  *  real person's inbox. Regenerate with `node scripts/dev/email-mark.mjs` if
  *  src/app/icon.svg ever changes. */
-const MARK_SRC = "https://rishivalley.space/images/email/mark.png";
+const MARK_SRC = `${CANONICAL_ORIGIN}/images/email/mark.png`;
 
 const SERIF = "Georgia, 'Times New Roman', serif";
 const SANS =
@@ -203,7 +205,7 @@ function shell(opts: {
              real, and it is what every serious sender puts here. -->
         <tr>
           <td style="padding:22px 0 0 0;font-family:${SANS};font-size:12px;line-height:1.6;color:${C.muted};">
-            <a href="https://rishivalley.space" style="color:${C.muted};text-decoration:none;">rishivalley.space</a>
+            <a href="${CANONICAL_ORIGIN}" style="color:${C.muted};text-decoration:none;">rishivalley.space</a>
           </td>
         </tr>
 
@@ -318,7 +320,7 @@ export function resetPasswordTemplate(opts: {
  */
 export function passwordChangedTemplate(opts: { name: string }): BuiltEmail {
   const first = firstNameOf(opts.name);
-  const reach = "https://rishivalley.space/messages";
+  const reach = `${CANONICAL_ORIGIN}/messages`;
   return {
     subject: "Your Rishi Valley password was changed",
     html: shell({
@@ -370,7 +372,7 @@ export function deletionScheduledTemplate(opts: {
         when,
       )} the account, your posts, comments, photos and profile will be permanently removed.</p><p style="margin:12px 0 0;">Changed your mind? Just sign in before then and the deletion is cancelled.</p>`,
       ctaLabel: "Keep my account",
-      ctaHref: "https://rishivalley.space/login",
+      ctaHref: `${CANONICAL_ORIGIN}/login`,
       footnote:
         "If you did not ask for this, someone else has access to your account. Sign in to cancel the deletion, then change your password.",
     }),
@@ -380,7 +382,7 @@ export function deletionScheduledTemplate(opts: {
       `Hello ${first}. You asked for your Rishi Valley account to be deleted. On ${when} the account, your posts, comments, photos and profile will be permanently removed.`,
       "",
       "Changed your mind? Just sign in before then and the deletion is cancelled:",
-      "https://rishivalley.space/login",
+      `${CANONICAL_ORIGIN}/login`,
       "",
       "If you did not ask for this, someone else has access to your account. Sign in to cancel the deletion, then change your password.",
     ].join("\n"),
