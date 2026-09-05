@@ -1,9 +1,27 @@
 "use client";
 
 import { useCallback, useEffect, useRef, type ComponentProps, type ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { FIELD_FOCUS, FIELD_FOCUS_SHELL } from "@/components/ui/field-focus";
-import { InfoTooltip } from "@/components/common/info-tooltip";
 import { cn } from "@/lib/utils";
+
+/* THE (i) LOADS WHEN A HINT EXISTS, NOT WHEN A FIELD DOES. `InfoTooltip` is
+   built on the base-ui Popover, and a static import here put that whole
+   floating stack -- Popover, its positioner, floating-ui's `computePosition`
+   -- into the first load of every page drawing any float field. That is the
+   four auth pages and the landing, none of which passes a `hint`: one caller
+   in the tree does (`photo-questions.tsx`, inside the Collection's contribute
+   and edit dialogs). Measured between two production builds, 2026-09-05:
+   145 KB raw off each of /login, /signup, /forgot-password, /reset-password
+   and /, and 16.4 KB off /admin/review.
+
+   `ssr: false` costs nothing here because every hint that exists lives inside
+   a dialog that opens after hydration, so there is no first paint for the icon
+   to be missing from. */
+const InfoTooltip = dynamic(
+  () => import("@/components/common/info-tooltip").then((m) => m.InfoTooltip),
+  { ssr: false }
+);
 
 /* ------------------------------------------------------------------ *
  *  <FloatField> - the calm signup field (owner reference: Revolut's
