@@ -139,11 +139,14 @@ export function NotificationBell({
    * hard page load and never again: it could fall, never rise, and the shake
    * animation this component ships for "a new one arrived" was unreachable.
    *
-   * Refreshed on mount, whenever the tab regains focus, and on every open of
-   * the panel (handleOpen above takes it from the same payload). Focus rather
-   * than a short interval: the count only matters when somebody is looking,
-   * and a poll on every open tab would be a query per member per interval for
-   * a number nobody is reading.
+   * The initial value comes from the server prop, which was computed on the
+   * same request milliseconds earlier -- so there is no refresh on mount; that
+   * was a third query for an integer the page had just counted. What the
+   * listener below covers is the drift AFTER that: whenever the tab regains
+   * focus, and on every open of the panel (handleOpen above takes it from the
+   * same payload). Focus rather than a short interval: the count only matters
+   * when somebody is looking, and a poll on every open tab would be a query
+   * per member per interval for a number nobody is reading.
    */
   const refreshCount = useCallback(async () => {
     const data = await callAction(() => getUnreadNotificationCount());
@@ -152,7 +155,6 @@ export function NotificationBell({
   }, []);
 
   useEffect(() => {
-    void refreshCount();
     const onFocus = () => void refreshCount();
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);

@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { after } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { unreadNotificationCount } from "@/lib/notification-count";
+import { getViewerCities } from "@/lib/city-scope";
 import { FeedColumn } from "@/components/posts/feed-column";
 import { PageHeader } from "@/components/layout/page-header";
 import { SearchPill } from "@/components/layout/search-pill";
@@ -38,14 +40,8 @@ export default async function FeedPage({
   }
 
   const [unreadCount, userPlaces, marker] = await Promise.all([
-    prisma.notification.count({
-      where: { userId: session.user.id, read: false },
-    }),
-    prisma.userPlace.findMany({
-      where: { userId: session.user.id },
-      orderBy: { position: "asc" },
-      select: { city: true },
-    }),
+    unreadNotificationCount(session.user.id),
+    getViewerCities(session.user.id),
     /* The "New since you were last here" marker. Read here rather than in the
        client so it is the ACCOUNT's marker, not this browser's -- it used to
        sit in localStorage, which announced the same posts as new again on
@@ -86,7 +82,7 @@ export default async function FeedPage({
             showControls={false}
             initialSearch={q}
             currentUser={{ id: session.user.id, name: session.user.name, photoUrl: session.user.photoUrl, birdOverride: session.user.birdOverride }}
-            userPlaces={userPlaces.map((p) => p.city)}
+            userPlaces={userPlaces}
             lastSeenAt={marker?.feedSeenAt?.toISOString() ?? null}
           />
         </div>
@@ -94,7 +90,7 @@ export default async function FeedPage({
           <FeedRail
             userId={session.user.id}
             viewer={{
-              cities: userPlaces.map((p) => p.city),
+              cities: userPlaces,
               batch: batchTargetKey(session.user.batchType, session.user.batchYear),
               isAdmin: session.user.role === "admin",
             }}

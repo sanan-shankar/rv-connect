@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { unreadNotificationCount } from "@/lib/notification-count";
 import { AppShell } from "@/components/layout/app-shell";
 import { advanceDueCatchups } from "@/lib/catchups";
 import { touchLastSeen } from "@/lib/last-seen";
@@ -54,12 +54,7 @@ export default async function MainLayout({
      Catch-up surfaces themselves already re-run it, so only the piggyback
      would be lost. */
   const [unreadCount, mailState] = await Promise.all([
-    prisma.notification.count({
-      where: {
-        userId: session.user.id,
-        read: false,
-      },
-    }),
+    unreadNotificationCount(session.user.id),
     // Only asked for when it can change what the banner says. A confirmed
     // account never queries the queue at all.
     //
