@@ -16,9 +16,11 @@ import { clamp, rand } from "@/components/mascot/hoopoe-kit";
  * /guidelines each carried a bird they do not render.
  *
  * Loaded the way the flight layer already loads it. A 404 is an apology
- * screen; the bird arriving a beat late is invisible, and this is the one
- * page where that is true. Do NOT copy this to login, signup, the landing or
- * the sidebar -- all four show the bird at first paint by design (mascot.md).
+ * screen; the bird arriving a beat late is invisible. Do NOT copy this to
+ * login, signup or the landing -- all three show the bird at first paint by
+ * design (mascot.md). The SIDEBAR was named here too until 2026-09-05, and
+ * that was wrong: its bird cannot appear for ninety seconds and never appears
+ * below 768px, so it takes the same deferral this file does, and now has it.
  *
  * onReady rather than ref: next/dynamic returns a wrapper that does not
  * forward a ref to the inner forwardRef component, so ref={ref} here would

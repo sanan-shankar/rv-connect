@@ -34,10 +34,28 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState } from "react";
-import { Hoopoe } from "./hoopoe";
+import dynamic from "next/dynamic";
+import type { HoopoeProps } from "./hoopoe";
 import { rand, type HoopoeApi } from "./hoopoe-kit";
 import { maybePlayRareIdleBehaviour } from "./moments/rare-idle-behaviors";
 import { anotherHoopoeOnScreen } from "./moments/one-hoopoe-guard";
+
+/* THE PUPPET ARRIVES WITH THE BIRD, NOT WITH THE PAGE. A static import here
+   put 28 KB of rig into the first load of most authenticated routes for a
+   bird that cannot appear for at least ninety seconds, and never appears at
+   all below 768px. It is the same `dynamic()` the 404 boundary already uses,
+   for the same reason.
+
+   `onReady` rather than `ref` is what makes this safe, and it was already the
+   shape here: next/dynamic's wrapper does not forward refs, so a `ref` would
+   leave `apiRef` null and the bird permanently, silently inert. Nothing about
+   the mount order changes -- mascot.md's rule is that the ref-owning wrapper
+   mounts early and the puppet on demand, and that is still exactly what
+   happens; only the module fetch moved. */
+const Hoopoe = dynamic<HoopoeProps>(
+  () => import("./hoopoe").then((m) => m.Hoopoe),
+  { ssr: false }
+);
 
 const IDLE_MIN_MS = 90_000;
 const IDLE_MAX_MS = 120_000;
