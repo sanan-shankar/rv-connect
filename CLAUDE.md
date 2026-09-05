@@ -198,7 +198,11 @@ These three still earn their keep:
 | `write-path-reviewer` | server actions, API routes, auth, uploads, schema | checks the four write-path invariants and the demo's three layers |
 
 **Model tiers**: Sonnet for implementation and review agents, Haiku for mechanical work. Opus only
-for an ambiguous product or design call the specs do not already answer.
+for an ambiguous product or design call the specs do not already answer. Fable for heavy
+orchestration and for highly creative work -- a wide audit that has to hold a whole area in its
+head at once, or a piece of writing or design that needs invention rather than execution. Pass
+`model: "fable"` to the Agent tool; it overrides whatever the agent definition asks for. (The one
+exception: `subagent_type: "fork"` always inherits this session's model.)
 
 ## Skills
 
