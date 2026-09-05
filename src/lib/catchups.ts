@@ -394,30 +394,58 @@ export async function advanceDueCatchups(userId?: string): Promise<void> {
   try {
       const scope = userId ? { group: { members: { some: { userId } } } } : {};
 
-    const editions = await prisma.catchupEdition.findMany({
-      where: {
-        status: { in: ["collecting", "answering", "preparing"] },
-        // Paused/ended Catch-ups are frozen. advanceEdition re-checks this and
-        // is the actual guarantee (it is reachable from every page's own
-        // freshen too); this clause just avoids loading rows we would skip.
-        catchup: { status: "active", ...scope },
-      },
-      include: {
-        catchup: { select: { id: true, cadence: true, status: true, group: { select: { id: true, name: true } } } },
-      },
-    });
+    /* ONE read for both halves of the advance, because both are questions
+       about the same Catch-up rows and this runs on essentially every
+       authenticated page view. It used to be two joins against
+       `group.members.some`, and for a member in no Catch-up -- the majority --
+       both returned nothing.
 
-    for (const ed of editions) {
-      await advanceEdition(ed as AdvanceEditionInput, now);
-    }
+       Paused/ended Catch-ups are frozen. advanceEdition re-checks this and is
+       the actual guarantee (it is reachable from every page's own freshen
+       too); the `status: "active"` clause just avoids loading rows we would
+       skip.
 
+       The two reads were sequential, and it is worth saying why one is safe.
+       The only thing the advance loop below writes to `nextOpensAt` is
+       `now + cadence gap` -- always in the future -- so a Catch-up it
+       publishes cannot also become due to OPEN in the same pass, which is
+       exactly what the second read was positioned after to see. And in the
+       other direction `openNextRoundIfDue` compare-and-swaps on the
+       `nextOpensAt` it was handed, so a value that moved under it is a no-op
+       rather than a double open. */
+    const STALE = ["collecting", "answering", "preparing"];
     const catchups = await prisma.catchup.findMany({
-      where: { status: "active", nextOpensAt: { lte: now }, ...scope },
+      where: {
+        status: "active",
+        ...scope,
+        OR: [{ nextOpensAt: { lte: now } }, { editions: { some: { status: { in: STALE } } } }],
+      },
       include: {
         group: { select: { id: true, name: true } },
-        editions: { orderBy: { number: "desc" }, take: 1, select: { number: true, status: true } },
+        /* Every edition, newest first: the stale ones feed advanceEdition and
+           the newest feeds openNextRoundIfDue, and Prisma cannot include the
+           same relation twice under two filters. A Catch-up has one edition
+           per cadence period, so this is tens of small rows at most, and only
+           for the Catch-ups the `where` already narrowed to. */
+        editions: {
+          orderBy: { number: "desc" },
+          select: { ...EDITION_TIMING_SELECT, id: true, catchupId: true, number: true },
+        },
       },
     });
+
+    for (const c of catchups) {
+      for (const ed of c.editions) {
+        if (!STALE.includes(ed.status)) continue;
+        await advanceEdition(
+          {
+            ...ed,
+            catchup: { id: c.id, cadence: c.cadence, status: c.status, group: c.group },
+          } as AdvanceEditionInput,
+          now
+        );
+      }
+    }
 
     for (const c of catchups) {
       try {

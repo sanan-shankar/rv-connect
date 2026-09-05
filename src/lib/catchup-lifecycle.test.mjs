@@ -22,11 +22,22 @@ test("B-061: the clock stops for a Catch-up that is not active", () => {
     /meta\.catchupStatus !== "active"\)\s*return;/,
     "advanceEdition no longer refuses to advance a paused or ended Catch-up"
   );
-  // And the sweep does not even load them.
+  /* And the sweep does not even load them. Pinned on the property rather than
+     on one nesting of it: the two reads this used to spell out became one on
+     2026-09-05 (refactor audit 2, C3), so what matters is that the sweep's own
+     query still narrows to active Catch-ups and to the viewer's scope, not
+     where in the `where` those clauses sit. */
+  const sweep = balancedBody(src, "export async function advanceDueCatchups");
+  assert.ok(sweep, "advanceDueCatchups is gone; this pin is reading nothing");
   assert.match(
-    src,
-    /catchup: \{ status: "active", \.\.\.scope \}/,
-    "advanceDueCatchups no longer scopes its edition query to active Catch-ups"
+    sweep,
+    /status: "active"/,
+    "advanceDueCatchups no longer scopes its query to active Catch-ups"
+  );
+  assert.match(
+    sweep,
+    /\.\.\.scope/,
+    "advanceDueCatchups no longer scopes its query to the viewer's own Catch-ups"
   );
 });
 
