@@ -7,9 +7,12 @@
  *  and the same stress state, so they can be compared in the worst case
  *  rather than the demo case. Each reports its own measured height.
  *
- *  The stress states are the ones the DOM probe measured on the shipped
- *  bar (scripts/qa/_dir-chrome-probe.mjs), so "3 rows, 142px" here means
- *  the same thing it means there.
+ *  The stress states are the ones a DOM probe measured on the shipped bar on
+ *  2026-08-03, so "3 rows, 142px" here means what it meant on the real page
+ *  that day. The probe itself was retired on 2026-09-05: it anchored on a
+ *  `data-tour` attribute, and those left with the hoopoe tour on 2026-08-27,
+ *  after which it exited 0 and measured nothing. Re-derive by hand, or write
+ *  a new probe, before trusting these against today's bar.
  * ------------------------------------------------------------------ */
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";

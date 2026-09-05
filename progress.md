@@ -8995,3 +8995,24 @@ where it draws, where it does not, what happens if somebody removes the guard, a
 row is deliberately mixed today (photo members ringed, bird members not). The chip's hand-written
 shadow says the same from its side. If `BG_MODE` ever moves to `"inset"` the row becomes
 consistent on its own.
+
+## 2026-09-05 — a probe that reported success and measured nothing
+
+Refactor audit 2, Phase A, row A6, second half. Owner's call: retire rather than repair.
+
+`scripts/qa/_dir-chrome-probe.mjs` measured the live directory toolbar so `/lab/directory`'s stated
+numbers stayed re-derivable. Its `page.evaluate` opened with
+`document.querySelector('[data-tour="directory-search"]')`, and every `data-tour` attribute in the
+repository went with the hoopoe tour in `ae5bc9a` on 2026-08-27. Its caller prints
+`${label}: toolbar not found` and continues, so since that day it has run clean, **exited 0**, and
+produced twelve of those lines instead of a measurement table -- the failure this project likes
+least, a tool reporting success while doing nothing.
+
+That is the second dead thing the tour removal left behind; the first was `tour-mobile-verify.mjs`
+this morning. Both were invisible because nothing runs them automatically.
+
+90 lines, its ledger row, and the three places that cited it: the room's own body copy, which told
+a reader the numbers were "read off the live page with `scripts/qa/_dir-chrome-probe.mjs`", and
+two comments saying "3 rows, 142px here means the same thing it means there". All three now say
+the same true thing instead: measured on 3 August 2026, dated rather than live, and re-derive by
+hand before trusting them against today's bar.

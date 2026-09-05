@@ -481,9 +481,10 @@ export function applyFilters(members: Member[], f: Filters): Member[] {
  *  see it because the proxy has the right type. Data that both sides need
  *  belongs in a module neither side owns.
  *
- *  The four states match the ones the DOM probe measured on the shipped bar
- *  (scripts/qa/_dir-chrome-probe.mjs), so "3 rows, 142px" means the same
- *  thing in the room as it does in the probe output.
+ *  The four states match the ones a DOM probe measured on the shipped bar on
+ *  2026-08-03. That probe was retired on 2026-09-05 (its `data-tour` anchor
+ *  left with the hoopoe tour), so these are a dated reading rather than a
+ *  live one -- see the note in _chrome.tsx.
  * ------------------------------------------------------------------ */
 
 export type StressKey = "none" | "one" | "two" | "worst";
