@@ -304,10 +304,26 @@ test("the Profession control hides only when it has nothing to offer", () => {
   /* The CHIP is deliberately outside it. A bookmarked ?profession= for a tag
      below the floor must still draw something the member can read and clear,
      exactly as the removed House filter's chip does. */
+  /* The label is resolved on the SERVER and read from the prop. `tagLabel`
+     reads a const array of object literals carrying a `hint` per entry, and a
+     field of one cannot be tree-shaken -- so calling it in the client shipped
+     the whole vocabulary to every member's browser (audit 2,
+     directory-profile-04). Both halves are pinned: the server must compute it,
+     and the chip must read what the server sent. */
+  assert.match(
+    PAGE,
+    /professionLabel:[^\n]*tagLabel\(/,
+    "the server no longer resolves the profession chip's label"
+  );
   assert.match(
     CLIENT,
-    /label: tagLabel\(initialFilters\.profession\)/,
+    /label: initialFilters\.professionLabel/,
     "the profession chip no longer renders, or no longer reads the vocabulary's label"
+  );
+  assert.doesNotMatch(
+    CLIENT,
+    /from "@\/lib\/profession-tags"/,
+    "the directory client imports the profession vocabulary again; it ships every hint with it"
   );
 });
 

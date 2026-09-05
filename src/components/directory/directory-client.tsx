@@ -16,7 +16,6 @@ import { FilterSheet } from "@/components/common/filters/filter-sheet";
 import { RangeFacetPill } from "@/components/common/filters/range-facet-pill";
 import { SentenceLine, type SentenceToken } from "@/components/common/filters/sentence-line";
 import type { FacetOption } from "@/components/common/filters/types";
-import { tagLabel } from "@/lib/profession-tags";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
@@ -70,6 +69,9 @@ interface DirectoryFiltersState {
   year: string;
   city: string;
   profession: string;
+  /** The vocabulary's label for `profession`, resolved on the server. See the
+   *  chip below, and page.tsx where it is computed. */
+  professionLabel: string;
   house: string;
   type: string;
   yearFrom: string;
@@ -353,11 +355,15 @@ export function DirectoryClient({
       key: "profession",
       /* The vocabulary's label, not the raw URL value: the column stores
          slugs, so a chip reading the parameter back would say "social impact"
-         where the control says "Social impact". Resolved here rather than off
-         the `professions` prop because a tag below TAG_FLOOR is not in that
-         list, and a bookmarked link to one still has to draw a chip a person
-         can read and clear. */
-      label: tagLabel(initialFilters.profession),
+         where the control says "Social impact". Computed on the SERVER
+         (page.tsx) rather than here, because `tagLabel` reads a const array of
+         object literals whose per-entry `hint` strings cannot be shaken out
+         field by field -- one call here put the whole vocabulary, hints and
+         all, in every /directory client chunk. Not read off the `professions`
+         prop either: a tag below TAG_FLOOR is not in that list, and a
+         bookmarked link to one still has to draw a chip a person can read and
+         clear. */
+      label: initialFilters.professionLabel,
       onClear: () => updateFilters("profession", ""),
     });
   }
