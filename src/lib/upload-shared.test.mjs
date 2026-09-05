@@ -152,6 +152,35 @@ test("every route that takes image bytes goes through the one door", async () =>
   }
 });
 
+test("nothing spells a HEIC refusal out for itself", async () => {
+  /* Four surfaces turned HEIC away and two of them hand-rolled the predicate.
+     The settings avatar was the one that mattered: it compared the two MIME
+     strings only, so a blank-MIME iPhone photograph -- the case
+     `isUnsupportedHeic` checks the extension for -- fell through to the byte
+     sniffer and was refused with "That file doesn't look like a JPG, PNG, GIF
+     or WebP image", which is true and useless.
+
+     A sweep rather than a list, so it catches the fifth copy rather than the
+     four that exist today. */
+  const { walk, decomment, ROOT } = await import("./test-kit.mjs");
+  const { readFileSync } = await import("node:fs");
+  const { relative, resolve } = await import("node:path");
+
+  const guilty = [];
+  for (const full of walk(resolve(ROOT, "src"))) {
+    const file = relative(ROOT, full);
+    if (file === "src/lib/upload-shared.ts") continue; // where the predicate lives
+    const src = decomment(readFileSync(full, "utf8"));
+    if (/"image\/hei[cf]"/.test(src) || /\/\\\.hei\[cf\]\$\/i/.test(src)) guilty.push(file);
+  }
+  assert.deepEqual(
+    guilty,
+    [],
+    `these test for HEIC themselves instead of calling isUnsupportedHeic, and the ` +
+      `one that did missed the blank-MIME photograph the helper exists for`
+  );
+});
+
 test("C-066: the type the PUT is signed with is the type the client sends", async () => {
   // A signature over image/jpeg and a PUT sent as blank is a 403 at R2, so
   // these two halves have to stay joined.

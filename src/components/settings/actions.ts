@@ -12,7 +12,13 @@ import { putImage, ownerPrefix } from "@/lib/storage";
 import { purgeImageUrls } from "@/lib/image-purge";
 import { swapPhotoUrl } from "@/lib/avatar-swap";
 import { sharpImage } from "@/lib/image";
-import {sniffImageType, describeProcessingError, isImageFile} from "@/lib/upload-shared";
+import {
+  sniffImageType,
+  describeProcessingError,
+  heicRefusal,
+  isImageFile,
+  isUnsupportedHeic,
+} from "@/lib/upload-shared";
 import { valleyDayKey, VALLEY_TIME_ZONE } from "@/lib/utils";
 import { titleCase } from "@/lib/normalize";
 import { writeAudit } from "@/lib/audit";
@@ -84,8 +90,13 @@ export async function updateAvatar(formData: FormData) {
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No photo provided" };
   if (!isImageFile(file)) return { error: "Only image files are allowed" };
-  if (file.type === "image/heic" || file.type === "image/heif")
-    return { error: "HEIC is not supported yet. Please export as JPG or PNG." };
+  /* `isUnsupportedHeic` rather than the two MIME strings this used to test
+     itself: it checks the .heic/.heif extension as well, because some mobile
+     browsers hand over a picked photo with a blank MIME. Without that, a small
+     blank-MIME iPhone photograph fell through to the byte sniffer below and
+     was refused with "That file doesn't look like a JPG, PNG, GIF or WebP
+     image." -- true, useless, and not what to do about it. */
+  if (isUnsupportedHeic(file)) return { error: heicRefusal() };
   if (file.size > MAX_AVATAR_INPUT) return { error: "Photo must be under 15MB" };
 
   let url: string;

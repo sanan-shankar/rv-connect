@@ -190,6 +190,36 @@ export function isUnsupportedHeic(file: { type: string; name: string }): boolean
   );
 }
 
+/** The way out of a HEIC, which is the only part of the refusal worth reading.
+ *  Separate from the sentences below because a batch says "them" where one
+ *  photograph says "it", and that is the whole of the difference. Exported for
+ *  the browser shrinker, whose leading clause is genuinely its own -- it is
+ *  saying why this file could not be MADE small, not that the format is
+ *  refused -- but whose advice is this same advice. */
+export const heicWayOut = (many: boolean) =>
+  `Export ${many ? "them" : "it"} as JPG or PNG (or turn off "High Efficiency" in ` +
+  `your camera settings) and try again.`;
+
+/**
+ * The one refusal for a HEIC, everywhere a single photograph is turned away.
+ *
+ * Four surfaces said this four ways, one of them ("HEIC is not supported yet.
+ * Please export as JPG or PNG.") without the camera setting that is the real
+ * answer for most people. Named after `stillPictureNotice` above and shaped
+ * the same way: the filename when there is one to name.
+ */
+export function heicRefusal(filename?: string): string {
+  const subject = filename ? `"${filename}" is` : "That is";
+  return `${subject} a HEIC/HEIF photo, which isn't supported yet. ${heicWayOut(false)}`;
+}
+
+/** The same refusal for a drop of photographs filed together, where the
+ *  HEICs are left out and the rest go on. Only the contribute room takes a
+ *  batch, so only it needs this. */
+export function heicBatchRefusal(count: number): string {
+  return `${count} HEIC/HEIF photos were left out, because that format isn't supported yet. ${heicWayOut(true)}`;
+}
+
 /**
  * Public hosts this bucket's objects have EVER been served from, other than
  * whatever `R2_PUBLIC_BASE_URL` says today.
