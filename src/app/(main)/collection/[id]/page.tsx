@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { CollectionClient } from "@/components/collection/collection-client";
 import { recordView } from "@/lib/content-view";
-import { decidePhotoVisibility } from "@/lib/photo-visibility-rule";
 import { collectionPageData } from "../collection-data";
 import { loadPhoto } from "../collection-data";
 
@@ -41,35 +39,21 @@ export async function generateMetadata({
   const session = await auth();
   if (!session?.user) return { title: "Collection" };
 
-  /* THE RULE, not a second hand-written copy of it. This used to restate the
-     hidden/unapproved checks inline, which was correct for as long as those
-     were the only two -- and stopped being correct the moment a photograph
-     could be private to one class, because a caption is content and this
-     function puts it in the page title. A caption reading "Ravi's leaving
-     do, 2004" is exactly the kind of thing the Class Collection exists to
-     keep in one class. */
-  const [photo, me] = await Promise.all([
-    prisma.photo.findUnique({
-      where: { id },
-      select: {
-        id: true, caption: true, isHidden: true, approved: true,
-        uploaderId: true, scope: true, classYears: true,
-      },
-    }),
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { verifyState: true, batchYear: true },
-    }),
-  ]);
-  if (!photo) return { title: "Collection" };
+  /* THE RULE, not a second hand-written copy of it -- and now not even a
+     second call to it. This used to restate the hidden/unapproved checks
+     inline, which was correct for as long as those were the only two, and
+     stopped being correct the moment a photograph could be private to one
+     class: a caption is content, and this function puts it in the page title.
+     A caption reading "Ravi's leaving do, 2004" is exactly the kind of thing
+     the Class Collection exists to keep in one class.
 
-  const seen = decidePhotoVisibility(photo, {
-    id: session.user.id,
-    role: session.user.role,
-    verifyState: me?.verifyState,
-    batchYear: me?.batchYear,
-  });
-  if (!seen.ok) return { title: "Collection" };
+     It asks `loadPhoto`, which owns that decision for the body below and is
+     `cache()`d, so the two functions Next runs on this request share one read
+     of the photograph and one of the viewer instead of four. A refusal and a
+     missing row both arrive here as null, which is the same answer for a tab
+     title either way. */
+  const photo = await loadPhoto(id);
+  if (!photo) return { title: "Collection" };
 
   const caption = photo.caption?.trim();
   if (!caption) return { title: "Collection" };

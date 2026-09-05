@@ -9503,3 +9503,33 @@ itself, and `currentTarget()`, which the sign-in detour needs, stays.
 Proved live: set `lastSeenAt` an hour back, load `/feed`, and the row still moves — with the write
 now off the render path. The pattern is the same one `drainMailQueue` has used in production since
 it was written.
+
+## 2026-09-05 — four routes stop fetching their own row twice
+
+Refactor audit 2, Phase C, row C1 (`data-layer-08` = `collection-04` = `fresh-code-23` =
+`directory-profile-13` = `member-surfaces-16`). Next runs `generateMetadata` and the page in the
+same request, and on four routes each wrote its own lookup of the same row. TRAPS has said since
+August that `cache()` is the tool for exactly this; none of the four used it.
+
+Each route now has one module-scope `cache()`d loader, keyed on strings and never on the session
+object — `auth()` hands back a fresh object per call, so keying on it would miss every time. The
+metadata reads its two or three columns off the row the page was going to fetch anyway.
+
+Measured with `pg_stat_statements`, median of three loads each, against the same files at HEAD:
+`/letters/[id]` **21 → 19**, `/profile/[id]` **24 → 23**, `/collection/[id]` **33 → 31**,
+`/catchups/[id]` **33 → 30** (the Catch-up saves more than one because its metadata's include
+issued a second statement for the group).
+
+The permalink is the interesting one. Its `generateMetadata` had its own `photo.findUnique`, its own
+`user.findUnique` and its own `decidePhotoVisibility` call — a correct second copy of a decision, and
+audits M30/M31 are both the story of a list and a permalink disagreeing about who may see something.
+It now asks `loadPhoto`, which owns that decision for the body, so the two cannot drift: a refusal
+and a missing row both arrive as null, which is the same answer for a tab title. The
+`security-regressions` pin moved with it — it used to grep the page for `decidePhotoVisibility(`,
+which the page no longer calls, and now asserts the title comes through `loadPhoto` and that the
+page never queries `Photo` directly. Mutation-tested by putting a `prisma.photo.findUnique` back and
+watching it go red.
+
+Not proved: the two-account class-refusal check the finding asks for. Both tooling accounts are
+admins, and an admin is exempt from the class rule; signing in as a real alumnus to test it is not
+allowed. The structural argument stands in its place — metadata and body are one call now.

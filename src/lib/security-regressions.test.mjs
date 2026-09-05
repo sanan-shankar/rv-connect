@@ -329,17 +329,26 @@ test("class: the permalink and its page title both use the rule", () => {
   // pin follows the function, not the filename.
   const data = decomment(read("src/app/(main)/collection/collection-data.ts"));
   assert.ok(
-    /export async function loadPhoto\(/.test(data),
+    /export (async function|const) loadPhoto\b/.test(data),
     "loadPhoto is no longer in collection-data.ts; this pin is reading the wrong file"
   );
   assert.ok(
     /decidePhotoVisibility\(/.test(data),
     "loadPhoto stopped deciding through the shared rule"
   );
+  /* The title reaches the rule THROUGH loadPhoto rather than calling it again
+     (audit 2, C1): one cache()d read answers both. So what this pins is that
+     the metadata still gets its caption from the function that decides, and
+     never from a lookup of its own -- a hand-rolled photo.findUnique here
+     would be the exact regression M30/M31 describe. */
   const page = decomment(read("src/app/(main)/collection/[id]/page.tsx"));
   assert.ok(
-    /decidePhotoVisibility\(/.test(page),
-    "generateMetadata stopped deciding through the shared rule"
+    /loadPhoto\(id\)/.test(page),
+    "generateMetadata stopped taking its title from loadPhoto, which owns the decision"
+  );
+  assert.ok(
+    !/prisma\.photo\./.test(page),
+    "the permalink page queries Photo directly again; the title must come through the rule"
   );
 });
 
