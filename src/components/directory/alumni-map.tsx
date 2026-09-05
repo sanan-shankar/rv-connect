@@ -102,8 +102,8 @@ const ATLAS_URL = "/geo/countries-110m.json";
 
 type Topology = Parameters<typeof feature>[0];
 
-async function loadLandPaths(signal: AbortSignal): Promise<string[]> {
-  const res = await fetch(ATLAS_URL, { signal });
+async function loadLandPaths(): Promise<string[]> {
+  const res = await fetch(ATLAS_URL);
   if (!res.ok) throw new Error(`atlas ${res.status}`);
   const topo = (await res.json()) as Topology;
   const land = feature(topo, topo.objects.countries) as unknown as {
@@ -111,6 +111,35 @@ async function loadLandPaths(signal: AbortSignal): Promise<string[]> {
   };
   return land.features.map((f) => pathGen(f) ?? "");
 }
+
+/* THE ATLAS IS ASKED FOR WHEN THIS MODULE ARRIVES, NOT WHEN THE MAP MOUNTS.
+ *
+ * It used to start in the mount effect below, which put it AFTER the view
+ * crossfade: measured on a production build, pressing Map fetched the chunks
+ * at 63ms, drew the empty card at 155ms, and only requested the atlas at
+ * 464ms, once the map had mounted. So the land arrived last, behind a beat
+ * nobody was waiting on for a good reason.
+ *
+ * directory-client warms this module on a hover over the Map segment, so
+ * starting the request here means the coastlines are already in flight while
+ * the pointer is still on the word. Memoised, so a remount (fullscreen, a
+ * filter change) reuses the one promise rather than re-parsing 105 KB.
+ *
+ * Browser-only: `ssr: false` means this never renders on the server, but a
+ * relative fetch evaluated in a server bundle would throw for want of a base
+ * URL, and that is not a risk worth leaving to the module graph.
+ *
+ * No AbortController any more. There is nothing useful to abort: the response
+ * is a static file behind an immutable cache header, a second mount wants the
+ * same promise rather than a second request, and an unmount mid-flight now
+ * simply drops the result instead of cancelling work that is already paid
+ * for. */
+let atlas: Promise<string[]> | null = null;
+function getAtlas(): Promise<string[]> {
+  atlas ??= loadLandPaths();
+  return atlas;
+}
+if (typeof window !== "undefined") void getAtlas().catch(() => {});
 
 const MIN_Z = 1;
 
@@ -260,11 +289,13 @@ export function AlumniMap({
   const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
-    const ac = new AbortController();
-    loadLandPaths(ac.signal)
-      .then(setLandPaths)
+    let live = true;
+    getAtlas()
+      .then((paths) => {
+        if (live) setLandPaths(paths);
+      })
       .catch((err) => {
-        if (ac.signal.aborted) return;
+        if (!live) return;
         /* The map still works without land: every pin, the clustering, the
            zoom and the drilldown are unaffected, so a failed atlas must not
            take the page down. Logged in development only -- a guard that
@@ -274,7 +305,9 @@ export function AlumniMap({
           console.warn("[map] world atlas failed to load; drawing pins only", err);
         }
       });
-    return () => ac.abort();
+    return () => {
+      live = false;
+    };
   }, []);
   /** Live geometry of the rendered <svg>: its CSS box plus `s`, the CSS px that
    *  one viewBox unit currently occupies. See MIN_PX_PER_UNIT. */

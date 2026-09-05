@@ -39,6 +39,8 @@ import { cn } from "@/lib/utils";
    so the swap is a world appearing on water, which is what
    directory/loading.tsx already does for the page. The two types are
    `import type` and are erased. */
+const preloadAlumniMap = () => void import("./alumni-map");
+
 const AlumniMap = dynamic(() => import("./alumni-map").then((m) => m.AlumniMap), {
   ssr: false,
   loading: () => (
@@ -430,6 +432,14 @@ export function DirectoryClient({
   const viewSegments = views.map((v) => ({
     key: v,
     label: v === "map" ? "Map" : v === "batches" ? "Batches" : "People",
+    /* Map alone fetches something to show itself, so Map alone warms on hover.
+       The pointer is on the word for long enough to cover the chunk, which is
+       what turns "press it and watch a card fill in" back into "press it and
+       it is there" -- the owner asked for this after seeing the placeholder
+       hold for a beat. A hover is intent; opening the page is not, which is
+       why this is not a mount effect: a People-first arrival that never goes
+       near the toggle still never downloads d3. */
+    warm: v === "map" ? preloadAlumniMap : undefined,
   }));
 
   // Shared between the desktop rail and the mobile FilterSheet (which stacks
