@@ -17,6 +17,10 @@ export const getViewerCities = cache(async function getViewerCities(
 ): Promise<string[]> {
   const places = await prisma.userPlace.findMany({
     where: { userId },
+    /* Primary city first, which is the order the "Show to" audience control
+       wants and the order the letters index already says this returns. It was
+       only true of the feed page's own copy of this query, now folded in. */
+    orderBy: { position: "asc" },
     select: { city: true },
   });
   return places.map((p) => p.city);

@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { unreadNotificationCount } from "@/lib/notification-count";
 import { decodeKeyset, encodeKeyset, keysetWhere } from "@/lib/keyset";
 import { revalidatePath } from "next/cache";
 
@@ -96,11 +97,7 @@ export async function getNotifications(opts?: {
 export async function getUnreadNotificationCount() {
   const session = await auth();
   if (!session?.user?.id) return { unreadCount: 0 };
-  return {
-    unreadCount: await prisma.notification.count({
-      where: { userId: session.user.id, read: false },
-    }),
-  };
+  return { unreadCount: await unreadNotificationCount(session.user.id) };
 }
 
 export async function markNotificationRead(notificationId: string) {

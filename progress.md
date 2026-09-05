@@ -9459,3 +9459,28 @@ NextAuth session is a JSON payload and a Date does not survive it. It is an ISO 
 at the reader, and the trap is in `docs/TRAPS.md` under Next.js. Nothing found it but
 `touchLastSeen`'s own catch, which logs loudly in development for exactly this reason — the guard
 CLAUDE.md argues for, paying for itself.
+
+## 2026-09-05 — one unread count per request instead of three
+
+Refactor audit 2, Phase C, row C2 (`shell-primitives-03` = `data-layer-09`). A hard load of `/feed`
+asked `SELECT count(*) FROM "Notification" WHERE userId = … AND read = false` three times: the
+`(main)` layout for the sidebar bell, the page for its header bell, and then the bell itself from a
+mount effect. Every other authenticated page asked twice, because the sidebar's mobile top bar
+renders the bell at every width — `md:hidden` is CSS, not React.
+
+`src/lib/notification-count.ts` owns the query now, wrapped in React's `cache()`, so the layout and
+the page collapse into one; the action the bell calls on focus uses it too, which keeps one owner of
+the shape rather than one owner of the request. The bell's mount refresh is gone: at mount the prop
+had been computed on the same request milliseconds earlier. Its `focus` listener stays, and that is
+the half that earns its keep — the sidebar bell is not re-rendered by a soft navigation, so its
+count does go stale, and only focus catches that.
+
+The feed page's own `userPlace.findMany` folded into `getViewerCities` at the same time, which is
+where the `orderBy: { position: "asc" }` went: the letters index has claimed in a comment since
+August that `getViewerCities` returns position order, and until now only the feed's private copy
+did.
+
+Measured with `pg_stat_statements`: `/feed` **22 statements to 21** per render, plus one fewer
+client action per authenticated page load — itself a session read and a count. Proved live as Jerry:
+badge reads 3 against a database that says 3, and marking one read behind the page's back and firing
+`focus` takes it to 2.
