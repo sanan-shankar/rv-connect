@@ -1,5 +1,25 @@
 # Progress Log
 
+## 2026-09-05 — the 404's flight director stops riding every route
+
+Refactor audit 2, row B4. Next puts the root not-found boundary in every route's client graph,
+which is right for a *boundary* -- but this one held the whole 404 bird: the flight-token kit,
+the rig metrics, the smoothstep, the idle loop and the pointer handler. 4.5 KB raw on all 51
+non-lab routes and all 48 lab ones, for a page almost nobody reaches.
+
+`not-found.tsx` is 51 lines now: the copy block, and a `dynamic()` for
+`components/mascot/moments/not-found-stage.tsx`. `useSoloHoopoe()` stays in the boundary, so a
+nested `notFound()` under the sidebar never even fetches the stage. The one real change inside
+the split is the pointer handler: it was `onPointerDown` on the boundary's `<main>`, and it is
+a window listener in the stage now, keeping the same `closest("a,button,...")` guard. A `fixed
+inset-0` catcher would have been the other way and is wrong -- it sits over "Back to home".
+
+Measured between builds: **-4,539 B raw first-load JS on every one of the 99 routes**, -231 KB
+across the non-lab app. Verified signed in at 1440: the copy is up at 300 ms with no bird, the
+bird arrives and settles at the corner by 3.3 s, a click at (1150, 260) flies it exactly there,
+and "Back to home" still navigates. At 390 the rig is 116 as before. Nested `notFound()` from
+/admin/people/[id] still draws the copy with the sidebar intact and one bird, not two.
+
 ## 2026-09-05 — the search pill stops riding twenty-two headers that never draw it
 
 Refactor audit 2, row B3. `PageHeader` took a `showSearch` boolean and imported `SearchPill`
