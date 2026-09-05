@@ -20,11 +20,8 @@ import { PhotoStream, type PhotoCell } from "@/components/common/photo-rows";
 import { bandKeyOf, bandLabel } from "@/lib/collection";
 import type { PhotoData, RiverOrder } from "@/app/(main)/collection/actions";
 import { cn } from "@/lib/utils";
+import { preloadImageViewer } from "@/components/common/lazy-image-viewer";
 
-/** Warm the viewer chunk before the press needs it. The owner, clicking a
- *  photograph during the brief: "Oh, wow. This doesn't even load. What? I
- *  clicked on picture. Okay. Loaded." */
-export const preloadViewer = () => void import("@/components/common/image-viewer");
 
 /** Decode the first screenful BEFORE the river swaps, so a new view arrives
  *  formed instead of assembling itself tile by tile -- the owner, on exactly
@@ -94,8 +91,8 @@ export function Tile({
     <button
       type="button"
       onClick={onOpen}
-      onPointerEnter={preloadViewer}
-      onFocus={preloadViewer}
+      onPointerEnter={preloadImageViewer}
+      onFocus={preloadImageViewer}
       aria-label={photo.caption ?? `Photograph by ${photo.uploader.name}`}
       // Hover is the scrim below, so no state-layer here (a tint over a
       // photograph is noise). The press only needed an answer: opacity, not a

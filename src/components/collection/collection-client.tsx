@@ -42,6 +42,7 @@ import { appendUnseen, prependUnseen } from "@/lib/append-page";
 import { PhotoStream } from "@/components/common/photo-rows";
 import { cn } from "@/lib/utils";
 import type { ViewerImage } from "@/components/common/image-viewer";
+import { LazyImageViewer } from "@/components/common/lazy-image-viewer";
 import {
   adminRemovePhoto,
   deleteOwnPhoto,
@@ -67,10 +68,6 @@ import { PhotoScrubber } from "./photo-scrubber";
  *  latched rather than gated straight off its open flag: once opened
  *  they stay mounted, which is what their close animations need.
  * ------------------------------------------------------------------ */
-const ImageViewer = dynamic(
-  () => import("@/components/common/image-viewer").then((m) => m.ImageViewer),
-  { ssr: false }
-);
 const ConfirmDialog = dynamic(
   () => import("@/components/common/confirm-dialog").then((m) => m.ConfirmDialog),
   { ssr: false }
@@ -1373,7 +1370,7 @@ export function CollectionClient({
           photograph that may not be in this page of it at all, and an empty or
           filtered river must not swallow it. */}
       {viewerMounted && (
-        <ImageViewer
+        <LazyImageViewer
           images={viewerImages}
           initialIndex={viewer?.index ?? 0}
           open={viewer !== null}

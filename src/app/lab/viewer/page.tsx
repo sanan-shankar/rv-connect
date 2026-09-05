@@ -19,7 +19,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { PeaksMark } from "@/components/layout/peaks-mark";
-import { ImageViewer, type ViewerImage } from "@/components/common/image-viewer";
+import type { ViewerImage } from "@/components/common/image-viewer";
+/* Lazily, exactly as every shipped surface loads it. A lab room importing the
+   REAL module is the point of /lab/viewer; importing it the real way keeps
+   that true -- and these three rooms were the only thing on the server side
+   of the viewer, which is what its SSR portal guard existed for. */
+import { LazyImageViewer as ImageViewer } from "@/components/common/lazy-image-viewer";
 
 const AUTHOR = { id: "preview-uploader", name: "Sanan Shankar" };
 

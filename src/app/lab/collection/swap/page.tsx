@@ -54,7 +54,12 @@ import { SearchPill } from "@/components/layout/search-pill";
 import { RiverControls } from "@/components/collection/river-controls";
 import { PhotoRiver, warmThumbs } from "@/components/collection/photo-river";
 import { ScopeCaret } from "@/components/collection/scope-caret";
-import { ImageViewer, type ViewerImage } from "@/components/common/image-viewer";
+import type { ViewerImage } from "@/components/common/image-viewer";
+/* Lazily, exactly as every shipped surface loads it. A lab room importing the
+   REAL module is the point of /lab/viewer; importing it the real way keeps
+   that true -- and these three rooms were the only thing on the server side
+   of the viewer, which is what its SSR portal guard existed for. */
+import { LazyImageViewer as ImageViewer } from "@/components/common/lazy-image-viewer";
 import { bucketLabel } from "@/lib/collection";
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import type { PhotoData, RiverOrder } from "@/app/(main)/collection/actions";
