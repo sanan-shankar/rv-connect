@@ -9682,3 +9682,38 @@ position moved **0 pixels** while the comment appeared; navigated to `/directory
 fresh server render shows the comment and a count of 2 where it said 1; deleted it, 0 pixels again.
 Test rows removed afterwards — Jerry has 0 comments and there are no notifications from the last
 half hour.
+
+## 2026-09-05 — the read-time Catch-up advance is one query, on every page in the app
+
+Refactor audit 2, Phase C, row C3(b) (`data-layer-07(b)`). The lazy advance runs on essentially
+every authenticated render, and it was two `findMany`s against the same `group.members.some` join —
+one for stale editions, one for Catch-ups whose `nextOpensAt` had passed. For a member in no
+Catch-up, which is most members, both returned nothing.
+
+One query now, with an `OR` over the two conditions and every edition included newest-first: the
+stale ones feed `advanceEdition`, the newest feeds `openNextRoundIfDue`, and Prisma cannot include
+the same relation twice under two filters. A Catch-up holds one edition per cadence period, and only
+the Catch-ups the `where` already narrowed to are loaded.
+
+**Why the ordering is safe, since the two reads were sequential and the second saw the first's
+writes.** The only thing the advance loop writes to `nextOpensAt` is `now + cadence gap`, always in
+the future, so a Catch-up it publishes cannot also become due to *open* in the same pass — which is
+the only reason the second read sat where it did. In the other direction `openNextRoundIfDue`
+compare-and-swaps on the `nextOpensAt` it was handed, so a value that moved under it is a no-op
+rather than a double open. Both halves confirmed by driving it.
+
+Gated by driving a real Round through the whole cycle, on the Catch-up whose group has exactly one
+member and that member is the owner, so nothing reached anybody else. Round 99 opened `collecting`,
+went to `answering` on a page load, then `preparing` and `published` in one later pass with
+`nextOpensAt` set — and, exactly as predicted, it did **not** open the next Round in that same pass.
+Forcing `nextOpensAt` into the past opened Round 100 on the next load and cleared the stamp. Torn
+down afterwards: the sandbox is `ended` with its one original edition, and the owner's notification
+count is back to 15.
+
+Measured with `pg_stat_statements`, minimum of four loads against the same file at HEAD: `/about`
+**11 → 8** statements. Three, not one, because each of the two reads carried a relation include that
+Prisma issues as its own statement. That is three off **every authenticated page view in the app**.
+
+`catchup-lifecycle.test.mjs`'s B-061 pin moved from the literal nesting to the property: it slices
+`advanceDueCatchups` and asserts the query still narrows to active Catch-ups and to the viewer's
+scope. Mutation-tested by deleting `status: "active"` and watching it go red.
