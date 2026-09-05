@@ -9554,3 +9554,12 @@ the index reaches the same data through `riverFiltersFrom`, which falls back to
 the Class Collection disagreed about its order. Proved live: a class permalink now reads
 Chronological, a valley one still reads Newest, and both open with the viewer on the photograph.
 `e2e/collection-permalink.spec.ts` passes at both viewports.
+
+## 2026-09-05 — the letters index stops pulling draft bodies it never reads
+
+Refactor audit 2, Phase C, row C8 (`member-surfaces-03`). The drafts query selected
+`{ id, title, content, updatedAt }` for up to twenty drafts; `DraftSummary` is
+`{ id, title, updatedAt }`, the mapping picks those three, and `DraftsStrip` draws a title and a
+date. A letter body is capped at 20,000 characters, so a prolific drafter pulled up to 400 KB
+through the pooler on every visit to `/letters` for nothing. One word deleted. Proved live: the
+strip still reads "Untitled letter · Edited 27 Aug".
