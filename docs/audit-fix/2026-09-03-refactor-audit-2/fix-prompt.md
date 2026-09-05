@@ -65,8 +65,9 @@ ceiling on a commit message. Pushing is a deploy: **ask first.**
 
 ## The order to work in
 
-Phases A → C are worth doing whatever the owner decides about the rest. Do not start Phase D, G or any
-row marked T4 until the owner has answered §4.
+Phases A → C are worth doing whatever the owner decides about the rest, and all three are done. Do
+not start Phase D, G or any row marked T4 until the owner has answered §4. **Phase E is the next
+unblocked phase**, and Phase F after it.
 
 ### Phase A — free money — **DONE 2026-09-05.** See the ledger. Start at Phase B.
 Config scoping, two dependency removals, two pieces of broken QA tooling, and a set of orphan
@@ -80,11 +81,10 @@ All thirteen rows. Median non-lab first load **1,094 -> 992 KB**; the five publi
 **-149 KB each**. B9 was an experiment and it reverted; its numbers and the trap it found are in
 the ledger and in `docs/TRAPS.md`. A18 landed inside B10, as Phase A said it would.
 
-### Phase C — the query floor (11 rows, T2) — **START HERE**
-Eleven changes take an authenticated page from seven queries before its own down to four or five. C1,
-C2 and C5 share one idiom (`cache()`, and the `FILTER` aggregate the same files already use). C4 is
-the one with the correction above. **C3's `getViewerCities` half is already done** -- B13 needed it
-and `src/lib/city-scope.ts` is `cache()`d as of 2026-09-05; check the rest of C3 against that.
+### Phase C — the query floor — **DONE 2026-09-05.** See the ledger. Start at Phase D or E.
+All eleven rows. Nine measured routes fell from **216 statements to 161 (-25%)**; every
+authenticated page in the app pays four fewer before its own. C11 was done differently from the
+way it is written -- read the ledger before re-proposing it.
 
 ### Phase D — switched-off subsystems (owner-gated)
 Nine subsystems that work and nobody can reach. **Every one that touches a database column carries a
@@ -281,6 +281,7 @@ you could not do and why.
 | Date | Phase | Rows done | Measured result | Notes / what the next session must know |
 |---|---|---|---|---|
 | 2026-09-04 | — | audit closed | see `report.md` §1b | Nothing fixed yet except ORCH-04 (`74cc61a`). Verification covered 84 of 369 findings; the other 285 have orchestrator spot-checks only. |
+| 2026-09-05 | **C — complete** | C1, C2, C3 (both halves), C4, C5, C6 (both halves), C7, C8, C9, C10, C11 | Nine routes measured with `pg_stat_statements` against the same files at the phase's start commit (`cfdf82f`), minimum of two to four samples each: `/feed` **24 -> 19**, `/about` **12 -> 8**, `/collection` **27 -> 19**, `/directory` **21 -> 18**, `/letters` **15 -> 11**, `/admin/analytics?view=people` **38 -> 24**, `/profile/[id]` **25 -> 19**, `/letters/[id]` **21 -> 16**, `/catchups/[id]` **33 -> 27**. Sum **216 -> 161, -25%**. Four of those come off EVERY authenticated page: the presence UPDATE, the duplicate unread count, and two from the Catch-up advance. Plus one fewer client action per page load (the bell's mount call). `npm run check`, `npm run visual` (25/25) and `npm run verify:crawl` (20/20) green at the end. 12 commits, `29582b3`..`ce223a0`. | Read the six rows below before Phase D. |
 | 2026-09-05 | **B — complete** | B1, B2, B3, B4, B5, B6 (both halves), B7 (both halves), B8, B10 (+ A18 + media-viewer-03), B11, B12, B13. B9 measured and **reverted** | Non-lab first-load JS: median **1,094 -> 992 KB**, sum across 51 routes **53.10 -> 48.99 MB (-4.11 MB)**. `/login` 906 -> 756, `/` 899 -> 749, `/signup` 920 -> 771, `/welcome` 1,190 -> 1,042, `/letters/[id]` 1,116 -> 984, `/directory` 1,229 -> 1,126, `/about` 1,063 -> 963, `/collection` 1,104 -> 1,030, `/profile/[id]` 1,258 -> 1,199, `/feed` 1,224 -> 1,201. Lab sum 37.48 -> 36.70 MB. Post-hydration: the 72,472 B motion barrel chunk gone. Source: **-113 lines** net across the two de-duplications. Every row measured between two production builds; `npm run check`, `npm run visual` (25/25) and `npm run verify:crawl` (20/20) green at the end. 16 commits, `7c47594`..`387477a`. | Read the six rows below before Phase C. |
 | 2026-09-05 | **A — complete** | A1, A1b, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17. **A18 deferred to B10, A19 declined** (see below) | CSS on every route **238,434 → 160,420 B raw**, 33,666 → 24,594 gz (−32.7% / −26.9%), measured between two production builds. Lab sheet 147,484 B on 48 routes, **0 non-lab**. Lockfile **1,083 → 848** (−235). Deps **33+18 → 32+17**. Tracked −420,350 B. Routes 52 → 51. Test files 102 → 101. `npm run check` and `npm run visual` green throughout; 21 commits, `e16c585`..`94f76d9`. | Read the four rows below before Phase B. |
 
@@ -379,8 +380,78 @@ deferral takes that module's whole graph with it.
    component chunks are fetched and not counted. Measure chunking changes in a browser against
    `next start`, never from the JSON.
 
-### How to measure a Phase C row, since the apparatus is now built
+### What Phase C actually taught, beyond the rows
 
+**Three of the eleven rows were wrong as written, and two of the three would have shipped a defect.**
+The audit's 54% correction rate held.
+
+1. **C10's own remedy was the trap it warns about.** It says to add `@@index([lastSeenAt])` to
+   `User` because `User_lastSeenAt_idx` is "a plain btree Prisma CAN express". It is **partial**
+   (`WHERE "lastSeenAt" IS NOT NULL`, `2026-08-19-analytics.sql:22-23`), so a plain `@@index` is a
+   DIFFERENT index and declaring it is exactly how a routine `migrate diff` comes to propose
+   dropping a live one. There are **eleven** such objects, not the two TRAPS claimed; the list is
+   in `prisma/schema.prisma`'s header now, and both databases' `pg_indexes` are dumped at
+   `work/db-indexes-live.json`. **The demo has seven of the eleven** -- logged in `bugs.md`, not
+   fixed unasked.
+2. **C11 should not be done the way it is written, and was not.** It wants the other Collection
+   half's facts fetched on the swap; the block argues the opposite in its own comment and the
+   owner's "a swap cannot be caught halfway" is behind that. The finding's own Confidence line
+   names that as what would change its mind. The waste was the SHAPE -- three per-half questions
+   asked once per half -- and `groupBy` took `/collection` from 27 to 19 with the design intact.
+   **Do not re-propose the swap-time fetch.**
+3. **C9's remedy was wrong at one of its six sites.** `catchups-round-view.ts` must spread
+   `IDENTITY_SELECT` plus three extras, NOT `AUTHOR_CARD_SELECT`, which carries a `verifyState`
+   the byline deliberately never draws. The verifier caught this; it would have fetched an unused
+   column for every entry of every published Round.
+
+**Two more things worth carrying forward.**
+
+4. **The NextAuth session is JSON, so a `Date` on `session.user` arrives as a string.** C3(a)
+   typechecked cleanly and threw `lastSeenAt.getTime is not a function` on every authenticated
+   render. `tsc` cannot see it: the declaration in `next-auth.d.ts` said `Date` and nothing checks
+   that a declaration survives serialisation. It is in `docs/TRAPS.md` now. The only reason it was
+   found in minutes is `touchLastSeen`'s dev-only `console.error` -- the guard CLAUDE.md argues
+   for, earning its keep in the exact way it was written for.
+5. **A statement count is noisy; take the minimum of several samples, never one.** The database is
+   shared with production and the demo, `pg_stat_statements` is global, and an `after()` drain or
+   another session's traffic lands in the window. Single readings varied by up to 40 % on `/feed`.
+   Three samples and the minimum was stable everywhere.
+6. **Prisma issues a relation `include` as its own statement**, which is why several rows beat
+   their estimate. C3(b) was estimated at one query and delivered **three**, because each of the
+   two reads it replaced carried an include. Count statements, not `findMany` calls.
+
+### Rows Phase C did NOT do the audit's way, and why
+
+- **C11**, above: the design stays, the shape changed.
+- **C10's `@@index([lastSeenAt])`**, above: declined, and the schema says why where the temptation is.
+- **C6's `feed-posts-16` SQL**: the audit's replacement partitions on `WHERE read` first, which
+  keeps a hundred READ rows per member rather than reproducing today's cutoff -- a member with
+  ninety unread would keep 190 rows where today they keep ~100. The statement that shipped ranks
+  ALL of a member's notifications and deletes the read ones past the hundredth, which is today's
+  meaning. Dry run before it shipped: **0 rows** today, busiest member holds 24.
+- **`data-layer-09`'s `feedSeenAt` fold** (offered as "or leave it"): left. It is one indexed
+  primary-key read on one route, and the session is the app's identity object -- "where this member
+  had read up to in the feed" is feed state, not identity, and every page and 128 actions read that
+  object.
+
+### Two live checks Phase C ran, with their answers
+
+- The notification cap's dry run: `SELECT count(*) FROM (… row_number() … ) t WHERE rn > 100 AND
+  read` -> **0 rows**; the busiest member holds 24 notifications.
+- `pg_indexes` on production and demo -> **131 and 129 indexes**; eleven and seven of them
+  invisible to Prisma. Saved at `work/db-indexes-live.json`.
+- Still **unrun**: the stranded-originals dry run, and the `SELECT`s for every Phase D column drop.
+
+### How to measure a query row, since the apparatus is now built
+
+**The instrument Phase C used, and the one to reuse: `pg_stat_statements`.** Snapshot
+`SELECT queryid, calls, query FROM pg_stat_statements`, fetch the route once with a cookie from
+`fetchSessionCookie` (`scripts/qa/_dev-login.mjs`), snapshot again, diff the `calls`. It counts
+what the dev server actually sent, needs no production build, and shows you WHICH statements went.
+Warm the route first so compilation queries do not count, and take the MINIMUM of three samples --
+the database is shared with production and the demo, so the window catches other traffic.
+
+**For BYTES rather than queries**, the Phase B rig still applies:
 `next start` on port **3100** with `AUTH_URL=http://localhost:3100 NEXTAUTH_URL=http://localhost:3100
 AUTH_TRUST_HOST=1`, and sign in by minting a cookie on the **dev** server (`fetchSessionCookie` from
 `scripts/qa/_dev-login.mjs`) and setting it on 3100 -- cookies ignore the port, and without those

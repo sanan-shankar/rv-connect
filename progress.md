@@ -9769,3 +9769,34 @@ year temporarily set to 1999 so the class half was genuinely empty — the case 
 would draw a bucket line and a search box over nothing. Jerry's year is back to null. The swap itself
 still lands in one press: the caret takes `/collection` to `?scope=class&order=taken` with the
 Class Collection's own heading and its Chronological order, no round trip and no flash.
+
+## 2026-09-05 — Phase C closed: the query floor
+
+All eleven rows of refactor audit 2's Phase C, in twelve commits (`29582b3`..`ce223a0`). Nine routes
+measured with `pg_stat_statements` against the same files at the phase's start commit, minimum of
+several samples each:
+
+| route | before | after |
+|---|---|---|
+| `/feed` | 24 | 19 |
+| `/about` | 12 | 8 |
+| `/collection` | 27 | 19 |
+| `/directory` | 21 | 18 |
+| `/letters` | 15 | 11 |
+| `/admin/analytics?view=people` | 38 | 24 |
+| `/profile/[id]` | 25 | 19 |
+| `/letters/[id]` | 21 | 16 |
+| `/catchups/[id]` | 33 | 27 |
+
+**216 → 161, a quarter of them gone.** Four of those come off *every* authenticated page rather than
+one route: the no-op presence UPDATE, the duplicate unread count, and two from the Catch-up advance.
+One client action goes with them — the bell's mount refresh, which was a whole request for an
+integer the page had just counted.
+
+Three of the eleven rows were wrong as written and two of the three would have shipped a defect;
+`docs/audit-fix/2026-09-03-refactor-audit-2/fix-prompt.md` records which, with the evidence. The one
+worth repeating here is that the audit's own schema-reconciliation row told the fixer to declare a
+plain `@@index` for an index that is partial — which is precisely how a routine `migrate diff` comes
+to offer to drop a live one, the trap the row exists to close.
+
+`npm run check`, `npm run visual` (25/25) and `npm run verify:crawl` (20/20) green at the end.
