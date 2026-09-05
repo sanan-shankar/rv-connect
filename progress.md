@@ -1,5 +1,22 @@
 # Progress Log
 
+## 2026-09-05 — the report dialog stops mounting twenty times a feed
+
+Refactor audit 2, row B11. Four of `post-card.tsx`'s five deferred pieces were already dynamic;
+ReportDialog was excluded on the grounds that it is mounted unconditionally, so its own
+AnimatePresence can play the CLOSE animation, and that deferring something rendered on every card
+would save nothing. The first half is true; the second is not. The restructuring is the same
+two-line `mounted` latch sitting twenty lines below it for the viewer.
+
+Latched now: the first "Report" mounts it, it stays mounted after so the close still animates,
+and the import is `next/dynamic`. A feed of twenty cards mounts one dialog tree instead of
+twenty, on first use rather than on load.
+
+Measured between builds: **-39,014 B raw first-load JS on /profile/[id]** (the Select primitive
+left with it) and -1,923 B on /feed, which keeps Select for another importer -- exactly what the
+finding said would happen. Verified: report a post, cancel (height 282 -> 270, opacity 1 -> 0,
+then unmount), report it again and it opens.
+
 ## 2026-09-05 — domMax arrives on its own, without the rest of the motion barrel
 
 Refactor audit 2, row B8, with dependency-diet-15 riding along. `LazyMotion`'s loader was
