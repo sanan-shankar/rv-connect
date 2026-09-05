@@ -9,6 +9,7 @@ import { PasswordField } from "@/components/auth/password-field";
 import { Button } from "@/components/ui/button";
 import type { FlightTarget } from "@/components/mascot/mascot-flight";
 import { cn } from "@/lib/utils";
+import { AuthHeading } from "@/components/auth/auth-panel";
 
 /* ------------------------------------------------------------------ *
  *  The auth page's opening frame, drawn on the LANDING during the exit.
@@ -68,9 +69,7 @@ function SignupBody() {
           across the swap. */}
       <div className="mx-auto mb-1 grid h-[112px] place-items-center" />
 
-      <h1 className="font-heading text-[27px] leading-tight tracking-tight text-foreground">
-        First, a quick check
-      </h1>
+      <AuthHeading title="First, a quick check" />
 
       <div className="mt-4 mb-3">
         <div className="py-1">
@@ -117,9 +116,7 @@ function LoginBody() {
           heights and always have. */}
       <div className="mx-auto mb-1 grid h-[128px] place-items-center" />
 
-      <h1 className="font-heading text-[27px] leading-tight tracking-tight text-foreground">
-        Welcome back
-      </h1>
+      <AuthHeading title="Welcome back" />
 
       <div className="relative mt-5 space-y-3 text-left">
         {/* The real fields, uncontrolled and untouchable. An empty FloatField

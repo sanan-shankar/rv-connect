@@ -9,7 +9,7 @@ import { TriviaGate } from "@/components/auth/trivia-gate";
 import { SignupForm } from "@/components/auth/signup-form";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
-import { AuthPhotoPanel } from "@/components/auth/auth-panel";
+import { AuthHeading, AuthPhotoPanel } from "@/components/auth/auth-panel";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { HoopoeWarmup } from "@/components/mascot/hoopoe-warmup";
 import { SPRINGS } from "@/components/common/motion";
@@ -171,9 +171,7 @@ export default function SignupClient({
               >
                 {/* No subtitle here either (owner, 2026-08-14): the question
                     IS the explanation. */}
-                <h1 className="font-heading text-[27px] leading-tight tracking-tight text-foreground">
-                  First, a quick check
-                </h1>
+                <AuthHeading title="First, a quick check" />
                 <TriviaGate hoopoe={hoopoe} onPass={() => setStep("register")} />
               </m.div>
             ) : (
@@ -187,9 +185,7 @@ export default function SignupClient({
                 {/* No subtitle: the fields say everything the old grey line
                     said, and the calm is the point (owner reference:
                     Revolut's one-heading form, 2026-08-14). */}
-                <h1 className="font-heading text-[27px] leading-tight tracking-tight text-foreground">
-                  A bit about yourself
-                </h1>
+                <AuthHeading title="A bit about yourself" />
                 <SignupForm
                   hoopoe={hoopoe}
                   turnstileSiteKey={turnstileSiteKey}
