@@ -1,5 +1,22 @@
 # Progress Log
 
+## 2026-09-05 — the sign-in page stops carrying a tooltip it never draws
+
+Refactor audit 2, row B1. `float-field.tsx` imported `InfoTooltip` at module scope, and
+`InfoTooltip` is built on the base-ui Popover, so every page drawing any float field paid for
+the whole floating stack -- Popover, its positioner, floating-ui's `computePosition` -- whether
+or not a hint existed. Exactly one caller in the tree passes a hint (`photo-questions.tsx`), and
+it is not one of those pages.
+
+`next/dynamic` with `ssr: false`, kept behind the existing `{hint && ...}` guard. `ssr: false`
+costs no first paint here because every hint lives inside a dialog that opens after hydration.
+
+Measured between two production builds: **-145 KB raw first-load JS on /login, /signup,
+/forgot-password, /reset-password and /**, and -16.4 KB on /admin/review, which also carried the
+chunk. /login is 928 KB -> 783 KB. Verified by hovering the (i) on the review room's description
+field: the note still opens, 288px wide over two lines, no console errors. `npm run check` and
+`npm run visual` green.
+
 ## 2026-09-02 — four fast-uri advisories, closed with an override
 
 The push went green through Vercel and red through the `check` workflow: four new high
