@@ -68,13 +68,40 @@ function escapeHtml(value: string): string {
 function shell(opts: {
   preheader: string;
   heading: string;
-  body: string;
+  /** One entry per paragraph, in plain prose. `shell` escapes each of them and
+   *  wraps them for the HTML, and joins them with blank lines for the text, so
+   *  a sentence a member reads is written here exactly once. It used to be
+   *  written twice -- HTML markup here, the same words retyped into a `text:`
+   *  array below -- and three of the four had drifted apart. */
+  body: string[];
   ctaLabel: string;
   ctaHref: string;
   /** The small print under the rule: what the link does and when it dies. */
   footnote: string;
-}): string {
-  return `<!doctype html>
+}): { html: string; text: string } {
+  const paragraphs = opts.body
+    .map((p, i) => `<p style="margin:${i === 0 ? "0" : "12px 0 0"};">${escapeHtml(p)}</p>`)
+    .join("");
+
+  /* The plain-text part, from the same words. The shape is the one the four
+     templates were converging on anyway: heading, the paragraphs, the action
+     as a labelled link, the small print. Two of them used to hang a bare URL
+     off the end of a sentence with a colon and no label at all, which left a
+     plain-text reader guessing where "This wasn't me" or "Keep my account"
+     had gone. This order also matches the HTML's, which the two of them had
+     stopped doing. */
+  const text = [
+    opts.heading,
+    "",
+    ...opts.body.flatMap((p, i) => (i === 0 ? [p] : ["", p])),
+    "",
+    `${opts.ctaLabel}:`,
+    opts.ctaHref,
+    "",
+    opts.footnote,
+  ].join("\n");
+
+  const html = `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -146,7 +173,7 @@ function shell(opts: {
 
         <tr>
           <td style="font-family:${SANS};font-size:15px;line-height:1.6;color:${C.ink};">
-            ${opts.body}
+            ${paragraphs}
           </td>
         </tr>
 
@@ -215,6 +242,8 @@ function shell(opts: {
 </table>
 </body>
 </html>`;
+
+  return { html, text };
 }
 
 /** A person's first name, or a warm fallback when the row has something odd in it. */
@@ -244,25 +273,18 @@ export function verifyEmailTemplate(opts: {
   const first = firstNameOf(opts.name);
   return {
     subject: "Confirm your email for Rishi Valley",
-    html: shell({
+    ...shell({
       preheader: "Confirm your address to start posting.",
       // No full stop: the other two headings do not take one either, and a
       // heading is a label rather than a sentence.
       heading: `Welcome, ${first}`,
-      body: `<p style="margin:0;">You're in. Confirm your email and you can post, upload photos and see how to reach people.</p>`,
+      body: [
+        "You're in. Confirm your email and you can post, upload photos and see how to reach people.",
+      ],
       ctaLabel: "Confirm my email",
       ctaHref: opts.url,
       footnote: `This link expires in ${opts.hours} hours. If you did not sign up at Rishi Valley, ignore this email.`,
     }),
-    text: [
-      `Welcome, ${first}`,
-      "",
-      "You're in. Confirm your email and you can post, upload photos and see how to reach people.",
-      "",
-      opts.url,
-      "",
-      `This link expires in ${opts.hours} hours. If you did not sign up at Rishi Valley, ignore this email.`,
-    ].join("\n"),
   };
 }
 
@@ -284,27 +306,21 @@ export function resetPasswordTemplate(opts: {
   const first = firstNameOf(opts.name);
   return {
     subject: "Reset your Rishi Valley password",
-    html: shell({
+    ...shell({
       preheader: "Your password reset link, good for one hour.",
       heading: "Reset your password",
-      body: `<p style="margin:0;">Hello ${escapeHtml(
-        first,
-      )}. Set a new password for <strong style="color:${C.ink};">${escapeHtml(
-        opts.email,
-      )}</strong> below. You will be signed in straight after.</p>`,
+      /* The address was bold in the HTML and plain in the text, and the two
+         copies had also swapped their own words ("below" against "here").
+         The bold is gone rather than added to the text half: the address is
+         already the only proper noun in the sentence, and restraint is the
+         whole design here (owner, 2026-08-12). */
+      body: [
+        `Hello ${first}. Set a new password for ${opts.email}. You will be signed in straight after.`,
+      ],
       ctaLabel: "Set a new password",
       ctaHref: opts.url,
       footnote: `This link expires in ${opts.minutes} minutes and works once. If you did not ask for it, ignore this email. Your password will not change.`,
     }),
-    text: [
-      "Reset your password",
-      "",
-      `Hello ${first}. Set a new password for ${opts.email} here. You will be signed in straight after.`,
-      "",
-      opts.url,
-      "",
-      `This link expires in ${opts.minutes} minutes and works once. If you did not ask for it, ignore this email. Your password will not change.`,
-    ].join("\n"),
   };
 }
 
@@ -323,25 +339,17 @@ export function passwordChangedTemplate(opts: { name: string }): BuiltEmail {
   const reach = `${CANONICAL_ORIGIN}/messages`;
   return {
     subject: "Your Rishi Valley password was changed",
-    html: shell({
+    ...shell({
       preheader: "Your Rishi Valley password was just changed.",
       heading: "Your password was changed",
-      body: `<p style="margin:0;">Hello ${escapeHtml(
-        first,
-      )}. The password on your Rishi Valley account was just changed. If that was you, there is nothing to do.</p>`,
+      body: [
+        `Hello ${first}. The password on your Rishi Valley account was just changed. If that was you, there is nothing to do.`,
+      ],
       ctaLabel: "This wasn't me",
       ctaHref: reach,
       footnote:
         "If it was not you, someone has your old password or access to this inbox. Tell us and we will lock the account.",
     }),
-    text: [
-      "Your password was changed",
-      "",
-      `Hello ${first}. The password on your Rishi Valley account was just changed. If that was you, there is nothing to do.`,
-      "",
-      "If it was not you, someone has your old password or access to this inbox. Tell us and we will lock the account:",
-      reach,
-    ].join("\n"),
   };
 }
 
@@ -363,28 +371,17 @@ export function deletionScheduledTemplate(opts: {
   const when = opts.purgeDate || "60 days from now";
   return {
     subject: "Your Rishi Valley account is scheduled for deletion",
-    html: shell({
+    ...shell({
       preheader: "Your account and everything in it will be deleted.",
       heading: "Your account is scheduled for deletion",
-      body: `<p style="margin:0;">Hello ${escapeHtml(
-        first,
-      )}. You asked for your Rishi Valley account to be deleted. On ${escapeHtml(
-        when,
-      )} the account, your posts, comments, photos and profile will be permanently removed.</p><p style="margin:12px 0 0;">Changed your mind? Just sign in before then and the deletion is cancelled.</p>`,
+      body: [
+        `Hello ${first}. You asked for your Rishi Valley account to be deleted. On ${when} the account, your posts, comments, photos and profile will be permanently removed.`,
+        "Changed your mind? Just sign in before then and the deletion is cancelled.",
+      ],
       ctaLabel: "Keep my account",
       ctaHref: `${CANONICAL_ORIGIN}/login`,
       footnote:
         "If you did not ask for this, someone else has access to your account. Sign in to cancel the deletion, then change your password.",
     }),
-    text: [
-      "Your account is scheduled for deletion",
-      "",
-      `Hello ${first}. You asked for your Rishi Valley account to be deleted. On ${when} the account, your posts, comments, photos and profile will be permanently removed.`,
-      "",
-      "Changed your mind? Just sign in before then and the deletion is cancelled:",
-      `${CANONICAL_ORIGIN}/login`,
-      "",
-      "If you did not ask for this, someone else has access to your account. Sign in to cancel the deletion, then change your password.",
-    ].join("\n"),
   };
 }

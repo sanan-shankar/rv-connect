@@ -9874,3 +9874,32 @@ wrong is a member clicking a dead link in an email, the one surface here with no
 
 Verified the redirect that uses it: `Host: rv-alumni.vercel.app` on `/feed` still answers
 308 to `https://rishivalley.space/feed`.
+
+## 2026-09-05 — Phase E, E3: an email says one thing, not two
+
+Every message shipped an HTML part and a plain-text part, both typed out by hand, and **three of the
+four had drifted** — a member could read two wordings of one message depending on their mail client.
+
+| Message | HTML said | Plain text said |
+|---|---|---|
+| Reset password | set a new password "below" | set a new password "here" |
+| Password changed | a button labelled *This wasn't me* | a bare URL, no label |
+| Deletion scheduled | a button labelled *Keep my account* | a bare URL, no label |
+
+`shell()` returns both halves from one set of words now: `body` is a `string[]` of plain prose, and
+`shell` escapes and wraps it for the HTML and joins it for the text. The four `text:` arrays are gone.
+Both missing labels come back for free, and the two notices' plain-text order now matches their HTML,
+which it had stopped doing.
+
+One deliberate copy loss: the reset email's address was bold in HTML and plain in text. The bold is
+gone rather than added, because the address is already the only proper noun in that sentence and
+restraint is the whole design of this file (owner, 2026-08-12).
+
+**No test read this file at all** — the only two references anywhere were the importer and a
+protocol-audit allowlist. `email-templates.test.mjs` now renders all four and checks both directions:
+every sentence in the text is in the HTML, and every block in the HTML is in the text, with the
+preheader and the shell's own furniture excepted by name. Mutation-tested: drop the footnote, the CTA
+label, or a second paragraph from the text half and it goes red. The first two are precisely the bugs
+this row was about.
+
+All four plain-text parts were rendered and read before committing. `npm run check` green, 102 tests.
