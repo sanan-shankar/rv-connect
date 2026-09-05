@@ -1,5 +1,28 @@
 # Progress Log
 
+## 2026-09-05 — Catch-ups rework, day zero
+
+The owner's brief on Catch-ups ran to fifty paragraphs across two sittings and a typed
+follow-up, and its one process instruction was that nobody downstream should work from a
+summary of it. So the campaign opened the way the Collection one did:
+`docs/planning/catchups-rework/brief.md` is his words with the fillers removed and nothing
+else touched, and `handover.md` is the living index into it: the sessions and their models, a
+ledger of every ask pointing at paragraphs, the decisions marked LOCKED / RECOMMENDED / OPEN,
+and one prompt per session. Recon and prior art run first, on Opus; the directions, the pick
+and the magazine design run on Fable; nothing runs on ultracode, at his word.
+
+**Measured before anything was written**: three Catch-ups, four Rounds, 141 answers, 32 with
+photos, none with a song, 520 hearts; eleven batch groups and not one has a Catch-up, though
+64 of 70 members carry a batch year. The whole thing fits in one JSON file, which is why
+"nothing gets deleted" (¶45) costs an export script rather than a plan.
+
+**The skill grew a section.** `writing-for-agents` now separates a handover that carries the
+owner's brief (his paragraphs travel verbatim, into every worker's prompt) from a
+session-to-session handover (the writer's judgment is enough), with his reasons quoted. Both
+copies updated, the repo's and the one in `~/.claude/skills/` that actually loads.
+
+`docs/spec/catchups.md` carries a banner: it describes today, and the brief outranks it.
+
 ## 2026-09-05 — the Map segment warms on hover, and the world arrives whole
 
 The owner, on B7's placeholder beat: *"do that"*. So: `SegmentedPills` segments take an optional
