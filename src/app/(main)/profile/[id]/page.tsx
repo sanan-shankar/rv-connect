@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
@@ -24,6 +25,27 @@ import { recordView } from "@/lib/content-view";
 import { vcardLines, vcardValue } from "@/lib/vcard";
 import { getThemeCookie } from "@/lib/theme";
 
+/* One read of the row for the two functions Next runs on the same request.
+   `generateMetadata` used to make its own three-column lookup beside the
+   page's full one; React's cache() collapses them, and the metadata reads its
+   three columns off the row the page was going to fetch anyway.
+
+   `omit` rather than a full `select`: an `include` with no `select` returns
+   every User scalar, so the most-visited people page was pulling the bcrypt
+   hash and the credential version into server memory on every view. Nothing
+   leaks -- the props handed to the client below are picked by hand -- but a
+   column nobody asked for is fetched by default forever, including the next
+   sensitive one somebody adds. Listing the twenty fields this page does read
+   would be twenty lines that go stale; omitting the one that must never be
+   here is the right size. */
+const loadProfile = cache(async function loadProfile(id: string) {
+  return prisma.user.findUnique({
+    where: { id },
+    omit: { password: true },
+    include: { places: { orderBy: { position: "asc" } } },
+  });
+});
+
 export async function generateMetadata({
   params,
 }: {
@@ -37,10 +59,7 @@ export async function generateMetadata({
   if (session?.user && session.user.id !== id && !session.user.emailConfirmed && !IS_DEMO) {
     return { title: "Profile" };
   }
-  const user = await prisma.user.findUnique({
-    where: { id },
-    select: { name: true, isBlocked: true, deletionRequestedAt: true },
-  });
+  const user = await loadProfile(id);
   /* deletionRequestedAt as well as isBlocked, which the page body has always
      checked and this did not (audit Low 93): a <title> is serialized like any
      other content, so the tab was still carrying the name of an account that
@@ -110,19 +129,7 @@ export default async function ProfilePage({
     );
   }
 
-  /* `omit` rather than a full `select`: an `include` with no `select` returns
-     every User scalar, so the most-visited people page was pulling the bcrypt
-     hash and the credential version into server memory on every view. Nothing
-     leaks -- the props handed to the client below are picked by hand -- but a
-     column nobody asked for is fetched by default forever, including the next
-     sensitive one somebody adds. Listing the twenty fields this page does read
-     would be twenty lines that go stale; omitting the one that must never be
-     here is the right size. */
-  const user = await prisma.user.findUnique({
-    where: { id },
-    omit: { password: true },
-    include: { places: { orderBy: { position: "asc" } } },
-  });
+  const user = await loadProfile(id);
   // deletionRequestedAt: an account inside its 60-day deletion grace window
   // (audit M35) leaves every people surface at once. The directory, people
   // search and batch roster all hold it out; this page did not, so a member

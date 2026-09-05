@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { BUCKET_VALUES, defaultOrderFor, ERA_VALUES, PHOTO_YEAR_MIN } from "@/lib/collection";
@@ -239,8 +240,14 @@ export async function collectionPageData(filters: RiverFilters = { order: "newes
  *  grid: a hidden photograph is nothing to anybody, and one still awaiting
  *  review is visible only to whoever uploaded it and to an admin. Returns the
  *  same shape the grid uses, because /collection/[id] is now that grid with
- *  the viewer already open (spec sec. 5). */
-export async function loadPhoto(id: string): Promise<PhotoData | null> {
+ *  the viewer already open (spec sec. 5).
+ *
+ *  `cache()`d, because the permalink's `generateMetadata` needs the caption
+ *  and the visibility answer that this already works out, and Next runs it in
+ *  the same request as the page. Keyed on the id alone rather than on the
+ *  viewer: the session cannot change inside one request, and `auth()` hands
+ *  back a fresh object per call, which would miss the cache every time. */
+export const loadPhoto = cache(async function loadPhoto(id: string): Promise<PhotoData | null> {
   const session = await auth();
   if (!session?.user?.id) return null;
   const row = await prisma.photo.findUnique({
@@ -269,7 +276,7 @@ export async function loadPhoto(id: string): Promise<PhotoData | null> {
   if (!seen.ok) return null;
 
   return shape(row, session.user.id);
-}
+});
 
 /** The member's own queue, for the half of the Collection they are looking at.
  *

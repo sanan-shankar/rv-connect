@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -17,6 +18,33 @@ import { renderRichText } from "@/lib/rich-text";
 import { recordView } from "@/lib/content-view";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 
+/* One read for the two functions Next runs on the same request. The metadata
+   needs three columns of a row the page fetches in full a moment later, and
+   used to make its own lookup for them; React's cache() collapses the pair.
+   Keyed on the two strings, never on the session object -- auth() hands back a
+   fresh object per call, which would miss the cache every time. */
+const loadLetter = cache(async function loadLetter(id: string, viewerId: string) {
+  return prisma.post.findUnique({
+    where: { id },
+    include: {
+      author: {
+        /* No `verifyState`, and that is consistent rather than an omission:
+           this byline is `metaLine(batchLine(author), date)` and never draws
+           a verified leaf, so the column would be fetched and dropped. */
+        select: {
+          ...IDENTITY_SELECT,
+          accountType: true,
+          batchType: true,
+          batchYear: true,
+        },
+      },
+      _count: { select: { comments: { where: VISIBLE_COMMENT }, likes: true } },
+      likes: { where: { userId: viewerId }, select: { id: true } },
+      bookmarks: { where: { userId: viewerId }, select: { id: true } },
+    },
+  });
+});
+
 export async function generateMetadata({
   params,
 }: {
@@ -26,13 +54,7 @@ export async function generateMetadata({
   const session = await auth();
   if (!session?.user) return { title: "Letter" };
 
-  const letter = await prisma.post.findUnique({
-    where: { id },
-    // Only what the TITLE needs: `canViewPost` below fetches the audience
-    // columns itself, so listing them here too was a second copy of a select
-    // that has to stay in step with a rule this file no longer implements.
-    select: { title: true, content: true, kind: true },
-  });
+  const letter = await loadLetter(id, session.user.id);
   if (!letter || letter.kind !== "letter") return { title: "Letter" };
 
   /* The SAME rule the page body uses, for the same reason (audit M31). This
@@ -56,25 +78,7 @@ export default async function LetterPage({
   const session = await auth();
   if (!session?.user) return null;
 
-  const letter = await prisma.post.findUnique({
-    where: { id },
-    include: {
-      author: {
-        /* No `verifyState`, and that is consistent rather than an omission:
-           this byline is `metaLine(batchLine(author), date)` and never draws
-           a verified leaf, so the column would be fetched and dropped. */
-        select: {
-          ...IDENTITY_SELECT,
-          accountType: true,
-          batchType: true,
-          batchYear: true,
-        },
-      },
-      _count: { select: { comments: { where: VISIBLE_COMMENT }, likes: true } },
-      likes: { where: { userId: session.user.id }, select: { id: true } },
-      bookmarks: { where: { userId: session.user.id }, select: { id: true } },
-    },
-  });
+  const letter = await loadLetter(id, session.user.id);
 
   /* Existence and kind only. `isHidden` used to be tested here too, ABOVE
      canViewPost -- which quietly cancelled both of the exemptions the rule

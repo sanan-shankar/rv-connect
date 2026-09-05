@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
@@ -44,47 +45,12 @@ import { loadPublishedRoundView } from "@/lib/catchups-round-view";
  *  instead of a 500 (migration handoff rule 3b).
  * ------------------------------------------------------------------ */
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ catchupId: string }>;
-}): Promise<Metadata> {
-  const { catchupId } = await params;
-  try {
-    const catchup = await prisma.catchup.findUnique({
-      where: { id: catchupId },
-      select: { title: true, group: { select: { name: true } } },
-    });
-    if (!catchup) return { title: "Catch-ups" };
-    return { title: catchupDisplayName(catchup.title, catchup.group.name) };
-  } catch {
-    return { title: "Catch-ups" };
-  }
-}
-
-/**
- * The published Round, in full, for reading inline on this page (one surface,
- * owner review 2026-07-25). The query and every mapping rule in it are shared
- * with the permalink reader (`lib/catchups-round-view.ts`), which is what
- * stops the two surfaces disagreeing about a song or an anonymous asker.
- *
- * Only ever called once the caller has confirmed the fresh status is
- * `published`: answer bodies are never pulled into a render of a Round that
- * has not revealed yet, Keeper included (spec 2.5, threat T-catchups-04).
- */
-async function loadPublishedIssue(
-  editionId: string,
-  viewerId: string
-): Promise<PublishedIssue | null> {
-  const view = await loadPublishedRoundView(editionId, viewerId);
-  if (!view) return null;
-  // The console wants an ISO string; the permalink wants the Date. One line
-  // here is cheaper than the loader returning both.
-  return { publishedAt: view.publishedAt?.toISOString() ?? null, sections: view.sections };
-}
-
-async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHomeResult> {
-  const catchup = await prisma.catchup.findUnique({
+/* One read of the Catch-up for the two functions Next runs on the same
+   request. The tab title needs two of these columns and used to fetch them
+   itself; React's cache() collapses that into the read `loadHome` was going to
+   do anyway. Keyed on the id string. */
+const loadCatchup = cache(async function loadCatchup(catchupId: string) {
+  return prisma.catchup.findUnique({
     where: { id: catchupId },
     include: {
       group: {
@@ -118,6 +84,46 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       },
     },
   });
+});
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ catchupId: string }>;
+}): Promise<Metadata> {
+  const { catchupId } = await params;
+  try {
+    const catchup = await loadCatchup(catchupId);
+    if (!catchup) return { title: "Catch-ups" };
+    return { title: catchupDisplayName(catchup.title, catchup.group.name) };
+  } catch {
+    return { title: "Catch-ups" };
+  }
+}
+
+/**
+ * The published Round, in full, for reading inline on this page (one surface,
+ * owner review 2026-07-25). The query and every mapping rule in it are shared
+ * with the permalink reader (`lib/catchups-round-view.ts`), which is what
+ * stops the two surfaces disagreeing about a song or an anonymous asker.
+ *
+ * Only ever called once the caller has confirmed the fresh status is
+ * `published`: answer bodies are never pulled into a render of a Round that
+ * has not revealed yet, Keeper included (spec 2.5, threat T-catchups-04).
+ */
+async function loadPublishedIssue(
+  editionId: string,
+  viewerId: string
+): Promise<PublishedIssue | null> {
+  const view = await loadPublishedRoundView(editionId, viewerId);
+  if (!view) return null;
+  // The console wants an ISO string; the permalink wants the Date. One line
+  // here is cheaper than the loader returning both.
+  return { publishedAt: view.publishedAt?.toISOString() ?? null, sections: view.sections };
+}
+
+async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHomeResult> {
+  const catchup = await loadCatchup(catchupId);
   if (!catchup) return { kind: "not-found" };
 
   const membership = await prisma.groupMember.findUnique({
