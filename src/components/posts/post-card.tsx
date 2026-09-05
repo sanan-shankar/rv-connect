@@ -33,7 +33,6 @@ import { VerifiedMark } from "@/components/common/verified-mark";
 import { LoveButton } from "@/components/common/love-button";
 import { BookmarkButton } from "@/components/common/bookmark-button";
 import { ShareButton } from "@/components/common/share-button";
-import { ReportDialog } from "./report-dialog";
 import { PollDisplay } from "./poll-display";
 import { cn, formatTimeAgo, formatDisplayDate, parseJsonArray, batchLine, letterTitle, plainExcerpt, readMinutes } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
@@ -50,11 +49,14 @@ import { safeTruncateIndex } from "@/lib/rich-truncate";
  *  admin moderation dialog. Each already had its render gate; only the
  *  import changes.
  *
- *  ReportDialog is NOT here on purpose. It is mounted unconditionally so
- *  its own AnimatePresence can play the CLOSE animation (see the comment
- *  at its call site), which means a dynamic import of it would load on
- *  render and save nothing. At 137 lines it is not worth restructuring
- *  that for.
+ *  ReportDialog is the fifth, and it used to be excluded from this list on
+ *  the grounds that it is mounted unconditionally -- so its own
+ *  AnimatePresence can play the CLOSE animation -- and that deferring
+ *  something rendered on every card would save nothing. True of the import;
+ *  false of the restructuring, which turned out to be the two-line `mounted`
+ *  latch already sitting twenty lines below for the viewer. Latched, it
+ *  mounts on the first "Report", stays mounted after so the close still
+ *  animates, and its Select and Textarea leave the feed's first load with it.
  *
  *  Both of the two that sit behind a visible control preload on hover
  *  and focus, so on any normal pointer the chunk is already in memory
@@ -64,6 +66,9 @@ const CommentsSection = dynamic(
   () => import("./comments-section").then((m) => m.CommentsSection),
   { ssr: false }
 );
+const ReportDialog = dynamic(() => import("./report-dialog").then((m) => m.ReportDialog), {
+  ssr: false,
+});
 const ImageViewer = dynamic(
   () => import("@/components/common/image-viewer").then((m) => m.ImageViewer),
   { ssr: false }
@@ -194,6 +199,15 @@ export function PostCard({
   const [commentCount, setCommentCount] = useState(post.commentCount);
   const [expanded, setExpanded] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  /* Same latch as the viewer's below, for the same reason: ReportDialog must
+     STAY mounted after it closes so its AnimatePresence has something to play
+     out of, but mounting it up front would have every card on the page fetch
+     the chunk. True once, then true forever. */
+  const [reportMounted, setReportMounted] = useState(false);
+  const openReport = () => {
+    setReportMounted(true);
+    setShowReport(true);
+  };
   const [showEdit, setShowEdit] = useState(false);
   const [showModeration, setShowModeration] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -389,7 +403,7 @@ export function PostCard({
                 </>
               ) : (
                 <>
-                  <DropdownMenuItem onClick={() => setShowReport(true)}>
+                  <DropdownMenuItem onClick={openReport}>
                     <Flag className="mr-2 h-4 w-4" />
                     Report
                   </DropdownMenuItem>
@@ -646,14 +660,16 @@ export function PostCard({
         />
       )}
 
-      {/* Always mounted (not gated on showReport) so ReportDialog's own
-          AnimatePresence can play the close animation instead of the whole
-          tree being yanked out from under it. */}
-      <ReportDialog
-        postId={post.id}
-        open={showReport}
-        onClose={() => setShowReport(false)}
-      />
+      {/* Latched, not gated on `showReport`: it has to stay mounted once it
+          has been opened so its own AnimatePresence can play the close
+          animation instead of the tree being yanked out from under it. */}
+      {reportMounted && (
+        <ReportDialog
+          postId={post.id}
+          open={showReport}
+          onClose={() => setShowReport(false)}
+        />
+      )}
 
       {showEdit && (
         <EditPostDialog
