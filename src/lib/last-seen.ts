@@ -175,56 +175,84 @@ function parseAgent(ua: string) {
   return { device, os, browser };
 }
 
+/** Everything the presence write needs from the request, read during render. */
+export type PresenceRequest = VisitFacts & {
+  /* The page, from the header src/proxy.ts sets. Null rather than a guess when
+     the header is absent, so a missing value is visibly missing in the admin
+     room rather than quietly wrong. */
+  path: string | null;
+  /* The browser's own visit id, minted and rolled by src/proxy.ts. With it the
+     visit write is a single upsert on a known primary key: no read-then-write,
+     so nothing to race over. Without it (a request that somehow skipped the
+     proxy) there is no safe way to attribute the view, so the Visit is skipped
+     rather than guessed at -- lastSeenAt still records that the member was
+     here. */
+  visitId: string | null;
+};
+
+/**
+ * Read the request's presence facts. Separate from the write below, and it has
+ * to be: the write belongs behind the response, and `headers()` is one of the
+ * request-time APIs a Server Component may NOT call inside `after()` -- it
+ * throws there (`after.md`: "Calling cookies() or headers() inside the after
+ * callback in a Server Component will throw a runtime error"). Since
+ * `touchLastSeen` swallows everything it catches, doing it the obvious way
+ * would have killed presence telemetry in production and said nothing.
+ *
+ * So the reading happens during render, where headers exist, and only the
+ * writing is deferred.
+ */
+export async function readPresence(): Promise<PresenceRequest> {
+  const h = await headers();
+  const { device, os, browser } = parseAgent(h.get("user-agent") ?? "");
+  /* Vercel puts these on every request at the edge, so geography costs no
+   * lookup and no third party. Absent locally, which is why both are
+   * nullable and why a dev row simply has no city. */
+  const country = h.get("x-vercel-ip-country");
+  /* Percent-encoded by Vercel (e.g. "New%20Delhi"), and a malformed value
+   * must not take the page down. */
+  const cityName = safeDecode(h.get("x-vercel-ip-city"));
+  const region = safeDecode(h.get("x-vercel-ip-country-region"));
+
+  /* Host only. The full referring URL carries query strings -- somebody
+   * else's search terms and tracking ids -- which are not ours to keep, and
+   * "where do people arrive from" only ever needed the domain. Same-origin
+   * referrers are dropped: every internal navigation would otherwise report
+   * this site as its own source and drown the one interesting row. */
+  const referrer = refererHost(h.get("referer"), h.get("host"));
+
+  /* First tag only: "en-GB,en;q=0.9,hi;q=0.8" is a preference list, and the
+   * question ("does anyone need this in another language") wants the top
+   * choice, not the whole negotiation. */
+  const language = h.get("accept-language")?.split(",")[0]?.trim() || null;
+
+  return {
+    referrer, device, os, browser, language, country, cityName, region,
+    path: h.get("x-pathname"),
+    visitId: h.get("x-visit-id"),
+  };
+}
+
 /**
  * Record a page view: stamp lastSeenAt, and extend or open a Visit.
  *
  * Fire-and-forget and deliberately silent. This is bookkeeping, and no member
  * may ever see an error page because a statistics row would not write --
  * the same contract advanceDueCatchups holds in the same layout.
+ *
+ * Takes its request facts rather than reading them, so the caller can run this
+ * behind the response. See readPresence above for why that split exists.
  */
 export async function touchLastSeen(
   userId: string,
-  path?: string,
+  req: PresenceRequest,
   lastSeenAt?: string | null,
 ): Promise<void> {
   try {
     const now = new Date();
-
-    const h = await headers();
-    const { device, os, browser } = parseAgent(h.get("user-agent") ?? "");
-    /* Vercel puts these on every request at the edge, so geography costs no
-     * lookup and no third party. Absent locally, which is why both are
-     * nullable and why a dev row simply has no city. */
-    const country = h.get("x-vercel-ip-country");
-    /* Percent-encoded by Vercel (e.g. "New%20Delhi"), and a malformed value
-     * must not take the page down. */
-    const cityName = safeDecode(h.get("x-vercel-ip-city"));
-    const region = safeDecode(h.get("x-vercel-ip-country-region"));
-
-    /* Host only. The full referring URL carries query strings -- somebody
-     * else's search terms and tracking ids -- which are not ours to keep, and
-     * "where do people arrive from" only ever needed the domain. Same-origin
-     * referrers are dropped: every internal navigation would otherwise report
-     * this site as its own source and drown the one interesting row. */
-    const referrer = refererHost(h.get("referer"), h.get("host"));
-
-    /* First tag only: "en-GB,en;q=0.9,hi;q=0.8" is a preference list, and the
-     * question ("does anyone need this in another language") wants the top
-     * choice, not the whole negotiation. */
-    const language = h.get("accept-language")?.split(",")[0]?.trim() || null;
-
-    /* The browser's own visit id, minted and rolled by src/proxy.ts. With it
-     * this is a single upsert on a known primary key: no read-then-write, so
-     * nothing to race over. Without it (a request that somehow skipped the
-     * proxy) there is no safe way to attribute the view, so the Visit is
-     * skipped rather than guessed at -- lastSeenAt below still records that
-     * the member was here. */
-    const visitId = h.get("x-visit-id");
-
+    const { path, visitId, ...facts } = req;
     await Promise.all([
-      visitId ? recordVisit(visitId, userId, now, path, {
-        referrer, device, os, browser, language, country, cityName, region,
-      }) : Promise.resolve(),
+      visitId ? recordVisit(visitId, userId, now, path, facts) : Promise.resolve(),
 
       /* Still worth keeping alongside Visit: it is one indexed column on User,
          so "active in the last 30 days" is a count rather than a join, and it
