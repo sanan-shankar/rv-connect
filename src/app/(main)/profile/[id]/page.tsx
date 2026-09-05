@@ -194,12 +194,18 @@ export default async function ProfilePage({
      `loadPosts` is a server action, and a server component may simply call
      one. It rebuilds the same audience the counts above use, from the same
      shared builder, so the list and the number beside it cannot disagree. */
-  const [postCount, letterCount, savedCount, authorFirstPage] = await Promise.all([
-    prisma.post.count({ where: { ...visiblePostsWhere, kind: "post" } }),
-    prisma.post.count({ where: { ...visiblePostsWhere, kind: "letter" } }),
+  /* One groupBy, not two counts: the same question of the same table asked
+     twice with a different `kind`, and the audience arms above are the
+     expensive half of it. */
+  const [byKind, savedCount, authorFirstPage] = await Promise.all([
+    prisma.post.groupBy({ by: ["kind"], where: visiblePostsWhere, _count: { _all: true } }),
     isOwnProfile ? prisma.bookmark.count({ where: { userId: session.user.id } }) : 0,
     loadPosts({ authorId: user.id }),
   ]);
+  const countOf = (kind: string) =>
+    byKind.find((k) => k.kind === kind)?._count._all ?? 0;
+  const postCount = countOf("post");
+  const letterCount = countOf("letter");
 
   // Photos: flatten image arrays from this author's visible posts.
   const photoPosts = await prisma.post.findMany({

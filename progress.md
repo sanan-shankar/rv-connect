@@ -9563,3 +9563,28 @@ Refactor audit 2, Phase C, row C8 (`member-surfaces-03`). The drafts query selec
 date. A letter body is capped at 20,000 characters, so a prolific drafter pulled up to 400 KB
 through the pooler on every visit to `/letters` for nothing. One word deleted. Proved live: the
 strip still reads "Untitled letter · Edited 27 Aug".
+
+## 2026-09-05 — nine ways of asking one table, asked once
+
+Refactor audit 2, Phase C, row C5 (`admin-analytics-03` + `09` + `14` = `data-layer-12`). Four
+loaders fanned out counts over a single table and paid a round trip for each: `loadPeople` ran nine
+`user.count`s, `loadMail` five `outboundEmail.count`s, `loadContent` three `post.count`s, and
+`worklistCounts` — which runs on **every** `/admin/*` render — scanned `User` three times for two
+verify queues and a headcount. The file already knew the instrument: `loadJourney` has always been
+one `$queryRaw` with six `count(*) FILTER (WHERE …)` columns.
+
+Each is now one pass. What stayed separate stayed separate on purpose, and the docblock in
+`admin.ts` says so: six queues over six tables are six queries, because different tables are
+different questions. Only same-table fan-outs folded. The profile's two `post.count`s by `kind`
+became one `groupBy` for the same reason — the expensive half of that query is the audience arms
+above it, and it was running them twice.
+
+Measured with `pg_stat_statements`, minimum of three loads, against the same files at HEAD:
+`?view=people` **37 → 27**, `?view=health` **29 → 24**, `?view=content` **43 → 39**,
+`/profile/[id]` **23 → 22**. Two of those ten come off every admin page, not just analytics.
+
+Every number checked against the predicate it replaced, twice over: the FILTER form and the old
+`WHERE` form compared side by side in SQL, then the rendered page read against the database.
+Members 70, joined-30 35, confirmed 68, this week 23, this month 45, placed 56, photo 4, dark 5,
+never seen 25, blocked 0; posts 11, letters 6, drafts 2, comments 18, hearts 62, saved 5, photos
+1,749; sent 55, delivered 31, bounced 0, queued 0. All identical.
