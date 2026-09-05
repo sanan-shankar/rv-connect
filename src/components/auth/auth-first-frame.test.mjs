@@ -23,6 +23,41 @@ const FRAME = read("src/components/auth/auth-first-frame.tsx");
 const SIGNUP = read("src/app/(auth)/signup/signup-client.tsx");
 const LOGIN = read("src/app/(auth)/login/login-client.tsx");
 const GATE = read("src/components/auth/trivia-gate.tsx");
+const PANEL = read("src/components/auth/auth-panel.tsx");
+
+/* The heading used to be a class string typed out at five sites, and this
+   list pinned two of them against each other. All five call `AuthHeading`
+   now, so the pair above can only assert that they still do -- which is why
+   the SIZE is asserted separately here, in the one file that still spells it
+   out. Without this, `AuthHeading` could be re-scaled and the drift these
+   tests exist to catch would go unnoticed in both halves at once. */
+test("no auth column hand-types its own h1", () => {
+  /* The size above is only load-bearing while everybody goes through
+     `AuthHeading`. Five sites used to type the class string out; a sixth
+     hand-rolled `<h1>` would take the stand-in and the real column out of
+     step again, silently, which is the exact drift this file exists for. */
+  for (const [src, where] of [
+    [FRAME, "auth-first-frame.tsx"],
+    [SIGNUP, "signup-client.tsx"],
+    [LOGIN, "login-client.tsx"],
+  ]) {
+    assert.doesNotMatch(
+      src,
+      /<h1[\s>]/,
+      `${where} draws its own <h1> instead of calling AuthHeading, so its title ` +
+        `can drift from the other columns' without anything noticing`
+    );
+  }
+});
+
+test("the auth heading is still 27px, in the one place that says so", () => {
+  assert.match(
+    PANEL,
+    /<h1 className="font-heading text-\[27px\] leading-tight tracking-tight text-foreground">/,
+    "AuthHeading no longer draws the 27px title /login, /signup and the " +
+      "landing's stand-in all share"
+  );
+});
 
 const NAMES = new Map([
   [SIGNUP, "signup-client.tsx"],
@@ -38,7 +73,7 @@ const COPIED = [
   [SIGNUP, "w-full max-w-[400px] self-center text-center", "the 400px column"],
   [SIGNUP, "{ opacity: 0, x: 48 }", "the entrance pose"],
   [SIGNUP, "transition={SPRINGS.gentle}", "the entrance spring"],
-  [SIGNUP, "font-heading text-[27px] leading-tight tracking-tight text-foreground", "the heading"],
+  [SIGNUP, "<AuthHeading title=", "the heading component"],
 
   // /signup. The perch box is empty in the stand-in (the bird is still in the
   // air), so its height is the only thing holding the heading below it still.

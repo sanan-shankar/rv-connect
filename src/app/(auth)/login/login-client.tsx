@@ -10,7 +10,7 @@ import { FloatField } from "@/components/common/float-field";
 import { PasswordField } from "@/components/auth/password-field";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
-import { AuthPhotoPanel } from "@/components/auth/auth-panel";
+import { AuthHeading, AuthPhotoPanel } from "@/components/auth/auth-panel";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { HoopoeWarmup } from "@/components/mascot/hoopoe-warmup";
 import { SPRINGS } from "@/components/common/motion";
@@ -248,9 +248,7 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
           {/* No subtitle: same calm-form language as /signup (owner,
               2026-08-14) - one heading, fields that say their own names,
               no grey prose. */}
-          <h1 className="font-heading text-[27px] leading-tight tracking-tight text-foreground">
-            Welcome back
-          </h1>
+          <AuthHeading title="Welcome back" />
 
           {/* `relative` anchors popLayout's exiting rows; rows carry `layout`
               so the password block vanishing (admin email) and the error line

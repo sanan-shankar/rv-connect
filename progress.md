@@ -9958,3 +9958,23 @@ These three cannot be run (two delete every row in the database they reach), so 
 four safety assertions (`DEMO_MODE=1`, the project-ref match, "differs from `.env`", zero-tables) are
 untouched. Two comments calling a `.mts` file `.ts` went with it; `docs/spec/demo.md` explains why it
 must be `.mts` and was right all along.
+
+## 2026-09-05 — Phase E, E9: five hand-typed h1s, beside the component that exists for them
+
+`AuthHeading` exists so that /login, /signup and the landing's stand-in never drift into three title
+scales. Five sites typed its class string out instead: both /signup steps, /login, and both halves of
+`auth-first-frame.tsx`. All five are `<AuthHeading title="..." />` now; children have been optional
+since the calm-form pass, so each site goes from three lines to one.
+
+Two reports disagreed on this. `auth-edge` filed the login/signup duplication as a not-finding, and it
+is right about the perch box and the outer scaffold: a `FlightPerch` leaf would take seven props for
+twelve lines of JSX. It is not right about the h1, where the component already exists and both files
+already import that module. **Taken for the h1 only; the perch box and the scaffold are untouched.**
+
+The pin moved and got stronger. `auth-first-frame.test.mjs:41` asserted the literal class string in
+two files at once; that string now lives in one place, so it is pinned there by itself, and a second
+test refuses a hand-typed `<h1` anywhere in the three auth columns. Mutation-tested both ways:
+re-scale `AuthHeading` to 31px, or let the stand-in hand-roll an `<h1>` again, and the suite goes red.
+
+Verified: `/login`'s h1 measures 27px / 33.75px / -0.675px in Libre Baskerville, unchanged, and
+`npm run visual` is **25/25** — no pixel moved on any route at either viewport.
