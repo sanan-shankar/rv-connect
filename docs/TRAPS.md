@@ -38,9 +38,22 @@ at this data size.
 **`pg_trgm` lives in the `extensions` schema**, and the operator class is schema-qualified in the
 migration, so the index does not depend on `search_path`.
 
-**Two expression indexes exist that Prisma cannot see** — `lower(email)` on User and
-`lower(city)`/`lower(asciiName)` on Place/UserPlace. `migrate diff` will always want to recreate
-them. Do not "fix" it.
+**ELEVEN indexes exist that Prisma cannot see**, not the two this entry used to claim. They are
+expression, trigram and partial indexes, none of which `schema.prisma` can express, so a
+`prisma migrate diff` will always want to create or drop them. **Do not "fix" it, and do not
+declare a plain `@@index` in their place** — a plain `@@index([lastSeenAt])` is a *different*
+index from the partial one that exists, so adding it makes `migrate diff` propose dropping a live
+index and building a worse one. The list, counted from `pg_indexes` on 2026-09-05, lives in the
+header of `prisma/schema.prisma` with the migration file each one came from; keep it there rather
+than here, so it sits beside the schema it corrects.
+
+**The demo database has only seven of the eleven.** `Place_asciiName_idx`, `Place_name_idx`,
+`UserPlace_city_idx` and `User_lastSeenAt_idx` are missing from it — the migrations that created
+them predate the demo project, which was created on 2026-08-21. Nothing is broken at demo data
+size; it is logged in `docs/planning/bugs.md`. Check both databases before assuming a hand-written
+index is everywhere: `node scripts/dev/run-sql.mjs [--env .env.demo] --inline "SELECT indexname
+FROM pg_indexes WHERE schemaname='public' AND (indexdef ILIKE '%lower(%' OR indexdef ILIKE
+'%gin_trgm%' OR indexdef ILIKE '%WHERE%')"`.
 
 ## Prisma
 

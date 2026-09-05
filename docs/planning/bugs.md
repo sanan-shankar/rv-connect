@@ -37,6 +37,22 @@ narrowed item 4 down to just the outstanding UPI handle confirmation (see Settle
 then closed on 2026-07-24 when the real handle and real scannable QR codes shipped (see Settled).
 What remains below is current.
 
+### The demo database is missing four of production's eleven hand-written indexes
+Found while doing refactor audit 2's C10 (the schema/database reconciliation), counted from
+`pg_indexes` on both on 2026-09-05. Production has eleven expression, trigram and partial indexes
+that `schema.prisma` cannot express; the demo has seven. Missing there: `Place_asciiName_idx`,
+`Place_name_idx`, `UserPlace_city_idx` and `User_lastSeenAt_idx`. The migrations that created them
+(`2026-07-18-round6.sql`, `2026-08-19-analytics.sql`) predate the demo project, which was created
+on 2026-08-21 — the same class of drift that `run-sql.mjs --env` was built to end, arriving from
+before the flag existed.
+
+Nothing is broken at demo data size, which is why this is a note and not a fix: the searches these
+serve are sequential scans over a few hundred rows there. It matters the day somebody reads
+production's plan and assumes the demo's matches. All four migration files are idempotent
+(`CREATE INDEX IF NOT EXISTS`), so the repair is to replay them with
+`node scripts/dev/run-sql.mjs --env .env.demo <file>`; the owner's call, since it is a live
+schema change on a second database. The census query is in `docs/TRAPS.md`.
+
 ### 2. Collection landing screenshot is stale
 `public/images/landing/collection.webp` still shows the pre-redesign UI because the Photo table has
 zero rows (an empty-state capture would undersell the feature). Recapture once real photos exist;
