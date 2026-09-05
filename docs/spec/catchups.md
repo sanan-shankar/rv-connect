@@ -1,5 +1,15 @@
 # Catch-ups
 
+> **REWORK IN PROGRESS, opened 2026-09-05.** This document describes what is shipped today
+> and is **guidance, not law**, for anything new. The owner, in
+> `docs/planning/catchups-rework/brief.md` ¶48: *"Those are heavily outdated, and you have
+> much more knowledge from my prompt than those guys do."* Take the object model, the Round
+> state machine and the permissions from here as the vocabulary of what exists. Take no
+> design, no copy and no scope fence from it. Any session touching Catch-ups starts at
+> `docs/planning/catchups-rework/handover.md`. The section 8 fences the brief reverses
+> (comments, PDF export, the photo wall as a real feature, song previews on any pasted link)
+> are void.
+
 > **COPY AND LAYOUT rules from the owner's 2026-07-25 review are LAW.** The review brief
 > that carried them (`docs/planning/catchups-fixes-brief.md`) was fully executed by the
 > Catch-ups rebuild and deleted on 2026-08-26; recover it with
