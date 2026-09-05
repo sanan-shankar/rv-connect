@@ -4,13 +4,6 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { unreadNotificationCount } from "@/lib/notification-count";
 import { decodeKeyset, encodeKeyset, keysetWhere } from "@/lib/keyset";
-import { revalidatePath } from "next/cache";
-
-/** How many notifications one account keeps. Everything below the newest
- *  KEEP is deleted whenever the bell opens: past a hundred, old activity is
- *  noise nobody will ever scroll to, and an unbounded table grows forever
- *  (every like/comment/reply writes a row and nothing ever deleted one). */
-const KEEP = 100;
 
 /**
  * One page of the viewer's notifications, newest first. Keyset on the row id
@@ -29,12 +22,12 @@ export async function getNotifications(opts?: {
 
   const take = Math.min(Math.max(opts?.take ?? 20, 1), 50);
 
-  /* Value keyset, not Prisma's `cursor: { id }`. That names a row, and the
-     prune below deletes read rows past the hundredth -- so a first-page open
-     in another tab could delete the very row this session's cursor named, and
-     the query would then answer nothing at all rather than the next page (see
-     keyset.ts, audits C-056 / C-171). Comparing values instead, the deleted
-     row's timestamp still points at the right place in the list. */
+  /* Value keyset, not Prisma's `cursor: { id }`. That names a row, and rows
+     under this list do get deleted -- the nightly sweep clears them by age and
+     by a per-member cap -- so a cursor naming one that has gone answers nothing
+     at all rather than the next page (see keyset.ts, audits C-056 / C-171).
+     Comparing values instead, the deleted row's timestamp still points at the
+     right place in the list. */
   const after = decodeKeyset(opts?.cursor);
   const rows = await prisma.notification.findMany({
     where: after ? { AND: [{ userId }, keysetWhere(after, "desc")] } : { userId },
@@ -45,29 +38,13 @@ export async function getNotifications(opts?: {
   const hasMore = rows.length > take;
   const page = hasMore ? rows.slice(0, take) : rows;
 
-  // The prune, piggy-backed on a first-page open the same way the mail queue
-  // drains on page load; no scheduled job does either. Two cheap queries: find
-  // the KEEP-th newest row, delete everything older. Skipped on later pages
-  // so scrolling can never delete rows out from under its own cursor.
-  if (!opts?.cursor) {
-    const cutoff = await prisma.notification.findMany({
-      where: { userId },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      skip: KEEP - 1,
-      take: 1,
-      select: { createdAt: true },
-    });
-    if (cutoff.length > 0) {
-      // `read: true` matters. Without it the cap deleted UNREAD rows too --
-      // including moderation notices and admin messages the member had never
-      // opened, which is the one class of notification that must survive
-      // being outranked by a hundred likes (bug audit, Low 85). Unread rows
-      // are still bounded: the nightly sweep clears them by age.
-      await prisma.notification.deleteMany({
-        where: { userId, createdAt: { lt: cutoff[0].createdAt }, read: true },
-      });
-    }
-  }
+  /* No prune here any more. This used to run two queries on every first-page
+     open to delete each member's read notifications past the hundredth, under
+     a comment saying "no scheduled job does either". One does now, and has
+     since the retention sweep learned this table: `KEEP_NOTIFICATIONS` in
+     src/lib/retention.ts, beside the age cutoff and every other number that
+     says how long this app keeps things. A cap enforced only for members who
+     open the bell was never a bound anyway. */
 
   // The unread count travels with the page, so the bell can correct its badge
   // from the server on every open instead of counting its own decrements
@@ -117,7 +94,11 @@ export async function markNotificationRead(notificationId: string) {
     data: { read: true },
   });
 
-  revalidatePath("/");
+  /* No revalidatePath. A literal "/" revalidates the signed-out landing hero
+     and nothing else -- only `revalidatePath("/", "layout")` means everything
+     -- so this purged a page the member is not on and refreshed nothing the
+     bell reads. The bell holds its list and its count in client state and
+     corrects both from what this action's siblings return. */
   return { success: true };
 }
 
@@ -130,6 +111,6 @@ export async function markAllNotificationsRead() {
     data: { read: true },
   });
 
-  revalidatePath("/");
+  // No revalidatePath, for the reason given above.
   return { success: true };
 }

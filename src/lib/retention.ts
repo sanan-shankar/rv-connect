@@ -86,11 +86,27 @@ const KEEP_DAYS = {
   catchupBin: RECENTLY_DELETED_DAYS,
 } as const;
 
+/**
+ * How many notifications one member keeps, regardless of age.
+ *
+ * The age cutoff above is the real bound on this table; this is the second
+ * belt, for the member who is mentioned two hundred times in a month.
+ *
+ * It used to live in `getNotifications`, which ran two queries to enforce it on
+ * every first-page open of the bell -- and enforced it only for members who
+ * opened the bell, which is not a bound at all. It is one nightly statement
+ * here instead, in the same file as every other number that says how long this
+ * app keeps things.
+ */
+const KEEP_NOTIFICATIONS = 100;
+
 export type SweepResult = {
   adminMessages: number;
   reports: number;
   contributions: number;
   notifications: number;
+  /** Read notifications past a member's hundredth, regardless of age. */
+  notificationsCapped: number;
   loginAttempts: number;
   auditLogs: number;
   outboundEmails: number;
@@ -189,6 +205,30 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     (await prisma.notification.deleteMany({
       where: { createdAt: { lt: cutoff(KEEP_DAYS.notifications) } },
     })).count,
+  );
+  /* The per-member cap, in the shape the bell used to enforce on every open:
+     rank each member's notifications newest-first, and delete the READ ones
+     past the hundredth. Read-only (bug audit Low 85) -- an unread notification
+     is something nobody has seen yet, and a cap must never be the reason.
+     Unread rows still count toward the rank, exactly as they did before, so a
+     member sitting on ninety unread keeps ten read ones and not a hundred.
+
+     Raw because Prisma has no window function. The one difference from the
+     query it replaces: that one took the hundredth row's timestamp and deleted
+     `createdAt <` it, so rows sharing that exact millisecond survived; the
+     rank breaks that tie on id. Strictly more exact, and a millisecond apart. */
+  const notificationsCapped = await step("notificationCap", async () =>
+    prisma.$executeRaw`
+      DELETE FROM "Notification"
+      WHERE read AND id IN (
+        SELECT id FROM (
+          SELECT id, row_number() OVER (
+            PARTITION BY "userId" ORDER BY "createdAt" DESC, id DESC
+          ) AS rn
+          FROM "Notification"
+        ) t WHERE t.rn > ${KEEP_NOTIFICATIONS}
+      )
+    `,
   );
   const loginAttempts = await step("loginAttempts", async () =>
     (await prisma.loginAttempt.deleteMany({
@@ -371,6 +411,7 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     reports,
     contributions,
     notifications,
+    notificationsCapped,
     loginAttempts,
     auditLogs,
     outboundEmails,

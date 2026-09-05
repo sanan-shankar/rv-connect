@@ -5,8 +5,10 @@
  *  WHY: notifications are ~0.8KB each and accumulate. Measured against the
  *  current table, 2,000 members generating 500 notifications apiece is
  *  ~800MB, which on a 500MB free tier would matter. Two things bound it: a
- *  per-user cap of 100 applied on every first-page open (loadNotifications
- *  in src/app/(main)/notifications/actions.ts) and the age cutoff below.
+ *  per-user cap of 100 and the age cutoff below. Both live in
+ *  src/lib/retention.ts now -- the cap used to be enforced by the bell on
+ *  every first-page open, which bounded nothing for a member who never opened
+ *  the bell (refactor audit 2, C7).
  *
  *  ONE policy, not two, and it took two goes. The default here was 30 days
  *  while src/lib/retention.ts deleted the same table at a year, so the app
