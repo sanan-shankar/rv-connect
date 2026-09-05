@@ -20,15 +20,21 @@ import { LazyMotion } from "motion/react";
  *  good migration aid and the wrong thing to ship here: the 30 files under
  *  src/app/lab deliberately still use `motion.*`, so strict would break
  *  every lab room. Their full-motion chunk now loads only on lab routes,
- *  which is the outcome we want anyway. `no-motion-namespace.test.mjs`
- *  is what keeps the app side honest instead.
+ *  which is the outcome we want anyway. `motion-namespace-rule.test.mjs`
+ *  is what keeps the app side honest instead. (It was named
+ *  `no-motion-namespace.test.mjs` here until 2026-09-05, and no file has ever
+ *  had that name -- a session grepping for it would have concluded the guard
+ *  was gone.)
  *
  *  Nothing about the motion LANGUAGE changes -- same springs, same curves,
  *  same always-on policy (DESIGN-SYSTEM.md sec. 7). The only visible edge
  *  is that an interaction in the first moments after load animates once the
  *  feature chunk lands; elements still render, and `initial` styles apply.
  * ------------------------------------------------------------------ */
-const loadDomMax = () => import("motion/react").then((mod) => mod.domMax);
+/* Through its own module, not `import("motion/react").then((m) => m.domMax)`:
+ * a dynamic NAMESPACE import cannot be tree-shaken, so that form dragged the
+ * whole barrel into the async chunk. See motion-features-max.ts. */
+const loadDomMax = () => import("./motion-features-max").then((mod) => mod.default);
 
 export function MotionFeatures({ children }: { children: React.ReactNode }) {
   return <LazyMotion features={loadDomMax}>{children}</LazyMotion>;
