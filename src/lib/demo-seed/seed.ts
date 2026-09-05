@@ -3,7 +3,7 @@
  *
  *  Shared by two callers, which is why it lives here rather than in the
  *  script that first needed it:
- *    - scripts/demo/seed-demo.ts, run by hand to build the database, and
+ *    - scripts/demo/seed-demo.mts, run by hand to build the database, and
  *    - POST /api/demo/reset, run nightly by cron and by the "Reset the
  *      demo" button in the demo bar.
  *
