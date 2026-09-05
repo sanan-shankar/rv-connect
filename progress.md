@@ -10084,3 +10084,44 @@ not a function body, which is not what this helper is for.
 
 Mutation-tested after conversion: remove one author exemption from `audienceWhere`, or stop
 `generateViewport` reading the theme cookie, and the pins go red.
+
+## 2026-09-05 — `/fix-campaign`: the audit runs itself now
+
+The owner's job on a fix campaign had become clerical: paste the audit's `fix-prompt.md` into a
+fresh Opus Max session, wait an hour, paste it into the next one, all night. Refactor audit 2 has
+four phases left and none of them needs him except for the decisions.
+
+`/fix-campaign` is that loop written down — installed **globally** in `~/.claude/skills/`, at his
+request, so it works in any project rather than only this one. One orchestrator session collects
+every question he must answer, in one batch, before any work starts; then it works the phases in
+order, briefing **one** worker per chunk with the rows quoted verbatim, and verifying each worker's
+output itself — the diff, the gate, the file — because an agent's report is a claim. It stops twice:
+that first question batch, and the close.
+
+**Two of his instructions shaped it and are pinned rather than described.** The questions go out as
+plain numbered text, written into the fix-prompt *and* printed on screen, never through
+`AskUserQuestion`: *"those are kinda restrictive and quit if you close the app."* And every question
+carries the answer the session will take if he does not reply, so fifty of them can be answered with
+one sentence. Each is five lines — what I'd change, what you'd notice, if I guess wrong, options, the
+default — with a banned-word list and a re-read pass in the voice of someone who has never opened the
+repo.
+
+Resume is the `## Campaign board` now at the top of audit 2's fix-prompt: one row per phase, status
+from a closed set of five words. A session that dies mid-run costs nothing, because the next one
+reads the board and starts at the first phase that is not `DONE`.
+
+`scripts/qa/fix-campaign.test.mjs` pins the shape: the four sections an open campaign's fix-prompt
+must carry, the status vocabulary, the CLAUDE.md routing row, and the `AskUserQuestion` ban. Closed
+campaigns are exempt by an explicit `<!-- campaign: closed -->` marker — audit 1's prompt has a
+different shape because it predates the protocol, and retrofitting it would be a lie about what
+happened. The global skill is checked only where a global skills folder exists, so CI has genuinely
+nothing to check rather than silently passing.
+
+All six assertions mutation-tested. One was missed on the first pass and is worth recording: the
+CLAUDE.md check matched a bare `/fix-campaign` anywhere in the file, so deleting the routing row
+still passed — the prose mention two sections earlier covered for it. It pins the table row now.
+
+Both audit prompts in `docs/audit-fix/prompts/` now describe what the fix-prompt must contain, so a
+future audit writes one the campaign can read instead of one it has to rebuild — and writes its owner
+decisions in the five-line format from the start, which is the difference between copying fifty
+questions across and rewriting them.

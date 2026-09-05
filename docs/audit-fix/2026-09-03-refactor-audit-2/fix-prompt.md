@@ -1,7 +1,13 @@
 # Refactor audit 2 — fix session prompt
 
-**@ this file and nothing else.** It is the whole handover. Read it, do the next unfinished phase,
-update the ledger at the bottom before you end, and the session after you can start the same way.
+**@ this file and invoke `/fix-campaign`.** That is the whole handover. The skill is the protocol
+for running this campaign: front-load every question the owner must answer, then work the phases one
+after another, one worker per chunk, verifying each worker's output yourself before the next one
+starts. It reads the campaign board below to know where to pick up, and writes to it before it ends.
+
+Doing it by hand still works — read this file, do the next unfinished phase, update the ledger at the
+bottom before you end — but then the owner has to start the next session himself, which is exactly
+what the skill exists to stop.
 
 Audit: `docs/audit-fix/2026-09-03-refactor-audit-2/`. `report.md` is the deliverable — read §2 (the
 phased plan), §4 (the owner's questions) and §5 (things you must not "fix"). The per-finding evidence
@@ -62,6 +68,37 @@ because another session may share this tree. One revertable change per commit: t
 ceiling on a commit message. Pushing is a deploy: **ask first.**
 
 ---
+
+## Campaign board
+
+Where the campaign is, in the order the phases run. **This is the resume anchor**: a session that
+dies mid-run costs nothing, because the next one reads this table and starts at the first phase that
+is not `DONE`. Update it before you end, in the same commit as the work. Status is one of `DONE`,
+`PARTIAL`, `OPEN`, `OWNER-GATED`, `DECLINED` — `scripts/qa/fix-campaign.test.mjs` fails on anything
+else. The prose under "The order to work in" is the long version of this table; where they disagree,
+fix the table.
+
+| Phase | Status | Rows left | Blocked on |
+|---|---|---|---|
+| A — free money | DONE | A18 folded into B10, A19 declined | — |
+| B — bundle levers | DONE | B9 measured and reverted | — |
+| C — the query floor | DONE | C11 done differently; read the ledger | — |
+| E — de-duplication that closes a drift | PARTIAL | rest of E5, rest of E6, E7b, E8, E11, E12 | E7b needs `TURNSTILE_DEV_CHALLENGE=1` and a dev-server restart |
+| F — hygiene, in one pass, last | OPEN | all | runs after E |
+| D — switched-off subsystems | OWNER-GATED | all | report §4; every column drop also needs its `SELECT` run |
+| G — architecture and taste | OWNER-GATED | all | report §4 |
+
+## Owner questions
+
+Nothing asked yet. `/fix-campaign` writes the whole batch here before it starts work — every
+decision in the campaign at once, numbered, in plain English, each with the answer it will take if
+he does not reply. Printed on screen as well as written here, because the screen is what he reads
+now and this file is what survives him closing the app.
+
+## Owner answers
+
+Nothing answered yet. His reply goes here verbatim, dated, with the reading taken beneath it, so a
+worker three hours later argues with the reading rather than re-deriving it.
 
 ## The order to work in
 

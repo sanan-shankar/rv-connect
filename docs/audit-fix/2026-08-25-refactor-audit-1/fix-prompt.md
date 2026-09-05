@@ -1,5 +1,7 @@
 # Refactor audit 1 — fix campaign (LIVING HANDOVER)
 
+<!-- campaign: closed -->
+
 > **CLOSED 2026-08-27 (session 10).** All six phases are executed and the close-out is
 > done: report §1b carries its measured column, `../README.md` reads Closed, and §7.4's
 > archive convention was already satisfied by this folder's own path. Nothing here is
