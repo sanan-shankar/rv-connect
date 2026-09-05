@@ -9856,3 +9856,21 @@ HEIC safely and always did. The bug was the sentence, and the sentence is what c
 
 `npm run check` green. Verified live that the contribute room still takes an ordinary photograph
 through the `accept` callback this touched.
+
+## 2026-09-05 — Phase E, E10a: the canonical origin has one home
+
+`https://rishivalley.space` was a string literal in seven places: the proxy's canonical redirect,
+`appUrl`'s production base, and four of the five URLs an email carries. `email.ts:44` already knew
+and documented it rather than fixing it.
+
+`src/lib/origin.ts` is one exported constant and **no imports**, which is the constraint that had
+kept this undone: `proxy.ts` is bundled for the edge and says it cannot import `demo.ts`. The
+obstacle there is that module's dependencies, not the directory, and a bare constant is edge-safe.
+The file says so, so the next person does not add an import to it.
+
+This costs two lines rather than saving any, and it is worth it for the reason `docs/TRAPS.md`
+already records about the image host: moving a host was five changes, not one. The cost of being
+wrong is a member clicking a dead link in an email, the one surface here with no undo.
+
+Verified the redirect that uses it: `Host: rv-alumni.vercel.app` on `/feed` still answers
+308 to `https://rishivalley.space/feed`.

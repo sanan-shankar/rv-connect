@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { IS_DEMO } from "./demo";
 import { maskEmail } from "./mask-email";
+import { CANONICAL_ORIGIN } from "./origin";
 import { isTransientMailError, quotaExceeded } from "./mail-policy";
 
 /* ------------------------------------------------------------------ *
@@ -41,7 +42,8 @@ const FROM = process.env.EMAIL_FROM ?? "Rishi Valley <hello@rishivalley.space>";
  * redirect chain to get there, which is a needless place to lose it.
  *
  * So: an explicit `APP_URL` if set, else the canonical origin, else localhost
- * in development. Same constant as CANONICAL_ORIGIN in src/proxy.ts.
+ * in development. The canonical origin is `CANONICAL_ORIGIN`, shared with
+ * the proxy and with every link an email carries.
  */
 export function appUrl(path = "/"): string {
   // The localhost base exists for ONE case: development with sending
@@ -56,7 +58,7 @@ export function appUrl(path = "/"): string {
     process.env.NODE_ENV === "production" || process.env.EMAIL_DEV_SEND === "1";
   const base =
     process.env.APP_URL?.replace(/\/+$/, "") ??
-    (reallySending ? "https://rishivalley.space" : "http://localhost:3000");
+    (reallySending ? CANONICAL_ORIGIN : "http://localhost:3000");
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }
 

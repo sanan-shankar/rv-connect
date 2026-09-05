@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+// Import-free by design, so it is safe in the edge bundle. See origin.ts.
+import { CANONICAL_ORIGIN } from "@/lib/origin";
+
 // The old default Vercel-assigned domain. Exact match only -- preview
 // deployment hosts (e.g. "rv-alumni-git-branch-team.vercel.app" or
 // "rv-alumni-<hash>.vercel.app") must keep working unredirected, so this is
 // never a prefix/suffix/contains check.
 const LEGACY_HOST = "rv-alumni.vercel.app";
-const CANONICAL_ORIGIN = "https://rishivalley.space";
 
 /* ------------------------------------------------------------------ *
  *  Demo deployment (DEMO_MODE=1, separate Vercel project, separate
