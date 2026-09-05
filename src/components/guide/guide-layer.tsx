@@ -11,11 +11,23 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useSyncExternalStore } from "react";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { findGuideArea } from "@/lib/guide-areas";
-import { CHAPTERS } from "./chapters";
-import { GuideOverlay } from "./guide-overlay";
 import { subscribeGuide, syncGuideFromHistory, resetGuide, currentGuide } from "@/lib/guide-open";
+
+/* The overlay and the six chapters are ~14 KB raw, and this component is
+   mounted in the (main) layout on all 39 member routes. It already rendered
+   nothing until a title was pressed; only the IMPORT was eager, and an import
+   ships whichever way the branch goes. `ssr: false` is not a compromise here:
+   the server snapshot below is null by design, so there was never any server
+   HTML to lose. GuideDoor warms the chunk on hover and focus.
+
+   `findGuideArea` and the areas list stay static -- guide-areas.ts is plain
+   data the sidebar and the door both import, and its own comment says so. */
+const GuideBody = dynamic(() => import("./guide-body").then((m) => m.GuideBody), {
+  ssr: false,
+});
 
 /** The server renders nothing here, always. */
 const serverSnapshot = () => null;
@@ -46,12 +58,7 @@ export function GuideLayer() {
   }, [pathname]);
 
   const found = area ? findGuideArea(area) : undefined;
-  const Chapter = found ? CHAPTERS[found.slug] : undefined;
-  if (!found || !Chapter) return null;
+  if (!found) return null;
 
-  return (
-    <GuideOverlay title={found.title}>
-      <Chapter />
-    </GuideOverlay>
-  );
+  return <GuideBody slug={found.slug} title={found.title} />;
 }

@@ -90,6 +90,15 @@ export function GuideDoor({ area, children }: { area: string; children: React.Re
         "[-webkit-tap-highlight-color:transparent]",
         "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-leaf"
       )}
+      /* Warm the sheet before the press. The overlay and the chapters are one
+         lazy chunk (see guide-layer.tsx), and a hover or a tab-stop is as much
+         intent as this needs: by the time a click lands the module is in
+         cache and the entrance animates from its first frame. Idempotent --
+         the second call gets the same resolved promise. A finger gets it too:
+         `pointerenter` fires on touch just before `pointerdown`, and the
+         two-step below means a tap has to land twice anyway. */
+      onPointerEnter={() => void import("./guide-body")}
+      onFocus={() => void import("./guide-body")}
       onPointerDown={(e) => {
         usedTouch.current = e.pointerType === "touch";
       }}
