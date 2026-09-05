@@ -24,35 +24,17 @@
  *                                                     [--env .env.demo]
  * ------------------------------------------------------------------ */
 
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import pg from "pg";
-import { readEnv } from "./_env.mjs";
+import { databaseUrl } from "./_env.mjs";
+import { argv, bytesFor } from "./_cli.mjs";
 import { describeImage } from "../../src/lib/image.ts";
 
-const argv = process.argv.slice(2);
-const flag = (name) => argv.includes(name);
-const value = (name, fallback) => {
-  const i = argv.indexOf(name);
-  return i === -1 ? fallback : argv[i + 1];
-};
+const { flag, value } = argv();
 
 const DRY = flag("--dry");
 const LIMIT = Number(value("--limit", Infinity));
 const envFile = value("--env", ".env");
-const env = readEnv([envFile]);
-const url = env.DIRECT_URL || env.DATABASE_URL;
-if (!url) {
-  console.error(`No DIRECT_URL or DATABASE_URL found in ${envFile}`);
-  process.exit(1);
-}
-/* The same destination check run-sql.mjs makes: asking for the demo and
-   getting production is the worst outcome a script in this folder has. */
-const DEMO_REF = "cbvlzptghkuxhygyaezq";
-if (envFile.includes("demo") && !url.includes(DEMO_REF)) {
-  console.error(`refusing: ${envFile} was asked for, but the connection does not carry the demo ref`);
-  process.exit(1);
-}
+const { env, url } = databaseUrl(envFile);
 
 const client = new pg.Client({ connectionString: url });
 await client.connect();
@@ -86,14 +68,6 @@ if (DRY) {
   process.exit(0);
 }
 
-/** The bytes behind one of our public urls. Local dev writes root-relative
- *  paths under public/; production writes absolute ones on the bucket's host. */
-async function bytesFor(u) {
-  if (u.startsWith("/")) return readFile(path.join(process.cwd(), "public", u.slice(1)));
-  const res = await fetch(u);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return Buffer.from(await res.arrayBuffer());
-}
 
 let measured = 0;
 const failures = [];

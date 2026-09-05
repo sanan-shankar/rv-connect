@@ -9903,3 +9903,27 @@ label, or a second paragraph from the text half and it goes red. The first two a
 this row was about.
 
 All four plain-text parts were rendered and read before committing. `npm run check` green, 102 tests.
+
+## 2026-09-05 — Phase E, E4a: one prelude for the dev scripts, and the guard import-album never had
+
+Seven scripts in `scripts/dev/` made the same destination check — *"you asked for `.env.demo`, so the
+connection had better carry the demo project's ref"* — each with its own copy of the ref, and one of
+the seven messages had drifted from the other six. **The eighth script had no check at all, and it is
+`import-album.mjs`: the one script in the folder that writes photographs into the archive.**
+
+`databaseUrl(envFile)` in `_env.mjs` is the one copy, with run-sql's full comment as the reason.
+`import-album` gained the guard by construction rather than by anyone remembering to add it, which is
+the whole argument for the shape. `_cli.mjs` takes `argv()` (six byte-identical copies of `flag` and
+`value`) and `bytesFor()` (two).
+
+Verified rather than assumed. Against a deliberately wrong `.env.demo.probe` pointing at a
+non-demo host, both `tag-professions-pick` and `import-album` refuse and name the ref. Against
+the real `.env`, `tag-professions-pick --limit 1` and `tag-photos-pick --limit 1` both run to
+completion, the second fetching a real photograph through `bytesFor`'s new home ("wrote 1, failed 0").
+
+**161 lines out, 68 in.** `npm run check` green, 102 tests.
+
+### The stranded-originals dry run, which three sessions have listed as unrun
+
+`node scripts/dev/sweep-stranded-originals.mjs` → **0 staged originals under `collection/` in
+`rv-alumni-media`, 0.00 MB, 0 to delete.** Nothing is stranded. The audit's open question is closed.

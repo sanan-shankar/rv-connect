@@ -65,18 +65,14 @@ import path from "node:path";
 import pg from "pg";
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { createId } from "@paralleldrive/cuid2";
-import { readEnv } from "./_env.mjs";
+import { databaseUrl } from "./_env.mjs";
+import { argv } from "./_cli.mjs";
 import { sharpImage, storedResizeBox } from "../../src/lib/image.ts";
 import { exifFromPng, exifStamp, parseExifStamp } from "../../src/lib/exif-date.ts";
 import { eraFromYear } from "../../src/lib/collection.ts";
 import { COLLECTION_WEBP_QUALITY } from "../../src/lib/upload-shared.ts";
 
-const argv = process.argv.slice(2);
-const flag = (name) => argv.includes(name);
-const value = (name, fallback) => {
-  const i = argv.indexOf(name);
-  return i === -1 ? fallback : argv[i + 1];
-};
+const { flag, value } = argv();
 
 const APPLY = flag("--apply");
 const UNDO = value("--undo", null);
@@ -101,12 +97,7 @@ const THUMB = { px: 480, quality: 72 };
 
 const THIS_YEAR = new Date().getFullYear();
 
-const env = readEnv([envFile]);
-const url = env.DIRECT_URL || env.DATABASE_URL;
-if (!url) {
-  console.error(`No DIRECT_URL or DATABASE_URL in ${envFile}`);
-  process.exit(1);
-}
+const { env, url } = databaseUrl(envFile);
 for (const k of ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET", "R2_PUBLIC_BASE_URL"]) {
   if (!env[k]) {
     console.error(`No ${k} in ${envFile}: refusing to run against the local filesystem fallback.`);
