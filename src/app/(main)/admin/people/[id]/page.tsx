@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { CONTRIBUTION_SUM, netPaise } from "@/lib/contribution-state";
 import { PersonDetail } from "@/components/admin/people/person-detail";
 import { PUBLISHED_ONLY } from "@/lib/posts";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 export const metadata: Metadata = {
   title: "Person",
@@ -32,11 +33,8 @@ export default async function AdminPersonPage({
   const user = await prisma.user.findUnique({
     where: { id },
     select: {
-      id: true,
-      name: true,
+      ...IDENTITY_SELECT,
       email: true,
-      photoUrl: true,
-      birdOverride: true,
       jobTitle: true,
       workplace: true,
       accountType: true,

@@ -101,11 +101,13 @@ export async function loadPublishedRoundView(
               songArt: true,
               createdAt: true,
               author: {
+                /* No `verifyState`, deliberately, and the same omission the
+                   letter page argues for at `letters/[id]/(read)/page.tsx`:
+                   this byline is `batchLine(e.author)` and never draws a
+                   verified leaf, so the column would be fetched and dropped.
+                   Hence not `AUTHOR_CARD_SELECT`, which carries it. */
                 select: {
-                  id: true,
-                  name: true,
-                  photoUrl: true,
-                  birdOverride: true,
+                  ...IDENTITY_SELECT,
                   accountType: true,
                   batchType: true,
                   batchYear: true,

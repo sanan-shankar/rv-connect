@@ -6,6 +6,7 @@ import { CelebrationSignals } from "@/components/mascot/moments/celebration-sign
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import type { OnboardingStepId } from "@/components/onboarding/types";
 import { safeNextPath } from "@/lib/next-path";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 export const metadata: Metadata = {
   title: "Welcome",
@@ -29,10 +30,7 @@ export default async function WelcomePage({
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
-      id: true,
-      name: true,
-      photoUrl: true,
-      birdOverride: true,
+      ...IDENTITY_SELECT,
       accountType: true,
       admissionNumber: true,
       subjects: true,
