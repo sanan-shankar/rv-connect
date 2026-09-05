@@ -9588,3 +9588,19 @@ Every number checked against the predicate it replaced, twice over: the FILTER f
 Members 70, joined-30 35, confirmed 68, this week 23, this month 45, placed 56, photo 4, dark 5,
 never seen 25, blocked 0; posts 11, letters 6, drafts 2, comments 18, hearts 62, saved 5, photos
 1,749; sent 55, delivered 31, bounced 0, queued 0. All identical.
+
+## 2026-09-05 — six more avatar selects join the two that own the shape
+
+Refactor audit 2, Phase C, row C9 (`data-layer-11` = `duplication-06` = `directory-profile-27` =
+`feed-posts-17.13`). `people-select.ts` says the rule in its own header: two shapes are named, and
+anything else spreads one and adds what it needs, *so the addition is visible in the diff*. Fourteen
+files already did; six hand-wrote the four identity fields again. Now none do — a `grep` for
+`birdOverride: true` across `src` returns `people-select.ts`, `auth.ts`'s session read, and
+`/pick-bird`, which selects the column itself rather than an avatar.
+
+The audit's remedy was wrong at one of the six, and the verifier caught it: `catchups-round-view.ts`
+was told to spread `AUTHOR_CARD_SELECT`, which carries `verifyState`. That column is deliberately
+absent there — the byline is `batchLine(e.author)` and never draws a verified leaf, exactly as the
+letter page argues at length for the identical shape. Spreading the card select would have fetched
+an unused column for every entry in every published Round. It spreads `IDENTITY_SELECT` and names
+its three extras, and the reason is now written where the omission is.

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { insensitive, escapeLike } from "@/lib/db-text";
 import { logSearch } from "@/lib/search-log";
 import { FULL_NAME_MAX } from "@/lib/utils";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 /** Nobody's name is seven words. Four would do; six leaves room to be wrong. */
 const MAX_SEARCH_TERMS = 6;
@@ -63,10 +64,7 @@ export async function GET(req: NextRequest) {
     },
     orderBy: { name: "asc" },
     select: {
-      id: true,
-      name: true,
-      photoUrl: true,
-      birdOverride: true,
+      ...IDENTITY_SELECT,
       batchYear: true,
       // Returned whether or not the filter above is on, so the rows that
       // render this can call `batchLine()` and be right on their own terms. A

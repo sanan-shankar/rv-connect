@@ -6,6 +6,7 @@ import { AlmostReady } from "@/components/catchups/almost-ready";
 import { CreateCatchupForm } from "@/components/catchups/create/create-catchup-form";
 import type { PickedPerson } from "@/components/catchups/create/people-picker";
 import { CADENCE_LABELS, isMissingCatchupTable } from "@/lib/catchups";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 export const metadata: Metadata = {
   title: "Start a Catch-up",
@@ -52,7 +53,7 @@ export default async function NewCatchupPage() {
   try {
     const viewer = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { batchYear: true, name: true, photoUrl: true, birdOverride: true },
+      select: { ...IDENTITY_SELECT, batchYear: true },
     });
     batchYear = viewer?.batchYear ?? null;
     if (viewer) {

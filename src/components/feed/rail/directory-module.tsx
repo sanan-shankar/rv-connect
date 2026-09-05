@@ -6,6 +6,7 @@ import { IdentityRow } from "@/components/common/identity-row";
 import { batchLine, metaLine } from "@/lib/utils";
 import { shortPlaceLabel } from "@/lib/normalize";
 import { RailCard } from "./rail-card";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 /**
  * "New in the directory": the most recently joined members, excluding the
@@ -29,10 +30,7 @@ export async function DirectoryModule({ userId }: { userId: string }) {
     orderBy: { createdAt: "desc" },
     take: 6,
     select: {
-      id: true,
-      name: true,
-      photoUrl: true,
-      birdOverride: true,
+      ...IDENTITY_SELECT,
       accountType: true,
       batchYear: true,
       currentCity: true,
