@@ -1,5 +1,22 @@
 # Progress Log
 
+## 2026-09-05 — the guide's six chapters wait to be asked for
+
+Refactor audit 2, row B5. `GuideLayer` is mounted once in the (main) layout and renders nothing
+until somebody presses a page title -- but it imported the overlay and all six chapters at module
+scope, and an import ships whichever way the branch goes. So ~14 KB rode the first load of every
+member route for a sheet most visits never open.
+
+New `guide-body.tsx` holds the overlay and the chapters barrel; `guide-layer.tsx` loads it with
+`next/dynamic`, `ssr: false` (the server snapshot here was always null, so there is no HTML to
+lose). `guide-areas.ts` stays static -- the sidebar and the door import it as plain data.
+`GuideDoor` warms the chunk on `pointerenter` and `focus`, which on touch fires just before the
+first of the two taps a finger needs anyway.
+
+Measured between builds: **-14.2 to -14.8 KB raw first-load JS on 38 member routes**, -556 KB
+across the app. Verified on /feed and /collection: the sheet still animates in from y=72 to y=32
+at opacity 0 to 1, carries the right chapter, and Escape still closes it. No console errors.
+
 ## 2026-09-05 — the 404's flight director stops riding every route
 
 Refactor audit 2, row B4. Next puts the root not-found boundary in every route's client graph,
