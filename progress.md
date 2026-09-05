@@ -9604,3 +9604,28 @@ absent there — the byline is `batchLine(e.author)` and never draws a verified 
 letter page argues at length for the identical shape. Spreading the card select would have fetched
 an unused column for every entry in every published Round. It spreads `IDENTITY_SELECT` and names
 its three extras, and the reason is now written where the omission is.
+
+## 2026-09-05 — two pagers stop naming a row they cannot promise still exists
+
+Refactor audit 2, Phase C, row C6's second half (`data-layer-10`). `keyset.ts` exists because
+Prisma's `cursor: { id }` needs the row it names to still be inside the filtered set, and answers
+**nothing at all** when it is not — measured on this exact stack on 2026-08-24, with the numbers in
+that file's header. Two pagers still used the cursor. One of them, admin People, said in its own
+docblock that it was "keyset, not offset, following `loadPosts`", and then was not.
+
+`admin-people-query.ts` now decodes a real `(createdAt, id)` cursor and ANDs `keysetWhere` into its
+filter — AND, not a spread, because `peopleWhere` can carry its own top-level `OR`. Twenty-five
+lines go with it: the recovery block that existed only to survive the cursor's failure mode, an
+existence check plus an offset re-query that took a row count **from the client**. That parameter is
+gone from `loadPeoplePage`, from `loadMorePeople` and from `people-list.tsx`, and the C-174 pin that
+guarded it is retired from `profile-editor-rule.test.mjs` with a note saying why. The directory's
+row stays: it sorts by name and batch, has no timestamp key, and `keyset.ts` carves it out by name.
+
+The account export's `keyset()` helper takes the caller's `where` now instead of sitting beside it,
+so the ten paged queries get `id: { gt: after }` rather than a cursor. The failure this closes is
+small and real: a member's own row leaving the set during their own export used to truncate the file.
+
+Proved live. `/admin/people`: 60 rows, "Show more", 70 rows, all 70 distinct, button gone — and 70
+is the headcount. The export as Jerry returns places 1, posts 1, messages 1, comments 0, each equal
+to a `SELECT count(*)`; as the owner it returns 1,721 Collection photographs across four pages of
+500, with 1,721 distinct URLs.

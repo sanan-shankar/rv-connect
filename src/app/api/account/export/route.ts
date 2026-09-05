@@ -54,12 +54,23 @@ async function* paged<T extends { id: string }>(
   }
 }
 
-/** The keyset arguments every paged query shares. */
-function keyset(after: string | null) {
+/** The keyset arguments every paged query shares.
+ *
+ *  It takes the caller's `where` rather than sitting beside it, because the
+ *  cursor belongs IN the filter: `cursor: { id }` names a row and needs that
+ *  row to still be inside the filtered set, and answers nothing at all when it
+ *  is not (measured on this stack -- see src/lib/keyset.ts). A member's own row
+ *  can leave the set during their own export; `id > after` is a comparison
+ *  against a value and does not care.
+ *
+ *  Spread rather than AND-ed, unlike keyset.ts's fragment: none of the ten
+ *  filters below carries a top-level `OR` or an `id` of its own, so there is
+ *  nothing for the merge to overwrite. */
+function keyset<W extends object>(where: W, after: string | null) {
   return {
+    where: after ? { ...where, id: { gt: after } } : where,
     orderBy: { id: "asc" } as const,
     take: PAGE,
-    ...(after ? { cursor: { id: after }, skip: 1 } : {}),
   };
 }
 
@@ -141,16 +152,14 @@ export async function GET() {
       "places",
       (after) =>
         prisma.userPlace.findMany({
-          where: { userId },
           select: { id: true, label: true, city: true, lat: true, lng: true },
-          ...keyset(after),
+          ...keyset({ userId }, after),
         }),
     ],
     [
       "posts",
       (after) =>
         prisma.post.findMany({
-          where: { authorId: userId },
           select: {
             id: true,
             kind: true,
@@ -160,32 +169,29 @@ export async function GET() {
             status: true,
             createdAt: true,
           },
-          ...keyset(after),
+          ...keyset({ authorId: userId }, after),
         }),
     ],
     [
       "comments",
       (after) =>
         prisma.comment.findMany({
-          where: { authorId: userId, deletedAt: null },
           select: { id: true, content: true, postId: true, createdAt: true },
-          ...keyset(after),
+          ...keyset({ authorId: userId, deletedAt: null }, after),
         }),
     ],
     [
       "likes",
       (after) =>
         prisma.like.findMany({
-          where: { userId },
           select: { id: true, postId: true },
-          ...keyset(after),
+          ...keyset({ userId }, after),
         }),
     ],
     [
       "collectionPhotos",
       (after) =>
         prisma.photo.findMany({
-          where: { uploaderId: userId },
           select: {
             id: true,
             url: true,
@@ -197,14 +203,13 @@ export async function GET() {
             approved: true,
             createdAt: true,
           },
-          ...keyset(after),
+          ...keyset({ uploaderId: userId }, after),
         }),
     ],
     [
       "catchupAnswers",
       (after) =>
         prisma.catchupEntry.findMany({
-          where: { authorId: userId },
           select: {
             id: true,
             body: true,
@@ -213,7 +218,7 @@ export async function GET() {
             songTitle: true,
             createdAt: true,
           },
-          ...keyset(after),
+          ...keyset({ authorId: userId }, after),
         }),
     ],
     [
@@ -227,7 +232,6 @@ export async function GET() {
       "catchupQuestions",
       (after) =>
         prisma.catchupPrompt.findMany({
-          where: { authorId: userId },
           select: {
             id: true,
             text: true,
@@ -235,32 +239,29 @@ export async function GET() {
             showAsker: true,
             createdAt: true,
           },
-          ...keyset(after),
+          ...keyset({ authorId: userId }, after),
         }),
     ],
     [
       "messagesToAdmin",
       (after) =>
         prisma.adminMessage.findMany({
-          where: { authorId: userId },
           select: { id: true, body: true, createdAt: true },
-          ...keyset(after),
+          ...keyset({ authorId: userId }, after),
         }),
     ],
     [
       "reportsFiled",
       (after) =>
         prisma.report.findMany({
-          where: { reporterId: userId },
           select: { id: true, reason: true, targetType: true, status: true, createdAt: true },
-          ...keyset(after),
+          ...keyset({ reporterId: userId }, after),
         }),
     ],
     [
       "contributions",
       (after) =>
         prisma.contribution.findMany({
-          where: { userId },
           select: {
             id: true,
             amount: true,
@@ -270,7 +271,7 @@ export async function GET() {
             createdAt: true,
             paidAt: true,
           },
-          ...keyset(after),
+          ...keyset({ userId }, after),
         }),
     ],
   ];

@@ -80,7 +80,11 @@ test("C-174: every erased-type argument is checked before it is used", () => {
     ["src/components/posts/report-action.ts", /typeof reason !== "string"/, "a report's reason"],
     ["src/components/settings/actions.ts", /typeof passwordRaw === "string"/, "the deletion re-auth password"],
     ["src/app/(main)/directory/actions.ts", /Number\.isFinite\(loaded\)/, "the directory's page offset"],
-    ["src/lib/admin-people-query.ts", /Number\.isFinite\(loaded\)/, "the admin list's page offset"],
+    /* The admin People list used to be here too. It no longer takes a `loaded`
+       count from the network: it pages on a real keyset (`keyset.ts`), so there
+       is no offset to guard and no recovery block to feed one. The directory
+       keeps its row because it sorts by name and batch and has no timestamp
+       key to seek on -- keyset.ts:26-27 carves it out by name. */
   ];
   for (const [file, pattern, what] of sites) {
     assert.match(decomment(read(file)), pattern, `${what} is used without checking what arrived`);
