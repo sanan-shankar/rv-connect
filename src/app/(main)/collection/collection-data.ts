@@ -153,45 +153,66 @@ export async function collectionPageData(filters: RiverFilters = { order: "newes
    *  nothing instead of its own empty state, and the contribute room promised
    *  a quota belonging to the other half.
    *
-   *  Answered for both halves here rather than fetched again on the swap. It
-   *  costs two indexed counts and one small findMany more per page load, and
-   *  it buys a swap that needs no round trip and can never be caught halfway.
-   *  Only for halves this member may actually read: no class, no second set.
+   *  Answered for both halves here rather than fetched again on the swap,
+   *  which buys a swap that needs no round trip and can never be caught
+   *  halfway -- the owner's requirement, and the reason refactor audit 2's C11
+   *  did NOT move these behind the swap. What it cost was three extra queries
+   *  per load; asking each question once for both halves instead of once per
+   *  half brings that to nothing. Only for halves this member may actually
+   *  read: no class, no second set.
    * ---------------------------------------------------------------- */
   const readable: PhotoScope[] = classWhere ? ["valley", "class"] : ["valley"];
-  const factPairs = await Promise.all(
-    readable.map(async (half) => {
-      const where = half === "class" ? classWhere! : { scope: "valley" };
-      const [pending, approvedCount, mine] = await Promise.all([
-        myPendingPhotos(half),
-        /* "Is this half empty?" -- counting every approved photograph in the
-           table would tell the Class Collection it was full on the strength
-           of the valley's contents. */
-        prisma.photo.count({ where: { ...where, approved: true, isHidden: false } }),
-        /* SCOPED, because the quota is per half. The pop-up promises the room
-           left before a file is chosen, and promising the valley's number over
-           the Class Collection would be a lie the member only discovers two
-           hundred photographs in. */
-        prisma.photo.count({ where: { uploaderId: session.user.id, scope: half } }),
-      ]);
-      return [
-        half,
-        {
-          pending,
-          hasApprovedPhotos: approvedCount > 0,
-          /* An admin has no ceiling, matching `photoQuotaError`, which is the
-             thing that would actually refuse the upload. The two have to agree
-             or the drop room caps a batch the server would have accepted.
-             `MAX_PHOTOS_PER_DROP` still applies to everybody: it bounds one
-             go, not one account. */
-          roomLeft:
-            session.user.role === "admin"
-              ? MAX_PHOTOS_PER_ACCOUNT
-              : Math.max(0, MAX_PHOTOS_PER_ACCOUNT - mine),
-        },
-      ] as const;
-    })
-  );
+  /* Three questions for both halves in three queries, not six.
+   *
+   *  Each of these used to be asked once per half, so a class-eligible member
+   *  paid six round trips for facts about two collections. They are the same
+   *  question of the same table asked with a different scope, which is what
+   *  `groupBy` is: the scope arms come from `photoScopeWhere` exactly as
+   *  before, so the class half is still restricted to this member's own year
+   *  by the rule rather than by a second copy of it here. */
+  const scopeWheres = readable.map((half) => (half === "class" ? classWhere! : { scope: "valley" }));
+  const [pendingRows, approvedByScope, mineByScope] = await Promise.all([
+    myPendingPhotos(readable),
+    /* "Is this half empty?" -- counting every approved photograph in the
+       table would tell the Class Collection it was full on the strength
+       of the valley's contents. */
+    prisma.photo.groupBy({
+      by: ["scope"],
+      where: { OR: scopeWheres, approved: true, isHidden: false },
+      _count: { _all: true },
+    }),
+    /* SCOPED, because the quota is per half. The pop-up promises the room
+       left before a file is chosen, and promising the valley's number over
+       the Class Collection would be a lie the member only discovers two
+       hundred photographs in. */
+    prisma.photo.groupBy({
+      by: ["scope"],
+      where: { uploaderId: session.user.id },
+      _count: { _all: true },
+    }),
+  ]);
+  const countIn = (rows: { scope: string; _count: { _all: number } }[], half: PhotoScope) =>
+    rows.find((r) => r.scope === half)?._count._all ?? 0;
+
+  const factPairs = readable.map((half) => {
+    const mine = countIn(mineByScope, half);
+    return [
+      half,
+      {
+        pending: pendingRows.filter((p) => p.scope === half),
+        hasApprovedPhotos: countIn(approvedByScope, half) > 0,
+        /* An admin has no ceiling, matching `photoQuotaError`, which is the
+           thing that would actually refuse the upload. The two have to agree
+           or the drop room caps a batch the server would have accepted.
+           `MAX_PHOTOS_PER_DROP` still applies to everybody: it bounds one
+           go, not one account. */
+        roomLeft:
+          session.user.role === "admin"
+            ? MAX_PHOTOS_PER_ACCOUNT
+            : Math.max(0, MAX_PHOTOS_PER_ACCOUNT - mine),
+      },
+    ] as const;
+  });
   const scopeFacts = Object.fromEntries(factPairs) as ScopeFacts;
   const here = scopeFacts[scope] ?? scopeFacts.valley;
 
@@ -275,21 +296,31 @@ export const loadPhoto = cache(async function loadPhoto(id: string): Promise<Pho
   return shape(row, session.user.id);
 });
 
-/** The member's own queue, for the half of the Collection they are looking at.
+/** The member's own queue, for the halves of the Collection they can read.
  *
- *  SCOPED, though every row is the caller's own and none of it is a leak: a
- *  photograph awaiting review sits above the river it belongs to, and showing
- *  a pending valley contribution over the Class Collection would say it is
- *  going somewhere it is not. Class contributions auto-approve (spec sec.
- *  7.3), so in practice this is empty there -- but it must be empty because
- *  the query said so, not by luck. */
+ *  Every row carries its own `scope`, and the caller keeps them apart by it.
+ *  That separation is the point, though none of this is a leak -- every row is
+ *  the caller's own: a photograph awaiting review sits above the river it
+ *  belongs to, and showing a pending valley contribution over the Class
+ *  Collection would say it is going somewhere it is not. Class contributions
+ *  auto-approve (spec sec. 7.3), so in practice the class half is empty -- but
+ *  it must be empty because the query said so, not by luck.
+ *
+ *  Takes the whole readable set rather than one half at a time, because the
+ *  page needs both: it draws the half being read and holds the other so the
+ *  swap needs no round trip. */
 export async function myPendingPhotos(
-  scope: PhotoScope = "valley"
+  scopes: PhotoScope[] = ["valley"]
 ): Promise<PhotoData[]> {
   const session = await auth();
   if (!session?.user?.id) return [];
   const rows = await prisma.photo.findMany({
-    where: { scope, uploaderId: session.user.id, approved: false, isHidden: false },
+    where: {
+      scope: { in: scopes },
+      uploaderId: session.user.id,
+      approved: false,
+      isHidden: false,
+    },
     include: includeFor(session.user.id),
     orderBy: { createdAt: "desc" },
   });
