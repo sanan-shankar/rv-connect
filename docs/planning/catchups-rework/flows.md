@@ -222,6 +222,7 @@ everyone while the left column carries all the difference.
 | Ways the Catch-up's name is printed | **7** (see `recon.md` section 10) |
 | Pill-shaped controls on one mobile screen | **21**, on a Catch-up with two members and one question |
 | Members visible in the people panel, of 23 | **7** |
+| Server payload re-rendered on **one heart tap** | **603 KB, 1.5 to 2.6s** — the feed's like re-renders nothing |
 
 ---
 
