@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { read, decomment } from "./test-kit.mjs";
+import { read, decomment, balancedBody } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The pen: the only live editor of the profile columns.
@@ -119,8 +119,7 @@ test("C-045: the save queue is ordered, not merely counted", () => {
 
 test("C-045: a failed places save reconverges with the database", () => {
   const src = decomment(read("src/components/profile/letterhead-profile.tsx"));
-  const fn = src.slice(src.indexOf("function commitPlaces"));
-  const body = fn.slice(0, fn.indexOf("\n  }"));
+  const body = balancedBody(src, "function commitPlaces");
   assert.match(body, /router\.refresh\(\);/, "nothing re-reads the list");
   assert.doesNotMatch(
     body,

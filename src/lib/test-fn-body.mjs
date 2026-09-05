@@ -61,13 +61,37 @@ export function balancedBody(text, decl) {
 
   i = text.indexOf("{", i);
   if (i < 0) return null;
+
+  /* One more brace that is not the body: a return type written as a bare
+     object rather than wrapped in a generic.
+     `): Promise<{ users }> {` is handled by the angle depth above, but
+     `): { AND?: ...; OR: ... } {` has no angles at all, so the loop stopped
+     at the type's own opening brace and this function returned the TYPE.
+     Found on `audienceWhere` (src/lib/posts.ts) while adopting this helper
+     in place of four hand-rolled slicers, and it is the same failure the
+     docblock above describes: a shape test that reads the wrong region and
+     quietly asserts against nothing.
+     How the two are told apart: match the brace, then look past it. If the
+     next thing is another brace, the one just matched was a type and the
+     body is the next one. */
+  const close = matchBrace(text, i);
+  if (close > 0) {
+    const after = text.slice(close + 1).search(/\S/);
+    if (after >= 0 && text[close + 1 + after] === "{") i = close + 1 + after;
+  }
+  const end = matchBrace(text, i);
+  return end < 0 ? text.slice(i) : text.slice(i, end + 1);
+}
+
+/** The index of the `}` closing the `{` at `open`, or -1 if it never closes. */
+function matchBrace(text, open) {
   let depth = 0;
-  for (let j = i; j < text.length; j++) {
+  for (let j = open; j < text.length; j++) {
     if (text[j] === "{") depth++;
     else if (text[j] === "}") {
       depth--;
-      if (depth === 0) return text.slice(i, j + 1);
+      if (depth === 0) return j;
     }
   }
-  return text.slice(i);
+  return -1;
 }

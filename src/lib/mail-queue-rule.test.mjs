@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { read, decomment } from "./test-kit.mjs";
+import { read, decomment, balancedBody } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The shapes that made the mail queue lose mail.
@@ -140,8 +140,7 @@ test("the confirmation ETA counts the queue in front of it", () => {
      the person at position 200 was told tomorrow and waited three days
      (bug-report-2 C-161). */
   assert.match(queue, /async function verifySendingAt/, "the confirmation ETA is a flat calendar date again");
-  const fn = queue.slice(queue.indexOf("async function verifySendingAt"));
-  const body = fn.slice(0, fn.indexOf("\n}"));
+  const body = balancedBody(queue, "async function verifySendingAt");
   assert.match(body, /outboundEmail\.count/, "the ETA no longer counts anything");
   assert.match(body, /createdAt:\s*\{\s*lt:/, "the ETA counts rows that are not actually ahead of this one");
   assert.match(body, /VERIFY_PER_DAY/, "the ETA divides by something other than a day's verify budget");

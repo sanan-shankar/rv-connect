@@ -30,6 +30,7 @@
  */
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { balancedBody } from "../../src/lib/test-fn-body.mjs";
 
 const ROOT = process.cwd();
 const read = (p) => { try { return readFileSync(join(ROOT, p), "utf8"); } catch { return ""; } };
@@ -78,41 +79,23 @@ function appSources() {
  *    authorize(credentials) {}                  -- METHOD, not `function foo`
  *    loadComments(postId, opts?: { take })      -- brace in a PARAMETER type
  *    loadDirectoryPage(...): Promise<{ users }> -- brace in a RETURN type
- *  So: match either declaration form, step over the parameter list by paren
- *  depth, step over any return-type annotation by angle depth, and only then
- *  take the brace.
+ *
+ *  The brace-matching itself is `balancedBody`, shared with every shape test
+ *  in src/lib -- this file kept a byte-identical copy of it, and this file is
+ *  the one that decides what the security status board reports. What stays
+ *  here is only the part that is genuinely its own: the two DECLARATION
+ *  shapes to look for. The RegExp is handed over rather than the match index,
+ *  because a number passed as `decl` would be coerced through `text.match()`
+ *  and silently find something else.
  */
 function fnBody(text, name) {
-  const m =
-    text.match(new RegExp(`(export\\s+)?(async\\s+)?function\\s+${name}\\b`)) ??
-    text.match(new RegExp(`(^|[\\s,{])(async\\s+)?${name}\\s*\\(`, "m"));
-  if (!m) return null;
-
-  let i = text.indexOf("(", m.index);
-  if (i < 0) return null;
-  for (let depth = 0; i < text.length; i++) {
-    if (text[i] === "(") depth++;
-    else if (text[i] === ")") { depth--; if (depth === 0) { i++; break; } }
+  for (const decl of [
+    new RegExp(`(export\\s+)?(async\\s+)?function\\s+${name}\\b`),
+    new RegExp(`(^|[\\s,{])(async\\s+)?${name}\\s*\\(`, "m"),
+  ]) {
+    if (decl.test(text)) return balancedBody(text, decl);
   }
-  while (i < text.length && /\s/.test(text[i])) i++;
-  if (text[i] === ":") {
-    let angle = 0;
-    for (i++; i < text.length; i++) {
-      const c = text[i];
-      if (c === "<") angle++;
-      else if (c === ">") angle--;
-      else if (c === "{" && angle === 0) break;
-    }
-  }
-  i = text.indexOf("{", i);
-  if (i < 0) return null;
-
-  let depth = 0;
-  for (let j = i; j < text.length; j++) {
-    if (text[j] === "{") depth++;
-    else if (text[j] === "}") { depth--; if (depth === 0) return text.slice(i, j + 1); }
-  }
-  return text.slice(i);
+  return null;
 }
 
 const ok   = (note) => ({ state: "fixed", note });
