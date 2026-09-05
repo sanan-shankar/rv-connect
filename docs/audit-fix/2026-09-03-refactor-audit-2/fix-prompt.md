@@ -83,17 +83,260 @@ fix the table.
 | A — free money | DONE | A18 folded into B10, A19 declined | — |
 | B — bundle levers | DONE | B9 measured and reverted | — |
 | C — the query floor | DONE | C11 done differently; read the ledger | — |
-| E — de-duplication that closes a drift | PARTIAL | rest of E5, rest of E6, E7b, E8, E11, E12 | E7b needs `TURNSTILE_DEV_CHALLENGE=1` and a dev-server restart |
-| F — hygiene, in one pass, last | OPEN | all | runs after E |
-| D — switched-off subsystems | OWNER-GATED | all | report §4; every column drop also needs its `SELECT` run |
-| G — architecture and taste | OWNER-GATED | all | report §4 |
+| E — de-duplication that closes a drift | PARTIAL | rest of E5, rest of E6, E7b, E8, E11, E12 | E7b needs `TURNSTILE_DEV_CHALLENGE=1` and a dev-server restart; E11's `MailCard` half is Q16 |
+| F — hygiene, in one pass, last | OPEN | all | runs after E; Q10, Q11, Q13, Q20, Q21, Q22 |
+| D — switched-off subsystems | OWNER-GATED | all | Q1, Q2, Q3, Q4, Q17, Q18. **Every column `SELECT` is now RUN** — results in Q18's table |
+| G — architecture and taste | OWNER-GATED | all | Q23 (lab/demo), Q27 (the five rebuilds) |
 
 ## Owner questions
 
-Nothing asked yet. `/fix-campaign` writes the whole batch here before it starts work — every
-decision in the campaign at once, numbered, in plain English, each with the answer it will take if
-he does not reply. Printed on screen as well as written here, because the screen is what he reads
-now and this file is what survives him closing the app.
+**Asked 2026-09-05. Twenty-eight questions.** They cover every decision left in this campaign: the
+eight big ones from the report, the fifty-row table under them, and each phase's own gate. Sixty-one
+separate asks collapsed into these twenty-eight — the audit put several of them to you three times in
+three places.
+
+**Every one has a default, so you can answer the whole batch in one sentence** — for example:
+*"go with your defaults except 8 and 12, do (a) on both."* If you say nothing at all I will take
+every default and the campaign finishes without you.
+
+Where a question is about information in the database, **I have already run the check** and the real
+numbers are in question 18. Nothing is deleted from the database by me in any case: that command is
+handed to you at the end.
+
+---
+
+### Things a member would see
+
+**1. The switched-off section on the front page.**
+- **What I'd change:** delete eleven files, about 2,500 lines, that draw a large showcase section for the front page. It has been switched off behind a flag for months, and about a third of it is not even connected to the flag — nothing anywhere calls it.
+- **What you'd notice:** nothing today. It is not on screen and it sends nothing to members.
+- **If I guess wrong:** you lose a design you may have wanted to bring back. It is in the project's history, so it is recoverable, but not in five minutes.
+- **Options:** (a) delete it  (b) keep it switched off  (c) switch it ON and let me check it for speed first.
+- **If you don't reply I'll do:** (b). It costs nothing where it is, and this is the second audit in a row to ask you. *(rows: D2)*
+
+**2. The feed's sort and date filters.**
+- **What I'd change:** delete the code behind "newest / oldest" and "posts from the last week or month" on the feed.
+- **What you'd notice:** nothing. Those controls stopped being on screen on 28 June, when the search pill moved to the top of the page. Nobody can reach them.
+- **If I guess wrong:** if you wanted them back, they would be rewritten rather than switched on.
+- **Options:** (a) delete  (b) leave the code there, switched off  (c) put them back on the feed.
+- **If you don't reply I'll do:** (a). *(rows: D1)*
+
+**3. Song links on Catch-up answers.**
+- **What I'd change:** remove the half-built feature that attached a song to a Catch-up answer.
+- **What you'd notice:** nothing. You had it taken off the answer form on 25 July, and none of the 142 answers ever used it. But the site still calls out to Spotify when an answer is saved, and still keeps three empty fields per answer.
+- **If I guess wrong:** if you want songs on Catch-ups later, it gets rebuilt.
+- **Options:** (a) remove it  (b) keep it plumbed in case you want it back.
+- **If you don't reply I'll do:** (a). *(rows: D3)*
+
+**4. The older photo-approval screen.**
+- **What I'd change:** delete the second, older screen for approving photographs, the one on the content page. The review room replaced it two days after it was built.
+- **What you'd notice:** nothing, if you approve photographs in the review room. If you still use the old page, you would lose it.
+- **If I guess wrong:** you lose the screen you actually use — recoverable from history in about ten minutes.
+- **Options:** (a) delete the old one  (b) keep both.
+- **If you don't reply I'll do:** (a). *(rows: D4)*
+
+**5. Photographs on Catch-up answers are smaller than on the feed.**
+- **What I'd change:** draw photographs attached to a Catch-up answer at the same size the feed draws them.
+- **What you'd notice:** photographs in Catch-up answers get bigger.
+- **If I guess wrong:** the Catch-up page feels heavier than you wanted; it is one number to put back.
+- **Options:** (a) match the feed  (b) leave them small.
+- **If you don't reply I'll do:** (a). *(rows: #19)*
+
+**6. Photographs from older phones get saved smaller, silently.**
+- **What I'd change:** there are two ways a photograph reaches the Collection. The fast one keeps it at full size. The slower one, used when the fast one cannot run, shrinks it a lot first. I'd make the slow one keep full size too.
+- **What you'd notice:** a few photographs would be sharper. Uploading from an older phone would take longer.
+- **If I guess wrong:** slower uploads on old phones, for sharpness nobody asked for.
+- **Options:** (a) keep full size on both  (b) leave it but tell the member it was saved smaller  (c) leave it exactly as it is.
+- **If you don't reply I'll do:** (a). *(rows: #20)*
+
+**7. The small pop-up help bubbles.**
+- **What I'd change:** the site has two different pieces of machinery drawing small help bubbles, plus a third one hand-built for the verified tick. I'd put all three on the same one.
+- **What you'd notice:** nothing — they would look exactly as they do now. The audit suggested instead swapping the Catch-up one for the browser's own plain grey box, which saves about 17 KB on that page but looks nothing like your site.
+- **If I guess wrong:** a bubble looks slightly different somewhere and I would catch it in screenshots.
+- **Options:** (a) one machine, same look everywhere, no saving  (b) plain grey browser box on Catch-ups, saves 17 KB there  (c) leave all three alone.
+- **If you don't reply I'll do:** (a). *(rows: G2, #7)*
+
+**8. The "install this on your phone" tile.**
+- **What I'd change:** the tile offering to install the site as an app currently shows only to you, on your own profile. It has been that way since 22 August, when you said "for now only show it for admins". Showing it to everyone is deleting three words.
+- **What you'd notice:** members on phones would start seeing it on their own profile.
+- **If I guess wrong:** members see a tile before you were ready to show it.
+- **Options:** (a) show everyone  (b) keep it to you.
+- **If you don't reply I'll do:** (b), because only you know whether it is ready. *(rows: #10)*
+
+**9. The guide has a front page that nothing links to.**
+- **What I'd change:** there is a contents page for the guide, and the only way to reach it is from one of its own child pages. I'd add a link from the account menu.
+- **What you'd notice:** a new line in the account menu.
+- **If I guess wrong:** a menu item you did not want; one line to remove.
+- **Options:** (a) link it from the account menu  (b) leave it unreachable  (c) delete the contents page.
+- **If you don't reply I'll do:** (a), with a screenshot. *(rows: #39)*
+
+**10. Two buttons that say "Back to settings" when there is no settings page.**
+- **What I'd change:** the dark-mode page has two buttons labelled "Back to settings". There is no settings page any more — a request to it gives an error page. The buttons work; they just go back to wherever you came from. I'd relabel them.
+- **What you'd notice:** the buttons would read "Go back".
+- **If I guess wrong:** two words are wrong; trivial to change again.
+- **Options:** (a) "Go back"  (b) leave the label  (c) your own wording — tell me and I'll use it.
+- **If you don't reply I'll do:** (a). *(rows: F / member-surfaces-10)*
+
+**11. Movement for people who asked their phone for less of it.**
+- **What I'd change:** two places still animate for someone who has switched on "reduce motion" on their phone. One of them argues in its own notes that it is a deliberate exception.
+- **What you'd notice:** on the "page not found" screen, and for the small bird in the front-page footer, those members would see stillness.
+- **If I guess wrong:** a little charm is lost for the people who explicitly asked for less movement.
+- **Options:** (a) both go still  (b) only the error page goes still, the footer bird keeps its exception  (c) leave both.
+- **If you don't reply I'll do:** (a). *(rows: F / DESIGN-SYSTEM §7)*
+
+**12. The icons carry six thicknesses and we draw one.**
+- **What I'd change:** the decorative icon set ships every icon in six thicknesses, and each page carries thicknesses it never draws. Trimming saves roughly 21–26 KB on every page.
+- **What you'd notice:** nothing if it goes right. If it goes wrong, an icon somewhere is drawn at the wrong weight and looks off.
+- **If I guess wrong:** an icon looks wrong on a page I did not screenshot.
+- **Options:** (a) do it and screenshot every page that carries an icon  (b) leave it.
+- **If you don't reply I'll do:** (b). It is a visible risk for an invisible gain, and this is meant to run while you sleep. *(rows: #18, #48)*
+
+**13. Three heading sizes that are not on your scale.**
+- **What I'd change:** three headings are hand-typed at 27, 26 and 24 pixels instead of using the sizes your design system defines. I'd move all three onto the nearest defined size.
+- **What you'd notice:** those three headings shift by one or two pixels.
+- **If I guess wrong:** a heading looks a touch small or large on one page.
+- **Options:** (a) move all three onto the scale  (b) keep the pixels exactly and just give them a name so they stop being retyped  (c) leave them.
+- **If you don't reply I'll do:** (b) — same pixels, one name. *(rows: #31)*
+
+**14. The About page.**
+- **What I'd change:** nothing, unless you want something. It was called "indefinitely procrastinated" in the last audit and is unchanged.
+- **What you'd notice:** nothing.
+- **If I guess wrong:** nothing.
+- **Options:** (a) leave it  (b) tell me what it should say and I'll build it.
+- **If you don't reply I'll do:** (a). *(rows: #9)*
+
+**15. Letters have no way to report, edit or delete.**
+- **What I'd change:** nothing without you. Every other kind of content can be reported by a member and edited or deleted by its author; a letter cannot.
+- **What you'd notice:** if we added them, letters would get the same three controls posts have.
+- **If I guess wrong:** either a gap stays open, or controls appear on a page you wanted kept plain.
+- **Options:** (a) leave it as it is  (b) add all three  (c) add reporting only.
+- **If you don't reply I'll do:** (a) — this is a product decision, not a cleanup. *(rows: #11)*
+
+---
+
+### Things only you would see, in the admin area
+
+**16. The admin email list would change if I merge two copies of it.**
+- **What I'd change:** there are two nearly identical lists of sent email in the admin area. Merging them means one of the two changes to match the other.
+- **What you'd notice:** on one of those screens the dates would switch from "2 September" to "3 days ago", and every row would gain two buttons — Try again and Clear.
+- **If I guess wrong:** a screen you use becomes busier and harder to read.
+- **Options:** (a) merge and accept the change  (b) leave the two alone.
+- **If you don't reply I'll do:** (b). *(rows: E11 / admin-analytics-05)*
+
+**17. Admin bits and pieces nobody can open.**
+- **What I'd change:** delete a house picker used only in the test lab, a photo grid for a tab that does not exist, the "Start one" row you had removed on 21 August, and a handful of filters with no way to reach them.
+- **What you'd notice:** nothing. Each has been checked for anything that calls it.
+- **If I guess wrong:** nothing I can see.
+- **Options:** (a) delete them  (b) leave them.
+- **If you don't reply I'll do:** (a). *(rows: D8, D11)*
+
+---
+
+### Information the database keeps that no screen ever shows
+
+**18. Which of these should stop being stored?**
+- **What I'd change:** stop writing information nothing reads, and hand you a one-line command per item to remove it from the database.
+- **What you'd notice:** nothing. I ran the count on your real database and on the demo before asking — the numbers are below.
+- **If I guess wrong:** removing a column is permanent, which is exactly why **I never run that command myself**. You get them at the end, and you decide.
+- **Options:** (a) stop writing them and give me the removal commands at the end  (b) stop writing them but keep every column  (c) leave it all alone.
+- **If you don't reply I'll do:** (a) for the empty ones, (b) for everything else.
+
+| What it holds | Real database | Demo | What I'd do |
+|---|---|---|---|
+| Two old ways of tagging Collection photographs | **0 of 1,749** | 0 | stop writing, offer you the removal |
+| Song title / link / artwork on Catch-up answers | **0 of 142** | 0 | stop writing, offer you the removal |
+| Which group a post belongs to (Groups was removed) | **0 of 20** | 0 | stop writing, offer you the removal |
+| Why an email bounced | **0 of 55** | — | stop writing, offer you the removal |
+| Whether a photograph is black and white | **3 of 53 are true** | 0 | stop computing it; it can be worked out again from the picture. Removal only if you say so |
+| First-seen / last-seen on a viewed item | **217 of 217 filled** | — | written on every view, read by nothing. **Keep** — it is members' reading history and the notes promise a feature |
+| The time an analytics snapshot was captured | **561 of 561 filled** | — | filled by default, read by nothing. Keep, comment why |
+| When a photograph was approved, and by whom | **1,749 of 1,749 filled** | — | **Keep.** It is a real record even though no screen draws it |
+| The two older "current city" / "second city" fields | **56 and 5 of 70 members** | 2 of 40 | **Keep. This is members' own data.** The audit called them legacy; the count says they are not empty. Nothing here touches them |
+
+*(rows: D5, D6, D7, D9, #14, #27, #28)*
+
+---
+
+### Housekeeping nobody would ever see
+
+**19. The 43 packs of AI instructions sitting in the project.**
+- **What I'd change:** the project carries 43 packs of instructions for AI assistants — 619 KB, most untouched since 30 March, and fourteen of them older copies of things already installed elsewhere. I'd delete the fourteen duplicates and give you a one-line command to copy the rest into your personal folder, where they would work in every project instead of only this one. I am not allowed to write outside this project, so the copying is yours.
+- **What you'd notice:** nothing about the website, and nothing about how your sessions work.
+- **If I guess wrong:** a pack you wanted is in the project's history.
+- **Options:** (a) delete the fourteen duplicates only  (b) delete the duplicates and remove the rest from the project too, after I give you the copy command  (c) leave them.
+- **If you don't reply I'll do:** (a). *(rows: #4, #26)*
+
+**20. The session log is the fourth-biggest file in the project.**
+- **What I'd change:** it is 8,567 lines and grows about 550 a day. A rule already exists, written down in two places, saying a finished month moves to its own file — and nothing makes it happen. August finished a week ago and has not moved. I'd move it and add a check that fails if a month is ever left behind again.
+- **What you'd notice:** nothing. Nothing is deleted, only filed by month.
+- **If I guess wrong:** nothing.
+- **Options:** (a) run the rule and add the check  (b) also flip it so the full entry always goes to the month file and the main log keeps one line per session  (c) leave it.
+- **If you don't reply I'll do:** (a). *(rows: #5)*
+
+**21. Finished audits are more than half your documentation.**
+- **What I'd change:** when an audit closes, delete its working notes and keep a short pointer. The project's history keeps the rest. That is what was done for the bug audit in August.
+- **What you'd notice:** nothing.
+- **If I guess wrong:** the notes are in history.
+- **Options:** (a) make it the rule  (b) keep everything.
+- **If you don't reply I'll do:** (a). *(rows: #6)*
+
+**22. Reference screenshots pile up, and a scratch folder never empties.**
+- **What I'd change:** 101 MB of reference screenshots have gone into the project's history since 19 August, and five full-page ones are more than half the current set. Separately, the throwaway screenshot folder is 153 MB and nothing ever clears it. I'd put a size limit on the first and add one line to the end-of-session routine for the second.
+- **What you'd notice:** nothing.
+- **If I guess wrong:** nothing; both are recoverable.
+- **Options:** (a) both  (b) just the throwaway clean-up  (c) neither.
+- **If you don't reply I'll do:** (a). *(rows: #8)*
+
+**23. The design lab, the public demo, and 63 font files.**
+- **What I'd change:** your rooms of design experiments are built and deployed with the site. They cost about 12 seconds of every build and 9.7 MB of every deploy, and they drag 63 Google font files along for two rooms you have already archived. Members are not sent lab code, but 49 of 52 pages are a hair smaller without it. I'd keep the lab in your own site — your Collection tests depend on one of its rooms — and leave it out of the public demo only.
+- **What you'd notice:** nothing on your site. The public demo would stop carrying the lab.
+- **If I guess wrong:** the demo loses a lab you might have wanted visitors to browse.
+- **Options:** (a) out of the demo only  (b) leave everything as it is  (c) out of both — but this breaks your Collection tests, so I'd rather not.
+- **If you don't reply I'll do:** (a). *(rows: G1, G7, G8, #1)*
+
+**24. Three lab rooms that have finished their job.**
+- **What I'd change:** the crop room calls itself throwaway, but the Collection room now borrows its sample images; the Collection swap room and the focus room are both done. I'd move the sample images somewhere permanent and mark all three as archived in the lab list.
+- **What you'd notice:** nothing on the site. Those three would move to an archived section of the lab index.
+- **If I guess wrong:** you open a lab link and find it filed differently.
+- **Options:** (a) archive all three  (b) delete them  (c) leave them.
+- **If you don't reply I'll do:** (a). *(rows: #21, #22)*
+
+**25. One-off scripts that have done what they were built for.**
+- **What I'd change:** retire an investigation script whose ten investigations are all closed, and an old sign-in probe that has been failing for a week against a table that no longer exists. Keep the photo-album importer, because rebuilding from an album is a thing you might do again. One check the audit wanted has already been run: **nothing is stranded in your photo storage — zero files, zero megabytes.**
+- **What you'd notice:** nothing.
+- **If I guess wrong:** a script you wanted to re-run is in the project's history.
+- **Options:** (a) retire the finished ones, keep the album importer  (b) retire all of them  (c) keep everything.
+- **If you don't reply I'll do:** (a). *(rows: #23, #24, #25, #40)*
+
+**26. Everything I am planning to leave exactly as it is.**
+- **What I'd change:** nothing at all, on any of these. Say the number if you disagree with one.
+- **What you'd notice:** nothing.
+- **If I guess wrong:** we do it in a later session.
+- **The list:** the login bird stays; the 51 bird drawings stay as they are rather than becoming one file; the Compare tab in analytics stays; the costs card keeps its three copies; the letterhead's "keep in step" header stays; the "group" wording in four Catch-up refusals stays; the lab keeps borrowing the site's animation settings; the email, toast, animation and id libraries all stay; both browser-testing toolkits stay installed; the city-merging scripts stay; the Catch-ups file is not split; draft status and Catch-up titles are unchanged; the public pages are not made to pre-render tonight; and the "person row" sweep in its own spec is left for a session of its own.
+- **If you don't reply I'll do:** leave all of them. *(rows: #9, #12, #15, #16, #17, #29, #30, #32, #33, #34, #36, #37, #38, #47, #49, #51, #52)*
+
+---
+
+### How far to go, and the two things only you can do
+
+**27. The bigger rebuilds — how far do you want me to go tonight?**
+- **What I'd change:** five larger pieces where the code is reorganised and the site is meant to look identical: the profile letterhead (about 900 lines, half of which every stranger's visit loads for an editing form they will never open), the Collection page's inner workings, the composer's "+" menu, some small building blocks kept alive for one lab room, and the way photograph subjects are searched.
+- **What you'd notice:** nothing if each goes well. These are the most-edited files in the project, so the honest risk of something visibly breaking is real.
+- **If I guess wrong:** something on a busy page breaks and I undo it — but you might see it before I do.
+- **Options:** (a) none tonight  (b) the two safest only — the small building blocks and the letterhead's first move  (c) all five.
+- **If you don't reply I'll do:** (a). The rest of tonight's list is already a full night's work, and these want you awake. *(rows: G3, G4, G5, G6, G10, G11)*
+
+**28. Two things I cannot do for you.**
+- **What I'd change:** nothing — these need your hands.
+- **What you'd notice:** **(i)** the thing that stops someone hammering the sign-in form is switched off unless two keys are set in your hosting dashboard, and no session can see your production settings. Please confirm they are there. **(ii)** nothing I do tonight reaches the live site: I commit, you push. I will not push.
+- **If I guess wrong:** on (i), the sign-in form has no rate limit and nobody would know.
+- **Options:** (i) confirm the keys are set, or tell me to write it up as an open risk.
+- **If you don't reply I'll do:** write it into the bug list as an open item. *(rows: #45)*
+
+---
+
+**The one line that restarts everything:** reply with *"defaults"* — or *"defaults except 8 and 12,
+do (a) on both"*. Anything you do not name, I take the default for.
 
 ## Owner answers
 
@@ -325,6 +568,7 @@ you could not do and why.
 | 2026-09-05 | **C — complete** | C1, C2, C3 (both halves), C4, C5, C6 (both halves), C7, C8, C9, C10, C11 | Nine routes measured with `pg_stat_statements` against the same files at the phase's start commit (`cfdf82f`), minimum of two to four samples each: `/feed` **24 -> 19**, `/about` **12 -> 8**, `/collection` **27 -> 19**, `/directory` **21 -> 18**, `/letters` **15 -> 11**, `/admin/analytics?view=people` **38 -> 24**, `/profile/[id]` **25 -> 19**, `/letters/[id]` **21 -> 16**, `/catchups/[id]` **33 -> 27**. Sum **216 -> 161, -25%**. Four of those come off EVERY authenticated page: the presence UPDATE, the duplicate unread count, and two from the Catch-up advance. Plus one fewer client action per page load (the bell's mount call). `npm run check`, `npm run visual` (25/25) and `npm run verify:crawl` (20/20) green at the end. 12 commits, `29582b3`..`ce223a0`. | Read the six rows below before Phase D. |
 | 2026-09-05 | **B — complete** | B1, B2, B3, B4, B5, B6 (both halves), B7 (both halves), B8, B10 (+ A18 + media-viewer-03), B11, B12, B13. B9 measured and **reverted** | Non-lab first-load JS: median **1,094 -> 992 KB**, sum across 51 routes **53.10 -> 48.99 MB (-4.11 MB)**. `/login` 906 -> 756, `/` 899 -> 749, `/signup` 920 -> 771, `/welcome` 1,190 -> 1,042, `/letters/[id]` 1,116 -> 984, `/directory` 1,229 -> 1,126, `/about` 1,063 -> 963, `/collection` 1,104 -> 1,030, `/profile/[id]` 1,258 -> 1,199, `/feed` 1,224 -> 1,201. Lab sum 37.48 -> 36.70 MB. Post-hydration: the 72,472 B motion barrel chunk gone. Source: **-113 lines** net across the two de-duplications. Every row measured between two production builds; `npm run check`, `npm run visual` (25/25) and `npm run verify:crawl` (20/20) green at the end. 16 commits, `7c47594`..`387477a`. | Read the six rows below before Phase C. |
 | 2026-09-05 | **A — complete** | A1, A1b, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17. **A18 deferred to B10, A19 declined** (see below) | CSS on every route **238,434 → 160,420 B raw**, 33,666 → 24,594 gz (−32.7% / −26.9%), measured between two production builds. Lab sheet 147,484 B on 48 routes, **0 non-lab**. Lockfile **1,083 → 848** (−235). Deps **33+18 → 32+17**. Tracked −420,350 B. Routes 52 → 51. Test files 102 → 101. `npm run check` and `npm run visual` green throughout; 21 commits, `e16c585`..`94f76d9`. | Read the four rows below before Phase B. |
+| 2026-09-05 | **— (campaign gate 1)** | none — questions only | **Every Phase D column `SELECT` run, against production AND demo.** Two of them change an answer the audit had already reached: `User.currentCity` / `secondaryCity`, filed as "two legacy city columns", hold **56 and 5 of 70 members' own data** (demo 2 of 40) — they are not legacy in the sense of empty, and nothing in this campaign may touch them; and `Image.greyscale` is **3 of 53 true**, not zero, so its drop loses a computed flag rather than nothing (recomputable from the picture, so still safe, but say so). Confirmed empty and safe: `Photo.area` and `Photo.freeTags` (**0 of 1,749**), the three Catch-up song columns (**0 of 142**), `Post.groupId` (**0 of 20**), `OutboundEmail.bounceKind` (**0 of 55**). Confirmed FULL and therefore keepers: `Photo.approvedAt`/`approvedById` (**1,749 of 1,749**), `ContentView.firstAt`/`lastAt` (**217 of 217**), `MetricSnapshot.capturedAt` (**561 of 561**). 28 questions written to `## Owner questions`, merged down from 61 asks. | The three "still unrun" lines in the ledger below were wrong and are corrected. **No DDL was run and none will be**: the removal commands go to the owner at gate 2, per the skill's hard stop. |
 
 ### What Phase E left, and what it corrected
 
@@ -381,7 +625,9 @@ E7a is done and did not touch Turnstile.
   `rv-alumni-media`, 0.00 MB, 0 to delete.** Nothing is stranded; the question is closed.
 - The demo destination guard, from its new home in `_env.mjs`, against a deliberately wrong
   `.env.demo`: `import-album.mjs` and `tag-professions-pick.mjs` both refuse and name the ref.
-- Still **unrun**: the `SELECT`s for every Phase D column drop.
+- **Every Phase D column `SELECT` is now RUN** (2026-09-05, production and demo). The numbers,
+  and the two they change, are in `## Owner questions` Q18. The stranded-originals dry run was
+  closed by Phase E. Nothing about a column drop is unmeasured any more.
 
 ### What Phase A actually taught, beyond the rows
 
@@ -436,7 +682,9 @@ member-visible mistake.** Every row below was re-derived before it was applied.
 - `SELECT count(*) FILTER (WHERE "createdAt" < '2026-07-24'), count(*) FILTER (WHERE link LIKE
   '/notice/%') FROM "Notification"` → **0 and 0, on production and demo**; oldest row 2026-08-05.
   That is what let `/notice/[id]` go eleven months early (A10).
-- Still **unrun**: the stranded-originals dry run, and the `SELECT`s for every Phase D column drop.
+- **Every Phase D column `SELECT` is now RUN** (2026-09-05, production and demo). The numbers,
+  and the two they change, are in `## Owner questions` Q18. The stranded-originals dry run was
+  closed by Phase E. Nothing about a column drop is unmeasured any more.
 
 ### What Phase B actually taught, beyond the rows
 
@@ -538,7 +786,9 @@ The audit's 54% correction rate held.
   read` -> **0 rows**; the busiest member holds 24 notifications.
 - `pg_indexes` on production and demo -> **131 and 129 indexes**; eleven and seven of them
   invisible to Prisma. Saved at `work/db-indexes-live.json`.
-- Still **unrun**: the stranded-originals dry run, and the `SELECT`s for every Phase D column drop.
+- **Every Phase D column `SELECT` is now RUN** (2026-09-05, production and demo). The numbers,
+  and the two they change, are in `## Owner questions` Q18. The stranded-originals dry run was
+  closed by Phase E. Nothing about a column drop is unmeasured any more.
 
 ### How to measure a query row, since the apparatus is now built
 

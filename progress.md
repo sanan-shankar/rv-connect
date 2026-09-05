@@ -1,5 +1,22 @@
 # Progress Log
 
+## 2026-09-05 — Refactor audit 2, campaign gate 1
+
+The campaign's questions are written and the owner is asked once: 28 of them, merged down from 61
+separate asks across the report's eight big decisions, its fifty-row table and each phase's own gate.
+Every one carries a default, so the whole batch answers in a sentence.
+
+**Every Phase D column `SELECT` is run, against production and the demo, before the questions rather
+than after them — and two results change an answer the audit had already reached.** `User.currentCity`
+and `secondaryCity`, filed as "two legacy city columns", hold 56 and 5 of 70 members' own data; they
+are not empty and nothing in this campaign touches them. `Image.greyscale` is 3 of 53 true, not zero.
+Confirmed empty and safe to stop writing: `Photo.area`, `Photo.freeTags`, the three Catch-up song
+columns, `Post.groupId`, `OutboundEmail.bounceKind`. Confirmed full, and therefore keepers:
+`Photo.approvedAt`/`approvedById`, `ContentView.firstAt`/`lastAt`, `MetricSnapshot.capturedAt`.
+No DDL was run and none will be: the removal commands go to the owner at the close.
+
+The ledger's three "the SELECTs are still unrun" lines were stale and are corrected in the same edit.
+
 ## 2026-09-05 — Catch-ups reconnaissance (S1)
 
 Forty-three findings, measured on the running app rather than felt: 24 confirm something the
