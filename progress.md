@@ -23,6 +23,21 @@ copies updated, the repo's and the one in `~/.claude/skills/` that actually load
 
 `docs/spec/catchups.md` carries a banner: it describes today, and the brief outranks it.
 
+**Second half, after his answers.** He answered all five questions within the hour and left
+ultracode to the session. It was used for the two jobs that are many independent readings
+rather than one long sequence: four verifiers read the raw transcript against the cleaned
+brief, and eight researchers plus an assembler were to run the prior-art sweep. The verifiers
+finished and found 69 things, nearly all one fault: hedges and "right?" tags trimmed as if
+they were fillers, which made him sound certain where he was tentative; plus three flattened
+self-corrections, one deleted sentence of opinion, and a dozen unbracketed corrections. All
+folded back into the brief, its header rewritten to say what the conventions really are, and
+the lesson written into the skill: a hedge is content. **The other eleven agents failed on the
+usage limit before doing any work**, so the prior-art sweep has not run; the workflow is
+resumable from its cached verifiers, and the handover says how. His answers are ¶51 and ¶52
+of the brief and gave the campaign a portrait magazine, a pressure corpus of fixtures, the
+storyboard of every state and every sequence as recon's first duty, and `/lab/catchups/` as
+the sandbox.
+
 ## 2026-09-05 — the Map segment warms on hover, and the world arrives whole
 
 The owner, on B7's placeholder beat: *"do that"*. So: `SegmentedPills` segments take an optional

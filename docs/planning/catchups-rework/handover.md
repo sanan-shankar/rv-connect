@@ -24,12 +24,13 @@ you write for the session after you. Its section "Whose words are you carrying?"
 for this campaign, at the owner's request (¶22): when you brief a worker or a next session on
 anything the owner asked for, his paragraphs travel verbatim, not your paraphrase.
 
-**Three campaign-wide rules, all his.** No ultracode and no `Workflow` fan-outs anywhere in
-this campaign; one mind per job (his reasoning is quoted in `.claude/skills/fix-campaign/SKILL.md`:
-*"the agents are receiving this summarisation of summarisation, and then you don't get
-high-quality results"*). Nothing that exists in Catch-ups today is deleted (¶45). And his
-suggestions are examples, not answers (¶7, ¶26): *"You would be reducing the negatives but
-not increasing the positives."*
+**Three campaign-wide rules.** One mind per job, and a fan-out only where several independent
+minds are genuinely better than one: he left ultracode to this session's judgment (¶51), and
+the allocation is in "The sessions" below, with his earlier reasoning against fan-outs kept in
+view (`.claude/skills/fix-campaign/SKILL.md`: *"the agents are receiving this summarisation
+of summarisation, and then you don't get high-quality results"*). Nothing that exists in
+Catch-ups today is deleted (¶45). And his suggestions are examples, not answers (¶7, ¶26):
+*"You would be reducing the negatives but not increasing the positives."*
 
 This file follows the `docs/planning/collection-rework/` pattern (brief, living handover,
 prior art, spec) because that campaign worked. It lives under `docs/planning/` rather than
@@ -68,30 +69,38 @@ Catch-up that exists by default** (¶4), **archive and delete like WhatsApp** (�
 
 ## The sessions
 
-He asked (¶46) to be told which sessions run on which model at which effort. This is the
-answer. Every session is started by pasting `@docs/planning/catchups-rework/handover.md` plus
-one line saying which session it is. Everything is **max** effort unless noted. **No
-ultracode anywhere**: my reading of ¶46 is that he does not want it, and his words in the
-fix-campaign skill say why; the one place a fan-out might tempt (S3, alternatives) is exactly
-where one coherent mind beats four summarised ones. If he disagrees, only S3 would change.
+He asked (¶46) to be told which sessions run on which model at which effort, and then left
+ultracode to this session (¶51: *"totally up to you"*). This is the answer. Every session is
+started by pasting `@docs/planning/catchups-rework/handover.md` plus one line saying which
+session it is. Everything is **max** effort unless noted.
 
-| # | Session | Model | Runs after | Produces |
-|---|---|---|---|---|
-| S0 | Set-up (this one, 2026-09-05) | Fable max | | `brief.md`, this file, the skill amendment |
-| S1 | **Reconnaissance** | Opus max | now | `recon.md`, `flows.md`, the export script and a first export, root causes for every reported bug |
-| S2 | **Prior art** | Opus, high is enough | now, alongside S1 | `prior-art.md` |
-| S3 | **Directions** | **Fable max** | S1 and S2 | `directions.md`: the IA, three or four directions, a room brief per direction |
-| S4 | **Rooms** | Opus max | S3 | `/lab/catchups/*`, one room per direction, real data, both viewports |
-| S5 | **Pick and spec**, owner present | **Fable max** | S4, once he has browsed | `spec.md` with every decision marked LOCKED / RECOMMENDED / OPEN |
-| S6+ | **Build**, one phase per session | Opus max | S5 | production, phase by phase |
-| M1 | **Magazine design** | **Fable max** | S1 and S2 | `magazine.md`: the layout grammar, the failure list, a feasibility spike |
-| M2+ | **Magazine build** | Opus max | M1 (and S5 for shared parts) | the magazine rendering, the PDF, then email if he says so |
-| X | **Viewer and heart slice** | Opus max | S1 | fixes to the shared image viewer and the heart timing; may ship before anything else |
+| # | Session | Model | Ultracode | Runs after | Produces |
+|---|---|---|---|---|---|
+| S0 | Set-up (this one, 2026-09-05) | Fable max | yes, used: four transcript verifiers ran; the ledger critics and the S2 sweep hit the usage limit, see the log | | `brief.md`, this file, the skill amendment |
+| S1 | **Reconnaissance** | Opus max | **no**: one browser, one machine | now | `recon.md`, `flows.md`, the storyboards, the export script and a first export, root causes for every reported bug |
+| S2 | **Prior art** | Opus, high is enough | **yes**: eight researchers by shape, one assembler; the script exists and is resumable, see the log | now, alongside S1 | `prior-art.md` |
+| S3 | **Directions** | **Fable max** | **yes**: the shape is in its section | S1 and S2 | `directions.md`: the IA, three or four directions, a room brief per direction |
+| S4 | **Rooms** | Opus max | no | S3 | `/lab/catchups/*`, one room per direction plus the pressure room, real data, both viewports |
+| S5 | **Pick and spec**, owner present | **Fable max** | no | S4, once he has browsed | `spec.md` with every decision marked LOCKED / RECOMMENDED / OPEN |
+| S6+ | **Build**, one phase per session | Opus max | no, his standing rule for fixes | S5 | production, phase by phase |
+| M1 | **Magazine design** | **Fable max** | **yes**, for the failure-mode hunt and the grammar panel only | S1 and S2 | `magazine.md`: the layout grammar, the failure list, a feasibility spike |
+| M2+ | **Magazine build** | Opus max | no | M1 (and S5 for shared parts) | the magazine rendering, the PDF, then email if he says so |
+| X | **Viewer and heart slice** | Opus max | no | S1 | fixes to the shared image viewer and the heart timing; may ship before anything else |
+
+**Where ultracode earns its keep and where it does not.** A fan-out helps when the work is
+many independent readings of the same thing (research shapes, transcript stretches, failure
+modes, alternative designs from one shared brief), and it hurts when the work is one long
+sequence with state (a browser walked through every Catch-up state; a room built and looked
+at; a build phase with a gate). It also cannot help where the machine is the limit: his Mac
+has hung under browser fleets, so S1 and S4 are one browser each regardless. The one risk he
+named, summarisation of summarisation, is avoided by the rule in the writing-for-agents
+skill: every worker reads `brief.md` itself, in full, from disk; nobody gets a digest. So:
+turn ultracode on for **S2, S3 and M1** and leave it off for everything else.
 
 Why Fable on exactly three: S3, S5 and M1 are where the campaign's taste and synthesis
 happen, and he said he would rather not run everything on Fable (¶46). The sweeps (S1, S2),
 the room-building (S4) and the build (S6+) are Opus work at his usual setting. S1 and S2 can
-run at the same time; S4 rooms are independent of each other and two sessions may build in
+run at the same time. S4 rooms are independent of each other and two sessions may build in
 parallel if he is in a hurry, colliding only on `src/app/lab/_registry.ts`. X can run any
 time after S1 and touches the feed too, which he allowed in ¶28.
 
@@ -101,10 +110,13 @@ time after S1 and touches the feed too, which he allowed in ¶28.
 
 | Item | Status | Notes |
 |---|---|---|
-| Brief captured in his words | DONE | `brief.md`, 2026-09-05, 50 paragraphs, two sittings plus the follow-up |
+| Brief captured in his words | DONE | `brief.md`, 2026-09-05, 52 paragraphs: two sittings, the follow-up, and his answers |
 | Skill amended (¶22) | DONE | `.claude/skills/writing-for-agents/SKILL.md`, "Whose words are you carrying?"; the user-level copy in `~/.claude/skills/` updated to match |
+| Owner questions 1 to 5 | DONE | answered 2026-09-05, ¶51 and ¶52; readings under "Owner answers" |
+| Brief checked against the raw transcript | DONE | four verifiers, 69 findings, all folded into `brief.md` on 2026-09-05; see the log |
+| Ledger checked against the brief | OPEN | two critics were scripted and hit the usage limit; resume the S0 workflow or have S3 do it as its first act |
 | S1 Reconnaissance | OPEN | |
-| S2 Prior art | OPEN | |
+| S2 Prior art | OPEN | eight researchers and an assembler were scripted in S0 and hit the usage limit before running; resumable, see the log |
 | S3 Directions | OPEN | blocked on S1, S2 |
 | S4 Rooms | OPEN | blocked on S3 |
 | Owner browses the rooms | OWNER-GATED | |
@@ -201,7 +213,24 @@ Numbered so later sessions can cite and correct them. **Verified** means this se
 - **F12, the lab.** `/lab` requires a session and the admin role (`src/app/lab/layout.tsx`).
   Rooms may read live data through server components; the lab's own `actions.ts` already
   imports the Prisma client. `docs/spec/lab-voice.md` is the house voice; a new room goes
-  in the **Delight** group, never "Second look".
+  in the **Delight** group, never "Second look". The owner has opened `/lab/catchups/` for
+  *"all kinds of testing for a bunch of different things... whatever we want"* (¶52).
+- **F13, his answers (2026-09-05, ¶51 and ¶52).** Ultracode is this session's call.
+  Throwaway Catch-ups are allowed, *"or anything else you want and need to do a great job"*.
+  What matters most to him in recon: *"how literally every state of the catch up looks and
+  every sequence of events through those states looks."* Batch and people Catch-ups both
+  exist and live together; a batch Catch-up *"can't edit people in and out"*, everyone in the
+  batch is added automatically and *"[has] access to previous issues if they join later"*;
+  people Catch-ups are *"how you'd expect"*. Any way of saving old Catch-ups is fine *"as
+  long as they're totally regeneratable"*. The magazine is **portrait**. Build *"a fake
+  catch up or two"* filled with *"literally every type of content we might come across"*
+  and make the features survive it: *"incredibly robust can be produced with only pressure
+  testing."* Real data in the rooms: yes.
+- **F14, a hazard the answers open.** A throwaway Catch-up notifies its members when a Round
+  opens, when answers open, on every reminder and on publish (`catchups-notify.ts`). A fake
+  Catch-up containing any real member would put test noise in that member's bell, to seventy
+  beta testers' detriment. So a live throwaway holds only the owner's account and Jerry, and
+  variety of content and authors comes from fixtures (D30, D33).
 
 ---
 
@@ -350,7 +379,8 @@ so. **OPEN** is nobody's yet; the phase named decides it.
   layout and component shape; bespoke but unmistakably ours, the Action Button analogy (¶42).
 - **D4** A batch Catch-up exists by default for every batch; membership is the batch, fixed
   and automatic; everyone in it sees the whole history and can take part in future Rounds;
-  no adding members; no leaving (¶4, ¶5).
+  no adding members; no leaving; someone who joins the site later is in it and can read every
+  earlier Round (¶4, ¶5, ¶51).
 - **D5** Archived and deleted Catch-ups do not appear on the main list (¶5).
 - **D6** Existing content is preserved, and exported to a rebuildable file before any change
   that could lose it (¶45).
@@ -365,7 +395,9 @@ so. **OPEN** is nobody's yet; the phase named decides it.
   the magazine, print-first, without comments. Both exist (¶10, ¶21).
 - **D14** Letterloop is the floor (¶49).
 - **D15** Past specs and prompts are guidance, not law (¶48).
-- **D16** No ultracode, no `Workflow` fan-outs, one mind per job (¶46 and his fix-campaign words).
+- **D16** Ultracode is allocated by this session (¶51), and the allocation is: S0's checks
+  and sweep, S3's independent directions, M1's failure-mode hunt; nowhere else. One mind per
+  job everywhere a job is one long sequence with state (his fix-campaign words).
 - **D17** The order of work is recon, research, directions, rooms, pick, spec, build, with the
   magazine as a parallel track (¶20, ¶43).
 - **D18** One click target per tile and the whole tile is it; no redundant View; no tile that
@@ -373,6 +405,21 @@ so. **OPEN** is nobody's yet; the phase named decides it.
 - **D19** Copy: "In the loop", not "In the loop catch-up"; a question is asked without
   "Question N"; the Keeper is labelled "Keeper" and nothing more (¶25, ¶27, ¶38). The banned
   words from the old spec's banner stand: "gentle", "quiet", "small", "warm", "a round of".
+- **D28** Batch Catch-ups and people Catch-ups both exist and are listed together as the
+  same kind of thing; a people Catch-up works *"how you'd expect"*, with people added and
+  removed by hand; a batch Catch-up has no people editing at all (¶51).
+- **D29** The magazine is portrait, not landscape (¶51).
+- **D30** Robustness comes from pressure testing: *"a fake catch up or two"* filled with
+  *"literally every type of content we might come across"*, and every surface (the rooms,
+  the reader, the magazine) must survive the most varying input (¶51). The corpus exists
+  before the directions are judged and before the magazine grammar is written.
+- **D31** Throwaway Catch-ups and *"anything else you want"* may be created to do the job
+  well (¶51), within D33.
+- **D32** `/lab/catchups/` is the sandbox for any test in this campaign, *"whatever we
+  want"* (¶52): direction rooms, the pressure room, the magazine spike, viewer experiments.
+- **D34** Recon's first duty is *"how literally every state of the catch up looks and every
+  sequence of events through those states looks"* (¶51): every state, and every path
+  between states, as a storyboard a person could follow.
 
 ### RECOMMENDED
 
@@ -386,11 +433,14 @@ so. **OPEN** is nobody's yet; the phase named decides it.
 - **D22** S1 fixes nothing. It reproduces, measures and root-causes, so that S3 designs from
   facts and X fixes from causes. The one exception is track X itself, which is independent
   of the redesign and may ship first.
-- **D23** The export is `scripts/dev/export-catchups.mjs`, writing JSON to
+- **D23** The export is `scripts/dev/export-catchups.mjs`, writing to
   `scripts/dev/.exports/catchups/<date>/` (already ignored by the `scripts/dev/.*/` rule;
-  it holds members' words and must never be committed): every Catch-up, Round, question,
-  answer, heart and membership, plus a manifest of photo keys. Bytes are not copied; the
-  nightly media mirror has them (F10). Re-run before every migration in S6+.
+  it holds members' words and must never be committed): one JSON file with every Catch-up,
+  Round, question, answer, heart, reminder preference and membership, **and the photo
+  bytes beside it**, because he asked for *"totally regeneratable"* (¶51) and 32 answers'
+  worth of 1920px WebP is a few tens of megabytes. The JSON's shape is also the fixture
+  format the rooms and the magazine engine consume (D30), so one loader serves both.
+  Re-run before every migration in S6+.
 - **D24** The magazine is one layout engine rendering to screen and to print from the same
   components, at a route of its own; the PDF is that page printed by headless Chrome. Start
   it as a hand-run script (the `docs/spec/hand-run-passes.md` shape) that writes the PDF to
@@ -407,6 +457,22 @@ so. **OPEN** is nobody's yet; the phase named decides it.
   for most magazine pages and not for a full-bleed A4 at 300 dpi. Whether Catch-ups should
   start keeping the original the way the Collection does is a data decision for S5; M1 says
   what it needs.
+- **D33** Variety and volume come from **fixtures, not fake members.** A live throwaway
+  Catch-up holds only the owner's account and Jerry Maguire, because every Round event
+  notifies its members (F14) and because invented accounts would appear in the directory
+  and the member counts seventy real people look at. The pressure corpus (D30) is JSON in
+  the export's shape under `src/app/lab/catchups/_fixtures/` (invented names and birds,
+  no real member's words unless copied from the export), plus the two real published Rounds
+  from the export. Rooms and the magazine engine render fixtures through the same loader as
+  live data. If a live test genuinely needs many real authors, that is a question for the
+  owner, not a thing to do.
+- **D35** The pressure corpus covers, at least: an answer of one word and one of 3,000
+  words; a question with one answer and one with forty; a Round with one question and one
+  with twelve; zero photos, one photo in each orientation, three portraits together, ten
+  photos on one answer, a two-hundred-photo wall; a song link from Spotify, YouTube and an
+  unknown host, and a link that fails to resolve; an emoji-only answer; a very long name and
+  a name with diacritics; a member who left; a deleted photo; a Round nobody answered; a
+  Catch-up with two members and one with a hundred; every lifecycle state.
 
 ### OPEN
 
@@ -466,6 +532,23 @@ the admin Catch-ups pages; the notifications that link into all of this; anythin
 that mentions a Catch-up. As Keeper and as plain member. Then the empty states: a member in a
 batch with no Catch-up, a brand-new member, a Round with one answer.
 
+**Then every sequence, as a storyboard (D34).** This is the part he cares about most (¶51):
+*"how literally every state of the catch up looks and every sequence of events through those
+states looks."* For each path below, walk it in the `[Recon]` Catch-up and record every
+screen a member sees along the way, in order, at 390 and 1512, as a numbered strip in
+`recon.md` (shot, one line of what the person sees, one line of what they can do next). The
+paths: create a people-Catch-up and reach collecting; collecting to answering (by the clock
+and by "Open answering now"); answering to preparing to published, including the 24-hour
+hold and "Publish now"; a published Round to the next Round opening; pause in the middle of
+answering, then resume; extend a deadline; end; archive, then find it, then put it back;
+delete, then restore, then let it expire; join by link; a member removed, a member leaving;
+the Keeper handed over; a member who joined the site after Round 1 opening the Catch-up for
+the first time; and the notification a member taps at each transition and where it lands.
+Where a path takes days by the clock, say how you moved the clock (the state is a pure
+function of timestamps, `computeStatus` in `catchups-core.ts`; a Keeper control or a
+read-only look at the code may be enough, and if you must touch a timestamp do it only on
+the `[Recon]` rows and say so).
+
 **Reproduce every complaint in the brief and label it.** For each of I1 to M6 that describes
 something visible: *reproduced* with the measurement, or *not reproduced* with what you saw
 instead. Root-cause the mechanical ones, in the code, to the line:
@@ -501,7 +584,12 @@ fifteen, ¶39) and list them with a shot each.
 **The export (D6, D23).** Write `scripts/dev/export-catchups.mjs`, dry-run by default, in
 the `hand-run-passes.md` shape (`scripts/qa/hand-run-passes.test.mjs` will hold you to it),
 add its row to `scripts/dev/README.md` if that ledger exists, run it, and record the counts
-against F1. Nothing in the tree is deleted, ever, by this script.
+against F1. It writes the JSON and copies every photo's bytes beside it, so the folder alone
+can rebuild every Catch-up. Nothing in the tree is deleted, ever, by this script. Define the
+JSON's shape as a TypeScript type in `src/lib/catchups-export.ts` (or beside the existing
+types), because the rooms and the magazine will load fixtures in exactly this shape (D30,
+D33); write the first fixture from the two real published Rounds, and a second, invented one
+that covers as much of D35 as you can in the time, under `src/app/lab/catchups/_fixtures/`.
 
 **History (B4).** `git log -S "batch" -- 'src/app/(main)/catchups' src/components/catchups`
 and the spec's own history: when did a default batch Catch-up exist, how did "Start one"
@@ -566,12 +654,30 @@ the code. Update the board and log here when you finish.
 
 ---
 
-## S3: Directions (Fable)
+## S3: Directions (Fable, ultracode on)
 
 You are the session the owner ran this campaign to reach. Read `brief.md` twice. Then
 `recon.md`, `flows.md`, `prior-art.md`, `docs/spec/DESIGN-SYSTEM.md` end to end,
 `docs/spec/lab-voice.md`, and `docs/planning/collection-rework/spec.md` as the model for how
 a decision is marked.
+
+**How ultracode is used here, and how it is not.** The architecture below is yours alone:
+one mind, written before any fan-out, because it is the shared structure every direction
+must fit (¶42: *"different teams are working together... but under the same broader
+structure"*). Then a `Workflow`: three or four independent designers, each given the SAME
+inputs and nothing else, that is, told to read `brief.md`, `recon.md`, `flows.md`,
+`prior-art.md`, `DESIGN-SYSTEM.md` and your architecture page in full from disk (never your
+digest of them; the writing-for-agents skill's "Whose words" section is the rule), each with
+a different starting bet you assign (for instance: the reader is the product and everything
+else is a door into it; the list is a shelf of magazines; the Catch-up's home is a calendar
+of Rounds; Catch-ups as if it were the whole app, ¶19), and each returning one direction
+against the checklist below. Let the designers inherit this session's model: this is the
+one place intelligence is the point. Then a judge panel on Opus, one judge per direction,
+each scoring against the brief's paragraphs with quotes, and one adversarial judge told to
+find where every direction is *"today's layout with the bugs fixed"* (¶26). You read all of
+it yourself, keep what is strong, and write `directions.md` and the room briefs yourself;
+the synthesis is not delegated. Keep every direction that genuinely differs; merge only
+where two designers converged.
 
 **First, the architecture**, because every direction shares it and it is where the rot is
 (¶18, ¶36). Decide the nouns a member thinks in (a Catch-up, a Round, the people, a question,
@@ -630,11 +736,20 @@ mind per job). Read `docs/spec/lab-voice.md` before the first line: the room is 
 - Rooms live at `/lab/catchups/<slug>`, registered in `src/app/lab/_registry.ts` in the same
   commit, with an index at `/lab/catchups` that lists the directions and the shared checklist
   so he can move between them on his phone. `node scripts/qa/lab-audit.mjs` and
-  `npm run check` must pass after each room.
-- **Real data, read only.** Server components read the live Catch-ups through the Prisma
-  client the way `src/app/lab/actions.ts` already does; no writes from a room, ever. Where a
-  state does not exist in the data (a Round in collecting), the room may fake that one state
-  and must say so on the page.
+  `npm run check` must pass after each room. `/lab/catchups/` is his sandbox for anything
+  (¶52); use it freely, register everything.
+- **Real data, read only, and the pressure corpus.** Server components read the live
+  Catch-ups through the Prisma client the way `src/app/lab/actions.ts` already does; no
+  writes from a room, ever. Every room also takes `?fixture=<name>` and renders a fixture
+  from `src/app/lab/catchups/_fixtures/` through the same loader (D23, D33), so each
+  direction is judged on the real Rounds AND on the extremes in D35: one answer, forty
+  answers, a two-hundred-photo wall, a 3,000-word answer. Complete the invented fixture S1
+  started until it covers all of D35; that is the *"fake catch up or two"* he asked for
+  (¶51), and it is data, not rows. Where a state does not exist in the data (a Round in
+  collecting), the room may fake that one state and must say so on the page.
+- **A pressure room**, `/lab/catchups/pressure`, that shows one chosen direction's reader
+  and list against every fixture in turn, so *"incredibly robust"* (¶51) is something he can
+  scroll through rather than a claim.
 - Both viewports, two rounds each, and his 1512 as well. The `screenshot-qa` pair (desktop and
   mobile, in parallel, and never more than that pair) after each room. Look at the shots
   yourself.
@@ -686,15 +801,17 @@ verify yourself, park what breaks) is the protocol.
 
 ---
 
-## M1: Magazine design (Fable)
+## M1: Magazine design (Fable, ultracode on for two steps)
 
-Read ¶21, ¶30 and ¶31 until you can hear them, then `prior-art.md` §3 and §8, then the
-export from S1, because the two published Rounds in it are your first test corpus.
+Read ¶21, ¶30, ¶31 and ¶51 until you can hear them, then `prior-art.md`'s sections on
+layout engines and on producing a PDF, then the export and the fixtures from S1, because the
+two published Rounds and the invented extremes are your test corpus (D30, D33, D35).
 
-Design the layout engine, not the page. That means:
+Design the layout engine, not the page. Portrait (¶51, D29). That means:
 
-- **The page model.** Screen-first spreads or a paper size; how the same components render
-  to a browser and to `@page`.
+- **The page model.** A portrait paper size and how the same components render to a browser
+  and to `@page`. Whether the on-screen magazine is the same pages or a continuous portrait
+  scroll of them is yours to decide.
 - **The grammar.** The kinds of block a Round is made of (a question opener; a short answer;
   a long answer; an answer with one, two, three or more photos in each orientation; a photo
   wall; a song card; a pull-quote from a most-hearted answer; the contributors) and the rules
@@ -707,7 +824,17 @@ Design the layout engine, not the page. That means:
   answer, forty answers to one question, a Round with one answer, zero photos, all portrait
   photos, one member who answered everything, an emoji-only answer, a very long name, a
   deleted member, a missing image, a link with no preview, a photo wall with two hundred
-  photos.
+  photos. **This is the first place ultracode is used**: a `Workflow` that fans out
+  finders, each hunting failure modes from a different angle (content extremes, image
+  resolution, typography, pagination, time and locale, missing data, malicious input), loops
+  until two rounds find nothing new, and dedupes against everything seen; you write the
+  bypass for each yourself. Every one of them becomes a fixture in D35's corpus if it is not
+  there already.
+- **The grammar panel** is the second: once you have a candidate grammar, three independent
+  designers each lay out the same two real Rounds and the two hardest fixtures under your
+  rules on paper (as a described sequence of pages, not code), and an adversarial judge looks
+  for where the rules produce blown-up images, white space or monotony (¶21). Fix the rules,
+  not the pages.
 - **The feasibility spike.** Render one real Round through print CSS in Chrome and measure
   fidelity (page breaks, fonts, image bleed); then the pipeline per D24, with the Vercel
   numbers you could verify and the ones you could not, and a recommendation.
@@ -772,10 +899,12 @@ learned since.
 
 ---
 
-## Owner questions (open; answer any time, defaults apply otherwise)
+## Owner questions
 
-Plain English, five lines each, defaults chosen to be the safe branch, in the fix-campaign
-format. One reply covers them all: *"defaults, except..."*
+**All five below were answered on 2026-09-05; his words are ¶51 and ¶52 of the brief and
+are repeated under "Owner answers".** The questions stay here so the answers can be read
+against what was asked. New questions for him go at the end of this section, in the same
+five-line shape, with a default on each.
 
 **1. Ultracode: did you mean none at all, or "ask me"?**
 - **What I read:** none anywhere in this campaign; one mind per job.
@@ -814,7 +943,41 @@ format. One reply covers them all: *"defaults, except..."*
 
 ## Owner answers
 
-_(none yet)_
+**2026-09-05, typed, verbatim (also ¶51 of the brief):**
+
+> 1 ultracode is totally up to you if you want me to run anything on ultracode i'll do so.
+> you can make any throwaway catch up or anything else you want and need to do a great job.
+> it's important especially to see how literally every state of the catch up looks and every
+> sequence of events through those states looks. yes both are catch ups so they should be
+> together. the batch catch up can't edit people in and out it's just people in that batch
+> and they're all automatically added and have access to previous issues if they join later
+> and all of that. people catch ups are how you'd expect. yes any form of saving previous
+> catch ups is good as long as they're totally regeneratable. also for through testing of
+> many of these features particularly the magazine (which by the way should be in portrait
+> not landscape) you should def create a fake catch up or two and fill it with literally
+> every type of content we might come across and make sure it surves the most varying input.
+> incredibly robust can be produced with only pressure testing. 5 yes that's fine.
+
+**A few minutes later (¶52):**
+
+> we can do all kinds of testing for a bubnch of different things under
+> /lab/catchups/....whatever we want. use it whenever you need
+
+**The reading this session took**, beneath his words and separate from them:
+
+- Q1: ultracode is mine to allocate. Allocated in "The sessions" (D16): S0, S3 and M1.
+- Q2: throwaway Catch-ups are allowed, and so is anything else needed. His emphasis is on
+  seeing every state and every sequence, which is now D34 and the storyboard block in S1.
+  The hazard in F14 (notifications to real members) is mine, not his, and D33 answers it:
+  live throwaways hold only the owner and Jerry; variety comes from fixtures.
+- Q3: both kinds, together, D28. His extra sentence about late joiners went into D4.
+- Q4: the export is fine in any form provided it can regenerate everything. Read as: include
+  the photo bytes, D23. "Totally regeneratable" is the test the export script must pass.
+- The magazine is portrait, D29. The fake Catch-ups full of every content type are D30, D33
+  and D35; the reading that they are fixtures rather than rows of invented members is mine,
+  for the F14 reason, and a session that needs live rows for a real test should ask.
+- Q5: real data in the rooms, yes.
+- `/lab/catchups/` is the sandbox, D32.
 
 ---
 
@@ -829,4 +992,39 @@ Wrote this file. Amended the writing-for-agents skill with "Whose words are you 
 in both copies (project and `~/.claude/skills/`). Put a banner on `docs/spec/catchups.md`
 saying it describes today and is outranked by the brief. Did not build, did not screenshot
 (the committed baselines are masked and the recon session will do it properly), did not
-push. Five questions above are open for the owner; none blocks S1 or S2.
+push. Five questions were put to the owner; he answered all five within the hour (¶51, ¶52)
+and left ultracode to this session.
+
+**Second half of S0, with ultracode.** One `Workflow`, fifteen Opus agents: four verifiers
+reading the raw transcript stretch by stretch against `brief.md`, two critics reading the
+ledger and decisions against the brief, eight researchers for the S2 prior-art sweep and one
+assembler. **The four verifiers finished; the other eleven failed on the owner's usage limit
+("resets 7:10pm IST") before doing any work.** So the prior-art sweep has not happened and
+the ledger has not been checked. The workflow is resumable with its cached verifier results:
+script `~/.claude/projects/-Users-sanan-Documents-rv-connect/b1b1a5d8-1080-406a-ba71-fbca3459a4a8/workflows/scripts/catchups-rework-s0-verify-and-prior-art-wf_75c20c60-8e8.js`,
+run id `wf_75c20c60-8e8`; resuming replays the verifiers from cache and runs the eleven
+live. If S0's session is gone, S2 runs the same eight shapes from its own section above.
+
+**What the verifiers found, and what changed in `brief.md`.** 69 findings across the four
+stretches, verdict on each stretch "substantially faithful" with the same three faults: the
+first cut trimmed hedges as if they were fillers ("I think", "I guess", "maybe", "a little
+bit", "kind of", "I don't know", "or something", "probably") and dropped a dozen "right?"
+tags, which together made him sound more certain than he was; it erased three live
+self-corrections (¶22 "writing for subagents... or writing for agents", ¶42 "I'm not going
+to add any new things. There can be a lot of new things", ¶42 "this website always uses...
+it doesn't always use"); it deleted one whole sentence of opinion (¶23 "I don't really care
+about the birds."); it changed a number by turning a self-correction into a range (¶31 "4 3
+centimeters" had become "3 or 4"); and it made about a dozen corrections without the
+bracketed original its own header promised ("give up", "batch of catch-ups", "pile",
+"onto", "the feature of", "after the second", "should be in" read as "could be in", supplied
+words such as "middle", "format", "width", "the text"). Every one was folded in: hedges and
+tags restored, reversals restored, the raw word kept inline with the guess in brackets, and
+the header rewritten to say what the conventions actually are (labels capitalised, numerals
+as spoken, British spelling in the spoken parts) and to record the check. The lesson for
+every later relay of his words is now the second paragraph of the writing-for-agents skill's
+"Whose words" section: a hedge is content.
+
+**Also in this half.** His answers to the five questions were recorded verbatim (¶51, ¶52,
+"Owner answers") and read into D4, D16, D23 and D28 to D35; S1 gained the storyboard block
+(D34); S3 and M1 gained their ultracode shapes; S4 gained the fixture switch and the pressure
+room; F13 and F14 were added.
