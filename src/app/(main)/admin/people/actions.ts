@@ -50,14 +50,11 @@ function revalidateAdmin(userId?: string) {
  */
 export async function loadMorePeople(
   params: Record<string, string>,
-  cursor: string,
-  /** How many rows the caller is already showing. Only used to recover from a
-   *  cursor row that has left the result set (audit Low 12). */
-  loaded = 0
+  cursor: string
 ): Promise<PeoplePage | { error: string }> {
   const denied = await requireAdminAction();
   if (denied) return denied;
-  return loadPeoplePage(readPeopleFilters(params), cursor, loaded);
+  return loadPeoplePage(readPeopleFilters(params), cursor);
 }
 
 /* ---------------------------------------------------------------- *

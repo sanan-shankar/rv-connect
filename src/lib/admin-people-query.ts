@@ -24,6 +24,7 @@ import {
 } from "@/lib/admin-people";
 import type { Prisma } from "@/generated/prisma/client";
 import { AUTHOR_CARD_SELECT } from "@/lib/people-select";
+import { decodeKeyset, encodeKeyset, keysetWhere } from "@/lib/keyset";
 
 const ROW_SELECT = {
   ...AUTHOR_CARD_SELECT,
@@ -39,9 +40,19 @@ const ROW_SELECT = {
 /**
  * One page of people, newest account first.
  *
- * Keyset, not offset, following `loadPosts`: the sort is
- * `(createdAt desc, id desc)` and the cursor is the last row, so a signup
- * arriving mid-scroll cannot shunt a row you already read onto the next page.
+ * Keyset, not offset, following `loadPosts` -- and now actually doing it. The
+ * sort is `(createdAt desc, id desc)` and the cursor carries those two VALUES
+ * rather than naming a row, so a signup arriving mid-scroll cannot shunt a row
+ * you already read onto the next page, and a member deleted or filtered out
+ * between one page and the next cannot end the scroll.
+ *
+ * That last failure is why this used to be twenty-five lines longer. Prisma's
+ * `cursor: { id }` needs the row it names to still be inside the filtered set;
+ * when it is not, the query answers nothing at all (measured on this stack,
+ * `keyset.ts`), so "Show more" simply stopped with hundreds of rows left. The
+ * recovery block that papered over it -- an existence check, then an offset
+ * re-query taking a client-supplied row count -- is gone with the cause. A
+ * comparison against values has nothing to recover from.
  *
  * The mail lookup is scoped to THIS PAGE's unconfirmed ids. The panel it
  * replaces asked for every unconfirmed member's whole send history on every
@@ -49,52 +60,19 @@ const ROW_SELECT = {
  */
 export async function loadPeoplePage(
   f: PeopleFilters,
-  cursor?: string | null,
-  loaded = 0
+  cursor?: string | null
 ): Promise<PeoplePage> {
   const where = peopleWhere(f);
-  const orderBy = [{ createdAt: "desc" }, { id: "desc" }] as const;
+  const after = decodeKeyset(cursor);
 
-  let found = await prisma.user.findMany({
-    where,
+  const found = await prisma.user.findMany({
+    // AND, not a spread: `peopleWhere` can carry its own top-level OR, and a
+    // second one would silently replace the first (keyset.ts says so).
+    where: after ? { AND: [where, keysetWhere(after, "desc")] } : where,
     select: ROW_SELECT,
-    orderBy: [...orderBy],
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: PEOPLE_PAGE_SIZE + 1,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
   });
-
-  /* Recover from a cursor row that has left the result set (audit Low 12; the
-     same shape the directory's load-more carries for M39).
-
-     Prisma's `cursor` needs the row it names to be INSIDE the filtered set, so
-     if that member is deleted, or edited out of the current facet, between one
-     page and the next, this answers "nothing" for a list with hundreds of rows
-     left -- and "Show more" simply stopped, with the rest of the list
-     unreachable until a reload and nothing on screen to say so.
-
-     Only checked when the page came back EMPTY, which is also the ordinary
-     end-of-list case, so it costs one round trip on the last page of a
-     scroll-through and nothing on any other. An offset is less exact than a
-     cursor -- a row inserted above could be repeated or missed once -- but it
-     is a page of the list rather than the silent end of it. */
-  if (cursor && found.length === 0) {
-    const cursorStillCounts = await prisma.user.findFirst({
-      where: { ...where, id: cursor },
-      select: { id: true },
-    });
-    if (!cursorStillCounts) {
-      found = await prisma.user.findMany({
-        where,
-        select: ROW_SELECT,
-        orderBy: [...orderBy],
-        take: PEOPLE_PAGE_SIZE + 1,
-        /* Number.isFinite first: `loaded` is a network-supplied number whose
-           type is erased, and Math.trunc(NaN) is NaN, which Prisma rejects
-           with a 500 rather than a refusal (audit C-174). */
-        skip: Number.isFinite(loaded) ? Math.max(0, Math.trunc(loaded)) : 0,
-      });
-    }
-  }
 
   const hasMore = found.length > PEOPLE_PAGE_SIZE;
   const page = hasMore ? found.slice(0, PEOPLE_PAGE_SIZE) : found;
@@ -131,7 +109,7 @@ export async function loadPeoplePage(
       emailState: u.emailVerified ? "confirmed" : mailState(latest.get(u.id)),
       createdAt: u.createdAt.toISOString(),
     })),
-    nextCursor: hasMore ? page[page.length - 1].id : null,
+    nextCursor: hasMore ? encodeKeyset(page[page.length - 1]) : null,
   };
 }
 

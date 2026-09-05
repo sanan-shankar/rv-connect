@@ -78,7 +78,7 @@ export function PeopleList({
     try {
       const params: Record<string, string> = {};
       searchParams.forEach((v, k) => (params[k] = v));
-      const result = await callAction(() => loadMorePeople(params, cursor, rows.length));
+      const result = await callAction(() => loadMorePeople(params, cursor));
       if ("error" in result) {
         toast.error(result.error);
         return;
