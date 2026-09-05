@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import { SearchPill } from "./search-pill";
 import { NotificationBell } from "./notification-bell";
 import { GuideDoor } from "@/components/guide/guide-door";
 
@@ -11,8 +10,18 @@ import { GuideDoor } from "@/components/guide/guide-door";
  * and a per-page primary CTA. This is what replaces the old always-on
  * search + filter row that used to sit above each feed.
  *
- * Pass `showSearch` to mount the search pill, `unreadCount` to mount the bell,
- * and `actions` for the page's primary call to action (e.g. "New post").
+ * Pass `search` a <SearchPill>, `unreadCount` to mount the bell, and
+ * `actions` for the page's primary call to action (e.g. "New post").
+ *
+ * `search` takes the pill itself rather than a boolean, and that is a bundle
+ * decision as much as a shape one. A server component that imports a client
+ * component ships that module whether or not the branch renders, so a
+ * `showSearch` boolean checked at runtime put SearchPill and its two Phosphor
+ * icons into the first load of every route drawing a header -- twenty-six of
+ * them, for a pill exactly one draws. Handing the node in leaves the import
+ * with the page that wants it. The slot survives rather than folding into
+ * `actions` because ORDER is fixed here: search, then bell, then the CTA, and
+ * `actions` renders after the bell.
  *
  * The search pill only ever searches posts (see `SearchPill`); searching for
  * people is the directory's job.
@@ -26,7 +35,7 @@ export function PageHeader({
   title,
   afterTitle,
   subtitle,
-  showSearch = false,
+  search,
   unreadCount,
   actions,
   guide,
@@ -38,14 +47,15 @@ export function PageHeader({
    *  page's action cluster. Not a general slot: keep it to one glyph. */
   afterTitle?: React.ReactNode;
   subtitle?: string;
-  showSearch?: boolean;
+  /** The page's own <SearchPill>. See the note above on why it is a node. */
+  search?: React.ReactNode;
   /** Slug from GUIDE_AREAS. Turns the title into the way into that chapter. */
   guide?: string;
   unreadCount?: number;
   actions?: React.ReactNode;
   children?: React.ReactNode;
 }) {
-  const hasRight = showSearch || unreadCount !== undefined || actions || children;
+  const hasRight = search || unreadCount !== undefined || actions || children;
 
   return (
     <header
@@ -111,10 +121,10 @@ export function PageHeader({
             become unreadable. Opacity only, so the row never reflows and the
             title is exactly where it was when the line retracts.
             `group-has`, rather than a prop threaded through three call sites:
-            the Collection and the directory pass their own <SearchPill> in via
-            `actions`, so this component never sees one and could not be told.
-            All three are inside this header, and all three set
-            data-search-open. */}
+            all three pills are passed IN -- the feed's through `search`, the
+            Collection's and the directory's through `actions` -- so this
+            component holds no open/closed state to thread anywhere. All three
+            are inside this header, and all three set data-search-open. */}
         <h1
           className={cn(
             "font-heading text-[30px] leading-[1.2] tracking-[-0.02em] text-foreground",
@@ -138,11 +148,7 @@ export function PageHeader({
            pixels, not the metrics), so a pill flush with the box top reads one
            pixel high against the letter beside it. */
         <div className="mt-px flex flex-nowrap items-center justify-end gap-2.5 shrink-0">
-          {showSearch && (
-            <div className="hidden sm:block">
-              <SearchPill />
-            </div>
-          )}
+          {search && <div className="hidden sm:block">{search}</div>}
           {unreadCount !== undefined && (
             // This is the preferred notifications entry point at every width,
             // including mobile. Sidebar suppresses its own mobile top-bar
