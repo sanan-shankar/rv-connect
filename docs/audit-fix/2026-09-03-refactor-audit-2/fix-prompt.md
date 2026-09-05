@@ -66,8 +66,8 @@ ceiling on a commit message. Pushing is a deploy: **ask first.**
 ## The order to work in
 
 Phases A → C are worth doing whatever the owner decides about the rest, and all three are done. Do
-not start Phase D, G or any row marked T4 until the owner has answered §4. **Phase E is eight rows
-in; finish it (E5, E6, E7b, E8, E10b, E11, E12)**, and Phase F after it.
+not start Phase D, G or any row marked T4 until the owner has answered §4. **Phase E is eleven rows
+in; finish it (the rest of E5 and E6, then E7b, E8, E11, E12)**, and Phase F after it.
 
 ### Phase A — free money — **DONE 2026-09-05.** See the ledger. Start at Phase B.
 Config scoping, two dependency removals, two pieces of broken QA tooling, and a set of orphan
@@ -95,8 +95,10 @@ that move source lines; nothing before them does, much.
 **All five drifts this phase existed for are closed**: E1 (the upload client's timeout and the
 Catch-up 5 MB pre-check), E2 (the avatar's blank-MIME HEIC), E3 (three of four emails in two
 wordings), E4a (`import-album.mjs`'s missing demo guard). Also done: E4b, E7a, E9, E10a.
-**Still open: E5, E6, E7b, E8, E10b, E11, E12** — read the ledger's "what E left" before starting,
-especially its warning about E7b, which is not verifiable without an env change and a restart.
+Also done: E4b, E5a, E6a, E6b, E7a, E9, E10a, E10b.
+**Still open: E5 (the rest), E6 (the rest), E7b, E8, E11, E12** — read the ledger's "what E left"
+before starting, especially its warning about E7b, which is not verifiable without an env change
+and a restart.
 
 ### Phase F — hygiene, in one pass, last
 Stale comment blocks in eleven territories, the documentation drift, and the two recurrence mechanisms
@@ -282,16 +284,18 @@ you could not do and why.
 | Date | Phase | Rows done | Measured result | Notes / what the next session must know |
 |---|---|---|---|---|
 | 2026-09-04 | — | audit closed | see `report.md` §1b | Nothing fixed yet except ORCH-04 (`74cc61a`). Verification covered 84 of 369 findings; the other 285 have orchestrator spot-checks only. |
-| 2026-09-05 | **E — partial (8 of 15)** | E1, E2, E3, E4a, E4b, E7a, E9, E10a | **Every drift the phase existed for is closed.** Two upload surfaces gained the 60 s abort they lacked, so a phone that loses signal mid-upload no longer leaves the button on "Adding..." for the session; the Catch-up answer stopped refusing at 5 MB the ordinary phone photograph the shrinker exists to make uploadable; the settings avatar stopped missing a blank-MIME HEIC and telling the member "that doesn't look like a JPG"; the four emails stopped being written twice, and the two notices got back the CTA label their plain-text readers never had; `import-album.mjs` — the one script that writes photographs — got the demo-destination guard the other seven had. **Source: −468 / +809 across 38 files** (the +809 is mostly the four new test files and the comments arguing the shared shapes; the de-duplication itself is roughly line-neutral, as the audit said it would be). Scripts alone: **−161 / +68**. `npm run check` (102 tests, up from 101), `npm run visual` **25/25** and every manual gate green. 8 commits, `2808ab4`..`5ed0a92`. | Read "What Phase E left, and what it corrected" below before starting E5. |
+| 2026-09-05 | **E — partial (11 of 15)** | E1, E2, E3, E4a, E4b, E5a, E6a, E6b, E7a, E9, E10a, E10b | **Every drift the phase existed for is closed.** Two upload surfaces gained the 60 s abort they lacked, so a phone that loses signal mid-upload no longer leaves the button on "Adding..." for the session; the Catch-up answer stopped refusing at 5 MB the ordinary phone photograph the shrinker exists to make uploadable; the settings avatar stopped missing a blank-MIME HEIC and telling the member "that doesn't look like a JPG"; the four emails stopped being written twice, and the two notices got back the CTA label their plain-text readers never had; `import-album.mjs` — the one script that writes photographs — got the demo-destination guard the other seven had. **Source: −619 / +976 across 48 files** (the +976 is mostly the two new test files, the new shared modules and the comments arguing the shared shapes; the de-duplication itself is roughly line-neutral, as the audit said it would be). Scripts alone: **−161 / +68**. **Two live defects came out with the de-duplication, neither of them the row's stated point**: `security-regressions.test.mjs` -- the sweep pinning C2, arbitrary unrecoverable R2 deletion, closed -- still found server-action files with the `git grep` shape C-189 removed from its sibling, so an untracked or single-quoted action file produced NO assertion rather than a failing one (proved with both probes); and `balancedBody` returned a function's RETURN TYPE instead of its body whenever that type was a bare object rather than a generic, which is the shape of `audienceWhere`, where the post-visibility author exemption is pinned. `npm run check` (102 tests, up from 101), `npm run visual` **25/25**, `npm run verify:crawl` **20/20** and every manual gate green. 11 commits, `2808ab4`..`08d8ac6`. | Read "What Phase E left, and what it corrected" below before starting E5. |
 | 2026-09-05 | **C — complete** | C1, C2, C3 (both halves), C4, C5, C6 (both halves), C7, C8, C9, C10, C11 | Nine routes measured with `pg_stat_statements` against the same files at the phase's start commit (`cfdf82f`), minimum of two to four samples each: `/feed` **24 -> 19**, `/about` **12 -> 8**, `/collection` **27 -> 19**, `/directory` **21 -> 18**, `/letters` **15 -> 11**, `/admin/analytics?view=people` **38 -> 24**, `/profile/[id]` **25 -> 19**, `/letters/[id]` **21 -> 16**, `/catchups/[id]` **33 -> 27**. Sum **216 -> 161, -25%**. Four of those come off EVERY authenticated page: the presence UPDATE, the duplicate unread count, and two from the Catch-up advance. Plus one fewer client action per page load (the bell's mount call). `npm run check`, `npm run visual` (25/25) and `npm run verify:crawl` (20/20) green at the end. 12 commits, `29582b3`..`ce223a0`. | Read the six rows below before Phase D. |
 | 2026-09-05 | **B — complete** | B1, B2, B3, B4, B5, B6 (both halves), B7 (both halves), B8, B10 (+ A18 + media-viewer-03), B11, B12, B13. B9 measured and **reverted** | Non-lab first-load JS: median **1,094 -> 992 KB**, sum across 51 routes **53.10 -> 48.99 MB (-4.11 MB)**. `/login` 906 -> 756, `/` 899 -> 749, `/signup` 920 -> 771, `/welcome` 1,190 -> 1,042, `/letters/[id]` 1,116 -> 984, `/directory` 1,229 -> 1,126, `/about` 1,063 -> 963, `/collection` 1,104 -> 1,030, `/profile/[id]` 1,258 -> 1,199, `/feed` 1,224 -> 1,201. Lab sum 37.48 -> 36.70 MB. Post-hydration: the 72,472 B motion barrel chunk gone. Source: **-113 lines** net across the two de-duplications. Every row measured between two production builds; `npm run check`, `npm run visual` (25/25) and `npm run verify:crawl` (20/20) green at the end. 16 commits, `7c47594`..`387477a`. | Read the six rows below before Phase C. |
 | 2026-09-05 | **A — complete** | A1, A1b, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17. **A18 deferred to B10, A19 declined** (see below) | CSS on every route **238,434 → 160,420 B raw**, 33,666 → 24,594 gz (−32.7% / −26.9%), measured between two production builds. Lab sheet 147,484 B on 48 routes, **0 non-lab**. Lockfile **1,083 → 848** (−235). Deps **33+18 → 32+17**. Tracked −420,350 B. Routes 52 → 51. Test files 102 → 101. `npm run check` and `npm run visual` green throughout; 21 commits, `e16c585`..`94f76d9`. | Read the four rows below before Phase B. |
 
 ### What Phase E left, and what it corrected
 
-**Rows still open**: E5 (QA kit adoption), E6 (test-kit adoption), **E7b** (`auth-edge-02`, the
-Turnstile sentinel map), E8 (the "one hoopoe at a time" primitive), **E10b** (`lib-core-config-03`,
-the retention sweep's eight cutoff deletes), E11 and E12 (the two tails).
+**Rows still open**: the rest of E5 (one bootstrap, one dev-login, one answer to "which Chrome" --
+note that **eleven bare `config({ path })` calls still print dotenv 17's banner** on the stdout of
+every hand-run pass; `_env.mjs` passes `quiet: true` and does not), the rest of E6 (`lib-tests-05`'s
+pre-filter, which needs a new count guard), **E7b** (`auth-edge-02`, the Turnstile sentinel map),
+E8 (the "one hoopoe at a time" primitive), E11 and E12 (the two tails).
 
 **E7b is the one to be careful with, and the fix-prompt's warning about it is right.** Nothing
 anywhere pins `TICK_HUMAN_BOX` or `BOT_CHECK_BLOCKED`, so the only proof is a manual
@@ -299,7 +303,7 @@ anywhere pins `TICK_HUMAN_BOX` or `BOT_CHECK_BLOCKED`, so the only proof is a ma
 restart before the row is verifiable at all; budget for it rather than discovering it at the end.
 E7a is done and did not touch Turnstile.
 
-**Four things this phase learned that the next one should not re-derive.**
+**Six things this phase learned that the next one should not re-derive.**
 
 1. **A sweep beats a list, and it proved it the same hour.** E2's pin is a walk over `src/` refusing
    any hand-rolled HEIC test, rather than the four-file list the audit specified. It immediately
@@ -319,6 +323,15 @@ E7a is done and did not touch Turnstile.
    sets cannot see a rewritten connection string. Both parsers over the real `.env` and `.env.demo`,
    compared key by key by value: **25 keys, 0 differences**, so the dotenv swap changed nothing that
    day. Run that before the swap, not after.
+
+5. **Adopting a shared helper is how you find the bug in it.** `balancedBody` steps over a
+   `Promise<{ users }>` return type by counting angle brackets, so a type written as a bare object
+   (`): { AND?: ...; OR: ... } {`) stopped it at the TYPE's brace and it returned the type. That is
+   the same failure its own docblock was written about. Nothing was passing wrongly, because all
+   four converted pins fail closed -- but a `doesNotMatch` against such a function would have
+   passed for ever. **Before converting a hand-rolled slicer, print both slices and look at them.**
+6. **Two `indexOf("\n  }")` sites were left alone deliberately**: they slice a try/catch guard and
+   an `if` branch, not a function body. Not every hand-rolled slice is the shared helper's job.
 
 **A deliberate behaviour change shipped in E7a**, flagged because it is on a signup gate:
 `hasPassedTrivia` used to accept `<ts>.<validsig>.junk` and now refuses it. Unforgeable without
