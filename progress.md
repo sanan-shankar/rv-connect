@@ -1,5 +1,26 @@
 # Progress Log
 
+## 2026-09-05 — the profession vocabulary stops shipping to every member's browser
+
+Refactor audit 2, row B7, the vocabulary half. `directory/page.tsx` has carried a comment since
+it was written -- "Resolved on the server so the client never imports the whole vocabulary to
+render twelve strings" -- and it was not true. One `tagLabel()` call in `directory-client.tsx`,
+for the chip a bookmarked `?profession=` draws, pulled `PROFESSION_TAGS` into the client chunk,
+and with it all seventeen `hint` strings, which that file's own doc says are "for the tagging
+session, not for the UI". A const array of object literals cannot be shaken field by field.
+
+The label is computed on the server now and passed as `initialFilters.professionLabel`. Not read
+off the `professions` prop: a tag below `TAG_FLOOR` is not in that list, and a bookmarked link to
+one still has to draw a chip a person can read and clear.
+
+`directory-rule.test.mjs`'s pin moved with it and grew a third assertion -- the server computes
+it, the client reads it, and the client does not import the vocabulary at all. All three
+mutation-tested: each breaks exactly one test.
+
+Measured between builds: **-2,409 B off /directory**, and "Still in full-time education" is now
+in no built chunk. Verified `?profession=law`, `?profession=environment` (below the floor) and
+`?profession=social impact` -- the chip reads Law, Environment and Social impact, and clears.
+
 ## 2026-09-05 — d3 arrives with the map, not with the directory
 
 Refactor audit 2, row B7, the map half. d3-geo, d3-selection, d3-zoom and topojson-client are

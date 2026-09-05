@@ -419,6 +419,14 @@ export default async function DirectoryPage({
              member makes to the chip replaces the whole filter anyway. */
           city: (Array.isArray(params.city) ? params.city[0] : params.city) || "",
           profession: params.profession || "",
+          /* The chip's TEXT, resolved here rather than in the client. The
+             vocabulary is a const array of object literals, each carrying a
+             `hint` written for the tagging session, and a field of one cannot
+             be tree-shaken away -- so a single `tagLabel` call in the client
+             shipped all seventeen hints to every member's browser. The
+             comment above `professions` has always claimed the client never
+             imports the vocabulary; as of 2026-09-05 that is true. */
+          professionLabel: params.profession ? tagLabel(params.profession) : "",
           house: params.house || "",
           type: params.type || "",
           yearFrom: yearFrom != null ? String(yearFrom) : "",
