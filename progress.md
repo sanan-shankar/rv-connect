@@ -10031,3 +10031,24 @@ left.
 
 Roughly line-neutral, as the audit said the whole phase would be: the code went 41 lines to 8, and
 the reasoning above went in beside it. Not run: it deletes, and it runs nightly on its own.
+
+## 2026-09-05 — Phase E, E6a: the security sweep stops asking git
+
+Two of this repo's sweeps decided "which files are server actions" by `git grep -l '"use server"'`.
+C-189 removed that from `gate-coverage.test.mjs` and wrote down all three ways it fails open: it
+matches only the DOUBLE-quoted directive, it requires the directive at character zero (so a file
+opening with its docblock is dropped whole, in a codebase this comment-heavy), and git sees only
+TRACKED files, so a new action file is invisible until somebody stages it.
+
+**`security-regressions.test.mjs` still had it** — the sweep pinning the two Criticals closed,
+including C2, arbitrary unrecoverable R2 deletion. Every one of those failure modes produces *no*
+assertion rather than a failing one, so an ungated new action simply ships. `serverActionFiles` lives
+in `test-kit.mjs` now and both sweeps call it, so there is one answer instead of two that agree today.
+
+Its second `git grep` had the same hole and is walked now too: the C1-c check that
+`NEXT_PUBLIC_ADMIN_EMAIL` never reaches the browser bundle could not see an unstaged file.
+
+**Both holes proved, not argued.** An untracked, single-quoted `"use server"` file taking `images`
+with no `ownedUploadUrls` call, and an untracked file reading `NEXT_PUBLIC_ADMIN_EMAIL`: `git grep`
+returns nothing for either, and the sweep now fails on both. The probes were deleted by the same
+command that wrote them.

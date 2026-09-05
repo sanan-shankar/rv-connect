@@ -23,7 +23,7 @@
  */
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export { balancedBody } from "./test-fn-body.mjs";
@@ -100,4 +100,43 @@ export function hasLoneSurrogate(s) {
     }
   }
   return false;
+}
+
+/**
+ * Every server-action file under `dir`, repo-relative.
+ *
+ * This used to be `git grep -l '"use server"'` in two sweeps, and it failed
+ * open three ways at once (audit C-189). It matched the literal DOUBLE-quoted
+ * directive, so an equally valid `'use server'` file was never listed. It
+ * required the directive at character zero, so a file opening with its
+ * docblock -- the likely shape in a codebase as comment-heavy as this one --
+ * was dropped whole. And `git grep` only sees TRACKED files, so a new action
+ * file was invisible until somebody staged it, which is precisely the moment
+ * you would want it to speak up.
+ *
+ * Every one of those produces NO assertion rather than a failing one, so a new
+ * ungated action simply ships. `gate-coverage.test.mjs` was fixed in C-189;
+ * `security-regressions.test.mjs` -- the SECURITY sweep, the one pinning the
+ * two Criticals closed -- kept the broken shape until 2026-09-05. It is here
+ * so there is one answer to "which files are actions", not two that agree
+ * today and diverge on the day somebody writes `'use server'`.
+ *
+ * Not named `useServerFiles`: ESLint's rules-of-hooks reads a `use` prefix as
+ * a React hook and refuses it at the top level.
+ */
+export function serverActionFiles(dir = resolve(ROOT, "src")) {
+  const acc = [];
+  for (const full of walk(dir, { skip: [...SKIP_DIRS, ".next"], match: /\.ts$/ })) {
+    /* The directive must be the first STATEMENT, not the first line: leading
+       comments are stripped before the test. A grep hit inside a comment (two
+       lib files explicitly document that they are NOT use-server modules,
+       quoting the directive) is not an action file, and this is what tells
+       the two apart. */
+    const head = readFileSync(full, "utf8").replace(
+      /^(?:\s*(?:\/\*[\s\S]*?\*\/|\/\/[^\n]*)\s*)*/,
+      ""
+    );
+    if (/^(['"])use server\1/.test(head)) acc.push(relative(ROOT, full));
+  }
+  return acc;
 }

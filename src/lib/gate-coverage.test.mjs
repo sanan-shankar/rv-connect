@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
-import { ROOT, read, decomment, walk, SKIP_DIRS, balancedBody } from "./test-kit.mjs";
+import { ROOT, read, decomment, walk, balancedBody, serverActionFiles } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Gate coverage: every exported server action either checks who is
@@ -81,40 +80,10 @@ function allActions(src) {
 const fnBody = (text, name) =>
   balancedBody(text, new RegExp(String.raw`(?:export\s+)?async\s+function\s+${name}\b`));
 
-/* Walked off the FILESYSTEM, not asked of git.
-   This used to be `git grep -l '"use server"'`, which failed open three ways
-   at once (audit C-189). It matched the literal DOUBLE-quoted directive, so an
-   equally valid `'use server'` file was never listed and the char-class
-   defence on the filter below never got the chance to run. It required the
-   directive at character zero, so a file opening with its docblock -- the
-   likely shape in a codebase as comment-heavy as this one -- was dropped
-   whole. And `git grep` only sees TRACKED files, so a new action file was
-   invisible to this sweep until somebody staged it, which is precisely the
-   moment you would want it to speak up.
-
-   Every one of those produces NO assertion rather than a failing one, so a new
-   ungated action simply ships. A walk sees every file; the filter below is the
-   one strict place. */
-/* Not named `useServerFiles`: ESLint's rules-of-hooks reads a `use` prefix as
-   a React hook and refuses it at the top level. */
-function serverActionFiles(dir) {
-  const acc = [];
-  for (const full of walk(dir, { skip: [...SKIP_DIRS, ".next"], match: /\.ts$/ })) {
-    /* The directive must be the first STATEMENT, not the first line: leading
-       comments are stripped before the test. A grep hit inside a comment (two
-       lib files explicitly document that they are NOT use-server modules,
-       quoting the directive) is not an action file, and this is what tells
-       the two apart. */
-    const head = readFileSync(full, "utf8").replace(
-      /^(?:\s*(?:\/\*[\s\S]*?\*\/|\/\/[^\n]*)\s*)*/,
-      ""
-    );
-    if (/^(['"])use server\1/.test(head)) acc.push(relative(ROOT, full));
-  }
-  return acc;
-}
-
-const files = serverActionFiles(resolve(ROOT, "src")).sort();
+/* Walked off the FILESYSTEM, not asked of git (audit C-189). Shared with
+   security-regressions.test.mjs since 2026-09-05; the reasoning is in
+   test-kit.mjs, where the one answer to "which files are actions" lives. */
+const files = serverActionFiles().sort();
 
 test("there are server-action files to sweep", () => {
   assert.ok(files.length >= 15, `only found ${files.length}; the git grep broke`);

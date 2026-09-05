@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync } from "node:fs";
-import { execSync } from "node:child_process";
-import { resolve } from "node:path";
-import { ROOT, read, decomment } from "./test-kit.mjs";
+import { relative, resolve } from "node:path";
+import { ROOT, read, decomment, walk, SKIP_DIRS, serverActionFiles } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Regression pins for the two CRITICAL findings (audit H17, pinning C1
@@ -48,12 +47,15 @@ test("C1-c: the admin email is not compiled into the browser bundle", () => {
   // The name itself is SPLIT here so that this test never becomes the one
   // src/ reference the audit-status C1-c probe finds (which happened).
   const NAME = ["NEXT_PUBLIC", "ADMIN_EMAIL"].join("_");
-  const hits = execSync(`git grep -l ${NAME} -- src || true`, {
-    cwd: ROOT,
-    encoding: "utf8",
+  /* Walked, not `git grep`ped, for the same reason as the sweep below: git
+     sees TRACKED files only, so a brand-new file leaking the name into the
+     browser bundle was invisible to this test until somebody staged it --
+     which is exactly the moment you would want it to speak up. */
+  const hits = walk(resolve(ROOT, "src"), {
+    skip: [...SKIP_DIRS, ".next"],
+    match: /\.(tsx?|jsx?|mjs|cjs|css|json)$/,
   })
-    .split("\n")
-    .filter(Boolean)
+    .map((full) => relative(ROOT, full))
     .filter((f) => f !== "src/lib/security-regressions.test.mjs")
     .filter((f) => decomment(read(f)).includes(NAME));
   assert.deepEqual(hits, [], `${NAME} referenced (outside comments) in: ${hits}`);
@@ -97,16 +99,19 @@ test("C2: every write path that accepts image URLs runs the ownership gate", () 
      C-193). The candidate set is now every server-action file that so much as
      names `images` or `imageUrl` outside a comment, so a new one joins the
      sweep on the day it is written. */
-  const files = execSync(`git grep -l '"use server"' -- 'src/**/*.ts' || true`, {
-    cwd: ROOT,
-    encoding: "utf8",
-  })
-    .split("\n")
-    .filter(Boolean)
-    .filter((f) => /^\s*(['"])use server\1/.test(read(f)))
-    .filter((f) => /\bimages\b|\bimageUrls?\b/.test(decomment(read(f))));
+  /* Walked off the FILESYSTEM, not asked of git. This was
+     `git grep -l '"use server"'` until 2026-09-05 -- the same fail-open shape
+     C-189 removed from gate-coverage.test.mjs, still standing in the SECURITY
+     sweep, where a candidate file that goes missing produces no assertion
+     rather than a failing one. It never saw a `'use server'` file, never saw
+     one whose docblock came first, and never saw an untracked new one. The
+     single-quote filter that used to be on the next line could not help: git
+     grep had already dropped those files before it ran. */
+  const files = serverActionFiles().filter((f) =>
+    /\bimages\b|\bimageUrls?\b/.test(decomment(read(f)))
+  );
 
-  assert.ok(files.length >= 3, `only ${files.length} candidate files; the git grep broke`);
+  assert.ok(files.length >= 3, `only ${files.length} candidate files; the walk broke`);
   for (const file of files) {
     if (MINTS_ITS_OWN_BYTES[file]) continue;
     /* The CALL, not the name: matching a bare `ownedUploadUrls` passed
