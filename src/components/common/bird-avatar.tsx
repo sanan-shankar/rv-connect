@@ -43,6 +43,22 @@ export function BirdAvatar({
 }: {
   user: AvatarUser;
   size?: SizeToken | number;
+  /** A card-coloured separator for overlapping rows (`-space-x-*`).
+   *
+   *  **Drawn on the photo path, and on the bird path only when BG_MODE is
+   *  "inset".** BG_MODE is "none", so on a bird this is deliberately inert.
+   *  That is not an oversight and it should not be "fixed" by dropping the
+   *  guard below: measured on the Catch-up card at 2x on 2026-09-05, a 4px
+   *  ring on a 28px avatar overlapped by -space-x-2 (8px) consumes the entire
+   *  overlap, so each glyph is sliced to a crescent by its neighbour's ring
+   *  and the "+N" chip reads as "- N". A photo is clipped to a circle and
+   *  wears the ring as a border; an unclipped glyph does not.
+   *
+   *  So a stacked row IS mixed today: members with a photograph get a ring,
+   *  members on a bird do not, and the "+N" chip hand-writes the same shadow.
+   *  The owner looked at both and kept these pixels (2026-09-05). If BG_MODE
+   *  ever moves to "inset", this starts drawing everywhere and the row
+   *  becomes consistent on its own. */
   ring?: boolean;
   className?: string;
 }) {
@@ -94,6 +110,8 @@ export function BirdAvatar({
   const speciesPick = speciesForMember(seed, overrideIndex);
 
   // No-disc modes ("none"/"outline") must NOT clip to a circle, or the crest/bill get cut.
+  // `clipped` also gates the ring below -- see the `ring` prop's docblock for
+  // why an unclipped glyph must not wear one.
   const clipped = BG_MODE === "inset";
   const v2Base = clipped
     ? base
