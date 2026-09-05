@@ -1,5 +1,33 @@
 # Progress Log
 
+## 2026-09-05 — one "open this photograph" button instead of four
+
+Refactor audit 2, media-viewer-03, the second half of B10. The same button was written four
+times -- post-card's `PhotoButton`, answer-photos' `Opener`, and inline buttons in letter-images
+and photo-wall -- carrying the same class string, the same aria-label shape and the same pair of
+preload handlers. `grep` for the class string found exactly those four.
+
+`common/photo-opener.tsx` is the one now. Two decisions inside it:
+
+- **The border is in the base class, not passed.** The audit warned that adopting `Opener`
+  verbatim would strip post-card's border, because `Opener`'s own base lacks it. It lacks it
+  because all three of its call sites pass `border border-border` -- so the border was never
+  optional anywhere. It is in the base and those three stopped passing it. Verified in the
+  browser: 1px rgb(223,216,203), radius 12px, focus ring 2px leaf at 2px offset, on all of feed,
+  letter and Catch-up.
+- **The preload is wired in, not passed.** A caller cannot write a fifth copy that forgets it,
+  which is the state the owner met when he pressed a photograph and waited.
+
+photo-river's `Tile` stays where it is, as the finding says: a scrim, no border and a caption for
+a label is a different control.
+
+**One deliberate change**: a lone photograph's label is now "View this photo full screen"
+everywhere, where post-card and letter-images said "View photo 1 of 1 full screen". That is
+`Opener`'s wording and it is better; the Catch-up wall keeps naming the person, through a `label`
+override, because on a wall whose photograph it is tells you more than which.
+
+-89 lines net over four files. `npm run check` and `npm run visual` green.
+
 ## 2026-09-05 — one way into the image viewer, and the SSR guard that only three lab rooms needed
 
 Refactor audit 2, row B10, absorbing A18 (deferred from Phase A for exactly this). Six files knew

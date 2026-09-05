@@ -8,11 +8,8 @@ import { photoSrc, photoSrcSet, PHOTO_SIZES_LETTER } from "@/lib/image-cdn";
 import { PhotoFrame } from "@/components/common/photo-frame";
 import type { StoredPhoto } from "@/lib/photo-layout";
 import type { AvatarUser } from "@/components/common/bird-avatar";
-import {
-  LazyImageViewer,
-  preloadImageViewer,
-  useImageViewer,
-} from "@/components/common/lazy-image-viewer";
+import { LazyImageViewer, useImageViewer } from "@/components/common/lazy-image-viewer";
+import { PhotoOpener } from "@/components/common/photo-opener";
 
 export function LetterImages({
   images,
@@ -34,15 +31,7 @@ export function LetterImages({
     <>
       <div className="mt-8 space-y-4">
         {images.map((img, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => viewer.open(i)}
-            onPointerEnter={preloadImageViewer}
-            onFocus={preloadImageViewer}
-            aria-label={`View photo ${i + 1} of ${images.length} full screen`}
-            className="block w-full overflow-hidden rounded-[var(--radius-md)] border border-border transition-opacity duration-150 hover:opacity-95 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
+          <PhotoOpener key={i} index={i} count={images.length} onOpen={viewer.open}>
             {/* The same rule the feed and the Catch-ups use: true shape when
                 the photograph is square or wider, 3:4 on a bed of itself when
                 it is taller, capped at 900px. Letters were never the surface
@@ -55,7 +44,7 @@ export function LetterImages({
               photo={photos?.[i] ?? null}
               sizes={PHOTO_SIZES_LETTER}
             />
-          </button>
+          </PhotoOpener>
         ))}
       </div>
 

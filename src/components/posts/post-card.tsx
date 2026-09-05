@@ -33,6 +33,7 @@ import {
   preloadImageViewer,
   useImageViewer,
 } from "@/components/common/lazy-image-viewer";
+import { PhotoOpener } from "@/components/common/photo-opener";
 import { PersonName } from "@/components/common/person-name";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { LoveButton } from "@/components/common/love-button";
@@ -84,45 +85,6 @@ const ModerationDialog = dynamic(
   { ssr: false }
 );
 const preloadComments = () => void import("./comments-section");
-
-/**
- * One photograph in a post, as a button that opens the shared viewer at it
- * (owner, 2026-07-30: "when something is posted, people do like to click on it
- * and zoom in"). Pulled out of the markup below because a post now draws its
- * photographs two ways -- one on its own, or two or three in a justified row --
- * and the press behaviour, the label and the focus ring are the same in both.
- */
-function PhotoButton({
-  index,
-  count,
-  onOpen,
-  onPreload,
-  className,
-  children,
-}: {
-  index: number;
-  count: number;
-  onOpen: (index: number) => void;
-  onPreload: () => void;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onOpen(index)}
-      onPointerEnter={onPreload}
-      onFocus={onPreload}
-      aria-label={`View photo ${index + 1} of ${count} full screen`}
-      className={cn(
-        "block w-full overflow-hidden rounded-[var(--radius-md)] border border-border transition-opacity duration-150 hover:opacity-95 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-        className
-      )}
-    >
-      {children}
-    </button>
-  );
-}
 
 /* "Read more" reveals text beyond this many raw characters. Kept as a module
    constant (not a magic number inline) since it is read in two places below. */
@@ -532,12 +494,11 @@ export function PostCard({
                   />
                 ) : images.length === 1 || !rowPhotos ? (
                   images.map((img, i) => (
-                    <PhotoButton
+                    <PhotoOpener
                       key={i}
                       index={i}
                       count={images.length}
                       onOpen={viewer.open}
-                      onPreload={preloadImageViewer}
                       className={!rowPhotos && images.length > 1 ? "mb-2 last:mb-0" : undefined}
                     >
                       <PhotoFrame
@@ -547,7 +508,7 @@ export function PostCard({
                         sizes={columnSizes}
                         fallbackClassName="max-h-96"
                       />
-                    </PhotoButton>
+                    </PhotoOpener>
                   ))
                 ) : (
                   /* Exactly two: justified rows, so they sit side by side at
@@ -557,7 +518,7 @@ export function PostCard({
                      the Catch-up letterbox. */
                   <PhotoRows photos={rowPhotos} columnSizes={columnSizes}>
                     {(photo, i, cell) => (
-                      <PhotoButton index={i} count={images.length} onOpen={viewer.open} onPreload={preloadImageViewer} className="h-full">
+                      <PhotoOpener index={i} count={images.length} onOpen={viewer.open} className="h-full">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={photoSrc(images[i])}
@@ -573,7 +534,7 @@ export function PostCard({
                             maxHeight: cell.maxHeight,
                           }}
                         />
-                      </PhotoButton>
+                      </PhotoOpener>
                     )}
                   </PhotoRows>
                 )}
