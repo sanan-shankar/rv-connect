@@ -17,6 +17,7 @@ import { LetterheadProfile } from "@/components/profile/letterhead-profile";
 import { InstallAppTile } from "@/components/pwa/install-app-tile";
 import type { ContactMethod } from "@/components/profile/get-in-touch";
 import { AUTHOR_IN_GOOD_STANDING, PUBLISHED_ONLY, audienceWhere } from "@/lib/posts";
+import { loadPosts } from "@/app/(main)/feed/actions";
 import { viewerMaySeeContacts } from "@/lib/member-gate";
 import { IS_DEMO } from "@/lib/demo";
 import { recordView } from "@/lib/content-view";
@@ -177,10 +178,20 @@ export default async function ProfilePage({
   // Counts drive the segmented switcher's numbers. The Saved count is the
   // viewer's OWN bookmark total and is only ever read on their own profile,
   // so it is never a window into anyone else's saves.
-  const [postCount, letterCount, savedCount] = await Promise.all([
+  /* The Writing tab's FIRST PAGE comes down with the page now, beside the
+     counts. It used to be fetched from a mount effect after hydration -- one
+     extra round trip and one skeleton on every profile view, which is the
+     shape audit 1 closed on /collection and missed here. Only the "All"
+     scope: Posts and Letters are a press away and keep the effect.
+
+     `loadPosts` is a server action, and a server component may simply call
+     one. It rebuilds the same audience the counts above use, from the same
+     shared builder, so the list and the number beside it cannot disagree. */
+  const [postCount, letterCount, savedCount, authorFirstPage] = await Promise.all([
     prisma.post.count({ where: { ...visiblePostsWhere, kind: "post" } }),
     prisma.post.count({ where: { ...visiblePostsWhere, kind: "letter" } }),
     isOwnProfile ? prisma.bookmark.count({ where: { userId: session.user.id } }) : 0,
+    loadPosts({ authorId: user.id }),
   ]);
 
   // Photos: flatten image arrays from this author's visible posts.
@@ -407,6 +418,9 @@ export default async function ProfilePage({
       letterCount={letterCount}
       photoCount={photos.length}
       savedCount={savedCount}
+      initialAuthorPosts={authorFirstPage.posts}
+      initialAuthorCursor={authorFirstPage.nextCursor}
+      initialAuthorHasMore={authorFirstPage.hasMore}
       photosNode={photosNode}
       adminNode={
         isAdmin && !isOwnProfile ? (

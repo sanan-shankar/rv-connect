@@ -1,5 +1,25 @@
 # Progress Log
 
+## 2026-09-05 — a profile arrives with its Writing tab already filled
+
+Refactor audit 2, row B13. The Writing tab fetched its first page from a mount effect after
+hydration -- one extra round trip and one skeleton on every profile view. Audit 1 closed exactly
+this shape on /collection and did not reach the profile's author feed.
+
+`profile/[id]/page.tsx` calls `loadPosts({ authorId })` beside the counts it already runs, in the
+same `Promise.all`, and passes the first page down. `ProfileAuthorFeed` takes `initialPosts` /
+`initialCursor` / `initialHasMore`; when they are given, the mount effect does not run. Only the
+**All** scope is seeded -- the segmented switcher remounts the feed with a fresh `key` per scope,
+so Posts and Letters arrive unseeded and keep their skeleton and `expectedCount`.
+
+`getViewerCities` is `cache()`d in the same commit, and that is not a spare improvement: the page
+reads it for its counts and `loadPosts` reads it again, so without it this row would have traded
+a browser round trip for a duplicate query.
+
+Verified on a profile with a post: **zero argument-carrying server actions fire on load** (the
+two that remain take no arguments and are not this one), the card is in the first paint, and
+All/Posts/Letters still switch and still agree with the pills -- All 1, Posts 1, Letters 0.
+
 ## 2026-09-05 — a letter stops carrying the comments stack and an admin dialog in its first load
 
 Refactor audit 2, row B12. `post-card.tsx` defers both `CommentsSection` and `ModerationDialog`;
