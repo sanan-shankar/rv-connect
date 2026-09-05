@@ -9743,3 +9743,29 @@ a note in `docs/planning/bugs.md` with the idempotent repair written out, not a 
 made without asking. The full `pg_indexes` dump of both databases is saved beside the audit at
 `work/db-indexes-live.json` — 131 indexes on production, 129 on demo — which is the thing audit 1
 wanted and could not take.
+
+## 2026-09-05 — the Collection asks each per-half question once, and keeps the instant swap
+
+Refactor audit 2, Phase C, row C11 (`collection-03`) — **done, but not as written.** The finding
+wanted the other half's facts fetched on the swap instead of on every page load. The block it names
+argues the opposite in its own comment, and the owner's words behind that argument are in
+`progress.md`: a swap must be instant and "cannot be caught halfway". The finding's own Confidence
+line names exactly that as the thing that would change its mind. So the design stays.
+
+What was actually wasteful was the shape, not the timing. Three questions — the member's own queue
+awaiting review, whether the half holds any approved photograph, and the room left on their account
+— were each asked **once per half**, so a class-eligible member paid six round trips to describe two
+collections. They are the same question of the same table with a different scope, which is what
+`groupBy` is for. Three queries now, for both halves, and the scope arms still come from
+`photoScopeWhere` rather than a second copy of the rule written out here.
+
+Measured with `pg_stat_statements`: `/collection` **23 → 18** statements — five, not the three I
+expected, because the two per-half `myPendingPhotos` calls each carried relation loads of their own.
+
+Proved identical by rendering the page under both versions and diffing the facts that reach the
+client: `hasApprovedPhotos`, `roomLeft`, `canSeeClass`, `myClassYear` and the two pending queues all
+byte-for-byte the same, as the owner (2023, 1,718 class photographs) and again with Jerry's batch
+year temporarily set to 1999 so the class half was genuinely empty — the case where a wrong answer
+would draw a bucket line and a search box over nothing. Jerry's year is back to null. The swap itself
+still lands in one press: the caret takes `/collection` to `?scope=class&order=taken` with the
+Class Collection's own heading and its Chronological order, no round trip and no flash.
