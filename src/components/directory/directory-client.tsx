@@ -17,13 +17,40 @@ import { RangeFacetPill } from "@/components/common/filters/range-facet-pill";
 import { SentenceLine, type SentenceToken } from "@/components/common/filters/sentence-line";
 import type { FacetOption } from "@/components/common/filters/types";
 import { tagLabel } from "@/lib/profession-tags";
+import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { ProfileCard } from "./profile-card";
-import { AlumniMap, type CityPin, type PinPerson } from "./alumni-map";
+import type { CityPin, PinPerson } from "./alumni-map";
 import { loadDirectoryPage } from "@/app/(main)/directory/actions";
 import { NoResultsHoopoe } from "@/components/mascot/moments/no-results-hoopoe";
 import { cn } from "@/lib/utils";
+
+/* d3 IS 66 KB AND MOST ARRIVALS NEVER SEE THE MAP. d3-geo, d3-selection,
+   d3-zoom and topojson-client are one chunk on /directory alone, and since the
+   view logic changed a directory opened with `?q=` or `?year=` starts on
+   PEOPLE -- so every shared search link and every batch-tile drilldown was
+   downloading a projection it never runs. Audit 1 moved the atlas JSON to a
+   fetch and left the component static; this is the other half.
+
+   `ssr: false` because there is nothing to lose: the map's own atlas already
+   arrives by fetch after hydration, so the server has never drawn a continent.
+   The `loading` box is the same frame the real map paints first -- the same
+   card, the same flex-1, the same MAP_MIN_H floor and the same ocean colour --
+   so the swap is a world appearing on water, which is what
+   directory/loading.tsx already does for the page. The two types are
+   `import type` and are erased. */
+const AlumniMap = dynamic(() => import("./alumni-map").then((m) => m.AlumniMap), {
+  ssr: false,
+  loading: () => (
+    <div
+      /* 360 is alumni-map.tsx's MAP_MIN_H, which cannot be imported here
+         without pulling the module this defers back in. Both sides say so. */
+      className="card-elevated relative flex-1 overflow-hidden rounded-[var(--radius)] border border-border"
+      style={{ minHeight: 360, background: "var(--muted)" }}
+    />
+  ),
+});
 
 interface User {
   id: string;

@@ -1,5 +1,31 @@
 # Progress Log
 
+## 2026-09-05 — d3 arrives with the map, not with the directory
+
+Refactor audit 2, row B7, the map half. d3-geo, d3-selection, d3-zoom and topojson-client are
+one 66 KB chunk on /directory alone -- and since the view logic changed, a directory opened with
+`?q=` or `?year=` starts on **People**. So every shared search link and every batch-tile
+drilldown was downloading a projection it never ran. Audit 1 moved the atlas JSON to a fetch and
+left the component static; this is the other half.
+
+`next/dynamic`, `ssr: false`. Nothing is lost to that: the atlas already arrives by fetch after
+hydration, so the server has never drawn a continent. The `loading` box is the frame the real
+map paints first -- same card, same `flex-1`, same 360px floor, same `--muted` ocean. Measured
+through the swap: the placeholder card is up at 237 ms (1112x697, rgb(236,232,221)) and the map
+lands on it at 500 ms in dev, which is the world appearing on water that `directory/loading.tsx`
+already does for the page.
+
+Measured between builds: **/directory 1,240 KB -> 1,159 KB, -80,723 B raw first-load JS.**
+Verified: a bare /directory still draws the map with its six pins; `?q=a` opens on People with
+no svg and no d3 at all; pressing Map brings it in.
+
+`MAP_MIN_H` cannot be imported by the loading box without pulling back the module it defers, so
+it is a literal there and both sides carry a comment saying so.
+
+The audit warned the `/directory` visual baseline would stop matching, because it masks `main
+svg.touch-none` and `ssr: false` takes that out of the server HTML. It did not: `settle()` waits
+on `networkidle` twice, which covers the chunk fetch. 25/25 green, unchanged baselines.
+
 ## 2026-09-05 — the admin's city picker leaves /admin/people/[id]'s first load
 
 Refactor audit 2, row B6, the person-detail half. `LocationPicker` drags base-ui's combobox with

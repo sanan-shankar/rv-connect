@@ -204,6 +204,10 @@ const MIN_PX_PER_UNIT = 1;
    for a few milliseconds" the owner reported. Layout the browser can do on the
    first pass has no such frame. Every ancestor between here and <main> carries
    `flex min-h-0 flex-1 flex-col` for this. */
+/* Mirrored, as a literal, by the `loading` box in directory-client.tsx: this
+   component is loaded through next/dynamic there, so importing this constant
+   would pull the module back into the route's first load and undo the point.
+   If this number moves, move that one. */
 const MAP_MIN_H = 360;
 
 /** Every marker is a button: hover, focus-visible and active all read. Opacity
