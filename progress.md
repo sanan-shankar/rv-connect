@@ -9629,3 +9629,21 @@ Proved live. `/admin/people`: 60 rows, "Show more", 70 rows, all 70 distinct, bu
 is the headcount. The export as Jerry returns places 1, posts 1, messages 1, comments 0, each equal
 to a `SELECT count(*)`; as the owner it returns 1,721 Collection photographs across four pages of
 500, with 1,721 distinct URLs.
+
+## 2026-09-05 — the Catch-up shelf's teasers are one query, not six
+
+Refactor audit 2, Phase C, row C6's first half (`data-layer-06`). The block's own comment says it
+"exists to have removed" the N+1 over every published Round. It capped it at six rather than removing
+it: six `findFirst`s in a `Promise.all`, each ordered on a relation count, which Prisma compiles into
+a correlated subquery. Six correlated one-row queries on a five-connection pool is two waves, for six
+short strings.
+
+One `DISTINCT ON (editionId)` now. Prisma has no expression for `DISTINCT ON`, which is why it is
+raw — the same reason `loadJourney` is. The tie-break on `id` is kept and so is the reason for it:
+ordering on a count alone is not total, and the teaser would otherwise change between two identical
+page loads.
+
+Proved by rendering both Catch-up homes before and after and diffing the teaser text: byte-identical.
+Honest limit on the number — this database has one Round with answers in it, so today's measured
+delta is zero. The saving is one query per published Round up to six, and it arrives when a group has
+a shelf.
