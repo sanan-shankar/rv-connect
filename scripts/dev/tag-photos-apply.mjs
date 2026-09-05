@@ -35,32 +35,18 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import pg from "pg";
-import { readEnv } from "./_env.mjs";
+import { databaseUrl } from "./_env.mjs";
+import { argv } from "./_cli.mjs";
 import { planChange, readVerdicts } from "../../src/lib/photo-suggest.ts";
 
-const argv = process.argv.slice(2);
-const flag = (name) => argv.includes(name);
-const value = (name, fallback) => {
-  const i = argv.indexOf(name);
-  return i === -1 ? fallback : argv[i + 1];
-};
+const { flag, value } = argv();
 
 const APPLY = flag("--apply");
 const UNDO = value("--undo", null);
 const envFile = value("--env", ".env");
 const OUT = path.join(process.cwd(), "scripts", "dev", ".tagging");
 
-const env = readEnv([envFile]);
-const url = env.DIRECT_URL || env.DATABASE_URL;
-if (!url) {
-  console.error(`No DIRECT_URL or DATABASE_URL found in ${envFile}`);
-  process.exit(1);
-}
-const DEMO_REF = "cbvlzptghkuxhygyaezq";
-if (envFile.includes("demo") && !url.includes(DEMO_REF)) {
-  console.error(`refusing: ${envFile} was asked for, but the connection does not carry the demo ref`);
-  process.exit(1);
-}
+const { env, url } = databaseUrl(envFile);
 
 const readJson = async (p) => JSON.parse(await readFile(p, "utf8"));
 

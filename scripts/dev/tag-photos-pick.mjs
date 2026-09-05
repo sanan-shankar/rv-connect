@@ -25,20 +25,16 @@
  *                                            [--env .env.demo]
  * ------------------------------------------------------------------ */
 
-import { mkdir, rm, readFile, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import pg from "pg";
-import { readEnv } from "./_env.mjs";
+import { databaseUrl } from "./_env.mjs";
+import { argv, bytesFor } from "./_cli.mjs";
 import { sharpImage } from "../../src/lib/image.ts";
 import { BUCKETS, ERA_VALUES } from "../../src/lib/collection.ts";
 import { BUCKET_RULES, VALLEY_GLOSSARY } from "../../src/lib/photo-suggest.ts";
 
-const argv = process.argv.slice(2);
-const flag = (name) => argv.includes(name);
-const value = (name, fallback) => {
-  const i = argv.indexOf(name);
-  return i === -1 ? fallback : argv[i + 1];
-};
+const { flag, value } = argv();
 
 /** How many photographs one session takes on.
  *
@@ -54,19 +50,7 @@ const ALL = flag("--all");
 const envFile = value("--env", ".env");
 const OUT = path.join(process.cwd(), "scripts", "dev", ".tagging");
 
-const env = readEnv([envFile]);
-const url = env.DIRECT_URL || env.DATABASE_URL;
-if (!url) {
-  console.error(`No DIRECT_URL or DATABASE_URL found in ${envFile}`);
-  process.exit(1);
-}
-/* The same destination check run-sql.mjs makes: asking for the demo and
-   getting production is the worst outcome a script in this folder has. */
-const DEMO_REF = "cbvlzptghkuxhygyaezq";
-if (envFile.includes("demo") && !url.includes(DEMO_REF)) {
-  console.error(`refusing: ${envFile} was asked for, but the connection does not carry the demo ref`);
-  process.exit(1);
-}
+const { env, url } = databaseUrl(envFile);
 
 const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
 await client.connect();
@@ -119,14 +103,6 @@ if (rows.length === 0) {
 await rm(OUT, { recursive: true, force: true });
 await mkdir(path.join(OUT, "photos"), { recursive: true });
 
-/** The bytes behind one of our public urls. Local dev writes root-relative
- *  paths under public/; production writes absolute ones on the bucket's host. */
-async function bytesFor(u) {
-  if (u.startsWith("/")) return readFile(path.join(process.cwd(), "public", u.slice(1)));
-  const res = await fetch(u);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return Buffer.from(await res.arrayBuffer());
-}
 
 /** What the contributor already said, in the words the session will read. */
 function saidSoFar(r) {

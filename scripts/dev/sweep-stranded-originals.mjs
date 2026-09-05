@@ -40,24 +40,13 @@
  * ------------------------------------------------------------------ */
 
 import pg from "pg";
-import { readEnv } from "./_env.mjs";
+import { databaseUrl } from "./_env.mjs";
 import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
 const argv = process.argv.slice(2);
 const APPLY = argv.includes("--apply");
 const envFile = argv.includes("--env") ? argv[argv.indexOf("--env") + 1] : ".env";
-const env = readEnv([envFile]);
-
-const url = env.DIRECT_URL || env.DATABASE_URL;
-if (!url) {
-  console.error(`No DIRECT_URL or DATABASE_URL found in ${envFile}`);
-  process.exit(1);
-}
-const DEMO_REF = "cbvlzptghkuxhygyaezq";
-if (envFile.includes("demo") && !url.includes(DEMO_REF)) {
-  console.error(`refusing: ${envFile} was asked for, but the connection does not carry the demo ref`);
-  process.exit(1);
-}
+const { env, url } = databaseUrl(envFile);
 for (const k of ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET", "R2_PUBLIC_BASE_URL"]) {
   if (!env[k]) {
     console.error(`${k} is missing from ${envFile}; this script talks to the bucket directly.`);

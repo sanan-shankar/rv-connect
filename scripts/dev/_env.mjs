@@ -43,6 +43,41 @@ export function readEnv(files = [".env"]) {
   return vars;
 }
 
+/**
+ * The connection string a hand-run script should use, and the one check that
+ * stands between it and the wrong database.
+ *
+ * Ported from scripts/demo/run-sql.mjs. Asking for the demo env file and
+ * getting production would be the worst outcome any script in this folder
+ * has, and a stray DIRECT_URL in the shell is all it would take -- so when
+ * the caller names .env.demo, the connection has to carry the demo project's
+ * ref or nothing runs. It is a check on the DESTINATION, not on the request.
+ *
+ * Seven scripts made this check and each kept its own copy of the ref;
+ * `import-album.mjs`, the one script in the folder that WRITES photographs
+ * into the archive, was the one that never had it. Going through here is how
+ * the eighth script gets it without anybody remembering to.
+ */
+export function databaseUrl(envFile = ".env") {
+  const env = readEnv([envFile]);
+  const url = env.DIRECT_URL || env.DATABASE_URL;
+  if (!url) {
+    console.error(`No DIRECT_URL or DATABASE_URL found in ${envFile}`);
+    process.exit(1);
+  }
+  if (envFile.includes("demo") && !url.includes(DEMO_REF)) {
+    console.error(
+      `refusing: ${envFile} was asked for, but the connection host does not carry the demo ref ${DEMO_REF}`
+    );
+    process.exit(1);
+  }
+  return { env, url };
+}
+
+/** The demo Supabase project's ref, as it appears in that project's connection
+ *  host. The one copy; it used to be seven. */
+const DEMO_REF = "cbvlzptghkuxhygyaezq";
+
 /** As `readEnv`, and into `process.env` too, without overriding it. */
 export function loadEnv(files = [".env"]) {
   const vars = readEnv(files);

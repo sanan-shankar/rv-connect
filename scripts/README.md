@@ -85,7 +85,8 @@ Full runbook in `docs/spec/demo.md`. These four are that pipeline.
 | `email-mark.mjs` | Rasterises the app mark for use in emails. |
 | `build-app-icon.mjs` | Writes `public/images/brand/app-icon.svg` from `src/lib/hoopoe-geometry.ts`, so the shipped mark is the mascot's own curves and cannot drift from them. No dev server, no browser. |
 | `generate-icons.mjs` | Generates every raster app icon from the two canonical marks. Bakes Apple's edge light into the Android maskable icon and leaves the Apple one flat, because iOS and macOS light it themselves. |
-| `_env.mjs` | Helper: reads `.env` for the scripts in this folder. Seven of them had their own copy of the parser. |
+| `_env.mjs` | Helper: reads `.env` for the scripts in this folder, and answers `databaseUrl(envFile)` with the one destination guard. Seven of them had their own copy of the parser, and seven of the connection guard; `import-album.mjs`, the one script here that writes photographs, had no guard at all until it went through here. |
+| `_cli.mjs` | Helper: `argv()` (`flag`/`value`/`rest`) and `bytesFor(url)`. Six scripts carried the first byte-identically and two the second. |
 
 ### The Apple edge-light harness (`dev/apple-edge/`)
 

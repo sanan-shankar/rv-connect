@@ -28,7 +28,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import pg from "pg";
-import { readEnv } from "./_env.mjs";
+import { databaseUrl } from "./_env.mjs";
 
 const argv = process.argv.slice(2);
 let envFile = ".env";
@@ -37,23 +37,9 @@ if (argv[0] === "--env") {
   argv.splice(0, 2);
 }
 
-const env = readEnv([envFile]);
-const url = env.DIRECT_URL || env.DATABASE_URL;
-if (!url) {
-  console.error(`No DIRECT_URL or DATABASE_URL found in ${envFile}`);
-  process.exit(1);
-}
-
-/* Ported from scripts/demo/run-sql.mjs, which this replaced. Asking for the
-   demo env file and getting production would be the worst outcome this script
-   has, and a stray DIRECT_URL in the shell is all it would take -- so when the
-   caller names .env.demo, the connection has to carry the demo project's ref
-   or nothing runs. It is a check on the DESTINATION, not on the request. */
-const DEMO_REF = "cbvlzptghkuxhygyaezq";
-if (envFile.includes("demo") && !url.includes(DEMO_REF)) {
-  console.error(`refusing: ${envFile} was asked for, but the connection host does not carry the demo ref ${DEMO_REF}`);
-  process.exit(1);
-}
+// The destination check this script wrote first lives in _env.mjs now, so
+// every script in this folder makes it. See databaseUrl.
+const { url } = databaseUrl(envFile);
 
 const [arg, inlineSql] = argv;
 let sql;
