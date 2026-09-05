@@ -68,13 +68,12 @@ ceiling on a commit message. Pushing is a deploy: **ask first.**
 Phases A → C are worth doing whatever the owner decides about the rest. Do not start Phase D, G or any
 row marked T4 until the owner has answered §4.
 
-### Phase A — free money (10 rows, all T1, one sitting)
-Config scoping, two dependency removals, two pieces of broken QA tooling, and a set of orphan deletions.
-Every row's gate is `npm run check` plus `npm run visual`. Expect **−73 KB of CSS on every route,
-−100 MB of `node_modules`, −235 lockfile entries, −831 KB tracked, and two quality tools that start
-telling the truth.** Row A11 (`docs/spec/media.md` §4.2/§4.4) is documentation but belongs in this
-phase: it is the file `CLAUDE.md` sends a media session to, and it teaches a three-variant image
-pipeline that **has never existed** — the exact hallucination the owner has complained about twice.
+### Phase A — free money — **DONE 2026-09-05.** See the ledger. Start at Phase B.
+Config scoping, two dependency removals, two pieces of broken QA tooling, and a set of orphan
+deletions. What it actually returned: **−78,014 B of CSS raw (−9,072 gz) on every route**, −235
+lockfile entries, −420,350 B tracked, one route, and four quality tools that start telling the
+truth. `node_modules` did not move measurably; quote the lockfile count, not the disk figure.
+A18 and A19 are the two rows not done — the ledger says why.
 
 ### Phase B — bundle levers (9 rows, T2/T3)
 One root cause, four times over: *a server component that statically imports a client component puts
@@ -285,3 +284,59 @@ you could not do and why.
 | Date | Phase | Rows done | Measured result | Notes / what the next session must know |
 |---|---|---|---|---|
 | 2026-09-04 | — | audit closed | see `report.md` §1b | Nothing fixed yet except ORCH-04 (`74cc61a`). Verification covered 84 of 369 findings; the other 285 have orchestrator spot-checks only. |
+| 2026-09-05 | **A — complete** | A1, A1b, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17. **A18 deferred to B10, A19 declined** (see below) | CSS on every route **238,434 → 160,420 B raw**, 33,666 → 24,594 gz (−32.7% / −26.9%), measured between two production builds. Lab sheet 147,484 B on 48 routes, **0 non-lab**. Lockfile **1,083 → 848** (−235). Deps **33+18 → 32+17**. Tracked −420,350 B. Routes 52 → 51. Test files 102 → 101. `npm run check` and `npm run visual` green throughout; 21 commits, `e16c585`..`94f76d9`. | Read the four rows below before Phase B. |
+
+### What Phase A actually taught, beyond the rows
+
+**The 54% correction rate is real, and three of the corrections would have cost a build or a
+member-visible mistake.** Every row below was re-derived before it was applied.
+
+1. **A1's recipe does not work as written, and fails silently.** `@reference "../globals.css"`
+   from the lab sheet inherits `@source not "./lab"` — a negated `@source` applies to every sheet
+   that reaches it — so the lab sheet compiles to **84 bytes**. A positive `@source "./"` does not
+   override it. The shape that works, proved in a scratch probe before any file was touched:
+   `src/app/tailwind-theme.css` holds `@theme inline`, the `@custom-variant`s and `@utility
+   state-layer`; `globals.css` imports it; `src/app/lab/lab.css` is `@reference "tailwindcss";
+   @reference "../tailwind-theme.css"; @import "tailwindcss/utilities.css" layer(utilities)
+   source("./");`. Without the first `@reference`, breakpoint variants (`sm:`, `lg:`) silently
+   vanish.
+2. **Hand-written CSS is invisible to `@source not`.** `.hoopoe .wing` and its four siblings are
+   rules, not utilities, so A1 did not reach them and they kept shipping to every member page for
+   something only `/lab/v2` renders. They are in `lab.css` now (A8). **If Phase G moves more lab
+   CSS, look for rules as well as classes.**
+3. **Three tests enumerate `git ls-files`, so a deletion reds `npm run check` until it is
+   staged**: `scripts-ledger.test.mjs`, `focus-recipe.test.mjs` (ENOENT — the audit said no test
+   named the filter-kit files; one reaches them by enumeration) and, indirectly, anything using
+   `test-kit`'s `walk`. And **deleting a `layout.tsx` or a route reds `tsc` until `npm run build`
+   regenerates `.next/types/validator.ts`** — a dev-server request does not do it.
+4. **Two "safe" widenings found live defects underneath them.** `db-pool-rule.test.mjs`'s band
+   checks matched `\d+`, which stops at a JS numeric separator, so `query_timeout: 20_000` had
+   always read as **20** and a `600_000` would have read as 600 and passed. And `phase9-probe.mjs`
+   had **three** stale assertions, not the one the audit found; two claimed `check.yml` runs the
+   security gates, which stopped being true when they moved into `check.mjs`. Mutation-test every
+   widened pin, as audit 1's close-out says.
+
+### Rows this session did not do, and why
+
+- **A18** (the viewer's SSR portal guard) is **blocked on B10**, not on anything else. Its own
+  finding says "after 01 exists": the fix is to have the three lab rooms import a shared
+  `LazyImageViewer`, and that module is what B10 creates. Doing A18 first would add a sixth,
+  seventh and eighth hand-rolled `dynamic(() => import(...))` — the exact thing B10 removes.
+  **Do it inside B10.**
+- **A19** (`@sentry/cli`'s `allowScripts` approval) is **declined**, following its own finding's
+  recommendation: the block exists to be pre-answered, and the approval costs nothing at runtime.
+  Its `msw` entry did go, having left the tree with `shadcn`.
+- **Owner decisions taken this session** (both put to him with the evidence): `_dir-chrome-probe`
+  is **retired**, not repaired. `BirdAvatar`'s `ring` keeps today's pixels — the audit's remedy
+  (drop the `if (clipped)` guard) was tried and looked at 2x and is **worse**: a 4px ring on a
+  28px avatar at `-space-x-2` eats the whole overlap, slicing each glyph and covering the `+` in
+  `+18`. The guard is now argued in the source rather than incidental. **Do not re-propose it.**
+
+### Two live checks run, with their answers, so nobody runs them twice
+
+- `SELECT ... FROM "Photo" WHERE url LIKE '%/images/collection/%' OR "thumbUrl" LIKE ...` →
+  **0 rows on production, 0 on demo.** That is what let `c3-thumb.webp` go (A8).
+- `SELECT count(*) FILTER (WHERE "createdAt" < '2026-07-24'), count(*) FILTER (WHERE link LIKE
+  '/notice/%') FROM "Notification"` → **0 and 0, on production and demo**; oldest row 2026-08-05.
+  That is what let `/notice/[id]` go eleven months early (A10).
+- Still **unrun**: the stranded-originals dry run, and the `SELECT`s for every Phase D column drop.
