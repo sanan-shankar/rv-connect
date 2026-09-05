@@ -1,5 +1,35 @@
 # Progress Log
 
+## 2026-09-05 — Turbopack's duplicate chunks: measured, and left alone
+
+Refactor audit 2, row B9, which the audit wrote as an experiment with a revert condition rather
+than a fix. Three steps, all measured against a running `next start`, signing in with a cookie
+minted on the dev server.
+
+**(a) B8 did not dissolve the twins.** Re-running the duplicate check after the motion-barrel fix:
+**29 chunk pairs at token-Jaccard 1.0000**, 453,882 B of duplicated bytes among the 203 chunks over
+5 KB. The audit found 23 pairs and 305 KB, so there are more, not fewer. Whatever emits a module
+twice is not the call sites.
+
+**(b) `generateComponentChunks: true` loses on the cold load, which is the audit's own revert
+condition.** Cold /feed **1,543,943 -> 1,558,255 B decoded** (+14,312, +0.9%) and 499,581 ->
+505,387 encoded. A three-page session (/feed, a profile, /directory, by client navigation)
+**1,955,622 -> 1,936,489 decoded** (-19,133, -1.0%) and -5,062 encoded, for one extra request. A 1%
+saving across three pages bought with 1% on every first paint is not a trade this site wants.
+
+**(c) `requestCost: 100000` does nothing at all** -- byte-for-byte identical to the baseline on all
+three measurements. The knob has no purchase on this graph.
+
+Reverted. `next.config.ts` is untouched and the rebuild is byte-identical to the pre-experiment
+one on all 99 routes.
+
+**The thing worth keeping is a trap, and it is in TRAPS.md now.** Under `generateComponentChunks`,
+`route-bundle-stats.json` reports every route at 431-440 KB instead of 774-1,230 KB, because the
+component chunks it emits are fetched on the same load and not counted as first-load. That reads as
+a 65% cut and is a 0.9% regression. Every bundle number in these audits comes from that JSON; a
+session that changed a chunking option and read only the JSON would ship the opposite of what it
+measured.
+
 ## 2026-09-05 — one "open this photograph" button instead of four
 
 Refactor audit 2, media-viewer-03, the second half of B10. The same button was written four
