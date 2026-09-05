@@ -106,6 +106,15 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
 - **Mobile**: every desktop UI change is verified at 390x844 as well. Screenshot both.
 - **No `transition-all`**, no hand-typed `cubic-bezier(...)`, no default Tailwind blue/indigo, no pure
   white surfaces, no em dashes in copy. User-facing naming is "Rishi Valley", never "RV Connect".
+- **The bar is a test, not an adjective.** Everything above is a prohibition; this is the thing to
+  clear. Two questions decide whether a surface is finished, both his: *does it give you any
+  dopamine*, and *can you tell it belongs to this app while looking like nothing already in it*
+  (the Action Button analogy, `docs/planning/catchups-rework/brief.md` ¶3 and ¶42). Something that
+  breaks none of the rules above and answers neither is not done. "Beautiful", "delightful",
+  "premium" and their friends are **not** the bar and do not go in a brief: they have no referent,
+  so they get filled with the median of everything ever called that, which is the house style of
+  every AI-built app. Name what it should feel like, or what it must not resemble, and let the two
+  questions judge the result.
 
 # Working agreement
 

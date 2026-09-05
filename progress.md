@@ -10252,3 +10252,38 @@ today. Headings are matched loosely because an audit writes "## Campaign board" 
 "## Status board"; the wording was never the thing worth pinning. Two new assertions pin the parts
 he asked for by name: that the fan-out guidance is still there, and that sequential is still the
 stated default.
+
+## 2026-09-05 — S3 gets a cull step, unequal inputs, and a bar that is a test
+
+Four changes to the catch-ups handover before S3 runs, all of them about the quality of what
+comes out rather than the speed of getting there.
+
+**A cull before the build.** S3 used to end with `directions.md` and hand straight to S4, so the
+owner would have chosen between six or eight directions by reading five thousand words of prose —
+the hardest possible version of the task for him, and hours of room-building spent on bets nobody
+had looked at. S3 now ends by building `/lab/catchups/sketches`: one screen per direction, the same
+real Round rendered every way, the reader only, 390 first. Static is fine; D21's "rooms, not
+mockups" still governs the pick, this is only the cull. His twenty minutes on a phone is now what
+sets S4's shortlist, and S4 builds the survivors instead of everything.
+
+**Unequal inputs to the designers.** They all used to read the same six documents. At least two now
+get `brief.md`, the design system and the architecture page and nothing else — no recon, no flows,
+no prior art. Forty-three findings about what is wrong with today's layout is a detailed description
+of today's layout, and a designer holding them designs in their terms, which is ¶26 exactly. The
+blind ones should be the freshest and the least practical in the batch.
+
+**The prior art is ranked rather than handed over whole.** F15 already said §7 and §8 are measured
+and §1, §2, §3 and §5 are inference with nothing opened in a browser; the instruction now matches.
+Low-confidence research does not make a designer better, it spends the attention that would have
+gone elsewhere.
+
+**One more question for the judge panel**: which of these would he still be thinking about tomorrow?
+Scoring against a checklist rewards completeness and quietly prefers the safe direction.
+
+And CLAUDE.md gains the one thing it did not have: a statement of what winning looks like. Every
+design line in it was a prohibition. The bar is now stated as his two tests — does it give you any
+dopamine, and can you tell it belongs to this app while looking like nothing already in it — with
+the reason adjectives are banned from a brief written down beside it. He asked whether words like
+"beautiful", "original" and "delightful" should go in CLAUDE.md; they should not, because a word
+with no referent gets filled with the median of everything ever called that, which is the house
+style of every AI-built app.
