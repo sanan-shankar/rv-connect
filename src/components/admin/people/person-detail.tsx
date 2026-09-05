@@ -22,7 +22,8 @@ import { BirdAvatar } from "@/components/common/bird-avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { LocationPicker, type PlaceSelection } from "@/components/common/location-picker";
+import dynamic from "next/dynamic";
+import type { PlaceSelection } from "@/components/common/location-picker";
 import { Chip } from "@/components/admin/admin-chip";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { AdminSection } from "@/components/admin/admin-chrome";
@@ -582,6 +583,19 @@ function DetailsCard({ person }: { person: DetailPerson }) {
     </AdminSection>
   );
 }
+
+/* The picker drags base-ui's combobox with it -- 53 KB raw, the single
+   heaviest thing on this route, for one field in one of the four cards on the
+   left. SSR stays ON (no `ssr: false`): unlike the letterhead's, which sits
+   behind an edit affordance, this one is drawn at rest in PlacesCard, so
+   deferring the paint would pop a control in under an admin's cursor. This is
+   a client-chunk split and nothing else.
+
+   Note for anyone re-reading audit 2's bundle-build-05: it says this picker
+   "sits behind the admin's edit affordance". It does not. */
+const LocationPicker = dynamic(
+  () => import("@/components/common/location-picker").then((m) => m.LocationPicker)
+);
 
 function PlacesCard({ person }: { person: DetailPerson }) {
   const [places, setPlaces] = useState<PlaceSelection[]>(person.places);

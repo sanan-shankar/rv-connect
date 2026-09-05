@@ -1,5 +1,20 @@
 # Progress Log
 
+## 2026-09-05 — the admin's city picker leaves /admin/people/[id]'s first load
+
+Refactor audit 2, row B6, the person-detail half. `LocationPicker` drags base-ui's combobox with
+it -- 53 KB raw, the heaviest single thing on that route, for one field in one of the four cards
+down the left.
+
+`next/dynamic` with SSR left on. The audit (bundle-build-05) says this picker "sits behind the
+admin's edit affordance"; it does not -- it is drawn at rest in `PlacesCard`, so deferring the
+paint would pop a control in under an admin's cursor. The source now says so, for whoever reads
+that finding next.
+
+Measured between builds: **-56,750 B raw first-load JS on /admin/people/[id]** (1,090 KB ->
+1,033 KB). Verified the picker is still there at rest: an input 676px wide, placeholder "Add a
+city", no 4xx on the page.
+
 ## 2026-09-05 — /welcome stops downloading five steps to show one sentence
 
 Refactor audit 2, row B6, the /welcome half. The Welcome screen is a heading, a paragraph and a
