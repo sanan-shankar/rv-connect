@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { ROOT, read, decomment } from "./test-kit.mjs";
+import { ROOT, read, decomment, balancedBody } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The edge boundary, and the four things that never reached the other
@@ -135,8 +135,7 @@ test("C-119: the browser chrome follows the theme cookie", () => {
     /export async function generateViewport\(/,
     "a static viewport export can only name one colour, and it named the light one"
   );
-  const fn = layout.slice(layout.indexOf("export async function generateViewport("));
-  const body = fn.slice(0, fn.indexOf("\n}"));
+  const body = balancedBody(layout, "export async function generateViewport");
   assert.match(body, /getThemeCookie\(\)/, "the viewport does not read the theme");
   assert.match(body, /THEME_COLORS\[/, "the colours are not the shared pair");
   // Both tokens must match what globals.css actually ships.

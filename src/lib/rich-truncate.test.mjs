@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { safeTruncateIndex } from "./rich-truncate.ts";
 import { renderRichText } from "./rich-text.ts";
-import { read, decomment, hasLoneSurrogate } from "./test-kit.mjs";
+import { read, decomment, hasLoneSurrogate, balancedBody } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  "Read more", and the four things it used to break.
@@ -154,9 +154,7 @@ test("C-008: the letters index uses the shared audience builder", () => {
   assert.match(src, /audienceWhere\(session\.user, viewerCities\)/, "the index hand-rolls its audience again");
   assert.doesNotMatch(src, /AND: \[cityScopeWhere\(viewerCities\)\]/, "the exemption-less city arm is back");
   // And the builder really carries the author exemption on both arms.
-  const posts = read("src/lib/posts.ts");
-  const fn = posts.slice(posts.indexOf("export function audienceWhere"));
-  const body = fn.slice(0, fn.indexOf("\n}"));
+  const body = balancedBody(read("src/lib/posts.ts"), "export function audienceWhere");
   assert.equal(
     [...body.matchAll(/authorId: viewer\.id/g)].length,
     2,

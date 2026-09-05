@@ -10052,3 +10052,35 @@ Its second `git grep` had the same hole and is walked now too: the C1-c check th
 with no `ownedUploadUrls` call, and an untracked file reading `NEXT_PUBLIC_ADMIN_EMAIL`: `git grep`
 returns nothing for either, and the sweep now fails on both. The probes were deleted by the same
 command that wrote them.
+
+## 2026-09-05 — Phase E, E5a/E6b: one brace matcher, and the bug adopting it found
+
+`scripts/qa/audit-status.mjs` — the script that decides what the security status board reports — kept
+a byte-identical copy of `balancedBody`, and five test files still sliced function bodies by hand with
+`indexOf("\n}")` or `indexOf("\n  }")`, the two shapes `test-fn-body.mjs`'s own docblock exists to warn
+about. All of them go through the shared matcher now. `audit-status.mjs` keeps only the part that is
+genuinely its own — the two declaration shapes to look for — and hands over the RegExp rather than the
+match index, because a number passed as `decl` would be coerced through `text.match()` and silently
+find something else.
+
+**Gated exactly as the audit asked: `audit-status.mjs --json` before and after is byte-identical.**
+All 74 tracked security items report the same state.
+
+**Adopting it found a bug in the thing being adopted.** `balancedBody` steps over a return type written
+as `Promise<{ users }>` by counting angle brackets — and there are no angle brackets in
+`): { AND?: ...; OR: ... } {`, so it stopped at the TYPE's opening brace and returned the type instead
+of the body. `audienceWhere` in `src/lib/posts.ts` has exactly that shape, and it is the function
+`rich-truncate.test.mjs` pins the post-visibility author exemption on. The fix tells the two apart by
+matching the brace and looking past it: if the next thing is another brace, the one just matched was a
+type. Five shapes now covered and checked — bare object type, generic type, plain type, no type, and a
+brace in a parameter type.
+
+That defect is the same failure the helper was written for: a shape test reading the wrong region and
+quietly asserting against nothing. Nothing was passing wrongly today, because the four converted pins
+all fail closed — but the next `doesNotMatch` against such a function would have passed for ever.
+
+Two `indexOf("\n  }")` sites are deliberately left: they slice a try/catch guard and an `if` branch,
+not a function body, which is not what this helper is for.
+
+Mutation-tested after conversion: remove one author exemption from `audienceWhere`, or stop
+`generateViewport` reading the theme cookie, and the pins go red.
