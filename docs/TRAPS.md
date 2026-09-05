@@ -158,6 +158,17 @@ disabled so hydration cannot tear down the truncated tree, and the fallback hold
 screenshot. `e2e/loading-fallbacks.spec.ts` is the worked example; it asserts rather than
 photographs, because which skeleton shows is invisible in a diff.
 
+**`route-bundle-stats.json` stops meaning what you think under
+`experimental.turbopackChunking.generateComponentChunks`.** That diagnostic is where
+`work/raw/route-js.mjs` and every bundle number in this project's audits come from. Turn the flag
+on and every route's `firstLoadUncompressedJsBytes` drops from 774-1,230 KB to 431-440 KB, which
+reads as a 65% cut and is not one: the component chunks the flag emits are fetched on the same
+page load and simply are not counted as first-load. Measured in a real browser on `next start`,
+the same flag made a cold /feed **1.0% heavier** (1,543,943 -> 1,558,255 B decoded). If you ever
+change a chunking option, the gate is `performance.getEntriesByType("resource")` against a running
+production server, never the JSON. (Audit 2 B9, 2026-09-05; the flag is not set and the experiment
+is written up in that audit's ledger.)
+
 ## Serving images
 
 **The Collection does NOT downscale, and `toDisplayWebp` will tell you it does.** Two sessions have
