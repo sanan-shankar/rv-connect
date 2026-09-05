@@ -4,8 +4,8 @@ import { after } from "next/server";
 import { auth } from "@/lib/auth";
 import { CollectionClient } from "@/components/collection/collection-client";
 import { recordView } from "@/lib/content-view";
-import { collectionPageData } from "../collection-data";
-import { loadPhoto } from "../collection-data";
+import { defaultOrderFor } from "@/lib/collection";
+import { collectionPageData, loadPhoto } from "../collection-data";
 
 /** The permalink renders the same <CollectionClient>, so it hosts the same
  *  contribute action and needs the same room. The reasoning is written out
@@ -80,9 +80,15 @@ export default async function PhotoPage({
   const photo = await loadPhoto(id);
   if (!photo) notFound();
 
+  /* And the order that half OPENS in, not a hard-coded "newest". The index
+     page reaches this through `riverFiltersFrom`, which falls back to
+     `defaultOrderFor(scope)` -- Chronological for a class, Newest for the
+     valley -- so a class permalink was putting a Newest river behind the
+     viewer that the class page itself would have opened Chronological. Two
+     doors into the same half, disagreeing about its order. */
   const data = await collectionPageData({
     scope: photo.scope,
-    order: "newest",
+    order: defaultOrderFor(photo.scope),
   });
   if (!data) return null;
 

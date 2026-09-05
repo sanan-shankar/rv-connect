@@ -50,6 +50,7 @@ import {
   photoScopeWhere,
   type PhotoScope,
 } from "@/lib/photo-visibility-rule";
+import { viewerFacts } from "@/lib/collection-viewer";
 import { notifyAdminNote } from "@/lib/admin-note";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
@@ -134,10 +135,7 @@ async function contributionScope(
 > {
   if (asked !== "class") return { ok: true, scope: "valley", classYears: null };
 
-  const me = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { verifyState: true, batchYear: true },
-  });
+  const me = await viewerFacts(userId);
   const key = classKey(me?.batchYear);
   if (me?.verifyState !== "verified" || !key) {
     /* One message for both refusals. Splitting them would tell a caller which
@@ -701,15 +699,9 @@ export async function loadPhotos(
      The two facts it turns on -- verification and batch year -- are read off
      the row rather than the JWT, because a session token is minted at sign-in
      and a member who verified or corrected their year an hour ago must not be
-     answered from a stale claim. One extra lookup per fresh river query, on
-     the primary key. */
-  const viewer =
-    opts?.scope === "class"
-      ? await prisma.user.findUnique({
-          where: { id: session.user.id },
-          select: { verifyState: true, batchYear: true },
-        })
-      : null;
+     answered from a stale claim. One primary-key lookup per fresh river query,
+     shared with the page's other readers when there are any (viewerFacts). */
+  const viewer = opts?.scope === "class" ? await viewerFacts(session.user.id) : null;
 
   const scopeWhere = photoScopeWhere(opts?.scope ?? "valley", {
     id: session.user.id,

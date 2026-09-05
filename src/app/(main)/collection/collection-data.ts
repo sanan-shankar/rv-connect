@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { BUCKET_VALUES, defaultOrderFor, ERA_VALUES, PHOTO_YEAR_MIN } from "@/lib/collection";
 import { classKey, photoScopeWhere, type PhotoScope } from "@/lib/photo-visibility-rule";
+import { viewerFacts } from "@/lib/collection-viewer";
 import { isPhotoAutoApproved } from "@/lib/collection-photo";
 import { MAX_PHOTOS_PER_ACCOUNT } from "@/lib/upload-shared";
 import {
@@ -120,11 +121,10 @@ export async function collectionPageData(filters: RiverFilters = { order: "newes
   const scope: PhotoScope = filters.scope ?? "valley";
 
   /* Whether this member's photographs go straight in or wait for review, and
-     the two fields the class rule turns on. Everything per-half is below. */
-  const me = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { photoTrusted: true, verifyState: true, batchYear: true },
-  });
+     the two fields the class rule turns on. Everything per-half is below.
+     One shared reader, `cache()`d, so the four surfaces that need these facts
+     on one permalink render pay for one lookup between them. */
+  const me = await viewerFacts(session.user.id);
 
   /* Whether this member may see the Class Collection AT ALL, answered from
      the same function the river and the permalink use rather than by
@@ -262,11 +262,8 @@ export const loadPhoto = cache(async function loadPhoto(id: string): Promise<Pho
      every river stayed reachable at its own URL. One function decides both.
 
      The viewer's verification and class are read off the row for the reason
-     given in loadPhotos: a JWT claim can be an hour stale. */
-  const me = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { verifyState: true, batchYear: true },
-  });
+     given in viewerFacts: a JWT claim can be an hour stale. */
+  const me = await viewerFacts(session.user.id);
   const seen = decidePhotoVisibility(row, {
     id: session.user.id,
     role: session.user.role,
