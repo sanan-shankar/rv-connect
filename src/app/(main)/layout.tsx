@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { unreadNotificationCount } from "@/lib/notification-count";
 import { AppShell } from "@/components/layout/app-shell";
 import { advanceDueCatchups } from "@/lib/catchups";
-import { touchLastSeen } from "@/lib/last-seen";
+import { readPresence, touchLastSeen } from "@/lib/last-seen";
 import { headers } from "next/headers";
 import { drainMailQueue, verificationMailState } from "@/lib/email-queue";
 import { maskEmail } from "@/lib/mask-email";
@@ -34,6 +34,12 @@ export default async function MainLayout({
     redirect(path ? `/login?next=${encodeURIComponent(path)}` : "/login");
   }
 
+  /* Read here, written behind the response by the after() below. `headers()`
+     is a request-time API a Server Component may not call inside `after()`, so
+     the facts have to be collected during render even though the write does
+     not belong there. */
+  const presence = await readPresence();
+
   /* Lazy, read-time Catch-up advance (spec 2.4), piggy-backed alongside the
      notification count so it fires on essentially every authenticated page
      view. GLOBAL BLAST RADIUS: this layout renders on every authenticated
@@ -43,11 +49,11 @@ export default async function MainLayout({
      It IS awaited, though: this comment used to claim that running it
      concurrently with the notification count meant it "can never hold up page
      render", which is not what Promise.all does -- the layout waits for the
-     slowest of the four, and that can be this one (audit Low 24). The await is
-     deliberate rather than accidental: the advance is what makes the page you
-     are about to read correct, and moving it behind the response would render
-     a Round in the state it was in a moment ago. It stays bounded by the
-     pool's own query timeout, and a nightly cron does the same sweep
+     slowest of the three, and that can be this one (audit Low 24). The await
+     is deliberate rather than accidental: the advance is what makes the page
+     you are about to read correct, and moving it behind the response would
+     render a Round in the state it was in a moment ago. It stays bounded by
+     the pool's own query timeout, and a nightly cron does the same sweep
      (/api/catchups/tick) so nothing depends on this having run.
      
      If it ever needs to stop blocking, `after()` is the tool -- and the
@@ -67,10 +73,6 @@ export default async function MainLayout({
       ? Promise.resolve(null)
       : verificationMailState(session.user.id),
     advanceDueCatchups(session.user.id),
-    // Records that this member was here, at most once every 15 minutes.
-    // Rides in this same Promise.all rather than awaiting separately: it is
-    // bookkeeping and must never add a serial round trip to page render.
-    touchLastSeen(session.user.id, await currentPath(), session.user.lastSeenAt),
   ]);
 
   // The mail queue's tick. Nothing on a schedule drains the queue -- the two
@@ -91,6 +93,15 @@ export default async function MainLayout({
       console.error("[email] drain failed", err);
     }
   });
+
+  /* Records that this member was here. Behind the response, unlike the
+     Catch-up advance above: the advance is what makes the page you are about
+     to read correct, and this is bookkeeping nobody on this request will
+     read. It used to ride in the Promise.all, where the layout -- which
+     renders above every loading.tsx in the app -- waited on two writes to
+     Mumbai before it would render anything. It swallows its own errors, so
+     there is nothing to catch here. */
+  after(() => touchLastSeen(session.user.id, presence, session.user.lastSeenAt));
 
   return (
     <>
@@ -150,18 +161,10 @@ export default async function MainLayout({
   );
 }
 
-/* The page the member is actually on, from the header src/proxy.ts sets.
-   Null rather than a guess when the header is absent, so a missing value is
-   visibly missing in the admin room rather than quietly wrong. */
-async function currentPath(): Promise<string | undefined> {
-  const h = await headers();
-  return h.get("x-pathname") ?? undefined;
-}
-
-/* The same page WITH its query string, which is what a sign-in detour has to
-   carry back: /directory?batch=2011 is a different destination from
-   /directory. Separate from currentPath because touchLastSeen wants the page,
-   not the search. Both headers come from src/proxy.ts. */
+/* The page WITH its query string, which is what a sign-in detour has to carry
+   back: /directory?batch=2011 is a different destination from /directory.
+   Separate from the plain path readPresence takes, because touchLastSeen wants
+   the page, not the search. Both headers come from src/proxy.ts. */
 async function currentTarget(): Promise<string | undefined> {
   const h = await headers();
   const path = h.get("x-pathname");

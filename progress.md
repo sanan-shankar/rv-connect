@@ -9484,3 +9484,22 @@ Measured with `pg_stat_statements`: `/feed` **22 statements to 21** per render, 
 client action per authenticated page load — itself a session read and a count. Proved live as Jerry:
 badge reads 3 against a database that says 3, and marking one read behind the page's back and firing
 `focus` takes it to 2.
+
+## 2026-09-05 — the layout stops waiting on its own bookkeeping
+
+Refactor audit 2, Phase C, row C4 (`admin-analytics-07`, corrected). `touchLastSeen` rode in the
+`(main)` layout's render-blocking `Promise.all`, so every authenticated page — and this layout
+renders above every `loading.tsx` in the app — waited on two writes to Mumbai before it would render
+anything. The layout's own comment has named `after()` as the tool for this since it was written.
+
+The naive move is a trap the audit's verifier caught: `touchLastSeen` called `await headers()`, and
+a Server Component may not call a request-time API inside `after()` — Next throws. Because the
+function swallows what it catches, presence would have died in production and said nothing. So the
+reading and the writing are two functions now. `readPresence()` collects the request's facts during
+render, where headers exist; `touchLastSeen(userId, presence, lastSeenAt)` takes them and does the
+two writes behind the response. `currentPath()` went with it — `readPresence` reads `x-pathname`
+itself, and `currentTarget()`, which the sign-in detour needs, stays.
+
+Proved live: set `lastSeenAt` an hour back, load `/feed`, and the row still moves — with the write
+now off the render path. The pattern is the same one `drainMailQueue` has used in production since
+it was written.
