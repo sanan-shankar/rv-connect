@@ -120,7 +120,6 @@ of them will regenerate.
 | `map-cluster-verify.mjs` | Directory map: cluster resolution and touch-target sizes. The DOM half of `src/lib/map-cluster.test.mjs`. |
 | `hoopoe-landing-check.mjs` | Measures the mascot's landing frame by frame off the DOM. `mascot-flight-layer.tsx` has a QA hook for it. |
 | `hoopoe-zoom-probe.mjs` | **Keep.** Regression guard for an open bug (`docs/planning/bugs.md` #14): it proves the wing pivots are *not* the cause, so nobody re-tests that theory. |
-| `_dir-chrome-probe.mjs` | Measures the live directory chrome so `/lab/directory`'s stated numbers stay true. Named in that room's UI. |
 | `_dir-room-shots.mjs` | Section-by-section capture of `/lab/directory`. |
 | `local-base-url.mjs` | Helper: finds which port the dev server is on. Has a test. |
 | `hoopoe-idle-check.mjs` | Regression guard for the idle animation that used to restart whenever the tab was hidden and shown again (fixed 2026-08-11). |

@@ -154,10 +154,11 @@ export default function DirectoryRoom({
 
       <Rule nav="Measured">The bar, measured</Rule>
       <p className="mb-6 max-w-[68ch] text-[17px] leading-[1.65] text-muted-foreground">
-        Read off the live page with{" "}
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">scripts/qa/_dir-chrome-probe.mjs</code>,
-        which walks every input and button in the toolbar and groups them by their top edge. A row here
-        means a row you can see.
+        Read off the live page on 3 August 2026 by a DOM probe that walked every input and button
+        in the toolbar and grouped them by their top edge, so a row here means a row you could see.
+        The probe was retired on 5 September: its anchor was a <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">data-tour</code>{" "}
+        attribute, and those went with the hoopoe tour on 27 August, after which it reported success
+        and measured nothing. These numbers are a dated reading, not a live one.
       </p>
       <Ledger
         cols={["Filters set", "1440", "1280", "1024", "Where the first person starts"]}
