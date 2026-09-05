@@ -9440,3 +9440,22 @@ paragraph now says "work from the manifest", and says why.
 The audit's third part -- making `import-album.mjs` import `gridThumb` and `exifBlockOf` instead of
 copying them -- is conditional on `collection-photo.ts` losing its `@/` imports, and belongs with
 the Phase E dedupe rather than here.
+
+## 2026-09-05 — the presence write stops asking a question it already knows the answer to
+
+Refactor audit 2, Phase C, row C3(a) (`data-layer-07(a)`). `touchLastSeen`'s `user.updateMany` is
+throttled by its own WHERE — `lastSeenAt IS NULL OR lastSeenAt < now - 15min` — so for fourteen
+minutes in every fifteen it writes nothing. It was still a round trip and a row-lock attempt on
+`User`, on every page view, for every member. The session callback had already read that member's
+row in the same request; it just did not select the column.
+
+It does now, and the layout passes it in. Measured on `/feed` with `pg_stat_statements`: **23
+statements to 22** on a view where the member was here recently, and a genuinely stale row still
+gets written — set `lastSeenAt` to an hour ago, load the page, watch it move.
+
+The interesting part is the failure in between. `lastSeenAt: Date | null` on `session.user`
+typechecked cleanly and then threw `lastSeenAt.getTime is not a function` on every render: the
+NextAuth session is a JSON payload and a Date does not survive it. It is an ISO string now, parsed
+at the reader, and the trap is in `docs/TRAPS.md` under Next.js. Nothing found it but
+`touchLastSeen`'s own catch, which logs loudly in development for exactly this reason — the guard
+CLAUDE.md argues for, paying for itself.

@@ -182,7 +182,11 @@ function parseAgent(ua: string) {
  * may ever see an error page because a statistics row would not write --
  * the same contract advanceDueCatchups holds in the same layout.
  */
-export async function touchLastSeen(userId: string, path?: string): Promise<void> {
+export async function touchLastSeen(
+  userId: string,
+  path?: string,
+  lastSeenAt?: string | null,
+): Promise<void> {
   try {
     const now = new Date();
 
@@ -224,14 +228,25 @@ export async function touchLastSeen(userId: string, path?: string): Promise<void
 
       /* Still worth keeping alongside Visit: it is one indexed column on User,
          so "active in the last 30 days" is a count rather than a join, and it
-         survives any future pruning of visit history. */
-      prisma.user.updateMany({
-        where: {
-          id: userId,
-          OR: [{ lastSeenAt: null }, { lastSeenAt: { lt: new Date(now.getTime() - LAST_SEEN_STALE_MS) } }],
-        },
-        data: { lastSeenAt: now },
-      }),
+         survives any future pruning of visit history.
+         
+         Skipped entirely when the caller can already say the column is fresh.
+         The WHERE below makes this a no-op UPDATE for fourteen minutes in
+         every fifteen -- it writes nothing, but it is still a round trip and a
+         row-lock attempt on User on every page view by every member. The
+         caller is the layout, and the session callback has already read this
+         member's row in this same request, so the answer is free there and
+         costs a query here. The WHERE stays regardless: it is what keeps two
+         concurrent requests from both deciding to write. */
+      fresh(lastSeenAt, now)
+        ? Promise.resolve()
+        : prisma.user.updateMany({
+            where: {
+              id: userId,
+              OR: [{ lastSeenAt: null }, { lastSeenAt: { lt: new Date(now.getTime() - LAST_SEEN_STALE_MS) } }],
+            },
+            data: { lastSeenAt: now },
+          }),
     ]);
   } catch (err) {
     /* Swallowed in production on purpose: no member sees an error page because
@@ -243,6 +258,15 @@ export async function touchLastSeen(userId: string, path?: string): Promise<void
       console.error("[presence] touchLastSeen failed:", err);
     }
   }
+}
+
+/* Unknown reads as stale: the demo persona carries no timestamp, and one
+   extra throttled UPDATE is the right price for never skipping a real one.
+   An unparseable one reads as stale too, for the same reason. */
+function fresh(lastSeenAt: string | null | undefined, now: Date): boolean {
+  if (!lastSeenAt) return false;
+  const then = Date.parse(lastSeenAt);
+  return !Number.isNaN(then) && now.getTime() - then < LAST_SEEN_STALE_MS;
 }
 
 function safeDecode(v: string | null): string | null {

@@ -75,7 +75,7 @@ export default async function MainLayout({
     // Records that this member was here, at most once every 15 minutes.
     // Rides in this same Promise.all rather than awaiting separately: it is
     // bookkeeping and must never add a serial round trip to page render.
-    touchLastSeen(session.user.id, await currentPath()),
+    touchLastSeen(session.user.id, await currentPath(), session.user.lastSeenAt),
   ]);
 
   // The mail queue's tick. Nothing on a schedule drains the queue -- the two

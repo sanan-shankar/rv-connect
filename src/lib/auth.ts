@@ -327,6 +327,11 @@ const nextAuth = NextAuth({
             name: true,
             photoUrl: true,
             birdOverride: true,
+            /* Not chrome: the only reader is the layout's presence write, which
+               skips its throttled UPDATE when this is fresh. Riding on the read
+               this callback already does is what makes that skip free -- asking
+               the row for it separately would cost the round trip it saves. */
+            lastSeenAt: true,
           },
         });
         /* The three ways a token that verifies cryptographically is still not
@@ -360,6 +365,11 @@ const nextAuth = NextAuth({
           session.user.name = dbUser.name;
           session.user.photoUrl = dbUser.photoUrl;
           session.user.birdOverride = dbUser.birdOverride;
+          /* ISO string, not the Date the row holds: NextAuth's session is a
+             JSON payload, so a Date put on `session.user` arrives at the
+             reader as a string and `.getTime()` throws. Converted here so the
+             type says what actually crosses. */
+          session.user.lastSeenAt = dbUser.lastSeenAt?.toISOString() ?? null;
         }
       }
       return session;

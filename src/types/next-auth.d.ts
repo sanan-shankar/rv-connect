@@ -32,6 +32,12 @@ declare module "next-auth" {
       batchYear: number | null;
       photoUrl: string | null;
       birdOverride: string | null;
+      /** When this member was last recorded as here, as an ISO string -- the
+       *  session is a JSON payload, so a Date does not survive the crossing.
+       *  Optional because the demo persona is assembled by hand and has no
+       *  row-read behind it; the presence write treats "unknown" as "stale",
+       *  so an absent value costs one UPDATE and never a wrong one. */
+      lastSeenAt?: string | null;
     };
   }
 
