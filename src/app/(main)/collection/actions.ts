@@ -31,6 +31,7 @@ import {
   MAX_UPLOAD_BYTES,
   COLLECTION_WEBP_QUALITY,
   MAX_PHOTOS_PER_ACCOUNT,
+  heicRefusal,
   isUnsupportedHeic,
   describeProcessingError,
   sniffImageType,
@@ -180,12 +181,7 @@ export async function contributePhoto(formData: FormData) {
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No photo provided" };
   if (!isImageFile(file)) return { error: "Only image files are allowed" };
-  if (isUnsupportedHeic(file)) {
-    return {
-      error:
-        'This is a HEIC/HEIF photo, which isn\'t supported yet. Export it as JPG or PNG (or turn off "High Efficiency" in your camera settings) and try again.',
-    };
-  }
+  if (isUnsupportedHeic(file)) return { error: heicRefusal() };
   if (file.size > MAX_UPLOAD_BYTES) {
     return { error: `Photo is over the 20MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB)` };
   }

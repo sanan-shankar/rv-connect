@@ -9832,3 +9832,27 @@ running route. `npm run check` green.
 
 C-073's pin moved with the refactor and was re-pointed in the same commit, then mutation-tested: gut
 `announceUploadNotices`, or stop `postImages` calling it, and the suite goes red.
+
+## 2026-09-05 — Phase E, E2: one HEIC refusal
+
+Six places decided a photograph was a HEIC and told the member so, in six wordings. Two of the six
+hand-rolled the predicate, and one of those two was a real defect: the settings avatar compared the
+two MIME strings only, so a blank-MIME iPhone photograph — precisely the case `isUnsupportedHeic`
+checks the file extension for — fell past it to the byte sniffer and came back with *"That file
+doesn't look like a JPG, PNG, GIF or WebP image."* True, and no help at all.
+
+`heicRefusal(filename?)` and `heicBatchRefusal(count)` join `stillPictureNotice` in `upload-shared.ts`
+and are shaped the same way: name the file when there is one to name. The advice clause is its own
+export, because the browser shrinker's leading sentence is genuinely different — it is saying why a
+file could not be MADE small, not that the format is refused — while its advice is the same advice.
+
+The sweep that pins this found the sixth copy nobody had counted. The audit named four; a verifier
+found a fifth in the contribute room; `image-downscale.ts` was the sixth, testing `/hei[cf]/i` against
+the MIME type by hand. All six go through the one predicate now, and the test is a sweep over `src/`
+rather than a list, so it catches the seventh instead of the six that exist today.
+
+Not fixed, because verification refuted it: there was never a crash here. `sniffImageType` refuses a
+HEIC safely and always did. The bug was the sentence, and the sentence is what changed.
+
+`npm run check` green. Verified live that the contribute room still takes an ordinary photograph
+through the `accept` callback this touched.

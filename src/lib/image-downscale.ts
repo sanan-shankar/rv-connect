@@ -1,3 +1,5 @@
+import { heicWayOut, isUnsupportedHeic } from "./upload-shared.ts";
+
 /**
  * Browser-side image downscaling, run BEFORE a photo is uploaded.
  *
@@ -120,12 +122,10 @@ export async function shrinkForUpload(
       } to ${mb(total)}. Try a shorter one, or a still picture.`,
     };
   }
-  if (shrunk.some((f) => /hei[cf]/i.test(f.type) || /\.hei[cf]$/i.test(f.name))) {
+  if (shrunk.some((f) => isUnsupportedHeic(f))) {
     return {
       ok: false,
-      error:
-        "HEIC photos cannot be resized in the browser. Export as JPG or PNG, or " +
-        'turn off "High Efficiency" in your camera settings.',
+      error: `HEIC photos cannot be resized in the browser. ${heicWayOut(true)}`,
     };
   }
   return {

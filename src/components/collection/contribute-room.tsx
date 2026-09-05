@@ -70,7 +70,14 @@ import { contributePhoto, contributePhotoDirect } from "@/app/(main)/collection/
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import { directUploadPut } from "@/lib/upload-client";
 import { shrinkForUpload } from "@/lib/image-downscale";
-import { MAX_PHOTOS_PER_DROP, MAX_UPLOAD_BYTES, isImageFile } from "@/lib/upload-shared";
+import {
+  MAX_PHOTOS_PER_DROP,
+  MAX_UPLOAD_BYTES,
+  heicBatchRefusal,
+  heicRefusal,
+  isImageFile,
+  isUnsupportedHeic,
+} from "@/lib/upload-shared";
 import { valleyYear } from "@/lib/utils";
 import { ContributeStage } from "./contribute-stage";
 import {
@@ -323,17 +330,13 @@ export function ContributeRoom({
   const accept = useCallback(
     async (incoming: File[]) => {
       const images = incoming.filter((f) => isImageFile(f));
-      const heic = incoming.filter(
-        (f) => f.type === "image/heic" || f.type === "image/heif" || /\.hei[cf]$/i.test(f.name)
-      );
+      const heic = incoming.filter((f) => isUnsupportedHeic(f));
       const heavy = images.filter((f) => f.size > MAX_UPLOAD_BYTES);
       const ok = images.filter((f) => f.size <= MAX_UPLOAD_BYTES);
 
       if (heic.length) {
         toast.error(
-          heic.length === 1
-            ? "HEIC photos aren't supported yet. Export it as JPG and try again."
-            : `${heic.length} HEIC photos were left out. Export them as JPG and try again.`
+          heic.length === 1 ? heicRefusal(heic[0].name) : heicBatchRefusal(heic.length)
         );
       }
       if (heavy.length) {

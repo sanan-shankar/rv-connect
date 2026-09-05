@@ -6,6 +6,7 @@ import { recordImage } from "@/lib/image-record";
 import { purgeImageUrls } from "@/lib/image-purge";
 import {
   MAX_UPLOAD_BYTES,
+  heicRefusal,
   isUnsupportedHeic,
   describeProcessingError,
   sniffImageType,
@@ -84,12 +85,7 @@ export async function POST(request: Request) {
     }
 
     if (isUnsupportedHeic(file)) {
-      return abort(
-        {
-          error: `"${file.name}" is a HEIC/HEIF photo, which isn't supported yet. Export it as JPG or PNG (or turn off "High Efficiency" in your camera settings) and try again.`,
-        },
-        400
-      );
+      return abort({ error: heicRefusal(file.name) }, 400);
     }
 
     if (file.size > MAX_UPLOAD_BYTES) {
