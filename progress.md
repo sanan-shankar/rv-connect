@@ -9533,3 +9533,24 @@ watching it go red.
 Not proved: the two-account class-refusal check the finding asks for. Both tooling accounts are
 admins, and an admin is exempt from the class rule; signing in as a real alumnus to test it is not
 allowed. The structural argument stands in its place — metadata and body are one call now.
+
+## 2026-09-05 — the Collection asks who you are once, and a class permalink opens in the class order
+
+Refactor audit 2, Phase C, the rest of `collection-04`. A class permalink used to read the same
+three columns of the viewer's own row four times in one request: `generateMetadata`, `loadPhoto`,
+`collectionPageData` and `loadPhotos` each asked the primary key for `verifyState` and `batchYear`
+separately. They cannot hand the row to each other — `loadPhotos` is also called straight from the
+client, so it has to be able to read for itself — which is exactly the shape React's request-scoped
+`cache()` is for. `src/lib/collection-viewer.ts` owns it now, with `photoTrusted` riding along
+because one shape is worth more than one column.
+
+Measured with `pg_stat_statements`: the permalink is **31 → 30** statements, and the class half's
+statement list now shows exactly one `verifyState, batchYear, photoTrusted` read where it showed
+two. C1's own commit had already taken it from 33.
+
+And the correctness slip underneath: `[id]/page.tsx` passed `order: "newest"` for both halves, while
+the index reaches the same data through `riverFiltersFrom`, which falls back to
+`defaultOrderFor(scope)` — Chronological for a class, Newest for the valley. So the two doors into
+the Class Collection disagreed about its order. Proved live: a class permalink now reads
+Chronological, a valley one still reads Newest, and both open with the viewer on the photograph.
+`e2e/collection-permalink.spec.ts` passes at both viewports.
