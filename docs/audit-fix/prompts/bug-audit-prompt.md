@@ -329,20 +329,20 @@ Structure:
 ### The fix-prompt, which is what actually gets run
 
 The report is the record; **`fix-prompt.md` is the thing a fix session reads.** It is run by
-`/fix-campaign` — one orchestrator session that front-loads every question the owner must
+`/campaign` — one orchestrator session that front-loads every question the owner must
 answer, then works the phases one after another, briefing one worker per chunk and verifying
 each worker's output itself. Write the fix-prompt for that reader, or the first thing the
 campaign does is rebuild it.
 
 Four requirements, all of them cheap at audit time and expensive later:
 
-1. **Its first line tells the reader to invoke `/fix-campaign`** — the owner @s this file and
+1. **Its first line tells the reader to invoke `/campaign`** — the owner @s this file and
    nothing else, so the trigger has to live in it.
 2. **It carries a `## Campaign board`**: one row per phase, in run order, with columns
    *Phase | Status | Rows left | Blocked on*. Status is one of `DONE`, `PARTIAL`, `OPEN`,
    `OWNER-GATED`, `DECLINED` and nothing else. This table is the campaign's resume anchor — a
    session that dies mid-run costs nothing because the next one reads it and starts at the first
-   phase that is not `DONE`. `scripts/qa/fix-campaign.test.mjs` fails on a malformed board.
+   phase that is not `DONE`. `scripts/qa/campaign.test.mjs` fails on a malformed board.
 3. **It carries empty `## Owner questions` and `## Owner answers` sections**, plus a `## Ledger`.
    The campaign writes into all three.
 4. **Every owner decision is already written the way he will be asked**, in the report's owner

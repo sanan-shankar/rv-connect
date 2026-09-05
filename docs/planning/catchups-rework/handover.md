@@ -2,7 +2,10 @@
 
 ## Start here
 
-**@ this file and nothing else.** Then, in this order:
+**@ this file and invoke `/campaign`.** The skill is the protocol for running this unattended:
+it front-loads every question the owner must answer, then works the sessions below one after
+another, briefing one worker per session at the model the table names and verifying each one
+itself. This file outranks the skill wherever they disagree. Then, in this order:
 
 1. **Read [`brief.md`](brief.md) in full.** Not skimmed, not summarised. It is the owner's
    spoken brief with the fillers removed and nothing else touched, plus his typed answers,
@@ -37,7 +40,7 @@ recording and found to have been de-hedged; read it before you clean anything he
 **Three campaign-wide rules.** One mind per job wherever a job is one long sequence with state,
 and a fan-out only where several independent readings are genuinely better than one; he left
 ultracode to this session's judgment (¶51), the allocation is D40, and his earlier reasoning
-against fan-outs is kept in view (`.claude/skills/fix-campaign/SKILL.md`: *"the agents are
+against fan-outs is kept in view (`~/.claude/skills/campaign/SKILL.md`: *"the agents are
 receiving this summarisation of summarisation, and then you don't get high-quality results"*).
 No member's words or photographs are lost (¶45, ¶51), exported before anything can lose them,
 and in his own words that must not *"be any reason for you to lower the scale of your
@@ -111,7 +114,7 @@ Everything is **max** effort.
 | S4 | **Rooms** | Opus max | no | S3 | `/lab/catchups/*`, one room per direction plus the pressure room, real data and fixtures, both viewports |
 | S3b | **Second round**, only if the rooms disappoint | Fable max | yes | S4, at his word | more spaghetti, then a new shortlist (¶20) |
 | S5 | **Pick and spec**, owner present | **Fable max** | no | S4, once he has browsed | `spec.md` with every decision marked LOCKED / RECOMMENDED / OPEN |
-| S6+ | **Build**, one phase per session | Opus max | no (the fix-campaign skill's one-worker rule) | S5 | production, phase by phase |
+| S6+ | **Build**, one phase per session | Opus max | no (the `/campaign` skill's one-worker rule) | S5 | production, phase by phase |
 | M1 | **Magazine design** | **Fable max** | **yes**, for the failure-mode hunt and the grammar panel only | S1 | `magazine.md`: the layout grammar, the failure list, a feasibility spike |
 | M2+ | **Magazine build** | Opus max | no | M1 (and S5 for shared parts) | the magazine rendering, the PDF, then email if he says so |
 | X | **Fast fixes** | Opus max | no | S1's root causes | the mobile header cut-off, the shared image viewer, the heart timing; may ship before anything else |
@@ -158,8 +161,8 @@ too, which he allowed in ¶28.
 | X Fast fixes | OPEN | unblocked. Root causes for R6/F8, I9, R4, V1 and R13 are in `recon.md`; V2 and V3 need a real iPhone first |
 | Old spec rewritten to describe what shipped | OPEN | last, with the final build phase |
 
-Statuses are `DONE`, `PARTIAL`, `OPEN`, `OWNER-GATED`, `DECLINED`, the same five words the
-fix-campaign board uses.
+Statuses are `DONE`, `PARTIAL`, `OPEN`, `OWNER-GATED`, `DECLINED`, the same five words every
+`/campaign` board uses.
 
 ---
 
@@ -900,7 +903,7 @@ Write it all in `directions.md`. Update the board and log. Do not build anything
 ## S4: Rooms
 
 Build each direction from its brief in `directions.md`, one room at a time, yourself. Not
-through subagents: that is this campaign's judgment, not the brief's (the fix-campaign skill's
+through subagents: that is this campaign's judgment, not the brief's (the `/campaign` skill's
 reasoning about summarised work applies to a room that has to be looked at as it is built),
 and a room is one long sequence with state. Read `docs/spec/lab-voice.md` before the first
 line: the room is in the **Delight** group, the lede is one line, no scoreboard unless the
@@ -970,7 +973,7 @@ any change to actions, routes, auth or the schema, and read its report as a clai
 verdict. The last phase rewrites `docs/spec/catchups.md` to describe what shipped, and closes
 this board.
 
-If a session is asked to run several phases unattended, `/fix-campaign`'s loop (one worker,
+If a session is asked to run several phases unattended, `/campaign`'s loop (one worker,
 verify yourself, park what breaks) is the protocol.
 
 ---

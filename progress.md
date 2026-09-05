@@ -10212,3 +10212,34 @@ Both audit prompts in `docs/audit-fix/prompts/` now describe what the fix-prompt
 future audit writes one the campaign can read instead of one it has to rebuild — and writes its owner
 decisions in the five-line format from the start, which is the difference between copying fifty
 questions across and rewriting them.
+
+## 2026-09-05 — `/fix-campaign` becomes `/campaign`, and learns a second shape
+
+The catch-ups rework is the second campaign with phases, a board and questions only the owner can
+answer, and the skill written for audits did not think it applied: a design session handed
+`handover.md` does not reach for something called "fix-campaign". So the skill is renamed and its
+scope widened to any campaign, with the campaign file in charge of what a unit is, which model each
+takes, and where a fan-out is allowed. Every pointer moved with it — CLAUDE.md's routing row and
+prose, both audit prompts, `docs/audit-fix/README.md`, audit 2's fix-prompt, and the catch-ups
+handover, which now opens by invoking it.
+
+Three things are new rather than moved. **Fan-out guidance**: a `Workflow` when the same input
+deserves many independent readings combined mechanically, subagents when the result changes what you
+do next, neither when the work is one sequence with state. The default stays one worker at a time —
+his words, asked directly: *"i'm in no rush so it's fine it's one after another."* Overlap is a
+judgment the runner may decline, and the browser is a lock either way. **A quality section**: every
+worker ends with the two things it is least sure it got right, two attempts in worktrees where taste
+decides rather than a gate, adversarial review instead of confirming review, a phase read as one
+diff after its units land, a drift check against the owner's original words every few units, and
+permission to hand over before judgment degrades or to re-plan when the order turns out wrong.
+**A notification between the two gates** when a unit lands that everything after it depends on, so a
+bad direction can be killed the same evening instead of the next morning.
+
+`scripts/qa/campaign.test.mjs` (renamed) finds campaign files rather than listing them, in
+`docs/audit-fix/*/fix-prompt.md` and `docs/planning/*/handover.md`, and holds a file to the protocol
+only if it names `/campaign`. That is what keeps the collection rework — run by hand before the skill
+existed — out of scope without an exemption, and it is why the catch-ups handover is checked from
+today. Headings are matched loosely because an audit writes "## Campaign board" and a rework writes
+"## Status board"; the wording was never the thing worth pinning. Two new assertions pin the parts
+he asked for by name: that the fan-out guidance is still there, and that sequential is still the
+stated default.

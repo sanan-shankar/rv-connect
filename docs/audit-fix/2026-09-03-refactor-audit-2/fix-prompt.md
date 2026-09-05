@@ -1,6 +1,6 @@
 # Refactor audit 2 — fix session prompt
 
-**@ this file and invoke `/fix-campaign`.** That is the whole handover. The skill is the protocol
+**@ this file and invoke `/campaign`.** That is the whole handover. The skill is the protocol
 for running this campaign: front-load every question the owner must answer, then work the phases one
 after another, one worker per chunk, verifying each worker's output yourself before the next one
 starts. It reads the campaign board below to know where to pick up, and writes to it before it ends.
@@ -74,7 +74,7 @@ ceiling on a commit message. Pushing is a deploy: **ask first.**
 Where the campaign is, in the order the phases run. **This is the resume anchor**: a session that
 dies mid-run costs nothing, because the next one reads this table and starts at the first phase that
 is not `DONE`. Update it before you end, in the same commit as the work. Status is one of `DONE`,
-`PARTIAL`, `OPEN`, `OWNER-GATED`, `DECLINED` — `scripts/qa/fix-campaign.test.mjs` fails on anything
+`PARTIAL`, `OPEN`, `OWNER-GATED`, `DECLINED` — `scripts/qa/campaign.test.mjs` fails on anything
 else. The prose under "The order to work in" is the long version of this table; where they disagree,
 fix the table.
 
