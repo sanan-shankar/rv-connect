@@ -98,10 +98,21 @@ fix-prompt, a room brief, a prompt for him to paste. Then:
 > the main content and nuance to be there."
 
 So: remove fillers ("um", "uh", "like", "you know", "okay" as a tic); merge stutters and
-restarts; correct a mis-hearing only when it is unambiguous, and put the original in square
-brackets when it is not. Keep the order, the emphasis, the swearing, the reversals, the
-asides and the "I don't know"s. Number the paragraphs so a ledger can point at them. If a
-sentence of yours would replace a sentence of his, you have crossed the line.
+restarts; where a word is unclear or mis-heard, leave the word as transcribed in the sentence
+and put your guess beside it in square brackets, never the other way round. Keep the order,
+the emphasis, the swearing, the reversals, the asides and the "I don't know"s. Number the
+paragraphs so a ledger can point at them. If a sentence of yours would replace a sentence of
+his, you have crossed the line.
+
+**A hedge is content.** The first cleaned transcript in this repo (Catch-ups, 2026-09-05) was
+checked against the raw recording by four independent readers, and 69 of their findings were
+the same fault: "I think", "I guess", "maybe", "a little bit", "kind of", "probably", "or
+something" and a dozen trailing "right?" had been trimmed as if they were fillers. Each is
+small; together they made the owner sound certain where he was tentative, and tentativeness
+is exactly what tells the next session a question is still open. The same pass caught three
+self-corrections he made out loud that had been flattened to their end state, and one whole
+sentence of opinion gone. So: hedges, tags and reversals stay, and when a transcript matters,
+have someone who did not clean it read the raw against the clean before anyone works from it.
 
 **No owner brief behind it**: one session handing its own work to the next, what it found,
 what it decided, what is left. You are the author, and your judgment about what to say is
