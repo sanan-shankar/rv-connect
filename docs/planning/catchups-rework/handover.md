@@ -5,36 +5,50 @@
 **@ this file and nothing else.** Then, in this order:
 
 1. **Read [`brief.md`](brief.md) in full.** Not skimmed, not summarised. It is the owner's
-   spoken brief with the fillers removed and nothing else touched, fifty numbered paragraphs,
-   about fifteen minutes. Every `¶n` in this file points into it. He has asked, again, that no
-   session work from a condensed version of it (¶22), and the last two campaigns proved him
-   right.
+   spoken brief with the fillers removed and nothing else touched, plus his typed answers,
+   **52 numbered paragraphs**, about fifteen minutes. Every `¶n` in this file points into it.
+   ¶51 and ¶52 are where he answers direct questions; do not stop at ¶50. He has asked, again,
+   that no session work from a condensed version of it (¶22), and the last two campaigns
+   proved him right.
 2. **Find your session** in "The sessions" below, check the status board, and read that
    session's section. Each section is written to be the whole prompt for that session.
 3. **Read the old spec for vocabulary only.** [`docs/spec/catchups.md`](../../spec/catchups.md)
    describes what is shipped today: the objects, the Round state machine, the permissions. The
    owner on it, ¶48: *"Those are heavily outdated, and you have much more knowledge from my
-   prompt than those guys do."* Take the nouns and the mechanics from it. Take no design, no
-   copy and no scope fence from it. Where it and the brief disagree, the brief wins.
-4. **Before your session ends, edit this file**: status board, findings, decisions, session
+   prompt than those guys do."* And ¶49: *"beyond that, there is no granular detail that will
+   be useful in that."* Take the nouns and the mechanics from it. Take no design, no copy and
+   no scope fence from it. Where it and the brief disagree, the brief wins.
+4. **Read [`prior-art.md`](prior-art.md)** before disagreeing with a recommendation; the
+   disagreement may already be answered there, with its confidence marked. Read its closing
+   "The gaps" before leaning on any number in it.
+5. **Before your session ends, edit this file**: status board, findings, decisions, session
    log. The next session starts by @-ing it alone, so whatever is not written here is lost.
 
 `.claude/skills/writing-for-agents/SKILL.md` governs how you edit this file and anything else
-you write for the session after you. Its section "Whose words are you carrying?" was added
-for this campaign, at the owner's request (¶22): when you brief a worker or a next session on
-anything the owner asked for, his paragraphs travel verbatim, not your paraphrase.
+you write for the session after you. Its section "Whose words are you carrying?" was added for
+this campaign, at the owner's request (¶22): when you brief a worker or a next session on
+anything the owner asked for, his paragraphs travel verbatim, not your paraphrase. Its
+paragraph "A hedge is content" was added after this campaign's brief was checked against the
+recording and found to have been de-hedged; read it before you clean anything he says.
 
-**Three campaign-wide rules.** One mind per job, and a fan-out only where several independent
-minds are genuinely better than one: he left ultracode to this session's judgment (¶51), and
-the allocation is in "The sessions" below, with his earlier reasoning against fan-outs kept in
-view (`.claude/skills/fix-campaign/SKILL.md`: *"the agents are receiving this summarisation
-of summarisation, and then you don't get high-quality results"*). Nothing that exists in
-Catch-ups today is deleted (¶45). And his suggestions are examples, not answers (¶7, ¶26):
-*"You would be reducing the negatives but not increasing the positives."*
+**Three campaign-wide rules.** One mind per job wherever a job is one long sequence with state,
+and a fan-out only where several independent readings are genuinely better than one; he left
+ultracode to this session's judgment (¶51), the allocation is D40, and his earlier reasoning
+against fan-outs is kept in view (`.claude/skills/fix-campaign/SKILL.md`: *"the agents are
+receiving this summarisation of summarisation, and then you don't get high-quality results"*).
+No member's words or photographs are lost (¶45, ¶51), exported before anything can lose them,
+and in his own words that must not *"be any reason for you to lower the scale of your
+reworking"* (¶45): the shipped UI is not protected, the content is. And his suggestions are
+examples while his problems are valid (¶26): *"when I flag the problems, those are valid, but
+every suggestion I give is just an example"*, and *"You would be reducing the negatives but not
+increasing the positives."*
 
 This file follows the `docs/planning/collection-rework/` pattern (brief, living handover,
 prior art, spec) because that campaign worked. It lives under `docs/planning/` rather than
-`docs/audit-fix/` because this is a design and rework campaign, not an audit and its fixes.
+`docs/audit-fix/` because this is a design and rework campaign, not an audit and its fixes. On
+2026-09-05 two independent critics read this file against the brief and found the ledger short
+by about thirty asks and a dozen paragraph pointers, and a dozen marks over-read him; all were
+folded in the same day, and the session log says what changed.
 
 ---
 
@@ -42,67 +56,80 @@ prior art, spec) because that campaign worked. It lives under `docs/planning/` r
 
 The owner's own frame, ¶19: *"There are two parts to this. One is [how would I do it if
 catch-ups was my entire app], and then the other is finding out all the things that went
-wrong."* And ¶20 gives the order: deep reconnaissance from a UI/UX point of view, then
-multiple rounds of brainstorming, then build it *"in completely different ways, plural, and
-then see what works."*
+wrong."* His diagnosis of the cause, same paragraph: it was treated as *"one fifth of the app,
+maybe sixth on the sidebar, not that important"*. And ¶20 gives the order: deep reconnaissance
+from a UI/UX point of view, then *"multiple rounds, definitely multiple rounds, of
+brainstorming"*, then build it *"in completely different ways, plural, and then see what
+works."* The bar for the campaign's own documents is set in the same paragraph: the bug-fix and
+refactor audit prompts, *"the level of detail that these prompts go into is insane."*
+
+Two fences he set in ¶20: this is **not** the refactor pass (*"We don't have to refactor the
+catch-ups portion yet"*) and **not** the backend-architectural bug hunt; the user experience
+comes first. A 2,054-line actions file is not this campaign's problem unless a design needs it
+changed.
 
 So, three tracks:
 
 1. **Find everything that is wrong**, thoroughly, with screenshots, at his phone's size and
-   his laptop's, in every state a Catch-up can be in. He has described *"maybe 10% of the
-   problems"* (¶41). The rest is ours to find.
+   his laptop's, in every state a Catch-up can be in and along every path between states
+   (¶51). He has described *"maybe 10% of the problems"* (¶41). The rest is ours to find.
 2. **Design Catch-ups as if it were the whole app.** Information architecture first (what is
    the home of a Catch-up, what does clicking anything do, one representation of a published
-   Round instead of fifteen), then several genuinely different directions built as lab rooms
-   with the real data, the owner picks, a spec is written, it is built.
-3. **The magazine and the PDF** (¶21, ¶30, ¶31): a second rendering of a published Round,
-   laid out by rules that adapt to the content the way a magazine designer would, exported as
-   a beautiful PDF, and eventually emailed. *"One whole side project."* It runs beside track 2,
-   not after it.
+   Round instead of *"15 different ways in 15 different places"*), then several genuinely
+   different directions built as lab rooms with the real data and the pressure corpus, the
+   owner picks, a spec is written, it is built.
+3. **The magazine and the PDF** (¶21, ¶30, ¶31), which he twice called *aspirational*: a second
+   rendering of a published Round, portrait, laid out by rules that adapt to the content the
+   way a magazine designer would, exported as a beautiful PDF, and, *"if we can do an amazing
+   job"*, emailed. *"One whole side project."* It runs beside track 2, not after it.
 
-Plus the functional changes he named, which every direction must carry: the **batch
-Catch-up that exists by default** (¶4), **archive and delete like WhatsApp** (¶5),
-**comments** (¶10), **link previews that fire on any pasted song link** (¶16, ¶50), the
-**photo wall** (¶16, ¶49), and the shared **image viewer and heart** bugs (¶28, ¶29).
+Plus the functional changes he named, which every direction must carry: the **batch Catch-up
+that exists by default** (¶4, ¶51), **archive and delete like WhatsApp** (¶5), **comments**
+(¶10), **photos that open in the viewer** (¶10), **one representation of a published Round**
+(¶13, ¶39), **link previews that fire on any pasted song link** (¶16, ¶50), the **photo wall**
+(¶16, ¶49), and the shared **image viewer and heart** bugs (¶28, ¶29).
 
 ---
 
 ## The sessions
 
 He asked (¶46) to be told which sessions run on which model at which effort, and then left
-ultracode to this session (¶51: *"totally up to you"*). This is the answer. Every session is
-started by pasting `@docs/planning/catchups-rework/handover.md` plus one line saying which
-session it is. Everything is **max** effort unless noted.
+ultracode to this session (¶51: *"totally up to you"*). This is the answer; the structure is
+this session's judgment (D41), the order of activities is his (D17). Every session is started by
+pasting `@docs/planning/catchups-rework/handover.md` plus one line saying which session it is.
+Everything is **max** effort.
 
 | # | Session | Model | Ultracode | Runs after | Produces |
 |---|---|---|---|---|---|
-| S0 | Set-up (this one, 2026-09-05) | Fable max | yes, used: four transcript verifiers ran; the ledger critics and the S2 sweep hit the usage limit, see the log | | `brief.md`, this file, the skill amendment |
-| S1 | **Reconnaissance** | Opus max | **no**: one browser, one machine | now | `recon.md`, `flows.md`, the storyboards, the export script and a first export, root causes for every reported bug |
-| S2 | **Prior art** | Opus, high is enough | **yes**: eight researchers by shape, one assembler; the script exists and is resumable, see the log | now, alongside S1 | `prior-art.md` |
-| S3 | **Directions** | **Fable max** | **yes**: the shape is in its section | S1 and S2 | `directions.md`: the IA, three or four directions, a room brief per direction |
-| S4 | **Rooms** | Opus max | no | S3 | `/lab/catchups/*`, one room per direction plus the pressure room, real data, both viewports |
+| S0 | Set-up (2026-09-05) | Fable max | yes, used: four transcript verifiers, two ledger critics, the S2 sweep | | `brief.md`, this file, the skill amendment, `prior-art.md` |
+| S1 | **Reconnaissance** | Opus max | **no**: one browser, one machine | now | `recon.md`, `flows.md`, the storyboards, the export script and a first export, the first fixtures, root causes for every reported bug |
+| S2 | **Prior art** | done inside S0 | | | `prior-art.md`, 21,000 words, eight shapes, with its gaps listed; a follow-up only if S3 finds a hole |
+| S3 | **Directions** | **Fable max** | **yes**: the shape is in its section | S1 | `directions.md`: the IA, the directions, a room brief per direction |
+| S4 | **Rooms** | Opus max | no | S3 | `/lab/catchups/*`, one room per direction plus the pressure room, real data and fixtures, both viewports |
+| S3b | **Second round**, only if the rooms disappoint | Fable max | yes | S4, at his word | more spaghetti, then a new shortlist (¶20) |
 | S5 | **Pick and spec**, owner present | **Fable max** | no | S4, once he has browsed | `spec.md` with every decision marked LOCKED / RECOMMENDED / OPEN |
-| S6+ | **Build**, one phase per session | Opus max | no, his standing rule for fixes | S5 | production, phase by phase |
-| M1 | **Magazine design** | **Fable max** | **yes**, for the failure-mode hunt and the grammar panel only | S1 and S2 | `magazine.md`: the layout grammar, the failure list, a feasibility spike |
+| S6+ | **Build**, one phase per session | Opus max | no (the fix-campaign skill's one-worker rule) | S5 | production, phase by phase |
+| M1 | **Magazine design** | **Fable max** | **yes**, for the failure-mode hunt and the grammar panel only | S1 | `magazine.md`: the layout grammar, the failure list, a feasibility spike |
 | M2+ | **Magazine build** | Opus max | no | M1 (and S5 for shared parts) | the magazine rendering, the PDF, then email if he says so |
-| X | **Viewer and heart slice** | Opus max | no | S1 | fixes to the shared image viewer and the heart timing; may ship before anything else |
+| X | **Fast fixes** | Opus max | no | S1's root causes | the mobile header cut-off, the shared image viewer, the heart timing; may ship before anything else |
 
-**Where ultracode earns its keep and where it does not.** A fan-out helps when the work is
+**Where ultracode earns its keep and where it does not (D40).** A fan-out helps when the work is
 many independent readings of the same thing (research shapes, transcript stretches, failure
 modes, alternative designs from one shared brief), and it hurts when the work is one long
 sequence with state (a browser walked through every Catch-up state; a room built and looked
 at; a build phase with a gate). It also cannot help where the machine is the limit: his Mac
 has hung under browser fleets, so S1 and S4 are one browser each regardless. The one risk he
-named, summarisation of summarisation, is avoided by the rule in the writing-for-agents
-skill: every worker reads `brief.md` itself, in full, from disk; nobody gets a digest. So:
-turn ultracode on for **S2, S3 and M1** and leave it off for everything else.
+named, summarisation of summarisation, is avoided by the rule in the writing-for-agents skill:
+every worker reads `brief.md` itself, in full, from disk; nobody gets a digest. So: turn
+ultracode on for **S3 (and S3b) and M1** and leave it off for everything else. S2 already ran
+that way inside S0.
 
-Why Fable on exactly three: S3, S5 and M1 are where the campaign's taste and synthesis
-happen, and he said he would rather not run everything on Fable (¶46). The sweeps (S1, S2),
-the room-building (S4) and the build (S6+) are Opus work at his usual setting. S1 and S2 can
-run at the same time. S4 rooms are independent of each other and two sessions may build in
-parallel if he is in a hurry, colliding only on `src/app/lab/_registry.ts`. X can run any
-time after S1 and touches the feed too, which he allowed in ¶28.
+Why Fable on exactly three: S3, S5 and M1 are where the campaign's taste and synthesis happen,
+and he said he would rather not run everything on Fable (¶46). The sweep (S1), the
+room-building (S4) and the build (S6+) are Opus work at his usual setting. S4 rooms are
+independent of each other and two sessions may build in parallel if he is in a hurry,
+colliding only on `src/app/lab/_registry.ts`. X can run any time after S1 and touches the feed
+too, which he allowed in ¶28.
 
 ---
 
@@ -110,21 +137,22 @@ time after S1 and touches the feed too, which he allowed in ¶28.
 
 | Item | Status | Notes |
 |---|---|---|
-| Brief captured in his words | DONE | `brief.md`, 2026-09-05, 52 paragraphs: two sittings, the follow-up, and his answers |
-| Skill amended (¶22) | DONE | `.claude/skills/writing-for-agents/SKILL.md`, "Whose words are you carrying?"; the user-level copy in `~/.claude/skills/` updated to match |
-| Owner questions 1 to 5 | DONE | answered 2026-09-05, ¶51 and ¶52; readings under "Owner answers" |
-| Brief checked against the raw transcript | DONE | four verifiers, 69 findings, all folded into `brief.md` on 2026-09-05; see the log |
-| Ledger checked against the brief | OPEN | two critics were scripted and hit the usage limit; resume the S0 workflow or have S3 do it as its first act |
+| Brief captured in his words | DONE | `brief.md`, 2026-09-05, 52 paragraphs: two sittings, the follow-up, his answers |
+| Brief checked against the raw transcript | DONE | four verifiers, 69 findings, all folded in on 2026-09-05; see the log |
+| Skill amended (¶22) | DONE | "Whose words are you carrying?" and "A hedge is content"; the user-level copy in `~/.claude/skills/` matches |
+| Owner questions 1 to 5 | DONE | answered 2026-09-05, ¶51 and ¶52; readings under "Owner answers"; question 6 is open |
+| Ledger and decisions checked against the brief | DONE | two critics, about sixty findings, folded in on 2026-09-05; see the log |
 | S1 Reconnaissance | OPEN | |
-| S2 Prior art | OPEN | eight researchers and an assembler were scripted in S0 and hit the usage limit before running; resumable, see the log |
-| S3 Directions | OPEN | blocked on S1, S2 |
+| S2 Prior art | DONE | `prior-art.md`, inside S0, 2026-09-05; F15 says how far to trust each part |
+| S3 Directions | OPEN | blocked on S1 |
 | S4 Rooms | OPEN | blocked on S3 |
 | Owner browses the rooms | OWNER-GATED | |
+| S3b Second round | OPEN | only if he asks for it after the rooms |
 | S5 Pick and spec | OPEN | blocked on the pick |
 | S6+ Build | OPEN | blocked on S5 |
-| M1 Magazine design | OPEN | blocked on S1, S2 |
+| M1 Magazine design | OPEN | blocked on S1 |
 | M2+ Magazine build | OPEN | blocked on M1 |
-| X Viewer and heart slice | OPEN | blocked on S1's root causes |
+| X Fast fixes | OPEN | blocked on S1's root causes |
 | Old spec rewritten to describe what shipped | OPEN | last, with the final build phase |
 
 Statuses are `DONE`, `PARTIAL`, `OPEN`, `OWNER-GATED`, `DECLINED`, the same five words the
@@ -134,7 +162,7 @@ fix-campaign board uses.
 
 ## What is true today (findings)
 
-Numbered so later sessions can cite and correct them. **Verified** means this session looked;
+Numbered so later sessions can cite and correct them. **Verified** means a session looked;
 **unverified** means it is the owner's report or a reading of the code, not yet reproduced.
 
 - **F1, the live data (verified, read-only query 2026-09-05).** 3 Catch-ups: 1 active, 1
@@ -169,14 +197,15 @@ Numbered so later sessions can cite and correct them. **Verified** means this se
   be archived or deleted **personally** (`CatchupPref.archivedAt / deletedAt`), the bin is
   30 days, and the nightly sweep then removes the member's `GroupMember` row. The index
   shows an "Archived" and a "Recently deleted" section with put-back controls
-  (`index/filed-away.tsx`), which is the thing he does not want to see (¶5). Note for the
-  batch Catch-up: "delete removes your membership after 30 days" cannot apply to a
-  membership that is fixed by batch.
+  (`index/filed-away.tsx`), which is the thing he does not want to see (¶5). There is also
+  a `leaveCatchup` action. Note for the batch Catch-up: "delete removes your membership
+  after 30 days" cannot apply to a membership that is fixed by batch.
 - **F5, the batch history (partly verified).** The create page has a one-tap "Everyone from
   <batch>" (comment in `(index)/page.tsx` lines 77 to 80), so today a batch Catch-up is a
-  people-Catch-up someone made by hand. The archived `/lab/groups-rethink` rooms (concepts
-  C and D) already argued for putting Catch-ups on the batch itself. S1 should recover from
-  git how the earlier default batch Catch-up behaved and why it went (`git log -S`).
+  people-Catch-up someone made by hand, and "Start one" leads to the add-members page he
+  objects to in ¶4 (B5). The archived `/lab/groups-rethink` rooms (concepts C and D) already
+  argued for putting Catch-ups on the batch itself. S1 should recover from git how the
+  earlier default batch Catch-up behaved and why it went (`git log -S`).
 - **F6, the membership container (verified).** A Catch-up still belongs to a hidden `Group`
   row (`groupId` unique); people-Catch-ups create one. Batch groups are the same table with
   `batchYear` set. So "a batch Catch-up by default" is one `Catchup` row per batch group,
@@ -186,30 +215,33 @@ Numbered so later sessions can cite and correct them. **Verified** means this se
   viewport with CSS visibility. He reports the active item bolding and reflowing (¶10),
   the mobile chips clipping in a box, a one-second lag on tap that *"reloads like a whole
   page almost"*, and no way to navigate once scrolled (¶11). All four are S1's to reproduce.
-- **F8, the mobile header cut-off (unverified).** ¶11, ¶25, ¶33: on his phone the green top
-  bar stops short of the right edge, and the whole page reads as if half a centimetre of
-  white space were added on the right, cutting through the sidebar. Not reproducible by
-  narrowing a desktop window. That pattern is a child wider than the viewport creating
-  horizontal overflow; S1 finds which one, with a script that walks every element's
-  `getBoundingClientRect().right` against `innerWidth`.
+- **F8, the mobile header cut-off (unverified).** ¶11, ¶19, ¶25, ¶33: on his phone the green
+  top bar stops short of the right edge, and the whole page reads as if half a centimetre of
+  white space were added on the right, cutting through the sidebar. He saw it on the
+  Catch-up home (¶25) and on the reader (¶11); not reproducible by narrowing a desktop
+  window. That pattern is a child wider than the viewport creating horizontal overflow; S1
+  finds which one, with a script that walks every element's `getBoundingClientRect().right`
+  against `innerWidth`. It is the one bug he can see today on a live surface with seventy
+  members, so X takes it first (D49).
 - **F9, the shared image viewer and heart (unverified).** ¶28: swiping from a tall photo to
   a landscape one snaps the viewer to a smaller size; swiping back from the last photo jumps
   to the first, not the previous; the jump overshoots. ¶29: a heart on a Catch-up answer
   fills instantly but its animation fires a second late, unlike the feed. The viewer is
   `src/components/common/image-viewer.tsx` / `photo-carousel.tsx`, shared with the feed and
   the Collection; he allowed the fix to touch the feed. Caption clamp today is 2 lines
-  (¶32), wanted 4.
+  (¶32), and he said *"maybe make it 4 lines"*.
 - **F10, the safety net that already exists (verified in `docs/OPERATIONS.md`).** A nightly
   `pg_dump` goes to a private R2 bucket, 30 days kept plus the first of every month forever,
   and the media job mirrors every object in the public bucket. So the floor under "nothing
-  gets deleted" is already there. What he asked for in ¶45 is a rebuildable file he can
-  point at; S1 adds that (D6).
+  gets lost" is already there. What he asked for in ¶45 and ¶51 is a rebuildable file,
+  *"totally regeneratable"*; S1 adds that (D6, D23).
 - **F11, prior research on disk.** `docs/planning/letterloop-research.md` (2026-07-05) is
   thorough on Letterloop's mechanics and says nothing about how it looks; he calls it
-  *"still somewhat useful"* (¶49). `docs/planning/dialog-standards-findings.md` (2026-08-29)
-  is the evidence base for the dialogs he wants reworked *"in general"* (¶3), and its thesis
-  applies here word for word: the standards exist and were not enforced past the surface
-  they were written on.
+  *"still somewhat useful"* (¶49); `prior-art.md` §1 now covers the look.
+  `docs/planning/other/dialog-standards-findings.md` (2026-08-29; moved into `other/` by a
+  peer session on 2026-09-05, `git log --follow` if it has moved again) is the evidence base
+  for the dialogs he wants reworked *"in general"* (¶3), and its thesis applies here word for
+  word: the standards exist and were not enforced past the surface they were written on.
 - **F12, the lab.** `/lab` requires a session and the admin role (`src/app/lab/layout.tsx`).
   Rooms may read live data through server components; the lab's own `actions.ts` already
   imports the Prisma client. `docs/spec/lab-voice.md` is the house voice; a new room goes
@@ -230,7 +262,27 @@ Numbered so later sessions can cite and correct them. **Verified** means this se
   opens, when answers open, on every reminder and on publish (`catchups-notify.ts`). A fake
   Catch-up containing any real member would put test noise in that member's bell, to seventy
   beta testers' detriment. So a live throwaway holds only the owner's account and Jerry, and
-  variety of content and authors comes from fixtures (D30, D33).
+  variety of content and authors comes from fixtures (D30, D33). This is the session's care,
+  not his instruction; a session that needs more may ask him.
+- **F15, `prior-art.md` and how far to trust each part (S0, 2026-09-05).** Eight researchers,
+  one assembler, 21,000 words, every claim marked [measured], [company] or [secondary], every
+  gap collected at the end. By the assembler's own review: §8 (the PDF pipeline) is the best
+  evidenced, with package sizes, Vercel's limits page (dated 2026-08-24) and Cloudflare's
+  caps read directly; §7's oembed section is genuinely measured (fields, status codes,
+  thumbnail sizes, Spotify's cover-art path prefixes, the missing artist field). §5 (who is
+  in this) is the weakest: nothing in it was opened in a browser. §2's wide-screen argument
+  is inference; nobody measured Spotify or Letterboxd at 1920. §3's Revolut part is empty,
+  because Revolut has published nothing about document navigation; treat *"what if Revolut
+  did this"* as unanswered and look at his phone instead. §1 has no pixels of Letterloop's
+  home, members screen, PDF or Mementos; only words. Read "The gaps" before building on any
+  of it.
+- **F16, a correction to this file's own earlier claim.** The export script and the PDF
+  script are ordinary `scripts/dev/` scripts. `docs/spec/hand-run-passes.md` and its test
+  govern passes where a model judges members' data and writes a judgment back (the
+  Collection's tags, the directory's professions); neither script does that, so the protocol
+  does not apply and `scripts/qa/hand-run-passes.test.mjs` will not see them. Whether
+  `scripts/qa/scripts-ledger.test.mjs` wants a row for each in `scripts/dev/README.md` is
+  unverified; check it.
 
 ---
 
@@ -238,7 +290,8 @@ Numbered so later sessions can cite and correct them. **Verified** means this se
 
 Each item names its paragraphs. This is an index into `brief.md`, not a substitute for it:
 the paragraph carries the tone and the reasoning, and the tone is part of the instruction.
-Status is `open` until a session closes it and says where.
+Status is `open` until a session closes it and says where. Checked against the brief by two
+independent critics on 2026-09-05 and repaired; if you find a gap, add the row.
 
 ### How to work (P)
 
@@ -246,20 +299,30 @@ Status is `open` until a session closes it and says where.
 |---|---|---|---|
 | P1 | A serious, bottom-up rework of UI and functionality; a completely fresh take on the presentation; the functionality is mostly fine | 1, 17, 18 | open |
 | P2 | He gives constraints, not answers; find the solution shape; think critically about each way; research what others and Letterloop do; pick the best | 7 | open |
-| P3 | Every suggestion of his is an example that may be wrong; do not just fix the listed items, which only *"reduces the negatives"* | 6, 26 | open |
+| P3 | The problems he flags are valid; every suggestion is an example that may be wrong; do not just fix the listed items, which only *"reduces the negatives"*; and the named anti-fix is a Back button or *"slide buttons here and there"* | 6, 18, 26 | open |
 | P4 | The bar is *"if catch-ups was my entire app"*: a complete experience, beautiful and intuitive | 19, 47 | open |
 | P5 | Two parts: how would I do it, and everything that went wrong | 19 | open |
 | P6 | Thorough recon from a UI/UX point of view with screenshots (code alone cannot show it), then multiple rounds of brainstorming, then build it several different ways and see what sticks | 20, 43 | open |
 | P7 | Map every intent against every state a Catch-up can be in; good modular design makes the 10,000 combinations collapse | 36 | open |
-| P8 | Do not reinvent the palette; it must still be this app; new things are allowed; the Apple Action Button analogy: bespoke, unmistakably of the app, not the same pills everywhere; *"a higher level of abstraction"* | 42 | open |
-| P9 | Letterloop is the floor and we must be much better; Letterloop's things are too fixed | 17, 49, 50 | open |
-| P10 | Past specs and prompts are guidance, not law; heavily outdated; the brief outranks them | 48, 50 | open |
-| P11 | Existing content is not deleted; export it to a rebuildable file; but do not let that lower the scale of the rework | 45 | open |
-| P12 | Say which sessions on which models at which effort; no ultracode unless he turns it on after a turn; time not a constraint; tokens not wasted; not everything on Fable | 46 | done, "The sessions" |
-| P13 | Catch-ups is the weakest part, hidden from demos, 70 beta testers waiting; the one genuinely creative feature; *"do me proud"* | 44, 47 | open |
-| P14 | Amend the writing-for-agents skill: his brief travels verbatim when relayed | 22 | done, S0 |
-| P15 | He has described about 10% of the problems; find the rest | 19, 41 | open |
-| P16 | What works and stays: the answer tile (bird, name, batch, answer, heart), the posts dialog, the image viewer and the way images are arranged, the Keeper leaf mark; comments will be easy to add | 17, 19, 27, 37 | open |
+| P8 | Do not reinvent the palette; it must still be this app; new things are allowed; the Apple Action Button analogy: bespoke, unmistakably of the app; reusing the same pill-and-status-pill vocabulary everywhere is the named failure, *"a higher level of abstraction"* is the ask | 42 | open |
+| P9 | Letterloop is the floor and we are under it (*"ours just looks so much worse than theirs"*); we must be much better; Letterloop's things are too fixed | 17, 49, 50 | open |
+| P10 | Past specs and prompts are guidance, not law; heavily outdated; only what Catch-ups is *for* is worth taking from them | 48, 49, 50 | open |
+| P11 | Existing content is not deleted; export it to a file that is *"totally regeneratable"*; but do not let that lower the scale of the rework | 45, 51 | open |
+| P12 | Say which sessions on which models at which effort; ultracode is the session's call; time not a constraint; tokens not wasted; not everything on Fable | 46, 51 | done, "The sessions" |
+| P13 | Catch-ups is the weakest part, hidden from demos; the one genuinely creative feature; *"do me proud"* | 44, 47 | open |
+| P14 | Amend the writing-for-agents skill: his brief travels verbatim when relayed; when one session hands its own work to the next, its judgment is enough | 22 | done, S0 |
+| P15 | He has described about 10% of the problems; find the rest | 41 | open |
+| P16 | What works and stays: the answer tile's content (bird, name, batch, answer), the posts dialog, the image viewer and the way images are arranged, portrait photos on a phone and swiping between them (*"kind of look fine"*), the Keeper leaf mark, pause and resume; comments will be easy to add; about 10% of the build is good | 14, 17, 19, 27, 28, 37 | open |
+| P17 | *"It doesn't give me any dopamine"*: delight is an acceptance criterion, not only correctness; today reads as *"a V0.5 of an app"* | 3 | open |
+| P18 | His diagnosis: it was built as one fifth of the app and got a fifth of the attention; the remedy is to treat it as the whole app | 19 | open |
+| P19 | The effort benchmark for this campaign's own documents: the bug-fix and refactor audit prompts, *"the level of detail... is insane"* | 20 | open |
+| P20 | Scope fence: no refactor pass yet, and not the backend-architectural bug hunt; UI/UX first | 20 | open |
+| P21 | His severity ranking: Fresh off the press has *"the most bugs"* and *"severe problems"*; the rest of the index is *"just tweaking"* | 9 | open |
+| P22 | Enumerate the Letterloop parity gaps: *"a lot of the things that were there in Letterloop aren't there"*, including the small pretty ones | 49 | open |
+| P23 | Recon's first duty: how every state looks and how every sequence of events through the states looks | 51 | open |
+| P24 | Robustness by pressure testing: a fake Catch-up or two filled with every type of content; survive the most varying input | 51 | open |
+| P25 | `/lab/catchups/` is the sandbox for any test, *"whatever we want"* | 52 | open |
+| P26 | Seventy beta testers are on this today: live members, live Rounds mid-flight; the rework lands on a live surface and a migration cannot orphan an open Round | 44 | open |
 
 ### The index, `/catchups` (I)
 
@@ -269,77 +332,86 @@ Status is `open` until a session closes it and says where.
 | I2 | Long rectangles stretch on wide screens until 90% is white space; not scalable; a different shape (squares? a picture per Catch-up?) | 1, 6 | open |
 | I3 | The Spotify-grid idea is an example he immediately withdrew; explore many shapes | 6 | open |
 | I4 | Three calls to action on opening: *"overpowering"* | 23 | open |
-| I5 | The View CTA is redundant (everything clicks through to the same place) and mis-aligned because of the three dots | 3 | open |
-| I6 | Three dots in a random corner *"interrupts everything"*; if they exist at all they belong top right; whether tiles exist at all is the level of rethink wanted | 24 | open |
-| I7 | A row of birds plus "+18" identifies nobody; keep birds, never initials; find a different way to show who is here | 23, 27 | open |
+| I5 | The View CTA is redundant (everything clicks through to the same place) and mis-aligned because of the three dots; but *"if there's a reason, sure"*, and controls that do not span the tile are *"fine, I guess"* | 3, 24 | open |
+| I6 | Three dots in a random corner *"interrupts everything"*; if they exist at all they belong top right; whether tiles exist at all is the level of rethink wanted | 3, 24 | open |
+| I7 | A row of birds plus "+18" identifies nobody, on the index tile, the reader's masthead and the home; keep birds, never initials; find a different way to show who is here | 12, 23, 25, 27 | open |
 | I8 | The birds now overlap each other; he thinks a regression | 23 | open |
-| I9 | Fresh off the press: round, loop, date, then a quoted sentence he does not want to keep seeing; a strangely shaped hover; a curved border between items; text spilling out of the hover; *"could be done in a completely different way"* | 9 | open |
+| I9 | Fresh off the press: round, loop, date, then a quoted sentence he does not want to keep seeing; a strangely shaped hover; a curved border between items; text spilling out of the hover; *"could be done in a completely different way"*; and by his ranking it has *"the most bugs"* | 9 | open |
 | I10 | One representation of "a published Round", not *"15 different ways in 15 different places"*, and not different on desktop and mobile | 13, 39 | open |
-| I11 | Hover darkens, outline appears, a View button: *"not critical thought"*, *"a V0.5 of an app"* | 3 | open |
+| I11 | Hover darkens, outline appears, a View button: *"not critical thought"* | 3 | open |
+| I12 | A member is in only two or three Catch-ups; design a short list, not a library | 1 | open |
+| I13 | The long-box problem is everywhere in the app, and the worst case he names is a TV | 1 | open |
 
 ### Lifecycle: archive, delete, pause, end, leave (L)
 
 | # | Ask | ¶ | Status |
 |---|---|---|---|
-| L1 | Ending, deleting, archiving, leaving, pausing: too many verbs, no consistency, *"everything's just different in every different situation"*; pause he *"kind of doesn't get"* | 4, 8, 40 | open |
-| L2 | WhatsApp model: archive and delete; neither is visible on the main list; no Archived section with a Put back button in your face | 5 | open |
-| L3 | No leaving a batch Catch-up; you simply do not open it | 5 | open |
-| L4 | Popup dialogs need reworking in general, *"a whole other thing"* (the dialog-standards research is the base) | 3, 38, 40 | open |
+| L1 | Ending, deleting, archiving, leaving, pausing: too many verbs, no consistency, *"everything's just different in every different situation"*, *"none of that has been considered properly"*; pause he *"kind of doesn't get"*, and then supplies the one argument for it himself: without it a Round *"will just start whenever the time is up"* | 1, 4, 8, 24, 40 | open |
+| L2 | WhatsApp model: archive and delete; neither is visible on the main list; no Archived section with a Put back button in your face; and *"where do we keep them?"* | 1, 5 | open |
+| L3 | *"There should not be an exiting a catch-up"*, said generally after the batch lead-in; ¶4 had asked for a leaving, so this is a reversal | 4, 5 | open |
+| L4 | Popup dialogs need reworking in general, *"a whole other thing"*: the people dialog, the move dialog, the Reminders dialog (the dialog-standards research is the base) | 3, 38, 40 | open |
+| L5 | Where archived and deleted Catch-ups live, and how you find one again | 1, 5 | open |
+| L6 | Whether leaving exists for a people-Catch-up at all: asked for in ¶4, apparently withdrawn in ¶5; today's code has a leave action | 4, 5 | open |
 
 ### The batch Catch-up (B)
 
 | # | Ask | ¶ | Status |
 |---|---|---|---|
-| B1 | Exists by default for every batch; everyone in the batch is automatically in; sees the history of Rounds; can take part in future Rounds | 4 | open |
-| B2 | No adding members; the members are fixed, the batch | 4 | open |
+| B1 | Exists by default for every batch; everyone in the batch is automatically in; sees the history of Rounds; can take part in future Rounds; someone who joins the site later has access to the earlier issues | 4, 51 | open |
+| B2 | No adding or removing members; the members are fixed, the batch; *"can't edit people in and out"* | 4, 51 | open |
 | B3 | Who is the Keeper? Who may start a Round? A question he asked, not answered | 4 | open |
 | B4 | It used to exist and disappeared; recover why | 4 | open |
+| B5 | Bug today: "Start one" on a batch routes to the add-members page, which a batch Catch-up must never have | 4 | open |
+| B6 | Batch and people Catch-ups both exist and are listed together; people Catch-ups are *"how you'd expect"* | 51 | open |
 
 ### A Catch-up's home, `/catchups/[id]` (H)
 
 | # | Ask | ¶ | Status |
 |---|---|---|---|
-| H1 | What is the "home" of a Catch-up and how do you get back to it; clicking a finished Catch-up lands in the reader; the relationship between pages is not designed | 18, 36 | open |
-| H2 | The same published Round appears three times on the home: a "Round 1 is out" tile, the whole Round inline, and a Published issues entry; *"so ridiculous"*; and yet *"then what do we put on the left? I don't know"* | 15 | open |
+| H1 | What is the "home" of a Catch-up and how do you get back to it; landing straight in the reader from a finished Catch-up is *"a nice thought"*, the fault is the missing way back; the relationship between pages is not designed | 18, 36 | open |
+| H2 | The same published Round appears three times on the home: a "Round 1 is out" tile, the whole Round inline, and a Published issues entry; *"so ridiculous"*; and yet *"then what do we put on the left? I don't know"* | 15, 35, 36 | open |
 | H3 | The "Round 1 is out" tile is dead except for its link; the whole tile is the target or there is no tile | 35 | open |
 | H4 | Say "In the loop", not "In the loop catch-up" | 25 | open |
 | H5 | Pause and resume behave acceptably; the whole left side pauses | 14, 15 | open |
+| H6 | Getting back to the home means scrolling the whole Round: *"I scroll all the way to the bottom, which takes me a week"* | 18, 35 | open |
+| H7 | The home's spacing and typography, on the "Round 1 is out" tile in particular, *"just so horrible"* | 35 | open |
 
 ### The reader, `/catchups/round/[id]` (R)
 
 | # | Ask | ¶ | Status |
 |---|---|---|---|
 | R1 | Stays navigable on the website, roughly as now; not the worst on desktop | 10 | open |
-| R2 | Comments on answers | 10, 17, 27 | open |
+| R2 | Comments on answers | 10, 17, 19, 27 | open |
 | R3 | Click a picture to expand it | 10 | open |
-| R4 | Active TOC item bolds and reflows the text; some questions truncate to "..."; one very long scroll; *"a nicer way to do it"* | 10 | open |
-| R5 | Mobile navigation is *"incredibly bad"*: the horizontal chip bar is janky, boxed, clipped and slow; after scrolling you cannot navigate or even tell which question you are in; *"what if Revolut did this?"*; ideas offered: a tap that takes over part of the screen, or disabling native scroll for a Collection-like navigation | 11, 17, 34 | open |
-| R6 | On his phone the green header bar is cut off at the top right and about half a centimetre of white space appears on the right, cutting through the sidebar; not reproducible by narrowing desktop | 11, 25, 33 | open |
-| R7 | The masthead's row of birds identifies nobody, and the horizontal rule under it is wasted space, *"barely visible"*, delete it | 11, 27 | open |
-| R8 | "13 of the group wrote in": is it needed? | 27 | open |
-| R9 | Drop "Question 1"; just ask the question | 27 | open |
+| R4 | Active TOC item bolds and reflows the text; some questions truncate to "..."; one very long scroll; *"a nicer way to do it"* | 10, 35 | open |
+| R5 | Mobile navigation is *"incredibly bad"*: the horizontal chip bar is janky, boxed, clipped and slow; after scrolling you cannot navigate or even tell which question you are in; *"what if Revolut did this?"*; ideas offered: a tap that takes over part of the screen, or disabling native scroll for a Collection-like navigation | 10, 11, 17, 19, 34 | open |
+| R6 | On his phone the green header bar is cut off at the top right and about half a centimetre of white space appears on the right, cutting through the sidebar; seen on the home and on the reader; not reproducible by narrowing desktop | 11, 19, 25, 33 | open |
+| R7 | The masthead's row of birds identifies nobody, and the horizontal rule under it is wasted space, *"barely visible... Can totally delete that"* | 11, 27 | open |
+| R8 | "13 of the group wrote in": is it needed? | 27, 39 | open |
+| R9 | *"Do we need to say Question 1?"*, a question he asked | 27 | open |
 | R10 | The desktop right-hand navigation is not done that well either | 11 | open |
 | R11 | The answer tiles are right and stay: bird, name, batch, answer | 27 | open |
-| R12 | Tiles waste space: a thick bottom band with the heart alone, one-line answers using 15% of a 3 to 4 cm tile; minimise here and solve completely in the magazine | 30, 31 | open |
+| R12 | Tiles waste space: a thick bottom band with the heart alone, one-line answers using 15% of a 3 cm tile, a tall photo leaving *"a lot of wasted space on the sides"*; minimise here and solve completely in the magazine | 21, 30, 31 | open |
 | R13 | The heart fills instantly but its animation fires a second late, unlike the feed | 29 | open |
-| R14 | Photo caption More and Less stays; the threshold goes from 2 lines to 4 (he reversed himself and landed here) | 32 | open |
+| R14 | Photo caption More and Less stays; the threshold *"maybe"* goes from 2 lines to 4 (he reversed himself and landed here, hedged) | 32 | open |
 | R15 | YouTube and Spotify previews for songs, *"cute, clickable"*, and they fire whenever a link is pasted, not only on the songs question kind | 16, 49, 50 | open |
 | R16 | A photo wall for questions, modular, working with everything else | 16, 49 | open |
 | R17 | "Back to the catch-up" lands on the awful home | 35 | open |
+| R18 | *"Not enough content is showing"*: density is a complaint of its own, apart from the navigation | 11 | open |
 
 ### People (E)
 
 | # | Ask | ¶ | Status |
 |---|---|---|---|
-| E1 | "In this catch-up": six or seven names, "and 16 more", See and add people, truckloads of white space, only the A-names visible; does it have to be a tile, a preview, a whole list, shown at all? *"Yes, we probably should. But from there is where I want you to start thinking"* | 12, 37 | open |
+| E1 | "In this catch-up": six or seven names, "and 16 more", See and add people, truckloads of white space, only the A-names visible, *"so inefficient"*, *"these huge rows"*; the panel and the dialog show the same thing twice; does it have to be a tile, a preview, a whole list, shown at all? *"Yes, we probably should. But from there is where I want you to start thinking"* | 12, 14, 19, 37 | open |
 | E2 | The Keeper highlight and the leaf mark next to the name are nice; keep the idea | 37 | open |
-| E3 | The See-and-add-people dialog: white space, "Keeper, some people started it" should just say Keeper, the link on a *"horribly coloured background"*, the move dialog so narrow three words take three lines, rules everywhere; *"no way Apple would design anything that looked like this"* | 38 | open |
+| E3 | The See-and-add-people dialog: white space, "keep it" [Keeper] with "some people started it" should just say Keeper, the link on a *"horribly coloured background"*, the move dialog so narrow three words take three lines, rules everywhere; *"no way Apple would design anything that looked like this"* | 19, 38 | open |
 
 ### Settings (S)
 
 | # | Ask | ¶ | Status |
 |---|---|---|---|
-| S1 | Twelve horizontal rules, pills inside pills, *"too many pills, man"*; removing the rules alone will not save it; not invisible design | 14, 40 | open |
+| S1 | Twelve horizontal rules, pills inside pills, *"too many pills, man"*; removing the rules alone will not save it; not invisible design; apply *"good UX principles like we have"*, the app's own | 14, 40 | open |
 | S2 | The Reminders info dialog is twice as wide as its text | 40 | open |
 | S3 | Pause and resume are okay | 14 | open |
 
@@ -356,12 +428,14 @@ Status is `open` until a session closes it and says where.
 
 | # | Ask | ¶ | Status |
 |---|---|---|---|
-| M1 | The whole Catch-up as a beautiful PDF; a navigable PDF is nice, not essential | 10, 21 | open |
-| M2 | A magazine or editorial rendering, tailor-made per Catch-up by layout rules that adapt to the content (*"a lot of if statements"*, like the profile page), no comments, not cookie-cutter, image one side and text the other, different pages, big images only at high resolution; *"as if we shipped all the content to someone at Vogue"* with him as editor | 21, 30 | open |
-| M3 | A PDF is shareable and emailable; if it is amazing he will wire up emailing everyone when a Round is ready | 21 | open |
+| M1 | The whole Catch-up as a beautiful PDF, *"aspirational"*; a navigable PDF is nice, *"not that important"* | 10, 21 | open |
+| M2 | A magazine or editorial rendering, *"equally aspirational"*, tailor-made per Catch-up by layout rules that adapt to the content (*"a lot of if statements"*, like the profile page), no comments, not cookie-cutter, image one side and *"this"* the other, different pages, big images only at high resolution; *"as if we shipped all the content to someone at Vogue"* with him as editor; the quality bar is three days of his own hand design per issue | 21, 30 | open |
+| M3 | A PDF is shareable and emailable; *"if we can do an amazing job for this"* he will wire up emailing everyone when a Round is ready | 21 | open |
 | M4 | List the hundred things that could go wrong and how each is bypassed | 31 | open |
 | M5 | Scope it as its own side project; decide what goes to subagents and what to separate sessions | 21 | done, track M |
 | M6 | Both: minimise the wasted space in the web reader, and solve it completely in the magazine | 31 | open |
+| M7 | Portrait, not landscape | 51 | open |
+| M8 | Scalable *and* adaptable; hard, *"but I think it's totally reachable and that it should be tried"*: the effort is pre-authorised | 30 | open |
 
 ---
 
@@ -369,57 +443,78 @@ Status is `open` until a session closes it and says where.
 
 The three marks are the ones the writing-for-agents skill defines. **LOCKED** is the owner's,
 with the paragraph. **RECOMMENDED** is this session's judgment; do better if you can, and say
-so. **OPEN** is nobody's yet; the phase named decides it.
+so. **OPEN** is nobody's yet; the phase named decides it. Two critics read these against the
+brief on 2026-09-05 and a dozen marks moved; where a decision was split, the owner's part
+stays LOCKED and the session's reading sits beside it as RECOMMENDED.
 
 ### LOCKED
 
 - **D1** The rework is bottom-up, not a round of tweaks (¶18, ¶26).
-- **D2** He sets constraints; sessions find the shape; his suggestions are examples (¶7, ¶26).
-- **D3** The design stays inside this app's tokens, type and colour, and is otherwise free in
-  layout and component shape; bespoke but unmistakably ours, the Action Button analogy (¶42).
+- **D2** He sets constraints; sessions find the shape; his problems are valid and his
+  suggestions are examples (¶7, ¶26).
+- **D3** The palette stays and the result must still work in this app; new things are
+  allowed; bespoke but unmistakably ours, the Action Button analogy, and *"a higher level of
+  abstraction"* rather than the same pills everywhere (¶42). Only the palette is fenced by him;
+  how far the rest of the design system binds is D36.
 - **D4** A batch Catch-up exists by default for every batch; membership is the batch, fixed
   and automatic; everyone in it sees the whole history and can take part in future Rounds;
-  no adding members; no leaving; someone who joins the site later is in it and can read every
-  earlier Round (¶4, ¶5, ¶51).
+  no adding or removing members; no leaving; someone who joins the site later is in it and can
+  read every earlier Round (¶4, ¶5, ¶51).
 - **D5** Archived and deleted Catch-ups do not appear on the main list (¶5).
-- **D6** Existing content is preserved, and exported to a rebuildable file before any change
-  that could lose it (¶45).
-- **D7** Comments on answers are in scope; the old spec's fence against them is void (¶10, ¶27).
+- **D6** No member's words or photographs are lost, and they are exported to a *"totally
+  regeneratable"* file before any change that could lose them (¶45, ¶51); this is a preference
+  with his own override attached, *"don't let the existing catch-ups be any reason for you to
+  lower the scale of your reworking"*, so it protects content, never shipped UI (¶45).
+- **D7** Comments on answers are in scope; the old spec's fence against them is void (¶10, ¶17,
+  ¶19, ¶27).
 - **D8** Photos in answers open in the viewer (¶10).
 - **D9** A song link pasted anywhere in an answer produces a preview card, YouTube and
   Spotify at minimum, regardless of the question's kind (¶16, ¶50).
 - **D10** A photo-wall question type exists and is modular (¶16, ¶49).
-- **D11** The caption More and Less control stays; its threshold is four lines (¶32).
-- **D12** The answer tile keeps bird, name, batch, answer and heart (¶27).
-- **D13** Two renderings of a published Round: the web reader, navigable, with comments; and
-  the magazine, print-first, without comments. Both exist (¶10, ¶21).
-- **D14** Letterloop is the floor (¶49).
-- **D15** Past specs and prompts are guidance, not law (¶48).
-- **D16** Ultracode is allocated by this session (¶51), and the allocation is: S0's checks
-  and sweep, S3's independent directions, M1's failure-mode hunt; nowhere else. One mind per
-  job everywhere a job is one long sequence with state (his fix-campaign words).
-- **D17** The order of work is recon, research, directions, rooms, pick, spec, build, with the
-  magazine as a parallel track (¶20, ¶43).
-- **D18** One click target per tile and the whole tile is it; no redundant View; no tile that
-  is dead except for a link inside it (¶3, ¶35).
-- **D19** Copy: "In the loop", not "In the loop catch-up"; a question is asked without
-  "Question N"; the Keeper is labelled "Keeper" and nothing more (¶25, ¶27, ¶38). The banned
-  words from the old spec's banner stand: "gentle", "quiet", "small", "warm", "a round of".
-- **D28** Batch Catch-ups and people Catch-ups both exist and are listed together as the
-  same kind of thing; a people Catch-up works *"how you'd expect"*, with people added and
-  removed by hand; a batch Catch-up has no people editing at all (¶51).
+- **D11** The caption More and Less control stays (¶32). The threshold is D38.
+- **D12** The answer tile's content stays: bird, name, batch, answer, and a heart (¶27). Its
+  chrome, and where the heart sits, are not locked; ¶30 attacks exactly that.
+- **D13** He wants two renderings of a published Round: the web reader, navigable, with
+  comments; and a magazine, print-first, without comments (¶10, ¶21). He called both
+  *aspirational* and left the scope to the session (¶21); that both ship, and in what order,
+  is D39.
+- **D14** Letterloop is the floor, and today we are under it (¶17, ¶49).
+- **D15** Past specs and prompts are guidance, not law (¶48, ¶49, ¶50).
+- **D16** Ultracode is the session's to allocate (¶51: *"totally up to you"*). The allocation
+  itself is D40.
+- **D17** The order of work is his: reconnaissance, then multiple rounds of brainstorming, then
+  building it several different ways (¶20). The session structure that carries that order is
+  D41; he said *"I don't know how you want to structure this"* (¶43).
+- **D18** A tile that is dead except for a link inside it is wrong (¶35). Whether a tile has one
+  click target and whether View survives is D42; he allowed *"if there's a reason, sure"* (¶3)
+  and called controls that do not span the tile *"fine, I guess"* (¶24).
+- **D19** Copy: "In the loop", not "In the loop catch-up" (¶25); the Keeper is labelled
+  "Keeper" and nothing more (¶38); the barely visible horizontal rule under the reader's
+  masthead goes (¶27, *"Can totally delete that"*). Question numbering is O9, not decided.
+  The old spec's banned-word list is D43, not his.
+- **D28** A batch Catch-up has no member editing at all, and batch and people Catch-ups are
+  listed together as one kind of thing (¶51). What *"how you'd expect"* means for a people
+  Catch-up is D44.
 - **D29** The magazine is portrait, not landscape (¶51).
 - **D30** Robustness comes from pressure testing: *"a fake catch up or two"* filled with
   *"literally every type of content we might come across"*, and every surface (the rooms,
-  the reader, the magazine) must survive the most varying input (¶51). The corpus exists
-  before the directions are judged and before the magazine grammar is written.
+  the reader, the magazine) must survive the most varying input (¶51). When the corpus is
+  built relative to the directions is D45.
 - **D31** Throwaway Catch-ups and *"anything else you want"* may be created to do the job
-  well (¶51), within D33.
+  well (¶51). This stands on its own; D33 is the session's proposed care, and a session that
+  needs more may ask him.
 - **D32** `/lab/catchups/` is the sandbox for any test in this campaign, *"whatever we
   want"* (¶52): direction rooms, the pressure room, the magazine spike, viewer experiments.
 - **D34** Recon's first duty is *"how literally every state of the catch up looks and every
   sequence of events through those states looks"* (¶51): every state, and every path
   between states, as a storyboard a person could follow.
+- **D37** None of the directions is today's layout with the bugs fixed (¶26: *"You would be
+  reducing the negatives but not increasing the positives"*).
+- **D46** This campaign is not the refactor pass and not the backend-architectural bug hunt;
+  UI/UX comes first (¶20).
+- **D47** A photograph placed large in the magazine must be high resolution (¶21). The
+  mechanism is D27.
+- **D48** A Back button, or *"slide buttons here and there"*, is not the answer (¶18).
 
 ### RECOMMENDED
 
@@ -440,23 +535,25 @@ so. **OPEN** is nobody's yet; the phase named decides it.
   bytes beside it**, because he asked for *"totally regeneratable"* (¶51) and 32 answers'
   worth of 1920px WebP is a few tens of megabytes. The JSON's shape is also the fixture
   format the rooms and the magazine engine consume (D30), so one loader serves both.
-  Re-run before every migration in S6+.
+  Re-run before every migration in S6+. It is an ordinary dev script, not a hand-run pass
+  (F16).
 - **D24** The magazine is one layout engine rendering to screen and to print from the same
   components, at a route of its own; the PDF is that page printed by headless Chrome. Start
-  it as a hand-run script (the `docs/spec/hand-run-passes.md` shape) that writes the PDF to
-  R2, and move it to a serverless function only if M1's spike shows it fits. I have **not**
-  verified what Vercel's current function size and duration limits allow for a headless
-  Chromium; M1 measures before deciding. The alternative, a pure-JS PDF renderer, buys a
-  smaller function at the cost of a second layout implementation, which is exactly the
-  "second implementation" that cost the Collection campaign a room.
-- **D25** Three or four directions, each answering the same fixed checklist so they can be
-  compared; none of them is "today's layout with the bugs fixed".
+  it as a local script the owner runs, which writes the PDF to R2, and move it to a
+  serverless function or a GitHub Actions job only if M1's spike shows it fits; `prior-art.md`
+  §8 has the measured sizes and Vercel's dated limits, and recommends the same. The
+  alternative, a pure-JS PDF renderer, buys a smaller function at the cost of a second layout
+  implementation, which is exactly the "second implementation" that cost the Collection
+  campaign a room.
+- **D25** Three or four directions reach the rooms, each answering the same fixed checklist so
+  they can be compared. The fan-out that produces them may generate more than that and
+  shortlist (¶20, *"a lot of spaghetti"*).
 - **D26** The models table above.
-- **D27** Photo resolution for print: today an uploaded Catch-up photo is boxed to 1920px on
-  its long edge (`toDisplayWebp` in `src/lib/image.ts`, the feed's pipeline). That is enough
-  for most magazine pages and not for a full-bleed A4 at 300 dpi. Whether Catch-ups should
-  start keeping the original the way the Collection does is a data decision for S5; M1 says
-  what it needs.
+- **D27** How the magazine gets high-resolution pixels (D47): today an uploaded Catch-up photo
+  is boxed to 1920px on its long edge (`toDisplayWebp` in `src/lib/image.ts`, the feed's
+  pipeline), enough for most magazine pages and not for a full-bleed A4 at 300 dpi. Whether
+  Catch-ups should start keeping the original the way the Collection does is a data decision
+  for S5; M1 says what it needs.
 - **D33** Variety and volume come from **fixtures, not fake members.** A live throwaway
   Catch-up holds only the owner's account and Jerry Maguire, because every Round event
   notifies its members (F14) and because invented accounts would appear in the directory
@@ -473,6 +570,35 @@ so. **OPEN** is nobody's yet; the phase named decides it.
   unknown host, and a link that fails to resolve; an emoji-only answer; a very long name and
   a name with diacritics; a member who left; a deleted photo; a Round nobody answered; a
   Catch-up with two members and one with a hundred; every lifecycle state.
+- **D36** The design system's type, radius ladder, surface ladder and motion rules are the
+  default a direction works within, and a direction may break one where the break is the
+  point, saying so; his Action Button analogy is a full-screen, end-to-end surface that
+  looks like nothing else in Settings (¶42). What is not negotiable is D3.
+- **D38** The caption clamp is four lines. He said *"maybe"* twice (¶32); it is one constant
+  and trivially changed, and question 6 below asks him.
+- **D39** Both renderings ship, the web reader first and the magazine beside it as track M;
+  the magazine's existence is his wish and its schedule is ours.
+- **D40** Ultracode: on for S3 (and S3b) and M1, used in S0 for the transcript check, the
+  ledger check and the prior-art sweep, off everywhere else, for the reasons in "The
+  sessions".
+- **D41** The session structure in "The sessions": S1 to S6+, M1 and M2+, X, and an optional
+  S3b if the rooms disappoint (¶20 asks for multiple rounds of brainstorming, and one
+  fan-out is one round).
+- **D42** One click target per tile, the whole tile, and no View unless a direction can say
+  what View does that the tile does not.
+- **D43** The banned words from the old spec's banner ("gentle", "quiet", "small", "warm",
+  "a round of") stay banned. This is the old spec's rule, sourced to his 2026-07-25 review of
+  the copy, not to this brief; it is kept because he has not reversed it.
+- **D44** A people Catch-up, *"how you'd expect"* (¶51): people added and removed by its
+  Keeper, an invite link, and whatever L6 decides about leaving.
+- **D45** The pressure corpus exists before the directions are judged and before the
+  magazine grammar is written, so both are judged on extremes and not only on the two real
+  Rounds. S1 starts it; S4 completes it.
+- **D49** The mobile header cut-off (R6, F8) is the one live bug he can see today, on a
+  surface seventy members use. X takes it first, as soon as S1 has the root cause, ahead of
+  the redesign.
+- **D50** The dialogs (L4, E3, S2) are owned: S3's checklist includes them and S5's spec has a
+  section for them, built on `docs/planning/other/dialog-standards-findings.md`.
 
 ### OPEN
 
@@ -480,7 +606,9 @@ so. **OPEN** is nobody's yet; the phase named decides it.
   a cadence with nobody in charge (¶4). S3 proposes, S5 decides.
 - **O2** Whether "delete" exists for a batch Catch-up and what it means when membership is
   fixed (¶5). S3, S5.
-- **O3** Whether pause survives as a verb (¶8, ¶40). S3, S5.
+- **O3** Whether pause survives as a verb: he does not get it (¶8), supplies its only argument
+  himself (¶8), calls pausing and resuming *"okay"* (¶14, ¶15), and lists it among too many
+  verbs (¶40). S3, S5.
 - **O4** The shape of the list: squares, a shelf, a grid, a picture per Catch-up, something
   else (¶1, ¶6). S3, rooms.
 - **O5** How to show who is in a Catch-up and who wrote in a Round, in a way that identifies
@@ -489,12 +617,15 @@ so. **OPEN** is nobody's yet; the phase named decides it.
 - **O7** Mobile reader navigation (¶11, ¶34). S3, rooms; the most important single design
   problem in the campaign after the IA.
 - **O8** The one representation of a published Round (¶13, ¶39). S3.
-- **O9** Whether "13 wrote in", the rule and the question numbering survive (¶27). S3.
-- **O10** Whether Fresh off the press exists at all (¶9). S3.
+- **O9** Whether "13 of the group wrote in" and the question numbering survive (¶27). S3.
+- **O10** How Fresh off the press is done differently, and whether the job it does belongs
+  somewhere else entirely (¶9). S3.
 - **O11** The shape of settings and where the lifecycle verbs live (¶14, ¶40). S3.
 - **O12** What the six members with no batch year see, and whether staff get a Catch-up of
   their own. S5.
 - **O13** The magazine's look, its layout grammar and the PDF pipeline (¶21). M1.
+- **O14** Whether a people Catch-up can be left, and what leaving means for answers already
+  published (¶4, ¶5, L6). S3, S5.
 
 ---
 
@@ -504,7 +635,7 @@ You are finding everything that is wrong, from a member's point of view, and wri
 so precisely that S3 can design from your notes without opening the app. You fix nothing.
 
 **Read first**: `brief.md` in full; this file; `docs/spec/catchups.md` for the nouns and the
-state machine; `docs/spec/DESIGN-SYSTEM.md`; `docs/planning/dialog-standards-findings.md`.
+state machine; `docs/spec/DESIGN-SYSTEM.md`; `docs/planning/other/dialog-standards-findings.md`.
 Read the code under `src/app/(main)/catchups` and `src/components/catchups` as you go, not up
 front: the owner's point (¶43) is that *"UX problems you can't make out from just freaking
 code"*, so the screen leads and the code explains.
@@ -513,17 +644,21 @@ code"*, so the screen leads and the code explains.
 `scripts/qa/_dev-login.mjs` (see Operational context; the MCP cannot sign itself in). Four
 viewports: **390x844** (his phone; use `emulate` for touch, because the swipe and tap
 complaints are touch complaints), **1512x982** (his MacBook), **1440x900**, and **1920x1080**
-or wider (his ¶6 complaint about 90% white space is a wide-screen complaint; measure the
-ratio). Light and dark. Screenshot every state at every size into `e2e/.shots/catchups-recon/`
-with numbered names, and **read each PNG** before you write about it.
+or wider (his ¶6 complaint about 90% white space is a wide-screen complaint, and ¶1 names a
+TV; measure the ratio). Light and dark. Screenshot every state at every size into
+`e2e/.shots/catchups-recon/` with numbered names, and **read each PNG** before you write
+about it.
 
 **Whose account.** Sign in as the owner (the admin account `screenshot:auth` uses) to see his
 real Catch-ups: "In the loop", the paused one, "Test". **On those, read only.** A heart is a
-write; an answer is a write; a settings change is a write. For anything that writes, create one
-throwaway Catch-up named `[Recon] ...` between the owner's account and Jerry Maguire
-(`sanan.shankar@gmail.com`, the test account; never a real alumnus), drive it through every
-state with the Keeper controls, and leave it in place, named so nobody mistakes it. Say in
-`recon.md` that it exists.
+write; an answer is a write; a settings change is a write. For anything that writes, create
+throwaway Catch-ups named `[Recon] ...`. He allowed *"any throwaway catch up or anything else
+you want"* (¶51); the limit that they hold only the owner's account and Jerry Maguire
+(`sanan.shankar@gmail.com`, the test account; never a real alumnus) is this session's, for one
+reason: every Round event notifies every member (F14), and a real member in a test Catch-up
+gets test noise in their bell. If you need more than two authors for a live test, ask him
+rather than adding anyone. Drive the throwaways through every state with the Keeper controls,
+and leave them in place, named so nobody mistakes them. Say in `recon.md` that they exist.
 
 **Cover every route and every state.** The index; the create flow; a Catch-up's home in
 collecting, answering, preparing, published, paused, ended; a copy archived and a copy binned;
@@ -534,27 +669,30 @@ batch with no Catch-up, a brand-new member, a Round with one answer.
 
 **Then every sequence, as a storyboard (D34).** This is the part he cares about most (¶51):
 *"how literally every state of the catch up looks and every sequence of events through those
-states looks."* For each path below, walk it in the `[Recon]` Catch-up and record every
-screen a member sees along the way, in order, at 390 and 1512, as a numbered strip in
-`recon.md` (shot, one line of what the person sees, one line of what they can do next). The
-paths: create a people-Catch-up and reach collecting; collecting to answering (by the clock
-and by "Open answering now"); answering to preparing to published, including the 24-hour
-hold and "Publish now"; a published Round to the next Round opening; pause in the middle of
-answering, then resume; extend a deadline; end; archive, then find it, then put it back;
-delete, then restore, then let it expire; join by link; a member removed, a member leaving;
-the Keeper handed over; a member who joined the site after Round 1 opening the Catch-up for
-the first time; and the notification a member taps at each transition and where it lands.
-Where a path takes days by the clock, say how you moved the clock (the state is a pure
-function of timestamps, `computeStatus` in `catchups-core.ts`; a Keeper control or a
-read-only look at the code may be enough, and if you must touch a timestamp do it only on
-the `[Recon]` rows and say so).
+states looks."* For each path below, walk it in a `[Recon]` Catch-up and record every screen a
+member sees along the way, in order, at 390 and 1512, as a numbered strip in `recon.md` (shot,
+one line of what the person sees, one line of what they can do next). The paths: create a
+people-Catch-up and reach collecting; create a batch one by "Everyone from <batch>" and note
+where "Start one" lands (B5); collecting to answering (by the clock and by "Open answering
+now"); answering to preparing to published, including the 24-hour hold and "Publish now"; a
+published Round to the next Round opening; pause in the middle of answering, then resume;
+extend a deadline; end; archive, then find it, then put it back; delete, then restore, then
+let it expire; join by link; a member removed, a member leaving; the Keeper handed over; a
+member who joined the site after Round 1 opening the Catch-up for the first time; and the
+notification a member taps at each transition and where it lands. Where a path takes days by
+the clock, say how you moved the clock (the state is a pure function of timestamps,
+`computeStatus` in `catchups-core.ts`; a Keeper control or a read-only look at the code may be
+enough, and if you must touch a timestamp do it only on the `[Recon]` rows and say so).
 
-**Reproduce every complaint in the brief and label it.** For each of I1 to M6 that describes
-something visible: *reproduced* with the measurement, or *not reproduced* with what you saw
-instead. Root-cause the mechanical ones, in the code, to the line:
+**Reproduce every complaint in the brief and label it.** Walk `brief.md` paragraph by
+paragraph; the ledger above is a checklist to tick against, not the boundary of what you look
+for, because the ledger was found short once already. For everything visible: *reproduced*
+with the measurement, or *not reproduced* with what you saw instead. Root-cause the mechanical
+ones, in the code, to the line:
 
-- the mobile header cut-off and the right-hand white space (F8): find the element whose right
-  edge exceeds `innerWidth`; say whether it is the chip row, a photo row, or something else;
+- **first**, the mobile header cut-off and the right-hand white space (F8, D49): find the
+  element whose right edge exceeds `innerWidth`; say whether it is the chip row, a photo row,
+  or something else, on both the home and the reader; X ships the fix as soon as you have it;
 - the TOC bold reflow and the tap lag (F7);
 - the curved border and the hover shape on Fresh off the press (¶9);
 - the overlapping birds on the index (¶23), and whether `git log` shows when it changed;
@@ -563,11 +701,13 @@ instead. Root-cause the mechanical ones, in the code, to the line:
 - the viewer's size snap, wrap-around and overshoot (F9): reproduce with touch emulation on a
   real multi-photo answer, read `image-viewer.tsx` and `photo-carousel.tsx`, and say which
   behaviour is a bug and which is a design choice that reads as one;
-- the song and photo-wall kinds (F3): in the `[Recon]` Catch-up, ask a songs question and a
+- the song and photo-wall kinds (F3): in a `[Recon]` Catch-up, ask a songs question and a
   photo-wall question, answer as Jerry with a Spotify link in the song field, a YouTube link
   in the song field, and both links pasted into an ordinary text answer; screenshot what a
   reader sees for each;
-- the dialog sizes he measured by eye (¶38, ¶40): measure them.
+- the dialog sizes he measured by eye (¶38, ¶40): measure them;
+- how much content is on a phone screen at a time in the reader (R18): count answers and
+  words per 844px.
 
 **The click map and the matrix.** In `flows.md`: every clickable thing on every screen and
 where it goes, then the table he asked for in ¶36, intents down the side (see what is new for
@@ -579,17 +719,19 @@ preparing, published; active, paused, ended; Keeper or member; copy normal, arch
 binned; batch or people). Fill each cell with what happens **today**, in a few words, and
 mark the cells where the answer is "nothing", "two different things", or "the same thing
 shown a different way". Count how many distinct ways a published Round is drawn (he says
-fifteen, ¶39) and list them with a shot each.
+fifteen, ¶39) and list them with a shot each. Count the clicks and the scroll distance from
+the reader back to the Catch-up's home (H6).
 
-**The export (D6, D23).** Write `scripts/dev/export-catchups.mjs`, dry-run by default, in
-the `hand-run-passes.md` shape (`scripts/qa/hand-run-passes.test.mjs` will hold you to it),
-add its row to `scripts/dev/README.md` if that ledger exists, run it, and record the counts
-against F1. It writes the JSON and copies every photo's bytes beside it, so the folder alone
-can rebuild every Catch-up. Nothing in the tree is deleted, ever, by this script. Define the
-JSON's shape as a TypeScript type in `src/lib/catchups-export.ts` (or beside the existing
-types), because the rooms and the magazine will load fixtures in exactly this shape (D30,
-D33); write the first fixture from the two real published Rounds, and a second, invented one
-that covers as much of D35 as you can in the time, under `src/app/lab/catchups/_fixtures/`.
+**The export (D6, D23).** Write `scripts/dev/export-catchups.mjs`, dry-run by default as a
+courtesy, an ordinary dev script (not a hand-run pass; F16). It writes the JSON and copies
+every photo's bytes beside it, so the folder alone can rebuild every Catch-up; that is the
+test he set, *"totally regeneratable"* (¶51). Check whether `scripts/qa/scripts-ledger.test.mjs`
+wants a row in `scripts/dev/README.md`, run the export, and record the counts against F1.
+Nothing in the tree is deleted, ever, by this script. Define the JSON's shape as a TypeScript
+type in `src/lib/catchups-export.ts` (or beside the existing types), because the rooms and the
+magazine will load fixtures in exactly this shape (D30, D33); write the first fixture from the
+two real published Rounds, and a second, invented one that covers as much of D35 as you can in
+the time, under `src/app/lab/catchups/_fixtures/`.
 
 **History (B4).** `git log -S "batch" -- 'src/app/(main)/catchups' src/components/catchups`
 and the spec's own history: when did a default batch Catch-up exist, how did "Start one"
@@ -609,116 +751,99 @@ short, write what you have and mark S1 `PARTIAL` with the surfaces left.
 
 ---
 
-## S2: Prior art
+## S2: Prior art (done inside S0)
 
 The owner, ¶7: *"Research what other people do. Research what Letterloop does and pick the
-best way."* Write `prior-art.md` in the shape of `docs/planning/collection-rework/prior-art.md`,
-including its confidence marks (**[measured]**, **[company]**, **[secondary]**), because a
-recommendation S3 leans on has to say how sure it is.
+best way."* Eight researchers ran in S0, one shape each, and one assembler stitched
+[`prior-art.md`](prior-art.md): how Letterloop looks and moves; a short list of a few things
+at any width; a long multi-author document on a phone with navigation; layout engines that
+adapt to content; who is in this and who wrote in; archive, delete, mute, leave, pause, end;
+link previews and photo walls; producing a PDF without a server of our own. Each shape ends
+with "What this means for us"; every claim carries [measured], [company] or [secondary]; the
+gaps are collected at the end. F15 says which parts to lean on and which are inference.
 
-`docs/planning/letterloop-research.md` already covers Letterloop's mechanics; do not redo it.
-What it lacks, and what you add first, is **how Letterloop looks and moves**: the home, an
-issue on a phone, its section navigation, the members screen, its PDF export, its Mementos.
-App Store screenshots, the help centre's images, reviews that describe the reading experience.
-Then, for each shape below, two or three products that solved it well, what they do, why, what
-it costs, and which fits a small trusted group of alumni with bird avatars on a warm paper
-design system, mobile first:
-
-1. **A short list of a few important things** (a person is in two or three Catch-ups, ¶1):
-   WhatsApp's chat list, Apple Podcasts shows, Letterboxd lists, Are.na channels, Spotify's
-   library. What they do about width on a big screen.
-2. **A long, multi-author document read on a phone with navigation** (¶11, ¶34): Kindle and
-   Apple Books progress and chapter scrubbers, Medium and Substack's apps, the New York Times
-   and The Pudding's long reads, Apple News+ magazines, iOS Photos' scrubber, Revolut's
-   patterns since he named it. What lets a reader know where they are and move without
-   scrolling to the top.
-3. **Magazine and editorial layout engines that adapt to content** (¶21): Flipboard's layout
-   engine (they published about it), Apple News Format, InDesign's liquid layout, Readymag,
-   the print grids of Kinfolk and Monocle. How they decide what goes with what, and how they
-   fail.
-4. **Who is in this**: WhatsApp and iMessage group info, Slack channel details, Discord's
-   member list, Partiful's guest list. How they show forty people without a wall of rows.
-5. **Archive, delete, mute, leave**: WhatsApp, Telegram, Slack, Instagram. Which verbs exist,
-   which are personal, where the archived things live.
-6. **Link previews**: iMessage, Slack unfurls, Notion, X cards; and what Spotify's and
-   YouTube's keyless oembed endpoints actually return.
-7. **Shared photo walls**: Apple Shared Albums, Google Photos shared albums, Partiful,
-   Pixieset.
-8. **Producing a PDF from a web layout without a server you own**: headless Chromium on
-   Vercel (`@sparticuz/chromium` and the current size and duration limits, which I have not
-   verified), Browserless and Gotenberg as services, pure-JS renderers, and print-to-PDF with
-   `@page` CSS. Give M1 the trade-offs and the numbers you can find.
-
-For each shape, end with a one-paragraph "what this means for us". Do not design. Do not read
-the code. Update the board and log here when you finish.
+If S3 finds a shape missing or a part too thin (§5 and §3's Revolut are the known weak spots),
+run one more researcher for that shape from the same brief and append; do not redo the file.
+Anything measured live on a real phone (a WhatsApp chat row, a Letterboxd list at 1920) beats
+what is written there and should replace it.
 
 ---
 
 ## S3: Directions (Fable, ultracode on)
 
 You are the session the owner ran this campaign to reach. Read `brief.md` twice. Then
-`recon.md`, `flows.md`, `prior-art.md`, `docs/spec/DESIGN-SYSTEM.md` end to end,
-`docs/spec/lab-voice.md`, and `docs/planning/collection-rework/spec.md` as the model for how
-a decision is marked.
+`recon.md`, `flows.md`, `prior-art.md` with its gaps, `docs/spec/DESIGN-SYSTEM.md` end to end,
+`docs/spec/lab-voice.md`, `docs/planning/other/dialog-standards-findings.md`, and
+`docs/planning/collection-rework/spec.md` as the model for how a decision is marked.
 
 **How ultracode is used here, and how it is not.** The architecture below is yours alone:
 one mind, written before any fan-out, because it is the shared structure every direction
 must fit (¶42: *"different teams are working together... but under the same broader
-structure"*). Then a `Workflow`: three or four independent designers, each given the SAME
-inputs and nothing else, that is, told to read `brief.md`, `recon.md`, `flows.md`,
-`prior-art.md`, `DESIGN-SYSTEM.md` and your architecture page in full from disk (never your
-digest of them; the writing-for-agents skill's "Whose words" section is the rule), each with
-a different starting bet you assign (for instance: the reader is the product and everything
-else is a door into it; the list is a shelf of magazines; the Catch-up's home is a calendar
-of Rounds; Catch-ups as if it were the whole app, ¶19), and each returning one direction
-against the checklist below. Let the designers inherit this session's model: this is the
-one place intelligence is the point. Then a judge panel on Opus, one judge per direction,
-each scoring against the brief's paragraphs with quotes, and one adversarial judge told to
-find where every direction is *"today's layout with the bugs fixed"* (¶26). You read all of
-it yourself, keep what is strong, and write `directions.md` and the room briefs yourself;
-the synthesis is not delegated. Keep every direction that genuinely differs; merge only
-where two designers converged.
+structure"*). Then a `Workflow`: independent designers, each given the SAME inputs and
+nothing else, that is, told to read `brief.md`, `recon.md`, `flows.md`, `prior-art.md`,
+`DESIGN-SYSTEM.md` and your architecture page in full from disk (never your digest of them;
+the writing-for-agents skill's "Whose words" section is the rule), each with a different
+starting bet you assign (for instance: the reader is the product and everything else is a
+door into it; the list is a shelf of magazines; the Catch-up's home is a calendar of Rounds;
+Catch-ups as if it were the whole app, ¶19), and each returning one direction against the
+checklist below. Generate more than you will keep, six or eight, because ¶20 asks for *"a lot
+of spaghetti"* before anything sticks; shortlist three or four for rooms (D25). Let the
+designers inherit this session's model: this is the one place intelligence is the point. Then
+a judge panel on Opus, one judge per direction, each scoring against the brief's paragraphs
+with quotes, and one adversarial judge told to find where every direction is *"today's layout
+with the bugs fixed"* (¶26, D37). You read all of it yourself, keep what is strong, and write
+`directions.md` and the room briefs yourself; the synthesis is not delegated. Keep every
+direction that genuinely differs; merge only where two designers converged.
 
 **First, the architecture**, because every direction shares it and it is where the rot is
 (¶18, ¶36). Decide the nouns a member thinks in (a Catch-up, a Round, the people, a question,
 an answer) and for each the one place it lives. Answer, in a page: what is the home of a
 Catch-up and what is on it in each state; what a member sees first when they open
 `/catchups`; where a published Round is read, and the **one** way it is represented
-everywhere else (¶13, ¶39); how you get from any screen to any other with one obvious move;
-where the lifecycle verbs live and how few there can be (¶40); what a batch Catch-up is
-(D4) and your proposal for O1 to O3; where comments go; where who-is-here goes (E1); and the
-intents-against-states table from `flows.md` **as it should be**, with cells that are mostly
-the same few words, which is what he meant by modular design taking care of it (¶36).
+everywhere else (¶13, ¶39); how you get from any screen to any other with one obvious move,
+including back from the reader without scrolling a week (H6), and without the Back button he
+named as the wrong answer (D48); where the lifecycle verbs live and how few there can be
+(¶40); what a batch Catch-up is (D4) and your proposal for O1 to O3 and O14; where comments
+go; where who-is-here goes (E1); and the intents-against-states table from `flows.md` **as it
+should be**, with cells that are mostly the same few words, which is what he meant by modular
+design taking care of it (¶36). List the Letterloop parity gaps from `prior-art.md` §1 and
+say which each direction closes (P22).
 
-**Then three or four directions.** Each is a whole concept across every surface, not a
-style. Each has a thesis in one sentence (what it bets on), a name after what it does
-(`lab-voice.md`), and answers the same checklist so he can compare like with like:
+**Then the directions.** Each is a whole concept across every surface, not a style. Each has
+a thesis in one sentence (what it bets on), a name after what it does (`lab-voice.md`), and
+answers the same checklist so he can compare like with like:
 
-- the list at 390, 1512 and 1920 (¶1, ¶6, ¶23, ¶24);
+- the list at 390, 1512 and 1920 (¶1, ¶6, ¶23, ¶24), designed for two or three items (I12);
+- creating a Catch-up and starting a Round, for a batch and for a chosen set of people (¶4, B5);
 - a Catch-up's home in collecting, answering, preparing and published, and paused and ended (¶15, ¶18);
-- the reader on desktop, and the reader on a phone **with its navigation** (¶10, ¶11, ¶34);
+- the answering surface where a photo wall and a song are added, composable with text (¶16);
+- the reader on desktop, and the reader on a phone **with its navigation** and its density (¶10, ¶11, ¶34, R18);
 - who is in it, and who wrote in (¶12, ¶27, ¶37);
-- settings and the lifecycle verbs (¶14, ¶40);
+- settings, the lifecycle verbs, and the dialogs they open (¶14, ¶38, ¶40, D50);
 - the batch Catch-up: default, fixed members, your answer to who keeps it (¶4);
-- archive and delete (¶5);
+- archive and delete, and where archived things live (¶5, L5);
 - comments on an answer, a song preview card, a photo-wall question (¶10, ¶16, ¶50);
-- the empty states: a new member, a batch with no Round yet, a Round with one answer.
+- the notifications a member taps at each transition and where each lands (¶36);
+- the empty states: a new member, a batch with no Round yet, a Round with one answer;
+- the pressure fixtures: one answer, forty answers, a two-hundred-photo wall (D35).
 
-None of the directions is today's layout with the bugs fixed (¶26). At least one should be
-what he described in ¶19: Catch-ups as if it were the whole app. All of them live inside the
-design system's tokens, type, radius ladder, surface ladder and motion rules (D3) and are
-otherwise free; his Action Button analogy (¶42) is the standard: *"you can tell that it
-belongs to this app"* and *"it doesn't look like anything already in"* it. Break ties the way
-the owner does, Apple HIG first. Copy at 4.5 on his warmth dial, not 7.5: one warm line per
-surface at most, on a title, never on a button. The banned words in D19.
+None of the directions is today's layout with the bugs fixed (D37). At least one should be
+what he described in ¶19: Catch-ups as if it were the whole app. All of them keep this app's
+palette and belong to it unmistakably (D3); the type, radius, surface and motion rules are the
+default and a direction may break one where the break is the point, saying so (D36); his
+Action Button analogy (¶42) is the standard: *"you can tell that it belongs to this app"* and
+*"it doesn't look like anything already in"* it. Break ties the way the owner does, Apple HIG
+first. Copy at 4.5 on his warmth dial, not 7.5: one warm line per surface at most, on a title,
+never on a button. The words in D43 stay banned. And ¶3's test applies to every screen: does
+it give him any dopamine (P17).
 
 **Then a room brief per direction**, for S4, written to the writing-for-agents skill: intent
 and constraint, not implementation; a number only where the number is the decision; what
-"good" looks like at 390 and 1512 with the real data; the owner's paragraphs quoted where
-they carry the nuance; every decision marked LOCKED / RECOMMENDED / OPEN, with the OPEN parts
-granted to the builder out loud. Say which parts of a room must be **live** (the mobile
-navigation must be tappable and scrollable for real; a static picture of it proves nothing)
-and which may be static.
+"good" looks like at 390 and 1512 with the real data and the fixtures; the owner's paragraphs
+quoted where they carry the nuance; every decision marked LOCKED / RECOMMENDED / OPEN, with
+the OPEN parts granted to the builder out loud. Say which parts of a room must be **live** (the
+mobile navigation must be tappable and scrollable for real; a static picture of it proves
+nothing) and which may be static.
 
 **Finally**, one paragraph: which direction you would pick and why. He picks; you may lean.
 
@@ -728,10 +853,12 @@ Write it all in `directions.md`. Update the board and log. Do not build anything
 
 ## S4: Rooms
 
-Build each direction from its brief in `directions.md`, one room at a time, yourself (not
-through subagents: their work is below the standard this needs, and the owner asked for one
-mind per job). Read `docs/spec/lab-voice.md` before the first line: the room is in the
-**Delight** group, the lede is one line, no scoreboard unless the numbers are the finding.
+Build each direction from its brief in `directions.md`, one room at a time, yourself. Not
+through subagents: that is this campaign's judgment, not the brief's (the fix-campaign skill's
+reasoning about summarised work applies to a room that has to be looked at as it is built),
+and a room is one long sequence with state. Read `docs/spec/lab-voice.md` before the first
+line: the room is in the **Delight** group, the lede is one line, no scoreboard unless the
+numbers are the finding.
 
 - Rooms live at `/lab/catchups/<slug>`, registered in `src/app/lab/_registry.ts` in the same
   commit, with an index at `/lab/catchups` that lists the directions and the shared checklist
@@ -765,21 +892,22 @@ the board (one line per room) and the log.
 ## S5: Pick and spec (Fable, owner present)
 
 He browses the rooms, on his phone and his laptop, and tells you what he likes, surface by
-surface. He may mix directions. Write it down as he says it, verbatim, under "Owner answers"
-below, before you interpret anything.
+surface. He may mix directions, or ask for a second round (S3b). Write it down as he says it,
+verbatim, under "Owner answers" below, before you interpret anything.
 
 Then write `spec.md` in the shape of `docs/planning/collection-rework/spec.md`: how to read
 it and how much room the builder has; every decision LOCKED / RECOMMENDED / OPEN; the IA; each
-surface; the batch Catch-up and the lifecycle (O1 to O3 resolved); comments (model, actions,
-notifications; whether the post comment components are reused); link previews (where the
-resolved metadata is stored, which hosts, the fail-soft rule); the photo wall; the data
-changes as an idempotent dated file in `prisma/migrations-manual/` applied with
-`scripts/dev/run-sql.mjs`, never `db push`, with the export re-run first (D6, D23); the
-build phases for S6+, each a revertable slice; the tests (unit for the pure state machine
-and the shelf, Playwright on geometry with `expect.poll` for the mobile navigation, visual
-baselines); the copy rules; a table mapping **every** ledger item above to the section that
-answers it, or to a stated reason it is out; and the operational context. He reviews it
-before S6 starts.
+surface; the dialogs (D50); the batch Catch-up and the lifecycle (O1 to O3 and O14 resolved);
+comments (model, actions, notifications; whether the post comment components are reused);
+link previews (where the resolved metadata is stored, which hosts, the fail-soft rule;
+`prior-art.md` §7 has the measured endpoint fields); the photo wall; the data changes as an
+idempotent dated file in `prisma/migrations-manual/` applied with `scripts/dev/run-sql.mjs`,
+never `db push`, with the export re-run first (D6, D23) and no open Round orphaned (P26); the
+build phases for S6+, each a revertable slice; the tests (unit for the pure state machine and
+the shelf, Playwright on geometry with `expect.poll` for the mobile navigation, visual
+baselines); the copy rules; a table mapping **every paragraph of the brief, ¶1 to ¶52**, to the
+section that answers it or to a stated reason it is out (the ledger is the aid, the brief is
+the test); and the operational context. He reviews it before S6 starts.
 
 ---
 
@@ -803,9 +931,12 @@ verify yourself, park what breaks) is the protocol.
 
 ## M1: Magazine design (Fable, ultracode on for two steps)
 
-Read ¶21, ¶30, ¶31 and ¶51 until you can hear them, then `prior-art.md`'s sections on
-layout engines and on producing a PDF, then the export and the fixtures from S1, because the
-two published Rounds and the invented extremes are your test corpus (D30, D33, D35).
+Read ¶21, ¶30, ¶31 and ¶51 until you can hear them, then `prior-art.md` §4 (layout engines)
+and §8 (the PDF pipeline) with their gaps, then the export and the fixtures from S1, because
+the two published Rounds and the invented extremes are your test corpus (D30, D33, D35). Two
+of his hedges travel with you: a navigable PDF is *"not that important"* (¶21), and emailing
+everyone happens only *"if we can do an amazing job for this"* (¶21); the second is the gate
+M2+ has to clear before anyone wires Resend.
 
 Design the layout engine, not the page. Portrait (¶51, D29). That means:
 
@@ -816,10 +947,11 @@ Design the layout engine, not the page. Portrait (¶51, D29). That means:
   a long answer; an answer with one, two, three or more photos in each orientation; a photo
   wall; a song card; a pull-quote from a most-hearted answer; the contributors) and the rules
   that map content shape to block: *"if these images are of this size..."* (¶21), like the
-  profile page's rules. Write the rules as rules, testable without a browser.
+  profile page's rules. Write the rules as rules, testable without a browser. `prior-art.md`
+  §4 recommends candidate generation plus a weighted score, with four terms worth taking.
 - **Type and image.** Libre Baskerville and Source Sans 3 at print sizes, a baseline grid,
-  and what resolution a photo needs at each size it can be placed (D27); which placements a
-  1920px photo may take and which need the original.
+  and what resolution a photo needs at each size it can be placed (D47, D27); which
+  placements a 1920px photo may take and which need the original.
 - **The hundred things that could go wrong** (¶31), each with its bypass: a 3,000-word
   answer, forty answers to one question, a Round with one answer, zero photos, all portrait
   photos, one member who answered everything, an emoji-only answer, a very long name, a
@@ -837,7 +969,8 @@ Design the layout engine, not the page. Portrait (¶51, D29). That means:
   not the pages.
 - **The feasibility spike.** Render one real Round through print CSS in Chrome and measure
   fidelity (page breaks, fonts, image bleed); then the pipeline per D24, with the Vercel
-  numbers you could verify and the ones you could not, and a recommendation.
+  numbers `prior-art.md` §8 verified and the ones it could not, and a recommendation. The
+  local script is an ordinary `scripts/dev/` script, not a hand-run pass (F16).
 - **A test corpus**: the two real Rounds plus synthetic extremes as JSON fixtures.
 
 Write `magazine.md`, and if the spike produced a page worth looking at, register it at
@@ -845,13 +978,16 @@ Write `magazine.md`, and if the spike produced a page worth looking at, register
 
 ---
 
-## X: The viewer and heart slice
+## X: Fast fixes
 
 Independent of the redesign, allowed to touch the feed (¶28), and small enough to ship early.
-From S1's root causes: the viewer's size snap between orientations, the wrap-around on swipe
-back, the overshoot, the heart's late animation, and the caption clamp from two lines to
-four (D11). `superpowers:systematic-debugging` first. Each fix with the test that pins it, in
-its own commit, `npm run visual` after. The feed's own viewer is the regression to watch.
+From S1's root causes, in this order: **the mobile header cut-off and right-hand white space**
+(R6, F8, D49), which is live for seventy members today; then the viewer's size snap between
+orientations, the wrap-around on swipe back, the overshoot (V1 to V3); the heart's late
+animation (R13); and the caption clamp from two lines to four (D38, his *"maybe"*; ask him if
+he is around, ship four if not, it is one constant). `superpowers:systematic-debugging`
+first. Each fix with the test that pins it, in its own commit, `npm run visual` after. The
+feed's own viewer is the regression to watch.
 
 ---
 
@@ -865,9 +1001,10 @@ learned since.
   the same commit. **Do not push**: a push is a deploy to both Vercel projects. Commit
   messages: plain conventional, 150 words at most, no AI attribution of any kind.
 - **Several Claude sessions share this one checkout.** Uncommitted changes you did not make
-  are someone's work in progress (today: `scripts/qa/fix-campaign.test.mjs`). Stage by
-  pathspec, `git commit -F - -- path/one path/two`; never `git add -A`, `-a`, stash, reset,
-  checkout or clean. Do not kill a dev server or build you did not start.
+  are someone's work in progress (on 2026-09-05 a peer session was reorganising
+  `docs/planning/` under this campaign's feet). Stage by pathspec,
+  `git commit -F - -- path/one path/two`; never `git add -A`, `-a`, stash, reset, checkout or
+  clean. Do not kill a dev server or build you did not start.
 - **The gate** is `npm run check` (about 30 s idle, minutes when another session is
   building). `npm run visual` after any UI change, **never concurrently with check** (two
   spurious whole-page diffs on 2026-08-29). Read the diff before ever running `visual:update`.
@@ -901,10 +1038,10 @@ learned since.
 
 ## Owner questions
 
-**All five below were answered on 2026-09-05; his words are ¶51 and ¶52 of the brief and
-are repeated under "Owner answers".** The questions stay here so the answers can be read
-against what was asked. New questions for him go at the end of this section, in the same
-five-line shape, with a default on each.
+**Questions 1 to 5 were answered on 2026-09-05; his words are ¶51 and ¶52 of the brief and
+are repeated under "Owner answers".** Question 6 is open. New questions for him go at the end
+of this section, in the same five-line shape, with a default on each; one reply covers them:
+*"defaults, except..."*.
 
 **1. Ultracode: did you mean none at all, or "ask me"?**
 - **What I read:** none anywhere in this campaign; one mind per job.
@@ -941,6 +1078,13 @@ five-line shape, with a default on each.
 - **Options:** (a) real data (b) your own answers only (c) invented data.
 - **If you don't reply I'll do:** (a).
 
+**6. Photo captions: three lines before "More", or four?** (open, asked 2026-09-05)
+- **What I'd change:** the caption under a photo shows four lines before it folds, instead of two today.
+- **What you'd notice:** most captions show whole; only long ones fold.
+- **If I guess wrong:** a line more or less of caption before the fold.
+- **Options:** (a) four (b) three (c) no fold at all.
+- **If you don't reply I'll do:** (a), because you said "maybe make it 4 lines" last.
+
 ## Owner answers
 
 **2026-09-05, typed, verbatim (also ¶51 of the brief):**
@@ -965,12 +1109,14 @@ five-line shape, with a default on each.
 
 **The reading this session took**, beneath his words and separate from them:
 
-- Q1: ultracode is mine to allocate. Allocated in "The sessions" (D16): S0, S3 and M1.
-- Q2: throwaway Catch-ups are allowed, and so is anything else needed. His emphasis is on
-  seeing every state and every sequence, which is now D34 and the storyboard block in S1.
-  The hazard in F14 (notifications to real members) is mine, not his, and D33 answers it:
-  live throwaways hold only the owner and Jerry; variety comes from fixtures.
-- Q3: both kinds, together, D28. His extra sentence about late joiners went into D4.
+- Q1: ultracode is mine to allocate (D16). Allocated in D40: S0, S3, M1.
+- Q2: throwaway Catch-ups are allowed, and so is anything else needed (D31). His emphasis is
+  on seeing every state and every sequence, which is D34 and the storyboard block in S1. The
+  hazard in F14 (notifications to real members) is mine, not his, and D33 answers it: live
+  throwaways hold only the owner and Jerry; variety comes from fixtures; a session may ask
+  him for more.
+- Q3: both kinds, together, D28. His extra sentence about late joiners went into D4. His
+  *"how you'd expect"* for people Catch-ups is read in D44, marked as a reading.
 - Q4: the export is fine in any form provided it can regenerate everything. Read as: include
   the photo bytes, D23. "Totally regeneratable" is the test the export script must pass.
 - The magazine is portrait, D29. The fake Catch-ups full of every content type are D30, D33
@@ -998,12 +1144,9 @@ and left ultracode to this session.
 **Second half of S0, with ultracode.** One `Workflow`, fifteen Opus agents: four verifiers
 reading the raw transcript stretch by stretch against `brief.md`, two critics reading the
 ledger and decisions against the brief, eight researchers for the S2 prior-art sweep and one
-assembler. **The four verifiers finished; the other eleven failed on the owner's usage limit
-("resets 7:10pm IST") before doing any work.** So the prior-art sweep has not happened and
-the ledger has not been checked. The workflow is resumable with its cached verifier results:
-script `~/.claude/projects/-Users-sanan-Documents-rv-connect/b1b1a5d8-1080-406a-ba71-fbca3459a4a8/workflows/scripts/catchups-rework-s0-verify-and-prior-art-wf_75c20c60-8e8.js`,
-run id `wf_75c20c60-8e8`; resuming replays the verifiers from cache and runs the eleven
-live. If S0's session is gone, S2 runs the same eight shapes from its own section above.
+assembler. The first run hit the owner's usage limit after the four verifiers had finished;
+the other eleven ran on a second launch once it reset (19:24 to 19:58 IST). Everything below
+was done by the same session from their returns.
 
 **What the verifiers found, and what changed in `brief.md`.** 69 findings across the four
 stretches, verdict on each stretch "substantially faithful" with the same three faults: the
@@ -1015,16 +1158,43 @@ to add any new things. There can be a lot of new things", ¶42 "this website alw
 it doesn't always use"); it deleted one whole sentence of opinion (¶23 "I don't really care
 about the birds."); it changed a number by turning a self-correction into a range (¶31 "4 3
 centimeters" had become "3 or 4"); and it made about a dozen corrections without the
-bracketed original its own header promised ("give up", "batch of catch-ups", "pile",
-"onto", "the feature of", "after the second", "should be in" read as "could be in", supplied
-words such as "middle", "format", "width", "the text"). Every one was folded in: hedges and
-tags restored, reversals restored, the raw word kept inline with the guess in brackets, and
-the header rewritten to say what the conventions actually are (labels capitalised, numerals
-as spoken, British spelling in the spoken parts) and to record the check. The lesson for
-every later relay of his words is now the second paragraph of the writing-for-agents skill's
-"Whose words" section: a hedge is content.
+bracketed original its own header promised. Every one was folded in: hedges and tags
+restored, reversals restored, the raw word kept inline with the guess in brackets, and the
+header rewritten to say what the conventions actually are and to record the check. The
+lesson is now in the writing-for-agents skill under "A hedge is content".
+
+**What the critics found, and what changed in this file.** About sixty findings between two
+lenses (the owner's, hunting dropped opinions; the design session's, hunting instructions it
+would need and could not find), most of them right. The ledger stopped at ¶50 and had no row
+for his answers; it was short by about thirty asks, among them two hard scope fences from ¶20
+(no refactor pass yet; not the backend bug hunt), his severity ranking of Fresh off the press,
+the "dopamine" test, the scroll-to-home distance, the density complaint, the Start-one
+routing bug, the 70-beta-testers constraint, and the Letterloop parity list; about sixteen
+paragraph pointers were short (¶19 alone was missing from five rows); and a dozen marks
+over-read him: D18 had locked "one click target per tile" when he had said "if there's a
+reason, sure"; D19 had locked question numbering while O9 left it open, and had locked the old
+spec's banned words under his name; D11 had locked a number he said "maybe" to twice; D13 had
+locked that both renderings ship when he called both aspirational; D16 had presented the
+ultracode allocation as his; D17 the session structure as his; D6 had read a preference with
+an override as an absolute. All repaired: 26 rows added or extended, the pointers fixed, each
+disputed mark split into his part (LOCKED) and the session's (RECOMMENDED), the campaign-wide
+rule about deletion reworded to protect content and not shipped UI, dialogs given an owner
+(D50), the green-bar bug given a fast-ship slot (D49), an optional second brainstorming round
+added (S3b), S1 told to walk the brief rather than the ledger and told whose rule the
+two-account limit is, S3's checklist widened by four surfaces, and S5's completeness table
+made to map the brief's paragraphs rather than the ledger's rows. One claim in the S1 prompt
+was false and is withdrawn in F16: the hand-run-passes test does not govern an export script.
+The same false sentence appeared twice in `prior-art.md` §8 and was corrected there too.
+
+**The prior-art sweep.** Eight researchers, one shape each, 18 to 30 sources apiece, and one
+assembler: `prior-art.md`, 21,000 words, eight "What this means for us" blocks, and a gaps
+section that collects every unverified claim. Reviewed by this session: the header, all eight
+recommendations, the gaps, and spot checks on the oembed measurements, the Vercel limits and
+the Letterloop PDF claim. F15 records how far to trust each part. S2 is done; the S2 session
+is not needed.
 
 **Also in this half.** His answers to the five questions were recorded verbatim (¶51, ¶52,
 "Owner answers") and read into D4, D16, D23 and D28 to D35; S1 gained the storyboard block
 (D34); S3 and M1 gained their ultracode shapes; S4 gained the fixture switch and the pressure
-room; F13 and F14 were added.
+room; `docs/README.md` gained the two rework campaigns under `docs/planning/`; a sixth owner
+question (caption lines) is open with a default.

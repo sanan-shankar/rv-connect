@@ -31,12 +31,18 @@ finished and found 69 things, nearly all one fault: hedges and "right?" tags tri
 they were fillers, which made him sound certain where he was tentative; plus three flattened
 self-corrections, one deleted sentence of opinion, and a dozen unbracketed corrections. All
 folded back into the brief, its header rewritten to say what the conventions really are, and
-the lesson written into the skill: a hedge is content. **The other eleven agents failed on the
-usage limit before doing any work**, so the prior-art sweep has not run; the workflow is
-resumable from its cached verifiers, and the handover says how. His answers are ¶51 and ¶52
-of the brief and gave the campaign a portrait magazine, a pressure corpus of fixtures, the
-storyboard of every state and every sequence as recon's first duty, and `/lab/catchups/` as
-the sandbox.
+the lesson written into the skill: a hedge is content. The other eleven agents hit the usage
+limit on the first launch and ran on a second once it reset. Two critics then read the
+handover's ledger and decisions against the brief with different lenses and found it short:
+no row for his typed answers, about thirty asks unrecorded (two of them hard scope fences from
+¶20), sixteen paragraph pointers short, and a dozen marks that read a hedge as a decision.
+All repaired the same evening; each disputed decision is now split into his part, LOCKED, and
+the session's, RECOMMENDED. One claim in the recon prompt was simply false (an export script
+is not a hand-run pass) and is withdrawn. Eight researchers and an assembler produced
+`prior-art.md`, 21,000 words across eight shapes with every claim marked for confidence and a
+gaps section, so S2 needs no session of its own. His answers are ¶51 and ¶52 of the brief and
+gave the campaign a portrait magazine, a pressure corpus of fixtures, the storyboard of every
+state and every sequence as recon's first duty, and `/lab/catchups/` as the sandbox.
 
 ## 2026-09-05 — the Map segment warms on hover, and the world arrives whole
 

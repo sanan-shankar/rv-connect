@@ -27,7 +27,10 @@ Everything else is grouped here:
   this document is the only index, so the two cannot drift apart.
 - `docs/planning/` — the working backlog: `bugs.md` (the live bug tracker), `FEATURES.md`
   (parked ideas — diff against DESIGN-SYSTEM.md and ROADMAP.md before acting), plus
-  point-in-time reference material (`leads-to-follow.md`, `letterloop-research.md`).
+  point-in-time reference material (`leads-to-follow.md`, `letterloop-research.md`), and
+  the design campaigns that are not audits, one folder each: `collection-rework/` and
+  `catchups-rework/`, each holding a `brief.md` in the owner's own words and a living
+  `handover.md` that every session of that campaign starts from and edits before it ends.
 - `docs/audit-fix/` — every formal audit and its fix campaign, one dated folder each
   (`<yyyy-mm-dd>-<name>/`): the report and fix prompt/ledger at the top, the working
   evidence tucked under `work/`. `prompts/` holds the reusable audit prompts. The rule:
