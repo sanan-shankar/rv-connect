@@ -32,11 +32,26 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { m } from "motion/react";
-import { Hoopoe } from "@/components/mascot/hoopoe";
+import type { HoopoeProps } from "@/components/mascot/hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { anotherHoopoeOnScreen } from "./one-hoopoe-guard";
 import { SPRINGS } from "@/components/common/motion";
+
+/* Deferred for the same reason sidebar-hoopoe.tsx is: this wraps the sidebar
+   wordmark on every authenticated page, and the 28 KB puppet behind it is for
+   a bird that only exists if somebody triple-clicks a logo. `onReady` was
+   already how the controller is filled, which is what next/dynamic requires
+   (its wrapper does not forward refs).
+
+   The FIRST click warms it, not the third. Three clicks have to land inside
+   650 ms, so fetching the chunk when the count starts means it is there by the
+   time the egg fires and the burst is as immediate as it was. */
+const Hoopoe = dynamic<HoopoeProps>(
+  () => import("@/components/mascot/hoopoe").then((m) => m.Hoopoe),
+  { ssr: false }
+);
 
 const CLICKS_NEEDED = 3;
 // A real rapid triple-click, not three clicks scattered across a whole
@@ -78,6 +93,7 @@ export function LogoEasterEgg({ children }: { children: ReactNode }) {
 
   function handleClickCapture() {
     if (busyRef.current) return; // already mid-egg; ignore clicks until it settles
+    if (clickCountRef.current === 0) void import("@/components/mascot/hoopoe"); // see the dynamic() note above
     clickCountRef.current += 1;
     if (resetTimerRef.current !== null) {
       clearTimeout(resetTimerRef.current);

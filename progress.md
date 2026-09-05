@@ -1,5 +1,29 @@
 # Progress Log
 
+## 2026-09-05 — the sidebar's bird stops riding along on pages it never lands on
+
+Refactor audit 2, row B2, and the second half of audit 1's finding 08. `sidebar-hoopoe.tsx`
+and `logo-easter-egg-hoopoe.tsx` both statically imported the puppet, so 28 KB of rig was in
+the first load of most authenticated routes for a bird that cannot appear for ninety seconds
+and never appears below 768px, and for an egg that needs three clicks on a logo.
+
+Both are `next/dynamic` now. `onReady` was already how each fills its controller, which is
+what makes this safe -- next/dynamic's wrapper drops refs, and a `ref` here would leave the
+bird permanently and silently inert. The egg warms the chunk on the FIRST click, because three
+have to land inside 650 ms.
+
+Measured between builds: **-74.4 KB raw first-load JS on 26 routes** -- every `/admin/*`,
+/about, /letters x4, /messages/[id], /birds, /guide x2, /pick-bird, /support -- and -54.4 KB on
+/collection and /collection/[id], -68.6 KB on /admin/review. Far past the audit's -28 KB
+estimate: the puppet chunk was dragging more with it than the finder attributed. /feed,
+/directory, /profile/[id], /welcome, /catchups and /dark-mode do not move, each having its own
+static importer, exactly as the finding predicted.
+
+Verified by hand on /about at 1440x900: Ctrl+Shift+H summons the bird, it perches 60px above
+the profile row, and three fast clicks on the wordmark still pop the egg. No console errors.
+`not-found.tsx`'s comment claimed the sidebar shows its bird at first paint; it never did, and
+that line is corrected in the same commit.
+
 ## 2026-09-05 — the sign-in page stops carrying a tooltip it never draws
 
 Refactor audit 2, row B1. `float-field.tsx` imported `InfoTooltip` at module scope, and
