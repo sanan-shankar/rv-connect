@@ -78,6 +78,12 @@ export function YourCatchupsCard({ card }: { card: IndexCardView }) {
               {overflow > 0 && (
                 <span
                   className="grid h-7 w-7 place-items-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground"
+                  /* The same shadow BirdAvatar's `ring` prop draws, written out
+                     because this chip is not a BirdAvatar. It stays even though
+                     the birds beside it carry no ring: the chip is a flat disc
+                     that the ring reads as a border on, where an unclipped bird
+                     glyph gets sliced by one. See BirdAvatar's `ring` docblock;
+                     the owner looked at both on 2026-09-05 and kept this. */
                   style={{ boxShadow: "0 0 0 4px var(--card)" }}
                 >
                   +{overflow}

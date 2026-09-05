@@ -8972,3 +8972,26 @@ now, and asserts `loadPhoto` is actually in the file it is reading, so the pin c
 looking at the wrong place next time.
 
 `/collection`, `/collection?scope=class` and a real permalink all load clean; visual unchanged.
+
+## 2026-09-05 — a prop that lied, and the reason it should keep lying
+
+Refactor audit 2, Phase A, row A17, closed against what it actually renders rather than as written.
+
+`BirdAvatar`'s `ring` prop draws a card-coloured separator for overlapping rows. It is applied
+unconditionally on the photo path (`:58`) and only `if (clipped)` on the bird path (`:104`), where
+`clipped = BG_MODE === "inset"` and `BG_MODE` has been `"none"` throughout. So the Catch-up card
+passes `ring` for five stacked avatars and gets nothing, while the `+N` chip beside them
+hand-writes the identical `box-shadow` and does get one.
+
+The audit's remedy is to drop the guard. **I tried it and looked at it at 2x, and it is worse.**
+A 4px ring on a 28px avatar overlapped by `-space-x-2` (8px) consumes the entire overlap: each
+glyph is sliced to a crescent by its neighbour's ring, and the ring over the `+N` chip covers the
+`+`, so "+18" reads as "· 18". A photograph is clipped to a circle and wears the ring as a border.
+An unclipped bird glyph does not.
+
+Shown to the owner with both screenshots; he kept today's pixels. So nothing member-visible moved.
+What changed is that the guard is now argued rather than incidental: the prop's docblock says
+where it draws, where it does not, what happens if somebody removes the guard, and that a stacked
+row is deliberately mixed today (photo members ringed, bird members not). The chip's hand-written
+shadow says the same from its side. If `BG_MODE` ever moves to `"inset"` the row becomes
+consistent on its own.
