@@ -110,7 +110,7 @@ Everything is **max** effort.
 | S0 | Set-up (2026-09-05) | Fable max | yes, used: four transcript verifiers, two ledger critics, the S2 sweep | | `brief.md`, this file, the skill amendment, `prior-art.md` |
 | S1 | **Reconnaissance** | Opus max | **no**: one browser, one machine | now | `recon.md`, `flows.md`, the storyboards, the export script and a first export, the first fixtures, root causes for every reported bug |
 | S2 | **Prior art** | done inside S0 | | | `prior-art.md`, 21,000 words, eight shapes, with its gaps listed; a follow-up only if S3 finds a hole |
-| S3 | **Directions** | **Fable max** | **yes**: the shape is in its section | S1 | `directions.md`: the IA, the directions, a room brief per direction |
+| S3 | **Directions** | **Fable max** | **yes**: the shape is in its section | S1 | `directions.md`: the IA, the directions, a room brief per direction; and `/lab/catchups/sketches`, one screen per direction for him to cull |
 | S4 | **Rooms** | Opus max | no | S3 | `/lab/catchups/*`, one room per direction plus the pressure room, real data and fixtures, both viewports |
 | S3b | **Second round**, only if the rooms disappoint | Fable max | yes | S4, at his word | more spaghetti, then a new shortlist (¶20) |
 | S5 | **Pick and spec**, owner present | **Fable max** | no | S4, once he has browsed | `spec.md` with every decision marked LOCKED / RECOMMENDED / OPEN |
@@ -151,7 +151,8 @@ too, which he allowed in ¶28.
 | S1 Reconnaissance | DONE | `recon.md` (43 findings), `flows.md`, the export, the pressure fixture, one `[Recon]` Catch-up left in place. Gaps listed at the end of `recon.md` |
 | S2 Prior art | DONE | `prior-art.md`, inside S0, 2026-09-05; F15 says how far to trust each part |
 | S3 Directions | OPEN | unblocked; read `recon.md` section 13 first |
-| S4 Rooms | OPEN | blocked on S3 |
+| Owner culls the sketches | OWNER-GATED | after S3, twenty minutes on his phone at `/lab/catchups/sketches`; his cull is the shortlist |
+| S4 Rooms | OPEN | blocked on the cull, and only the directions that survive it |
 | Owner browses the rooms | OWNER-GATED | |
 | S3b Second round | OPEN | only if he asks for it after the rooms |
 | S5 Pick and spec | OPEN | blocked on the pick |
@@ -323,6 +324,19 @@ Numbered so later sessions can cite and correct them. **Verified** means a sessi
 - **F22, the "catch-up" suffix is his own July decision (S1, verified).**
   `catchupSurfaceTitle`'s docblock cites *"owner review 2026-07-25"*. In ¶25 he reverses it. The
   name is printed **seven** ways today. Record it in the spec as a reversal, not a bug.
+
+- **F23, the heart re-renders the whole Round on every tap (S1, measured; he corrected the
+  reading on 2026-09-05).** ¶11's *"it takes a second to react, and it just reloads like a whole
+  page almost"* sits in the chip-bar paragraph and was first filed there. It is the heart:
+  *"tapping the heart on a catch up taking longer to react than tapping heart on feed. noticeably
+  longer."* `toggleEntryLove` ends both paths with `revalidatePath('/catchups/round/<id>')`, and
+  the reader server-renders all 133 answers, so one tap ships **603 KB and 1.5 to 2.6 seconds**
+  against the feed's **55 KB and ~270ms**. The feed's `toggleLike` removed exactly this call and
+  its comment states the rule: *"an action whose result the client already holds does not
+  revalidate"*, having caused *"an occasional scroll-to-top on the heart click"*. The optimistic
+  flip is fine, measured at 28ms. **The fix is deleting two lines.** The lazy-motion chunk (5,239ms
+  here against 1,930ms on the feed) is a separate, smaller effect that only touches the first tap
+  after a cold load. `recon.md` §8. **This supersedes the earlier reading of R5 and R13.**
 
 ---
 
@@ -828,20 +842,38 @@ You are the session the owner ran this campaign to reach. Read `brief.md` twice.
 **How ultracode is used here, and how it is not.** The architecture below is yours alone:
 one mind, written before any fan-out, because it is the shared structure every direction
 must fit (¶42: *"different teams are working together... but under the same broader
-structure"*). Then a `Workflow`: independent designers, each given the SAME inputs and
-nothing else, that is, told to read `brief.md`, `recon.md`, `flows.md`, `prior-art.md`,
-`DESIGN-SYSTEM.md` and your architecture page in full from disk (never your digest of them;
-the writing-for-agents skill's "Whose words" section is the rule), each with a different
+structure"*). Then a `Workflow` of six or eight independent designers, each with a different
 starting bet you assign (for instance: the reader is the product and everything else is a
 door into it; the list is a shelf of magazines; the Catch-up's home is a calendar of Rounds;
-Catch-ups as if it were the whole app, ¶19), and each returning one direction against the
-checklist below. Generate more than you will keep, six or eight, because ¶20 asks for *"a lot
-of spaghetti"* before anything sticks; shortlist three or four for rooms (D25). Let the
-designers inherit this session's model: this is the one place intelligence is the point. Then
-a judge panel on Opus, one judge per direction, each scoring against the brief's paragraphs
-with quotes, and one adversarial judge told to find where every direction is *"today's layout
-with the bugs fixed"* (¶26, D37). You read all of it yourself, keep what is strong, and write
-`directions.md` and the room briefs yourself; the synthesis is not delegated. Keep every
+Catch-ups as if it were the whole app, ¶19), each returning one direction against the
+checklist below. Generate more than you will keep, because ¶20 asks for *"a lot of
+spaghetti"* before anything sticks. Let the designers inherit this session's model: this is
+the one place intelligence is the point.
+
+**Do not give them all the same inputs.** Most read `brief.md`, `recon.md`, `flows.md`,
+`DESIGN-SYSTEM.md` and your architecture page, in full from disk, never your digest of them
+(the writing-for-agents skill's "Whose words" section is the rule). **At least two get
+`brief.md`, `DESIGN-SYSTEM.md` and the architecture page and nothing else** -- no recon, no
+flows, no prior art. The reason is ¶26: forty-three findings about what is wrong with today's
+layout is a detailed description of today's layout, and a designer who has read them is
+thinking in their terms. Those two will produce the freshest and the least practical things in
+the batch, which is what a shortlist is for. Say in `directions.md` which designers were blind,
+so a later session can tell whether it worked.
+
+**Rank the prior art rather than handing it over whole.** F15 is the ranking, and most of
+`prior-art.md` is words: §7 and §8 are measured and may be relied on; §1, §2, §3 and §5 are
+inference with nothing opened in a browser. Give the reading designers §7 and §8 as fact and
+the rest as ideas that never outweigh what `recon.md` measured on the real app, and tell them
+not to spend attention on §5 or §3's Revolut part at all. Twenty-one thousand words of
+low-confidence research does not make a designer better; it uses up the attention that would
+have gone somewhere else.
+
+Then a judge panel on Opus: one judge per direction scoring against the brief's paragraphs with
+quotes; one adversarial judge told to find where every direction is *"today's layout with the
+bugs fixed"* (¶26, D37); and one question put to the panel as a whole, because scoring against
+a checklist rewards completeness and quietly prefers the safe answer -- **which of these would
+he still be thinking about tomorrow?** You read all of it yourself, keep what is strong, and
+write `directions.md` and the room briefs yourself; the synthesis is not delegated. Keep every
 direction that genuinely differs; merge only where two designers converged.
 
 **First, the architecture**, because every direction shares it and it is where the rot is
@@ -896,13 +928,31 @@ nothing) and which may be static.
 
 **Finally**, one paragraph: which direction you would pick and why. He picks; you may lean.
 
-Write it all in `directions.md`. Update the board and log. Do not build anything.
+Write it all in `directions.md`.
+
+**Then build the sketch room, and it is the last thing you do.** `/lab/catchups/sketches`: one
+room, one screen per direction, the same real published Round rendered every way, 390 first and
+his 1512 second, switchable so he can flick between them on his phone. One surface only -- the
+reader, because it is the densest and the most complained-about. Static is fine and expected:
+this is the **cull**, not the pick, and D21's "rooms, not mockups" governs the pick. Register it
+in `src/app/lab/_registry.ts` in the same commit; `npm run check` after; read the shots yourself
+at both sizes before you say it is up.
+
+It exists because without it he chooses directions from five thousand words of prose, which is
+the hardest possible version of the task for him and the easiest for us, and S4 then spends
+hours building rooms for bets nobody has looked at. Twenty minutes on his phone kills three
+directions and doubles what the survivors get. **Notify him when it is up, then stop.** The
+shortlist of three or four that reaches S4 (D25) is his cull, not your ranking; say which you
+would keep and leave it at that.
+
+Update the board and log.
 
 ---
 
 ## S4: Rooms
 
-Build each direction from its brief in `directions.md`, one room at a time, yourself. Not
+Build each **surviving** direction from its brief in `directions.md` -- the three or four he
+kept at `/lab/catchups/sketches`, not all six or eight -- one room at a time, yourself. Not
 through subagents: that is this campaign's judgment, not the brief's (the `/campaign` skill's
 reasoning about summarised work applies to a room that has to be looked at as it is built),
 and a room is one long sequence with state. Read `docs/spec/lab-voice.md` before the first
@@ -1031,12 +1081,17 @@ Write `magazine.md`, and if the spike produced a page worth looking at, register
 
 Independent of the redesign, allowed to touch the feed (¶28), and small enough to ship early.
 From S1's root causes, in this order: **the mobile header cut-off and right-hand white space**
-(R6, F8, D49), which is live for seventy members today; then the viewer's size snap between
-orientations, the wrap-around on swipe back, the overshoot (V1 to V3); the heart's late
-animation (R13); and the caption clamp from two lines to four (D38, his *"maybe"*; ask him if
-he is around, ship four if not, it is one constant). `superpowers:systematic-debugging`
-first. Each fix with the test that pins it, in its own commit, `npm run visual` after. The
-feed's own viewer is the regression to watch.
+(R6, F8, D49), which is live for seventy members today; then **the heart's `revalidatePath`**
+(R13, F23), two deleted lines that take one to three seconds off the app's most-used gesture on
+its heaviest page; then the viewer's size snap between orientations (V1), whose answer already
+exists in `photo-carousel.tsx`'s `heightAt`; then the wrap-around and the overshoot (V2, V3),
+**which S1 could not reproduce and which need a real iPhone before any code changes**; and the
+caption clamp from two lines to four (D38, his *"maybe"*; ask him if he is around, ship four if
+not, it is one constant). There is no chip-tap lag to fix: it measures 65ms.
+
+`superpowers:systematic-debugging` first. Each fix with the test that pins it, in its own commit,
+`npm run visual` after. The feed's own viewer is the regression to watch, and for the heart it is
+the feed's `toggleLike` comment, which already says what the rule is.
 
 ---
 
@@ -1289,3 +1344,15 @@ cleared by hand, because the bin cannot be reached any other way. Nothing else w
 
 **Not covered**, and listed at the end of `recon.md`: the join flow, notifications received and
 tapped, `/admin/catchups`, dark mode, and a plain member's view.
+
+**Correction, same day, after he read `recon.md`.** He said: *"the R5 it takes a second to react was
+for tapping the heart on a catch up taking longer to react than tapping heart on feed. noticeably
+longer."* That sentence lives inside ¶11's paragraph about the chip bar, and S1 had filed it there
+and marked it NOT REPRODUCED after measuring the chip at 65ms. Following his correction found a
+cause bigger than either complaint: **`toggleEntryLove` calls `revalidatePath` on the reader route,
+so every heart tap re-renders all 133 answers — 603 KB, 1.5 to 2.6 seconds — while the feed's like
+action deliberately has no such call and its comment states the rule.** F23; `recon.md` §8
+rewritten; the ranked list now has eleven items and this is sixth; X takes it second, right after
+the green bar. The lesson for the campaign is one the brief already warns about: a sentence's
+position in the transcript is not its subject, and when a reading is wrong he is the one who can
+say so.

@@ -38,6 +38,15 @@ it, and an alumnus who joined five days later is not in it. Recovering the histo
 owner's question about the batch Catch-up disappearing: it never existed. He asked for one on
 2026-07-25, got a one-tap shortcut, and removed its broken leftovers himself on 2026-08-21.
 
+**Corrected the same day, on his word.** He read it and said the "takes a second to react"
+complaint was the heart, not the question chips — *"noticeably longer"* than the feed. The sentence
+sits inside a paragraph about the chip bar, which is where it had been filed and measured at 65ms.
+Following his correction found something bigger than either reading: `toggleEntryLove` still calls
+`revalidatePath` on the reader route, so every heart tap re-renders all 133 answers on the server —
+**603 KB and 1.5 to 2.6 seconds**, against the feed's 55 KB and 270ms. The feed removed exactly that
+call in an earlier audit and its comment states the rule and the symptom it caused. "It just reloads
+like a whole page almost" was literal. Two lines to delete.
+
 The whole of Catch-ups now exports to a rebuildable folder — 5.8 MB, photographs copied beside the
 JSON — and a pressure corpus sits on each real cap. Two of the campaign's own decisions were
 corrected in passing: it had asked for extremes the app cannot produce, and for members' words to

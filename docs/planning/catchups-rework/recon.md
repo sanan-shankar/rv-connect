@@ -6,8 +6,16 @@ or `NEW` where the brief never mentioned it. Shots are in `e2e/.shots/catchups-r
 the number in the shot name is the number quoted here.
 
 He said he had described *"maybe 10% of the problems"* (¶41). That was close to arithmetic. This
-file has **43 findings**. Twenty-four confirm something he named, two could not be reproduced and are
+file has **43 findings**. Twenty-five confirm something he named, one could not be reproduced and is
 marked so, and **seventeen are things nobody had noticed**.
+
+**Corrected 2026-09-05, after he read it.** *"the R5 it takes a second to react was for tapping the
+heart on a catch up taking longer to react than tapping heart on feed. noticeably longer."* That
+sentence sits inside ¶11's paragraph about the chip bar and this file had filed it there. It belongs
+to the heart, and following it found the real cause: **every heart tap re-renders the whole Round on
+the server — 603 KB, one to three seconds — because `toggleEntryLove` calls `revalidatePath`, which
+the feed deliberately removed.** Section 8. It is now the first thing X should ship after the green
+bar.
 
 The shots are in `e2e/.shots/catchups-recon/`, 24 of them, numbered by the section that cites them:
 `01`-`03` the index, `10` the home on a phone, `20`-`21` the reader, `30`-`33` the home and its
@@ -239,17 +247,19 @@ Note also that this line prepends `${i + 1}. ` — **the question's number appea
 phone: in the chip, in the "Q8" eyebrow above the heading, and (on desktop) in the rail. That is
 context for R9, *"Do we need to say Question 1?"*.
 
-### R5 — "it takes a second to react". `NOT REPRODUCED` on this machine
+### R5 — the chip's own tap is fine. The "second to react" was the heart
 
-Measured on a warm desktop: tapping chip 8 moves the page after **65ms**, lands the section 148px
-from the top, and drifts **0px** afterwards. There is no `scroll-behavior: smooth` anywhere in the
-stylesheet, so it is a hard jump, not an animation.
+*"And then you click it, and it takes a second to react, and it just reloads like a whole page
+almost"* sits inside ¶11's paragraph about the chip bar, and this file first read it that way. **He
+corrected it on 2026-09-05:** *"the R5 it takes a second to react was for tapping the heart on a
+catch up taking longer to react than tapping heart on feed. noticeably longer."*
 
-So the mechanism he felt is not in the tap. The honest reading is that it is the cost of the
-document: jumping to question 8 means the browser laying out and painting 32,040px of content it has
-never painted, including images, on a phone. **X should measure this under CPU throttling and on a
-cold load before changing anything** — and if the redesign stops shipping 133 cards in one document,
-the question disappears with it.
+So it belongs to the heart, and it is answered in section 8 under R13 — where "reloads like a whole
+page almost" turns out to be a literal description of the mechanism.
+
+The chip tap itself was measured anyway, and it is not slow: tapping chip 8 moves the page after
+**65ms**, lands the section 148px from the top, and drifts **0px** afterwards. There is no
+`scroll-behavior: smooth` in the stylesheet, so it is a hard jump. **There is no chip lag to fix.**
 
 ### R7 — the rule under the masthead. `CONFIRMED`, and it is worse than "barely visible"
 
@@ -717,42 +727,71 @@ changing code that is already correct. V3, the overshoot, is the same investigat
 is a 0.24s ease-out with no spring and cannot overshoot on its own, so whatever he saw was the
 platform's, not ours.
 
-### R13 — the heart's late animation. `CONFIRMED`, root-caused, and it is not the heart
+### R13 + R5 — the heart. `CONFIRMED`, and the cause is a whole-page re-render on every tap
 
-He said (¶29) *"on the catch-ups page more than any other page: if I'm on the feed and I click the
-heart, the heart just becomes red. But if I click a heart on Mohini's answer, it becomes red and the
-animation kicks in after the second."*
+Two complaints, one mechanism. ¶29: *"if I'm on the feed and I click the heart, the heart just
+becomes red. But if I click a heart on Mohini's answer, it becomes red and the animation kicks in
+after the second."* And ¶11, which he confirmed on 2026-09-05 belongs here rather than to the chip
+bar: *"it takes a second to react, and it just reloads like a whole page almost"*, adding
+**"noticeably longer"** than the feed.
 
-The heart is not forked. `EntryLoveButton` renders the shared `LoveButton`, and `LoveButton` sets its
-pop **synchronously in `handleClick`, before the server action**. On paper it cannot be late.
+**The heart itself is not at fault, and neither is the colour.** `EntryLoveButton` renders the shared
+`LoveButton` through `useHeartToggle`, which is `useOptimistic`: the fill and the count flip before
+any network call. Measured end to end on a throwaway Round: **the visible state flips at 28ms.**
 
-The pop is `m.button` with `animate={{ scale: [1, 0.86, 1.28, 0.97, 1] }}`, and `m` is the
-feature-stripped component: the animation runtime arrives in an async chunk supplied by
-`LazyMotion`. [`motion-features.tsx`](../../../src/components/common/motion-features.tsx) predicts
-this exact symptom in its own docblock:
+**What follows the tap is the problem.**
+[`toggleEntryLove`](<../../../src/app/(main)/catchups/actions.ts>) ends both of its paths with:
 
-> "The only visible edge is that an interaction in the first moments after load animates once the
-> feature chunk lands; elements still render, and `initial` styles apply."
+```js
+revalidatePath(`/catchups/round/${entry.editionId}`)
+```
 
-The heart's **colour** is a CSS class driven by React state, so it flips at once. The **pop** waits
-for the chunk. Measured on this machine, same session, same browser:
+That tells Next to re-render the reader's whole server tree and ship it back inside the same POST.
+The reader server-renders **every answer**. So one heart tap costs a full re-render of the Round.
+Measured on "in the loop" Round 1, and compared with the feed:
 
-| | `/feed` | the Catch-ups reader |
+| | the Catch-ups reader | `/feed` |
 |---|---|---|
-| document height | 5,777px | **49,464px** |
-| motion feature chunk finishes | **1,930ms** | **5,239ms** |
-| DOMContentLoaded | 1,696ms | **9,642ms** |
+| answer cards rendered on the server | **133** | 0 — posts arrive client-side via `loadPosts` |
+| `revalidatePath` on the heart | **yes** | **no**, deliberately |
+| RSC payload per tap | **603 KB** | 55 KB |
+| server + network, warm, three runs | **1,529 / 2,002 / 2,540 ms** | 250 / 287 ms |
+| React reconciliation afterwards | 133 cards | none |
 
-These are dev-server numbers with on-demand compilation, so the absolute values are inflated and
-production will be faster. The **ratio** is not a dev-server artifact: it comes from the page being
-49,464px of document with 133 cards and 36 photographs competing for the same main thread and the
-same connection. The chunk lands 2.7x later here than on the feed, and every heart pressed inside
-that window behaves exactly as he described.
+**11x the payload, and roughly 6x the time, before React has reconciled anything.** On the throwaway
+Round with a single answer the same POST still took **900ms**; the 133-card Round is the same work
+multiplied.
 
-So *"on the catch-ups page more than any other page"* is not a Catch-ups bug at all. It is the
-app-wide lazy-motion edge, showing up first on the app's heaviest page. Two ways out, and the second
-is better: preload the motion chunk on this route, or stop shipping a 49,464px document. The redesign
-is already going to do the second.
+**And the feed already removed this exact call, with the reason written down.** From
+[`feed/actions.ts`](<../../../src/app/(main)/feed/actions.ts>), inside `toggleLike`:
+
+> "No revalidatePath here (deliberately): PostCard already applies the like/count change
+> optimistically on the client, so nothing here needs freshly-rendered server markup. A
+> revalidatePath forces Next to refresh the current route's server tree right after this action
+> resolves, and **that refresh was landing as an occasional scroll-to-top on the heart click** (root
+> cause of the "heart scroll-jump" bug). […] **THE RULE, since audit 2 took the last five out: an
+> action whose result the client already holds does not revalidate.**"
+
+Catch-ups is holding the call that rule exists to remove, on the one page in the app where it costs
+the most. The feed's own tree renders no posts at all; the reader renders all 133 answers.
+
+So his sentence is not an exaggeration — **"it just reloads like a whole page almost" is a literal
+description of what happens.** The heart goes red at 28ms, and then the page spends one to three
+seconds rebuilding itself underneath his thumb.
+
+**For X.** The fix is to delete the two `revalidatePath` calls in `toggleEntryLove`, which is what
+the feed did, and it is one line each. The optimistic client state is already correct. Check
+`toggleCommentLike`'s sibling reasoning in the same feed file before assuming any other Catch-ups
+action needs its call kept.
+
+**A second, smaller effect is real and worth keeping separate.** The pop animation is `m.button` from
+`LazyMotion`, whose feature chunk loads asynchronously.
+[`motion-features.tsx`](../../../src/components/common/motion-features.tsx) predicts the symptom in
+its own docblock — *"an interaction in the first moments after load animates once the feature chunk
+lands"* — and that chunk finishes at **5,239ms** on this page against **1,930ms** on the feed, because
+this page is 49,464px with 133 cards competing for the same thread. That explains a missing pop on
+the **first** tap after a cold load. The re-render above explains the lag on **every** tap, which is
+what he is describing.
 
 
 ## 9. The batch Catch-up: it never existed, and one has already gone wrong
@@ -1026,7 +1065,7 @@ None of these is in the brief. Each was measured or read on the running app.
 
 ---
 
-## 13. The ten things that most make it read as "a V0.5 of an app"
+## 13. The eleven things that most make it read as "a V0.5 of an app"
 
 His test, ¶3: *"It doesn't give me any dopamine. It looks like not even a V1. It looks like a V0.5 of
 an app."* S3 should read this list first. Ordered by how much each one costs a member, not by how
@@ -1045,16 +1084,20 @@ hard it is to fix.
    bottom of it. (§1)
 5. **The page is mostly nothing.** 82% of a 2560px window and 67% of a 1512px one is neither sidebar
    nor card, and 63 to 76% of each Catch-up tile is the gap between its two ends. (§2)
-6. **Seventeen people are hidden behind "and 16 more", and the seven you can see are all A-names.**
+6. **The most-used gesture in the app rebuilds the page.** Every heart tap on an answer re-renders
+   the whole Round on the server — 603 KB, one to three seconds — because the action still calls
+   `revalidatePath`. The feed removed exactly that call and wrote down why. *"It just reloads like a
+   whole page almost"* is literal. (§8)
+7. **Seventeen people are hidden behind "and 16 more", and the seven you can see are all A-names.**
    436 pixels of panel to show 7 of 23, and the row of birds beside them names nobody. (§3)
-7. **Sixteen verbs live on five surfaces**, two of them twice, and archive and delete cannot be
+8. **Sixteen verbs live on five surfaces**, two of them twice, and archive and delete cannot be
    reached from inside the Catch-up they act on. (§4)
-8. **A member's pasted song link produces nothing** — no preview, no thumbnail, not even a link — and
+9. **A member's pasted song link produces nothing** — no preview, no thumbnail, not even a link — and
    pushes the whole page sideways on a phone. Somebody wrote *"I just want to see if the album covers
    render properly"* into the live Round and got a bare url. (§0)
-9. **Twenty-one pills on one phone screen**, several of them pills inside pills, with the button that
-   actually advances the Round at 91% of the way down. (§11)
-10. **The details are unfinished in a way you can feel**: a divider that curves, a hover with no
+10. **Twenty-one pills on one phone screen**, several of them pills inside pills, with the button
+    that actually advances the Round at 91% of the way down. (§11)
+11. **The details are unfinished in a way you can feel**: a divider that curves, a hover with no
     padding on three sides, a dialog 1.62x wider than its own sentence, a menu that breaks "Remove
     from catch-up" over four lines, an invisible rule at 1.08:1 contrast, and a settings dialog whose
     every control is disabled while its subtitle offers three actions. Individually trivial;
@@ -1076,5 +1119,6 @@ Honest gaps, for whoever picks this up:
 - **A plain member's view** was reasoned from the code's `isKeeper` gates, not seen: every screenshot
   here is the Keeper's.
 - **V2 and V3** (the viewer's wrap-around and overshoot) are unreproduced and need a real iPhone.
-- **The TOC tap lag** was measured warm on a desktop at 65ms; it needs a cold load under CPU
-  throttling before anyone concludes anything.
+- **The heart's cost after the re-render is removed** has not been measured, because the fix is X's
+  to make. The 603 KB figure is the server and network half; React reconciling 133 cards sits on top
+  of it and was not timed separately.
