@@ -325,24 +325,33 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
    * the shelf is the N+1 this block exists to have removed.
    */
   const TEASER_ROUNDS = 6;
-  const teasered = publishedEditions.slice(0, TEASER_ROUNDS);
+  const teasered = publishedEditions.slice(0, TEASER_ROUNDS).map((ed) => ed.id);
   const teasers = new Map<string, string>();
-  await Promise.all(
-    teasered.map(async (ed) => {
-      // take: 1, ordered in the database, so exactly one row comes back
-      // instead of the whole Round. `id` breaks the tie, because ordering on
-      // a count alone is not total and the teaser would otherwise change
-      // between two identical page loads.
-      const top = await prisma.catchupEntry.findFirst({
-        where: { editionId: ed.id, body: { not: null } },
-        orderBy: [{ loves: { _count: "desc" } }, { id: "asc" }],
-        select: { body: true },
-      });
-      const body = top?.body?.trim();
-      if (!body) return;
-      teasers.set(ed.id, body.length > 140 ? `${body.slice(0, 140).trimEnd()}...` : body);
-    })
-  );
+  /* One row per Round, in one query. This was six `findFirst`s in a
+     `Promise.all`, and Prisma compiles an `orderBy` on a relation count into a
+     correlated subquery, so it was six correlated one-row queries on a
+     five-connection pool -- two waves for six short strings. `DISTINCT ON` is
+     the same instruction said once; Prisma has no expression for it, which is
+     why this is raw.
+
+     `id` breaks the tie, because ordering on a count alone is not total and
+     the teaser would otherwise change between two identical page loads. */
+  const tops =
+    teasered.length > 0
+      ? await prisma.$queryRaw<{ editionId: string; body: string | null }[]>`
+          SELECT DISTINCT ON (e."editionId") e."editionId", e.body
+          FROM "CatchupEntry" e
+          LEFT JOIN "CatchupEntryLove" l ON l."entryId" = e.id
+          WHERE e."editionId" = ANY(${teasered}) AND e.body IS NOT NULL
+          GROUP BY e.id
+          ORDER BY e."editionId", count(l.id) DESC, e.id ASC
+        `
+      : [];
+  for (const top of tops) {
+    const body = top.body?.trim();
+    if (!body) continue;
+    teasers.set(top.editionId, body.length > 140 ? `${body.slice(0, 140).trimEnd()}...` : body);
+  }
 
   const archive: HomeArchiveRow[] = publishedEditions.map((ed) => ({
     editionId: ed.id,
