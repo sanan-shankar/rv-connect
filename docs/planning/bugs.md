@@ -459,10 +459,12 @@ to avoid. Both are listed in the policy now.
 Work that is correct to do only after a date, because doing it early breaks something real.
 Each entry says what to delete, when, and why that date.
 
-- **After 2027-08-01: delete `/notice/[id]`.** It resolves legacy links to moderation notes
-  that predate the 2026-07-24 notes-to-messages migration. `retention.ts` caps notifications
-  at 365 days, so after that date no notification old enough to point here can still exist.
-  Delete `src/app/(main)/notice/` (page + loading), drop `openAdminNoticeThread`'s `createdAt`
-  override if this is still its only caller, and reword the four comments citing the route.
-  Deleting it earlier 404s links sitting in real inboxes. (Refactor audit member-surfaces-05.)
+- ~~**After 2027-08-01: delete `/notice/[id]`.**~~ **Done 2026-09-05**, eleven months early,
+  because the date was arithmetic off a number that changed. It was 2026-07-24 plus a 365-day
+  notification retention; the owner settled retention at **30 days** on 2026-09-04 (`74cc61a`),
+  which moves the answer to 2026-08-23. Checked live before deleting rather than trusting the
+  arithmetic: **0 notifications predate 2026-07-24 and 0 carry a `/notice/%` link, on production
+  and on demo.** The route, its `loading.tsx`, `openAdminNoticeThread`'s `createdAt` and `db`
+  overrides, the C-115 pin that read the page, and the four comments citing it all went together.
+  (Refactor audit member-surfaces-05, re-dated by docs-12.)
 

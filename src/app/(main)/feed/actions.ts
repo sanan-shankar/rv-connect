@@ -476,7 +476,7 @@ export async function deletePost(postId: string) {
 /**
  * Admin-only: soft-hide any post (or letter, same model) from every card/row
  * it appears in, with an optional warm note relayed to the author as a
- * Notification (type "admin_note") that opens the dedicated /notice/[id]
+ * Notification (type "admin_note") that used to open a dedicated /notice/[id]
  * page. Distinct from `deletePost` above (an author's own hard delete): this
  * never deletes the row, so the record and its note survive for the author
  * and for any later audit.

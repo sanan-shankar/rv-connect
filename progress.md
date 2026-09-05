@@ -9016,3 +9016,26 @@ a reader the numbers were "read off the live page with `scripts/qa/_dir-chrome-p
 two comments saying "3 rows, 142px here means the same thing it means there". All three now say
 the same true thing instead: measured on 3 August 2026, dated rather than live, and re-derive by
 hand before trusting them against today's bar.
+
+## 2026-09-05 — /notice/[id] retired eleven months early
+
+Refactor audit 2, Phase A, row A10. `bugs.md` carried a dated cleanup: *"After 2027-08-01: delete
+`/notice/[id]`."* That date was arithmetic -- 2026-07-24, when moderation notes moved to messages,
+plus a 365-day notification retention. The owner settled retention at **30 days** yesterday
+(`74cc61a`), which moves the answer to 2026-08-23.
+
+Checked live rather than trusting the arithmetic, because a wrong answer 404s a link in somebody's
+inbox. Against production **and** demo: **0 notifications created before 2026-07-24, and 0 carrying
+a `/notice/%` link.** The oldest notification in the table is 2026-08-05, which is the nightly
+sweep doing its job. The route's whole audience is empty.
+
+Gone with it: `page.tsx` (119 lines) and `loading.tsx`, `openAdminNoticeThread`'s `createdAt` and
+`db` overrides -- the `db` one existed solely so that resolution could create inside the
+transaction where it had taken `FOR UPDATE` on the notification row (audit C-115) -- and the
+`Prisma.TransactionClient` type import that only the `db` option needed.
+
+The C-115 pin in `threads-rule.test.mjs` read the page file and would have reddened `npm run check`
+on its own; it is replaced by a note recording what it guarded and why the race is now unreachable.
+Four comments across `admin-note.ts`, `messages/[id]/page.tsx`, `feed/actions.ts` and
+`moderation-dialog.tsx` cited the route in the present tense and now say when it went.
+`bugs.md`'s entry is struck through with the live counts, not just marked done.

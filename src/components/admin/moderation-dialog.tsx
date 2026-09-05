@@ -17,7 +17,7 @@ import { callAction } from "@/lib/call-action";
  * Shared admin removal dialog for posts, letters, comments, and Collection
  * photos: one card/row affordance, one confirm flow. The optional note is
  * relayed to the author as a Notification (type "admin_note") that opens the
- * dedicated /notice/[id] page -- see adminRemovePost / adminRemoveComment /
+ * dedicated /notice/[id] page, retired 2026-09-05 -- see adminRemovePost / adminRemoveComment /
  * adminRemovePhoto. Kept deliberately plain: no shaming tone, no destructive
  * red chrome (this is a moderation tool, not a punishment screen).
  */

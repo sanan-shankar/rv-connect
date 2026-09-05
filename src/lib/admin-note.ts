@@ -9,9 +9,10 @@ import { openAdminNoticeThread } from "@/lib/admin-threads-server";
  *
  * The note opens a real conversation (AdminThread) rather than a dead-end
  * page, so the author can write back and ask what they got wrong. The
- * Notification (type "admin_note") links straight at that thread. Old
- * notifications still point at /notice/[id], which resolves itself into a
- * thread on first open; see src/app/(main)/notice/[id]/page.tsx.
+ * Notification (type "admin_note") links straight at that thread. Notes
+ * minted before the 2026-07-24 migration pointed at a /notice/[id] page that
+ * resolved itself into a thread on first open; that route was retired on
+ * 2026-09-05, once 30-day retention had left it with no rows to serve.
  *
  * Only admins ever reach this (every caller is admin-gated), so the acting
  * admin is read straight from the session and stored as the note's author.
