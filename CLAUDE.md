@@ -30,7 +30,11 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
   `docs/planning/FEATURES.md` the parked ideas. `progress.md` is the session history; log outcomes there.
 - `docs/audit-fix/` holds every formal audit and its fix campaign, dated. A fix session's
   entire handover is that audit's `fix-prompt.md`: read it, execute, and update the same
-  file before ending so the next session can be started by @-ing it alone.
+  file before ending so the next session can be started by @-ing it alone. **A fix session is
+  run by `/fix-campaign`** — the globally installed skill that front-loads the owner's questions,
+  then works the phases one after another, one worker per chunk, verifying each one itself. It
+  resumes from the fix-prompt's `## Campaign board`, which `scripts/qa/fix-campaign.test.mjs`
+  keeps well-formed.
 - **`/lab` is the one index of every dev and preview room.** Nothing is browsable that is not listed
   in `src/app/lab/_registry.ts`. `/lab/v2` is the approved look; `/lab/logo` documents the final mark.
 
@@ -209,6 +213,7 @@ for an ambiguous product or design call the specs do not already answer.
 | Tagging Collection photographs nobody filed | `.claude/skills/tag-photos/SKILL.md` |
 | Filing members under a profession for the directory filter | `.claude/skills/tag-professions/SKILL.md` |
 | Building, changing or running ANY of the above hand-run passes | read `docs/spec/hand-run-passes.md` first |
+| Handed an audit's `fix-prompt.md`, or asked to run, continue or finish a fix campaign | `/fix-campaign` |
 | A bug that survived two attempts | superpowers systematic debugging |
 | Writing a prompt, spec, plan or handover another session works from | `.claude/skills/writing-for-agents/SKILL.md` |
 

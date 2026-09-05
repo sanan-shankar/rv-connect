@@ -315,6 +315,39 @@ per-agent appendix files that keep the main report readable). Structure:
    commit that defends them), so future audits don't re-litigate them.
 6. **Coverage map**: which agent covered what, which tools ran, what was consciously left out.
 
+### The fix-prompt, which is what actually gets run
+
+The report is the record; **`fix-prompt.md` is the thing a fix session reads.** It is run by
+`/fix-campaign` — one orchestrator session that front-loads every question the owner must
+answer, then works the phases one after another, briefing one worker per chunk and verifying
+each worker's output itself. Write the fix-prompt for that reader, or the first thing the
+campaign does is rebuild it.
+
+Four requirements, all of them cheap at audit time and expensive later:
+
+1. **Its first line tells the reader to invoke `/fix-campaign`** — the owner @s this file and
+   nothing else, so the trigger has to live in it.
+2. **It carries a `## Campaign board`**: one row per phase, in run order, with columns
+   *Phase | Status | Rows left | Blocked on*. Status is one of `DONE`, `PARTIAL`, `OPEN`,
+   `OWNER-GATED`, `DECLINED` and nothing else. This table is the campaign's resume anchor — a
+   session that dies mid-run costs nothing because the next one reads it and starts at the first
+   phase that is not `DONE`. `scripts/qa/fix-campaign.test.mjs` fails on a malformed board.
+3. **It carries empty `## Owner questions` and `## Owner answers` sections**, plus a `## Ledger`.
+   The campaign writes into all three.
+4. **Every owner decision is already written the way he will be asked**, in the report's owner
+   section: numbered, five lines — *What I'd change* · *What you'd notice* (member-facing, or
+   "nothing, this is invisible") · *If I guess wrong* · *Options* in plain words · **the answer
+   you'll take if he doesn't reply**. No jargon, no file paths, no finding IDs inside the
+   question; keep those in a trailing `(rows: D4, D7)` tag. The default on every question is what
+   lets him answer fifty of them with one sentence. If the audit writes them this way, the
+   campaign copies them across; if it does not, the campaign rewrites all fifty and may lose one.
+
+**Size the phases for one worker's context, not one session's**, and say plainly which rows must
+travel together (a row and the test it moves, two rows editing the same lines) — the campaign
+splits phases into chunks and will split a pair apart unless the fix-prompt forbids it. Say which
+phases are owner-gated and on which questions, so the board's *Blocked on* column can be filled
+before he has answered anything.
+
 **Done means**: every 5b tool ran and its output is either explained by a finding or explicitly
 cleared; every 5c checklist item was applied across the whole surface; two consecutive
 completeness rounds came back dry; every finding is orchestrator-verified with evidence; the
