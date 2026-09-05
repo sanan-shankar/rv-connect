@@ -10006,3 +10006,28 @@ Verified end to end in the browser: answered the entry question, then submitted 
 address that already exists. The action returned *"An account with this email already exists"* — which
 sits **after** the `hasPassedTrivia` check in `registerUser`, so the pass `signStamp` minted was
 accepted by `stampValid`. No account created.
+
+## 2026-09-05 — Phase E, E10b: the retention sweep's eight cutoffs as a table
+
+Eight of the nightly sweep's steps are the same thing: one `deleteMany` against one date column, and
+a count back. They were written out longhand, five lines each, differing only in the model, the column
+and the number of days. They are a list beside `KEEP_DAYS` now, so the eight retention promises and
+the eight deletes that keep them sit in one place.
+
+**The obvious way to write this is the wrong one.** The audit proposed `{ model: "report", field:
+"createdAt" }` strings and one narrow cast past Prisma's types. I wrote that first, then read the
+comment I had put above it and found it was a lie: a typo in either string compiles, fails once a
+night against a table that does not exist, and is swallowed into `reportSwallowed` — a silent leak of
+exactly the kind this sweep exists to prevent. Each entry carries a closure instead, so `tsc` checks
+every model and every column. Proved both ways: change `searchLog`'s column to `endedAt` and
+TypeScript names it; drop a step from the table entirely and TypeScript notices `SweepResult` is
+missing a field.
+
+The four steps that are genuinely their own thing are untouched: `adminMessages` (a transaction that
+files R2 purges before deleting), the notification cap (a window function), `catchupCopies`
+(Serializable and batched) and the account purge. The one ordering that matters is kept — the age
+cutoff runs inside the list and the per-member cap after it, so the cap still ranks what the cutoff
+left.
+
+Roughly line-neutral, as the audit said the whole phase would be: the code went 41 lines to 8, and
+the reasoning above went in beside it. Not run: it deletes, and it runs nightly on its own.

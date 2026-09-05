@@ -100,6 +100,49 @@ const KEEP_DAYS = {
  */
 const KEEP_NOTIFICATIONS = 100;
 
+/**
+ * The steps that are nothing but a hard cutoff: one `deleteMany` against one
+ * date column, and a count back.
+ *
+ * Eight of them were written out longhand, five lines each, differing only in
+ * the model, the column and the number of days. Anything needing a
+ * transaction, a batch, a window function or a successor hand-off is NOT
+ * here: `adminMessages`, the notification cap, `catchupCopies` and the
+ * account purge are each written out below because each is genuinely its own
+ * thing.
+ *
+ * `run` is a closure rather than a model NAME and a column name, which is the
+ * obvious way to write this and the wrong one. Strings would need a cast past
+ * Prisma's types, and then a typo in either would compile, fail once a night
+ * against a table that does not exist, and be swallowed into
+ * `reportSwallowed` -- a silent leak of the exact kind this sweep exists to
+ * prevent. Written this way, `tsc` checks every model and every column.
+ *
+ * The order matters in exactly one place and it is kept: `notifications` runs
+ * in this list, and the per-member cap runs after it, so the cap still ranks
+ * what the age cutoff left behind.
+ */
+const CUTOFF_STEPS = [
+  { key: "reports", days: KEEP_DAYS.reports,
+    run: (lt: Date) => prisma.report.deleteMany({ where: { createdAt: { lt } } }) },
+  { key: "contributions", days: KEEP_DAYS.contributions,
+    run: (lt: Date) => prisma.contribution.deleteMany({ where: { createdAt: { lt } } }) },
+  { key: "notifications", days: KEEP_DAYS.notifications,
+    run: (lt: Date) => prisma.notification.deleteMany({ where: { createdAt: { lt } } }) },
+  { key: "loginAttempts", days: KEEP_DAYS.securityLogs,
+    run: (lt: Date) => prisma.loginAttempt.deleteMany({ where: { createdAt: { lt } } }) },
+  { key: "auditLogs", days: KEEP_DAYS.securityLogs,
+    run: (lt: Date) => prisma.auditLog.deleteMany({ where: { createdAt: { lt } } }) },
+  { key: "outboundEmails", days: KEEP_DAYS.sentEmailLog,
+    run: (lt: Date) => prisma.outboundEmail.deleteMany({ where: { createdAt: { lt } } }) },
+  /* The only one not on `createdAt`: a visit is spent when it ENDS, and a
+     session still open across the cutoff is a live session. */
+  { key: "visits", days: KEEP_DAYS.presence,
+    run: (lt: Date) => prisma.visit.deleteMany({ where: { endedAt: { lt } } }) },
+  { key: "searches", days: KEEP_DAYS.presence,
+    run: (lt: Date) => prisma.searchLog.deleteMany({ where: { createdAt: { lt } } }) },
+] as const;
+
 export type SweepResult = {
   adminMessages: number;
   reports: number;
@@ -191,21 +234,12 @@ export async function runRetentionSweep(): Promise<SweepResult> {
       return removed + emptied.count;
     }),
   );
-  const reports = await step("reports", async () =>
-    (await prisma.report.deleteMany({
-      where: { createdAt: { lt: cutoff(KEEP_DAYS.reports) } },
-    })).count,
-  );
-  const contributions = await step("contributions", async () =>
-    (await prisma.contribution.deleteMany({
-      where: { createdAt: { lt: cutoff(KEEP_DAYS.contributions) } },
-    })).count,
-  );
-  const notifications = await step("notifications", async () =>
-    (await prisma.notification.deleteMany({
-      where: { createdAt: { lt: cutoff(KEEP_DAYS.notifications) } },
-    })).count,
-  );
+  // The eight plain cutoffs, from CUTOFF_STEPS above. Sequential like every
+  // other step: they share one serverless invocation's duration budget.
+  const cut = {} as Record<(typeof CUTOFF_STEPS)[number]["key"], number>;
+  for (const s of CUTOFF_STEPS) {
+    cut[s.key] = await step(s.key, async () => (await s.run(cutoff(s.days))).count);
+  }
   /* The per-member cap, in the shape the bell used to enforce on every open:
      rank each member's notifications newest-first, and delete the READ ones
      past the hundredth. Read-only (bug audit Low 85) -- an unread notification
@@ -229,32 +263,6 @@ export async function runRetentionSweep(): Promise<SweepResult> {
         ) t WHERE t.rn > ${KEEP_NOTIFICATIONS}
       )
     `,
-  );
-  const loginAttempts = await step("loginAttempts", async () =>
-    (await prisma.loginAttempt.deleteMany({
-      where: { createdAt: { lt: cutoff(KEEP_DAYS.securityLogs) } },
-    })).count,
-  );
-  const auditLogs = await step("auditLogs", async () =>
-    (await prisma.auditLog.deleteMany({
-      where: { createdAt: { lt: cutoff(KEEP_DAYS.securityLogs) } },
-    })).count,
-  );
-  const outboundEmails = await step("outboundEmails", async () =>
-    (await prisma.outboundEmail.deleteMany({
-      where: { createdAt: { lt: cutoff(KEEP_DAYS.sentEmailLog) } },
-    })).count,
-  );
-
-  const visits = await step("visits", async () =>
-    (await prisma.visit.deleteMany({
-      where: { endedAt: { lt: cutoff(KEEP_DAYS.presence) } },
-    })).count,
-  );
-  const searches = await step("searches", async () =>
-    (await prisma.searchLog.deleteMany({
-      where: { createdAt: { lt: cutoff(KEEP_DAYS.presence) } },
-    })).count,
   );
 
   /* "Recently deleted" Catch-ups, emptied (bug audit B-063). A member who
@@ -408,15 +416,8 @@ export async function runRetentionSweep(): Promise<SweepResult> {
 
   const result: SweepResult = {
     adminMessages,
-    reports,
-    contributions,
-    notifications,
+    ...cut,
     notificationsCapped,
-    loginAttempts,
-    auditLogs,
-    outboundEmails,
-    visits,
-    searches,
     catchupCopiesEmptied,
     accountsPurged,
     accountsSpared,
