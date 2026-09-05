@@ -1,5 +1,30 @@
 # Progress Log
 
+## 2026-09-05 — domMax arrives on its own, without the rest of the motion barrel
+
+Refactor audit 2, row B8, with dependency-diet-15 riding along. `LazyMotion`'s loader was
+`import("motion/react").then((m) => m.domMax)`, and a dynamic NAMESPACE import cannot be
+tree-shaken: the bundler has to evaluate every export of the barrel to hand back `m`. So the
+async feature chunk carried `useInvertedScale` (27.9 KB on its own), `Reorder`, `LayoutGroup`,
+`MotionConfig`, the legacy frameloop and the view-transition machinery -- none of which any file
+in this app imports.
+
+`motion-features-max.ts` is one static named import and a default export, which is Motion's own
+documented features.js shape; the loader points at it. `motion-namespace-rule.test.mjs` reads
+both halves now (the loader must go through that module, and that module must import domMax),
+both mutation-tested.
+
+Measured between builds: **the 72,472 B barrel chunk is gone** -- `useInvertedScale` is in no
+built chunk at all -- and `.next/static/chunks` fell 6,163,567 -> 6,072,974 B. It also moved
+first-load, which the finding did not promise: Turbopack recomputed the shared motion graph from
+domMax's real dependencies, so **every one of the 99 routes lost 1,164 B and the heaviest lost
+3,693** (/login).
+
+Both domMax-only behaviours verified: the sidebar marker glides through eight intermediate
+positions on a navigation (layout), and /admin/review's `drag="x"` card still gets
+`touch-action: pan-y` (drag). The file's comment also named `no-motion-namespace.test.mjs`, which
+has never existed; it names the real pin now, and says so.
+
 ## 2026-09-05 — the profession vocabulary stops shipping to every member's browser
 
 Refactor audit 2, row B7, the vocabulary half. `directory/page.tsx` has carried a comment since

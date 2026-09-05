@@ -72,7 +72,22 @@ test("the LazyMotion that feeds `m` is actually mounted, with domMax", () => {
   /* domMax, not domAnimation: `layout` on the sidebar marker and `drag` in the
      image viewer and the avatar crop live only in domMax, and swapping it
      would break both silently rather than loudly. */
-  assert.match(features, /domMax/, "the feature bundle is no longer domMax; layout and drag would stop");
+  /* Two halves since 2026-09-05, because the loader no longer names domMax
+     itself. A dynamic namespace import of the barrel cannot be tree-shaken, so
+     domMax is selected by a STATIC named import in a module of its own; the
+     loader points at that module and the module imports the feature bundle.
+     Either half alone can rot silently. */
+  assert.match(
+    features,
+    /import\("\.\/motion-features-max"\)/,
+    "the feature loader no longer goes through motion-features-max.ts; a namespace import of motion/react puts the whole barrel back in the async chunk"
+  );
+  const max = read("src/components/common/motion-features-max.ts");
+  assert.match(
+    max,
+    /import \{ domMax \} from "motion\/react"/,
+    "the feature bundle is no longer domMax; layout and drag would stop"
+  );
 
   const layout = read("src/app/layout.tsx");
   assert.match(
