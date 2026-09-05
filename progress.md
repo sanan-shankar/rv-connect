@@ -1,5 +1,22 @@
 # Progress Log
 
+## 2026-09-05 — /welcome stops downloading five steps to show one sentence
+
+Refactor audit 2, row B6, the /welcome half. The Welcome screen is a heading, a paragraph and a
+button, and it was arriving with all five wizard steps behind it: the register step's
+LocationPicker drags base-ui's combobox, houses drags the chain editor and a popover, photo
+drags the crop and attach dialogs. A step switch is state, so all five shipped whichever one
+rendered. Every new member pays that once, on a phone, straight after signing up.
+
+The three heavy steps are `next/dynamic` now, SSR left ON -- `?step=register` is a real deep
+link and `ready` starts true for one, so these do render at rest; this is a client-chunk split,
+not a paint deferral. A small effect fetches the step AFTER the current one, keyed on
+`stepOrder` rather than `STEP_ORDER` so a teacher account (no houses step) preloads photo.
+
+Measured between builds: **/welcome 1,200 KB -> 1,070 KB, -129,408 B raw first-load JS.** Past
+the audit's ~115 KB estimate. Verified all four steps by deep link as Jerry, and "Skip for now"
+still walks register to houses.
+
 ## 2026-09-05 — the guide's six chapters wait to be asked for
 
 Refactor audit 2, row B5. `GuideLayer` is mounted once in the (main) layout and renders nothing

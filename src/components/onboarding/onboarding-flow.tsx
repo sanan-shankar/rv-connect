@@ -34,6 +34,7 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, m } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
@@ -41,10 +42,31 @@ import { cn } from "@/lib/utils";
 import { hasSeenOnboarding, markOnboardingSeen } from "@/lib/onboarding-local";
 import type { OnboardingStepId, OnboardingUser } from "./types";
 import { WelcomeStep } from "./steps/welcome-step";
-import { RegisterStep } from "./steps/register-step";
-import { HousesStep } from "./steps/houses-step";
-import { PhotoStep } from "./steps/photo-step";
 import { DoneStep } from "./steps/done-step";
+
+/* THE THREE HEAVY STEPS ARRIVE ONE CLICK BEFORE THEY ARE NEEDED. Welcome is a
+   heading, a paragraph and a button, and it was costing every new member 115 KB
+   of the steps behind it: the register step's LocationPicker drags base-ui's
+   combobox (53 KB), houses drags the chain editor and a popover (29 KB), photo
+   drags the crop and attach dialogs (33 KB). A step switch is state, so all
+   five shipped whichever one rendered. Every new member pays that once, on a
+   phone, straight after signing up -- the slowest connection they will ever use
+   this site on.
+
+   SSR IS LEFT ON deliberately (no `ssr: false`): `?step=register` is a real
+   deep link and `ready` starts true for one, so these DO render at rest. The
+   split is a client-chunk split, not a paint deferral. `PRELOAD` below fetches
+   the next step as soon as the current one is on screen, so "Let's go" never
+   waits on a network round trip. */
+const RegisterStep = dynamic(() => import("./steps/register-step").then((m) => m.RegisterStep));
+const HousesStep = dynamic(() => import("./steps/houses-step").then((m) => m.HousesStep));
+const PhotoStep = dynamic(() => import("./steps/photo-step").then((m) => m.PhotoStep));
+
+const PRELOAD: Partial<Record<OnboardingStepId, () => Promise<unknown>>> = {
+  register: () => import("./steps/register-step"),
+  houses: () => import("./steps/houses-step"),
+  photo: () => import("./steps/photo-step"),
+};
 
 const STEP_ORDER: OnboardingStepId[] = ["welcome", "register", "houses", "photo", "done"];
 
@@ -121,6 +143,16 @@ export function OnboardingFlow({
     setReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* Fetch the step AFTER this one while this one is being read. A hook, so it
+     has to sit above the `!ready` return: the flow renders null for one tick on
+     a bare /welcome arrival, and a preload that only started after that tick
+     would be racing the button. Teachers have no houses step, so `stepOrder`
+     decides what "next" means rather than STEP_ORDER. */
+  const upcoming = stepOrder[stepOrder.indexOf(step) + 1];
+  useEffect(() => {
+    void PRELOAD[upcoming]?.();
+  }, [upcoming]);
 
   if (!ready) return null;
 
