@@ -30,6 +30,8 @@ import path from "node:path";
 import pg from "pg";
 import { readEnv } from "./_env.mjs";
 import { sharpImage } from "../../src/lib/image.ts";
+import { BUCKETS, ERA_VALUES } from "../../src/lib/collection.ts";
+import { BUCKET_RULES, VALLEY_GLOSSARY } from "../../src/lib/photo-suggest.ts";
 
 const argv = process.argv.slice(2);
 const flag = (name) => argv.includes(name);
@@ -175,6 +177,18 @@ await writeFile(
       database: envFile,
       taken: new Date().toISOString(),
       outstanding,
+      /* The vocabulary and the rules travel WITH the batch rather than being
+         looked up, which is what docs/spec/hand-run-passes.md asks of every
+         picker: a session reading a manifest picked last week should judge by
+         the vocabulary that was current when it was picked, and a manifest
+         that carries its own rules can be read by somebody who never opened
+         the skill. tag-professions-pick.mjs has done this since it was
+         written; this one shipped without it until 2026-09-05 and sent the
+         session to read photo-suggest.ts instead. */
+      vocabulary: BUCKETS.map(({ value, label, hint }) => ({ value, label, hint })),
+      eras: ERA_VALUES,
+      rules: BUCKET_RULES,
+      glossary: VALLEY_GLOSSARY,
       photos,
     },
     null,

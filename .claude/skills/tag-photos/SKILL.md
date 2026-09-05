@@ -80,9 +80,14 @@ below. A bare array instead of `{ "photos": [...] }` is accepted too.
 
 ### The six buckets, and how to choose between them
 
-The vocabulary and the rules are in `src/lib/photo-suggest.ts` — read
-`BUCKET_RULES` and `VALLEY_GLOSSARY` there rather than working from this
-summary, because that file is what the tests hold and this one is not.
+The vocabulary and the rules are **in the manifest you are reading**, as
+`vocabulary`, `eras`, `rules` and `glossary` — work from those rather than
+from this summary. They are copied in by the picker from
+`src/lib/photo-suggest.ts` at the moment the batch is taken, so a batch picked
+last week is judged by the vocabulary that was current when it was picked,
+not by whatever the file says today. That is the protocol
+(`docs/spec/hand-run-passes.md`), and `hand-run-passes.test.mjs` holds the
+picker to it.
 
 The short version: **People · Birds · Nature · Campus · School life · Other.**
 Give as many as genuinely apply — the banyan with children under it is Campus

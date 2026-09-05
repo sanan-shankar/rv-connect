@@ -78,6 +78,30 @@ for (const name of PASSES) {
     );
   });
 
+  test(`${name}: the picker carries the vocabulary and the rules in the manifest`, () => {
+    /* The spec's own words: "A session reading a batch picked last week should
+       judge by the vocabulary that was current when it was picked, and a
+       manifest that carries its own rules can be read by somebody who never
+       opened the skill."
+
+       Nothing enforced it until 2026-09-05, and tag-photos had shipped
+       without it -- its manifest was {database, taken, outstanding, photos}
+       and its skill told the session to go and read BUCKET_RULES out of
+       src/lib/photo-suggest.ts. A rule nobody checks is a rule one of the
+       three passes will skip, which is the whole reason this file exists. */
+    assert.match(
+      pick,
+      /\brules:/,
+      `${name}-pick.mjs does not put its rules in the manifest -- see ${SPEC}. ` +
+        `A batch judged next week must carry the rules it was picked under.`
+    );
+    assert.match(
+      pick,
+      /\bvocabulary:/,
+      `${name}-pick.mjs does not put its vocabulary in the manifest -- see ${SPEC}.`
+    );
+  });
+
   test(`${name}: the applier is dry by default and leaves an undo`, () => {
     const apply = readFileSync(`${DEV}/${name}-apply.mjs`, "utf8");
     assert.match(apply, /--apply/, `${name}-apply.mjs has no --apply flag, so it cannot be dry by default`);
