@@ -9927,3 +9927,34 @@ completion, the second fetching a real photograph through `bytesFor`'s new home 
 
 `node scripts/dev/sweep-stranded-originals.mjs` → **0 staged originals under `collection/` in
 `rv-alumni-media`, 0.00 MB, 0 to delete.** Nothing is stranded. The audit's open question is closed.
+
+## 2026-09-05 — Phase E, E4b: one env parser, and it is dotenv's
+
+Four hand-rolled `.env` parsers: `scripts/dev/_env.mjs` and three more in `scripts/demo/`, one of
+which read `.env` twice (a leftover from when the second entry was a `.env.local`, folded away on
+2026-08-08).
+
+The audit said to write a fifth in `scripts/demo/`. A verifier refuted that: `_env.mjs` already IS
+that module, and a fourth parser is the thing the audit exists to prevent. It also caught that the
+two regexes disagree on **values**, not just keys, so a swap is not free.
+
+So `_env.mjs` parses with `dotenv` now, which this project already depends on. The hand-rolled loop
+got four things wrong that dotenv gets right: an inline `# comment` stayed part of the value,
+trailing whitespace was kept, a quoted multi-line value was cut at the first newline, and
+`export KEY=value` was not seen at all.
+
+**Gate, run before the swap and not just after**: both parsers over the real `.env` and `.env.demo`,
+compared key by key **by value** — the verifier's warning was that comparing key *sets* cannot see a
+rewritten connection string. **25 keys, 0 differences.** Nothing changed that day. It is here so the
+next value pasted in with a comment after it does not silently join a DSN.
+
+One thing deliberately not shared: the two demo scripts **assign** into `process.env` rather than
+calling `loadEnv`, because `loadEnv` refuses to override and here the demo file must beat whatever
+the shell exports. A stray production `DATABASE_URL` in a terminal must not win in a script that
+wipes what it connects to. Both now say so where the temptation is.
+
+These three cannot be run (two delete every row in the database they reach), so the gate was
+`npm run check`, a `tsx` probe proving the import resolves from a `.mts`, and reading the diff: all
+four safety assertions (`DEMO_MODE=1`, the project-ref match, "differs from `.env`", zero-tables) are
+untouched. Two comments calling a `.mts` file `.ts` went with it; `docs/spec/demo.md` explains why it
+must be `.mts` and was right all along.

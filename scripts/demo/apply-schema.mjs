@@ -21,6 +21,7 @@
 
 import { readFileSync } from "node:fs";
 import pg from "pg";
+import { readEnv } from "../dev/_env.mjs";
 
 const EXPECTED_REF = "cbvlzptghkuxhygyaezq";
 
@@ -30,22 +31,10 @@ if (!sqlPath) {
   process.exit(1);
 }
 
-/** Minimal .env parser: only what this file needs, no dotenv on the path. */
-function readEnvDemo() {
-  const out = {};
-  for (const line of readFileSync(".env.demo", "utf8").split("\n")) {
-    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
-    if (!m) continue;
-    let v = m[2];
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-      v = v.slice(1, -1);
-    }
-    out[m[1]] = v;
-  }
-  return out;
-}
-
-const env = readEnvDemo();
+/* `readEnv`, not `loadEnv`: this file reads .env.demo and must not put the
+   demo project's credentials into `process.env`, where a later import could
+   pick them up. */
+const env = readEnv([".env.demo"]);
 const dsn = env.DIRECT_URL;
 if (!dsn) {
   console.error(".env.demo has no DIRECT_URL");

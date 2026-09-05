@@ -8,8 +8,17 @@
  * gets copied into the eighth script and then quietly means something.
  *
  * `readEnv` RETURNS the variables and touches nothing. `loadEnv` also puts
- * them into `process.env`, never overriding what is already set there, which
- * is what dotenv does and what every copy of this did.
+ * them into `process.env`, never overriding what is already set there.
+ *
+ * The parsing is `dotenv`'s, which this project already depends on. The
+ * hand-rolled loop that used to be here got four things wrong that dotenv
+ * gets right: it kept an inline `# comment` as part of the value, kept
+ * trailing whitespace, mangled a quoted multi-line value at the first
+ * newline, and did not see `export KEY=value` at all. None of those was live
+ * in `.env` or `.env.demo` on 2026-09-05 -- checked key by key, by value, on
+ * both files, and all 25 keys came out identical -- so the swap changed
+ * nothing that day. It is here so the next value someone pastes in with a
+ * comment after it does not silently become part of a connection string.
  *
  * The split matters for one caller: `run-sql.mjs --env .env.demo` points at
  * the demo project's database, and its credentials must not end up in
@@ -21,23 +30,28 @@
  * behind the pg adapter -- and a shared opener with a default connection
  * string is the same convenience that scripts/demo/* keeps a wall against.
  */
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { config } from "dotenv";
 
-/** Parse one or more env files into a plain object. First writer wins. */
+/** Parse one or more env files into a plain object. First writer wins.
+ *  @param {string[]} [files]
+ *  @returns {Record<string, string>} */
 export function readEnv(files = [".env"]) {
+  /** @type {Record<string, string>} */
   const vars = {};
   for (const file of files) {
     const p = resolve(process.cwd(), file);
     if (!existsSync(p)) continue;
-    for (const line of readFileSync(p, "utf8").split("\n")) {
-      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-      if (!m) continue;
-      let v = m[2];
-      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-        v = v.slice(1, -1);
-      }
-      if (!(m[1] in vars)) vars[m[1]] = v;
+    /* `processEnv: {}` so dotenv parses into a throwaway object and never
+       touches the real one -- `loadEnv` below decides that, and `run-sql.mjs
+       --env .env.demo` depends on the demo project's credentials NOT landing
+       in `process.env` where a later import could pick them up.
+       `quiet` because dotenv 17 otherwise prints a banner on the stdout of
+       every hand-run pass. */
+    const parsed = config({ path: p, processEnv: {}, quiet: true }).parsed ?? {};
+    for (const [k, v] of Object.entries(parsed)) {
+      if (!(k in vars)) vars[k] = v;
     }
   }
   return vars;
@@ -57,6 +71,9 @@ export function readEnv(files = [".env"]) {
  * `import-album.mjs`, the one script in the folder that WRITES photographs
  * into the archive, was the one that never had it. Going through here is how
  * the eighth script gets it without anybody remembering to.
+ *
+ * @param {string} [envFile]
+ * @returns {{ env: Record<string, string>, url: string }}
  */
 export function databaseUrl(envFile = ".env") {
   const env = readEnv([envFile]);
@@ -78,7 +95,9 @@ export function databaseUrl(envFile = ".env") {
  *  host. The one copy; it used to be seven. */
 const DEMO_REF = "cbvlzptghkuxhygyaezq";
 
-/** As `readEnv`, and into `process.env` too, without overriding it. */
+/** As `readEnv`, and into `process.env` too, without overriding it.
+ *  @param {string[]} [files]
+ *  @returns {Record<string, string>} */
 export function loadEnv(files = [".env"]) {
   const vars = readEnv(files);
   for (const [k, v] of Object.entries(vars)) {

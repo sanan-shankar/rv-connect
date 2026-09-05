@@ -2,7 +2,7 @@
 /**
  * Seed (or re-seed) the DEMO database.
  *
- *   npx tsx scripts/demo/seed-demo.ts
+ *   npx tsx scripts/demo/seed-demo.mts
  *
  * The content and the writing logic live in src/lib/demo-seed/ because the
  * nightly reset route needs them too. This file is only the CLI door: load
@@ -21,31 +21,19 @@
  * pulled in via dynamic import() so it is not hoisted above that.
  */
 
-import { readFileSync, existsSync } from "node:fs";
-import { resolve } from "node:path";
-
-function loadEnvFile(files: string[]): Record<string, string> {
-  const vars: Record<string, string> = {};
-  for (const file of files) {
-    const p = resolve(process.cwd(), file);
-    if (!existsSync(p)) continue;
-    for (const line of readFileSync(p, "utf8").split("\n")) {
-      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
-      if (!m) continue;
-      let v = m[2];
-      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-        v = v.slice(1, -1);
-      }
-      if (!(m[1] in vars)) vars[m[1]] = v;
-    }
-  }
-  return vars;
-}
+import { readEnv } from "../dev/_env.mjs";
 
 const FORCE = process.argv.includes("--i-know-what-im-doing");
-const demoEnv = loadEnvFile([".env.demo"]);
-const mainEnv = loadEnvFile([".env", ".env"]);
+const demoEnv = readEnv([".env.demo"]);
+/* `[".env", ".env"]` until 2026-09-05: the second entry was a `.env.local`
+   that stopped existing when the two were folded together on 2026-08-08
+   (prisma.config.ts records that fold). Harmless, since first-writer wins,
+   but it read as if two files mattered. */
+const mainEnv = readEnv([".env"]);
 
+/* Assigned, not loaded: the demo file has to beat anything already exported
+   in the shell, and `loadEnv` would leave a stray production DATABASE_URL
+   standing in a script that wipes whatever it connects to. */
 for (const [k, v] of Object.entries(demoEnv)) process.env[k] = v;
 
 function die(msg: string): never {

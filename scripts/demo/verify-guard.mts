@@ -14,18 +14,15 @@
  * Runs against the demo database only, and cleans up after itself.
  */
 
-import { readFileSync } from "node:fs";
+import { readEnv } from "../dev/_env.mjs";
 
-// Env first, before anything constructs a client.
-for (const line of readFileSync(".env.demo", "utf8").split("\n")) {
-  const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
-  if (!m) continue;
-  let v = m[2];
-  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-    v = v.slice(1, -1);
-  }
-  process.env[m[1]] = v;
-}
+/* Env first, before anything constructs a client.
+   `readEnv` and an explicit assignment, NOT `loadEnv`: loadEnv refuses to
+   override what is already in `process.env`, and here the whole point is that
+   .env.demo beats whatever the shell is holding. A DATABASE_URL exported in
+   the terminal must not win over the demo file in a script that then writes
+   to whatever it names. */
+for (const [k, v] of Object.entries(readEnv([".env.demo"]))) process.env[k] = v;
 
 if (process.env.DEMO_MODE !== "1") {
   console.error("Refusing to run: .env.demo does not set DEMO_MODE=1");
