@@ -9039,3 +9039,31 @@ on its own; it is replaced by a note recording what it guarded and why the race 
 Four comments across `admin-note.ts`, `messages/[id]/page.tsx`, `feed/actions.ts` and
 `moderation-dialog.tsx` cited the route in the present tense and now say when it went.
 `bugs.md`'s entry is struck through with the live counts, not just marked done.
+
+## 2026-09-05 — the photographs pass starts obeying its own protocol
+
+Refactor audit 2, Phase A, row A13. `docs/spec/hand-run-passes.md` says a picker **carries the
+vocabulary and the rules inside the manifest**, and says why: a session reading a batch picked last
+week should judge by the vocabulary that was current when it was picked, and a manifest carrying
+its own rules can be read by somebody who never opened the skill.
+
+`tag-professions-pick.mjs` has done that since it was written. `tag-photos-pick.mjs` never did --
+its manifest was `{database, taken, outstanding, photos}` and its skill told the session to go and
+read `BUCKET_RULES` and `VALLEY_GLOSSARY` out of `src/lib/photo-suggest.ts` instead, which is
+exactly the lookup the protocol exists to prevent.
+
+`hand-run-passes.test.mjs` did not catch it. It pinned the working folder, the database stamp,
+read-only, `--apply`/`--undo` and the skill -- five of the protocol's rules and not this one. So a
+rule nobody checked is the rule one of the three passes skipped, which is the whole reason that
+file exists.
+
+Both halves fixed. The picker now copies `vocabulary`, `eras`, `rules` and `glossary` into the
+manifest at pick time; proved by running it read-only at `--limit 1` and reading the result: 6
+buckets, 11 eras, 943 characters of rules, 1,105 of glossary. The test gained a
+`carries the vocabulary and the rules` case that runs for **every** pass, mutation-tested by
+deleting `rules:` from the picker and watching it go red by name. The skill's "read the source"
+paragraph now says "work from the manifest", and says why.
+
+The audit's third part -- making `import-album.mjs` import `gridThumb` and `exifBlockOf` instead of
+copying them -- is conditional on `collection-photo.ts` losing its `@/` imports, and belongs with
+the Phase E dedupe rather than here.
