@@ -21,11 +21,8 @@ import Link from "next/link";
 import { EntryLoveButton } from "@/components/catchups/round/entry-love-button";
 import { renderRichText } from "@/lib/rich-text";
 import { PhotoStream } from "@/components/common/photo-rows";
-import {
-  LazyImageViewer,
-  preloadImageViewer,
-  useImageViewer,
-} from "@/components/common/lazy-image-viewer";
+import { LazyImageViewer, useImageViewer } from "@/components/common/lazy-image-viewer";
+import { PhotoOpener } from "@/components/common/photo-opener";
 import type { RoundEntry } from "@/components/catchups/round/answer-card";
 import { formatDisplayDate } from "@/lib/utils";
 
@@ -46,13 +43,11 @@ export function PhotoWall({ entries }: { entries: RoundEntry[] }) {
       <PhotoStream photos={cells} gap={16} as="ul" keyOf={(c) => c.entry.id}>
         {({ entry }, i, cell) => (
           <div id={`entry-${entry.id}`} className="min-w-0">
-            <button
-              type="button"
-              onClick={() => viewer.open(i)}
-              onPointerEnter={preloadImageViewer}
-              onFocus={preloadImageViewer}
-              aria-label={`View ${entry.author.name}'s photo full screen`}
-              className="block w-full overflow-hidden rounded-[var(--radius-md)] border border-border transition-opacity duration-150 hover:opacity-95 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            <PhotoOpener
+              index={i}
+              count={entries.length}
+              onOpen={viewer.open}
+              label={`View ${entry.author.name}'s photo full screen`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -63,7 +58,7 @@ export function PhotoWall({ entries }: { entries: RoundEntry[] }) {
                 className="w-full object-cover"
                 style={{ aspectRatio: cell.aspectRatio }}
               />
-            </button>
+            </PhotoOpener>
             {entry.body?.trim() && (
               /* renderRichText, the same as the answer card beside it. The
                  same field used to render two ways in the same round: the

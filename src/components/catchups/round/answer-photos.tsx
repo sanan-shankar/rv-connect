@@ -26,48 +26,14 @@ import { PhotoCarousel } from "@/components/common/photo-carousel";
 import { PHOTO_SIZES_CENTERED_FULL } from "@/lib/image-cdn";
 import type { StoredPhoto } from "@/lib/photo-layout";
 import type { CatchupPersonRef } from "@/lib/catchups-types";
-import { cn, formatDisplayDate } from "@/lib/utils";
+import { formatDisplayDate } from "@/lib/utils";
 import {
   LazyImageViewer,
   preloadImageViewer,
   useImageViewer,
 } from "@/components/common/lazy-image-viewer";
+import { PhotoOpener } from "@/components/common/photo-opener";
 
-
-/** One photograph, as a press that opens the viewer at it. */
-function Opener({
-  index,
-  count,
-  onOpen,
-  className,
-  children,
-}: {
-  index: number;
-  count: number;
-  onOpen: (index: number) => void;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onOpen(index)}
-      onPointerEnter={preloadImageViewer}
-      onFocus={preloadImageViewer}
-      aria-label={
-        count > 1
-          ? `View photo ${index + 1} of ${count} full screen`
-          : "View this photo full screen"
-      }
-      className={cn(
-        "block w-full overflow-hidden rounded-[var(--radius-md)] transition-opacity duration-150 hover:opacity-95 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-        className
-      )}
-    >
-      {children}
-    </button>
-  );
-}
 
 export function AnswerPhotos({
   images,
@@ -102,7 +68,7 @@ export function AnswerPhotos({
   let content: React.ReactNode;
   if (images.length === 1) {
     content = (
-      <Opener index={0} count={1} onOpen={viewer.open} className="mt-[var(--space-s)] border border-border">
+      <PhotoOpener index={0} count={1} onOpen={viewer.open} className="mt-[var(--space-s)]">
         {/* The bucket's own url, not an optimiser transform. A Catch-up is a
             newsletter: everyone opens the same Round within a day of each
             other, so a cold transform is not amortised across viewers the way
@@ -113,7 +79,7 @@ export function AnswerPhotos({
           sizes={PHOTO_SIZES_CENTERED_FULL}
           fallbackClassName="aspect-[16/10] sm:aspect-[21/9]"
         />
-      </Opener>
+      </PhotoOpener>
     );
   } else if (images.length > 2) {
     /* More than two: a carousel, the same rule the feed uses. Only legacy rows
@@ -137,7 +103,7 @@ export function AnswerPhotos({
     content = shapes ? (
       <PhotoRows photos={shapes as StoredPhoto[]} className="mt-[var(--space-s)]">
         {(photo, i, cell) => (
-          <Opener index={i} count={images.length} onOpen={viewer.open} className="h-full border border-border">
+          <PhotoOpener index={i} count={images.length} onOpen={viewer.open} className="h-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={images[i]}
@@ -151,16 +117,16 @@ export function AnswerPhotos({
                 maxHeight: cell.maxHeight,
               }}
             />
-          </Opener>
+          </PhotoOpener>
         )}
       </PhotoRows>
     ) : (
       <div className="mt-[var(--space-s)] grid grid-cols-2 gap-2">
         {images.map((src, i) => (
-          <Opener key={i} index={i} count={images.length} onOpen={viewer.open} className="border border-border">
+          <PhotoOpener key={i} index={i} count={images.length} onOpen={viewer.open}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={src} alt="" loading="lazy" className="aspect-square w-full object-cover" />
-          </Opener>
+          </PhotoOpener>
         ))}
       </div>
     );
