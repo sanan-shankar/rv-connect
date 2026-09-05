@@ -70,6 +70,15 @@ from `Prisma.ModelName`, so the client rebuilds itself and logs
 
 ## Next.js
 
+**The NextAuth session is a JSON payload, so a `Date` on `session.user` arrives as a string.**
+Adding `lastSeenAt: true` to the session callback's select and reading `session.user.lastSeenAt`
+in the layout threw `lastSeenAt.getTime is not a function` on every authenticated render
+(2026-09-05). `tsc` was happy: the declaration in `src/types/next-auth.d.ts` said `Date`, and
+nothing checks that a declaration matches what survives serialisation. Put ISO strings on the
+session and parse them at the reader. The only reason this was found in minutes rather than in
+production is that `touchLastSeen`'s catch logs loudly in development — the guard CLAUDE.md
+argues for, earning its keep.
+
 **`after()` throws SYNCHRONOUSLY outside a request scope** (confirmed against the installed
 next@16.3.1 source, error E468). A library function reachable from a non-request caller — a script,
 a test, the seed — must use the `try { after(x) } catch { void x() }` shape that `scheduleDrain()`
