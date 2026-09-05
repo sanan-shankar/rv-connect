@@ -6,6 +6,8 @@ import {
   humanPassValid,
   humanPassFromCookieHeader,
   HUMAN_PASS_COOKIE,
+  signStamp,
+  stampValid,
 } from "./human-pass-rule.ts";
 
 /* ------------------------------------------------------------------ *
@@ -71,4 +73,52 @@ test("the cookie parser finds the pass among neighbours and ignores lookalikes",
   assert.equal(humanPassFromCookieHeader(header), pass);
   assert.equal(humanPassFromCookieHeader("rv_humanx=abc"), null);
   assert.equal(humanPassFromCookieHeader(null), null);
+});
+
+/* ------------------------------------------------------------------ *
+ *  The trivia gate, which shares this scheme as of 2026-09-05.
+ *
+ *  It had its own sign/parse/compare and no unit tests at all -- only the
+ *  owner-run phase4 probe. These are the three attacks its own shape
+ *  invites, written against the shared primitive it now calls, plus the
+ *  one behaviour that CHANGED when it stopped writing its own.
+ * ------------------------------------------------------------------ */
+
+const TRIVIA_TTL = 30 * 60 * 1000;
+const BROWSER = "b6f0c8e2-0000-4000-8000-000000000001";
+const stamp = (browser = BROWSER, ts = NOW) => signStamp("trivia", browser, ts, SECRET);
+const ok = (value, browser = BROWSER, now = NOW + 1000) =>
+  stampValid(value, "trivia", browser, now, TRIVIA_TTL, SECRET);
+
+test("a trivia pass minted for one browser is worth nothing in another", () => {
+  assert.equal(ok(stamp()), true);
+  assert.equal(ok(stamp(), "b6f0c8e2-0000-4000-8000-000000000002"), false);
+});
+
+test("a trivia pass expires after thirty minutes, not five", () => {
+  // The TTL is the parameter, so the two gates cannot accidentally share one.
+  assert.equal(ok(stamp(), BROWSER, NOW + 29 * 60 * 1000), true);
+  assert.equal(ok(stamp(), BROWSER, NOW + 31 * 60 * 1000), false);
+  assert.equal(humanPassValid(signHumanPass("amy@example.com", NOW, SECRET), "amy@example.com", NOW + 29 * 60 * 1000, SECRET), false);
+});
+
+test("a trivia pass dated in the future is refused", () => {
+  assert.equal(ok(stamp(BROWSER, NOW + 10 * 60 * 1000)), false);
+});
+
+test("a valid stamp with junk appended is refused (it used to be accepted)", () => {
+  /* The behaviour this merge deliberately changed. `hasPassedTrivia` split on
+     "." and compared only the middle segment, so `<ts>.<validsig>.anything`
+     passed the trivia gate while the human pass refused it. Nobody could
+     forge the signature without AUTH_SECRET, so it was never a hole -- but
+     there is no reason for one gate to be looser than the other, and this is
+     the vector that says which way it went. */
+  assert.equal(ok(`${stamp()}.anything`), false);
+  assert.equal(humanPassValid(`${signHumanPass("amy@example.com", NOW, SECRET)}.anything`, "amy@example.com", NOW + 1000, SECRET), false);
+});
+
+test("a label is part of what is signed, so the two gates cannot swap tokens", () => {
+  const asHuman = signStamp("human-pass", BROWSER, NOW, SECRET);
+  assert.equal(ok(asHuman), false);
+  assert.equal(stampValid(stamp(), "human-pass", BROWSER, NOW + 1000, TRIVIA_TTL, SECRET), false);
 });

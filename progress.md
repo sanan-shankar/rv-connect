@@ -9978,3 +9978,31 @@ re-scale `AuthHeading` to 31px, or let the stand-in hand-roll an `<h1>` again, a
 
 Verified: `/login`'s h1 measures 27px / 33.75px / -0.675px in Libre Baskerville, unchanged, and
 `npm run visual` is **25/25** — no pixel moved on any route at either viewport.
+
+## 2026-09-05 — Phase E, E7a: one stamped-cookie scheme for the two gates
+
+The human pass and the trivia pass are the same token — `${ts}.${hmac(label:ts:subject)}` — and had
+two implementations: two mints, two parses, two clock-skew rules, two compares. `trivia-actions.ts`
+said so in a comment: *"the same clock-skew paranoia human-pass-rule.ts applies."* A rule kept true by
+a comment is the drift the `-rule` split exists to end. The two differ in exactly three things, and
+those are now the parameters: label, subject, TTL.
+
+`signStamp` and `stampValid` live in `human-pass-rule.ts`, which imports nothing relative so node can
+run its test against it directly. `signHumanPass`/`humanPassValid` are one-line calls on them, so all
+**nine existing attack tests pass untouched**. The helpers could not go the other way: `trivia-actions.ts`
+is `"use server"`, where a non-async export breaks every importing route at runtime (C-189).
+
+**One behaviour changed, deliberately.** `hasPassedTrivia` split on "." and compared only the middle
+segment, so `<ts>.<validsig>.anything` was accepted by the trivia gate and refused by the human pass.
+Nobody could forge that signature without `AUTH_SECRET`, so it was never a hole — but there is no
+reason for one gate to be looser than the other. It tightens. There is now a vector saying so, rather
+than a mystery failure waiting in `phase4-probe.mjs`.
+
+The trivia gate had no unit tests at all, only the owner-run probe. It has five now: cross-browser
+replay, the 30-minute expiry (asserted against the human pass's five, so the two TTLs cannot silently
+merge), a future stamp, the junk-suffix vector above, and a label swap.
+
+Verified end to end in the browser: answered the entry question, then submitted the form with an
+address that already exists. The action returned *"An account with this email already exists"* — which
+sits **after** the `hasPassedTrivia` check in `registerUser`, so the pass `signStamp` minted was
+accepted by `stampValid`. No account created.

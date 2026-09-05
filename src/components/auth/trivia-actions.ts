@@ -2,9 +2,9 @@
 
 import crypto from "crypto";
 import { cookies } from "next/headers";
+import { signStamp, stampValid } from "@/lib/human-pass-rule";
 import { appSecret } from "@/lib/app-secret";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
-import { timingSafeEqualStrings } from "@/lib/timing-safe";
 
 /**
  * Server-side trivia gate.
@@ -180,13 +180,6 @@ const TOKEN_TTL_MS = 30 * 60 * 1000; // a passed gate is good for 30 minutes
    lockout landed precisely on genuine first-time visitors. Now the key is
    the caller's IP — not theirs to discard — in the shared store. */
 
-/* No fallback secret. The previous version fell back to a literal string
-   printed in this file, which made every "signed" pass token forgeable by
-   anyone who could read the repository (audit M7). appSecret() throws
-   instead, and NextAuth cannot boot without AUTH_SECRET anyway. */
-function sign(payload: string): string {
-  return crypto.createHmac("sha256", appSecret()).update(payload).digest("hex");
-}
 
 /**
  * Reduce an answer to just its letters and digits, so spacing, capitalisation
@@ -303,8 +296,11 @@ export async function checkTrivia(
      gate was a 30-minute hall pass anyone could replay from anywhere
      (audit M7); this one is useless without the matching rv_trivia_id,
      which never leaves the browser it was minted in. */
-  const ts = Date.now();
-  const token = `${ts}.${sign(`trivia:${ts}:${browserId}`)}`;
+  /* No fallback secret. An earlier version fell back to a literal string
+     printed in this file, which made every "signed" pass forgeable by
+     anyone who could read the repository (audit M7). appSecret() throws
+     instead, and NextAuth cannot boot without AUTH_SECRET anyway. */
+  const token = signStamp("trivia", browserId, Date.now(), appSecret());
   jar.set("rv_trivia_pass", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -321,15 +317,8 @@ export async function hasPassedTrivia(): Promise<boolean> {
   const token = jar.get("rv_trivia_pass")?.value;
   const browserId = jar.get("rv_trivia_id")?.value;
   if (!token || !browserId) return false;
-  const [tsStr, sig] = token.split(".");
-  if (!tsStr || !sig) return false;
-  const ts = Number(tsStr);
-  if (!Number.isFinite(ts)) return false;
-  // Expired, or dated in the future -- the same clock-skew paranoia
-  // human-pass-rule.ts applies; a pass this server minted is never ahead
-  // of its own clock by more than a minute.
-  if (Date.now() - ts > TOKEN_TTL_MS || ts > Date.now() + 60_000) return false;
-  // Recompute from what THIS request carries and compare constant-time
-  // (the old check was a string ===, a timing oracle on the signature).
-  return timingSafeEqualStrings(sign(`trivia:${ts}:${browserId}`), sig);
+  /* The expiry, the clock-skew rule and the constant-time compare are
+     `stampValid`'s now, shared with the human pass rather than kept level
+     with it by a comment. Same scheme, different label, subject and TTL. */
+  return stampValid(token, "trivia", browserId, Date.now(), TOKEN_TTL_MS, appSecret());
 }
