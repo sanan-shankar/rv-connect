@@ -115,6 +115,7 @@ export async function loadSketchRound(viewerId: string): Promise<SketchRound | n
     id: s.prompt.id,
     text: s.prompt.text,
     kind: promptKind(s.prompt.category),
+    source: s.prompt.source,
     showAsker: s.prompt.showAsker,
     asker: s.prompt.asker ? resolve(s.prompt.asker) : null,
     entries: s.entries.map((e): SketchEntry => {

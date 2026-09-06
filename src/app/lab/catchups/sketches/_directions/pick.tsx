@@ -51,6 +51,9 @@ import {
   MetaLine,
   Photographs,
   Reactions,
+  RoundFoot,
+  AskedBy,
+  Body,
   said,
   StickyFoot,
   bodyType,
@@ -71,7 +74,7 @@ function settingFor(q: SketchQuestion): Setting {
 }
 
 /* ── the question, printed on green ────────────────────────────────── */
-function Plate({ text, phone }: { text: string; phone: boolean }) {
+function Plate({ question, phone }: { question: SketchQuestion; phone: boolean }) {
   return (
     <div
       className="rounded-[14px] bg-canopy text-white"
@@ -86,8 +89,9 @@ function Plate({ text, phone }: { text: string; phone: boolean }) {
           maxWidth: phone ? undefined : 760,
         }}
       >
-        {text}
+        {question.text}
       </h2>
+      <AskedBy question={question} tone="paper" className="mt-3" />
     </div>
   );
 }
@@ -98,12 +102,12 @@ function Answer({ entry, phone, first }: { entry: SketchEntry; phone: boolean; f
   const type = bodyType(lengthOf(entry), phone);
 
   const words = body && (
-    <p
-      className={`mt-3 whitespace-pre-line ${type.className}`}
-      style={{ fontSize: type.fontSize, lineHeight: type.lineHeight }}
-    >
-      {body}
-    </p>
+    <Body
+      text={body}
+      fontSize={type.fontSize}
+      lineHeight={type.lineHeight}
+      className={`mt-3 ${type.className}`}
+    />
   );
 
   return (
@@ -168,12 +172,12 @@ function PhotoLed({ q, phone }: { q: SketchQuestion; phone: boolean }) {
               )}
               <Byline person={e.author} />
               {body && (
-                <p
-                  className="mt-2.5 whitespace-pre-line text-foreground"
-                  style={{ fontSize: phone ? 15.5 : 15.5, lineHeight: 1.6 }}
-                >
-                  {body}
-                </p>
+                <Body
+                  text={body}
+                  fontSize={15.5}
+                  lineHeight={1.6}
+                  className="mt-2.5 text-foreground"
+                />
               )}
               <Media items={e.media} className="mt-3" />
               <Reactions entry={e} className="mt-2" />
@@ -212,7 +216,7 @@ function Section({ q, phone }: { q: SketchQuestion; phone: boolean }) {
   const setting = settingFor(q);
   return (
     <section>
-      <Plate text={q.text} phone={phone} />
+      <Plate question={q} phone={phone} />
       {setting === "terse" && <Terse q={q} phone={phone} />}
       {setting === "photos" && <PhotoLed q={q} phone={phone} />}
       {setting === "column" && <Column q={q} phone={phone} />}
@@ -284,7 +288,7 @@ function Reader({ round, viewport }: SketchProps) {
               <Section key={q.id} q={q} phone />
             ))}
           </div>
-          <p className="pt-12 text-[14px] text-muted-foreground">Round 2 opens on 6 October.</p>
+          <RoundFoot nextOpens="6 October" className="mt-14" />
         </div>
       </PhoneShell>
     );
@@ -304,7 +308,7 @@ function Reader({ round, viewport }: SketchProps) {
             <Section key={q.id} q={q} phone={false} />
           ))}
         </div>
-        <p className="pb-2 pt-14 text-[14px] text-muted-foreground">Round 2 opens on 6 October.</p>
+        <RoundFoot nextOpens="6 October" className="mt-16" />
       </div>
     </DesktopShell>
   );

@@ -43,6 +43,9 @@ import {
   MetaLine,
   Photographs,
   Reactions,
+  RoundFoot,
+  AskedBy,
+  Body,
   said,
   bodyType,
   lengthOf,
@@ -86,9 +89,12 @@ function Answer({
   const asideTall = !phone && entry.images.length === 1 && ratio !== null && ratio < 0.85;
 
   const words = body && (
-    <p className={`mt-3 whitespace-pre-line ${type.className}`} style={{ fontSize: type.fontSize, lineHeight: type.lineHeight }}>
-      {body}
-    </p>
+    <Body
+      text={body}
+      fontSize={type.fontSize}
+      lineHeight={type.lineHeight}
+      className={`mt-3 ${type.className}`}
+    />
   );
 
   return (
@@ -152,6 +158,7 @@ function Plate({ question, size }: { question: SketchQuestion; size: number }) {
       >
         {question.text}
       </h2>
+      <AskedBy question={question} tone="paper" className="mt-3" />
     </div>
   );
 }
@@ -223,9 +230,9 @@ function Reader({ round, viewport }: SketchProps) {
             </div>
           </section>
         ))}
-        <p className="px-5 pb-12 pt-6 text-[14px] text-muted-foreground">
-          Round 2 opens on 6 October.
-        </p>
+        <div className="px-5 pb-12 pt-8">
+          <RoundFoot nextOpens="6 October" />
+        </div>
       </PhoneShell>
     );
   }
@@ -254,7 +261,7 @@ function Reader({ round, viewport }: SketchProps) {
                 </section>
               ))}
             </div>
-            <p className="pt-8 text-[14px] text-muted-foreground">Round 2 opens on 6 October.</p>
+            <RoundFoot nextOpens="6 October" className="mt-12" />
           </div>
 
           {/* The rail: the questions, on the right, where navigation goes,

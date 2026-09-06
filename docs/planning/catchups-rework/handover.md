@@ -151,7 +151,7 @@ too, which he allowed in ¶28.
 | S1 Reconnaissance | DONE | `recon.md` (43 findings), `flows.md`, the export, the pressure fixture, one `[Recon]` Catch-up left in place. Gaps listed at the end of `recon.md` |
 | S2 Prior art | DONE | `prior-art.md`, inside S0, 2026-09-05; F15 says how far to trust each part |
 | S3 Directions | DONE | 2026-09-06 first pass: `directions.md` Parts 1-5, ten directions, ten sketches. **Second pass the same day, after he rejected most of them** ("80% of the designs have just no taste at all"): six deleted, one rebuilt, four new, one synthesis. `directions.md` Part 6 supersedes Parts 2-4 and carries his rules as a table. Five sketches now |
-| Owner culls the sketches | OWNER-GATED | **now**: `/lab/catchups/sketches` on his phone, starting at The one I would build. Owner question 7, rewritten for the five. His cull is S4's shortlist |
+| Owner culls the sketches | OWNER-GATED | **now**: `/lab/catchups/sketches` on his phone, starting at The one I would build. The first pass is back in the room behind a divider, dimmed, so its ideas can be pointed at (`directions.md` 6.8). Owner question 7, rewritten for the five. His cull is S4's shortlist |
 | S4 Rooms | OPEN | blocked on the cull; build from `directions.md` Part 3 and each direction's own file, and draw the composer too (F25) |
 | Owner browses the rooms | OWNER-GATED | |
 | S3b Second round | OPEN | only if he asks for it after the rooms |

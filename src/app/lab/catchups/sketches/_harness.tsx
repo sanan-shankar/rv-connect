@@ -16,7 +16,7 @@
  *  the cull slow on exactly the device it is for.
  * ------------------------------------------------------------------ */
 
-import { Suspense } from "react";
+import { Fragment, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PeaksMark } from "@/components/layout/peaks-mark";
@@ -73,16 +73,27 @@ function Harness({ round }: { round: SketchRound }) {
             className="-mx-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             aria-label="Direction"
           >
-            {DIRECTIONS.map((d) => (
-              <SpringPress
-                key={d.slug}
-                as="button"
-                onClick={() => go({ d: d.slug })}
-                aria-pressed={d.slug === direction.slug}
-                className={`${PILL} shrink-0 whitespace-nowrap ${d.slug === direction.slug ? PILL_ON : PILL_OFF}`}
-              >
-                {d.name}
-              </SpringPress>
+            {DIRECTIONS.map((d, i) => (
+              <Fragment key={d.slug}>
+                {/* The seam between the two passes. The first pass sits to
+                    the right of it, dimmed, so it is reachable without
+                    reading as a live option. */}
+                {d.earlier && !DIRECTIONS[i - 1]?.earlier && (
+                  <span className="ml-1 mr-2 shrink-0 whitespace-nowrap border-l border-border pl-3 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">
+                    First pass
+                  </span>
+                )}
+                <SpringPress
+                  as="button"
+                  onClick={() => go({ d: d.slug })}
+                  aria-pressed={d.slug === direction.slug}
+                  className={`${PILL} shrink-0 whitespace-nowrap ${
+                    d.slug === direction.slug ? PILL_ON : PILL_OFF
+                  } ${d.earlier && d.slug !== direction.slug ? "opacity-60" : ""}`}
+                >
+                  {d.name}
+                </SpringPress>
+              </Fragment>
             ))}
           </nav>
           <div className="hidden items-center gap-2 sm:flex" role="group" aria-label="Viewport">
@@ -120,6 +131,14 @@ function Harness({ round }: { round: SketchRound }) {
         <div className="px-4 sm:px-0">
           <h1 className="font-heading text-[1.35rem] leading-tight tracking-[-0.02em]">{direction.name}</h1>
           <p className="mt-1 max-w-[70ch] text-[14px] text-muted-foreground">{direction.thesis}</p>
+          {direction.earlier && (
+            <p className="mt-2 max-w-[70ch] rounded-[8px] border border-border bg-card px-3 py-2 text-[13px] text-muted-foreground">
+              From the first pass, kept so its ideas can be taken rather than remembered. The
+              stretched background is fixed here, since the shell is shared. Everything else is as
+              it was: the batch line under each name, the counts, &ldquo;2 comments&rdquo; written
+              out instead of the icon.
+            </p>
+          )}
           <p className="mt-1 text-[12px] text-muted-foreground">
             {round.catchupName}, Round {round.number}: {round.contributors.length} wrote in, {round.questions.length} questions.
             The first three questions are drawn in full.

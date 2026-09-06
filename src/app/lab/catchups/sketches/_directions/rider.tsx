@@ -50,6 +50,9 @@ import {
   MetaLine,
   Photographs,
   Reactions,
+  RoundFoot,
+  AskedBy,
+  Body,
   said,
   StickyFoot,
   bodyType,
@@ -69,12 +72,12 @@ function Answer({ entry, phone }: { entry: SketchEntry; phone: boolean }) {
     <article className="pt-7">
       <Byline person={entry.author} />
       {body && (
-        <p
-          className={`mt-3 whitespace-pre-line ${type.className}`}
-          style={{ fontSize: type.fontSize, lineHeight: type.lineHeight }}
-        >
-          {body}
-        </p>
+        <Body
+          text={body}
+          fontSize={type.fontSize}
+          lineHeight={type.lineHeight}
+          className={`mt-3 ${type.className}`}
+        />
       )}
       <Media items={entry.media} className="mt-3.5" />
       {entry.images.length > 0 && <Photographs entry={entry} className="mt-3.5" />}
@@ -93,6 +96,7 @@ function Section({ q, phone }: { q: SketchQuestion; phone: boolean }) {
       >
         {q.text}
       </h2>
+      <AskedBy question={q} className="mt-2.5" />
       {terse ? (
         <div
           className="grid gap-x-6 gap-y-7 pt-7"
@@ -184,7 +188,7 @@ function Reader({ round, viewport }: SketchProps) {
               <Section key={q.id} q={q} phone />
             ))}
           </div>
-          <p className="pt-14 text-[14px] text-muted-foreground">Round 2 opens on 6 October.</p>
+          <RoundFoot nextOpens="6 October" className="mt-14" />
         </div>
       </PhoneShell>
     );
@@ -208,7 +212,7 @@ function Reader({ round, viewport }: SketchProps) {
             <Section key={q.id} q={q} phone={false} />
           ))}
         </div>
-        <p className="pb-6 pt-16 text-[14px] text-muted-foreground">Round 2 opens on 6 October.</p>
+        <RoundFoot nextOpens="6 October" className="mt-16" />
       </div>
     </DesktopShell>
   );
