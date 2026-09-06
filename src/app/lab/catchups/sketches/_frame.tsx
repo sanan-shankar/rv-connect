@@ -60,7 +60,29 @@ export function ScaledFrame({
       style={{
         width: full ? width : "100%",
         height: Math.round(innerHeight * scale),
-        overflow: full ? "visible" : "hidden",
+        /* `clip` on the x axis, never `hidden`, for the natural-height
+           drawings. `overflow: hidden` makes this element a SCROLLPORT,
+           and a `position: sticky` descendant then sticks to a box that
+           never scrolls, which is to say it does not stick at all. That
+           silently broke the navigator bar in two directions: measured at
+           scroll 3,000 it was sitting at top: -2122, having scrolled away
+           like any static element.
+
+           `clip` clips without creating a scroll container, so sticky
+           resolves against the real page again. The axis split is safe
+           only because it is clip: `overflow-x: hidden` beside
+           `overflow-y: visible` computes the visible axis to AUTO (CSS
+           Overflow 3, section 3), which is the bug identity-row.tsx
+           documents at length. `clip` is exempt from that rule.
+
+           The fixed-height phone frames keep plain `hidden`: they are a
+           394x844 window onto a screen and are meant to clip both ways,
+           and nothing inside them uses sticky. */
+        ...(full
+          ? { overflow: "visible" as const }
+          : height
+            ? { overflow: "hidden" as const }
+            : { overflowX: "clip" as const, overflowY: "visible" as const }),
       }}
     >
       <div

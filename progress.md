@@ -10318,3 +10318,39 @@ The sidebar/mobile-header lockup painted the PeaksMark in three shaded planes
 the mark is now the plain silhouette in the lightest of those three colours,
 `#EAF1DF`, against the dark green rail. Visual baselines for all nine authed
 routes moved for the mark alone; diffs checked before accepting.
+
+## 2026-09-06 — Catch-ups, the sketches redrawn by hand
+
+He read the ten directions and rejected most of them: *"80% of the designs have just no taste at
+all"*, *"the way you prompted your subagents led to a somewhat convergence on design"*, *"So
+freaking just do it yourself I give up. There's no rigor."* He is right about the cause, and it is
+now handover F32. Ten builders sharing one brief and one contract can only differ in ornament,
+because the brief has already fixed everything structural. Nine of the ten drew a card per answer
+under a heading.
+
+Redrawn here, one hand, against the real Round. Six deleted (a question per page, twice; the name
+signed at the foot; three that were the same drawing), three moved to the Catch-up's home where
+their ideas actually live, one rebuilt. Five now: **the one I would build**, **the question is
+printed on green**, **each question is laid out for what it is**, **the question rides with you**,
+**one person at a time**.
+
+His review is a table in `directions.md` Part 6 and is enforced in `_parts.tsx` rather than left to
+memory: at most two facts in a meta line, no counts at all, no batch line under a name, the feed's
+own heart and comment icon in the same corner of every answer, comments closed until tapped, no
+status dots, no question numbers, and the shipped Round page's own two-column grid quoted so a
+sketch cannot invent a margin.
+
+The one idea he did not ask for: ¶31 says a short answer looks lost in a big tile, and he has
+rejected shrinking the tile, so the box stays and the TYPE moves. Under 45 characters an answer is
+set in Baskerville at 25px, and a question whose answers are all short becomes a grid of display
+lines. "Describe your month in 3 words" goes from eleven full-width paragraphs to the best-looking
+question in the Round at a fifth of the scroll.
+
+Three faults in the shipped app fell out of drawing it. **Spotify album art has never rendered**:
+the oembed now returns `image-cdn-*.spotifycdn.com` and the CSP allowed only `i.scdn.co`, so every
+cover was refused with nothing but a console line, found on a real answer reading "Honestly I just
+want to see if the album covers render properly" (F29). **The songs question resolves nothing**,
+because the resolver only fires on the composer's dedicated field while people paste links into the
+body (F30); the sketches parse them and draw them, YouTube included, which needs no key. And a
+**bottom-sticky bar inside a transformed frame** fails two separate ways, both measured rather than
+reasoned about (F31).

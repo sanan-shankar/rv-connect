@@ -19,6 +19,7 @@ import { catchupDisplayName } from "@/lib/catchups-core";
 import { promptKind } from "@/lib/catchups-types";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 import { batchLine } from "@/lib/utils";
+import { resolveMedia, stripLinks } from "./_media";
 import type { SketchEntry, SketchPerson, SketchRound } from "./_types";
 
 const MEMBER_SELECT = {
@@ -95,6 +96,19 @@ export async function loadSketchRound(viewerId: string): Promise<SketchRound | n
       isKeeper: false,
     };
 
+  /* Resolve every pasted link in the Round up front, in one wave, rather
+     than per answer as it renders: seven links across four answers, and
+     _media.ts caches them for the life of the process. */
+  const mediaByEntry = new Map<string, Awaited<ReturnType<typeof resolveMedia>>>();
+  await Promise.all(
+    view.sections.flatMap((s) =>
+      s.entries.map(async (e) => {
+        const m = await resolveMedia(e.body);
+        if (m.length) mediaByEntry.set(e.id, m);
+      })
+    )
+  );
+
   const contributors: SketchPerson[] = [];
   const seen = new Set<string>();
   const questions = view.sections.map((s) => ({
@@ -116,6 +130,8 @@ export async function loadSketchRound(viewerId: string): Promise<SketchRound | n
         images: e.images,
         photos: e.photos,
         song: e.song,
+        media: mediaByEntry.get(e.id) ?? [],
+        text: stripLinks(e.body),
         loveCount: e.loveCount,
         lovedByViewer: e.lovedByViewer,
         createdAt: new Date(e.createdAt).toISOString(),

@@ -91,6 +91,34 @@ const csp: Record<string, string[]> = {
     ...imageHosts.map((h) => `https://${h}`),
     "https://*.razorpay.com",
     "https://i.scdn.co", // Spotify album art on Catch-up answers
+    /* ...and where that art actually lives now. `resolveSpotify` stores
+       whatever `thumbnail_url` the keyless oembed returns, and as of
+       2026-09-06 that endpoint answers with `image-cdn-fa.spotifycdn.com`
+       and `image-cdn-ak.spotifycdn.com`, never `i.scdn.co`. So every
+       resolved song has been storing an art URL the browser then refused
+       to load, with no symptom but a console line: the card renders its
+       fallback glyph and looks like a song nobody had a cover for. Found
+       while drawing the Catch-ups sketches, on a real answer whose entire
+       text reads "Honestly I just want to see if the album covers render
+       properly".
+
+       A wildcard here and NOT in `imageHosts`: the shard letters rotate,
+       so an exact host would break again on their next deploy, and this
+       list only tells the browser which images may be painted. The
+       optimizer allowlist, which is the one an attacker abuses, is
+       untouched and still exact. */
+    "https://*.spotifycdn.com",
+    /* YouTube still frames, the sibling of the line above. The brief asks
+       for both by name (para 16: "why can't we have a beautiful UI that
+       shows YouTube previews or Spotify previews"; para 49: "It doesn't
+       work for YouTube or Spotify"), and a thumbnail cannot be judged, let
+       alone shipped, while the browser refuses to load one.
+
+       img-src only, and deliberately NOT added to `imageHosts` above:
+       that list feeds next/image's remotePatterns, which is the allowlist
+       an open optimizer endpoint is abused through. A still is drawn with
+       a plain <img>, the way the Spotify card beside it already is. */
+    "https://i.ytimg.com",
   ],
   "font-src": ["'self'", "data:"],
   "connect-src": [

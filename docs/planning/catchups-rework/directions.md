@@ -13,6 +13,14 @@ together... but under the same broader structure."* Part 2 is the directions tha
 the judges said, and what survived. Part 3 is a room brief per surviving direction, for S4. Part 4
 is one paragraph on which I would pick. Part 5 is the sketch room and what he does next.
 
+> **Second pass, 2026-09-06. Parts 2, 3 and 4 below are superseded by [Part 6](#part-6-the-second-pass).**
+> The owner read the first ten directions and rejected most of them: *"As you can see like 80% of
+> the designs have just no taste at all. No critical graphic designer reviewing or highly experienced
+> ui/ux."* Six were deleted, one was rebuilt, four new ones were drawn, and the rules he gave in that
+> review are now in **Part 6**, which also corrects three things in Part 1. Read Part 6 first; Parts
+> 2 to 4 are kept because the reasoning in them is still the record of how the ten were judged, and
+> because two of the deleted ideas are wanted later on a different screen.
+
 **The three marks.** LOCKED is his, with the paragraph. RECOMMENDED is this session's judgment
 with the reasoning beside it; in Part 1 a RECOMMENDED mark is **binding for the directions round**,
 so that eight designers produce things that can be compared, and S5 may overturn any of it with him
@@ -844,3 +852,182 @@ Then one line back, from anywhere: *"keep 09, 02, 05 and 01"*, or *"keep 09 with
 *"none of these, run S3b"*. That line is S4's shortlist (D25). The questions this leaves for him
 are numbered in `handover.md` under "Owner questions", each with a default, so *"defaults"* is also
 an answer.
+
+---
+
+# Part 6. The second pass
+
+**2026-09-06, same session, after he read the ten.** Written by one mind, not a fan-out. What he
+said, in full, is the reason:
+
+> "Okay it's clear many of these were done separately since many are just copies. They're not
+> unique designs... it seems the way you prompted your subagents led to a somewhat convergence on
+> design... We have to seriously level up our game. This level of creativity is really mid."
+
+> "As you can see like 80% of the designs have just no taste at all. No critical graphic designer
+> reviewing or highly experienced ui/ux."
+
+> "It's like everytime I run something thru ultracode instead of doing it myself on a new session
+> every few times or new sessions for new creative ideas and I do subagents or workflow instead it
+> just sucks. So freaking just do it yourself I give up. There's no rigor."
+
+He is right about the cause, and it is worth stating plainly so the next session does not repeat
+it. Ten builders were given one brief and one shared contract and told to differ. What differs
+under those conditions is ornament, because everything structural is already fixed by the brief
+they share. Nine of the ten drew a card per answer under a heading. The tenth drew the same thing
+with the heading on green.
+
+## 6.1 The rules he gave, and where each one now lives
+
+These are not preferences, they are the review. Every one is enforced in
+`src/app/lab/catchups/sketches/_parts.tsx` or `_shell.tsx` so that a direction has to work to
+break it rather than break it by not knowing.
+
+| His words | What changed |
+|---|---|
+| *"Ideas where each question is a separate page sucks. Let's not."* | `paged` and `whole-app` deleted. |
+| *"Three column layouts on desktop no need. Stick with two."* | No direction has three. |
+| *"Let the main reader be on the left column. Don't have navigation on the left."* | Reader left, rail right, or one canvas. |
+| *"There's a plethora of middle dots... we can never have more than two items."* | `MetaLine` takes at most two parts and drops the dot when one survives. |
+| *"Why do I need to know how many people wrote in."* Plus ¶23, ¶27. | Every count deleted: no "13 answers", no "4 with photos", no "1 of 11", no contributor strip. |
+| *"No need for batch number... you'd be close enough to people in a batch up to know their batch."* | `Byline` is a bird and a name, one line, nothing under it. |
+| *"Many of them had the bird too small."* | The bird is 36 and the name went up to 17. See 6.2. |
+| *"I don't like names at the bottom."* | `letter` deleted. |
+| *"Comments and hearts should use the same style as the feed... we're writing comments instead of the icon. Why???"* | `Reactions` uses the feed's own `LoveButton` and `ChatCircle`, same sizes, same corner, every direction. |
+| *"Some of them have the heart and comment in different places depending on the post."* | One component, one position. |
+| *"The comments shouldn't show by default. It should open upon tapping the icon."* | They do, and they open for real. |
+| *"Let's not have answers in the same line as the name of the person."* | Always the line below. |
+| *"I don't like having a dot to show status of something."* | No dots. Progress is a filled rule; the current item is weight and colour. |
+| *"Are thumbnails not possible for yt vids etc."* | They are, and they now work. See 6.4. |
+| *"The backgrounds in the desktop version of all the versions is broken."* | Fixed, and the cause is worth reading: 6.3. |
+| *"I don't want the questions to take up the green sidebar. Just let that be."* | The nav rail is untouched everywhere. |
+| *"Why would be say Round 1 in such use font. That's good to know but that's not the name!!"* | The Catch-up's name is the headline; Round 1 is a meta fact. |
+| *"Some of them have the questions repeated above every answer."* Plus ¶27 on numbering. | No question numbers anywhere, and no question printed twice on one screen. |
+| *"The two columns are spaced so weirdly... massive margin in the right and no margin on the left."* | The shipped Round page's own grid is quoted in `_shell.tsx` and departed from deliberately or not at all. |
+| *"I'm worried about it being too small a touch target"* (the sheet's grab pill) | Every sheet closes with a 44px control under the thumb. The pill is a hint, never the only way out. |
+| *"Make sure the thumbnail and link stuff isn't some massive thing."* | A link is a 56px row, never a full-width still. |
+
+## 6.2 The one thing the review did not ask for, and the reason it is here
+
+Two of his complaints look contradictory and are not:
+
+> ¶31: "If you see Cyan's answer, he's just Cyan Prasad, your mama, and these hearts... only about
+> 15% of the real estate is used, and the rest is just white space."
+
+> 2026-09-06: "There was one where Sanan and Saayan's tile saying yo mama was made super small
+> because the answer was short. Don't like that."
+
+The first says a short answer looks lost. The second rejects the obvious fix. Together they say
+the BOX must not move and the TYPE must. So `lengthOf` measures an answer and `bodyType` sets one
+under 45 characters in Libre Baskerville at 25px instead of Source Sans at 15.5. "yo mama" stops
+being a scrap in a field and becomes the answer somebody meant to give.
+
+`temperOf` does the same for a whole question. "Describe your month in 3 words" is eleven answers
+averaging 24 characters; set as eleven full-width paragraphs it is ¶31 eleven times down one page,
+and set as a grid of display lines it is the best-looking question in the Round at a fifth of the
+scroll. This is ¶21's *"layout rules that are very rapidly adjusting to the content it's
+receiving"* pointed at the reader instead of at the PDF.
+
+## 6.3 Three faults in the shipped app, found by drawing
+
+Not sketch faults. These are in the product.
+
+- **Spotify album art has never rendered, for two reasons.** `resolveSpotify` stores whatever
+  `thumbnail_url` the oembed returns, and as of 2026-09-06 that is `image-cdn-fa.spotifycdn.com`
+  and `image-cdn-ak.spotifycdn.com`; the CSP allowed only `i.scdn.co`, so the browser would refuse
+  the cover with nothing but a console line to show for it. The worse reason is that it has never
+  got that far: `songArt` is null on every entry in the database, so the resolver has never run end
+  to end. Found on a real answer whose entire text reads *"Honestly I just want to see if the album
+  covers render properly"*. The allowlist half is one line in `next.config.ts` and is fixed; the
+  rest is F30.
+- **The valley wash was stretched to the page, not the screen.** The sketch shell used `absolute
+  inset-0` where the app uses `fixed inset-0`, so on a 42,000px drawing `bg-cover` scaled a
+  1680x1260 photograph to about seven times the page width. That is the *"20x zoomed in on one part
+  of the tree"*. The app itself is correct; only the sketches were wrong, and they were wrong in
+  all ten at once because they shared one shell.
+- **A bottom-sticky bar in a scaled frame does nothing.** Two separate causes, both measured rather
+  than reasoned about: an ancestor with `overflow: hidden` becomes the scrollport, and a sticky
+  element at the END of its container has no distance to travel. Written up in `_frame.tsx` and
+  `_parts.tsx` because the rooms will hit both.
+
+## 6.4 Links, which the brief asked for twice and nobody had built
+
+¶16: *"why can't we have a beautiful UI that shows YouTube previews or Spotify previews, done in a
+cute clickable way."* ¶49: *"If you link a song, it doesn't automatically pull up a thumbnail. It
+doesn't work for YouTube or Spotify."*
+
+Measured on this Round: the songs question has thirteen answers and `songUrl` is **null on every
+one of them**, because today's resolver only runs when the composer's dedicated song field is
+used. Four answers carry pasted links in their body text, printed as raw URLs. Two are YouTube.
+
+`_media.ts` finds them, resolves them through the same keyless oembed `resolveSpotify` already
+uses, and draws them as a 56px row. YouTube needs no key at all: the still is derivable from the
+video id. The work the rooms owe is a sibling resolver and a body-text scan, not an API key.
+
+## 6.5 What exists now
+
+Deleted, with the reason: `paged` and `whole-app` (a question per page), `letter` (name at the
+foot), `conversation`, `room` and `transcript` (the convergence, not three bets). `calendar`,
+`shelf` and `front-door` are also gone from the reader, and this is a re-plan rather than a
+rejection: all three are about the Catch-up's HOME, and as readers they had nothing to say, which
+is exactly why they read as copies. Their ideas go to the home work.
+
+| Slug | Name | The bet |
+|---|---|---|
+| `pick` | The one I would build | The other three with the losing halves cut off. |
+| `plate` | The question is printed on green | The Catch-up's own colour carries the question, so it is the room you stand in rather than a caption. Rebuilt from `action-button`, the one idea he picked out unprompted. |
+| `spread` | Each question is laid out for what it is | The page measures the answers and picks the setting. Nothing separates one question from the next but air. |
+| `rider` | The question rides with you | A bet about movement, not looks. One green bar at the foot, always naming the question, always under a thumb. The reading is deliberately the app's plainest column. |
+| `yearbook` | One person at a time | The Round turned ninety degrees: thirteen short profiles. The people become the structure. Trades away comparing answers side by side, which may be what kills it. |
+
+## 6.6 What I would build
+
+**`pick`.** The green plate from `plate`, the content-driven setting from `spread`, the foot
+navigator from `rider`.
+
+The plate is the only thing drawn in two rounds that passes ¶42 outright: it could not be another
+app's screen, and it is not a repeat of anything already in this one. The content-driven setting is
+the only answer to ¶31 he has not already rejected, and it is the difference between a reader that
+is one template eleven times and a reader that was art-directed. The foot navigator is the answer
+to his longest complaint, and putting it at the foot rather than the top is the whole of it: the
+top of a phone is not where a thumb is.
+
+`yearbook` is the most interesting idea in the set and the wrong default. It belongs as a second
+way to read the same Round, behind the door §1.6 already specifies, not as the first one.
+
+The honest risk in `pick`: eleven green plates down one page may be too much green. It is the one
+thing I would watch for in the room, and the fallback is `spread`, which is the same page with the
+plates set as serif headings instead.
+
+## 6.7 Where the borrowed ideas came from
+
+He asked for research, then narrowed it: *"Make sure you don't copy prior art but some niche
+boutique content from extremely classy sources will be good just to take elements of inspiration
+from."* So this is deliberately not the app prior art in `prior-art.md`, which is thorough on
+Letterloop, WhatsApp, Are.na, Discourse and Apple News and has nothing on print editorial. Only
+what was actually taken is listed; a source that gave nothing is not here.
+
+- **Fantastic Man and The Gentlewoman** (Jop van Bennekom; magCulture's notes on issue 37). Three
+  things. One serif throughout, which is why a promoted short answer is set in Libre Baskerville
+  rather than in bigger Source Sans. Folios pared back to almost nothing and only on an opening
+  spread, which is the argument for no question numbers and for the counts being deleted rather
+  than restyled. And a tiny house glyph in place of a bullet, which is what the peak mark was
+  briefly used for and then cut: at 40x10 it read as a scribble, and the green plate is already
+  the mark. Recorded because the idea is right even though this execution of it was not.
+- **Class notes, in an alumni magazine** (Princeton Alumni Weekly's own handbook is the specific
+  source: 300-word columns, classmates' names set in caps, entries run together with no card and
+  no photograph each). This is the densest known way to set many short contributions from people
+  who know each other, and it is the closest published thing to a Catch-up. The central device,
+  a name run into the first line of the text, is ruled out by his own instruction ("Let's not have
+  answers in the same line as the name of the person"), and that is why there is no class-notes
+  direction. What survived is the argument against tiles: `plate`, `pick` and `spread` separate
+  answers with a hairline and air rather than a box each.
+- **Auction catalogues** (Christie's and Sotheby's lot typography). A lot number, a title, then a
+  provenance line in a smaller register, with nothing boxed. This is behind the small-caps question
+  label in `yearbook`: a label that names what you are looking at without competing with it.
+- **Tufte's sidenotes.** Considered for the question-in-the-margin layout and not taken. It
+  degrades to nothing on a 390px screen, which is the viewport that matters most here, and the
+  brief's navigation complaint is about the phone.
+
+The one thing not borrowed from anywhere is the plate. The Catch-up's green is already the app's,
+and printing a question on it was his own idea from the first round.
