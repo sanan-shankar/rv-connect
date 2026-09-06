@@ -150,8 +150,8 @@ too, which he allowed in ¶28.
 | Ledger and decisions checked against the brief | DONE | two critics, about sixty findings, folded in on 2026-09-05; see the log |
 | S1 Reconnaissance | DONE | `recon.md` (43 findings), `flows.md`, the export, the pressure fixture, one `[Recon]` Catch-up left in place. Gaps listed at the end of `recon.md` |
 | S2 Prior art | DONE | `prior-art.md`, inside S0, 2026-09-05; F15 says how far to trust each part |
-| S3 Directions | DONE | 2026-09-06: `directions.md` (the architecture, ten directions, the judges, room briefs, the lean) and `directions/` (ten files); `/lab/catchups/sketches` with ten sketches |
-| Owner culls the sketches | OWNER-GATED | **now**: twenty minutes on his phone at `/lab/catchups/sketches`; owner question 7. His cull is S4's shortlist |
+| S3 Directions | DONE | 2026-09-06 first pass: `directions.md` Parts 1-5, ten directions, ten sketches. **Second pass the same day, after he rejected most of them** ("80% of the designs have just no taste at all"): six deleted, one rebuilt, four new, one synthesis. `directions.md` Part 6 supersedes Parts 2-4 and carries his rules as a table. Five sketches now |
+| Owner culls the sketches | OWNER-GATED | **now**: `/lab/catchups/sketches` on his phone, starting at The one I would build. Owner question 7, rewritten for the five. His cull is S4's shortlist |
 | S4 Rooms | OPEN | blocked on the cull; build from `directions.md` Part 3 and each direction's own file, and draw the composer too (F25) |
 | Owner browses the rooms | OWNER-GATED | |
 | S3b Second round | OPEN | only if he asks for it after the rooms |
@@ -367,6 +367,47 @@ Numbered so later sessions can cite and correct them. **Verified** means a sessi
   screenshot in S3 went through `screenshot-auth.mjs`, which signs in from Node. The measuring
   `evaluate_script` does is available from a throwaway puppeteer probe in `/tmp` that imports
   `scripts/qa/_dev-login.mjs`; that is what found F27.
+
+- **F29, Spotify album art has never rendered, anywhere (S3, second pass).** `resolveSpotify`
+  stores whatever `thumbnail_url` the keyless oembed returns. As of 2026-09-06 that endpoint
+  answers with `image-cdn-fa.spotifycdn.com` and `image-cdn-ak.spotifycdn.com`; the CSP's
+  `img-src` allowed only `i.scdn.co`, so the browser would refuse the image with nothing but a
+  console line to show for it: the card falls back to its glyph and reads as a song nobody had a
+  cover for. Two reasons rather than one, and the second is worse: `songArt` is **null on every
+  entry in the database** (checked 2026-09-06), so the resolver has never once run end to end,
+  which is ¶49's *"the Spotify song thing doesn't work yet"* confirmed. Found on a real answer in
+  "in the loop" whose entire text is *"Honestly I just want to see if the album covers render
+  properly"*. The allowlist half is fixed in
+  `next.config.ts` with a wildcard on `*.spotifycdn.com`, because the shard letters rotate; the
+  optimizer's own exact-host allowlist is untouched.
+
+- **F30, the songs question resolves nothing at all (S3, second pass).** On this Round the songs
+  question has thirteen answers and `songUrl` is null on every one. Today's resolver only fires
+  when the composer's dedicated song field is used, and four people pasted links into the body
+  instead. ¶50 asks for the opposite: *"the thumbnail thing should work. Whenever they paste a link
+  to a song."* The sketches do it in `_media.ts` (find links in the body, resolve through oembed,
+  strip them from the printed text). YouTube needs no key: the still is derivable from the video
+  id, and `i.ytimg.com` is now on the img-src allowlist.
+
+- **F31, a sticky bar inside the scaled frame has two separate traps (S3, second pass).** An
+  ancestor with `overflow: hidden` becomes the scrollport, so `position: sticky` resolves against a
+  box that never scrolls; and a sticky element at the END of its container has no distance to
+  travel, so `bottom: 0` on a last child does nothing at all. Both were measured, not reasoned
+  about: the navigator bar sat at `top: -2122` at scroll 3,000. The frame now clips with
+  `overflow-x: clip` (which does not create a scrollport, unlike `hidden`) and a foot bar is a
+  zero-height sticky box at the START of the page, offset by `100dvh` and lifted by its own height.
+  Written up in `_frame.tsx` and `_parts.tsx`; the rooms will hit both.
+
+- **F32, a fan-out of designers converges by construction (S3, second pass).** Ten builders given
+  one brief and one shared contract produced nine variations on "a card per answer under a
+  heading". Owner: *"it's clear many of these were done separately since many are just copies...
+  the way you prompted your subagents led to a somewhat convergence on design"*, and *"So freaking
+  just do it yourself I give up. There's no rigor."* What differs under those conditions is
+  ornament, because everything structural is fixed by the brief they share. The second pass was
+  drawn by one mind against real content, and the faults it found (F29 to F31) are ones no worker
+  report would have surfaced, because each needed somebody to look at a screenshot and disbelieve
+  it. **A design round is not a fan-out.** Fan out for coverage (audits, sweeps, verification);
+  draw with one hand.
 
 ---
 
@@ -1221,16 +1262,18 @@ of this section, in the same five-line shape, with a default on each; one reply 
 - **Options:** (a) four (b) three (c) no fold at all.
 - **If you don't reply I'll do:** (a), because you said "maybe make it 4 lines" last.
 
-**7. Which of the ten sketches get a full room?** (asked 2026-09-06, after S3)
-- **What I'd change:** the three or four you keep at `/lab/catchups/sketches` become the rooms
-  S4 builds; the rest stay on disk as writing and are not built.
-- **What you'd notice:** rooms only for the directions you chose, each one live enough to tap
-  and scroll on your phone with the real Round and the invented worst cases.
+**7. Which of the five sketches get a full room?** (asked 2026-09-06, rewritten the same day
+after the second pass)
+- **What I'd change:** the ones you keep at `/lab/catchups/sketches` become the rooms S4 builds;
+  the rest stay as writing and are not built. There are five now, not ten: the ten you called
+  mostly tasteless are down to one rebuilt survivor, three new ones, and a synthesis.
+- **What you'd notice:** rooms only for the directions you chose, each one live enough to tap and
+  scroll on your phone, with the real Round and with invented worst cases.
 - **If I guess wrong:** a direction you would have loved gets no room, and a room gets built for
-  one you would have culled in a minute.
-- **Options:** (a) the four the judges and I lean to: The bar is the question, The calendar keeps
-  it, Covers that draw themselves, You land in the Round (b) your own list of slugs (c) none of
-  these, run a second round of directions first (S3b).
+  one you would have killed in a minute.
+- **Options:** (a) The one I would build, plus Each question is laid out for what it is as the
+  fallback if eleven green plates turn out to be too much green  (b) your own list of slugs from
+  the tabs  (c) all five  (d) none of these, another round of directions first.
 - **If you don't reply I'll do:** (a).
 
 **8. Nobody designed the writing side. Should a second round take it before the rooms?** (asked

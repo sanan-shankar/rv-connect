@@ -32,6 +32,7 @@
 
 import type { ReactNode } from "react";
 import type { StoredPhoto } from "@/lib/photo-layout";
+import type { SketchMedia } from "./_media";
 
 export type SketchViewport = "phone" | "laptop";
 
@@ -60,6 +61,13 @@ export type SketchEntry = {
   /** Measured shape per image, same order; null when never measured. */
   photos: (StoredPhoto | null)[];
   song: SketchSong | null;
+  /** Spotify and YouTube links found in the body and resolved to a title,
+   *  an artist and a still. See _media.ts: on this Round the `song` column
+   *  above is null on every single answer, and the links people actually
+   *  pasted are sitting in their body text as raw URLs. */
+  media: SketchMedia[];
+  /** The body with those links removed, so a card is not printed twice. */
+  text: string;
   loveCount: number;
   lovedByViewer: boolean;
   createdAt: string;

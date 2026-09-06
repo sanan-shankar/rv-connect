@@ -181,10 +181,10 @@ export const REGISTRY: LabEntry[] = [
   },
   {
     href: "/lab/catchups/sketches",
-    title: "One Round, drawn every way",
+    title: "One Round, drawn five ways",
     group: "Delight",
     status: "active",
-    note: "The same real Round, the reader only, drawn once per direction from the Catch-ups rework: three phone screens and a laptop page each. Flick between them and cull; the pick comes later in the rooms. ?d=<slug>&w=phone|laptop deep-links one.",
+    note: "The same real Round, the reader only, drawn once per direction from the Catch-ups rework: three phone screens and a laptop page each. Start at The one I would build, then the three it is made of. Every pasted Spotify and YouTube link resolves to a real cover here, which the shipped reader still cannot do. ?d=<slug>&w=phone|laptop deep-links one.",
   },
   {
     href: "/lab/viewer",
