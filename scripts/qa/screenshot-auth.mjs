@@ -13,7 +13,19 @@ config({ path: '.env' });
 
 const args = process.argv.slice(2);
 const mobileFlag = args.includes('--mobile');
-const filteredArgs = args.filter(a => a !== '--mobile');
+/* `--full` captures the whole page rather than the first viewport. Added for
+   the Catch-ups sketch room (2026-09-06), whose phone drawings are one tall
+   page each: a viewport shot showed the first 844px and nothing of the
+   answers below the masthead, which was the part being judged.
+
+   One trap, proved the same day: with `--mobile` (deviceScaleFactor 2) a
+   page taller than about 8,000 CSS px that contains a `backdrop-filter`
+   element captures as blank background from top to bottom, while the DOM
+   is fine. The 2x bitmap passes Chrome's 16,384px compositing limit and the
+   blurred layer takes the rest with it. Capture such a page at scale 1
+   (15,951px came out whole) or in viewport-sized pieces. */
+const fullFlag = args.includes('--full');
+const filteredArgs = args.filter(a => a !== '--mobile' && a !== '--full');
 
 const url = filteredArgs[0] || 'http://localhost:3000/feed';
 const label = filteredArgs[1] || '';
@@ -83,8 +95,24 @@ try {
 // Let streamed/Suspense content (e.g. feed posts) resolve before capture
 await new Promise(r => setTimeout(r, 4000));
 
+/* A full-page capture photographs the page as laid out, but every `<img
+   loading="lazy">` below the first viewport has not been asked for yet, so
+   the shot showed paper-coloured holes where photographs belonged. Walk the
+   page a viewport at a time so each one loads, then return to the top. */
+if (fullFlag) {
+  await page.evaluate(async () => {
+    const step = window.innerHeight;
+    for (let y = 0; y < document.body.scrollHeight; y += step) {
+      window.scrollTo(0, y);
+      await new Promise(r => setTimeout(r, 120));
+    }
+    window.scrollTo(0, 0);
+  });
+  await new Promise(r => setTimeout(r, 2500));
+}
+
 // Step 3: Take screenshot
-await page.screenshot({ path: outPath, fullPage: false });
+await page.screenshot({ path: outPath, fullPage: fullFlag });
 await browser.close();
 
 console.log(`Screenshot saved: ${outPath} (${viewport.width}x${viewport.height})`);
