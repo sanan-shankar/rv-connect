@@ -10354,3 +10354,32 @@ because the resolver only fires on the composer's dedicated field while people p
 body (F30); the sketches parse them and draw them, YouTube included, which needs no key. And a
 **bottom-sticky bar inside a transformed frame** fails two separate ways, both measured rather than
 reasoned about (F31).
+
+## 2026-09-07 — Catch-ups: all fifteen sketches rejected, and what replaces them
+
+He went through every sketch out loud, one at a time, and rejected all fifteen: *"There is nothing
+here that I prefer to what is shipped"*, and *"you are okay to delete everything else."* That review
+is now `docs/planning/catchups-rework/review-2026-09-06.md`, verbatim, 51 numbered paragraphs, given
+the same treatment as `brief.md` because a summary of it would lose exactly the detail that makes it
+useful. It outranks `directions.md` everywhere the two disagree.
+
+`front-runner.md` is what a builder actually works from: twenty-two settled rules with his own
+sentence beside each one, and the five problems none of the fifteen solved. The settled list is
+mostly reversals of things two passes had assumed. Tiles are back, because small type on the
+textured background is not readable and letters only gets away with it by being bigger. Green is not
+a surface. One type scale, with no length-dependent promotion. Persistent navigation, and if there
+is a green bar it is the top one. No counts of anything, ever.
+
+The five unsolved problems are the actual work: a persistent bar that can carry a ninety-character
+question without truncating it; what the current-question indicator is, given that a dot and an
+underline are both out; a question navigator that is not the same mediocre sheet fifteen times; a
+short answer in a tile, when shrinking the tile and enlarging the type are both already rejected;
+and whether the result is materially better than what ships today, which is the only test that has
+ever mattered here and the one nothing has passed.
+
+Recorded in the same breath, because it is the trap the next session will otherwise fall into: the
+directory, the Collection's year rail, the profile page and the login flow were named as examples of
+a FEELING of having solved something completely, not as a parts bin. *"You have to make what is
+right for this. You can't just copy elements from that."*
+
+No code changed. The session stopped before the rebuild at his instruction, with the tree clean.
