@@ -123,9 +123,13 @@ function Brand({
       className={`flex items-center gap-2.5 rounded-xl py-1 transition-[opacity,transform] duration-150 hover:opacity-80 active:scale-[0.98] ${className} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring`}
     >
       <Wordmark
-        variant="two-plane"
+        /* Flat cream, not the three shaded planes: at 24px the middle and
+           Rishi planes read as smudges rather than ridges, so the mark is
+           painted in the lightest of the three (#EAF1DF) and reads as one
+           clean silhouette against the dark green rail. */
+        variant="solid"
         className={nowrap ? undefined : "min-w-0"}
-        markClassName="shrink-0 text-sidebar-foreground"
+        markClassName="shrink-0 text-[#EAF1DF]"
         textClassName={
           nowrap
             ? "block whitespace-nowrap text-sidebar-foreground"

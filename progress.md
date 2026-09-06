@@ -10310,3 +10310,11 @@ Tooling: `screenshot-auth.mjs --full` scrolls lazy images in first, and its head
 2x full-page capture over about 8,000px with a backdrop blur comes out blank (F27). The MCP browser
 cannot be signed in from a session (F28). `directions.md` holds the architecture, the ten, the
 judges, a room brief each for S4, and the lean.
+
+## 2026-09-06 — Sidebar mark goes flat cream
+
+The sidebar/mobile-header lockup painted the PeaksMark in three shaded planes
+(`variant="two-plane"`). At 24px the middle and Rishi planes read as smudges, so
+the mark is now the plain silhouette in the lightest of those three colours,
+`#EAF1DF`, against the dark green rail. Visual baselines for all nine authed
+routes moved for the mark alone; diffs checked before accepting.
