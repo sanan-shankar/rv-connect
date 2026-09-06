@@ -180,6 +180,13 @@ export const REGISTRY: LabEntry[] = [
     ],
   },
   {
+    href: "/lab/catchups/sketches",
+    title: "One Round, drawn every way",
+    group: "Delight",
+    status: "active",
+    note: "The same real Round, the reader only, drawn once per direction from the Catch-ups rework: three phone screens and a laptop page each. Flick between them and cull; the pick comes later in the rooms. ?d=<slug>&w=phone|laptop deep-links one.",
+  },
+  {
     href: "/lab/viewer",
     title: "The photograph owns the screen",
     group: "Delight",

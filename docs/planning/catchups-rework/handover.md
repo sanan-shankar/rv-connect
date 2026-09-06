@@ -150,9 +150,9 @@ too, which he allowed in ¶28.
 | Ledger and decisions checked against the brief | DONE | two critics, about sixty findings, folded in on 2026-09-05; see the log |
 | S1 Reconnaissance | DONE | `recon.md` (43 findings), `flows.md`, the export, the pressure fixture, one `[Recon]` Catch-up left in place. Gaps listed at the end of `recon.md` |
 | S2 Prior art | DONE | `prior-art.md`, inside S0, 2026-09-05; F15 says how far to trust each part |
-| S3 Directions | OPEN | unblocked; read `recon.md` section 13 first |
-| Owner culls the sketches | OWNER-GATED | after S3, twenty minutes on his phone at `/lab/catchups/sketches`; his cull is the shortlist |
-| S4 Rooms | OPEN | blocked on the cull, and only the directions that survive it |
+| S3 Directions | DONE | 2026-09-06: `directions.md` (the architecture, ten directions, the judges, room briefs, the lean) and `directions/` (ten files); `/lab/catchups/sketches` with ten sketches |
+| Owner culls the sketches | OWNER-GATED | **now**: twenty minutes on his phone at `/lab/catchups/sketches`; owner question 7. His cull is S4's shortlist |
+| S4 Rooms | OPEN | blocked on the cull; build from `directions.md` Part 3 and each direction's own file, and draw the composer too (F25) |
 | Owner browses the rooms | OWNER-GATED | |
 | S3b Second round | OPEN | only if he asks for it after the rooms |
 | S5 Pick and spec | OPEN | blocked on the pick |
@@ -337,6 +337,36 @@ Numbered so later sessions can cite and correct them. **Verified** means a sessi
   flip is fine, measured at 28ms. **The fix is deleting two lines.** The lazy-motion chunk (5,239ms
   here against 1,930ms on the feed) is a separate, smaller effect that only touches the first tap
   after a cold load. `recon.md` §8. **This supersedes the earlier reading of R5 and R13.**
+
+- **F24, what ten designers agreed on without being asked (S3, 2026-09-06).** Every one of the
+  ten directions replaced the chip row with the same two-part mechanism: a persistent one-line
+  namer of the question you are in, plus a sheet listing every question with its count, the
+  current row marked by colour and never by weight. Seven invented a progress line made of one
+  piece per question. Eight gave a short answer a boxless form. Seven caught that D-line 1.3 read
+  literally draws the latest cover twice on a one-Round home and made the same repair. Four made
+  the app's green bar the reader's own surface. These are findings for S5's spec whichever
+  direction wins; `directions.md` 2.3 and 2.4.
+- **F25, the bet nobody took (S3's adversarial judge).** All ten directions are about how a
+  finished Round is read. Nine dispose of the composer, the surface a member spends longest on
+  and where a song link or a wall photograph is made, in a paragraph that keeps today's shape.
+  S4's room briefs ask every builder to draw the composer with the reader's care, and owner
+  question 8 asks whether S3b should take it first.
+- **F26, the real Round's shape in time (S3, derived from `createdAt`).** "in the loop" Round 1
+  ran eight days (6 to 13 August 2026), not the five its transcript designer imagined, in
+  **23 runs** by 13 people: four came back on a later day and two overlapped. Seven people wrote on
+  the first day, 48 of the 133 answers. The composer saves one question at a time, so a person's
+  answers arrive seconds apart in question order; a Round is arrivals, not conversation.
+- **F27, a capture trap (S3, proved 2026-09-06).** A `--mobile --full` shot (device scale 2) of a
+  page taller than about 8,000 CSS px that contains a `backdrop-filter` element comes out as blank
+  background from top to bottom while the DOM is fine: the bitmap passes Chrome's 16,384px
+  compositing limit and the blurred layer takes the rest with it. Capture at scale 1 or in
+  viewport-sized pieces. Written into `scripts/qa/screenshot-auth.mjs`'s header.
+- **F28, the MCP browser cannot be signed in from a session (S3).** Reading `DEV_LOGIN_SECRET`
+  from `.env` is denied by the permission settings, and the `chrome-devtools` server runs
+  `--isolated --headless` with no attachable port, so nothing can hand it the cookie. Every
+  screenshot in S3 went through `screenshot-auth.mjs`, which signs in from Node. The measuring
+  `evaluate_script` does is available from a throwaway puppeteer probe in `/tmp` that imports
+  `scripts/qa/_dev-login.mjs`; that is what found F27.
 
 ---
 
@@ -1114,11 +1144,13 @@ learned since.
   spurious whole-page diffs on 2026-08-29). Read the diff before ever running `visual:update`.
 - **Dev server** `npm run dev` on `http://localhost:3000`; start it in the background if it
   is down. `mv .next .next-stale-$(date +%s)` if every route 404s.
-- **Signing in from the `chrome-devtools` MCP**: it cannot sign itself in. Use
-  `scripts/qa/_dev-login.mjs`, which posts `DEV_LOGIN_SECRET` from Node and hands the cookie
-  to the browser; do not POST the secret from `evaluate_script`. `npm run screenshot:auth --
-  "<url>" [--mobile]` and `npm run verify:shot <route> <out.png> [mobile]` for shots on the
-  record, both signed in as the admin account. `PUPPETEER_EXECUTABLE_PATH` to the real
+- **Signing in from the `chrome-devtools` MCP**: it cannot sign itself in, and as of S3 a
+  session cannot sign it in either (F28: the secret cannot be read from `.env`, and the MCP's
+  Chrome has no port to hand a cookie to). Use `npm run screenshot:auth -- "<url>" [--mobile]
+  [--full]` and `npm run verify:shot <route> <out.png> [mobile]` for shots, both signed in from
+  Node as the admin account; `--full` scrolls the page first so lazy images load, and F27 says
+  when it blanks. For geometry, a throwaway puppeteer probe in `/tmp` that imports
+  `scripts/qa/_dev-login.mjs` and dies with the command. `PUPPETEER_EXECUTABLE_PATH` to the real
   Chrome for `verify-shot` and `crawl`.
 - **Test account is Jerry Maguire** (`sanan.shankar@gmail.com`). The owner's own account is
   fine for read-only looking. Never sign in as a real alumnus: dev-login writes presence
@@ -1188,6 +1220,31 @@ of this section, in the same five-line shape, with a default on each; one reply 
 - **If I guess wrong:** a line more or less of caption before the fold.
 - **Options:** (a) four (b) three (c) no fold at all.
 - **If you don't reply I'll do:** (a), because you said "maybe make it 4 lines" last.
+
+**7. Which of the ten sketches get a full room?** (asked 2026-09-06, after S3)
+- **What I'd change:** the three or four you keep at `/lab/catchups/sketches` become the rooms
+  S4 builds; the rest stay on disk as writing and are not built.
+- **What you'd notice:** rooms only for the directions you chose, each one live enough to tap
+  and scroll on your phone with the real Round and the invented worst cases.
+- **If I guess wrong:** a direction you would have loved gets no room, and a room gets built for
+  one you would have culled in a minute.
+- **Options:** (a) the four the judges and I lean to: The bar is the question, The calendar keeps
+  it, Covers that draw themselves, You land in the Round (b) your own list of slugs (c) none of
+  these, run a second round of directions first (S3b).
+- **If you don't reply I'll do:** (a).
+
+**8. Nobody designed the writing side. Should a second round take it before the rooms?** (asked
+2026-09-06)
+- **What I'd change:** all ten directions are about reading a finished Round; the page where
+  people answer, add photographs and paste song links kept today's shape in every one. Either each
+  room's builder designs it alongside the reader, or a short second round (S3b) designs it first.
+- **What you'd notice:** with (a), the answering page in each room is that builder's own attempt
+  in the direction's style; with (b), a week's delay and a set of answering-page sketches to cull
+  before any room.
+- **If I guess wrong:** (a) risks an answering page that is an afterthought in the room you pick;
+  (b) risks a week on a surface you may not care about as much as the reader.
+- **Options:** (a) the rooms draw it (b) S3b first, on answering alone (c) leave it to S5.
+- **If you don't reply I'll do:** (a).
 
 ## Owner answers
 
@@ -1356,3 +1413,55 @@ rewritten; the ranked list now has eleven items and this is sixth; X takes it se
 the green bar. The lesson for the campaign is one the brief already warns about: a sentence's
 position in the transcript is not its subject, and when a reading is wrong he is the one who can
 say so.
+
+### 2026-09-05 to 06, S3, directions (Fable max, ultracode on, run by `/campaign`)
+
+Read everything the section asks for, in full. Gate 1 was already closed by S0 (questions 1 to 5
+answered, 6 defaulted), so no new question blocked the start. Mid-session he sent one line, *"try
+it different ways in your head brainstorm deeply and consider all options before making any single
+/ group of decisions"*, and the architecture page was re-tried call by call before any designer saw
+it: five binding lines loosened or gained a stated alternative (the home may be the reader; the
+cover may carry headlines but never a quoted answer; pause becomes a hold on the clock; the menu
+and the people sheet may be one info sheet; who keeps a batch has two answers and a term-calendar
+alternative), each kept in the page as "considered and not taken". The rule is now a memory.
+
+**Produced.** `directions.md`: Part 1 the architecture (one mind, before the fan-out), Part 2 the
+ten directions with the judges, the adversarial pass and the panel, Part 3 a room brief per
+direction for S4, Part 4 the lean, Part 5 what he does next. `directions/01` to `10`, the ten
+directions in full, 8,500 to 11,400 words each, the same eight sections so they compare.
+`/lab/catchups/sketches`: one room, ten tabs, three drawings each (the reader from the top as a
+page, one 390x844 screen deep in question 5 with the navigator resting, one with it open) plus the
+same reader at 1512, all of it the live "in the loop" Round 1 read through the shipped loader, in a
+frame that scales a fixed-width drawing to fit so his phone sees 390 at 1:1. Registered, `npm run
+check` green, every drawing read at both sizes by this session.
+
+**How it ran.** One `Workflow`, 24 agents: ten designers on this session's model at max effort
+(seven reading the recon, three blind to it), one Opus judge per direction scoring fifteen items
+with quotes, an adversarial Opus judge over all ten hunting today's layout, and a three-lens Opus
+panel (him on his phone, a designer at Apple, a member of 2003) asked which he would still be
+thinking about tomorrow. The first run died on his session limit at 23:40 with four directions
+written and none returned; the rerun at 05:40 read those four back with Sonnet and wrote the other
+six. 3.8M subagent tokens across both runs. Then ten Opus builders, one file each under
+`_directions/`, no browser, disjoint paths, four at a time; each reported the numbers it chose
+where its direction was silent and the two things it was least sure of, and those are in the
+files as comments.
+
+**What came back.** Every judge said keep; none found today-with-bugs-fixed. Judge totals 58 to
+68 of 75. The panel was unanimous: The bar is the question first, The calendar keeps it second,
+the blind whole-app direction the one to forget, and it is folded into the paged direction as its
+second execution. The adversarial judge's list of what ten designers converged on without being
+asked is F24, and its missing bet, the composer, is F25. The transcript's builder found the Round
+ran eight days in 23 runs (F26). Tabs run in the order this session would look at them, said out
+loud as a nudge.
+
+**Tooling that changed.** `screenshot-auth.mjs` gained `--full`, which scrolls the page first so
+lazy images load, and its header records the 2x-over-8,000px blank (F27). The harness gained
+`frame=mid|nav|reader` and `bare=1` for single-frame captures. The MCP browser could not be signed
+in (F28); every shot went through the script, every measurement through a `/tmp` probe.
+
+**Not done, and why.** The sketches are static by design (the cull, not the pick). No S3b. The
+composer has no direction (F25, owner question 8). The pressure fixture is not in the sketch room;
+it is S4's per the handover. Nothing pushed.
+
+**Next.** He culls (owner question 7). S4 builds the survivors from `directions.md` Part 3 and the
+direction files, one room at a time, composer included; X is still unblocked and independent.
