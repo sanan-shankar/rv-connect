@@ -151,8 +151,9 @@ too, which he allowed in ¶28.
 | S1 Reconnaissance | DONE | `recon.md` (43 findings), `flows.md`, the export, the pressure fixture, one `[Recon]` Catch-up left in place. Gaps listed at the end of `recon.md` |
 | S2 Prior art | DONE | `prior-art.md`, inside S0, 2026-09-05; F15 says how far to trust each part |
 | S3 Directions | DONE | 2026-09-06 first pass: `directions.md` Parts 1-5, ten directions, ten sketches. **Second pass the same day, after he rejected most of them** ("80% of the designs have just no taste at all"): six deleted, one rebuilt, four new, one synthesis. `directions.md` Part 6 supersedes Parts 2-4 and carries his rules as a table. Five sketches now |
-| Owner culls the sketches | OWNER-GATED | **now**: `/lab/catchups/sketches` on his phone, starting at The one I would build. The first pass is back in the room behind a divider, dimmed, so its ideas can be pointed at (`directions.md` 6.8). Owner question 7, rewritten for the five. His cull is S4's shortlist |
-| S4 Rooms | OPEN | blocked on the cull; build from `directions.md` Part 3 and each direction's own file, and draw the composer too (F25) |
+| Owner culls the sketches | DONE | 2026-09-06: he went through all fifteen out loud, one at a time, and rejected all fifteen. Verbatim in [`review-2026-09-06.md`](review-2026-09-06.md), 51 paragraphs. "There is nothing here that I prefer to what is shipped" (R46), and "you are okay to delete everything else" (R47). Owner questions 7 and 8 are withdrawn: the cull answered 7, and 8 is folded into the front runner |
+| S3c Front runner | OPEN | **next.** ONE reader, drawn by hand, from [`front-runner.md`](front-runner.md): what is settled, and the five problems none of the fifteen solved. The question navigator is the one thing to draw two or three ways (R24) |
+| S4 Rooms | OPEN | blocked on S3c, not on the cull. Build from the front runner once he says it is the one; `directions.md` Part 3's briefs are dead with the directions they describe. Draw the composer too (F25) |
 | Owner browses the rooms | OWNER-GATED | |
 | S3b Second round | OPEN | only if he asks for it after the rooms |
 | S5 Pick and spec | OPEN | blocked on the pick |
@@ -1508,3 +1509,25 @@ it is S4's per the handover. Nothing pushed.
 
 **Next.** He culls (owner question 7). S4 builds the survivors from `directions.md` Part 3 and the
 direction files, one room at a time, composer included; X is still unblocked and independent.
+
+### 2026-09-06 to 07, S3 second and third passes (Opus max, run by /campaign)
+
+He rejected the first ten directions and the fan-out that produced them (F32). They were redrawn by
+one hand as five, three faults in the shipped app fell out of the drawing (F29, F30, F31), and the
+first ten were then restored to the room behind a divider when he asked for them back, because a
+thing you cannot flick to is a thing you cannot point at.
+
+Then he reviewed all fifteen out loud, one at a time, for about forty minutes, and rejected all
+fifteen. That review is [`review-2026-09-06.md`](review-2026-09-06.md), verbatim, 51 paragraphs, and
+it outranks `directions.md` everywhere the two disagree. The distillation a builder works from is
+[`front-runner.md`](front-runner.md): twenty-two settled rules with his sentence beside each, and
+the five design problems that no design has yet solved.
+
+The session stopped before starting the rebuild, at his instruction, with the tree clean and the
+room still working: "you are at 50% context now and you're just starting the rebuild ... I don't
+think you should start working when it's half full." Nothing of the rebuild was kept; `_parts.tsx`
+and the fifteen directions are as they were at commit 8e3fe59.
+
+**Two things the next session must not repeat.** It must not fan the design out (F32). And it must
+not port the year rail, the directory grid, the letters type scale or the profile layout into
+Catch-ups: those were named as examples of a FEELING of rightness, not as parts to reuse (R50).
