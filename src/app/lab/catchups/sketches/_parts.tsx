@@ -258,6 +258,129 @@ function Comments({ entry }: { entry: SketchEntry }) {
   );
 }
 
+/* ── A long answer ─────────────────────────────────────────────────── *
+ *  Eight of this Round's 133 answers are over 600 characters and one is
+ *  2,000. Printed whole on a phone that last one is a screen and a half,
+ *  and the twelve people underneath it are gone. The shipped reader has no
+ *  truncation at all, so this is an addition rather than a restoration.
+ *
+ *  The precedent is his, on photo captions (para 32): "let's keep the More
+ *  and Less button, but maybe increase it from 2 lines to 3 lines. Or 3
+ *  lines to 4 lines." So: More survives, the threshold is generous. Ten
+ *  lines here, not four, because four would cut the median answer to a
+ *  question like "How has RV shaped your relationship with AI" (373
+ *  characters) and truncating the typical answer is a different and worse
+ *  fault than letting the longest one run.
+ */
+const CLAMP_OVER_CHARS = 600;
+const CLAMP_LINES = 10;
+
+export function Body({
+  text,
+  fontSize,
+  lineHeight,
+  className,
+}: {
+  text: string;
+  fontSize: number;
+  lineHeight: number;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const long = text.length > CLAMP_OVER_CHARS;
+
+  return (
+    <>
+      <p
+        className={cn("whitespace-pre-line", className)}
+        style={{
+          fontSize,
+          lineHeight,
+          ...(long && !open
+            ? {
+                display: "-webkit-box",
+                WebkitBoxOrient: "vertical" as const,
+                WebkitLineClamp: CLAMP_LINES,
+                overflow: "hidden",
+              }
+            : {}),
+        }}
+      >
+        {text}
+      </p>
+      {long && (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="mt-1 text-[14px] font-medium text-canopy hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          {open ? "Less" : "More"}
+        </button>
+      )}
+    </>
+  );
+}
+
+/* ── Who asked ─────────────────────────────────────────────────────── *
+ *  Six of this Round's eleven questions were written by a MEMBER, not
+ *  taken from the library and not set by the Keeper: Abhineet asked about
+ *  AI, Siya asked about side quests, Prapti asked the creative one. None
+ *  of the second-pass directions showed that, and it is the difference
+ *  between a questionnaire and a group of people asking each other
+ *  things, which is what para 47 says the whole feature is for: "This is
+ *  the only place where I'm almost expressing myself and saying what I
+ *  want people to do."
+ *
+ *  Only for `source === "member"`. A library question's "author" is
+ *  whoever picked it off a list, and "asked by Siddhant" would be a lie
+ *  about a prompt he chose rather than wrote. The anonymity gate is
+ *  already applied upstream by `askerVisible`, so a null asker here means
+ *  it must not be shown at all.
+ */
+export function AskedBy({
+  question,
+  tone = "ink",
+  className,
+}: {
+  question: { source: string; asker: SketchPerson | null };
+  tone?: "ink" | "paper";
+  className?: string;
+}) {
+  if (question.source !== "member" || !question.asker) return null;
+  return (
+    <p
+      className={cn(
+        "text-[13px]",
+        tone === "paper" ? "text-white/70" : "text-muted-foreground",
+        className
+      )}
+    >
+      {question.asker.name} asked this
+    </p>
+  );
+}
+
+/* ── The end of a Round ────────────────────────────────────────────── *
+ *  Every second-pass direction ended on one muted sentence, which is not
+ *  an ending. The first pass was better here: the foot of a Round is the
+ *  one moment a reader is most likely to act, and the act is asking
+ *  something for the next one. Para 15's complaint is that today you have
+ *  to scroll to the bottom and find nothing worth having arrived at.
+ */
+export function RoundFoot({ nextOpens, className }: { nextOpens: string; className?: string }) {
+  return (
+    <footer className={cn("border-t border-border pt-7", className)}>
+      <p className="font-heading text-[19px] text-foreground">Round 2 opens on {nextOpens}</p>
+      <button
+        type="button"
+        className="mt-3 inline-flex items-center rounded-full bg-canopy px-4 py-2 text-[14px] font-semibold text-white transition-opacity duration-150 hover:opacity-90 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      >
+        Ask something for it
+      </button>
+    </footer>
+  );
+}
+
 /* ── Photographs ───────────────────────────────────────────────────── *
  *  One, two or many. A single photograph keeps its own proportions up to
  *  a limit; more than one goes into an even grid, because a mixed grid of

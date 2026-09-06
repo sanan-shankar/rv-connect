@@ -1031,3 +1031,46 @@ what was actually taken is listed; a source that gave nothing is not here.
 
 The one thing not borrowed from anywhere is the plate. The Catch-up's green is already the app's,
 and printing a question on it was his own idea from the first round.
+
+## 6.8 The first pass is back in the room, and what was taken from it
+
+Owner, the same day: *"are all the previous ones gone? they had a few things that we could use
+that are lacking from yours."*
+
+Nothing was ever gone. The ten written directions are on disk in [`directions/`](directions/),
+97,000 words, and the ten sketches were one `git show` away. But a thing you cannot flick to is a
+thing you cannot point at, so all ten are back in the room behind a **First pass** divider, dimmed.
+They inherit the fixed shell, so the stretched background is gone; every other fault he listed is
+still in them on purpose, because they are there to be harvested rather than shipped.
+
+Three things they had that the five did not, all now in the five:
+
+- **Who asked the question.** Six of this Round's eleven questions were written by a member rather
+  than taken from the library or set by the Keeper: Abhineet asked the AI one, Siya asked about
+  side quests, Prapti asked the creative one. The plate now carries "Abhineet More asked this"
+  under the question. This is the difference between a questionnaire and a group of people asking
+  each other things, which is what ¶47 says the feature is for. Only for `source === "member"`: a
+  library question's author is whoever picked it off a list, and naming them would be a lie about a
+  prompt they did not write.
+- **A ceiling on the longest answers.** Eight of 133 answers are over 600 characters and one is
+  2,000; printed whole on a phone that one is a screen and a half and buries twelve people. More
+  and Less at ten lines. Ten and not four, though ¶32 says four: four would cut the MEDIAN answer
+  to a question like the AI one, and truncating the typical answer is a worse fault than letting
+  the longest run. This is an addition rather than a restoration, and it is the one thing here he
+  did not ask for.
+- **An ending.** All five finished on one muted sentence, which is not an ending. The foot of a
+  Round is the moment a reader is most likely to act and the act is asking something for the next
+  one, so it is now a heading and a Canopy pill.
+
+Two more were considered and left out, because both are things he has complained about in another
+form and only he can settle it:
+
+- **The names of who wrote in, at the head of the Round.** §1.7 locked "names, with birds beside
+  them" on the grounds that a bird alone counts while a bird beside a name identifies. The five
+  dropped the row entirely, because ¶23 calls it *"totally useless"* and 2026-09-06 adds *"Why do I
+  need to know how many people wrote in."* Both of those are about the COUNT and about bare birds.
+  A row of four or five names might still be wanted. It is not in the five; say the word.
+- **The day the answers arrived.** This Round filled over eight days, 6 to 13 August, and the
+  `transcript` direction cut it into "Thursday 6 August" dividers. It is a real dimension and no
+  other direction has it, but it only works if the Round is read in arrival order, which fights
+  reading it by question. It belongs behind the second-axis door in §1.6, not in the default.

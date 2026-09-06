@@ -44,7 +44,18 @@ import { X } from "@phosphor-icons/react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import type { SketchDirection, SketchEntry, SketchPerson, SketchProps, SketchRound } from "../_types";
 import { PhoneBar, PhoneShell, DesktopShell } from "../_shell";
-import { Media, MetaLine, Photographs, Reactions, bodyType, lengthOf, longDate, said } from "../_parts";
+import {
+  Body,
+  Media,
+  MetaLine,
+  Photographs,
+  Reactions,
+  RoundFoot,
+  bodyType,
+  lengthOf,
+  longDate,
+  said,
+} from "../_parts";
 
 type Said = { question: string; entry: SketchEntry };
 
@@ -78,12 +89,12 @@ function Said({ said, phone }: { said: Said; phone: boolean }) {
     <article className="min-w-0 break-inside-avoid">
       <Label text={said.question} />
       {body && (
-        <p
-          className={`mt-2.5 whitespace-pre-line ${type.className}`}
-          style={{ fontSize: type.fontSize, lineHeight: type.lineHeight }}
-        >
-          {body}
-        </p>
+        <Body
+          text={body}
+          fontSize={type.fontSize}
+          lineHeight={type.lineHeight}
+          className={`mt-2.5 ${type.className}`}
+        />
       )}
       <Media items={entry.media} className="mt-3" />
       {entry.images.length > 0 && <Photographs entry={entry} className="mt-3" />}
@@ -159,7 +170,9 @@ function Reader({ round, viewport }: SketchProps) {
             </div>
           </section>
         ))}
-        <p className="px-5 pb-12 text-[14px] text-muted-foreground">Round 2 opens on 6 October.</p>
+        <div className="px-5 pb-12">
+          <RoundFoot nextOpens="6 October" />
+        </div>
       </PhoneShell>
     );
   }
@@ -186,7 +199,7 @@ function Reader({ round, viewport }: SketchProps) {
             </section>
           ))}
         </div>
-        <p className="pb-4 pt-16 text-[14px] text-muted-foreground">Round 2 opens on 6 October.</p>
+        <RoundFoot nextOpens="6 October" className="mt-16" />
       </div>
     </DesktopShell>
   );

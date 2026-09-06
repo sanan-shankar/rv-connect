@@ -82,6 +82,9 @@ export type SketchQuestion = {
   id: string;
   text: string;
   kind: "text" | "photo" | "songs";
+  /** "library" | "member" | "keeper". Only a member-written question names
+   *  its asker: see AskedBy in _parts.tsx. */
+  source: string;
   showAsker: boolean;
   asker: SketchPerson | null;
   entries: SketchEntry[];
@@ -113,6 +116,11 @@ export type SketchDirection = {
   name: string;
   /** One sentence: what it bets on. Shown under the name in the harness. */
   thesis: string;
+  /** True for the ten drawn in the first pass, kept so their ideas can be
+   *  harvested rather than remembered. They are drawn with the fixed shell,
+   *  so the background bug is gone, but everything else about them is as he
+   *  first saw it: batch lines, counts, "2 comments" as words. */
+  earlier?: boolean;
   Reader: (props: SketchProps) => ReactNode;
   MidScroll: (props: { round: SketchRound }) => ReactNode;
   NavigatorOpen: (props: { round: SketchRound }) => ReactNode;

@@ -28,8 +28,36 @@ import { plate } from "./plate";
 import { spread } from "./spread";
 import { rider } from "./rider";
 import { yearbook } from "./yearbook";
+import { frontDoor } from "./front-door";
+import { calendar } from "./calendar";
+import { conversation } from "./conversation";
+import { paged } from "./paged";
+import { shelf } from "./shelf";
+import { room } from "./room";
+import { transcript } from "./transcript";
+import { wholeApp } from "./whole-app";
+import { actionButton } from "./action-button";
+import { letter } from "./letter";
 
 /* `pick` first, on purpose: it is the synthesis and the recommendation,
    and the three it is built out of come after it so the parts can be
    compared against the whole. `yearbook` last because it is the outlier. */
-export const DIRECTIONS: SketchDirection[] = [pick, plate, spread, rider, yearbook];
+/* The first pass, restored 2026-09-06 the same day it was cut. Owner: "are
+   all the previous ones gone? they had a few things that we could use that
+   are lacking from yours." Nothing was ever lost - the ten written
+   directions are on disk in docs/planning/catchups-rework/directions/ and
+   the code was one `git show` away - but a thing you cannot flick to is a
+   thing you cannot point at, so they are back in the room behind the five.
+   They inherit the fixed shell, so the stretched background is gone; every
+   other fault he listed is still in them on purpose, because they are here
+   to be harvested, not shipped. */
+const EARLIER = [actionButton, calendar, shelf, frontDoor, conversation, room, paged, wholeApp, transcript, letter];
+
+export const DIRECTIONS: SketchDirection[] = [
+  pick,
+  plate,
+  spread,
+  rider,
+  yearbook,
+  ...EARLIER.map((d) => ({ ...d, earlier: true as const })),
+];
