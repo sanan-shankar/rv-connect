@@ -10287,3 +10287,26 @@ the reason adjectives are banned from a brief written down beside it. He asked w
 "beautiful", "original" and "delightful" should go in CLAUDE.md; they should not, because a word
 with no referent gets filled with the median of everything ever called that, which is the house
 style of every AI-built app.
+
+## 2026-09-06 — Catch-ups rework, S3: ten directions and the sketch room
+
+The shared architecture was written first and alone, then re-tried call by call after the owner's
+mid-session line to brainstorm before deciding; five of its binding lines loosened, with the paths
+not taken kept in the page. Ten designers then wrote ten whole-concept directions from it (seven
+with the recon, three blind to it), each to the same eight sections; ten Opus judges scored them
+against the brief with quotes, an adversarial judge hunted for today's layout in every one and found
+none, and a three-lens panel picked the direction he would still be thinking about tomorrow, the
+same one three times: the app's green bar becoming the reader. The first workflow died on the
+session limit with four directions on disk; the rerun read them back and wrote the rest.
+
+**`/lab/catchups/sketches` is the cull.** Ten tabs, and for each the real "in the loop" Round drawn
+three ways on a phone and once at 1512, in a frame that scales a fixed-width drawing to fit. Ten
+Opus builders drew them from the direction files, one file each, without a browser; every drawing
+was read at both sizes here. Two things the batch taught: ten designers converged on the same
+two-part phone navigator and the same boxless short answer without being asked (handover F24), and
+not one designed the page where answers are written (F25), which is now owner question 8.
+
+Tooling: `screenshot-auth.mjs --full` scrolls lazy images in first, and its header records that a
+2x full-page capture over about 8,000px with a backdrop blur comes out blank (F27). The MCP browser
+cannot be signed in from a session (F28). `directions.md` holds the architecture, the ten, the
+judges, a room brief each for S4, and the lean.
