@@ -44,8 +44,8 @@
  *  shipped room, and every one of those changes is annotated where it
  *  lives: the invitation is smaller and names the clipboard only on a
  *  machine that has one, the two overlapping prose fields are one
- *  description on the signup's float-label material, "when" is decade
- *  pills instead of two dropdowns, and nothing at rest is filled with
+ *  description on the signup's float-label material, "when" is one box
+ *  of digits instead of two dropdowns, and nothing at rest is filled with
  *  cream -- "I don't like the yellowing when it's not selecting."
  * ------------------------------------------------------------------ */
 
@@ -111,20 +111,6 @@ type Staged = {
   /** The staged key from the presigned PUT, when that path was available. */
   key?: string;
 };
-
-/* The three questions -- what it is of, when, and what you remember -- live
-   in ./photo-questions.tsx, because the edit dialog asks the same three of a
-   photograph already in the archive (owner, 2026-08-30) and two copies of one
-   form is the thing that drifts. `PhotoAnswers` is what they answer with; it
-   was `Meta` here. */
-
-/* The date rule -- what one box of digits means to the archive -- lives in
-   `lib/collection.ts` beside the eras themselves, because it is a fact about
-   what gets stored rather than a detail of this screen, and because it is
-   pure there and pinned by `collection-date.test.mjs`. */
-
-/* usePointerFine (cursor + clipboard test for the invitation's wording) moved
-   to attach-image-dialog.tsx so both attach wells ask it the same way. */
 
 /** Read a file's own shape, which is what the justified rows are solved from.
  *  Resolves to null for anything the browser will not decode, so one bad file
@@ -1042,7 +1028,7 @@ function Finish({
       {/* Balanced, both of them. Left alone the count broke as "Three
           photographs are in the Collection / now." -- a two-word runt, which
           is the same ragged wrap the owner threw out of the (i) note. */}
-      <p className="max-w-lg text-balance font-heading text-[26px] leading-snug tracking-[-0.02em] text-foreground">
+      <p className="max-w-lg text-balance font-heading text-lede leading-snug tracking-[-0.02em] text-foreground">
         Thank you for your contribution.
       </p>
       <p className="mt-2 max-w-sm text-balance text-[15px] leading-relaxed text-muted-foreground">

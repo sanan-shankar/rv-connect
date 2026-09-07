@@ -105,6 +105,15 @@
      Exception: the feed composer's inline post box stays a full pill. */
   --radius-input: 0.75rem;
 
+  /* The one heading size between the ladder's h1 (2rem) and h2 (1.5rem).
+     26px, and it was hand-typed as `text-[26px]` at seven call sites -- the
+     dark-mode gauntlet's six step headings and the Collection contribute
+     room's invitation. Same pixels, one name, so the eighth site copies a
+     token instead of a number. Font size only: the two surfaces set their
+     own leading (tight against snug) and this must not quietly change
+     either. */
+  --text-lede: 26px;
+
   /* Stacking order tokens. Migrate ad-hoc z-* values onto these as they're
      touched; base = normal flow, elevated = sticky chrome (sidebar/header),
      floating = anchored popovers/tooltips/dropdowns, overlay = modals/sheets
