@@ -55,12 +55,28 @@ const img = (url: string) => ({ url, file: null, bytes: null });
 let seq = 0;
 const id = (prefix: string) => `${prefix}-${(seq += 1).toString().padStart(3, "0")}`;
 
+/* Every id this file has minted, because the first version of `personOf`
+   stripped everything that was not a-z out of the name and two thirds of
+   the cast came out sharing an id. "Member 1" through "Member 93" were all
+   `px-member-`; so were all 24 wallers and all 40 of the crowd; and the
+   Devanagari and Arabic names, having no a-z in them at all, were both
+   `px--` -- one id for two different people, which is the one thing an id
+   may never be. Nothing here rendered a warning until a room finally drew
+   the corpus, and then it was 186 duplicate React keys at once. Digits
+   stay in the slug now, and a collision takes a suffix. */
+const usedIds = new Set<string>();
+
 function personOf(
   name: string,
   batchYear: number | null,
   birdOverride: string | null = null
 ): ExportedPerson {
-  return { id: `px-${name.toLowerCase().replace(/[^a-z]+/g, "-")}`, name, batchYear, photoUrl: null, birdOverride };
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const base = `px-${slug || "person"}`;
+  let unique = base;
+  for (let n = 2; usedIds.has(unique); n += 1) unique = `${base}-${n}`;
+  usedIds.add(unique);
+  return { id: unique, name, batchYear, photoUrl: null, birdOverride };
 }
 
 /* The cast. Each one is here to break something specific.

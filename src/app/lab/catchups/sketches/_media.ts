@@ -81,13 +81,31 @@ export function findLinks(body: string | null): Found[] {
   return out;
 }
 
-/** The body with its links taken out, so a card is not printed twice: once
- *  as a picture and once as forty characters of query string. Trailing
- *  tracking parameters go with it. */
+/** The body with the links THAT BECAME CARDS taken out, so a card is not
+ *  printed twice: once as a picture and once as forty characters of query
+ *  string. Trailing tracking parameters go with it.
+ *
+ *  Only those. It used to strip `https?:\/\/\S+`, every url in the body,
+ *  which quietly destroyed any link this file does not resolve. The
+ *  pressure corpus found it on the first run: an answer whose entire body
+ *  is a Bandcamp link came out as an empty string, produced no card
+ *  because the host has no resolver, and was then dropped from the page
+ *  altogether by `said()` -- a member's whole answer gone, with nothing on
+ *  screen to say so. An unrecognised link now stays as text, which is what
+ *  ships today and is at worst ugly rather than absent.
+ *
+ *  `\S*` after the matched prefix because `SPOTIFY_RE` stops at the id and
+ *  a real paste carries `?si=...&utm_source=...` behind it. */
 export function stripLinks(body: string | null): string {
   if (!body) return "";
-  return body
-    .replace(/https?:\/\/\S+/g, "")
+  let out = body;
+  for (const f of findLinks(body)) {
+    out = out.replace(
+      new RegExp(f.raw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\S*", "g"),
+      "",
+    );
+  }
+  return out
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
