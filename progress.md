@@ -1,5 +1,26 @@
 # Progress Log
 
+## 2026-09-07 — The visual suite stops crying wolf about a database write
+
+`/catchups` was red on both viewports and no commit caused it. The live band is masked by marking
+the elements under the page header, which covers the band at TODAY's height — so the strip between
+the band's foot and the viewport's was still being compared, and that strip is empty background only
+until the content grows into it. Six more Catch-ups arrived, the band grew about 160px, and the
+suite failed for a database write.
+
+The block comment above the masking already stated the intent — "the content under the page header
+is covered" — so this is that sentence implemented: one fixed rectangle from the band's foot to the
+foot of the viewport, appended at run time and dying with the context.
+
+**Constrained to the band's own x-range, never the full viewport.** The first attempt used
+`left:0;right:0`, which masked the sidebar and cut through the serif title on all five band routes,
+and the comment directly above promises the sidebar, the gutters and the background are still
+compared. With the x-range constraint the change is surgical: `feed`, `letters`, `collection` and
+`collection-class` all pass **unmodified**, and only `catchups` — the one route with an actually
+uncovered strip — needed a new baseline.
+
+25/25 visual, `npm run check` green.
+
 ## 2026-09-07 — three tree sweeps stop reading what they cannot be about
 
 Refactor audit 2, `lib-tests-05`. `identity-row-overflow-rule` walked all 688 files under `src/`,
