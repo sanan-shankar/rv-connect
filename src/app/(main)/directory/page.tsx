@@ -73,10 +73,9 @@ function buildPins(
       jobTitle: u.jobTitle,
     };
     // Resolve every one of this person's cities once, deduped by pin key (so
-    // "Bangalore" listed twice never double-plots). Kept alongside each pin
-    // entry as `otherCities` -- a person appears in EVERY city they list
-    // (owner override) -- even though the drilldown no longer renders an
-    // "Also in ..." line for it (owner call, 2026-07).
+    // "Bangalore" listed twice never double-plots). A person appears in EVERY
+    // city they list (owner override), so one member can produce several pin
+    // entries.
     const resolvedByKey = new Map<string, { city: string; coords: [number, number] }>();
     for (const place of u.places) {
       const coords = placeCoords(place, fallbackCoords);
@@ -104,17 +103,10 @@ function buildPins(
         : `${coords[0].toFixed(1)},${coords[1].toFixed(1)}`;
       if (!resolvedByKey.has(key)) resolvedByKey.set(key, { city: place.city, coords });
     }
-    const allMappedCities = [...resolvedByKey.values()].map((r) => r.city);
-
     let placedSomewhere = false;
     for (const [key, { city, coords }] of resolvedByKey) {
       placedSomewhere = true;
-      const otherCities = allMappedCities.filter((c) => c !== city);
-      const person: PinPerson = {
-        ...base,
-        currentCity: city,
-        otherCities: otherCities.length > 0 ? otherCities : undefined,
-      };
+      const person: PinPerson = { ...base, currentCity: city };
       const existing = pinMap.get(key);
       if (existing) {
         existing.count += 1;
