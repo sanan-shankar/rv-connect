@@ -11116,3 +11116,10 @@ has ever passed, resolved it through a `ComposerScope` type and a `SCOPE_PLACEHO
 existed to hold two strings, and then retyped the letter one as a literal further down the file. Two
 named constants now, the owner's 2026-08-04 wording note kept above them, and one fewer prop on the
 app's biggest client component. −16/+8.
+
+**D11a — the `pending` filter branches the review room left behind.** `/admin/content` redirects
+`?type=pending` to `/admin/review` on the raw search param, before the filters are ever read — so
+the four branches downstream that still understood `pending` (an approved-false predicate, an
+oldest-first `orderBy`, an oldest-first merge sort, and a member of `ContentType`) could not be
+reached by any call the app can make. Out, with the thirteen-line comment that explained an option
+nobody can pick, and the page docblock that said the review queue lives here. −19/+9.

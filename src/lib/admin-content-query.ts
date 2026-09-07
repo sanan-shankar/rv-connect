@@ -128,14 +128,13 @@ export async function loadContent(f: ContentFilters): Promise<ContentItem[]> {
     );
   }
 
-  if (want("photo") || f.type === "pending") {
+  if (want("photo")) {
     jobs.push(
       prisma.photo
         .findMany({
           where: {
             ...hidden,
             ...(f.authorId ? { uploaderId: f.authorId } : {}),
-            ...(f.type === "pending" ? { approved: false } : {}),
             ...(search ? { caption: search } : {}),
           },
           select: {
@@ -147,9 +146,7 @@ export async function loadContent(f: ContentFilters): Promise<ContentItem[]> {
             createdAt: true,
             uploader: { select: { id: true, name: true } },
           },
-          // The queue reads oldest-first (whoever has waited longest goes
-          // next); everything else reads newest-first.
-          orderBy: { createdAt: f.type === "pending" ? "asc" : "desc" },
+          orderBy: { createdAt: "desc" },
           take: CONTENT_PAGE_SIZE,
         })
         .then((rows) =>
@@ -172,13 +169,7 @@ export async function loadContent(f: ContentFilters): Promise<ContentItem[]> {
 
   const merged = (await Promise.all(jobs)).flat();
 
-  // The pending queue keeps its oldest-first order; everything else is a
-  // newest-first mix.
-  merged.sort((a, b) =>
-    f.type === "pending"
-      ? a.createdAt.localeCompare(b.createdAt)
-      : b.createdAt.localeCompare(a.createdAt)
-  );
+  merged.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return merged.slice(0, CONTENT_PAGE_SIZE);
 }
