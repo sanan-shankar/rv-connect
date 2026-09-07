@@ -67,10 +67,6 @@ const AttachImageDialog = dynamic(
  *  storage/rendering/search never change. Mentions stay a literal
  *  "@[Name](id) " text insertion.
  * ------------------------------------------------------------------ */
-/* The DOM<->markdown helpers and format shortcuts moved to
-   src/lib/rich-text-editing.ts (2026-08-13) so every writing surface -- this
-   composer, the catch-up answer card, the edit dialog -- shares one story. */
-
 // Height of the resting pill (h-11). The expand animation grows the box DOWN from
 // exactly this height, and collapse contracts back to it, so nothing ever shrinks
 // up first or starts stretched.
@@ -626,11 +622,6 @@ export function CreatePostForm({
             "data-[empty=true]:before:pointer-events-none data-[empty=true]:before:text-muted-foreground data-[empty=true]:before:content-[attr(data-placeholder)]"
           )}
         />
-        {/* No ring overlay any more. This field used to draw its own inset
-            ring in a sibling span because an outward ring got clipped by the
-            expand animation's overflow-hidden wrapper ("thicker at the
-            corners"). FIELD_FOCUS is inset for exactly that reason, so the
-            shared recipe serves here without a bespoke copy of it. */}
         {mentionQuery !== null && (
           <MentionDropdown query={mentionQuery} onSelect={handleMentionSelect} />
         )}

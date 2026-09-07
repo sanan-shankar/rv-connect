@@ -481,8 +481,7 @@ export async function deletePost(postId: string) {
 
   if (!post) return { error: "Post not found" };
 
-  // The author or an admin. There used to be a third way in -- a group admin
-  // removing a post in their group -- which is why this was a `let`.
+  // The author or an admin, and nobody else.
   const authorized =
     post.authorId === session.user.id || session.user.role === "admin";
   if (!authorized) return { error: "Not authorized" };
@@ -752,7 +751,8 @@ export async function toggleLike(postId: string) {
    * Now: `deleteMany` returns 0 or 1 and cannot race with itself, and the
    * create's unique violation is the OTHER tap having already produced exactly
    * the row we wanted. Both outcomes are the state the caller asked for, so
-   * both return it. The four sibling toggles below use the same shape.
+   * both return it. The two toggles below use the same shape, and so do the
+   * Collection's and Catch-ups' loves.
    */
   const removed = await prisma.like.deleteMany({
     where: { userId: session.user.id, postId },
@@ -1214,17 +1214,16 @@ export async function loadPosts(opts?: {
   };
 }
 
-/**
- * The signed-in member's saved posts (their own bookmarks), most-recently-saved
- * first. Private by construction: it only ever reads the session user's own
- * Bookmark rows, so it can never leak another member's saved list even if the
- * caller lands on someone else's profile. Group posts only surface while the
- * member still belongs to that group.
- */
 /** How many saved posts the Saved tab loads. It is a keepsake shelf rather
  *  than a feed, so it is one page; it now says so when it fills up. */
 const SAVED_POSTS_LIMIT = 120;
 
+/**
+ * The signed-in member's saved posts (their own bookmarks), most-recently-saved
+ * first. Private by construction: it only ever reads the session user's own
+ * Bookmark rows, so it can never leak another member's saved list even if the
+ * caller lands on someone else's profile.
+ */
 export async function loadSavedPosts() {
   const session = await auth();
   if (!session?.user?.id) return { posts: [], capped: false };

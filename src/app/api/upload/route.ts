@@ -10,9 +10,9 @@ import {
   isUnsupportedHeic,
   describeProcessingError,
   sniffImageType,
-
   isImageFile,
-  stillPictureNotice,} from "@/lib/upload-shared";
+  stillPictureNotice,
+} from "@/lib/upload-shared";
 import { vetUploadRequest } from "@/lib/api-gate";
 // The one argued-for "three photos per post" cap, from the pure rule module
 // the ownership check already uses. Each upload door used to retype it.

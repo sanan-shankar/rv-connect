@@ -35,8 +35,7 @@ export default async function FeedPage({
      moment that response streams, silently losing the row (bug audit Lows
      25/35/44/72/77/82/87). after() keeps the invocation alive for it. */
   if (q) {
-    const s = await auth();
-    after(() => logSearch({ scope: "feed", query: q, userId: s?.user?.id }));
+    after(() => logSearch({ scope: "feed", query: q, userId: session.user.id }));
   }
 
   const [unreadCount, userPlaces, marker] = await Promise.all([
