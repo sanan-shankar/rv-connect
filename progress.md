@@ -1,5 +1,15 @@
 # Progress Log
 
+## 2026-09-07 — One answer to "what is a page" across the screenshot family
+
+`verify:shot` took a bare route, `screenshot` and `screenshot:auth` took a full URL, and CLAUDE.md's
+own table says `<url>` while every session types a path. Three answers to one question, in one
+family of scripts, which is the drift Phase E exists to close. A leading `/` now resolves against
+localhost:3000 inside the shared `shoot()`, so both forms work everywhere.
+
+Found because the path form silently produced a blank frame; that half is fixed separately and is
+the real bug.
+
 ## 2026-09-07 — The screenshot scripts stop reporting a page they never loaded
 
 Found while verifying Phase D unit 1, not by the audit. `npm run screenshot /about` printed
