@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { HouseChainEditor } from "@/components/profile/house-chain-editor";
 import type { HouseYearEntry } from "@/lib/houses";
-import { parseHouseYearEntries } from "@/lib/house-spans";
-import { getOnboardingHouses, saveOnboardingHouses } from "../actions";
+import { saveOnboardingHouses } from "../actions";
 import type { OnboardingUser } from "../types";
 
 /* ------------------------------------------------------------------ *
@@ -51,33 +50,18 @@ export function HousesStep({
   onBack: () => void;
   onSkip: () => void;
 }) {
-  const [entries, setEntries] = useState<HouseYearEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  /* Seeded from the page, not fetched. This step used to read `houses` from a
+     mount effect, through a server action, behind a two-bar skeleton -- a
+     second round trip to the row `/welcome` had already loaded, and a flash of
+     skeleton on a step whose whole point is that the years are already known.
+     The page re-runs after every server action invoked from it, so what lands
+     here after a save is the saved thing. (The profile does the same:
+     `parseHouseYearEntries(user.houses)` in its page.) */
+  const [entries, setEntries] = useState<HouseYearEntry[]>(user.houses);
   const [saving, setSaving] = useState(false);
 
   const knowsYears =
     user.yearJoined != null && user.yearLeft != null && user.yearLeft - 1 >= user.yearJoined;
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      // callAction: a rejected fetch (deploy skew, dropped network) used to
-      // leave `loading` true forever, so this step stuck on its skeleton
-      // with no way out (audit B-042).
-      const result = await callAction(() => getOnboardingHouses());
-      if (cancelled) return;
-      if ("error" in result) {
-        toast.error(result.error);
-        setLoading(false);
-        return;
-      }
-      setEntries(parseHouseYearEntries(result.houses ? JSON.stringify(result.houses) : null));
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   async function handleSave() {
     if (entries.length === 0) {
@@ -118,19 +102,12 @@ export function HousesStep({
       {/* One 16px container, and the chain inside it. No year rows and no
           separate preview: this is both. */}
       <div className="rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)]">
-        {loading ? (
-          <div className="space-y-2.5">
-            <div className="skeleton-warm h-8 w-2/3 rounded-full" />
-            <div className="skeleton-warm h-8 w-1/2 rounded-full" />
-          </div>
-        ) : (
-          <HouseChainEditor
-            entries={entries}
-            onChange={setEntries}
-            yearJoined={user.yearJoined ?? null}
-            yearLeft={user.yearLeft ?? null}
-          />
-        )}
+        <HouseChainEditor
+          entries={entries}
+          onChange={setEntries}
+          yearJoined={user.yearJoined ?? null}
+          yearLeft={user.yearLeft ?? null}
+        />
       </div>
 
       <div className="flex items-center justify-between gap-2">
@@ -142,7 +119,7 @@ export function HousesStep({
           <Button type="button" variant="ghost" size="sm" onClick={onSkip} disabled={saving}>
             Skip for now
           </Button>
-          <Button type="button" variant="primary" onClick={handleSave} disabled={saving || loading}>
+          <Button type="button" variant="primary" onClick={handleSave} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Save &amp; continue
             {!saving && <ArrowRight className="h-4 w-4" />}

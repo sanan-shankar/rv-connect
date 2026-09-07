@@ -7,6 +7,7 @@ import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import type { OnboardingStepId } from "@/components/onboarding/types";
 import { safeNextPath } from "@/lib/next-path";
 import { IDENTITY_SELECT } from "@/lib/people-select";
+import { parseHouseYearEntries } from "@/lib/house-spans";
 
 export const metadata: Metadata = {
   title: "Welcome",
@@ -38,6 +39,7 @@ export default async function WelcomePage({
       jobTitle: true,
       yearJoined: true,
       yearLeft: true,
+      houses: true,
       places: {
         orderBy: { position: "asc" },
         select: { placeId: true, label: true, city: true, lat: true, lng: true },
@@ -95,6 +97,12 @@ export default async function WelcomePage({
         jobTitle: user.jobTitle,
         yearJoined: user.yearJoined,
         yearLeft: user.yearLeft,
+        /* The houses step used to read this column itself, from a mount
+           effect, through a server action, behind a two-bar skeleton -- a
+           second round trip to the same row the line above came from. The
+           page re-runs after every server action invoked from it (see the
+           guard note above), so this is as fresh as admissionNumber is. */
+        houses: parseHouseYearEntries(user.houses),
       }}
       initialStep={requestedStep ?? "welcome"}
       celebration={celebration}
