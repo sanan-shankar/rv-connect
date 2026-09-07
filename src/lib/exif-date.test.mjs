@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import sharp from "sharp";
 import { exifDate, exifFromPng, exifStamp, parseExifStamp } from "./exif-date.ts";
+import { dateOnlyExif } from "./collection-image.ts";
 import { crc32, deflateSync } from "node:zlib";
 
 /* The date a photograph's own file claims is the only thing standing between
@@ -170,21 +171,25 @@ test("the stored copy keeps the date and loses the coordinates", async () => {
     .jpeg()
     .toBuffer();
 
-  /* Exactly what `dateOnlyExif` composes. It cannot be imported here: it lives
-     in collection-photo.ts, which imports through the `@/lib` alias that a
-     plain .test.mjs cannot resolve. So the SHAPE is pinned instead -- an
-     allow-list of one, built fresh, never the original block with tags
-     removed. */
-  const stamp = exifStamp((await sharp(original).metadata()).exif, THIS_YEAR);
-  assert.equal(stamp, "2019:03:14 09:12:00");
+  /* THE REAL `dateOnlyExif`, not a hand-built stand-in of its shape. This
+     test used to compose the allow-list itself, because the function lived in
+     collection-photo.ts and that file imports through the `@/lib` alias a
+     plain .test.mjs cannot resolve; it has moved to collection-image.ts,
+     which is alias-free for exactly this reason. So what is pinned below is
+     now the block the app actually writes. */
+  const keepDate = await dateOnlyExif(original);
+  assert.deepEqual(keepDate, { IFD2: { DateTimeOriginal: "2019:03:14 09:12:00" } });
 
   const stored = await sharp(original)
     .rotate()
     .webp({ quality: 90 })
-    .withExif({ IFD2: { DateTimeOriginal: stamp } })
+    .withExif(keepDate)
     .toBuffer();
 
-  assert.equal(exifStamp((await sharp(stored).metadata()).exif, THIS_YEAR), stamp);
+  assert.equal(
+    exifStamp((await sharp(stored).metadata()).exif, THIS_YEAR),
+    "2019:03:14 09:12:00"
+  );
 
   /* The GPS tag numbers, spelled out rather than imported, because the reader
      under test deliberately does not know they exist. 0x8825 is IFD0's pointer

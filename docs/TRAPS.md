@@ -228,7 +228,7 @@ succeeds, so there is no symptom at all. PNG has two places to keep EXIF and lib
 the modern `eXIf` chunk (PNG 1.5), and the one Apple and ImageMagick actually write, a DEFLATED
 `zTXt` chunk keyed `Raw profile type APP1` holding the TIFF block **hex-encoded**. `exifFromPng` in
 `src/lib/exif-date.ts` now finds both and hands the bytes to the same tag walk as every other format;
-`exifBlockOf` in `collection-photo.ts` is the one place that decides which source to use, so the two
+`exifBlockOf` in `collection-image.ts` is the one place that decides which source to use, so the two
 readers cannot disagree about a file. **If you add a format, add it there, not at a call site** -- a
 fallback only one reader got would mean a photograph dated in the archive and undated in the file it
 hands back.

@@ -1,5 +1,32 @@
 # Progress Log
 
+## 2026-09-07 — the album importer stops copying the app, and a test stops pinning a shape
+
+Refactor audit 2, `fresh-code-04`. Three sites carried copies of code they wanted to import, and
+all three said so in their own comments: `import-album.mjs` re-implemented the 480px/q72 thumbnail
+recipe *and* `exifBlockOf`, and `exif-date.test.mjs` pinned the SHAPE of `dateOnlyExif` — building
+the allow-list by hand — rather than the function. The cause was one line of resolver mechanics:
+`collection-photo.ts` imports through the `@/lib` alias, and a bare `node` resolves neither the
+alias nor an extensionless specifier.
+
+`THUMB_PX`, `gridThumb`, `exifBlockOf` and `dateOnlyExif` move to `src/lib/collection-image.ts`,
+which imports `./image.ts`, `./exif-date.ts` and `./utils.ts` relatively and with extensions — the
+shape `photo-suggest.ts` already uses and explains. `collection-photo.ts` re-exports all four, so
+nothing under `src/` changed an import.
+
+**The test now runs the real function**, and that is the half worth having: it composes the block
+the app actually writes and feeds it to sharp, instead of agreeing with itself about what the app
+probably does. Proved under bare `node` before committing — 480x320 WebP out of `gridThumb`, and
+`dateOnlyExif` returning the one date tag.
+
+Two documentation pointers moved with it: `TRAPS.md`'s "add a format there, not at a call site"
+paragraph, and `media.md`'s thumbnail row.
+
+Not folded in: `scripts/demo/add-photos.mjs` also says `THUMB_PX = 480`, but it encodes at q82 from
+a path with plain `sharp`, so it is a different pipeline and not a fourth copy of `gridThumb`.
+
+`npm run check` green (105/105); `exif-date.test.mjs` 18/18.
+
 ## 2026-09-07 — one mapping from a photograph to the viewer, and a sweep that keeps it one
 
 Refactor audit 2, `fresh-code-03`. `toViewerImage` was written three times: in
