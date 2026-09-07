@@ -193,13 +193,13 @@ const FRAME_VARIANTS = {
 const ICON_BUTTON =
   "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white/80 transition-colors duration-150 hover:bg-white/12 hover:text-white active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
 
+/** The two step arrows, which differ only in which edge they sit against. */
+const ARROW_BUTTON =
+  "absolute top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/85 transition-[background-color,opacity] duration-200 hover:bg-white/20 hover:text-white active:scale-95 sm:flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
+
 function basename(src: string): string {
-  try {
-    const clean = src.split("?")[0];
-    return clean.slice(clean.lastIndexOf("/") + 1) || "photo";
-  } catch {
-    return "photo";
-  }
+  const clean = src.split("?")[0];
+  return clean.slice(clean.lastIndexOf("/") + 1) || "photo";
 }
 
 export function ImageViewer({
@@ -493,15 +493,6 @@ export function ImageViewer({
   const caption = current?.caption?.trim() ?? "";
   const tags = current?.tags?.filter(Boolean) ?? [];
   const where = current?.where?.trim() ?? "";
-  /* "More" is now about the CAPTION and nothing else.
-     It used to also mean "there is a where and some buckets folded away
-     under here", which put a control on the screen for two chips and a
-     place name -- the owner: "I don't like the see more for the tag...
-     maybe the tags could just show above it by default. instead of
-     constantly having a more button which is clutter anyway."
-     They do, below. So the only thing left hidden is a caption longer than
-     its two lines, and that is the only thing the word now offers. */
-  const hasMore = overflows;
   const hidden = chrome !== "shown";
 
   const chromeClass = cn(
@@ -624,7 +615,8 @@ export function ImageViewer({
                 aria-label="Previous photo"
                 data-viewer-chrome
                 className={cn(
-                  "absolute left-4 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/85 transition-[background-color,opacity] duration-200 hover:bg-white/20 hover:text-white active:scale-95 sm:flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
+                  ARROW_BUTTON,
+                  "left-4",
                   hidden && "pointer-events-none opacity-0"
                 )}
               >
@@ -638,7 +630,8 @@ export function ImageViewer({
                 aria-label="Next photo"
                 data-viewer-chrome
                 className={cn(
-                  "absolute right-4 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/85 transition-[background-color,opacity] duration-200 hover:bg-white/20 hover:text-white active:scale-95 sm:flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
+                  ARROW_BUTTON,
+                  "right-4",
                   hidden && "pointer-events-none opacity-0"
                 )}
               >
@@ -726,8 +719,16 @@ export function ImageViewer({
                   </div>
                 )}
 
+                {/* "More" is about the CAPTION and nothing else. It used to
+                    also mean "there is a where and some buckets folded away
+                    under here", which put a control on the screen for two
+                    chips and a place name -- the owner: "I don't like the see
+                    more for the tag... maybe the tags could just show above it
+                    by default. instead of constantly having a more button
+                    which is clutter anyway." They do, above. So the only thing
+                    left hidden is a caption longer than its two lines. */}
                 {caption &&
-                  (hasMore ? (
+                  (overflows ? (
                     /* The whole caption is the control. There is no small
                        exact pill to hit, in either direction: press the words
                        to open them and press them again to put them away. */
