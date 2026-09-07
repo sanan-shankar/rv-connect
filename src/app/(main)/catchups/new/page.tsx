@@ -96,7 +96,6 @@ export default async function NewCatchupPage() {
       <CreateCatchupForm
         cadenceLabels={CADENCE_LABELS}
         myBatchYear={batchYear}
-        suggestedName={batchYear ? `Batch of ${batchYear}` : ""}
         me={me}
       />
     </div>
