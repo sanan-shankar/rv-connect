@@ -39,8 +39,8 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, m } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
-import { hasSeenOnboarding, markOnboardingSeen } from "@/lib/onboarding-local";
-import type { OnboardingStepId, OnboardingUser } from "./types";
+import { hasFired, markFired } from "@/components/mascot/moments/one-shot";
+import { ONBOARDING_SEEN, type OnboardingStepId, type OnboardingUser } from "./types";
 import { WelcomeStep } from "./steps/welcome-step";
 import { DoneStep } from "./steps/done-step";
 
@@ -116,7 +116,10 @@ export function OnboardingFlow({
   //    later data refresh from this page's own actions changes the prop but
   //    never re-enters this branch.
   // 2. The "seen before but didn't finish" resume-where-you-left-off skip
-  //    past Welcome a second time (localStorage — onboarding-local.ts).
+  //    past Welcome a second time. That is a one-shot latch in localStorage,
+  //    so it IS the mascot's one-shot latch: `hasFired`/`markFired` under the
+  //    ONBOARDING_SEEN key. It used to be its own 28-line module with its own
+  //    prefix, which is the same machine wearing a second name.
   //
   // hasCheckedRef makes this idempotent under React Strict Mode's dev-only
   // double effect invocation (mount -> cleanup -> mount again, same
@@ -128,17 +131,17 @@ export function OnboardingFlow({
     if (hasCheckedRef.current) return;
     hasCheckedRef.current = true;
     if (initialStep !== "welcome") {
-      markOnboardingSeen(user.id);
+      markFired(user.id, ONBOARDING_SEEN);
       return;
     }
     if (user.admissionNumber != null) {
       router.replace(next);
       return; // stay !ready — /feed takes over in a moment
     }
-    if (hasSeenOnboarding(user.id)) {
+    if (hasFired(user.id, ONBOARDING_SEEN)) {
       setStep("register");
     } else {
-      markOnboardingSeen(user.id);
+      markFired(user.id, ONBOARDING_SEEN);
     }
     setReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -168,7 +171,7 @@ export function OnboardingFlow({
     if (prev) setStep(prev);
   }
   function finishLater() {
-    markOnboardingSeen(user.id);
+    markFired(user.id, ONBOARDING_SEEN);
     router.push(next);
   }
 

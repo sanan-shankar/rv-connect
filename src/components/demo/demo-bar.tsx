@@ -32,7 +32,8 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, m } from "motion/react";
 import { Info, X } from "lucide-react";
 import { EASE_SPRING, SPRINGS } from "@/components/common/motion";
-import { markOnboardingSeen } from "@/lib/onboarding-local";
+import { markFired } from "@/components/mascot/moments/one-shot";
+import { ONBOARDING_SEEN } from "@/components/onboarding/types";
 import { cn } from "@/lib/utils";
 
 export function DemoBar({ userId }: { userId: string }) {
@@ -49,12 +50,12 @@ export function DemoBar({ userId }: { userId: string }) {
 
   useEffect(() => {
     // Kept after the tour's removal, because this flag is not only the
-    // tour's. `hasSeenOnboarding` also gates the onboarding flow itself
+    // tour's. The same latch gates the onboarding flow itself
     // (onboarding-flow.tsx), and the demo's persona arrives with a complete
     // account on a deployment where /onboarding is closed. Marking it seen
     // is what keeps a first-run flow from ambushing a visitor who has
     // nothing to fill in.
-    markOnboardingSeen(userId);
+    markFired(userId, ONBOARDING_SEEN);
   }, [userId]);
 
   function collapse() {
