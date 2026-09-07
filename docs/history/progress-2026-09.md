@@ -8,6 +8,29 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 — refactor audit 2: eleven units, and the close-out
+
+The campaign ran unattended from the owner's 28 answers to a close. **Phases A, B, C, D and H are
+DONE; E, F and G are PARTIAL with their remaining rows named on the board.** All seven `npm run
+check` gates green — the shape-and-colour audit had been warning for weeks and is clean — plus
+`npm run visual` 25/25 and `npm run verify:crawl` 21/21 at runtime.
+
+Eleven worker units, each one verified here rather than believed: commit stats read, the riskiest
+diff read line by line, gates re-run, one factual claim per row checked against the file, and two
+security tripwires broken deliberately to prove they still fire.
+
+**Seven defects came out of that verification rather than out of the audit**, and they are the
+reason the protocol says a worker's report is a claim. A three-line fix had truncated `progress.md`
+by 580 lines and destroyed five sessions' history. `npm run screenshot` printed "Screenshot saved"
+while writing a blank frame of a page that never loaded. The visual suite was going red for a
+database write. Two parameters were wider than any caller needed, one of them admitting `role` and
+`credentialVersion` on a path reached from sign-up. Two "dead" props were alive in the lab. A
+finding's proposed filename was already a live Prisma module. And one row's stated risk was wrong in
+a way that would have reddened the build.
+
+Nothing was pushed, and no `DROP` ran: five migration files sit written and unrun, with the commands
+in the close-out for the owner. Nine questions are left, each with a default, answerable in one line.
+
 ## 2026-09-08 — the documentation pass: eleven documents that described a different app
 
 Phase F's second unit, and the campaign's last. Eleven documents, six commits, **−540 lines net**,
