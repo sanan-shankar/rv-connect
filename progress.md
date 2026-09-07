@@ -1,5 +1,15 @@
 # Progress Log
 
+## 2026-09-07 — The Collection viewer's admin flag stops being optional
+
+Found by a write-path review of Phase E unit 2, not by the audit. `toViewerImage(p, isAdmin = false)`
+gained its default so two lab rooms could omit the argument. That default is a trap: a future caller
+that forgets it compiles cleanly, and the only symptom is the edit pencil quietly not rendering for
+an admin. It under-permissions rather than over-permissions, so it was never a hole — but a missing
+capability `tsc` refuses to mention is the exact shape of bug that file was split out to prevent.
+
+Required now, with the reasoning in the source. The two lab rooms say `false` out loud.
+
 ## 2026-09-07 — the Collection's two "viewers" get two names
 
 `collection-viewer.ts` is a SERVER module about the member doing the looking; it imports Prisma.
