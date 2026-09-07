@@ -136,7 +136,7 @@ export function DarkGauntlet({ word }: { word: string }) {
             <div className="flex justify-center gap-2 pt-2">
               <Button variant="outline" onClick={() => router.back()}>
                 <ArrowLeft className="h-4 w-4" />
-                Back to settings
+                Go back
               </Button>
               <Button variant="primary" onClick={() => setStep("sure")}>
                 Begin
@@ -209,7 +209,7 @@ export function DarkGauntlet({ word }: { word: string }) {
         {step === "word" && (
           <m.div key="word" {...stepMotion} className="space-y-5 text-center">
             <StepKicker>Question 5 of 5</StepKicker>
-            <h2 className="font-heading text-[26px] leading-tight tracking-[-0.02em] text-foreground">
+            <h2 className="font-heading text-lede leading-tight tracking-[-0.02em] text-foreground">
               What is today&apos;s Wordle answer?
             </h2>
             {/* The real one, from the New York Times, fetched server-side
@@ -254,7 +254,7 @@ export function DarkGauntlet({ word }: { word: string }) {
         {step === "toggle" && (
           <m.div key="toggle" {...stepMotion} className="space-y-6 text-center">
             <StepKicker>You have earned this</StepKicker>
-            <h2 className="font-heading text-[26px] leading-tight tracking-[-0.02em] text-foreground">
+            <h2 className="font-heading text-lede leading-tight tracking-[-0.02em] text-foreground">
               Here is your toggle.
             </h2>
             <p className="mx-auto max-w-[38ch] text-[14.5px] leading-relaxed text-muted-foreground">
@@ -287,7 +287,7 @@ export function DarkGauntlet({ word }: { word: string }) {
         {step === "regrets" && (
           <m.div key="regrets" {...stepMotion} className="space-y-5 text-center">
             <StepKicker>One last thing</StepKicker>
-            <h2 className="font-heading text-[26px] leading-tight tracking-[-0.02em] text-foreground">
+            <h2 className="font-heading text-lede leading-tight tracking-[-0.02em] text-foreground">
               This is the valley after dark.
             </h2>
             <p className="mx-auto max-w-[40ch] text-[14.5px] leading-relaxed text-muted-foreground">
@@ -307,7 +307,7 @@ export function DarkGauntlet({ word }: { word: string }) {
 
         {step === "relief" && (
           <m.div key="relief" {...stepMotion} className="space-y-5 text-center">
-            <h2 className="font-heading text-[26px] leading-tight tracking-[-0.02em] text-foreground">
+            <h2 className="font-heading text-lede leading-tight tracking-[-0.02em] text-foreground">
               {reliefLine}
             </h2>
             <div className="flex justify-center pt-2">
@@ -316,7 +316,7 @@ export function DarkGauntlet({ word }: { word: string }) {
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Back to settings
+                Go back
               </Link>
             </div>
           </m.div>
@@ -388,7 +388,7 @@ function GauntletStep({
   return (
     <m.div {...motionProps} className="space-y-5 text-center">
       <StepKicker>{kicker}</StepKicker>
-      <h2 className="font-heading text-[26px] leading-tight tracking-[-0.02em] text-foreground">
+      <h2 className="font-heading text-lede leading-tight tracking-[-0.02em] text-foreground">
         {title}
       </h2>
       {body && (
@@ -458,7 +458,7 @@ function HoopoeTrial({
   return (
     <m.div {...motionProps} className="space-y-5 text-center">
       <StepKicker>The final trial</StepKicker>
-      <h2 className="font-heading text-[26px] leading-tight tracking-[-0.02em] text-foreground">
+      <h2 className="font-heading text-lede leading-tight tracking-[-0.02em] text-foreground">
         Hold the button for five seconds while the hoopoe considers your decision.
       </h2>
       <p className="mx-auto max-w-[38ch] text-[14.5px] leading-relaxed text-muted-foreground">
