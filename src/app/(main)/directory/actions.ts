@@ -3,23 +3,9 @@
 import { requireVerifiedEmail } from "@/lib/email-verification";
 import { prisma } from "@/lib/prisma";
 import { buildDirectoryWhere, directoryOrderBy, type DirectoryFilters } from "./where";
-import { PERSON_SELECT } from "./select";
+import { PERSON_SELECT, type DirectoryPerson } from "./select";
 
 const PAGE_SIZE = 60;
-
-export type DirectoryUser = {
-  id: string;
-  name: string;
-  photoUrl: string | null;
-  birdOverride: string | null;
-  accountType: string | null;
-  verifyState: string | null;
-  batchType: string | null;
-  batchYear: number | null;
-  currentCity: string | null;
-  jobTitle: string | null;
-  workplace: string | null;
-};
 
 /** Fetch one more page of directory results after `cursor` (keyset pagination). */
 export async function loadDirectoryPage({
@@ -32,7 +18,7 @@ export async function loadDirectoryPage({
   /** How many rows the caller is already showing. Only used to recover from a
    *  cursor row that has left the result set; see the fallback below. */
   loaded?: number;
-}): Promise<{ users: DirectoryUser[]; nextCursor: string | null }> {
+}): Promise<{ users: DirectoryPerson[]; nextCursor: string | null }> {
   /* This was the one "use server" action in the codebase with no auth() call
      at all (audit H1), and it returns the complete membership roll of a
      private community -- name, batch, city, employer, job title -- sixty at a

@@ -11,7 +11,7 @@ import { buildDirectoryWhere, directoryOrderBy, parseDirectoryYears } from "./wh
 import type { CityPin, PinPerson } from "@/components/directory/alumni-map";
 import { valleyYear } from "@/lib/utils";
 import { logSearch } from "@/lib/search-log";
-import { PERSON_SELECT, PIN_SELECT } from "./select";
+import { PERSON_SELECT, PIN_SELECT, type PinRow } from "./select";
 
 export const metadata: Metadata = {
   title: "Directory",
@@ -19,19 +19,6 @@ export const metadata: Metadata = {
 
 // One page of directory results. Cursor pagination appends another page.
 const PAGE_SIZE = 60;
-
-type PinRow = {
-  id: string;
-  name: string;
-  photoUrl: string | null;
-  birdOverride: string | null;
-  accountType: string | null;
-  verifyState: string | null;
-  batchType: string | null;
-  batchYear: number | null;
-  jobTitle: string | null;
-  places: { city: string; lat: number | null; lng: number | null }[];
-};
 
 // Coordinate resolution ladder for one UserPlace (the Gurgaon/Northfield
 // fix): (1) the row's own lat/lng, written by the GeoNames picker at save

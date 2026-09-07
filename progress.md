@@ -1,5 +1,26 @@
 # Progress Log
 
+## 2026-09-07 — the directory person is one type, derived from the select
+
+Refactor audit 2, `directory-profile-08`. Audit 1's F-09 asked for one `PERSON_SELECT` and one
+person type; only the select landed. The type stayed hand-written four times — `DirectoryUser` in
+the action, `interface User` in the client, an inline props type on the card, and `PinRow` in the
+page — so the select and its four readers could drift silently, which is the same bug the select
+was extracted to stop.
+
+All four are now `Prisma.UserGetPayload<{ select: typeof PERSON_SELECT }>` (and `PIN_SELECT` for
+the map's rows), exported from `select.ts` and reached by `import type`, which erases, so a client
+component can name a server module for free.
+
+**`workplace` was being fetched and drawn nowhere.** 60 rows a page, 60 more on every Load more.
+Neither `interface User` nor `ProfileCard` declared it; only `DirectoryUser` did, and
+`DirectoryUser` had no importer. It stays a *searched* column in `where.ts` — a WHERE clause is
+not a select. And the comment defending `currentCity` as "fetched to satisfy a type rather than a
+pixel" was false: `ProfileCard` draws it in the meta line. Replaced rather than kept.
+
+`npm run check` green (103/103); `/directory` and `/directory?q=a` both 200 with no console
+errors, map pins and People cards unchanged.
+
 ## 2026-09-07 — one Overview worklist file, and the banner that argued for two
 
 Refactor audit 2, `admin-analytics-06` (carried over unfixed from audit 1). `admin-worklist.ts`

@@ -22,6 +22,11 @@ import { callAction } from "@/lib/call-action";
 import { ProfileCard } from "./profile-card";
 import type { CityPin, PinPerson } from "./alumni-map";
 import { loadDirectoryPage } from "@/app/(main)/directory/actions";
+/* The person type is DERIVED from `PERSON_SELECT` and named here rather than
+   re-typed: it was written out four times and a column added to the select
+   and to three of them is a second page that renders unlike its first.
+   `import type` erases, so naming a server module from a client file is free. */
+import type { DirectoryPerson } from "@/app/(main)/directory/select";
 import { NoResultsHoopoe } from "@/components/mascot/moments/no-results-hoopoe";
 import { cn } from "@/lib/utils";
 
@@ -53,19 +58,6 @@ const AlumniMap = dynamic(() => import("./alumni-map").then((m) => m.AlumniMap),
   ),
 });
 
-interface User {
-  id: string;
-  name: string;
-  photoUrl?: string | null;
-  birdOverride?: string | null;
-  accountType?: string | null;
-  verifyState?: string | null;
-  batchType: string | null;
-  batchYear: number | null;
-  currentCity: string | null;
-  jobTitle: string | null;
-}
-
 interface DirectoryFiltersState {
   q: string;
   year: string;
@@ -82,7 +74,7 @@ interface DirectoryFiltersState {
 }
 
 interface DirectoryClientProps {
-  users: User[];
+  users: DirectoryPerson[];
   resultCount: number;
   cityPins: CityPin[];
   unmappedCount: number;
@@ -193,7 +185,7 @@ export function DirectoryClient({
 
   // Accumulated results for keyset "Load more". Seeded from the SSR first page and
   // reset whenever the server hands a new first page (filters changed).
-  const [results, setResults] = useState<User[]>(users);
+  const [results, setResults] = useState<DirectoryPerson[]>(users);
   const [cursor, setCursor] = useState<string | null>(nextCursor);
   const [loadingMore, setLoadingMore] = useState(false);
   const [gridRef] = useAutoAnimate();
