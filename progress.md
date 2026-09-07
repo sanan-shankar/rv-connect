@@ -11141,3 +11141,22 @@ assertions out of `collection/actions.ts`; two of them were about `approvePhoto`
 review room's `saveReview`, and they read the variable name out of the `updateMany` rather than
 hard-coding it, so a rename cannot quietly empty them. Mutation-tested both ways: `updateMany` →
 `update` reds it, dropping the `count === 0` check reds it. −292/+79 across four files.
+
+**D1 — the feed's sort and time filters.** `<FeedColumn showControls={false}>` has been the feed's
+only render since `096a034` (2026-06-28), so the disclosure holding "Most recent / Most liked / Most
+discussed" and "Today / This week / This month / This year" has not been on screen for ten weeks and
+nothing else writes either value. Everything conditioned on them went: the block and its `Input` and
+`Select` imports, the two state hooks, the `showControls` prop on both components, `getTimeFilterDate`
+with its valley-day arithmetic, the `sortBy`/`timeFilter` options on `loadPosts`, and the offset-paging
+arm the count sorts existed to reach — an entire second query path out of the feed, `skip` included.
+`loadPosts` is keyset-only now.
+
+The `offset:` guard on the cursor decode stays on purpose: a page left open from before this reads its
+old `offset:N` cursor as "start from the first page" rather than as a post id. Three audits had fixed
+bugs in the arm that went (Low 48's valley-day boundaries, Low 79's negative-skip clamp, B-122's
+tie-break) — none of it reachable. Paging proved live by temporarily dropping `PAGE_SIZE` to 3 and
+loading three pages: 25 posts, 25 unique, no repeats. −208/+50.
+
+`npm run check` green (105 tests), `npm run visual` 25/25 — no baseline moved, which is the point: none
+of this was on screen. Screenshotted `/feed`, `/feed?q=`, `/admin/content` and `/letters/new` at
+1440x900 and 390x844.

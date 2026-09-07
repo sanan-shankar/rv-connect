@@ -32,7 +32,7 @@ import {
   notifyMember,
   notifyMemberOnceUnread,
 } from "@/lib/post-notifications";
-import { parseJsonArray, valleyDayKey, valleyDayStart, valleyMidnight } from "@/lib/utils";
+import { parseJsonArray } from "@/lib/utils";
 import type { Prisma } from "@/generated/prisma/client";
 import { DOUBLE_SUBMIT_MS, isPostTwin } from "@/lib/double-submit";
 import { decodeKeyset, encodeKeyset, keysetWhere } from "@/lib/keyset";
@@ -1066,37 +1066,6 @@ export async function adminRemoveComment(commentId: string, note?: string) {
 
 // ─── Data Fetching ───────────────────────────────────
 
-/**
- * The start of the chosen window, in the valley's day rather than the server's.
- *
- * These used to be `new Date(now.getFullYear(), now.getMonth(), now.getDate())`,
- * which is midnight in whatever zone the process happens to run in -- UTC on
- * Vercel. So "today" began at 05:30 IST and quietly dropped everything posted
- * in the small hours, and "this month" started five and a half hours into the
- * 1st (audit Low 48).
- */
-function getTimeFilterDate(
-  filter: "all" | "today" | "week" | "month" | "year"
-): Date | null {
-  if (filter === "all") return null;
-  const [yyyy, mm] = valleyDayKey().split("-");
-  switch (filter) {
-    case "today":
-      return valleyDayStart();
-    case "week": {
-      // The valley's weekday, read at IST noon so no rounding puts it on the
-      // wrong side of midnight. Sunday is the week's start, as before.
-      const start = valleyDayStart();
-      const dow = new Date(`${valleyDayKey()}T12:00:00+05:30`).getUTCDay();
-      return new Date(start.getTime() - dow * 24 * 60 * 60 * 1000);
-    }
-    case "month":
-      return valleyMidnight(`${yyyy}-${mm}-01`);
-    case "year":
-      return valleyMidnight(`${yyyy}-01-01`);
-  }
-}
-
 const PAGE_SIZE = 20;
 
 /**
@@ -1165,16 +1134,10 @@ export async function loadPosts(opts?: {
   authorId?: string; // set => only this author's posts (profile Posts tab)
   kind?: "post" | "letter";
   search?: string;
-  sortBy?: "recent" | "liked" | "commented";
-  timeFilter?: "all" | "today" | "week" | "month" | "year";
 }) {
   const session = await auth();
   const empty = { posts: [], hasMore: false, nextCursor: null as string | null };
   if (!session?.user?.id) return empty;
-
-  const sortBy = opts?.sortBy ?? "recent";
-  const timeFilter = opts?.timeFilter ?? "all";
-  const timeDate = getTimeFilterDate(timeFilter);
 
   // City-scoped posts: cityScope IS NULL, OR the viewer has a matching
   // UserPlace, OR the viewer is an admin (sees everything). Admins skip the
@@ -1222,7 +1185,6 @@ export async function loadPosts(opts?: {
     ...(opts?.authorId ? { authorId: opts.authorId } : {}),
     ...(opts?.kind ? { kind: opts.kind } : {}),
     ...(andConditions.length ? { AND: andConditions } : {}),
-    ...(timeDate ? { createdAt: { gte: timeDate } } : {}),
   };
 
   const where = {
@@ -1238,64 +1200,30 @@ export async function loadPosts(opts?: {
 
   const include = postInclude(session.user.id);
 
-  let rows;
-  let nextCursor: string | null = null;
+  /* Keyset pagination on the VALUES, not on Prisma's `cursor`. The cursor
+     carries (createdAt, id) so the next page is a comparison, and the post
+     those values came from being deleted by its author, hidden by a
+     moderator, or losing its author to a block no longer ends the scroll
+     (audits C-005 / C-124 / C-162 / C-171 -- see keyset.ts for the proof).
+     ANDed rather than spread: `where` already carries a top-level OR for the
+     batch scope, and a second one would replace it.
 
-  if (sortBy === "recent") {
-    /* Keyset pagination on the VALUES, not on Prisma's `cursor`. The cursor
-       carries (createdAt, id) so the next page is a comparison, and the post
-       those values came from being deleted by its author, hidden by a
-       moderator, or losing its author to a block no longer ends the scroll
-       (audits C-005 / C-124 / C-162 / C-171 -- see keyset.ts for the proof).
-       ANDed rather than spread: `where` already carries a top-level OR for the
-       batch scope, and a second one would replace it. */
-    const after = opts?.cursor?.startsWith("offset:") ? null : decodeKeyset(opts?.cursor);
-    rows = await prisma.post.findMany({
-      where: after ? { AND: [where, keysetWhere(after, "desc")] } : where,
-      include,
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: PAGE_SIZE + 1,
-    });
-    const hasMore = rows.length > PAGE_SIZE;
-    if (hasMore) rows = rows.slice(0, PAGE_SIZE);
-    nextCursor = hasMore ? encodeKeyset(rows[rows.length - 1]) : null;
-  } else {
-    // Count-based sorts cannot keyset cleanly: fall back to offset paging.
-    //
-    // The offset is clamped because the cursor is an opaque string that comes
-    // back from a client call, and `parseInt("-5") || 0` is -5: Prisma will not
-    // take a negative `skip` and threw instead of paging (audit Low 79).
-    const parsedOffset = opts?.cursor?.startsWith("offset:")
-      ? Number.parseInt(opts.cursor.slice(7), 10)
-      : 0;
-    const offset = Number.isFinite(parsedOffset) ? Math.max(0, parsedOffset) : 0;
-    // Ending on (createdAt, id) makes the ordering total. Without it, the many
-    // posts tied on nought likes have no defined position, so each offset page
-    // re-sorted them differently and could repeat or skip rows (the feed's half
-    // of audit B-122).
-    const orderBy =
-      sortBy === "liked"
-        ? [
-            { likes: { _count: "desc" as const } },
-            { createdAt: "desc" as const },
-            { id: "desc" as const },
-          ]
-        : [
-            { comments: { _count: "desc" as const } },
-            { createdAt: "desc" as const },
-            { id: "desc" as const },
-          ];
-    rows = await prisma.post.findMany({
-      where,
-      include,
-      orderBy,
-      take: PAGE_SIZE + 1,
-      skip: offset,
-    });
-    const hasMore = rows.length > PAGE_SIZE;
-    if (hasMore) rows = rows.slice(0, PAGE_SIZE);
-    nextCursor = hasMore ? `offset:${offset + PAGE_SIZE}` : null;
-  }
+     There used to be a second arm here, offset paging for the feed's "Most
+     liked" and "Most discussed" sorts. Nothing could reach it: the controls
+     that set the sort left the screen on 2026-06-28. The `offset:` guard
+     below outlives it on purpose -- a page left open from before this change
+     can still hand back an `offset:N` cursor, and it reads as "start again
+     from the first page" rather than as a post id. */
+  const after = opts?.cursor?.startsWith("offset:") ? null : decodeKeyset(opts?.cursor);
+  let rows = await prisma.post.findMany({
+    where: after ? { AND: [where, keysetWhere(after, "desc")] } : where,
+    include,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: PAGE_SIZE + 1,
+  });
+  const hasMore = rows.length > PAGE_SIZE;
+  if (hasMore) rows = rows.slice(0, PAGE_SIZE);
+  const nextCursor = hasMore ? encodeKeyset(rows[rows.length - 1]) : null;
 
   return {
     /* Each post's photographs carry what we know about them -- shape, focal
