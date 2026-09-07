@@ -13,37 +13,30 @@
  *  THE STRIP. Under the app's green bar sits one strip, always there. At
  *  rest it says "Round 1 · 15 August 2026", which is the one place the
  *  Round and its date are printed. Once a question's heading has scrolled
- *  under the bar, the strip carries that question instead, in full,
- *  however long it is. A 300-character question is five lines, and it is
- *  five lines: "what if the question is long? How does it fill into
- *  somewhere? ... I don't want a bunch of dot dot dots everywhere." (R19)
- *  Its height changes only when the question does, never with the scroll.
+ *  under the bar, the strip carries that question instead. Three lines at
+ *  most, then it cuts, because he weighed the two costs himself on
+ *  2026-09-07: "I think it should not be 8 lines, it should be 3 lines,
+ *  and then you can dot dot dot it. But it takes up way too much of the
+ *  screen. 3 would be okay." That supersedes R19's "I don't want a bunch
+ *  of dot dot dots everywhere", which was about a 20-character cut.
  *
  *  THE LINE. Along the strip's top edge, a thin cinnamon line grows from
- *  the left as you read: how far through the Round you are. It is the
- *  loading line every phone already knows, and it is R28's cinnamon line
- *  given a job: "if we can create some use for that line, that could be
- *  good." R34 asked for something like it "maybe in the top bar".
+ *  the left as you read: how far through the Round you are. It is R28's
+ *  cinnamon line given a job, in the top bar where R34 wanted it.
  *
- *  THE INDICATOR. He does not want a dot and he does not want an
- *  underline, and he said he does not know what he wants (R28). When the
- *  strip opens into the list of questions, the same line turns the corner
- *  and runs down the left of the list, and it STOPS at the question you
- *  are in. The end of a measure is the mark. Nothing is added to the row.
+ *  THE INDICATOR. When the strip opens into the list of questions, the
+ *  same line turns the corner and runs down the left of the list, and it
+ *  STOPS at the question you are in. The end of a measure is the mark.
+ *  Never weight: bolding the current row is what makes the shipped rail
+ *  reflow, which he caught again on 2026-09-07 ("the words spill onto the
+ *  next line because it's gone from regular to bold").
  *
- *  THREE WAYS, as asked. `UnfoldedPanel` is the strip itself growing
- *  downward into the list, in place, from the top: not from the bottom
- *  (R39: "does it have to be from the bottom? Why aren't we trying it in a
- *  different way?"), not green (R39), with no title because the bar above
- *  already says the Catch-up's name (R39: "Can't we say the name of the
- *  catch-up?"), and no X because the strip you tapped is still there under
- *  your thumb and a swipe up puts it away (R43). `BottomSheet` is the
- *  sheet he has seen fifteen times, done properly: paper, the name as its
- *  title, no lines between rows, no X, and the current row marked with the
- *  app's own selection tint instead of the line, so the two indicators can
- *  be compared. `ContentsPage` is the whole page becoming the Round's
- *  contents, set in the heading face, the one that is "a bit more than
- *  that" (R43).
+ *  THREE WAYS, as asked. `UnfoldedPanel` is the strip growing downward in
+ *  place: not from the bottom (R39), not green (R39), no title because
+ *  the bar above already says the Catch-up's name (R39), no X because the
+ *  strip you tapped is still under your thumb (R43). `BottomSheet` is the
+ *  sheet he has seen fifteen times, done properly. `ContentsPage` is the
+ *  whole page becoming the Round's contents, "a bit more than that" (R43).
  * ------------------------------------------------------------------ */
 
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
@@ -72,10 +65,10 @@ export function RoundMeta({ round, className }: { round: SketchRound; className?
 }
 
 /* ── The strip ─────────────────────────────────────────────────────── *
- *  Its own glass, not the app's `.glass`: that one is 78% paper, built for
- *  a bar over a feed where nothing has to be read through it. A question
- *  docked over the tile it just left needs the tile gone. 93% paper, and
- *  the blur keeps the edge from reading as a solid slab. */
+ *  Its own glass, not the app's `.glass`: that one is 78% paper, built
+ *  for a bar over a feed where nothing has to be read through it. A
+ *  question docked over the tile it just left needs the tile gone. 93%
+ *  paper, and the blur keeps the edge from reading as a solid slab. */
 const STRIP_GLASS = {
   backgroundColor: "color-mix(in srgb, var(--card) 93%, transparent)",
   backdropFilter: "blur(14px)",
@@ -117,6 +110,16 @@ export function Strip({
             ? "font-heading text-[15.5px] leading-[1.35] text-foreground"
             : "text-[13px] leading-[1.35] text-muted-foreground"
         )}
+        style={
+          docked
+            ? {
+                display: "-webkit-box",
+                WebkitBoxOrient: "vertical",
+                WebkitLineClamp: 3,
+                overflow: "hidden",
+              }
+            : undefined
+        }
       >
         {label}
       </span>
@@ -125,9 +128,10 @@ export function Strip({
           size={15}
           weight="bold"
           className={cn(
-            "shrink-0 text-muted-foreground transition-transform duration-200",
+            "shrink-0 text-muted-foreground transition-transform duration-300",
             open && "rotate-180"
           )}
+          style={{ transitionTimingFunction: "cubic-bezier(0.16,1,0.3,1)" }}
         />
       )}
     </>
@@ -135,12 +139,10 @@ export function Strip({
 
   const shell = cn(
     "relative w-full overflow-hidden text-left",
-    floating
-      ? "card-elevated rounded-[12px] border border-border"
-      : "border-b border-border"
+    floating ? "card-elevated rounded-[12px] border border-border" : "border-b border-border"
   );
   /* `text-left` here and not only on the shell: a <button> centres its
-     text by itself, and the first capture had every label centred. */
+     own text, whatever its parent says. */
   const row = "flex min-h-[44px] w-full items-center gap-3 px-5 py-2.5 text-left";
 
   if (!interactive) {
@@ -178,11 +180,15 @@ const LIST: Record<
 > = {
   /* The unfolded strip and the sheet: one size, the body's. */
   panel: { size: 15.5, lineHeight: 1.35, padY: 11, indent: 40, spineX: 20, serif: false },
-  /* The contents page: the heading face, a size under the in-flow heading,
-     and eleven questions fit one phone screen at it. */
+  /* The contents page: the heading face, a size under the in-flow
+     heading, and eleven questions still fit one phone screen. */
   page: { size: 19, lineHeight: 1.28, padY: 11, indent: 40, spineX: 20, serif: true },
-  /* The laptop's rail, which is this list left open. */
-  rail: { size: 13.5, lineHeight: 1.35, padY: 7, indent: 18, spineX: 0, serif: false },
+  /* The laptop's rail, which is this list left open. Serif, bigger and
+     further apart than the 13px sans it was, all three his words on
+     2026-09-07: "maybe we write it in the serif font instead ... It can
+     be slightly bigger ... space it out more vertically so we can maybe
+     pick a slightly bigger font size." */
+  rail: { size: 16, lineHeight: 1.3, padY: 12, indent: 22, spineX: 0, serif: true },
 };
 
 export function QuestionList({
@@ -206,20 +212,53 @@ export function QuestionList({
 }) {
   const rows = useRef<Array<HTMLLIElement | null>>([]);
   const [fill, setFill] = useState(0);
+  /* Which row the pointer is nearest, for the swell. -1 is "no pointer",
+     which is every touch device and the resting state of a mouse. */
+  const [near, setNear] = useState(-1);
   const t = LIST[size];
+  const swells = size === "rail";
 
   useLayoutEffect(() => {
     const el = rows.current[current];
-    if (el) setFill(el.offsetTop + el.offsetHeight * Math.max(0, Math.min(1, within)));
+    if (!el) return;
+    /* A floor under the fill, because the honest number is zero when you
+       are at the very top of the very first question, and a zero-length
+       measure reads as a mark that failed to draw rather than as a mark
+       at the start. A fifth of a row is enough to see. */
+    const through = Math.max(0.2, Math.min(1, within));
+    setFill(el.offsetTop + el.offsetHeight * through);
   }, [current, within, questions.length]);
 
   return (
-    <ol className={cn("relative", className)}>
+    <ol
+      className={cn("relative", className)}
+      onPointerMove={
+        swells
+          ? (e) => {
+              if (e.pointerType !== "mouse") return;
+              const box = e.currentTarget.getBoundingClientRect();
+              const y = e.clientY - box.top;
+              let best = -1;
+              let bestD = Infinity;
+              rows.current.forEach((r, i) => {
+                if (!r) return;
+                const d = Math.abs(r.offsetTop + r.offsetHeight / 2 - y);
+                if (d < bestD) {
+                  bestD = d;
+                  best = i;
+                }
+              });
+              setNear(best);
+            }
+          : undefined
+      }
+      onPointerLeave={swells ? () => setNear(-1) : undefined}
+    >
       {mark === "line" && (
         <>
           <span
             aria-hidden
-            className="absolute top-0 bottom-0 w-[2px] rounded-full bg-border"
+            className="absolute bottom-0 top-0 w-[2px] rounded-full bg-border"
             style={{ left: t.spineX }}
           />
           <m.span
@@ -233,6 +272,15 @@ export function QuestionList({
       )}
       {questions.map((q, i) => {
         const here = i === current;
+        /* The swell, which he asked to try: "maybe we could even add
+           magnification like we do in the side rail of the collection."
+           The Collection's rail can grow its rows because they are one
+           line each at a fixed pitch. These wrap to three, so growing the
+           TYPE would reflow the whole list under the pointer. A transform
+           does not participate in layout, so the row swells and nothing
+           below it moves. Falls to nothing two rows away. */
+        const d = near < 0 ? 9 : Math.abs(i - near);
+        const scale = swells && d < 3 ? 1 + (0.075 - d * 0.028) : 1;
         return (
           <li
             key={q.id}
@@ -240,15 +288,19 @@ export function QuestionList({
               rows.current[i] = el;
             }}
           >
-            <button
+            <m.button
               type="button"
               onClick={() => onPick?.(i)}
               aria-current={here ? "true" : undefined}
+              animate={{ scale }}
+              transition={{ duration: 0.22, ease: EASE_OUT_SMOOTH }}
               className={cn(
-                "block w-full text-left transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
-                t.serif ? "font-heading" : "",
+                "block w-full origin-left text-left transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
+                t.serif && "font-heading",
+                /* Colour, never weight: a weight change reflows the words
+                   and pushes the list around, which is the shipped rail's
+                   bug and he caught it here too. */
                 here ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-                here && !t.serif && "font-medium",
                 mark === "tint" && "rounded-[10px]",
                 mark === "tint" && here && "bg-canopy/[0.07]"
               )}
@@ -262,7 +314,7 @@ export function QuestionList({
               }}
             >
               {q.text}
-            </button>
+            </m.button>
           </li>
         );
       })}

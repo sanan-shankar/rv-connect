@@ -1,5 +1,37 @@
 # Progress Log
 
+## 2026-09-07 — Catch-ups front runner, his first round of notes
+
+His review of the front runner, and the two bugs in it root-caused before anything was redrawn.
+
+**The navigation was not fixed, it was drifting, and the cause was the room rather than the
+design.** "The in the loop and the question are supposed to be fixed, but they actually move very
+slowly ... so that by the time I'm on the 6th question, it's totally out of the screen." Measured:
+a `position: sticky` element inside a `transform: scale(s)` drifts at exactly (1 - s) of the
+scroll, because the browser resolves the sticky offset in the untransformed space and the scale
+then shrinks the correction. At 0.92 that is 1,487px of drift over 20,000px; on the laptop frame
+at 0.95 it was 914px. The scaling frame existed only so a fixed-width drawing could be shrunk to
+fit, and it has been deleted: both views are fluid, sticky is native, and the strip now measures
+56px from the top at every scroll depth and every window width.
+
+**The birds were not left-aligned, and the layout was not why.** Every avatar box in the column
+starts on the same pixel. A photograph is clipped to a full circle and fills its 40px; a bird is
+drawn inside r~45 of a 0..100 viewBox, so its ink spans about 32px starting 4px in. The feed has
+the same 4px, it just never stacks twelve avatars in a column. Fixed here by measuring each
+glyph's real ink box and sliding it left by its own inset, sizes untouched, so every mark starts
+on the same pixel. The app-wide version of that is his call, not a lab room's.
+
+**The rest of his notes.** Replies are the feed's row now (bird, name inline, the words after it),
+opening and closing animated. A docked question stops at three lines and then cuts, which he
+weighed himself against the eight it used to allow. The laptop columns fill the page again, 1184px
+with equal 40px gutters, matching the shipped reader's proportions he said were better. The rail is
+serif, bigger, further apart, cinnamon rather than green, marked by colour and never by weight, and
+it swells under the pointer without reflowing. A far jump no longer fast-forwards through thirty
+thousand pixels; the page lets go, cuts, and the new question rises into place.
+
+One regression of my own, caught in a screenshot: the arrival wrapper had one child, so the
+`space-y` on the box outside it applied to nothing and every question ran into the one before it.
+
 ## 2026-09-07 — Catch-ups front runner: the strip is the navigator (S3c)
 
 One reader, drawn by one hand, live at `/lab/catchups/sketches`, after he rejected all fifteen
