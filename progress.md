@@ -1,5 +1,19 @@
 # Progress Log
 
+## 2026-09-07 — the feed's photographs run edge to edge
+
+One change, on its own, so it can be reverted on its own. Owner: "I think we should also make that
+edge-to-edge picture thing, make that change even in the feed. Let's just see how that works ...
+keep that as one nuclear commit that I can revert."
+
+A post card's photographs now bleed to the card's edges instead of sitting inside its 16px padding.
+The card clips its own corners, the photographs drop the radius and the side borders they used to
+draw against nothing, and everything else about them is untouched: three or more is still a
+carousel, two is still a justified row, one is still the shared frame, and every one still opens the
+viewer at itself. Measured at 390: a carousel spans the card's full 348px content box.
+
+Reverting this commit puts the padding back and nothing else moves.
+
 ## 2026-09-07 — Catch-ups front runner, his first round of notes
 
 His review of the front runner, and the two bugs in it root-caused before anything was redrawn.

@@ -288,7 +288,7 @@ export function PostCard({
   const wrapClass =
     variant === "sheet"
       ? "px-5 py-4 border-b border-border last:border-0"
-      : "card-elevated rounded-[var(--radius)] border border-border bg-card p-4";
+      : "card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card p-4";
 
   // Removed optimistically the moment an admin confirms the moderation dialog,
   // rather than waiting on the revalidatePath round trip.
@@ -467,7 +467,15 @@ export function PostCard({
                 (owner, 2026-07-30: "when something is posted, people do like
                 to click on it and zoom in"). */}
             {images.length > 0 && (
-              <div className="mt-3">
+              /* Edge to edge, owner 2026-09-07: "I think we should also make
+                 that edge-to-edge picture thing, make that change even in the
+                 feed. Let's just see how that works." The negative margin
+                 cancels the card's own padding; the card clips the corners.
+                 Everything else about the feed's photographs is untouched:
+                 three or more is still a carousel, two is still a justified
+                 row, one is still the shared frame, and every one of them
+                 still opens the viewer at itself. */
+              <div className={variant === "sheet" ? "-mx-5 mt-3" : "-mx-4 mt-3"}>
                 {/* One photograph gets the shared rule: true shape if it is
                     square or wider, 3:4 on a bed of itself if it is taller,
                     capped at 900px however wide the card grows, and its space
@@ -491,6 +499,7 @@ export function PostCard({
                     sizes={columnSizes}
                     onOpen={viewer.open}
                     onPreload={preloadImageViewer}
+                    bleed
                   />
                 ) : images.length === 1 || !rowPhotos ? (
                   images.map((img, i) => (
@@ -499,7 +508,10 @@ export function PostCard({
                       index={i}
                       count={images.length}
                       onOpen={viewer.open}
-                      className={!rowPhotos && images.length > 1 ? "mb-2 last:mb-0" : undefined}
+                      className={cn(
+                        "rounded-none border-x-0",
+                        !rowPhotos && images.length > 1 && "mb-2 last:mb-0"
+                      )}
                     >
                       <PhotoFrame
                         src={photoSrc(img)}
@@ -518,7 +530,12 @@ export function PostCard({
                      the Catch-up letterbox. */
                   <PhotoRows photos={rowPhotos} columnSizes={columnSizes}>
                     {(photo, i, cell) => (
-                      <PhotoOpener index={i} count={images.length} onOpen={viewer.open} className="h-full">
+                      <PhotoOpener
+                        index={i}
+                        count={images.length}
+                        onOpen={viewer.open}
+                        className="h-full rounded-none border-x-0"
+                      >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={photoSrc(images[i])}
