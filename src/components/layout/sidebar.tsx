@@ -31,12 +31,7 @@ import { AnimatePresence, m } from "motion/react";
 import { NAV_MARKER_SPRING, SPRINGS } from "@/components/common/motion";
 import { IdentityRow } from "@/components/common/identity-row";
 import { batchLine } from "@/lib/utils";
-import {
-  ADMIN_NAV,
-  isAdminRoute,
-  isAdminSectionActive,
-  type AdminCountKey,
-} from "@/components/admin/admin-nav";
+import { ADMIN_NAV, isAdminRoute, isAdminSectionActive } from "@/components/admin/admin-nav";
 import { useAdminCounts } from "@/components/admin/admin-counts";
 import { NotificationBell } from "./notification-bell";
 import { Wordmark } from "./peaks-mark";
@@ -125,11 +120,12 @@ function Brand({
       <Wordmark
         /* Flat cream, not the three shaded planes: at 24px the middle and
            Rishi planes read as smudges rather than ridges, so the mark is
-           painted in the lightest of the three (#EAF1DF) and reads as one
-           clean silhouette against the dark green rail. */
-        variant="solid"
+           painted in the lightest of the three and reads as one clean
+           silhouette against the dark green rail. The colour itself lives
+           with the mark's other fixed fills, in peaks-mark.tsx. */
+        variant="cream"
         className={nowrap ? undefined : "min-w-0"}
-        markClassName="shrink-0 text-[#EAF1DF]"
+        markClassName="shrink-0"
         textClassName={
           nowrap
             ? "block whitespace-nowrap text-sidebar-foreground"
@@ -386,21 +382,13 @@ function AdminNavLinks({
               active={isAdminSectionActive(pathname, s.href)}
               markerId={markerId}
               onNavigate={onNavigate}
-              count={s.countKey ? countFor(counts, s.countKey) : undefined}
+              count={s.countKey ? counts?.[s.countKey] : undefined}
             />
           ))}
         </div>
       ))}
     </div>
   );
-}
-
-function countFor(
-  counts: ReturnType<typeof useAdminCounts>,
-  key: AdminCountKey
-): number | undefined {
-  if (!counts) return undefined;
-  return counts[key];
 }
 
 /**
@@ -597,6 +585,10 @@ export function Sidebar({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const inAdmin = user.role === "admin" && isAdminRoute(pathname);
+  /* Read once and passed to both, so the desktop rail and the mobile drawer
+     cannot come to disagree about who sees Catch-ups. */
+  const hideCatchups =
+    user.accountType === "teacher" || user.accountType === "ex_teacher";
 
   return (
     <>
@@ -644,9 +636,7 @@ export function Sidebar({
               <NavLinks
                 pathname={pathname}
                 markerId="nav-desktop"
-                hideCatchups={
-                  user.accountType === "teacher" || user.accountType === "ex_teacher"
-                }
+                hideCatchups={hideCatchups}
               />
             )}
           </div>
@@ -730,9 +720,7 @@ export function Sidebar({
                   pathname={pathname}
                   onNavigate={() => setOpen(false)}
                   markerId="nav-mobile"
-                  hideCatchups={
-                    user.accountType === "teacher" || user.accountType === "ex_teacher"
-                  }
+                  hideCatchups={hideCatchups}
                 />
               )}
             </div>

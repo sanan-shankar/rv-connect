@@ -192,7 +192,7 @@ export function SearchPill({
       {/* Right-anchored and absolutely placed, so opening never reflows the
           header row it sits in. It draws leftward into the gap between the
           page title and the actions. */}
-      <m.form
+      <form
         onSubmit={(e) => {
           e.preventDefault();
           submit();
@@ -354,7 +354,7 @@ export function SearchPill({
             )}
           />
         </button>
-      </m.form>
+      </form>
     </div>
   );
 }

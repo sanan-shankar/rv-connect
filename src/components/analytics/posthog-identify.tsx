@@ -39,13 +39,12 @@ export function PostHogIdentify({
      * There is no check to make now. posthog-js loads on an idle callback
      * well after this effect runs, and `whenPostHog` resolves only once
      * init() has returned, so identify cannot arrive early: the race is gone
-     * rather than guarded. See posthog-client.ts. */
+     * rather than guarded. See posthog-client.ts.
+     *
+     * And no reset() on the way out: the layout unmounts on navigation and
+     * resetting there would break every cross-page funnel. Sign-out is the
+     * only place an identity should end, and that is a full page load. */
     whenPostHog((ph) => ph.identify(userId, { accountType, batchYear, isOwner }));
-    return () => {
-      /* No reset() on unmount: the layout unmounts on navigation and resetting
-       * there would break every cross-page funnel. Sign-out is the only place
-       * an identity should end, and that is a full page load anyway. */
-    };
   }, [userId, accountType, batchYear, isOwner]);
 
   return null;

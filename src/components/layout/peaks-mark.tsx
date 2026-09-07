@@ -30,8 +30,8 @@ const VIEWBOX_HEIGHT = 350;
    window's centre at 460 and hung the mark five units left of true. That is
    0.44% of its width -- invisible on its own and not invisible once the same
    habit had also moved the favicon and the app icon. */
-export const PEAK_SPAN = { left: -98, right: 1008 } as const;
-export const PEAK_CENTRE = (PEAK_SPAN.left + PEAK_SPAN.right) / 2;
+const PEAK_SPAN = { left: -98, right: 1008 } as const;
+const PEAK_CENTRE = (PEAK_SPAN.left + PEAK_SPAN.right) / 2;
 const VIEWBOX_X = PEAK_CENTRE - VIEWBOX_WIDTH / 2;
 const RIDGE =
   "M-70 348 " +
@@ -66,6 +66,13 @@ const MIDDLE_PLANE =
   "L432 390 " +
   "C432 338 444 286 462 252 Z";
 
+/** The lightest of the three planes, and the whole mark wherever it is drawn
+ *  flat against the dark green rail: at 24px the middle and Rishi planes read
+ *  as smudges rather than ridges, so the sidebar lockup takes this one colour
+ *  as a silhouette. Named here, beside the fills it belongs to, so the flat
+ *  mark and the shaded one cannot drift apart. */
+const CREAM = "#eaf1df";
+
 const RISHI_PLANE =
   "M748 158 " +
   "C786 162 781 107 822 128 " +
@@ -98,7 +105,7 @@ export function PeaksMark({
    * font-size, with width left to the viewBox aspect ratio. */
   size?: number | string;
   className?: string;
-  variant?: "two-plane" | "light" | "outline" | "solid";
+  variant?: "two-plane" | "light" | "outline" | "solid" | "cream";
 }) {
   const w =
     typeof size === "number"
@@ -115,7 +122,7 @@ export function PeaksMark({
     >
       {variant === "two-plane" ? (
         <>
-          <path d={SILHOUETTE} fill="#eaf1df" />
+          <path d={SILHOUETTE} fill={CREAM} />
           <path d={MIDDLE_PLANE} fill="#8ca383" opacity="0.72" />
           <path d={RISHI_PLANE} fill="#173f35" opacity="0.37" />
         </>
@@ -125,6 +132,8 @@ export function PeaksMark({
           <path d={MIDDLE_PLANE} fill="#7f9a82" />
           <path d={RISHI_PLANE} fill="#235c49" />
         </>
+      ) : variant === "cream" ? (
+        <path d={SILHOUETTE} fill={CREAM} />
       ) : variant === "solid" ? (
         <path d={SILHOUETTE} fill="currentColor" />
       ) : (
@@ -159,7 +168,7 @@ export function Wordmark({
 }: {
   size?: number;
   fontSize?: number;
-  variant?: "two-plane" | "light" | "outline" | "solid";
+  variant?: "two-plane" | "light" | "outline" | "solid" | "cream";
   markClassName?: string;
   textClassName?: string;
   className?: string;
