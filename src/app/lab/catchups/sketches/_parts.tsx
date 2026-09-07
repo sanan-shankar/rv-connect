@@ -305,16 +305,14 @@ export function Body({
   return (
     <>
       <p
-        /* `overflow-wrap: anywhere`, and it is not cosmetic. This is the
-           bug recon root-caused on the shipped reader (F18) and the
-           pressure corpus reproduced here on its first run: a member's
-           pasted Spotify link is a 54-character run with no break
-           opportunity, and a 180-character word is worse. Without this the
-           paragraph lays out to 1,310px inside an 814px tile and the words
-           are simply cut off; on a phone it is what makes the whole page
-           wider than the window, which is the green bar he has been
-           looking at since para 11. The feed's reply row already carries
-           it; the answer body never did. */
+        /* `overflow-wrap: anywhere`, and it is not cosmetic. This is the bug
+           recon root-caused on the shipped reader (F18): a member's pasted
+           Spotify link is a 54-character run with no break opportunity.
+           Without this the paragraph lays out wider than its tile and the
+           words are cut off; on a phone it is what makes the page wider than
+           the window, which is the green bar he has been looking at since
+           para 11. The feed's reply row already carries it; the answer body
+           never did. */
         className={cn(
           "whitespace-pre-line text-foreground [overflow-wrap:anywhere]",
           className,
@@ -399,12 +397,12 @@ export function Photographs({
      renders a component whose last line is `createPortal(..., document.body)`
      -- so every page holding a photograph threw "document is not defined"
      during SSR and React silently threw the server's whole render away and
-     started again on the client. Recoverable, invisible, and on a Round of
-     this length it is thirty-four thousand pixels rendered twice. Found by
-     the pressure corpus; `lazy-image-viewer.tsx` says at the top that every
-     caller must come through it, and now this one does. The latch and the
-     pointer preload come with it, which is the reason it exists: "Oh, wow.
-     This doesn't even load. What? I clicked on picture." */
+     started again on the client. Recoverable, invisible, and on a long
+     Round it is the whole page rendered twice. `lazy-image-viewer.tsx` says
+     at the top that every caller must come through it, and now this one
+     does; `image-viewer-import-rule.test.mjs` is what keeps it that way.
+     The latch and the pointer preload come with it, which is the reason it
+     exists: "Oh, wow. This doesn't even load. What? I clicked on picture." */
   const viewer = useImageViewer();
   const images = entry.images;
   if (images.length === 0) return null;
@@ -452,13 +450,12 @@ export function Photographs({
           style={{ gridTemplateColumns: `repeat(${images.length}, minmax(0,1fr))` }}
         >
           {images.map((src, i) => (
-            /* Keyed by POSITION, not by url. The pressure corpus caught
-               this on its first run: an answer carrying the same
-               photograph twice (a duplicate upload, which nothing stops)
-               gave React two children with the same key, which it is
-               allowed to omit or duplicate. The url is not an identity
-               here; the slot is. */
             <button
+              /* Keyed by POSITION, not by url: an answer carrying the same
+                 photograph twice (a duplicate upload, which nothing stops)
+                 gave React two children with the same key, which it is
+                 allowed to omit or duplicate. The url is not an identity
+                 here; the slot is. */
               key={`${i}-${src}`}
               type="button"
               onClick={() => open(i)}

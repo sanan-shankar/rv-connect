@@ -28,24 +28,21 @@
  *  The page, top to bottom, on a phone:
  *
  *    the app's green bar, with the Catch-up's name where the wordmark is
- *    the strip: "15 August 2026", or the question you are in
+ *    the strip: "Round 1 · 15 August 2026", or the question you are in
  *    a question: a short cinnamon mark, the heading, "Asked by" when a
  *      member wrote it
  *    its answers, each a tile
  *    the next question
  *
- *  The masthead on a phone is those two bars: the name in the green one
- *  and the date in the strip. Nothing else, so the first screen holds a
- *  whole answer, which the shipped reader's does not. On a laptop nothing
- *  is pinned, so the same two facts are the page's title (see `head`, and
- *  N11). No row of birds, no counts, no ROUND NUMBERS, no timestamps,
+ *  No masthead (the bar and the strip are the masthead, so the first
+ *  screen holds a whole answer, which the shipped reader's does not).
+ *  No row of birds, no counts, no question numbers, no timestamps,
  *  nothing about Round 2, no rule under anything.
  * ------------------------------------------------------------------ */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "motion/react";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
-import { cn } from "@/lib/utils";
 import type {
   SketchEntry,
   SketchQuestion,
@@ -57,7 +54,6 @@ import {
   AskedBy,
   Body,
   Byline,
-  longDate,
   Media,
   Photographs,
   Reactions,
@@ -129,15 +125,13 @@ function useRailFits(): boolean {
  *  words sit 10px under the name (R20: "the name is close to their
  *  answer"), and the heart is 6px under the words. */
 export function Tile({ entry, phone }: { entry: SketchEntry; phone: boolean }) {
-  /* `entry.text` and nothing else. It used to fall back to `entry.body`
-     when `text` was empty, and that fallback undid the one rule this
-     design has about links: "I think it should just not show the link at
-     all. Let it just show the button" (R31). `text` is the body with the
-     links that became cards taken out, so it is empty for exactly the
-     answer that is ONLY a link -- and the fallback then printed the raw
-     url above the card it had just been turned into. The pressure corpus
-     put three of them on one screen, a 123-character Spotify url among
-     them. An answer with nothing but a link is now its card. */
+  /* `entry.text` and nothing else. It used to fall back to `entry.body` when
+     `text` was empty, and that fallback undid the one rule this design has
+     about links: "I think it should just not show the link at all. Let it
+     just show the button" (R31). `text` is the body with the links that
+     became cards taken out, so it is empty for exactly the answer that is
+     ONLY a link -- and the fallback then printed the raw url above the card
+     it had just been turned into. */
   const body = entry.text;
   return (
     /* The padding is the phone's 16 and the laptop's 20: LiftKit's card
@@ -194,8 +188,8 @@ export function Section({
         />
         <h2
           /* A question is member-written and may be a pasted link. Same
-             reason as the answer body: without this one 90-character token
-             lays the heading out past the column. */
+             reason as the answer body: without this one long token lays the
+             heading out past the column. */
           className="mt-3 font-heading text-foreground [overflow-wrap:anywhere]"
           /* 24px on both, which is `h2` on the documented scale
              (DESIGN-SYSTEM section 5). It used to be 30 on a laptop, which
@@ -371,30 +365,6 @@ export function Reader({
   const [open, setOpen] = useState(false);
   const [arriving, setArriving] = useState(false);
 
-  /* A QUESTION NOBODY ANSWERED IS NOT IN THE PUBLISHED ROUND. Not as a
-     heading with nothing under it, and not as a row in the navigator that
-     lands you on one.
-
-     His rule, R21, given about an answer that was empty: "Just delete it.
-     If it's empty, just delete it." A question is the same object one
-     level up, and the pressure corpus is where it shows: the fixture has a
-     Round whose only question nobody wrote in, and the reader drew 71px of
-     heading, an "Asked by", and then the next question. A member reads
-     that as a page that failed to load.
-
-     Filtered ONCE, here, so the sections, the strip, the rail and the
-     panel cannot disagree about how many questions there are -- which they
-     would the moment one of them filtered and another did not. `said()` is
-     the same test the answers themselves are drawn through, so a question
-     whose only answers are empty counts as unanswered too. */
-  const shown = useMemo(
-    () => ({
-      ...round,
-      questions: round.questions.filter((q) => said(q.entries).length > 0),
-    }),
-    [round],
-  );
-
   /* Three layouts, not two, and the third is what he asked for on
      2026-09-07: "at some point you might [want] to remove the navigation
      and swap it to the phone method of questions to save space."
@@ -462,10 +432,10 @@ export function Reader({
     [landing],
   );
 
-  const q = shown.questions[spy.current];
+  const q = round.questions[spy.current];
   const showQuestion = spy.docked && !open && q;
 
-  const questions = shown.questions.map((question, i) => (
+  const questions = round.questions.map((question, i) => (
     <Section
       key={question.id}
       q={question}
@@ -525,7 +495,7 @@ export function Reader({
             </AnimatePresence>
             <div className="absolute inset-x-0 top-0">
               <Strip
-                label={showQuestion ? q.text : <RoundMeta round={shown} />}
+                label={showQuestion ? q.text : <RoundMeta round={round} />}
                 docked={Boolean(showQuestion)}
                 progress={spy.progress}
                 open={open}
@@ -549,7 +519,7 @@ export function Reader({
                     className="overflow-hidden"
                   >
                     <UnfoldedPanel
-                      round={shown}
+                      round={round}
                       current={spy.current}
                       within={spy.within}
                       onPick={pick}
@@ -583,121 +553,49 @@ export function Reader({
      is that, with a wider rail because the list is set in the heading
      face now. The paragraph inside a tile still caps at 68ch (see Body);
      the photographs use the whole width. */
-  /* ── the masthead ────────────────────────────────────────────────── *
-   *  N11, and it is the last note of his from the first review that had
-   *  not been answered: "I'm not too pleased with the title though. Like,
-   *  In the Loop Round 1, 15th August. It's super basic. It works okay. I
-   *  feel like we can still make it much prettier. The title. It's just
-   *  not that beautiful."
-   *
-   *  What was actually wrong, which took looking rather than reading. The
-   *  head was a name in the heading face over a MIDDLE-DOT META ROW --
-   *  "Round 1 · 15 August 2026" -- which is the app's most generic
-   *  construction and the one he has attacked by name three separate
-   *  times: "'In the loop, Round 1', middle dot, and the date. I think
-   *  that can be just laid out so much better" (R4); "You just have to add
-   *  a middle dot, right? Because without a middle dot, life would be
-   *  incomplete" (R32); "Does it have to be middle dots?" (R44). It also
-   *  put 67px of ink in the corner of an 856px column with nothing using
-   *  the width, which is why it read as a label rather than a title.
-   *
-   *  Three things fix it, and none of them is a bigger font. 30px stays:
-   *  it is `PageHeader`'s size on every other page, and "random massive
-   *  fonts" is a thing he has stopped twice (R38, R44).
-   *
-   *  1. THE ROUND NUMBER GOES. `architecture.md` section 5 already says
-   *     it -- "No Round numbers, anywhere. A Round is identified by its
-   *     date" -- on his own words, "Why do we need to have the round 4? It
-   *     doesn't matter what round, it's going to be round 15." The reader
-   *     was the last surface still printing one, from a decision (D51)
-   *     made before the architecture was settled. With it goes the dot,
-   *     and the head becomes two facts instead of three.
-   *  2. THE DATE JOINS THE TITLE instead of labelling it. Same line, same
-   *     face, one baseline: a masthead is a name and a date, and this is
-   *     one object rather than a heading with a caption. Not at the far
-   *     right of the column, which would recreate the very fault this page
-   *     exists to remove -- 63 to 76% of every shipped index tile was the
-   *     gap between a title at one end and a control at the other (recon
-   *     I2).
-   *  3. THE ROUND OPENS THE WAY ITS QUESTIONS DO. Every question below is
-   *     announced by a 32px cinnamon mark. The Round is announced by the
-   *     same mark at the width of the whole column: one vocabulary, two
-   *     scales, so the page says "this is the whole thing, those are its
-   *     parts" without a word. That is R28's line given a job -- "if we
-   *     can create some use for that line, that could be good" -- and it
-   *     is the abstraction he asked for rather than a new ornament (para
-   *     42). It fades out to the right because 856px of solid cinnamon is
-   *     twenty-seven times the ink of a question's mark and would be the
-   *     loudest thing on a page of other people's writing; fading also
-   *     points it the way you are about to read.
-   *
-   *  Above the name, never below it. A rule UNDER a masthead is a divider,
-   *  and the one the shipped reader has is the one he deleted on sight:
-   *  "there's a weird horizontal bar, which is barely visible, firstly.
-   *  Can totally delete that" (para 27). A mark above a heading is how
-   *  every question on this page already begins.
-   *
-   *  Considered and not taken: the Catch-up's picture as a banner here
-   *  (the reader is the Round, not the Catch-up, and he rejected the
-   *  picture as "this tiny hanging thing" anywhere it was decoration); the
-   *  Round's photographs as a frieze (that is the cover you just tapped to
-   *  get here, said twice); the date at the far right end of the rule
-   *  (the stranded-gap fault above); and the date as the head of the rail
-   *  (it would make the navigation the Round's masthead, which is a second
-   *  identity for one object).
-   *
-   *  The date is printed here only in `rail` mode. In `column` mode the
-   *  floating strip carries it, and the strip has a cinnamon line of its
-   *  own along the top edge, so a masthead rule 30px under it would be two
-   *  cinnamon lines stacked. On a phone the green bar has the name and the
-   *  strip has the date, which is the same lockup at that size. Once each,
-   *  per screen: "in the loop is said twice, Round 1 is said twice, the
-   *  date is said twice. It's just so much horrible" (R13). */
+  /* The name, and the Round and date UNDER it only when nothing else is
+     carrying them. On a phone the green bar has the name and the strip has
+     the meta; on a wide laptop nothing is pinned, so the header carries
+     both; on a narrow laptop the strip is back, so the header would be
+     saying the Round and the date a second time. That is the fault he
+     listed twice in the first review: "in the loop is said twice, Round 1
+     is said twice, the date is said twice." */
   const head = (
     <header>
+      {/* 30px, which is what `PageHeader` sets on every other page in the
+          app (Feed, Directory, Collection, Letters) and what the Support
+          page hand-writes to match. A Catch-up's name is a page title, so
+          it is THE page title size. */}
+      <h1 className="font-heading text-[30px] leading-[1.2] tracking-[-0.02em] text-foreground">
+        {onHome ? (
+          <button
+            type="button"
+            onClick={onHome}
+            className="text-left transition-opacity duration-150 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            {round.catchupName}
+          </button>
+        ) : (
+          round.catchupName
+        )}
+      </h1>
       {mode === "rail" && (
-        <span
-          aria-hidden
-          className="block h-[2px] w-full rounded-full bg-gradient-to-r from-cinnamon to-transparent"
-        />
+        <p className="mt-2.5 flex items-center gap-2 text-[14px]">
+          <span className="font-medium text-cinnamon">
+            Round {round.number}
+          </span>
+          <span className="dotsep" aria-hidden>
+            ·
+          </span>
+          <span className="text-muted-foreground">
+            {new Date(round.publishedAt).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </span>
+        </p>
       )}
-      <div
-        className={cn(
-          "flex flex-wrap items-baseline gap-x-5 gap-y-1",
-          mode === "rail" && "mt-5",
-        )}
-      >
-        {/* 30px, which is what `PageHeader` sets on every other page in the
-            app (Feed, Directory, Collection, Letters) and what the Support
-            page hand-writes to match. A Catch-up's name is a page title, so
-            it is THE page title size. */}
-        <h1 className="min-w-0 font-heading text-[30px] leading-[1.2] tracking-[-0.02em] text-foreground">
-          {onHome ? (
-            <button
-              type="button"
-              onClick={onHome}
-              className="text-left transition-opacity duration-150 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-              {round.catchupName}
-            </button>
-          ) : (
-            round.catchupName
-          )}
-        </h1>
-        {mode === "rail" && (
-          /* The heading face, not the body's: a dateline set in the same
-             type as the name is part of the title, and Libre Baskerville's
-             numerals are the reason to do it here rather than anywhere
-             else. 20px, which is `h3` on the documented ladder
-             (DESIGN-SYSTEM section 5) -- one rung under the 24px question
-             headings and two under the name. Drawn at 17 first and it read
-             as a caption hung off the title rather than as half of it;
-             the rung above is where the two words become one object. */
-          <p className="font-heading text-[20px] leading-[1.3] text-muted-foreground">
-            {longDate(round.publishedAt)}
-          </p>
-        )}
-      </div>
     </header>
   );
 
@@ -734,7 +632,7 @@ export function Reader({
                     spy.docked && !open && q ? (
                       q.text
                     ) : (
-                      <RoundMeta round={shown} />
+                      <RoundMeta round={round} />
                     )
                   }
                   docked={Boolean(spy.docked && !open && q)}
@@ -756,7 +654,7 @@ export function Reader({
                       className="overflow-hidden"
                     >
                       <UnfoldedPanel
-                        round={shown}
+                        round={round}
                         current={spy.current}
                         within={spy.within}
                         onPick={pick}
@@ -806,18 +704,18 @@ export function Reader({
                 see it in the sidebar." */}
           {head}
 
-          {/* 48px, and it is a number that has moved twice for a reason
-              each time. It was 56, which he read as loose against a
-              two-line head: "there's still a weirdly big gap under the
-              round and date and the first orange line ... right now it
-              looks totally imbalanced." It went to 36. Then the masthead
-              became ONE line (see `head`) and 36 was too tight the other
-              way: the head is 58px of ink and the questions keep 72px from
-              one another, so a 36px gap said the title belonged to
-              question one more than question one belongs to question two.
-              48 sits between the head's own height and the Round's own
-              rhythm, and it is the only gap on the page that is neither. */}
-          <div className="pb-20 pt-12">{body}</div>
+          {/* 56px, and it is the same distance the questions keep from
+                one another, so the first mark is not an odd beat: "there's
+                a weird spacing on Round one and then the first cinnamon
+                line is, it doesn't look visually balanced." */}
+          {/* 36px. The head is a 30px title over a 14px meta, about 65px
+              of ink, and the 56px that used to sit under it was almost as
+              tall as the block itself: "there's still a weirdly big gap
+              under the round and date and the first orange line ... right
+              now it looks totally imbalanced." Deliberately still half of
+              the 72px between one question and the next, so the head reads
+              as attached to the Round rather than floating above it. */}
+          <div className="pb-20 pt-9">{body}</div>
         </div>
 
         {/* The list, left open, fixed. Not scrolling at a tenth of the
@@ -825,7 +723,7 @@ export function Reader({
               had and the same cause. */}
         <aside className="sticky self-start" style={{ top: 40 }}>
           <QuestionList
-            questions={shown.questions}
+            questions={round.questions}
             current={spy.current}
             within={spy.within}
             size="rail"

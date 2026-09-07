@@ -50,24 +50,18 @@ import { longDate } from "./_parts";
 /** The app's phone bar. */
 export const BAR = 56;
 
-/** "15 August 2026", and that is the whole of it.
- *
- *  It used to read "Round 1 · 15 August 2026". Both halves of what changed
- *  are his. The NUMBER: "Why do we need to have the round 4? It doesn't
- *  matter what round, it's going to be round 15. How does it matter
- *  whether it's 15 or 16?" -- which `architecture.md` section 5 settled as
- *  "No Round numbers, anywhere. A Round is identified by its date", after
- *  D51 had already put one here. The DOT: three times, on three different
- *  screens -- "'In the loop, Round 1', middle dot, and the date. I think
- *  that can be just laid out so much better" (R4); "You just have to add a
- *  middle dot, right? Because without a middle dot, life would be
- *  incomplete" (R32); "Does it have to be middle dots?" (R44). Take the
- *  number away and there is nothing left for a dot to separate.
- *
- *  So a phone's masthead is the green bar's name over this date, which is
- *  the same two facts the laptop's title carries, at that size. */
+/** "Round 1 · 15 August 2026". Two facts, the app's own dot between them,
+ *  and the only place either is printed on the reader. */
 export function RoundMeta({ round, className }: { round: SketchRound; className?: string }) {
-  return <span className={className}>{longDate(round.publishedAt)}</span>;
+  return (
+    <span className={cn("inline-flex items-center gap-1.5", className)}>
+      <span>Round {round.number}</span>
+      <span className="dotsep" aria-hidden>
+        ·
+      </span>
+      <span>{longDate(round.publishedAt)}</span>
+    </span>
+  );
 }
 
 /* ── The strip ─────────────────────────────────────────────────────── *
@@ -178,12 +172,18 @@ export function Strip({
 
 /* ── The list, with the line beside it ─────────────────────────────── */
 
-type ListSize = "panel" | "page" | "rail";
+type ListSize = "panel" | "page" | "rail" | "cover";
 
 const LIST: Record<
   ListSize,
   { size: number; lineHeight: number; padY: number; indent: number; spineX: number; serif: boolean }
 > = {
+  /* A Round's contents, printed on its cover, on a Catch-up's home. The
+     same object as the rail and the panel, at the same measure, in the
+     same face. Nothing is truncated and nothing is numbered; a cover
+     carries its headlines the way a magazine's does, and never a quoted
+     answer (brief para 9). */
+  cover: { size: 15, lineHeight: 1.35, padY: 6, indent: 18, spineX: 0, serif: true },
   /* The unfolded strip and the sheet: one size, the body's. */
   panel: { size: 15.5, lineHeight: 1.35, padY: 11, indent: 40, spineX: 20, serif: false },
   /* The contents page: the heading face, a size under the in-flow
@@ -237,6 +237,7 @@ export function QuestionList({
   within = 0,
   size,
   mark = "line",
+  spine = "progress",
   onPick,
   className,
 }: {
@@ -248,6 +249,21 @@ export function QuestionList({
   size: ListSize;
   /** `line`: the measure ends at your row. `tint`: the app's selection wash. */
   mark?: "line" | "tint";
+  /** What the measure beside the list is doing.
+   *
+   *  `progress` is the reader: it fills as you read and stops at the
+   *  question you are in. `read` and `unread` are a cover, where there is
+   *  no "where am I" to show, so the measure answers the only question a
+   *  cover is asked instead: have I read this one?
+   *
+   *  Warm means READ, and it has to, because a full measure is what the
+   *  reader leaves behind when you get to the end of a Round. Marking the
+   *  UNREAD one warm would read better on a list -- the new thing lights
+   *  up -- and would make the same colour mean opposite things two taps
+   *  apart. So a Round you have not opened is a measure with nothing in
+   *  it yet, which is exactly what it is. No count, no dot, no
+   *  percentage. */
+  spine?: "progress" | "read" | "unread";
   onPick?: (index: number) => void;
   className?: string;
 }) {
@@ -262,8 +278,10 @@ export function QuestionList({
   const frame = useRef(0);
   const t = LIST[size];
   const swells = size === "rail";
+  const tracking = spine === "progress";
 
   useLayoutEffect(() => {
+    if (!tracking) return;
     const el = rows.current[current];
     if (!el) return;
     /* A floor under the fill, because the honest number is zero when you
@@ -275,7 +293,7 @@ export function QuestionList({
     if (swells) {
       setCentres(rows.current.map((r) => (r ? r.offsetTop + r.offsetHeight / 2 : -999)));
     }
-  }, [current, within, questions.length, swells]);
+  }, [current, within, questions.length, swells, tracking]);
 
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
 
@@ -304,24 +322,36 @@ export function QuestionList({
           : undefined
       }
     >
-      {mark === "line" && (
-        <>
+      {mark === "line" &&
+        (tracking ? (
+          <>
+            <span
+              aria-hidden
+              className="absolute bottom-0 top-0 w-[2px] rounded-full bg-border"
+              style={{ left: t.spineX }}
+            />
+            <m.span
+              aria-hidden
+              className="absolute top-0 w-[2px] rounded-full bg-cinnamon"
+              style={{ left: t.spineX }}
+              animate={{ height: fill }}
+              transition={{ duration: 0.3, ease: EASE_OUT_SMOOTH }}
+            />
+          </>
+        ) : (
+          /* A cover's measure is the whole height, and its colour is the
+             one thing it has to say. */
           <span
             aria-hidden
-            className="absolute bottom-0 top-0 w-[2px] rounded-full bg-border"
+            className={cn(
+              "absolute bottom-0 top-0 w-[2px] rounded-full",
+              spine === "read" ? "bg-cinnamon/70" : "bg-border",
+            )}
             style={{ left: t.spineX }}
           />
-          <m.span
-            aria-hidden
-            className="absolute top-0 w-[2px] rounded-full bg-cinnamon"
-            style={{ left: t.spineX }}
-            animate={{ height: fill }}
-            transition={{ duration: 0.3, ease: EASE_OUT_SMOOTH }}
-          />
-        </>
-      )}
+        ))}
       {questions.map((q, i) => {
-        const here = i === current;
+        const here = tracking && i === current;
         /* The swell, which he asked to try: "maybe we could even add
            magnification like we do in the side rail of the collection."
            The Collection's rail can grow its rows because they are one
@@ -382,33 +412,7 @@ export function QuestionList({
                   : {}),
               }}
             >
-              {/* Three lines, then it stops, and the number is his: "I
-                  think it should not be 8 lines, it should be 3 lines, and
-                  then you can dot dot dot it. But it takes up way too much
-                  of the screen. 3 would be okay." He said it about the
-                  docked question in the strip; it is the same sentence and
-                  the same question, so it is the same cap everywhere the
-                  list is drawn. The pressure corpus is why it exists at
-                  all: at the app's 300-character question cap one rail row
-                  was 211px tall against its neighbours' 41, and a
-                  navigation list one row can swallow is not one.
-
-                  On its own span, not on the button, and that difference
-                  was visible in the first capture: `overflow: hidden`
-                  clips at the PADDING box, so a clamp on the padded button
-                  let an eleven-pixel band of the fourth line show through
-                  the bottom padding and run into the row beneath it. */}
-              <span
-                style={{
-                  display: "-webkit-box",
-                  WebkitBoxOrient: "vertical",
-                  WebkitLineClamp: 3,
-                  overflow: "hidden",
-                  overflowWrap: "anywhere",
-                }}
-              >
-                {q.text}
-              </span>
+              {q.text}
             </Row>
           </li>
         );
