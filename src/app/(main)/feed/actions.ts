@@ -10,7 +10,7 @@ import { drainPendingImagePurges } from "@/lib/account-purge";
 import { withPhotoFacts } from "@/lib/image-record";
 import { droppedImages } from "@/lib/draft-images";
 import { copyPostImagesToCollection } from "@/lib/collection-intake";
-import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
+import { getViewerCities, cityScopeWhere, ownCity } from "@/lib/city-scope";
 import { notifyAdminNote } from "@/lib/admin-note";
 import {
   AUTHOR_IN_GOOD_STANDING,
@@ -213,14 +213,7 @@ export async function createPost(formData: FormData) {
   // a post to an arbitrary city.
   let cityScope: string | null = null;
   if (parsed.data.cityScope) {
-    const ownPlace = await prisma.userPlace.findFirst({
-      where: {
-        userId: session.user.id,
-        city: { equals: parsed.data.cityScope, ...insensitive },
-      },
-      select: { city: true },
-    });
-    cityScope = ownPlace?.city ?? null;
+    cityScope = await ownCity(session.user.id, parsed.data.cityScope);
   }
 
   // "Save as draft" only exists for letters; a plain post ignores the flag
@@ -615,13 +608,7 @@ export async function editPost(postId: string, formData: FormData) {
     if (!wanted) {
       cityScopeUpdate = { cityScope: null };
     } else {
-      const ownPlace = await prisma.userPlace.findFirst({
-        where: {
-          userId: session.user.id,
-          city: { equals: wanted, ...insensitive },
-        },
-        select: { city: true },
-      });
+      const ownPlace = await ownCity(session.user.id, wanted);
       /* A miss is REFUSED, not folded to null (audit C-017).
          "Everyone" and "the city I asked for, which I apparently no longer
          list" are different intentions that both used to store the same
@@ -633,7 +620,7 @@ export async function editPost(postId: string, formData: FormData) {
       if (!ownPlace) {
         return { error: `You no longer list ${wanted}, so it cannot be the audience.` };
       }
-      cityScopeUpdate = { cityScope: ownPlace.city };
+      cityScopeUpdate = { cityScope: ownPlace };
     }
   }
 
