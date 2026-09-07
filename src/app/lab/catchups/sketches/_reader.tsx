@@ -712,18 +712,19 @@ export function Reader({
                 see it in the sidebar." */}
           {head}
 
-          {/* 56px, and it is the same distance the questions keep from
-                one another, so the first mark is not an odd beat: "there's
-                a weird spacing on Round one and then the first cinnamon
-                line is, it doesn't look visually balanced." */}
-          {/* 36px. The head is a 30px title over a 14px meta, about 65px
-              of ink, and the 56px that used to sit under it was almost as
-              tall as the block itself: "there's still a weirdly big gap
-              under the round and date and the first orange line ... right
-              now it looks totally imbalanced." Deliberately still half of
-              the 72px between one question and the next, so the head reads
-              as attached to the Round rather than floating above it. */}
-          <div className="pb-20 pt-9">{body}</div>
+          {/* 24px, and it has come down twice. 56 first, then 36, and he
+              looked again on 2026-09-07: "decrease the gap between the orange
+              date and the first orange line. it's a weirdly big gap and
+              there's no reason for it. keep it something sensible."
+
+              The reason it kept being too big is that it was being measured
+              against the wrong thing. 36 was half of the 72 between one
+              question and the next -- but that 72 separates two peers, and
+              this gap separates a Round's name from the Round's own first
+              item, which is a heading to its content. A third of the
+              between-questions distance is the proportion the rest of the app
+              uses for exactly that relationship, and 24 is what a 72 gives. */}
+          <div className="pb-20 pt-6">{body}</div>
         </div>
 
         {/* The list, left open, fixed. Not scrolling at a tenth of the
