@@ -19,11 +19,12 @@
  *  recipe `contributePhotoDirect` uses -- full resolution, the 40MP area
  *  cap only ever bounding a decompression bomb (audit M16). The date is
  *  read with `exifStamp` out of `src/lib/exif-date.ts`, the reader that
- *  deliberately cannot name a GPS tag. Both are imported rather than
- *  copied. What IS copied is the 480px/q72 thumbnail recipe, because it
- *  lives in `collection-photo.ts` beside code that imports through the
- *  `@/lib` alias and a plain node script cannot resolve that; if the
- *  thumbnail size ever changes, THUMB below is the second place.
+ *  deliberately cannot name a GPS tag. The 480px/q72 thumbnail and the
+ *  two-source EXIF reader come from `src/lib/collection-image.ts`, which
+ *  exists so that a bare `node` can have them: they used to be copied
+ *  here, because their old home imports through the `@/lib` alias that a
+ *  plain node script cannot resolve. Nothing about the picture this
+ *  script files is written twice any more.
  *
  *  WHAT IT DOES NOT DO. It does not raise, lower or skip a rule that
  *  protects anybody else: rows land `scope: "class"` with the uploader's
@@ -68,7 +69,12 @@ import { createId } from "@paralleldrive/cuid2";
 import { databaseUrl } from "./_env.mjs";
 import { argv } from "./_cli.mjs";
 import { sharpImage, storedResizeBox } from "../../src/lib/image.ts";
-import { exifFromPng, exifStamp, parseExifStamp } from "../../src/lib/exif-date.ts";
+import { exifStamp, parseExifStamp } from "../../src/lib/exif-date.ts";
+/* The app's own thumbnail recipe and EXIF reader, imported rather than
+   copied. They live in collection-image.ts precisely so a bare `node`
+   script can have them; the copies that used to be here drifted from the
+   app the moment either changed. */
+import { exifBlockOf, gridThumb } from "../../src/lib/collection-image.ts";
 import { eraFromYear } from "../../src/lib/collection.ts";
 import { COLLECTION_WEBP_QUALITY } from "../../src/lib/upload-shared.ts";
 
@@ -90,10 +96,6 @@ const envFile = value("--env", ".env");
    photographs, and the owner keeps the root short. `.gitignore` already
    covers every dotted working folder under scripts/dev. */
 const OUT = path.join(process.cwd(), "scripts", "dev", ".album-import");
-
-/** The grid thumbnail. THE SECOND COPY of a recipe that belongs to
- *  `src/lib/collection-photo.ts` (`THUMB_PX`, `gridThumb`); see the header. */
-const THUMB = { px: 480, quality: 72 };
 
 const THIS_YEAR = new Date().getFullYear();
 
@@ -206,27 +208,6 @@ async function yearOnlySet() {
     if (name && parts[1]) set.add(`${parts[1].trim()}/${name.trim()}`);
   }
   return set;
-}
-
-/**
- * The EXIF block of a file, from wherever its container keeps one.
- *
- * THE SAME TWO SOURCES `exifBlockOf` IN collection-photo.ts READS, and the
- * second copy exists for the reason the header gives about the thumbnail: that
- * function sits beside code importing through the `@/lib` alias, which a plain
- * node script cannot resolve. Keep the two in step -- a photograph this script
- * files undated is one the app would have dated, which is precisely the bug
- * that made the PNG reader necessary.
- */
-async function exifBlockOf(original) {
-  try {
-    const fromSharp = (await sharpImage(original).metadata()).exif;
-    if (fromSharp?.length) return fromSharp;
-  } catch {
-    /* A decode with no metadata to give. The PNG reader works off raw bytes
-       and may still manage. */
-  }
-  return exifFromPng(original) ?? undefined;
 }
 
 /* ------------------------------------------------------------------ *
@@ -367,10 +348,8 @@ async function importOne(p) {
   const display = await (p.stamp ? encode.withExif({ IFD2: { DateTimeOriginal: p.stamp } }) : encode)
     .toBuffer({ resolveWithObject: true });
 
-  const thumb = await sharpImage(display.data)
-    .resize(THUMB.px, THUMB.px, { fit: "inside", withoutEnlargement: true })
-    .webp({ quality: THUMB.quality })
-    .toBuffer();
+  // `alreadyUpright`: the display buffer above has been through `.rotate()`.
+  const thumb = await gridThumb(display.data, { alreadyUpright: true });
 
   const id = createId();
   const key = `${partition}/${id}.webp`;
