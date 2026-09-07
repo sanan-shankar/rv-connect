@@ -201,10 +201,6 @@ function limiterFor(name: LimitName): Ratelimit | null {
 /* ------------------------------------------------------------ the API */
 
 /**
- * Count this event against the limit and say whether it may proceed.
- * The default call for write actions: one line after the member gate.
- */
-/**
  * A limiter backend that stopped answering, said out loud where somebody looks.
  *
  * Failing OPEN is the deliberate choice here (see the header): an Upstash
@@ -229,6 +225,10 @@ function reportLimiterFailure(name: string, step: string, err: unknown): void {
   reportSwallowed("rate-limit", err, { limiter: name, step, failedOpen: step !== "consume" });
 }
 
+/**
+ * Count this event against the limit and say whether it may proceed.
+ * The default call for write actions: one line after the member gate.
+ */
 export async function rateLimit(
   name: LimitName,
   key: string,

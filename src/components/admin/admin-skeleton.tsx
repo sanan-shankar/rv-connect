@@ -1,6 +1,5 @@
 /**
- * The admin panel's loading state, in one place so nine routes cannot each
- * invent their own.
+ * The admin panel's loading state, in one place so no route invents its own.
  *
  * Warm shimmer (`skeleton-warm`), never the grey pulse: the house rule for
  * every async route. `rows` and `columns` are the only knobs, because the

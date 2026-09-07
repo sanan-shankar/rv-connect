@@ -14,11 +14,6 @@ import { IDENTITY_SELECT } from "@/lib/people-select";
  *     written nightly by scripts/ops/snapshot.mjs. These answer "which
  *     way is it going", and they are the only numbers that survive
  *     Sentry's 30-day window or PostHog's year.
- *
- *  Money filters on `livemode` EVERYWHERE. This database is shared with
- *  local dev and a Razorpay test order is indistinguishable from a real
- *  one by its ids alone, so an unfiltered sum turns a developer's test
- *  payment into revenue on a page the owner reads as fact.
  * ------------------------------------------------------------------ */
 
 export type Trend = { day: string; value: number }[];

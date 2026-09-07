@@ -271,12 +271,9 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
                 ref={emailFocusRef}
               />
             </m.div>
-            {/* The password field is unconditional. It used to be hidden
-                whenever the typed address matched NEXT_PUBLIC_ADMIN_EMAIL,
-                because the admin signed in through a password-less bypass
-                (security audit C1-a/b/c). That bypass is being removed, and
-                hiding the field was also what stopped the owner from ever
-                testing his own password. */}
+            {/* Unconditional: the field used to hide for the admin address,
+                which is also what stopped the owner ever testing his own
+                password (security audit C1-a/b/c). */}
             {/* No mount fade on this row, and that is the point. It carried
                 `initial={{ opacity: 0 }}` from the days when the field could
                 appear later — when it did not render at all for the admin
