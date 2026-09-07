@@ -293,8 +293,11 @@ export function AvatarCropDialog({
             style={{ width: FRAME, height: FRAME }}
           >
             {image && stage && (
-              /* Drag precedent: image-viewer.tsx (dragElastic 0.14, the house
-                 rubber-band). Momentum is off because a crop is precise
+              /* Drag precedent: pinch-zoom.ts's SWIPE_FOLLOW, 0.14, the house
+                 rubber-band. The viewer itself no longer uses Motion's drag --
+                 it knows about one pointer, so a second finger kept dragging
+                 instead of pinching -- but the number it was tuned with is
+                 still the one a hand expects. Momentum is off because a crop is precise
                  placement: a glide that keeps travelling after the finger
                  stops fights the "put THIS pixel in the middle" intent. The
                  constraints keep every image edge at or outside the circle at

@@ -3,11 +3,11 @@
 /* ------------------------------------------------------------------ *
  *  <AttachImageWell> / <AttachImageDialog> -- the one way to give the
  *  app a picture, everywhere a picture can be attached (post/letter
- *  composer, catch-up answers, avatar, the Collection, admin support
- *  messages). Three doors into the same room: click to browse, drag a
- *  file in, or paste straight from the clipboard. Before this, every
- *  one of those sites hand-rolled its own hidden `<input type="file">`
- *  with neither drag/drop nor paste wired up (owner, 2026-08-06: a
+ *  composer, catch-up answers, avatar, admin support messages). Three
+ *  doors into the same room: click to browse, drag a file in, or paste
+ *  straight from the clipboard. Before this, every one of those sites
+ *  hand-rolled its own hidden `<input type="file">` with neither
+ *  drag/drop nor paste wired up (owner, 2026-08-06: a
  *  popup that shows "the dialog box for attaching a file... but also
  *  drag and drop and... paste").
  *
