@@ -42,7 +42,7 @@ const expectedOnPage = new Map([[`/profile/${OWN.id}`, OWN.name], [`/profile/${O
 // /welcome had each shipped without being added here. NOT every directory in
 // there is a route -- `notifications` holds only actions.ts and `notice` only
 // a [id] segment, so neither has a page to crawl.
-const routes = ['/feed','/directory','/letters','/catchups','/collection','/about','/support','/donate','/admin','/messages','/dark-mode','/birds','/pick-bird','/welcome',`/profile/${OWN.id}`,`/profile/${OTHER.id}`,'/','/login','/signup','/lab'];
+const routes = ['/feed','/directory','/letters','/catchups','/collection','/about','/support','/donate','/admin','/messages','/dark-mode','/birds','/pick-bird','/welcome','/guide',`/profile/${OWN.id}`,`/profile/${OTHER.id}`,'/','/login','/signup','/lab'];
 const browser = await puppeteer.launch({ headless: true, executablePath: chromePath(), args: ['--no-sandbox'] });
 const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900 });
