@@ -207,13 +207,21 @@ export default async function ProfilePage({
   const postCount = countOf("post");
   const letterCount = countOf("letter");
 
-  // Photos: flatten image arrays from this author's visible posts.
-  const photoPosts = await prisma.post.findMany({
-    where: { ...visiblePostsWhere, NOT: { images: null } },
-    select: { id: true, images: true },
-    orderBy: { createdAt: "desc" },
-    take: 60,
-  });
+  /* Photos: flatten image arrays from this author's visible posts.
+
+     Never on your OWN sheet. The fourth tab is Saved there and Photos on
+     everybody else's (letterhead-profile.tsx's TABS), so `tab === "photos"`
+     is unreachable on your own profile -- yet the query ran, the grid was
+     built server-side and up to 60 image nodes were serialized into the RSC
+     payload, on the profile every member visits more than any other. */
+  const photoPosts = isOwnProfile
+    ? []
+    : await prisma.post.findMany({
+        where: { ...visiblePostsWhere, NOT: { images: null } },
+        select: { id: true, images: true },
+        orderBy: { createdAt: "desc" },
+        take: 60,
+      });
   const photos = photoPosts.flatMap((p) =>
     parseJsonArray(p.images).map((src) => ({ src, postId: p.id }))
   );
