@@ -113,10 +113,12 @@ function volatileRegions(page: Page) {
 
 /* ---- LIVE ROUTES ------------------------------------------------- *
  *
- * Four routes photograph a database that real people are changing. A new
+ * Six routes photograph a database that real people are changing. A new
  * post, a new signup, one saved draft, and the page below it moves --
  * so feed, directory, letters and catchups were red on every run from
  * 2026-08-25 onward, on both viewports, for reasons no commit caused.
+ * /collection joined them on 2026-08-29 and /collection?scope=class on
+ * 2026-09-02; each of those two carries its own note above its line.
  * Session 1 of the refactor campaign inherited all eight failures and
  * could not tell them apart from a real regression, which is the whole
  * cost: a suite that is red every morning gets read as noise, and then
@@ -126,8 +128,9 @@ function volatileRegions(page: Page) {
  * made from those is stale by tomorrow's. Each is masked as narrowly as
  * its own drift allows, which is two different amounts:
  *
- * "band" -- feed, letters, catchups. Inserting one post or saving one
- * draft moves everything below it, so no per-element mask helps: the
+ * "band" -- feed, letters, catchups and both halves of the Collection.
+ * Inserting one post, saving one draft or importing one album moves
+ * everything below it, so no per-element mask helps: the
  * page is shot at viewport height and the content under the page header
  * is covered. What still fails a bad commit: the sidebar, the mobile
  * header, the page background, and the header band itself -- the serif
@@ -146,13 +149,16 @@ function volatileRegions(page: Page) {
  * renders. This suite could never hold that steady against a database
  * real people are writing to.
  *
- * The other seven routes are unchanged: full page, nothing masked but
- * the volatile bits below. /collection is deliberately NOT in this list
- * -- photos arrive rarely enough that its picture still means something,
- * and it is the one that catches image-sizing regressions.
+ * The remaining routes are unchanged: full page, nothing masked but the
+ * volatile bits below. /collection USED to be the counter-example here
+ * -- "photos arrive rarely enough that its picture still means
+ * something, and it is the one that catches image-sizing regressions" --
+ * and that reversed twice in five days, for the reasons written above
+ * its two lines. Image sizing has no picture watching it now.
  *
- * If full coverage of these four is ever wanted back, the fix is seeded
- * content, not a bigger mask: point the suite at a database it owns.
+ * If full coverage of any of these is ever wanted back, the fix is
+ * seeded content, not a bigger mask: point the suite at a database it
+ * owns.
  * ------------------------------------------------------------------ */
 
 /* Mark the live band so it can be masked by selector. The page header --
