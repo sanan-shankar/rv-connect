@@ -141,23 +141,3 @@ export async function saveOnboardingHouses(
   return { success: true };
 }
 
-export type GetHousesResult = { houses: HouseYearEntry[] | null };
-
-/** Prefill the step with whatever house history is already saved. */
-export async function getOnboardingHouses(): Promise<GetHousesResult> {
-  const session = await auth();
-  if (!session?.user?.id) return { houses: null };
-
-  const row = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { houses: true },
-  });
-  const raw = row?.houses ?? null;
-  if (!raw) return { houses: null };
-  try {
-    const parsedJson = JSON.parse(raw);
-    return { houses: Array.isArray(parsedJson) ? parsedJson : null };
-  } catch {
-    return { houses: null };
-  }
-}

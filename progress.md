@@ -1,5 +1,23 @@
 # Progress Log
 
+## 2026-09-07 — the houses step stops fetching a column the page already has
+
+Refactor audit 2, directory-profile-10. `/welcome` loads the member's row and hands eleven fields to
+the wizard. The houses step then made a second round trip on mount, through a server action, to read
+a twelfth (`houses`) off the same row — behind a two-bar skeleton, on the one step whose whole point
+is that everything is already known. The page select carries `houses` now and passes
+`parseHouseYearEntries(user.houses)`, exactly as `/profile/[id]` does; `getOnboardingHouses` and
+`GetHousesResult` are gone, and so is the skeleton branch and the `loading` state.
+
+The freshness question is the only real risk, because `saveOnboardingHouses` deliberately does NOT
+`revalidatePath("/welcome")`. Verified in the browser as Jerry rather than argued: seeded years and a
+saved chain, `/welcome?step=houses` painted "Neem 2014-16 -> 2016-17" on the first frame with zero
+`.skeleton-warm` nodes; picked Palm, Save & continue, Back — "Neem 2014-16, Palm 2016-17, 2017-18",
+still zero skeletons, no console output. The RSC re-runs after the action, which is what the page's
+own guard comment has always claimed. Desktop and 390x844 both, and the bottom-sheet shell too.
+
+`npm run check` 105/105.
+
 ## 2026-09-07 — the Catch-ups room meets its pressure corpus, and a design pass gets reverted
 
 Session S4c. It was meant to be a fine-tune with the owner in the loop; its prompt said "he has more

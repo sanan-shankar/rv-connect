@@ -9,6 +9,7 @@
  * render it. */
 
 import type { PlaceSelection } from "@/components/common/location-picker";
+import type { HouseYearEntry } from "@/lib/houses";
 
 /* The one value in this otherwise type-only module, and it is here for the
    same reason the types are: two unrelated components have to agree on it.
@@ -36,4 +37,5 @@ export interface OnboardingUser {
   jobTitle: string | null;
   yearJoined: number | null;
   yearLeft: number | null;
+  houses: HouseYearEntry[];
 }
