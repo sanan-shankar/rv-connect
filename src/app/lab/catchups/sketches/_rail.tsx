@@ -65,12 +65,44 @@ export function Person({ p, size = 30 }: { p: SketchPerson; size?: number }) {
   );
 }
 
-/** A rail block. The label is 13px, sentence case, no icon, no rule. */
-function Block({ label, children }: { label: string; children: ReactNode }) {
+/** A rail block. The label is 13px, sentence case, no icon, no rule.
+ *
+ *  `grows` is for the one block whose contents have no ceiling: it takes
+ *  whatever height the rail has left and scrolls inside it, under a fade
+ *  rather than a hard edge through the middle of a name. `min-h-0` because
+ *  a flex child's automatic minimum is its content, so without it the
+ *  block refuses to shrink and the rail grows past the window again. */
+function Block({
+  label,
+  grows = false,
+  after,
+  children,
+}: {
+  label: string;
+  grows?: boolean;
+  /** Below the scrolling part and outside it, so a control that belongs to
+   *  the block does not have to be scrolled a hundred names to reach. */
+  after?: ReactNode;
+  children: ReactNode;
+}) {
   return (
-    <section>
+    <section className={grows ? "flex min-h-0 flex-1 flex-col" : undefined}>
       <h2 className="mb-3 text-[13px] font-medium text-muted-foreground">{label}</h2>
-      {children}
+      {grows ? (
+        <div
+          className="min-h-0 flex-1 overflow-y-auto pb-2"
+          style={{
+            maskImage: "linear-gradient(to bottom, black calc(100% - 28px), transparent 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, black calc(100% - 28px), transparent 100%)",
+          }}
+        >
+          {children}
+        </div>
+      ) : (
+        children
+      )}
+      {after}
     </section>
   );
 }
@@ -214,14 +246,47 @@ export function Rail({ c }: { c: SketchCatchup }) {
      only block whose length is unbounded -- twenty-four names on this
      Catch-up -- so with it at the top, Reminders landed 1,500px down the
      page and the rail's whole point, that a control has an address you
-     can find, was lost. */
+     can find, was lost.
+
+     AND UNBOUNDED IS STILL UNBOUNDED, which the pressure corpus is what
+     showed. At the app's hundred-person cap (`lib/catchup-caps.ts`, and
+     Batch of 2023 already has 39 real members) this rail laid out 4,000px
+     tall inside a 982px window -- and because it is `position: sticky`,
+     everything past the first screen was not merely below the fold, it was
+     unreachable at any scroll depth.
+
+     So the rail is bounded by the window and the ONE block that can grow
+     takes what is left and scrolls inside itself. The controls stay where
+     they were, which is the rule this file exists for; every name is still
+     there, in full, which is what `architecture.md` section 2 promises --
+     "everyone, by name ... no preview, no 'and 16 more'", because he
+     rejected exactly that fold (R2). A roster you scroll is not a roster
+     you have to ask for. */
   return (
-    <div className="space-y-9">
+    <div
+      className="flex flex-col gap-9 overflow-hidden"
+      /* The window, less the 40px the rail is pinned at, the 24px of
+         padding above it and a 40px breath at the foot. */
+      style={{ maxHeight: "calc(100dvh - 104px)" }}
+    >
       <Block label="Reminders">
         <Reminders />
       </Block>
       <Running c={c} />
-      <Block label="People">
+      <Block
+        label="People"
+        grows
+        after={
+          c.kind === "people" && c.youKeep ? (
+            <button
+              type="button"
+              className="state-layer -mx-2 mt-2 self-start rounded-[10px] px-2 py-1.5 text-[14px] font-medium text-canopy focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
+            >
+              Add someone
+            </button>
+          ) : null
+        }
+      >
         <ul className="space-y-2.5">
           {c.members.map((p) => (
             <li key={p.id}>
@@ -229,14 +294,6 @@ export function Rail({ c }: { c: SketchCatchup }) {
             </li>
           ))}
         </ul>
-        {c.kind === "people" && c.youKeep && (
-          <button
-            type="button"
-            className="state-layer -mx-2 mt-2 rounded-[10px] px-2 py-1.5 text-[14px] font-medium text-canopy focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
-          >
-            Add someone
-          </button>
-        )}
       </Block>
     </div>
   );

@@ -1,5 +1,39 @@
 # Progress Log
 
+## 2026-09-07 — the Catch-up reader gets a masthead, and meets the corpus nobody had run
+
+Catch-ups rework, session S4c. Two things were outstanding and both were ours.
+
+**N11, the title.** His last unanswered note from the first review: *"In the Loop Round 1, 15th
+August. It's super basic ... I feel like we can still make it much prettier."* The fault was not the
+size — 30px is `PageHeader`'s size everywhere and he has stopped "random massive fonts" twice. It
+was that the head was a name over a middle-dot meta row, the construction he has attacked by name
+three times (R4, R32, R44), sitting in the corner of an 856px column. So: the Round number goes,
+which takes the dot with it (`architecture.md` §5 already said "no Round numbers, anywhere" and the
+reader was the last surface breaking it); the date joins the title on one baseline at 20px; and the
+Round is announced by the same cinnamon mark its questions are, at the width of the whole column,
+fading right. Four other shapes are recorded as considered and not taken.
+
+**The pressure corpus, driven for the first time.** `_fixtures/pressure.ts` was written on 09-05 and
+nothing had ever rendered it. `?data=pressure` now swaps the `SketchRound` the whole spine draws,
+through one adapter, so the list, the home and the reader are all judged on forty answers to one
+question, a twenty-four photograph wall, a hundred people and links nobody has a resolver for.
+
+**It found seven defects in an afternoon on surfaces four sessions had already looked at.** The
+worst was silent: the room imported `ImageViewer` directly, whose last line is
+`createPortal(…, document.body)`, so every server render of a page with a photograph threw, React
+called it recoverable and rebuilt the whole tree on the client — 34,000 pixels rendered twice, with
+green gates. `lazy-image-viewer.tsx` has said in its header since it was written that every caller
+must come through it; that comment is now `image-viewer-import-rule.test.mjs`, proved to fail before
+it was kept. Also: no `overflow-wrap` on the answer body (recon F18 alive inside the front runner);
+links that could not be resolved were deleted and their answers vanished, while links that could
+were printed above their own card; the rail was 4,000px and unreachable at the hundred-person cap; a
+line clamp on a padded button bled its fourth line into the row below; and the corpus itself had
+been minting one id for ninety-three people since the day it was written.
+
+`npm run check` green (105 tests), `npm run visual` 25/25 run separately. Every screen read at 390
+and 1512. Three questions for him are in the handover, 19 to 21.
+
 ## 2026-09-07 — the album importer stops copying the app, and a test stops pinning a shape
 
 Refactor audit 2, `fresh-code-04`. Three sites carried copies of code they wanted to import, and

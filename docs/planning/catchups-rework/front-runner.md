@@ -171,3 +171,54 @@ The five problems, answered:
 **His to decide, on his phone.** Which navigator, A, B or C; the line or the tint as the mark;
 whether the strip's resting label should be the Round's meta or nothing. Then S4 draws the rest of
 the surfaces from this reader's parts.
+
+*Answered 2026-09-07: navigator **A**, and it is now the only one drawn live.*
+
+## The sixth problem, answered 2026-09-07 (S4c): the title
+
+It was the last note of his from the first review with no answer against it, N11:
+
+> "I'm not too pleased with the title though. Like, In the Loop Round 1, 15th August. It's super
+> basic. It works okay. I feel like we can still make it much prettier. The title. It's just not
+> that beautiful."
+
+**What was wrong, and it took looking rather than reading.** The head was a name in the heading
+face over a *middle-dot meta row* — "Round 1 · 15 August 2026" — which is the app's most generic
+construction and the one he has attacked by name three separate times: R4 (*"'In the loop, Round
+1', middle dot, and the date. I think that can be just laid out so much better"*), R32 (*"You just
+have to add a middle dot, right? Because without a middle dot, life would be incomplete"*) and R44
+(*"Does it have to be middle dots?"*). It also put 67px of ink in the corner of an 856px column
+with nothing using the width, so it read as a label rather than as a title.
+
+**Three moves, and none of them is a bigger font.** 30px stays: it is `PageHeader`'s size on every
+other page, and *"random massive fonts"* is a thing he has stopped twice (R38, R44).
+
+1. **The Round number goes**, which makes the dot go with it. `architecture.md` §5 had already
+   settled *"No Round numbers, anywhere. A Round is identified by its date"* on his own sentence
+   (*"It doesn't matter what round, it's going to be round 15"*); the reader was the last surface
+   still printing one, from D51, which predates that. The phone strip at rest now reads
+   "15 August 2026" and nothing else.
+2. **The date joins the title** instead of labelling it: same line, same face, one baseline, 20px
+   (`h3` on the documented ladder). A masthead is a name and a date. Not at the far right of the
+   column, which would recreate the fault this page exists to remove — 63 to 76% of every shipped
+   index tile was the gap between a title at one end and a control at the other (recon I2).
+3. **The Round opens the way its questions do.** Every question is announced by a 32px cinnamon
+   mark; the Round is announced by the same mark at the width of the whole column, fading out to
+   the right. One vocabulary, two scales, so the page says *this is the whole thing, those are its
+   parts* without a word. It is R28's line given a job (*"if we can create some use for that line,
+   that could be good"*) and it is a higher level of abstraction rather than a new ornament (¶42).
+   Above the name, never below it: a rule under a masthead is a divider, and the shipped reader's
+   is the one he deleted on sight (¶27, *"Can totally delete that"*).
+
+**Considered and not taken**, so nobody re-treads them: the Catch-up's picture as a banner here
+(the reader is the Round, not the Catch-up, and he rejected the picture wherever it was decoration
+— *"this tiny hanging thing"*); the Round's photographs as a frieze (that is the cover you tapped
+to get here, said twice); the date at the far right end of the rule (the stranded-gap fault); the
+date as the head of the rail (it makes the navigation the Round's masthead, a second identity for
+one object); and a solid cinnamon rule rather than a fading one, which was drawn and read as a
+container's top border cut off at the rail.
+
+Only on the wide laptop. On a phone the green bar carries the name and the strip carries the date,
+which is the same lockup at that size; on a narrow laptop the strip is back and already has a
+cinnamon line along its top edge, so a masthead rule 28px under it would be two cinnamon lines
+stacked.

@@ -28,6 +28,7 @@
  *    ...&state=answering       which home state (see _shelf homeVariants)
  *    ...&frame=mid|long|a|b|c  one still alone (screens)
  *    ...&bare=1                no lab chrome, so a capture is the frame
+ *    ...&data=pressure         the invented corpus instead of the real Round
  * ------------------------------------------------------------------ */
 
 import { Suspense, useState, type ReactNode } from "react";
@@ -226,7 +227,7 @@ function Framed({ children, phone }: { children: ReactNode; phone: boolean }) {
   );
 }
 
-function Harness({ round }: { round: SketchRound }) {
+function Harness({ round, pressure }: { round: SketchRound; pressure: boolean }) {
   const router = useRouter();
   const params = useSearchParams();
   const w = params.get("w");
@@ -235,11 +236,13 @@ function Harness({ round }: { round: SketchRound }) {
   const bare = params.get("bare") === "1";
   const shelf = buildShelf(round);
 
-  function go(next: View) {
+  function set(key: string, value: string | null) {
     const q = new URLSearchParams(params.toString());
-    q.set("w", next);
+    if (value === null) q.delete(key);
+    else q.set(key, value);
     router.replace(`/lab/catchups/sketches?${q.toString()}`, { scroll: false });
   }
+  const go = (next: View) => set("w", next);
 
   const stills = frame ? STILLS.filter((s) => s.key === frame) : STILLS;
 
@@ -268,6 +271,23 @@ function Harness({ round }: { round: SketchRound }) {
                 </SpringPress>
               ))}
             </div>
+            {/* Which corpus. Its own group, away from the view pills,
+                because it changes WHAT is drawn rather than where you are
+                standing. On, it is cinnamon rather than canopy: a page of
+                invented answers must never be mistaken for members' words
+                at a glance. */}
+            <SpringPress
+              as="button"
+              onClick={() => set("data", pressure ? null : "pressure")}
+              aria-pressed={pressure}
+              className={`${PILL} ${
+                pressure
+                  ? "border-transparent bg-cinnamon text-white shadow-[0_5px_13px_-12px_var(--color-cinnamon)]"
+                  : PILL_OFF
+              }`}
+            >
+              Pressure
+            </SpringPress>
           </div>
         </header>
       )}
@@ -279,9 +299,11 @@ function Harness({ round }: { round: SketchRound }) {
               The shape of the whole thing
             </h1>
             <p className="mt-1 max-w-[70ch] text-[13px] text-muted-foreground sm:text-[14px]">
-              {view === "screens"
-                ? "Five moments from deep in a Round, and the navigator drawn three ways."
-                : "The list, a Catch-up's home in every state, and the reader, joined up. Tap a Catch-up; tap a cover; the name at the top is the way back."}
+              {pressure
+                ? "The pressure corpus: invented people, invented words. Forty answers under one question, a twenty-four photograph wall, an answer over the character cap, a hundred names in the rail, links nobody has a resolver for."
+                : view === "screens"
+                  ? "Five moments from deep in a Round, and the navigator drawn three ways."
+                  : "The list, a Catch-up's home in every state, and the reader, joined up. Tap a Catch-up; tap a cover; the name at the top is the way back."}
             </p>
           </div>
         )}
@@ -325,11 +347,17 @@ function Harness({ round }: { round: SketchRound }) {
   );
 }
 
-export function SketchHarness({ round }: { round: SketchRound }) {
+export function SketchHarness({
+  round,
+  pressure = false,
+}: {
+  round: SketchRound;
+  pressure?: boolean;
+}) {
   // useSearchParams needs a Suspense boundary in a client component.
   return (
     <Suspense fallback={<div className="min-h-screen bg-background" />}>
-      <Harness round={round} />
+      <Harness round={round} pressure={pressure} />
     </Suspense>
   );
 }

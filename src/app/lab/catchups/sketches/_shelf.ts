@@ -53,7 +53,17 @@ export type ShelfRound = {
   wroteIn: SketchPerson[];
   /** Whether the viewer has written in this Round. */
   youAnswered: boolean;
-  /** Invented. Whether the viewer has read it. */
+  /** Invented. Whether the viewer has read it.
+   *
+   *  NOTHING DRAWS THIS ANY MORE, and that is worth saying rather than
+   *  deleting. Owner question 16 asked whether the app should remember
+   *  which Rounds you have read, he took the default (yes), and the
+   *  mechanism proposed was the measure down the side of a Round's
+   *  contents: faint until you had read it, warm after. Then the cover
+   *  stopped being the Round's contents and became its photographs (N31),
+   *  and the mark went with the questions. So a question he has already
+   *  answered has no drawing behind it. The state stays here so the next
+   *  session finds it and answers it again rather than assuming it shipped. */
   read: boolean;
   /** Photographs from inside the Round. A published Round's cover is
    *  these, not a list of its questions: "the way that it's shown over
@@ -332,12 +342,6 @@ export function buildShelf(round: SketchRound): SketchCatchup[] {
  *  Catch-up with one flag turned on and nothing else changed. */
 export function paused(c: SketchCatchup): SketchCatchup {
   return { ...c, id: `${c.id}-paused`, paused: true };
-}
-
-/** The Catch-ups a member actually has on their list, in order. Two or
- *  three is the real number (I12); the room can show more. */
-export function shelfOf(all: SketchCatchup[], howMany: number): SketchCatchup[] {
-  return all.slice(0, howMany);
 }
 
 /** The home, in every state a Round can be in, plus paused. The room's

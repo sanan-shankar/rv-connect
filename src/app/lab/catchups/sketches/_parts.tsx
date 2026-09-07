@@ -37,7 +37,11 @@ import { AnimatePresence, m } from "motion/react";
 import { ChatCircle, MusicNotes, Play } from "@phosphor-icons/react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { LoveButton } from "@/components/common/love-button";
-import { ImageViewer } from "@/components/common/image-viewer";
+import {
+  LazyImageViewer,
+  preloadImageViewer,
+  useImageViewer,
+} from "@/components/common/lazy-image-viewer";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 import type { SketchMedia } from "./_media";
@@ -301,7 +305,20 @@ export function Body({
   return (
     <>
       <p
-        className={cn("whitespace-pre-line text-foreground", className)}
+        /* `overflow-wrap: anywhere`, and it is not cosmetic. This is the
+           bug recon root-caused on the shipped reader (F18) and the
+           pressure corpus reproduced here on its first run: a member's
+           pasted Spotify link is a 54-character run with no break
+           opportunity, and a 180-character word is worse. Without this the
+           paragraph lays out to 1,310px inside an 814px tile and the words
+           are simply cut off; on a phone it is what makes the whole page
+           wider than the window, which is the green bar he has been
+           looking at since para 11. The feed's reply row already carries
+           it; the answer body never did. */
+        className={cn(
+          "whitespace-pre-line text-foreground [overflow-wrap:anywhere]",
+          className,
+        )}
         style={{
           fontSize: phone ? 15.5 : 16,
           lineHeight: 1.6,
@@ -377,11 +394,22 @@ export function Photographs({
   className?: string;
   maxHeight: number;
 }) {
-  const [at, setAt] = useState<number | null>(null);
+  /* The app's own one way into the viewer, and it has to be this one.
+     Importing `ImageViewer` directly, which this file used to do, server
+     renders a component whose last line is `createPortal(..., document.body)`
+     -- so every page holding a photograph threw "document is not defined"
+     during SSR and React silently threw the server's whole render away and
+     started again on the client. Recoverable, invisible, and on a Round of
+     this length it is thirty-four thousand pixels rendered twice. Found by
+     the pressure corpus; `lazy-image-viewer.tsx` says at the top that every
+     caller must come through it, and now this one does. The latch and the
+     pointer preload come with it, which is the reason it exists: "Oh, wow.
+     This doesn't even load. What? I clicked on picture." */
+  const viewer = useImageViewer();
   const images = entry.images;
   if (images.length === 0) return null;
 
-  const viewer = images.map((src) => ({
+  const shots = images.map((src) => ({
     src,
     alt: "",
     caption: entry.body,
@@ -389,7 +417,9 @@ export function Photographs({
     date: null,
   }));
 
-  const open = (i: number) => setAt(i);
+  const open = viewer.open;
+  /* The pointer is on its way to the picture; the chunk should be too. */
+  const warm = { onPointerEnter: preloadImageViewer, onFocus: preloadImageViewer };
   const frame =
     "group relative block w-full overflow-hidden bg-muted focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring";
   /* The one motion the design system allows on a photograph: the picture
@@ -402,6 +432,7 @@ export function Photographs({
         <button
           type="button"
           onClick={() => open(0)}
+          {...warm}
           aria-label="Open the photograph"
           className={cn(frame, className)}
           style={{
@@ -421,10 +452,17 @@ export function Photographs({
           style={{ gridTemplateColumns: `repeat(${images.length}, minmax(0,1fr))` }}
         >
           {images.map((src, i) => (
+            /* Keyed by POSITION, not by url. The pressure corpus caught
+               this on its first run: an answer carrying the same
+               photograph twice (a duplicate upload, which nothing stops)
+               gave React two children with the same key, which it is
+               allowed to omit or duplicate. The url is not an identity
+               here; the slot is. */
             <button
-              key={src}
+              key={`${i}-${src}`}
               type="button"
               onClick={() => open(i)}
+              {...warm}
               aria-label={`Open photograph ${i + 1}`}
               className={cn(frame, "aspect-square")}
             >
@@ -435,12 +473,14 @@ export function Photographs({
       ) : (
         <Strip images={images} onOpen={open} className={className} />
       )}
-      <ImageViewer
-        images={viewer}
-        initialIndex={at ?? 0}
-        open={at !== null}
-        onClose={() => setAt(null)}
-      />
+      {viewer.mounted && (
+        <LazyImageViewer
+          images={shots}
+          initialIndex={viewer.at ?? 0}
+          open={viewer.at !== null}
+          onClose={viewer.close}
+        />
+      )}
     </>
   );
 }
@@ -466,9 +506,11 @@ function Strip({
     >
       {images.map((src, i) => (
         <button
-          key={src}
+          key={`${i}-${src}`}
           type="button"
           onClick={() => onOpen(i)}
+          onPointerEnter={preloadImageViewer}
+          onFocus={preloadImageViewer}
           aria-label={`Open photograph ${i + 1} of ${images.length}`}
           className="group relative aspect-[4/5] w-[78%] shrink-0 snap-start overflow-hidden bg-muted focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
         >
