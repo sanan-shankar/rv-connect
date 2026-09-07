@@ -12,6 +12,7 @@
     "screenshot": "node scripts/qa/screenshot.mjs",
     "screenshot:auth": "node scripts/qa/screenshot-auth.mjs",
     "verify:shot": "node scripts/qa/verify-shot.mjs",
+    "shots:clean": "find e2e/.shots -type f -mtime +7 -delete; echo 'cleared scratch screenshots older than a week'",
     "verify:crawl": "node scripts/qa/crawl.mjs",
     "dev:centroid": "node scripts/dev/centroid.mjs",
     "dev:shot-clip": "node scripts/dev/shot-clip.mjs",
