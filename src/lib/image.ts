@@ -31,23 +31,6 @@ export function sharpImage(input: Buffer): Sharp {
 }
 
 /**
- * The most pixels this app will STORE in a re-encoded image.
- *
- * Distinct from MAX_INPUT_PIXELS above, which is the decompression-bomb
- * ceiling on what may be DECODED at all. This is the smaller question: having
- * decoded something legitimate, how much of it is worth keeping.
- *
- * 40MP. A phone tops out around 12MP after binning, and a good flatbed scan of
- * a heritage photograph at 600dpi is about 35MP for a 10x8 print, so nothing
- * anybody actually uploads is touched by this. What it stops is the case the
- * bomb ceiling let through: a legitimately enormous scan, decoded at up to
- * 100MP and then re-encoded to WebP at quality 90 AT FULL RESOLUTION, twice
- * (once for the display copy and once for the thumbnail), inside a serverless
- * function with a fixed memory budget and a wall-clock limit. That is roughly
- * 400MB of decoded RGBA per pass and many seconds of encode, for detail no
- * screen will ever show (audit M16).
- */
-/**
  * The display copy of an uploaded photograph: uprighted, boxed to 1920, WebP
  * at 80.
  *
@@ -68,6 +51,23 @@ export async function toDisplayWebp(input: Buffer): Promise<Buffer> {
     .toBuffer();
 }
 
+/**
+ * The most pixels this app will STORE in a re-encoded image.
+ *
+ * Distinct from MAX_INPUT_PIXELS above, which is the decompression-bomb
+ * ceiling on what may be DECODED at all. This is the smaller question: having
+ * decoded something legitimate, how much of it is worth keeping.
+ *
+ * 40MP. A phone tops out around 12MP after binning, and a good flatbed scan of
+ * a heritage photograph at 600dpi is about 35MP for a 10x8 print, so nothing
+ * anybody actually uploads is touched by this. What it stops is the case the
+ * bomb ceiling let through: a legitimately enormous scan, decoded at up to
+ * 100MP and then re-encoded to WebP at quality 90 AT FULL RESOLUTION, twice
+ * (once for the display copy and once for the thumbnail), inside a serverless
+ * function with a fixed memory budget and a wall-clock limit. That is roughly
+ * 400MB of decoded RGBA per pass and many seconds of encode, for detail no
+ * screen will ever show (audit M16).
+ */
 export const MAX_STORED_PIXELS = 40_000_000;
 
 /**

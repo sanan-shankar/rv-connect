@@ -22,17 +22,6 @@ import type { PhotoData, RiverOrder } from "@/app/(main)/collection/actions";
 import { cn } from "@/lib/utils";
 import { preloadImageViewer } from "@/components/common/lazy-image-viewer";
 
-
-/** Decode the first screenful BEFORE the river swaps, so a new view arrives
- *  formed instead of assembling itself tile by tile -- the owner, on exactly
- *  that: "it's a full reloading and things populate unevenly, it's not
- *  pretty." The old river stays up (dimmed) while this runs, so the swap is
- *  one movement: dim, then the new photographs, whole.
- *
- *  Bounded by patience, not by success: a slow network gets the old
- *  behaviour after 450ms rather than a page that refuses to change. A
- *  decode that fails is a tile that pops late, which is the status quo,
- *  so failures resolve rather than reject. */
 /** Scroll the document to `want`, LENGTHENING IT FIRST if it is too short
  *  to get there. A scroll position only exists if there is document below
  *  it, and an archive of four photographs has none: the seek landed
@@ -68,6 +57,16 @@ export function landAt(want: number, tail: HTMLElement | null) {
  *  and a wrong answer only costs one fade. */
 const seenThumbs = new Set<string>();
 
+/** Decode the first screenful BEFORE the river swaps, so a new view arrives
+ *  formed instead of assembling itself tile by tile -- the owner, on exactly
+ *  that: "it's a full reloading and things populate unevenly, it's not
+ *  pretty." The old river stays up (dimmed) while this runs, so the swap is
+ *  one movement: dim, then the new photographs, whole.
+ *
+ *  Bounded by patience, not by success: a slow network gets the old
+ *  behaviour after 450ms rather than a page that refuses to change. A
+ *  decode that fails is a tile that pops late, which is the status quo,
+ *  so failures resolve rather than reject. */
 export async function warmThumbs(photos: { thumbUrl: string }[], count = 12, patience = 450) {
   if (typeof window === "undefined" || photos.length === 0) return;
   const jobs = photos.slice(0, count).map((p) => {
@@ -466,7 +465,7 @@ export function PhotoRiver({
             </h2>
           )}
           <PhotoStream photos={band.photos} keyOf={(p) => p.id} className="mb-3">
-            {(p, i, cell) => (
+            {(p, _i, cell) => (
               <Tile photo={p} cell={cell} onOpen={() => onOpen(photos.indexOf(p))} />
             )}
           </PhotoStream>

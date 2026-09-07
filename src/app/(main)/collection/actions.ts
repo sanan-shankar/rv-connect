@@ -44,8 +44,8 @@ import {
   describeProcessingError,
   sniffImageType,
   stillPictureNotice,
-
-  isImageFile,} from "@/lib/upload-shared";
+  isImageFile,
+} from "@/lib/upload-shared";
 import {
   parsePhotoMeta,
   isPhotoAutoApproved,

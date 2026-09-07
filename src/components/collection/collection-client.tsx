@@ -513,15 +513,12 @@ export function CollectionClient({
    *  is the ordinary one. But a seek can land at the very top of the
    *  document -- a `?when=` link opens there, with nothing above the river
    *  but the page header -- and a reader who is already at zero HAS NO WAY
-   *  to scroll up. Waiting for a gesture they cannot make stranded them at
-   *  the year they had asked for with the page title where 2018 should be:
-   *  "all the years above 2017 have disappeared" (owner, 2026-09-02).
-   *
-   *  So at the top of the document the absence of a gesture IS the request.
-   *  It fires once: the page that arrives is anchored above them, which puts
+   *  to scroll up, so the absence of a gesture IS the request there. It
+   *  fires once: the page that arrives is anchored above them, which puts
    *  the scroll off zero, and from there the ordinary rule takes over. What
    *  it must never do is fire at a landing the reader can still climb out of
-   *  by hand, which is why this is not simply "the seam is on screen". */
+   *  by hand, which is why this is not simply "the seam is on screen". The
+   *  stranding this ends is quoted at the scroll listener below. */
   const wantsNewer = useCallback(() => movingUp.current || window.scrollY <= 0, []);
 
   useEffect(() => {
@@ -1153,16 +1150,6 @@ export function CollectionClient({
             onOrder={chooseOrder}
             className={cn(scope === "class" && "xl:hidden")}
           />
-          {/* NO WAY TO JUMP BY DECADE BELOW 1280px, still. A scrolling line of
-              decade words under the buckets shipped here once, in the one
-              shape a narrow screen had room for, and the owner's read of it
-              on a phone was flat: "remove the decades and undated thing from
-              mobile, it looks really bad." Two words with no marks beside
-              them carried none of what makes the rail worth having, and it
-              is gone rather than kept unrendered -- a real scrubber down the
-              right edge is a later, separate piece, not a smaller version of
-              the thing he just rejected. */}
-
           {/* The controls sit closer to the river than the title sits to the
               controls (16px against the header's 24px), so the line of buckets
               reads as belonging to the photographs under it rather than
