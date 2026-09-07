@@ -156,7 +156,19 @@ export function Tile({ entry, phone }: { entry: SketchEntry; phone: boolean }) {
           className={phone ? "mx-4 mt-3" : "mx-5 mt-3"}
         />
       )}
-      <div className={phone ? "px-4 pb-2 pt-1.5" : "px-5 pb-2.5 pt-2"}>
+      {/* Tighter by about a tenth, top and bottom, and it is his arithmetic:
+          "there is definite padding above and below the heart icon and the
+          comment icon ... let's decrease that padding by 10%. 10% on both the
+          top and the bottom ... it'll be a very marginal change, but I think we
+          should make it a bit tighter because it seems a bit loose."
+
+          Measured, so the tenth is a tenth of something real. Above the heart's
+          INK sits this box's top padding, the LoveButton's own 6px, and the 7px
+          the 18px glyph is inset inside its 32px box: 8 + 6 + 7 = 21 on a
+          laptop. Below it: 7 + 6 + 10 = 23. A tenth of each is about 2px, so
+          both paddings come down 2. The side padding is untouched, which he
+          asked for by name. */}
+      <div className={phone ? "px-4 pb-1.5 pt-1" : "px-5 pb-2 pt-1.5"}>
         <Reactions entry={entry} />
       </div>
     </article>
@@ -579,21 +591,17 @@ export function Reader({
           round.catchupName
         )}
       </h1>
+      {/* The date, in cinnamon, and no Round number: "let's ditch the round 1.
+          Let's only have the date, and then let the date be orange ... The
+          round number is irrelevant." With the number gone the middle dot goes
+          too, because there is nothing left for it to separate. */}
       {mode === "rail" && (
-        <p className="mt-2.5 flex items-center gap-2 text-[14px]">
-          <span className="font-medium text-cinnamon">
-            Round {round.number}
-          </span>
-          <span className="dotsep" aria-hidden>
-            ·
-          </span>
-          <span className="text-muted-foreground">
-            {new Date(round.publishedAt).toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
-          </span>
+        <p className="mt-2.5 text-[14px] font-medium text-cinnamon">
+          {new Date(round.publishedAt).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })}
         </p>
       )}
     </header>

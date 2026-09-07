@@ -39,9 +39,9 @@
  *  whole page becoming the Round's contents, "a bit more than that" (R43).
  * ------------------------------------------------------------------ */
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { CaretDown } from "@phosphor-icons/react";
-import { m } from "motion/react";
+import { m, useMotionValue, useSpring, useTransform, type MotionValue } from "motion/react";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 import type { SketchQuestion, SketchRound } from "./_types";
@@ -50,16 +50,17 @@ import { longDate } from "./_parts";
 /** The app's phone bar. */
 export const BAR = 56;
 
-/** "Round 1 · 15 August 2026". Two facts, the app's own dot between them,
- *  and the only place either is printed on the reader. */
+/** "15 August 2026", in cinnamon, and nothing else.
+ *
+ *  His, 2026-09-07: "In the reader, let's ditch the round 1. Let's only have
+ *  the date, and then let the date be orange. Let's not have the round number.
+ *  The round number is irrelevant." That closes the last place a Round number
+ *  survived anywhere in the drawing, and it takes the middle dot with it --
+ *  there is nothing left to separate. A Round is identified by its date. */
 export function RoundMeta({ round, className }: { round: SketchRound; className?: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-1.5", className)}>
-      <span>Round {round.number}</span>
-      <span className="dotsep" aria-hidden>
-        ·
-      </span>
-      <span>{longDate(round.publishedAt)}</span>
+    <span className={cn("font-medium text-cinnamon", className)}>
+      {longDate(round.publishedAt)}
     </span>
   );
 }
@@ -201,34 +202,135 @@ const LIST: Record<
   rail: { size: 14, lineHeight: 1.35, padY: 11, indent: 22, spineX: 0, serif: true },
 };
 
-/* The swell, continuous rather than stepped.
+/* ── the swell, rebuilt ────────────────────────────────────────────── *
+ *  His, 2026-09-07: "the navigation rail on the reader for the questions has
+ *  magnification. delete it and rebuild it from scratch. it's super glitchy
+ *  and jittery it's not smooth at all like it is in macos. and things react
+ *  early and late and it's just built horribly."
  *
- *  His, 2026-09-07: "I feel like the navigation is more discrete and in
- *  these steps compared to the more macos dock magnification which is more
- *  continuous." He is describing exactly what the first cut did: it found
- *  the NEAREST row and scaled by whole rows away, so three rows had three
- *  fixed sizes and everything else was flat, and moving the pointer inside
- *  one row changed nothing at all.
+ *  He is describing three separate faults and all three were real.
  *
- *  The dock does not work that way. Its magnification is a function of the
- *  distance in PIXELS between the pointer and each item, so every pixel of
- *  movement changes every item a little. This is that: a bell curve on the
- *  distance from the pointer to a row's middle, which is smooth everywhere
- *  and needs no cases. SIGMA is how far the swell reaches, in pixels;
- *  AMP is how much the row under the pointer grows. */
-const SWELL_AMP = 0.085;
-const SWELL_SIGMA = 46;
+ *  IT RE-RENDERED THE WHOLE LIST EVERY FRAME. The pointer's position was
+ *  React state, set from a rAF, so every pixel of mouse movement reconciled
+ *  eleven rows. That is the jitter.
+ *
+ *  IT MEASURED ONCE AND THEN LIED. The row centres were cached in a
+ *  `useLayoutEffect` keyed on the CURRENT QUESTION, so they were only ever
+ *  recomputed when you scrolled into a different question -- never when the
+ *  list resized, and never against where the rows actually were. Rows swelled
+ *  by the wrong amount, which is "reacts early and late".
+ *
+ *  AND IT ANIMATED A VALUE THAT CHANGED EVERY FRAME. `transition: transform
+ *  90ms linear` meant every frame started a new 90ms animation to a target
+ *  that had already moved. A CSS transition chasing a per-frame value always
+ *  smears and always lags the cursor.
+ *
+ *  This is the app's own mechanism instead, the one the Collection's year
+ *  rail uses and the one he is comparing it to: a motion value for the
+ *  pointer, a transform that reads each row's LIVE rect, and a spring on the
+ *  scale. Motion values write to the DOM directly, so the pointer moving
+ *  costs zero React renders; the rect is read at the moment it is needed, so
+ *  nothing is stale; and the spring is the only thing smoothing, so there is
+ *  nothing for it to fight. The three constants are the Collection's own, so
+ *  the two rails feel the same under the hand. */
+/* The spring and the peak are the Collection's own, so the two rails feel the
+   same under the hand. The REACH is not, and it cannot be: the Collection's
+   rows are single lines about 20px tall, so 64px of falloff covers three of
+   them either side. These rows wrap to two and three lines and measure 41 to
+   79px, so at 64 the row under the pointer swelled alone and its neighbours
+   sat at exactly 1 -- a single row popping rather than a dock breathing.
+   Measured at 120: the pointer at one row's centre puts the next at about
+   1.06 and the one after at about 1.02, which is the falloff you can see. */
+const DOCK_REACH = 120;
+const DOCK_PEAK = 1.14;
+const DOCK_SPRING = { stiffness: 400, damping: 28 };
+/** Far away, not zero: this keeps every row outside DOCK_REACH while the
+ *  pointer is not in the list, which is its resting state. */
+const POINTER_AWAY = 1e5;
 
-/** One row of the list. A `<button>` where the row goes somewhere, a
- *  `<span>` where the card around it is already the door. Everything else
- *  about it -- the type, the measure, the colour -- is identical, because
- *  it is the same object at a different depth. */
+/** One row of the list. A `<button>` where the row goes somewhere, a `<span>`
+ *  where the card around it is already the door. Everything else about it --
+ *  the type, the measure, the colour -- is identical, because it is the same
+ *  object at a different depth. */
 function Row({
-  as,
-  ...rest
-}: { as: "button" | "span" } & React.ComponentPropsWithoutRef<"button">) {
-  const Tag = as as "button";
-  return <Tag {...rest} />;
+  q,
+  t,
+  here,
+  mark,
+  swells,
+  pointerY,
+  onPick,
+}: {
+  q: SketchQuestion;
+  t: (typeof LIST)[ListSize];
+  here: boolean;
+  mark: "line" | "tint";
+  swells: boolean;
+  pointerY: MotionValue<number>;
+  onPick?: () => void;
+}) {
+  const ref = useRef<HTMLElement>(null);
+  /* Distance from the pointer to this row's centre, read off the live rect
+     every time the pointer moves. Nothing is cached, so a resize, a reflow or
+     a sticky rail travelling cannot put it out of date. */
+  const distance = useTransform(pointerY, (py: number) => {
+    const box = ref.current?.getBoundingClientRect();
+    return box ? py - (box.top + box.height / 2) : POINTER_AWAY;
+  });
+  const scale = useSpring(
+    useTransform(distance, [-DOCK_REACH, 0, DOCK_REACH], [1, DOCK_PEAK, 1]),
+    DOCK_SPRING,
+  );
+
+  const className = cn(
+    "block w-full text-left transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
+    t.serif && "font-heading",
+    /* Colour, never weight: a weight change reflows the words and pushes the
+       list around, which is the shipped rail's bug and he caught it here too. */
+    here ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+    mark === "tint" && "rounded-[10px]",
+    mark === "tint" && here && "bg-canopy/[0.07]",
+  );
+  const style = {
+    fontSize: t.size,
+    lineHeight: t.lineHeight,
+    paddingTop: t.padY,
+    paddingBottom: t.padY,
+    paddingLeft: mark === "line" ? t.indent : 14,
+    paddingRight: mark === "line" ? 20 : 14,
+  } as const;
+
+  if (!swells) {
+    const Tag = onPick ? "button" : "span";
+    return (
+      <Tag
+        ref={ref as never}
+        type={onPick ? "button" : undefined}
+        onClick={onPick}
+        aria-current={here ? "true" : undefined}
+        className={className}
+        style={style}
+      >
+        {q.text}
+      </Tag>
+    );
+  }
+
+  /* A transform does not participate in layout, so a row swells and nothing
+     below it moves. `left center` rather than the centre, because these rows
+     are set against a measure down the left and that edge must not breathe. */
+  return (
+    <m.button
+      ref={ref as never}
+      type="button"
+      onClick={onPick}
+      aria-current={here ? "true" : undefined}
+      className={className}
+      style={{ ...style, scale, transformOrigin: "left center" }}
+    >
+      {q.text}
+    </m.button>
+  );
 }
 
 export function QuestionList({
@@ -269,16 +371,14 @@ export function QuestionList({
 }) {
   const rows = useRef<Array<HTMLLIElement | null>>([]);
   const [fill, setFill] = useState(0);
-  /* Every row's middle, in the list's own coordinates, so the swell can be
-     a function of pixels rather than of row numbers. */
-  const [centres, setCentres] = useState<number[]>([]);
-  /* Where the pointer is inside the list. -1 is "no pointer", which is
-     every touch device and the resting state of a mouse. */
-  const [pointerY, setPointerY] = useState(-1);
-  const frame = useRef(0);
   const t = LIST[size];
   const swells = size === "rail";
   const tracking = spine === "progress";
+
+  /* The pointer, as a motion value. Setting it writes straight through to
+     every row's transform without a single React render -- which is the whole
+     reason the rebuilt swell is smooth where the old one was not. */
+  const pointerY = useMotionValue(POINTER_AWAY);
 
   useLayoutEffect(() => {
     if (!tracking) return;
@@ -290,12 +390,7 @@ export function QuestionList({
        at the start. A fifth of a row is enough to see. */
     const through = Math.max(0.2, Math.min(1, within));
     setFill(el.offsetTop + el.offsetHeight * through);
-    if (swells) {
-      setCentres(rows.current.map((r) => (r ? r.offsetTop + r.offsetHeight / 2 : -999)));
-    }
-  }, [current, within, questions.length, swells, tracking]);
-
-  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+  }, [current, within, questions.length, tracking]);
 
   return (
     <ol
@@ -304,23 +399,11 @@ export function QuestionList({
         swells
           ? (e) => {
               if (e.pointerType !== "mouse") return;
-              const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
-              /* One update a frame. The handler fires far more often than
-                 the screen refreshes, and the swell only needs to be right
-                 once per painted frame. */
-              cancelAnimationFrame(frame.current);
-              frame.current = requestAnimationFrame(() => setPointerY(y));
+              pointerY.set(e.clientY);
             }
           : undefined
       }
-      onPointerLeave={
-        swells
-          ? () => {
-              cancelAnimationFrame(frame.current);
-              setPointerY(-1);
-            }
-          : undefined
-      }
+      onPointerLeave={swells ? () => pointerY.set(POINTER_AWAY) : undefined}
     >
       {mark === "line" &&
         (tracking ? (
@@ -350,73 +433,28 @@ export function QuestionList({
             style={{ left: t.spineX }}
           />
         ))}
-      {questions.map((q, i) => {
-        const here = tracking && i === current;
-        /* The swell, which he asked to try: "maybe we could even add
-           magnification like we do in the side rail of the collection."
-           The Collection's rail can grow its rows because they are one
-           line each at a fixed pitch. These wrap to three, so growing the
-           TYPE would reflow the whole list under the pointer. A transform
-           does not participate in layout, so a row swells and nothing
-           below it moves. */
-        const centre = centres[i];
-        const scale =
-          swells && pointerY >= 0 && centre !== undefined
-            ? 1 + SWELL_AMP * Math.exp(-(((pointerY - centre) / SWELL_SIGMA) ** 2))
-            : 1;
-        return (
-          <li
-            key={q.id}
-            ref={(el) => {
-              rows.current[i] = el;
-            }}
-          >
-            {/* A row is a button only where it goes somewhere. On a cover
-                the whole card is the door (architecture.md section 3), so
-                the rows are text: a button inside a link is invalid, and
-                eleven tab stops on a card with one destination is worse
-                than the markup error. */}
-            <Row
-              as={onPick ? "button" : "span"}
-              type={onPick ? "button" : undefined}
-              onClick={onPick ? () => onPick(i) : undefined}
-              aria-current={here ? "true" : undefined}
-              className={cn(
-                "block w-full origin-left text-left transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
-                t.serif && "font-heading",
-                /* Colour, never weight: a weight change reflows the words
-                   and pushes the list around, which is the shipped rail's
-                   bug and he caught it here too. */
-                here ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-                mark === "tint" && "rounded-[10px]",
-                mark === "tint" && here && "bg-canopy/[0.07]"
-              )}
-              style={{
-                fontSize: t.size,
-                lineHeight: t.lineHeight,
-                paddingTop: t.padY,
-                paddingBottom: t.padY,
-                paddingLeft: mark === "line" ? t.indent : 14,
-                paddingRight: mark === "line" ? 20 : 14,
-                /* Written straight onto the element rather than animated
-                   through a spring: the dock's magnification tracks the
-                   pointer exactly, and a spring chasing a value that
-                   changes every frame lags behind the cursor. The short
-                   linear transition is only there to carry the return to
-                   rest when the pointer leaves. */
-                ...(swells
-                  ? {
-                      transform: `scale(${scale})`,
-                      transition: "transform 90ms linear",
-                    }
-                  : {}),
-              }}
-            >
-              {q.text}
-            </Row>
-          </li>
-        );
-      })}
+      {questions.map((q, i) => (
+        <li
+          key={q.id}
+          ref={(el) => {
+            rows.current[i] = el;
+          }}
+        >
+          {/* A row is a button only where it goes somewhere. On a cover the
+              whole card is the door (architecture.md section 3), so the rows
+              are text: a button inside a link is invalid, and eleven tab stops
+              on a card with one destination is worse than the markup error. */}
+          <Row
+            q={q}
+            t={t}
+            here={tracking && i === current}
+            mark={mark}
+            swells={swells && Boolean(onPick)}
+            pointerY={pointerY}
+            onPick={onPick ? () => onPick(i) : undefined}
+          />
+        </li>
+      ))}
     </ol>
   );
 }
