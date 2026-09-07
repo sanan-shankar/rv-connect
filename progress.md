@@ -1,5 +1,20 @@
 # Progress Log
 
+## 2026-09-07 — The screenshot scripts stop reporting a page they never loaded
+
+Found while verifying Phase D unit 1, not by the audit. `npm run screenshot /about` printed
+**"Screenshot saved"** and wrote a 1440x900 frame of `about:blank`. Puppeteer needs an absolute URL,
+the navigation failed, `shoot()` set `status = "NAV-ERR"` — and `screenshot.mjs` destructures only
+`outPath` and prints success regardless.
+
+That is the worst failure a verification tool can have. The whole screenshot protocol in CLAUDE.md is
+"screenshot, read the PNG, compare in specific numbers", and a session following it would have read a
+blank frame as evidence of a page it had never seen.
+
+`shoot()` throws on a failed navigation now. `verify-shot` opts out with `tolerateNavError`, because
+reporting `status` in its JSON is its whole job and it has a caller reading that field. Everything
+else exits 1 with the reason.
+
 ## 2026-09-07 — The places writer's extra columns get a name
 
 A write-path review of Phase E unit 4 flagged it, and the audit did not. `replaceUserPlaces` gained

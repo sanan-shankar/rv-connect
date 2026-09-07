@@ -26,6 +26,9 @@ const { outPath, status, errors } = await shoot({
   out,
   settleMs: 500,
   watchConsole: true,
+  /* This script REPORTS a failed navigation instead of throwing on it --
+     `status` is a field its callers read. */
+  tolerateNavError: true,
 });
 
 console.log(JSON.stringify({ route, status, errors, out: outPath }));
