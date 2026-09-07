@@ -473,8 +473,12 @@ model PhotoLove {
 model Group {
   id          String   @id @default(cuid())
   name        String
-  description String?
-  coverImage  String?  // optional cover photo url (Collection or upload)
+  // `description` and `coverImage` were here. Neither ever had a reader: the
+  // description was a generated sentence ("Everyone from the batch of 2010.")
+  // written by signup and by the demo seed, the cover image had no writer at
+  // all. Removed from the code on 2026-09-07 (refactor audit 2 / D6); the two
+  // columns are still in both databases until the owner runs
+  // prisma/migrations-manual/2026-09-07-drop-groups-residue.sql.
   // Set ONLY on an auto-created "Batch of {year}" group, and unique, so a batch
   // has exactly one. It used to be identified by its name alone, which nothing
   // constrained -- so two members of the same batch registering in the same
@@ -499,7 +503,6 @@ model Group {
 
   creator  User?         @relation(fields: [creatorId], references: [id], onDelete: SetNull)
   members  GroupMember[]
-  posts    Post[]
   catchup  Catchup?
 
 }
@@ -659,7 +662,6 @@ model Post {
   content       String
   targetBatches String?
   images        String?
-  groupId       String?   // null = main feed; set = posted into a group
   cityScope     String?   // null = everyone; otherwise the city short-name this post is limited to (admins see all)
   isHidden      Boolean   @default(false)
   status        String    @default("published") // "published" | "draft" — drafts are letters saved before sending; only ever visible to their author
@@ -667,7 +669,6 @@ model Post {
   updatedAt     DateTime  @updatedAt
 
   author      User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  group       Group?       @relation(fields: [groupId], references: [id], onDelete: Cascade)
   comments    Comment[]
   likes       Like[]
   bookmarks   Bookmark[]
@@ -675,7 +676,6 @@ model Post {
   pollVotes   PollVote[]
   reports     Report[]
 
-  @@index([groupId, createdAt])
   @@index([kind, createdAt])
   @@index([createdAt])
   // A profile's Posts and Letters tabs filter on the author (B-090).

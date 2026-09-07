@@ -186,8 +186,8 @@ export async function registerUser(formData: FormData) {
 
      What that costs, honestly, is nothing a member can see TODAY. Batch
      targeting does not go through this row: `batchScopeWhere` matches
-     Post.targetBatches against the viewer's own batch key, and group posts are
-     refused at creation (zero rows carry a groupId). So a self-heal would be
+     Post.targetBatches against the viewer's own batch key, and a post cannot
+     be scoped to a group at all any more. So a self-heal would be
      repairing something nothing reads. The report is the right size of fix: if
      the batch group ever becomes load-bearing again, the failures are already
      visible rather than needing to be discovered. */
@@ -249,7 +249,6 @@ async function joinBatchGroup(userId: string, batchYear: number) {
       group = await prisma.group.create({
         data: {
           name: `Batch of ${batchYear}`,
-          description: `Everyone from the batch of ${batchYear}.`,
           batchYear,
           creatorId: null,
         },

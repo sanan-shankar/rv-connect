@@ -231,7 +231,6 @@ export const postSchema = z
         `Pick up to ${MAX_BATCH_TARGETS} batches`
       )
       .optional(),
-    groupId: z.string().optional(),
     images: z.string().optional(),
     pollOptions: z.array(z.string().min(1).max(200)).min(2).max(4).optional(),
     // City-scoped audience: the poster's own city string, or omitted for "Everyone".

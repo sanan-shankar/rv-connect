@@ -348,7 +348,6 @@ export async function seedDemo(
       data: {
         id: "demo-group",
         name: CATCHUP_META.groupName,
-        description: CATCHUP_META.intro,
         creatorId: uid(CATCHUP_KEEPER),
         createdAt: daysAgo(120),
       },

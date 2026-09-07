@@ -212,7 +212,6 @@ export async function createPost(formData: FormData) {
     kind: (formData.get("kind") as string) || undefined,
     title: (formData.get("title") as string) || undefined,
     targetBatches: (formData.get("targetBatches") as string) || undefined,
-    groupId: (formData.get("groupId") as string) || undefined,
     images: (formData.get("images") as string) || undefined,
     pollOptions,
     cityScope: (formData.get("cityScope") as string) || undefined,
@@ -232,26 +231,6 @@ export async function createPost(formData: FormData) {
   const ownership = ownedUploadUrls(parseJsonArray(parsed.data.images), session.user.id);
   if (!ownership.ok) return { error: ownership.error };
   const imagesJson = ownership.urls.length ? JSON.stringify(ownership.urls) : null;
-
-  /* Group posts are refused, not created.
-   *
-   * The Groups feature was removed: there is no /groups route, no composer
-   * passes a groupId, and every read path in this file forces `groupId: null`
-   * (the main feed AND the profile's author tab, since neither passes the
-   * option). So a post written with a groupId was visible on no page in the
-   * application -- not even to the person who wrote it -- while looking to them
-   * like it had posted. Only a hand-crafted call could reach it, but a write
-   * path that silently produces unreachable content should say no instead.
-   * Verified live before writing this: zero rows in Post carry a groupId.
-   *
-   * That separate change has since happened: the group-feed plumbing is gone
-   * from the read paths too, so `groupId: null` is now a plain filter rather
-   * than one arm of a branch. This refusal stays regardless -- it guards the
-   * directly-callable action, which no longer has a UI that could reach it.
-   */
-  if (parsed.data.groupId) {
-    return { error: "Group posts are not available." };
-  }
 
   // City-scope audience control: only allowed to a city the poster themself has
   // listed (an own UserPlace), matched case-insensitively; anything else is
@@ -339,7 +318,6 @@ export async function createPost(formData: FormData) {
       // column is a list this app can read back, normalised and de-duplicated,
       // never the client's own text (audit M43).
       targetBatches: storedBatchTargets(parsed.data.targetBatches),
-      groupId: null,
       images: imagesJson,
       cityScope,
       status: isDraft ? "draft" : "published",
@@ -1189,7 +1167,6 @@ export async function loadPosts(opts?: {
 
   const where = {
     ...baseWhere,
-    groupId: null,
     // ...or you wrote it: the author is not part of their own audience,
     // they are its source, so a post aimed at another batch used to
     // disappear from the feed of the person who wrote it (audit M30).
@@ -1268,7 +1245,6 @@ export async function loadSavedPosts() {
         // And the same standing rule the feed applies (audit Low 78): a post
         // saved before its author was blocked drops out of Saved too.
         ...AUTHOR_IN_GOOD_STANDING,
-        groupId: null,
         // Same cityScope visibility rule as the main feed query: a bookmarked
         // post scoped to a city the viewer no longer lists should drop out of
         // Saved too, not just the feed.

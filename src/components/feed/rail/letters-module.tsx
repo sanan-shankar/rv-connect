@@ -14,11 +14,10 @@ import type { RailViewer } from "./rail-viewer";
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
- * "This week in Letters": the newest Letter posted to the main feed in the
- * trailing 7 days THAT THIS VIEWER MAY READ. Scoped to the main feed (groupId
- * null) so a Letter written inside a private group is never surfaced sitewide.
- * Hides entirely outside that window rather than reaching back for something
- * stale, which is what the module's own name promises.
+ * "This week in Letters": the newest Letter posted in the trailing 7 days
+ * THAT THIS VIEWER MAY READ. Hides entirely outside that window rather than
+ * reaching back for something stale, which is what the module's own name
+ * promises.
  *
  * The audience filters are not optional decoration. This query used to run with
  * no viewer at all, so a letter written for one city -- or for one batch -- had
@@ -33,7 +32,6 @@ export async function LettersModule({ viewer }: { viewer: RailViewer }) {
     where: {
       kind: "letter",
       isHidden: false,
-      groupId: null,
       ...PUBLISHED_ONLY,
       // Same standing rule as the index it teases from (audit Low 78).
       ...AUTHOR_IN_GOOD_STANDING,

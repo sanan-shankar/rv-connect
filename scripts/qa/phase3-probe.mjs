@@ -112,10 +112,10 @@ if (!ref) throw new Error("no verified reference member with a jobTitle and a pl
 const refContactEmail = (ref.displayEmail || "").trim() || ref.email;
 console.log(`reference member: ${ref.name} (${ref.id})`);
 
-// A visible post to comment on: newest published, ungrouped, unscoped post.
+// A visible post to comment on: newest published, unscoped post.
 const [refPost] = await q(
   `SELECT id FROM "Post"
-   WHERE "isHidden" = false AND "groupId" IS NULL AND status = 'published'
+   WHERE "isHidden" = false AND status = 'published'
      AND "cityScope" IS NULL
    ORDER BY "createdAt" DESC LIMIT 1`
 );

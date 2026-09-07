@@ -1,5 +1,35 @@
 # Progress Log
 
+## 2026-09-07 — the Groups feature's last column, and a branch of the visibility rule with it
+
+Refactor audit 2, D6 (`data-layer-01`). `Post.groupId` has been NULL on every row since Groups
+were retired -- **0 of 20 on production, 0 of 0 on the demo**, counted again today -- and
+`createPost` refused one outright, so nothing could ever set it. Six read paths carried
+`groupId: null` as a filter that matched every row, and `Post_groupId_createdAt_idx` was a btree
+over a column of nulls with **889 recorded scans** doing that work.
+
+**This is a security change and it is not a quiet one.** `decidePostVisibility` had a group branch
+above the city and batch arms: a post with a `groupId` was decided by membership alone and
+returned `ok: true` without consulting either. That branch could not fire on any row that exists
+or could be written, so it is gone, along with `VisibilityFacts.isGroupMember`, the
+`"not-a-member"` reason, `GUARD_SELECT`'s `groupId` and the `isMemberOf` lookup behind it.
+Nothing else in the rule moved: hidden, draft, author-blocked, admin, author, city and batch are
+untouched and their tests are unchanged.
+
+Three tests in `post-visibility-rule.test.mjs` existed only for that branch. **They are replaced
+by one that pins the absence** -- and pins the thing that made the branch dangerous, which is that
+it short-circuited the audience arms. If a group-like scope ever returns, that test says it must
+decide the audience too, not skip it. `RULE_FACTS` drops to three.
+
+`Group`, `GroupMember` and `Catchup.groupId` are untouched: the Group row is still the membership
+container under every people-started Catch-up. `Group.description` (11 of 18 rows, every one the
+generated sentence "Everyone from the batch of 2010.") and `Group.coverImage` (0 rows, no writer
+ever) stop being written.
+
+**No DDL ran.** `prisma/migrations-manual/2026-09-07-drop-groups-residue.sql` is written, unrun,
+and says out loud that running it before this deploys is an outage. `npm run check` 105/105,
+`verify:crawl` 20/20, `write-path-reviewer` on the diff.
+
 ## 2026-09-07 — the Collection stops reading two columns nothing has written
 
 Refactor audit 2, D5 (`collection-08`), which closes audit 1 §4 #16. `Photo.area` ("Part of

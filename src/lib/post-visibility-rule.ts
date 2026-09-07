@@ -9,8 +9,8 @@
  *  test can import it and try every case, including the ones that would be
  *  laborious to set up against a real database.
  *
- *  It takes the two facts it cannot work out for itself -- group membership
- *  and city match -- as arguments. The caller fetches them.
+ *  It takes the one fact it cannot work out for itself -- whether the viewer
+ *  matches the post's cityScope -- as an argument. The caller fetches it.
  * ------------------------------------------------------------------ */
 
 export type PostViewer = {
@@ -24,7 +24,6 @@ type DenialReason =
   | "not-found"
   | "hidden"
   | "draft"
-  | "not-a-member"
   | "other-city"
   | "other-batch"
   | "author-blocked";
@@ -32,7 +31,6 @@ type DenialReason =
 export type GuardedPost = {
   id: string;
   authorId: string;
-  groupId: string | null;
   cityScope: string | null;
   targetBatches: string | null;
   isHidden: boolean;
@@ -47,11 +45,15 @@ export type PostVisibility =
   | { ok: true; post: GuardedPost }
   | { ok: false; reason: DenialReason };
 
-/** The two facts the rule needs but cannot derive. */
+/** The one fact the rule needs but cannot derive.
+ *
+ *  It was two until 2026-09-07: `isGroupMember` decided a post carrying a
+ *  `groupId`. That column had been NULL on every row since Groups were retired
+ *  (0 of 20 on production and on the demo, refactor audit 2 / D6), no write
+ *  path could set it, and it is gone from the schema -- so the branch it fed
+ *  could never fire. City scope and batch targeting are the whole of a post's
+ *  audience now. */
 export type VisibilityFacts = {
-  /** Is the viewer a member of the post's group? Only consulted when the post
-   *  has a groupId, so callers may skip the query otherwise. */
-  isGroupMember: boolean;
   /** Does the viewer have a UserPlace matching the post's cityScope? Only
    *  consulted when the post has a cityScope. */
   cityMatches: boolean;
@@ -213,16 +215,6 @@ export function decidePostVisibility(
      PUBLISHED_ONLY with no exception, so an unpublished letter has never been
      visible in any feed, and it must not become reachable by id either. */
   if (post.status !== "published") return { ok: false, reason: "draft" };
-
-  /* A group is the hidden container under every people-started Catch-up.
-     Membership is the whole of its privacy. Group posts never carry a
-     cityScope or targetBatches -- createPost writes both as null whenever
-     groupId is set -- so membership settles it. */
-  if (post.groupId) {
-    return facts.isGroupMember
-      ? { ok: true, post }
-      : { ok: false, reason: "not-a-member" };
-  }
 
   if (post.cityScope && !facts.cityMatches) {
     return { ok: false, reason: "other-city" };

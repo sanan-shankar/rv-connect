@@ -29,10 +29,10 @@ export function postNotificationLink(post: {
 }): string {
   // A letter is read at its own page, where its comment thread lives.
   if (post.kind === "letter") return `/letters/${post.id}`;
-  // Everything else is a feed post. `groupId` is deliberately not a case here:
-  // the Groups feature was removed, there is no route that renders a group
-  // post, and createPost now refuses a groupId rather than minting content
-  // nobody can reach. Linking to /groups/<id> would be a link to a 404.
+  // Everything else is a feed post. There is no group case: the Groups
+  // feature was removed, there is no route that renders a group post, and
+  // `Post.groupId` left the schema on 2026-09-07 having been NULL on every
+  // row. Linking to /groups/<id> would be a link to a 404.
   return `/feed#${post.id}`;
 }
 
