@@ -1,5 +1,22 @@
 # Progress Log
 
+## 2026-09-07 — one query for "does this member list this city"
+
+Refactor audit 2, feed-posts-08. `prisma.userPlace.findFirst` with a
+case-insensitive city match was written three times: `createPost` (a miss folds to "Everyone"),
+`editPost` (a miss is REFUSED, audit C-017) and `canViewCityScope` on the read side. One `where`,
+three `select`s, and `editPost`'s comment holding the sameness together in prose.
+
+`ownCity(userId, city)` in `city-scope.ts` is the query now, returning the STORED spelling or null —
+the strictly larger answer, so what a miss means stays at the call site where it actually differs.
+Deliberately not `cache()`d, unlike `getViewerCities`: two of the three callers are writes
+re-checking the audience at the moment they store it.
+
+Byte-identical where clause, so no behaviour moved. C-017's pin was mutation-tested against the new
+shape and still bites. A companion sweep refuses a fourth hand-rolled `userPlace.findFirst` anywhere
+in non-lab `src/` — the copy that would ask the question a little differently on a write that
+decides who reads a letter.
+
 ## 2026-09-07 — "three photos per post" stops being typed by hand
 
 Refactor audit 2, feed-posts-06. The cap lived in six places: `const MAX_FILES = 3` in each of the

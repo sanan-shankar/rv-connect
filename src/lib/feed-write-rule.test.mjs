@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { read, decomment } from "./test-kit.mjs";
+import { readFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
+
+import { ROOT, SKIP_DIRS, read, decomment, walk } from "./test-kit.mjs";
 import { isPostTwin } from "./double-submit.ts";
 
 /* ------------------------------------------------------------------ *
@@ -167,6 +170,31 @@ test("C-017: editPost refuses a city the author no longer lists", () => {
     branch,
     /cityScope: ownPlace\?\.city \?\? null/,
     "a miss must not fold to null, which is the stored value for Everyone"
+  );
+});
+
+test("one query asks \"does this member list this city\"", () => {
+  /* The same `userPlace.findFirst` was written three times -- createPost,
+     editPost, and canViewCityScope on the read side -- with one `where` and
+     three different `select`s, and editPost's own comment maintained the
+     sameness in prose. `ownCity` in city-scope.ts is the query now; what
+     differs between the callers is what a MISS means, which is why the C-017
+     refusal above is pinned separately.
+
+     A sweep rather than three named files: the fourth copy is the one nobody
+     counts, and it is the copy that would ask the question a little
+     differently (a case-SENSITIVE match, say) on a write that decides who
+     reads a letter. */
+  const files = walk(resolve(ROOT, "src"), { skip: [...SKIP_DIRS, "lab"] });
+  assert.ok(files.length > 300, `swept only ${files.length} files; the sweep has drifted`);
+  const offenders = files
+    .filter((f) => relative(ROOT, f) !== "src/lib/city-scope.ts")
+    .filter((f) => /prisma\.userPlace\.findFirst\s*\(/.test(decomment(readFileSync(f, "utf8"))))
+    .map((f) => relative(ROOT, f));
+  assert.deepEqual(
+    offenders,
+    [],
+    `the own-city lookup is hand-rolled again instead of calling ownCity: ${offenders.join(", ")}`
   );
 });
 
