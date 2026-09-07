@@ -58,6 +58,26 @@ folded in the same day, and the session log says what changed.
 
 ---
 
+## How much of this you actually have to read
+
+Added 2026-09-07, at his request: *"if you can reduce the amount of context they have to ingest
+(of course without lowering quality of output) that would be great."* This campaign has about
+8,500 lines of planning across nine files, and the design phase is over -- so most of it is now
+REFERENCE rather than reading.
+
+| | |
+|---|---|
+| **Read in full, always** | this file's board, your own session's section, and `architecture.md`. `architecture.md` carries his sentences inline beside each decision, so it is the shape AND the reasoning in one place |
+| **Read in full IF you are deciding rather than recording** | `brief.md`. His rule (¶22) is that his words travel verbatim rather than summarised, and it holds wherever judgment is being exercised. A session transcribing a settled shape into a spec is not exercising it |
+| **Grep, do not read** | `review-2026-09-06.md`, `review-2026-09-07.md`, `recon.md`, `flows.md`, `prior-art.md`, `directions.md`. Every rule in `architecture.md` names the paragraph it came from; go and read that paragraph when you need the why, and nothing around it |
+| **Dead** | `directions.md` Parts 2 to 6. Two rejected passes |
+
+**The one thing not to economise on**: if you are about to disagree with something drawn, read his
+paragraph first. Three sessions have now re-litigated a decision he had already made, and each time
+the paragraph was two lines long and settled it.
+
+---
+
 ## What this campaign is
 
 The owner's own frame, ¶19: *"There are two parts to this. One is [how would I do it if
@@ -162,6 +182,7 @@ too, which he allowed in ¶28.
 | The composer, the picture's crop | PARTIAL | The composer's *shape* is drawn, on the home, because he asked for it there. What is not drawn: the photo attachment flow, the song field, the photo-wall question, and the crop-at-creation surface. The people surface is DONE (a dialog and a sheet, off the sidebar) |
 | The settings surface, refined | OPEN | **his, and he has said he will take it in a session of its own.** It is a real settings list now rather than a column of verbs, and he called it *"very bare bones"* before that and has not called it finished since |
 | **S-features, the second brainstorm** | OPEN | **He has asked twice that this not be lost.** 2026-09-07: *"in my initial request for the catch ups rework I also requested a brainstorm on and research into more features we can incorporate for instance a photo wall round and that can be shown nicely on the reader in a unique way and maybe some other stuff ... have a think and see what people would want and what letterloop and any other similar guys do now. I don't want you to do it in this session but I had requested it at some point and I wanna make sure it gets done at some point and it hasn't been written out of the brief completely."* It has not been: it is ¶16, ¶49 and ¶50 in the brief and rows R15, R16 and P22 in the ledger below. What is missing is a SESSION that does it, and this row is that session. See "S-features" below |
+| **The list, when it has room to spare** | OPEN | **Decided by him 2026-09-07, drawn by nobody yet.** See "The list's spare slots" below. Not this session's, at his word: *"don't work on it in this session. let whichever future session pick it up."* |
 | S3b Second round | OPEN | only if he asks for one after browsing the shape |
 | S5 Pick and spec | OPEN | blocked on his verdict. `architecture.md` is most of what a spec has to say about structure; S5 adds his picks and the copy |
 | S6+ Build | OPEN | blocked on S5 |
@@ -1316,6 +1337,46 @@ the feed's `toggleLike` comment, which already says what the rule is.
 
 ---
 
+## The list's spare slots
+
+**His decision, 2026-09-07, verbatim**, on the page a member with one Catch-up sees:
+
+> "regarding the one catch up page let's just show the latest editions in a preview like we're doing
+> but on that page! I think that would work well. let's do it so it maxes at 4. that is if they have
+> one catch up then max latest 3 editions. if they have 2 catch ups the the latest two editions
+> whichever one they're from. if they have four catch up, no need to show editions there. we'd have
+> to show the date and from which catch up it is if there's more than one catch up. and just so it's
+> obvious that they're different types of elements maybe include the fact that it's the latest
+> editon somewhere on the card in a pretty way."
+
+**The rule, as arithmetic.** The grid holds four things. Catch-up cards come first; the remainder is
+filled with the most recent Editions, newest first, from whichever Catch-ups they belong to:
+
+| Catch-ups | Edition covers |
+|---|---|
+| 1 | 3 |
+| 2 | 2 |
+| 3 | 1 |
+| 4 or more | none |
+
+**What an Edition cover carries here**, and only here: its date; which Catch-up it came from, but
+**only when the member has more than one** (with one, saying so is the same fact twice); and
+something that marks it as the newest one, *"in a pretty way"* — his words, and deliberately not a
+label reading "Latest Edition", which is the register he keeps cutting.
+
+**Why this and not a wider card.** A card spanning the page asks a 1,280px photograph to fill 2,368
+device pixels; nothing in the pool is close and his twenty may not be either. Filling the row with
+more objects at the SAME size upscales nothing. It also gives the page with one Catch-up the thing
+its member actually wants, which is what to read.
+
+**Two things for whoever draws it.** It is `Cover` from `_cover.tsx`, the same component the home
+uses, so this must not become a second way of drawing an Edition -- that is the campaign's oldest
+complaint (¶13, ¶39). And it is close to "Fresh off the press", which he had deleted: what made that
+one wrong was a rail of quoted first sentences with a curved divider and a padding-less hover, not
+the idea of showing what is new. Draw the cover, not the teaser.
+
+---
+
 ## S-features: the second brainstorm (a session of its own, not folded into a build)
 
 **His, and the reason this row exists**, 2026-09-07: he asked for feature research early in the
@@ -2084,58 +2145,76 @@ nothing in it is a member's words. It is a full page load, on purpose (F43).
 ```
 @docs/planning/catchups-rework/handover.md
 
-You are S5. The list, a Catch-up's home in every state, and the reader are drawn and he has
-signed off on the shape. Read brief.md, review-2026-09-06.md and review-2026-09-07.md (all
-six parts) and architecture.md in full before you touch anything.
+You are S5. The list, a Catch-up's home in every state, and the reader are drawn at
+/lab/catchups/sketches and he has signed off on the shape. Your job is the SPEC, not
+more drawing. Do not redraw anything in the room; if a drawn decision looks wrong, say
+so in a sentence and let him decide.
 
-Your job is the SPEC: write docs/planning/catchups-rework/spec.md, in the shape of
-docs/planning/collection-rework/spec.md, so a build session can ship this without
-re-deriving it. Every decision LOCKED / RECOMMENDED / OPEN. Include the data changes as
-dated idempotent files in prisma/migrations-manual/, the build phases as revertable
-slices, and a table mapping every paragraph of the brief to the section that answers it.
+Read architecture.md in full, then this file's board and its sections "The list's spare
+slots", "S-features" and "Owner questions". Everything else in
+docs/planning/catchups-rework/ is reference -- see "How much of this you actually have
+to read" near the top of the handover.
 
-Three surfaces are NOT drawn and the spec has to say what happens to them: the composer's
-attachments (photographs, the song field, the photo wall), the picture's upload and crop at
-creation, and the confirmations the one-way controls open. Say whether each is drawn before
-the build or specified and drawn inside it.
+Write docs/planning/catchups-rework/spec.md, shaped like
+docs/planning/collection-rework/spec.md, every decision marked LOCKED / RECOMMENDED /
+OPEN. It has to cover:
 
-Do not redraw anything in the room. If you think a drawn decision is wrong, say so in a
-sentence and let him decide.
+  - the data changes, as dated idempotent files in prisma/migrations-manual/ applied
+    with scripts/dev/run-sql.mjs, never db push. Re-run scripts/dev/export-catchups.mjs
+    first. Seventy members have live Editions and one is mid-flight in `preparing`,
+    which this rework deletes -- say where it lands;
+  - the Round -> Edition rename as ONE pass across schema, actions, routes and room
+    (the database already says CatchupEdition; the reader's URL still says round);
+  - the build phases, each a revertable slice;
+  - a table mapping every paragraph of brief.md to the section that answers it, or a
+    stated reason it is out.
 
-One thing to carry, not to do: he has asked twice that the FEATURE brainstorm not be lost --
-a photo-wall Round and how it is read, link previews on any pasted link, the Letterloop
-parity list, and whatever else a Round could hold. It is the "S-features" section in this
-file. Say in the spec where it lands relative to the build phases.
+Three surfaces are undrawn: the composer's attachments beyond the photo strip (the song
+field, the photo wall), the picture's upload and crop at creation, and the confirmations
+the one-way controls open. Say for each whether it is drawn before the build or inside
+it. Two parked pieces must land somewhere in your phases: "The list's spare slots" and
+"S-features". F41 is unfixed and is his to decide, not yours.
+
+How to work, from the session that just ran:
+  - Take numbers from the app, never from taste. The standard pill is Button's `default`
+    size; the two-column grid is components/layout/rail-grid.ts; the dock spring is the
+    Collection's year rail; the viewport hook is common/use-wide-viewport.ts.
+  - Measure before and after, and put the number in the comment.
+  - A note he has given is a DECISION, not a proposal. Do not hold one back for
+    confirmation -- that reads as ignoring him. Ask only about what he has not mentioned.
+  - Do not stop mid-list to check in. Finish the list, then show him.
+  - npm run check before every commit, npm run visual after UI work, never both at once.
+    Stage by pathspec: other sessions are live in this tree.
 ```
 
 ### What that session must know, and would otherwise learn the hard way
 
-- **`architecture.md` is current as of 2026-09-07 evening** and describes what is drawn, not what
-  was planned. Where it and `review-2026-09-07.md` disagree, he wins.
-- **F41 is real and unfixed on purpose**: a 300-character question makes a 211px row in the
-  reader's navigator against its neighbours' 41. Clamping it truncates a member's words, which is
-  his call and he has not been asked.
-- **The settings surface is his next session, by his own word**: *"I think the settings dialog needs
-  refining but no need to do that now I can do it in a separate session."*
-- **The one-Catch-up list page is still open.** He asked for "really brilliant ideas which don't
-  lead to some extremely pixellated pictures", and the constraint is arithmetic: a card spanning
-  1,184px asks a 1,280px photograph to fill 2,368 device pixels. Nothing on the page is currently
-  wider than half of it. Ideas that do not upscale anything: leave the card at its half-width and
-  give the other half the newest Round's cover; or let the page become the Catch-up itself when
-  there is only one. Neither is drawn.
-- **He owes about twenty photographs**, 2,400px or more on the long edge, landscape, subject off
-  dead centre. Two of the six stand-ins had to be dropped (F46) and the rest are 900 to 1280.
+- **`architecture.md` is current** as of 2026-09-07 night and describes what is DRAWN, with his
+  sentence beside each decision. Where it and a review disagree, he wins.
+- **The noun is Edition.** Every user-facing string says so; the types still say Round for exactly
+  one more pass, which the spec owns.
+- **F41 is real and unfixed on purpose**: a 300-character question makes a 211px row in the reader's
+  navigator against its neighbours' 41. Clamping truncates a member's words, so it is his.
+- **The settings surface is his own next session**, by his word.
+- **He owes about twenty photographs**, 2,400px+ on the long edge, landscape, subject off centre.
+  Two of the six stand-ins had to be dropped (F46) and the rest are 900 to 1280, so every wide crop
+  is still upscaled at retina.
+- **Nothing in that room is ever scaled** (F34), and a lab switch the SERVER reads cannot be flipped
+  by `router.replace` (F43).
+- **A client-side link from `/lab` into `(main)` loses the app's layout** -- measured, `main` at left
+  0 instead of 248. Lab-only; use a plain `<a>` there and `next/link` in the real app.
 - **`npm run visual` is 25/25 green**, `/catchups` included.
-- **Other sessions are live in this checkout.** Stage by pathspec; never `git add -A`; never assume
-  a red gate is yours.
-- **Nothing in that room is ever scaled** (F34).
 
 ### Still his, whenever he wants to answer
 
-1. Whether the list and the home are better than what ships. On 2026-09-07 the answer was *"no it's
-   not yet better"* about the reader, and the home was rejected outright; both have been redrawn
-   since and he has not seen the second version.
-2. The twenty photographs.
+1. **The twenty photographs.** The only thing blocking the picture from being real.
+2. **F41**, the 300-character question in the reader's navigator.
+3. **Which shape the settings surface takes** — he has said he will do that one himself.
+
+He answered the rest on 2026-09-07, in the fine-tuning round: the shape of the list, the home in
+every state, the reader, the noun, and the list's spare slots. His own verdict partway through
+that round: *"for the first time in two days and a million sessions I feel like this is coming
+together."*
 
 Everything else he has answered. Navigator **A**. Delete becomes **leave**. Nobody keeps a batch
 Catch-up and it has no manual transitions. Pause becomes **hold the next Round**. The six with no

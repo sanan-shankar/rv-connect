@@ -1259,6 +1259,51 @@ loading three pages: 25 posts, 25 unique, no repeats. −208/+50.
 of this was on screen. Screenshotted `/feed`, `/feed?q=`, `/admin/content` and `/letters/new` at
 1440x900 and 390x844.
 
+## 2026-09-07 night — S4d, round two: Editions, the composer, and three bugs he spotted
+
+The same session, continued through about fifty more notes sent while the work ran.
+
+**The noun is Edition**, twice-said: *"let's not use Round or Issue"*, then *"Editions not
+additions."* Every user-facing string changed; the TYPES did not, on purpose for one pass — the
+database already says `CatchupEdition` while the shipped reader's URL says `round`, so the rename
+wants doing across schema, actions, routes and room together rather than starting scattered in a
+lab room. A published Edition is now dated in full, because with the number gone the date is its
+name and a shelf of them spans years; the live deadline stays year-less.
+
+**Photographs on an answer.** The strip sits between the writing box and the controls so it grows
+downward and never moves the sentence being written. The container animates 0 → auto so everything
+below travels once; tiles rise 8px and fade; removal uses `popLayout` so survivors slide into the
+gap. Exit 180ms against 280 in. The remove control is always visible rather than on hover, because
+half the people attaching a photograph are on a phone.
+
+**Three bugs he found, all root-caused rather than patched.**
+
+The reader painted the narrow layout for one frame before the wide one. `useState(false)` plus an
+effect is correct during hydration and wrong on a client-side mount, which is how the room reaches
+the reader. `useSyncExternalStore` is correct in both; measured over 30 animation frames after the
+click, no wrong frame at all.
+
+Clicking a person in the People dialog landed on their profile drawn without the app's sidebar —
+`main` at left 0 and width 1512 instead of 248 and 1264. A client-side navigation from `/lab` into
+`(main)` crosses two layout trees and the `(main)` layout does not take over. Nothing is wrong with
+the profile and nothing will be wrong when this ships inside `(main)`; the lab has to leave by a
+full page load.
+
+And the Pressure pill had never worked: which corpus is drawn is decided by the SERVER component
+off `searchParams.data`, and the pill changed the URL with `router.replace`, so it lit up and the
+page kept drawing the real Round.
+
+**Deleted**: the Screens tab and the two navigators he did not pick, `_frames.tsx` with them, and
+the default "Batch of <your year>" typed into `/catchups/new`'s Name field — a form that makes a
+Catch-up with people you choose, pre-filled with the one name it is least likely to want.
+
+**The swell came down twice**, 40% each time and both off the growth rather than the number:
+1.14 → 1.084 → 1.05. Reach stayed at 120px, which matters more at low amplitude, not less.
+
+**Parked with his decision recorded, not built**: the list's spare slots (four tiles; Catch-up cards
+first, recent Edition covers filling the remainder) and S-features, the feature brainstorm he has now
+asked twice not to lose.
+
 ## 2026-09-07 — S4d, the Catch-ups room: his first round of fine-tuning notes
 
 `/lab/catchups/sketches`. He went through the whole spine out loud, then sent seven more notes
