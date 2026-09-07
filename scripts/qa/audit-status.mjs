@@ -226,7 +226,7 @@ const CHECKS = [
       // the real bucket.
       const purge = decomment(read("src/lib/account-purge.ts"));
       if (!/delImage/.test(purge)) return open("purgeUserAccount does not delete R2 objects");
-      if (!/purgeUserAccount/.test(decomment(read("src/components/profile/admin-actions.ts"))))
+      if (!/purgeUserAccount/.test(decomment(read("src/app/(main)/admin/people/actions.ts"))))
         return open("adminDeleteUser does not route through purgeUserAccount");
       if (!/purgeUserAccount/.test(decomment(read("src/lib/retention.ts"))))
         return open("retention sweep does not purge grace-expired accounts");

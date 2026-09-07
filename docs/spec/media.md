@@ -224,7 +224,7 @@ This is where the archive earns its keep instead of being a silo. The owner want
 
 ## 8. Moderation (admin approval)
 
-The project already has a complete moderation pattern to mirror: the `Report` model with `status: "pending" | "reviewed" | "dismissed"`, `Post.isHidden`, admin actions (`adminHidePost`, `adminDismissReport`, `adminResolveReport` in `components/profile/admin-actions.ts`), and the `ReportManagement` queue UI inside `/admin`.
+The project already has a complete moderation pattern to mirror: the `Report` model with `status: "pending" | "reviewed" | "dismissed"`, `Post.isHidden`, admin actions (`adminHidePost`, `adminDismissReport`, `adminResolveReport` in `app/(main)/admin/reports/actions.ts`), and the `ReportManagement` queue UI inside `/admin`.
 
 **Decision: every uploaded photo starts `approved = false` and is invisible in the grid until an admin approves it.** Rationale: storage is expensive and the frame is fragile (people-snaps), so a small gate at the front is far cheaper than cleanup later, and the community is invite-only and small enough that an approval queue is tractable. This matches the owner's "admin approval" note exactly.
 
@@ -368,7 +368,7 @@ Files this spec is grounded in (all absolute):
 - `/Users/sanan/Documents/rv-connect/src/lib/storage.ts` (the `putImage`/`delImage` shim: R2 in production, local filesystem in dev)
 - `/Users/sanan/Documents/rv-connect/src/app/(main)/feed/actions.ts` (pagination `take:21/skip` idiom, `delImage` deletion to mirror for declined photos)
 - `/Users/sanan/Documents/rv-connect/src/components/posts/create-post-form.tsx` and `post-card.tsx` (composer image handling and `loading="lazy"` rendering to reuse via `<CollectionPicker>`)
-- `/Users/sanan/Documents/rv-connect/src/components/admin/report-management.tsx` + `src/components/profile/admin-actions.ts` (moderation queue pattern to mirror as `PhotoQueue`)
+- `/Users/sanan/Documents/rv-connect/src/components/admin/report-management.tsx` + `src/app/(main)/admin/reports/actions.ts` (moderation queue pattern to mirror as `PhotoQueue`)
 - `/Users/sanan/Documents/rv-connect/src/components/directory/directory-client.tsx` (URL-driven filters, debounced search, glass filter panel, empty state to mirror)
 - `/Users/sanan/Documents/rv-connect/src/app/preview/v2/page.tsx` (locked v2 design: sidebar `NAV`, header, rail cards, `Hoopoe` easter-egg component, palette tokens)
 - `/Users/sanan/Documents/rv-connect/src/lib/validators.ts`, `src/lib/utils.ts`, `src/components/common/user-avatar.tsx`, `src/components/layout/navbar.tsx`, `.claude/skills/liftkit-spacing/SKILL.md` (Zod style, helpers, avatar, IA, spacing tokens)

@@ -16,8 +16,10 @@ import { read, decomment } from "./test-kit.mjs";
  *  simultaneous demotions could still reach zero (audit M26).
  * ------------------------------------------------------------------ */
 
-const blockDelete = decomment(read("src/components/profile/admin-actions.ts"));
+/* Block, delete and role are all in the panel's own people actions since
+   2026-09-07; the first two used to live under src/components/profile/. */
 const people = decomment(read("src/app/(main)/admin/people/actions.ts"));
+const blockDelete = people;
 
 const body = (src, name) => {
   const i = src.indexOf(`export async function ${name}`);
