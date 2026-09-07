@@ -65,7 +65,7 @@ import { EASE_OUT_SMOOTH, SPRINGS, SpringPress } from "@/components/common/motio
 import { wellClass, WELL_PRESS, usePointerFine } from "@/components/common/attach-image-dialog";
 import { ContributedHoopoe } from "@/components/mascot/moments/contributed-hoopoe";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
-import { photoDate, yearUnreadable } from "@/lib/collection";
+import { HALVES, photoDate, yearUnreadable } from "@/lib/collection";
 import { contributePhoto, contributePhotoDirect } from "@/app/(main)/collection/actions";
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import { directUploadPut } from "@/lib/upload-client";
@@ -237,14 +237,10 @@ export function ContributeDialog({
           {/* THE DESTINATION IS THE TITLE, not a line added under it. With no
               way to move a photograph between the halves afterwards, this is
               the whole of what stops a misfile, and it is the first thing
-              read. The valley's line keeps its warmth -- it is the one warm
-              line on this surface and it already names the valley; the class
-              one is plain, because a statement of where something private is
-              going is not the place for a house voice. */}
+              read. Why each half words it as it does is beside the words
+              themselves, in `HALVES` (src/lib/collection.ts). */}
           <DialogTitle className="pr-10 font-heading text-[20px] leading-tight tracking-[-0.02em] sm:text-[23px]">
-            {scope === "class"
-              ? "Add to the Class Collection"
-              : "Add to the valley\u2019s memory"}
+            {HALVES[scope].contributeTitle}
           </DialogTitle>
           {/* No description under the title. It said "Paste, drop or browse.
               As many photographs as you like, all at once" -- the same

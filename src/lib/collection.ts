@@ -558,3 +558,68 @@ export function takenShort(photo: {
  * ------------------------------------------------------------------ */
 export const defaultOrderFor = (scope: PhotoScope): RiverOrder =>
   scope === "class" ? "taken" : "newest";
+
+/* ------------------------------------------------------------------ *
+ *  What each half of the Collection calls itself.
+ *
+ *  Every word the class half says used to be a `scope === "class" ? …`
+ *  ternary, and the eight of them were scattered across four files: the
+ *  page title and two search labels in the client, the empty state's
+ *  heading and body, the "wider bucket" line, the contribute dialog's
+ *  title, and the quota refusal in the server action. Read together they
+ *  are one voice; read apart they were eight coin flips, and two of the
+ *  strings were already written twice.
+ *
+ *  ONLY THE WORDS. The layout ternaries stay as JSX conditionals where
+ *  they are -- `xl:hidden`, `xl:mt-0`, `xl:mt-[42px]` and where the order
+ *  menu mounts are all about the class half having no bucket line, which
+ *  is structure and not copy, and hiding it in a table would make both
+ *  halves harder to read.
+ *
+ *  A THIRD HALF IS NOT PLANNED and this is not extensibility --
+ *  `scope-caret.tsx` says the two-ness is load-bearing. It is legibility:
+ *  the class half's whole vocabulary now fits on one screen.
+ * ------------------------------------------------------------------ */
+export const HALVES: Record<
+  PhotoScope,
+  {
+    title: string;
+    searchLabel: string;
+    emptyTitle: string;
+    /** The class half names the year whose archive this is. A string,
+     *  because that is what the page hands the client. */
+    emptyBody: (classYear: string | null) => string;
+    contributeTitle: string;
+    /** Appended after "No photograph has been filed under this." Empty on
+     *  the class side, which has no bucket line and so no wider bucket. */
+    noResultsHint: string;
+    quotaError: string;
+  }
+> = {
+  valley: {
+    title: "The Valley Collection",
+    searchLabel: "Search the Collection",
+    emptyTitle: "The collection is just beginning.",
+    emptyBody: () =>
+      "The first photographs of the valley will live here: the banyan, Rishi Konda, the birds, the light. Add the first one.",
+    /* The valley's line keeps its warmth -- it is the one warm line on the
+       contribute surface and it already names the valley. */
+    contributeTitle: "Add to the valley’s memory",
+    noResultsHint: "Try a wider bucket.",
+    quotaError:
+      "You've reached the limit of photos one account can add to the Collection. Message the admin if you have more to share.",
+  },
+  class: {
+    title: "The Class Collection",
+    searchLabel: "Search your class",
+    emptyTitle: "Nothing from your class yet.",
+    emptyBody: (classYear) =>
+      `Photographs added here stay with the class of ${classYear}. Nobody else in the school can see them.`,
+    /* Plain, deliberately: a statement of where something private is going
+       is not the place for a house voice. */
+    contributeTitle: "Add to the Class Collection",
+    noResultsHint: "",
+    quotaError:
+      "You've reached the number of photographs one account can add to the Class Collection. Message the admin if you have more to share.",
+  },
+};

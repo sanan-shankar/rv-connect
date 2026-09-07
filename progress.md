@@ -1,5 +1,26 @@
 # Progress Log
 
+## 2026-09-07 — the two halves of the Collection keep their words in one place
+
+Refactor audit 2, `collection-11`. Eight `scope === "class" ? … : …` ternaries decided what the
+class half of the Collection calls itself, and they sat in four files: the page title and two
+search labels in `collection-client.tsx`, the empty state's heading and body, the "Try a wider
+bucket" line, the contribute dialog's title, and the quota refusal in the server action. Two of
+the strings ("Search your class") were already written twice.
+
+`HALVES` in `src/lib/collection.ts` is now the whole vocabulary of each half, beside
+`defaultOrderFor`, which was already a per-half fact living there. Every string is byte-identical
+to what shipped, including the curly apostrophe in "the valley's memory".
+
+**Only the words.** The layout ternaries stay as JSX conditionals where they are — `xl:hidden`,
+`xl:mt-0`, `xl:mt-[42px]`, and where the order menu mounts. Those are about the class half having
+no bucket line, which is structure, and hiding structure in a copy table would make both halves
+harder to read, not easier. And this is not extensibility: `scope-caret.tsx` argues the two-ness
+is load-bearing, so a third half is not what the table is for.
+
+`npm run check` green (103/103); `/collection` and `/collection?scope=class` both 200 with no
+console errors.
+
 ## 2026-09-07 — the directory person is one type, derived from the select
 
 Refactor audit 2, `directory-profile-08`. Audit 1's F-09 asked for one `PERSON_SELECT` and one
