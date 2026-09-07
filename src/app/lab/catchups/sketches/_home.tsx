@@ -562,40 +562,145 @@ function RowButton({
  *  The dots above are the shipped progress rail's job, done without numbers:
  *  "How does it matter whether it's 15 or 16?" A filled mark is answered, the
  *  wide one is where you are. */
+/** Stand-ins for a photograph somebody attaches. Three, because three is the
+ *  app's own cap per answer (`actions.ts:148`), and of different shapes so the
+ *  row is tested against a portrait as well as a landscape. */
+const ATTACHABLE = [
+  "/images/collection/v2.webp",
+  "/images/collection/demo-banyan-canopy.webp",
+  "/images/collection/v3.webp",
+];
+const PHOTO_CAP = 3;
+
+/* ── the photographs on an answer, while it is being written ───────── *
+ *  His, 2026-09-07: "make sure you have good ux and animations and elements
+ *  are moved to good places when a photo is added to an answer cause
+ *  presumably there'll be some tile expansion and maybe displacement. make
+ *  sure all of that is thought through and the resultant ui is still extremely
+ *  slick."
+ *
+ *  Four decisions, and the displacement is the whole of the problem.
+ *
+ *  IT GROWS DOWNWARD, NEVER UPWARD. The strip sits between the writing box and
+ *  the row of controls, so adding a photograph pushes the controls down and
+ *  moves nothing you are looking at. Putting it above the box would shove the
+ *  words you are mid-sentence in down the screen, and putting it below the
+ *  controls would separate Add a photo from what it just added.
+ *
+ *  THE ROW ANIMATES ITS HEIGHT, THE TILES ANIMATE THEMSELVES. The container
+ *  opens 0 -> auto so everything under it travels once, smoothly, instead of
+ *  jumping a hundred pixels; each tile fades and rises 8px into place. Removing
+ *  reverses it, and `AnimatePresence` with a `popLayout` mode lets the
+ *  survivors slide across into the gap rather than teleporting.
+ *
+ *  THE EXIT IS FASTER THAN THE ENTER. 180ms out against 280 in, the same ratio
+ *  as the replies and the question panel: a thing arriving may take its time,
+ *  a thing you have just dismissed may not.
+ *
+ *  AND THE CONTROL STOPS OFFERING WHAT IT CANNOT DO. At three the button is
+ *  disabled rather than erroring on the fourth, which is the cap the app
+ *  actually enforces. */
+function Attachments({
+  photos,
+  onRemove,
+}: {
+  photos: string[];
+  onRemove: (i: number) => void;
+}) {
+  return (
+    <AnimatePresence initial={false}>
+      {photos.length > 0 && (
+        <m.div
+          key="strip"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{
+            height: { duration: 0.28, ease: EASE_OUT_SMOOTH },
+            opacity: { duration: 0.18, ease: EASE_OUT_SMOOTH },
+          }}
+          className="overflow-hidden"
+        >
+          <ul className="flex gap-2 pt-3">
+            <AnimatePresence initial={false} mode="popLayout">
+              {photos.map((src, i) => (
+                <m.li
+                  key={`${i}-${src}`}
+                  layout
+                  initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.94 }}
+                  transition={{ duration: 0.28, ease: EASE_OUT_SMOOTH }}
+                  className="relative"
+                >
+                  <span className="block h-[76px] w-[76px] overflow-hidden rounded-[10px] bg-muted">
+                    <Image
+                      src={src}
+                      alt=""
+                      width={152}
+                      height={152}
+                      className="h-full w-full object-cover"
+                    />
+                  </span>
+                  {/* Always visible, not on hover: half the people attaching a
+                      photograph are on a phone, where there is no hover and a
+                      control that only appears on one does not exist. */}
+                  <button
+                    type="button"
+                    onClick={() => onRemove(i)}
+                    aria-label="Take this photograph off"
+                    className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_3px_rgba(30,28,22,0.18)] transition-colors duration-150 hover:text-foreground active:scale-[0.92] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </m.li>
+              ))}
+            </AnimatePresence>
+          </ul>
+        </m.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 function Answering({ r }: { r: ShelfRound }) {
   const [at, setAt] = useState(0);
-  /* Each question keeps what you typed, so moving between them is free and
-     nothing is lost by looking ahead. */
+  /* Each question keeps what you typed and what you attached, so moving
+     between them is free and nothing is lost by looking ahead. */
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [shots, setShots] = useState<Record<string, string[]>>({});
   const q = r.questions[at];
   if (!q) return null;
   const text = drafts[q.id] ?? "";
+  const photos = shots[q.id] ?? [];
   const last = at === r.questions.length - 1;
-  const written = (x: { id: string }) => Boolean((drafts[x.id] ?? "").trim());
+  const written = (x: { id: string }) =>
+    Boolean((drafts[x.id] ?? "").trim()) || (shots[x.id] ?? []).length > 0;
   const go = (i: number) => setAt(Math.max(0, Math.min(i, r.questions.length - 1)));
+  const addPhoto = () =>
+    setShots((p) => {
+      const has = p[q.id] ?? [];
+      if (has.length >= PHOTO_CAP) return p;
+      return { ...p, [q.id]: [...has, ATTACHABLE[has.length % ATTACHABLE.length]] };
+    });
 
   return (
     <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-5">
-      {/* THE MARKS ARE THE NAVIGATOR. They were a read-only progress bar and
-          he could not get past them: "I can't really navigate between
-          questions while answering them." So every mark is a button to its
-          own question, the one you are on is wide, and the ones you have
-          written are filled. No "4 of 11" anywhere near them, because a
-          number is the thing he keeps taking out: "How does it matter whether
-          it's 15 or 16?"
-
-          It is the same instrument as the reader's strip -- a measure you can
-          both read your position off and move with -- which is the one thing
-          the front runner spends its invention on. */}
       {/* Tighter, top and bottom. Each mark used to sit in a 20px-tall target
           under 20px of card padding, so there were 28px of nothing above a 3px
           line and 24 below it -- "the padding above and below the orange
           progress bar while answering is too big. too much space above and too
-          much below. seems imbalanced." The target is 14px now and the block
-          is pulled up 4, which lands 20 above and 16 below: still a comfortable
-          tap, and the heading it introduces sits closer to it than the card
-          edge does, which is the way round it should be. */}
-      <ol className="-mt-1 mb-2.5 flex flex-wrap items-center gap-1.5" aria-label="The questions in this Round">
+          much below. seems imbalanced." */}
+      {/* THE MARKS ARE THE NAVIGATOR. They were a read-only progress bar and he
+          could not get past them: "I can't really navigate between questions
+          while answering them." So every mark is a button to its own question,
+          the one you are on is wide, and the ones you have answered are filled.
+          No "4 of 11" anywhere near them: "How does it matter whether it's 15
+          or 16?" */}
+      <ol
+        className="-mt-1 mb-2.5 flex flex-wrap items-center gap-1.5"
+        aria-label="The questions in this Round"
+      >
         {r.questions.map((x, i) => (
           <li key={x.id}>
             <button
@@ -635,24 +740,29 @@ function Answering({ r }: { r: ShelfRound }) {
         className="mt-4 min-h-[168px] bg-background/60 font-heading text-[17px] leading-[1.7]"
       />
 
+      {/* Between the box and the controls, so it grows downward and never moves
+          the sentence you are in the middle of. */}
+      <Attachments
+        photos={photos}
+        onRemove={(i) =>
+          setShots((p) => ({ ...p, [q.id]: (p[q.id] ?? []).filter((_, n) => n !== i) }))
+        }
+      />
+
       {/* One line, no rule above it, which is his own edit to the shipped
           composer: "I would remove that horizontal line under add a photo and
           just move the skip for now and share above, on the same line." */}
       <div className="mt-3 flex flex-wrap items-center gap-2.5">
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={addPhoto} disabled={photos.length >= PHOTO_CAP}>
           <ImagePlus className="h-4 w-4" />
-          Add a photo
+          {photos.length === 0 ? "Add a photo" : "Add another"}
         </Button>
-        {/* No "Skip for now". The shipped composer offers it beside Next and
-            he cut it: "remove skip for now. just have next. skip for now is
-            same as next." It is -- neither writes anything and both move you
-            on -- so two words for one action is the "so many elements and
-            clicking on all of them does the same thing" fault (para 3) inside
-            the composer. Next is never disabled, because every question is
-            optional and always was. */}
+        {/* No "Skip for now". The shipped composer offers it beside Next and he
+            cut it: "remove skip for now. just have next. skip for now is same
+            as next." It is -- neither writes anything and both move you on. */}
         {/* Back sits WITH Next, not out by the photograph: "in answering have
             the back button near the next button not near the photo button."
-            They are one pair -- the way through the Round -- and a control's
+            They are one pair, the way through the Round, and a control's
             neighbours are what say what it does. */}
         <div className="ml-auto flex items-center gap-1.5">
           <Button

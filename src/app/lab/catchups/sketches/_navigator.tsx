@@ -31,12 +31,11 @@
  *  reflow, which he caught again on 2026-09-07 ("the words spill onto the
  *  next line because it's gone from regular to bold").
  *
- *  THREE WAYS, as asked. `UnfoldedPanel` is the strip growing downward in
+ *  THE ONE HE PICKED. `UnfoldedPanel` is the strip growing downward in
  *  place: not from the bottom (R39), not green (R39), no title because
  *  the bar above already says the Catch-up's name (R39), no X because the
- *  strip you tapped is still under your thumb (R43). `BottomSheet` is the
- *  sheet he has seen fifteen times, done properly. `ContentsPage` is the
- *  whole page becoming the Round's contents, "a bit more than that" (R43).
+ *  strip you tapped is still under your thumb (R43). Two other ways were
+ *  drawn and are deleted; owner question 9 chose this one.
  * ------------------------------------------------------------------ */
 
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
@@ -519,77 +518,9 @@ export function UnfoldedPanel({
   );
 }
 
-/* ── Second way: the sheet, done properly ──────────────────────────── */
-
-export function BottomSheet({
-  round,
-  current,
-  within,
-  onPick,
-}: {
-  round: SketchRound;
-  current: number;
-  within: number;
-  onPick?: (index: number) => void;
-}) {
-  return (
-    <div
-      className="rounded-t-[20px] border-t border-border bg-card shadow-[0_-12px_40px_-20px_rgb(var(--shadow-ink)/0.55)]"
-      style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom))" }}
-    >
-      <div className="flex justify-center pb-1 pt-2.5">
-        <span className="h-1 w-9 rounded-full bg-border" />
-      </div>
-      <h3 className="px-5 pb-2 pt-1 font-heading text-[19px] text-foreground">{round.catchupName}</h3>
-      <div className="px-2">
-        <QuestionList
-          questions={round.questions}
-          current={current}
-          within={within}
-          size="panel"
-          mark="tint"
-          onPick={onPick}
-        />
-      </div>
-    </div>
-  );
-}
-
-/* ── Third way: the page becomes the contents ──────────────────────── */
-
-export function ContentsPage({
-  round,
-  current,
-  within,
-  onPick,
-}: {
-  round: SketchRound;
-  current: number;
-  within: number;
-  onPick?: (index: number) => void;
-}) {
-  return (
-    <div className="flex h-full flex-col pt-5">
-      <p className="px-5 text-[13px] text-muted-foreground">
-        <RoundMeta round={round} />
-      </p>
-      {/* Forty questions scroll under a fade rather than stopping at a hard
-          edge through the middle of a line. */}
-      <div
-        className="mt-4 min-h-0 flex-1 overflow-y-auto pb-6"
-        style={{
-          maskImage: "linear-gradient(to bottom, black calc(100% - 40px), transparent 100%)",
-          WebkitMaskImage: "linear-gradient(to bottom, black calc(100% - 40px), transparent 100%)",
-        }}
-      >
-        <QuestionList
-          questions={round.questions}
-          current={current}
-          within={within}
-          size="page"
-          onPick={onPick}
-        />
-      </div>
-    </div>
-  );
-}
+/* `BottomSheet` and `ContentsPage` used to live here: the navigator drawn a
+   second and a third way, for him to compare on his phone. He picked the first
+   (owner question 9, answer "A"), and the two that lost were only ever reached
+   through the lab's Screens tab, which is now deleted. Kept in the history, not
+   on the page: a room that draws three answers to a settled question is a room
+   that makes you re-decide it every time you open it. */

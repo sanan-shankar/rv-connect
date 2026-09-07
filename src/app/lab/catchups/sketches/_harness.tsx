@@ -6,7 +6,6 @@
  *    Phone     the whole spine at 390: the list, a Catch-up's home in
  *              every state, and the reader. Tap through it.
  *    Laptop    the same spine at this window's width.
- *    Screens   five 390x844 stills, and the navigator drawn three ways.
  *
  *  It is navigable rather than a set of pictures because the thing being
  *  judged is the relationship between the pages, not the pages. His, on
@@ -23,11 +22,10 @@
  *  fluid, so a phone shows the phone page at 1:1.
  *
  *  Deep links, so a screenshot or a message can name one:
- *    /lab/catchups/sketches?w=phone|laptop|screens
+ *    /lab/catchups/sketches?w=phone|laptop
  *    ...&at=list|home|reader   where in the spine to start
  *    ...&state=answering       which home state (see _shelf homeVariants)
- *    ...&frame=mid|long|a|b|c  one still alone (screens)
- *    ...&bare=1                no lab chrome, so a capture is the frame
+ *    ...&bare=1                no lab chrome, so a capture is the drawing
  *    ...&data=pressure         the invented corpus instead of the real Round
  * ------------------------------------------------------------------ */
 
@@ -41,44 +39,23 @@ import { DesktopShell, PhoneBar, PhoneShell } from "./_shell";
 import { List } from "./_list";
 import { Home } from "./_home";
 import { buildShelf, homeVariants, type SketchCatchup } from "./_shelf";
-import { LongQuestionFrame, MidScrollFrame, NavigatorA, NavigatorB, NavigatorC } from "./_frames";
-import { PHONE_HEIGHT, VIEWPORT_WIDTH, type SketchRound } from "./_types";
+import { type SketchRound } from "./_types";
 
-type View = "phone" | "laptop" | "screens";
+type View = "phone" | "laptop";
 
 const VIEWS: Array<{ key: View; label: string }> = [
   { key: "phone", label: "Phone" },
   { key: "laptop", label: "Laptop" },
-  { key: "screens", label: "Screens" },
 ];
 
-const STILLS: Array<{ key: string; caption: string; Draw: (p: { round: SketchRound }) => ReactNode }> =
-  [
-    {
-      key: "mid",
-      caption:
-        "Deep in the songs question. The strip holds it. The line along its top is how far through the Round you are.",
-      Draw: MidScrollFrame,
-    },
-    {
-      key: "long",
-      caption: "The longest question the app allows, 300 characters. Three lines, then it stops.",
-      Draw: LongQuestionFrame,
-    },
-    {
-      key: "a",
-      caption:
-        "Navigator, first way: the strip unfolds. The line turns the corner and stops at the question you are in.",
-      Draw: NavigatorA,
-    },
-    {
-      key: "b",
-      caption:
-        "Second way: a sheet from the foot, on paper, no X. Where you are is the app's own selection tint.",
-      Draw: NavigatorB,
-    },
-    { key: "c", caption: "Third way: the whole page becomes the contents.", Draw: NavigatorC },
-  ];
+/* THE SCREENS TAB IS GONE, and so are the five stills behind it. It held
+   390x844 pictures of moments deep in the reader plus the navigator drawn
+   three ways -- which was the right thing when the navigator was three
+   candidates and the page could not be scrolled to. He picked A months of
+   notes ago, and the live Phone view now reaches every one of those moments by
+   scrolling. His: "just delete the screens tab in the lab it's useless."
+   `_frames.tsx` went with it, and so did `BottomSheet` and `ContentsPage` in
+   _navigator.tsx, which nothing else had ever called. */
 
 const PILL =
   "rounded-full border px-3.5 py-1.5 text-[13px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
@@ -87,19 +64,6 @@ const PILL_OFF = "border-border bg-card text-muted-foreground hover:text-foregro
 /** The jump row's pills: smaller, because they are chrome over a phone. */
 const JUMP =
   "shrink-0 rounded-full border px-3 py-1 text-[12px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
-
-/** A 390x844 window onto one phone screen. A plain clipped box: no
- *  transform, because a transform is what broke sticky. */
-function Still({ children }: { children: ReactNode }) {
-  return (
-    <div
-      className="overflow-hidden rounded-[var(--radius)] border border-border"
-      style={{ width: VIEWPORT_WIDTH.phone, height: PHONE_HEIGHT }}
-    >
-      {children}
-    </div>
-  );
-}
 
 /* ── the spine ─────────────────────────────────────────────────────── *
  *  One piece of state, and it is the architecture: you are on the list,
@@ -239,8 +203,7 @@ function Harness({ round, pressure }: { round: SketchRound; pressure: boolean })
   const router = useRouter();
   const params = useSearchParams();
   const w = params.get("w");
-  const view: View = w === "screens" || w === "laptop" ? w : "phone";
-  const frame = params.get("frame");
+  const view: View = w === "laptop" ? "laptop" : "phone";
   const bare = params.get("bare") === "1";
   const shelf = buildShelf(round);
 
@@ -264,8 +227,6 @@ function Harness({ round, pressure }: { round: SketchRound; pressure: boolean })
     window.location.assign(url(key, value));
   }
   const go = (next: View) => set("w", next);
-
-  const stills = frame ? STILLS.filter((s) => s.key === frame) : STILLS;
 
   return (
     <div className="min-h-screen bg-background">
@@ -328,47 +289,18 @@ function Harness({ round, pressure }: { round: SketchRound; pressure: boolean })
             <p className="mt-1 max-w-[70ch] text-[13px] text-muted-foreground sm:text-[14px]">
               {pressure
                 ? "The pressure corpus: invented people, invented words. Forty answers under one question, a twenty-four photograph wall, an answer over the character cap, a hundred names in the rail, links nobody has a resolver for."
-                : view === "screens"
-                  ? "Five moments from deep in a Round, and the navigator drawn three ways."
-                  : "The list, a Catch-up's home in every state, and the reader, joined up. Tap a Catch-up; tap a cover; the name at the top is the way back."}
+                : "The list, a Catch-up's home in every state, and the reader, joined up. Tap a Catch-up; tap a cover; the name at the top is the way back."}
             </p>
           </div>
         )}
 
-        {view === "screens" ? (
-          <div
-            className={
-              bare
-                ? ""
-                : "flex flex-wrap items-start justify-center gap-6 px-4 sm:justify-start sm:px-6"
-            }
-          >
-            {stills.map(({ key, caption, Draw }) =>
-              bare ? (
-                <div key={key} style={{ width: VIEWPORT_WIDTH.phone, height: PHONE_HEIGHT }}>
-                  <Draw round={round} />
-                </div>
-              ) : (
-                <figure key={key} className="w-[390px] max-w-full">
-                  <Still>
-                    <Draw round={round} />
-                  </Still>
-                  <figcaption className="mt-2 text-[12px] text-muted-foreground">
-                    {caption}
-                  </figcaption>
-                </figure>
-              )
-            )}
-          </div>
-        ) : (
-          <Spine
-            round={round}
-            shelf={shelf}
-            phone={view === "phone"}
-            start={params.get("at")}
-            startState={params.get("state")}
-          />
-        )}
+        <Spine
+          round={round}
+          shelf={shelf}
+          phone={view === "phone"}
+          start={params.get("at")}
+          startState={params.get("state")}
+        />
       </div>
     </div>
   );

@@ -40,7 +40,7 @@
  *  nothing about Round 2, no rule under anything.
  * ------------------------------------------------------------------ */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, m } from "motion/react";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import type {
@@ -101,20 +101,35 @@ const LANDING = 14;
    itself: 520 + 48 + 280 = 848. Hence 1176, rounded to 1180. */
 const RAIL_FITS = `(min-width: ${READING_MIN + RAIL_GAP + RAIL + 328}px)`;
 
-/** Live, and false on the server and the first client frame so nothing
- *  flips shell during hydration. Same shape as
- *  `src/components/common/use-wide-viewport.ts`, which does this for the
- *  house picker; the query differs, so the hook is not shared. */
+/** Live, and CORRECT ON ITS FIRST RENDER once the browser is running.
+ *
+ *  This was `useState(false)` plus an effect, the shape
+ *  `src/components/common/use-wide-viewport.ts` uses -- which is right there,
+ *  where the choice happens during hydration and server and client must agree.
+ *  It is wrong here, and he saw it: "when I click on reader it shows me some
+ *  different UI for a second before showing the correct one we've developed."
+ *
+ *  Reaching the reader from the room's pills is a client-side state change,
+ *  not a hydration: the Reader mounts fresh, renders once with `false`, paints
+ *  the NARROW layout -- one column with the strip floating over it -- and only
+ *  then does the effect run and swap in the two-column one. One painted frame
+ *  of the wrong page, every time.
+ *
+ *  `useSyncExternalStore` is the fix and it is what the hook is for: React
+ *  reads `getServerSnapshot` on the server and during hydration, so nothing
+ *  mismatches, and reads `getSnapshot` directly on a client mount, so a
+ *  navigation inside the room gets the right layout on its first render with
+ *  no intermediate paint at all. */
 function useRailFits(): boolean {
-  const [fits, setFits] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia(RAIL_FITS);
-    const sync = () => setFits(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-  return fits;
+  return useSyncExternalStore(
+    (onChange) => {
+      const mq = window.matchMedia(RAIL_FITS);
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(RAIL_FITS).matches,
+    () => false,
+  );
 }
 
 /* ── one answer ────────────────────────────────────────────────────── *
