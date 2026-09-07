@@ -93,6 +93,14 @@ export async function shoot({
   full = false,
   settleMs = 0,
   watchConsole = false,
+  /* Throw rather than photograph a page that never loaded. Only `verify-shot`
+     sets this false: reporting NAV-ERR in its JSON is its whole job, and it
+     has a caller reading that field. Everything else gets an exception,
+     because the alternative is what happened on 2026-09-07 -- a mistyped
+     argument navigated nowhere, a 1440x900 frame of about:blank was written,
+     and the script printed "Screenshot saved". A session then reads that PNG
+     as evidence of a page it has never seen. */
+  tolerateNavError = false,
 }) {
   const vp = viewport(mobile);
   mkdirSync(SHOTS_DIR, { recursive: true });
@@ -141,6 +149,10 @@ export async function shoot({
         status = "NAV-ERR";
         errors.push("nav: " + String(e.message).slice(0, 140));
       }
+    }
+
+    if (status === "NAV-ERR" && !tolerateNavError) {
+      throw new Error(`could not load ${url} -- ${errors[errors.length - 1] ?? "navigation failed"}`);
     }
 
     if (settleMs) await sleep(settleMs);
