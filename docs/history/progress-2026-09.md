@@ -8,6 +8,25 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-07 — one folder for scratch screenshots, and something that empties it
+
+The owner's answer to campaign question 22: *"there's two different folders of them. delete all the
+screenshots in both and make sure all future screenshots only fill into one folder. delete the other
+folder permanently."*
+
+Read conservatively and said so: the two scratch folders are `e2e/.shots/` and `.tmp-shots/`, the
+latter written into the closed repo root by `scripts/dev/apple-edge/look.mjs` — the last thing still
+breaking that rule. **`e2e/__screenshots__/` was NOT touched**: those 13 MB are the reference images
+`npm run visual` compares every page against, and deleting them makes the whole check meaningless
+until regenerated. If he meant those too it is one command.
+
+`e2e/.shots/` had reached **630 MB** with nothing ever clearing it. 419 files predating today were
+removed — **403 MB reclaimed** — and today's 307 were left alone, because a peer session is live in
+this checkout and a screenshot it took an hour ago may still be its "before" shot.
+
+`.tmp-shots/` is gone with its ignore line, `look.mjs` writes beside everything else, and
+`npm run shots:clean` clears anything older than a week. The docs name one folder now.
+
 ## 2026-09-07 — the session log becomes an index, and a test keeps it one
 
 Refactor audit 2, Phase F, and the owner's answer to campaign question 20 ("20b"). The full entry

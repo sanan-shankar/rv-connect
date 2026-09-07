@@ -15,7 +15,10 @@ import { devLogin } from '../../qa/_dev-login.mjs';
 import { chromePath } from '../../qa/_probe-kit.mjs';
 
 config({ path: '.env', quiet: true });
-const OUT = '.tmp-shots/edge';
+/* Beside the other scratch shots, never at the repo root. `.tmp-shots/`
+   lived in the root until 2026-09-07 -- the one script still breaking the
+   closed-root rule, and a second place a session had to know to look. */
+const OUT = 'e2e/.shots/edge';
 mkdirSync(OUT, { recursive: true });
 
 const browser = await puppeteer.launch({

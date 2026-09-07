@@ -96,7 +96,6 @@ supabase/.temp/
 /e2e/.output/
 /e2e/.report/
 /e2e/.auth/
-.tmp-shots/
 
 # Local WebKit build for reproducing Safari-only bugs (not committed, ~100MB)
 .pw-browsers/

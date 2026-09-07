@@ -239,12 +239,18 @@ Dev server: `npm run dev` on `http://localhost:3000`. Start it in the background
 
 | Command | Use |
 |---|---|
-| `npm run screenshot <url> [label] [--mobile]` | public pages; falls back to real Chrome on its own |
-| `npm run screenshot:auth <url> [--mobile]` | signed in as admin |
+| `npm run screenshot <url\|/path> [label] [--mobile]` | public pages; falls back to real Chrome on its own |
+| `npm run screenshot:auth <url\|/path> [--mobile]` | signed in as admin |
 | `npm run verify:shot <route> <out.png> [mobile]` | authed shot **plus** console and pageerror capture |
 | `npm run verify:crawl` | every live route signed in, with status and console errors |
 
-All four write to `e2e/.shots/` -- gitignored scratch, beside Playwright's own run output.
+| `npm run shots:clean` | clear scratch shots older than a week |
+
+All five use `e2e/.shots/` -- gitignored scratch, beside Playwright's own run output, and **the only
+folder any of them writes to**. `.tmp-shots/` at the repo root was a second one until 2026-09-07;
+`apple-edge/look.mjs` was the last thing writing there and now writes beside the rest. The folder had
+reached 630 MB with nothing ever clearing it, which is what `shots:clean` is for -- run it at the end
+of a session.
 Nothing puts an image at the repo root any more (`temporary screenshots/` moved there on
 2026-08-28), so if that folder reappears at the root, something hand-rolled a path instead
 of using these commands.

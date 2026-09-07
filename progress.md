@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-07 — one folder for scratch screenshots, and something that empties it
 - 2026-09-07 — the session log becomes an index, and a test keeps it one
 - 2026-09-07 -- the hygiene pass: comments that describe code nobody has, and the last raw hex
 - 2026-09-07 — seven indexes nothing uses, and one the audit was wrong about
