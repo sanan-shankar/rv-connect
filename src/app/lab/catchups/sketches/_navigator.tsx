@@ -172,12 +172,18 @@ export function Strip({
 
 /* ── The list, with the line beside it ─────────────────────────────── */
 
-type ListSize = "panel" | "page" | "rail";
+type ListSize = "panel" | "page" | "rail" | "cover";
 
 const LIST: Record<
   ListSize,
   { size: number; lineHeight: number; padY: number; indent: number; spineX: number; serif: boolean }
 > = {
+  /* A Round's contents, printed on its cover, on a Catch-up's home. The
+     same object as the rail and the panel, at the same measure, in the
+     same face. Nothing is truncated and nothing is numbered; a cover
+     carries its headlines the way a magazine's does, and never a quoted
+     answer (brief para 9). */
+  cover: { size: 15, lineHeight: 1.35, padY: 6, indent: 18, spineX: 0, serif: true },
   /* The unfolded strip and the sheet: one size, the body's. */
   panel: { size: 15.5, lineHeight: 1.35, padY: 11, indent: 40, spineX: 20, serif: false },
   /* The contents page: the heading face, a size under the in-flow
@@ -213,22 +219,51 @@ const LIST: Record<
 const SWELL_AMP = 0.085;
 const SWELL_SIGMA = 46;
 
+/** One row of the list. A `<button>` where the row goes somewhere, a
+ *  `<span>` where the card around it is already the door. Everything else
+ *  about it -- the type, the measure, the colour -- is identical, because
+ *  it is the same object at a different depth. */
+function Row({
+  as,
+  ...rest
+}: { as: "button" | "span" } & React.ComponentPropsWithoutRef<"button">) {
+  const Tag = as as "button";
+  return <Tag {...rest} />;
+}
+
 export function QuestionList({
   questions,
-  current,
-  within,
+  current = 0,
+  within = 0,
   size,
   mark = "line",
+  spine = "progress",
   onPick,
   className,
 }: {
   questions: SketchQuestion[];
-  current: number;
+  /** Progress mode only: the question you are in. */
+  current?: number;
   /** 0 to 1, how far through the current question; where the line ends. */
-  within: number;
+  within?: number;
   size: ListSize;
   /** `line`: the measure ends at your row. `tint`: the app's selection wash. */
   mark?: "line" | "tint";
+  /** What the measure beside the list is doing.
+   *
+   *  `progress` is the reader: it fills as you read and stops at the
+   *  question you are in. `read` and `unread` are a cover, where there is
+   *  no "where am I" to show, so the measure answers the only question a
+   *  cover is asked instead: have I read this one?
+   *
+   *  Warm means READ, and it has to, because a full measure is what the
+   *  reader leaves behind when you get to the end of a Round. Marking the
+   *  UNREAD one warm would read better on a list -- the new thing lights
+   *  up -- and would make the same colour mean opposite things two taps
+   *  apart. So a Round you have not opened is a measure with nothing in
+   *  it yet, which is exactly what it is. No count, no dot, no
+   *  percentage. */
+  spine?: "progress" | "read" | "unread";
   onPick?: (index: number) => void;
   className?: string;
 }) {
@@ -243,8 +278,10 @@ export function QuestionList({
   const frame = useRef(0);
   const t = LIST[size];
   const swells = size === "rail";
+  const tracking = spine === "progress";
 
   useLayoutEffect(() => {
+    if (!tracking) return;
     const el = rows.current[current];
     if (!el) return;
     /* A floor under the fill, because the honest number is zero when you
@@ -256,7 +293,7 @@ export function QuestionList({
     if (swells) {
       setCentres(rows.current.map((r) => (r ? r.offsetTop + r.offsetHeight / 2 : -999)));
     }
-  }, [current, within, questions.length, swells]);
+  }, [current, within, questions.length, swells, tracking]);
 
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
 
@@ -285,24 +322,36 @@ export function QuestionList({
           : undefined
       }
     >
-      {mark === "line" && (
-        <>
+      {mark === "line" &&
+        (tracking ? (
+          <>
+            <span
+              aria-hidden
+              className="absolute bottom-0 top-0 w-[2px] rounded-full bg-border"
+              style={{ left: t.spineX }}
+            />
+            <m.span
+              aria-hidden
+              className="absolute top-0 w-[2px] rounded-full bg-cinnamon"
+              style={{ left: t.spineX }}
+              animate={{ height: fill }}
+              transition={{ duration: 0.3, ease: EASE_OUT_SMOOTH }}
+            />
+          </>
+        ) : (
+          /* A cover's measure is the whole height, and its colour is the
+             one thing it has to say. */
           <span
             aria-hidden
-            className="absolute bottom-0 top-0 w-[2px] rounded-full bg-border"
+            className={cn(
+              "absolute bottom-0 top-0 w-[2px] rounded-full",
+              spine === "read" ? "bg-cinnamon/70" : "bg-border",
+            )}
             style={{ left: t.spineX }}
           />
-          <m.span
-            aria-hidden
-            className="absolute top-0 w-[2px] rounded-full bg-cinnamon"
-            style={{ left: t.spineX }}
-            animate={{ height: fill }}
-            transition={{ duration: 0.3, ease: EASE_OUT_SMOOTH }}
-          />
-        </>
-      )}
+        ))}
       {questions.map((q, i) => {
-        const here = i === current;
+        const here = tracking && i === current;
         /* The swell, which he asked to try: "maybe we could even add
            magnification like we do in the side rail of the collection."
            The Collection's rail can grow its rows because they are one
@@ -322,9 +371,15 @@ export function QuestionList({
               rows.current[i] = el;
             }}
           >
-            <button
-              type="button"
-              onClick={() => onPick?.(i)}
+            {/* A row is a button only where it goes somewhere. On a cover
+                the whole card is the door (architecture.md section 3), so
+                the rows are text: a button inside a link is invalid, and
+                eleven tab stops on a card with one destination is worse
+                than the markup error. */}
+            <Row
+              as={onPick ? "button" : "span"}
+              type={onPick ? "button" : undefined}
+              onClick={onPick ? () => onPick(i) : undefined}
               aria-current={here ? "true" : undefined}
               className={cn(
                 "block w-full origin-left text-left transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
@@ -358,7 +413,7 @@ export function QuestionList({
               }}
             >
               {q.text}
-            </button>
+            </Row>
           </li>
         );
       })}

@@ -10513,3 +10513,42 @@ a FEELING of having solved something completely, not as a parts bin. *"You have 
 right for this. You can't just copy elements from that."*
 
 No code changed. The session stopped before the rebuild at his instruction, with the tree clean.
+
+## 2026-09-07 — Catch-ups S4: the architecture, and the two surfaces that carry it
+
+The reader was drawn and reviewed twice; this session did the part he says matters more — *"the
+structures between, behind these pages. How they relate, how you access everything."* The settled
+shape is `docs/planning/catchups-rework/architecture.md`, which supersedes `directions.md` Part 1,
+and both surfaces are live at `/lab/catchups/sketches`: the list, a Catch-up's home in all seven
+states, and the reader, joined up so the moves between them can be walked. Navigable rather than
+stills, because a dead end in the relationship between pages is invisible in a picture.
+
+The one idea is that a Round's contents — its questions, hung off a vertical measure — is a single
+component at two depths: the cover on a Catch-up's home, and the navigator inside the reader. That
+retires the campaign's oldest complaint by construction, since one Round drawn ten ways on four
+surfaces becomes one file. The measure's colour is read/unread on a cover and progress in the
+reader, which is coherent only in that direction: warm has to mean read, because a full measure is
+what the reader leaves behind.
+
+The rest falls out of one rule, that a card is a door and the whole card is the target. The dead
+"Round 1 is out" tile, the View button, "open it on its own page" and the stray three dots all stop
+existing rather than getting redrawn. Fresh off the press is deleted outright and its job — what is
+new to read — is done by the Catch-up's own card. The roster becomes a column on the home at a
+laptop's width and the same list opening in place on a phone, which deletes the people dialog *and*
+the sheet that was going to replace it, so the next session has one surface fewer to draw.
+
+Two changes are his, given mid-session and recorded verbatim in `review-2026-09-07.md`. First the
+picture: Catch-ups is the only surface in the app with no imagery, which is why it reads
+"functional and corporate", so every Catch-up now carries a photograph from the day it is made,
+from a pool of about twenty he will supply. Then, seeing it drawn, he took the Round's questions off
+the list entirely — overcrowding, for a page that is navigation. Both were right and both were
+cheap, because the questions were still on the home.
+
+Four list shapes were drawn and three thrown away: a two-column grid of unequal panels, which locks
+into rows and left a 165px hole mid-page; CSS columns of the same, where the balancer stranded the
+tall one and left a 470px void; and a wide row with the identity in a 240px margin, which had no
+holes and was a page of text. Equal picture cards only became possible once the picture arrived to
+make every card the same height. The reasoning is in `_list.tsx` so nobody re-treads it.
+
+Gates green; `npm run visual` 25/25, run separately. He owes four answers and about twenty
+photographs; the paste line for the session after is at the foot of the handover.

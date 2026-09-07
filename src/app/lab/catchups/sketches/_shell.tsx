@@ -53,9 +53,15 @@ const LAPTOP_SCREEN_HEIGHT = 982;
 export function PhoneBar({
   title,
   position = "static",
+  onTitle,
 }: {
   title?: string;
   position?: "static" | "absolute" | "sticky";
+  /** What the name does. It is the way up out of a Round, and it is the
+   *  only one: getting back to the Catch-up is 44,381px of scrolling on
+   *  the shipped reader ("I scroll all the way to the bottom, which takes
+   *  me a week", para 35). */
+  onTitle?: () => void;
 }) {
   return (
     <header
@@ -68,6 +74,7 @@ export function PhoneBar({
       {title ? (
         <button
           type="button"
+          onClick={onTitle}
           className="ml-0.5 min-w-0 flex-1 truncate text-left font-heading text-[17px] leading-none text-sidebar-foreground"
           aria-label={`${title}, back to the Catch-up`}
         >
