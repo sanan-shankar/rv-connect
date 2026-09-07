@@ -1,5 +1,36 @@
 # Progress Log
 
+## 2026-09-07 — the reader adapts to the window, and the feed's dots stop pushing the icons down
+
+**The carousel was making the heart and the comment icon drop.** His: "the carousel navigation
+doesn't even interfere with the icons because they're at the sides and it is at the middle. So just
+let those icons be where they were going to be anyway." The dots were a band of their own, 14px
+tall, above the action row. They are drawn out of flow now, 21px below the photograph, which is
+measured rather than guessed: with the band gone the row starts 8px under the photograph and is 32px
+tall, so its centre is at 24 and a 6px dot starts at 21. Verified: the heart's centre and the dots'
+centre both sit 24px below the photograph, and the row is exactly where a post with no carousel puts
+it.
+
+**The laptop had been built for one window width.** His: "you've not finetuned the response to
+changing the window size ... remember that at each window size it has to look amazing ... at some
+point you might [want] to remove the navigation and swap it to the phone method of questions to save
+space." So there are three layouts, not two, and the third is his idea: the rail is on whenever
+there is room for it (a 520px column plus the gutter plus a 280px rail, which is a 1180px window)
+and off whenever there is not, and below that the strip comes back as a floating card at the top of
+one column, exactly the phone's mechanism. Measured across 1024, 1180, 1366, 1512, 1920 and 2560: no
+horizontal overflow anywhere, both gutters equal at every width, and the reading column growing 524
+to 900 before it stops.
+
+Capping the two columns as a block and centring them was tried first and was worse: at 2560 the
+reader became an island with a thousand pixels of nothing beside it. Both columns stay flush to the
+page's gutters and only the space between them grows.
+
+**And the floating question is gone from the wide laptop**, because the rail already names the
+question: "on desktop don't have the question floating. I can see it in the sidebar." On the narrow
+laptop the header drops its Round and date instead, since the strip is carrying them and printing
+both would be the thing he has objected to twice. The head now sits 36px above the first mark rather
+than 56, which is half the 72 between questions, so it reads as attached to the Round.
+
 ## 2026-09-07 — the reader's type goes on the app's scale, and the swell goes continuous
 
 Three of his, after looking at the laptop view.

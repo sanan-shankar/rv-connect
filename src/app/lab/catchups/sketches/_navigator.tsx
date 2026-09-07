@@ -374,6 +374,7 @@ export function UnfoldedPanel({
   within,
   onPick,
   maxHeight,
+  bare = false,
 }: {
   round: SketchRound;
   current: number;
@@ -381,9 +382,19 @@ export function UnfoldedPanel({
   onPick?: (index: number) => void;
   /** So forty questions scroll inside the panel instead of off the screen. */
   maxHeight?: number;
+  /** The caller already draws the border, the radius and the shadow around
+   *  both the strip and this panel, so the panel draws none of its own.
+   *  That is the laptop's narrow layout, where the pair is one floating
+   *  card rather than a bar welded to the top of the screen. */
+  bare?: boolean;
 }) {
   return (
-    <div className="card-elevated rounded-b-[16px] border-x border-b border-border bg-card">
+    <div
+      className={cn(
+        "bg-card",
+        !bare && "card-elevated rounded-b-[16px] border-x border-b border-border"
+      )}
+    >
       <div className="overflow-y-auto pt-1.5" style={{ maxHeight }}>
         <QuestionList
           questions={round.questions}

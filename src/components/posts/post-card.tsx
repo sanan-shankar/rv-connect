@@ -500,6 +500,14 @@ export function PostCard({
                     onOpen={viewer.open}
                     onPreload={preloadImageViewer}
                     bleed
+                    /* 21px, measured rather than guessed. With the dots out
+                       of the flow the actions row starts 8px under the
+                       photograph (its own mt-2) and is 32px tall, so its
+                       centre is 24px down and a 6px dot starts at 21. The
+                       dots then sit between the heart on the left and the
+                       bookmark on the right, in the row that was already
+                       going to be there. */
+                    dotsFloatTop={21}
                   />
                 ) : images.length === 1 || !rowPhotos ? (
                   images.map((img, i) => (

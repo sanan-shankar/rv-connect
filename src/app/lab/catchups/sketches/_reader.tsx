@@ -43,23 +43,79 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "motion/react";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
-import { cn } from "@/lib/utils";
-import type { SketchEntry, SketchQuestion, SketchRound, SketchViewport } from "./_types";
+import type {
+  SketchEntry,
+  SketchQuestion,
+  SketchRound,
+  SketchViewport,
+} from "./_types";
 import { PhoneBar, PhoneShell, DesktopShell } from "./_shell";
-import { AskedBy, Body, Byline, Media, Photographs, Reactions, said } from "./_parts";
-import { BAR, QuestionList, RoundMeta, Strip, UnfoldedPanel } from "./_navigator";
+import {
+  AskedBy,
+  Body,
+  Byline,
+  Media,
+  Photographs,
+  Reactions,
+  said,
+} from "./_parts";
+import {
+  BAR,
+  QuestionList,
+  RoundMeta,
+  Strip,
+  UnfoldedPanel,
+} from "./_navigator";
 
 /** The phone's page gutter, the app's own. */
 export const GUTTER = 20;
-/** The laptop's rail. Wider than the shipped 220 because the list is set
- *  in the heading face now, which he asked for and which needs the room. */
-export const RAIL = 300;
-export const RAIL_GAP = 56;
+/** The laptop's rail, and the gutter between it and the reading. */
+export const RAIL = 280;
+export const RAIL_GAP = 48;
+/** The narrowest a column of answers may be before the rail is not worth
+ *  its room. Below this the laptop stops being a laptop and reads like a
+ *  wide phone, which is what the strip is for. */
+const READING_MIN = 520;
+/** The widest a column of answers gets, however wide the window is.
+ *
+ *  Brief para 1 and para 6: "if you're on a widescreen or on a TV or
+ *  something, they just expand and take up the whole space. It's not a
+ *  very scalable, nicely fitting thing." Capping the PAIR and centring it
+ *  was tried first and was worse: at 2560 the reader and its rail became
+ *  an island with a thousand pixels of nothing beside them. So both
+ *  columns stay flush to the page's gutters and only the space BETWEEN
+ *  them grows. At his 1512 the reading column is 856 and this never
+ *  bites. */
+const READING_MAX = 900;
+const COLUMN_MAX = 900;
 /** The strip at rest is one line: 44px. */
 const STRIP_REST = 44;
 const STRIP_TOP_LAPTOP = 16;
 /** A picked heading lands this far under the strip. */
 const LANDING = 14;
+
+/* Where the rail stops fitting, as a window width, because that is what a
+   media query can ask about. The app's shell takes 248px of sidebar and
+   40px of gutter either side, so the room left for the page is
+   `window - 328`. The rail needs the reading column, the gutter and
+   itself: 520 + 48 + 280 = 848. Hence 1176, rounded to 1180. */
+const RAIL_FITS = `(min-width: ${READING_MIN + RAIL_GAP + RAIL + 328}px)`;
+
+/** Live, and false on the server and the first client frame so nothing
+ *  flips shell during hydration. Same shape as
+ *  `src/components/common/use-wide-viewport.ts`, which does this for the
+ *  house picker; the query differs, so the hook is not shared. */
+function useRailFits(): boolean {
+  const [fits, setFits] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(RAIL_FITS);
+    const sync = () => setFits(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return fits;
+}
 
 /* ── one answer ────────────────────────────────────────────────────── *
  *  A short answer gets a tight tile, not a smaller one and not bigger
@@ -81,10 +137,17 @@ export function Tile({ entry, phone }: { entry: SketchEntry; phone: boolean }) {
         {body && <Body text={body} phone={phone} className="mt-2.5" />}
       </div>
       {entry.images.length > 0 && (
-        <Photographs entry={entry} className="mt-3" maxHeight={phone ? 460 : 560} />
+        <Photographs
+          entry={entry}
+          className="mt-3"
+          maxHeight={phone ? 460 : 560}
+        />
       )}
       {entry.media.length > 0 && (
-        <Media items={entry.media} className={phone ? "mx-4 mt-3" : "mx-5 mt-3"} />
+        <Media
+          items={entry.media}
+          className={phone ? "mx-4 mt-3" : "mx-5 mt-3"}
+        />
       )}
       <div className={phone ? "px-4 pb-2 pt-1.5" : "px-5 pb-2.5 pt-2"}>
         <Reactions entry={entry} />
@@ -112,7 +175,10 @@ export function Section({
   return (
     <section ref={sectionRef} id={`q-${q.id}`}>
       <div ref={headingRef}>
-        <span aria-hidden className="block h-[2px] w-8 rounded-full bg-cinnamon" />
+        <span
+          aria-hidden
+          className="block h-[2px] w-8 rounded-full bg-cinnamon"
+        />
         <h2
           className="mt-3 font-heading text-foreground"
           /* 24px on both, which is `h2` on the documented scale
@@ -151,16 +217,26 @@ export function Section({
  *  the question before it, two questions stacked. `line` is where a
  *  question becomes CURRENT: the strip's foot plus the landing breath.
  *  `dock` is where a heading has GONE: under the strip's foot. */
-type Spy = { current: number; docked: boolean; within: number; progress: number };
+type Spy = {
+  current: number;
+  docked: boolean;
+  within: number;
+  progress: number;
+};
 
 function useSpy(
   root: React.RefObject<HTMLDivElement | null>,
   sections: React.MutableRefObject<Array<HTMLElement | null>>,
   headings: React.MutableRefObject<Array<HTMLDivElement | null>>,
   lineOffset: number,
-  dockOffset: number
+  dockOffset: number,
 ): Spy {
-  const [spy, setSpy] = useState<Spy>({ current: 0, docked: false, within: 0, progress: 0 });
+  const [spy, setSpy] = useState<Spy>({
+    current: 0,
+    docked: false,
+    within: 0,
+    progress: 0,
+  });
 
   useEffect(() => {
     let raf = 0;
@@ -179,10 +255,13 @@ function useSpy(
       const h = headings.current[current];
       const sTop = s ? s.getBoundingClientRect().top : 0;
       const docked = Boolean(
-        s && h && top < 0 && h.getBoundingClientRect().bottom <= dockOffset
+        s && h && top < 0 && h.getBoundingClientRect().bottom <= dockOffset,
       );
       const within = s
-        ? Math.max(0, Math.min(1, (lineOffset - sTop) / Math.max(1, s.offsetHeight)))
+        ? Math.max(
+            0,
+            Math.min(1, (lineOffset - sTop) / Math.max(1, s.offsetHeight)),
+          )
         : 0;
       const travel = Math.max(1, el.offsetHeight - window.innerHeight);
       const progress = Math.max(0, Math.min(1, -top / travel));
@@ -193,7 +272,7 @@ function useSpy(
         Math.abs(prev.within - within) < 0.005 &&
         Math.abs(prev.progress - progress) < 0.002
           ? prev
-          : { current, docked, within, progress }
+          : { current, docked, within, progress },
       );
     };
     const ask = () => {
@@ -245,7 +324,8 @@ function glide(to: number) {
   const dist = to - from;
   const ms = Math.min(900, 380 + Math.abs(dist) * 0.06);
   const t0 = performance.now();
-  const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const ease = (t: number) =>
+    t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   const step = (now: number) => {
     const p = Math.min(1, (now - t0) / ms);
     window.scrollTo(0, from + dist * ease(p));
@@ -256,7 +336,13 @@ function glide(to: number) {
 
 /* ── the reader ────────────────────────────────────────────────────── */
 
-export function Reader({ round, viewport }: { round: SketchRound; viewport: SketchViewport }) {
+export function Reader({
+  round,
+  viewport,
+}: {
+  round: SketchRound;
+  viewport: SketchViewport;
+}) {
   const phone = viewport === "phone";
   const root = useRef<HTMLDivElement>(null);
   const sections = useRef<Array<HTMLElement | null>>([]);
@@ -264,12 +350,43 @@ export function Reader({ round, viewport }: { round: SketchRound; viewport: Sket
   const [open, setOpen] = useState(false);
   const [arriving, setArriving] = useState(false);
 
-  /* A picked heading lands here, under the bar and the resting strip on a
-     phone, at the gutter on a laptop; and this is where a question
-     becomes current. */
-  const landing = phone ? BAR + STRIP_REST + LANDING : 40;
-  /* Where a heading counts as gone: under the strip's foot. */
-  const dock = phone ? BAR + STRIP_REST : STRIP_TOP_LAPTOP + STRIP_REST;
+  /* Three layouts, not two, and the third is what he asked for on
+     2026-09-07: "at some point you might [want] to remove the navigation
+     and swap it to the phone method of questions to save space."
+
+       phone    the app's green bar, the strip under it, one column
+       rail     two columns, the questions open in a rail on the right,
+                and NO floating question: "on desktop don't have the
+                question floating. I can see it in the sidebar."
+       column   a laptop too narrow for both. The rail goes, and the
+                strip comes back as a floating card at the top of the
+                one column, exactly the phone's mechanism.
+
+     So the rail is not a breakpoint that happens to be true at 1512; it
+     is on whenever there is room for it and off whenever there is not. */
+  const railFits = useRailFits();
+  const mode: "phone" | "rail" | "column" = phone
+    ? "phone"
+    : railFits
+      ? "rail"
+      : "column";
+
+  /* A picked heading lands here, clear of whatever is pinned above it,
+     and this is also where a question becomes current. */
+  const landing =
+    mode === "phone"
+      ? BAR + STRIP_REST + LANDING
+      : mode === "column"
+        ? STRIP_TOP_LAPTOP + STRIP_REST + LANDING
+        : 40;
+  /* Where a heading counts as gone, for the strip. In rail mode nothing
+     docks, because nothing floats. */
+  const dock =
+    mode === "phone"
+      ? BAR + STRIP_REST
+      : mode === "column"
+        ? STRIP_TOP_LAPTOP + STRIP_REST
+        : 0;
   const spy = useSpy(root, sections, headings, landing, dock);
 
   /* Scrolling puts the list away, so a pick can close it first and move. */
@@ -297,7 +414,7 @@ export function Reader({ round, viewport }: { round: SketchRound; viewport: Sket
         setArriving(false);
       }, 160);
     },
-    [landing]
+    [landing],
   );
 
   const q = round.questions[spy.current];
@@ -400,7 +517,11 @@ export function Reader({ round, viewport }: { round: SketchRound; viewport: Sket
           </div>
           <div
             className="pb-16"
-            style={{ paddingTop: STRIP_REST + 20, paddingLeft: GUTTER, paddingRight: GUTTER }}
+            style={{
+              paddingTop: STRIP_REST + 20,
+              paddingLeft: GUTTER,
+              paddingRight: GUTTER,
+            }}
           >
             {body}
           </div>
@@ -417,77 +538,164 @@ export function Reader({ round, viewport }: { round: SketchRound; viewport: Sket
      is that, with a wider rail because the list is set in the heading
      face now. The paragraph inside a tile still caps at 68ch (see Body);
      the photographs use the whole width. */
+  /* The name, and the Round and date UNDER it only when nothing else is
+     carrying them. On a phone the green bar has the name and the strip has
+     the meta; on a wide laptop nothing is pinned, so the header carries
+     both; on a narrow laptop the strip is back, so the header would be
+     saying the Round and the date a second time. That is the fault he
+     listed twice in the first review: "in the loop is said twice, Round 1
+     is said twice, the date is said twice." */
+  const head = (
+    <header>
+      {/* 30px, which is what `PageHeader` sets on every other page in the
+          app (Feed, Directory, Collection, Letters) and what the Support
+          page hand-writes to match. A Catch-up's name is a page title, so
+          it is THE page title size. */}
+      <h1 className="font-heading text-[30px] leading-[1.2] tracking-[-0.02em] text-foreground">
+        {round.catchupName}
+      </h1>
+      {mode === "rail" && (
+        <p className="mt-2.5 flex items-center gap-2 text-[14px]">
+          <span className="font-medium text-cinnamon">
+            Round {round.number}
+          </span>
+          <span className="dotsep" aria-hidden>
+            ·
+          </span>
+          <span className="text-muted-foreground">
+            {new Date(round.publishedAt).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </span>
+        </p>
+      )}
+    </header>
+  );
+
+  /* Narrow laptop: one column, and the phone's own instrument. The strip
+     and the list it opens are one floating card here rather than a bar
+     welded to the top of the screen, because there is no green app bar on
+     a laptop for it to sit under. */
+  if (mode === "column") {
+    return (
+      <DesktopShell>
+        <div className="mx-auto" style={{ maxWidth: COLUMN_MAX }}>
+          <div ref={root} className="relative min-w-0">
+            <div className="sticky z-30 h-0" style={{ top: STRIP_TOP_LAPTOP }}>
+              {open && (
+                <button
+                  type="button"
+                  aria-label="Close the questions"
+                  onClick={() => setOpen(false)}
+                  className="fixed inset-0 bg-black/20"
+                />
+              )}
+              {/* The strip floats 16px down, so without this an answer
+                  slides through the gap above it on its way off the
+                  screen. The page colour fades in over that gap and the
+                  words disappear into it instead of being sliced by the
+                  window's edge. */}
+              <div
+                aria-hidden
+                className="absolute inset-x-0 bottom-full h-4 bg-gradient-to-t from-background to-transparent"
+              />
+              <div className="card-elevated absolute inset-x-0 top-0 overflow-hidden rounded-[12px] border border-border">
+                <Strip
+                  label={
+                    spy.docked && !open && q ? (
+                      q.text
+                    ) : (
+                      <RoundMeta round={round} />
+                    )
+                  }
+                  docked={Boolean(spy.docked && !open && q)}
+                  progress={spy.progress}
+                  open={open}
+                  onToggle={() => setOpen((v) => !v)}
+                />
+                <AnimatePresence initial={false}>
+                  {open && (
+                    <m.div
+                      key="panel"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{
+                        height: { duration: 0.3, ease: EASE_OUT_SMOOTH },
+                        opacity: { duration: 0.16, ease: EASE_OUT_SMOOTH },
+                      }}
+                      className="overflow-hidden"
+                    >
+                      <UnfoldedPanel
+                        round={round}
+                        current={spy.current}
+                        within={spy.within}
+                        onPick={pick}
+                        maxHeight={480}
+                        bare
+                      />
+                    </m.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+            <div style={{ paddingTop: STRIP_TOP_LAPTOP + STRIP_REST + 28 }}>
+              {head}
+            </div>
+            <div className="pb-20 pt-9">{body}</div>
+          </div>
+        </div>
+      </DesktopShell>
+    );
+  }
+
+  /* Wide laptop. Two columns, the reading on the left, the list on the
+     right, and both flush to the page's own gutters at every width:
+     "the margins are totally messed up ... what is there in the shipped
+     version now has much better margins. It like fills up the screen."
+     Past READING_MAX the reading stops growing and the gutter between
+     the two columns takes the extra, so a television gets a wide spread
+     instead of a 1,500px line or an island floating in the middle. */
   return (
     <DesktopShell>
       <div
         className="grid items-start"
-        style={{ gridTemplateColumns: `minmax(0,1fr) ${RAIL}px`, columnGap: RAIL_GAP }}
+        style={{
+          gridTemplateColumns: `minmax(0,1fr) ${RAIL}px`,
+          columnGap: RAIL_GAP,
+        }}
       >
-        <div ref={root} className="relative min-w-0">
-          <div className="sticky z-30 h-0" style={{ top: STRIP_TOP_LAPTOP }}>
-            <div
-              className={cn(
-                "absolute inset-x-0 top-0 transition-opacity duration-200",
-                spy.docked && q ? "opacity-100" : "pointer-events-none opacity-0"
-              )}
-            >
-              <Strip
-                label={q?.text ?? ""}
-                docked
-                progress={spy.progress}
-                floating
-                interactive={false}
-              />
-            </div>
-          </div>
+        <div
+          ref={root}
+          className="relative min-w-0"
+          style={{ maxWidth: READING_MAX }}
+        >
+          {/* Nothing floats here. The rail beside this column already
+                names the question you are in and marks it, and a second
+                copy of it hovering over the answers was one thing said
+                twice: "on desktop don't have the question floating. I can
+                see it in the sidebar." */}
+          {head}
 
-          {/* The title. His: "In the Loop Round 1, 15th August. It's super
-              basic ... I feel like we can still make it much prettier."
-              The name is the headline and stays the headline (R30: "why
-              would we say Round 1 in such use font. That's good to know
-              but that's not the name!!"). What lifts it is the meta: the
-              Round is set in the same cinnamon as the measure that runs
-              down the whole reader, so the page opens on the colour it is
-              going to keep using, and the date stays quiet beside it. */}
-          <header>
-            {/* 30px, which is what `PageHeader` sets on every other page in
-                the app (Feed, Directory, Collection, Letters) and what the
-                Support page hand-writes to match. It was 44, and he was
-                right about it: "make sure in the loop isn't some absurdly
-                large font and fits the sizes in the rest of the ui." A
-                Catch-up's name is a page title, so it is THE page title
-                size, and the questions under it drop to the scale's h2 so
-                the two are a step apart rather than the same size. */}
-            <h1
-              className="font-heading text-[30px] leading-[1.2] tracking-[-0.02em] text-foreground"
-            >
-              {round.catchupName}
-            </h1>
-            <p className="mt-2.5 flex items-center gap-2 text-[14px]">
-              <span className="font-medium text-cinnamon">Round {round.number}</span>
-              <span className="dotsep" aria-hidden>
-                ·
-              </span>
-              <span className="text-muted-foreground">
-                {new Date(round.publishedAt).toLocaleDateString("en-GB", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </span>
-            </p>
-          </header>
-
-          {/* 56px, and it is the same distance the questions keep from one
-              another, so the first mark is not an odd beat: "there's a
-              weird spacing on Round one and then the first cinnamon line
-              is, it doesn't look visually balanced." */}
-          <div className="pb-20 pt-14">{body}</div>
+          {/* 56px, and it is the same distance the questions keep from
+                one another, so the first mark is not an odd beat: "there's
+                a weird spacing on Round one and then the first cinnamon
+                line is, it doesn't look visually balanced." */}
+          {/* 36px. The head is a 30px title over a 14px meta, about 65px
+              of ink, and the 56px that used to sit under it was almost as
+              tall as the block itself: "there's still a weirdly big gap
+              under the round and date and the first orange line ... right
+              now it looks totally imbalanced." Deliberately still half of
+              the 72px between one question and the next, so the head reads
+              as attached to the Round rather than floating above it. */}
+          <div className="pb-20 pt-9">{body}</div>
         </div>
 
         {/* The list, left open, fixed. Not scrolling at a tenth of the
-            page's speed (R13, R23), which is the same drift the strip had
-            and the same cause. */}
+              page's speed (R13, R23), which is the same drift the strip
+              had and the same cause. */}
         <aside className="sticky self-start" style={{ top: 40 }}>
           <QuestionList
             questions={round.questions}
