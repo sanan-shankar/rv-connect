@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-08 — refactor audit 2: eleven units, and the close-out
 - 2026-09-08 — the documentation pass: eleven documents that described a different app
 - 2026-09-08 — the Catch-ups rework gets a spec, and the database corrects it five times
 - 2026-09-08 — a letter gets the same three controls a post has

@@ -84,7 +84,7 @@ fix the table.
 | B — bundle levers | DONE | B9 measured and reverted | — |
 | C — the query floor | DONE | C11 done differently; read the ledger | — |
 | E — de-duplication that closes a drift | PARTIAL | E7b, E8, E11 (mascot + UI-kit + collection tails), E12's `catchups-02` | **E5, E6, E12 (bar catchups-02) and E11's feed/admin/directory halves are DONE 2026-09-07.** E7b needs `TURNSTILE_DEV_CHALLENGE=1` + a dev-server restart. `catchups-02` and `catchups-07/08/09` are **PARKED**: a peer session is rebuilding Catch-ups in this tree |
-| D — switched-off subsystems | PARTIAL | D5, D6, D7 (bounceKind + the 9 indexes), D9 | **DONE 2026-09-07: D1, D4, D8, D11 (bar its two Catch-ups halves).** D2 DECLINED (Q1 keeps the showcase), D3 DECLINED (Q3). **D10 PARKED** — never explicitly asked; it is a close-out question. **No DDL**: code stops writing, migration files land unrun, commands go to him at the close |
+| D — switched-off subsystems | DONE | — (the five SQL files are written and UNRUN; running them is the owner's, see the close-out) | **All of D shipped 2026-09-07 except what the owner declined.** D1, D4, D5, D6, D7, D8, D9, D11 done. D2 DECLINED (Q1 keeps the showcase), D3 DECLINED (Q3, Catch-ups rework owns it), D10 PARKED (never explicitly asked; it is close-out question 2). **No DDL was run and none will be by a session.** |
 | F — hygiene, in one pass, last | PARTIAL | `docs-01` (audit 1's `work/`, a close-out question), `docs-17`, `docs-18`, `docs-19`, `docs-20`, `docs-21`, `scripts-e2e-ci-12` | **Unit 1 (stale comments) and unit 2 (documentation) are DONE 2026-09-07/08.** The reduced-motion row is DECLINED (Q11); DESIGN-SYSTEM §7 rewritten instead. **`docs-07` and `catchups.md` are PARKED** — a peer session owns them, as are `docs/planning/catchups-rework/*`, `collection-rework/handover.md` and `class-collection/spec.md` |
 | H — letters get Report, Edit and Delete | DONE | — | Shipped 2026-09-08. No server-side code: all four actions already took a letter. `write-path-reviewer` clean |
 | G — architecture and taste | PARTIAL | G1 + G7 only (the demo exclusion, Q23) | **G3, G4, G5, G6, G10, G11 are PARKED by Q27** — written up in `docs/planning/FEATURES.md` instead of built |
@@ -382,6 +382,150 @@ do (a) on both"*. Anything you do not name, I take the default for.
 **The order this campaign now runs in**: Phase E's remainder, then Phase D (minus D2 and D3), then
 Phase F, then Q15's letters feature, then Q23's demo exclusion. Phase G's five rebuilds are parked
 by Q27 and written up instead.
+
+---
+
+## Close-out — 2026-09-08
+
+**Eleven units ran. Phases A, B, C, D and H are DONE; E, F and G are PARTIAL with their remaining
+rows named on the board above.** Every gate is green: `npm run check` 7 of 7 (the shape-and-colour
+audit had been warning for weeks and is now clean), `npm run visual` 25/25, `npm run verify:crawl`
+21/21 at runtime.
+
+### What shipped
+
+| | Measured |
+|---|---|
+| **Phase D — the switched-off subsystems** | The feed's sort and time filters, the second photo-approval screen, `HousePicker` and its two lab rooms, four unreachable branches, and the Groups visibility residue. **−390 and −563 source lines in its first two units**; 7 files deleted outright; lab registry 48 → 46 routes |
+| **Phase D — the unread columns** | Five stopped being written: `Photo.area`, `Photo.freeTags`, `Post.groupId`, `OutboundEmail.bounceKind`, `Image.greyscale`. **Five SQL files written and UNRUN** in `prisma/migrations-manual/2026-09-07-*.sql` |
+| **Phase E — de-duplication** | The QA kit, the test kit, the feed and notification writes, the admin worklist and mail rows, the directory person type, the Collection's two halves, `toViewerImage`. Four units |
+| **Phase F — hygiene and documentation** | Thirteen comment territories, the last raw hex, `letters.md` 430 → 174 lines, `media.md` 376 → 333, `docs/README.md` rebuilt from disk, five wrong counted facts in OPERATIONS.md and SECURITY.md corrected |
+| **Phase H — letters** | Report, Edit and Delete on the letter reading page. **No new server code**: all four actions already accepted a letter |
+| **The session log** | 11,604 lines → a **356-line index**, 323 entries moved to `docs/history/`, **0 lines of session text lost**, with a test that stops it regrowing |
+| **Scratch screenshots** | 630 MB → 227 MB, one folder instead of two, `npm run shots:clean` added |
+| **Tests** | 103 → **106 files** |
+
+### Seven things verification found that no audit did
+
+Each is committed with its reasoning. This is the part of the night worth reading.
+
+1. **A three-line fix silently truncated `progress.md` by 580 lines**, destroying five sessions'
+   history including a peer session's. Rebuilt from git; all 315 prior entries verified present.
+2. **`npm run screenshot` printed "Screenshot saved" while writing a blank image** of a page that
+   never loaded. The whole screenshot protocol rests on reading those PNGs as evidence.
+3. **The visual suite was crying wolf on a database write.** The live-content mask covered the band
+   at today's height, so the strip below it went red when six more Catch-ups arrived.
+4. **`toViewerImage`'s admin flag and `replaceUserPlaces`' extra columns** were both wider than any
+   caller needed. The second admitted `role` and `credentialVersion` on a path reached from sign-up.
+5. **Two "dead" props were alive in your lab rooms**, exactly where the campaign warned they would be.
+6. **A finding's proposed filename was already a live Prisma module** — following it literally would
+   have destroyed a server read.
+7. **A row's stated risk was wrong and would have reddened the build**: deleting the old photo-approval
+   screen breaks a security tripwire the finding claimed did not exist.
+
+### Look at these three first
+
+1. **Letters now have a "..." menu** on the reading page (Report / Edit / Delete). It is the only new
+   thing a member sees. Screenshots read at both sizes; the one taste call I could not settle from
+   the specs is that it sits on the byline row rather than at the foot with the heart.
+2. **Your admin "Remove letter" button moved into that menu.** It was a one-press icon; it is two
+   presses now. Done because leaving it would have put Remove on the page twice. One word from you
+   puts it back.
+3. **The admin mail list changed**, as you approved in question 16 — relative dates and two buttons
+   per row. I did **not** let the recipient's email print down all eight rows, which the merge would
+   have done; that was not what you agreed to.
+
+### The database commands, for you to run
+
+Nothing in this campaign ran a `DROP`. The code stopped writing these columns first, so running
+these late is free and running them early would have been an outage. Each file explains itself and
+refuses if a row has picked up a value. **Run each twice — once for the real site, once for the demo:**
+
+```
+node scripts/dev/run-sql.mjs prisma/migrations-manual/2026-09-07-drop-collection-legacy-tags.sql
+node scripts/dev/run-sql.mjs --env .env.demo prisma/migrations-manual/2026-09-07-drop-collection-legacy-tags.sql
+```
+
+and the same pair for `2026-09-07-drop-groups-residue.sql`, `2026-09-07-drop-image-greyscale.sql`,
+`2026-09-07-drop-bounce-kind.sql` and `2026-09-07-drop-unused-indexes.sql`.
+
+**One of them needs a decision first.** `Group.description` is **11 of 18 rows non-null** — every
+value is the sentence signup generates, and nothing has ever read it, but you were asked about
+"which group a post belongs to", not this. To keep it, delete the two `"Group"` statements at the
+foot of the groups file before running it.
+
+### Nine questions left
+
+**1. Shall I run those database commands next session, or will you?**
+- **What I'd change:** remove the five things nothing reads from the database.
+- **What you'd notice:** nothing. The site stopped writing them last night.
+- **If I guess wrong:** a removed column is gone forever, which is why no session ran one unattended.
+- **Options:** (a) you run them  (b) tell me to, and I will next session  (c) leave the columns.
+- **If you don't reply I'll do:** (c) — leave them. They cost nothing sitting there.
+
+**2. The demo photograph script.**
+- **What I'd change:** delete a 201-line script that turns a folder of photographs into Collection entries for the public demo. It has never produced a single photograph, and its notes tell you to work in a folder at the top level that you have since closed.
+- **What you'd notice:** nothing, unless you wanted photographs in the demo one day, in which case it would need writing properly anyway.
+- **If I guess wrong:** it is in the project's history.
+- **Options:** (a) delete it  (b) keep it.
+- **If you don't reply I'll do:** (b). You were never actually asked about this one, so I parked it.
+
+**3. Did you mean the reference screenshots too?**
+- **What I'd change:** nothing yet. Last night you said to clear both screenshot folders. I cleared the two scratch ones and reclaimed 403 MB, and left a third folder alone: the reference images the visual check compares every page against.
+- **What you'd notice:** nothing either way. Clearing them means the next check compares against how the site looks today rather than how it looked when each was taken.
+- **If I guess wrong:** you keep 13 MB you wanted gone.
+- **Options:** (a) leave them  (b) clear and regenerate them too.
+- **If you don't reply I'll do:** (a).
+
+**4. The admin mail list, and the email address.**
+- **What I'd change:** nothing more. Merging the two lists would have printed the member's email address down all eight rows on a page whose header already shows it. I suppressed that.
+- **What you'd notice:** the rows show what was sent and when, not who to.
+- **If I guess wrong:** you wanted the address on every row.
+- **Options:** (a) keep it suppressed  (b) show the address.
+- **If you don't reply I'll do:** (a).
+
+**5. The three places that still check "reduce motion".**
+- **What I'd change:** you said motion should never be switched off for that setting, and I wrote that into the design rules. Three files still check it, all written before you said so: the error page's bird, the front-page footer bird, and one inside the switched-off landing section.
+- **What you'd notice:** with them stripped, those three animate for everybody.
+- **If I guess wrong:** three small animations behave differently from the rule you stated.
+- **Options:** (a) strip all three, so the code matches what you said  (b) leave them.
+- **If you don't reply I'll do:** (b) — you answered a question about adding guards, not removing these.
+
+**6. One more odd heading size.**
+- **What I'd change:** you asked which headings were hand-typed at odd sizes. Six were on the dark-mode page and one on the Collection's contribute panel, all 26px, and they now share one name with identical pixels. There is a seventh, at 27px, on the three email pages.
+- **What you'd notice:** nothing unless I move it, in which case that heading shifts by one pixel.
+- **If I guess wrong:** a heading is a pixel off.
+- **Options:** (a) leave it at 27  (b) fold it to 26 with the others.
+- **If you don't reply I'll do:** (a).
+
+**7. The finished audits' working notes.**
+- **What I'd change:** you agreed a closed audit's working files go and a pointer stays. Doing it for the previous audit is not free: this campaign's own notes cite it thirteen times, and those citations have to be rewritten in the same breath.
+- **What you'd notice:** nothing.
+- **If I guess wrong:** nothing; git keeps them.
+- **Options:** (a) do it next session, citations and all  (b) leave both audits' notes.
+- **If you don't reply I'll do:** (a).
+
+**8. How much further should the campaign go?**
+- **What I'd change:** what is left is the smaller half of the de-duplication, the lab leaving the public demo's build, and a few tidy-ups. Roughly one more night.
+- **What you'd notice:** nothing. None of it changes the site.
+- **If I guess wrong:** nothing.
+- **Options:** (a) finish it  (b) stop here; the valuable phases are done.
+- **If you don't reply I'll do:** (a).
+
+**9. The rate limiter, again, in plainer words.**
+- **What I'd change:** nothing I can. The thing that stops someone guessing passwords at the sign-in form only works if two keys exist in your Vercel dashboard. If they are missing it does not error, it just stops limiting, so there is no way to notice from outside.
+- **What you'd notice:** nothing either way, which is the problem.
+- **If I guess wrong:** the sign-in form has no rate limit and nobody finds out.
+- **Options:** (a) check the dashboard for `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` and tell me they are there  (b) I leave it filed as an open risk.
+- **If you don't reply I'll do:** (b). It is in `docs/planning/bugs.md`.
+
+### To restart
+
+Reply with **"defaults"** and I take every default above. Or name exceptions, e.g. *"defaults except
+1 and 8, do (b) on 1 and (a) on 8."* To continue the campaign, @ this file and run `/campaign`.
+
+**Nothing has been pushed.** 60-odd commits sit on `main` waiting for you; pushing is a deploy and
+that is yours.
 
 ## The order to work in
 
