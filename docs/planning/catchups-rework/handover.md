@@ -1858,37 +1858,63 @@ wall), and it only ever draws a published Round.
 
 ## What to paste next
 
-He asked for exactly this (N16: *"just tell me what to paste and what the next step is"*).
+**Superseded once already.** The version below is from the close of S4's SECOND pass, 2026-09-07
+evening. If you are reading this after a later session, check the session log first.
 
-**First, and it is not a paste: look at it.** On your phone and on your laptop, at
+### First, and it is not a paste: look at it
 
-```
-/lab/catchups/sketches
-```
+`/lab/catchups/sketches`, on the phone and on the laptop. The **Phone** and **Laptop** views are the
+same design at two widths; **Screens** holds the reader's stills. The grey pills above the drawing
+are the room's, not the design's: they jump to the list, to a home in each state, and to the reader.
 
-The **Phone** and **Laptop** views are the same thing at two widths. Start on The list, tap a
-Catch-up, tap a cover, and use the Catch-up's name in the green bar to come back out. The grey pills
-above the drawing are the room's, not the design's: they jump you to a home in each of the seven
-states. **Screens** still holds the navigator drawn three ways, which is the one thing you have not
-picked.
-
-**Then say four things**, and they are the only four blocking anything:
-
-1. Which navigator: A, B or C.
-2. Whether the list and the home clear R46 — better than what ships, or not.
-3. Whether the picture is doing the job now.
-4. Answers to owner questions 15b, 17 and 18 (the six with no batch year; the twenty photographs;
-   who may change a batch's picture). Everything else has a default and is already taken.
-
-**Then paste this into a fresh Opus max session:**
+### Then paste this into a fresh Opus max session
 
 ```
 @docs/planning/catchups-rework/handover.md
 
-You are S6. Read brief.md, review-2026-09-06.md and review-2026-09-07.md in full, then
-architecture.md, before you draw anything. Draw the composer, the Catch-up's menu and the
-confirmations it opens, and the picture's upload and crop at creation. Same hand, same room.
+You are S4c, continuing the Catch-ups rework. Read, in full and in this order, before you
+change anything: brief.md, review-2026-09-06.md, review-2026-09-07.md (all five parts —
+Part five is the review that sent the last pass back and Part four is the one before it),
+then architecture.md, then front-runner.md. Then open the drawing itself:
+src/app/lab/catchups/sketches/, whose docblocks carry his sentence beside each decision.
+
+The list, the home in every state, and the reader are live and navigable at
+/lab/catchups/sketches. He has more tweaks. Take them, draw them, and keep architecture.md
+and the handover true as you go.
+
+Two things are outstanding and are ours, not his:
+  - N11, the reader's title. "In the Loop Round 1, 15th August. It's super basic... I feel
+    like we can still make it much prettier." It is the one note of his from the first
+    review that has never been answered.
+  - The reader has never been driven against the pressure corpus (_fixtures/pressure.ts):
+    a forty-answer question, a 6,000-character answer, a twenty-four-photograph wall.
+
+And read N45 before you start, because it is the standard the last pass failed:
+"The level of critical thinking and brainstorming and planning and rigor has significantly
+dropped. Please put a lot more deep thought and effort into this."
 ```
 
-If he asks for the reader's title to be redrawn (N11) or for a second round on the list, that goes
-in the same paste as the first line of the work.
+### What that session must know, and would otherwise learn the hard way
+
+- **`npm run visual` is red on `/catchups` at both viewports, and it is not the rework.** That route
+  photographs live data and he has been making test Catch-ups on it. Do not `visual:update` it.
+- **`sidebar.tsx:132` fails the shape+colour protocol.** Another session's commit (`bed93ca`),
+  predates this work, not ours to fix silently.
+- **He owes about twenty photographs** ("I'll give the pictures when I get time"), Notion-header
+  wide. The room uses three from the demo Collection as stand-ins and they are all green trees,
+  which is the trap: twenty wide valley views would read as one photograph twenty times.
+- **Nothing in that room is ever scaled.** A sticky element inside `transform: scale(s)` drifts at
+  (1 - s) of the scroll; the scaling frame is deleted and must stay deleted (F34).
+- **The MCP browser can be signed in**, contrary to an older note: `node --env-file=.env -e` to read
+  `ADMIN_EMAIL` and `DEV_LOGIN_SECRET`, then POST them to `/api/dev-login` from `evaluate_script`.
+
+### Still his, whenever he wants to answer
+
+1. Whether the list and the home are better than what ships. On 2026-09-07 the answer was *"no it's
+   not yet better"* about the reader, and the home was rejected outright; both have been redrawn
+   since and he has not seen the second version.
+2. The twenty photographs.
+
+Everything else he has answered. Navigator **A**. Delete becomes **leave**. Nobody keeps a batch
+Catch-up and it has no manual transitions. Pause becomes **hold the next Round**. The six with no
+batch year get nothing, and that is fine. Anyone in a batch may change its picture.
