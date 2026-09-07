@@ -103,6 +103,7 @@ export function PhotoCarousel({
   onPreload,
   className,
   bleed = false,
+  dotsFloatTop,
 }: {
   photos: CarouselPhoto[];
   /** The surface's `sizes` for its column. Each slide is the full column. */
@@ -115,6 +116,18 @@ export function PhotoCarousel({
    *  radius and the side borders it would otherwise draw against nothing.
    *  The card clips the corners instead. */
   bleed?: boolean;
+  /** Draw the dots OUT OF FLOW, this many pixels below the frame, so they
+   *  take no vertical space and can share a row the caller draws itself.
+   *
+   *  Owner, 2026-09-07: "the heart icon and comment etc are pushed down
+   *  because of the carousel. Make sure it's never pushed down. The
+   *  carousel navigation doesn't even interfere with the icons because
+   *  they're at the sides and it is at the middle. So just let those icons
+   *  be where they were going to be anyway."
+   *
+   *  The number is the caller's, because only the caller knows how tall
+   *  the row is that the dots have to sit in the middle of. */
+  dotsFloatTop?: number;
 }) {
   /* One frame per photograph, each the frame that photograph would have been
      given had it been posted on its own. An unmeasured one -- predating the
@@ -391,7 +404,19 @@ export function PhotoCarousel({
       {/* The rail. One dot per photograph, and a filled pill that rides the
           actual scroll offset -- so it travels with a thumb mid-swipe instead
           of snapping when the slide finally lands. */}
-      <div className="mt-2 flex justify-center">
+      <div
+        className={cn(
+          "flex justify-center",
+          dotsFloatTop === undefined
+            ? "mt-2"
+            : /* Out of flow entirely: the row below rises to meet the
+                 photograph and the dots come down into the middle of it.
+                 They are an indicator and nothing presses them, so they
+                 never take the press meant for a button underneath. */
+              "pointer-events-none absolute inset-x-0 top-full"
+        )}
+        style={dotsFloatTop === undefined ? undefined : { paddingTop: dotsFloatTop }}
+      >
         <div className="relative flex items-center" style={{ gap: DOT_GAP }}>
           {photos.map((_, i) => (
             <span
