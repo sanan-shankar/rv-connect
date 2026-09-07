@@ -153,7 +153,7 @@ too, which he allowed in ¶28.
 | S3 Directions | DONE | 2026-09-06 first pass: `directions.md` Parts 1-5, ten directions, ten sketches. **Second pass the same day, after he rejected most of them** ("80% of the designs have just no taste at all"): six deleted, one rebuilt, four new, one synthesis. `directions.md` Part 6 supersedes Parts 2-4 and carries his rules as a table. Five sketches now |
 | Owner culls the sketches | DONE | 2026-09-06: he went through all fifteen out loud, one at a time, and rejected all fifteen. Verbatim in [`review-2026-09-06.md`](review-2026-09-06.md), 51 paragraphs. "There is nothing here that I prefer to what is shipped" (R46), and "you are okay to delete everything else" (R47). Owner questions 7 and 8 are withdrawn: the cull answered 7, and 8 is folded into the front runner |
 | S3c Front runner | DONE | 2026-09-07: ONE reader, by one hand, live at `/lab/catchups/sketches`. The strip under the green bar is the navigator; drawn three ways as asked (R24). The fifteen are deleted (R47). What it answers, and what is his to decide: [`front-runner.md`](front-runner.md), "What was built" |
-| Owner reviews the front runner | OWNER-GATED | **next.** On his phone: the Reader view first (it scrolls, docks and opens for real), then Screens, then Laptop. He picks a navigator (A, B or C), the line or the tint as the mark, or sends it back with R46's question answered either way |
+| Owner reviews the front runner | PARTIAL | First round of notes given 2026-09-07 and all of them folded in the same day: the drifting navigator (F34), the birds' left edge (F35), the feed's comment row, a three-line cap on a docked question, the laptop's margins and rail, and a jump that no longer fast-forwards. His words are in [`review-2026-09-07.md`](review-2026-09-07.md). Still owed: which navigator (A, B or C), and whether it clears R46 |
 | S4 Rooms | OPEN | blocked on his word on the front runner. The reader is already live; S4 draws the rest of the surfaces from its parts (home, index, composer, people, settings), in the same hand, never a fan-out (F32). `directions.md` Part 3's briefs are dead with the directions they describe. Draw the composer too (F25) |
 | Owner browses the rooms | OWNER-GATED | |
 | S3b Second round | OPEN | only if he asks for it after the rooms |
@@ -423,6 +423,24 @@ Numbered so later sessions can cite and correct them. **Verified** means a sessi
   `overflow-x-auto` is a scroll container, inside which nothing sticky sticks (F31 again, from the
   harness this time). Also: Spotify's keyless oembed has no artist, and "Spotify" is not one; the
   song card prints a title over its cover and nothing else.
+
+- **F34, a sticky element inside a scaled frame drifts, and the number is exact (S3c, 2026-09-07).**
+  `position: sticky` inside `transform: scale(s)` lags the scroll by (1 - s): the browser resolves
+  the sticky offset in the untransformed coordinate space and the scale then shrinks the
+  correction. Measured at 0.92 (a 390 drawing in a 360 window): the strip sat 1,487px above the
+  viewport after 20,000px of scroll, having read as "fixed" for the first screen. At 0.95 on the
+  1512 laptop frame it was 914px. This is the third distinct bug the sketch room's scaling frame
+  has caused (F27's blank capture, F31's dead sticky bar, now this), so the frame is deleted and
+  every drawing is fluid. **Nothing in this room is scaled any more, and nothing should be again.**
+- **F35, the birds' left edge, and it is the glyph set (S3c, 2026-09-07).** Owner: "the people
+  who've uploaded a profile photo, for them, their icon is correctly left-aligned to the left
+  border, but many of the other people who have a bird, their bird is actually not left-aligned."
+  Measured: every avatar BOX in the column starts on the same pixel. A photograph is clipped to a
+  full circle and fills its 40px; a bird is drawn inside r~45 of a 0..100 viewBox (`bird-avatar-v2`
+  says so at the top), so its ink spans ~32px starting ~4px in. The feed is identical and has never
+  shown it, because the feed never stacks twelve avatars in one column. The reader now measures each
+  glyph's ink box and slides it left by its own inset, layout-neutral, sizes untouched. **The
+  app-wide cure would be to normalise fifty drawings and it is the owner's call, not a room's.**
 
 ---
 
