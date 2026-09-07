@@ -67,6 +67,7 @@ if the month is new), and add one line here, at the top of that month's list.
 - 2026-09-07 — Catch-ups S4, second pass: the rail comes back
 - 2026-09-07 — The install button, and Samsung's broken minting server
 - 2026-09-07 — Refactor audit 2, Phase D: four switched-off subsystems come out
+- 2026-09-07 night — S4d, round two: Editions, the composer, and three bugs he spotted
 - 2026-09-07 — S4d, the Catch-ups room: his first round of fine-tuning notes
 - 2026-09-06 — Catch-ups rework, S3: ten directions and the sketch room
 - 2026-09-06 — Sidebar mark goes flat cream
