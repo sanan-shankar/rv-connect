@@ -8,6 +8,109 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 — the documentation pass: eleven documents that described a different app
+
+Phase F's second unit, and the campaign's last. Eleven documents, six commits, **−540 lines net**,
+and not one of them a line of product code.
+
+**Every number in this session was counted, not copied from the finding.** That was the standing
+instruction and it earned itself three times. The audit said `admin.md`'s section map was two rooms
+short of eleven routes; `ls src/app/(main)/admin` says **fourteen page routes across eleven
+sections**, and `admin-nav.ts` is the one source both the rail and the Overview read. The audit said
+the test suite was 74 files in one document and 25+ in another; it is **106**. The audit said the
+visual suite was eleven routes with four masked; `ROUTES` holds **twelve** and **six** carry
+`live:`. A pass that had trusted any of those three would have replaced one wrong number with
+another.
+
+**The thing three specs had in common, and it is worth a rule.** `letters.md`, `media.md` and
+`directory.md` each carried a supersession banner over a body nobody had removed, so the file read
+two ways at once and only a careful reader avoided the wrong one. `media.md`'s dead sections had
+been printing underneath their own tombstones since August. **A tombstone is not a delete** — and
+worse, **a banner is itself a dated claim and rots exactly like the body it annotates**:
+`directory.md`'s said the `City`/`HouseYear`/`ProfileTag` schema was "a live, unimplemented plan",
+which was true when written and is now three shipped features under other names
+(`Place`/`UserPlace`, `User.houses`, `User.professionTags`). `letters.md`'s banner named three
+Catch-up models — `CatchupIssue`/`CatchupQuestion`/`CatchupAnswer` — that `catchups.md` §6 says
+outright do not exist. That file was 430 lines of which ~300 specified Roundups: a Groups feature in
+a product with no Groups, a `datasource provider = "sqlite"` three stack generations old, and a
+Render Cron tick never built. It is 174 lines now. The rule is in `docs/README.md`: date the claim
+when you write a banner.
+
+**The map that polices drift had drifted.** `docs/README.md` opens by promising every path was
+verified against disk, and had not been touched since the day it said so while eight files landed
+under it. It said `docs/spec/` holds "**Exactly**" twelve files and omitted `guide.md` and
+`hand-run-passes.md` — the second of which `CLAUDE.md` marks in bold as read-before-working, so a
+session trusting the word "Exactly" would never open it. It named four files in `docs/planning/`,
+where there are thirty-seven. And it never listed `TRAPS.md`, `OPERATIONS.md` or `SECURITY.md` at
+all. Rewritten from `ls`.
+
+**Where a count kept rotting, the count was deleted rather than corrected.** Audit 1 fixed "10
+routes x 2" to 11; ten days later it was 12. So `OPERATIONS.md` and `CLAUDE.md` now say "one line
+per route in `ROUTES`, each with its reason" and the two test-file counts became "every
+`*.test.mjs` the repo tracks". The two documents also disagreed on how long the visual suite takes
+— 80 seconds against 50 — so both numbers are gone. What was *added* is the thing neither said:
+masking `/collection` and its class half on 2026-08-29 and 09-02 cost the one route that watched
+image sizing, and the class empty state is now photographed nowhere.
+
+**`visual.spec.ts`'s own comment was the stalest of the three**, which matters because it is the
+source the two documents quote. Ninety lines below a `ROUTES` array holding six `live:` entries, its
+`LIVE ROUTES` block still read "Four routes photograph a database" and "`/collection` is
+deliberately NOT in this list". Corrected in the same commit as the documents that quote it.
+
+**Six of `scripts/README.md`'s ledger lines had stopped being true.** The `check` row omitted `deps`
+and `security`, gates since 2026-09-02 whose whole point was to stop being CI-only.
+`hoopoe-zoom-probe` pointed at `bugs.md` **#14**, which is now Vercel environment duplicates; the
+zoom bug is **#17** and its cause is known to be Safari. `local-base-url.mjs` was described as "finds
+which port the dev server is on" when it is the loopback and same-origin guard that stops an admin
+cookie being minted against a non-local origin — the one helper in the folder doing security work,
+undersold in prose. **A trap found while fixing it**: `scripts-ledger.test.mjs`'s second test walks
+every backticked file-shaped name in that README and demands it exist under `scripts/`, so naming
+`playwright.config.ts` in a sentence reds the build. Describe non-`scripts/` files in words.
+
+**The dead-path sweep was 54 real mentions in a field of 94, and telling them apart is the work.**
+About forty are deliberate "this was deleted, it lives in git history" pointers, and deleting those
+is the failure mode. Each was opened. `guide.md` names `src/components/tour/` on purpose — the
+sentence is about the tour being gone. `README.md`'s `public/uploads/` is true: the dev filesystem
+driver writes there, the folder just does not exist until somebody uploads locally. What was
+repointed: the `UserAvatar` that became `BirdAvatar`, the whole `src/app/preview/` tree that became
+`/lab`, `src/lib/motion.ts` + `src/components/motion/` that became one
+`src/components/common/motion.tsx`, `decade-rail.tsx` that counts in years now, and the crop room's
+two helpers that were folded into `src/lib/photo-layout.ts`. Where a plan's file inventory was the
+*record of a swap* rather than a map — `avatars.md` §8, `profile.md`'s grounding list — it says so
+now instead of reading as current.
+
+**Two campaign documents were each printing eight of `CLAUDE.md`'s operating rules in full**, and
+the copies had already drifted from the source on two runtimes (`npm run check` at 25s against 30s,
+`npm run visual` at 70s against 80s against 50s). Both cut to a pointer plus what is genuinely
+campaign-specific. The third copy is in `collection-rework/handover.md`, which a peer session owns
+tonight, so it stands.
+
+**And that third copy had been openly contradicting `CLAUDE.md` for weeks**, in a planning document
+most sessions never open: *"the chrome-devtools MCP cannot sign in ... CLAUDE.md still says to POST
+the secret from `evaluate_script`; do not."* Reading `scripts/qa/_dev-login.mjs` settles the
+substance — `evaluate_script` serialises its arguments into the page's own main world, which is
+app-controlled ground, and that helper exists precisely so the secret goes from Node and only the
+HttpOnly cookie reaches the browser. But the MCP has no way to be *handed* a cookie, so the recipe
+in `CLAUDE.md` is the only way to drive an authed browser from it. `CLAUDE.md` now states both
+facts, so the two documents agree.
+
+**Three small live defects came out of reading, none of them a finding.** `CLAUDE.md`'s screenshot
+table had a blank line before its `shots:clean` row, which orphans that row outside the table in any
+renderer. `scripts/qa/crawl.mjs` never learned `/guide`, shipped 2026-08-27 — a one-token fix that
+makes the README's "keep this in step" sentence true. And `admin.md` §9.9's "one schema gap to raise
+before that build" — `User.lastSeenAt` — has been closed for weeks, with a partial index Prisma
+cannot express.
+
+`npm run check` green before every commit: types, lint, protocol, **46 lab routes**, **106/106
+tests**, deps, security. No pixels moved, so `npm run visual` was not run. Six commits,
+`ae88aaec`..`(this one)`.
+
+**Parked, and named so nobody thinks they were missed**: `docs-07` and `docs/spec/catchups.md`
+entirely, plus `docs/planning/catchups-rework/*` — a peer session is rebuilding Catch-ups in this
+checkout and owns them. `collection-rework/handover.md` and `class-collection/spec.md`, filed in
+`bugs.md` for their own campaigns. `docs-01` (archiving audit 1's `work/`), `docs-04`, `docs-13` and
+`docs-14`, which are close-out questions or already done.
+
 ## 2026-09-08 — the Catch-ups rework gets a spec, and the database corrects it five times
 
 The shape has been drawn and signed off at `/lab/catchups/sketches`; this session wrote what the
