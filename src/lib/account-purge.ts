@@ -406,13 +406,13 @@ export async function drainPendingImagePurges(
       deleted += 1;
     } else {
       failed += 1;
-      await /* updateMany, not update (audit C-118). The success branch beside this one
+      /* updateMany, not update (audit C-118). The success branch beside this one
          already tolerates a concurrent drain having taken the row; this one did
          not, and Prisma's `update` throws P2025 on a missing row -- so the
          BOOKKEEPING for a failure could itself throw out of the sweep and stop
          every remaining purge behind it. `updateMany` no-ops on zero matches,
          which is the honest answer: somebody else already dealt with it. */
-      prisma.pendingImagePurge.updateMany({
+      await prisma.pendingImagePurge.updateMany({
         where: { id: row.id },
         data: { attempts: { increment: 1 }, lastError: "delete refused by storage" },
       });

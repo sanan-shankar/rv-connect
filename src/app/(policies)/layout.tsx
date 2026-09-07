@@ -3,9 +3,10 @@ import { Wordmark } from "@/components/layout/peaks-mark";
 
 /**
  * The shell for the three policy documents (audit H12): /privacy, /terms,
- * /guidelines. Public and static — no auth() call, so a stranger reading the
- * privacy policy before signing up costs nothing and sees no chrome that
- * assumes an account. One slim bar with the wordmark home, a reading column,
+ * /guidelines. Public: no auth() call, so a stranger reading the privacy
+ * policy before signing up costs one render and sees no chrome that assumes
+ * an account. Not prerendered, despite fetching nothing -- the root layout's
+ * theme-cookie read makes every route in the app dynamic. One slim bar with the wordmark home, a reading column,
  * and a footer that cross-links the three documents so none is a dead end.
  */
 export default function PoliciesLayout({ children }: { children: React.ReactNode }) {

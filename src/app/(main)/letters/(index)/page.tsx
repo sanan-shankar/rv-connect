@@ -51,8 +51,6 @@ export default async function LettersPage({
 
   const isAdmin = session.user.role === "admin";
   const viewerCities = isAdmin ? [] : await getViewerCities(session.user.id);
-  // Reused below for the composer's "Show to" audience control (same list, no
-  // second query -- getViewerCities already returns it in position order).
   const lettersQuery = prisma.post.findMany({
     where: {
       kind: "letter",

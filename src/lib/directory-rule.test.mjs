@@ -205,7 +205,7 @@ test("C-098: buildDirectoryWhere accepts the several cities the link sends", () 
   assert.match(branch, /new Set\(/, "the targets are not de-duplicated across cities");
 });
 
-/* ---- the Profession facet: rendered now, tag owed later --------- */
+/* ---- the Profession facet, and the tag behind it ---------------- */
 
 test("the Profession facet is on the panel, matching what members typed", () => {
   /* History, because this control has moved twice. It filtered
@@ -250,11 +250,10 @@ test("the profession arm cannot clobber the search", () => {
 });
 
 test("a profession tag column takes the contains arm with it", () => {
-  /* The plan is still to run every workplace + jobTitle pair through an LLM,
-     derive the buckets and write each member a real tag
-     (docs/planning/FEATURES.md section 2). The day that column exists this
-     fails, because a contains over free text is a stand-in for it and keeping
-     both is how a filter comes to disagree with the tag it displays. */
+  /* `professionTags` shipped, written by the hand-run pass in
+     scripts/dev/tag-professions-*.mjs, and the contains-over-free-text arm
+     that stood in for it went with it. This guards the way back: keeping both
+     is how a filter comes to disagree with the tag it displays. */
   const tagShipped = /profession/i.test(SCHEMA);
   if (tagShipped) {
     assert.doesNotMatch(

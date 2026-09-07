@@ -37,8 +37,9 @@ import type { PlaceSearchResult } from "@/app/api/places/search/route";
  *   person's list of cities). A pick commits to a chip and puts the field
  *   down (popup closed, focus released); tapping the box starts the next one.
  *
- * Wiring to onboarding / settings / directory happens in a later phase; this
- * file is deliberately standalone with no page-specific knowledge.
+ * Deliberately standalone, with no page-specific knowledge: signup, the
+ * profile's cities pen and the admin person page all hand it the same two
+ * props.
  */
 
 export interface PlaceSelection {

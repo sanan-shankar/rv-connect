@@ -50,7 +50,7 @@ export function PhotoStep({
         </h2>
         <p className="mx-auto max-w-[38ch] text-[14px] leading-relaxed text-muted-foreground">
           Every member gets a valley bird by default. Upload a photo any
-          time you like, from here or from settings.
+          time you like, from here or from your profile.
         </p>
       </div>
 

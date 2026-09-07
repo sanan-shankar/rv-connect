@@ -127,13 +127,6 @@ export function cityCoords(raw: string | null | undefined): [number, number] | n
 }
 
 /**
- * Every known spelling that resolves to the same place as the given city, so a
- * filter on "Bangalore" also catches "Bengaluru" (and vice versa). Always
- * includes the original input. Returns lowercased, deduped keys; callers should
- * compare case-insensitively. When the city is not in the gazetteer, the result
- * is just the normalized input itself.
- */
-/**
  * Every string a city FILTER must compare a stored row against.
  *
  * The value the member picked comes first and untouched, because every city
@@ -154,6 +147,13 @@ export function cityFilterTargets(raw: string | null | undefined): string[] {
   return [...new Set([picked, ...cityNameVariants(picked)])];
 }
 
+/**
+ * Every known spelling that resolves to the same place as the given city, so a
+ * filter on "Bangalore" also catches "Bengaluru" (and vice versa). Always
+ * includes the original input. Returns lowercased, deduped keys; callers should
+ * compare case-insensitively. When the city is not in the gazetteer, the result
+ * is just the normalized input itself.
+ */
 function cityNameVariants(raw: string | null | undefined): string[] {
   if (!raw) return [];
   const key = normalizeCity(raw);
@@ -185,8 +185,9 @@ function cityNameVariants(raw: string | null | undefined): string[] {
  *
  * A city listed here is keyed by name instead of by square. It still plots at
  * its exact coordinates, so the two pins land 10.4 km apart and the map's
- * existing supercluster merges them at low zoom and splits them as you zoom
- * in, which is the behaviour the grid was standing in for anyway.
+ * screen-space clustering (map-cluster.ts) merges them at low zoom and splits
+ * them as you zoom in, which is the behaviour the grid was standing in for
+ * anyway.
  *
  * Keys are normalizeCity() output. Add to this only for a place whose identity
  * matters more than its distance from the nearest town; the grid is the right
