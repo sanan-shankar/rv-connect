@@ -153,11 +153,13 @@ too, which he allowed in ¶28.
 | S3 Directions | DONE | 2026-09-06 first pass: `directions.md` Parts 1-5, ten directions, ten sketches. **Second pass the same day, after he rejected most of them** ("80% of the designs have just no taste at all"): six deleted, one rebuilt, four new, one synthesis. `directions.md` Part 6 supersedes Parts 2-4 and carries his rules as a table. Five sketches now |
 | Owner culls the sketches | DONE | 2026-09-06: he went through all fifteen out loud, one at a time, and rejected all fifteen. Verbatim in [`review-2026-09-06.md`](review-2026-09-06.md), 51 paragraphs. "There is nothing here that I prefer to what is shipped" (R46), and "you are okay to delete everything else" (R47). Owner questions 7 and 8 are withdrawn: the cull answered 7, and 8 is folded into the front runner |
 | S3c Front runner | DONE | 2026-09-07: ONE reader, by one hand, live at `/lab/catchups/sketches`. The strip under the green bar is the navigator; drawn three ways as asked (R24). The fifteen are deleted (R47). What it answers, and what is his to decide: [`front-runner.md`](front-runner.md), "What was built" |
-| Owner reviews the front runner | PARTIAL | First round of notes given 2026-09-07 and all of them folded in the same day: the drifting navigator (F34), the birds' left edge (F35), the feed's comment row, a three-line cap on a docked question, the laptop's margins and rail, and a jump that no longer fast-forwards. His words are in [`review-2026-09-07.md`](review-2026-09-07.md). Still owed: which navigator (A, B or C), and whether it clears R46 |
-| S4 The shape of the whole thing | OPEN | **next.** The architecture settled out of `directions.md` Part 1, plus the two surfaces that carry it drawn live: the list and a Catch-up's home in every state. Its section below is the whole prompt. The composer, the people sheet and the dialogs are the session after (F25) |
-| Owner browses the rooms | OWNER-GATED | |
-| S3b Second round | OPEN | only if he asks for it after the rooms |
-| S5 Pick and spec | OPEN | blocked on the pick |
+| Owner reviews the reader, round one | DONE | First round of notes given 2026-09-07 and all of them folded in the same day: the drifting navigator (F34), the birds' left edge (F35), the feed's comment row, a three-line cap on a docked question, the laptop's margins and rail, and a jump that no longer fast-forwards. His words are in [`review-2026-09-07.md`](review-2026-09-07.md). |
+| Owner reviews the reader, round two | DONE | Second round of notes given 2026-09-07 and folded (`review-2026-09-07.md` Parts two to four): every S4 default accepted except delete, which **becomes leave**; the Catch-up **picture**, which is new and changes every surface; and the list's question previews, which he took off. Still owed from him: which navigator (A, B or C). Still owed by us: **N11, the reader's title**, the one note of his not yet answered |
+| S4 The shape of the whole thing | DONE | 2026-09-07. [`architecture.md`](architecture.md) is the settled shape and supersedes `directions.md` Part 1. Both surfaces are live and navigable at `/lab/catchups/sketches`: the list, a Catch-up's home in all seven states, and the reader, joined up so the moves between them can be walked. His new brief on the Catch-up **picture** (N19 to N25) is folded in as §1b and drawn on both |
+| Owner browses the shape | OWNER-GATED | **next, and it is his.** `/lab/catchups/sketches`, the Phone and Laptop views. What is his to say is in the session log's closing note |
+| The composer, the door's sheet, the picture's crop | OPEN | the session after his verdict. The people sheet is **no longer needed**: S4 replaced it with a column on a laptop and a disclosure on a phone |
+| S3b Second round | OPEN | only if he asks for one after browsing the shape |
+| S5 Pick and spec | OPEN | blocked on his verdict. `architecture.md` is most of what a spec has to say about structure; S5 adds his picks and the copy |
 | S6+ Build | OPEN | blocked on S5 |
 | M1 Magazine design | OPEN | unblocked. D27 is answered in `recon.md` section 6: photographs are boxed to 1920px, which is 164 dpi at A4 full-bleed |
 | M2+ Magazine build | OPEN | blocked on M1 |
@@ -486,30 +488,33 @@ independent critics on 2026-09-05 and repaired; if you find a gap, add the row.
 
 | # | Ask | ¶ | Status |
 |---|---|---|---|
-| I1 | Sort out what belongs in the wide left column and what on the right | 1 | open |
-| I2 | Long rectangles stretch on wide screens until 90% is white space; not scalable; a different shape (squares? a picture per Catch-up?) | 1, 6 | open |
+| I1 | Sort out what belongs in the wide left column and what on the right | 1 | closed by S4: the right rail is deleted, so there is no second column to sort |
+| I2 | Long rectangles stretch on wide screens until 90% is white space; not scalable; a different shape (squares? a picture per Catch-up?) | 1, 6 | closed by S4: equal picture cards, two up, page capped at 1096. And the picture he asked for on 2026-09-07 is the one he had already half-asked for in ¶1 |
 | I3 | The Spotify-grid idea is an example he immediately withdrew; explore many shapes | 6 | open |
-| I4 | Three calls to action on opening: *"overpowering"* | 23 | open |
-| I5 | The View CTA is redundant (everything clicks through to the same place) and mis-aligned because of the three dots; but *"if there's a reason, sure"*, and controls that do not span the tile are *"fine, I guess"* | 3, 24 | open |
-| I6 | Three dots in a random corner *"interrupts everything"*; if they exist at all they belong top right; whether tiles exist at all is the level of rethink wanted | 3, 24 | open |
+| I4 | Three calls to action on opening: *"overpowering"* | 23 | closed by S4: one, in the page header |
+| I5 | The View CTA is redundant (everything clicks through to the same place) and mis-aligned because of the three dots; but *"if there's a reason, sure"*, and controls that do not span the tile are *"fine, I guess"* | 3, 24 | closed by S4: no controls on the list at all. Recon found View was the fallback label for two states with no verb; those states now say what they are in words |
+| I6 | Three dots in a random corner *"interrupts everything"*; if they exist at all they belong top right; whether tiles exist at all is the level of rethink wanted | 3, 24 | closed by S4: no dots on the list; one menu, top right, on the Catch-up's own home |
 | I7 | A row of birds plus "+18" identifies nobody, on the index tile, the reader's masthead and the home; keep birds, never initials; find a different way to show who is here | 12, 23, 25, 27 | open |
 | I8 | The birds now overlap each other; he thinks a regression | 23 | open |
-| I9 | Fresh off the press: round, loop, date, then a quoted sentence he does not want to keep seeing; a strangely shaped hover; a curved border between items; text spilling out of the hover; *"could be done in a completely different way"*; and by his ranking it has *"the most bugs"* | 9 | open |
-| I10 | One representation of "a published Round", not *"15 different ways in 15 different places"*, and not different on desktop and mobile | 13, 39 | open |
-| I11 | Hover darkens, outline appears, a View button: *"not critical thought"* | 3 | open |
-| I12 | A member is in only two or three Catch-ups; design a short list, not a library | 1 | open |
+| I9 | Fresh off the press: round, loop, date, then a quoted sentence he does not want to keep seeing; a strangely shaped hover; a curved border between items; text spilling out of the hover; *"could be done in a completely different way"*; and by his ranking it has *"the most bugs"* | 9 | closed by S4: deleted rather than redrawn. Its job -- what is new to read -- is the Catch-up's own card |
+| I10 | One representation of "a published Round", not *"15 different ways in 15 different places"*, and not different on desktop and mobile | 13, 39 | closed by S4: the cover, one component, `_cover.tsx`, the same on both |
+| I11 | Hover darkens, outline appears, a View button: *"not critical thought"* | 3 | closed by S4: a card is a door and the whole rectangle is the target |
+| I12 | A member is in only two or three Catch-ups; design a short list, not a library | 1 | closed by S4: two up on a laptop is a screen; the room's default shelf is three |
 | I13 | The long-box problem is everywhere in the app, and the worst case he names is a TV | 1 | open |
+
+| I14 | **The picture.** Catch-ups is the only surface with no imagery and it reads *"very functional and very corporate"*; every Catch-up gets a photograph when it is made, from a pool of about twenty of the school he will supply, replaceable by whoever runs it and positioned at creation; it appears in several places as part of the Catch-up's identity, *"almost like a group chat photo"* | N19-N24 | partial: designed and drawn (`architecture.md` §1b). **He owes the twenty photographs.** The upload and crop are a later session |
+| I15 | The list must not carry the Round's questions: *"it's overcrowding ... too much text going on for something that should just be a navigation"*, and the picture must be *"a spectacle"* that *"makes you wanna click it"* | N25 | closed by S4 |
 
 ### Lifecycle: archive, delete, pause, end, leave (L)
 
 | # | Ask | ¶ | Status |
 |---|---|---|---|
 | L1 | Ending, deleting, archiving, leaving, pausing: too many verbs, no consistency, *"everything's just different in every different situation"*, *"none of that has been considered properly"*; pause he *"kind of doesn't get"*, and then supplies the one argument for it himself: without it a Round *"will just start whenever the time is up"* | 1, 4, 8, 24, 40 | open |
-| L2 | WhatsApp model: archive and delete; neither is visible on the main list; no Archived section with a Put back button in your face; and *"where do we keep them?"* | 1, 5 | open |
-| L3 | *"There should not be an exiting a catch-up"*, said generally after the batch lead-in; ¶4 had asked for a leaving, so this is a reversal | 4, 5 | open |
+| L2 | WhatsApp model: archive and delete; neither is visible on the main list; no Archived section with a Put back button in your face; and *"where do we keep them?"* | 1, 5 | closed by S4: one quiet "Archived" row at the foot, present only when one exists, opening in place. And on 2026-09-07 he replaced Delete with **Leave** |
+| L3 | *"There should not be an exiting a catch-up"*, said generally after the batch lead-in; ¶4 had asked for a leaving, so this is a reversal | 4, 5 | **answered 2026-09-07, and it reverses again**: *"deleting becomes leaving"*. You leave a people Catch-up; you cannot leave your batch |
 | L4 | Popup dialogs need reworking in general, *"a whole other thing"*: the people dialog, the move dialog, the Reminders dialog (the dialog-standards research is the base) | 3, 38, 40 | open |
 | L5 | Where archived and deleted Catch-ups live, and how you find one again | 1, 5 | open |
-| L6 | Whether leaving exists for a people-Catch-up at all: asked for in ¶4, apparently withdrawn in ¶5; today's code has a leave action | 4, 5 | open |
+| L6 | Whether leaving exists for a people-Catch-up at all: asked for in ¶4, apparently withdrawn in ¶5; today's code has a leave action | 4, 5 | **answered 2026-09-07**: it exists and it is the only word. Delete, and its thirty-day bin, go |
 
 ### The batch Catch-up (B)
 
@@ -517,7 +522,7 @@ independent critics on 2026-09-05 and repaired; if you find a gap, add the row.
 |---|---|---|---|
 | B1 | Exists by default for every batch; everyone in the batch is automatically in; sees the history of Rounds; can take part in future Rounds; someone who joins the site later has access to the earlier issues | 4, 51 | open |
 | B2 | No adding or removing members; the members are fixed, the batch; *"can't edit people in and out"* | 4, 51 | open |
-| B3 | Who is the Keeper? Who may start a Round? A question he asked, not answered | 4 | open |
+| B3 | Who is the Keeper? Who may start a Round? A question he asked, not answered | 4 | **answered 2026-09-07**: nobody keeps it. Anyone in the batch may work its Rounds; nobody may rename it or change who is in it |
 | B4 | It used to exist and disappeared; recover why | 4 | done, `recon.md` §9 and F17: it never existed |
 | B5 | Bug today: "Start one" on a batch routes to the add-members page, which a batch Catch-up must never have | 4 | answered: the button was removed on 2026-08-21; `/catchups/new` replaced it and has the same fault (F17) |
 | B6 | Batch and people Catch-ups both exist and are listed together; people Catch-ups are *"how you'd expect"* | 51 | open |
@@ -526,12 +531,12 @@ independent critics on 2026-09-05 and repaired; if you find a gap, add the row.
 
 | # | Ask | ¶ | Status |
 |---|---|---|---|
-| H1 | What is the "home" of a Catch-up and how do you get back to it; landing straight in the reader from a finished Catch-up is *"a nice thought"*, the fault is the missing way back; the relationship between pages is not designed | 18, 36 | open |
-| H2 | The same published Round appears three times on the home: a "Round 1 is out" tile, the whole Round inline, and a Published issues entry; *"so ridiculous"*; and yet *"then what do we put on the left? I don't know"* | 15, 35, 36 | open |
-| H3 | The "Round 1 is out" tile is dead except for its link; the whole tile is the target or there is no tile | 35 | open |
-| H4 | Say "In the loop", not "In the loop catch-up" | 25 | open |
+| H1 | What is the "home" of a Catch-up and how do you get back to it; landing straight in the reader from a finished Catch-up is *"a nice thought"*, the fault is the missing way back; the relationship between pages is not designed | 18, 36 | closed by S4: the head, Now and Earlier Rounds; the shortcut into the Round stays and the Catch-up's name in the bar is the way out |
+| H2 | The same published Round appears three times on the home: a "Round 1 is out" tile, the whole Round inline, and a Published issues entry; *"so ridiculous"*; and yet *"then what do we put on the left? I don't know"* | 15, 35, 36 | closed by S4: once, as its cover. Earlier Rounds holds only the ones Now is not showing |
+| H3 | The "Round 1 is out" tile is dead except for its link; the whole tile is the target or there is no tile | 35 | closed by S4: "a card is a door", `_cover.tsx` |
+| H4 | Say "In the loop", not "In the loop catch-up" | 25 | closed by S4 in the drawing; the shipped `catchupDisplayName` still needs it (recon §10) |
 | H5 | Pause and resume behave acceptably; the whole left side pauses | 14, 15 | open |
-| H6 | Getting back to the home means scrolling the whole Round: *"I scroll all the way to the bottom, which takes me a week"* | 18, 35 | open |
+| H6 | Getting back to the home means scrolling the whole Round: *"I scroll all the way to the bottom, which takes me a week"* | 18, 35 | closed by S3c/S4: the name in the green bar, at every scroll depth, and it is a button |
 | H7 | The home's spacing and typography, on the "Round 1 is out" tile in particular, *"just so horrible"* | 35 | open |
 
 ### The reader, `/catchups/round/[id]` (R)
@@ -561,15 +566,15 @@ independent critics on 2026-09-05 and repaired; if you find a gap, add the row.
 
 | # | Ask | ¶ | Status |
 |---|---|---|---|
-| E1 | "In this catch-up": six or seven names, "and 16 more", See and add people, truckloads of white space, only the A-names visible, *"so inefficient"*, *"these huge rows"*; the panel and the dialog show the same thing twice; does it have to be a tile, a preview, a whole list, shown at all? *"Yes, we probably should. But from there is where I want you to start thinking"* | 12, 14, 19, 37 | open |
+| E1 | "In this catch-up": six or seven names, "and 16 more", See and add people, truckloads of white space, only the A-names visible, *"so inefficient"*, *"these huge rows"*; the panel and the dialog show the same thing twice; does it have to be a tile, a preview, a whole list, shown at all? *"Yes, we probably should. But from there is where I want you to start thinking"* | 12, 14, 19, 37 | closed by S4: the whole roster is a column on the home at a laptop's width (R2) and the same list opening in place on a phone. No preview, no fold, no dialog, and the people SHEET is deleted from the plan |
 | E2 | The Keeper highlight and the leaf mark next to the name are nice; keep the idea | 37 | open |
-| E3 | The See-and-add-people dialog: white space, "keep it" [Keeper] with "some people started it" should just say Keeper, the link on a *"horribly coloured background"*, the move dialog so narrow three words take three lines, rules everywhere; *"no way Apple would design anything that looked like this"* | 19, 38 | open |
+| E3 | The See-and-add-people dialog: white space, "keep it" [Keeper] with "some people started it" should just say Keeper, the link on a *"horribly coloured background"*, the move dialog so narrow three words take three lines, rules everywhere; *"no way Apple would design anything that looked like this"* | 19, 38 | closed by S4: the dialog does not exist. Add and invite move onto the home's column, which the next session draws |
 
 ### Settings (S)
 
 | # | Ask | ¶ | Status |
 |---|---|---|---|
-| S1 | Twelve horizontal rules, pills inside pills, *"too many pills, man"*; removing the rules alone will not save it; not invisible design; apply *"good UX principles like we have"*, the app's own | 14, 40 | open |
+| S1 | Twelve horizontal rules, pills inside pills, *"too many pills, man"*; removing the rules alone will not save it; not invisible design; apply *"good UX principles like we have"*, the app's own | 14, 40 | closed by S4: the settings dialog is deleted. One menu on the home's head holds every Catch-up verb |
 | S2 | The Reminders info dialog is twice as wide as its text | 40 | open |
 | S3 | Pause and resume are okay | 14 | open |
 
@@ -1338,6 +1343,118 @@ after the second pass)
 - **Options:** (a) the rooms draw it (b) S3b first, on answering alone (c) leave it to S5.
 - **If you don't reply I'll do:** (a).
 
+---
+
+**Asked 2026-09-07 by S4, after the architecture was settled.** Questions 7 and 8 are withdrawn
+(the cull answered 7; 8 is folded into the front runner). One reply covers all of these:
+*"defaults, except 11 and 13"*.
+
+**9. Which of the three question menus do you want?** (still owed from the front runner)
+- **What I'd change:** the list of questions you tap open while reading a Round. (A) the strip you
+  tapped grows downwards in place. (B) a page of paper slides up from the bottom. (C) the whole
+  screen becomes the Round's contents, in the heading font.
+- **What you'd notice:** the way it opens, and nothing else. All three carry the same list.
+- **If I guess wrong:** the reader ships with a menu that opens the wrong way, which is a day to change.
+- **Options:** (a) A (b) B (c) C. All three are drawn on the Screens view of /lab/catchups/sketches.
+- **If you don't reply I'll do:** (a), which is what the live reader uses now.
+
+**10. Is the reader better than what is shipped?** (still owed)
+- **What I'd change:** nothing yet. This is the only test that matters and you have not said.
+- **What you'd notice:** if it is not, we draw the reader again rather than building on it.
+- **If I guess wrong:** four more surfaces get built on a reader you do not actually want.
+- **Options:** (a) yes, carry on (b) no, draw it again (c) yes with the notes I have already given.
+- **If you don't reply I'll do:** (c).
+
+**11. Who runs your batch's Catch-up?**
+- **What I'd change:** nobody owns it. Anyone from the batch can start a Round, and anyone can
+  close it or send it out. Nobody can rename it or change who is in it, ever.
+- **What you'd notice:** on your batch's Catch-up there is no "owner" and nothing says who set it up.
+- **If I guess wrong:** with nobody in charge, a batch could send out a Round early because one
+  person pressed the button. The alternative gives that power to whoever pressed Start first,
+  which risks a person who then never comes back.
+- **Options:** (a) nobody, everyone can (b) whoever starts the first Round (c) you and the admins.
+- **If you don't reply I'll do:** (a).
+
+**12. Can you delete your batch's Catch-up?**
+- **What I'd change:** no. You can put it away so it never shows up again, but it is your batch and
+  it cannot be got rid of. Catch-ups with people you chose can still be deleted.
+- **What you'd notice:** on a batch Catch-up the menu has "Archive" and no "Delete".
+- **If I guess wrong:** someone who wants it gone entirely has to settle for it being hidden.
+- **Options:** (a) archive only (b) delete too, meaning "hide it for good".
+- **If you don't reply I'll do:** (a).
+
+**13. Does "pause" survive, and what should it mean?**
+- **What I'd change:** it becomes "hold the next Round". A Round already being written finishes
+  normally and goes out; the clock simply does not start the next one until you say.
+- **What you'd notice:** today, pausing hides everything, including a Round people are part-way
+  through. In fact "In the loop" is paused right now and has a half-built Round 2 nobody can see.
+  After this, pausing never hides anything.
+- **If I guess wrong:** you may have wanted a full freeze that also stops a Round mid-flight.
+- **Options:** (a) hold the next Round only (b) freeze everything, but drawn honestly so nothing
+  hides (c) remove pause entirely and use End.
+- **If you don't reply I'll do:** (a).
+
+**14. Can you leave a Catch-up you were invited to, and what happens to what you already wrote?**
+- **What I'd change:** "Delete" is how you leave one. What you wrote in Rounds that already went
+  out stays where it is, because other people have read it and replied to it.
+- **What you'd notice:** one word, "Delete", instead of two ("Leave" and "Delete") that did nearly
+  the same thing.
+- **If I guess wrong:** someone leaving might expect everything they wrote to vanish with them.
+- **Options:** (a) delete is leaving, past answers stay (b) delete is leaving, past answers go
+  (c) keep both words.
+- **If you don't reply I'll do:** (a).
+
+**15. The six members with no batch year, and staff.**
+- **What I'd change:** nothing for them. They have no batch Catch-up and are in chosen-people ones
+  like anybody else.
+- **What you'd notice:** nothing, unless one of them asks why they have no batch.
+- **If I guess wrong:** six people quietly miss out on the thing everyone else gets by default.
+- **Options:** (a) nothing (b) a staff Catch-up of their own (c) ask them for a year.
+- **If you don't reply I'll do:** (a).
+
+**15b. Six of your members have not said which batch they are from.** (question 15, said again)
+- **What I'd change:** nothing for them. Everyone else automatically gets a Catch-up for their
+  batch year. Those six have no year on their profile, so there is no batch to put them in and they
+  would not get one.
+- **What you'd notice:** nothing, unless one of them asks why everyone else has a batch Catch-up
+  and they do not. They can still be in Catch-ups other people invite them to, like anybody.
+- **If I guess wrong:** six people quietly miss out on the thing everyone else gets for free.
+- **Options:** (a) leave them (b) put all six in one Catch-up together (c) ask them to add a year.
+- **If you don't reply I'll do:** (a).
+
+**16. Should the app remember which Rounds you have read?**
+- **What I'd change:** store one date per person per Round. The line down the side of a Round's
+  contents is faint until you have read it and warm after, so you can see at a glance what is new
+  without anything counting anything.
+- **What you'd notice:** unread Rounds look different from read ones on the Catch-ups page.
+- **If I guess wrong:** it is a new thing the database has to keep, and if you do not want it, the
+  line is simply decoration and one nice signal is lost.
+- **Options:** (a) yes, remember (b) no, the line is always the same.
+- **If you don't reply I'll do:** (a).
+
+**17. The twenty photographs.**
+- **What I need:** about twenty pictures of the school, as files. I have drawn it with three
+  photographs already in the repository so you can judge the shape, and they are three green trees,
+  which is exactly the problem: the landing page and half the Collection are already wide valley
+  views, so twenty more would read as the same picture again.
+- **What I'd ask for instead:** details. A wall, a bit of the banyan, a shadow on a step, a
+  doorway, a bench, a window. Nothing with a recognisable face in it, since it is a stranger's
+  Catch-up. Nothing where the subject is dead centre, because the crop moves between screens.
+- **If I guess wrong:** every Catch-up looks like every other Catch-up, which is the thing the
+  picture was added to fix.
+- **Options:** (a) you shoot or pick twenty details (b) twenty of whatever you have (c) I pick
+  twenty out of the Collection.
+- **If you don't reply I'll do:** keep the stand-ins in the lab and wait for you.
+
+**18. Who may change a batch Catch-up's picture?**
+- **What I'd change:** anyone in the batch, the same people who can start a Round. Nobody owns a
+  batch Catch-up, so there is nobody else it could be.
+- **What you'd notice:** any of your batchmates could swap the picture.
+- **If I guess wrong:** thirty-nine people can change one picture and it could go back and forth.
+- **Options:** (a) anyone in the batch (b) only the first person to change it (c) nobody, the
+  default stands.
+- **If you don't reply I'll do:** (a).
+
 ## Owner answers
 
 **2026-09-05, typed, verbatim (also ¶51 of the brief):**
@@ -1379,6 +1496,24 @@ after the second pass)
 - `/lab/catchups/` is the sandbox, D32.
 
 ---
+
+**2026-09-07, typed, verbatim** (also N18 of [`review-2026-09-07.md`](review-2026-09-07.md)):
+
+> defaults, except deleting becomes leaving. and don't understand question 15. the reader has pretty
+> much incorporated all my notes what's left to do?
+
+*The reading:* every default in questions 9 to 16 stands. Question 14 changes: a people Catch-up is
+**left**, not deleted, so the thirty-day bin and the "Recently deleted" shelf go with the word.
+Question 15 is re-asked below in plain English and is still open. On the reader, **N11 (the title)**
+is the one note of his that is not yet answered.
+
+**2026-09-07, spoken, verbatim: the Catch-up's picture.** N19 to N25 of `review-2026-09-07.md`, in
+full. Do not work from the summary in `architecture.md` §1b; read his paragraphs.
+
+*The reading:* every Catch-up carries a photograph from the day it is made, from a pool of about
+twenty he will supply, replaceable by whoever may run it. It is on the list (where it IS the card)
+and on the home (as an identity mark), and deliberately not in the reader. And the list stops
+carrying the Round's questions.
 
 ## Session log
 
@@ -1646,3 +1781,101 @@ The line to paste into a new session:
 >
 > You are S4. Read brief.md, review-2026-09-06.md and review-2026-09-07.md in full before you
 > draw anything. Settle the architecture and draw the list and a Catch-up's home, by hand.
+
+### 2026-09-07, S4, the shape of the whole thing (Opus 5, one hand, no fan-out)
+
+**Read first, and in full:** `brief.md`, `review-2026-09-06.md`, `review-2026-09-07.md` (which grew
+by three parts during this session), `front-runner.md`, `directions.md` Part 1. Then
+[`architecture.md`](architecture.md), which is what this session produced and what supersedes that
+Part 1.
+
+**What was produced.**
+
+1. **[`architecture.md`](architecture.md)** — the settled shape. The one idea is that a Round's
+   contents, hung off a vertical measure, is ONE component drawn at two depths: the cover on a
+   Catch-up's home, and the navigator inside the reader. That retires "one Round drawn ten ways on
+   four surfaces" (recon §5) by making it one file. Plus: a card is a door; the six nouns and their
+   one home each; the home's three parts in every state; one menu for every Catch-up verb; the way
+   up out of every screen; and the intents-by-state matrix.
+2. **Both surfaces, live and joined up** at `/lab/catchups/sketches`. The list, a Catch-up's home
+   in all seven states, and the reader, with every move between them working: a card opens the
+   reader or the home, a cover opens the reader, and the Catch-up's name in the green bar comes
+   back out. It is navigable rather than a set of stills because the thing being judged is the
+   relationship between the pages (N16), and a dead end in that is invisible in a picture.
+3. **His two new briefs, mid-session, folded in.** Both are verbatim in `review-2026-09-07.md`.
+
+**The two things this session changed course on, both because he said so mid-flight.**
+
+- **The Catch-up's picture** (N19 to N25). His diagnosis, and it is better than anything that was on
+  the table: Catch-ups is the only surface in the app with no imagery, which is why it reads
+  "functional and corporate". Every Catch-up now carries a photograph from the day it is made.
+  `architecture.md` §1b. **He owes about twenty photographs**; the room uses three from the demo
+  Collection as stand-ins, and they are three green trees, which demonstrates the trap.
+- **The list stopped carrying the Round's questions** (N25). It had them, in a wide row with the
+  name in a margin. He called it overcrowding for something that should just be navigation, and he
+  is right; the questions lost nothing, because they are still on the home and in the reader.
+
+**Four list shapes were drawn and three thrown away**, in this order, and the reasoning is in
+`_list.tsx` so nobody re-treads them: a two-column grid of unequal panels (locks into rows, 165px
+hole mid-page); CSS columns of the same (balancer strands the tall one, 470px void); a wide row with
+the identity in a 240px margin (no holes, but a page of text); and the one that shipped, equal
+picture cards, which only became possible once the picture arrived to make every card the same
+height.
+
+**Verified by this session, not by a report.** `npm run check` green (the one protocol finding,
+`sidebar.tsx:132`, is another session's commit and predates this work); `npm run visual` 25/25,
+run separately. Every screen looked at at 390 and at 1512, four rounds on the list and three on the
+home, with the faults fixed between them: the lab chrome eating a third of the phone screen, the
+grid's hole, the state line's hanging dot, the stranded Keeper sprout, the door hanging in the
+gutter, a phone title wrapping beside a 120px picture, and "Answer" landing on the fold. The spine
+was walked in the browser, not asserted: list card → reader → the name in the bar → the home.
+
+**Two things this session is least sure it got right.** First, whether the picture makes the list
+"a spectacle" at his bar or merely pretty — the stand-ins are working against it and he should judge
+it with the real twenty in mind. Second, the home when a Catch-up has only one Round: it is the
+head, one cover and the people, and it is thin. That is honest, but thin.
+
+**What is left on the reader**, since he asked: **N11, the title** — *"In the Loop Round 1, 15th
+August. It's super basic ... I feel like we can still make it much prettier."* Every other note in
+`review-2026-09-07.md` Part one is in. Beyond his notes, the reader has never been driven against
+the pressure corpus (a forty-answer question, a 6,000-character answer, a twenty-four-photograph
+wall), and it only ever draws a published Round.
+
+---
+
+## What to paste next
+
+He asked for exactly this (N16: *"just tell me what to paste and what the next step is"*).
+
+**First, and it is not a paste: look at it.** On your phone and on your laptop, at
+
+```
+/lab/catchups/sketches
+```
+
+The **Phone** and **Laptop** views are the same thing at two widths. Start on The list, tap a
+Catch-up, tap a cover, and use the Catch-up's name in the green bar to come back out. The grey pills
+above the drawing are the room's, not the design's: they jump you to a home in each of the seven
+states. **Screens** still holds the navigator drawn three ways, which is the one thing you have not
+picked.
+
+**Then say four things**, and they are the only four blocking anything:
+
+1. Which navigator: A, B or C.
+2. Whether the list and the home clear R46 — better than what ships, or not.
+3. Whether the picture is doing the job now.
+4. Answers to owner questions 15b, 17 and 18 (the six with no batch year; the twenty photographs;
+   who may change a batch's picture). Everything else has a default and is already taken.
+
+**Then paste this into a fresh Opus max session:**
+
+```
+@docs/planning/catchups-rework/handover.md
+
+You are S6. Read brief.md, review-2026-09-06.md and review-2026-09-07.md in full, then
+architecture.md, before you draw anything. Draw the composer, the Catch-up's menu and the
+confirmations it opens, and the picture's upload and crop at creation. Same hand, same room.
+```
+
+If he asks for the reader's title to be redrawn (N11) or for a second round on the list, that goes
+in the same paste as the first line of the work.

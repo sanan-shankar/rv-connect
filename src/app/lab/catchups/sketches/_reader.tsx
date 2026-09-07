@@ -339,9 +339,14 @@ function glide(to: number) {
 export function Reader({
   round,
   viewport,
+  onHome,
 }: {
   round: SketchRound;
   viewport: SketchViewport;
+  /** The Catch-up's name is the way up, at every scroll depth: the green
+   *  bar carries it on a phone and the page title carries it on a laptop.
+   *  Not a Back button, which he ruled out by name (para 18). */
+  onHome?: () => void;
 }) {
   const phone = viewport === "phone";
   const root = useRef<HTMLDivElement>(null);
@@ -459,7 +464,7 @@ export function Reader({
   if (phone) {
     return (
       <PhoneShell>
-        <PhoneBar title={round.catchupName} position="sticky" />
+        <PhoneBar title={round.catchupName} position="sticky" onTitle={onHome} />
         <div ref={root} className="relative">
           {/* Zero height, sticky under the bar, so the strip and whatever
               unfolds from it overlay the page without displacing it. */}
@@ -552,7 +557,17 @@ export function Reader({
           page hand-writes to match. A Catch-up's name is a page title, so
           it is THE page title size. */}
       <h1 className="font-heading text-[30px] leading-[1.2] tracking-[-0.02em] text-foreground">
-        {round.catchupName}
+        {onHome ? (
+          <button
+            type="button"
+            onClick={onHome}
+            className="text-left transition-opacity duration-150 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            {round.catchupName}
+          </button>
+        ) : (
+          round.catchupName
+        )}
       </h1>
       {mode === "rail" && (
         <p className="mt-2.5 flex items-center gap-2 text-[14px]">

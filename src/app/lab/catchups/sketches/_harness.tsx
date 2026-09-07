@@ -1,42 +1,54 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  The room: three views of one reader.
+ *  The room: Catch-ups as one thing you can walk through.
  *
- *    Reader    the phone page, live. Scroll it, tap the strip.
- *    Screens   five 390x844 stills of moments deep in the page.
- *    Laptop    the same page at the window's own width.
+ *    Phone     the whole spine at 390: the list, a Catch-up's home in
+ *              every state, and the reader. Tap through it.
+ *    Laptop    the same spine at this window's width.
+ *    Screens   five 390x844 stills, and the navigator drawn three ways.
  *
- *  NOTHING IS SCALED HERE ANY MORE. The room used to draw at a fixed
- *  width and shrink the result to fit, which silently broke every sticky
- *  element inside it: a sticky box in a `transform: scale(s)` drifts at
- *  (1 - s) of the scroll, so the navigator crawled off the top of the
- *  screen instead of staying put (owner, 2026-09-07: "the in the loop and
- *  the question are supposed to be fixed, but they actually move very
- *  slowly"). Both live views are fluid now, so a phone shows the phone
- *  page at 1:1 and a laptop shows the laptop page at its own size.
+ *  It is navigable rather than a set of pictures because the thing being
+ *  judged is the relationship between the pages, not the pages. His, on
+ *  2026-09-07: "more importantly, the structures between, behind these
+ *  pages. How they relate, how you access everything. The entire logic of
+ *  this entire concept."
+ *
+ *  NOTHING IS SCALED HERE. The room used to draw at a fixed width and
+ *  shrink the result to fit, which silently broke every sticky element
+ *  inside it: a sticky box in a `transform: scale(s)` drifts at (1 - s)
+ *  of the scroll, so the navigator crawled off the top of the screen
+ *  instead of staying put ("the in the loop and the question are supposed
+ *  to be fixed, but they actually move very slowly"). Both live views are
+ *  fluid, so a phone shows the phone page at 1:1.
  *
  *  Deep links, so a screenshot or a message can name one:
- *    /lab/catchups/sketches?w=reader|screens|laptop
- *    ...&frame=mid|long|a|b|c   one still alone (screens)
- *    ...&bare=1                 no lab chrome, so a capture is the frame
+ *    /lab/catchups/sketches?w=phone|laptop|screens
+ *    ...&at=list|home|reader   where in the spine to start
+ *    ...&state=answering       which home state (see _shelf homeVariants)
+ *    ...&frame=mid|long|a|b|c  one still alone (screens)
+ *    ...&bare=1                no lab chrome, so a capture is the frame
  * ------------------------------------------------------------------ */
 
-import { Suspense, type ReactNode } from "react";
+import { Suspense, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import { SpringPress } from "@/components/common/motion";
-import { Reader } from "./_reader";
+import { Reader, GUTTER } from "./_reader";
+import { DesktopShell, PhoneBar, PhoneShell } from "./_shell";
+import { List } from "./_list";
+import { Home } from "./_home";
+import { buildShelf, homeVariants, type SketchCatchup } from "./_shelf";
 import { LongQuestionFrame, MidScrollFrame, NavigatorA, NavigatorB, NavigatorC } from "./_frames";
 import { PHONE_HEIGHT, VIEWPORT_WIDTH, type SketchRound } from "./_types";
 
-type View = "reader" | "screens" | "laptop";
+type View = "phone" | "laptop" | "screens";
 
 const VIEWS: Array<{ key: View; label: string }> = [
-  { key: "reader", label: "Reader" },
-  { key: "screens", label: "Screens" },
+  { key: "phone", label: "Phone" },
   { key: "laptop", label: "Laptop" },
+  { key: "screens", label: "Screens" },
 ];
 
 const STILLS: Array<{ key: string; caption: string; Draw: (p: { round: SketchRound }) => ReactNode }> =
@@ -71,6 +83,9 @@ const PILL =
   "rounded-full border px-3.5 py-1.5 text-[13px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 const PILL_ON = "border-transparent bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)]";
 const PILL_OFF = "border-border bg-card text-muted-foreground hover:text-foreground";
+/** The jump row's pills: smaller, because they are chrome over a phone. */
+const JUMP =
+  "shrink-0 rounded-full border px-3 py-1 text-[12px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 /** A 390x844 window onto one phone screen. A plain clipped box: no
  *  transform, because a transform is what broke sticky. */
@@ -85,13 +100,140 @@ function Still({ children }: { children: ReactNode }) {
   );
 }
 
+/* ── the spine ─────────────────────────────────────────────────────── *
+ *  One piece of state, and it is the architecture: you are on the list,
+ *  inside a Catch-up, or inside a Round. Every move between them is the
+ *  one the design says it is -- the panel, the cover, the name at the top
+ *  -- so a fault in the relationship shows up here as a dead end rather
+ *  than as a paragraph in a document. */
+type Where = { at: "list" } | { at: "home"; c: SketchCatchup } | { at: "reader" };
+
+/** How many Catch-ups the list shows. Three is the real number -- "I
+ *  don't think one person will be in too many catch-ups" (para 1) -- and
+ *  it is what the page is designed for. Six is every state at once, which
+ *  is a room's job and not a member's page. */
+const REAL_SHELF = 3;
+
+function Spine({
+  round,
+  shelf,
+  phone,
+  start,
+  startState,
+}: {
+  round: SketchRound;
+  shelf: SketchCatchup[];
+  phone: boolean;
+  start: string | null;
+  startState: string | null;
+}) {
+  const variants = homeVariants(shelf);
+  const startVariant = variants.find((v) => v.key === startState) ?? variants[4];
+  const [all, setAll] = useState(false);
+  const [where, setWhere] = useState<Where>(
+    start === "reader"
+      ? { at: "reader" }
+      : start === "home"
+        ? { at: "home", c: startVariant.c }
+        : { at: "list" },
+  );
+
+  /* Every cover in the room opens the one real Round there is on this
+     database. On a Catch-up whose Rounds are invented, that is a lie the
+     room tells on purpose: the point of the move is that the cover is the
+     door, not which Round is behind it. */
+  const open = (c: SketchCatchup) =>
+    setWhere(c.state === "published" ? { at: "reader" } : { at: "home", c });
+
+  const published = shelf.find((c) => c.state === "published") ?? shelf[0];
+  const page =
+    where.at === "reader" ? (
+      <Reader
+        round={round}
+        viewport={phone ? "phone" : "laptop"}
+        onHome={() => setWhere({ at: "home", c: published })}
+      />
+    ) : (
+      <Framed phone={phone}>
+        {where.at === "list" ? (
+          <List shelf={all ? shelf : shelf.slice(0, REAL_SHELF)} onOpen={open} phone={phone} />
+        ) : (
+          <Home c={where.c} phone={phone} onRead={() => setWhere({ at: "reader" })} />
+        )}
+      </Framed>
+    );
+
+  return (
+    <>
+      {/* The room's own controls, never the design's. One scrolling row,
+          because on a phone this is chrome sitting on top of the thing
+          being judged and it must not take a third of the screen. */}
+      <div className="mb-3 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden">
+        <button
+          type="button"
+          onClick={() => setWhere({ at: "list" })}
+          className={`${JUMP} ${where.at === "list" ? PILL_ON : PILL_OFF}`}
+        >
+          The list
+        </button>
+        {variants.map((v) => (
+          <button
+            key={v.key}
+            type="button"
+            onClick={() => setWhere({ at: "home", c: v.c })}
+            className={`${JUMP} ${
+              where.at === "home" && where.c.id === v.c.id ? PILL_ON : PILL_OFF
+            }`}
+          >
+            {v.label}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => setWhere({ at: "reader" })}
+          className={`${JUMP} ${where.at === "reader" ? PILL_ON : PILL_OFF}`}
+        >
+          The reader
+        </button>
+        {where.at === "list" && (
+          <button
+            type="button"
+            onClick={() => setAll((v) => !v)}
+            className={`${JUMP} ${all ? PILL_ON : PILL_OFF}`}
+          >
+            {all ? "Three again" : "Every state"}
+          </button>
+        )}
+      </div>
+      {phone ? <div className="mx-auto w-full max-w-[430px]">{page}</div> : page}
+    </>
+  );
+}
+
+/** The list and the home are ordinary pages, so they get the ordinary
+ *  shell: the green bar and the wordmark on a phone, the sidebar and the
+ *  page's own p-10 gutter on a laptop. The reader draws its own, because
+ *  its bar carries the Catch-up's name instead of the wordmark. */
+function Framed({ children, phone }: { children: ReactNode; phone: boolean }) {
+  if (!phone) return <DesktopShell>{children}</DesktopShell>;
+  return (
+    <PhoneShell>
+      <PhoneBar position="sticky" />
+      <div className="pb-16 pt-6" style={{ paddingLeft: GUTTER, paddingRight: GUTTER }}>
+        {children}
+      </div>
+    </PhoneShell>
+  );
+}
+
 function Harness({ round }: { round: SketchRound }) {
   const router = useRouter();
   const params = useSearchParams();
   const w = params.get("w");
-  const view: View = w === "screens" || w === "laptop" ? w : "reader";
+  const view: View = w === "screens" || w === "laptop" ? w : "phone";
   const frame = params.get("frame");
   const bare = params.get("bare") === "1";
+  const shelf = buildShelf(round);
 
   function go(next: View) {
     const q = new URLSearchParams(params.toString());
@@ -132,38 +274,24 @@ function Harness({ round }: { round: SketchRound }) {
 
       <div className={bare ? "p-0" : "py-5"}>
         {!bare && (
-          <div className="px-4 sm:px-6">
-            <h1 className="font-heading text-[1.35rem] leading-tight tracking-[-0.02em]">
-              The strip is the navigator
+          <div className="mb-3.5 px-4 sm:px-6">
+            <h1 className="font-heading text-[1.15rem] leading-tight tracking-[-0.02em] sm:text-[1.35rem]">
+              The shape of the whole thing
             </h1>
-            <p className="mt-1 max-w-[70ch] text-[14px] text-muted-foreground">
-              {view === "reader" &&
-                "Scroll. Under the green bar, the strip takes each question as its heading leaves, and the line along its top grows. Tap the strip."}
-              {view === "screens" &&
-                "Five moments from deep in the page, and the navigator drawn three ways."}
-              {view === "laptop" &&
-                "The same page at this window's width, the questions left open in a rail on the right. Open it on a laptop."}
+            <p className="mt-1 max-w-[70ch] text-[13px] text-muted-foreground sm:text-[14px]">
+              {view === "screens"
+                ? "Five moments from deep in a Round, and the navigator drawn three ways."
+                : "The list, a Catch-up's home in every state, and the reader, joined up. Tap a Catch-up; tap a cover; the name at the top is the way back."}
             </p>
           </div>
         )}
 
-        {view === "reader" && (
-          /* The phone page, fluid, capped at a phone's width and centred
-             on anything wider. On his phone that is 1:1 and the drawing IS
-             the page. */
-          <div className={bare ? "" : "mt-5"}>
-            <div className="mx-auto w-full max-w-[430px]">
-              <Reader round={round} viewport="phone" />
-            </div>
-          </div>
-        )}
-
-        {view === "screens" && (
+        {view === "screens" ? (
           <div
             className={
               bare
                 ? ""
-                : "mt-5 flex flex-wrap items-start justify-center gap-6 px-4 sm:justify-start sm:px-6"
+                : "flex flex-wrap items-start justify-center gap-6 px-4 sm:justify-start sm:px-6"
             }
           >
             {stills.map(({ key, caption, Draw }) =>
@@ -183,12 +311,14 @@ function Harness({ round }: { round: SketchRound }) {
               )
             )}
           </div>
-        )}
-
-        {view === "laptop" && (
-          <div className={bare ? "" : "mt-5"}>
-            <Reader round={round} viewport="laptop" />
-          </div>
+        ) : (
+          <Spine
+            round={round}
+            shelf={shelf}
+            phone={view === "phone"}
+            start={params.get("at")}
+            startState={params.get("state")}
+          />
         )}
       </div>
     </div>
