@@ -8,10 +8,12 @@
  *  a photograph the site does not draw -- no `alt`, no free tags, and
  *  the raw `area` value instead of its label.
  *
- *  NOT `collection-viewer.ts`, which is a server module about the member
- *  doing the viewing and imports `prisma`. The two names are one letter
- *  of meaning apart and this one is the CLIENT-safe half; importing the
- *  other from a client component drags Prisma into the browser bundle.
+ *  The Collection has two "viewers" and they are not the same noun. This
+ *  is the image viewer's field map and it is client-safe;
+ *  `collection-viewer-facts.ts` is the member doing the looking and it
+ *  imports Prisma. They were `collection-viewer-image` and
+ *  `collection-viewer` for an afternoon, which was one letter of meaning
+ *  apart on a pair where getting it wrong puts Prisma in the browser.
  *
  *  `ViewerImage` is imported as a TYPE, which erases, so nothing follows
  *  it at runtime.

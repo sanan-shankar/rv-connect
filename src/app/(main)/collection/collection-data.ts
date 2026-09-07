@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { BUCKET_VALUES, defaultOrderFor, ERA_VALUES, PHOTO_YEAR_MIN } from "@/lib/collection";
 import { classKey, photoScopeWhere, type PhotoScope } from "@/lib/photo-visibility-rule";
-import { viewerFacts } from "@/lib/collection-viewer";
+import { viewerFacts } from "@/lib/collection-viewer-facts";
 import { isPhotoAutoApproved } from "@/lib/collection-photo";
 import { MAX_PHOTOS_PER_ACCOUNT } from "@/lib/upload-shared";
 import {
