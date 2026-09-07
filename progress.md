@@ -1,5 +1,22 @@
 # Progress Log
 
+## 2026-09-07 — one Overview worklist file, and the banner that argued for two
+
+Refactor audit 2, `admin-analytics-06` (carried over unfixed from audit 1). `admin-worklist.ts`
+held `WorkItem`, `QUEUE_LABEL` and `QUEUE_TONE` behind a banner reading *"Split from
+admin-worklist.ts for the usual reason: that one is imported by a client component and this one
+imports `prisma`"*. Nothing imports it from a client component. Its only two readers are
+`admin-worklist-query.ts` and `admin/(index)/page.tsx`, and that page is a server component that
+calls `loadWorklist()` inline; `WorkRow` and `QUEUE_ICON` live in the page.
+
+A false banner is worse than no banner: it tells the next reader to preserve a split that protects
+nothing. The three files merge into one, the Overview page's two imports become one, and the header
+now records the rule the file genuinely keeps — the list and the rail's count are the same fact —
+plus which of the four admin pairs are real seams (people, content and threads each *are* imported
+by a `"use client"` file, and stay).
+
+`npm run check` green: 103/103 tests, TypeScript and ESLint clean.
+
 ## 2026-09-07 — The visual suite stops crying wolf about a database write
 
 `/catchups` was red on both viewports and no commit caused it. The live band is masked by marking

@@ -18,8 +18,13 @@ import { prisma } from "@/lib/prisma";
 import { CONTRIBUTION_SUM, netPaise } from "@/lib/contribution-state";
 import { requireAdminPage } from "@/lib/admin";
 import { mailHealth } from "@/lib/email-queue";
-import { loadWorklist, worklistIsCapped } from "@/lib/admin-worklist-query";
-import { QUEUE_LABEL, QUEUE_TONE, type WorkItem } from "@/lib/admin-worklist";
+import {
+  QUEUE_LABEL,
+  QUEUE_TONE,
+  loadWorklist,
+  worklistIsCapped,
+  type WorkItem,
+} from "@/lib/admin-worklist-query";
 import { Chip } from "@/components/admin/admin-chip";
 import {
   ADMIN_MEASURE,
