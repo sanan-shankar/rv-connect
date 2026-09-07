@@ -1,5 +1,27 @@
 # Progress Log
 
+## 2026-09-07 — the reader's type goes on the app's scale, and the swell goes continuous
+
+Three of his, after looking at the laptop view.
+
+**The type was chosen by feel and it showed.** "Don't be so flippant and casual with font sizes
+please make sure they're in line with everything on that page and standard sizes we use in the rest
+of the website unless you have a good reason for not doing that." The Catch-up's name was 44px,
+bigger than anything else in the app. It is 30 now, which is what `PageHeader` sets on the Feed, the
+Directory, the Collection and Letters, and what the Support page hand-writes to match. The question
+headings were 30 on a laptop, the same size as the page title above them, and 24 on a phone; they
+are 24 on both now, which is `h2` on the documented scale. The rail was 16 and pulled the eye off
+the page: "my eyes go there instead of the content when it should just be a navigation thing." It is
+14, the scale's `small`, still serif and still spaced out.
+
+**The magnification was stepped, and he named it exactly.** "I feel like the navigation is more
+discrete and in these steps compared to the more macos dock magnification which is more continuous."
+It was: the first cut found the nearest row and scaled by whole rows away, so three rows had three
+fixed sizes and moving the pointer inside a row changed nothing. It is now a bell curve on the
+distance in pixels between the pointer and each row's middle, so every pixel of movement changes
+every row a little, which is what the dock does. Measured: moving the pointer 10px changes four rows
+at once and the peak drifts smoothly between them.
+
 ## 2026-09-07 — the feed's photographs run edge to edge
 
 One change, on its own, so it can be reverted on its own. Owner: "I think we should also make that
