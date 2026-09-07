@@ -179,17 +179,17 @@ too, which he allowed in ¶28.
 | S4c Pressure corpus wired; aesthetic changes reverted | DONE | 2026-09-07 night. `_fixtures/pressure.ts` had been on disk since S1 and nothing had ever drawn it; `?data=pressure` now swaps the Round the whole spine draws, through one adapter into the same `SketchRound`. It found seven defects, F36 to F42. **The same session also redrew the reader's title and took the Round number out of it, unasked, and he rejected all of it: *"i don't like any of the aesthetic changes you've made they all suck"*. Every aesthetic change is reverted; only the defect fixes with no visual footprint were kept.** N11, the reader's title, is therefore STILL OPEN |
 | Owner browses the shape, round two | DONE | 2026-09-07 evening. He walked the whole spine out loud and then sent notes continuously for the length of one session. Every one of them is folded in; his own verdict partway through: *"I can't believe i'm saying this but you're actually doing a good job. for the first time in two days and a million sessions I feel like this is coming together."* Verbatim notes in [`review-2026-09-07.md`](review-2026-09-07.md) Part six |
 | S4d Fine-tuning, round one | DONE | 2026-09-07 evening, four commits. The reader's rail magnification rebuilt from scratch on the app's own motion-value mechanism; the home rebuilt around two doors on the picture and a sidebar of back numbers; answering and the questions panel brought onto the page; the type rule written down. `npm run check` green, `npm run visual` 25/25 |
-| The composer, the picture's crop | PARTIAL | The composer's *shape* is drawn, on the home, because he asked for it there. What is not drawn: the photo attachment flow, the song field, the photo-wall question, and the crop-at-creation surface. The people surface is DONE (a dialog and a sheet, off the sidebar) |
+| The composer, the picture's crop | PARTIAL | The composer's *shape* is drawn, on the home, because he asked for it there. What is not drawn: the photo attachment flow, the song field, the photo-wall question, and the crop-at-creation surface. The people surface is DONE (a dialog and a sheet, off the sidebar). **`spec.md` §10 rules on each**: the song field is DELETED rather than drawn (a pasted link resolves anywhere, ¶50), the photo-wall control is the drawn photo strip with a higher cap, and the crop-at-creation is assembled from `photo-aim.tsx` and the direct-upload path -- all three inside the build. The photo wall's READING surface goes to S-features, and the confirmations go to the settings session, both before the phase that would need them |
 | The settings surface, refined | OPEN | **his, and he has said he will take it in a session of its own.** It is a real settings list now rather than a column of verbs, and he called it *"very bare bones"* before that and has not called it finished since |
-| **S-features, the second brainstorm** | OPEN | **He has asked twice that this not be lost.** 2026-09-07: *"in my initial request for the catch ups rework I also requested a brainstorm on and research into more features we can incorporate for instance a photo wall round and that can be shown nicely on the reader in a unique way and maybe some other stuff ... have a think and see what people would want and what letterloop and any other similar guys do now. I don't want you to do it in this session but I had requested it at some point and I wanna make sure it gets done at some point and it hasn't been written out of the brief completely."* It has not been: it is ¶16, ¶49 and ¶50 in the brief and rows R15, R16 and P22 in the ledger below. What is missing is a SESSION that does it, and this row is that session. See "S-features" below |
-| **The list, when it has room to spare** | OPEN | **Decided by him 2026-09-07, drawn by nobody yet.** See "The list's spare slots" below. Not this session's, at his word: *"don't work on it in this session. let whichever future session pick it up."* |
+| **S-features, the second brainstorm** | OPEN | **He has asked twice that this not be lost.** 2026-09-07: *"in my initial request for the catch ups rework I also requested a brainstorm on and research into more features we can incorporate for instance a photo wall round and that can be shown nicely on the reader in a unique way and maybe some other stuff ... have a think and see what people would want and what letterloop and any other similar guys do now. I don't want you to do it in this session but I had requested it at some point and I wanna make sure it gets done at some point and it hasn't been written out of the brief completely."* It has not been: it is ¶16, ¶49 and ¶50 in the brief and rows R15, R16 and P22 in the ledger below. What is missing is a SESSION that does it, and this row is that session. See "S-features" below, and `spec.md` §11, which schedules it before phase 8 because the photo wall's reading surface is the one piece of it that can change a page already drawn |
+| **The list, when it has room to spare** | OPEN | **Decided by him 2026-09-07, drawn by nobody yet.** See "The list's spare slots" below. Scheduled: `spec.md` §5 puts it inside build phase 6, with the list, because it is a rule about what fills that grid rather than a surface of its own |
 | S3b Second round | OPEN | only if he asks for one after browsing the shape |
-| S5 Pick and spec | OPEN | blocked on his verdict. `architecture.md` is most of what a spec has to say about structure; S5 adds his picks and the copy |
-| S6+ Build | OPEN | blocked on S5 |
+| S5 Pick and spec | DONE | 2026-09-08. [`spec.md`](spec.md): the data changes as dated idempotent files, the Round -> Edition rename as one pass, eleven build phases plus track X, the three undrawn surfaces called before-or-inside, and ¶1 to ¶52 mapped. Owner questions 19, 20 and 21 are new and are below. It does NOT redraw anything: `architecture.md` is still the design |
+| S6+ Build | OPEN | unblocked. Eleven phases in `spec.md` §9, each a revertable slice; track X (the fast fixes) may ship first and at any time |
 | M1 Magazine design | OPEN | unblocked. D27 is answered in `recon.md` section 6: photographs are boxed to 1920px, which is 164 dpi at A4 full-bleed |
 | M2+ Magazine build | OPEN | blocked on M1 |
 | X Fast fixes | OPEN | unblocked. Root causes for R6/F8, I9, R4, V1 and R13 are in `recon.md`; V2 and V3 need a real iPhone first |
-| Old spec rewritten to describe what shipped | OPEN | last, with the final build phase |
+| Old spec rewritten to describe what shipped | OPEN | last, with build phase 11 (the cleanup), which also drops the dead columns and removes the three throwaway Catch-ups |
 
 Statuses are `DONE`, `PARTIAL`, `OPEN`, `OWNER-GATED`, `DECLINED`, the same five words every
 `/campaign` board uses.
@@ -1649,6 +1649,44 @@ after the second pass)
   default stands.
 - **If you don't reply I'll do:** (a).
 
+---
+
+**Asked 2026-09-08 by S5, out of the spec.** One reply covers all three:
+*"defaults, except 20"*. Full context in [`spec.md`](spec.md) §15.
+
+**19. Three of your eleven batches have exactly one person in them.**
+- **What I'd change:** their batch Catch-up still exists, so it is already there the day a second
+  person joins, but it does not start an Edition until there are two of them.
+- **What you'd notice:** nothing, unless you are the only person from your year -- in which case
+  you see the Catch-up sitting there quietly instead of being asked questions by yourself.
+- **If I guess wrong:** a person alone in their batch gets a newsletter to themselves, with
+  reminders, forever.
+- **Options:** (a) exists, waits for a second member (b) runs normally from day one (c) no batch
+  Catch-up at all until there are two.
+- **If you don't reply I'll do:** (a).
+
+**20. A very long question makes one row of the reader's navigator five times taller than its neighbours.** (this is F41, and it has been yours since 2026-09-07)
+- **What I'd change:** clamp that row to three lines with a "...", which is your own number for the
+  docked question. The full question is still there when you land on it.
+- **What you'd notice:** in the list you pull down while reading, a 300-character question stops
+  taking up 211 pixels against everything else's 41.
+- **If I guess wrong:** we are cutting a member's own words in the one place they are how you move.
+- **Options:** (a) clamp to three lines (b) leave it, a long question is long (c) clamp to two.
+- **If you don't reply I'll do:** nothing -- this one waits for you, because it is the only item in
+  the spec that truncates something a member wrote.
+
+**21. Tightening the answer tile by 10% will touch the feed, or it will not.**
+- **What I'd change:** you asked for the padding above and below the heart and comment row to come
+  down 10% top and bottom, and said to make sure it only touches Catch-ups if the number is
+  Catch-ups' own, and to ask you if I was unsure (N93).
+- **What you'd notice:** the answer tiles read slightly tighter. If it is shared, every post in the
+  feed does too.
+- **If I guess wrong:** a change you called high-importance lands on the feed without you seeing it
+  first.
+- **Options:** (a) tell me the measurement first and I will decide (b) Catch-ups only, even if it
+  means a second number (c) both, go ahead.
+- **If you don't reply I'll do:** (a) -- measure it, show you the number, then move.
+
 ## Owner answers
 
 **2026-09-05, typed, verbatim (also ¶51 of the brief):**
@@ -2119,103 +2157,131 @@ overflowing; a per-frame value must not be React state and must not wear a CSS t
 photographs have to be opened before they are used, because two of six were a duplicate and a
 portrait.
 
+### 2026-09-08, S5, the spec (Opus 5, one hand, no fan-out)
+
+Read `brief.md` in full, `architecture.md` in full, this file's board, findings, ledger, decisions,
+owner questions and answers, the two parked sections, `front-runner.md`, and both reviews at the
+paragraphs `architecture.md` cites. Read the drawn room (`_list`, `_home`, `_cover`, `_shelf`,
+`_rail`, `_reader`) and the shipped tree (57 files, `actions.ts` at 2,054 lines, `catchups-core.ts`
+at 922). **Drew nothing**, which was the instruction.
+
+**Re-ran the export** (`--write`): 6 Catch-ups, 7 Editions, 24 questions, 143 answers, 36
+photographs, 521 hearts, 5.8 MB.
+
+**Five things the database said that the plan did not.**
+
+- **No Edition is in `preparing` any more.** The one that was published itself between S4 and now.
+  The migration still handles the state, because the daily tick can create one at any moment before
+  the build lands, and the notification is the part that is easy to miss: `notifyPublished` fires
+  from the action, not from the database, so a row published by SQL sends nobody anything.
+- **The publish hour has an answer already in the repo.** `vercel.json` runs the tick at 02:00 UTC,
+  which is 07:30 IST, so snapping deadlines to **07:00 IST** means that morning's cron always
+  publishes, within thirty minutes. That is what replaces the 24-hour `preparing` hold, and it is a
+  number off the app rather than a preference.
+- **Rukmini Rau carries `batchYear: 2024` and is not in the Batch of 2024 group.** The swallowed
+  `joinBatchGroup` failure its own comment predicted has already happened once, so the batch phase
+  ships a self-heal in the tick rather than only a backfill.
+- **Which makes the hand-made "Batch of 2024" adoptable.** Snapshot 11, real group 11, ten shared;
+  the one who is only in the snapshot is Rukmini, with no answers and no questions. Heal her
+  membership first and the snapshot becomes a strict subset, so re-pointing `Catchup.groupId` at the
+  real batch group loses nobody and hands two 2024 alumni the earlier Edition -- ¶4's *"access to
+  previous issues if they join later"*, true for the first time.
+- **Eight of eleven batches have four members or fewer, three have exactly one.** A batch Catch-up
+  for one person is a newsletter to yourself, with reminders. Owner question 19.
+
+**What the spec settles beyond transcription**: comments widen the existing `Comment` table rather
+than growing a twin (`CommentLike`, the soft delete, the purge rule and the 700-line reading surface
+all already exist and are all already argued); link previews get a `LinkPreview` table keyed by url,
+the way the Collection's `Image` table is, so nothing migrates and a missing row is not an error;
+the song FIELD is deleted rather than drawn, because ¶50 asks for the opposite of a dedicated field
+and F30 measured what keeping it costs. Column drops are a second file applied after the deploy,
+because one database serves production and local dev.
+
+**Three new owner questions** (19, 20, 21) and one correction to carry: F41 was already his, and it
+is now question 20 with a stated default of *do nothing until he answers* -- it is the only item in
+the spec that would truncate something a member wrote.
+
 ---
 
 ## What to paste next
-## What to paste next
 
-**The next session is a FINE-TUNING session, and that is a real instruction, not a mood.** His
-words: *"the purpose of this session was to iron out bugs of the previous guy and fine tune the
-layout ... i wanted a fresh session to fine tune."* It reads everything, opens the room, tells him
-what it sees, and then waits for his notes. It does not pick up a new surface, does not redraw
-anything, and does not go and do a big piece of work because it found one worth doing. The session
-before it did exactly that and had the whole thing reverted.
+**The next session is BUILD PHASE 1, and it is the mechanical one on purpose.** `spec.md` §9 has
+eleven phases; the first is the Round -> Edition rename with no behaviour change in it at all,
+which makes it the cheapest thing to revert if it surprises you. Track X (the fast fixes) is
+independent and may ship before, after or beside it.
 
-### First, and it is not a paste: look at it
+### First, and it is not a paste: the three answers that are still his
 
-`/lab/catchups/sketches`, on the phone and on the laptop. **Phone** and **Laptop** are the same
-design at two widths; **Screens** holds the reader's stills. The grey pills above the drawing are
-the room's, not the design's: they jump to the list, to a home in each state, and to the reader. The
-cinnamon **Pressure** pill swaps the real Round for an invented corpus -- forty answers to one
-question, a twenty-four photograph wall, a hundred people, links nobody has a resolver for -- so
-nothing in it is a member's words. It is a full page load, on purpose (F43).
+1. **The twenty photographs.** The only thing blocking the picture from being real. Details, not
+   valley views; 2,400px+ on the long edge; nothing with a recognisable face.
+2. **Owner questions 19, 20 and 21**, above. 20 is F41 and nothing happens until he answers it.
+3. **The settings surface**, which he has said he will take in a session of his own (N100). It is
+   scheduled before build phase 7, and it carries the confirmations with it.
 
 ### Then paste this into a fresh Opus max session
 
 ```
 @docs/planning/catchups-rework/handover.md
 
-You are S5. The list, a Catch-up's home in every state, and the reader are drawn at
-/lab/catchups/sketches and he has signed off on the shape. Your job is the SPEC, not
-more drawing. Do not redraw anything in the room; if a drawn decision looks wrong, say
-so in a sentence and let him decide.
+You are S6, build phase 1 of docs/planning/catchups-rework/spec.md.
 
-Read architecture.md in full, then this file's board and its sections "The list's spare
-slots", "S-features" and "Owner questions". Everything else in
-docs/planning/catchups-rework/ is reference -- see "How much of this you actually have
-to read" near the top of the handover.
+Read spec.md in full, then architecture.md in full, then your phase's rows. brief.md is
+the test the spec is measured against; read it if you find yourself exercising judgment
+rather than executing. Everything else in the folder is reference -- see "How much of
+this you actually have to read" near the top of this file.
 
-Write docs/planning/catchups-rework/spec.md, shaped like
-docs/planning/collection-rework/spec.md, every decision marked LOCKED / RECOMMENDED /
-OPEN. It has to cover:
+Phase 1 is the Round -> Edition rename, ONE mechanical pass, no behaviour change:
+spec.md section 2. The database already says CatchupEdition and does not move. The route
+does: /catchups/round/[editionId] becomes /catchups/edition/[editionId], with a
+permanent redirect left behind AND a dated migration rewriting the stored
+Notification.link rows, because both are real and neither covers the other.
 
-  - the data changes, as dated idempotent files in prisma/migrations-manual/ applied
-    with scripts/dev/run-sql.mjs, never db push. Re-run scripts/dev/export-catchups.mjs
-    first. Seventy members have live Editions and one is mid-flight in `preparing`,
-    which this rework deletes -- say where it lands;
-  - the Round -> Edition rename as ONE pass across schema, actions, routes and room
-    (the database already says CatchupEdition; the reader's URL still says round);
-  - the build phases, each a revertable slice;
-  - a table mapping every paragraph of brief.md to the section that answers it, or a
-    stated reason it is out.
+Re-run scripts/dev/export-catchups.mjs --write before the migration. Apply it to BOTH
+Supabase projects (--env .env.demo). Never prisma db push.
 
-Three surfaces are undrawn: the composer's attachments beyond the photo strip (the song
-field, the photo wall), the picture's upload and crop at creation, and the confirmations
-the one-way controls open. Say for each whether it is drawn before the build or inside
-it. Two parked pieces must land somewhere in your phases: "The list's spare slots" and
-"S-features". F41 is unfixed and is his to decide, not yours.
+Do not start phase 2. Do not redraw anything: /lab/catchups/sketches is the approved
+design and it is transplanted, not re-derived. If a drawn decision looks wrong, say so
+in a sentence and let him decide.
 
-How to work, from the session that just ran:
-  - Take numbers from the app, never from taste. The standard pill is Button's `default`
-    size; the two-column grid is components/layout/rail-grid.ts; the dock spring is the
-    Collection's year rail; the viewport hook is common/use-wide-viewport.ts.
-  - Measure before and after, and put the number in the comment.
-  - A note he has given is a DECISION, not a proposal. Do not hold one back for
-    confirmation -- that reads as ignoring him. Ask only about what he has not mentioned.
+How to work:
+  - Take numbers from the app, never from taste. Measure before and after and put the
+    number in the comment.
+  - A note he has given is a DECISION, not a proposal. Ask only about what he has not
+    mentioned.
   - Do not stop mid-list to check in. Finish the list, then show him.
   - npm run check before every commit, npm run visual after UI work, never both at once.
     Stage by pathspec: other sessions are live in this tree.
+  - Update this file's board and session log before you commit, inside the same commit.
 ```
 
 ### What that session must know, and would otherwise learn the hard way
 
-- **`architecture.md` is current** as of 2026-09-07 night and describes what is DRAWN, with his
-  sentence beside each decision. Where it and a review disagree, he wins.
-- **The noun is Edition.** Every user-facing string says so; the types still say Round for exactly
-  one more pass, which the spec owns.
-- **F41 is real and unfixed on purpose**: a 300-character question makes a 211px row in the reader's
-  navigator against its neighbours' 41. Clamping truncates a member's words, so it is his.
-- **The settings surface is his own next session**, by his word.
-- **He owes about twenty photographs**, 2,400px+ on the long edge, landscape, subject off centre.
-  Two of the six stand-ins had to be dropped (F46) and the rest are 900 to 1280, so every wide crop
-  is still upscaled at retina.
-- **Nothing in that room is ever scaled** (F34), and a lab switch the SERVER reads cannot be flipped
-  by `router.replace` (F43).
-- **A client-side link from `/lab` into `(main)` loses the app's layout** -- measured, `main` at left
-  0 instead of 248. Lab-only; use a plain `<a>` there and `next/link` in the real app.
-- **`npm run visual` is 25/25 green**, `/catchups` included.
+- **`spec.md` is the plan; `architecture.md` is the design.** Where the spec and a review of his
+  disagree, he wins. Where the spec and `architecture.md` disagree, `architecture.md` wins on
+  anything drawn and the spec wins on anything mechanical.
+- **`Notification.link` is a stored column**, so a route rename is a data change as well as a file
+  move, and `/catchups/[id]/answer` gets the same treatment when phase 7 deletes it.
+- **Do not touch `@@map("CatchupSeries")` or `@@map("CatchupReminderPref")`.** They dodge the dead
+  tables the 2026-07 reverted build left in this database; the schema header says why.
+- **Production and the demo are separate Supabase projects.** Every migration is applied twice.
+- **A column drop before its code has deployed breaks production**, because one database serves
+  both. Drops are a second file, in phase 11.
+- **F41 is real and unfixed on purpose**, and is now owner question 20.
+- **He owes about twenty photographs.** Two of the six stand-ins had to be dropped (F46) and the
+  rest are 900 to 1280px, so every wide crop is still upscaled at retina.
+- **Nothing in that room is ever scaled** (F34), and a lab switch the SERVER reads cannot be
+  flipped by `router.replace` (F43).
+- **A client-side link from `/lab` into `(main)` loses the app's layout** -- measured, `main` at
+  left 0 instead of 248. Lab-only; use a plain `<a>` there and `next/link` in the real app.
+- **`npm run visual` was 25/25 green** at the end of S4d, `/catchups` included.
 
 ### Still his, whenever he wants to answer
 
-1. **The twenty photographs.** The only thing blocking the picture from being real.
-2. **F41**, the 300-character question in the reader's navigator.
-3. **Which shape the settings surface takes** — he has said he will do that one himself.
+The twenty photographs; owner questions 19, 20 and 21; and which shape the settings surface takes.
 
-He answered the rest on 2026-09-07, in the fine-tuning round: the shape of the list, the home in
-every state, the reader, the noun, and the list's spare slots. His own verdict partway through
-that round: *"for the first time in two days and a million sessions I feel like this is coming
-together."*
-
-Everything else he has answered. Navigator **A**. Delete becomes **leave**. Nobody keeps a batch
-Catch-up and it has no manual transitions. Pause becomes **hold the next Round**. The six with no
-batch year get nothing, and that is fine. Anyone in a batch may change its picture.
+He answered the rest on 2026-09-07: the shape of the list, the home in every state, the reader, the
+noun, and the list's spare slots. Navigator **A**. Delete becomes **leave**. Nobody keeps a batch
+Catch-up and it has no manual transitions. Pause becomes **hold the next Edition**. The six with no
+batch year get nothing, and that is fine. Anyone in a batch may change its picture. His own verdict
+partway through that round: *"for the first time in two days and a million sessions I feel like
+this is coming together."*

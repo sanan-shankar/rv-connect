@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-08 — the Catch-ups rework gets a spec, and the database corrects it five times
 - 2026-09-08 — a letter gets the same three controls a post has
 - 2026-09-07 — the five parked rebuilds get a description he can judge, and five bugs get filed
 - 2026-09-07 — one folder for scratch screenshots, and something that empties it
