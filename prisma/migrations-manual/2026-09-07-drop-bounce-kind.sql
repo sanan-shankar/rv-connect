@@ -1,0 +1,47 @@
+-- "OutboundEmail"."bounceKind": Resend's raw bounce subtype, written for a
+-- decision nobody ever made.
+--
+-- Refactor audit 2, row D7 (`data-layer-03`, reduced). The owner's answer to
+-- Q18, 2026-09-07, against a table row reading "Why an email bounced | 0 of
+-- 55": "delete all and stop writing info except to [three named columns]".
+-- This is not one of the three. THE OTHER THREE COLUMNS IN THAT FINDING --
+-- ContentView.firstAt, ContentView.lastAt and MetricSnapshot.capturedAt --
+-- HE KEPT, and they are untouched.
+--
+-- Idempotent, per CLAUDE.md: never `prisma db push` against this database.
+--
+-- *** DO NOT RUN THIS UNTIL THE CODE CHANGE IS DEPLOYED. ***
+-- Prisma names every column of a model in its SELECT list, so dropping this
+-- while an older build still knows about it breaks the email queue's reads and
+-- the admin worklist. Deploy first, then run this, then the demo. Running it
+-- late costs nothing.
+--
+-- Apply:
+--   node scripts/dev/run-sql.mjs prisma/migrations-manual/2026-09-07-drop-bounce-kind.sql
+--   node scripts/dev/run-sql.mjs --env .env.demo prisma/migrations-manual/2026-09-07-drop-bounce-kind.sql
+-- Production and the demo are SEPARATE Supabase projects. Both, or the demo
+-- drifts (docs/TRAPS.md).
+--
+-- THE EVIDENCE. Counted 2026-09-07, on both databases:
+--
+--   SELECT count(*) AS rows,
+--          count(*) FILTER (WHERE "bounceKind" IS NOT NULL) AS with_kind
+--     FROM "OutboundEmail";
+--
+--   production -> 55 rows, 0 with a kind
+--   demo       -> 0 rows,  0 with a kind
+--
+-- Fifty-five sent messages and not one bounce among them, so the column has
+-- never held anything. Its reader was never written either: admin-analytics.ts
+-- counts deliveredAt / bouncedAt / complainedAt being non-null and has never
+-- named bounceKind.
+--
+-- NOTHING IS LOST THAT WAS BEING READ. The webhook still writes the subtype
+-- into `lastError` -- "Bounced (<subtype>) -- the address did not accept it" --
+-- which is the sentence the admin worklist already draws on the row. The
+-- distinction is still visible; it just is not stored twice for a handler that
+-- does not exist.
+--
+-- NO INDEX to drop with it: the column was never indexed.
+
+ALTER TABLE "OutboundEmail" DROP COLUMN IF EXISTS "bounceKind";

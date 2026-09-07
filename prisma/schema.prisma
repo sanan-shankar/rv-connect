@@ -631,12 +631,14 @@ model OutboundEmail {
   providerId String?
 
   deliveredAt DateTime?
-  // A hard bounce means the address is dead and retrying is pointless; a
-  // soft bounce is a full mailbox or a temporary refusal. Stored raw as
-  // Resend reports it rather than collapsed to a boolean, because the two
-  // deserve different handling and that decision is not made here.
   bouncedAt   DateTime?
-  bounceKind  String?
+  // `bounceKind` was here, holding Resend's raw subtype so that hard and soft
+  // bounces could be handled differently. That decision was never made, in a
+  // year, and nothing read the column -- 0 of 55 rows carried a value. The
+  // webhook stopped writing it on 2026-09-07 (refactor audit 2 / D7); the
+  // subtype is still recorded in `lastError`, which the admin worklist draws.
+  // The column is in both databases until the owner runs
+  // prisma/migrations-manual/2026-09-07-drop-bounce-kind.sql.
   // Someone pressed "this is spam". Rare, and the single most damaging
   // signal for a young sending domain, so it is recorded separately.
   complainedAt DateTime?

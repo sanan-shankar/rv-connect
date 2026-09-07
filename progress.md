@@ -1,5 +1,25 @@
 # Progress Log
 
+## 2026-09-07 — the bounce subtype stops being stored twice
+
+Refactor audit 2, D7's column half (`data-layer-03`, reduced by the owner). `OutboundEmail.
+bounceKind` held Resend's raw hard/soft subtype from 2026-08-19 so the two could be handled
+differently later. They never were, and nothing ever read the column: **0 of 55 rows on
+production, 0 of 0 on the demo** -- fifty-five sent messages and not one bounce among them.
+`admin-analytics.ts` counts `deliveredAt`/`bouncedAt`/`complainedAt` being non-null and has never
+named it.
+
+**Nothing that was being read is lost.** The webhook still writes the subtype into `lastError` --
+"Bounced (<subtype>) -- the address did not accept it" -- which is the sentence the admin worklist
+already draws. The comment there now says it is the only place the distinction lives, and that a
+handler which acts on it wants a column again with a reader in the same commit.
+
+**Three columns in this finding were KEPT, on his instruction**: `ContentView.firstAt`/`lastAt`
+(217 of 217 filled) and `MetricSnapshot.capturedAt` (561 of 561). Untouched, declarations and
+writes intact.
+
+**No DDL.** `prisma/migrations-manual/2026-09-07-drop-bounce-kind.sql` is written and unrun.
+
 ## 2026-09-07 — the black-and-white measurement stops running
 
 Refactor audit 2, D9 (`data-layer-02`). `Image.greyscale` was measured with a pixel pass over the
