@@ -22,7 +22,7 @@ import bcrypt from "bcryptjs";
 import { createId } from "@paralleldrive/cuid2";
 import puppeteer from "puppeteer";
 import { fetchSessionCookie } from "./_dev-login.mjs";
-import { bootstrap, openDb, makeLedger } from "./_probe-kit.mjs";
+import { bootstrap, openDb, makeLedger, chromePath } from "./_probe-kit.mjs";
 
 const { BASE } = bootstrap(import.meta.url, { chrome: true });
 
@@ -81,7 +81,7 @@ console.log("\n-- M33: the upload routes refuse a cross-site Origin");
 /* ================== M8 + L9: the real signup form, hostile passwords first */
 console.log("\n-- M8/L9: the real signup form refuses weak passwords and duplicate emails politely");
 const browser = await puppeteer.launch({
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+  executablePath: chromePath(),
   headless: "new",
 });
 {

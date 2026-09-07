@@ -282,9 +282,11 @@ for the shots that go on the record and for sweeps; the MCP is for the measuring
    Turbopack cache is corrupt. `rm -rf` is blocked, so move it aside: `mv .next .next-stale` then
    restart. Always clear and restart after editing `globals.css`; HMR does not reliably pick up token
    changes. The folder reaching several GB is normal.
-2. **The bundled Puppeteer Chrome is broken here.** `screenshot.mjs` falls back to
-   `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` by itself. `verify-shot.mjs` and
-   `crawl.mjs` do **not**: set `PUPPETEER_EXECUTABLE_PATH` to that path or they exit with a stack trace.
+2. **The bundled Puppeteer Chrome is broken here, and nothing asks you about it any more.** Every
+   `puppeteer.launch()` in `scripts/` goes through `chromePath()` in `scripts/qa/_probe-kit.mjs`,
+   which falls back to `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` on its own.
+   `verify-shot.mjs` and `crawl.mjs` used to need `PUPPETEER_EXECUTABLE_PATH` exported by hand;
+   since 2026-09-07 they do not. Set the variable only to point at some other browser.
 3. **Verify at runtime, not just `tsc`.** `tsc --noEmit` once passed a Prisma `select` on a column
    that did not exist, which then 500'd the feed. Screenshot the surface and check the console, or ask
    `next-devtools` for `get_errors`.

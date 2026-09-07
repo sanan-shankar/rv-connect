@@ -4,11 +4,12 @@ import { config } from 'dotenv';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { devLogin } from "./_dev-login.mjs";
+import { chromePath } from "./_probe-kit.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 process.chdir(repoRoot);
 
-config({ path: '.env' });
+config({ path: '.env', quiet: true });
 
 /* The two profile rows used to be hardcoded cuids. Both had been deleted from
    the database by 2026-08-26, and a profile page for a user who does not exist
@@ -42,7 +43,7 @@ const expectedOnPage = new Map([[`/profile/${OWN.id}`, OWN.name], [`/profile/${O
 // there is a route -- `notifications` holds only actions.ts and `notice` only
 // a [id] segment, so neither has a page to crawl.
 const routes = ['/feed','/directory','/letters','/catchups','/collection','/about','/support','/donate','/admin','/messages','/dark-mode','/birds','/pick-bird','/welcome',`/profile/${OWN.id}`,`/profile/${OTHER.id}`,'/','/login','/signup','/lab'];
-const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+const browser = await puppeteer.launch({ headless: true, executablePath: chromePath(), args: ['--no-sandbox'] });
 const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900 });
 await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });

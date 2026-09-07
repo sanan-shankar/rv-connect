@@ -30,7 +30,7 @@ import bcrypt from "bcryptjs";
 import { createId } from "@paralleldrive/cuid2";
 import puppeteer from "puppeteer";
 import { fetchSessionCookie } from "./_dev-login.mjs";
-import { bootstrap, openDb, makeLedger, credLogin } from "./_probe-kit.mjs";
+import { bootstrap, openDb, makeLedger, credLogin, chromePath } from "./_probe-kit.mjs";
 
 const { BASE } = bootstrap(import.meta.url, { chrome: true });
 
@@ -98,7 +98,7 @@ console.log("\n-- H12: the three policy documents, signed out");
 console.log("\n-- M35: deletion via the real dialog (wrong password, right password, cancel)");
 
 const browser = await puppeteer.launch({
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+  executablePath: chromePath(),
   headless: "new",
 });
 

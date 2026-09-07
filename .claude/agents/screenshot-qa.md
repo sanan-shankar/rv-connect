@@ -20,15 +20,15 @@ Prefer the verifier, because it captures console and `pageerror` alongside the i
 that looks fine with a red console has still failed:
 
 ```bash
-PUPPETEER_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
-  node scripts/qa/verify-shot.mjs <route> <name>.png [mobile]
+node scripts/qa/verify-shot.mjs <route> <name>.png [mobile]
 ```
 
 Two traps that have cost real sessions:
 
-1. **The bundled Puppeteer Chrome is broken on this machine.** `screenshot.mjs` falls back to
-   real Chrome on its own; `verify-shot.mjs` and `crawl.mjs` do **not**. Set
-   `PUPPETEER_EXECUTABLE_PATH` as above or you get an exit-1 stack trace, not a picture.
+1. **The bundled Puppeteer Chrome is broken on this machine**, and every script now works around
+   it by itself through `chromePath()` in `scripts/qa/_probe-kit.mjs`. `verify-shot.mjs` and
+   `crawl.mjs` needed `PUPPETEER_EXECUTABLE_PATH` exported by hand until 2026-09-07; they no
+   longer do. If you still get an exit-1 stack trace instead of a picture, that helper broke.
 2. **`verify-shot.mjs` signs in as the admin first.** So `/` redirects to `/feed`. For anything
    that must be seen signed out (the landing page, its perching birds, `/login`, `/signup`)
    use `node scripts/qa/screenshot.mjs http://localhost:3000<route> <label> [--mobile]`.

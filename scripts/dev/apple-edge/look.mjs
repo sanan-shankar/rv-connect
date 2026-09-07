@@ -12,14 +12,15 @@ import puppeteer from 'puppeteer';
 import { config } from 'dotenv';
 import { mkdirSync } from 'fs';
 import { devLogin } from '../../qa/_dev-login.mjs';
+import { chromePath } from '../../qa/_probe-kit.mjs';
 
-config({ path: '.env' });
+config({ path: '.env', quiet: true });
 const OUT = '.tmp-shots/edge';
 mkdirSync(OUT, { recursive: true });
 
 const browser = await puppeteer.launch({
   headless: true,
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  executablePath: chromePath(),
   args: ['--no-sandbox', '--disable-setuid-sandbox'],
 });
 const page = await browser.newPage();

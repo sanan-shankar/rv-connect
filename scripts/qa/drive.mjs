@@ -18,10 +18,11 @@ import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
 import { config } from "dotenv";
 import { devLogin } from "./_dev-login.mjs";
+import { chromePath } from "./_probe-kit.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 process.chdir(repoRoot);
-config({ path: ".env" });
+config({ path: ".env", quiet: true });
 
 const args = process.argv.slice(2);
 const mobile = args.includes("--mobile");
@@ -674,9 +675,7 @@ if (!scenario) {
 
 const browser = await puppeteer.launch({
   headless: true,
-  executablePath:
-    process.env.PUPPETEER_EXECUTABLE_PATH ||
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  executablePath: chromePath(),
   args: ["--no-sandbox", "--disable-setuid-sandbox"],
 });
 const page = await browser.newPage();

@@ -37,7 +37,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import puppeteer from "puppeteer";
 import { fetchSessionCookie } from "./_dev-login.mjs";
-import { bootstrap, openDb, makeLedger, credLogin as kitCredLogin } from "./_probe-kit.mjs";
+import { bootstrap, openDb, makeLedger, credLogin as kitCredLogin, chromePath } from "./_probe-kit.mjs";
 import { signHumanPass } from "../../src/lib/human-pass-rule.ts";
 import { RATE_LIMITED } from "../../src/lib/rate-limit-message.ts";
 
@@ -208,7 +208,7 @@ console.log("\n-- login: ten failures close an account's window, thirty close an
 console.log("\n-- signup: the whole real flow, unattended (trivia + Turnstile + human pass)");
 
 const browser = await puppeteer.launch({
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+  executablePath: chromePath(),
   headless: "new",
 });
 
