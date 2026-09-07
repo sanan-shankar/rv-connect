@@ -124,6 +124,57 @@ async function vetReport(
   return { ok: true, trimmed };
 }
 
+/**
+ * The Report row and the thread that answers it, in ONE transaction (audit
+ * C-007), and the lost race that means the same thing.
+ *
+ * Both were four separate awaits once, so a pool timeout after the first left
+ * a pending Report with no thread and no admin notification -- which the
+ * dedupe in each caller then honoured for ever, returning success on every
+ * retry. The fix was made twice, in twenty-three near-identical lines each,
+ * with a comment in `reportUser` promising the two matched. That promise is
+ * this function now: the two report paths are kept the same shape on purpose,
+ * because half-fixing one of a matched pair is how this file's other entries
+ * came to exist.
+ *
+ * "duplicate" rather than a throw, because losing the race is not a failure:
+ * the `findFirst` each caller runs first is a fast path, not the guarantee --
+ * under READ COMMITTED two submissions landing together both see no open
+ * report and both write, and the partial unique index
+ * (`Report_open_post_per_reporter_key`) decides it. The loser has the outcome
+ * it wanted, which is one open report on the desk. What that reads as to the
+ * member differs by path -- "already reported" or "already flagged" -- so the
+ * wording stays at the call site.
+ */
+async function fileReport(
+  /* The five columns a report IS, not the whole create input. A bare
+     `ReportUncheckedCreateInput` would also accept `status` -- so a third
+     caller could file a report already marked resolved, past the admin, and
+     `tsc` would agree. Both callers today build this literal by hand from
+     validated values; the narrower type is what keeps that true. */
+  data: Pick<
+    Prisma.ReportUncheckedCreateInput,
+    "targetType" | "postId" | "reportedUserId" | "reporterId" | "reason"
+  >,
+  thread: { subject: string; opening: string }
+): Promise<{ id: string } | "duplicate"> {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const report = await tx.report.create({ data, select: { id: true } });
+      return openReportThread({
+        db: tx,
+        reportId: report.id,
+        reporterId: data.reporterId,
+        subject: thread.subject,
+        opening: thread.opening,
+      });
+    });
+  } catch (err) {
+    if (!isUniqueViolation(err)) throw err;
+    return "duplicate";
+  }
+}
+
 export async function reportPost(postId: string, reason: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
@@ -198,39 +249,16 @@ export async function reportPost(postId: string, reason: string) {
     return { success: true as const, alreadyReported: true as const };
   }
 
-  /* The Report and the thread that answers it, in ONE transaction (audit
-     C-007). Four separate awaits meant a pool timeout after the first left a
-     pending Report the dedupe above would then honour for ever. */
-  let thread: { id: string };
-  try {
-    thread = await prisma.$transaction(async (tx) => {
-      const report = await tx.report.create({
-        data: {
-          targetType: "post",
-          postId,
-          reporterId: session.user.id,
-          reason: trimmed,
-        },
-        select: { id: true },
-      });
-      return openReportThread({
-        db: tx,
-        reportId: report.id,
-        reporterId: session.user.id,
-        subject,
-        opening,
-      });
-    });
-  } catch (err) {
-    /* Lost the race to the partial unique index (audit C-060). The findFirst
-       above is a fast path, not the guarantee -- under READ COMMITTED two
-       submissions landing together both see no open report and both write.
-       `Report_open_post_per_reporter_key` decides it; the loser has the
-       outcome it wanted, which is one open report on the desk. Same shape as
-       reportUser, which has had this since M29. */
-    if (!isUniqueViolation(err)) throw err;
+  const filed = await fileReport(
+    { targetType: "post", postId, reporterId: session.user.id, reason: trimmed },
+    { subject, opening }
+  );
+  // Losing the race to the partial unique index reads to the reporter exactly
+  // as the findFirst above does: their complaint is on the desk (audit C-060).
+  if (filed === "duplicate") {
     return { success: true as const, alreadyReported: true as const };
   }
+  const thread = filed;
 
   await notifyAdmins(
     `${session.user.name} reported a post by ${post.author.name}: ${previewOf(trimmed, 60)}`,
@@ -279,39 +307,17 @@ export async function reportUser(reportedUserId: string, reason: string) {
   const subject = `${reported.name}'s profile`;
   const opening = `You flagged ${reported.name}, saying: "${trimmed}"\n\nAn admin will look into it. Anything you want to add, write it below.`;
 
-  /* The Report and the thread that answers it, in ONE transaction, exactly as
-     reportPost does (audit C-007). These were separate awaits here too, so a
-     pool timeout between them left a flag on the record with no thread and no
-     admin notification -- and the dedupe above would then honour it for ever.
-     The two report paths are kept the same shape on purpose: half-fixing one
-     of a matched pair is how this codebase has drifted before. */
-  let thread: { id: string };
-  try {
-    thread = await prisma.$transaction(async (tx) => {
-      const report = await tx.report.create({
-        data: {
-          targetType: "user",
-          reportedUserId,
-          reporterId: session.user.id,
-          reason: trimmed,
-        },
-        select: { id: true },
-      });
-      return openReportThread({
-        db: tx,
-        reportId: report.id,
-        reporterId: session.user.id,
-        subject,
-        opening,
-      });
-    });
-  } catch (err) {
-    // The findFirst above is a fast path, not the guarantee — two flags of the
-    // same pair racing in together both pass it, and one loses to the unique
-    // index (audit H5). That is the SAME "already flagged" answer, not a 500.
-    if (!isUniqueViolation(err)) throw err;
+  const filed = await fileReport(
+    { targetType: "user", reportedUserId, reporterId: session.user.id, reason: trimmed },
+    { subject, opening }
+  );
+  // Two flags of the same pair racing in together both pass the findFirst
+  // above and one loses to the @@unique (audit H5). That is the SAME "already
+  // flagged" answer the fast path gives, not a 500.
+  if (filed === "duplicate") {
     return { success: true, alreadyFlagged: true };
   }
+  const thread = filed;
 
   /* This used to also write verifyState:"flagged" onto the reported member --
      one report, from anyone, and the badge was gone (audit H5). Now that

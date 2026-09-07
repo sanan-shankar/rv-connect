@@ -1,5 +1,27 @@
 # Progress Log
 
+## 2026-09-07 — the report transaction is written once
+
+Refactor audit 2, feed-posts-14(a). The Report row and the AdminThread that answers it landed in one
+`$transaction` in `reportPost` and again in `reportUser` — twenty-three near-identical lines each,
+differing only in the create data and whether a lost race reads as "already reported" or "already
+flagged". `reportUser`'s comment held the pairing together: *"half-fixing one of a matched pair is
+how this codebase has drifted before."* `fileReport` is that promise as code, the same move session 5
+made with `vetReport`.
+
+It returns `{ id } | "duplicate"` rather than throwing, because losing the race to
+`Report_open_post_per_reporter_key` is not a failure — the loser has the outcome it wanted. What that
+reads as to the member is the one thing that differs, so the wording stayed at the call site. The
+parameter is a `Pick` of five columns, not the whole `ReportUncheckedCreateInput`: a third caller
+could otherwise file a report already marked resolved and `tsc` would agree.
+
+**The audit's Risk line for this row was wrong** and it would have reddened the build. It names
+`security-regressions:221` and `:274` and calls the change low risk; the pin that actually breaks is
+C-060/C-007 in the same file, which looped BOTH exported bodies for `$transaction` / `tx.report.create` /
+`db: tx` / `isUniqueViolation`. Rewritten to pin the helper and to add a guarantee the old one lacked —
+neither exported path may grow a write of its own. Mutation-tested five ways. **14(b), the move out of
+`components/`, stays declined**: there are twelve `"use server"` files there, not one.
+
 ## 2026-09-07 — the M33 bell rule lives once
 
 Refactor audit 2, feed-posts-04. Four notification writes sat inline in `feed/actions.ts`, and two

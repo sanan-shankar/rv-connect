@@ -2,7 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync } from "node:fs";
 import { relative, resolve } from "node:path";
-import { ROOT, read, decomment, walk, SKIP_DIRS, serverActionFiles } from "./test-kit.mjs";
+import {
+  ROOT,
+  balancedBody,
+  read,
+  decomment,
+  walk,
+  SKIP_DIRS,
+  serverActionFiles,
+} from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Regression pins for the two CRITICAL findings (audit H17, pinning C1
@@ -232,23 +240,49 @@ test("C-060/C-007: a report and the thread that answers it are one write", () =>
 
   // openReportThread must write through whatever client it is given.
   assert.match(code, /db: Prisma\.TransactionClient \| typeof prisma;/, "openReportThread cannot join a transaction");
+  /* Its OWN body, not everything above reportPost: `fileReport` now sits
+     between the two and legitimately opens the transaction with
+     `await prisma.$transaction`, which the wider slice read as a violation. */
   assert.doesNotMatch(
-    code.slice(code.indexOf("async function openReportThread"), code.indexOf("export async function reportPost")),
+    balancedBody(code, /async function openReportThread/),
     /await prisma\./,
     "openReportThread still writes through the top-level client, so it cannot be atomic with its report"
   );
 
-  // Both paths create their report INSIDE a transaction that also opens the thread.
+  /* The atomic write itself. It used to be typed out twice, once per path, and
+     what is checked has moved with it: this used to loop the two exported
+     bodies. It does not loop them any more because there is one write, and
+     `fileReport` is it -- the same move `vetReport` made for the six-gate
+     preamble, and the same reason (C-013's note below says it for the cap).
+     What replaces the loop is the pair of assertions after this one: both
+     paths must still GO THROUGH the helper, and neither may grow its own. */
+  const filed = code.slice(code.indexOf("async function fileReport"), code.indexOf("export async function reportPost"));
+  assert.ok(filed.length > 0, "fileReport is gone; the atomic write has moved or been inlined again");
+  assert.match(filed, /await prisma\.\$transaction\(async \(tx\) => \{/, "fileReport does not write atomically");
+  assert.match(filed, /tx\.report\.create\(/, "the report is created outside the transaction");
+  assert.match(filed, /db: tx,/, "the thread is opened outside the transaction");
+  assert.match(filed, /isUniqueViolation\(err\)/, "fileReport does not survive losing the unique-index race");
+  assert.match(filed, /return "duplicate";/, "a lost race no longer answers as a duplicate");
+
   const paths = ["reportPost", "reportUser"];
   for (const name of paths) {
     const from = code.indexOf(`export async function ${name}`);
     assert.ok(from > 0, `${name} is gone`);
     const next = code.indexOf("export async function", from + 10);
     const body = next === -1 ? code.slice(from) : code.slice(from, next);
-    assert.match(body, /await prisma\.\$transaction\(async \(tx\) => \{/, `${name} does not write atomically`);
-    assert.match(body, /tx\.report\.create\(/, `${name}'s report is created outside its transaction`);
-    assert.match(body, /db: tx,/, `${name}'s thread is opened outside its transaction`);
-    assert.match(body, /isUniqueViolation\(err\)/, `${name} does not survive losing the unique-index race`);
+    assert.match(body, /await fileReport\(/, `${name} no longer files its report through the atomic write`);
+    /* And has not grown a second one beside it -- the failure this whole test
+       exists for is one of the pair being half-fixed. */
+    assert.ok(
+      !/\$transaction\(|report\.create\(/.test(body),
+      `${name} writes its report itself again instead of through fileReport`
+    );
+    assert.match(
+      body,
+      /filed === "duplicate"/,
+      `${name} no longer maps a lost race to its own "already reported" answer, so it would ` +
+        `treat the thread id as a string`
+    );
   }
 
   // And the dedupe repairs a thread-less report instead of reporting success over it.
