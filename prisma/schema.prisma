@@ -439,7 +439,21 @@ model Photo {
   approvedBy User?       @relation("PhotoApprover", fields: [approvedById], references: [id])
   loves      PhotoLove[]
 
-  @@index([approved, isHidden, createdAt])
+  // `@@index([approved, isHidden, createdAt])` was here and is DOMINATED by
+  // Photo_river_added_idx below, which leads with the same three columns and
+  // then adds the tiebreak. Postgres walks a DESC btree backwards for ASC and
+  // uses any leading prefix, so every predicate and order the old one served,
+  // the river's serves. Its 6,388 lifetime scans all predate the river indexes
+  // (2026-08-28): it took ZERO across a full authenticated crawl and twelve
+  // Collection loads on 2026-09-07.
+  //
+  // `@@index([era])` STAYS, against refactor audit 2 / D7, which wanted it
+  // gone. The finding is right that no `where` filters `era` alone -- and the
+  // planner used it 20 times on 2026-09-07 anyway, from traffic this session
+  // could not attribute. An index costs write amplification and nothing else;
+  // a wrong drop costs a scan on the largest table here. Attribute the scans
+  // before removing it. The drop is written out, commented, in
+  // prisma/migrations-manual/2026-09-07-drop-unused-indexes.sql.
   @@index([era])
   // 'Photos by this member', and the purge's own lookup (B-090).
   @@index([uploaderId])
@@ -449,7 +463,11 @@ model Photo {
   // repeat a row and skip another (audit B-122).
   @@index([approved, isHidden, takenKey(sort: Desc), id(sort: Desc)], name: "Photo_river_taken_idx")
   @@index([approved, isHidden, createdAt(sort: Desc), id(sort: Desc)], name: "Photo_river_added_idx")
-  @@index([approved, isHidden, era], name: "Photo_river_era_idx")
+  // Photo_river_era_idx (approved, isHidden, era) was here. It was built for a
+  // decade rail that counted every decade in one grouped query; the rail now
+  // groups by (photoYear, era), which this cannot pre-group, and its where
+  // prefix is already served by Photo_river_added_idx. 5 lifetime scans, 0
+  // today.
   // The Class Collection's river. Mirrors Photo_river_taken_idx and keeps the
   // property that one depends on: it ends in the tiebreak that makes the
   // ordering total, which is what lets the page be cursored instead of
@@ -811,8 +829,11 @@ model AuditLog {
   createdAt  DateTime @default(now())
 
   @@index([createdAt])
-  @@index([actorId, createdAt])
-  @@index([targetId])
+  // ([actorId, createdAt]) and ([targetId]) were here. The two readers are
+  // /admin/audit (orderBy createdAt desc, take 100, ids resolved in code) and
+  // the Razorpay webhook (where { action, createdAt }, served by the index
+  // below). Nothing filters on actorId or targetId. 7 lifetime scans each, 0
+  // across /admin/audit on 2026-09-07.
   @@index([action, createdAt])
 }
 
@@ -1400,8 +1421,13 @@ model ContentView {
   @@unique([viewerId, kind, targetId])
   // "Who is looking at this", and the most-viewed lists.
   @@index([kind, targetId])
-  // "What has this person been looking at", and recency.
-  @@index([viewerId, lastAt])
+  // ([viewerId, lastAt]) was here -- "what has this person been looking at, and
+  // recency". THE COLUMNS STAY: the owner kept firstAt/lastAt on 2026-09-07
+  // ("they seem useful so let's keep them for now"), and this drops only the
+  // index, which no query uses. Every ContentView read filters on `kind`,
+  // served by the pair above. 110 lifetime scans, 0 across
+  // /admin/analytics?view=faces on 2026-09-07, on a table written on every
+  // profile, letter, photograph and Round view.
 }
 
 // ─── Who could not get in ───────────────────────────────────────────────────
@@ -1431,8 +1457,11 @@ model LoginAttempt {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
-  @@index([email, createdAt])
-  @@index([userId, createdAt])
+  // ([email, createdAt]) and ([userId, createdAt]) were here. Neither column is
+  // ever filtered on: `email` is only a GROUP BY in loadJourney's raw query and
+  // `userId` only a join key onto User.id. 8 and 24 lifetime scans, 0 across
+  // /admin/analytics?view=journey on 2026-09-07. Written every sign-in, so
+  // they cost on the busiest write in the app.
 }
 
 // ─── The office roster ───────────────────────────────────────────────────────

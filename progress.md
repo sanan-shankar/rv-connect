@@ -1,5 +1,36 @@
 # Progress Log
 
+## 2026-09-07 — seven indexes nothing uses, and one the audit was wrong about
+
+Refactor audit 2, D7's index half (`data-layer-04`). The audit named eight; **seven are dropped
+and the eighth is refused, on measurement rather than reasoning.**
+
+The instrument: `idx_scan` over a window open since 2026-05-22 (108 days), then a controlled probe
+today -- a full authenticated crawl, then `/admin/audit`, `/admin/analytics` at `journey`, `people`
+and `faces`, then twelve `/collection` loads across both halves and a bucket filter. Every reader
+the audit named was visited.
+
+Dropped, each 0 scans today: `Photo_approved_isHidden_createdAt_idx` (6,388 lifetime, all of them
+before `Photo_river_added_idx` was built on 2026-08-28 -- it is a strict prefix of that index and
+Postgres walks a DESC btree backwards, so nothing it served is unserved), `Photo_river_era_idx`
+(5), `LoginAttempt_email_createdAt_idx` (8), `LoginAttempt_userId_createdAt_idx` (24),
+`AuditLog_actorId_createdAt_idx` (7), `AuditLog_targetId_idx` (7), `ContentView_viewerId_lastAt_idx`
+(110). All eight objects exist on production AND the demo, every one a plain btree matching its
+Prisma declaration exactly -- none is one of the eleven the schema header warns about.
+
+**`Photo_era_idx` is KEPT and the finding is wrong about it.** It went 60 -> 80 during this
+session. The finding's reasoning is right -- no `where` filters `era` alone since the decade rail
+became a seek -- but "no query shape can use it" and "nothing is using it" are different claims,
+and only the second justifies a drop. Its statement is in the SQL file, commented out, with the
+numbers.
+
+`ContentView_viewerId_lastAt_idx` is an INDEX drop only: the owner kept `firstAt`/`lastAt`, and the
+columns and their writes are untouched.
+
+**No DDL.** `prisma/migrations-manual/2026-09-07-drop-unused-indexes.sql` is written and unrun --
+and unlike the column drops beside it, its ordering does not matter, because Prisma never names an
+index in a query.
+
 ## 2026-09-07 — the bounce subtype stops being stored twice
 
 Refactor audit 2, D7's column half (`data-layer-03`, reduced by the owner). `OutboundEmail.
