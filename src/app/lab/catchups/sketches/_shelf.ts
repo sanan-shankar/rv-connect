@@ -17,7 +17,19 @@
 
 import type { SketchPerson, SketchQuestion, SketchRound } from "./_types";
 
-/** The Round's state, which is the only thing the home's middle branches
+/* ── THE NOUN IS "EDITION", NOT "ROUND" ────────────────────────────── *
+ *  His, 2026-09-07: "let's not use Round or Issue let's call them
+ *  additions" -- then, a minute later, "Editions not additions."
+ *
+ *  Every user-facing string in this room says Edition now. The TYPES below
+ *  still say Round (`ShelfRound`, `roundVerbs`, `RoundState`) and that is on
+ *  purpose for one more session: the database already calls them Editions
+ *  (`CatchupEdition`, and the shipped reader lives at
+ *  `/catchups/round/[editionId]`, which is the drift in one URL), so the
+ *  rename wants doing in one pass across the schema, the actions, the routes
+ *  and the room together rather than scattered here first. S5's spec owns it.
+ *
+ *  A Round's state, which is the only thing the home's middle branches
  *  on. A Catch-up being paused is a MARK on one of these, never an
  *  eighth: today's pause replaces the page and hides a live Round
  *  (recon section 11). */
@@ -184,11 +196,20 @@ export function dayAndDate(iso: string): string {
   });
 }
 
-/** "15 August". The year only when it is not this Round's own. */
+/** "15 August 2026". A published Edition is dated in full, because that date
+ *  is its NAME -- the Round number is gone, so this is the only thing that
+ *  tells one apart from another, and a shelf of them spans years. His,
+ *  2026-09-07: "also include the year for the past editions not just the date
+ *  and the month."
+ *
+ *  The live deadline keeps `dayAndDate` below and stays year-less: a deadline
+ *  is always within a fortnight, so a year on it is the kind of true, useless
+ *  fact he keeps taking out. */
 export function shortDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
+    year: "numeric",
   });
 }
 
@@ -418,7 +439,7 @@ export function homeVariants(
        instead. It is a variant of its own because it is the state most members
        will be in on day one and there was no way to look at it: "i'd also like
        to see the placeholder sidebar for when there's no previous issues." */
-    { key: "first", label: "First Round", c: by("batch-1978") },
+    { key: "first", label: "First Edition", c: by("batch-1978") },
     { key: "answering", label: "Answering", c: answering },
     { key: "published", label: "Published", c: by("crimes") },
     /* A hold is a mark on a live Round, so the illustrative case is a Round

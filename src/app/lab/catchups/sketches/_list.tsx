@@ -60,7 +60,7 @@ function stageOf(c: SketchCatchup): string {
   const r = c.round;
   if (c.paused) return "Paused";
   if (c.state === "ended" && c.endedAt) return `Ended ${shortDate(c.endedAt)}`;
-  if (!r) return "No Rounds yet";
+  if (!r) return "No Editions yet";
   if (c.state === "collecting") return "Open for questions";
   if (c.state === "answering" && r.closesAt) return `Answers close ${dayAndDate(r.closesAt)}`;
   if (c.state === "published" && r.publishedAt) return `Out ${shortDate(r.publishedAt)}`;
