@@ -3,6 +3,7 @@ import { BirdAvatar } from "@/components/common/bird-avatar";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { batchLine, metaLine } from "@/lib/utils";
 import { shortPlaceLabel } from "@/lib/normalize";
+import type { DirectoryPerson } from "@/app/(main)/directory/select";
 
 /* ------------------------------------------------------------------ *
  *  How a person renders in a result set.
@@ -42,18 +43,8 @@ import { shortPlaceLabel } from "@/lib/normalize";
  * ------------------------------------------------------------------ */
 
 interface ProfileCardProps {
-  user: {
-    id: string;
-    name: string;
-    photoUrl?: string | null;
-    birdOverride?: string | null;
-    accountType?: string | null;
-    verifyState?: string | null;
-    batchType: string | null;
-    batchYear: number | null;
-    currentCity: string | null;
-    jobTitle: string | null;
-  };
+  /** Every column `PERSON_SELECT` fetches, and the card reads all of them. */
+  user: DirectoryPerson;
 }
 
 export function ProfileCard({ user }: ProfileCardProps) {
