@@ -157,8 +157,10 @@ too, which he allowed in ¶28.
 | Owner reviews the reader, round two | DONE | Second round of notes given 2026-09-07 and folded (`review-2026-09-07.md` Parts two to four): every S4 default accepted except delete, which **becomes leave**; the Catch-up **picture**, which is new and changes every surface; and the list's question previews, which he took off. Still owed from him: which navigator (A, B or C). Still owed by us: **N11, the reader's title**, the one note of his not yet answered |
 | S4 The shape of the whole thing | PARTIAL | 2026-09-07, **two passes**. First pass rejected by him the same day: the home was worse than what ships, because it deleted the shipped right rail and left every control floating in the content (`review-2026-09-07.md` N26 to N45; *"the level of critical thinking and brainstorming and planning and rigor has significantly dropped"*). Second pass rebuilt from a full control inventory: the rail is back, `preparing` is deleted, a batch has no manual transitions, a published Round's cover is its photographs, and a card always opens the home. [`architecture.md`](architecture.md) §§1, 1b, 4, 5, 6, 8 rewritten. **Still owed by us: N11 the reader's title.** |
 | S4c Pressure corpus wired; aesthetic changes reverted | DONE | 2026-09-07 night. `_fixtures/pressure.ts` had been on disk since S1 and nothing had ever drawn it; `?data=pressure` now swaps the Round the whole spine draws, through one adapter into the same `SketchRound`. It found seven defects, F36 to F42. **The same session also redrew the reader's title and took the Round number out of it, unasked, and he rejected all of it: *"i don't like any of the aesthetic changes you've made they all suck"*. Every aesthetic change is reverted; only the defect fixes with no visual footprint were kept.** N11, the reader's title, is therefore STILL OPEN |
-| Owner browses the shape, round two | OWNER-GATED | **next.** `/lab/catchups/sketches`. Round one of this is `review-2026-09-07.md` Part five |
-| The composer, the door's sheet, the picture's crop | OPEN | the session after his verdict. The people sheet is **no longer needed**: S4 replaced it with a column on a laptop and a disclosure on a phone |
+| Owner browses the shape, round two | DONE | 2026-09-07 evening. He walked the whole spine out loud and then sent notes continuously for the length of one session. Every one of them is folded in; his own verdict partway through: *"I can't believe i'm saying this but you're actually doing a good job. for the first time in two days and a million sessions I feel like this is coming together."* Verbatim notes in [`review-2026-09-07.md`](review-2026-09-07.md) Part six |
+| S4d Fine-tuning, round one | DONE | 2026-09-07 evening, four commits. The reader's rail magnification rebuilt from scratch on the app's own motion-value mechanism; the home rebuilt around two doors on the picture and a sidebar of back numbers; answering and the questions panel brought onto the page; the type rule written down. `npm run check` green, `npm run visual` 25/25 |
+| The composer, the picture's crop | PARTIAL | The composer's *shape* is drawn, on the home, because he asked for it there. What is not drawn: the photo attachment flow, the song field, the photo-wall question, and the crop-at-creation surface. The people surface is DONE (a dialog and a sheet, off the sidebar) |
+| The settings surface, refined | OPEN | **his, and he has said he will take it in a session of its own.** It is a real settings list now rather than a column of verbs, and he called it *"very bare bones"* before that and has not called it finished since |
 | S3b Second round | OPEN | only if he asks for one after browsing the shape |
 | S5 Pick and spec | OPEN | blocked on his verdict. `architecture.md` is most of what a spec has to say about structure; S5 adds his picks and the copy |
 | S6+ Build | OPEN | blocked on S5 |
@@ -471,15 +473,24 @@ Numbered so later sessions can cite and correct them. **Verified** means a sessi
   card it had just become. That is R31 inverted: *"I think it should just not show the link at all.
   Let it just show the button."*
 
-- **F40, the sticky rail is unreachable at the app's own people cap (S4c). NOT FIXED, and it is
-  real.** At 100 members (`lib/catchup-caps.ts`; Batch of 2023 already has 39) the home's rail lays
+- **F40, FIXED 2026-09-07 by deleting the thing rather than bounding it.** The people are no longer
+  in a fixed column at all: they are behind an icon on the picture, in a dialog on a laptop and a
+  sheet on a phone. An unbounded list does not belong in a sticky column, and no scroller-inside-a-
+  scroller was needed. The original finding, kept because the arithmetic is the argument:
+
+- **F40 (original), the sticky rail is unreachable at the app's own people cap (S4c).** At 100 members (`lib/catchup-caps.ts`; Batch of 2023 already has 39) the home's rail lays
   out **4,000px tall inside a 982px window**, and because it is `position: sticky` everything past
   the first screen is not below the fold -- it cannot be reached at any scroll depth. A fix was
   drawn (bound the rail to the window, let the People block scroll inside it under a fade) and
   reverted with the rest, because it changes what the rail looks like and that is his call, not a
   session's. **Show him the fix before shipping it.**
 
-- **F41, one rail row can swallow the rail (S4c). NOT FIXED.** At the app's 300-character question
+- **F41, one rail row can swallow the rail (S4c). STILL NOT FIXED**, and still deliberately: a
+  300-character question in the reader's navigator measures 211px against its neighbours' 41, and
+  clamping it is a design decision about truncating a member's words. He has not been asked yet.
+  Original finding:
+
+- **F41 (original), one rail row can swallow the rail (S4c).** At the app's 300-character question
   cap one row of the reader's question rail measured **211px against its neighbours' 41**. A
   three-line clamp was drawn (three lines is his own number for the docked question, N5) and
   reverted with the rest: truncating a question in the navigator is a design decision. Two traps for
@@ -495,6 +506,38 @@ Numbered so later sessions can cite and correct them. **Verified** means a sessi
   two different people. 186 duplicate React keys, and every invented member drew the same bird,
   because the bird is a hash of the id. Nothing warned about it until a room finally rendered the
   file, which is the argument for D45 in one sentence.
+
+
+- **F43, the Pressure pill never worked (S4d, 2026-09-07). FIXED.** Which corpus is drawn is decided
+  by the SERVER component, off `searchParams.data`, but the pill changed the URL with a client-side
+  `router.replace`. So it lit up, the address bar changed, and the page went on drawing the real
+  Round. His: *"pressure button does literally nothing."* It is a full navigation now. Anything a
+  lab room switches that its server component reads has this shape.
+
+- **F44, a room's own chrome made the drawing look broken (S4d). FIXED.** At 390 the header's row of
+  view pills laid out to 449px, so the DOCUMENT was 59px wider than the window and the whole drawing
+  sat inside a horizontally scrolling page. He read it as a design fault -- *"the batch of 2005
+  picture doesn't meet the right margin"* -- and it was not: the cards run 20 to 370 inside a 390
+  viewport, measured. The row scrolls internally now. **A lab room's chrome that overflows is
+  indistinguishable, to the person looking, from the design overflowing.**
+
+- **F45, the swell was three bugs, not one (S4d). FIXED.** *"it's super glitchy and jittery ...
+  things react early and late and it's just built horribly."* (a) The pointer's position was React
+  state, so every pixel of movement reconciled eleven rows. (b) Row centres were cached in an effect
+  keyed on the CURRENT QUESTION, so they were stale against every resize -- the "early and late".
+  (c) `transition: transform 90ms linear` restarted an animation every frame toward a target that
+  had already moved. The rebuild uses the Collection year rail's mechanism: a motion value for the
+  pointer, a transform reading each row's live rect, a spring on the scale, zero React renders per
+  frame. **Reach had to change with it**: the Collection's 64px covers three of its 20px rows, and
+  these rows are 41 to 79px, so at 64 one row swelled alone.
+
+- **F46, two of the six stand-in photographs were unusable and nobody had looked (S4d). FIXED.**
+  `v1.webp` and `demo-banyan-pillar.webp` are the same photograph, which is why two list cards
+  looked identical; `demo-assembly-wide.webp`, despite its name, is 760x1140, portrait. Cropping a
+  portrait to a wide banner keeps a ninth of it and upscales that, which is exactly the *"insanely
+  cropped in, like, 30x zoom"* he kept seeing. Both dropped, and each survivor now carries the band
+  its wide crop is taken at, because the horizon and the benches are in the lower quarter of all of
+  them. **He still owes the twenty**, and they want 2,400px or more on the long edge.
 
 ---
 
@@ -1950,6 +1993,36 @@ puppeteer probe beside `scripts/qa/_dev-login.mjs`, deleted in the same command.
 
 ---
 
+## Session log, continued
+
+### 2026-09-07 evening, S4d, fine-tuning round one (Opus 5, one hand)
+
+Read `brief.md`, both reviews, `architecture.md`, `front-runner.md` and every file in
+`src/app/lab/catchups/sketches/` in full, walked the spine at 390 and 1512, reported, and then
+worked his notes as they arrived. All of them are verbatim in
+[`review-2026-09-07.md`](review-2026-09-07.md) Part six, N50 to N100.
+
+**Four commits.** `2640adfe` the reader, `ab1a0816` the home rebuilt, `2a6f7d25` the feed's
+reaction row on its own so he can revert it alone, `20f918f6` the second half of his notes.
+`npm run check` green (105 tests), `npm run visual` 25/25, run separately.
+
+**Where the session nearly went wrong, and it is worth the next one knowing.** It did the small
+mechanical notes first and stopped to show him, holding back the big structural ones as
+"design decisions to bring back". He was right to be furious: *"you're still using a megazoomed in
+picture and like every single other thing I told you about?!?! like are you not listening AT ALL."*
+The lesson is not "do more"; it is that **a note he has given IS the decision**, and holding it for
+confirmation reads as ignoring it. The things genuinely his to decide are the ones he has not
+spoken about at all.
+
+**The four faults worth carrying forward** are F43 to F46: a lab switch the SERVER reads cannot be
+flipped by `router.replace`; a room's own chrome overflowing is indistinguishable from the design
+overflowing; a per-frame value must not be React state and must not wear a CSS transition; and
+photographs have to be opened before they are used, because two of six were a duplicate and a
+portrait.
+
+---
+
+## What to paste next
 ## What to paste next
 
 **The next session is a FINE-TUNING session, and that is a real instruction, not a mood.** His
@@ -1966,64 +2039,53 @@ design at two widths; **Screens** holds the reader's stills. The grey pills abov
 the room's, not the design's: they jump to the list, to a home in each state, and to the reader. The
 cinnamon **Pressure** pill swaps the real Round for an invented corpus -- forty answers to one
 question, a twenty-four photograph wall, a hundred people, links nobody has a resolver for -- so
-nothing in it is a member's words.
+nothing in it is a member's words. It is a full page load, on purpose (F43).
 
 ### Then paste this into a fresh Opus max session
 
 ```
 @docs/planning/catchups-rework/handover.md
 
-You are S4d. Your job is to FINE-TUNE the Catch-ups room with me, one note at a time.
-Not to build a new surface, not to redraw anything, and not to go off and do a big piece
-of work because you found one worth doing. If you think something needs doing, tell me in
-a sentence and let me decide. The last session did the opposite, I hated the result, and
-we reverted all of it.
+You are S5. The list, a Catch-up's home in every state, and the reader are drawn and he has
+signed off on the shape. Read brief.md, review-2026-09-06.md and review-2026-09-07.md (all
+six parts) and architecture.md in full before you touch anything.
 
-Before you answer me at all, read these in full and in this order:
-  brief.md, review-2026-09-06.md, review-2026-09-07.md (all five parts),
-  architecture.md, front-runner.md.
-Then read the drawing itself, src/app/lab/catchups/sketches/ — every file. The docblocks
-carry my sentence beside each decision, so read them rather than skimming the JSX. The
-drawing is exactly as I last saw it; the previous session's aesthetic changes are gone.
+Your job is the SPEC: write docs/planning/catchups-rework/spec.md, in the shape of
+docs/planning/collection-rework/spec.md, so a build session can ship this without
+re-deriving it. Every decision LOCKED / RECOMMENDED / OPEN. Include the data changes as
+dated idempotent files in prisma/migrations-manual/, the build phases as revertable
+slices, and a table mapping every paragraph of the brief to the section that answers it.
 
-Then open /lab/catchups/sketches yourself at 390 and at 1512, walk the whole spine (a
-list card, a cover, the name at the top to come back), and tell me in a few lines what
-you see and anything that looks broken. Then stop and wait for my notes.
+Three surfaces are NOT drawn and the spec has to say what happens to them: the composer's
+attachments (photographs, the song field, the photo wall), the picture's upload and crop at
+creation, and the confirmations the one-way controls open. Say whether each is drawn before
+the build or specified and drawn inside it.
 
-How to work each note I give you: change the one thing, screenshot it at 390 and 1512,
-read the PNG yourself, and show me. Small commits as they land. Keep architecture.md and
-this handover true as you go. Nothing in that room is ever scaled.
-
-Two known bugs are written up as F40 and F41 with fixes already drawn and deliberately
-NOT applied, because both change how a page looks. Show me those before touching them.
-N11, the reader's title, is still open and is still mine to want, not yours to decide.
+Do not redraw anything in the room. If you think a drawn decision is wrong, say so in a
+sentence and let him decide.
 ```
 
 ### What that session must know, and would otherwise learn the hard way
 
-- **The drawing is byte-identical to commit `d9bf261`.** What survived the revert is invisible: the
-  image viewer no longer server-rendered (F36) and the test that pins it, `overflow-wrap` on answers
-  and question headings (F37), links no longer deleted or double-printed (F38, F39), photographs
-  keyed by position, and the pressure switch with its fixture's ids repaired (F42).
-- **F40 and F41 are real and unfixed**, and each has a fix already worked out in its finding. They
-  are unfixed on purpose: both change what a page looks like.
-- **`npm run visual` is 25/25 green**, `/catchups` included. An older note in this file said that
-  route was red; it is not any more.
-- **`sidebar.tsx:132` fails the shape+colour protocol.** Another session's commit (`bed93ca`),
-  predates this work, not ours to fix silently.
-- **Other sessions are live in this checkout.** On 2026-09-07 night one was mid-edit in
-  `src/components/onboarding/`, `src/components/demo/demo-bar.tsx` and
-  `src/app/(main)/profile/[id]/loading.tsx`, and `npx tsc` failed on their half-finished work.
-  Stage by pathspec; never `git add -A`; never assume a red gate is yours.
-- **He owes about twenty photographs** ("I'll give the pictures when I get time"), Notion-header
-  wide. The room's three stand-ins are all green trees, which is the trap.
-- **Nothing in that room is ever scaled.** A sticky element inside `transform: scale(s)` drifts at
-  (1 - s) of the scroll (F34).
-- **The MCP browser can be signed in**: `node --env-file=.env -e` to read `ADMIN_EMAIL` and
-  `DEV_LOGIN_SECRET`, then POST them to `/api/dev-login` from `evaluate_script`. But **do not trust
-  `take_screenshot` after a programmatic scroll on a tall page** -- it returns the top of the
-  document while `evaluate_script` correctly reports `scrollY`.
-- **The composer is the next SURFACE, whenever he asks for it** (F25). It is not this session's job.
+- **`architecture.md` is current as of 2026-09-07 evening** and describes what is drawn, not what
+  was planned. Where it and `review-2026-09-07.md` disagree, he wins.
+- **F41 is real and unfixed on purpose**: a 300-character question makes a 211px row in the
+  reader's navigator against its neighbours' 41. Clamping it truncates a member's words, which is
+  his call and he has not been asked.
+- **The settings surface is his next session, by his own word**: *"I think the settings dialog needs
+  refining but no need to do that now I can do it in a separate session."*
+- **The one-Catch-up list page is still open.** He asked for "really brilliant ideas which don't
+  lead to some extremely pixellated pictures", and the constraint is arithmetic: a card spanning
+  1,184px asks a 1,280px photograph to fill 2,368 device pixels. Nothing on the page is currently
+  wider than half of it. Ideas that do not upscale anything: leave the card at its half-width and
+  give the other half the newest Round's cover; or let the page become the Catch-up itself when
+  there is only one. Neither is drawn.
+- **He owes about twenty photographs**, 2,400px or more on the long edge, landscape, subject off
+  dead centre. Two of the six stand-ins had to be dropped (F46) and the rest are 900 to 1280.
+- **`npm run visual` is 25/25 green**, `/catchups` included.
+- **Other sessions are live in this checkout.** Stage by pathspec; never `git add -A`; never assume
+  a red gate is yours.
+- **Nothing in that room is ever scaled** (F34).
 
 ### Still his, whenever he wants to answer
 
