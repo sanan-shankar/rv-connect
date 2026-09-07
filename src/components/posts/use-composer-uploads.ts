@@ -5,6 +5,9 @@ import { toast } from "sonner";
 import { downscaleImage } from "@/lib/image-downscale";
 import { announceUploadNotices, directUploadPut, factsByUrl, postImages } from "@/lib/upload-client";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
+// The cap the server enforces, imported rather than retyped. The rule module
+// is import-free, so this costs the browser the constant and nothing else.
+import { MAX_IMAGES } from "@/lib/upload-ownership-rule";
 import type { PhotoFacts } from "@/lib/photo-layout";
 import { myImageFacts } from "@/app/(main)/image-aim";
 
@@ -177,8 +180,8 @@ export function useComposerUploads({
     if (files.length === 0) return;
 
     // Against the THUMBNAILS on screen, not the uploaded urls: a photograph
-    // still climbing already occupies one of the three places.
-    const remaining = 3 - shots.length;
+    // still climbing already occupies one of the MAX_IMAGES places.
+    const remaining = MAX_IMAGES - shots.length;
     if (files.length > remaining) {
       toast.error(`You can add ${remaining} more image${remaining !== 1 ? "s" : ""}`);
       return;

@@ -17,6 +17,7 @@ import { PhotoAimButton } from "@/components/common/photo-aim";
 import { cn } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
 import { useComposerUploads } from "./use-composer-uploads";
+import { MAX_IMAGES } from "@/lib/upload-ownership-rule";
 import { useLetterPersistence } from "./use-letter-persistence";
 import {
   applyFormatShortcut,
@@ -847,7 +848,7 @@ export function CreatePostForm({
               }}
               /* Counted against the THUMBNAILS, and no longer disabled while
                  one is climbing: the photographs are on screen from the moment
-                 they are chosen, so "three" is what you can see, and a second
+                 they are chosen, so MAX_IMAGES is what you can see, and a second
                  one can be added while the first uploads.
                  The glyph does not spin any more either. It was the only sign
                  an upload was happening, in the corner furthest from the
@@ -856,7 +857,7 @@ export function CreatePostForm({
                  see the shimmer. */
               {...({
                 type: "button",
-                disabled: previews.length >= 3,
+                disabled: previews.length >= MAX_IMAGES,
                 title: "Add a photo",
                 "aria-label": uploading
                   ? uploadProgress && uploadProgress.total > 1
