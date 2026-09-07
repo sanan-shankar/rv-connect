@@ -47,7 +47,7 @@ up the shared foundation first.
 
 | # | Idea | Where | Interaction | Technique | Effort |
 |---|------|-------|-------------|-----------|--------|
-| 1 | **Motion token file** | `src/lib/motion.ts` + delight index swatch | Everything that moves shares one feel | Export `SPRINGS` (gentle/snappy/settle) + CSS vars `--ease-spring`, `--ease-pop`, `--dur-*`, byte-identical to v2 values | S |
+| 1 | **Motion token file** | shipped as `src/components/common/motion.tsx` + delight index swatch | Everything that moves shares one feel | Export `SPRINGS` (gentle/snappy/settle) + CSS vars `--ease-spring`, `--ease-pop`, `--dur-*`, byte-identical to v2 values | S |
 | 2 | **Hoopoe sprite component** | new `hoopoe-mascot.tsx`, demoed everywhere | One bird, swappable poses (covered, peek, idle, curious, happy, sleepy, point) | One inline SVG, pose = transform/opacity state on named groups; idle blink + tilt built in; reduced-motion guards ambient only | M |
 | 3 | **Sliding sidebar marker** | green sidebar nav | Active pill glides between rows with a cinnamon left edge instead of blinking | `motion` `layoutId="navPill"`, spring 520/42; text color snaps | S |
 | 4 | **Sliding seg / tab thumb** | v2 Seg controls, signup account-type, profile tabs | The on-pill and the underline slide between options | shared `layoutId` thumb + underline, spring 540/38 | S |
@@ -72,8 +72,8 @@ Deduped and merged from 112 raw ideas. Wow is 1 to 5.
 
 | Name | Where | Interaction | Technique | Effort | Wow |
 |------|-------|-------------|-----------|--------|-----|
-| Motion token file | `src/lib/motion.ts`, delight index | One feel for everything | `SPRINGS` + CSS `--ease-spring`/`--ease-pop`/`--dur-*`, identical to v2 | S | 2 |
-| FadeRise / AmbientLayer / SpringPress kit | `src/components/motion/` | `<FadeRise>` enter, `<AmbientLayer>` scroll-drift, `<SpringPress>` press | motion components reading SPRINGS; `useValleyMotion()` centralizes reduced + tab-visible | M | 2 |
+| Motion token file | shipped as `src/components/common/motion.tsx`, delight index | One feel for everything | `SPRINGS` + CSS `--ease-spring`/`--ease-pop`/`--dur-*`, identical to v2 | S | 2 |
+| FadeRise / AmbientLayer / SpringPress kit | shipped inside `src/components/common/motion.tsx` | `<FadeRise>` enter, `<AmbientLayer>` scroll-drift, `<SpringPress>` press | motion components reading SPRINGS; `useValleyMotion()` centralizes reduced + tab-visible | M | 2 |
 | Reduced-motion contract | globals.css + delight `<style>` + hook | Static design + kept micro-delights; large ambient frozen | two tiers; scope reset to `.ambient`/`.parallax`/`.drift`, never blanket `*{animation:none}` | S | 2 |
 | Tab-visibility / in-view governor | parallax, drift, choreography | Ambient pauses off-screen and on hidden tab | IO toggling `paused` + `visibilitychange`, via `useValleyMotion()` | S | 1 |
 
@@ -200,7 +200,7 @@ Deduped and merged from 112 raw ideas. Wow is 1 to 5.
 
 Build this before anything else so every effect speaks one language.
 
-**Token set (`src/lib/motion.ts`).** One source for both motion and CSS:
+**Token set (shipped as `src/components/common/motion.tsx`).** One source for both motion and CSS:
 
 ```
 SPRINGS = {
@@ -215,7 +215,7 @@ CSS: --ease-spring: cubic-bezier(.34,1.5,.64,1);   // hoopoe wings
 
 The two cubic-beziers are byte-identical to the v2 values, so nothing already shipped shifts.
 
-**Reusable motion components (`src/components/motion/`).**
+**Reusable motion components (shipped inside `src/components/common/motion.tsx`).**
 - `FadeRise({delay})` — the `settle` enter (opacity 0 to 1, y 10 to 0). Used by route transitions,
   load choreography, empty states.
 - `AmbientLayer({factor=0.07})` — scroll-linked y drift, reduced-motion safe. Used by the bg
@@ -324,7 +324,7 @@ The hidden and ambient layer, surfaced here so the owner can see what is normall
 ## Build status (live, 2026-06-27)
 
 All seven routes are BUILT and compiling, light and dark, with a reduced-motion toggle in the top bar.
-Self-contained under `src/app/preview/delight/`; no core app files touched. Verified by screenshot.
+Self-contained under the delight rooms, now `/lab`; no core app files touched. Verified by screenshot.
 
 - `_kit.tsx` — SPRINGS (gentle/snappy/settle); BASE_CSS (v2 tokens namespaced under `.delight`, plus
   `--ease-spring`/`--ease-pop`/`--dur-*`); FadeRise, Stagger, SpringPress, AmbientLayer, Seg (sliding
@@ -337,8 +337,8 @@ Self-contained under `src/app/preview/delight/`; no core app files touched. Veri
   parts + parallax ridges + hopping bird), `/transitions`, `/loading`, `/feedback`, `/eggs`.
 
 Next, once favourites are chosen: promote winners into real components (PostCard like/bookmark, sidebar
-marker, route template, login, skeletons) and the landing page, lifting the kit into `src/lib/motion.ts`
-+ `src/components/motion/`. Tiny polish: the feedback fundraiser demo uses `$`; switch to `₹`.
+marker, route template, login, skeletons) and the landing page, lifting the kit into what shipped
+as `src/components/common/motion.tsx`. Tiny polish: the feedback fundraiser demo uses `$`; switch to `₹`.
 
 ---
 
@@ -363,7 +363,7 @@ There are now two hand-built birds on auth: `BlinkingOwl` (trivia gate) and `Hoo
   - **No audio.** Decision: never play actual sound; "chirp" is purely visual. Rationale: sound on click is the fastest route to "intrusive/cringe" and breaks in shared/quiet spaces.
 - **De-dupe:** ignore re-clicks while a wiggle is in flight (a `isWiggling` ref/state gate); the note element keys off a counter so rapid clicks do not stack.
 - **Reduced motion:** the note still fades in/out (opacity only, no drift); the rotation/beak are suppressed. So the easter egg is still acknowledged, just calmly.
-- **Where it lives:** `src/components/common/user-avatar.tsx` (the shared avatar). Gate the behavior behind a prop like `interactive` so it only activates on the self-avatar instances (sidebar user-chip, composer), keeping all other avatars inert and cheap.
+- **Where it lives:** the shared avatar, now `BirdAvatar`. Gate the behavior behind a prop like `interactive` so it only activates on the self-avatar instances (sidebar user-chip, composer), keeping all other avatars inert and cheap.
 - **Cringe risk:** LOW, provided audio stays off and it is self-only. The note glyph is the one part that could tip twee; keep it tiny and optional behind a flag if the team wants to A/B it.
 
 Note: DELIGHT_FEEDBACK.md's later owner review confirms 'React on tap (rotate + enlarge) is good' but says the chirp noise itself ('two crude curved lines') needs a nicer chirp glyph (clean concentric arcs / little notes) -- this original spec's 'note glyph' idea is the seed of that fix.

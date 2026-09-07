@@ -176,6 +176,12 @@ drops below its floor or if a test-shaped file exists that the runner would not 
     `/api/dev-login` (the old `/api/auth/admin-login` is deleted -- security audit C1-b, it
     needed no secret and existed in production). The cookie holds
     for every later call. `--isolated` gives a fresh profile, so redo it if the browser restarts.
+    **Know what this costs**: `evaluate_script` serialises its arguments into the page's own main
+    world, so `DEV_LOGIN_SECRET` enters app-controlled JavaScript. `scripts/qa/_dev-login.mjs`
+    exists precisely to avoid that -- it POSTs from Node and copies only the HttpOnly cookie -- and
+    every QA script uses it. The MCP has no way to be handed a cookie, so this is the only way to
+    drive an authed browser from it; use a script rather than the MCP when that matters. A planning
+    document had been quietly contradicting this line for weeks; the two now say the same thing.
   - **If a test needs a profile that is not yours, it is Jerry Maguire** (`sanan.shankar@gmail.com`),
     which exists for exactly that. Never sign in as a real alumnus: dev-login writes presence
     telemetry against whoever it signs in as, and on 2026-08-25 a guard check run as a 1978 alumnus

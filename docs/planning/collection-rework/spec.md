@@ -126,7 +126,9 @@ Touches a write path and the schema, so: `write-path-reviewer`, and a dated file
 ## 3. LOCKED — how a photograph is laid out, everywhere
 
 The rules live in one module, `src/lib/photo-layout.ts`, lifted from
-`src/app/lab/crop/_policies.ts` and `_justified.ts` where they already exist and are proven.
+the crop room's policy and justification helpers, where they already exist and are proven. (Both
+files were folded into the shipped `src/lib/photo-layout.ts` in phase 3 and no longer exist under
+`src/app/lab/crop/`.)
 Every surface imports from it. There is no second implementation.
 
 ### 3.1 One photograph in a column (feed, catch-ups, letters)
@@ -708,29 +710,24 @@ Phases 1 and 2 are the urgent ones: they are the bugs the owner is actually look
 
 ## 15. Operational context
 
-So none of it is explained twice.
+**Operating rules are `CLAUDE.md` and `AGENTS.md`; stack traps are `docs/TRAPS.md`.** Read them
+there and nowhere else. This section used to restate eight of them in full — the repo path, the
+shared checkout, `npm run check`, a push is a deploy, one Supabase database, never `prisma db push`,
+never a Vercel CLI command, Jerry Maguire, and chrome-devtools-finds-Playwright-remembers — and the
+copy had already drifted from the source on two runtimes. Two more copies of the same eight lived in
+two more campaign documents, which is three places for one rule to rot.
 
-- **Repo** `/Users/sanan/Documents/rv-connect`, branch `main`, no feature branches. Commit
-  as each coherent piece lands; **do not push** without asking, because a push is a deploy.
-- **Several Claude sessions run against this one checkout.** Uncommitted changes you did not
-  make are someone's work in progress. Stage your files by name; never `git add -A`, never
-  `git commit -a`, and never stash, reset or revert anything you did not author. A plain
-  `git commit` takes the whole index, so if someone else has staged work, commit with an
-  explicit pathspec: `git commit -F - -- path/one path/two`.
-- **The gate** is `npm run check` (about 25s idle, several minutes if another session is
-  building). `npm run visual` before committing any UI change, and read the diff before
-  ever running `visual:update`.
-- **Screenshots**: `npm run screenshot:auth -- "<url>"` for signed-in pages, `--mobile` for
-  390x844. Note the `--` — npm swallows the flag without it.
-- **Test account is Jerry Maguire** (`sanan.shankar@gmail.com`) when a profile that is not
-  the owner's is needed. Never sign in as a real alumnus; dev-login writes presence
-  telemetry against whoever it signs in as.
-- **The database is one Supabase instance behind both production and local dev.** Never
-  `prisma db push` — it will offer to drop tables. Schema changes go in a dated file in
-  `prisma/migrations-manual/`, applied with `node scripts/dev/run-sql.mjs`.
-- **Never run any Vercel CLI command.** Deploys are git-only.
-- **`chrome-devtools` MCP finds the answer; Playwright remembers it.** Never debug by
-  re-running a spec.
+What is specific to this campaign, and only here:
+
+- **`/lab/collection` renders the real Collection page against 240 made-up photographs**
+  (`src/app/lab/collection/_archive.ts`). That is where to build and verify. `/lab` requires an
+  admin session.
+- **The live archive is not a test fixture.** One Supabase database serves production and local
+  dev, so anything filed into the Collection is live to real members.
+- **After editing `src/app/globals.css`, Turbopack can serve a stale stylesheet indefinitely.** A
+  hard reload and `touch` both fail; `mv .next .next-stale` and restart. Verify CSS by measuring
+  computed styles, never by looking at a screenshot — a screenshot of a stale rule looks perfectly
+  plausible.
 
 ---
 
