@@ -1,5 +1,34 @@
 # Progress Log
 
+## 2026-09-07 — three tree sweeps stop reading what they cannot be about
+
+Refactor audit 2, `lib-tests-05`. `identity-row-overflow-rule` walked all 688 files under `src/`,
+decommented every one and split it into lines to look for two class names that 123 of them can
+even contain. It reads the bytes first now and drops the rest: **152 ms to 75 ms**, measured four
+runs each way. `notification-links` did two full walk-read-decomment passes in one process; one
+module-level array serves both, and the second filters it instead of walking again (126 to 108 ms).
+`loading-boundary-rule` re-walked each skeleton's own directory for a `page.tsx`; it uses the walk
+it already did.
+
+**The pre-filter is why this row was still open, and the guards are the point.** A sweep that
+filters its file list and then asserts "no offenders" passes for ever over an empty loop.
+`identity-row` had no count guard at all — the finding says it kept one; it did not — so it now
+counts the files that survived the filter (123 today, floor 40) *and* the `overflow-*-visible`
+lines actually read (floor 1, naming `identity-row.tsx`). `loading-boundary` gained one for both
+its walks. All three were mutation-tested: break the filter, break the match, shorten the list, and
+each fails with the number in the message.
+
+One accidental widening closed on the way past: `notification-links`' /settings sweep passed
+`skip: ["node_modules", LAB]`, which REPLACES the kit's default rather than adding to it, so it had
+been reading and decommenting the 46 files of generated Prisma client on every run. 606 files down
+to 560.
+
+**The audit's timings for this row are all stale** — it cites 1,064 ms for the identity-row sweep
+and 165 + 189 ms for the two notification ones; today they are 152 and 126 for the whole file. The
+saving is roughly 100 ms of CPU per `npm run check`, not the 1.3 s claimed. Worth doing for the
+vacuity guards, not for the clock.
+
+
 ## 2026-09-07 — the Playwright suite signs in the way everything else does
 
 Refactor audit 2, `scripts-e2e-ci-14`. `e2e/auth.setup.ts` hand-rolled the dev-login that

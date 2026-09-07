@@ -6,6 +6,17 @@ import { relative, resolve } from "node:path";
 import { adminThreadLink, postNotificationLink, postNoun } from "./notification-links.ts";
 import { ROOT, decomment, walk } from "./test-kit.mjs";
 
+/* One walk, one read, one decomment, for both sweeps below. They used to do
+   their own, so every `npm run check` read and stripped the comments out of
+   all of `src/` twice in this one process. The second sweep wants everything
+   except the lab, which is a filter on this array rather than a second walk. */
+const LAB = resolve(ROOT, "src/app/lab");
+const SOURCES = walk(resolve(ROOT, "src")).map((full) => ({
+  path: relative(ROOT, full),
+  full,
+  src: decomment(readFileSync(full, "utf8")),
+}));
+
 test("a letter's notification goes to the letter, where its comments are", () => {
   assert.equal(postNotificationLink({ id: "abc", kind: "letter" }), "/letters/abc");
   assert.equal(postNoun("letter"), "letter");
@@ -23,13 +34,8 @@ test("an admin notification goes to the inbox thread, not the retired route", ()
 });
 
 test("nothing anywhere mints a link to the retired /admin?thread= route", () => {
-  const offenders = [];
-  const files = walk(resolve(ROOT, "src"));
-  assert.ok(files.length > 300, `swept only ${files.length} files; the sweep has drifted`);
-  for (const full of files) {
-    const src = decomment(readFileSync(full, "utf8"));
-    if (src.includes("/admin?thread=")) offenders.push(relative(ROOT, full));
-  }
+  assert.ok(SOURCES.length > 300, `swept only ${SOURCES.length} files; the sweep has drifted`);
+  const offenders = SOURCES.filter((f) => f.src.includes("/admin?thread=")).map((f) => f.path);
   assert.deepEqual(offenders, [], `still linking to the retired route: ${offenders.join(", ")}`);
 });
 
@@ -52,13 +58,15 @@ test("nothing links a member to /settings, which does not exist", () => {
      only, so prose that happens to mention settings is not a false positive.
      /lab is excluded: it is the dev index, and its rooms catalogue routes that
      have been retired on purpose. */
-  const offenders = [];
-  const LAB = resolve(ROOT, "src/app/lab");
-  const files = walk(resolve(ROOT, "src"), { skip: ["node_modules", LAB] });
+  /* 560 files, where the hand-rolled walk here swept 606: passing
+     `skip: ["node_modules", LAB]` replaced the kit's default rather than
+     adding to it, so `src/generated/prisma` -- 46 files of generated client
+     that cannot contain an href at all -- was being read and decommented on
+     every run. */
+  const files = SOURCES.filter((f) => !f.full.startsWith(`${LAB}/`));
   assert.ok(files.length > 300, `swept only ${files.length} files; the sweep has drifted`);
-  for (const full of files) {
-    const src = decomment(readFileSync(full, "utf8"));
-    if (/(link:\s*|href=\{?)["'`]\/settings\b/.test(src)) offenders.push(relative(ROOT, full));
-  }
+  const offenders = files
+    .filter((f) => /(link:\s*|href=\{?)["'`]\/settings\b/.test(f.src))
+    .map((f) => f.path);
   assert.deepEqual(offenders, [], `linking to the retired /settings: ${offenders.join(", ")}`);
 });

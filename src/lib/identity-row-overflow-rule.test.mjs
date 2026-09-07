@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { ROOT, read, decomment, walk } from "./test-kit.mjs";
 import { join, relative } from "node:path";
 
@@ -43,11 +44,29 @@ import { join, relative } from "node:path";
    overriding a clip somebody else applied. Every reason to reach for it is a
    reason to need its partner. */
 test("overflow-*-visible is always written with the other axis clipped", () => {
+  const files = walk(join(ROOT, "src"));
+  assert.ok(files.length > 300, `swept only ${files.length} files; the sweep has drifted`);
+
+  /* A file with no `overflow-` in it anywhere cannot break this rule, so it is
+     read as bytes and dropped before the expensive part. It used to be
+     decommented and split into lines first, all 688 of them, which made this
+     the slowest single file in the unit suite for a rule that only 123 of
+     them can even be about.
+
+     The pre-filter is why the two counters below exist. A sweep that filters
+     its file list and then asserts over an empty loop passes for ever and
+     says nothing -- audit C-188's failure mode, and the reason lib-tests-13
+     went round the other sweeps adding the same line. */
+  let examined = 0;
+  let seen = 0;
   const offenders = [];
-  for (const file of walk(join(ROOT, "src"))) {
+  for (const file of files) {
+    if (!readFileSync(file, "utf8").includes("overflow-")) continue;
+    examined += 1;
     const src = decomment(read(relative(ROOT, file)));
     src.split("\n").forEach((line, i) => {
       const where = `${relative(ROOT, file)}:${i + 1}`;
+      if (/\boverflow-[xy]-visible\b/.test(line)) seen += 1;
       if (/\boverflow-y-visible\b/.test(line) && !/\boverflow-x-clip\b/.test(line)) {
         offenders.push(`${where} — overflow-y-visible needs overflow-x-clip beside it, or it computes to auto`);
       }
@@ -56,6 +75,18 @@ test("overflow-*-visible is always written with the other axis clipped", () => {
       }
     });
   }
+
+  assert.ok(
+    examined >= 40,
+    `only ${examined} files carried an overflow- class; 123 did when the ` +
+      `pre-filter was written, so it or the walk has drifted`
+  );
+  assert.ok(
+    seen >= 1,
+    `no overflow-*-visible line was read at all, so the rule asserted over ` +
+      `nothing. identity-row.tsx carries two (see the test below); if it ` +
+      `genuinely no longer does, delete this file rather than leave it green`
+  );
   assert.deepEqual(offenders, [], `\n${offenders.join("\n")}\n`);
 });
 

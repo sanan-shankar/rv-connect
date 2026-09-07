@@ -24,10 +24,25 @@ import { ROOT, walk } from "./test-kit.mjs";
 
 const APP = `${ROOT}/src/app`;
 
-test("no loading.tsx shadows another below it", () => {
-  const dirs = walk(APP, { match: (name) => name === "loading.tsx" }).map((f) =>
-    relative(ROOT, f).replace(/\/loading\.tsx$/, ""),
+/* One walk each, at module level, for the two tests below. The orphan check
+   used to re-walk every skeleton's own directory looking for a `page.tsx`,
+   which is `src/app` swept once plus a subtree per skeleton. */
+const SKELETONS = walk(APP, { match: (name) => name === "loading.tsx" });
+const PAGES = walk(APP, { match: (name) => name === "page.tsx" });
+
+test("the sweep found the skeletons at all", () => {
+  /* Both tests below are "nothing is wrong" assertions, which an empty list
+     satisfies for free. This is the line that says the list was not empty. */
+  assert.ok(
+    SKELETONS.length >= 20 && PAGES.length >= 60,
+    `swept ${SKELETONS.length} loading.tsx and ${PAGES.length} page.tsx under ` +
+      `src/app; there were 36 and 99. The walk has drifted and the two rules ` +
+      `below are passing over nothing`,
   );
+});
+
+test("no loading.tsx shadows another below it", () => {
+  const dirs = SKELETONS.map((f) => relative(ROOT, f).replace(/\/loading\.tsx$/, ""));
 
   const shadowed = [];
   for (const parent of dirs) {
@@ -50,12 +65,10 @@ test("no loading.tsx shadows another below it", () => {
 test("every loading.tsx sits beside the page it stands in for", () => {
   // A route group holding only a skeleton would be a fallback for a route that
   // does not exist -- the mistake the fix above is one keystroke away from.
-  const orphans = walk(APP, { match: (name) => name === "loading.tsx" })
-    .map((f) => relative(ROOT, f))
-    .filter((f) => {
-      const dir = `${ROOT}/${f.replace(/\/loading\.tsx$/, "")}`;
-      return !walk(dir, { match: (name) => name === "page.tsx" }).length;
-    });
+  const orphans = SKELETONS.map((f) => relative(ROOT, f)).filter((f) => {
+    const dir = `${ROOT}/${f.replace(/\/loading\.tsx$/, "")}/`;
+    return !PAGES.some((p) => p.startsWith(dir));
+  });
 
   assert.deepEqual(orphans, [], "loading.tsx with no page beneath it");
 });
