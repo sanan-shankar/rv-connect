@@ -29,7 +29,6 @@ import {
 const post = (over = {}) => ({
   id: "p1",
   authorId: "author",
-  groupId: null,
   cityScope: null,
   targetBatches: null,
   isHidden: false,
@@ -37,42 +36,40 @@ const post = (over = {}) => ({
   ...over,
 });
 const member = (over = {}) => ({ id: "viewer", role: "member", batchType: "ISC", batchYear: 2011, ...over });
-const OPEN = { isGroupMember: false, cityMatches: true };
+const OPEN = { cityMatches: true };
 
 test("an ordinary published post is visible to any member", () => {
   assert.equal(decidePostVisibility(post(), member(), OPEN).ok, true);
 });
 
-test("a non-member cannot reach a private group's post by id", () => {
-  /* The Catch-up case: private groups are the hidden container under every
-     people-started Catch-up, and post ids leak through /feed#<postId>
-     notification links. */
-  const r = decidePostVisibility(post({ groupId: "g1" }), member(), { isGroupMember: false, cityMatches: true });
-  assert.equal(r.ok, false);
-  assert.equal(r.reason, "not-a-member");
-});
+test("a post carries no group scope, so nothing may be added that ignores the audience", () => {
+  /* THREE TESTS USED TO LIVE HERE, all about `Post.groupId`: a non-member
+     refused a private group's post, a member allowed it, and membership
+     overriding city and batch. The column went on 2026-09-07 (refactor audit
+     2 / D6) after being NULL on every row since Groups were retired -- 0 of 20
+     on production, 0 of 0 on the demo -- with no write path able to set it.
+     A branch that can never fire is not a guard.
 
-test("a member of that group can", () => {
-  assert.equal(
-    decidePostVisibility(post({ groupId: "g1" }), member(), { isGroupMember: true, cityMatches: true }).ok,
-    true
-  );
-});
+     What replaces them is the thing that made that branch dangerous to add
+     back carelessly: it returned `ok: true` WITHOUT consulting cityScope or
+     targetBatches. So this refuses any future short-circuit of the same
+     shape. If a group-like scope returns one day, it must decide the audience
+     arms too, not skip them. */
+  const src = decomment(readFileSync(resolve(ROOT, "src/lib/post-visibility-rule.ts"), "utf8"));
+  assert.ok(!/\bgroupId\b/.test(src), "post-visibility-rule.ts names groupId again; re-derive this test");
 
-test("group membership alone decides a group post, ignoring city and batch", () => {
-  /* createPost writes cityScope and targetBatches as null whenever groupId is
-     set. If that ever changed, a member could be refused their own group's
-     post -- so this pins the intent. */
+  /* And the behaviour: an unknown extra field on the row changes nothing. */
   const r = decidePostVisibility(
-    post({ groupId: "g1", cityScope: "Chennai", targetBatches: "ICSE-1999" }),
+    { ...post({ cityScope: "Chennai", targetBatches: "ICSE-1999" }), groupId: "g1" },
     member(),
-    { isGroupMember: true, cityMatches: false }
+    { cityMatches: false }
   );
-  assert.equal(r.ok, true);
+  assert.equal(r.ok, false);
+  assert.equal(r.reason, "other-city");
 });
 
 test("a city-scoped post is refused to somebody in another city", () => {
-  const r = decidePostVisibility(post({ cityScope: "Bangalore" }), member(), { isGroupMember: false, cityMatches: false });
+  const r = decidePostVisibility(post({ cityScope: "Bangalore" }), member(), { cityMatches: false });
   assert.equal(r.ok, false);
   assert.equal(r.reason, "other-city");
 });
@@ -103,14 +100,13 @@ test("an unpublished draft is refused to everyone but its author", () => {
 test("an admin sees everything", () => {
   const admin = member({ role: "admin" });
   for (const over of [
-    { groupId: "g1" },
     { cityScope: "Bangalore" },
     { targetBatches: "ICSE-1999" },
     { isHidden: true },
     { status: "draft" },
   ]) {
     assert.equal(
-      decidePostVisibility(post(over), admin, { isGroupMember: false, cityMatches: false }).ok,
+      decidePostVisibility(post(over), admin, { cityMatches: false }).ok,
       true,
       `admin should see ${JSON.stringify(over)}`
     );
@@ -121,7 +117,7 @@ test("a blocked-shaped viewer gets no special treatment here", () => {
   /* Blocking is enforced in the auth layer (H4): auth() returns null, so this
      function never runs for a blocked member. This only pins that nothing
      here quietly re-admits them. */
-  const r = decidePostVisibility(post({ groupId: "g1" }), member({ role: null }), { isGroupMember: false, cityMatches: true });
+  const r = decidePostVisibility(post({ isHidden: true }), member({ role: null }), OPEN);
   assert.equal(r.ok, false);
 });
 
@@ -141,11 +137,10 @@ test("the author sees their own post whatever audience it was aimed at", () => {
   const base = {
     id: "p1",
     authorId: "asha",
-    groupId: null,
     isHidden: false,
     status: "published",
   };
-  const facts = { isGroupMember: false, cityMatches: false };
+  const facts = { cityMatches: false };
 
   // Aimed at a city the author no longer has, and a batch that is not theirs.
   const aimedElsewhere = { ...base, cityScope: "Chennai", targetBatches: "ISC-1998" };
@@ -160,13 +155,12 @@ test("the author reads their own unpublished draft; nobody else does", () => {
   const draft = {
     id: "p2",
     authorId: "asha",
-    groupId: null,
     cityScope: null,
     targetBatches: null,
     isHidden: false,
     status: "draft",
   };
-  const facts = { isGroupMember: false, cityMatches: true };
+  const facts = { cityMatches: true };
   assert.equal(decidePostVisibility(draft, { id: "asha" }, facts).ok, true);
   const denied = decidePostVisibility(draft, { id: "bo" }, facts);
   assert.equal(denied.ok, false);
@@ -182,17 +176,16 @@ test("a hidden post is still reachable by its own author, on purpose", () => {
   const hidden = {
     id: "p3",
     authorId: "asha",
-    groupId: null,
     cityScope: null,
     targetBatches: null,
     isHidden: true,
     status: "published",
   };
   assert.equal(
-    decidePostVisibility(hidden, { id: "asha" }, { isGroupMember: true, cityMatches: true }).ok,
+    decidePostVisibility(hidden, { id: "asha" }, { cityMatches: true }).ok,
     true
   );
-  const other = decidePostVisibility(hidden, { id: "bo" }, { isGroupMember: true, cityMatches: true });
+  const other = decidePostVisibility(hidden, { id: "bo" }, { cityMatches: true });
   assert.equal(other.ok, false);
   assert.equal(other.reason, "hidden");
 });
@@ -254,13 +247,12 @@ test("a targeted post reaches its batch and nobody else's", () => {
   const targeted = {
     id: "p4",
     authorId: "asha",
-    groupId: null,
     cityScope: null,
     targetBatches: "ISC-2004",
     isHidden: false,
     status: "published",
   };
-  const facts = { isGroupMember: false, cityMatches: true };
+  const facts = { cityMatches: true };
   assert.equal(
     decidePostVisibility(targeted, { id: "bo", batchType: "ISC", batchYear: 2004 }, facts).ok,
     true
@@ -283,14 +275,13 @@ test("a targeted post reaches its batch and nobody else's", () => {
 const byBlocked = {
   id: "p5",
   authorId: "gone",
-  groupId: null,
   cityScope: null,
   targetBatches: null,
   isHidden: false,
   status: "published",
   authorIsBlocked: true,
 };
-const anyone = { isGroupMember: true, cityMatches: true };
+const anyone = { cityMatches: true };
 
 test("a blocked member's post is not available to other members", () => {
   const seen = decidePostVisibility(byBlocked, { id: "bo" }, anyone);
@@ -329,7 +320,7 @@ test("a caller that never fetched the author's standing is not told everything i
  * A behavioural test of decidePostVisibility cannot see that. This can: no
  * caller may refuse on a fact the rule already weighs. */
 
-const RULE_FACTS = ["isHidden", "groupId", "cityScope", "targetBatches"];
+const RULE_FACTS = ["isHidden", "cityScope", "targetBatches"];
 
 test("no page refuses a post ahead of the rule", () => {
   const callers = execSync("git grep -l 'canViewPost(' -- 'src/app/**/page.tsx'", {

@@ -97,9 +97,9 @@ async function promoteOrphanedGroups(db: Db, userId: string): Promise<number> {
  * profile cover, so its bytes belong to whoever contributed it — if that was
  * this member, it is already collected from their Photo rows.
  *
- * `Group.coverImage` is absent for the same class of reason: since 2026-08-21
- * a group outlives the member who started it, so its cover is still displayed
- * and still has a row pointing at it.
+ * `Group.coverImage` used to be named here for the same class of reason. The
+ * column never had a writer or a reader and left the schema on 2026-09-07
+ * (refactor audit 2 / D6); a group has no image to collect.
  */
 async function collectImageUrls(db: Db, userId: string): Promise<string[]> {
   const [user, posts, photos, entries, adminMessages] = await Promise.all([

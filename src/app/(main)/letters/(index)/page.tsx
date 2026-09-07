@@ -57,7 +57,6 @@ export default async function LettersPage({
     where: {
       kind: "letter",
       isHidden: false,
-      groupId: null,
       // Drafts are never public, even to the person browsing their own
       // batch/city -- they only ever show in the "Your drafts" strip below.
       ...PUBLISHED_ONLY,

@@ -170,7 +170,6 @@ export default async function ProfilePage({
   const visiblePostsWhere = {
     authorId: user.id,
     isHidden: false,
-    groupId: null,
     // A profile only ever shows published work, even to the profile's own
     // owner: an in-progress letter draft belongs on /letters ("Your drafts"),
     // never on the public Posts & Letters tab or the Photos grid.
