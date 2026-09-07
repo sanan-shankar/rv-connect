@@ -27,9 +27,6 @@ export default function ProfileLoading() {
           ))}
         </div>
 
-        {/* the engraved rule */}
-        <div className="skeleton-warm mt-[var(--space-l)] h-[3px] w-full rounded-full" />
-
         {/* about */}
         <div className="mt-[var(--space-l)]">
           <div className="skeleton-warm h-3 w-14 rounded-md" />
