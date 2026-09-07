@@ -60,14 +60,6 @@ const NAMES = [
 
 const BUCKET_VALUES = ["people", "birds", "nature", "campus", "school-life", "other"];
 
-/* Real places, because a made-up one would make the Where line -- which
-   search reads and no dropdown offers -- look like filler. */
-const WHERE = [
-  "The banyan", "Junior school", "The dining hall", "Rishi Konda",
-  "Senior school", "The study", "Behind the assembly hall", "Cave rock",
-  "The nursery", "Down by the river bed", "",
-];
-
 const CAPTIONS = [
   "Morning assembly under the banyan, before the bell.",
   "Rishi Konda from the study steps, an hour before it rained.",
@@ -144,9 +136,7 @@ export const LAB_ARCHIVE: PhotoData[] = Array.from({ length: 240 }, (_, n) => {
     height: shape.h,
     caption: caption || null,
     subject: buckets,
-    area: pick(WHERE, n, 43) || null,
     era,
-    freeTags: [],
     /* Through the app's own two functions, not spelled out here, so the room
        shows the real phrasing at the real precision: "May 1978", "1978",
        "the 1970s", or nothing at all when nobody said. */

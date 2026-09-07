@@ -1,5 +1,32 @@
 # Progress Log
 
+## 2026-09-07 — the Collection stops reading two columns nothing has written
+
+Refactor audit 2, D5 (`collection-08`), which closes audit 1 §4 #16. `Photo.area` ("Part of
+school") and `Photo.freeTags` (bird and species names) both left the contribute form long ago --
+`freeTags` on 2026-07-18, `area` on 2026-08-28 -- and were still being selected, searched and
+written as literal NULLs. Counted again today before cutting: **0 of 1,749 rows on production, 0
+of 0 on the demo**, both columns.
+
+Gone from the code: `LEGACY_AREAS`/`areaLabel`, the two fields on `PhotoData`/`PhotoMeta`, the
+`photoSchema` arm, both contribute inputs, the two search `OR` arms, the viewer mapping's `where`
+line and its `freeTags` spread, the account export's `area: true`, the demo seed's six "Whole
+campus" values and the lab archive's `WHERE` specimen list. Two files the finding's own
+remediation list missed and which would have failed the build: `import-album.mjs`'s explicit
+`INSERT` column list and `lab/collection/_archive.ts`'s fixture.
+
+**`ViewerImage.where` STAYS.** The finding asks whether it has a producer left: it does --
+`/lab/viewer` builds two literals with it, and the lab is typed and compiled.
+
+**No DDL ran.** `prisma/migrations-manual/2026-09-07-drop-collection-legacy-tags.sql` is written
+and unrun; the owner runs it after this deploys, against production and the demo separately. The
+two trigram indexes (`Photo_area_trgm_idx`, `Photo_freeTags_trgm_idx`, both at `idx_scan = 0` over
+a window open since 2026-05-22) go with the columns, taking the schema header's eleven-index
+census to nine on the day it runs.
+
+`npm run check` 105/105, `verify:crawl` 18/20 (`/lab` and `/signup` are a peer session's live
+Catch-ups edits, not this change), `/collection` shot and read.
+
 ## 2026-09-07 — four dead options removed, two kept because the lab uses them
 
 Refactor audit 2, directory-profile-17, "six props across five files". **Two of the six are not

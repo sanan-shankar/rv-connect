@@ -251,16 +251,15 @@ export const postSchema = z
     path: ["content"],
   });
 
-// The Collection contribute room (contribute-room.tsx) asks for four things:
-// facts: a caption, which part of school it's from (free text, no longer a
-// fixed picklist), and when. "When" is either an exact year (with an optional
-// month) or, when the contributor isn't sure, a decade fallback from ERA_VALUES
-// (see docs: subject tagging and the bird/species free-tag field were removed
-// per the owner's rework, 2026-07-18).
+// The Collection contribute room (contribute-room.tsx) asks for three things:
+// a caption, the buckets it is filed under, and when. "When" is either an
+// exact year (with an optional month) or, when the contributor isn't sure, a
+// decade fallback from ERA_VALUES. "Part of school" and the bird/species free
+// tags were both removed from the form in the owner's 2026-07-18 rework and
+// their columns stopped being written on 2026-09-07.
 export const photoSchema = z
   .object({
     caption: z.string().trim().max(300).optional(),
-    area: z.string().trim().max(100).optional(),
     /* The six buckets, and only the six. A closed vocabulary is the whole
        point of them (src/lib/collection.ts): the moment anything else can be
        written here it is free text, and free text is searched, never

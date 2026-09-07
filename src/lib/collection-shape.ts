@@ -24,9 +24,7 @@ export type PhotoData = {
   /** The six buckets this photograph is filed under, already mapped off the
    *  stored `subject` column and de-duplicated (src/lib/collection.ts). */
   subject: string[];
-  area: string | null;
   era: string;
-  freeTags: string[];
   /** When the photograph was TAKEN, in the contributor's own precision --
    *  "May 1978", "1978", "the 1970s" -- or null when they gave nothing. The
    *  viewer shows this and never `createdAt`, which is the day somebody
@@ -59,8 +57,8 @@ export type PhotoData = {
 export function shape(
   p: {
     id: string; thumbUrl: string; url: string; width: number; height: number;
-    caption: string | null; subject: string; area: string | null; era: string;
-    freeTags: string | null; approved: boolean; scope: string; uploaderId: string; createdAt: Date;
+    caption: string | null; subject: string; era: string;
+    approved: boolean; scope: string; uploaderId: string; createdAt: Date;
     photoYear: number | null; photoMonth: number | null; datePrecision: string | null;
     uploader: { id: string; name: string };
     _count: { loves: number }; loves: { id: string }[];
@@ -79,9 +77,7 @@ export function shape(
        four of those collapse onto Nature -- so a photograph filed
        "hills,flora" must arrive as ONE Nature, not two. */
     subject: bucketsOf(p.subject),
-    area: p.area,
     era: p.era,
-    freeTags: p.freeTags ? p.freeTags.split(",").map((t) => t.trim()).filter(Boolean) : [],
     takenLabel: takenLabel(p),
     takenShort: takenShort(p),
     photoYear: p.photoYear,

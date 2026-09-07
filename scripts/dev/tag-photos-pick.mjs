@@ -70,7 +70,7 @@ const wanted = ALL
   : `("subject" IS NULL OR "subject" = '')`;
 
 const { rows } = await client.query(
-  `SELECT p."id", p."thumbUrl", p."url", p."caption", p."area", p."era",
+  `SELECT p."id", p."thumbUrl", p."url", p."caption", p."era",
           p."photoYear", p."photoMonth", p."datePrecision", p."subject",
           p."approved", p."createdAt", u."name" AS uploader
      FROM "Photo" p
@@ -108,7 +108,6 @@ await mkdir(path.join(OUT, "photos"), { recursive: true });
 function saidSoFar(r) {
   const said = {};
   if (r.caption) said.caption = r.caption;
-  if (r.area) said.where = r.area;
   if (r.photoYear && r.photoMonth) said.when = `${r.photoYear}-${String(r.photoMonth).padStart(2, "0")}`;
   else if (r.photoYear) said.when = String(r.photoYear);
   else if (r.era && r.era !== "unknown") said.when = r.era;

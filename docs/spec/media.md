@@ -15,8 +15,11 @@
 >   People, Birds, Nature, Campus, School life, Other), "Part of school" as
 >   free text rather than a picklist, and no facet dropdowns at all. The
 >   fourteen values had nowhere to file a class photograph, which is what
->   made them wrong rather than short. `freeTags` survives as a column and
->   is searched; nothing writes it any more.
+>   made them wrong rather than short. `area` and `freeTags` survived as
+>   columns that search still read; on 2026-09-07 the code stopped reading
+>   them too (0 of 1,749 rows carried either), and their removal SQL is
+>   `prisma/migrations-manual/2026-09-07-drop-collection-legacy-tags.sql`.
+>   "Part of school" is no longer asked, stored or searched anywhere.
 > - **§3's routes** — `/collection/[id]` is a permalink that opens the
 >   viewer, not a detail page; `/collection/contribute` never existed as a
 >   route (contributing is a pop-up).

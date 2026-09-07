@@ -197,7 +197,6 @@ export async function contributePhoto(formData: FormData) {
 
   const parsed = parsePhotoMeta({
     caption: (formData.get("caption") as string) || undefined,
-    area: (formData.get("area") as string) || undefined,
     // One field per bucket, so the six arrive as a real list rather than as a
     // string this side has to agree with the form about how to split.
     buckets: formData.getAll("buckets").map(String).filter(Boolean),
@@ -365,7 +364,6 @@ export async function contributePhotoDirect(input: {
    *  own row, so naming a class is not a way into it. */
   scope?: string;
   caption?: string;
-  area?: string;
   buckets?: string[];
   era?: string;
   datePrecision?: string;
@@ -430,7 +428,6 @@ export async function contributePhotoDirect(input: {
 
   const parsed = parsePhotoMeta({
     caption: input.caption,
-    area: input.area,
     buckets: input.buckets,
     era: input.era,
     datePrecision: input.datePrecision,
@@ -653,10 +650,6 @@ function buildCollectionWhere(
       ? {
           OR: [
             { caption: { contains: escapeLike(search), ...insensitive } },
-            // "Part of school", which stopped being a dropdown and became
-            // part of what search reads (spec sec. 7.2, brief #30).
-            { area: { contains: escapeLike(search), ...insensitive } },
-            { freeTags: { contains: escapeLike(search), ...insensitive } },
             { uploader: { name: { contains: escapeLike(search), ...insensitive } } },
           ],
         }
@@ -1065,9 +1058,7 @@ export async function adminRemovePhoto(photoId: string, note?: string): Promise<
  *  THE BYTES ARE NOT TOUCHED, and neither is `approved`: this changes
  *  what we know about a photograph, never whether it is in the archive,
  *  so an edit cannot quietly publish something still in the queue or
- *  push an approved one back into it. `area` is left alone as well --
- *  the form stopped asking for it (see photo-questions.tsx) and a form
- *  that no longer asks a question must not answer it with a blank.
+ *  push an approved one back into it.
  * ------------------------------------------------------------------ */
 export async function editPhoto(input: {
   id: string;

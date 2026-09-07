@@ -176,7 +176,6 @@ for (const [i, file] of files.entries()) {
     uploader: CONTRIBUTORS[i % CONTRIBUTORS.length],
     caption,
     subject: "campus",
-    area: "Whole campus",
     era: eraFor(photoYear),
     photoYear,
     datePrecision: photoYear ? "year" : "unknown",

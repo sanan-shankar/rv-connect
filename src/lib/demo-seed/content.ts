@@ -683,7 +683,6 @@ export interface DemoPhoto {
   uploader: string;
   caption: string;
   subject: string;
-  area: string;
   era: string;
   photoYear?: number;
   photoMonth?: number;
@@ -700,7 +699,6 @@ export const DEMO_PHOTOS: DemoPhoto[] = [
     uploader: "harsh-vardhan",
     caption: "The assembly benches, empty, on a Sunday morning in August.",
     subject: "assembly-dining,campus",
-    area: "Whole campus",
     era: "2020s",
     photoYear: 2024,
     photoMonth: 8,
@@ -718,7 +716,6 @@ export const DEMO_PHOTOS: DemoPhoto[] = [
     uploader: "harsh-vardhan",
     caption: "The main trunk. For scale, those are full-sized stone benches behind it.",
     subject: "banyan,flora",
-    area: "Whole campus",
     era: "2020s",
     photoYear: 2024,
     photoMonth: 8,
@@ -737,7 +734,6 @@ export const DEMO_PHOTOS: DemoPhoto[] = [
     uploader: "ishaan-verma",
     caption: "The low branch everyone has sat on at least once, and nobody was ever supposed to.",
     subject: "banyan,campus",
-    area: "Whole campus",
     era: "2020s",
     photoYear: 2024,
     datePrecision: "year",
@@ -754,7 +750,6 @@ export const DEMO_PHOTOS: DemoPhoto[] = [
     uploader: "gita-raman",
     caption: "Where morning assembly happens, for anyone who has forgotten the shape of it.",
     subject: "assembly-dining,landscape",
-    area: "Whole campus",
     era: "2020s",
     photoYear: 2024,
     datePrecision: "year",
@@ -771,7 +766,6 @@ export const DEMO_PHOTOS: DemoPhoto[] = [
     uploader: "ishaan-verma",
     caption: "Looking up from the third row of benches.",
     subject: "banyan,weather-sky",
-    area: "Whole campus",
     era: "2020s",
     photoYear: 2024,
     datePrecision: "year",
@@ -788,7 +782,6 @@ export const DEMO_PHOTOS: DemoPhoto[] = [
     uploader: "gita-raman",
     caption: "The stone pillar at the centre. Nobody I have asked knows what it was originally for.",
     subject: "buildings,historical",
-    area: "Whole campus",
     era: "2020s",
     photoYear: 2023,
     datePrecision: "year",

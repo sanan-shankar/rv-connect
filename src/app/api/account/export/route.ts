@@ -196,7 +196,6 @@ export async function GET() {
             id: true,
             url: true,
             caption: true,
-            area: true,
             era: true,
             photoYear: true,
             photoMonth: true,

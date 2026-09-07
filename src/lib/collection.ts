@@ -134,27 +134,6 @@ export function bucketsOf(subject: string | null | undefined): BucketValue[] {
 }
 
 /* ------------------------------------------------------------------ *
- *  Where in the valley.
- *
- *  Free text since the 2026-07-18 rework, and it stays free text: this
- *  is the field that would otherwise reach two thousand near-duplicate
- *  values and make its own dropdown unusable, which the owner reasoned
- *  out himself during the brief. It is searched now, never filtered
- *  (sec. 7.2). The four values below are the fixed picklist it used to be,
- *  kept only so a row written before that rework still reads as a
- *  sentence rather than as a slug.
- * ------------------------------------------------------------------ */
-
-const LEGACY_AREAS: Record<string, string> = {
-  "junior-school": "Junior School",
-  "senior-school": "Senior School",
-  "whole-campus": "Whole Campus",
-  "off-campus": "Off Campus",
-};
-
-export const areaLabel = (v: string) => LEGACY_AREAS[v] ?? v;
-
-/* ------------------------------------------------------------------ *
  *  The decades.
  *
  *  The ladder used to stop at "Pre-1960s", which put thirty-four years of

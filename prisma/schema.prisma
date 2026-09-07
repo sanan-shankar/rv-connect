@@ -347,9 +347,13 @@ model Photo {
   // legibility does not buy an outage window. `bucketsOf()` reads it and maps
   // any surviving old value on the way through.
   subject      String    // e.g. "campus,school-life"
-  area         String?   // free text, "Part of school" (was a fixed picklist)
   era          String    @default("unknown") // decade bucket, derived from photoYear when given
-  freeTags     String?   // comma-joined free text, mainly bird/species names
+  // `area` ("Part of school") and `freeTags` (bird/species names) were here.
+  // Both left the contribute form in the 2026-07-18 rework, and on 2026-09-07
+  // the code stopped reading and writing them: 0 of 1,749 rows carried either,
+  // on production and on the demo. The columns and their two trigram indexes
+  // are still in both databases until the owner runs
+  // prisma/migrations-manual/2026-09-07-drop-collection-legacy-tags.sql.
 
   // "When", as given by the contributor: an exact year (photoYear), an
   // optional month alongside it, or -- when they weren't sure of the exact

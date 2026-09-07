@@ -322,7 +322,6 @@ export async function seedDemo(
         height: ph.height,
         caption: ph.caption,
         subject: ph.subject,
-        area: ph.area,
         era: ph.era,
         photoYear: ph.photoYear ?? null,
         photoMonth: ph.photoMonth ?? null,
