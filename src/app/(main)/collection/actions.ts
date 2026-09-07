@@ -2,7 +2,7 @@
 
 import { createId } from "@paralleldrive/cuid2";
 import { auth } from "@/lib/auth";
-import { requireAdminAction, requireAdminActor, type AdminActionResult } from "@/lib/admin";
+import { requireAdminAction, type AdminActionResult } from "@/lib/admin";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import {
@@ -882,74 +882,6 @@ export async function togglePhotoLove(photoId: string) {
   return { success: true, loved: true };
 }
 
-/* The return type is written out on the three actions below rather than
-   inferred. A refusal returned FROM the shared guard is not a fresh object
-   literal, so TypeScript stops normalising the union and `{ success: true }`
-   loses its `error?: undefined` -- at which point the whole result is a weak
-   type and every caller that reads `result.error` fails to compile. Same trap
-   `AdminActionResult` was written for; here it is used. */
-export async function approvePhoto(photoId: string): Promise<AdminActionResult> {
-  const actor = await requireAdminActor();
-  if (!actor.ok) return { error: actor.error };
-
-  /* updateMany, so a row another admin declined a moment ago is ANSWERED
-     rather than thrown at (audit C-074/C-130). `update` raises P2025 on a
-     missing row, which reached callAction as "check your connection and try
-     again" -- a wrong diagnosis that invites the admin to retry something that
-     will never work. Two admins clearing the queue together is the ordinary
-     way this happens, not an exotic race. */
-  const approved = await prisma.photo.updateMany({
-    where: { id: photoId },
-    data: { approved: true, approvedAt: new Date(), approvedById: actor.actorId },
-  });
-  if (approved.count === 0) return { error: "That photo is no longer here." };
-  revalidatePath("/collection");
-  revalidatePath("/admin");
-  return { success: true };
-}
-
-/**
- * Approve a page of the queue in one press.
- *
- * Spec §9 asks for this beside trusted contributors and for the same reason:
- * once bulk upload exists, one contributor can put a hundred photographs in
- * front of an admin, and clearing them one press at a time is the thing that
- * stops the archive being opened to the school photographer at all. Blessing
- * him `photoTrusted` answers the SECOND hundred; this answers the first.
- *
- * Deliberately a SELECTION rather than an "approve everything" button. The
- * point of the ticks is that you can leave one out: a batch approval with no
- * way to exclude is how a photograph nobody looked at reaches the Collection,
- * and an admin who cannot exclude will either approve blind or go back to one
- * at a time.
- *
- * `updateMany` for the same reason `approvePhoto` uses it (audits
- * C-074/C-130): two admins clearing the queue together is ordinary, and a row
- * that is already gone should be counted out rather than thrown.
- */
-export async function approvePhotos(photoIds: string[]) {
-  const actor = await requireAdminActor();
-  if (!actor.ok) return { error: actor.error };
-
-  /* The list is user input, so it is bounded before it becomes an `IN` clause.
-     A page of the queue is CONTENT_PAGE_SIZE (40); this is generous room above
-     that and still a number rather than whatever was posted. */
-  if (!Array.isArray(photoIds)) return { error: "Nothing to approve" };
-  const ids = [...new Set(photoIds.filter((id) => typeof id === "string" && id))].slice(0, 100);
-  if (ids.length === 0) return { error: "Nothing to approve" };
-
-  const approved = await prisma.photo.updateMany({
-    // `approved: false` so a row somebody else waved through a moment ago
-    // keeps THEIR name against it rather than being re-stamped with ours.
-    where: { id: { in: ids }, approved: false },
-    data: { approved: true, approvedAt: new Date(), approvedById: actor.actorId },
-  });
-  if (approved.count === 0) return { error: "Those photos are no longer waiting." };
-  revalidatePath("/collection");
-  revalidatePath("/admin");
-  return { success: true, count: approved.count };
-}
-
 /** Thrown to roll back a removal whose row somebody else already took. A
  *  sentinel rather than a flag, because the only way out of a Prisma
  *  interactive transaction without committing is to throw. */
@@ -987,10 +919,11 @@ async function erasePhoto(
           data: urls.map((url) => ({ url, reason })),
         });
       }
-      /* deleteMany rather than delete, for the same reason as approvePhoto
-         above (audit C-130): two people acting on the same photograph in the
-         same moment would otherwise throw P2025 out of the transaction, and
-         the purge rows just written would roll back with it. */
+      /* deleteMany rather than delete (audit C-130): two people acting on the
+         same photograph in the same moment would otherwise throw P2025 out of
+         the transaction, and the purge rows just written would roll back with
+         it. The review room's approve write answers the same race the same
+         way (admin/review/actions.ts, saveReview). */
       const gone = await tx.photo.deleteMany({ where: { id: photoId } });
       if (gone.count === 0) {
         // Somebody else got there first. Rolling back is correct: whoever won
@@ -1008,6 +941,12 @@ async function erasePhoto(
   return { uploaderId: photo.uploaderId };
 }
 
+/* The return type is written out on the two actions below rather than
+   inferred. A refusal returned FROM the shared guard is not a fresh object
+   literal, so TypeScript stops normalising the union and `{ success: true }`
+   loses its `error?: undefined` -- at which point the whole result is a weak
+   type and every caller that reads `result.error` fails to compile. Same trap
+   `AdminActionResult` was written for; here it is used. */
 export async function declinePhoto(photoId: string): Promise<AdminActionResult> {
   const denied = await requireAdminAction();
   if (denied) return denied;
@@ -1176,7 +1115,8 @@ export async function editPhoto(input: {
 
   /* updateMany, not update: two people editing the same photograph as one of
      them deletes it would otherwise throw P2025 out of a member's Save
-     button, the same race `approvePhoto` and `erasePhoto` answer this way. */
+     button, the same race `erasePhoto` above and the review room's `saveReview`
+     answer this way. */
   const changed = await prisma.photo.updateMany({
     where: { id: input.id },
     data: {
