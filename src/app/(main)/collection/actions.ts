@@ -25,7 +25,14 @@ import {
   seekOlder,
   type RiverOrder,
 } from "@/lib/river-cursor";
-import { bandKeyOf, bandSeekBoundary, bucketsOf, takenLabel, takenShort } from "@/lib/collection";
+import {
+  HALVES,
+  bandKeyOf,
+  bandSeekBoundary,
+  bucketsOf,
+  takenLabel,
+  takenShort,
+} from "@/lib/collection";
 import { includeFor, shape, type PhotoData } from "@/lib/collection-shape";
 import {
   MAX_UPLOAD_BYTES,
@@ -103,9 +110,7 @@ async function photoQuotaError(
      pools. */
   const count = await prisma.photo.count({ where: { uploaderId: userId, scope } });
   if (count >= MAX_PHOTOS_PER_ACCOUNT) {
-    return scope === "class"
-      ? "You've reached the number of photographs one account can add to the Class Collection. Message the admin if you have more to share."
-      : "You've reached the limit of photos one account can add to the Collection. Message the admin if you have more to share.";
+    return HALVES[scope].quotaError;
   }
   return null;
 }

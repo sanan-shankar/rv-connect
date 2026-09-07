@@ -53,7 +53,7 @@ import {
   type RiverOrder,
   type RiverPage,
 } from "@/app/(main)/collection/actions";
-import { areaLabel, bandKeyOf, bucketLabel, defaultOrderFor } from "@/lib/collection";
+import { HALVES, areaLabel, bandKeyOf, bucketLabel, defaultOrderFor } from "@/lib/collection";
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import type { ScopeFacts } from "@/app/(main)/collection/collection-data";
 import { PhotoRiver, Tile, landAt, warmThumbs } from "./photo-river";
@@ -1090,7 +1090,7 @@ export function CollectionClient({
            obvious. please don't worsen the good things we have in
            collections." The word "Class" carries it, and two more elements
            saying it again is how a good page becomes a worse one. */
-        title={scope === "class" ? "The Class Collection" : "The Valley Collection"}
+        title={HALVES[scope].title}
         /* The swap lives HERE, on the title, and nowhere else. The title is
            what says which half you are in, so it is the only honest place for
            the thing that changes it -- and it keeps the controls line exactly
@@ -1109,13 +1109,9 @@ export function CollectionClient({
               <SearchPill
                 value={searchInput}
                 onChange={setSearchInput}
-                placeholder={
-                  scope === "class" ? "Search your class" : "Search the Collection"
-                }
+                placeholder={HALVES[scope].searchLabel}
                 label="Search photographs by caption, place or contributor"
-                restLabel={
-                  scope === "class" ? "Search your class" : "Search the Collection"
-                }
+                restLabel={HALVES[scope].searchLabel}
               />
             )}
             {!trulyEmpty && (
@@ -1160,22 +1156,10 @@ export function CollectionClient({
            right for the valley is right here too (spec sec. 6.3). */
         <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-14 text-center">
           <p className="font-heading text-xl tracking-tight text-foreground">
-            {scope === "class"
-              ? "Nothing from your class yet."
-              : "The collection is just beginning."}
+            {HALVES[scope].emptyTitle}
           </p>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-            {scope === "class" ? (
-              <>
-                Photographs added here stay with the class of {myClassYear}. Nobody else in
-                the school can see them.
-              </>
-            ) : (
-              <>
-                The first photographs of the valley will live here: the banyan, Rishi Konda,
-                the birds, the light. Add the first one.
-              </>
-            )}
+            {HALVES[scope].emptyBody(myClassYear)}
           </p>
           <Button variant="primary" className="mt-5 rounded-full" onClick={openContribute}>
             <Plus className="h-4 w-4" />
@@ -1270,9 +1254,7 @@ export function CollectionClient({
                     {search
                       ? `No photograph mentions "${search}".`
                       : "No photograph has been filed under this."}{" "}
-                    {/* There is no bucket line on the class side, so there is
-                        no wider bucket to try. */}
-                    {scope === "class" ? "" : "Try a wider bucket."}
+                    {HALVES[scope].noResultsHint}
                   </p>
                   <Button
                     variant="outline"
