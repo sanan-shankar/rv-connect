@@ -245,3 +245,55 @@ test("C-018: deletePostWithImages queues only urls no other row names", () => {
     "and only the orphaned urls are drained"
   );
 });
+
+/* ---- Q15: a letter's three controls, and where they must NOT come from --
+ *
+ * The owner asked for Report, Edit and Delete on a letter's reading page
+ * (campaign question 15, 2026-09-07: "15 b"). A letter is a Post row with
+ * kind "letter", so all three actions above already accepted one and the
+ * whole feature was a menu. The temptation the next session will feel is to
+ * give the letters folder its own action file rather than trace which of the
+ * feed's actions already does the job -- which is how the write path came to
+ * enforce less than the read path the first time (see post-visibility.ts).
+ * These two pin the shape, not the pixels.
+ */
+
+const LETTER_MENU = decomment(read("src/components/letters/letter-menu.tsx"));
+
+test("Q15: the letter menu calls the feed's actions and declares none of its own", () => {
+  assert.match(
+    LETTER_MENU,
+    /import \{[^}]*\badminRemovePost\b[^}]*\bdeletePost\b[^}]*\} from "@\/app\/\(main\)\/feed\/actions"/,
+    "the letter menu no longer deletes and removes through the feed's own actions"
+  );
+  // Editing and reporting arrive through the shared dialogs, which own the
+  // call. Matched as imports of the dialogs, since this file never names
+  // editPost or reportPost itself.
+  assert.match(LETTER_MENU, /@\/components\/posts\/edit-post-dialog/);
+  assert.match(LETTER_MENU, /@\/components\/posts\/report-dialog/);
+
+  // And nothing under components/letters may declare a server action: a
+  // letter's writes are the feed's writes, gated in one place.
+  const offenders = [];
+  for (const f of walk(resolve(ROOT, "src/components/letters"), SKIP_DIRS)) {
+    if (!/\.tsx?$/.test(f)) continue;
+    if (/^\s*["']use server["']/m.test(readFileSync(f, "utf8"))) {
+      offenders.push(relative(ROOT, f));
+    }
+  }
+  assert.deepEqual(offenders, [], "a letters component declared its own server action");
+});
+
+test("Q15: a draft's notice sends its author to the desk, not back to the index", () => {
+  /* This link read `href="/letters"` from the day the notice was written, so
+     the one control on a draft's own page took its author to a list to find
+     the draft again. The drafts strip on that list has always linked straight
+     to the desk. */
+  const page = decomment(read("src/app/(main)/letters/[id]/(read)/page.tsx"));
+  const notice = page.slice(page.indexOf("{isDraft && ("), page.indexOf("Continue editing"));
+  assert.match(
+    notice,
+    /href=\{`\/letters\/\$\{letter\.id\}\/edit`\}/,
+    "the draft notice's link left the writing desk again"
+  );
+});

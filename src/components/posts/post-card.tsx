@@ -658,6 +658,7 @@ export function PostCard({
       {reportMounted && (
         <ReportDialog
           postId={post.id}
+          itemLabel={isLetter ? "letter" : "post"}
           open={showReport}
           onClose={() => setShowReport(false)}
         />
