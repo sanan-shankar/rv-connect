@@ -1,5 +1,17 @@
 # Progress Log
 
+## 2026-09-07 — The places writer's extra columns get a name
+
+A write-path review of Phase E unit 4 flagged it, and the audit did not. `replaceUserPlaces` gained
+an optional `userData` so sign-up's register step could save four profile columns in the same
+transaction as the member's cities. The parameter was typed `Prisma.UserUpdateInput` — the whole
+thing, including `role`, `isBlocked`, `verifyState` and `credentialVersion`.
+
+Nothing exploits it: the one caller passes a literal of four fields built from a Zod schema, and
+`userId` comes from the session, never a parameter. But it is a privilege-escalation *shape* one
+careless caller away, and the only thing objecting was a comment. It is a `Pick` of those four now,
+so the compiler enforces what the prose asserted.
+
 ## 2026-09-07 — moderation moves out of the profile folder
 
 Refactor audit 2, directory-profile-15. `src/components/profile/admin-actions.ts` held eight actions

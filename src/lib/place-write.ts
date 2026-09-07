@@ -39,7 +39,16 @@ import { legacyCityColumns, type ResolvedPlace } from "@/lib/place-input";
 export function replaceUserPlaces(
   userId: string,
   cleaned: ResolvedPlace[],
-  userData?: Prisma.UserUpdateInput
+  /* A `Pick`, not the whole `UserUpdateInput`. The wide type let a caller
+     spread `role`, `isBlocked`, `verifyState` or `credentialVersion` into
+     an update reached from sign-up, and only this comment would have
+     objected. Nothing does that today -- the register step passes a
+     literal of these four, built from a Zod schema -- but "the compiler
+     enforces what the prose asserts" is the whole point of naming them. */
+  userData?: Pick<
+    Prisma.UserUpdateInput,
+    "admissionNumber" | "workplace" | "jobTitle" | "subjects"
+  >
 ) {
   return prisma.$transaction([
     prisma.userPlace.deleteMany({ where: { userId } }),
