@@ -8,6 +8,62 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 — a letter gets the same three controls a post has
+
+Campaign question 15, answered *"15 b"*: add all three. A letter had no way to be reported,
+edited or deleted from the page it is read on, while every post has had all three since the
+feed shipped.
+
+**No server-side code was written, and none should have been.** A letter is a `Post` row with
+`kind: "letter"`, so `deletePost` (author or admin), `editPost` (author only), `reportPost`
+(anybody signed in, refused in the demo) and `adminRemovePost` (admin) all already took one.
+The whole feature is `src/components/letters/letter-menu.tsx`, a "..." on the byline row that
+is the same object as `post-card.tsx`'s header menu, item for item and label for label. It
+sits beside the author rather than joining the hearts at the foot, because on a card that is
+where the menu lives and a reading page should not grow a fourth control next to the measure.
+
+**Edit does not open a dialog for a draft, and does for a published letter.** That split was
+already decided twice in the source before tonight: `/letters/[id]/edit` refuses anything but
+the author's own draft, and `edit-post-dialog.tsx` carries the owner's "the dialog register is
+for things that take seconds, never for writing". A draft's Edit is a `Link` to the desk; a
+published letter's is the shared dialog. A delete lands the member on `/letters`, with a
+`router.refresh()` because `deletePost` revalidates `/feed` and not the letters index.
+
+**Three things came out of the work that the question did not ask about.**
+
+1. The draft notice's *Continue editing* link went to `/letters` — the index — from the day it
+   was written, so the one control on a draft's own page sent its author to a list to find the
+   draft again. It goes to the desk now, the same place the drafts strip has always linked.
+   Pinned in `feed-write-rule.test.mjs`.
+2. The admin's **Remove letter** was a bare `ShieldAlert` in the action row labelled
+   "Remove letter (admin)" — the parenthetical role note DESIGN-SYSTEM.md's menu-item rule was
+   written to replace. It moved into the new menu; leaving it would have put Remove on the page
+   twice.
+3. The report dialog said **"Report post"** over a letter. It has an `itemLabel` now, defaulted
+   to "post", and `post-card` passes "letter" for a letter card too.
+
+The menu panel is `w-auto`: the material's default is `w-(--anchor-width)`, and against a 28px
+glyph trigger that falls back to a 128px floor which broke "Remove letter" over two lines.
+**post-card's menu carries the same label on the same panel and still wraps it** — left for the
+feed's own pass rather than widened here.
+
+Delete was proved end to end rather than argued: a throwaway draft was seeded for the test
+account, deleted through the new menu, and the row was gone from the database with the browser
+on `/letters`. The draft was removed in the same run.
+
+`npm run check` **106/106**, `npm run visual` **25/25** (no baseline moved; `/letters/[id]` is
+not in the suite and the index did not change), `write-path-reviewer` clean on all four
+invariants. Three screenshot rounds, desktop and 390x844, of the author's menu, a stranger's
+menu, and each of the four dialogs.
+
+**One trap worth carrying forward.** After removing the admin button, mobile threw an
+intermittent hydration mismatch on `/letters/[id]` naming a `<button aria-label="Remove letter
+(admin)">` that no longer exists in the source. It was a stale Turbopack SERVER compile: the
+client bundle had the new tree and the server was still rendering the old one, on the same
+route, for over an hour. **`touch` did not invalidate it — only a real content change did.**
+Proved by inserting a marker attribute, watching the stale button disappear from the served
+HTML in the same request, and taking the marker back out.
+
 ## 2026-09-07 — the five parked rebuilds get a description he can judge, and five bugs get filed
 
 Two of the owner's answers were deliverables rather than decisions, and this is them.

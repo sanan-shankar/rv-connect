@@ -10,6 +10,7 @@ import { IdentityRow } from "@/components/common/identity-row";
 import { LetterTitle } from "@/components/letters/letter-title";
 import { LetterEngagement } from "@/components/letters/letter-engagement";
 import { LetterImages } from "@/components/letters/letter-images";
+import { LetterMenu } from "@/components/letters/letter-menu";
 import { photoFactsFor } from "@/lib/image-record";
 import { canViewPost } from "@/lib/post-visibility";
 import { VISIBLE_COMMENT } from "@/lib/posts";
@@ -158,8 +159,14 @@ export default async function LetterPage({
       {isDraft && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-cinnamon/30 bg-cinnamon/10 px-4 py-3 text-sm">
           <span className="font-medium text-cinnamon">Draft, only visible to you.</span>
+          {/* The desk, not the index. This linked to /letters for as long as
+              the notice has existed, so the one control on a draft's own page
+              took its author to a list to find the draft again -- while the
+              drafts strip on that list has always linked straight to
+              /letters/[id]/edit. Same destination as the Edit row in the menu
+              above. */}
           <Link
-            href="/letters"
+            href={`/letters/${letter.id}/edit`}
             className="rounded-sm font-semibold text-cinnamon underline underline-offset-2 hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             Continue editing
@@ -175,37 +182,53 @@ export default async function LetterPage({
 
       <LetterTitle title={letterTitle(letter.title, letter.content)} />
 
-      <IdentityRow
-        user={{ id: letter.author.id, name: letter.author.name, photoUrl: letter.author.photoUrl, birdOverride: letter.author.birdOverride }}
-        avatarSize="md"
-        avatarHref={`/profile/${letter.author.id}`}
-        avatarLabel={letter.author.name}
-        className="mt-5 border-b border-border pb-6"
-        name={
-          <Link
-            href={`/profile/${letter.author.id}`}
-            className="font-semibold leading-none text-foreground hover:underline"
-          >
-            {letter.author.name}
-          </Link>
-        }
-        meta={
-          /* metaLine drops the dot beside an empty segment (the Anonymous
-             profile's batch line), so an archive letter reads as just its
-             date. Month stays long-form: the reading page's unhurried
-             register, vs the index's short month. */
-          metaLine(
-            batchLine(letter.author),
-            new Date(letter.createdAt).toLocaleDateString("en-GB", {
-              timeZone: VALLEY_TIME_ZONE,
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })
-          )
-        }
-        metaClassName="leading-none"
-      />
+      {/* The byline and the letter's own menu share one row, the way a post
+          card's header does: the "..." is chrome that belongs to the piece,
+          so it sits beside the person who wrote it rather than joining the
+          hearts and the share glyph at the foot. Centred in the band rather
+          than top-aligned like the card's, because this avatar is a size up
+          and the band closes on its own hairline. */}
+      <div className="mt-5 flex items-center justify-between gap-3 border-b border-border pb-6">
+        <IdentityRow
+          user={{ id: letter.author.id, name: letter.author.name, photoUrl: letter.author.photoUrl, birdOverride: letter.author.birdOverride }}
+          avatarSize="md"
+          avatarHref={`/profile/${letter.author.id}`}
+          avatarLabel={letter.author.name}
+          className="min-w-0 flex-1"
+          name={
+            <Link
+              href={`/profile/${letter.author.id}`}
+              className="font-semibold leading-none text-foreground hover:underline"
+            >
+              {letter.author.name}
+            </Link>
+          }
+          meta={
+            /* metaLine drops the dot beside an empty segment (the Anonymous
+               profile's batch line), so an archive letter reads as just its
+               date. Month stays long-form: the reading page's unhurried
+               register, vs the index's short month. */
+            metaLine(
+              batchLine(letter.author),
+              new Date(letter.createdAt).toLocaleDateString("en-GB", {
+                timeZone: VALLEY_TIME_ZONE,
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })
+            )
+          }
+          metaClassName="leading-none"
+        />
+        <LetterMenu
+          postId={letter.id}
+          isOwn={letter.authorId === session.user.id}
+          isDraft={isDraft}
+          viewerIsAdmin={session.user.role === "admin"}
+          content={letter.content}
+          title={letter.title}
+        />
+      </div>
 
       <div
         className="mt-7 whitespace-pre-wrap font-heading text-[16px] leading-[1.8] text-foreground [&_a]:font-sans [&_strong]:font-bold"

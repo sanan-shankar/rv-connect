@@ -42,10 +42,19 @@ const DETAILS_MAX =
 
 export function ReportDialog({
   postId,
+  itemLabel = "post",
   open,
   onClose,
 }: {
   postId: string;
+  /** What the thing being reported is called in front of the reporter. A
+   *  letter is a Post row, so this dialog has always been able to open over
+   *  one, and until the reading page grew a Report control it only ever did
+   *  so from a feed card, where the surrounding page says "letter" loudly
+   *  enough that "Report post" read as generic rather than as wrong. On
+   *  /letters/[id] there is nothing else on screen to correct it. Same
+   *  `itemLabel` word and default as ModerationDialog's. */
+  itemLabel?: string;
   open: boolean;
   onClose: () => void;
 }) {
@@ -70,7 +79,7 @@ export function ReportDialog({
         // that implies a second report was filed (audit M29).
         toast.success(
           "alreadyReported" in result && result.alreadyReported
-            ? "You have already reported this post. An admin is looking at it."
+            ? `You have already reported this ${itemLabel}. An admin is looking at it.`
             : "Report submitted. Thank you."
         );
         onClose();
@@ -86,10 +95,10 @@ export function ReportDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Report post</DialogTitle>
+          <DialogTitle>Report {itemLabel}</DialogTitle>
           <DialogDescription>
             Help us keep the community safe. Tell us why you&apos;re reporting
-            this post.
+            this {itemLabel}.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
