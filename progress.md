@@ -1,5 +1,19 @@
 # Progress Log
 
+## 2026-09-07 — the directory stops shipping a field nothing reads
+
+Refactor audit 2, directory-profile-09. Every person in every map pin carried an `otherCities`
+string array — the member's other mapped cities — computed per pin entry and serialized into the RSC
+payload of every directory load and every filter change. Its own type comment said it was "kept for
+matching only"; there is no matching code, and the drilldown stopped drawing an "Also in ..." line in
+July. `grep -rn otherCities src` found the producer and the type, and nothing else.
+
+Gone, with `allMappedCities`, which existed only to compute it. The finding's citations were all
+several lines off (`:88-92`, `:113`, `:125-130` against a real `:74-79`, `:106`, `:112-116`) but
+right about the content. C-098's pins are on `cities`, the pin's own list, which is untouched.
+
+`npm run check` 105/105.
+
 ## 2026-09-07 — the house picker and its lab room go
 
 Refactor audit 2, directory-profile-05, widened by the owner: *"delete the whole house picker lab we

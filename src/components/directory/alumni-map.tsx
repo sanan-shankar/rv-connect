@@ -38,11 +38,6 @@ export type PinPerson = {
   batchYear: number | null;
   currentCity: string | null;
   jobTitle: string | null;
-  /** This person's OTHER mapped cities, if any -- they plot in every pin
-   *  they have a resolvable city for (owner override). Kept for matching
-   *  only; the drilldown no longer displays an "Also in ..." line (owner
-   *  call, 2026-07). */
-  otherCities?: string[];
 };
 
 export type CityPin = {
