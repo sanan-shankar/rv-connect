@@ -185,7 +185,7 @@ const AUTHORISED_OTHERWISE = {
     deleteComment: "comment author or site admin",
     adminRemoveComment: "admin-only moderation, same as adminRemovePost",
   },
-  "src/components/profile/admin-actions.ts": {
+  "src/app/(main)/admin/reports/actions.ts": {
     adminHidePost: "admin-only moderation (requireAdmin), reached from the admin queue",
   },
 };

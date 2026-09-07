@@ -34,7 +34,7 @@ import {
   adminUpdateNote,
   adminUnverifyUser,
   adminVerifyUser,
-} from "@/components/profile/admin-actions";
+} from "@/app/(main)/admin/people/actions";
 import {
   adminMergeUsers,
   adminSetPhotoTrusted,

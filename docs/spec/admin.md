@@ -318,7 +318,7 @@ Unchanged, and verified rather than assumed:
    checked against that list deliberately rather than by accident.
 
 Every new server action re-checks `role === "admin"` on the server through the existing
-`requireAdmin()` guard in `src/components/profile/admin-actions.ts`. Nothing trusts the client.
+`requireAdminAction()` guard in each admin actions file. Nothing trusts the client.
 
 The `write-path-reviewer` agent runs before any commit that touches an action, a route, auth,
 uploads or the schema.

@@ -14,7 +14,7 @@ import {
   adminUpdateNote,
   adminVerifyUser,
   adminUnverifyUser,
-} from "./admin-actions";
+} from "@/app/(main)/admin/people/actions";
 
 export function AdminProfileTools({
   userId,

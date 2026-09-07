@@ -23,8 +23,8 @@ import type { Prisma } from "@/generated/prisma/client";
  *  one-line comment pointing here rather than the whole argument twelve
  *  times over.
  *
- *  Every mutation still re-checks the role for itself (requireAdmin() in
- *  src/components/profile/admin-actions.ts). A layout guard is navigation,
+ *  Every mutation still re-checks the role for itself (requireAdminAction()
+ *  in each admin actions file). A layout guard is navigation,
  *  not authorisation: server actions are their own entry points and are not
  *  covered by whatever laid out the page that called them.
  * ------------------------------------------------------------------ */

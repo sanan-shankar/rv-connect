@@ -302,7 +302,7 @@ test("C-046: nothing writes verifyState without stamping verifyStateAt", () => {
      was a script, which no typechecker was going to catch. */
   const sources = [
     ["src/components/auth/verification-actions.ts", null],
-    ["src/components/profile/admin-actions.ts", null],
+    ["src/app/(main)/admin/people/actions.ts", null],
     ["src/lib/roster.ts", null],
     ["scripts/dev/import-roster.mjs", null],
   ];

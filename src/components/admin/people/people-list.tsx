@@ -13,7 +13,7 @@ import { AdminFilterBar, useAdminFilterParams } from "@/components/admin/admin-f
 import { AdminPersonRow } from "@/components/admin/admin-person-row";
 import { Chip } from "@/components/admin/admin-chip";
 import { ADMIN_GRID_3, AdminEmpty } from "@/components/admin/admin-chrome";
-import { adminVerifyUser } from "@/components/profile/admin-actions";
+import { adminVerifyUser } from "@/app/(main)/admin/people/actions";
 import { loadMorePeople } from "@/app/(main)/admin/people/actions";
 import {
   KIND_OPTIONS,

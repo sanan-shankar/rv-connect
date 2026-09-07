@@ -13,7 +13,7 @@ import {
   adminDismissReport,
   adminHidePost,
   adminResolveReport,
-} from "@/components/profile/admin-actions";
+} from "@/app/(main)/admin/reports/actions";
 import { adminRemovePost } from "@/app/(main)/feed/actions";
 
 export interface ReportRow {

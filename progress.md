@@ -1,5 +1,30 @@
 # Progress Log
 
+## 2026-09-07 — moderation moves out of the profile folder
+
+Refactor audit 2, directory-profile-15. `src/components/profile/admin-actions.ts` held eight actions
+and none of them was about a profile: five are the panel's standing controls (block, delete, note,
+verify, unverify) and three are report and post moderation whose only caller is the reports queue.
+The five join `admin/people/actions.ts`, which is the same subject and already carried role, photo
+trust and merge; the three become `admin/reports/actions.ts`, beside `report-list.tsx`. The file is
+gone, and with it the `const requireAdmin = requireAdminAction` alias.
+
+**Both of the finding's supporting facts were wrong, and its list of pins was short.**
+`admin/people/actions.ts` does not import `adminDeleteUser` -- it imports nothing from that file.
+`admin-profile-tools.tsx` DOES, by a relative `"./admin-actions"`, which is why a `profile/admin-actions`
+grep misses it and why the finding's consumer list was otherwise right. Four things hard-code the
+path: `gate-coverage:188`, `admin-guard-rule:19`, `unattended-rule:305` and `scripts/qa/audit-status.mjs:229`
+-- the last a check-gate script, so a wrong move reddens `npm run check` rather than the suite. Three
+docs name it too. All eight travel in this commit.
+
+Two mutation tests, because a moved pin is a pin that can have stopped pinning: dropping
+`refuseSelfOrLastAdmin` from `adminBlockUser` fails admin-guard-rule, and dropping `verifyStateAt`
+from `adminUnverifyUser` fails C-046 -- and the C-046 sweep now reads a file with more verifyState
+writes than the one it used to. `npm run check` 105/105, `npm run visual` 25/25. Person page, People
+list, reports queue and a member's profile all render with no console error, and Save note fires from
+its new home. Dismiss and resolve are unexercised: nothing is pending, and those buttons only draw on
+the pending list.
+
 ## 2026-09-07 — one mail row, for the queue and for a person
 
 Refactor audit 2, admin-analytics-05 / E11. The person page drew its own mail row -- the same kind
