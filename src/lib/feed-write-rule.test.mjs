@@ -198,6 +198,30 @@ test("one query asks \"does this member list this city\"", () => {
   );
 });
 
+test("a comment reaches the client through one serializer", () => {
+  /* The ten fields of `CommentData` were built in three places: createComment's
+     return, loadComments' rows, and loadComments' stand-in stubs for deleted
+     parents. Audit 1 folded the POST payload for exactly this reason and its
+     note says why -- "they had already begun to disagree in ways that looked
+     deliberate but were not". The comment trio had not drifted yet; `isOwn`
+     was spelled three ways and all three were right.
+
+     Counted rather than named, because a FOURTH hand-built payload is the
+     failure, and it would be somewhere this test could not think to look. Two
+     serialisers, two date conversions. A third means somebody built one by
+     hand again -- or added a serialiser on purpose, in which case this number
+     is the conversation. */
+  const dates = (FEED.match(/\.createdAt\.toISOString\(\)/g) ?? []).length;
+  assert.equal(
+    dates,
+    2,
+    `expected one date conversion per serialiser (post, comment) and found ${dates}: ` +
+      "a row is being shaped for the client outside serializePost/serializeComment"
+  );
+  const calls = (FEED.match(/serializeComment\(/g) ?? []).length;
+  assert.equal(calls, 4, `serializeComment is defined once and called three times; found ${calls} mentions`);
+});
+
 /* ---- C-018: shared bytes survive one row's deletion -------------- */
 
 test("C-018: deletePostWithImages queues only urls no other row names", () => {
