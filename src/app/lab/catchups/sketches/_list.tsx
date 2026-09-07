@@ -42,12 +42,13 @@
 
 import { useState } from "react";
 import { CaretRight } from "@phosphor-icons/react";
+import { Plus } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { Door } from "./_cover";
+import { Door, PICTURE_SCRIM } from "./_cover";
 import { dayAndDate, shortDate, type SketchCatchup } from "./_shelf";
 
 /* ── the one line under a Catch-up's name ──────────────────────────── *
@@ -111,10 +112,14 @@ export function Panel({
         style={{ aspectRatio: phone ? "16 / 9" : "5 / 2" }}
       >
         <Image
-          src={c.picture}
+          src={c.picture.src}
           alt=""
           fill
           sizes="(min-width: 1180px) 540px, 400px"
+          /* The photograph's own band, the same one the home's banner uses.
+             See PICTURES in _shelf.ts: what makes these read as a place is in
+             the lower third of every one of them. */
+          style={{ objectPosition: c.picture.focus }}
           className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
         />
         {/* The fade. Two stops rather than one: a single linear gradient
@@ -122,15 +127,22 @@ export function Panel({
             grey wash halfway up the picture, which reads as a bug. This
             is transparent for the top half and then falls away quickly,
             so the picture is a picture and the words have ground. */}
+        <span aria-hidden className="absolute inset-0" style={{ background: PICTURE_SCRIM }} />
+                {/* THE INK, not the box, is what the padding has to match. His:
+            "those two need to be moved a tiny bit down so that the padding on
+            the subtitle on the bottom is the same as to the left. right now the
+            bottom margin is a bit more."
+
+            Measured: with a uniform p-4 the left inset is 16 and the subtitle's
+            ink sits 19 above the card's foot -- the 3.4px of half-leading a
+            13.5px line at 1.5 carries under its own baseline. So the bottom
+            padding comes down 3 and the whole block with it. 13 and 17 look
+            like odd numbers and are not: they are 16 and 20 minus the leading
+            the eye cannot see. */}
         <span
-          aria-hidden
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to top, rgb(0 0 0 / 0.82) 0%, rgb(0 0 0 / 0.5) 24%, rgb(0 0 0 / 0.12) 50%, transparent 72%)",
-          }}
-        />
-        <span className={cn("absolute inset-x-0 bottom-0", phone ? "p-4" : "p-5")}>
+          className={cn("absolute inset-x-0 bottom-0", phone ? "px-4 pt-4" : "px-5 pt-5")}
+          style={{ paddingBottom: phone ? 13 : 17 }}
+        >
           <span
             className="block font-heading text-white"
             style={{
@@ -237,13 +249,37 @@ export function List({
         <h1 className="font-heading text-[30px] leading-[1.2] tracking-[-0.02em] text-foreground">
           Catch-ups
         </h1>
-        <div className="mt-px shrink-0">
-          <Button size="sm">Start a Catch-up</Button>
+        {/* The app's standard pill, which is `default` (h-10, px-4) with the
+            variant that fills canopy -- the same control the shipped index
+            already draws. It was `sm` here, h-9 and a 12.8px label, and he
+            caught it: "the Start a Catch-up pill is a smaller pill than every
+            other, than a standard-sized pill in this app." A page's primary
+            action is never a size down from the app's own. */}
+        <div className="shrink-0">
+          <Button variant="primary">
+            <Plus className="h-4 w-4" />
+            Start a Catch-up
+          </Button>
         </div>
       </header>
 
-      {/* Every card is the same three things at the same height, so a
-          grid has no holes in it. Two up on a laptop, one on a phone. */}
+      {/* TWO UP, AND THAT IS ALL. Three Catch-ups are two and then one, with
+          a card-sized gap beside the last, and that gap is fine: "if they have
+          three catch ups let them just be quarter like it was. don't do this
+          filling up the page thing."
+
+          A version of this spanned the last card of any odd-numbered shelf so
+          the grid never had a hole. He killed it for the right reason -- the
+          brainstorm was only ever about the member with ONE Catch-up, which is
+          most of them -- and there is a second reason to be glad: a card
+          spanning 1,184px is asking a 1,280px photograph to fill 2,368 device
+          pixels, which is the "extremely pixellated" he does not want. Nothing
+          here is ever wider than half the page, so every picture is drawn at
+          or under its own resolution.
+
+          The one-Catch-up page is still open. See the note in the session log:
+          the shelf is left at its natural size for now rather than guessing at
+          it. */}
       <div className={cn("grid gap-5", phone ? "grid-cols-1" : "grid-cols-1 min-[1180px]:grid-cols-2")}>
         {shelf.map((c) => (
           <Panel key={c.id} c={c} onOpen={onOpen} phone={phone} />

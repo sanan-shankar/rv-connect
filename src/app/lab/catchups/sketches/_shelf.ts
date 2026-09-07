@@ -22,7 +22,6 @@ import type { SketchPerson, SketchQuestion, SketchRound } from "./_types";
  *  eighth: today's pause replaces the page and hides a live Round
  *  (recon section 11). */
 export type RoundState =
-  | "none"
   | "collecting"
   | "answering"
   | "published"
@@ -111,23 +110,60 @@ export type SketchCatchup = {
    *
    *  Stand-ins here, from the photographs already in the repository, so
    *  the shape can be judged before the real twenty are shot. */
-  picture: string;
+  picture: Picture;
 };
 
-/** The pool a new Catch-up's picture is drawn from. These are the demo
- *  Collection's own files, standing in for the twenty he will supply.
- *  What the real twenty want to be is DETAILS -- a wall, a bit of the
- *  banyan, a shadow on a step -- rather than wide valley views: the
- *  landing page and half the Collection are already wide valley views, so
- *  twenty more would read as the same picture again, and a detail is what
- *  survives being cropped to 120px. */
-export const PICTURES = [
-  "/images/collection/demo-banyan-arch.webp",
-  "/images/collection/demo-banyan-trunk.webp",
-  "/images/collection/demo-banyan-benches.webp",
-  "/images/collection/demo-banyan-canopy.webp",
-  "/images/collection/demo-banyan-pillar.webp",
-  "/images/collection/demo-assembly-wide.webp",
+/** The pool a new Catch-up's picture is drawn from, and WHERE EACH ONE IS
+ *  CROPPED. Stand-ins for the twenty he will supply.
+ *
+ *  He asked for these to be judged rather than picked off a filename, after
+ *  looking at the first attempt: "can you please stop picking an insanely
+ *  cropped in, like, 30x zoom picture for the header? Because there's like 5
+ *  pixels there ... Can you pick a nice high-resolution picture?"
+ *
+ *  Three things came out of actually opening them.
+ *
+ *  ONE WAS A DUPLICATE. `v1.webp` and `demo-banyan-pillar.webp` are the same
+ *  photograph. Two of the first three cards on the list were the same picture
+ *  and it read as a rendering bug. Dropped.
+ *
+ *  ONE WAS PORTRAIT. `demo-assembly-wide.webp`, despite the name, is 760x1140
+ *  -- taller than it is wide. Cropped to a 4:1 banner it keeps about a ninth
+ *  of the frame and upscales that sliver, which is the "30x zoom" exactly.
+ *  Dropped.
+ *
+ *  AND THE CROP WAS IN THE WRONG PLACE. These are photographs of a place, and
+ *  in every one of them what tells you it is a place -- the horizon, the stone
+ *  benches, the ground under the banyan -- sits in the lower quarter. A
+ *  centred band lands in the canopy and returns green texture, and the
+ *  arithmetic is unforgiving: a 240px band across a 1,076px column takes only
+ *  a quarter of a 900px-tall photograph, so "a bit lower" has to mean 90 per
+ *  cent, not 65. So
+ *  each carries its own `focus`, the `object-position` its wide crop is taken
+ *  at, chosen by looking at the picture. That is also the thing the real
+ *  twenty will need ("you have to figure out how you'd crop it. Different
+ *  places"), so the mechanism is here rather than a constant.
+ *
+ *  What is left is still only 900 to 1280px on the long edge, so a banner
+ *  1,076 CSS px wide is upscaled at retina. Nothing wider is in the
+ *  repository. The real twenty want 2,400px or more, landscape, with the
+ *  subject off dead centre. */
+export type Picture = { src: string; focus: string };
+
+export const PICTURES: Picture[] = [
+  /* Sky, a treeline and four rows of stone benches. The only one with a real
+     horizon in it, so it survives a letterbox better than any other. */
+  { src: "/images/collection/demo-banyan-benches.webp", focus: "center 92%" },
+  /* The banyan with the whitewashed pillar and the benches behind. Cropped a
+     little below centre so the band holds the trunk's base and the grass
+     rather than a ceiling of leaves. */
+  { src: "/images/collection/demo-banyan-pillar.webp", focus: "center 88%" },
+  /* The trunk, a single stone seat, open grass. The seat is the thing worth
+     keeping and it sits low left. */
+  { src: "/images/collection/demo-banyan-canopy.webp", focus: "center 90%" },
+  { src: "/images/collection/demo-banyan-arch.webp", focus: "center 85%" },
+  { src: "/images/collection/demo-banyan-trunk.webp", focus: "center 85%" },
+  { src: "/images/collection/c3.webp", focus: "center 85%" },
 ];
 
 /* ── dates, all off the Round's own ────────────────────────────────── */
@@ -291,17 +327,30 @@ export function buildShelf(round: SketchRound): SketchCatchup[] {
       picture: PICTURES[3],
     },
 
-    /* A batch whose first day it is. Nobody has started anything. */
+    /* A batch on its first day. It opens straight into collecting -- there
+       is no "no Round yet" any more, because there is no moment a member can
+       reach one: "when you start a catch-up, it should immediately start into
+       questions." */
     {
       id: "batch-1978",
       name: "Batch of 1978",
       kind: "batch",
       meta: "Everyone from 1978 · every three months",
-      state: "none",
+      state: "collecting",
       paused: false,
       youKeep: false,
       canRun: false,
-      round: null,
+      round: {
+        number: 1,
+        questions: [],
+        publishedAt: null,
+        closesAt: null,
+        nextOpensAt: null,
+        wroteIn: [],
+        youAnswered: false,
+        read: false,
+        photos: [],
+      },
       before: [],
       endedAt: null,
       members: people.slice(0, 11),
@@ -340,24 +389,37 @@ export function shelfOf(all: SketchCatchup[], howMany: number): SketchCatchup[] 
   return all.slice(0, howMany);
 }
 
-/** The home, in every state a Round can be in, plus paused. The room's
- *  state picker walks this list; the list page shows six of the same
- *  Catch-ups in the order a member would meet them. */
+/** The home, in every state a Round can be in, plus held. The room's state
+ *  picker walks this list.
+ *
+ *  FIVE, not seven, and two went for his reasons on 2026-09-07.
+ *
+ *  "No Round yet" is deleted: "I don't understand when the situation would
+ *  occur because it's like when you start a catch-up, it should immediately
+ *  start into questions." He is right -- a Catch-up that has just been made is
+ *  collecting, and a batch whose turn has come opens straight into collecting
+ *  too. There is no moment a member can reach a home with no Round on it, so
+ *  there is no state to draw.
+ *
+ *  "Out, with earlier ones" and "Published" are one: "Out with the early ones,
+ *  published, and then the reader. All of them kind of mean the same thing to
+ *  me. Like there's definite redundancy there." They differed only in whether
+ *  the Catch-up had back numbers, which is not a state -- so the one Published
+ *  home has them, and the sidebar is where they live. */
 export function homeVariants(
   all: SketchCatchup[],
 ): Array<{ key: string; label: string; c: SketchCatchup }> {
   const by = (id: string) => all.find((c) => c.id.startsWith(id)) ?? all[0];
   const answering = all.find((c) => c.state === "answering") ?? all[0];
   return [
-    { key: "none", label: "No Round yet", c: by("batch-1978") },
     { key: "collecting", label: "Collecting", c: by("sunday-four") },
     { key: "answering", label: "Answering", c: answering },
-    { key: "issues", label: "Out, with earlier ones", c: by("crimes") },
-    { key: "published", label: "Published", c: all.find((c) => c.state === "published") ?? all[0] },
-    /* A pause is a mark on a live Round, so the illustrative case is a
-       Round mid-answer: everything is still on the page, marked Paused,
-       with the actions frozen and Resume in their place. */
-    { key: "paused", label: "Paused", c: paused(answering) },
+    { key: "published", label: "Published", c: by("crimes") },
+    /* A hold is a mark on a live Round, so the illustrative case is a Round
+       mid-answer: the page says it is held and offers the one control that
+       changes that, rather than redrawing the answering page with one word
+       swapped ("why is paused the same as answering?"). */
+    { key: "paused", label: "On hold", c: paused(answering) },
     { key: "ended", label: "Ended", c: by("test") },
   ];
 }

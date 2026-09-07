@@ -47,6 +47,27 @@ import { cn } from "@/lib/utils";
 import { QuestionList } from "./_navigator";
 import { shortDate, type ShelfRound } from "./_shelf";
 
+/* ── The scrim over a photograph that carries words ───────────────── *
+ *  Spotify's, near enough, and it is his correction: "it doesn't have to
+ *  fade to full black it can just be dark like spotify."
+ *
+ *  A FIFTEENTH LIGHTER AGAIN, 2026-09-07: "if the darkening is the same
+ *  constant, make both less dark by 15%." Every stop is scaled by 0.85 rather
+ *  than the foot alone, so the curve keeps its shape and the two surfaces
+ *  stay identical: 0.72 -> 0.61, 0.44 -> 0.37, 0.10 -> 0.085.
+ *
+ *  So the foot is a warm near-black rather than pure black at 82%,
+ *  and it carries the page's own ink hue instead of #000 -- a true black
+ *  under a green photograph reads as a hole cut in the picture, which is
+ *  what "looks so bad" was. Two stops, not one: a single linear gradient
+ *  over 55% of a light photograph leaves the name sitting on a grey wash
+ *  halfway up. Transparent for the top half, then away quickly.
+ *
+ *  One constant, used by the list card and by the home's head, because the
+ *  two are the same object at two sizes. */
+export const PICTURE_SCRIM =
+  "linear-gradient(to top, rgb(20 16 12 / 0.61) 0%, rgb(20 16 12 / 0.37) 26%, rgb(20 16 12 / 0.085) 52%, transparent 74%)";
+
 /* ── A door ────────────────────────────────────────────────────────── *
  *  A card whose whole area navigates. The target is one absolutely
  *  positioned button behind the content rather than a wrapper around it,
@@ -130,29 +151,12 @@ export function Contents({
   );
 }
 
-/* ── "Round 3 · 12 May" ────────────────────────────────────────────── *
- *  The one line on which a Round's number and date are printed, and it is
- *  printed once per screen. "in the loop is said twice, Round 1 is said
- *  twice, the date is said twice. It's just so much horrible." (R13) */
-export function RoundLine({
-  number,
-  at,
-  className,
-}: {
-  number: number;
-  at: string;
-  className?: string;
-}) {
-  return (
-    <p className={cn("flex items-center gap-2 text-[13.5px]", className)}>
-      <span className="font-medium text-cinnamon">Round {number}</span>
-      <span className="dotsep" aria-hidden>
-        ·
-      </span>
-      <span className="text-muted-foreground">{shortDate(at)}</span>
-    </p>
-  );
-}
+/* `RoundLine` used to live here: "Round 3 · 12 May", a number and a date on
+   one row. Nothing had called it for two passes, and on 2026-09-07 he took
+   the Round number out of the reader as well -- "let's ditch the round 1 ...
+   The round number is irrelevant" -- so there is now nowhere in the drawing a
+   Round number is printed at all. Deleted rather than left as a component
+   that contradicts the rule. */
 
 /* ── The cover of a published Round ───────────────────────────────── *
  *  ITS PHOTOGRAPHS, not its questions. His, 2026-09-07, on the version
@@ -193,18 +197,30 @@ export function Cover({
   onOpen,
   className,
   compact = false,
+  phone = false,
 }: {
   round: ShelfRound;
   /** The Catch-up's picture, for a Round nobody photographed. */
-  fallback: string;
+  fallback: { src: string; focus: string };
   onOpen?: () => void;
   className?: string;
   /** Under Earlier Rounds, where a cover is a row rather than the page's
    *  one object. */
   compact?: boolean;
+  phone?: boolean;
 }) {
   const shots = round.photos.slice(0, COVER_SHOTS);
   const has = shots.length > 0;
+  /* Under Earlier Rounds a cover is a back number, not the thing you came
+     for, and it was as tall as one. His, 2026-09-07: "I think the earlier
+     rounds, like each round is too big. It can be smaller. I don't know
+     whether you want to make that smaller vertically or horizontally, but I
+     think Earlier rounds can definitely be a bit smaller."
+     Vertically, by about a quarter: 4:1 on a laptop, where a 3:1 row of a
+     720px column was 240px of photograph. On a phone it stays 3:1, because a
+     4:1 crop of a 350px column makes the two side photographs 43px squares,
+     which is the "birds into dots" fault in another costume. */
+  const ratio = compact ? (phone ? "3 / 1" : "5 / 2") : "16 / 9";
   return (
     <Door
       label={`Read the Round from ${shortDate(round.publishedAt ?? "")}`}
@@ -213,7 +229,7 @@ export function Cover({
     >
       <div
         className={cn("relative grid gap-[3px] bg-border", has ? tiles(shots.length) : "grid-cols-1")}
-        style={{ aspectRatio: compact ? "3 / 1" : "16 / 9" }}
+        style={{ aspectRatio: ratio }}
       >
         {has ? (
           shots.map((src, i) => (
@@ -240,14 +256,21 @@ export function Cover({
           ))
         ) : (
           <span className="relative block overflow-hidden bg-muted">
-            <Image src={fallback} alt="" fill sizes="540px" className="object-cover opacity-70" />
+            <Image
+              src={fallback.src}
+              alt=""
+              fill
+              sizes="540px"
+              style={{ objectPosition: fallback.focus }}
+              className="object-cover opacity-70"
+            />
           </span>
         )}
       </div>
-      <div className={compact ? "px-4 py-3" : "px-5 py-4"}>
+      <div className={compact ? "px-4 py-2.5" : "px-5 py-4"}>
         <p
           className="font-heading text-foreground"
-          style={{ fontSize: compact ? 16 : 18, letterSpacing: "-0.01em" }}
+          style={{ fontSize: compact ? 15 : 18, letterSpacing: "-0.01em" }}
         >
           {shortDate(round.publishedAt ?? "")}
         </p>

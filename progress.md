@@ -11485,3 +11485,61 @@ loading three pages: 25 posts, 25 unique, no repeats. −208/+50.
 `npm run check` green (105 tests), `npm run visual` 25/25 — no baseline moved, which is the point: none
 of this was on screen. Screenshotted `/feed`, `/feed?q=`, `/admin/content` and `/letters/new` at
 1440x900 and 390x844.
+
+
+## 2026-09-07 — S4d, the Catch-ups room: his first round of fine-tuning notes
+
+`/lab/catchups/sketches`. He went through the whole spine out loud, then sent seven more notes
+while the work was running. Everything below is his; where a number appears it is his number or
+one measured against the app's own.
+
+**The reader.** The Round NUMBER is gone from every surface in the drawing -- "let's ditch the
+round 1. Let's only have the date, and then let the date be orange. The round number is
+irrelevant" -- which takes the middle dot with it and retires `RoundLine`, unused for two passes.
+The heart and reply row is a tenth tighter above and below: measured, the ink sits 21px under the
+words and 23px above the card's edge, so a tenth of each is 2px, which is what came off. The side
+padding is untouched, at his instruction.
+
+**The question rail's magnification is rebuilt from scratch**, at his word: "it's super glitchy
+and jittery ... things react early and late". Three real faults. It kept the pointer in React
+state, so every pixel of movement reconciled eleven rows. It cached row centres in an effect keyed
+on the CURRENT QUESTION, so they were stale against every resize. And it wore `transition:
+transform 90ms linear`, a CSS animation restarted every frame toward a target that had already
+moved. It now uses the app's own mechanism -- the Collection year rail's: a motion value for the
+pointer, a transform reading each row's live rect, a spring on the scale. Zero React renders per
+frame. The reach is 120px rather than the Collection's 64, because these rows wrap to three lines
+and measure 41-79px; at 64 one row popped alone.
+
+**The home is largely rebuilt.** The picture carries the name from its bottom left and two icon
+controls hard right, one row at both widths; People opens a dialog and the Catch-up's settings open
+another, so the sidebar holds the previous Rounds and nothing else ("just put the previous rounds
+there"). The settings dialog was a column of bare verbs and is now a settings list: an icon tile, a
+label, what it does, and where it stands, with the irreversible ones saying "cannot be undone" in
+words instead of wearing a dot that needed a footnote. Reminders is a row among them, not a
+separated pill.
+
+Collecting draws the shipped questions panel on the page -- reorder and remove included, which the
+drawing had lost -- with the controls riding on the asker's line so a tile is not a row taller than
+it needs to be. Answering happens HERE too rather than on its own page, and its progress marks are
+the navigator: every mark is a button to its question. `preparing` was already gone; `no Round yet`
+goes now, because a Catch-up starts collecting the moment it is made.
+
+**The pictures were judged rather than picked by filename.** `v1.webp` and
+`demo-banyan-pillar.webp` are the same photograph, which is why two list cards looked identical;
+`demo-assembly-wide.webp` is 760x1140, portrait. Both dropped. Each survivor now carries the band
+its wide crop is taken at, because what makes these read as a place -- a horizon, the stone
+benches, the ground -- is in the lower quarter of every one, and a centred 240px band returns green
+texture. The banner is a fixed height rather than a ratio, so a wider window shows more photograph
+rather than a thinner slice.
+
+**Two things the app already had and this page had reinvented.** The list's primary action is the
+standard `default` pill again, not a size down. The two-column grid is `rail-grid.ts`'s own 318px
+rail and 30px gutter, not an invented 300 and 56, and the page no longer caps at 1096 -- which is
+why the right margin was 148px against the left's 40.
+
+**The type rule, written down** because he found the two faces doing the same job one line apart:
+serif is a title or a name, sans is the app talking. `globals.css` puts the heading face on h1-h4,
+so every label now says `font-sans` explicitly.
+
+`npm run check` green (105 tests). Every screen read at 390 and 1512 across eight rounds. The
+`sidebar.tsx:132` protocol finding is `bed93ca`, another session's.
