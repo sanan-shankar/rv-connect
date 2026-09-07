@@ -148,9 +148,10 @@ export const PHOTO_SIZES_WIDE_FULL =
  * 1.99x on a 732px slot, and a whole rung of bytes saved.
  *
  * The `sheet` variant of the card (`px-5` inside a bordered wrapper) is 8px
- * narrower again. No route renders it -- letterhead-profile.tsx is the only
- * caller and passes layout="cards" -- so these are written for `card`; the
- * 4px shave happens to sit between the two if it ever comes back.
+ * narrower again. Nothing renders it any more -- the profile feed's `layout`
+ * prop went in 2026-09-07, having only ever been passed "cards" -- so these
+ * are written for `card`; the 4px shave happens to sit between the two if it
+ * ever comes back.
  */
 export const PHOTO_SIZES_CENTERED_FULL =
   "(max-width: 639px) calc(100vw - 80px), (max-width: 767px) calc(100vw - 96px), (max-width: 1023px) calc(100vw - 344px), (max-width: 1095px) calc(100vw - 368px), 728px";

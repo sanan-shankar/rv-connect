@@ -1945,7 +1945,6 @@ function Writing({
             initialPosts={tab === "all" ? initialAuthorPosts : undefined}
             initialCursor={initialAuthorCursor}
             initialHasMore={initialAuthorHasMore}
-            layout="cards"
             emptyTitle={
               tab === "letters"
                 ? isOwnProfile

@@ -10,9 +10,14 @@ import { loadPosts } from "@/app/(main)/feed/actions";
 import { Button } from "@/components/ui/button";
 
 /**
- * The Posts tab on a profile. Reuses the same loadPosts query and the shared
- * PostCard in the same ruled-sheet card the main feed uses; the only difference
- * is the authorId scope (one person's posts).
+ * The Posts tab on a profile. Reuses the same loadPosts query and the same
+ * free-standing PostCards the main feed draws; the only difference is the
+ * authorId scope (one person's posts).
+ *
+ * It used to offer a second `layout="sheet"`, stacking the posts inside one
+ * bordered card. Nothing ever asked for it: the letterhead is already a
+ * bordered sheet, and cards inside a bordered box is the box-in-a-box the
+ * design system rules out, so the one caller always passed "cards".
  */
 export function ProfileAuthorFeed({
   authorId,
@@ -20,9 +25,7 @@ export function ProfileAuthorFeed({
   isOwnProfile,
   kind,
   emptyTitle,
-  emptyBody,
   expectedCount,
-  layout = "sheet",
   initialPosts,
   initialCursor = null,
   initialHasMore = false,
@@ -33,7 +36,6 @@ export function ProfileAuthorFeed({
   /** Filter to one register; unset loads both posts and letters. */
   kind?: "post" | "letter";
   emptyTitle?: string;
-  emptyBody?: string;
   /**
    * How many posts this scope holds, counted on the server in the same request
    * that rendered the page. The tab pill beside this feed is ALREADY printing
@@ -47,14 +49,6 @@ export function ProfileAuthorFeed({
    * one placeholder rather than three.
    */
   expectedCount?: number;
-  /**
-   * "sheet" stacks the posts inside one bordered card, divider-separated.
-   * "cards" lets each post stand free on the page as its own card, exactly as
-   * the feed draws it. The letterhead profile uses "cards": its masthead is
-   * already a bordered sheet, and nesting bordered cards inside another
-   * bordered box is the box-in-a-box the design system rules out.
-   */
-  layout?: "sheet" | "cards";
   /**
    * The first page, rendered on the server in the same request that drew the
    * page. When it is given, the mount fetch below does not run at all: the
@@ -136,27 +130,15 @@ export function ProfileAuthorFeed({
     }
   }
 
-  const asCards = layout === "cards";
-
   /* Falling through to the empty state below rather than returning one here:
      the two must not drift, and the fetch may still overrule the count. */
   if (loading && expectedCount !== 0) {
     return (
-      <div
-        className={
-          asCards
-            ? "space-y-2.5"
-            : "card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card"
-        }
-      >
+      <div className="space-y-2.5">
         {Array.from({ length: Math.min(expectedCount ?? 3, 3) }, (_, i) => (
           <div
             key={i}
-            className={
-              asCards
-                ? "card-elevated rounded-[var(--radius)] border border-border bg-card p-4"
-                : "border-b border-border px-5 py-4 last:border-0"
-            }
+            className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4"
           >
             <div className="flex items-center gap-3">
               <div className="skeleton-warm h-10 w-10 rounded-full" />
@@ -180,10 +162,9 @@ export function ProfileAuthorFeed({
             (isOwnProfile ? "You haven't posted yet." : `No posts yet from ${firstName}.`)}
         </p>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          {emptyBody ??
-            (isOwnProfile
-              ? "Share your first memory, a sighting, or a note for the valley."
-              : "When they share something, it will show up here.")}
+          {isOwnProfile
+            ? "Share your first memory, a sighting, or a note for the valley."
+            : "When they share something, it will show up here."}
         </p>
       </div>
     );
@@ -191,21 +172,9 @@ export function ProfileAuthorFeed({
 
   return (
     <>
-      <div
-        ref={animateRef}
-        className={
-          asCards
-            ? "space-y-2.5"
-            : "card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card"
-        }
-      >
+      <div ref={animateRef} className="space-y-2.5">
         {posts.map((post) => (
-          <PostCard
-            key={post.id}
-            post={post}
-            variant={asCards ? "card" : "sheet"}
-            column="centered"
-          />
+          <PostCard key={post.id} post={post} variant="card" column="centered" />
         ))}
       </div>
       {hasMore && (

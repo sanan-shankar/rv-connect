@@ -119,8 +119,10 @@ export function PeopleList({
     router.refresh();
   }
 
-  function facets(fullWidth: boolean, compact = false) {
-    const className = fullWidth ? (compact ? "w-full h-9" : "w-full") : undefined;
+  function facets(compact = false) {
+    // Every facet stacks full-width in both shells; the width used to be a
+    // second parameter both call sites passed `true`.
+    const className = compact ? "w-full h-9" : "w-full";
     return (
       <>
         <FacetSelect

@@ -85,7 +85,7 @@ export function AdminFilterBar({
   searchAriaLabel: string;
   /** Rendered twice, into the desktop popover and the mobile sheet, so the
    *  two breakpoints cannot offer different filters. */
-  facets: (fullWidth: boolean, compact?: boolean) => ReactNode;
+  facets: (compact?: boolean) => ReactNode;
   /** The facet tokens. The search term adds its own; both lists wrote that
    *  one out identically. */
   tokens: SentenceToken[];
@@ -148,7 +148,7 @@ export function AdminFilterBar({
             onOpenChange={setPanelOpen}
             trigger={<FilterButton count={activeCount} onClick={() => setPanelOpen((v) => !v)} />}
           >
-            {facets(true, true)}
+            {facets(true)}
           </FilterPopover>
         </div>
         <FilterButton count={activeCount} onClick={() => setSheetOpen(true)} className="lg:hidden" />
@@ -175,7 +175,7 @@ export function AdminFilterBar({
         hasActive={hasFilter}
         showLabel={sheetShowLabel}
       >
-        {facets(true)}
+        {facets()}
       </FilterSheet>
     </div>
   );

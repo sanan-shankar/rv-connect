@@ -434,14 +434,19 @@ export function DirectoryClient({
     warm: v === "map" ? preloadAlumniMap : undefined,
   }));
 
-  // Shared between the desktop rail and the mobile FilterSheet (which stacks
-  // every facet full-width) so neither rewrites the same six facet configs.
-  // Primary = the facets that stay visible on the desktop toolbar row
-  // (City, Batch); secondary stays behind "More filters".
-  function renderPrimaryFacets(fullWidth: boolean, compact = false) {
-    // h-9 in the desktop popover, h-10 (the full touch target) in the mobile
-    // sheet. twMerge lets the later height win over PILL_BASE's h-10.
-    const className = fullWidth ? (compact ? "w-full h-9" : "w-full") : undefined;
+  /* Shared between the desktop popover and the mobile FilterSheet so neither
+     rewrites the same four facet configs. There used to be TWO of these, a
+     "primary" pair that stayed on the desktop toolbar row and a "secondary"
+     pair behind a "More filters" disclosure -- a split filter-popover.tsx
+     removed ("Every facet lives in here now"). Both callers have called the
+     two in the same order ever since, which is one function.
+
+     `compact` is h-9 in the desktop popover, h-10 (the full touch target) in
+     the mobile sheet. twMerge lets the later height win over PILL_BASE's h-10.
+     The width was a second parameter, `fullWidth`, that all four call sites
+     passed `true`: every facet stacks full-width in both shells. */
+  function renderFacets(compact = false) {
+    const className = compact ? "w-full h-9" : "w-full";
     return (
       <>
         <FacetSearchSelect
@@ -461,14 +466,6 @@ export function DirectoryClient({
           maxYear={maxBatchYear}
           className={className}
         />
-      </>
-    );
-  }
-
-  function renderSecondaryFacets(fullWidth: boolean, compact = false) {
-    const className = fullWidth ? (compact ? "w-full h-9" : "w-full") : undefined;
-    return (
-      <>
         {/* Profession, filtering on the derived tag column
             (src/lib/profession-tags.ts), which nobody types: the pair a member
             DOES type -- jobTitle, the role, and workplace, the organisation --
@@ -588,8 +585,7 @@ export function DirectoryClient({
               >
                 {/* `compact` shrinks the facets to h-9 in the panel; the sheet
                     on mobile keeps them at the full h-10 touch target. */}
-                {renderPrimaryFacets(true, true)}
-                {renderSecondaryFacets(true, true)}
+                {renderFacets(true)}
               </FilterPopover>
             </div>
             {/* Below lg the same facets open the kit's bottom sheet (it carries
@@ -655,8 +651,7 @@ export function DirectoryClient({
         hasActive={hasFilter}
         showLabel={`Show ${resultCount} ${resultCount === 1 ? "person" : "people"}`}
       >
-        {renderPrimaryFacets(true)}
-        {renderSecondaryFacets(true)}
+        {renderFacets()}
       </FilterSheet>
 
       {/* ONE region, crossfaded. Map, batches and people used to swap

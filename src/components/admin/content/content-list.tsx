@@ -81,8 +81,10 @@ export function ContentList({
 
   const activeCount = (type ? 1 : 0) + (hidden ? 1 : 0);
 
-  function facets(fullWidth: boolean, compact = false) {
-    const className = fullWidth ? (compact ? "w-full h-9" : "w-full") : undefined;
+  function facets(compact = false) {
+    // Every facet stacks full-width in both shells; the width used to be a
+    // second parameter both call sites passed `true`.
+    const className = compact ? "w-full h-9" : "w-full";
     return (
       <>
         <FacetSelect
@@ -98,7 +100,7 @@ export function ContentList({
           variant={hidden ? "secondary" : "outline"}
           onClick={() => setParam("hidden", hidden ? "" : "1")}
           aria-pressed={hidden}
-          className={fullWidth ? "w-full justify-start" : undefined}
+          className="w-full justify-start"
         >
           <EyeOff className="size-3.5" strokeWidth={2} />
           {hidden ? "Showing removed things" : "Show removed things"}
