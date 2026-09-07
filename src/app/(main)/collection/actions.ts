@@ -58,7 +58,7 @@ import {
   photoScopeWhere,
   type PhotoScope,
 } from "@/lib/photo-visibility-rule";
-import { viewerFacts } from "@/lib/collection-viewer";
+import { viewerFacts } from "@/lib/collection-viewer-facts";
 import { notifyAdminNote } from "@/lib/admin-note";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";

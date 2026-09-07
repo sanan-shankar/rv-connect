@@ -1,3 +1,15 @@
+/* ------------------------------------------------------------------ *
+ *  Who is looking, as far as the Collection is concerned.
+ *
+ *  `collection-viewer-FACTS` and not `collection-viewer`, because the
+ *  Collection has two "viewers" and they are not the same noun: the
+ *  member doing the looking (this file, a SERVER module -- it imports
+ *  Prisma) and the image viewer they look through
+ *  (`collection-viewer-image.ts`, client-safe). Importing this one from
+ *  a client component drags Prisma into the browser bundle, which `tsc`
+ *  is perfectly happy about.
+ * ------------------------------------------------------------------ */
+
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 

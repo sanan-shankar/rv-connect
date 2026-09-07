@@ -1,5 +1,27 @@
 # Progress Log
 
+## 2026-09-07 — the Collection's two "viewers" get two names
+
+`collection-viewer.ts` is a SERVER module about the member doing the looking; it imports Prisma.
+The photograph-to-viewer field map added an hour earlier is client-safe and is about the image
+viewer they look through. Naming them `collection-viewer.ts` and `collection-viewer-image.ts` put
+one letter of meaning between two modules where picking the wrong one puts Prisma in the browser
+bundle — and `tsc` is perfectly happy about that. The server one is now
+`collection-viewer-facts.ts`, and both banners say which is which.
+
+**How it surfaced is worth writing down.** Creating the new module at the taken name for one
+minute, then restoring the original byte-for-byte, left Turbopack's dev cache holding the
+overwritten version at that path — permanently. `git diff` was clean, `tsc` was clean, `npm run
+check` was green, and `/collection` still threw `viewerFacts is not a function` on every render,
+with React swallowing it into "Switched to client rendering". Touching the file did not help; nor
+did changing its bytes. The proof was reading `.next/dev/server/chunks` and finding the wrong
+module's banner under the right module's path. CLAUDE.md gotcha 1 is right and its remedy is `mv
+.next .next-stale`; another session is live in this checkout, so the rename — which the code wanted
+anyway — is what shipped instead. **The next session on a cold `.next` will not see any of this.**
+
+`npm run check` green (105/105); `/collection` and `/collection?scope=class` both 200 with an empty
+error list, where minutes earlier they were the error boundary.
+
 ## 2026-09-07 — the Catch-up reader gets a masthead, and meets the corpus nobody had run
 
 Catch-ups rework, session S4c. Two things were outstanding and both were ours.
