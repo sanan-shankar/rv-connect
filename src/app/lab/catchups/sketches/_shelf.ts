@@ -25,28 +25,43 @@ export type RoundState =
   | "none"
   | "collecting"
   | "answering"
-  | "preparing"
   | "published"
   | "ended";
+
+/* `preparing` is deleted, and it is deleted rather than redrawn. It is a
+   hard-coded 24-hour hold between answers closing and the Round coming
+   out (PREPARING_HOLD_HOURS in catchups-core.ts), during which nothing
+   happens and nobody -- Keeper included -- can read a word. Its only real
+   job is stopping a Round landing at 3am, and "Publish now" exists solely
+   to skip it. His question, 2026-09-07: "Why doesn't it just publish
+   immediately? Is there a reason we have to have a separate preparing
+   section? I can't just publish at midnight and the deadline is done."
+   There is not. Answers close and the Round comes out at the same moment,
+   and that moment is a civil hour. One state, one console and one control
+   go with it. */
 
 export type ShelfRound = {
   number: number;
   questions: SketchQuestion[];
   /** Published only. */
   publishedAt: string | null;
-  /** Answering only: when answers close. */
+  /** Answering only: when answers close, which is also when it comes out. */
   closesAt: string | null;
-  /** Preparing only: when it comes out. */
-  comesOutAt: string | null;
   /** Published only: when the next one opens, if it is known. */
   nextOpensAt: string | null;
   /** Answering only, by name, never a count (R21, R32). */
   wroteIn: SketchPerson[];
   /** Whether the viewer has written in this Round. */
   youAnswered: boolean;
-  /** Invented. Whether the viewer has read it; the measure beside a
-   *  cover is faint until it has been, warm after. Owner question 16. */
+  /** Invented. Whether the viewer has read it. */
   read: boolean;
+  /** Photographs from inside the Round. A published Round's cover is
+   *  these, not a list of its questions: "the way that it's shown over
+   *  here, it just looks like a bunch of questions ... it looks like work
+   *  honestly. It's not like an appetizing, beautiful thing you want to
+   *  click and find out." (2026-09-07) A Round with none falls back to the
+   *  Catch-up's own picture. */
+  photos: string[];
 };
 
 export type SketchCatchup = {
@@ -62,11 +77,17 @@ export type SketchCatchup = {
    *  nobody may rename a batch or change who is in it (his 2026-08-21
    *  reasoning, recon section 9). */
   youKeep: boolean;
-  /** Whether the viewer may work the ROUND: open answering, nudge, close,
-   *  extend, publish, resume. On a people Catch-up that is the Keeper. On
-   *  a batch it is everyone, which is the answer to owner question 11 --
-   *  "nobody owns it, anyone from the batch can" -- and without the split
-   *  a paused batch would have nobody able to resume it. */
+  /** Whether the viewer may work the ROUND: start it early, open
+   *  answering, nudge, close early, extend.
+   *
+   *  FALSE ON EVERY BATCH CATCH-UP, and that is the whole answer to who
+   *  runs one. He caught the earlier "anyone in the batch can": "Can
+   *  anyone open answering? That shouldn't be allowed. Because many people
+   *  would click it by accident. Especially on a batch thing ... it seems
+   *  like the kind of irreversible thing." So a batch Catch-up has NO
+   *  manual transitions at all -- it runs on its rhythm, nobody opens or
+   *  closes anything, and there is nothing to press by mistake. The only
+   *  things anyone does on one are ask and answer. */
   canRun: boolean;
   /** The Round that Now is about. Null only when the state is `none`. */
   round: ShelfRound | null;
@@ -147,16 +168,21 @@ export function buildShelf(round: SketchRound): SketchCatchup[] {
   const people = round.members;
   const wrote = round.contributors;
 
+  /* Every photograph anyone put in this Round, in the order they appear.
+     A cover takes the first few. */
+  const shots = q.flatMap((s) => s.entries.flatMap((e) => e.images));
+  const from = (n: number) => shots.slice(n, n + 4);
+
   const published: ShelfRound = {
     number: round.number,
     questions: q,
     publishedAt: base,
     closesAt: null,
-    comesOutAt: null,
     nextOpensAt: shift(base, 30),
     wroteIn: wrote,
     youAnswered: true,
     read: false,
+    photos: from(0),
   };
 
   return [
@@ -170,21 +196,21 @@ export function buildShelf(round: SketchRound): SketchCatchup[] {
       state: "answering",
       paused: false,
       youKeep: false,
-      canRun: true,
+      canRun: false,
       round: {
         number: 4,
         questions: q.slice(0, 5),
         publishedAt: null,
         closesAt: shift(base, 5),
-        comesOutAt: null,
         nextOpensAt: null,
         wroteIn: wrote.slice(0, 6),
         youAnswered: false,
         read: false,
+        photos: [],
       },
       before: [
-        { ...published, number: 3, publishedAt: shift(base, -90), questions: q.slice(0, 6), read: true },
-        { ...published, number: 2, publishedAt: shift(base, -180), questions: q.slice(4, 9), read: true },
+        { ...published, number: 3, publishedAt: shift(base, -90), questions: q.slice(0, 6), read: true, photos: from(4) },
+        { ...published, number: 2, publishedAt: shift(base, -180), questions: q.slice(4, 9), read: true, photos: from(8) },
       ],
       endedAt: null,
       members: people,
@@ -223,40 +249,43 @@ export function buildShelf(round: SketchRound): SketchCatchup[] {
         questions: q.slice(5, 8),
         publishedAt: null,
         closesAt: null,
-        comesOutAt: null,
         nextOpensAt: null,
         wroteIn: [],
         youAnswered: false,
         read: false,
+        photos: [],
       },
-      before: [{ ...published, number: 1, publishedAt: shift(base, -60), questions: q.slice(2, 7), read: true }],
+      before: [{ ...published, number: 1, publishedAt: shift(base, -60), questions: q.slice(2, 7), read: true, photos: from(2) }],
       endedAt: null,
       members: people.slice(0, 4),
       picture: PICTURES[2],
     },
 
-    /* Written, closed, not out yet. */
+    /* Out, and read, with two behind it. The state `preparing` used to sit
+       here and is deleted; a Round now comes out at the moment answers
+       close. */
     {
       id: "crimes",
       name: "photographs & other crimes",
       kind: "people",
       meta: "Every three months",
-      state: "preparing",
+      state: "published",
       paused: false,
       youKeep: true,
       canRun: true,
       round: {
-        number: 2,
+        ...published,
+        number: 3,
+        publishedAt: shift(base, -14),
         questions: q.slice(3, 7),
-        publishedAt: null,
-        closesAt: null,
-        comesOutAt: shift(base, 3),
-        nextOpensAt: null,
         wroteIn: wrote.slice(0, 9),
-        youAnswered: true,
-        read: false,
+        read: true,
+        photos: from(4),
       },
-      before: [{ ...published, number: 1, publishedAt: shift(base, -95), questions: q.slice(0, 4), read: true }],
+      before: [
+        { ...published, number: 2, publishedAt: shift(base, -95), questions: q.slice(0, 4), read: true, photos: from(8) },
+        { ...published, number: 1, publishedAt: shift(base, -190), questions: q.slice(2, 6), read: true, photos: [] },
+      ],
       endedAt: null,
       members: people.slice(0, 8),
       picture: PICTURES[3],
@@ -271,7 +300,7 @@ export function buildShelf(round: SketchRound): SketchCatchup[] {
       state: "none",
       paused: false,
       youKeep: false,
-      canRun: true,
+      canRun: false,
       round: null,
       before: [],
       endedAt: null,
@@ -290,7 +319,7 @@ export function buildShelf(round: SketchRound): SketchCatchup[] {
       youKeep: true,
       canRun: true,
       round: null,
-      before: [{ ...published, number: 1, publishedAt: shift(base, -240), questions: q.slice(0, 5), read: true }],
+      before: [{ ...published, number: 1, publishedAt: shift(base, -240), questions: q.slice(0, 5), read: true, photos: from(6) }],
       endedAt: shift(base, -120),
       members: people.slice(0, 5),
       picture: PICTURES[5],
@@ -323,7 +352,7 @@ export function homeVariants(
     { key: "none", label: "No Round yet", c: by("batch-1978") },
     { key: "collecting", label: "Collecting", c: by("sunday-four") },
     { key: "answering", label: "Answering", c: answering },
-    { key: "preparing", label: "Preparing", c: by("crimes") },
+    { key: "issues", label: "Out, with earlier ones", c: by("crimes") },
     { key: "published", label: "Published", c: all.find((c) => c.state === "published") ?? all[0] },
     /* A pause is a mark on a live Round, so the illustrative case is a
        Round mid-answer: everything is still on the page, marked Paused,

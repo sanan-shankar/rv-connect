@@ -10552,3 +10552,43 @@ make every card the same height. The reasoning is in `_list.tsx` so nobody re-tr
 
 Gates green; `npm run visual` 25/25, run separately. He owes four answers and about twenty
 photographs; the paste line for the session after is at the foot of the handover.
+
+## 2026-09-07 — Catch-ups S4, second pass: the rail comes back
+
+He read the first pass and found the home worse than what ships, and the diagnosis he gave was
+right at the root: *"the level of critical thinking and brainstorming and planning and rigor has
+significantly dropped."* The first pass designed the *shape* of the home and then filled it by
+putting controls in a row of equal pills under the content, so they belonged to nothing — *"nudge
+everyone, close now, just hanging in the middle of nowhere ... arbitrarily there. There's no
+sense."* The cause was one deletion: the shipped home has a right rail, this design removed it and
+put the people there, and every control lost its address.
+
+So the second pass started from the work that had been skipped — a full control inventory read out
+of `actions.ts` and its guards. Twenty-three controls exist, classified by whether they belong to
+the Round, the Catch-up or you, and by whether they can be undone. **Three do not exist at all**:
+starting the next Round early, which he found himself on a test Catch-up (`openNextRoundIfDue`
+fires on the clock alone and no action anywhere starts one); renaming a Catch-up, which has no
+action either; and changing the picture, which is new.
+
+Out of that came the rule that stops it happening again: **a control is either the page's one
+primary action, in the content, attached to the thing it acts on, or it is in the rail.** No third
+place. The rail is Reminders, This Round, This Catch-up, People, in that order — People last
+because it is the only unbounded block, and with it first Reminders landed 1,500px down a Catch-up
+of twenty-four. One-way controls carry a cinnamon dot and confirm.
+
+Three things fell out of thinking about reversibility. **A batch Catch-up has no manual transitions
+at all** — it runs on its rhythm, so nobody can open answering by accident, which was his
+objection. **`preparing` is deleted**: checked, it is a hard-coded 24-hour hold in which nobody,
+Keeper included, can read anything, and "Publish now" exists only to skip it; answers now close and
+the Round comes out at the same moment. **A card always opens the home**, because the thing he
+hates most about what ships is not knowing where a click will land.
+
+Two of his own calls landed the same day. A published Round's cover is now **its photographs**, not
+its questions: *"it looks like work, honestly. It's not like an appetizing, beautiful thing you want
+to click."* And the picture stopped being a mark beside the name and became the thing itself — the
+list card IS the photograph with the name written across it over a fade, and the home opens with a
+Notion-width banner.
+
+`npm run check` green. `npm run visual` red on `/catchups` at both viewports and it is not this
+work: the diff touches no shipped file, and that route photographs live data he was adding test
+Catch-ups to while this ran. Baselines deliberately left alone rather than baking a throwaway in.

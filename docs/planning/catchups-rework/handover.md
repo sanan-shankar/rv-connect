@@ -155,8 +155,8 @@ too, which he allowed in ¶28.
 | S3c Front runner | DONE | 2026-09-07: ONE reader, by one hand, live at `/lab/catchups/sketches`. The strip under the green bar is the navigator; drawn three ways as asked (R24). The fifteen are deleted (R47). What it answers, and what is his to decide: [`front-runner.md`](front-runner.md), "What was built" |
 | Owner reviews the reader, round one | DONE | First round of notes given 2026-09-07 and all of them folded in the same day: the drifting navigator (F34), the birds' left edge (F35), the feed's comment row, a three-line cap on a docked question, the laptop's margins and rail, and a jump that no longer fast-forwards. His words are in [`review-2026-09-07.md`](review-2026-09-07.md). |
 | Owner reviews the reader, round two | DONE | Second round of notes given 2026-09-07 and folded (`review-2026-09-07.md` Parts two to four): every S4 default accepted except delete, which **becomes leave**; the Catch-up **picture**, which is new and changes every surface; and the list's question previews, which he took off. Still owed from him: which navigator (A, B or C). Still owed by us: **N11, the reader's title**, the one note of his not yet answered |
-| S4 The shape of the whole thing | DONE | 2026-09-07. [`architecture.md`](architecture.md) is the settled shape and supersedes `directions.md` Part 1. Both surfaces are live and navigable at `/lab/catchups/sketches`: the list, a Catch-up's home in all seven states, and the reader, joined up so the moves between them can be walked. His new brief on the Catch-up **picture** (N19 to N25) is folded in as §1b and drawn on both |
-| Owner browses the shape | OWNER-GATED | **next, and it is his.** `/lab/catchups/sketches`, the Phone and Laptop views. What is his to say is in the session log's closing note |
+| S4 The shape of the whole thing | PARTIAL | 2026-09-07, **two passes**. First pass rejected by him the same day: the home was worse than what ships, because it deleted the shipped right rail and left every control floating in the content (`review-2026-09-07.md` N26 to N45; *"the level of critical thinking and brainstorming and planning and rigor has significantly dropped"*). Second pass rebuilt from a full control inventory: the rail is back, `preparing` is deleted, a batch has no manual transitions, a published Round's cover is its photographs, and a card always opens the home. [`architecture.md`](architecture.md) §§1, 1b, 4, 5, 6, 8 rewritten. **Still owed by us: N11 the reader's title.** |
+| Owner browses the shape, round two | OWNER-GATED | **next.** `/lab/catchups/sketches`. Round one of this is `review-2026-09-07.md` Part five |
 | The composer, the door's sheet, the picture's crop | OPEN | the session after his verdict. The people sheet is **no longer needed**: S4 replaced it with a column on a laptop and a disclosure on a phone |
 | S3b Second round | OPEN | only if he asks for one after browsing the shape |
 | S5 Pick and spec | OPEN | blocked on his verdict. `architecture.md` is most of what a spec has to say about structure; S5 adds his picks and the copy |
@@ -1506,6 +1506,19 @@ after the second pass)
 **left**, not deleted, so the thirty-day bin and the "Recently deleted" shelf go with the word.
 Question 15 is re-asked below in plain English and is still open. On the reader, **N11 (the title)**
 is the one note of his that is not yet answered.
+
+**2026-09-07, typed, verbatim** (N46, N47 of `review-2026-09-07.md`):
+
+> 1. A  2. no it's not yet better.  3. no it's not it's just this tiny hanging thing not at all tied
+> into the identiy it just exists.  4. don't know what the questions are please explain.
+
+> if they've not put a batch that's fine. they don't need a catch up. 17 i'll give the pictures when
+> I get time. 18 anyone can replace the batch picture
+
+*The reading:* **navigator A**, and it is now the only one. The reader is **not yet better** than
+shipped, which keeps S3c open. The picture as a small mark beside the name is rejected and is now
+the card itself and a banner on the home. Question 15 is closed: the six with no batch year get
+nothing and that is fine. Question 17 is closed pending the files. Question 18: anyone in the batch.
 
 **2026-09-07, spoken, verbatim: the Catch-up's picture.** N19 to N25 of `review-2026-09-07.md`, in
 full. Do not work from the summary in `architecture.md` §1b; read his paragraphs.
