@@ -1,5 +1,26 @@
 # Progress Log
 
+## 2026-09-07 — Refactor audit 2, the owner's answers in
+
+His reply to the 28 questions is recorded verbatim in the campaign file with a reading per row, so a
+worker argues with the reading rather than the paragraph. Three readings are deliberately
+conservative and each is offered back to him at the close.
+
+**Q3 overrides Q18 where they collide.** He said "delete all" to the unread database columns and,
+separately, "fixing that separately leave it alone" about the song feature. The Catch-ups rework
+campaign is live in this same tree, so the three song columns are the one item in that table that is
+not touched. **`User.currentCity` and `secondaryCity` are not reachable by "delete all" either** —
+the row he read said they hold members' own data and that nothing here touches them.
+
+**Reduced motion is now a standing product decision, not a row.** His words: "reduce motion
+shouldn't be considered anywhere... don't make anything boring because they have rduced motion on."
+The two violations stay, DESIGN-SYSTEM §7 gets rewritten to say so, and nothing that already honours
+the setting is stripped out — he answered a question about adding two guards, not about removing
+every existing one.
+
+The board gains two rows: letters get Report, Edit and Delete (Q15b, real feature work), and Phase G
+shrinks to the demo exclusion because Q27 parks its five rebuilds for a proper write-up.
+
 ## 2026-09-07 — the reader adapts to the window, and the feed's dots stop pushing the icons down
 
 **The carousel was making the heart and the comment icon drop.** His: "the carousel navigation

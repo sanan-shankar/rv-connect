@@ -83,10 +83,11 @@ fix the table.
 | A — free money | DONE | A18 folded into B10, A19 declined | — |
 | B — bundle levers | DONE | B9 measured and reverted | — |
 | C — the query floor | DONE | C11 done differently; read the ledger | — |
-| E — de-duplication that closes a drift | PARTIAL | rest of E5, rest of E6, E7b, E8, E11, E12 | E7b needs `TURNSTILE_DEV_CHALLENGE=1` and a dev-server restart; E11's `MailCard` half is Q16 |
-| F — hygiene, in one pass, last | OPEN | all | runs after E; Q10, Q11, Q13, Q20, Q21, Q22 |
-| D — switched-off subsystems | OWNER-GATED | all | Q1, Q2, Q3, Q4, Q17, Q18. **Every column `SELECT` is now RUN** — results in Q18's table |
-| G — architecture and taste | OWNER-GATED | all | Q23 (lab/demo), Q27 (the five rebuilds) |
+| E — de-duplication that closes a drift | PARTIAL | rest of E5, rest of E6, E7b, E8, E11, E12 | E7b needs `TURNSTILE_DEV_CHALLENGE=1` and a dev-server restart. E11's `MailCard` half is **unblocked — Q16 = (a), merge it** |
+| D — switched-off subsystems | OPEN | D1, D4, D5, D6, D7 (part), D8, D9, D10, D11 | **D2 DECLINED (Q1 keeps the showcase), D3 DECLINED (Q3: Catch-ups rework owns it).** D7 loses its three keepers per Q18. **No DDL**: code stops writing, migration files land unrun, commands go to him at the close |
+| F — hygiene, in one pass, last | OPEN | all | runs after D. **The reduced-motion row is DECLINED (Q11)** and DESIGN-SYSTEM §7 is rewritten instead. Q10, Q13, Q20, Q21, Q22 all answered |
+| H — letters get Report, Edit and Delete | OPEN | all | new work, from Q15 = (b). A write path: `write-path-reviewer` on the diff |
+| G — architecture and taste | PARTIAL | G1 + G7 only (the demo exclusion, Q23) | **G3, G4, G5, G6, G10, G11 are PARKED by Q27** — written up in `docs/planning/FEATURES.md` instead of built |
 
 ## Owner questions
 
@@ -340,8 +341,47 @@ do (a) on both"*. Anything you do not name, I take the default for.
 
 ## Owner answers
 
-Nothing answered yet. His reply goes here verbatim, dated, with the reading taken beneath it, so a
-worker three hours later argues with the reading rather than re-deriving it.
+**2026-09-07. His reply, verbatim:**
+
+> 3. fixing that separately leave it alone.
+> 5b, 9b but mark it as a bug in bugs, 11 reduce motion shouldn't be considered anywhere. I know these people. they'd want to see these fun things. don't make anything boring because they have rduced motion on. 13 which headings. 15 b. 16a. 17 delete the whole house picker lab we don't need it. 18 delete all and stop writing info except to the First-seen / last-seen on a viewed item, Time an analytics snapshot was captured, When a photograph was approved, and by whom. i'd like to know what they are as well I don't get it. but they seem useful so let's keep them for now. 20b. 22 there's two different folders of them. delete all the screenshots in both and make sure all future screenshots only fill into one folder. delete the other folder permanently. 27 would need better descriptions to decide but not for now. however keep it somewherre so I know it's pending. 28i don't know what you're saying. should be fine.
+>
+> rest defaults are fine
+
+**The reading. Argue with this, not with the paragraph above.**
+
+| Q | His answer | What that means here |
+|---|---|---|
+| 1 | default | **(b)** — the landing showcase stays, switched off. Do not delete it. Second audit running; it is decided as "keep" until he says otherwise. |
+| 2 | default | **(a)** — delete the feed's sort and date filters. D1 proceeds. |
+| **3** | *"fixing that separately leave it alone"* | **D3 is DECLINED.** The Spotify/song pipeline is being handled by the Catch-ups rework campaign. **Touch nothing** — not the columns, not `song-attachment.tsx`, not the oembed fetch. **This overrides Q18's "delete all" for the three song columns**: they are the one item in that table that does NOT get dropped, because the campaign that owns them is live in this same tree. |
+| 4 | default | **(a)** — delete the older photo-approval screen on `/admin/content`. D4 proceeds, and `image-purge-rule.test.mjs:253-264` gets re-pointed in the same commit (see the sequencing section). |
+| **5** | *"5b"* | **(b)** — Catch-up answer photographs stay at their current size. Do not match the feed. (Also Catch-ups territory, also being reworked separately.) |
+| 6 | default | **(a)** — the upload fallback stops shrinking; both paths keep full size. |
+| 7 | default | **(a)** — all three help bubbles onto one piece of machinery, **look unchanged**. Not the plain browser box. |
+| 8 | default | **(b)** — the install tile stays admin-only. |
+| **9** | *"9b but mark it as a bug in bugs"* | **(b)** — leave the guide's contents page unlinked, **and file it in `docs/planning/bugs.md`** as a known gap. Two actions, not one. |
+| **11** | *"reduce motion shouldn't be considered anywhere. I know these people. they'd want to see these fun things. don't make anything boring because they have rduced motion on."* | **Row DECLINED, and it becomes a standing decision.** Do not add a reduced-motion guard to `not-found.tsx` or `landing/footer-hoopoe.tsx`, or anywhere else. **DESIGN-SYSTEM §7 must be rewritten to say this**, in his words, or the spec and the code disagree — which is the exact drift Phase F exists to close. **Conservative half, taken deliberately: nothing that already honours reduced motion is stripped out.** He answered a question about adding two guards; removing every existing guard across the app is a far larger change he did not ask for, and it is offered back to him at the close. |
+| **13** | *"which headings"* | He asked a question rather than answering. **Answered in the close**; meanwhile take the stated default **(b)** — identical pixels, one name, so nothing moves while he decides. The shipped ones are all 26px: the dark-mode page (six), the two Catch-up join pages, and the Collection's contribute room. 24px and 27px survive **only in lab rooms**. |
+| 14 | default | **(a)** — About page untouched. |
+| **15** | *"15 b"* | **(b) — build all three: Report, Edit and Delete on letters.** This is a feature, not a cleanup, and it is the largest single piece of new work in the campaign. It touches a write path, so `write-path-reviewer` runs on the diff and the existing post-moderation gates are the model to copy. |
+| **16** | *"16a"* | **(a)** — merge `MailCard` into `MailRows`. He has accepted the visible consequence: relative dates ("3 days ago") and two extra buttons per row on the screen that changes. E11's admin half is unblocked. |
+| **17** | *"delete the whole house picker lab we don't need it"* | **(a) plus more than was asked.** Delete the dead admin branches AND `HousePicker` itself AND **its lab room**, registry line included. Not just the component: the room goes. |
+| **18** | *"delete all and stop writing info except to [three named]. i'd like to know what they are as well I don't get it. but they seem useful so let's keep them for now."* | **Stop writing, and prepare the removal, for:** `Photo.area`, `Photo.freeTags` (0 of 1,749), `Post.groupId` (0 of 20), `OutboundEmail.bounceKind` (0 of 55), `Image.greyscale` (3 of 53, derived, recomputable). **Keep, and explain to him in plain English at the close:** `ContentView.firstAt`/`lastAt`, `MetricSnapshot.capturedAt`, `Photo.approvedAt`/`approvedById`. **NOT dropped, and never offered: `User.currentCity` and `secondaryCity`** — the table row he read said "Keep. This is members' own data. Nothing here touches them", so "delete all" cannot reach them; deleting 56 members' cities is not a thing he asked for. **And the three song columns are exempt via Q3.** **No DDL runs tonight** — the skill's hard stop holds. The code stops writing them, a dated file lands in `prisma/migrations-manual/`, and the one command to run it goes to him at the close. |
+| 19 | default | **(a)** — delete the fourteen duplicate skill packs only. The rest stay in the repo; the copy-out command goes to him at the close (writing to his home folder is outside this repository). |
+| **20** | *"20b"* | **(b) — invert the log.** The full session entry goes to the month's own file from now on; `progress.md` keeps one line per session. Move what is already there, and put the enforcing test under it so it cannot regrow. |
+| 21 | default | **(a)** — a closed audit's working notes go, a pointer stays. Applies to this audit's own `work/` folder at the close. |
+| **22** | *"there's two different folders of them. delete all the screenshots in both and make sure all future screenshots only fill into one folder. delete the other folder permanently."* | **Safe reading, taken deliberately, and told to him at the close so one word corrects it.** The two scratch folders are `e2e/.shots/` (**450 MB**, not the 153 MB the audit measured) and `.tmp-shots/`, which `scripts/dev/apple-edge/look.mjs:17` writes **into the closed repo root**. Empty both, repoint `look.mjs` at `e2e/.shots/edge`, delete `.tmp-shots/` and its ignore line permanently, and add the clean-up to the close-out routine. **`e2e/__screenshots__/` (13 MB) is NOT touched**: those are the committed baselines `npm run visual` compares against, deleting them makes the whole visual suite meaningless until regenerated, and there is no reading of "screenshots piling up" that is worth that. If he meant those too, it is one command to regenerate them. |
+| 23 | default | **(a)** — the lab leaves the **public demo's** build only. It stays in the main build, because `/lab/collection` is the Collection's test fixture. The 63 font files go with it. |
+| 24 | default | **(a)** — crop, collection/swap and focus rooms archived in the registry; the crop room's specimens move somewhere permanent first. |
+| 25 | default | **(a)** — retire the closed investigations and the failing sign-in probe; **keep** the album importer. |
+| 26 | default | leave every item on that list exactly as it is. |
+| **27** | *"would need better descriptions to decide but not for now. however keep it somewherre so I know it's pending."* | **(a) — none of the five rebuilds tonight.** And a second obligation: write each of the five up properly, in the plain English he can actually judge, somewhere he will find it. Home: `docs/planning/FEATURES.md`, which is the parked-ideas file, with a pointer from the close. **This is a deliverable, not a note to self.** |
+| **28** | *"28i don't know what you're saying. should be fine."* | He did not understand it, which is my failure, not his. **Safe branch: treat the rate limiter as UNCONFIRMED**, file it in `docs/planning/bugs.md` as an owner action, and re-explain it in one plain sentence at the close. "Should be fine" is not a confirmation that two keys exist in a dashboard neither of us can see. The second half stands regardless: **nothing is pushed.** |
+
+**The order this campaign now runs in**: Phase E's remainder, then Phase D (minus D2 and D3), then
+Phase F, then Q15's letters feature, then Q23's demo exclusion. Phase G's five rebuilds are parked
+by Q27 and written up instead.
 
 ## The order to work in
 
