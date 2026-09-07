@@ -37,7 +37,6 @@ export { THUMB_PX, dateOnlyExif, exifBlockOf, gridThumb } from "@/lib/collection
  */
 export type PhotoMeta = {
   caption: string | null;
-  area: string | null;
   /** The six buckets, comma-joined for the `subject` column. Empty when the
    *  contributor filed it nowhere -- which is allowed, and is what the Other
    *  bucket and the suggestion pass (spec sec. 8.3) exist to reduce. */
@@ -52,7 +51,6 @@ export type PhotoMeta = {
  *  for none of the Collection's own facts, which is the whole point of it. */
 export const NO_PHOTO_META = (caption: string | null): PhotoMeta => ({
   caption,
-  area: null,
   buckets: "",
   era: "unknown",
   photoYear: null,
@@ -70,7 +68,6 @@ export const NO_PHOTO_META = (caption: string | null): PhotoMeta => ({
  */
 export function parsePhotoMeta(raw: {
   caption?: string;
-  area?: string;
   buckets?: string[];
   era?: string;
   datePrecision?: string;
@@ -79,7 +76,6 @@ export function parsePhotoMeta(raw: {
 }): { error: string } | { meta: PhotoMeta } {
   const parsed = photoSchema.safeParse({
     caption: raw.caption || undefined,
-    area: raw.area || undefined,
     buckets: raw.buckets?.length ? raw.buckets : undefined,
     era: raw.era || undefined,
     datePrecision: raw.datePrecision || undefined,
@@ -88,11 +84,10 @@ export function parsePhotoMeta(raw: {
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const { caption, area, buckets, era, datePrecision, photoYear, photoMonth } = parsed.data;
+  const { caption, buckets, era, datePrecision, photoYear, photoMonth } = parsed.data;
   return {
     meta: {
       caption: caption || null,
-      area: area || null,
       // De-duplicated on the way in: the form cannot send the same bucket
       // twice, but this is the one place that decides what the column holds.
       buckets: [...new Set(buckets ?? [])].join(","),
@@ -149,9 +144,7 @@ export async function exifDateOf(original: Buffer): Promise<ExifDate | null> {
  * `subject` holds the six buckets, comma-joined (src/lib/collection.ts). The
  * column keeps its old name deliberately -- one database serves production and
  * local dev, so renaming it breaks every Collection query in production until
- * the next deploy lands. `freeTags` is the legacy free-text bird/species
- * field, removed from the form in the 2026-07-18 rework and kept null for old
- * rows; search still reads it so those photographs stay findable by typing.
+ * the next deploy lands.
  */
 export function photoRowData(args: {
   uploaderId: string;
@@ -198,9 +191,7 @@ export function photoRowData(args: {
     height,
     caption: meta.caption,
     subject: meta.buckets,
-    area: meta.area,
     era: meta.era,
-    freeTags: null,
     photoYear: meta.photoYear,
     photoMonth: meta.photoMonth,
     datePrecision: meta.datePrecision,

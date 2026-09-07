@@ -21,7 +21,7 @@
 
 import type { ViewerImage } from "@/components/common/image-viewer";
 import type { PhotoData } from "@/lib/collection-shape";
-import { areaLabel, bucketLabel } from "@/lib/collection";
+import { bucketLabel } from "@/lib/collection";
 
 /**
  * Map a Collection photograph onto the shared viewer's shape.
@@ -49,8 +49,7 @@ export function toViewerImage(p: PhotoData, isAdmin: boolean): ViewerImage {
     caption: p.caption,
     author: { id: p.uploader.id, name: p.uploader.name },
     date: p.takenLabel,
-    where: p.area ? areaLabel(p.area) : null,
-    tags: [...p.subject.map(bucketLabel), ...p.freeTags],
+    tags: p.subject.map(bucketLabel),
     href: `/collection/${p.id}`,
     loved: p.loved,
     loveCount: p.loveCount,

@@ -372,12 +372,12 @@ async function importOne(p) {
   const inserted = await client.query(
     `INSERT INTO "Photo" (
        "id","uploaderId","thumbUrl","url","width","height","caption","sourceKey",
-       "subject","area","era","freeTags","photoYear","photoMonth","datePrecision",
+       "subject","era","photoYear","photoMonth","datePrecision",
        "exifYear","exifMonth","scope","classYears","approved","isHidden",
        "approvedAt","approvedById","createdAt","updatedAt"
      ) VALUES (
        $1,$2,$3,$4,$5,$6,NULL,$7,
-       '',NULL,$8,NULL,$9,$10,$11,
+       '',$8,$9,$10,$11,
        $12,$13,'class',$14,true,false,
        now(),$2,now(),now()
      ) ON CONFLICT ("sourceKey") DO NOTHING
