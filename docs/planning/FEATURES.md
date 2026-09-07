@@ -131,3 +131,42 @@ Legend: [have] exists today · [ask] you asked for · [idea] my suggestion · (s
   field is never shown publicly. Later they power insights like "you have X in common" and
   house-switch patterns across batches. Moved here 2026-07-02 from the owner feedback checklist
   (its "Data to collect" section) when that file was consolidated into bugs.md.
+
+## Five rebuilds, parked 2026-09-07, waiting on a description he can judge
+
+Refactor audit 2 (`docs/audit-fix/2026-09-03-refactor-audit-2/`) asked whether to do five larger
+pieces of reorganisation. His answer: *"would need better descriptions to decide but not for now.
+however keep it somewhere so I know it's pending."* So here they are, in the plain terms the
+question should have used. **None of them changes what the site looks like.** Each is code being
+moved so the next change to that area is easier and less likely to break something.
+
+1. **The profile letterhead is one 900-line file, and half of it is the editing form.** Every time
+   a stranger opens somebody's profile, the browser downloads the machinery for editing that
+   profile too, which that person can never use. Splitting the viewing half from the editing half
+   means a stranger's visit loads roughly half of what it does now. The catch: this is the file
+   most changed in the last month, so it is also the easiest to break. Audit 1 split the small
+   pieces off and deliberately left this trunk.
+
+2. **The Collection page keeps three separate mechanisms in one head.** Scrolling, loading more
+   photographs, and remembering where you were are tangled together in one file. Untangling them
+   into three is the difference between "I can change how loading works" and "I change loading and
+   the scroll position breaks". Worth doing only after everything else in the Collection settles,
+   because it moves about ten places where tests hold the code still.
+
+3. **The composer's "+" menu and its attachment strip.** The box you write a post in is one very
+   large component. Two parts of it can be lifted out cleanly. The rest cannot, and trying is how
+   you break posting.
+
+4. **Some small building blocks are kept alive for one lab room.** A card component that 70 files
+   ignore in favour of writing the same thing by hand, and a picker with ten exports and one
+   caller. Either delete them and fix the one room, or start using them properly. **Trap found
+   during the audit:** two scripts read an attribute those blocks emit, and neither runs under
+   `npm run check`, so deleting carelessly breaks them silently.
+
+5. **How photograph subjects are searched.** A photograph's subjects are stored as one comma-joined
+   piece of text and searched with "contains", so searching for "sport" also matches "transport".
+   The directory's profession tags already use the right shape (a real list with a proper index).
+   This is a rework rather than a cut, and it needs a migration.
+
+**If you want any of these, say the number.** They are independent; doing one does not commit you
+to the rest.

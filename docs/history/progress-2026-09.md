@@ -8,6 +8,26 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-07 — the five parked rebuilds get a description he can judge, and five bugs get filed
+
+Two of the owner's answers were deliverables rather than decisions, and this is them.
+
+**Question 27**: *"would need better descriptions to decide but not for now. however keep it
+somewhere so I know it's pending."* The five Phase G rebuilds are written up in
+`docs/planning/FEATURES.md` in the plain terms the original question should have used — what moves,
+what it buys, and what the trap is — with the standing note that none of them changes what the site
+looks like and that they are independent of each other.
+
+**Question 9** (*"9b but mark it as a bug in bugs"*) and **question 28** are filed in
+`docs/planning/bugs.md`, along with three defects found while verifying tonight's work: the review
+room's `Done` control passes an anchor to a component told it is a button, a profile with an empty
+house list still draws the HOUSES heading, and two live planning documents now describe
+`approvePhotos`, deleted this evening.
+
+Question 28 is filed as OPEN rather than closed. He replied *"i don't know what you're saying.
+should be fine"* — the rate limiter fails open, so a missing key has no symptom, and "should be
+fine" is not the same as somebody having looked at the dashboard.
+
 ## 2026-09-07 — one folder for scratch screenshots, and something that empties it
 
 The owner's answer to campaign question 22: *"there's two different folders of them. delete all the

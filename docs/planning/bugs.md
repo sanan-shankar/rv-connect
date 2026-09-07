@@ -500,3 +500,24 @@ Each entry says what to delete, when, and why that date.
   overrides, the C-115 pin that read the page, and the four comments citing it all went together.
   (Refactor audit member-surfaces-05, re-dated by docs-12.)
 
+## Filed 2026-09-07 by refactor audit 2's fix campaign
+
+- [ ] **The guide's contents page cannot be reached.** `/guide` exists and the only link to it is
+  from one of its own child pages, so nobody arrives at it. The owner was asked and chose to leave
+  it unlinked for now and record it here rather than add a menu item (campaign question 9, answer
+  "9b but mark it as a bug in bugs"). The fix, when wanted, is one line in the account menu.
+- [ ] **Confirm the rate limiter's two keys are set in production.** `UPSTASH_REDIS_REST_URL` and
+  `UPSTASH_REDIS_REST_TOKEN`. The limiter **fails open**, so if they are missing nothing errors and
+  the sign-in form simply has no rate limit — there is no symptom to notice. No session can read
+  production config; only the owner can check the Vercel dashboard. He was asked and replied *"28i
+  don't know what you're saying. should be fine"*, which is not a confirmation, so it stays open.
+- [ ] **`/admin/review` logs a Base UI error on every render.** The `Done` control passes `Button` a
+  `render={<Link/>}` while `nativeButton` is true, so the component is told it is a button and given
+  an anchor (`components/admin/review/review-room.tsx:754-765`). Console noise today; a real
+  semantics bug for a keyboard or screen-reader user.
+- [ ] **A profile with an empty house list still draws the HOUSES label.** Jerry's row stores the
+  string `"[]"`, and the profile prints the heading with nothing under it.
+- [ ] **`docs/planning/collection-rework/handover.md` and `docs/planning/class-collection/spec.md`
+  still describe `approvePhotos`**, which was deleted on 2026-09-07 with the second photo-approval
+  screen. Two live planning documents now describe code that does not exist. Left for whoever owns
+  those campaigns rather than edited mid-flight by another one.
