@@ -60,7 +60,7 @@ import type { ViewerImage } from "@/components/common/image-viewer";
    that true -- and these three rooms were the only thing on the server side
    of the viewer, which is what its SSR portal guard existed for. */
 import { LazyImageViewer as ImageViewer } from "@/components/common/lazy-image-viewer";
-import { bucketLabel } from "@/lib/collection";
+import { toViewerImage } from "@/lib/collection-viewer-image";
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import type { PhotoData, RiverOrder } from "@/app/(main)/collection/actions";
 import { cn } from "@/lib/utils";
@@ -271,17 +271,10 @@ export default function SwapRoom() {
 
   const images: ViewerImage[] = useMemo(
     () =>
-      photos.map((p) => ({
-        src: p.url,
-        caption: p.caption,
-        author: p.uploader,
-        date: p.takenLabel,
-        where: p.area,
-        tags: p.subject.map(bucketLabel),
-        href: `/collection/${p.id}`,
-        loved: p.loved,
-        loveCount: p.loveCount,
-      })),
+      /* THE REAL MAPPING, imported. It was copied here twice, which is how
+         both rooms came to draw a photograph the site does not: no alt text,
+         no free tags, and the raw `area` value rather than its label. */
+      photos.map((p) => toViewerImage(p)),
     [photos]
   );
 

@@ -1,5 +1,32 @@
 # Progress Log
 
+## 2026-09-07 — one mapping from a photograph to the viewer, and a sweep that keeps it one
+
+Refactor audit 2, `fresh-code-03`. `toViewerImage` was written three times: in
+`collection-client.tsx` and once in each of the two lab Collection rooms. The rooms' own headers
+promise that every component on the page is "the REAL one", and the mapping that feeds the real
+viewer was the one thing they copied — so both rooms drew a photograph the site does not draw: no
+`alt`, no free tags, and the raw `area` value rather than `areaLabel(area)`. A room answering a
+design question with the wrong picture is worth more than the thirty lines.
+
+`src/lib/collection-viewer-image.ts` is now the only copy. **Not `collection-viewer.ts`** — that
+name was taken, by a *server* module about the member doing the viewing, which imports Prisma;
+one letter of meaning apart and importing the wrong one from a client component drags Prisma into
+the browser. Both banners say so now.
+
+**The pin is a sweep, not a list of three files**, because the third copy arrived by paste and the
+fourth would too. `collection-viewer-image.test.mjs` walks every `.ts`/`.tsx` under `src/` and
+refuses a second `` href: `/collection/${…}` `` inside an object literal, with a count guard on
+the walk. Mutation-tested both ways: re-adding a lab copy fails it, and breaking the shape in the
+home module fails it as "found 0".
+
+Nothing visible moved. The lab rooms gain `alt` text and lose an empty-string Where; `canEdit` is
+now true for the room's own eight fixture photographs, and the pencil is still never drawn because
+the viewer needs `onEdit` as well and no room passes it.
+
+`npm run check` green (105/105); `/lab/collection` and `/lab/collection/swap` both 200, no console
+errors.
+
 ## 2026-09-07 — the two halves of the Collection keep their words in one place
 
 Refactor audit 2, `collection-11`. Eight `scope === "class" ? … : …` ternaries decided what the
