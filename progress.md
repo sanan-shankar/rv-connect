@@ -1,5 +1,36 @@
 # Progress Log
 
+## 2026-09-07 — Catch-ups front runner: the strip is the navigator (S3c)
+
+One reader, drawn by one hand, live at `/lab/catchups/sketches`, after he rejected all fifteen
+sketches ("There is nothing here that I prefer to what is shipped"). The fifteen are deleted, as
+he allowed; the room is now that one reader in three views: the phone page live, five stills of
+moments deep in it, and the same page at 1512.
+
+**The invention goes in one place.** Every rejected design restyled the answers, which he kept
+saying were fine, and drew the same navigator. So the answers are paper tiles at the feed's own
+sizes, and the one bespoke object is the strip under the app's green bar. At rest it says
+"Round 1 · 15 August 2026", the one place either is printed. Once a question's heading has
+scrolled under it, it carries that question in full: a 300-character question is five lines and
+none of them is cut. A cinnamon line along its top is how far through the Round you are. Tap it
+and it unfolds downward, in place, into the list of questions, where the same line runs down the
+left and stops at the question you are in. That stopping point is the current-item mark he did
+not want as a dot or an underline. The navigator is also drawn as a paper sheet from the foot and
+as a full-screen contents page, because he asked for the one style done properly and then done
+several ways.
+
+**The phone drawing is live, not a still.** It scrolls, spies on its own headings, opens, and a
+pick glides at a speed that grows with the distance rather than jumping. That is what found the
+fault a still could not: the first rule put a picked question's heading under the strip while
+the strip still named the question before it. The reading line is now the strip's foot plus the
+landing breath, so landing on a question makes it current, and the strip shows the Round while a
+heading is on screen.
+
+Two traps for the record: a `<button>` centres its own text, so a label inside one needs
+`text-left` however its parent is set; and a `overflow-x-auto` wrapper is a scroll container,
+inside which nothing sticky sticks, which is why the harness only wraps the full-size laptop
+drawing when the lab chrome is on.
+
 ## 2026-09-05 — Refactor audit 2, campaign gate 1
 
 The campaign's questions are written and the owner is asked once: 28 of them, merged down from 61

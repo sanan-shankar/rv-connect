@@ -1,28 +1,11 @@
 /* ------------------------------------------------------------------ *
- *  The contract a direction's sketch implements.
+ *  The shape of one published Round, as the sketch room draws it.
  *
- *  /lab/catchups/sketches is the CULL, not the pick (handover, "S3:
- *  Directions"): one real Round, drawn once per direction, the reader
- *  only, so the owner can flick between them on his phone and kill the
- *  ones nobody should spend a room on. Static is fine and expected; the
- *  rooms S4 builds are where a navigator has to be tappable for real.
- *
- *  Three drawings per direction, because the reader's whole complaint is
- *  about what happens AFTER the first screen (brief ¶11: "At some point I
- *  scroll on a question, and then I don't even know what the question is,
- *  on my phone"):
- *    Reader        the page from the top, at the viewport's width, natural
- *                  height, the first three questions with every answer;
- *    MidScroll     one 390x844 phone screen deep in question 5, the
- *                  navigator RESTING: what persists, what names the
- *                  question you are in;
- *    NavigatorOpen one 390x844 phone screen with the navigator OPEN.
- *
- *  A sketch is drawn inside a fixed-width frame that the harness scales
- *  to fit (see _frame.tsx), so it must size itself from the `viewport`
- *  prop and never from Tailwind's sm:/lg: prefixes, which answer to the
- *  real window rather than the frame. Anything that would be `fixed` on a
- *  real phone is `absolute` inside the 390x844 frames.
+ *  A drawing is made inside a fixed-width frame that the harness scales
+ *  to fit (see _frame.tsx), so it sizes itself from the `viewport` prop
+ *  and never from Tailwind's sm:/lg: prefixes, which answer to the real
+ *  window rather than the frame. Anything that would be `fixed` on a real
+ *  phone is `absolute` or `sticky` inside the frames.
  *
  *  The data is the live "in the loop" Round 1 (13 people, 133 answers),
  *  read from the database at render time, the way the lab already does
@@ -30,7 +13,6 @@
  *  stay on this admin-only page and never enter git.
  * ------------------------------------------------------------------ */
 
-import type { ReactNode } from "react";
 import type { StoredPhoto } from "@/lib/photo-layout";
 import type { SketchMedia } from "./_media";
 
@@ -44,7 +26,8 @@ export type SketchPerson = {
   id: string;
   name: string;
   batchYear: number | null;
-  /** What the byline prints under a name: "Batch of '11", "Teacher", "Member". */
+  /** What a byline USED to print under a name. Kept on the type because
+   *  the loader fills it; nothing in the front runner prints it. */
   batchLine: string;
   photoUrl: string | null;
   birdOverride: string | null;
@@ -71,10 +54,10 @@ export type SketchEntry = {
   loveCount: number;
   lovedByViewer: boolean;
   createdAt: string;
-  /** Comments do not exist yet (they are LOCKED in, D7). A deterministic
-   *  invented count per answer, 0 to 4, so a sketch can draw the affordance
-   *  with a believable spread. Any comment TEXT a sketch shows is invented
-   *  by the sketch and labelled so. */
+  /** Replies do not exist yet (they are LOCKED in, D7). A deterministic
+   *  invented count per answer, 0 to 4, so the drawing can carry the
+   *  control with a believable spread. Any reply TEXT shown is invented
+   *  by the drawing and labelled so. */
   commentCount: number;
 };
 
@@ -87,12 +70,15 @@ export type SketchQuestion = {
   source: string;
   showAsker: boolean;
   asker: SketchPerson | null;
+  /** The name to print after "Asked by", or nothing. Decided once, in the
+   *  loader, through `askerVisible`; a drawing only prints it. */
+  askedBy: string | null;
   entries: SketchEntry[];
 };
 
 export type SketchRound = {
   catchupId: string;
-  /** Plain, no suffix (¶25). */
+  /** Plain, no suffix (brief para 25). */
   catchupName: string;
   number: number;
   publishedAt: string;
@@ -105,23 +91,4 @@ export type SketchRound = {
   questions: SketchQuestion[];
   /** The signed-in admin, for "you" states. */
   viewer: SketchPerson;
-};
-
-export type SketchProps = { round: SketchRound; viewport: SketchViewport };
-
-export type SketchDirection = {
-  /** Matches the direction file's slug in docs/planning/catchups-rework/directions/. */
-  slug: string;
-  /** The direction's name, after what it does (lab-voice.md). */
-  name: string;
-  /** One sentence: what it bets on. Shown under the name in the harness. */
-  thesis: string;
-  /** True for the ten drawn in the first pass, kept so their ideas can be
-   *  harvested rather than remembered. They are drawn with the fixed shell,
-   *  so the background bug is gone, but everything else about them is as he
-   *  first saw it: batch lines, counts, "2 comments" as words. */
-  earlier?: boolean;
-  Reader: (props: SketchProps) => ReactNode;
-  MidScroll: (props: { round: SketchRound }) => ReactNode;
-  NavigatorOpen: (props: { round: SketchRound }) => ReactNode;
 };

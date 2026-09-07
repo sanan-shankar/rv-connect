@@ -181,10 +181,10 @@ export const REGISTRY: LabEntry[] = [
   },
   {
     href: "/lab/catchups/sketches",
-    title: "One Round, drawn five ways",
+    title: "The strip is the navigator",
     group: "Delight",
     status: "active",
-    note: "The same real Round, the reader only, drawn once per direction from the Catch-ups rework: three phone screens and a laptop page each. Start at The one I would build, then the three it is made of. Every pasted Spotify and YouTube link resolves to a real cover here, which the shipped reader still cannot do. ?d=<slug>&w=phone|laptop deep-links one.",
+    note: "The Catch-ups front runner, live: the real Round on a phone, where the strip under the green bar takes each question as its heading leaves and unfolds into the list when tapped. Five stills of moments deep in the page, the navigator drawn three ways, and the same page at 1512. ?w=reader|screens|laptop.",
   },
   {
     href: "/lab/viewer",

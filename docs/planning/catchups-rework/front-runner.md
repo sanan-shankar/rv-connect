@@ -131,3 +131,43 @@ the front runner, and saying so is more useful than shipping it.
 - **Tie it to the rest of the rework.** R48: "make sure that it ties in with everything else that we
   are trying to do with this rework: just making everything a lot more sensible and more usable.
   Something Apple would do."
+
+## What was built, 2026-09-07
+
+One reader, by one hand, live at `/lab/catchups/sketches`. Three views: **Reader**, the phone page
+at 390, which scrolls, docks and opens for real; **Screens**, five 390x844 stills of moments deep in
+the page; **Laptop**, the same page at 1512. The fifteen rejected sketches are deleted (R47).
+
+**Where the invention went, and why there.** Every rejected design restyled the answers and drew the
+same navigator. He kept saying the answers were fine (brief ¶27, R37, R40) and that the navigator
+was the same mediocre sheet fifteen times (R24). So the answers are paper tiles at the feed's own
+sizes and the one bespoke object is **the strip under the app's green bar**, which is the navigator.
+
+The five problems, answered:
+
+1. **A persistent bar that carries a long question.** The green bar carries the Catch-up's name
+   (R19, R41). Under it, a glass strip: at rest "Round 1 · 15 August 2026", the one place either is
+   printed; once a question's heading has scrolled under it, that question, in full. Its height is
+   set by the question and changes only when the question changes, never with the scroll. The
+   300-character cap is five lines on a phone and none is cut. The Screens view has that exact case.
+2. **The current-question indicator.** A thin cinnamon line along the strip's top edge grows from the
+   left as you read: how far through the Round you are, R28's line given a job, in the top bar as
+   R34 asked. When the strip opens, the same line runs down the left of the list and STOPS at the
+   question you are in. The end of a measure is the mark: not a dot, not an underline.
+3. **The navigator, three ways.** (A) The strip unfolds downward in place: not from the bottom, not
+   green, no title because the bar already says the name, no X because the strip is still under the
+   thumb. This is the one the live Reader uses. (B) A paper sheet from the foot, the name as its
+   title, no lines between rows, no X, and the current row marked with the app's own selection tint
+   instead of the line, so the two marks can be compared. (C) The whole page becomes the contents,
+   set in the heading face. A pick glides, slower for a longer trip (R37).
+4. **A short answer in a tile.** A tight tile, not a smaller one and not bigger type. One-line
+   byline (bird 40, name 17 medium), the words 10px under the name, the heart 6px under the words,
+   and the photographs bled to the tile's edges with 4px gaps. "your mama" is a 130px tile.
+5. **Better than shipped.** A member's first screen holds a whole answer (the shipped reader's holds
+   none, recon R18); the question is always named; the list is always one tap away; a pasted song
+   or video is a small card with its real cover; nothing is counted, numbered, timestamped or said
+   twice. Whether it is *his* "oh wow" is his to say, and only his.
+
+**His to decide, on his phone.** Which navigator, A, B or C; the line or the tint as the mark;
+whether the strip's resting label should be the Round's meta or nothing. Then S4 draws the rest of
+the surfaces from this reader's parts.

@@ -15,7 +15,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { loadPublishedRoundView } from "@/lib/catchups-round-view";
-import { catchupDisplayName } from "@/lib/catchups-core";
+import { askerVisible, catchupDisplayName } from "@/lib/catchups-core";
 import { promptKind } from "@/lib/catchups-types";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 import { batchLine } from "@/lib/utils";
@@ -24,10 +24,28 @@ import type { SketchEntry, SketchPerson, SketchRound } from "./_types";
 
 const MEMBER_SELECT = {
   role: true,
-  user: { select: { ...IDENTITY_SELECT, batchYear: true, accountType: true, batchType: true } },
+  user: {
+    select: {
+      ...IDENTITY_SELECT,
+      batchYear: true,
+      accountType: true,
+      batchType: true,
+    },
+  },
 } as const;
 
-type MemberRow = { role: string; user: { id: string; name: string; photoUrl: string | null; birdOverride: string | null; batchYear: number | null; accountType: string | null; batchType: string | null } };
+type MemberRow = {
+  role: string;
+  user: {
+    id: string;
+    name: string;
+    photoUrl: string | null;
+    birdOverride: string | null;
+    batchYear: number | null;
+    accountType: string | null;
+    batchType: string | null;
+  };
+};
 
 function person(u: MemberRow["user"], isKeeper: boolean): SketchPerson {
   return {
@@ -49,7 +67,9 @@ function inventedCommentCount(id: string): number {
   return n < 3 ? 0 : n - 2;
 }
 
-export async function loadSketchRound(viewerId: string): Promise<SketchRound | null> {
+export async function loadSketchRound(
+  viewerId: string,
+): Promise<SketchRound | null> {
   const edition = await prisma.catchupEdition.findFirst({
     where: { status: "published" },
     orderBy: [{ entries: { _count: "desc" } }, { publishedAt: "desc" }],
@@ -64,7 +84,13 @@ export async function loadSketchRound(viewerId: string): Promise<SketchRound | n
           cadence: true,
           createdById: true,
           nextOpensAt: true,
-          group: { select: { id: true, name: true, members: { select: MEMBER_SELECT } } },
+          group: {
+            select: {
+              id: true,
+              name: true,
+              members: { select: MEMBER_SELECT },
+            },
+          },
         },
       },
     },
@@ -77,15 +103,27 @@ export async function loadSketchRound(viewerId: string): Promise<SketchRound | n
   const keeperId = edition.catchup.createdById;
   const byId = new Map<string, SketchPerson>();
   for (const m of edition.catchup.group.members as MemberRow[]) {
-    byId.set(m.user.id, person(m.user, m.user.id === keeperId || m.role === "admin"));
+    byId.set(
+      m.user.id,
+      person(m.user, m.user.id === keeperId || m.role === "admin"),
+    );
   }
   const members = [...byId.values()].sort((a, b) =>
-    a.isKeeper === b.isKeeper ? a.name.localeCompare(b.name) : a.isKeeper ? -1 : 1
+    a.isKeeper === b.isKeeper
+      ? a.name.localeCompare(b.name)
+      : a.isKeeper
+        ? -1
+        : 1,
   );
 
   /* The reader's view carries a lighter person ref; look the full one up by
      id so every answer's author has a batch line and a Keeper flag. */
-  const resolve = (ref: { id: string; name: string; photoUrl?: string | null; birdOverride?: string | null }): SketchPerson =>
+  const resolve = (ref: {
+    id: string;
+    name: string;
+    photoUrl?: string | null;
+    birdOverride?: string | null;
+  }): SketchPerson =>
     byId.get(ref.id) ?? {
       id: ref.id,
       name: ref.name,
@@ -99,53 +137,78 @@ export async function loadSketchRound(viewerId: string): Promise<SketchRound | n
   /* Resolve every pasted link in the Round up front, in one wave, rather
      than per answer as it renders: seven links across four answers, and
      _media.ts caches them for the life of the process. */
-  const mediaByEntry = new Map<string, Awaited<ReturnType<typeof resolveMedia>>>();
+  const mediaByEntry = new Map<
+    string,
+    Awaited<ReturnType<typeof resolveMedia>>
+  >();
   await Promise.all(
     view.sections.flatMap((s) =>
       s.entries.map(async (e) => {
         const m = await resolveMedia(e.body);
         if (m.length) mediaByEntry.set(e.id, m);
-      })
-    )
+      }),
+    ),
   );
 
   const contributors: SketchPerson[] = [];
   const seen = new Set<string>();
-  const questions = view.sections.map((s) => ({
-    id: s.prompt.id,
-    text: s.prompt.text,
-    kind: promptKind(s.prompt.category),
-    source: s.prompt.source,
-    showAsker: s.prompt.showAsker,
-    asker: s.prompt.asker ? resolve(s.prompt.asker) : null,
-    entries: s.entries.map((e): SketchEntry => {
-      const author = resolve(e.author);
-      if (!seen.has(author.id)) {
-        seen.add(author.id);
-        contributors.push(author);
-      }
-      return {
-        id: e.id,
-        author,
-        body: e.body,
-        images: e.images,
-        photos: e.photos,
-        song: e.song,
-        media: mediaByEntry.get(e.id) ?? [],
-        text: stripLinks(e.body),
-        loveCount: e.loveCount,
-        lovedByViewer: e.lovedByViewer,
-        createdAt: new Date(e.createdAt).toISOString(),
-        commentCount: inventedCommentCount(e.id),
-      };
-    }),
-  }));
+  const questions = view.sections.map((s) => {
+    /* The shared view has already applied the anonymity rule (a hidden
+       asker arrives as null), so this cannot reveal anyone. It asks the one
+       helper anyway, because every surface that decides an asker must, and
+       `catchups-core.test.mjs` sweeps the renderers to make sure of it. */
+    const asker =
+      s.prompt.asker &&
+      askerVisible(
+        { showAsker: s.prompt.showAsker, authorId: s.prompt.asker.id },
+        viewerId,
+      )
+        ? resolve(s.prompt.asker)
+        : null;
+    /* Only a member-written question names its asker. A library question's
+       "author" is whoever picked it off a list, and "Asked by Siddhant" would
+       be a lie about a prompt he chose rather than wrote. */
+    const askedBy = s.prompt.source === "member" && asker ? asker.name : null;
+    return {
+      id: s.prompt.id,
+      text: s.prompt.text,
+      kind: promptKind(s.prompt.category),
+      source: s.prompt.source,
+      showAsker: s.prompt.showAsker,
+      asker,
+      askedBy,
+      entries: s.entries.map((e): SketchEntry => {
+        const author = resolve(e.author);
+        if (!seen.has(author.id)) {
+          seen.add(author.id);
+          contributors.push(author);
+        }
+        return {
+          id: e.id,
+          author,
+          body: e.body,
+          images: e.images,
+          photos: e.photos,
+          song: e.song,
+          media: mediaByEntry.get(e.id) ?? [],
+          text: stripLinks(e.body),
+          loveCount: e.loveCount,
+          lovedByViewer: e.lovedByViewer,
+          createdAt: new Date(e.createdAt).toISOString(),
+          commentCount: inventedCommentCount(e.id),
+        };
+      }),
+    };
+  });
 
   const viewer = byId.get(viewerId) ?? members[0];
 
   return {
     catchupId: edition.catchup.id,
-    catchupName: catchupDisplayName(edition.catchup.title, edition.catchup.group.name),
+    catchupName: catchupDisplayName(
+      edition.catchup.title,
+      edition.catchup.group.name,
+    ),
     number: edition.number,
     publishedAt: edition.publishedAt.toISOString(),
     nextOpensAt: edition.catchup.nextOpensAt?.toISOString() ?? null,

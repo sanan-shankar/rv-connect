@@ -152,8 +152,9 @@ too, which he allowed in ¶28.
 | S2 Prior art | DONE | `prior-art.md`, inside S0, 2026-09-05; F15 says how far to trust each part |
 | S3 Directions | DONE | 2026-09-06 first pass: `directions.md` Parts 1-5, ten directions, ten sketches. **Second pass the same day, after he rejected most of them** ("80% of the designs have just no taste at all"): six deleted, one rebuilt, four new, one synthesis. `directions.md` Part 6 supersedes Parts 2-4 and carries his rules as a table. Five sketches now |
 | Owner culls the sketches | DONE | 2026-09-06: he went through all fifteen out loud, one at a time, and rejected all fifteen. Verbatim in [`review-2026-09-06.md`](review-2026-09-06.md), 51 paragraphs. "There is nothing here that I prefer to what is shipped" (R46), and "you are okay to delete everything else" (R47). Owner questions 7 and 8 are withdrawn: the cull answered 7, and 8 is folded into the front runner |
-| S3c Front runner | OPEN | **next.** ONE reader, drawn by hand, from [`front-runner.md`](front-runner.md): what is settled, and the five problems none of the fifteen solved. The question navigator is the one thing to draw two or three ways (R24) |
-| S4 Rooms | OPEN | blocked on S3c, not on the cull. Build from the front runner once he says it is the one; `directions.md` Part 3's briefs are dead with the directions they describe. Draw the composer too (F25) |
+| S3c Front runner | DONE | 2026-09-07: ONE reader, by one hand, live at `/lab/catchups/sketches`. The strip under the green bar is the navigator; drawn three ways as asked (R24). The fifteen are deleted (R47). What it answers, and what is his to decide: [`front-runner.md`](front-runner.md), "What was built" |
+| Owner reviews the front runner | OWNER-GATED | **next.** On his phone: the Reader view first (it scrolls, docks and opens for real), then Screens, then Laptop. He picks a navigator (A, B or C), the line or the tint as the mark, or sends it back with R46's question answered either way |
+| S4 Rooms | OPEN | blocked on his word on the front runner. The reader is already live; S4 draws the rest of the surfaces from its parts (home, index, composer, people, settings), in the same hand, never a fan-out (F32). `directions.md` Part 3's briefs are dead with the directions they describe. Draw the composer too (F25) |
 | Owner browses the rooms | OWNER-GATED | |
 | S3b Second round | OPEN | only if he asks for it after the rooms |
 | S5 Pick and spec | OPEN | blocked on the pick |
@@ -409,6 +410,19 @@ Numbered so later sessions can cite and correct them. **Verified** means a sessi
   report would have surfaced, because each needed somebody to look at a screenshot and disbelieve
   it. **A design round is not a fan-out.** Fan out for coverage (audits, sweeps, verification);
   draw with one hand.
+
+- **F33, a still cannot find a navigation fault; a live drawing can (S3c, 2026-09-07).** The front
+  runner's phone drawing scrolls, spies on its own headings and opens, and its first scroll-spy
+  rule was wrong in a way no still would have shown: a picked question landed with its heading
+  under the strip while the strip still named the question before it, two questions stacked. The
+  reading line is now the strip's foot plus the landing breath, so a landed question is current at
+  once, and the strip shows the Round while a heading is on screen. Three smaller traps from the
+  same session, each found in a capture: a `<button>` centres its own text, so a label inside one
+  needs `text-left` whatever its parent says; the app's `.glass` (78% paper) is a bar over a feed,
+  not a surface to read a question through, and the strip carries its own 93%; and a wrapper with
+  `overflow-x-auto` is a scroll container, inside which nothing sticky sticks (F31 again, from the
+  harness this time). Also: Spotify's keyless oembed has no artist, and "Spotify" is not one; the
+  song card prints a title over its cover and nothing else.
 
 ---
 
@@ -734,6 +748,14 @@ stays LOCKED and the session's reading sits beside it as RECOMMENDED.
   the redesign.
 - **D50** The dialogs (L4, E3, S2) are owned: S3's checklist includes them and S5's spec has a
   section for them, built on `docs/planning/other/dialog-standards-findings.md`.
+- **D51** *(S3c, 2026-09-07)* The reader spends its one bespoke object on the instrument you move
+  with, not on the answers. The green bar carries the Catch-up's name; the strip under it carries
+  the Round at rest and the current question in full once its heading has gone; a cinnamon line
+  along its top is progress through the Round; opened, the same line runs down the list and stops
+  at the current question, which is the mark. The answers are tiles at the feed's own sizes. Reason:
+  R24, R37, R40 and R46 read together; the fifteen rejected designs all spent their invention on the
+  answers and drew the same navigator. Which of the three navigators, and the line or the tint as
+  the mark, is his (the board's next row).
 
 ### OPEN
 
@@ -1531,3 +1553,34 @@ and the fifteen directions are as they were at commit 8e3fe59.
 **Two things the next session must not repeat.** It must not fan the design out (F32). And it must
 not port the year rail, the directory grid, the letters type scale or the profile layout into
 Catch-ups: those were named as examples of a FEELING of rightness, not as parts to reuse (R50).
+
+### 2026-09-07, S3c, the front runner (Fable max, no ultracode, one hand)
+
+Read `brief.md`, `review-2026-09-06.md` and `front-runner.md` in full, then the architecture,
+the recon's reader section and its ranked eleven, the design system, the shipped reader, and the
+fifteen sketches, and looked at the shipped reader and the last pick on a phone before drawing.
+His one line mid-session: *"what you create has to be a quantum leap and significantly better than
+all of them ... don't fall into the pitfalls and repeat the mistakes the other guys made."*
+
+**Produced.** `/lab/catchups/sketches` is now one reader in three views (Reader, live at 390;
+Screens, five stills; Laptop, 1512), registered as "The strip is the navigator". The fifteen
+directions are deleted (R47); `_parts.tsx` is trimmed to what the reader uses, with his sentence
+beside each rule; `_navigator.tsx` holds the strip, the list with its line, and the three
+navigators; `_reader.tsx` the live page and its scroll-spy; `_frames.tsx` the stills. What it
+answers, problem by problem, is in `front-runner.md`, "What was built"; the bet is D51; the faults
+the live drawing found are F33.
+
+**How it was verified.** Every view captured through `screenshot-auth.mjs` and read by this
+session at 390 and 1512, three rounds; the live page driven through a scroll, an open, a pick
+and a re-dock by a throwaway puppeteer probe beside `_dev-login.mjs` (deleted in the same
+command), on the phone and the laptop, with the strip's position, the landing offsets and the
+horizontal overflow measured (0px). The song cards were checked against the network: real covers
+from `i.ytimg.com` and `*.spotifycdn.com`, per F29. `npm run check` green; `npm run visual`
+untouched (the lab is not in the suite).
+
+**Not done, and why.** No home, index, composer, people or settings: this session was the reader,
+which is what he rejected fifteen of. No S4 until he has held the reader. Nothing pushed.
+
+**Next.** He opens it on his phone (the board's next row) and says which navigator, and whether
+it is the one. If it is, S4 builds outward from these parts, one hand. If it is not, R46 is the
+question to answer before anything else is drawn.
