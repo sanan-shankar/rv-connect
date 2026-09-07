@@ -27,7 +27,9 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
 - `docs/OPERATIONS.md` is every non-application tool and the moment each one is meant to
   fire: the visual suite, the CI gate, the nightly database backup, Sentry, Renovate.
 - `docs/ROADMAP.md` is the phased plan. `docs/planning/bugs.md` is the bug tracker,
-  `docs/planning/FEATURES.md` the parked ideas. `progress.md` is the session history; log outcomes there.
+  `docs/planning/FEATURES.md` the parked ideas. **The session history is `docs/history/progress-<YYYY-MM>.md`
+  for the full entry, and `progress.md` for the one line that indexes it** — that way round since
+  2026-09-07; `scripts/qa/progress-log.test.mjs` fails the build if an entry body lands in the index.
 - `docs/audit-fix/` holds every formal audit and its fix campaign, dated. A fix session's
   entire handover is that audit's `fix-prompt.md`: read it, execute, and update the same
   file before ending so the next session can be started by @-ing it alone. **A fix session is
@@ -127,7 +129,8 @@ rebuild what exists. Check `components.json` before adding a shadcn component. R
 **After**: run `npm run check` (below). Every clickable element has hover, focus-visible and active.
 CTAs are Canopy `#235C49` pills. Only `transform` and `opacity` animate. Any new async route ships a
 `loading.tsx` using the warm shimmer, not a grey pulse. Screenshot desktop and mobile, minimum two
-rounds. Run `/simplify`. Log the session in `progress.md` — written before you commit, and staged
+rounds. Run `/simplify`. Log the session — the full entry in `docs/history/progress-<YYYY-MM>.md`,
+one line in `progress.md` — written before you commit, and staged
 in the same commit as the work it describes.
 
 ## "kowalski"
