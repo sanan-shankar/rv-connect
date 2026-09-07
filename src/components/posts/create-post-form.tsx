@@ -71,9 +71,6 @@ const AttachImageDialog = dynamic(
    src/lib/rich-text-editing.ts (2026-08-13) so every writing surface -- this
    composer, the catch-up answer card, the edit dialog -- shares one story. */
 
-/** Where the composer is posting. Drives the placeholder and the available affordances. */
-export type ComposerScope = "post" | "letter";
-
 // Height of the resting pill (h-11). The expand animation grows the box DOWN from
 // exactly this height, and collapse contracts back to it, so nothing ever shrinks
 // up first or starts stretched.
@@ -83,16 +80,13 @@ const COLLAPSED_H = 44;
 // counted down. No red numbers, no limits messaging: just a hint.
 const LETTER_NUDGE_LEN = 600;
 
-const SCOPE_PLACEHOLDER: Record<ComposerScope, string> = {
-  // Owner's wording, 2026-08-04: no "sighting", and the community rather than
-  // the valley. Two things offered instead of three reads as an invitation
-  // rather than a menu.
-  post: "Share a memory or a note with the community...",
-  letter: "Write your letter to the valley. Take your time.",
-};
+// Owner's wording, 2026-08-04: no "sighting", and the community rather than
+// the valley. Two things offered instead of three reads as an invitation
+// rather than a menu.
+const POST_PLACEHOLDER = "Share a memory or a note with the community...";
+const LETTER_PLACEHOLDER = "Write your letter to the valley. Take your time.";
 
 export function CreatePostForm({
-  placeholder,
   defaultLetter = false,
   currentUser,
   userPlaces,
@@ -107,7 +101,6 @@ export function CreatePostForm({
   onDraftSaved,
   onAutosaveState,
 }: {
-  placeholder?: string;
   defaultLetter?: boolean;
   currentUser?: AvatarUser;
   /** The poster's own cities (their UserPlace list). Drives the "Show to" audience
@@ -137,9 +130,8 @@ export function CreatePostForm({
   onAutosaveState?: (s: "saving" | "saved" | "failed") => void;
 } = {}) {
   // A letter or a post; there is no third composer any more (Groups was
-  // retired 2026-07-25 and nothing ever passed the explicit `scope` prop).
-  const resolvedScope: ComposerScope = defaultLetter ? "letter" : "post";
-  const collapsedPlaceholder = placeholder ?? SCOPE_PLACEHOLDER[resolvedScope];
+  // retired 2026-07-25).
+  const collapsedPlaceholder = defaultLetter ? LETTER_PLACEHOLDER : POST_PLACEHOLDER;
   // An unconfirmed address is refused by createPost/editPost/publishDraft on
   // the server. This turns that refusal into a dialog with the fix in it,
   // instead of a toast that slides away while you are still reading it.
@@ -215,7 +207,7 @@ export function CreatePostForm({
   // question followed by its choices.
   const hasPoll = !isLetter && pollOptions !== null;
   const effectivePlaceholder = isLetter
-    ? "Write your letter to the valley. Take your time."
+    ? LETTER_PLACEHOLDER
     : hasPoll
       ? "Ask your question"
       : collapsedPlaceholder;

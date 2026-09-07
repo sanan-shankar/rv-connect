@@ -11108,3 +11108,11 @@ thing here I could not prove.
 
 Timing was lucky. The tile is still admin-gated (`profile/[id]/page.tsx:455`), so no alumnus ever
 saw this, and Samsung is a large share of Android in India.
+
+## 2026-09-07 — Refactor audit 2, Phase D: four switched-off subsystems come out
+
+**D11b — the composer's dead `placeholder` prop.** `CreatePostForm` took a `placeholder` no caller
+has ever passed, resolved it through a `ComposerScope` type and a `SCOPE_PLACEHOLDER` map that
+existed to hold two strings, and then retyped the letter one as a literal further down the file. Two
+named constants now, the owner's 2026-08-04 wording note kept above them, and one fewer prop on the
+app's biggest client component. −16/+8.
