@@ -156,7 +156,7 @@ does); reach for `flyIn` when the bird just needs to swoop onto a spot within on
 - Login (`src/app/(auth)/login/page.tsx`): the mascot covers its eyes (wings lift fully over the eyes,
   peek-a-boo) while the password is hidden, peeks when revealed, and follows what you type in BOTH states
   (gaze fires on every keystroke of email + password; when covered the head still tracks behind the wings).
-  Intro on `onReady`: peek + double-blink, then cover. Replaces the old `src/components/auth/hoopoe.tsx`.
+  Intro on `onReady`: peek + double-blink, then cover. Replaced the old auth hoopoe, now deleted.
 - Celebrations (`src/components/mascot/moments/`): three "earned" one-shot moments from the
   mascot-moments board. `celebration-signals.tsx` (mounted on `/feed` AND on `/welcome`, the post-signup
   onboarding wizard added 2026-07-06) reads the numbers server-side and hands them to
@@ -205,5 +205,5 @@ does); reach for `flyIn` when the bird just needs to swoop onto a spot within on
 - Sign-in fly-in: the owner's vision is the bird appearing at the Sign-in button and flying to the login
   hero as the panel slides over. `flyTo` is now smooth enough; this is an app-level orchestration to build
   when wiring the real sign-in transition.
-- Old `src/components/auth/hoopoe.tsx` and the placeholder `src/app/preview/delight/_hoopoe.tsx` can be
+- The old auth hoopoe and the Delight Labs placeholder were
   removed once all usages are repointed to the new mascot.

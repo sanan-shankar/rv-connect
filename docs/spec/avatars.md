@@ -76,12 +76,12 @@ I have everything I need. The current production code uses `UserAvatar` (initial
 
 ## 0. Scope and the problem this solves
 
-Every member needs a default avatar that is recognizable, calm, on-brand, and *unique enough* that you can tell two people apart in a 600-post feed without reading the name. The current production code (`src/components/common/user-avatar.tsx`) renders **initials on a randomly-picked solid disc** (`pickAvatarColor()` in `src/lib/utils.ts`, persisted to `User.avatarColor` at signup in `src/components/auth/actions.ts`). That is the thing being replaced.
+Every member needs a default avatar that is recognizable, calm, on-brand, and *unique enough* that you can tell two people apart in a 600-post feed without reading the name. The production code at the time (a `UserAvatar` that has since been deleted) rendered **initials on a randomly-picked solid disc** (`pickAvatarColor()` in `src/lib/utils.ts`, persisted to `User.avatarColor` at signup in `src/components/auth/actions.ts`). That is the thing being replaced.
 
 Two problems with the status quo:
 
 1. **Random color is not stable.** It is chosen once at signup and frozen, but it is *random*, so distribution is uneven by luck and there is no relationship between identity and appearance. If we ever re-seed (migration, re-import from the old WhatsApp roster, account merge), the avatar changes.
-2. **Initials are weak differentiators at scale and tonally wrong.** "AR" on a green disc reads like a generic SaaS. The valley identity (bird sanctuary, hoopoe, banyan) is the entire emotional hook of this project. The v2 preview (`src/app/preview/v2/page.tsx`, lines 72-132) already proves the bird direction with a single `BirdGlyph` + a color disc.
+2. **Initials are weak differentiators at scale and tonally wrong.** "AR" on a green disc reads like a generic SaaS. The valley identity (bird sanctuary, hoopoe, banyan) is the entire emotional hook of this project. The v2 preview (now `/lab/v2`) already proves the bird direction with a single `BirdGlyph` + a color disc.
 
 This spec defines a **procedural, fully deterministic** system: `userId -> (species, plumage color, variation)`, rendered as a centered SVG bird silhouette on a colored disc, with a photo upload that overrides everything. No randomness anywhere after this lands. The same user always gets the same bird forever, on any device, with zero database lookups beyond the fields already present.
 
@@ -386,24 +386,28 @@ Delete from `src/lib/utils.ts`: `pickAvatarColor()` and the `AVATAR_COLORS` arra
 
 ## 8. Routes / IA / call-site migration
 
-No new routes. This is a **component swap** across existing surfaces. The new `<BirdAvatar>` replaces `<UserAvatar>` at every call site. Inventory (from grep):
+No new routes. This is a **component swap** across existing surfaces. The new `<BirdAvatar>` replaces `<UserAvatar>` at every call site.
+
+> **This inventory is the tree as it stood on 2026-06-29, kept as the record of the swap.** The
+> swap happened; several of the files below have since been deleted or renamed, and `UserAvatar`
+> itself is gone rather than aliased. Do not use it as a map of today.
 
 | File | Current | Change |
 |------|---------|--------|
-| `src/components/common/user-avatar.tsx` | `UserAvatar` (initials) | Becomes a thin re-export of `BirdAvatar` (or delete + codemod imports). Keep the name as an alias for a quieter diff. |
+| `user-avatar.tsx` | `UserAvatar` (initials) | Proposed as a thin re-export of `BirdAvatar`. **What happened: it was deleted outright and the imports codemodded**, so there is no alias. |
 | `src/components/posts/post-card.tsx` (line 108) | `<UserAvatar size="md">` | `<BirdAvatar user={post.author} size="md">`. The `post.author` shape (`id,name,avatarColor`) gains `photoUrl`. |
 | `src/components/directory/profile-card.tsx` (line 24) | `<UserAvatar size="lg">` | `<BirdAvatar size="lg">` + `indexHint` for neighbor de-dup. |
 | `src/components/directory/directory-client.tsx` | grid of avatars | pass `indexHint={i}` (Section 4 layer 2). |
 | `src/components/posts/comments-section.tsx` | comment author avatars | `size="sm"`. |
 | `src/components/posts/mention-dropdown.tsx` | search-result avatars | `size="sm"` + `indexHint`. |
-| `src/components/layout/navbar.tsx` | current-user chip | `size="sm"`, `interactive` (the chirp lives on *your own* avatar — see 9.3). |
-| `src/components/groups/group-feed.tsx` | group post authors | `size="md"`. |
+| the top navbar, since replaced by the sidebar | current-user chip | `size="sm"`, `interactive` (the chirp lives on *your own* avatar — see 9.3). |
+| the group feed, since removed with Groups | group post authors | `size="md"`. |
 | `src/app/(main)/profile/[id]/page.tsx` | cover avatar | `<BirdAvatar size="xl" ring>`. |
 | `src/components/posts/create-post-form.tsx` / composer | composer leading avatar | `size="md"`. |
 
 Every one of these already passes `{name, avatarColor}`; the new component needs `id` (always available on the same object) and optionally `photoUrl`. The Prisma `select`s in the page/server files (`post-card` author select, directory select) must add `id` (mostly already selected) and `photoUrl`.
 
-**Settings / complete-your-profile**: `src/components/settings/settings-form.tsx` gains (a) a photo uploader (Blob), (b) a "re-roll my bird" species picker (12 swatches) writing `avatarSpecies`, (c) a disc color picker (16 swatches) writing `avatarColor`, and a "use my generated bird" reset that nulls both. This is additive UI, no new route.
+**Settings / complete-your-profile**: the settings form, since replaced by the profile's own edit surface, gains (a) a photo uploader, (b) a "re-roll my bird" species picker (12 swatches) writing `avatarSpecies`, (c) a disc color picker (16 swatches) writing `avatarColor`, and a "use my generated bird" reset that nulls both. This is additive UI, no new route.
 
 ---
 
@@ -480,4 +484,4 @@ The chirp **sound** is a 4-6 note pentatonic pluck synthesized with WebAudio (no
 7. **Server Component by default**; only `interactive` avatars hydrate and carry the chirp.
 8. **Chirp easter egg only on your own avatar**, hoopoe-eye-cover when your bird is the hoopoe; off by default, reduced-motion-safe, never on the feed.
 
-Files this touches (all under `/Users/sanan/Documents/rv-connect/`): new `src/lib/avatar.ts`, new `src/lib/avatar.test.ts`, new `src/components/common/bird-avatar.tsx`, new `src/components/common/chirp-avatar.tsx`, edited `src/components/common/user-avatar.tsx` (alias), `prisma/schema.prisma` (+`avatarSpecies`,`photoUrl`; repurpose `avatarColor`), `src/lib/utils.ts` (delete `pickAvatarColor`/`AVATAR_COLORS`), `src/components/auth/actions.ts` (drop random write), `src/lib/validators.ts` (species/color validators), and the ~10 call sites in Section 8. No files were edited in producing this spec.
+Files this touched, as planned on 2026-06-29: new `src/lib/avatar.ts` and its test, new `src/components/common/bird-avatar.tsx`, a chirp avatar, `prisma/schema.prisma` (+`avatarSpecies`, `photoUrl`; repurpose `avatarColor`), `src/lib/utils.ts` (delete `pickAvatarColor`/`AVATAR_COLORS`), `src/components/auth/actions.ts` (drop the random write), `src/lib/validators.ts`, and the call sites in Section 8. The old `UserAvatar` was deleted rather than aliased, and the chirp avatar was never built.

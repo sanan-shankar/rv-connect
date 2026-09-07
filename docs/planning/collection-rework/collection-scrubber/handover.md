@@ -19,28 +19,23 @@ Every decision below is marked:
 
 ## 0. Operational context
 
-- Repo `/Users/sanan/Documents/rv-connect`, branch `main`, no feature branches. GitHub
-  `sanan-shankar/rv-connect`.
-- **One Supabase database serves production AND local dev.** Anything you file into the
-  Collection is live to real members. There are four real photographs in it today.
-- Test account is **Jerry Maguire, `sanan.shankar@gmail.com`** — never a real alumnus.
-  Sign the `chrome-devtools` MCP browser in once per session by `evaluate_script`-ing a POST
-  to `/api/dev-login` with `{ email, secret }`, secret in `.env` as `DEV_LOGIN_SECRET`.
-- Gates: `npm run check` (~25s) and `npm run visual` (~70s). Both must be green before a
-  commit. `npm run visual:update` only after reading the diff.
-- **A push is a deploy.** He gave standing push permission in the session that wrote this,
-  but confirm before the first one.
+**Operating rules are `CLAUDE.md` and `AGENTS.md`; stack traps are `docs/TRAPS.md`.** The eight
+rules this section used to restate in full — the repo path, no feature branches, the gates, a push
+is a deploy, one Supabase database, never `prisma db push`, Jerry Maguire, and how to sign the
+chrome-devtools browser in — live there, and the copy here had already drifted from them on two
+runtimes. What follows is only what is specific to this campaign.
+
 - **`/lab/collection` renders the real Collection page against 240 made-up photographs**
-  (`src/app/lab/collection/_archive.ts`). This is where to build and verify the scrubber.
-  The live archive has four photographs and two decades, which cannot exercise any of it.
-  `/lab` requires an admin session.
-- **Editing files:** he prefers `bash` + `python3` heredocs with an `assert` on the match
-  count over the Write/Edit tools — same fail-if-it-did-not-match guarantee, fewer tokens.
-- **Gotcha that cost this session an hour:** after editing `src/app/globals.css`, Turbopack
-  can serve a stale stylesheet indefinitely. A hard reload and `touch` both failed. The fix
-  is `mv .next .next-stale` and restart `npm run dev`. Symptom: `getComputedStyle` shows
-  values from the old rule. **Verify CSS by measuring computed styles, not by looking at a
-  screenshot** — a screenshot of a stale rule looks perfectly plausible.
+  (`src/app/lab/collection/_archive.ts`). This is where to build and verify the scrubber. The live
+  archive had four photographs and two decades when this was written, which cannot exercise any of
+  it. `/lab` requires an admin session.
+- **Editing files:** he prefers `bash` + `python3` heredocs with an `assert` on the match count
+  over the Write/Edit tools — the same fail-if-it-did-not-match guarantee, fewer tokens.
+- **Gotcha that cost this session an hour:** after editing `src/app/globals.css`, Turbopack can
+  serve a stale stylesheet indefinitely. A hard reload and `touch` both failed. The fix is
+  `mv .next .next-stale` and restart `npm run dev`. Symptom: `getComputedStyle` shows values from
+  the old rule. **Verify CSS by measuring computed styles, not by looking at a screenshot** — a
+  screenshot of a stale rule looks perfectly plausible.
 
 ## 1. What shipped in the session before this one — do not undo it
 
@@ -101,7 +96,7 @@ holds is the thing he loves. Do not replace it with plain words.
 
 ### What is actually there today
 
-- `src/components/collection/decade-rail.tsx` — `<DecadeRail>` (the `xl:flex` margin rail)
+- `src/components/collection/year-rail.tsx` — the `xl:flex` margin rail (it was `decade-rail.tsx` when this was written; it counts in years now)
   and `<DecadeStrip>` (the narrow-screen line of words). **The strip is no longer rendered**
   — he rejected it outright ("Remove the decades and undated thing from mobile. It looks
   really bad."). The component is still in the file, unrendered, awaiting your decision. It

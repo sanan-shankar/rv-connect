@@ -41,7 +41,7 @@ I now have everything I need. I have grounded the spec in the real schema (no `h
 
 # Profile Page — Redesign & Data Model Spec
 
-Owner: Profile area. Status: decision-bearing. Grounded in `prisma/schema.prisma`, `src/app/(main)/profile/[id]/page.tsx`, `src/components/directory/profile-card.tsx`, `src/components/common/user-avatar.tsx`, `src/components/settings/settings-form.tsx`, `src/components/posts/post-card.tsx`, and the locked design `src/app/preview/v2/page.tsx`.
+Owner: Profile area. Status: decision-bearing, and superseded by the letterhead — see the banner. Grounded in the tree as it stood on 2026-07-14: the schema, the profile page, the directory's profile card, the old shared avatar, the old settings form, the post card, and the locked v2 design (now `/lab/v2`).
 
 ## 0. What exists today (the honest baseline)
 
@@ -70,7 +70,7 @@ Every decision below states the delta against this baseline.
 
 The brief says "reuse shared avatar." There are currently **two** avatar implementations: the real `UserAvatar` (initials) and the v2 `Avatar` (bird glyph + photo + ring). They must converge into **one** shared `UserAvatar` before the profile is built, because the profile is the single place where all three avatar modes (photo, bird, ring) appear at once.
 
-**Decision: extend `src/components/common/user-avatar.tsx` to the superset, do not fork a profile-only avatar.**
+**Decision: extend the one shared avatar to the superset, do not fork a profile-only one.** (It shipped as `BirdAvatar`; the `UserAvatar` this section names was deleted.)
 
 New props:
 - `photo?: string | null` — when present, render the uploaded image (object-cover, rounded-full). Photo always wins over bird/initials.
@@ -267,7 +267,7 @@ The brief: the rail (Details/Contact/Groups) is long while the About content is 
 
 ## 8. Tabs and the "ruled sheet" post list reuse
 
-- **Tabs:** Posts / About / Photos, on the shadcn `Tabs` primitive rather than the bespoke `.profile-tabs` buttons, so keyboard and focus-visible come for free (CLAUDE.md interactive-state rule). Style them to match v2's underline-on-active look via a `variant="line"`. (`src/components/ui/tabs.tsx` was forked in setup, never adopted by any surface, and deleted unused in the 2026-08-25 refactor audit; `npx shadcn add tabs` brings the stock component back in one command, and the fork's house styling is in git history.)
+- **Tabs:** Posts / About / Photos, on the shadcn `Tabs` primitive rather than the bespoke `.profile-tabs` buttons, so keyboard and focus-visible come for free (CLAUDE.md interactive-state rule). Style them to match v2's underline-on-active look via a `variant="line"`. (the shadcn `tabs` primitive was forked in setup, never adopted by any surface, and deleted unused in the 2026-08-25 refactor audit; `npx shadcn add tabs` brings the stock component back in one command, and the fork's house styling is in git history.)
 - **Posts tab = the shared ruled-sheet feed.** The profile must reuse the **same** post-list component the main feed and group feeds use (the modular "one shared feed" mandate). In v2 this is `<PostList sheet />` rendering `.v2-sheet`/`.v2-post.sheet` (ruled entries in one card). The real implementation reuses `PostCard` inside a shared `PostList`/`Sheet` wrapper. **Decision:** the profile passes the same props the feed passes (`posts`, `currentUserId`, like/poll handlers); the only profile-specific concern is the **query** (author = this user, batch-visibility filter, pagination), which already exists in `profile/[id]/page.tsx`. Do not build a profile-only post renderer. The page-size/pagination story (the owner's "600 posts/month, needs pagination") is the feed area's shared concern; the profile inherits whatever cursor pagination the shared list adopts (`take: 20` today becomes cursor-based).
 - **Empty state:** "No posts yet from {firstName}" on others'; on own, a soft "Share your first memory" linking to the composer.
 - **Photos tab:** sourced from images attached to the user's posts (`post.images` JSON arrays), not a separate upload silo, so there is no new model. v2's hardcoded grid becomes a real `parseJsonArray(post.images)` flatten. If empty, omit the tab entirely rather than show six placeholder tiles.
@@ -459,15 +459,15 @@ model UserMemory {       // NEW — prompted school-memories, keyed by prompt
 
 ---
 
-### Files referenced (absolute paths)
-- `/Users/sanan/Documents/rv-connect/prisma/schema.prisma`
-- `/Users/sanan/Documents/rv-connect/src/app/(main)/profile/[id]/page.tsx`
-- `/Users/sanan/Documents/rv-connect/src/app/preview/v2/page.tsx`
-- `/Users/sanan/Documents/rv-connect/src/components/common/user-avatar.tsx`
-- `/Users/sanan/Documents/rv-connect/src/components/directory/profile-card.tsx`
-- `/Users/sanan/Documents/rv-connect/src/components/settings/settings-form.tsx`
-- `/Users/sanan/Documents/rv-connect/src/components/posts/post-card.tsx`
-- `/Users/sanan/Documents/rv-connect/src/lib/validators.ts`
+### Files referenced, as they stood on 2026-07-14
+- `prisma/schema.prisma`
+- `src/app/(main)/profile/[id]/page.tsx`
+- the locked v2 design, now `/lab/v2`
+- the shared avatar, then `UserAvatar` and now `BirdAvatar`
+- `src/components/directory/profile-card.tsx`
+- the settings form, since replaced by the profile's own edit surface
+- `src/components/posts/post-card.tsx`
+- `src/lib/validators.ts`
 - `/Users/sanan/Documents/rv-connect/src/lib/utils.ts` (`formatBatch`, `getInitials`, `renderRichText`)
 
 Key load-bearing facts discovered: `formatBatch()` ignores `batchType` and returns `Batch of 'YY` (header line is house-agnostic for free); there is **no** messaging model, so a "Message" CTA has no destination (drove the "Get in touch" recommendation); there is **no** `house`, `avatarImage`, teacher, memory, social-beyond-IG/LinkedIn, or verified field in the schema today (all are net-new in the model above); the live profile page dumps every field into one flat grid (the "exactly three vs everything" problem the Details/Contact redesign resolves).
