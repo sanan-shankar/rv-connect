@@ -37,21 +37,29 @@ import type { Cadence } from "@/lib/catchups-types";
 export function CreateCatchupForm({
   cadenceLabels,
   myBatchYear,
-  suggestedName,
   me,
 }: {
   cadenceLabels: Record<Cadence, string>;
   myBatchYear: number | null;
   /** The viewer, so the With list can show them in it (see PeoplePicker). */
   me: PickedPerson;
-  /** e.g. "Batch of 2023", so the common case needs no typing. */
-  suggestedName: string;
   /** Preloaded from `?group=<id>` (an existing group with no Catch-up yet
    *  clicking "Start one"): the page resolves the group's members server-side
    *  so the picker opens with them already chipped in instead of empty. */
 }) {
   const router = useRouter();
-  const [name, setName] = useState(suggestedName);
+  /* EMPTY, not "Batch of <your year>". The field used to arrive pre-filled
+     with the viewer's own batch, on the reasoning that it saved the common
+     case some typing. Owner, 2026-09-07: "I don't know why when I create a new
+     catch-up, the default name is Batch of 2023. Like, why is that the default
+     name?", then "just remove the default catch up name in the shipped app."
+
+     He is right twice over. This form makes a Catch-up with people you CHOOSE,
+     so a batch's name is the one name it is least likely to want; and a batch
+     Catch-up is becoming automatic, so naming a hand-made one after a batch is
+     how the two got confused in the first place (recon F17: two groups called
+     "Batch of 2024", one real and one a snapshot somebody made here). */
+  const [name, setName] = useState("");
   const [people, setPeople] = useState<PickedPerson[]>([]);
   const [cadence, setCadence] = useState<Cadence>("monthly");
   const [submitting, setSubmitting] = useState(false);
@@ -124,7 +132,12 @@ export function CreateCatchupForm({
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={80}
-          placeholder="Batch of 2023"
+          /* No placeholder either. It read "Batch of 2023" -- the same string
+             the field used to be pre-filled with, in grey -- so removing the
+             default while leaving the ghost of it on screen would have fixed
+             nothing he could see. The label above already says Name, and an
+             example here can only ever suggest the one kind of Catch-up this
+             form does not make. */
           className="mt-[var(--space-xs)]"
         />
       </div>

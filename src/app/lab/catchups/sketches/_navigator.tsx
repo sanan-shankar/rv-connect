@@ -242,7 +242,20 @@ const LIST: Record<
    Measured at 120: the pointer at one row's centre puts the next at about
    1.06 and the one after at about 1.02, which is the falloff you can see. */
 const DOCK_REACH = 120;
-const DOCK_PEAK = 1.14;
+/* 1.05, and both cuts are off the GROWTH rather than off the number. His, in
+   two passes on 2026-09-07: "reduce the rail magnification by 40%", then
+   "decrease the magnification by another 40%." A peak of 1.14 grows a row by
+   0.14; six tenths of that is 0.084, and six tenths again is 0.05. Taking 40%
+   off 1.14 itself would read 0.68 and SHRINK every row under the pointer,
+   which is plainly not what the word means.
+
+   The reach is untouched at 120px, deliberately: how far the swell carries is
+   a separate decision from how much it lifts, and he named only the lift. It
+   also matters more at this amplitude, not less -- a 5% rise on one row alone
+   would read as a rendering wobble, and it is the falloff across four rows
+   that makes it read as a dock. Measured at 1.05: the row under the pointer
+   is 1.050, its neighbours 1.021 and 1.026. */
+const DOCK_PEAK = 1.05;
 const DOCK_SPRING = { stiffness: 400, damping: 28 };
 /** Far away, not zero: this keeps every row outside DOCK_REACH while the
  *  pointer is not in the list, which is its resting state. */
