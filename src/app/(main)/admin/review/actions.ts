@@ -77,11 +77,12 @@ export async function saveReview(input: {
   if ("error" in parsed) return { error: parsed.error };
   const { meta } = parsed;
 
-  /* updateMany rather than update, for the reason `approvePhoto` gives at
-     length: two admins clearing the queue together is the ordinary way a row
-     goes missing between the render and the press, and P2025 reaches the
-     client as "check your connection", which is a wrong diagnosis inviting a
-     retry that can never work (audits C-074/C-130).
+  /* updateMany rather than update: two admins clearing the queue together is
+     the ordinary way a row goes missing between the render and the press, and
+     P2025 reaches the client as "check your connection", which is a wrong
+     diagnosis inviting a retry that can never work (audits C-074/C-130). This
+     is the only write that lets a photograph in, so this is where that pair is
+     pinned -- image-purge-rule.test.mjs reads it by name.
 
      The `approved: false` in the WHERE is what makes the approving half
      idempotent: a photograph another admin let in a second ago is counted out

@@ -253,11 +253,20 @@ test("C-129: a staged upload can be contributed exactly once", () => {
 });
 
 test("C-074/C-130: concurrent moderation is answered, not thrown at", () => {
-  const src = read("src/app/(main)/collection/actions.ts");
-  const code = decomment(src);
-  // Both admin writes on a possibly-stale row.
-  assert.match(code, /const approved = await prisma\.photo\.updateMany\(/, "approvePhoto still throws P2025");
-  assert.match(code, /approved\.count === 0/, "approvePhoto ignores having matched nothing");
+  /* Both admin writes on a possibly-stale row -- and they now live in two
+     files. The approving half moved when /admin/content's second review UI
+     went (2026-09-07): `approvePhoto` and `approvePhotos` were its only
+     callers, so the ONLY write that lets a photograph in is `saveReview` in
+     the review room. The invariant did not move with it. */
+  const review = decomment(read("src/app/(main)/admin/review/actions.ts"));
+  const approve = /const (\w+) = await prisma\.photo\.updateMany\(/.exec(review);
+  assert.ok(approve, "the approve write is no longer an updateMany, so it throws P2025 again");
+  assert.match(
+    review,
+    new RegExp(`${approve[1]}\\.count === 0`),
+    "the approve write ignores having matched nothing"
+  );
+  const code = decomment(read("src/app/(main)/collection/actions.ts"));
   assert.match(code, /const gone = await tx\.photo\.deleteMany\(/, "the row delete still throws P2025");
   // `AlreadyGone` was `AlreadyDeclined` until the same transaction started
   // serving a member's own delete as well (spec sec. 9); the sentinel is the

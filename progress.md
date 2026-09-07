@@ -11123,3 +11123,21 @@ the four branches downstream that still understood `pending` (an approved-false 
 oldest-first `orderBy`, an oldest-first merge sort, and a member of `ContentType`) could not be
 reached by any call the app can make. Out, with the thirteen-line comment that explained an option
 nobody can pick, and the page docblock that said the review queue lives here. −19/+9.
+
+**D4 — the second photo-review screen on `/admin/content`.** Built 2026-08-28, replaced two days
+later by `/admin/review`, and left standing: a per-row Approve and Decline on any unapproved
+photograph in the general list, a tick box drawn over its 64px thumbnail, and a "N waiting / Tick
+all / Approve N" bar above the list. The spec has said since 2026-08-30 that what stays on this page
+is the count as a link; the code did not. It is the count as a link now, and every row's actions live
+behind the same "..." menu the rest of the list uses. `approvePhoto` and `approvePhotos` went with
+it — the review room's `saveReview` is the only write that lets a photograph into the Collection.
+
+`approveChosen` went too, and it was a live B-042: it called the action directly rather than through
+`callAction`, and cleared `approving` as a trailing statement rather than in a `finally`, so a
+rejected batch left the Approve button disabled for the rest of the session.
+
+**The C-074/C-130 pin moved with the code it pins.** `image-purge-rule.test.mjs` read all four of its
+assertions out of `collection/actions.ts`; two of them were about `approvePhoto`. They now read the
+review room's `saveReview`, and they read the variable name out of the `updateMany` rather than
+hard-coding it, so a rename cannot quietly empty them. Mutation-tested both ways: `updateMany` →
+`update` reds it, dropping the `count === 0` check reds it. −292/+79 across four files.
