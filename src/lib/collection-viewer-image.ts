@@ -35,7 +35,14 @@ import { areaLabel, bucketLabel } from "@/lib/collection";
  * contributor gave, and nothing at all when they gave none -- never
  * `createdAt`, which is the day somebody scanned it.
  */
-export function toViewerImage(p: PhotoData, isAdmin = false): ViewerImage {
+/* `isAdmin` is REQUIRED, with no default. A default of `false` reads as a
+ * kindness to the two lab rooms and is really a trap: forgetting the
+ * argument would compile, and the only symptom is an edit pencil that
+ * silently stops rendering for admins. It under-permissions rather than
+ * over-permissions, so it is not a hole -- but a missing capability that
+ * `tsc` refuses to mention is exactly the shape of bug this file was
+ * split out to stop. The lab rooms say `false` out loud instead. */
+export function toViewerImage(p: PhotoData, isAdmin: boolean): ViewerImage {
   return {
     src: p.url,
     alt: p.caption ?? undefined,

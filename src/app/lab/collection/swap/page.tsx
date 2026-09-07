@@ -274,7 +274,7 @@ export default function SwapRoom() {
       /* THE REAL MAPPING, imported. It was copied here twice, which is how
          both rooms came to draw a photograph the site does not: no alt text,
          no free tags, and the raw `area` value rather than its label. */
-      photos.map((p) => toViewerImage(p)),
+      photos.map((p) => toViewerImage(p, false)),
     [photos]
   );
 
