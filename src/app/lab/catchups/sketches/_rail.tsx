@@ -68,7 +68,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { CaretRight } from "@phosphor-icons/react";
-import Link from "next/link";
 import { AnimatePresence, m } from "motion/react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
@@ -88,15 +87,28 @@ export function Person({ p, size = 30 }: { p: SketchPerson; size?: number }) {
      always go to the person -- the feed's byline, the directory's card, an
      answer's author -- and this roster was the one place they did not, which
      made the sheet a dead end you had to back out of to find anybody. */
+  /* A PLAIN <a>, not next/link, and only because this is the lab. Measured
+     2026-09-07: a client-side navigation from `/lab/...` into `(main)/...`
+     crosses two different layout trees, and the `(main)` layout does not take
+     over -- the profile arrived with `main` at left 0 and width 1512 instead
+     of left 248 and width 1264, i.e. drawn without the app's sidebar, which is
+     what he saw: "their tile wasn't in the right spot. it was weirdly off to
+     the side but when I reloaded the page it was all fine."
+
+     Nothing is wrong with the profile, and nothing here will be wrong in the
+     shipped version: this roster lives inside `(main)` there, so a <Link> from
+     it stays in the same layout tree and is the right thing. It is only the
+     lab, sitting outside that tree, that has to leave it by a full page load.
+     Whoever ships this should use next/link. */
   return (
-    <Link
+    <a
       href={`/profile/${p.id}`}
       className="state-layer -mx-2 flex min-w-0 items-center gap-2.5 rounded-full px-2 py-1 transition-opacity duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       <BirdAvatar user={p} size={size} />
       <span className="min-w-0 truncate text-[14.5px] text-foreground">{p.name}</span>
       {p.isKeeper && <Sprout className="h-3.5 w-3.5 shrink-0 text-cinnamon" aria-label="Keeper" />}
-    </Link>
+    </a>
   );
 }
 
@@ -154,7 +166,7 @@ function roundVerbs(c: SketchCatchup): Verb[] {
        I can't start a new round?!?! I have to wait for two weeks minimum ...
        there's no control for that??" Confirmed in the code: openNextRoundIfDue
        fires on the clock alone and nothing starts one early, for anyone. */
-    return [{ label: "Start the next Round now", hint: "Do not wait for the rhythm", icon: Play, oneWay: true }];
+    return [{ label: "Start the next Edition now", hint: "Do not wait for the rhythm", icon: Play, oneWay: true }];
   return [];
 }
 
@@ -163,10 +175,10 @@ function catchupVerbs(c: SketchCatchup): Verb[] {
   return [
     { label: "Name", hint: "What everyone sees it called", icon: Type, value: c.name },
     { label: "Picture", hint: "The photograph on its card and header", icon: ImageIcon },
-    { label: "Rhythm", hint: "How often a Round comes round", icon: Repeat, value: c.meta.split("\u00b7").pop()?.trim() ?? "" },
+    { label: "Rhythm", hint: "How often an Edition comes round", icon: Repeat, value: c.meta.split("\u00b7").pop()?.trim() ?? "" },
     c.paused
       ? { label: "Start it again", hint: "Let the clock run", icon: Play }
-      : { label: "Hold the next Round", hint: "Nothing goes out until you say", icon: PauseIcon },
+      : { label: "Hold the next Edition", hint: "Nothing goes out until you say", icon: PauseIcon },
     { label: "End this Catch-up", hint: "Everything stays readable. Nothing new starts", icon: Archive, oneWay: true },
   ];
 }
@@ -237,7 +249,7 @@ function ReminderRow() {
     <Row
       v={{
         label: "Reminders",
-        hint: "While a Round is open for answers",
+        hint: "While an Edition is open for answers",
         icon: Bell,
         value: REMINDERS[at],
       }}
@@ -267,7 +279,7 @@ function Running({ c }: { c: SketchCatchup }) {
   return (
     <div className="space-y-6">
       {round.length > 0 && (
-        <Group label="This Round">
+        <Group label="This Edition">
           {round.map((v) => (
             <Row key={v.label} v={v} />
           ))}
@@ -288,7 +300,7 @@ function Running({ c }: { c: SketchCatchup }) {
             hint:
               c.kind === "batch"
                 ? "It stops showing on your list. Your batch keeps it"
-                : "You stop getting Rounds. What you wrote stays",
+                : "You stop getting Editions. What you wrote stays",
             icon: c.kind === "batch" ? Inbox : LogOut,
             oneWay: c.kind === "people",
           }}

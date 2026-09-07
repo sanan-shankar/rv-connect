@@ -223,7 +223,7 @@ export function Cover({
   const ratio = compact ? (phone ? "3 / 1" : "5 / 2") : "16 / 9";
   return (
     <Door
-      label={`Read the Round from ${shortDate(round.publishedAt ?? "")}`}
+      label={`Read the Edition from ${shortDate(round.publishedAt ?? "")}`}
       onOpen={onOpen}
       className={cn("group", className)}
     >

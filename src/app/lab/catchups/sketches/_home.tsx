@@ -699,7 +699,7 @@ function Answering({ r }: { r: ShelfRound }) {
           or 16?" */}
       <ol
         className="-mt-1 mb-2.5 flex flex-wrap items-center gap-1.5"
-        aria-label="The questions in this Round"
+        aria-label="The questions in this Edition"
       >
         {r.questions.map((x, i) => (
           <li key={x.id}>
@@ -887,7 +887,7 @@ function EarlierRounds({
           />
         </div>
         <p className="px-4 py-2.5 font-sans text-[13px] text-muted-foreground">
-          The first Round lands here
+          Your previous Editions appear here
         </p>
       </div>
     );
