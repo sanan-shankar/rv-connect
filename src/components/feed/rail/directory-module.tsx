@@ -23,8 +23,9 @@ export async function DirectoryModule({ userId }: { userId: string }) {
   const session = await auth();
   if (!IS_DEMO && !session?.user?.emailConfirmed) return null;
 
-  // Untyped so the avatar-override column (photoUrl) selects alongside the
-  // always-present fields, matching the post-card author select.
+  // IDENTITY_SELECT plus the three the meta line below reads: the account
+  // type and batch year `batchLine` needs, and the city beside it. Not
+  // AUTHOR_CARD_SELECT -- the rail draws no verified leaf.
   const recentMembers = await prisma.user.findMany({
     where: { isBlocked: false, deletionRequestedAt: null, id: { not: userId } },
     orderBy: { createdAt: "desc" },

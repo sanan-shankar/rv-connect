@@ -54,8 +54,7 @@ interface Notification {
 
 /**
  * Every `Notification.type` written anywhere in the app (feed/actions.ts,
- * groups/actions.ts, admin-actions.ts, collection/actions.ts,
- * catchups-notify.ts -- see `CatchupNotifyKind` in catchups-types.ts for the
+ * admin-actions.ts, collection/actions.ts, catchups-notify.ts -- see `CatchupNotifyKind` in catchups-types.ts for the
  * five Catch-up kinds) maps to one glyph here. Unknown/future types fall back
  * to the plain `Bell` so a new type never renders blank.
  *

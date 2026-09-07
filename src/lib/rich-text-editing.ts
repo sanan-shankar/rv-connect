@@ -86,7 +86,7 @@ export function computeMentionRange(): { range: Range; query: string } | null {
 // The keyboard path to formatting (there is no toolbar). Same keys every
 // editor uses; strikethrough has no agreed shortcut, so it stays a markdown
 // ("~~struck~~") and phone-selection-bar affordance.
-export const FORMAT_SHORTCUTS: Record<string, string> = {
+const FORMAT_SHORTCUTS: Record<string, string> = {
   b: "bold",
   i: "italic",
   u: "underline",
