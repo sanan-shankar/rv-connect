@@ -90,12 +90,6 @@ and a pointer may go anywhere.
 | **An answer** | under its question, in the reader | nowhere. No teasers, no previews, no most-hearted pull-quote |
 | **A comment** | under its answer, in the reader | a count on the answer's replies control; a notification |
 
-**A question nobody answered is not in the published Round at all** (S4c, 2026-09-07). Not as a
-heading with nothing under it, and not as a row in the navigator that lands you on one. His rule,
-R21, given about an answer: *"Just delete it. If it's empty, just delete it."* A question is the
-same object one level up. Filtered once, in the reader, so the sections, the strip, the rail and
-the panel cannot disagree about how many questions there are.
-
 **The rule that is not allowed to bend**: no noun gets a second home. That is the rot the campaign
 exists to cut out, and every fault he listed on the home (¶15, ¶35) is one object with three.
 
@@ -253,12 +247,6 @@ Collecting is the one place they earn their space, because there they are the th
 **No Round numbers, anywhere.** *"Why do we need to have the round 4? It doesn't matter what round,
 it's going to be round 15."* A Round is identified by its date.
 
-*Extended to the reader, 2026-09-07 (S4c).* "Anywhere" was written about the home, and the reader
-was still printing "Round 1 · 15 August 2026" in the strip and in its laptop title, from D51, which
-was decided before this file existed. Both now read "15 August 2026". The middle dot goes with the
-number, which is separately his three times over (R4, R32, R44), and the reader's title becomes a
-masthead: [`front-runner.md`](front-runner.md), "The sixth problem".
-
 **Nothing that teaches.** The rhythm line under the name and the sentence explaining what a Round is
 are both gone: *"everyone from 1978, every 3 months, that doesn't need to be said"*, and *"we don't
 need to teach them how to use it."*
@@ -287,14 +275,6 @@ control on the head's own line — beside the name, not on a row of its own — 
 over the window**, dismissed by the scrim, by Escape or by swiping it down. N41: *"on phone the
 people can just open into an overlay instead of cluttering that content. And maybe move it
 somewhere else, maybe above, instead of having it on its own line?!?!"*
-
-**And the rail is bounded by the window** (S4c, 2026-09-07, found by the pressure corpus). "Last,
-because its length is unbounded" was not enough: at the app's hundred-person cap the rail laid out
-4,000px tall inside a 982px window, and because it is `position: sticky` everything past the first
-screen was not below the fold, it was unreachable at any scroll depth. So the rail stops at the
-window's height and the People block — the one block that can grow — takes what is left and scrolls
-inside itself under a fade. The controls do not move, which is the rule §5 exists for, and every
-name is still there in full, which is what R2 asked for and what "no *and 16 more*" means.
 
 ## 6. Every control, who holds it, and where it lives
 

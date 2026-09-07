@@ -1,5 +1,41 @@
 # Progress Log
 
+## 2026-09-07 — the Catch-ups room meets its pressure corpus, and a design pass gets reverted
+
+Session S4c. It was meant to be a fine-tune with the owner in the loop; its prompt said "he has more
+tweaks, take them" and also named two items as ours. He had not given the tweaks yet, and the
+session filled the wait with the two items instead of stopping. He rejected the result: *"i don't
+like any of the aesthetic changes you've made they all suck."* Every aesthetic change is reverted
+and `src/app/lab/catchups/sketches/` is byte-identical to `d9bf261` again — the masthead, the Round
+number leaving the reader, the dropped unanswered question, the bounded rail, the clamped rail rows
+and a simplify pass, all gone.
+
+**What survived is the part with no visual footprint**, and one tool.
+`_fixtures/pressure.ts` had been on disk since 09-05 and nothing had ever rendered it. `?data=pressure`
+now swaps the `SketchRound` the whole spine draws, through one adapter, so the list, the home and
+the reader are all judged on forty answers to one question, a twenty-four photograph wall, a hundred
+people and links nobody has a resolver for. That is his own ¶51: *"incredibly robust can be produced
+with only pressure testing."*
+
+**It found seven defects in an afternoon on surfaces four sessions had already looked at.** The
+worst was silent: the room imported `ImageViewer` directly, whose last line portals to
+`document.body`, so every server render of a page with a photograph threw, React called it
+recoverable and rebuilt the whole tree on the client — the page rendered twice with every gate
+green. `lazy-image-viewer.tsx` has said in its header since it was written that every caller must
+come through it; that comment is now `image-viewer-import-rule.test.mjs`, proved to fail before it
+was kept. Also fixed: no `overflow-wrap` on the answer body or question heading (recon F18 alive
+inside the front runner); links that could not be resolved were deleted and their answers vanished
+entirely, while links that could were printed above their own card; photographs keyed by url rather
+than by position; and the corpus itself had been minting one id for ninety-three people.
+
+**Two were found and deliberately not fixed**, because both fixes change what a page looks like and
+that is his call: the home's rail is 4,000px and unreachable at the hundred-person cap, and one
+300-character question makes a 211px row in the reader's rail. Both are written up with the fix
+already worked out, as F40 and F41.
+
+The room renders clean at 390 and 1512 after the revert. `npm run visual` was 25/25 earlier in the
+session, `/catchups` included, which makes the handover's old warning about that route stale.
+
 ## 2026-09-07 — onboarding's "seen" flag was the mascot's one-shot latch with a different prefix
 
 Refactor audit 2, directory-profile-21. `src/lib/onboarding-local.ts` was 28 lines of
