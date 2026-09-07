@@ -1,5 +1,24 @@
 # Progress Log
 
+## 2026-09-07 — onboarding's "seen" flag was the mascot's one-shot latch with a different prefix
+
+Refactor audit 2, directory-profile-21. `src/lib/onboarding-local.ts` was 28 lines of
+`safeGet(key) === marker` / `safeSet(key, marker)` over `local-storage.ts`, which is exactly
+`hasFired`/`markFired` in `mascot/moments/one-shot.ts`. Both files' headers already cross-referenced
+each other. The file is gone; the two callers (the flow, and the demo bar that suppresses it) latch
+`ONBOARDING_SEEN` instead.
+
+The key moves from `rv:onboarding:seen:<id>` to `rv:moment:onboardingSeen:<id>`, so a member who
+bailed out of the wizard **before** saving an admission number sees the Welcome step once more.
+Anyone with an admission number is bounced at `onboarding-flow.tsx:138` before the flag is read, so
+that is the whole blast radius, and it is one greeting.
+
+`ONBOARDING_SEEN` lives in `onboarding/types.ts` rather than in either component: the demo bar must
+agree with the flow on it, and importing it from `onboarding-flow.tsx` would pull that whole client
+graph into the demo bar's chunk.
+
+`npm run check` 105/105.
+
 ## 2026-09-07 — the profile skeleton stops drawing a rule the sheet deleted
 
 Refactor audit 2, directory-profile-23; audit 1's F-11, profile half, never applied. The letterhead
