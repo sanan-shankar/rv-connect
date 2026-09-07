@@ -1,5 +1,25 @@
 # Progress Log
 
+## 2026-09-07 — onboarding was the third places writer, and it said there were two
+
+Refactor audit 2, directory-profile-11. `place-write.ts`'s header claimed "exactly two writers -- a
+member editing their own in /settings, and an admin editing someone's on the person page". Both
+halves were wrong: there is no /settings page any more, and sign-up's register step was a third
+writer, hand-rolling the same wipe-and-recreate with a `createMany` inside a transaction that also
+wrote four profile columns. `place-input.test.mjs` had counted three writers for a while; only the
+prose had not caught up. The finding's line range (`:78-108`) was exact.
+
+`replaceUserPlaces` takes an optional `userData` now, spread into the `prisma.user.update` it already
+runs, so the register step's admission number, occupation, organisation and subjects still land or
+fail with the cities in one transaction. The legacy mirror is spread AFTER it, so no future caller
+can pass its own `currentCity` and become the fourth copy of C-101. The schema's UserPlace comment
+said "Both writers" too, and now says three.
+
+Verified against the real database, signed in as Jerry: the register step saved, advanced to the
+houses step with no page error, and his one place came back with its `placeId`, coordinates and
+position untouched, the legacy columns re-mirrored and the four profile columns unchanged.
+`npm run check`: 105/105.
+
 ## 2026-09-07 — five hand-rolled admin checks go through the one guard
 
 Refactor audit 2, duplication-15 (audit-1's dup-20 residue). `approvePhoto`, `approvePhotos`,
