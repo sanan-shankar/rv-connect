@@ -115,11 +115,17 @@ export function Section({
         <span aria-hidden className="block h-[2px] w-8 rounded-full bg-cinnamon" />
         <h2
           className="mt-3 font-heading text-foreground"
+          /* 24px on both, which is `h2` on the documented scale
+             (DESIGN-SYSTEM section 5). It used to be 30 on a laptop, which
+             is the app's PAGE-title size and therefore the same size as
+             the Catch-up's name above it. One element, one size, on the
+             ladder: "we've chosen font sizes extremely randomly and we
+             have to kind of standardize that" (R15). */
           style={{
-            fontSize: phone ? 24 : 30,
+            fontSize: 24,
             lineHeight: 1.2,
             letterSpacing: "-0.015em",
-            maxWidth: phone ? undefined : "22ch",
+            maxWidth: phone ? undefined : "26ch",
           }}
         >
           {q.text}
@@ -444,9 +450,16 @@ export function Reader({ round, viewport }: { round: SketchRound; viewport: Sket
               down the whole reader, so the page opens on the colour it is
               going to keep using, and the date stays quiet beside it. */}
           <header>
+            {/* 30px, which is what `PageHeader` sets on every other page in
+                the app (Feed, Directory, Collection, Letters) and what the
+                Support page hand-writes to match. It was 44, and he was
+                right about it: "make sure in the loop isn't some absurdly
+                large font and fits the sizes in the rest of the ui." A
+                Catch-up's name is a page title, so it is THE page title
+                size, and the questions under it drop to the scale's h2 so
+                the two are a step apart rather than the same size. */}
             <h1
-              className="font-heading text-foreground"
-              style={{ fontSize: 44, lineHeight: 1.04, letterSpacing: "-0.02em" }}
+              className="font-heading text-[30px] leading-[1.2] tracking-[-0.02em] text-foreground"
             >
               {round.catchupName}
             </h1>

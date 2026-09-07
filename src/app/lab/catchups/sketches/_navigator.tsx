@@ -39,7 +39,7 @@
  *  whole page becoming the Round's contents, "a bit more than that" (R43).
  * ------------------------------------------------------------------ */
 
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { CaretDown } from "@phosphor-icons/react";
 import { m } from "motion/react";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
@@ -183,13 +183,35 @@ const LIST: Record<
   /* The contents page: the heading face, a size under the in-flow
      heading, and eleven questions still fit one phone screen. */
   page: { size: 19, lineHeight: 1.28, padY: 11, indent: 40, spineX: 20, serif: true },
-  /* The laptop's rail, which is this list left open. Serif, bigger and
-     further apart than the 13px sans it was, all three his words on
-     2026-09-07: "maybe we write it in the serif font instead ... It can
-     be slightly bigger ... space it out more vertically so we can maybe
-     pick a slightly bigger font size." */
-  rail: { size: 16, lineHeight: 1.3, padY: 12, indent: 22, spineX: 0, serif: true },
+  /* The laptop's rail, which is this list left open. Serif and further
+     apart than the 13px sans it was, which he asked for; at 14, which is
+     `small` on the app's type scale, because 16 was not.
+     He looked at 16 and said: "the siderail for questions font is too big
+     it's imbalancing the screen. my eyes go there instead of the content
+     when it should just be a navigation thing." A navigation list has to
+     be legible and then get out of the way, so it sits one step under the
+     body it is pointing at, and the air between rows does the work the
+     size was doing. */
+  rail: { size: 14, lineHeight: 1.35, padY: 11, indent: 22, spineX: 0, serif: true },
 };
+
+/* The swell, continuous rather than stepped.
+ *
+ *  His, 2026-09-07: "I feel like the navigation is more discrete and in
+ *  these steps compared to the more macos dock magnification which is more
+ *  continuous." He is describing exactly what the first cut did: it found
+ *  the NEAREST row and scaled by whole rows away, so three rows had three
+ *  fixed sizes and everything else was flat, and moving the pointer inside
+ *  one row changed nothing at all.
+ *
+ *  The dock does not work that way. Its magnification is a function of the
+ *  distance in PIXELS between the pointer and each item, so every pixel of
+ *  movement changes every item a little. This is that: a bell curve on the
+ *  distance from the pointer to a row's middle, which is smooth everywhere
+ *  and needs no cases. SIGMA is how far the swell reaches, in pixels;
+ *  AMP is how much the row under the pointer grows. */
+const SWELL_AMP = 0.085;
+const SWELL_SIGMA = 46;
 
 export function QuestionList({
   questions,
@@ -212,9 +234,13 @@ export function QuestionList({
 }) {
   const rows = useRef<Array<HTMLLIElement | null>>([]);
   const [fill, setFill] = useState(0);
-  /* Which row the pointer is nearest, for the swell. -1 is "no pointer",
-     which is every touch device and the resting state of a mouse. */
-  const [near, setNear] = useState(-1);
+  /* Every row's middle, in the list's own coordinates, so the swell can be
+     a function of pixels rather than of row numbers. */
+  const [centres, setCentres] = useState<number[]>([]);
+  /* Where the pointer is inside the list. -1 is "no pointer", which is
+     every touch device and the resting state of a mouse. */
+  const [pointerY, setPointerY] = useState(-1);
+  const frame = useRef(0);
   const t = LIST[size];
   const swells = size === "rail";
 
@@ -227,7 +253,12 @@ export function QuestionList({
        at the start. A fifth of a row is enough to see. */
     const through = Math.max(0.2, Math.min(1, within));
     setFill(el.offsetTop + el.offsetHeight * through);
-  }, [current, within, questions.length]);
+    if (swells) {
+      setCentres(rows.current.map((r) => (r ? r.offsetTop + r.offsetHeight / 2 : -999)));
+    }
+  }, [current, within, questions.length, swells]);
+
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
 
   return (
     <ol
@@ -236,23 +267,23 @@ export function QuestionList({
         swells
           ? (e) => {
               if (e.pointerType !== "mouse") return;
-              const box = e.currentTarget.getBoundingClientRect();
-              const y = e.clientY - box.top;
-              let best = -1;
-              let bestD = Infinity;
-              rows.current.forEach((r, i) => {
-                if (!r) return;
-                const d = Math.abs(r.offsetTop + r.offsetHeight / 2 - y);
-                if (d < bestD) {
-                  bestD = d;
-                  best = i;
-                }
-              });
-              setNear(best);
+              const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
+              /* One update a frame. The handler fires far more often than
+                 the screen refreshes, and the swell only needs to be right
+                 once per painted frame. */
+              cancelAnimationFrame(frame.current);
+              frame.current = requestAnimationFrame(() => setPointerY(y));
             }
           : undefined
       }
-      onPointerLeave={swells ? () => setNear(-1) : undefined}
+      onPointerLeave={
+        swells
+          ? () => {
+              cancelAnimationFrame(frame.current);
+              setPointerY(-1);
+            }
+          : undefined
+      }
     >
       {mark === "line" && (
         <>
@@ -277,10 +308,13 @@ export function QuestionList({
            The Collection's rail can grow its rows because they are one
            line each at a fixed pitch. These wrap to three, so growing the
            TYPE would reflow the whole list under the pointer. A transform
-           does not participate in layout, so the row swells and nothing
-           below it moves. Falls to nothing two rows away. */
-        const d = near < 0 ? 9 : Math.abs(i - near);
-        const scale = swells && d < 3 ? 1 + (0.075 - d * 0.028) : 1;
+           does not participate in layout, so a row swells and nothing
+           below it moves. */
+        const centre = centres[i];
+        const scale =
+          swells && pointerY >= 0 && centre !== undefined
+            ? 1 + SWELL_AMP * Math.exp(-(((pointerY - centre) / SWELL_SIGMA) ** 2))
+            : 1;
         return (
           <li
             key={q.id}
@@ -288,12 +322,10 @@ export function QuestionList({
               rows.current[i] = el;
             }}
           >
-            <m.button
+            <button
               type="button"
               onClick={() => onPick?.(i)}
               aria-current={here ? "true" : undefined}
-              animate={{ scale }}
-              transition={{ duration: 0.22, ease: EASE_OUT_SMOOTH }}
               className={cn(
                 "block w-full origin-left text-left transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
                 t.serif && "font-heading",
@@ -311,10 +343,22 @@ export function QuestionList({
                 paddingBottom: t.padY,
                 paddingLeft: mark === "line" ? t.indent : 14,
                 paddingRight: mark === "line" ? 20 : 14,
+                /* Written straight onto the element rather than animated
+                   through a spring: the dock's magnification tracks the
+                   pointer exactly, and a spring chasing a value that
+                   changes every frame lags behind the cursor. The short
+                   linear transition is only there to carry the return to
+                   rest when the pointer leaves. */
+                ...(swells
+                  ? {
+                      transform: `scale(${scale})`,
+                      transition: "transform 90ms linear",
+                    }
+                  : {}),
               }}
             >
               {q.text}
-            </m.button>
+            </button>
           </li>
         );
       })}
