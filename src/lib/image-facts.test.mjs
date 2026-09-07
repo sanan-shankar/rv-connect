@@ -2,17 +2,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import sharp from "sharp";
 import { read, decomment } from "./test-kit.mjs";
-import {
-  describeImage,
-  focalFraction,
-  isGreyscale,
-  meanChroma,
-  UNKNOWN_FOCAL,
-} from "./image.ts";
+import { describeImage, focalFraction, UNKNOWN_FOCAL } from "./image.ts";
 
 /* ------------------------------------------------------------------ *
  *  What we know about a stored image: its shape, where the interesting
- *  part is, whether it has any colour, and a smear to hold its place.
+ *  part is, and a smear to hold its place.
  *
  *  The whole Collection rework sits on these numbers being recorded
  *  (docs/planning/collection-rework/spec.md §2): without them nothing can
@@ -35,27 +29,6 @@ async function photoWithSubjectAt(width, height, x, y, patch = 60) {
     .toBuffer();
 }
 
-test("chroma is zero when the three channels agree, whatever the brightness", () => {
-  // Black, mid grey, white: no colour anywhere.
-  const grey = Uint8Array.from([0, 0, 0, 128, 128, 128, 255, 255, 255]);
-  assert.equal(meanChroma(grey, 3), 0);
-  assert.equal(isGreyscale(grey, 3), true);
-});
-
-test("chroma rises with how far apart the channels are", () => {
-  const red = Uint8Array.from([255, 0, 0]);
-  assert.equal(meanChroma(red, 3), 255);
-  assert.equal(isGreyscale(red, 3), false);
-  // A faint colour cast -- a scan of an old print, say -- is still not colour.
-  const cast = Uint8Array.from([130, 128, 126, 120, 118, 116]);
-  assert.equal(meanChroma(cast, 3), 4);
-  assert.equal(isGreyscale(cast, 3), true);
-});
-
-test("a single-channel image has no colour to measure", () => {
-  assert.equal(meanChroma(Uint8Array.from([10, 200, 30]), 1), 0);
-});
-
 test("an unreadable focal point lands in the centre, never at NaN", () => {
   // The trap: libvips reports no focal point at all when the resize it was
   // given needed no crop, so `attentionX` arrives undefined. Dividing that
@@ -75,7 +48,6 @@ test("a stored image is measured at the size it will be served", async () => {
   const facts = await describeImage(await photoWithSubjectAt(1200, 800, 900, 200));
   assert.equal(facts.width, 1200);
   assert.equal(facts.height, 800);
-  assert.equal(facts.greyscale, false);
   assert.ok(facts.blurDataUrl.startsWith("data:image/webp;base64,"));
   // Small enough to send with every card: ~160 bytes, not a second image.
   assert.ok(facts.blurDataUrl.length < 600, `smear was ${facts.blurDataUrl.length} chars`);
@@ -104,11 +76,26 @@ test("a square photograph is measured too, rather than coming back as NaN", asyn
   assert.ok(Math.abs(facts.focalY - 0.78) < 0.06, `square y: ${facts.focalY}`);
 });
 
-test("a photograph with no colour in it is recognised as one", async () => {
+test("a black-and-white photograph is measured like any other", async () => {
+  /* THREE CHROMA TESTS AND A BLACK-AND-WHITE ONE USED TO LIVE HERE. The
+     measurement they covered -- meanChroma / isGreyscale, run on every feed
+     upload -- was removed on 2026-09-07 (refactor audit 2 / D9): it fed
+     Image.greyscale, and the Collection filter it existed for reads Photo, a
+     different table, so nothing could ever have used it.
+
+     What survives is the thing that would actually break: a photograph with no
+     colour must still be measurable at all. sharp's attention crop behaves
+     differently on a flat monochrome frame, and a null here would take the
+     whole layout with it. */
   const colour = await photoWithSubjectAt(900, 600, 300, 300);
   const bw = await sharp(colour).greyscale().webp().toBuffer();
-  assert.equal((await describeImage(bw)).greyscale, true);
-  assert.equal((await describeImage(colour)).greyscale, false);
+  const facts = await describeImage(bw);
+  assert.ok(facts, "a black-and-white photograph came back unmeasured");
+  assert.equal(facts.width, 900);
+  assert.equal(facts.height, 600);
+  assert.ok(Number.isFinite(facts.focalX) && Number.isFinite(facts.focalY));
+  assert.ok(facts.blurDataUrl.startsWith("data:image/webp;base64,"));
+  assert.ok(!("greyscale" in facts), "greyscale is being measured again");
 });
 
 test("bytes that are not an image are refused rather than thrown", async () => {

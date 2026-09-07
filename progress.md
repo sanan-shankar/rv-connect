@@ -1,5 +1,26 @@
 # Progress Log
 
+## 2026-09-07 — the black-and-white measurement stops running
+
+Refactor audit 2, D9 (`data-layer-02`). `Image.greyscale` was measured with a pixel pass over the
+probe buffer on **every feed upload**, and the filter it existed for could never have read it:
+`Image` is keyed by URL and written only by the two feed upload routes, while the Collection's
+rows are `Photo`, a different table with no such column. **3 of 53 rows true on production, 0 of 2
+on the demo.** The owner: *"stop computing it; it can be worked out again from the picture."*
+
+`meanChroma`, `isGreyscale` and the 8-in-255 threshold go together -- the first existed only to
+feed the second. A comment where they were says why, and where they belong if the filter is ever
+built (a column on `Photo`, computed in `contributePhotoDirect`'s encode chain, which is not
+`toDisplayWebp`). `collection-rework/spec.md` §7.4 now opens with "NOT BUILT, and the column has
+gone" instead of promising a filter.
+
+Four tests went with them. The replacement is the one that would actually catch something: a
+black-and-white photograph must still be **measurable at all**, because sharp's attention crop
+behaves differently on a flat monochrome frame and a null there takes the whole layout with it.
+
+**No DDL.** `prisma/migrations-manual/2026-09-07-drop-image-greyscale.sql` is written and unrun,
+and says out loud that this is the one column in tonight's set that is not empty.
+
 ## 2026-09-07 — the Groups feature's last column, and a branch of the visibility rule with it
 
 Refactor audit 2, D6 (`data-layer-01`). `Post.groupId` has been NULL on every row since Groups
