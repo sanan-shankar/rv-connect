@@ -255,6 +255,22 @@ a simplification.
 - Where: `src/app/(auth)/login/login-client.tsx` (runIntro + the showPw effect),
   `src/components/mascot/hoopoe.tsx:994-1001`.
 
+### 21. The review room's "Done" button is not a button, and Base UI says so on every load
+`/admin/review` logs a Base UI error the moment it renders: *"A component that acts as a button
+expected a native `<button>` because the `nativeButton` prop is true. Rendering a non-`<button>`
+removes native button semantics, which can impact forms and accessibility."* It points at the `Done`
+component in `src/components/admin/review/review-room.tsx:754-765`, which passes `Button` a
+`render={<Link ... />}` -- the "N in the Collection have no date" / "N waiting to be reviewed" button
+that crosses between the two piles.
+
+Found on 2026-09-07 while verifying the D4 deletion (refactor audit 2), not caused by it: nothing in
+that change touched the room's markup. Filed rather than fixed because it is a bug, not a
+simplification, and the fix is a judgement about whether Done should be a link or a button.
+- Size: small. Either set `nativeButton={false}` or make the rendered element a real `<button>`.
+- Watch out: it is the only console error on an admin surface, so it is also the thing that will hide
+  the next one.
+- Where: `src/components/admin/review/review-room.tsx:754-765` (the `Done` component).
+
 ---
 
 ## Owner decisions carried from the second bug audit's fix ledger (closed 2026-08-25)
