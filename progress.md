@@ -1,5 +1,64 @@
 # Progress Log
 
+## 2026-09-07 -- the hygiene pass: comments that describe code nobody has, and the last raw hex
+
+Refactor audit 2, Phase F unit 1. Thirteen rows across eleven territories, plus the one live
+`npm run check` warning and the owner's Q13 heading answer. Comment-only in most files; the code
+that did move is named below.
+
+**What was wrong and is not any more.** A viewer whose caption control was an alias for the
+measurement behind it and whose two step arrows carried the same 330-character class twice; a crop
+dialog citing a drag rig the viewer deleted; a photograph rule saying "nothing in the app calls
+this" about a function the carousel calls on every swipe; a Collection room describing decade
+pills scrapped on 2026-08-28 and a comment insisting there is no way to jump by decade on a phone,
+nine lines above the scrubber that is exactly that; a feed action naming group plumbing removed in
+phase 2; an admin layout counting eleven routes (14) and pointing at `admin-actions.ts`, a file
+that no longer exists; three "fourteen-bird plate" mentions of a plate that has held twelve since
+2026-08-22; `/guide/[area]`'s `generateStaticParams`, which could never prerender anything because
+the root layout reads the theme cookie; eight auth comments describing deleted code, including one
+claiming `maskEmail` exists for a client component when all four callers are server modules; a
+member-facing onboarding line offering "settings", which 404s; a root layout still calling dark
+mode "visually inert" 60 lines of `.dark` block later.
+
+**The code that moved, all of it small**: `post-card` parsed `post.images` twice and its
+`viewerImages` memo depended on the second parse; `search-pill`'s `m.form` animated nothing;
+`posthog-identify` returned a cleanup that only held a comment; `sidebar` inlined a seven-line
+`counts?.[key]` helper and now reads the teacher test once instead of twice, so the desktop rail
+and the mobile drawer cannot disagree about who sees Catch-ups.
+
+**The raw hex.** `protocol-audit` had one finding left in the whole repo: the sidebar wordmark's
+`text-[#EAF1DF]`, from `bed93ca1`. **No token matches it** -- the nearest, `--sidebar-foreground`,
+is `#EBF3EE`, a different colour -- and it should not be one: it is the lightest of the logo's
+three fixed planes, which must not flip with the theme. So it went where the mark's other fills
+already live and are sanctioned, as `PeaksMark`'s `variant="cream"`. Byte-identical output; the
+protocol gate is now clean for the first time this campaign.
+
+**Q13, the three off-ladder headings.** He asked "which headings" rather than answering, so the
+stated default stands: same pixels, one name. `--text-lede: 26px` in `tailwind-theme.css`, font
+size only, because the two surfaces set their own leading (tight against snug) and a paired
+line-height would have moved them. Seven call sites: the dark-mode gauntlet's six step headings
+and the Collection contribute room's invitation. Measured live afterwards: 26px / 32.5px,
+unchanged. **The two `catchups/join` headings were left alone (parked area), and a 27px heading
+nobody has told him about is live at `auth-panel.tsx:177`.**
+
+**Member-visible**: the dark-mode page's two "Back to settings" controls now read "Go back"
+(his Q10 answer, verbatim option (a)); the onboarding photo step says "from your profile".
+
+**DESIGN-SYSTEM section 7 now records his reduced-motion decision in his own words** rather than
+stating it as a house default, and names the three shipped files that still check the OS setting
+(`footer-hoopoe`, `not-found-stage`, `showcase-shot`) as deliberately left alone -- he answered a
+question about ADDING two guards, not about stripping the ones there.
+
+**Findings that were wrong, and were not applied**: `use-letter-persistence`'s two wrappers are
+not one-caller (three each), so inlining them broke the build and was reverted;
+`shell-primitives-11` would delete `--space-xxl`, whose only non-lab consumer is the landing
+showcase the owner kept at Q1; `admin.ts:26-27`, `settings/actions.ts:15`, `letter-images.tsx`,
+`place-write.ts`, `motion-features.tsx`, `directory-module`'s select, `post-feed.tsx:112` and
+`notifications/actions.ts:47` had all already been fixed.
+
+`npm run check` green (105 tests, protocol clean), `npm run visual` 25/25, `/dark-mode`
+screenshotted at 1440 and 390.
+
 ## 2026-09-07 — seven indexes nothing uses, and one the audit was wrong about
 
 Refactor audit 2, D7's index half (`data-layer-04`). The audit named eight; **seven are dropped

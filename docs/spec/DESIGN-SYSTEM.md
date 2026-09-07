@@ -394,10 +394,22 @@ register IS the template, and it lives in exactly one file - `src/components/ui/
 
 ## 7. Motion & delight
 
-- **Animations always play.** Never gate motion on the OS `prefers-reduced-motion` setting, anywhere in
-  the app. (The only thing that pauses motion is the browser tab being hidden.) Consolidate to one
-  `useMotionGovernor`; remove the OS checks left in older components; reconcile the two `useValleyMotion`
-  forks into it.
+- **Animations always play**, and this is a decision about the people who use this site rather than
+  a default nobody got round to changing. Asked on 2026-09-07 whether the two surfaces that still
+  check the OS setting should go still for a member who has it on, the owner refused outright:
+  *"reduce motion shouldn't be considered anywhere. I know these people. they'd want to see these
+  fun things. don't make anything boring because they have rduced motion on."*
+  So: never gate motion on `prefers-reduced-motion`, anywhere, and a new surface never asks. The one
+  thing that pauses motion is the browser tab being hidden, and `useMotionGovernor`
+  (`src/components/common/motion.tsx`) is the only place that decides it. Its `ambientReduced` field
+  is permanently false and exists as the seam for an in-app toggle he might one day ask for; it must
+  never be wired to `matchMedia`.
+  **Three shipped files still check the OS setting**, all written before that answer:
+  `landing/footer-hoopoe.tsx` (which argues in its own comment that it is a scoped exception),
+  `mascot/moments/not-found-stage.tsx` (the click flight) and `landing/showcase-shot.tsx` (inside
+  the switched-off landing showcase). They were deliberately left alone: he answered a question
+  about ADDING two guards, not about stripping the ones already there. Whether they come out is
+  still open with him. Nothing new joins that list.
 - **Curves:** import `EASE_POP` / `EASE_SPRING` / `EASE_OUT_SMOOTH` / `EASE_IN_OUT_SCENE` / `SPRINGS`
   from `src/components/common/motion.tsx`. Never hand-type a `cubic-bezier(...)`.
   Picking between the two slide curves: `EASE_OUT_SMOOTH` starts at full speed, which is right for a
