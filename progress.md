@@ -1,5 +1,26 @@
 # Progress Log
 
+## 2026-09-07 — the house picker and its lab room go
+
+Refactor audit 2, directory-profile-05, widened by the owner: *"delete the whole house picker lab we
+don't need it."* `HousePicker` was the wrapper that hung a house panel off a year row. The chain
+editor replaced that interaction on 2026-08-07 and the wrapper survived in `components/common/` with
+a 30-line docblock arguing an interaction nothing shipped runs. Its only render site was
+`/lab/houses`, so the room goes with it: both routes, the registry entry, the two iframes.
+
+What stays is `HouseOptions`, the panel body the shipped chain editor draws, so the file is
+`house-options.tsx` now and says what it holds.
+
+Four comments named the picker and would have gone stale silently: `houses-step.tsx` (the step it
+replaced), `use-wide-viewport.ts` (which cited the picker as the reason the hook exists — it now
+cites the editor), `filter-sheet.tsx` (a list of the app's bottom sheets) and `globals.css`'s dot
+correction, which claimed "four INLINE sites (house-picker, alumni-map)" and now names the one that
+is real. `lab/everything/_findings.ts` still names the file, deliberately: its header says `evidence`
+is untouched receipts, and it already cites a `settings-form.tsx` deleted months ago.
+
+`npm run check` 105/105 after `npm run build` regenerated `.next/types/validator.ts` — deleting a
+route reds `tsc` until it does. Lab registry 48 routes -> 46.
+
 ## 2026-09-07 — One answer to "what is a page" across the screenshot family
 
 `verify:shot` took a bare route, `screenshot` and `screenshot:auth` took a full URL, and CLAUDE.md's
