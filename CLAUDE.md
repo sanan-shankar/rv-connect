@@ -146,7 +146,7 @@ re-planning, and no tool calls beyond what counting requires. Continue your work
 ## `npm run check` (or the `/check` skill)
 
 The one gate, and it is the SAME list CI runs on a push: TypeScript, ESLint, the shape+colour
-protocol audit, the lab registry audit, the unit-test suite (75 files as of 2026-08-25), the
+protocol audit, the lab registry audit, every `*.test.mjs` the repo tracks, the
 dependency advisory gate and the security audit status board, in about 30 seconds. Run it after any
 change and before every commit. A single gate while iterating: `npm run check -- lint`. Details and
 how to read a failure: `.claude/skills/check/SKILL.md`.
@@ -243,7 +243,6 @@ Dev server: `npm run dev` on `http://localhost:3000`. Start it in the background
 | `npm run screenshot:auth <url\|/path> [--mobile]` | signed in as admin |
 | `npm run verify:shot <route> <out.png> [mobile]` | authed shot **plus** console and pageerror capture |
 | `npm run verify:crawl` | every live route signed in, with status and console errors |
-
 | `npm run shots:clean` | clear scratch shots older than a week |
 
 All five use `e2e/.shots/` -- gitignored scratch, beside Playwright's own run output, and **the only
@@ -261,15 +260,15 @@ heading gap is 24px, should be 16px"). Minimum two rounds, then repeat on mobile
 ## Visual regression: `npm run visual` — run it after every UI change
 
 The above catches what you thought to look at. **`npm run visual` catches what you didn't**: it
-compares 11 routes x 2 viewports against committed baselines in `e2e/__screenshots__/` and fails on
-a diff of 100 pixels. Takes 50s. Run it before you commit any UI work, not just on the page you
-edited — its whole point is the page you were not looking at.
+compares every route in `ROUTES` (`e2e/visual.spec.ts`) x 2 viewports against committed baselines in
+`e2e/__screenshots__/` and fails on a diff of 100 pixels. Run it before you commit any UI work, not
+just on the page you edited — its whole point is the page you were not looking at.
 
 | Command | Use |
 |---|---|
 | `npm run visual` | compare every route against its baseline |
 | `npm run visual:update` | **the change was intentional** — rewrite the baselines, and stage the PNGs with the UI change that moved them, not as a `test(visual):` commit of their own |
-| — | Feed, directory, letters and catchups photograph a live database, so they are masked past the page header (directory: just the map and its headcount). A red run on those four is real. See OPERATIONS §1. |
+| — | Six routes photograph a live database, so they are masked: feed, letters, catchups and both halves of the Collection past the page header, the directory just its map and headcount. A red run on those six is real. See OPERATIONS §1. |
 | `npm run visual:report` | open the three-up expected/actual/diff view of the last failure |
 | `npm run test:e2e` | the above plus the sign-in flow checks |
 

@@ -125,7 +125,7 @@ reach needs a deliberate allowlist decision.
 
 ## The gates
 
-- `npm run check` — types, lint, protocol, lab registry, all 25+ unit test files (which include
+- `npm run check` — types, lint, protocol, lab registry, every `*.test.mjs` the repo tracks (which include
   the security suites: `security-regressions`, `gate-coverage`, `rich-text`, `origin-rule`,
   `password-rule`, `demo`, the `-rule` files), plus the two below.
 - `scripts/qa/npm-audit-gate.mjs` — npm audit with a WRITTEN allowlist (sole entry: the

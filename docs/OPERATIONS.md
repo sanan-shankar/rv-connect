@@ -12,8 +12,10 @@ Security items are tracked separately in `docs/SECURITY.md` (and live on `npm ru
 
 **Fires:** after any UI change, before committing. `npm run visual`.
 
-11 routes x 2 viewports (1440x900 and 390x844) compared against baselines in
-`e2e/__screenshots__/`. ~80 seconds. Fails on a difference of 100 pixels.
+One line per route in `ROUTES` (`e2e/visual.spec.ts`), each with its reason, x 2 viewports
+(1440x900 and 390x844), compared against baselines in `e2e/__screenshots__/`. Fails on a
+difference of 100 pixels. Count the routes out of `ROUTES` when you need the number: it has
+been 10, then 11, then 12 inside three weeks, and a count printed here rots every time.
 
 | Command | Use |
 |---|---|
@@ -32,17 +34,22 @@ changing `/about` from `text-sm` to `text-base` **passed**. It is now an absolut
 
 **What is masked, and why** (`volatileRegions()` in `e2e/visual.spec.ts`): relative
 timestamps from `formatTimeAgo`, the live contribution fill on `/support`, the hoopoe,
-which idles forever and has no rest state, and the notification bell's unread dot. The
-mascot keeps its own dedicated checks in `scripts/qa/hoopoe-idle-check.mjs`.
+which idles forever and has no rest state, the notification bell's unread dot, and the
+Collection's phone scrubber, which is a timer rather than a state and so may or may not be
+on screen at the instant of a shot. The mascot keeps its own dedicated checks in
+`scripts/qa/hoopoe-idle-check.mjs`; the scrubber has three in `e2e/collection-seek.spec.ts`.
 
-**Four routes photograph a live database, and are masked further** (`LIVE ROUTES` in the
-same file). Feed, directory, letters and catchups were red on every run from 2026-08-25
-because members were posting and signing up — eight failures a session, none caused by a
-commit, which is how a suite stops being read at all. They are not rebaselined against
-today's content, because that baseline is stale tomorrow. Instead:
+**Six routes photograph a live database, and are masked further** (`live:` in `ROUTES`,
+explained under `LIVE ROUTES` in the same file). Feed, directory, letters and catchups were
+red on every run from 2026-08-25 because members were posting and signing up — eight
+failures a session, none caused by a commit, which is how a suite stops being read at all.
+`/collection` joined them on 2026-08-29 and `/collection?scope=class` on 2026-09-02. They
+are not rebaselined against today's content, because that baseline is stale tomorrow.
+Instead:
 
-- **feed, letters, catchups** are shot at viewport height with the content under the page
-  header masked. One new post moves everything below it, so no per-element mask helps.
+- **feed, letters, catchups and both halves of the Collection** are shot at viewport height
+  with the content under the page header masked. One new post moves everything below it, so
+  no per-element mask helps.
   Still compared: the sidebar, the mobile header, the background, and the header band
   itself — serif title, Canopy pill, spacing — which is where a token change shows first.
   `spine()` additionally pins the content column's x and width as numbers.
@@ -51,10 +58,15 @@ today's content, because that baseline is stale tomorrow. Instead:
   filter pills, the Map/Batches toggle and the map's container box are still compared, full
   page. It is the most fragile layout in the app and worth the precision.
 
-`/collection` is deliberately not in that list: photos arrive rarely enough that its picture
-still means something, and it is the one that catches image-sizing regressions. **If full
-coverage of the four is ever wanted back, the answer is seeded content — a database the
-suite owns — not a bigger mask.**
+**What masking the Collection cost, because it is a real hole and not a footnote.** Until
+2026-08-29 `/collection` was the route that caught image-sizing regressions, and the class
+half's empty state — what every class sees on its first day — was the only place that state
+was photographed. The archive went from four photographs to twelve mid-session, then the
+owner's 1,719-photograph album landed in the class half, and both viewports went red on
+photographs with every pixel of chrome identical. That is the cry-wolf the masking exists to
+stop, so both halves are masked and both of those coverages are now uncovered rather than
+covered. **If full coverage of any of the six is ever wanted back, the answer is seeded
+content — a database the suite owns — not a bigger mask.**
 
 **Adding a route:** one line in `ROUTES`, with its reason. That is the whole procedure.
 
@@ -337,7 +349,7 @@ The flag is not optional: knip only looks for a config at the repo root, and thi
 moved out of the root on 2026-08-28 (see below).
 
 It answers one question — which files and exports nothing imports — and it was answering it
-uselessly. Almost nothing here is reachable from `src`: the unit gate discovers its 74 test
+uselessly. Almost nothing here is reachable from `src`: the unit gate discovers its test
 files by glob, the QA and dev scripts are run by hand or by `check.mjs`, Playwright loads
 `e2e/`, the Prisma CLI loads `prisma.config.ts`. knip counted every one of those as dead and
 reported **131 unused files**, 75 of them tests. A list that long is a list nobody reads,
