@@ -126,3 +126,51 @@ test("a hide keeps the author's own notifications, a delete keeps nobody's", () 
     "adminRemovePost clears the author's own notifications about their hidden post"
   );
 });
+
+/* ------------------------------------- M33: one bell row per person per tap */
+
+test("the feed's four notification writes go through the two helpers", () => {
+  /* M33's one-per-unread rule was written twice -- toggleLike and
+     toggleCommentLike, twelve near-identical lines each -- and kept in step by
+     a comment saying "same rule as toggleLike". jscpd never saw it: the
+     variable names and the message differ. The rule now lives once, in
+     post-notifications.ts.
+
+     What is pinned is WHICH rule each write gets, not just that a helper
+     exists. Converting a like to the plain helper would silently restore the
+     bell-flooding M33 closed, and nothing else in the suite would notice. */
+  const feed = decomment(read("src/app/(main)/feed/actions.ts"));
+
+  assert.ok(
+    !/prisma\.notification\.(create|findFirst)\s*\(/.test(feed),
+    "a notification is written inline in feed/actions.ts again, so the M33 rule has a second home"
+  );
+
+  const count = (re) => (feed.match(re) ?? []).length;
+  assert.equal(
+    count(/notifyMemberOnceUnread\(/g),
+    2,
+    "the two like paths (a post, a comment) no longer both carry the one-per-unread rule"
+  );
+  assert.equal(
+    count(/notifyMember\(/g),
+    2,
+    "the two comment paths (the post's author, the replied-to author) have changed in number"
+  );
+});
+
+test("M33's dedupe matches the whole unread row, not part of it", () => {
+  const helper = decomment(read("src/lib/post-notifications.ts"));
+  const from = helper.indexOf("export async function notifyMemberOnceUnread");
+  assert.ok(from > 0, "notifyMemberOnceUnread is gone");
+  const body = helper.slice(from, helper.indexOf("\n}", from));
+
+  /* `read: false` is the whole rule: without it a member who has already read
+     "X liked your post" would never be told about the next like, which is the
+     opposite failure to the one M33 closed. */
+  assert.match(body, /read: false/, "the dedupe no longer restricts itself to UNREAD rows");
+  /* And it must compare the row it is about to write, not a subset: matching
+     on userId and type alone would swallow a different person's like. */
+  assert.match(body, /where: \{ \.\.\.row, read: false \}/, "the dedupe matches on part of the row");
+  assert.match(body, /if \(alreadyTold\) return;/, "the dedupe no longer stops the second write");
+});

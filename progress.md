@@ -1,5 +1,23 @@
 # Progress Log
 
+## 2026-09-07 — the M33 bell rule lives once
+
+Refactor audit 2, feed-posts-04. Four notification writes sat inline in `feed/actions.ts`, and two
+of them — `toggleLike` and `toggleCommentLike` — carried the M33 one-per-unread rule in twelve
+near-identical lines each, kept in step by a comment saying "same rule as toggleLike". jscpd never
+flagged the pair: the variable names and the message differ, which is exactly the shape the
+fix-prompt calls a sameness maintained by hand.
+
+`notifyMember` and `notifyMemberOnceUnread` in `post-notifications.ts` are the two writes now, and
+the M33 paragraph is on the second of them. The `where` is a spread of the row about to be written,
+plus `read: false`, so the dedupe cannot drift from what it dedupes.
+
+**Verified against the real database, not just typechecked.** A throwaway probe called the helper
+against Jerry's own bell: one row after the first like, still one after the second, two after the
+first is marked read, and four after two plain writes — then deleted its own four rows. Four
+mutations of the new pin (a like downgraded to the plain helper, `read: false` dropped, the dedupe
+narrowed to userId+type, an inline create restored) each turn `npm run check` red.
+
 ## 2026-09-07 — one query for "does this member list this city"
 
 Refactor audit 2, feed-posts-08. `prisma.userPlace.findFirst` with a

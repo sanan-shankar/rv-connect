@@ -27,7 +27,11 @@ import { MAX_IMAGES } from "@/lib/upload-ownership-rule";
 import { escapeLike, insensitive } from "@/lib/db-text";
 import { isUniqueViolation } from "@/lib/prisma-errors";
 import { postNotificationLink, postNoun } from "@/lib/notification-links";
-import { clearPostNotifications } from "@/lib/post-notifications";
+import {
+  clearPostNotifications,
+  notifyMember,
+  notifyMemberOnceUnread,
+} from "@/lib/post-notifications";
 import { parseJsonArray, valleyDayKey, valleyDayStart, valleyMidnight } from "@/lib/utils";
 import type { Prisma } from "@/generated/prisma/client";
 import { DOUBLE_SUBMIT_MS, isPostTwin } from "@/lib/double-submit";
@@ -750,25 +754,15 @@ export async function toggleLike(postId: string) {
     });
 
     if (post && post.authorId !== session.user.id) {
-      /* One notification per person per post, not one per tap.
-       *
-       * Unliking and re-liking used to mint a fresh row every time, so anyone
-       * fidgeting with a heart could fill the author's bell with the same
-       * sentence (audit M33). An unread like notification for this post is
-       * already saying what a second one would say, so if one is sitting there
-       * unread, leave it. Once they have read it, a later like is news again.
-       */
-      const link = postNotificationLink({ id: postId, kind: post.kind });
-      const message = `${session.user.name} liked your ${postNoun(post.kind)}`;
-      const alreadyTold = await prisma.notification.findFirst({
-        where: { userId: post.authorId, type: "like", link, message, read: false },
-        select: { id: true },
+      // One notification per person per post, not one per tap (audit M33). The
+      // rule, and why, are on the helper -- toggleCommentLike below had its own
+      // copy of these twelve lines and a comment promising they matched.
+      await notifyMemberOnceUnread({
+        userId: post.authorId,
+        type: "like",
+        message: `${session.user.name} liked your ${postNoun(post.kind)}`,
+        link: postNotificationLink({ id: postId, kind: post.kind }),
       });
-      if (!alreadyTold) {
-        await prisma.notification.create({
-          data: { userId: post.authorId, type: "like", message, link },
-        });
-      }
     }
   }
 
@@ -924,13 +918,11 @@ export async function createComment(formData: FormData) {
   // half of a double submission: the notification already went out with the
   // first one, and the bell is exactly where a duplicate would be noticed.
   if (!twin && post && post.authorId !== session.user.id) {
-    await prisma.notification.create({
-      data: {
-        userId: post.authorId,
-        type: "comment",
-        message: `${session.user.name} commented on your ${postNoun(post.kind)}`,
-        link: postLink,
-      },
+    await notifyMember({
+      userId: post.authorId,
+      type: "comment",
+      message: `${session.user.name} commented on your ${postNoun(post.kind)}`,
+      link: postLink,
     });
   }
 
@@ -947,13 +939,11 @@ export async function createComment(formData: FormData) {
       parentComment.authorId !== session.user.id &&
       parentComment.authorId !== post?.authorId
     ) {
-      await prisma.notification.create({
-        data: {
-          userId: parentComment.authorId,
-          type: "reply",
-          message: `${session.user.name} replied to your comment`,
-          link: postLink,
-        },
+      await notifyMember({
+        userId: parentComment.authorId,
+        type: "reply",
+        message: `${session.user.name} replied to your comment`,
+        link: postLink,
       });
     }
   }
@@ -1374,18 +1364,14 @@ export async function toggleCommentLike(commentId: string) {
     });
 
     if (comment?.authorId && comment.authorId !== session.user.id) {
-      const link = postNotificationLink({ id: comment.postId, kind: comment.post?.kind });
-      const message = `${session.user.name} liked your comment`;
-      // Same one-per-unread rule as toggleLike (audit M33).
-      const alreadyTold = await prisma.notification.findFirst({
-        where: { userId: comment.authorId, type: "like", link, message, read: false },
-        select: { id: true },
+      // The same one-per-unread rule toggleLike uses (audit M33) -- the same
+      // call now, rather than the same twelve lines typed again.
+      await notifyMemberOnceUnread({
+        userId: comment.authorId,
+        type: "like",
+        message: `${session.user.name} liked your comment`,
+        link: postNotificationLink({ id: comment.postId, kind: comment.post?.kind }),
       });
-      if (!alreadyTold) {
-        await prisma.notification.create({
-          data: { userId: comment.authorId, type: "like", message, link },
-        });
-      }
     }
   }
 
