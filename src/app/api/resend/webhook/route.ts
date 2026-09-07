@@ -106,13 +106,6 @@ export async function POST(request: Request) {
       : event.type === "email.bounced"
         ? {
             bouncedAt: now,
-            /* Hard vs soft, kept raw as Resend reports it. A hard bounce means
-             * the address is dead and retrying is pointless; a soft bounce is a
-             * full mailbox. The two deserve different handling, and collapsing
-             * them to a boolean here would throw that away before anyone had
-             * decided what to do about it. */
-            bounceKind:
-              event.data?.bounce?.subType ?? event.data?.bounce?.type ?? "unknown",
             /* "failed" is deliberate rather than a new status value: the admin
              * worklist already queries OutboundEmail where status = "failed"
              * (admin-worklist-query.ts), so a bounce walks straight onto the
@@ -121,7 +114,18 @@ export async function POST(request: Request) {
              * is how a column ends up holding data nobody ever looks at. */
             status: "failed",
             /* That same row renders lastError as its explanation. Without this
-             * a bounce would appear as a failure with no reason given. */
+             * a bounce would appear as a failure with no reason given -- and it
+             * is now the ONLY place the hard/soft distinction is kept.
+             *
+             * A `bounceKind` column held Resend's raw subtype beside this from
+             * 2026-08-19, so that "the two deserve different handling" could be
+             * decided later. It never was, in a year of them, and nothing ever
+             * read the column: 0 of 55 rows carried a value (refactor audit 2 /
+             * D7). The subtype is in this sentence, on the row the admin
+             * worklist already draws, which is where it was always being read
+             * from. If the distinction is ever acted on rather than merely
+             * displayed, it wants a column again -- and a reader written in the
+             * same commit. */
             lastError: `Bounced (${
               event.data?.bounce?.subType ?? event.data?.bounce?.type ?? "unknown"
             }) -- the address did not accept it`,
