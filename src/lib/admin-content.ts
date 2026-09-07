@@ -14,7 +14,7 @@ import type { FacetOption } from "@/components/common/filters/types";
  *  actions that already existed.
  * ------------------------------------------------------------------ */
 
-type ContentType = "all" | "post" | "letter" | "comment" | "photo" | "pending";
+type ContentType = "all" | "post" | "letter" | "comment" | "photo";
 
 export const TYPE_OPTIONS: FacetOption[] = [
   { value: "post", label: "Posts" },
@@ -30,9 +30,8 @@ export const TYPE_OPTIONS: FacetOption[] = [
      chips that said the same thing on every row (owner: "i can barely see
      what i'm reviewing").
 
-     `pending` is still UNDERSTOOD by readContentFilters below, and the page
-     redirects it -- see the note there. An option nobody can pick, that an old
-     link still resolves. */
+     An old `?type=pending` link is redirected to the room by the page, before
+     the filters below are ever read. */
 ];
 
 export function typeLabel(v: string): string {
@@ -51,7 +50,7 @@ export function readContentFilters(
   sp: Record<string, string | string[] | undefined>
 ): ContentFilters {
   const one = (k: string) => (Array.isArray(sp[k]) ? sp[k][0] : sp[k]) ?? "";
-  const TYPES: readonly string[] = ["post", "letter", "comment", "photo", "pending"];
+  const TYPES: readonly string[] = ["post", "letter", "comment", "photo"];
   const type = one("type");
   return {
     q: one("q").trim(),

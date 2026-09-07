@@ -15,8 +15,8 @@ export const metadata: Metadata = {
 /**
  * Find something a member made, and take it down if it needs taking down.
  *
- * The photo review queue lives here as a filter rather than as its own
- * section, which is what it always was.
+ * Reviewing photographs is NOT here: it moved to /admin/review on 2026-08-30,
+ * and an old `?type=pending` link is redirected there below.
  */
 export default async function AdminContentPage({
   searchParams,
