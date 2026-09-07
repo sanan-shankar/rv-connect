@@ -2038,52 +2038,62 @@ app's own `PhotoRows` rule instead of the one this room invented.
 
 ## What to paste next
 
-**Superseded twice.** The version below is from the close of S4c, 2026-09-07 night. If you are
-reading this after a later session, check the session log first.
+**Superseded twice.** This version is from the close of S4c, 2026-09-07 night, rewritten the same
+night after the owner said what the next session is actually for: *"the purpose of this session was
+to iron out bugs of the previous guy and fine tune the layout ... i wanted a fresh session to fine
+tune."*
+
+**So the next session is a FINE-TUNING session, and that is a real instruction, not a mood.** It
+reads everything, opens the room, and then waits for him. It does not pick up a new surface, does
+not redraw anything, and does not go and do a big piece of work because it found one worth doing.
+Anything it thinks is worth doing goes to him as a sentence, and he decides.
 
 ### First, and it is not a paste: look at it
 
-`/lab/catchups/sketches`, on the phone and on the laptop. The **Phone** and **Laptop** views are the
-same design at two widths; **Screens** holds the reader's stills. The grey pills above the drawing
-are the room's, not the design's: they jump to the list, to a home in each state, and to the reader.
-The cinnamon **Pressure** pill swaps the real Round for the invented corpus -- forty answers under
-one question, a twenty-four photograph wall, a hundred people in the rail -- so nothing in it is a
+`/lab/catchups/sketches`, on the phone and on the laptop. **Phone** and **Laptop** are the same
+design at two widths; **Screens** holds the reader's stills. The grey pills above the drawing are
+the room's, not the design's: they jump to the list, to a home in each state, and to the reader. The
+cinnamon **Pressure** pill swaps the real Round for the invented corpus, so nothing in it is a
 member's words.
-
-**Three questions are waiting for you**, 19 to 21 under "Owner questions", each with a default and
-one reply covering all three. And the twenty photographs are still owed.
 
 ### Then paste this into a fresh Opus max session
 
 ```
 @docs/planning/catchups-rework/handover.md
 
-You are S5a, continuing the Catch-ups rework. Read, in full and in this order, before you
-change anything: brief.md, review-2026-09-06.md, review-2026-09-07.md (all five parts),
-then architecture.md, then front-runner.md. Then open the drawing itself:
-src/app/lab/catchups/sketches/, whose docblocks carry his sentence beside each decision.
+You are S4d. Your job is to FINE-TUNE, with me in the loop, one note at a time. Not to
+build a new surface, not to redraw anything, and not to go off and do a big piece of work
+because you found one worth doing. If you think something needs doing, tell me in a
+sentence and let me decide. The last session did the opposite and burned its context.
 
-The list, a Catch-up's home in every state, and the reader are live and navigable at
-/lab/catchups/sketches, and the cinnamon Pressure pill draws all three against the
-invented corpus instead of the real Round. Everything S4 and S4c owed is answered; the
-board's next row is his.
+Before you answer me at all, read these in full and in this order:
+  brief.md, review-2026-09-06.md, review-2026-09-07.md (all five parts),
+  architecture.md, front-runner.md.
+Then read the drawing itself, src/app/lab/catchups/sketches/ — every file. The docblocks
+carry my sentence beside each decision, so read them rather than skimming the JSX.
 
-If he has given notes, they are the work: take them, draw them, and keep architecture.md
-and the handover true as you go. If he has not, the next surface is THE COMPOSER, which
-is the page a member spends longest on and the one no design has ever drawn (F25). He has
-already said what is good about the shipped one and named two changes to it (N36), and
-`architecture.md` section 10 says what it does not decide.
+Then open /lab/catchups/sketches yourself at 390 and at 1512, walk the whole spine (a
+list card, a cover, the name at the top to come back), and tell me in a few lines what
+you see. Then stop and wait for my notes.
 
-Read N45 before you start, because it is the standard a pass failed once:
-"The level of critical thinking and brainstorming and planning and rigor has significantly
-dropped. Please put a lot more deep thought and effort into this."
+How to work each note I give you: change the one thing, screenshot it at 390 and 1512,
+read the PNG yourself, and show me. Small commits as they land. Keep architecture.md and
+this handover true as you go. Nothing in that room is ever scaled.
+
+Three questions of yours are open in "Owner questions", 19 to 21, and I have not answered
+them. Do not act on them; remind me if I forget.
 ```
 
 ### What that session must know, and would otherwise learn the hard way
 
-- **`npm run visual` is 25/25 green as of 2026-09-07 night**, `/catchups` included. The last
-  handover said that route was red; it is not any more. `e2e/visual.spec.ts` carries uncommitted
-  changes from a peer session, which is someone's work in progress: leave it alone.
+- **What changed on 2026-09-07 night, after I had last seen the room** (session log, S4c). The
+  reader's title is a masthead now and the Round NUMBER is gone from the reader — so the phone strip
+  at rest reads "15 August 2026" and nothing else. The room has a second data source behind the
+  Pressure pill. Seven defects came out of that, F36 to F42, and one of them changes behaviour he
+  might notice: **a question nobody answered is no longer drawn in a published Round** (D53, owner
+  question 20).
+- **`npm run visual` is 25/25 green**, `/catchups` included. An older note in this file said that
+  route was red; it is not any more.
 - **`sidebar.tsx:132` fails the shape+colour protocol.** Another session's commit (`bed93ca`),
   predates this work, not ours to fix silently.
 - **He owes about twenty photographs** ("I'll give the pictures when I get time"), Notion-header
@@ -2092,16 +2102,14 @@ dropped. Please put a lot more deep thought and effort into this."
 - **Nothing in that room is ever scaled.** A sticky element inside `transform: scale(s)` drifts at
   (1 - s) of the scroll; the scaling frame is deleted and must stay deleted (F34).
 - **The MCP browser can be signed in**: `node --env-file=.env -e` to read `ADMIN_EMAIL` and
-  `DEV_LOGIN_SECRET`, then POST them to `/api/dev-login` from `evaluate_script`. But **do not
-  trust `take_screenshot` after a programmatic scroll on a tall page** -- it returns the top of the
-  document while `evaluate_script` correctly reports `scrollY`. Measure with the MCP; capture with a
-  throwaway puppeteer probe beside `scripts/qa/_dev-login.mjs`, deleted in the same command.
-- **Draw against the pressure corpus before saying a surface is done.** `?data=pressure`. It found
-  seven defects in one afternoon on three surfaces that four sessions had already looked at
-  (F36 to F42), and five of them were invisible in the code.
-- **The shipped app already has `src/components/catchups/round/photo-wall.tsx`**, which nobody in
-  this campaign has read; ¶49's "there is no photo wall kind of thing" may be about the composer
-  rather than the reader. Check before designing one.
+  `DEV_LOGIN_SECRET`, then POST them to `/api/dev-login` from `evaluate_script`. But **do not trust
+  `take_screenshot` after a programmatic scroll on a tall page** — it returns the top of the document
+  while `evaluate_script` correctly reports `scrollY`. Measure with the MCP; capture with a throwaway
+  puppeteer probe beside `scripts/qa/_dev-login.mjs`, deleted in the same command.
+- **`?data=pressure` before saying any surface is done.** It found seven defects in one afternoon on
+  three surfaces four sessions had already looked at, and five were invisible in the code.
+- **The composer is the next SURFACE, whenever he asks for it** — the page a member spends longest on
+  and the one no design has ever drawn (F25). It is not this session's job.
 
 ### Still his, whenever he wants to answer
 
