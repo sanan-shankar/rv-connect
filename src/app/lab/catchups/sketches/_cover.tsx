@@ -154,24 +154,100 @@ export function RoundLine({
   );
 }
 
-/* ── The cover, as a door ──────────────────────────────────────────── *
- *  Used on a Catch-up's home: in Now when the newest Round is out, and
- *  once under Earlier Rounds for each older one. Nowhere else -- a Round
- *  appears once per screen, which is the whole of para 15 and para 35. */
+/* ── The cover of a published Round ───────────────────────────────── *
+ *  ITS PHOTOGRAPHS, not its questions. His, 2026-09-07, on the version
+ *  that printed the questions here: "the round is just this total
+ *  enjoyable experience reading everyone's answers. This is fun, that is
+ *  fun, all of that. But the way that it's shown over here, it just looks
+ *  like a bunch of questions and totally -- it looks like work, honestly.
+ *  It's not like an appetizing, beautiful thing you want to click and find
+ *  out. Oh wow, what is this? It just seems very drab and unappealing."
+ *
+ *  He is right, and the questions were never the appetising part. What is
+ *  inside a Round that anybody would want is the photographs: on the real
+ *  Round, 32 of 141 answers carry one. So a cover is up to four of them,
+ *  tiled, with the date. A Round with no photographs falls back to the
+ *  Catch-up's own picture, dimmed, so the shape never changes and there is
+ *  never an empty cover.
+ *
+ *  No questions, no counts, no quoted answer, no Round number: "Why do we
+ *  need to have the round 4? It doesn't matter what round, it's going to
+ *  be round 15." */
+
+/** Three photographs at most, and the tiling is explicit for each count.
+ *  Four was drawn first and is wrong: with the lead photograph spanning
+ *  two columns and two rows, the fourth has nowhere to go but a third row
+ *  of its own, beside an empty grey cell. Three is the number that tiles
+ *  without a hole, and it is enough to say what a Round was like. */
+const COVER_SHOTS = 3;
+
+function tiles(n: number): string {
+  if (n <= 1) return "grid-cols-1";
+  if (n === 2) return "grid-cols-2";
+  return "grid-cols-3 grid-rows-2";
+}
+
 export function Cover({
   round,
+  fallback,
   onOpen,
   className,
+  compact = false,
 }: {
   round: ShelfRound;
+  /** The Catch-up's picture, for a Round nobody photographed. */
+  fallback: string;
   onOpen?: () => void;
   className?: string;
+  /** Under Earlier Rounds, where a cover is a row rather than the page's
+   *  one object. */
+  compact?: boolean;
 }) {
+  const shots = round.photos.slice(0, COVER_SHOTS);
+  const has = shots.length > 0;
   return (
-    <Door label={`Read Round ${round.number}`} onOpen={onOpen} className={className}>
-      <div className="p-5">
-        <RoundLine number={round.number} at={round.publishedAt ?? ""} />
-        <Contents round={round} className="mt-3" />
+    <Door
+      label={`Read the Round from ${shortDate(round.publishedAt ?? "")}`}
+      onOpen={onOpen}
+      className={cn("group", className)}
+    >
+      <div
+        className={cn("relative grid gap-[3px] bg-border", has ? tiles(shots.length) : "grid-cols-1")}
+        style={{ aspectRatio: compact ? "3 / 1" : "16 / 9" }}
+      >
+        {has ? (
+          shots.map((src, i) => (
+            <span
+              key={src}
+              className={cn(
+                "relative block overflow-hidden bg-muted",
+                /* The first photograph is the big one, so a Round reads as
+                   having a lead picture rather than as a contact sheet. */
+                shots.length > 2 && i === 0 && "col-span-2 row-span-2",
+              )}
+            >
+              <Image
+                src={src}
+                alt=""
+                fill
+                sizes="540px"
+                className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+              />
+            </span>
+          ))
+        ) : (
+          <span className="relative block overflow-hidden bg-muted">
+            <Image src={fallback} alt="" fill sizes="540px" className="object-cover opacity-70" />
+          </span>
+        )}
+      </div>
+      <div className={compact ? "px-4 py-3" : "px-5 py-4"}>
+        <p
+          className="font-heading text-foreground"
+          style={{ fontSize: compact ? 16 : 18, letterSpacing: "-0.01em" }}
+        >
+          {shortDate(round.publishedAt ?? "")}
+        </p>
       </div>
     </Door>
   );

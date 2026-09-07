@@ -19,39 +19,21 @@ in every state. The composer, the people sheet and the verbs' dialogs are the se
 
 ## 1. The one idea
 
-**A Round's contents is one object, drawn at two depths.**
+**One representation of a published Round, and it is its photographs.**
 
-The questions of a Round, hung off a vertical measure, is a single component. It appears:
+A published Round appears as **the cover**: up to three photographs from inside it, tiled with a
+lead picture, and the date. One component (`_cover.tsx`), used in Now when the newest Round is out
+and once per Round under Earlier Rounds, and nowhere else. That retires the campaign's oldest
+complaint — one Round drawn ten ways on four surfaces with two teaser lengths, two typefaces and two
+hovers (recon §5) — by making it one file.
 
-| Depth | Where | What the measure does |
-|---|---|---|
-| the home | as the **cover**: in Now when the newest Round is out, and once per Round under Earlier Rounds | a hairline, and cinnamon on a Round you have read |
-| the reader | as the **navigator**, unfolded from the strip or open in the rail | fills as you read, and stops at the question you are in |
+It carries no quoted answer (¶9), no count, no Round number, and **no list of its questions**. The
+questions version was drawn first and he rejected it, N31: the questions are not the appetising part
+of a Round, the photographs are.
 
-It is the same questions, in the same face, at the same measure, in both places. Nothing is
-truncated to twenty characters, nothing is counted, nothing is numbered. Going deeper does not
-change the object; it gives the measure a job.
-
-Warm means READ, and it has to, because a full measure is what the reader leaves behind when you
-reach the end of a Round. Marking the *unread* one warm would read better on a shelf and would make
-the same colour mean opposite things two taps apart.
-
-It was on the list too, as a third depth, until he saw it there (§4, N25). The list is navigation
-and carries the Catch-up's picture instead.
-
-That is what ¶42 asks for and what the fifteen rejected sketches did not have:
-
-> "There can be a higher level of abstraction where it's still unique, it's still different, but you
-> can tell that it belongs to this app."
-
-It is also the answer to the campaign's oldest complaint. A published Round is drawn ten ways on
-four surfaces today (`recon.md` §5), with two different teaser lengths, two typefaces and two hover
-treatments for the same object. After this it is drawn **once**, and the reader's navigator is not a
-cousin of the list's cover — it is the same file.
-
-And it retires the teaser sentence he objected to (¶9) without leaving a hole. What a cover carries
-is the questions, which change every Round and are the actual reason to open it. What it never
-carries is a quoted answer: *"I'm just not gonna see this sentence again and again and again."*
+The Round's *questions*, hung off a measure, survive in exactly one place: **the reader's
+navigator**, where they are how you move. They are also printed once on the home while a Round is
+collecting, because there they are the thing being made rather than a preview of it.
 
 ## 1b. The Catch-up's picture
 
@@ -68,27 +50,31 @@ N19 to N25). His diagnosis first, because it is better than any fix that was on 
 Catch-up without one, which is the reason he gave for not making it an upload-only feature (N23:
 *"then we'd have to have 2 different architectures"*). One of about twenty photographs of the school
 is picked for it; whoever may run the Catch-up may replace it with their own, positioned at the
-time (N22, N23). On a batch Catch-up, "whoever may run it" is anyone in the batch, the same rule
-that governs starting a Round.
+time (N22, N23). On a batch Catch-up, **anyone in the batch** may replace it — his answer,
+2026-09-07 — which is safe because it is reversible, unlike the Round's transitions (§6).
 
-**One shape everywhere: 3:2, one corner radius.** A circle was drawn and is wrong here — a circle
-means a *person* in this app (`BirdAvatar`), and a Catch-up is not a person. A rounded rectangle is
-the distinction iOS draws between an app and a contact.
+**Wide, and that is his** (N29): *"I wanted almost like, you know, a Notion for a page, like header
+photo. It's just a super wide photo, right? Maybe some aspect ratio like that."* Never a circle — a
+circle means a *person* in this app (`BirdAvatar`), and a Catch-up is not a person.
 
 **Where it goes, and where it does not.**
 
 | | |
 |---|---|
-| the list | the card's full width, 3:2, edge to edge. The picture **is** the card |
-| the home | an identity mark: 160 wide above the title on a phone, 156 beside it on a laptop |
-| the reader | **nowhere.** The reader is the Round, not the Catch-up, and the green bar already carries the name. A picture there would be the same thing said twice (R13) |
+| the list | **the card IS the picture**, 5:2 on a laptop and 16:9 on a phone, with the name and the stage written on it over a fade. His: *"having the entire thing as an image and then fading to black, kind of like a Spotify thing"* |
+| the home | a banner across the head, 4:1 on a laptop and 3:1 on a phone |
+| the reader | **nowhere.** The reader is the Round, not the Catch-up, and the green bar already carries the name |
 
-**What the twenty want to be, and it matters.** Details, not vistas: a wall, a bit of the banyan, a
-shadow on a step, a doorway, a bench. The landing page and half the Collection already are wide
-valley views, so twenty more would read as the same photograph again — which is visible in the room
-right now, where three stand-ins from the demo Collection are three green trees. A detail also
-survives being cropped small, has no face in it, and does not put its subject dead centre where a
-re-crop will cut it.
+The 3:2 mark beside the name that this section first described is gone. He looked at it and said:
+*"it's just this tiny hanging thing, not at all tied into the identity, it just exists."*
+
+**What the twenty want to be.** He is supplying them ("I'll give the pictures when I get time") and
+has said what shape: super-wide, Notion-header proportions. Two things they still need to survive:
+being cropped from 5:2 on the list to 4:1 on the home, so nothing important sits at the very edge or
+dead centre; and being read over, since the list writes the Catch-up's name across the bottom of
+them. The room's three stand-ins are all green trees, which is the one trap worth naming — twenty
+wide valley views would read as the same photograph twenty times, and the landing page and half the
+Collection are already wide valley views.
 
 ## 2. The nouns, and the one home each
 
@@ -140,178 +126,210 @@ The **answer tile** in the reader is a card and is not a door, and that is fine:
 down, the content itself, and there is nothing under it to open. The rule governs the two surfaces
 where you are choosing where to go.
 
+**And a card on the list always opens the home.** It used to open the reader for a published Round
+and the home for everything else. The thing he says he hates most about what ships is exactly that
+unpredictability (N42): *"I still can't predict where it's gonna open when I click it. It just does
+whatever it wants and I don't have a sense of it in my head."* One rule costs a tap on the way to a
+Round and buys knowing where you will land.
+
 ## 4. The list, `/catchups`
 
-**No right rail. No "Fresh off the press". No calls to action in the header.**
+**No right rail. No "Fresh off the press". One call to action.**
 
-The rail is deleted rather than redesigned, and that answers I1 ("sort out what belongs in the left
-column and what on the right") by removing the question. It also removes, at a stroke: the curved
-divider (recon I9), the padding-less hover (I9), the double truncation (recon §12.10), the empty
-Round promoted above a Round with 133 answers (recon §12.7), and the fact that on a phone the whole
-rail is `display: none` and always was (recon §12.2). The surface he said had *"the most bugs"* and
-*"severe problems"* (¶9) has no successor, because its job was to tell you what was new to read, and
-a Catch-up showing its own newest Round tells you that better.
+The rail is deleted rather than redesigned, which answers I1 by removing the question, and takes
+with it the curved divider, the padding-less hover, the double truncation, the empty Round promoted
+above a Round with 133 answers, and the fact that on a phone the whole rail was `display: none` and
+always had been (recon I9, §12). Its job was to say what is new to read; a Catch-up showing its own
+state says that better, where you were already looking.
 
-The page is the app's `PageHeader` — "Catch-ups", 30px, the bell, and one action, "Start a Catch-up"
-— and then a **shelf of cards**, one per Catch-up. There were three calls to action on opening and
-now there is one (I4).
-
-**One card is three things: the picture, the name, one line.**
+**A card is the picture, and the words are written on it.**
 
 ```
 ┌────────────────────────────────┐
 │                                │
-│         the picture            │   3:2, edge to edge, the card's own width
+│      the picture, 5:2          │
 │                                │
-├────────────────────────────────┤
-│ Batch of 2005                  │   the name, in the heading face
-│ Round 4 · answers close on     │   one line: cinnamon Round, the app's dot, the fact
-│ Thursday 20 August             │
+│  Batch of 2005                 │   the name, in the heading face, on the picture
+│  Answers close Thursday        │   one line: the stage, in words
 └────────────────────────────────┘
 ```
 
-**The Round's questions used to be on this card, and he took them off** (N25):
+His, N26: *"having the entire thing as an image and then fading to black, kind of like a Spotify
+thing, might be nicer than this."* And N27: *"on a laptop it is kind of vertically long. I think it
+might be better to make it more landscape ... I can't even see 4 catch-ups."* So 5:2 on a laptop
+and 16:9 on a phone, two up at a laptop's width, four on his screen.
 
-> "I'm not too happy with having questions. I just feel like it's overcrowding. There's just too
-> much text going on for something that should just be a navigation for all your catch-ups ... it
-> just seems a bit overwhelming."
+**No Round number**, N26: *"I don't think we need to say the round over there ... It can just be
+whatever stage it's going through."* The line reads "Open for questions", "Answers close Thursday 20
+August", "Out 15 August", "Ended 17 April", or "Paused".
 
-He is right and they lose nothing by going: the questions are still on the Catch-up's home, on Now
-and on every cover under Earlier Rounds, which is where you are when you are choosing what to
-*read* rather than which Catch-up to *open*. So the contents object of §1 lives at two depths
-rather than three, and the list is navigation.
+**No buttons.** Every card is the same two things at the same height, so the page is a shelf rather
+than a form and a grid of them has no holes. Answering is one tap further in, beside the Round it
+belongs to. That settles I5 and I11 outright: no View, nothing to right-align, and the hover is the
+whole rectangle because the card is one rectangle.
 
-**And there are no buttons on it.** Every card is the same three things at the same height, so the
-page is a shelf rather than a form, and a grid of them has no holes. Answering is one tap further
-in, on the home, beside the Round it belongs to — which is the only place it has ever belonged.
-That also settles I5 and I11 outright: there is no View, nothing to right-align, and the hover is
-the whole rectangle because the card is one rectangle.
+**The Round's questions used to be printed on these cards** and he took them off, N25:
+*"overcrowding ... too much text going on for something that should just be a navigation for all
+your catch-ups."*
 
-Two panels sit side by side at a laptop's width and one on a phone. A member has two or three
-Catch-ups (I12), so two up is a screen.
+**Three shapes drawn and thrown away before this one**, so nobody re-treads them: a two-column grid
+of unequal text panels (locks into rows, 165px hole mid-page); CSS columns of the same (the balancer
+strands the tall one, 470px void); and a wide row with the identity in a 240px margin (no holes, and
+a page of text). Equal picture cards make all three problems disappear.
 
-**The three shapes drawn before this one**, so nobody re-treads them:
+**The verbs are not on this page.** No dots, no menu at rest. On a phone a card swipes left to
+archive, the WhatsApp gesture he named (¶5), undoable from a toast. Archived Catch-ups are one quiet
+row at the foot, present only when one exists, revealed the way the sidebar's own profile menu
+reveals (N26), never a block of tiles with **Put back** in your face.
 
-- *A wide row with the name in a margin and the Round's contents in the body.* No holes at either
-  width, and it was what the questions needed — but it is a page of text, which is the thing he
-  objected to.
-- *A two-column grid of those rows.* Unequal heights lock into rows: a five-question Round beside an
-  eleven-question one leaves 165px of hole under it, mid-page.
-- *CSS columns of those rows.* Flowing instead of locking, and with three items the balancer puts
-  the tall one alone in the left column: a 470px void with the page ending in the middle of it.
+**On a television** the shelf stops at 1096px, flush in the page's own gutter.
 
-Equal cards make all three problems disappear, and the picture is what made equal cards possible.
+## 5. The home, `/catchups/[id]` — a place, not a page that transforms
 
-**Long rectangles on a television** (I2, I13). The shelf stops at 1096px, flush in the page's own
-gutter. At 2560 a television gets air on the right rather than a 2,000-pixel line.
+**Rewritten 2026-09-07 after he read the first version and found it worse than what ships.** His
+words are `review-2026-09-07.md` N26 to N45. The failure was not styling: the first version designed
+the *shape* of the home and then filled it by putting controls in a row of equal pills under the
+content, so they had nothing to belong to — *"nudge everyone, close now, just hanging in the middle
+of nowhere ... just arbitrarily there. There's no sense."*
 
-**The verbs are not on this page.** No dots, no menu, no swipe hint drawn at rest. On a phone a
-card swipes left to archive, which is the WhatsApp gesture he named (¶5) and is undoable from a
-toast. Everywhere else you archive from the Catch-up's own door (§6): the shortcut belongs where the
-gesture is, and the honest control belongs where the thing is. Archived Catch-ups are one quiet row
-at the very bottom, present only when at least one exists, opening in place, and never a block of
-tiles with **Put back** in your face (¶5, L2, L5).
+The root cause is one deletion. **The shipped home has a right rail, and I removed it** and put the
+people there instead, so every control lost its address. Everything below follows from putting it
+back.
 
-## 5. The home, `/catchups/[id]`
+### The question he asked, and the answer
 
-**Paper, not a grid of cards.** Three parts, in this order, in every state. Only the middle one
-branches, and it branches on the **Round's** state, never on the Catch-up's.
+> N40: "is there a home page that you then keep navigating from to do things like answer or
+> whatever, or does the home page transform into something each time. I think the answer being its
+> own page is good."
 
-### The head
+**A place.** Four regions, always in the same spot, at every state and for every member. Only what
+is inside the second one changes.
 
-The Catch-up's **picture** (§1b), then its name at the app's page-title size, printed plain — "in
-the loop", not "in the loop catch-up" (¶25, H4). Under the name, one line: the rhythm in words, and
-for a batch Catch-up, whose it is ("Everyone from 2005"). At the right, one control, the door (§6).
+| Region | What is in it |
+|---|---|
+| **The head** | the picture as a wide banner, and the name. Nothing else |
+| **The Round** | what this cycle is right now, and exactly ONE thing to do about it |
+| **The rail** | Reminders · This Round · This Catch-up · People — in that order, always |
+| **Earlier Rounds** | the ones that have already come out, as covers |
 
-The picture is above the name on a phone and beside it on a laptop. Beside it at 390 the title has
-162px to live in, and "Batch of 2005" broke over two lines with its rhythm wrapping under it.
+Answering, the reader and the long dialogs are their own pages you go to and come back from.
 
-That is the whole head. No birds, no "+18", no count of people that is also a button.
+### The rule that stops the controls floating again
 
-### Now
+**A control is either the page's one primary action, in the content, attached to the thing it acts
+on — or it is in the rail. There is no third place, and there is never a row of equal-weight pills
+in the content.**
 
-The current Round, as the thing it currently is. Seven states, and the copy is fixed here so that
-nobody writes an eighth:
+The rail's order is Reminders, then the controls, then People, and People is last because it is the
+only block whose length is unbounded: with twenty-four names above it, Reminders landed 1,500px down
+the page.
 
-| State | Now says | Now offers | Keeper also |
-|---|---|---|---|
-| no Round yet | "A Round is a few questions, answered by everyone, and read together." | **Start the first Round** | — |
-| collecting | "Questions for Round 2" and the questions so far, on the measure | **Ask something** | Open answering |
-| answering | "Answers are open until Friday 12 September" and the questions | **Answer**, then the names of everyone who has written in, under it | Nudge, Close now |
-| preparing | "Round 2 comes out on Friday" | — | Publish now |
-| published | **the cover** of that Round, and one quiet line: "Round 3 opens on 1 October" | reading it | — |
-| paused | exactly the row above it, with "Paused" on its state line | what that row offers, frozen | Resume |
-| ended | "Ended on 3 July 2026" | — | — |
+### The Round region, per state
 
-**Paused is never a banner.** Today it replaces the whole left column, and the live consequence is
-that "in the loop" is paused with a Round 2 sitting in `collecting` that no member can see or add to
-(recon §11, F21). A pause is a mark on a state, not a state of its own.
+| State | The one primary action | What else is in the region |
+|---|---|---|
+| no Round yet | **Start the first Round** (people Catch-ups only) | on a batch, one line saying when it opens |
+| collecting | **the ask box** | the questions asked so far, under it |
+| answering | **Answer** | who has written in, by name, after it |
+| published | **the cover** | nothing |
+| ended | — | nothing |
 
-**Now shows a published Round as its cover, and the Round is not also printed underneath it.** That
-is the single change that ends ¶15 and ¶35. Today the home carries the dead tile, the entire Round
-inline, and a Published-issues row, all three at once. After this the newest Round appears once, as
-a cover, and the cover is a door to the reader.
+**The ask box is the shipped one**, and it is here because he named it as better than what I drew:
+*"the asking thing now has a box. And it says, be the first to ask. And then under that, it would
+show everything ... the asking is probably even better now on the shipped version than what you've
+created. This asking thing shows the questions. It doesn't invite you to ask."* Mine had the list
+first and a button under it. Inverted.
 
-### Before
+**No list of questions anywhere else.** He said it three times in one sitting about three different
+screens: *"Why do we just have this list of questions? I just don't get it. It's so annoying."*
+Collecting is the one place they earn their space, because there they are the thing being made.
 
-The published Rounds that are **not** the one in Now, newest first, each as its cover. On a Catch-up
-with one published Round, Before does not render at all — which is most Catch-ups today, and is why
-the home stops being a page of repetitions.
+**No Round numbers, anywhere.** *"Why do we need to have the round 4? It doesn't matter what round,
+it's going to be round 15."* A Round is identified by its date.
 
-On screen it is headed **"Earlier Rounds"**; "Before" is what this document calls the slot.
+**Nothing that teaches.** The rhythm line under the name and the sentence explaining what a Round is
+are both gone: *"everyone from 1978, every 3 months, that doesn't need to be said"*, and *"we don't
+need to teach them how to use it."*
 
-Where "Fresh off the press" and "Published issues" both used to live, there is now one heading and
-one component. And the codebase's collision — `ArchiveShelf` meaning past Rounds while `FiledAway`
-means binned Catch-ups (recon §4) — is settled by vocabulary: **Rounds are Earlier Rounds;
-Catch-ups are Archived.** The word "archive" only ever means a Catch-up you have put away.
+### A published Round's cover is its photographs
+
+Not its questions. His verdict on the questions version, N31:
+
+> "the round is just this total enjoyable experience reading everyone's answers. This is fun, that
+> is fun, all of that. But the way that it's shown over here, it just looks like a bunch of
+> questions and totally, it looks like work, honestly. It's not like an appetizing, beautiful thing
+> you want to click and find out. Oh wow, what is this? It just seems very drab and unappealing."
+
+So a cover is up to **three** photographs from inside the Round, tiled with a lead picture, and the
+date. Three rather than four: with the lead spanning two columns and two rows, a fourth has nowhere
+to go but a third row beside an empty cell. A Round nobody photographed falls back to the Catch-up's
+own picture, so the shape never changes and a cover is never empty.
+
+On the real Round, 32 of 141 answers carry a photograph, so this is drawing on what Catch-ups
+actually contains.
 
 ### The people
 
-On a laptop, a column at the right of the home: every member, a bird and a name, the Keeper's leaf
-inline on their row (¶37, E2, which is the one part of today's panel he liked). Ordered by this
-Round's writers, then your own batch, then the rest. No preview, no fold, no dialog.
+On a laptop, the rail's last block: everyone, by name, the Keeper's sprout inline. On a phone, one
+control on the head's own line — beside the name, not on a row of its own — opening a **full sheet
+over the window**, dismissed by the scrim, by Escape or by swiping it down. N41: *"on phone the
+people can just open into an overlay instead of cluttering that content. And maybe move it
+somewhere else, maybe above, instead of having it on its own line?!?!"*
 
-On a phone there is no column, so one control under the head opens the same list **in place**.
-There is no sheet and no dialog anywhere in this, which removes a surface the next session was
-otherwise going to have to draw.
+## 6. Every control, who holds it, and where it lives
 
-On a **batch** Catch-up the list is read-only: no add, no remove, no invite, because the members are
-the batch (¶4, ¶51: *"can't edit people in and out"*).
+Twenty-three controls exist in the shipped app and **three do not exist at all**. Read out of
+`actions.ts` and its guards, not from memory.
 
-## 6. The verbs: one door, and where each lives
+### What belongs to what
 
-Sixteen verbs live on five surfaces today, two of them twice, and archive and delete cannot be
-reached from inside the Catch-up they act on (recon §4). His complaint (¶40) is that *"everything's
-just different in every different situation. There's no consistency."*
+| Belongs to | Controls | One-way? |
+|---|---|---|
+| **The Round** | ask a question · from the library · ask anonymously · reorder or remove a question · **answer** · heart | all reversible |
+| **The Round, one-way** | open answering · nudge · close early · **start the next Round now** | none reversible |
+| **The Catch-up** | rename · change the picture · rhythm · hold the next Round · resume · add people · remove a member · make a Keeper · invite by link · end | end and remove are one-way |
+| **You** | reminders · archive · leave | leave is one-way |
 
-**Round verbs** — ask, open answering, nudge, close, extend, publish now — live on **Now**, beside
-the Round they act on. They are never in a menu, because they are not about the Catch-up.
+### The three that do not exist
 
-**Everything else is one door**, at the right of the home's head, and it is the only menu in
-Catch-ups:
+- **Start the next Round now.** He found it himself: *"literally after publishing I can't start a
+  new round?!?! I have to wait for two weeks minimum ... there's no control for that?? I have to
+  create ANOTHER test catch up."* Confirmed in the code: `openNextRoundIfDue` fires on the clock
+  alone, and no action anywhere starts one early, for anyone.
+- **Rename a Catch-up.** There is no rename action. The name is the underlying group's.
+- **Change the picture** (new, from §1b).
 
-| | |
-|---|---|
-| Reminders | Daily / Last day / Off |
-| Archive | hides it from your list and silences it. Undo is a toast |
-| Leave this Catch-up | people Catch-ups only. What you already published stays where it is |
-| Change the picture | whoever may run it (§1b) |
-| Rhythm | Keeper |
-| Hold the next Round | Keeper. What "pause" becomes (§9) |
-| End | Keeper. The only verb that earns a real confirmation |
+### The accident rule
 
-**Two personal verbs, not three**, and that is his, 2026-09-07: *"deleting becomes leaving."* The
-thirty-day bin and the "Recently deleted" shelf go with the word Delete. A batch Catch-up has only
-Archive, because there is no leaving your own batch (¶5).
+> N30: "Can anyone open answering? That shouldn't be allowed. Because many people would click it by
+> accident. Especially on a batch thing ... it seems like the kind of irreversible thing."
 
-**Who may run what.** A Catch-up's verbs — rhythm, hold, end, and the name — belong to its Keeper,
-and a **batch Catch-up has no Keeper**: nobody may rename a batch or change who is in it. Its
-Round's verbs — start, open answering, nudge, close, extend, publish, resume — are open to anyone in
-the batch. Without that split a paused batch would have nobody able to resume it.
+**An irreversible control never sits where a thumb lands, and is never open to everyone by default.**
+So every one-way control is in the rail, marked with a small cinnamon dot, and confirms. Never in
+the content, never beside the primary action.
 
-The Catch-up settings dialog is deleted. So are its twelve horizontal rules, its pills inside pills
-and its subtitle offering three actions every one of whose controls is disabled (¶14, ¶40, S1,
-recon §11).
+### Which gives the answer for a batch Catch-up
+
+**A batch Catch-up has no manual transitions at all.** Nobody opens answering, nobody closes it,
+nobody publishes: it runs on its rhythm, and the only things anyone does on one are ask and answer.
+That is what makes "nobody owns it" survivable, and it supersedes the earlier reading that anyone in
+the batch could work its Rounds. Anyone in the batch **can** replace its picture (his answer,
+2026-09-07); that is reversible and harmless.
+
+A people Catch-up keeps a Keeper, who holds every one-way control.
+
+### And one state deleted: `preparing`
+
+> N38: "Why are we preparing? ... why doesn't it just publish immediately? Is there a reason we have
+> to have a separate preparing section? I can't just publish at midnight and the deadline is done."
+
+Checked: `preparing` is a hard-coded **24-hour hold** (`PREPARING_HOLD_HOURS`) between answers
+closing and the Round coming out, during which nothing happens and nobody — Keeper included — can
+read a word. Its only real job is stopping a Round landing at 3am, and "Publish now" exists solely
+to skip it.
+
+**Answers close and the Round comes out at the same moment**, and that moment is a civil hour. One
+state, one console and one control go with it.
 
 ## 7. Getting anywhere, in one move
 
@@ -336,23 +354,24 @@ the front runner, and it is a button.
 ## 8. The intents, against every state
 
 The point of the table is the repetition in it. Columns are the Round's state; the last two are the
-Catch-up paused or ended.
+Catch-up paused or ended. `preparing` is gone (§6).
 
-| Intent | collecting | answering | preparing | published | paused | ended |
-|---|---|---|---|---|---|---|
-| See what is new for me | the panel on the list | same | same | same | same, marked | same, "Ended" |
-| Answer | not yet | **Answer**, on Now | closed | closed | frozen | no |
-| Ask a question | **Ask something**, on Now | no | no | for the next Round, on Now | frozen | no |
-| Read the newest Round | not yet | not yet | not yet | **the cover, in Now or on the list** | same | same |
-| Read an older Round | Before | Before | Before | Before | Before | Before |
-| Move inside a Round | the strip, at any depth | same | same | same | same | same |
-| See who is in this | the home's column, or its one control | same | same | same | same | same |
-| See who wrote in | nobody yet | names, on Now | names, on Now | names, on the cover | same | same |
-| Comment, heart | no | no | no | on the answer | same | same |
-| Reminders, archive, delete | the door | same | same | same | same | the door, minus reminders |
-| Rhythm, hold, end | the door (Keeper) | same | same | same | Resume, on Now | gone |
-| Open, close, extend, nudge, publish | Now (Keeper) | same | same | no | frozen | no |
-| Get back to the home | the name at the top | same | same | same | same | same |
+| Intent | collecting | answering | published | paused | ended |
+|---|---|---|---|---|---|
+| See what is new for me | the card on the list | same | same | same, marked | same, "Ended" |
+| Answer | not yet | **Answer**, the page's one action | closed | frozen | no |
+| Ask a question | **the ask box**, the page's one action | no | for the next Round | frozen | no |
+| Read the newest Round | not yet | not yet | **the cover** | same | same |
+| Read an older Round | Earlier Rounds | same | same | same | same |
+| Move inside a Round | the strip, at any depth | same | same | same | same |
+| See who is in this | the rail, or one control on a phone | same | same | same | same |
+| See who wrote in | nobody yet | names, under Answer | on the cover, by its photographs | same | same |
+| Comment, heart | no | no | on the answer | same | same |
+| Reminders | the rail | same | same | same | gone |
+| Archive, leave | the rail | same | same | same | same |
+| One-way Round controls | the rail (Keeper) | same | Start the next Round now | frozen | no |
+| Rename, picture, rhythm, hold, end | the rail (Keeper) | same | same | Resume | gone |
+| Get back to the home | the name at the top | same | same | same | same |
 
 Four Round states by two roles is eight real cells. Everything else repeats, which is what ¶36 meant
 by *"modular design would just take care of that"*.
@@ -364,27 +383,27 @@ by *"modular design would just take care of that"*.
 
 | | Question | Settled |
 |---|---|---|
-| **O4** | the shape of the list | §4: a shelf of equal picture cards, two up on a laptop. Three other shapes drawn and refused, with reasons |
+| **O4** | the shape of the list | §4: a shelf of equal picture cards, the picture edge to edge with the words on it. Three other shapes drawn and refused, with reasons |
 | **O5** | who is here, who wrote in | §5: the roster is a column on the home (R2), and a disclosure on a phone; who wrote in is names on Now while answering; the reader shows neither, because every answer is signed |
-| **O6** | what the home is | §5: the head with the picture, Now, Earlier Rounds, and the people |
+| **O6** | what the home is | §5: a place, not a page that transforms. Head, the Round, the rail, Earlier Rounds |
 | **O7** | moving inside a Round | the front runner: the strip, and the navigator drawn three ways. His pick is outstanding |
-| **O8** | one representation of a published Round | §1: the cover, which is the contents on the measure. One component, two depths |
+| **O8** | one representation of a published Round | §1: the cover, which is its photographs. One component |
 | **O9** | "13 of the group wrote in", question numbers | both gone (R21, R30, R32) |
 | **O10** | Fresh off the press | §4: deleted. Its job is done by the Catch-up's own card |
-| **O11** | settings, and where the verbs live | §6: one door, and the settings dialog goes |
+| **O11** | settings, and where the verbs live | §6: the rail, split into This Round and This Catch-up, with a dot on everything one-way. The settings dialog goes, and so does `preparing` |
 | **O1** | who keeps a batch Catch-up | **answered 2026-09-07**: nobody. Anyone in the batch may work its Rounds; nobody may rename it or change who is in it |
 | **O2** | delete on a batch | **answered**: archive only |
 | **O3** | whether pause survives | **answered**: it becomes "hold the next Round". A Round in flight always finishes |
 | **O14** | leaving a people Catch-up | **answered, and he changed the wording**: the verb is **Leave**, not Delete, and what you already published stays |
-| **O12** | the six members with no batch year | **still open.** Re-asked in plain English as owner question 15 |
+| **O12** | the six members with no batch year | **answered 2026-09-07**: *"if they've not put a batch that's fine, they don't need a catch up."* Nothing changes for them |
 
 ## 10. What this does not decide
 
-The composer, the door's own sheet and the confirmations it opens, the picture's own upload and
-crop at creation time (`photo-aim.tsx` and the R2 direct-upload path already exist for it), the
-photo wall, the song card's behaviour beyond its shape, the notification copy, and the magazine.
-The people sheet is no longer on that list: §5 removed it.
-Each is a session, and each starts from this file plus the two reviews.
+The composer (which he says the shipped one is close to right, N36, with two changes he named), the
+confirmations the one-way controls open, the picture's upload and crop at creation time
+(`photo-aim.tsx` and the R2 direct-upload path already exist for it), the library's own
+organisation (N33), the photo wall, the song card's behaviour beyond its shape, the notification
+copy, and the magazine. Each is a session, and each starts from this file plus the reviews.
 
 And one thing that is nobody's to decide but his: whether any of it clears R46 —
 

@@ -55,89 +55,38 @@ import { dayAndDate, shortDate, type SketchCatchup } from "./_shelf";
  *  one place, in the same shape in every state, so the eye learns where
  *  to look once. No counts: not answers, not photographs, not people.
  *  "You're trying so hard to include useless information." (R32) */
-function State({ c, phone }: { c: SketchCatchup; phone: boolean }) {
+function stageOf(c: SketchCatchup): string {
   const r = c.round;
-  const fact =
-    c.state === "ended" && c.endedAt
-      ? `Ended on ${shortDate(c.endedAt)}`
-      : !r
-        ? "No Rounds yet"
-        : c.state === "published" && r.publishedAt
-          ? shortDate(r.publishedAt)
-          : c.state === "collecting"
-            ? "open for questions"
-            : c.state === "answering" && r.closesAt
-              ? `answers close on ${dayAndDate(r.closesAt)}`
-              : c.state === "preparing" && r.comesOutAt
-                ? `out on ${dayAndDate(r.comesOutAt)}`
-                : "";
-
-  const round = r && c.state !== "ended" && (
-    <span className="font-medium text-cinnamon">Round {r.number}</span>
-  );
-  /* A pause is a mark on whatever the Round is doing, never a state of
-     its own and never a banner over the top of one. Today's pause
-     replaces the whole column, and "in the loop" is paused right now with
-     a Round 2 in `collecting` that no member can see. */
-  const pause = c.paused && <span className="font-medium text-muted-foreground">Paused</span>;
-
-  /* Stacked in the laptop's 240px margin, on one line on a phone. Joined
-     by the app's dot, "Round 4 · answers close on Thursday 20 August"
-     wraps after the dot in 240px and leaves it hanging at the end of a
-     line, and a separator with nothing after it is worse than none. At
-     350px it fits, so it is one line and the panel is a line shorter. */
-  if (phone) {
-    return (
-      <p className="flex flex-wrap items-center gap-2 text-[13.5px]">
-        {round}
-        {round && (pause || fact) && (
-          <span className="dotsep" aria-hidden>
-            ·
-          </span>
-        )}
-        {pause}
-        {pause && fact && (
-          <span className="dotsep" aria-hidden>
-            ·
-          </span>
-        )}
-        {fact && <span className="text-muted-foreground">{fact}</span>}
-      </p>
-    );
-  }
-  return (
-    <div className="space-y-0.5 text-[13.5px]">
-      {round && <p>{round}</p>}
-      {pause && <p>{pause}</p>}
-      {fact && <p className="leading-snug text-muted-foreground">{fact}</p>}
-    </div>
-  );
+  if (c.paused) return "Paused";
+  if (c.state === "ended" && c.endedAt) return `Ended ${shortDate(c.endedAt)}`;
+  if (!r) return "No Rounds yet";
+  if (c.state === "collecting") return "Open for questions";
+  if (c.state === "answering" && r.closesAt) return `Answers close ${dayAndDate(r.closesAt)}`;
+  if (c.state === "published" && r.publishedAt) return `Out ${shortDate(r.publishedAt)}`;
+  return "";
 }
 
 /* ── one Catch-up ──────────────────────────────────────────────────── *
- *  A picture, a name, one line. Nothing else.
+ *  The picture, and the words written on it.
  *
- *  This page carried the Round's questions until he saw it, 2026-09-07:
- *  "I'm not too happy with having questions ... I just feel like it's
- *  overcrowding, there's just too much text going on for something that
- *  should just be a navigation for all your catch-ups ... it just seems a
- *  bit overwhelming." He is right, and the questions lose nothing by
- *  going: they are still on the Catch-up's home, on Now and on every
- *  cover in Earlier Rounds, which is where you are when you are choosing
- *  what to read rather than which Catch-up to open.
+ *  His, 2026-09-07, on the version with the picture above and the words
+ *  under it: "I'm just wondering whether having the entire thing as an
+ *  image and then fading to black, kind of like a Spotify thing, might be
+ *  nicer than this." And: "the picture is too small. I wanted it to kind
+ *  of be more of an expensive thing, where it's just kind of a spectacle
+ *  and it's just so cute ... just makes you wanna click it."
  *
- *  And the picture is the card, not a thumbnail on it: "I wanted it to
- *  kind of be more of an expensive thing, where it's just kind of a
- *  spectacle and it's just so cute ... just makes you wanna click it. I
- *  don't think that the picture is doing that job now." So it is 3:2,
- *  edge to edge, the card's own width, and the type sits under it on
- *  paper rather than over it, because a name in the heading face is
- *  worth reading and a scrim over a photograph is how it stops being.
+ *  So the card IS the photograph. The name and the stage sit on it, over
+ *  a fade, which is what lets the picture run the card's whole height
+ *  instead of two thirds of it.
  *
- *  NO BUTTONS HERE. Every card is the same three things at the same
- *  height, so the page is a shelf rather than a form. Answering is one
- *  tap further in, on the home, next to the Round it belongs to -- which
- *  is also the only place it has ever belonged.
+ *  LANDSCAPE, and that is his too: "on a laptop it is kind of vertically
+ *  long. I think it might be better to make it more landscape ... I can't
+ *  even see 4 catch-ups." 5:2, which puts four on his screen.
+ *
+ *  NO ROUND NUMBER: "I don't think we need to say the round over there. I
+ *  don't think that's too relevant. It can just be whatever stage it's
+ *  going through."
  * ------------------------------------------------------------------ */
 
 export function Panel({
@@ -146,24 +95,21 @@ export function Panel({
   phone,
 }: {
   c: SketchCatchup;
-  /** Where the card goes. A published Round opens the reader; anything
-   *  else opens the home, because that is where the thing you would do
-   *  next lives. Para 18 on landing straight in a finished Round: "it is
-   *  a nice thought", and the fault he named was the missing way back,
-   *  which the reader's title now fixes. */
+  /** ALWAYS the home. It used to be the reader for a published Round and
+   *  the home for everything else, and the thing he says he hates most
+   *  about what ships is exactly that unpredictability: "I still can't
+   *  predict where it's gonna open when I click it. It just does whatever
+   *  it wants and I don't have a sense of it in my head." One rule costs
+   *  a tap on the way to a Round and buys knowing where you will land. */
   onOpen: (c: SketchCatchup) => void;
   phone: boolean;
 }) {
-  const r = c.round;
   return (
-    <Door
-      label={c.state === "published" ? `Read ${c.name}, Round ${r?.number}` : `Open ${c.name}`}
-      onOpen={() => onOpen(c)}
-      className="group"
-    >
-      {/* The one motion the design system allows on a photograph: the
-          picture scales inside a frame that does not itself move. */}
-      <span className="relative block aspect-[3/2] w-full overflow-hidden bg-muted">
+    <Door label={`Open ${c.name}`} onOpen={() => onOpen(c)} className="group">
+      <span
+        className="relative block w-full overflow-hidden bg-muted"
+        style={{ aspectRatio: phone ? "16 / 9" : "5 / 2" }}
+      >
         <Image
           src={c.picture}
           alt=""
@@ -171,20 +117,34 @@ export function Panel({
           sizes="(min-width: 1180px) 540px, 400px"
           className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
         />
+        {/* The fade. Two stops rather than one: a single linear gradient
+            over 55% of a light photograph leaves the name sitting on a
+            grey wash halfway up the picture, which reads as a bug. This
+            is transparent for the top half and then falls away quickly,
+            so the picture is a picture and the words have ground. */}
+        <span
+          aria-hidden
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to top, rgb(0 0 0 / 0.82) 0%, rgb(0 0 0 / 0.5) 24%, rgb(0 0 0 / 0.12) 50%, transparent 72%)",
+          }}
+        />
+        <span className={cn("absolute inset-x-0 bottom-0", phone ? "p-4" : "p-5")}>
+          <span
+            className="block font-heading text-white"
+            style={{
+              fontSize: phone ? 21 : 24,
+              lineHeight: 1.2,
+              letterSpacing: "-0.015em",
+              textShadow: "0 1px 12px rgb(0 0 0 / 0.4)",
+            }}
+          >
+            {c.name}
+          </span>
+          <span className="mt-1 block text-[13.5px] text-white/80">{stageOf(c)}</span>
+        </span>
       </span>
-      {/* A shade more under the type than over it: the name's cap sits
-          a pixel below its own line box, so equal padding reads top-heavy. */}
-      <div className={phone ? "px-4 pb-[18px] pt-3.5" : "px-5 pb-5 pt-4"}>
-        <h2
-          className="min-w-0 font-heading text-foreground"
-          style={{ fontSize: phone ? 20 : 22, lineHeight: 1.25, letterSpacing: "-0.015em" }}
-        >
-          {c.name}
-        </h2>
-        <div className="mt-1.5">
-          <State c={c} phone />
-        </div>
-      </div>
     </Door>
   );
 }
@@ -282,18 +242,9 @@ export function List({
         </div>
       </header>
 
-      {/* Every card is the same height, because every card is the same
-          three things, so a grid has no holes in it -- which is what made
-          a grid impossible while the cards carried their Rounds' contents
-          and were 350 and 500 pixels tall. Two up on a laptop, one on a
-          phone. A member has two or three of these (para 1), so two up is
-          a screen. */}
-      <div
-        className={cn(
-          "grid gap-6",
-          phone ? "grid-cols-1" : "grid-cols-1 min-[1180px]:grid-cols-2",
-        )}
-      >
+      {/* Every card is the same three things at the same height, so a
+          grid has no holes in it. Two up on a laptop, one on a phone. */}
+      <div className={cn("grid gap-5", phone ? "grid-cols-1" : "grid-cols-1 min-[1180px]:grid-cols-2")}>
         {shelf.map((c) => (
           <Panel key={c.id} c={c} onOpen={onOpen} phone={phone} />
         ))}

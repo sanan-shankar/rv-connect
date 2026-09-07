@@ -1,364 +1,251 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  /catchups/[id], a Catch-up's home. Three parts, in every state.
+ *  /catchups/[id] — a Catch-up's home. A PLACE, not a page that
+ *  reshapes itself.
  *
- *  His question, para 15, asked while looking at the shipped one: "then
- *  what do we put on the left? I don't know. I don't know." The answer is
- *  that the home has the same three parts every time and only the middle
- *  one changes, and it changes on the ROUND's state, never on the
- *  Catch-up's.
+ *  His question, and the answer this file takes: "is there a home page
+ *  that you then keep navigating from to do things like answer or
+ *  whatever, or does the home page transform into something each time. I
+ *  think the answer being its own page is good."
  *
- *    the head    the name, one line of fact, and one door
- *    Now         the current Round, as the thing it currently is
- *    Earlier     the published Rounds that are not the one in Now
+ *  A place. Four regions, always in the same spot, at every state and for
+ *  every member:
  *
- *  WHAT THIS KILLS. Today the home of a Catch-up whose newest Round is
- *  out shows that Round three times: a "Round N is out." tile that is
- *  dead except for five words of link, the entire Round printed inline
- *  under it, and a Published-issues row pointing back at it (recon
- *  section 5; his para 15: "This is so ridiculous, man. It's actually so
- *  ridiculous"). Here a published Round appears once, as its cover, and
- *  the cover is a door to the reader.
+ *    the head        the picture, the name
+ *    the Round       what this cycle is right now, and ONE thing to do
+ *    the rail        People / Reminders / Running this  (_rail.tsx)
+ *    earlier         the Rounds that have already come out
  *
- *  THE PEOPLE. R2, and it is later than the plan that put them a level
- *  down: "the homepage or whatever of the catch-up can have all of the
- *  people listed in the sidebar." So on a laptop they are listed, all of
- *  them, in a column at the right. On a phone the same list is a
- *  disclosure under the head. Either way there is no preview, no "and 16
- *  more", no See-and-add dialog and no second copy of the roster --
- *  which is the whole of E1 and E3 ("the panel and the dialog show the
- *  same thing twice ... so inefficient", para 12 and para 37). The
- *  panel was ugly because it was previewing a list inside a box; give
- *  the list a column and it stops being a problem.
+ *  Only what is inside the second region changes. The first draft
+ *  reshaped the whole page per state, which is why he could not find the
+ *  same thing twice: "you've just totally changed the homepage into this
+ *  new UI. All the controls are gone ... now I don't know where they are."
  *
- *  THE VERBS. Sixteen of them live on five surfaces today, two of them
- *  twice, and archive and delete cannot be reached from inside the
- *  Catch-up they act on (recon section 4). Round verbs sit on Now beside
- *  the Round they act on. Everything else is behind ONE door, top right,
- *  and it is the only menu in Catch-ups. The settings dialog and its
- *  twelve horizontal rules are gone (para 14, para 40).
+ *  ONE PRIMARY ACTION, and it is never in a row of equals. Collecting: the
+ *  box for writing a question, which is the shipped design he singled out
+ *  as better than mine — "the asking thing now has a box. And it says, be
+ *  the first to ask. And then under that, it would show everything ... the
+ *  asking is probably even better now on the shipped version than what
+ *  you've created." Answering: Answer, large, with nothing beside it,
+ *  because in my first draft "the biggest elements are the people,
+ *  questions, the people who have written, and then the earlier rounds.
+ *  The actual answering is not even there."
  *
- *  The door's own sheet, and the confirmations it opens, are the next
- *  session's drawing. What is here is plain on purpose.
+ *  NO LIST OF QUESTIONS except where the questions are the thing being
+ *  made, which is collecting. He said it three times in one sitting about
+ *  three different screens: "Why do we just have this list of questions?
+ *  I just don't get it. It's so annoying."
+ *
+ *  NO ROUND NUMBERS. "Why do we need to have the round 4? It doesn't
+ *  matter what round, it's going to be round 15. How does it matter
+ *  whether it's 15 or 16?"
  * ------------------------------------------------------------------ */
 
 import { useState } from "react";
-import { CaretRight, DotsThree } from "@phosphor-icons/react";
-import { Sprout } from "lucide-react";
-import { AnimatePresence, m } from "motion/react";
-import { BirdAvatar } from "@/components/common/bird-avatar";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { EASE_OUT_SMOOTH } from "@/components/common/motion";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Contents, Cover, Picture } from "./_cover";
+import { Cover } from "./_cover";
+import { Person, PhoneRail, Rail } from "./_rail";
 import { dayAndDate, shortDate, type SketchCatchup, type ShelfRound } from "./_shelf";
-import type { SketchPerson } from "./_types";
 
-/** The page's own width, the same on the list and here: 720 of reading,
- *  56 of gutter, 320 of people. At his 1512 that fills the room the shell
- *  leaves (window - 328) with 88px to spare, which is why neither page
- *  has the margins he objected to on the reader ("we have so much empty
- *  space ... what is there in the shipped version now has much better
- *  margins. It like fills up the screen"). */
+/** The page's width: 720 of reading, 56 of gutter, 300 of rail. At his
+ *  1512 the shell leaves 1184, so this fills it with 108px to spare. */
 export const HOME_MAIN = 720;
-export const HOME_PEOPLE = 320;
+export const HOME_RAIL = 300;
 export const HOME_GAP = 56;
-export const HOME_MAX = HOME_MAIN + HOME_GAP + HOME_PEOPLE;
+export const HOME_MAX = HOME_MAIN + HOME_GAP + HOME_RAIL;
 
-/* ── people ────────────────────────────────────────────────────────── *
- *  Names, with birds beside them, and never a bird alone: "a row of
- *  birds with this plus icon ... I am not identifying the birds or the
- *  people" (para 23). The Keeper's sprout sits at the end of the row,
- *  which is the one part of today's panel he liked (para 37: "we have
- *  highlighted the keepers in a neat way, and there's that little leaf
- *  sign next to their name. That part is nice"). */
-function Person({ p, size }: { p: SketchPerson; size: number }) {
+/* ── the head ──────────────────────────────────────────────────────── *
+ *  The picture as a banner, at the proportions he asked for: "I wanted
+ *  almost like, you know, a Notion for a page, like header photo. It's
+ *  just a super wide photo, right? Maybe some aspect ratio like that."
+ *  4:1 on a laptop, 3:1 on a phone, because a 4:1 crop of a 350px screen
+ *  is 88px of letterbox.
+ *
+ *  Nothing under the name but the two controls. The rhythm line is gone
+ *  ("everyone from 1978 ... every 3 months, that doesn't need to be
+ *  said") and so is the sentence explaining what a Round is ("we don't
+ *  need to teach them how to use it"). */
+function Head({ c, phone }: { c: SketchCatchup; phone: boolean }) {
   return (
-    <span className="flex min-w-0 items-center gap-2.5">
-      <BirdAvatar user={p} size={size} />
-      {/* The sprout follows the NAME rather than sitting at the far end of
-          the column. The shipped roster puts it at the end so the marks
-          line up, which is a good rule for a list with several Keepers
-          and a bad one for a list with one: at 320px it stranded a single
-          sprout 180px away from the person it belongs to. */}
-      <span className="min-w-0 truncate text-[14.5px] text-foreground">{p.name}</span>
-      {p.isKeeper && (
-        <Sprout className="h-3.5 w-3.5 shrink-0 text-cinnamon" aria-label="Keeper" />
-      )}
-    </span>
-  );
-}
-
-function PeopleColumn({ members }: { members: SketchPerson[] }) {
-  return (
-    <div>
-      <p className="mb-3 text-[13px] font-medium text-muted-foreground">People</p>
-      <ul className="space-y-2.5">
-        {members.map((p) => (
-          <li key={p.id}>
-            <Person p={p} size={32} />
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/** The phone's answer to the same thing: one control, and the whole list
- *  opens in place. No sheet and no dialog, so the roster exists exactly
- *  once in the app. */
-function PeopleDisclosure({ members }: { members: SketchPerson[] }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="mt-3">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className="state-layer -ml-2 flex items-center gap-1.5 rounded-full px-2 py-1.5 text-[13.5px] font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+    <header>
+      <span
+        className="relative block w-full overflow-hidden rounded-[var(--radius)] bg-muted"
+        style={{ aspectRatio: phone ? "3 / 1" : "4 / 1" }}
       >
-        <CaretRight
-          size={13}
-          weight="bold"
-          className={cn("transition-transform duration-300 ease-out", open && "rotate-90")}
-        />
-        People
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <m.div
-            key="people"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{
-              height: { duration: 0.3, ease: EASE_OUT_SMOOTH },
-              opacity: { duration: 0.18, ease: EASE_OUT_SMOOTH },
-            }}
-            className="overflow-hidden"
-          >
-            <ul className="space-y-2.5 pt-2">
-              {members.map((p) => (
-                <li key={p.id}>
-                  <Person p={p} size={30} />
-                </li>
-              ))}
-            </ul>
-          </m.div>
-        )}
-      </AnimatePresence>
+        <Image src={c.picture} alt="" fill sizes="1100px" className="object-cover" priority />
+      </span>
+      <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-5 gap-y-1.5">
+        <h1 className="min-w-0 font-heading text-[30px] leading-[1.2] tracking-[-0.02em] text-foreground">
+          {c.name}
+        </h1>
+        {phone && <PhoneRail c={c} />}
+      </div>
+    </header>
+  );
+}
+
+/* ── the Round ─────────────────────────────────────────────────────── */
+
+/** One line, the stage in words. No Round number, no counts. */
+function Stage({ c }: { c: SketchCatchup }) {
+  const r = c.round;
+  const words =
+    c.state === "ended" && c.endedAt
+      ? `Ended ${shortDate(c.endedAt)}`
+      : !r
+        ? "No Rounds yet"
+        : c.state === "collecting"
+          ? "Open for questions"
+          : c.state === "answering" && r.closesAt
+            ? `Answers close ${dayAndDate(r.closesAt)}, and it comes out the same day`
+            : c.state === "published" && r.nextOpensAt
+              ? `The next one opens ${shortDate(r.nextOpensAt)}`
+              : "";
+  if (!words) return null;
+  return (
+    <p className="text-[14px] text-muted-foreground">
+      {c.paused && <span className="font-medium text-foreground">Paused. </span>}
+      {words}
+    </p>
+  );
+}
+
+/** The box, which is the shipped one he named as better than mine. The
+ *  heading changes on the first ask and the copy does not multiply. */
+function AskBox({ first, you }: { first: boolean; you: string }) {
+  const [text, setText] = useState("");
+  const [asMe, setAsMe] = useState(true);
+  return (
+    <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-5">
+      <p className="font-heading text-[17px] text-foreground">
+        {first ? "Be the first to ask something" : "Ask everyone something"}
+      </p>
+      <Textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        aria-label="Your question for the group"
+        maxLength={300}
+        className="mt-3 max-h-64 min-h-[5.5rem] bg-background/60"
+      />
+      <div className="mt-4 flex flex-wrap items-center gap-2.5">
+        <div className="inline-flex rounded-full border border-border bg-background/60 p-1">
+          {[
+            { on: true, label: `Ask as ${you}` },
+            { on: false, label: "Ask anonymously" },
+          ].map((o) => (
+            <button
+              key={String(o.on)}
+              type="button"
+              aria-pressed={asMe === o.on}
+              onClick={() => setAsMe(o.on)}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                asMe === o.on
+                  ? "bg-canopy text-white"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <Button variant="outline" size="sm">
+          From the library
+        </Button>
+        <Button size="sm" className="ml-auto" disabled={!text.trim()}>
+          Ask the group
+        </Button>
+      </div>
     </div>
   );
 }
 
-/** Who has written in so far, while a Round is being answered. Elements,
- *  never a sentence with commas in it: "I don't like doing it with
- *  commas. I don't think commas are the right execution. These are all
- *  elements. Commas are for text." (R33) */
-function WroteIn({ people }: { people: SketchPerson[] }) {
+/** What the group has asked so far. The ONE place a list of questions
+ *  earns its space, because these are the thing being made. */
+function Asked({ r }: { r: ShelfRound }) {
+  if (r.questions.length === 0) return null;
   return (
-    <ul className="flex flex-wrap gap-x-4 gap-y-2.5">
-      {people.map((p) => (
-        <li key={p.id} className="max-w-[180px]">
-          <Person p={p} size={26} />
+    <ul className="mt-5 space-y-3.5">
+      {r.questions.map((q) => (
+        <li key={q.id} className="flex gap-3">
+          <span aria-hidden className="mt-[9px] h-[3px] w-[3px] shrink-0 rounded-full bg-cinnamon" />
+          <span className="min-w-0 font-heading text-[16px] leading-snug text-foreground">
+            {q.text}
+          </span>
         </li>
       ))}
     </ul>
   );
 }
 
-/* ── the door ──────────────────────────────────────────────────────── *
- *  Every verb that is about the Catch-up rather than about this Round.
- *  One menu, one place, top right, where dots go: "if we have to have 3
- *  dots, shouldn't it be in the top right, where 3 dots always are?"
- *  (para 24). Its own drawing is the next session's. */
-function DoorMenu({ c }: { c: SketchCatchup }) {
-  const [open, setOpen] = useState(false);
-  /* Two personal verbs, not three. He settled this on 2026-09-07:
-     "deleting becomes leaving". So Archive hides it and Leave gets you
-     out, the thirty-day bin and the "Recently deleted" shelf go with
-     Delete, and a batch Catch-up has only Archive, because there is no
-     leaving your own batch (para 5). */
-  const rows = [
-    "Reminders",
-    "Archive",
-    ...(c.kind === "people" ? ["Leave this Catch-up"] : []),
-    ...(c.youKeep ? ["Rhythm", "Hold the next Round", "End this Catch-up"] : []),
-  ];
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-label="This Catch-up"
-        className="state-layer grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-      >
-        <DotsThree size={22} weight="bold" />
-      </button>
-      <AnimatePresence>
-        {open && (
-          <m.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.16, ease: EASE_OUT_SMOOTH }}
-            className="card-elevated absolute right-0 top-full z-30 mt-1 w-[220px] overflow-hidden rounded-[12px] border border-border bg-card py-1.5"
-          >
-            {rows.map((r) => (
-              <button
-                key={r}
-                type="button"
-                className="state-layer block w-full px-4 py-2 text-left text-[14.5px] text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
-              >
-                {r}
-              </button>
-            ))}
-          </m.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-/* ── Now ───────────────────────────────────────────────────────────── */
-
-function StateLine({ c }: { c: SketchCatchup }) {
-  const r = c.round;
-  if (!r) return null;
-  const word =
-    c.state === "collecting"
-      ? "open for questions"
-      : c.state === "answering" && r.closesAt
-        ? `answers close on ${dayAndDate(r.closesAt)}`
-        : c.state === "preparing" && r.comesOutAt
-          ? `out on ${dayAndDate(r.comesOutAt)}`
-          : "";
-  return (
-    <p className="flex flex-wrap items-center gap-2 text-[13.5px]">
-      <span className="font-medium text-cinnamon">Round {r.number}</span>
-      <span className="dotsep" aria-hidden>
-        ·
-      </span>
-      <span className="text-muted-foreground">{word}</span>
-      {c.paused && (
-        <>
-          <span className="dotsep" aria-hidden>
-            ·
-          </span>
-          <span className="text-muted-foreground">Paused</span>
-        </>
-      )}
-    </p>
-  );
-}
-
-function Now({
-  c,
-  onRead,
-  phone,
-}: {
-  c: SketchCatchup;
-  onRead: (r: ShelfRound) => void;
-  phone: boolean;
-}) {
+function Round({ c, onRead }: { c: SketchCatchup; onRead: (r: ShelfRound) => void }) {
   const r = c.round;
 
-  if (c.state === "ended") {
-    return (
-      <p className="text-[14.5px] text-muted-foreground">
-        Ended on {c.endedAt ? shortDate(c.endedAt) : ""}
-      </p>
-    );
-  }
-
+  /* Nothing is running yet. The one thing to do is start something, and
+     on a batch nobody may, so it says when instead of offering a control
+     anyone could press by accident. */
   if (c.state === "none" || !r) {
+    return c.kind === "people" ? (
+      <Button size="lg">Start the first Round</Button>
+    ) : (
+      <p className="text-[15.5px] text-foreground">The first Round opens in January.</p>
+    );
+  }
+
+  if (c.state === "ended") return null;
+
+  if (c.state === "collecting") {
     return (
       <div>
-        <p className="max-w-[46ch] text-[15.5px] leading-relaxed text-foreground">
-          A Round is a few questions, answered by everyone, and read together.
-        </p>
-        <Button className="mt-4">Start the first Round</Button>
+        <AskBox first={r.questions.length === 0} you="Sanan" />
+        <Asked r={r} />
       </div>
     );
   }
 
-  /* Published: the cover, and nothing else. The Round itself is one tap
-     away and is not also printed on this page. */
-  if (c.state === "published") {
+  if (c.state === "answering") {
     return (
       <div>
-        <Cover round={r} onOpen={() => onRead(r)} className={phone ? undefined : "max-w-full"} />
-        {r.nextOpensAt && !c.paused && (
-          <p className="mt-3.5 text-[13.5px] text-muted-foreground">
-            Round {r.number + 1} opens on {shortDate(r.nextOpensAt)}
-          </p>
-        )}
-        {c.paused && c.canRun && (
-          <Button variant="outline" className="mt-4">
-            Resume
+        {/* The page's one primary action, and the biggest thing on it.
+            Nudge and Close are NOT beside it: they are in the rail, where
+            a one-way control belongs. */}
+        {r.youAnswered ? (
+          <div className="flex flex-wrap items-center gap-4">
+            <p className="text-[15.5px] text-foreground">You have written in.</p>
+            <Button variant="outline" size="sm">
+              Change your answers
+            </Button>
+          </div>
+        ) : (
+          <Button size="lg" className="text-[16px]">
+            Answer
           </Button>
+        )}
+        {r.wroteIn.length > 0 && (
+          <div className="mt-8">
+            <p className="mb-3 text-[13px] font-medium text-muted-foreground">Written in so far</p>
+            <ul className="flex flex-wrap gap-x-4 gap-y-2.5">
+              {r.wroteIn.map((p) => (
+                <li key={p.id} className="max-w-[180px]">
+                  <Person p={p} size={26} />
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </div>
     );
   }
 
-  /* A paused Catch-up shows exactly what it was doing, marked. It never
-     hides a Round: today's pause replaces the whole column, and "in the
-     loop" is paused right now with a Round 2 in `collecting` that no
-     member can see or add to (recon section 11). */
-  const frozen = c.paused;
-
-  return (
-    <div>
-      <StateLine c={c} />
-      {r.questions.length > 0 ? (
-        <Contents round={{ ...r, read: false }} className="mt-4" />
-      ) : (
-        <p className="mt-3 text-[14.5px] text-muted-foreground">
-          Nobody has asked anything yet.
-        </p>
-      )}
-
-      {frozen ? (
-        c.canRun && (
-          <Button variant="outline" className="mt-6">
-            Resume
-          </Button>
-        )
-      ) : (
-        <div className="mt-6 flex flex-wrap gap-2.5">
-          {c.state === "collecting" && <Button>Ask something</Button>}
-          {c.state === "collecting" && c.canRun && (
-            <Button variant="outline">Open answering</Button>
-          )}
-          {c.state === "answering" && !r.youAnswered && <Button>Answer</Button>}
-          {c.state === "answering" && r.youAnswered && (
-            <p className="text-[14.5px] text-muted-foreground">You have written in.</p>
-          )}
-          {c.state === "answering" && c.canRun && (
-            <>
-              <Button variant="outline">Nudge everyone</Button>
-              <Button variant="outline">Close now</Button>
-            </>
-          )}
-          {c.state === "preparing" && c.canRun && <Button>Publish now</Button>}
-        </div>
-      )}
-
-      {/* Who has written in comes AFTER the action, not before it. Above
-          it, "Answer" landed at the very bottom edge of a 390x844 screen
-          on the one state where answering is the entire point of the
-          page. Names are context; the button is the reason you are here. */}
-      {c.state === "answering" && r.wroteIn.length > 0 && (
-        <div className="mt-8">
-          <p className="mb-3 text-[13px] font-medium text-muted-foreground">Written in so far</p>
-          <WroteIn people={r.wroteIn} />
-        </div>
-      )}
-    </div>
-  );
+  /* Out. The cover, and nothing else: not the Round printed underneath
+     it, not a row pointing back at it. That is the whole of para 15 and
+     para 35, and it is the one state where this design was already better
+     than what ships. */
+  return <Cover round={r} fallback={c.picture} onOpen={() => onRead(r)} />;
 }
 
 /* ── the page ──────────────────────────────────────────────────────── */
@@ -372,92 +259,54 @@ export function Home({
   onRead: (r: ShelfRound) => void;
   phone: boolean;
 }) {
-  const head = (
-    <header>
-      <div className="flex items-start justify-between gap-4">
-        <div className={phone ? "min-w-0" : "flex min-w-0 items-center gap-4"}>
-          {/* The same picture as the list's, at the same proportions, so
-              the thing you tapped is the thing you landed on.
-
-              An identity mark here, not the spectacle it is on the list.
-              A full-width band was drawn first and pushed Now -- the only
-              part of this page anyone came to act on -- 250px down a
-              phone. The list is a shelf and wants the picture big; the
-              home is where the Round is and wants it small enough to read
-              past.
-
-              Above the title on a phone, beside it on a laptop. Beside it
-              at 390 the title had 162px to live in and "Batch of 2005"
-              broke over two lines with its rhythm wrapping under it. */}
-          <Picture
-            src={c.picture}
-            alt=""
-            width={phone ? 160 : 156}
-            className={phone ? "mb-4" : undefined}
-          />
-          <div className="min-w-0">
-            <h1 className="font-heading text-[30px] leading-[1.2] tracking-[-0.02em] text-foreground">
-              {c.name}
-            </h1>
-            {/* The rhythm in words, and for a batch, whose it is. That is
-                how a batch Catch-up is told apart: no chip, no badge. */}
-            <p className="mt-2 text-[14px] text-muted-foreground">{c.meta}</p>
-          </div>
-        </div>
-        <div className="mt-px shrink-0">
-          <DoorMenu c={c} />
-        </div>
-      </div>
-      {phone && <PeopleDisclosure members={c.members} />}
-    </header>
-  );
-
-  const main = (
+  const body = (
     <div>
-      {phone && head}
-      <div className={phone ? "mt-7" : ""}>
-        <Now c={c} onRead={onRead} phone={phone} />
+      <div className={phone ? "mt-5" : "mt-6"}>
+        <Stage c={c} />
+        <div className="mt-4">
+          <Round c={c} onRead={onRead} />
+        </div>
       </div>
       {c.before.length > 0 && (
-        <section className={phone ? "mt-10" : "mt-12"}>
-          <p className="mb-3 text-[13px] font-medium text-muted-foreground">Earlier Rounds</p>
-          <div className="space-y-3.5">
+        <section className={phone ? "mt-11" : "mt-14"}>
+          <h2 className="mb-3.5 text-[13px] font-medium text-muted-foreground">Earlier Rounds</h2>
+          <div className="space-y-3">
             {c.before.map((r) => (
-              <Cover key={r.number} round={r} onOpen={() => onRead(r)} />
+              <Cover
+                key={r.number}
+                round={r}
+                fallback={c.picture}
+                onOpen={() => onRead(r)}
+                compact
+              />
             ))}
           </div>
         </section>
       )}
-      {/* No Back button, deliberately. Para 18, about the shipped one:
-          "the fix is to have a very clear Back to catch-up button where
-          you can go back to the home and sort it out. But this is not the
-          level of redesign I think we need." The way out of a Catch-up is
-          the sidebar's own Catch-ups, which never leaves the screen; the
-          thing that needed fixing was the way out of a ROUND, which the
-          reader's title bar now is. */}
     </div>
   );
 
-  if (phone) return main;
+  if (phone) {
+    return (
+      <div>
+        <Head c={c} phone />
+        {body}
+      </div>
+    );
+  }
 
-  /* The head spans BOTH columns, so the door lands at the far right of
-     the page the way a menu does on every other surface, instead of
-     hanging in the gutter between the reading and the people. */
   return (
     <div style={{ maxWidth: HOME_MAX }}>
-      {head}
+      <Head c={c} phone={false} />
       <div
-        className="mt-8 grid items-start"
-        style={{
-          gridTemplateColumns: `minmax(0,1fr) ${HOME_PEOPLE}px`,
-          columnGap: HOME_GAP,
-        }}
+        className="grid items-start"
+        style={{ gridTemplateColumns: `minmax(0,1fr) ${HOME_RAIL}px`, columnGap: HOME_GAP }}
       >
         <div className="min-w-0" style={{ maxWidth: HOME_MAIN }}>
-          {main}
+          {body}
         </div>
-        <aside className="sticky self-start" style={{ top: 40 }}>
-          <PeopleColumn members={c.members} />
+        <aside className="sticky self-start pt-6" style={{ top: 40 }}>
+          <Rail c={c} />
         </aside>
       </div>
     </div>
