@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
+
+import { ROOT, SKIP_DIRS, decomment, walk } from "./test-kit.mjs";
 
 import {
   decideOwnedUploads,
@@ -121,4 +125,45 @@ test("a candidate built with no length at all is refused, not waved through", ()
   const key = `${ownUploadsPrefix(ME)}2026/08/photo.webp`;
   assert.equal(decideOwnedUploads([{ minted: true, key }], ME).ok, false);
   assert.equal(decideOwnedUploads([{ minted: true, key, length: NaN }], ME).ok, false);
+});
+
+/* ---- One home for "three photos per post" ------------------------ */
+
+test("nothing retypes the photo cap MAX_IMAGES already argues for", () => {
+  /* The cap was written six times: `const MAX_FILES = 3` in each of the two
+     upload doors, `3 - shots.length` in the composer's hook, `previews.length
+     >= 3` in the composer, `allowed.length > 3` in editPost, and this file's
+     own constant -- the only one with a reason attached. A sweep rather than
+     the five-file list the audit found, because the sixth copy is the one
+     nobody counts (refactor audit 2, feed-posts-06).
+
+     The lab is excluded: it keeps a forked composer on purpose, and a number
+     in a design room is shown to nobody. */
+  const files = walk(resolve(ROOT, "src"), { skip: [...SKIP_DIRS, "lab"] });
+  assert.ok(files.length > 300, `swept only ${files.length} files; the sweep has drifted`);
+
+  const offenders = [];
+  for (const full of files) {
+    const rel = relative(ROOT, full);
+    if (rel === "src/lib/upload-ownership-rule.ts") continue;
+    const code = decomment(readFileSync(full, "utf8"));
+    // A second home for the constant, under any of the names it has worn.
+    if (/\bconst\s+MAX_(?:IMAGES|FILES|PHOTOS|SHOTS|ATTACHMENTS|PICS)\s*=\s*\d/.test(code)) {
+      offenders.push(`${rel}: declares its own cap`);
+    }
+    // `previews.length >= 3`, `allowed.length > 3` -- the cap as a literal.
+    // Named collections only: `b.length >= 3` on a magic-byte buffer is not it.
+    if (/\b(?:previews|shots|photos|images|files|keys|allowed|attachments|urls)\.length\s*(?:>=?|<=?)\s*3\b/.test(code)) {
+      offenders.push(`${rel}: compares a list length against a literal 3`);
+    }
+    // `3 - shots.length` -- "how many places are left".
+    if (/\b3\s*-\s*[A-Za-z_$][A-Za-z0-9_$.]*\.length\b/.test(code)) {
+      offenders.push(`${rel}: counts the remaining places from a literal 3`);
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    `the photo cap is typed by hand again instead of imported from upload-ownership-rule:\n  ${offenders.join("\n  ")}`
+  );
 });

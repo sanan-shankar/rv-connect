@@ -1,8 +1,6 @@
 import { isUploadedImageUrl } from "@/lib/upload-shared";
 import { keyForUrl } from "@/lib/storage";
-import { decideOwnedUploads, MAX_IMAGES, MAX_IMAGE_URL } from "@/lib/upload-ownership-rule";
-
-export { MAX_IMAGES, MAX_IMAGE_URL };
+import { decideOwnedUploads } from "@/lib/upload-ownership-rule";
 
 /**
  * The write-time half of the C2 fix (the read-time key scheme is in

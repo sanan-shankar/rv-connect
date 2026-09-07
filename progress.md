@@ -1,5 +1,22 @@
 # Progress Log
 
+## 2026-09-07 — "three photos per post" stops being typed by hand
+
+Refactor audit 2, feed-posts-06. The cap lived in six places: `const MAX_FILES = 3` in each of the
+two upload doors, `3 - shots.length` in the composer's upload hook, `previews.length >= 3` on the
+composer's attach button, `allowed.length > 3` in `editPost`, and `MAX_IMAGES` in
+`upload-ownership-rule.ts` — the only one with an argument attached. Five of them now import the
+sixth. `upload-ownership-rule.ts` has no imports at all, by design, so the two client files pay a
+constant and nothing else.
+
+`upload-ownership.ts`'s re-export of `MAX_IMAGES`/`MAX_IMAGE_URL` went too: knip listed it unused
+and it was a second front door to one constant.
+
+The pin is a sweep, not the five-file list the audit handed over, because the copy that matters is
+the seventh one nobody counts. It refuses three shapes across non-lab `src/`: a second `MAX_IMAGES`
+-style declaration, a named photo collection compared against a literal 3, and `3 - x.length`.
+Mutation-tested in all three directions before it was believed.
+
 ## 2026-09-07 — The Collection viewer's admin flag stops being optional
 
 Found by a write-path review of Phase E unit 2, not by the audit. `toViewerImage(p, isAdmin = false)`

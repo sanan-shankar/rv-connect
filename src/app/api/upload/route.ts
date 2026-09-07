@@ -14,13 +14,14 @@ import {
   isImageFile,
   stillPictureNotice,} from "@/lib/upload-shared";
 import { vetUploadRequest } from "@/lib/api-gate";
+// The one argued-for "three photos per post" cap, from the pure rule module
+// the ownership check already uses. Each upload door used to retype it.
+import { MAX_IMAGES } from "@/lib/upload-ownership-rule";
 
-/** The proxied upload path: up to MAX_FILES images, each decoded and
+/** The proxied upload path: up to MAX_IMAGES images, each decoded and
  *  re-encoded through sharp. Same reason as the Collection page's, which
  *  carries the measurements (audit C-079). */
 export const maxDuration = 60;
-
-const MAX_FILES = 3;
 
 export async function POST(request: Request) {
   // This one takes a multipart body from any signed-in session, so the gates
@@ -50,9 +51,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No files provided" }, { status: 400 });
   }
 
-  if (files.length > MAX_FILES) {
+  if (files.length > MAX_IMAGES) {
     return NextResponse.json(
-      { error: `Maximum ${MAX_FILES} images allowed` },
+      { error: `Maximum ${MAX_IMAGES} images allowed` },
       { status: 400 }
     );
   }

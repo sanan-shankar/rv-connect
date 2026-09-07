@@ -18,6 +18,9 @@ import {
   stillPictureNotice,
 } from "@/lib/upload-shared";
 import { vetUploadRequest } from "@/lib/api-gate";
+// The one argued-for "three photos per post" cap, from the pure rule module
+// the ownership check already uses. Each upload door used to retype it.
+import { MAX_IMAGES } from "@/lib/upload-ownership-rule";
 
 /** The direct path's finish: reads each staged original back out of R2 and
  *  re-encodes it, so it does the same work as the proxied route above.
@@ -33,7 +36,6 @@ export const maxDuration = 60;
  * full 20MB original instead of a browser-downscaled copy.
  */
 
-const MAX_FILES = 3;
 // Only objects this route's own presign step created may be named, AND only
 // ones staged under the CALLER's own prefix: `staging/<their id>/...`. The
 // shape is checked here; the ownership half (the id segment must be the
@@ -63,8 +65,8 @@ export async function POST(request: Request) {
   if (keys.length === 0) {
     return NextResponse.json({ error: "No files provided" }, { status: 400 });
   }
-  if (keys.length > MAX_FILES) {
-    return NextResponse.json({ error: `Maximum ${MAX_FILES} images allowed` }, { status: 400 });
+  if (keys.length > MAX_IMAGES) {
+    return NextResponse.json({ error: `Maximum ${MAX_IMAGES} images allowed` }, { status: 400 });
   }
   const own = (k: string) => STAGING_KEY.test(k) && keyBelongsTo(k, vet.userId, "staging");
   if (!keys.every(own)) {

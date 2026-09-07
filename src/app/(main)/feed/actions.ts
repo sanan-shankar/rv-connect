@@ -23,6 +23,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { canViewPost, canViewPostOfComment, POST_NOT_VISIBLE } from "@/lib/post-visibility";
 import { storedBatchTargets } from "@/lib/post-visibility-rule";
 import { ownedUploadUrls } from "@/lib/upload-ownership";
+import { MAX_IMAGES } from "@/lib/upload-ownership-rule";
 import { escapeLike, insensitive } from "@/lib/db-text";
 import { isUniqueViolation } from "@/lib/prisma-errors";
 import { postNotificationLink, postNoun } from "@/lib/notification-links";
@@ -581,8 +582,8 @@ export async function editPost(postId: string, formData: FormData) {
         const allowed = arr.filter(
           (u) => typeof u === "string" && (current.has(u) || ownership.urls.includes(u))
         );
-        if (allowed.length > 3) {
-          imagesError = "Up to 3 photos.";
+        if (allowed.length > MAX_IMAGES) {
+          imagesError = `Up to ${MAX_IMAGES} photos.`;
         } else {
           imagesUpdate = { images: allowed.length > 0 ? JSON.stringify(allowed) : null };
           removedImages = droppedImages([...current], allowed as string[]);
