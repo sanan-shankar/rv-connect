@@ -35,8 +35,11 @@ const ICONS = {
  * Honest about being a directory: no fake inbox.
  *
  * `showSave` controls the OUTER Save-contact button only; the dialog always
- * carries its own. Surfaces that want a single CTA (Letterhead II's masthead)
- * pass false.
+ * carries its own. Surfaces that want a single CTA pass false -- the shipped
+ * letterhead does, on both of its call sites. The default is `true` and it is
+ * NOT dead: three of the /lab/profiles variants take it, which is what that
+ * room is for. (An audit called this prop unused after grepping shipped
+ * callers only.)
  *
  * `size` is the shared Button scale. "sm" (h-9) is the default because this
  * usually sits in a crowded action row; a surface where this is the page's ONE

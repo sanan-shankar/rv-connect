@@ -1,5 +1,42 @@
 # Progress Log
 
+## 2026-09-07 — four dead options removed, two kept because the lab uses them
+
+Refactor audit 2, directory-profile-17, "six props across five files". **Two of the six are not
+dead**, which is the failure mode the campaign warned about: a finder who greps shipped callers only.
+
+- `GetInTouch`'s `showSave` / `size` — **kept.** Seven call sites, five in `/lab/profiles`. Three of
+  those (passport, broadsheet, terrace) omit both and therefore run the defaults. Deleting them
+  fails TypeScript. The JSDoc says so now, so the next audit does not re-propose it.
+- `AdmissionStamp`'s `className` — **kept.** `_variant-broadsheet.tsx:673` and
+  `_variant-terrace.tsx:623` pass it. (`_variant-dossier.tsx` has its own local copy of the
+  component, which is what made the count look smaller than it is.)
+
+Removed, each re-grepped across the lab first:
+
+- `ProfileAuthorFeed`'s `layout` and its whole `"sheet"` branch — one caller, always `"cards"`. Also
+  `emptyBody`, never passed. Note this leaves `PostCard`'s `variant="sheet"` with no caller anywhere;
+  that is feed-posts territory, not this row, and `image-cdn.ts`'s comment about it is corrected
+  rather than deleted.
+- `LocationPicker`'s `disabled` — four call sites, none passes it.
+- `fullWidth`, in **three** files, not the one the finding names: `directory-client.tsx`,
+  `admin/content/content-list.tsx` and `admin/people/people-list.tsx`, plus `AdminFilterBar`'s
+  `facets: (fullWidth, compact?)` contract. Every call site passed `true`. content-list had a
+  **third** use of it the finding missed, on the "Show removed things" button.
+- `contacts-editor.tsx`'s four re-export lines. Their comment said the profile imports its
+  vocabulary from the editor; the profile imports from `@/lib/contact-rows` directly.
+
+And `renderPrimaryFacets` / `renderSecondaryFacets` become one `renderFacets(compact)`: the
+primary/secondary split served a desktop toolbar row and a "More filters" disclosure that
+`filter-popover.tsx` removed ("Every facet lives in here now"), and both callers have called the two
+in order ever since.
+
+Measured rather than eyeballed: the directory's four facets are 248x36 in the desktop popover and
+328px full-width in the 390px sheet, admin People 248x36, admin Content 248x36 — the same numbers
+the `fullWidth ? ... : undefined` produced, because every caller passed `true`.
+
+`npm run check` 105/105.
+
 ## 2026-09-07 — the houses step stops fetching a column the page already has
 
 Refactor audit 2, directory-profile-10. `/welcome` loads the member's row and hands eleven fields to

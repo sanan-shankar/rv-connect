@@ -35,13 +35,7 @@ import {
   X,
 } from "lucide-react";
 import { SPRINGS } from "@/components/common/motion";
-import {
-  buildRows,
-  newId,
-  rowsToPayload,
-  type ContactKind,
-  type ContactRow,
-} from "@/lib/contact-rows";
+import { newId, type ContactKind, type ContactRow } from "@/lib/contact-rows";
 import { joinPhoneParts, splitPhoneParts } from "@/lib/phone";
 import { PenValue } from "@/components/profile/pen";
 import {
@@ -83,11 +77,6 @@ const KIND_LABEL: Record<ContactKind, string> = {
    already have. Phones and links are lists and never run out. */
 const SINGLETON: ContactKind[] = ["email", "instagram", "linkedin", "facebook"];
 const ADDABLE: ContactKind[] = ["phone", "instagram", "linkedin", "facebook", "email", "link"];
-
-/* Re-exported so the profile keeps importing its editor's vocabulary from the
-   editor, while the round trip itself lives in a module a test can reach. */
-export { buildRows, rowsToPayload };
-export type { ContactKind, ContactRow };
 
 /**
  * A phone row's two fields: the country code and the local number, edited

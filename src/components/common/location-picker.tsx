@@ -53,7 +53,6 @@ export interface PlaceSelection {
 
 interface LocationPickerBaseProps {
   placeholder?: string;
-  disabled?: boolean;
   className?: string;
   id?: string;
   "aria-label"?: string;
@@ -186,7 +185,7 @@ function usePlaceSearch(query: string) {
 }
 
 export function LocationPicker(props: LocationPickerProps) {
-  const { placeholder, disabled, className, id } = props;
+  const { placeholder, className, id } = props;
   const ariaLabel = props["aria-label"];
 
   const initialQuery = props.mode === "single" ? (props.value?.label ?? "") : "";
@@ -337,7 +336,6 @@ export function LocationPicker(props: LocationPickerProps) {
         onOpenChange={handleOpenChange}
         itemToStringLabel={itemToStringLabel}
         autoHighlight
-        disabled={disabled}
       >
         <ComboboxInputGroup>
           <SearchIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
