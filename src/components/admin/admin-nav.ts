@@ -29,7 +29,7 @@ import {
 /** Which count from `loadAdminCounts()` belongs on the row, if any. */
 export type AdminCountKey = "waiting" | "messages" | "reports" | "photos" | "people";
 
-export interface AdminSectionDef {
+interface AdminSectionDef {
   href: string;
   label: string;
   icon: LucideIcon;

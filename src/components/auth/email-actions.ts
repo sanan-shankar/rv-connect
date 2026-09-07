@@ -26,11 +26,6 @@ import { MIN_PASSWORD } from "@/lib/password-rule";
  *  re-sendable from inside the app.
  * ------------------------------------------------------------------ */
 
-/** Matches the signup rule (src/components/auth/actions.ts) so a password that
- *  was acceptable when the account was made stays acceptable on the way back
- *  in. Raising it here alone would lock people out of resetting to something
- *  they had already been allowed to choose. */
-
 /* ---------------------------------------------------------------- *
  *  Confirm your email
  * ---------------------------------------------------------------- */

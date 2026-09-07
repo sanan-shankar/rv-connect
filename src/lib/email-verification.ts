@@ -69,5 +69,3 @@ export async function requireVerifiedEmail(): Promise<GateResult> {
   return { ok: true, user };
 }
 
-// viewerMaySeeContacts moved to member-gate.ts on 2026-08-20: contact details
-// are a Stage 2 capability under the trust model, not a Stage 1 one.

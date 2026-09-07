@@ -15,11 +15,11 @@ export const metadata: Metadata = {
  * The gate for every /admin route, and the one place the rail's counts are
  * fetched.
  *
- * The guard used to live in the single admin page. There are eleven routes
- * now, and a guard that has to be remembered per route is a guard that will
- * be forgotten on one of them. Server actions still check the role for
- * themselves (`requireAdmin()` in admin-actions.ts): a layout guard governs
- * navigation, not authorisation.
+ * The guard used to live in the single admin page. It governs every route
+ * under /admin now, because a guard that has to be remembered per route is a
+ * guard that will be forgotten on one of them. Server actions still check the
+ * role for themselves (`requireAdminAction()` in `lib/admin.ts`): a layout
+ * guard governs navigation, not authorisation.
  */
 export default async function AdminLayout({
   children,
