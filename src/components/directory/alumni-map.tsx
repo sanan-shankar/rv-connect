@@ -434,8 +434,6 @@ export function AlumniMap({
     if (transform.k > maxZoom) select(svgRef.current).call(zb.scaleTo, maxZoom);
   }, [maxZoom, transform.k]);
 
-
-
   /** Centre (x, y) at scale k. scaleTo + translateTo rather than a hand-built
    *  transform so d3 runs its own constraints (scaleExtent, translateExtent):
    *  a cluster near the edge of the world can no longer park the map off its
@@ -510,7 +508,6 @@ export function AlumniMap({
         // and they are real buttons.
         role="group"
         aria-label="World map of where members live"
-        // on click, which runs after pointerdown, so tapping one still works.
       >
         <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
           {landPaths.map((d, i) => (
@@ -630,7 +627,6 @@ export function AlumniMap({
           })}
         </g>
       </svg>
-
 
       {/* Zoom controls. Fullscreen on mobile adds a dedicated exit pill in this
           same corner (below), so these drop down to clear it; sm: and up

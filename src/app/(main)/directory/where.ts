@@ -29,13 +29,6 @@ export type DirectoryFilters = {
 };
 
 /**
- * Build the Prisma `where` for the directory from a set of filters. Shared by the
- * server page (first SSR page) and the Load more server action so both pages of a
- * result set are filtered identically. City filtering matches ANY of a person's
- * `UserPlace` cities (not just a primary/secondary pair) and search is
- * case-insensitive where the provider allows it.
- */
-/**
  * The three year inputs, parsed once.
  *
  * parseBatchYear, not Number(): `Number("abc")` is NaN, and NaN reached Prisma
@@ -63,6 +56,13 @@ export function parseDirectoryYears(filters: DirectoryFilters): {
   };
 }
 
+/**
+ * Build the Prisma `where` for the directory from a set of filters. Shared by the
+ * server page (first SSR page) and the Load more server action so both pages of a
+ * result set are filtered identically. City filtering matches ANY of a person's
+ * `UserPlace` cities (not just a primary/secondary pair) and search is
+ * case-insensitive: Postgres, and only Postgres, since 2026-07-01 (db-text.ts).
+ */
 export function buildDirectoryWhere(filters: DirectoryFilters): Record<string, unknown> {
   const { showingYear, yearFrom, yearTo } = parseDirectoryYears(filters);
 

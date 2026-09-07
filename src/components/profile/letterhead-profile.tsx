@@ -47,7 +47,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
-import { Check, Pencil } from "lucide-react";
+import { Camera, Check, Pencil, X } from "lucide-react";
 import { m, AnimatePresence, useAnimationControls } from "motion/react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { VerifiedMark } from "@/components/common/verified-mark";
@@ -82,7 +82,6 @@ import { SegmentedPills } from "@/components/common/segmented-pills";
 import { updateUserPlaces, requestAccountDeletion } from "@/components/settings/actions";
 import { Input } from "@/components/ui/input";
 import { useAvatarUpload } from "@/components/settings/avatar-upload";
-import { Camera, X } from "lucide-react";
 import { callAction } from "@/lib/call-action";
 import {
   updateProfileField,
@@ -204,11 +203,6 @@ const PAPER_GRAIN =
       "<rect width='100%' height='100%' filter='url(#n)'/></svg>"
   );
 
-/**
- * The identity lockup's geometry, declared once and then derived from. The
- * photo circle and the action pill both have to agree with the name's type,
- * so both are calc()ed off these instead of carrying magic numbers.
- */
 /* ------------------------------------------------------------------ *
  *  THE COLOPHON: the mark and the admission number, as one lockup.
  *
@@ -247,6 +241,11 @@ const COLOPHON = {
   numberNudge: 1,
 } as const;
 
+/**
+ * The identity lockup's geometry, declared once and then derived from. The
+ * photo circle and the action pill both have to agree with the name's type,
+ * so both are calc()ed off these instead of carrying magic numbers.
+ */
 const IDENTITY_VARS = {
   "--lh-colophon": "1rem", // the colophon row's fixed height: 16px
   "--lh-gap": "0.5rem", // colophon -> name: 8px
@@ -323,9 +322,6 @@ export function LetterheadProfile({
   subjects?: string | null;
   houseSpans: HouseSpan[];
   contactMethods: ContactMethod[];
-  /** True when the VIEWER has not confirmed their own email, so this person's
-   *  details were deliberately never serialized. Distinct from an empty
-   *  `contactMethods`, which means the member shared nothing. */
   /** Which gate is between the VIEWER and these contact details, if any:
    *  "email" = confirm your address (Stage 1), "member" = wait on profile
    *  verification (Stage 2). Decides which card the locked pill opens. */
@@ -640,10 +636,6 @@ export function LetterheadProfile({
   /* About shows for a stranger only when there is something to read. On your
      own profile the empty state is a prompt, which is worth the space. */
   const showAbout = Boolean(aboutText) || isOwnProfile;
-  /* `hasBody` used to gate the engraved rule under the facts. The rule is
-     deleted (see the note at the end of the masthead), and nothing else needs
-     to know whether a body follows, so it went with it. */
-
   /* The stamp: pressed on demand, held a moment, faded away. */
   const [stamp, setStamp] = useState(0);
   const stampTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

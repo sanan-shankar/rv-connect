@@ -1,6 +1,7 @@
 /* slug -> chapter. Kept beside the chapters rather than in guide-areas.ts so
-   that the area list stays a plain data module the sidebar and the door can
-   import without pulling six React components in behind it. */
+   that the area list stays a plain data module: /guide's index lists the
+   areas, and guide-layer picks one out of the path, without either of them
+   pulling six React components in behind it. */
 
 import { FeedChapter } from "./feed";
 import { DirectoryChapter } from "./directory";

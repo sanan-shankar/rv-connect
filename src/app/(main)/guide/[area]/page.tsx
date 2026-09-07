@@ -2,15 +2,15 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { GUIDE_AREAS, findGuideArea } from "@/lib/guide-areas";
+import { findGuideArea } from "@/lib/guide-areas";
 import { CHAPTERS } from "@/components/guide/chapters";
 
-/* Static, so a chapter costs nothing to serve and nothing to render. There is
-   no per-member state anywhere in the guide by design (docs/spec/guide.md
-   section 8): no "you have read this", no dismissal, no badge. */
-export function generateStaticParams() {
-  return GUIDE_AREAS.map((a) => ({ area: a.slug }));
-}
+/* A plain page with no per-member state, by design (docs/spec/guide.md
+   section 8): no "you have read this", no dismissal, no badge. It is still
+   rendered per request, not prerendered -- `generateStaticParams` used to sit
+   here and could never do anything, because the root layout reads the theme
+   cookie in both `generateViewport` and its body and that opts every route in
+   the app into dynamic rendering. */
 
 export async function generateMetadata({
   params,
@@ -31,7 +31,7 @@ export default async function GuideChapterPage({
   const { area } = await params;
   const found = findGuideArea(area);
   const Chapter = found ? CHAPTERS[found.slug] : undefined;
-  /* A row in GUIDE_AREAS with no component is a link to nowhere, so it 404s
+  /* An area with no component is a link to nowhere, so it 404s
      loudly here rather than rendering an empty page. */
   if (!found || !Chapter) notFound();
 

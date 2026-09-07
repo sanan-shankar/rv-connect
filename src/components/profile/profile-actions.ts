@@ -251,24 +251,6 @@ export async function updateProfileField(field: ProfileField, raw: string) {
   return { success: true };
 }
 
-/**
- * The contact block: phones, the three socials, the display email and the
- * labelled links, all of which the editable profile edits as one list.
- * Written together because they are one list on screen; splitting them into
- * eight actions would only mean eight round trips for one drag of the mouse.
- */
-/**
- * The reason one set of years cannot all be true, or null when they can.
- *
- * Only the orderings that are impossible rather than merely unusual: a very
- * short stay, a batch far ahead of the leaving year, a teacher still teaching
- * (no `taughtUntil`) are all real. Leaving before arriving is not, and neither
- * is a cohort finishing 12th before the person left the school -- which is
- * what `batchTypeFromLeaving` already refuses to derive a credential from.
- */
-/* The cross-field year rule lives in batch-year.ts, because signup asks for
-   the same four numbers and used to answer differently (C-043). */
-
 /** A trimmed string, or "" for anything that is not one. */
 function text(v: unknown): string {
   return typeof v === "string" ? v.trim() : "";
@@ -279,6 +261,12 @@ function asArray(v: unknown): unknown[] {
   return Array.isArray(v) ? v : [];
 }
 
+/**
+ * The contact block: phones, the three socials, the display email and the
+ * labelled links, all of which the editable profile edits as one list.
+ * Written together because they are one list on screen; splitting them into
+ * eight actions would only mean eight round trips for one drag of the mouse.
+ */
 export async function updateContactMethods(input: {
   displayEmail: string | null;
   /** Whether the profile offers an email at all. See the write below. */

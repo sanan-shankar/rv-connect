@@ -7,7 +7,7 @@
  * appreciate each one because the one next to it is crowding it". So the
  * grid here runs at the /birds gallery's own scale, five columns at most
  * with 96px glyphs and a name under each, and it borrows the interaction he
- * singled out as "so nice" on the fourteen-bird plate: pointing at one bird
+ * singled out as "so nice" on the twelve-bird plate: pointing at one bird
  * slowly dims the rest, so the one under the cursor gets the whole stage.
  *
  * Choosing is two deliberate steps, because an avatar change lands
@@ -102,7 +102,7 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
                   // the app's standard story instead: the state-layer tint on
                   // the cell you are over plus the name stepping up to the
                   // reading colour, which together say "clickable" without
-                  // touching the rest of the grid. The fourteen-bird plate on
+                  // touching the rest of the grid. The twelve-bird plate on
                   // /support keeps its spotlight; that page is a preview, not
                   // a choice among fifty. Selection stays the canopy wash.
                   isSelected ? "bg-canopy/10" : "state-layer"

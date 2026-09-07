@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 
    This page is the SUPPORT page only. Picking a bird lives at /pick-bird
    (owner: "the support page should be the support page"); a successful
-   payment redirects there, and everyone else sees the fourteen-bird plate
+   payment redirects there, and everyone else sees the twelve-bird plate
    with its point-to-name interaction, eligible or not. */
 
 export default async function SupportPage() {

@@ -199,7 +199,6 @@ export function DirectoryClient({
   const listGeneration = useRef(0);
 
   useEffect(() => {
-    // Resyncs the list from freshly server-rendered props when the query changes. The server is the source of truth here; this mirrors it into the local paging state.
     listGeneration.current += 1;
     setResults(users);
     setCursor(nextCursor);
@@ -542,16 +541,6 @@ export function DirectoryClient({
        Harmless for the People and Batches views: they are taller than the
        screen anyway and a flex column grows past it exactly as a block did. */
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* Search rides on the title line, as the app's one expand-on-press
-          pill, exactly as the Collection's river does it (spec sec. 6). It was
-          a full-width bar owning a whole row of the page for a control most
-          visits never touch (owner, 2026-08-28: "compress the search button").
-
-          It cannot live in the control row below, which is where it was first
-          put: the pill opens as an OVERLAY rather than reflowing its row, and
-          at 390px an open field is 68vw -- it swallowed the Map/Batches toggle
-          and the back arrow whole, and a phone has no Escape key to shut it
-          with. Over a page title it covers nothing anybody can press. */}
       {/* Search and Filters TOGETHER on the title line (owner, 2026-08-28:
           "move the filters to the right of the search"). Two controls of the
           same weight, in the corner where every other page in the app keeps
