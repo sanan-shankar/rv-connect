@@ -247,20 +247,6 @@ export const REGISTRY: LabEntry[] = [
     note: "Four gates decide whether a border is earned; scores eight real surfaces against them, a feed post passes 4 of 4 while a Catch-up row passes 1.",
   },
   {
-    href: "/lab/houses",
-    title: "The houses picker, refined",
-    group: "Second look",
-    status: "active",
-    note: "Same year-by-year auto-advance flow the owner liked; what changed is the panel becoming a bottom sheet below 1024px, the radius ladder, and the touch target size.",
-    children: [
-      {
-        href: "/lab/houses/demo",
-        title: "Demo target",
-        note: "Bare render target with no lab chrome, loaded inside the houses room's two iframes so the mobile picker genuinely sees a 390px window. Not meant to be browsed directly.",
-      },
-    ],
-  },
-  {
     href: "/lab/type",
     title: "The font question",
     group: "Second look",

@@ -440,8 +440,8 @@
        ink beside it. Measured against the cap band of "1,240 photographs ·
        Newest": 1.02px low at 13px, which is 0.078em.
 
-       `vertical-align` is for the four INLINE sites (house-picker,
-       alumni-map), where flex alignment does not apply and this does. It is
+       `vertical-align` is for the INLINE sites (the map pin's drilldown,
+       alumni-map.tsx), where flex alignment does not apply and this does. It is
        0.135em rather than the 0.215em that would centre the dot on the caps
        on its own, because `top` above has already lifted it 0.078em and
        applies in both contexts: 0.328 (half the cap height) - 0.115 (half the

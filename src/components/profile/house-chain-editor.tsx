@@ -33,7 +33,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { HouseTrail, HOUSE_INK } from "@/components/profile/houses-chain";
-import { HouseOptions } from "@/components/common/house-picker";
+import { HouseOptions } from "@/components/common/house-options";
 import {
   Popover,
   PopoverContent,

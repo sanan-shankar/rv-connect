@@ -20,8 +20,9 @@ import type { OnboardingUser } from "../types";
  *  its colour and the next year appears; the same house twice running
  *  collapses into one pill.
  *
- *  This step used to be a column of year rows with a HousePicker on each
- *  and a read-only HouseTrail floating above them as a preview. Two
+ *  This step used to be a column of year rows with a one-year house
+ *  picker on each (deleted 2026-09-07, it outlived its last caller) and a
+ *  read-only HouseTrail floating above them as a preview. Two
  *  drawings of one fact, which is one too many: the chain editor IS the
  *  preview, so the preview and the thing you are editing can no longer
  *  disagree. It also means somebody meets this interaction once, on the

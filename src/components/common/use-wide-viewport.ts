@@ -14,9 +14,10 @@ import { useEffect, useState } from "react";
  * False until the first effect runs, so the server and the first client frame
  * agree and nothing flips shell during hydration.
  *
- * The house picker and the house-chain editor each carried this, and the
- * editor's copy said so out loud: "Same test, and the same reasoning, as the
- * shipped HousePicker".
+ * Extracted because the house-chain editor and the year-row house picker each
+ * carried a copy. The picker itself was deleted on 2026-09-07 (owner: "delete
+ * the whole house picker lab we don't need it"); the editor still uses this,
+ * and so does anything else that must choose a shell rather than a side.
  */
 export function useWideViewport(): boolean {
   const [wide, setWide] = useState(false);

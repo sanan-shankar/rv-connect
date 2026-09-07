@@ -36,8 +36,8 @@ export function FilterSheet({
         </SheetHeader>
         <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">{children}</div>
         {/* This is the one sheet in the app with a persistent CTA sitting
-            flush against the screen's own bottom edge -- house-picker and
-            guide-overlay's bottom sheets are either short of full height or
+            flush against the screen's own bottom edge -- the house-chain
+            editor's and guide-overlay's bottom sheets are either short of full height or
             already generously padded, but this footer's plain `p-4` put
             "Show N" right up against a home indicator with nothing but 16px
             between them (viewport-fit=cover in the root layout means that
