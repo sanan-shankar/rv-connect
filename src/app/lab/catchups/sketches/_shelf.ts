@@ -413,6 +413,12 @@ export function homeVariants(
   const answering = all.find((c) => c.state === "answering") ?? all[0];
   return [
     { key: "collecting", label: "Collecting", c: by("sunday-four") },
+    /* The same state, on a Catch-up that has never published anything -- so
+       the sidebar has no back numbers to draw and shows the placeholder
+       instead. It is a variant of its own because it is the state most members
+       will be in on day one and there was no way to look at it: "i'd also like
+       to see the placeholder sidebar for when there's no previous issues." */
+    { key: "first", label: "First Round", c: by("batch-1978") },
     { key: "answering", label: "Answering", c: answering },
     { key: "published", label: "Published", c: by("crimes") },
     /* A hold is a mark on a live Round, so the illustrative case is a Round

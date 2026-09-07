@@ -161,6 +161,7 @@ too, which he allowed in ¶28.
 | S4d Fine-tuning, round one | DONE | 2026-09-07 evening, four commits. The reader's rail magnification rebuilt from scratch on the app's own motion-value mechanism; the home rebuilt around two doors on the picture and a sidebar of back numbers; answering and the questions panel brought onto the page; the type rule written down. `npm run check` green, `npm run visual` 25/25 |
 | The composer, the picture's crop | PARTIAL | The composer's *shape* is drawn, on the home, because he asked for it there. What is not drawn: the photo attachment flow, the song field, the photo-wall question, and the crop-at-creation surface. The people surface is DONE (a dialog and a sheet, off the sidebar) |
 | The settings surface, refined | OPEN | **his, and he has said he will take it in a session of its own.** It is a real settings list now rather than a column of verbs, and he called it *"very bare bones"* before that and has not called it finished since |
+| **S-features, the second brainstorm** | OPEN | **He has asked twice that this not be lost.** 2026-09-07: *"in my initial request for the catch ups rework I also requested a brainstorm on and research into more features we can incorporate for instance a photo wall round and that can be shown nicely on the reader in a unique way and maybe some other stuff ... have a think and see what people would want and what letterloop and any other similar guys do now. I don't want you to do it in this session but I had requested it at some point and I wanna make sure it gets done at some point and it hasn't been written out of the brief completely."* It has not been: it is ¶16, ¶49 and ¶50 in the brief and rows R15, R16 and P22 in the ledger below. What is missing is a SESSION that does it, and this row is that session. See "S-features" below |
 | S3b Second round | OPEN | only if he asks for one after browsing the shape |
 | S5 Pick and spec | OPEN | blocked on his verdict. `architecture.md` is most of what a spec has to say about structure; S5 adds his picks and the copy |
 | S6+ Build | OPEN | blocked on S5 |
@@ -1315,6 +1316,43 @@ the feed's `toggleLike` comment, which already says what the rule is.
 
 ---
 
+## S-features: the second brainstorm (a session of its own, not folded into a build)
+
+**His, and the reason this row exists**, 2026-09-07: he asked for feature research early in the
+campaign, watched it become a handful of ledger rows, and asked for it to be a piece of work rather
+than a footnote. His words are on the board above, verbatim.
+
+**What it is NOT.** Not a redraw of anything at `/lab/catchups/sketches`; the shape is settled and
+he has signed off on it. Not the build. This session asks what a Catch-up should be able to *hold*
+that it currently cannot.
+
+**The three things already in the brief that it owns**, so nothing is re-derived:
+
+- **A photo-wall Round** (¶16, ¶49; ledger R16, D10). *"we definitely have to add a photo wall for
+  questions where people can just add photos, but it needs to be modular and work with everything
+  else."* A photo-wall question exists as a `promptKind` in `catchups-types.ts` and has never been
+  drawn. The interesting half is his: how a wall of twenty-four photographs is READ, in the reader,
+  in a way that is not a grid. The pressure corpus already carries one.
+- **Link previews on any pasted link** (¶16, ¶50; ledger R15, D9). Half-built: `_media.ts` in the
+  sketch room resolves Spotify and YouTube out of body text, and F29/F30 found the shipped resolver
+  has never once run end to end. What is undecided is which hosts, where the resolved metadata is
+  stored, and the fail-soft rule.
+- **The Letterloop parity list** (¶49; ledger P22). *"a lot of the things that were there in
+  Letterloop aren't there ... those kind of tiny things."* `prior-art.md` §1 has words and no
+  pixels, and F15 says not to lean on it. This wants looking at the product again, plus whoever
+  else is in this space now.
+
+**And the part that is genuinely open**: what ELSE a Round could hold. He said *"maybe some other
+stuff"* and *"see what people would want"*, which is an invitation to propose rather than a list to
+implement. Bring him a shortlist with a sentence each, the way the owner-questions block does, and
+let him cut it.
+
+**Where it sits.** After S5's spec and before or beside the build, because two of the three are
+already LOCKED decisions (D9, D10) that the build has to carry anyway; a photo wall's *reading*
+surface is the only one that could change a page already drawn.
+
+---
+
 ## Operational context
 
 So none of it is explained twice. It matches the collection campaign's, plus what has been
@@ -2063,6 +2101,11 @@ the build or specified and drawn inside it.
 
 Do not redraw anything in the room. If you think a drawn decision is wrong, say so in a
 sentence and let him decide.
+
+One thing to carry, not to do: he has asked twice that the FEATURE brainstorm not be lost --
+a photo-wall Round and how it is read, link previews on any pasted link, the Letterloop
+parity list, and whatever else a Round could hold. It is the "S-features" section in this
+file. Say in the spec where it lands relative to the build phases.
 ```
 
 ### What that session must know, and would otherwise learn the hard way
