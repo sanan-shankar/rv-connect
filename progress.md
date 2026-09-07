@@ -1,5 +1,25 @@
 # Progress Log
 
+## 2026-09-07 — the Playwright suite signs in the way everything else does
+
+Refactor audit 2, `scripts-e2e-ci-14`. `e2e/auth.setup.ts` hand-rolled the dev-login that
+`scripts/qa/_dev-login.mjs` was written to own — the tenth copy of the block that helper deleted
+nine of, in the one file nobody thinks of as a QA script. `devLoginContext` existed for Playwright
+and Playwright alone and had no caller at all; it has one now.
+
+Three behaviours had already diverged and the helper's are the right ones: it passes
+`redirect: "error"`, so a proxy that stops treating `/api/dev-login` as public fails loudly instead
+of following the bounce to `/login` and reporting a confusing missing cookie; it names both cookie
+spellings instead of trusting `storageState` to pick up whatever is there; and its 404 message
+lists all three causes. Its own `requireSecret` throws a better message than the local
+DEV_LOGIN_SECRET check, so that check and the ADMIN_EMAIL one are gone.
+
+Kept on purpose: the `goto("/")` plus `assertSameOriginAfterNavigation` — the helper does not
+navigate, and the origin has to be checked before a cookie is minted against it — and the
+`/feed` redirect assertion, which proves the cookie authenticates rather than trusting a 200.
+Gate: `playwright test --project=setup` passes in 2.6s.
+
+
 ## 2026-09-07 — one answer to which Chrome, and mobile shots that are actually mobile
 
 Refactor audit 2, Phase E: `scripts-e2e-ci` 03, 04 and 15, which the campaign file says are one

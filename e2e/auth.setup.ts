@@ -1,5 +1,6 @@
 import { test as setup, expect } from "@playwright/test";
 import { assertSameOriginAfterNavigation } from "../scripts/qa/local-base-url.mjs";
+import { devLoginContext } from "../scripts/qa/_dev-login.mjs";
 
 const AUTH_FILE = "e2e/.auth/admin.json";
 
@@ -8,38 +9,27 @@ const AUTH_FILE = "e2e/.auth/admin.json";
  * plus DEV_LOGIN_SECRET, get a NextAuth JWT cookie back. Saved to disk so the
  * 30-odd visual checks below do not each pay for a sign-in.
  *
+ * Through `_dev-login.mjs`, which exists to own exactly this and ships
+ * `devLoginContext` for Playwright and nothing else. This file was the tenth
+ * hand-copy of the block that helper was written to delete -- the one file
+ * nobody thought of as a QA script -- and three behaviours had already
+ * diverged: the helper refuses to follow a redirect (a proxy that does not
+ * treat /api/dev-login as public fails loudly instead of reporting a
+ * confusing missing cookie), it knows both cookie names rather than trusting
+ * `storageState` to catch whatever is there, and its 404 message names all
+ * three causes. Its `requireSecret` throws the better message when
+ * DEV_LOGIN_SECRET is missing, so that check is gone from here too.
+ *
  * This replaced /api/auth/admin-login, which needed no secret at all and
  * existed on the live site (security audit C1-b). */
 setup("authenticate as admin", async ({ page, baseURL }) => {
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (!adminEmail) {
-    throw new Error(
-      "ADMIN_EMAIL missing from .env -- authenticated QA cannot run. " +
-        "See CLAUDE.md > Screenshots.",
-    );
-  }
-  const devLoginSecret = process.env.DEV_LOGIN_SECRET;
-  if (!devLoginSecret) {
-    throw new Error(
-      "DEV_LOGIN_SECRET missing from .env -- authenticated QA cannot run. " +
-        "Generate one with `openssl rand -base64 32`. See CLAUDE.md > Screenshots.",
-    );
-  }
-
   await page.goto("/");
   /* The cookie is about to be minted for whatever origin we are on. If a
-   * redirect moved us off loopback, stop before that happens. */
+   * redirect moved us off loopback, stop before that happens. The helper does
+   * not navigate, so this stays here and stays first. */
   assertSameOriginAfterNavigation(baseURL!, page.url());
 
-  const res = await page.request.post("/api/dev-login", {
-    data: { email: adminEmail, secret: devLoginSecret },
-  });
-  expect(
-    res.ok(),
-    `dev-login returned ${res.status()}. A 404 means NODE_ENV is production, ` +
-      `DEV_LOGIN_SECRET is unset/short, or it did not match. Is the dev server up ` +
-      `and ADMIN_EMAIL a real account?`,
-  ).toBeTruthy();
+  await devLoginContext(page.context(), baseURL!);
 
   /* Prove the cookie actually authenticates rather than trusting the 200:
    * / redirects to /feed only for a signed-in member. */
