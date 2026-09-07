@@ -10592,3 +10592,30 @@ Notion-width banner.
 `npm run check` green. `npm run visual` red on `/catchups` at both viewports and it is not this
 work: the diff touches no shipped file, and that route photographs live data he was adding test
 Catch-ups to while this ran. Baselines deliberately left alone rather than baking a throwaway in.
+
+## 2026-09-07 — The install button, and Samsung's broken minting server
+
+The owner pressed Install on his Galaxy and Android answered with a red Play Protect sheet: *"Unsafe
+app blocked. This app was built for an older version of Android and doesn't include the latest
+privacy protections."*
+
+Nothing is wrong with this site. Android installs a web app as a real signed package, and that
+package is built on the browser vendor's own minting server, not by us — so `src/app/manifest.ts`,
+which is complete and correct, has no say in it. Chrome's server stamps a current
+`targetSdkVersion`; **Samsung Internet's is stamping one below 34**, which Android 14 and up refuse
+to sideload. It is a live Samsung bug hitting every installable web app, not just this one;
+Progressier gave up and started routing Samsung users to Chrome in March.
+
+Which is what the tile now does. A third road beside iOS and Chromium: `isSamsung()` next to the
+existing `isApple()` sniff, and an **Open in Chrome** button that fires an Android `intent://` URL
+carrying the current address, falling back to Chrome's Play Store listing on a phone that has none.
+Deleting `isSamsung` is the entire undo if Samsung ever ships a fix.
+
+Verified the tile's own geometry rather than guessing: injected both roads' markup against the real
+stylesheet at 390x844 and measured. The new copy wraps to two lines and the card comes out at
+**133px, identical to the Chromium tile beside it**, so the longer sentence costs no height. The
+`intent://` hand-off itself is untested — that needs an actual Android phone, and it is the one
+thing here I could not prove.
+
+Timing was lucky. The tile is still admin-gated (`profile/[id]/page.tsx:455`), so no alumnus ever
+saw this, and Samsung is a large share of Android in India.

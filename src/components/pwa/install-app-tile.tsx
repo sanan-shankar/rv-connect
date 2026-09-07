@@ -12,7 +12,7 @@
  *  other half: never appear on a desktop, and never appear to somebody
  *  who is already using the installed app.
  *
- *  Two roads in, because there are only two:
+ *  Three roads in:
  *
  *    Android, and any Chromium browser: a real one-press install. The
  *    browser hands over a `beforeinstallprompt` event, we hold it (see
@@ -22,6 +22,16 @@
  *    Apple does not expose it, to anybody, at all. The ceiling on iOS is
  *    telling somebody where the button already is, so that is what this
  *    does rather than pretending at a control that cannot exist.
+ *
+ *    Samsung Internet: the event fires and the install then FAILS. Android
+ *    installs a web app as a real package, built on the browser vendor's
+ *    own minting server -- and Samsung's is stamping a targetSdkVersion
+ *    below 34, which Android 14 and up refuse to sideload. So our own
+ *    Install button hands the member a red Play Protect "Unsafe app
+ *    blocked" sheet (owner, 2026-09-07, on a Galaxy). Nothing in
+ *    src/app/manifest.ts changes that; we do not build the package.
+ *    Samsung is therefore sent to Chrome, whose minting server is current.
+ *    Revisit if Samsung ships a fix -- deleting isSamsung is the whole undo.
  * ------------------------------------------------------------------ */
 
 import { useState, useSyncExternalStore } from "react";
@@ -31,7 +41,7 @@ import { Button } from "@/components/ui/button";
 import { useInstallPrompt } from "@/components/pwa/install-prompt";
 
 /** What this device can be offered, before we know whether Chrome has spoken. */
-type Device = "unknown" | "hidden" | "ios" | "chromium";
+type Device = "unknown" | "hidden" | "ios" | "samsung" | "chromium";
 
 /**
  * iOS, including an iPad that reports itself as a Mac.
@@ -46,6 +56,17 @@ function isApple() {
   const ua = navigator.userAgent;
   if (/iPhone|iPad|iPod/.test(ua)) return true;
   return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+}
+
+/**
+ * Samsung Internet, whose install is broken end to end (see the header).
+ * Chromium underneath, so `beforeinstallprompt` fires happily and everything
+ * looks right up until Android refuses the package -- which is exactly why
+ * this cannot be a feature test. `SamsungBrowser/` has been in their user
+ * agent since the browser existed.
+ */
+function isSamsung() {
+  return /SamsungBrowser\//.test(navigator.userAgent);
 }
 
 /** Already running as an app: iOS answers on navigator, everyone else on CSS. */
@@ -78,7 +99,8 @@ function readDevice(): Device {
      being touched?") and the class on the tile is the belt to its braces. A
      touchscreen laptop is coarse-pointered AND wide, so it needs both. */
   if (!window.matchMedia("(pointer: coarse)").matches) return "hidden";
-  return isApple() ? "ios" : "chromium";
+  if (isApple()) return "ios";
+  return isSamsung() ? "samsung" : "chromium";
 }
 
 export function InstallAppTile() {
@@ -92,7 +114,8 @@ export function InstallAppTile() {
      told where its own menu is, since the event may simply not have fired yet
      (thirty seconds and a tap) and an Install button that does nothing would
      be worse than a sentence. */
-  const road = device === "ios" ? "ios" : ready ? "prompt" : "menu";
+  const road =
+    device === "ios" ? "ios" : device === "samsung" ? "samsung" : ready ? "prompt" : "menu";
 
   return (
     /* Byte-for-byte the dark mode tile's surface above it, because it is the
@@ -110,9 +133,11 @@ export function InstallAppTile() {
         <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
           {road === "ios"
             ? "Rishi Valley opens like an app, without the browser bar."
-            : road === "prompt"
-              ? "One press and it sits with your other apps, opening without the browser bar."
-              : "Your browser can add it from its own menu. It then opens like an app, without the browser bar."}
+            : road === "samsung"
+              ? "Samsung's browser adds it in a way Android now blocks. Chrome doesn't, so this opens it there. Add it from Chrome's menu."
+              : road === "prompt"
+                ? "One press and it sits with your other apps, opening without the browser bar."
+                : "Your browser can add it from its own menu. It then opens like an app, without the browser bar."}
         </p>
       </div>
 
@@ -142,6 +167,31 @@ export function InstallAppTile() {
             Add to Home Screen.
           </span>
         </p>
+      ) : road === "samsung" ? (
+        /* An Android intent URL, the one way a page can hand its own address
+           to a named app. Every Chromium browser honours it and Samsung
+           Internet is one. `S.browser_fallback_url` covers the phone with no
+           Chrome on it: the Play Store listing, since "get Chrome" is the
+           honest answer to that case rather than reopening where we already
+           are. Built from `location` at click time so it is right on the
+           demo, on localhost and in production without knowing which. */
+        <Button
+          variant="primary"
+          size="sm"
+          className="w-fit rounded-full"
+          onClick={() => {
+            const here = new URL(window.location.href);
+            const fallback = encodeURIComponent(
+              "https://play.google.com/store/apps/details?id=com.android.chrome",
+            );
+            window.location.href =
+              `intent://${here.host}${here.pathname}#Intent;` +
+              `scheme=${here.protocol.replace(":", "")};package=com.android.chrome;` +
+              `S.browser_fallback_url=${fallback};end`;
+          }}
+        >
+          Open in Chrome
+        </Button>
       ) : road === "prompt" ? (
         <Button
           variant="primary"
