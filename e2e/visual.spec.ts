@@ -168,17 +168,44 @@ async function markLiveBand(page: Page) {
     if (!main) return 0;
     const top = main.getBoundingClientRect().top;
     let n = 0;
+    let foot = 0;
+    let left = Infinity;
+    let right = -Infinity;
     const visit = (el: Element) => {
       for (const child of Array.from(el.children)) {
         const r = child.getBoundingClientRect();
         if (r.height === 0) continue;
         if (r.top - top >= 50) {
           child.setAttribute("data-visual-live", "");
+          foot = Math.max(foot, r.bottom);
+          left = Math.min(left, r.left);
+          right = Math.max(right, r.right);
           n += 1;
         } else visit(child);
       }
     };
     visit(main);
+    /* Masking the marked boxes alone covers the band at TODAY's height, so
+       the strip between the band's foot and the viewport's was still being
+       compared -- and that strip is empty background only until the content
+       grows into it. Six more Catch-ups arrived, the band got 160px taller
+       on both viewports, and the suite went red for a database write. That
+       is the exact cry-wolf the masking above exists to prevent. The block
+       comment already stated the intent -- "the content under the page
+       header is covered" -- so this is that sentence implemented.
+       Constrained to the band's OWN x-range, never the full viewport: the
+       sidebar, the two gutters and the background sit outside it and the
+       comment above promises they are still compared. `position: fixed` so
+       appending it reflows nothing, and it dies with the context. */
+    if (n > 0 && foot < window.innerHeight) {
+      const tail = document.createElement("div");
+      tail.setAttribute("data-visual-live-tail", "");
+      tail.style.cssText =
+        `position:fixed;bottom:0;pointer-events:none;` +
+        `top:${Math.floor(foot)}px;left:${Math.floor(left)}px;` +
+        `width:${Math.ceil(right - left)}px`;
+      document.body.appendChild(tail);
+    }
     return n;
   });
   /* Nothing marked means the shape of the page changed under the rule and
@@ -189,7 +216,8 @@ async function markLiveBand(page: Page) {
 
 /** What each live route masks, beyond the volatile bits every route masks. */
 function liveRegions(page: Page, route: Route) {
-  if (route.live === "band") return [page.locator("[data-visual-live]")];
+  if (route.live === "band")
+    return [page.locator("[data-visual-live]"), page.locator("[data-visual-live-tail]")];
   if (route.live === "map")
     return [
       /* The map drawing itself. `touch-none select-none` is functional --
