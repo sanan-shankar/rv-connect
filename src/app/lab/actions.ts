@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { requireAdminAction } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { REGISTRY } from "./_registry";
 import { isMissingLabTable } from "./_archive-state";
@@ -21,14 +21,13 @@ export async function setArchived(
   href: string,
   archived: boolean
 ): Promise<{ ok: boolean; error?: string }> {
-  /* This write is gated on the session role exactly like the moderation
-     actions
-     (collection/actions.ts), not on an env check. Local dev keeps the old
+  /* Gated on the role through the one shared guard, exactly like the
+     moderation actions, not on an env check. Local dev keeps the old
      frictionless behaviour with no sign-in, because the only person at a dev
      server is the owner and the old NODE_ENV gate was never a complaint. */
   if (process.env.NODE_ENV !== "development") {
-    const session = await auth();
-    if (session?.user?.role !== "admin") return { ok: false, error: "Not authorized." };
+    const denied = await requireAdminAction();
+    if (denied) return { ok: false, ...denied };
   }
 
   /* Only a registered top-level room may hold state: children archive with
