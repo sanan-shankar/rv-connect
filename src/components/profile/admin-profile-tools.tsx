@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Shield, Ban, Trash2, StickyNote, BadgeCheck, BadgeX } from "lucide-react";
+import { useAdminAct } from "@/components/admin/use-admin-act";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -29,82 +31,26 @@ export function AdminProfileTools({
   adminNote: string | null;
   verifyState: string;
 }) {
+  const router = useRouter();
   const [note, setNote] = useState(adminNote || "");
-  const [blocked, setBlocked] = useState(isBlocked);
-  const [verified, setVerified] = useState(verifyState === "verified");
-  const [verifying, setVerifying] = useState(false);
-  const [saving, setSaving] = useState(false);
-
   const [dialog, setDialog] = useState<"block" | "delete" | "verify" | null>(null);
 
-  async function handleBlock() {
-    const action = blocked ? "unblock" : "block";
-    try {
-      const result = await adminBlockUser(userId, !blocked);
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        setBlocked(!blocked);
-        toast.success(`User ${action}ed`);
-      }
-    } catch {
-      toast.error("Something went wrong. Please try again.");
-    }
-  }
+  /* Read off the props, not mirrored in local state. Both actions revalidate
+     /profile/[id], so a refresh IS the answer; a mirror is a second copy of it
+     that can be wrong -- and this one could, because it flipped on the client
+     whether or not the write it reported had actually landed. */
+  const verified = verifyState === "verified";
 
-  async function handleDelete() {
-    try {
-      const result = await adminDeleteUser(userId);
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        toast.success("User deleted");
-        /* A hard navigation, not router.push: the profile this component is
-           mounted on has just been deleted, so every cached RSC payload for it
-           is a page about a user who no longer exists. */
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-        window.location.href = "/directory";
-      }
-    } catch {
-      toast.error("Something went wrong. Please try again.");
-    }
-  }
+  /* One busy key for the note, which is the only control here that is not
+     behind a confirmation. The three that ARE go through ConfirmDialog, which
+     already owns its own busy state, runs the action through callAction and
+     shows the refusal -- so wrapping them in this hook as well would track
+     "working" twice and toast a refusal the dialog is about to toast. That is
+     the split use-admin-act's own note describes. */
+  const { busy: acting, act } = useAdminAct();
+  const savingNote = acting !== null;
 
-  async function handleVerifyToggle() {
-    const action = verified ? "unverify" : "verify";
-    setVerifying(true);
-    try {
-      const result = verified
-        ? await adminUnverifyUser(userId)
-        : await adminVerifyUser(userId, "admin_manual");
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        setVerified(!verified);
-        toast.success(action === "verify" ? "Member verified" : "Verification removed");
-      }
-    } catch {
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setVerifying(false);
-    }
-  }
-
-  async function handleSaveNote() {
-    setSaving(true);
-    try {
-      const result = await adminUpdateNote(userId, note);
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        toast.success("Note saved");
-      }
-    } catch {
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  }
+  const saveNote = () => act("note", () => adminUpdateNote(userId, note), "Note saved");
 
   return (
     <section className="card-elevated rounded-[var(--radius)] border border-border bg-card p-6">
@@ -129,11 +75,11 @@ export function AdminProfileTools({
           <Button
             size="sm"
             variant="outline"
-            onClick={handleSaveNote}
-            disabled={saving}
+            onClick={saveNote}
+            disabled={savingNote}
             className="rounded-full"
           >
-            {saving ? "Saving..." : "Save note"}
+            {savingNote ? "Saving..." : "Save note"}
           </Button>
         </div>
 
@@ -143,7 +89,6 @@ export function AdminProfileTools({
             variant="outline"
             size="sm"
             onClick={() => setDialog("verify")}
-            disabled={verifying}
             className={
               verified
                 ? "rounded-full text-cinnamon hover:text-cinnamon"
@@ -158,13 +103,13 @@ export function AdminProfileTools({
             size="sm"
             onClick={() => setDialog("block")}
             className={
-              blocked
+              isBlocked
                 ? "rounded-full text-leaf hover:text-leaf"
                 : "rounded-full text-cinnamon hover:text-cinnamon"
             }
           >
             <Ban className="h-4 w-4" />
-            {blocked ? "Unblock user" : "Block user"}
+            {isBlocked ? "Unblock user" : "Block user"}
           </Button>
           <Button
             variant="outline"
@@ -193,20 +138,36 @@ export function AdminProfileTools({
         }
         actionLabel={verified ? "Remove verification" : "Verify"}
         destructive={verified}
-        onConfirm={handleVerifyToggle}
+        onConfirm={async () => {
+          const result = verified
+            ? await adminUnverifyUser(userId)
+            : await adminVerifyUser(userId);
+          if (!result.error) {
+            toast.success(verified ? "Verification removed" : "Member verified");
+            router.refresh();
+          }
+          return result;
+        }}
       />
       <ConfirmDialog
         open={dialog === "block"}
         onClose={() => setDialog(null)}
-        title={blocked ? `Unblock ${name}` : `Block ${name}`}
+        title={isBlocked ? `Unblock ${name}` : `Block ${name}`}
         description={
-          blocked
+          isBlocked
             ? undefined
             : "They stay in the database and keep everything they wrote, but they cannot sign in. You can undo this from the same button."
         }
-        actionLabel={blocked ? "Unblock" : "Block them"}
-        destructive={!blocked}
-        onConfirm={handleBlock}
+        actionLabel={isBlocked ? "Unblock" : "Block them"}
+        destructive={!isBlocked}
+        onConfirm={async () => {
+          const result = await adminBlockUser(userId, !isBlocked);
+          if (!result.error) {
+            toast.success(isBlocked ? "User unblocked" : "User blocked");
+            router.refresh();
+          }
+          return result;
+        }}
       />
       <ConfirmDialog
         open={dialog === "delete"}
@@ -215,7 +176,18 @@ export function AdminProfileTools({
         description="Their account, posts, comments, photos and messages go for good. Contributions survive without a name attached. There is no undo."
         actionLabel="Delete for good"
         confirmWord={name}
-        onConfirm={handleDelete}
+        onConfirm={async () => {
+          const result = await adminDeleteUser(userId);
+          if (!result.error) {
+            toast.success("User deleted");
+            /* A hard navigation, not router.push: the profile this component is
+               mounted on has just been deleted, so every cached RSC payload for
+               it is a page about a user who no longer exists. */
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+            window.location.href = "/directory";
+          }
+          return result;
+        }}
       />
     </section>
   );
