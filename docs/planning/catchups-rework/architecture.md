@@ -62,8 +62,25 @@ circle means a *person* in this app (`BirdAvatar`), and a Catch-up is not a pers
 | | |
 |---|---|
 | the list | **the card IS the picture**, 5:2 on a laptop and 16:9 on a phone, with the name and the stage written on it over a fade. His: *"having the entire thing as an image and then fading to black, kind of like a Spotify thing"* |
-| the home | a banner across the head, 4:1 on a laptop and 3:1 on a phone |
+| the home | **the head IS the picture too**, a banner 240px tall on a laptop and 172 on a phone, with the name written on it from the bottom left and the two doors (People, Settings) hard right on the same line |
 | the reader | **nowhere.** The reader is the Round, not the Catch-up, and the green bar already carries the name |
+
+**One scrim, shared** (`PICTURE_SCRIM` in `_cover.tsx`): a warm near-black to
+transparent over the bottom 74%, at 0.61 / 0.37 / 0.085. The list card and the
+home's head import the same constant, because he asked whether they matched and
+then asked for both to be 15% lighter at once.
+
+**A HEIGHT, not a ratio, on the head.** A ratio ties the banner to the window,
+so a wider screen gets a thinner slice of the same photograph; a fixed height
+means a wider screen shows *more* of it. That is the answer to *"stop picking an
+insanely cropped in, like, 30x zoom picture for the header"*, which a 5:1 ratio
+made worse rather than better.
+
+**Every picture carries the band it is cropped at.** What makes these
+photographs read as a place -- a horizon, the stone benches, the ground under
+the banyan -- is in the lower quarter of all of them, so a centred crop returns
+green texture. The pool is `PICTURES` in `_shelf.ts`, `{ src, focus }`. The real
+twenty want 2,400px or more on the long edge, landscape, subject off centre.
 
 The 3:2 mark beside the name that this section first described is gone. He looked at it and said:
 *"it's just this tiny hanging thing, not at all tied into the identity, it just exists."*
@@ -207,32 +224,90 @@ is inside the second one changes.
 
 | Region | What is in it |
 |---|---|
-| **The head** | the picture as a wide banner, and the name. Nothing else |
-| **The Round** | what this cycle is right now, and exactly ONE thing to do about it |
-| **The rail** | Reminders · This Round · This Catch-up · People — in that order, always |
-| **Earlier Rounds** | the ones that have already come out, as covers |
+| **The head** | the picture as a wide banner: the name on it bottom left, **People** and **Settings** as icon controls bottom right |
+| **The Round** | what this cycle is right now, and exactly ONE thing to do about it — including **answering itself** |
+| **The state line** | one line under the Round, right-aligned: "Answers close Thursday 20 August", "The next one opens 14 September", "Ended 17 April" |
+| **The sidebar** | **the earlier Rounds, as covers, and nothing else** |
 
-Answering, the reader and the long dialogs are their own pages you go to and come back from.
+**Rewritten again 2026-09-07 evening, and every line of it is his.**
+
+- *"People should not be on the sidebar ... let's have a People or some other
+  word that conveys that sentiment, which is clearly clickable. And when you
+  click it, we can pull up a dialog that lists the people."* Then: *"instead of
+  people and settings keep the buttons in the same style but use the icons
+  instead of text."*
+- *"reminders I feel can go with the other settings. I don't know why we're
+  separating it."* So there is no Reminders block; it is a row among the rest.
+- *"the sidebar is either empty or filled with nonsense. just put the previous
+  rounds there."* On a batch Catch-up the old rail was one row in a 300px
+  column.
+- *"delete the Earlier Rounds text completely. so both tiles move up and let
+  their tops cleanly align."*
+- *"maybe we should just tie in the huge answering UI we had with our home
+  screen ... it doesn't make sense to have the collecting in the home screen
+  and then the answering takes you away from it."* So answering is on this
+  page. Only the reader is still its own address.
+
+**The grid is the app's own**, `src/components/layout/rail-grid.ts`: a fluid
+main column, a 318px sidebar, 30px between them, from 1180px up. This page had
+invented 300 and 56 and capped itself at 1096, which is why the right margin
+measured 148 against the left's 40.
+
+**When there are no earlier Rounds the sidebar does not vanish.** It stands in
+the Catch-up's own photograph at the cover's exact size, quietened, with one
+line: "The first Round lands here." Same object, same shape, so the day Round
+one comes out nothing moves.
 
 ### The rule that stops the controls floating again
 
 **A control is either the page's one primary action, in the content, attached to the thing it acts
-on — or it is in the rail. There is no third place, and there is never a row of equal-weight pills
-in the content.**
+on — or it is behind the Settings door on the picture. There is no third place, and there is never a
+row of equal-weight pills in the content.**
 
-The rail's order is Reminders, then the controls, then People, and People is last because it is the
-only block whose length is unbounded: with twenty-four names above it, Reminders landed 1,500px down
-the page.
+The settings surface is a settings LIST, not a menu: an icon tile, the label, what it does in a
+phrase, and the value or a chevron on the right. A one-way control says *"Cannot be undone"* in its
+own hint and wears a cinnamon tile, which retired the 5px dot and the footnote that had to explain
+it. He has said this surface still wants refining and will take it in a session of its own.
+
+### The type rule
+
+He asked for one after finding both faces doing the same job a line apart:
+
+> *"please make it clear and sensible what's serif and what sans serif and have some logic behind it
+> and consistency."*
+
+**Serif is a title or a name** — the page's title, a Catch-up's name, a dialog's title, a card's own
+title, a question, and the date that identifies a Round on its cover. **Sans is the app talking** —
+the label over a group, a state line, a hint, a value, a control, a count.
+
+It has to be written down because `globals.css` puts the heading face on `h1` to `h4`, so a section
+LABEL marked up as an `<h2>` came out serif while the state line beside it, a `<p>`, came out sans.
+Anything that is a label carries `font-sans` explicitly, whatever tag it uses.
 
 ### The Round region, per state
 
 | State | The one primary action | What else is in the region |
 |---|---|---|
-| no Round yet | **Start the first Round** (people Catch-ups only) | on a batch, one line saying when it opens |
-| collecting | **the ask box** | the questions asked so far, under it |
-| answering | **Answer** | who has written in, by name, after it |
+| collecting | **the ask box** | the questions asked so far, in the shipped panel: each on card stock, reorderable, removable |
+| answering | **the writing surface itself** | the progress marks above it, which are also how you move between questions |
 | published | **the cover** | nothing |
+| on hold | **Start it again** | nothing. Not the answering page with a word changed: *"why is paused the same as answering?"* |
 | ended | — | nothing |
+
+**`no Round yet` is deleted**, like `preparing` before it, and for his reason:
+*"I don't understand when the situation would occur because it's like when you
+start a catch-up, it should immediately start into questions."* A Catch-up is
+collecting from the moment it is made, and a batch opens straight into
+collecting when its turn comes. There is no moment a member can reach a home
+with no Round on it.
+
+**The ask box is one row of controls.** The name/anonymous segmented pill is
+gone: you ask as yourself by default and the only thing on screen is one eye in
+the box's top right that turns that off, revealing a line that says so. *"we can
+have just some icon or something you click and then it's anonymous. if not it's
+not ... I think we should be able to fit it in one row."*
+
+**The composer has no "Skip for now".** *"skip for now is same as next."*
 
 **The ask box is the shipped one**, and it is here because he named it as better than what I drew:
 *"the asking thing now has a box. And it says, be the first to ask. And then under that, it would
@@ -270,11 +345,16 @@ actually contains.
 
 ### The people
 
-On a laptop, the rail's last block: everyone, by name, the Keeper's sprout inline. On a phone, one
-control on the head's own line — beside the name, not on a row of its own — opening a **full sheet
-over the window**, dismissed by the scrim, by Escape or by swiping it down. N41: *"on phone the
-people can just open into an overlay instead of cluttering that content. And maybe move it
-somewhere else, maybe above, instead of having it on its own line?!?!"*
+**Behind one icon on the picture, at both widths.** A dialog on a laptop, a sheet from the foot on a
+phone. Everyone, by name, the Keeper's sprout inline, and **every row is a link to that person's
+profile** — *"under people all the profiles should be clickable and take you to their profile"* —
+because a name and a face go to the person everywhere else in this app and this roster was the one
+place they did not.
+
+Moving them off the sidebar also retires **F40**: at the app's hundred-person cap the roster laid a
+sticky 300px column out 4,974px tall inside a 982px window, so everything past the first screen could
+not be reached at any scroll depth. The fix is not a scroller inside a scroller; it is that an
+unbounded list does not belong in a fixed column.
 
 ## 6. Every control, who holds it, and where it lives
 
