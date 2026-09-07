@@ -223,6 +223,10 @@ function Head({ c, phone }: { c: SketchCatchup; phone: boolean }) {
  *  That's so stupid." So the deadline is the deadline and nothing else. */
 function Stage({ c }: { c: SketchCatchup }) {
   const r = c.round;
+  /* Nothing while it is held. The deadline is not running, so printing
+     "Answers close Thursday 20 August" under a card that says the Catch-up is
+     on hold is the page contradicting itself in two lines. */
+  if (c.paused) return null;
   const words =
     c.state === "ended" && c.endedAt
       ? `Ended ${shortDate(c.endedAt)}`
