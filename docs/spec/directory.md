@@ -9,19 +9,29 @@
 > should be read as "works on a small serverless deploy with no heavy paid dependency," which is
 > still the right constraint; only the hosting nouns are wrong.
 >
-> The parts of this doc that are NOT stale: the **world-map tech stack decision actually
-> shipped as specced** — `d3-geo` + `topojson-client` + `supercluster` are real dependencies
-> (`package.json`) and `src/components/directory/alumni-map.tsx` implements the SVG-world +
-> supercluster approach described in §4.2-4.3 (Option A, not MapLibre). The `City` /
-> `HouseYear` / `ProfileTag` schema deltas in §3 are **not yet in `prisma/schema.prisma`** (no
-> `City`, `HouseYear`, `ProfileTag`, or `cityId` model/field exists as of this check) — that
-> remains a live, unimplemented plan, not a stale fact. Kept for history; not current on deploy
-> target.
+> The part of this doc that is NOT stale: the **world-map tech stack decision actually shipped as
+> specced** — `d3-geo` + `topojson-client` + `supercluster` are real dependencies (`package.json`)
+> and `src/components/directory/alumni-map.tsx` implements the SVG-world + supercluster approach
+> described in §4.2-4.3 (Option A, not MapLibre). §4 is still the best explanation of why the
+> clustering works the way it does.
 >
-> Also note: every `UserAvatar` reference below (§0, §4.4, §5) points at
-> `src/components/common/user-avatar.tsx`, which **no longer exists** — it has been superseded
-> by `BirdAvatar` / `BirdGlyphV2` per the same correction in `docs/spec/profile.md` §1.
-> Read "`UserAvatar`" below as "the shared avatar component," not a literal file reference.
+> **Corrected 2026-09-08, and this correction is itself dated on purpose.** The paragraph that
+> stood here said the §3 schema deltas were *"a live, unimplemented plan, not a stale fact"*. That
+> was true when it was written and is not now: **all three shipped, under different names.** A
+> supersession banner is itself a dated claim and rots exactly like the body it annotates.
+>
+> - Location shipped as **`Place` + `UserPlace`**, not `City` + `User.cityId` — a 234,934-row
+>   GeoNames gazetteer, one row per member per slot, with case-insensitive `lower()` expression
+>   indexes Prisma cannot express. See §3.1's note.
+> - House-per-year shipped as **`User.houses`**, a JSON string of `[{year, house}]` with the
+>   canonical list in `src/lib/houses.ts` — the profile houses chain, not a `HouseYear` table.
+> - Profession shipped as **`User.professionTags`**, a `text[]` filled by a hand-run pass. §3.4
+>   already carries that correction in full.
+>
+> Also note: every `UserAvatar` reference below (§0, §4.4, §5) points at a component that **no
+> longer exists** — it has been superseded by `BirdAvatar` / `BirdGlyphV2` per the same correction
+> in `docs/spec/profile.md` §1. Read "`UserAvatar`" below as "the shared avatar component," not a
+> literal file reference.
 
 Confirmed: no map library installed, no geo/lat-long fields, no house/section/tags model (only `tag` on Post). The `grep` matches for "house"/"map"/"geo" are incidental (CSS, dropdown words). I now have full grounding. Here is the complete spec.
 
@@ -31,7 +41,7 @@ Confirmed: no map library installed, no geo/lat-long fields, no house/section/ta
 
 ## Design and architecture spec for RV Connect
 
-This is the core reason to join. Everything here is grounded in the real code: it extends the existing `/directory` route (`src/app/(main)/directory/page.tsx` + `directory-client.tsx`), reuses `ProfileCard` (`src/components/directory/profile-card.tsx`) and `UserAvatar` (`src/components/common/user-avatar.tsx`), and adopts the locked v2 visual language from `src/app/preview/v2/page.tsx`. No em dashes anywhere in copy.
+This is the core reason to join. Everything here is grounded in the real code: it extends the existing `/directory` route (`src/app/(main)/directory/page.tsx` + `directory-client.tsx`), reuses `ProfileCard` (`src/components/directory/profile-card.tsx`) and the shared avatar component, and adopts the locked v2 visual language from what is now `/lab/v2`. No em dashes anywhere in copy.
 
 ---
 
@@ -99,6 +109,13 @@ The current `User` model (`prisma/schema.prisma:10-46`) has `currentCity` (free 
 
 ### 3.1 Location: structured city reference with cached coordinates
 
+> **Shipped, as `Place` + `UserPlace`.** The design below is right and the names are not: the
+> canonical table is `Place`, keyed on the GeoNames id rather than a cuid, and the join is a
+> `UserPlace` row per member per slot rather than a single `User.cityId` — because a member can
+> name a second base. `currentCity` and `secondaryCity` survive exactly as this section argues,
+> as denormalised display strings, and **56 and 5 of 70 members have filled them**, so they are
+> not legacy. Read the reasoning; read `prisma/schema.prisma` for the shape.
+
 Free-text `currentCity` is the root of the clustering problem and a search problem ("Bangalore" vs "Bengaluru" vs "bangalore, india" are three different strings today). We introduce a **canonical `City` table** and keep `currentCity` only as a denormalized display string for backward compatibility.
 
 ```prisma
@@ -146,6 +163,11 @@ This is the "city reference with lat/long" the brief asked for, with a free-text
 
 ### 3.2 House history (house PER YEAR)
 
+> **Shipped, as `User.houses`** — a JSON string of `[{year, house}]`, with the canonical house
+> list in `src/lib/houses.ts` and the profile's houses chain drawing it. The child table below was
+> not built: the per-year detail is read whole, on one profile at a time, and never joined across
+> members, so a table bought nothing the JSON does not.
+
 Rishi Valley assigns houses, and the owner specifically wants house per year, because alumni changed houses across their time in the valley. A single `house` string cannot express that. We model it as a child table.
 
 ```prisma
@@ -166,7 +188,11 @@ For the directory filter we do not need per-year granularity in the query: "show
 
 ### 3.3 Tags (interest and intent tags)
 
-The v2 profile already shows soft tags ("Open to mentoring", "Hosting visitors", "Coffee in Bengaluru") at `preview/v2/page.tsx:348-352`, but they are hardcoded. We make them real and searchable.
+> **Not built, and still open.** No `ProfileTag` model exists. What did ship on the same idea is
+> `User.professionTags` (§3.4), which is the shape a second tag family would copy: a `text[]` with
+> a curated vocabulary in code, not a table.
+
+The v2 profile showed soft tags ("Open to mentoring", "Hosting visitors", "Coffee in Bengaluru") in the lab, but they were hardcoded. We make them real and searchable.
 
 ```prisma
 model ProfileTag {
@@ -189,11 +215,15 @@ Tags come from a **curated starter set** (Open to mentoring, Hosting visitors, H
 
 `workplace` (used as "industry" in onboarding, see `onboarding/page.tsx:69-91`) and `jobTitle` already exist and are sufficient. We do not add a new model. We do treat the onboarding industry `<select>` list as the canonical profession enum for the filter dropdown. Note the current code conflates "industry" and "workplace" (the field is literally named `workplace` but populated from an industry select). The spec recommendation: rename the user-facing label to "Field of work" everywhere and keep using `workplace` as the column to avoid a migration, OR add a dedicated `industry` column. Either is fine; the directory filter reads whichever column holds the enum value.
 
-### 3.5 Migration and backfill plan (SQLite local, Postgres on Render)
+### 3.5 Migration and backfill plan
 
-1. `npx prisma db push` adds `City`, `HouseYear`, `ProfileTag`, and `User.cityId`.
-2. A one-time backfill script geocodes every distinct existing `currentCity` string into a `City` row and links users. Geocoding source: a **bundled offline gazetteer** (see 4.5), so the backfill runs with no network and no API key, which matters on Render. Unmatched strings stay as `currentCity` text with `cityId = null` and surface in an admin "needs geocoding" list.
-3. `City.userCount` is recomputed at the end of the backfill and thereafter incremented/decremented in the profile-save server action whenever a user's `cityId` changes.
+**Deleted 2026-09-08.** It planned three `npx prisma db push` steps against a SQLite-local /
+Postgres-on-Render pair. Both halves of that are now wrong and the first is forbidden: one Supabase
+database serves production and local dev, and `db push` will offer to drop tables it thinks are
+orphaned. Schema changes go through a dated idempotent file in `prisma/migrations-manual/`, applied
+with `node scripts/dev/run-sql.mjs`. See `CLAUDE.md`. What actually happened: the gazetteer was
+imported wholesale by `scripts/dev/import-places.mjs`, and free-text cities are resolved against it
+at save time rather than backfilled once.
 
 ---
 
@@ -250,7 +280,7 @@ So the full clustering answer is: **aggregate to cities with sqrt-scaled counted
 - **Search while map is open:** the same Tier-1 search box filters which cities are lit. Typing "London" pans/zooms to London and highlights it. Typing a name pulls up that person and drops a single highlighted pin on their city.
 - **Filters while map is open:** Tier-2 filters (batch range, house, profession, tags) recompute the pin counts live. "Show me Krishna House alumni" repaints the map with Krishna-only counts per city. This is the delightful, genuinely useful intersection of map and filters.
 - **Empty/sparse states:** a city with alumni whose location we could not geocode does not vanish; an "Unmapped, 14 alumni" chip sits in the corner and opens a drilldown of users with `cityId = null`, nudging them (or an admin) to fix their city. This prevents people silently disappearing from the directory just because their city string did not geocode.
-- **Loading state:** the map frame and a skeleton globe render immediately (reuse `src/components/ui/skeleton.tsx` and the existing `directory/loading.tsx` pattern), pins fade in (`opacity` only, per the no-`transition-all` rule).
+- **Loading state:** the map frame and a skeleton globe render immediately (reuse the app's shimmer and the existing `directory/loading.tsx` pattern), pins fade in (`opacity` only, per the no-`transition-all` rule).
 
 ### 4.5 Geocoding strategy (no paid API, Render-safe)
 
@@ -275,7 +305,7 @@ A dedicated route gives a clean shareable, bookmarkable, deep-linkable fullscree
 The brief stresses modular reuse. Here is the component decomposition and what is shared.
 
 **Reused as-is:**
-- `UserAvatar` (`src/components/common/user-avatar.tsx`): every pin tooltip, drilldown row, and result card uses it. In v2 it gains the optional bird-glyph default and photo override (see `Avatar` in `preview/v2/page.tsx`); the directory consumes whatever the shared avatar becomes, it does not fork it.
+- The shared avatar (shipped as `BirdAvatar` / `BirdGlyphV2`): every pin tooltip, drilldown row, and result card uses it. It gained the bird-glyph default and photo override in the lab; the directory consumes whatever the shared avatar becomes, it does not fork it.
 - `ProfileCard` (`src/components/directory/profile-card.tsx`): the search/filter results grid and the city drilldown list both render this. One card, three contexts.
 - `Sheet`, `Select`, `Input`, `Button`, `Skeleton`, `Card` from `src/components/ui/`: filters, mobile drawers, loading.
 
@@ -286,7 +316,7 @@ The brief stresses modular reuse. Here is the component decomposition and what i
 - `<DirectoryToolbar>`: the Tier-1 search + Tier-2 filter rail, extracted from today's `directory-client.tsx`. It is shared between the Batches view, the Map view, and the results grid so search/filter state and UI are identical across all three. This is the single source of "what filters exist".
 - A compact `ProfileRow` variant (avatar + name + batch + city, one line) for dense lists (tooltips, drilldown at scale). It is a thin layout over the same `UserAvatar` + `formatBatch`, not a new card.
 
-**Cross-feature reuse:** the v2 feed rail already has a "New in the directory" card (`preview/v2/page.tsx:503-514`) and the profile shows location and house. Those consume the same `City`/`HouseYear` data and the same avatar. The directory does not own a private copy of any of this.
+**Cross-feature reuse:** the v2 feed rail already has a "New in the directory" card and the profile shows location and house. Those consume the same place and house data and the same avatar. The directory does not own a private copy of any of this.
 
 ---
 
@@ -359,11 +389,11 @@ Switching to **Batches** swaps the map for the existing year-tile grid (kept, bu
 | Default layout | Map-default index with Map/Batches tabs; map fills screen when no search | `directory/page.tsx`, `directory-client.tsx` |
 | Search | Broaden Tier-1 to name/city/workplace/jobTitle/tags OR; case-insensitivity normalization; relevance sort (not name-asc); cursor pagination replacing `take: 100` | `directory/page.tsx`, `api/users/search/route.ts` |
 | Filters | Add batch-range, house, tag filters behind the existing Filters toggle; city becomes `cityId` | `directory-client.tsx` (extract `<DirectoryToolbar>`) |
-| Map | New `<AlumniMap>` (SVG + `d3-geo` + `topojson-client`), `useSupercluster` clustering hook, `<CityDrilldown>` panel, fullscreen overlay and optional `/directory/map` route | new `src/components/directory/map/*` |
+| Map | New `<AlumniMap>` (SVG + `d3-geo` + `topojson-client`), `useSupercluster` clustering hook, `<CityDrilldown>` panel, fullscreen overlay and optional `/directory/map` route | shipped as one file, `src/components/directory/alumni-map.tsx` |
 | Clustering | Aggregate-by-city counted pins (sqrt scale), zoom-based supercluster, no aggregate jitter, paginated city drilldown, "Unmapped" bucket | `useSupercluster` + `<CityDrilldown>` |
 | Geocoding | Offline bundled gazetteer + city autocomplete in profile save; zero paid/network deps (Render-safe) | new gazetteer asset + save action |
 | Reuse | `ProfileCard`, `UserAvatar`, `Sheet`, `Select`, `Skeleton` reused; new pieces built engine-agnostic | existing `src/components/common`, `src/components/ui` |
 
 New dependencies (all small, none paid, all well under the 200MB rule): `d3-geo`, `topojson-client`, `d3-zoom`, `supercluster`, plus a bundled world-atlas TopoJSON and a trimmed GeoNames gazetteer as static assets. MapLibre GL is deliberately deferred to a possible phase 2 and is not required for MVP.
 
-Relevant files read for grounding (all absolute): `/Users/sanan/Documents/rv-connect/prisma/schema.prisma`, `/Users/sanan/Documents/rv-connect/src/app/preview/v2/page.tsx`, `/Users/sanan/Documents/rv-connect/src/app/(main)/directory/page.tsx`, `/Users/sanan/Documents/rv-connect/src/components/directory/directory-client.tsx`, `/Users/sanan/Documents/rv-connect/src/components/directory/profile-card.tsx`, `/Users/sanan/Documents/rv-connect/src/components/common/user-avatar.tsx`, `/Users/sanan/Documents/rv-connect/src/app/api/users/search/route.ts`, `/Users/sanan/Documents/rv-connect/src/app/api/users-by-batch/route.ts`, `/Users/sanan/Documents/rv-connect/src/lib/utils.ts`, `/Users/sanan/Documents/rv-connect/src/lib/validators.ts`, `/Users/sanan/Documents/rv-connect/src/app/(auth)/onboarding/page.tsx`.
+Files read for grounding, as they stood on 2026-07-02: `prisma/schema.prisma`, the v2 lab room, `src/app/(main)/directory/page.tsx`, `src/components/directory/directory-client.tsx`, `src/components/directory/profile-card.tsx`, the shared avatar, `src/app/api/users/search/route.ts`, `src/app/api/users-by-batch/route.ts`, `src/lib/utils.ts`, `src/lib/validators.ts`, and the onboarding page.
