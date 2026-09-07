@@ -72,14 +72,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  /* Dark-mode groundwork: the per-request theme comes from the rv-theme
-   * cookie (set by the settings theme action alongside User.theme), so SSR
-   * paints the member's choice with no flash. HARD GUARD: until a .dark block
-   * exists in globals.css this is visually inert; the class may flip on
-   * <html>, but with no dark tokens defined every token still resolves to its
-   * :root value, so the rendered output is identical to the old
-   * forcedTheme="light". enableSystem is off because dark is only ever
-   * entered through the settings confirmation flow, never the OS setting. */
+  /* The per-request theme comes from the rv-theme cookie (set by the theme
+   * action alongside User.theme), so SSR paints the member's choice with no
+   * flash. The `.dark` block it flips to is real (globals.css). enableSystem
+   * is off because dark is only ever entered through the gauntlet at
+   * /dark-mode, never from the OS setting. */
   const theme = (await getThemeCookie()) ?? "light";
   return (
     <html
