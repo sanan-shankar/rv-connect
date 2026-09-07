@@ -3,13 +3,14 @@ import sharp from 'sharp';
 import puppeteer from 'puppeteer';
 import { config } from 'dotenv';
 import { devLogin } from '../../qa/_dev-login.mjs';
-config({ path: '.env' });
+import { chromePath } from '../../qa/_probe-kit.mjs';
+config({ path: '.env', quiet: true });
 
 const truth = await sharp("sanan's stuff/Inspiration/not yet right.png")
   .extract({ left: 2218, top: 25, width: 400, height: 402 }).png().toBuffer();
 
 const browser = await puppeteer.launch({ headless: true,
-  executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  executablePath: chromePath(),
   args: ['--no-sandbox','--disable-setuid-sandbox'] });
 const page = await browser.newPage();
 await page.setViewport({ width: 500, height: 500, deviceScaleFactor: 2 });

@@ -32,9 +32,14 @@ local install after a puppeteer bump. Nothing that runs on Vercel launches a
 browser, and the bundled one does not work on this machine anyway
 (`puppeteer.launch()` with no `executablePath` dies with "Failed to launch the
 browser process" -- CLAUDE.md gotcha 2, re-proved 2026-08-26). The scripts go
-around it: `screenshot.mjs` and `screenshot-auth.mjs` default to
-`/Applications/Google Chrome`, and `verify-shot.mjs` and `crawl.mjs` require
-`PUPPETEER_EXECUTABLE_PATH` pointed there. This setting lived in a
+around it in ONE place now: `chromePath()` in `qa/_probe-kit.mjs`, which every
+`puppeteer.launch()` in this folder calls. It answers
+`PUPPETEER_EXECUTABLE_PATH` if you set one, `/Applications/Google Chrome` if it
+is there, and otherwise nothing, which is puppeteer's "use your own" and the
+only reading that works on a machine that is not this Mac. Until 2026-09-07 the
+literal was typed out fifteen times under four policies, and two scripts
+(`verify-shot.mjs`, `crawl.mjs`) made the caller export the variable; **you no
+longer have to.** This setting lived in a
 `.puppeteerrc.cjs` at the root until 2026-08-28; puppeteer reads `package.json`
 first of all its search places (`getConfiguration.ts:112`), so the file was one
 root entry buying nothing.
@@ -44,9 +49,9 @@ root entry buying nothing.
 | Command | Does |
 |---|---|
 | `npm run check` (`qa/check.mjs`) | **The one gate.** Runs TypeScript, ESLint, `protocol-audit`, `lab-audit` and every `*.test.mjs` in parallel (a floor of 60 files, not a fixed count -- a number written in prose rots), around 25s, no dev server needed. Prints a pass/warn/FAIL table. Add a gate name (`types`, `lint`, `protocol`, `lab`, `tests`) to run just one. Run it before every commit. |
-| `npm run screenshot <url> [label]` (`qa/screenshot.mjs`) | Screenshot any public page. Add `--mobile` for 390x844. The workhorse. |
-| `npm run screenshot:auth <url>` (`qa/screenshot-auth.mjs`) | Same, but signed in as admin first. Use for anything behind login. |
-| `npm run verify:shot` (`qa/verify-shot.mjs`) | Screenshot plus a console/pageerror check, so a clean-looking page with a red console still fails. |
+| `npm run screenshot <url> [label]` (`qa/screenshot.mjs`) | Screenshot any public page. Add `--mobile` for a real 390x844 phone -- touch, coarse pointer, 2x -- not a 390px laptop. The workhorse. |
+| `npm run screenshot:auth <url>` (`qa/screenshot-auth.mjs`) | Same, but signed in as admin first. Use for anything behind login. `--full` for a whole tall page. |
+| `npm run verify:shot` (`qa/verify-shot.mjs`) | Screenshot plus a console/pageerror check, so a clean-looking page with a red console still fails. `<route> <out.png> [mobile]`. |
 | `npm run verify:crawl` (`qa/crawl.mjs`) | Walks every live route signed in, reporting HTTP status and console errors. **Its route list is hand-maintained: update it when you add or delete a page.** |
 | `npm run dev:centroid` (`dev/centroid.mjs`) | Measures optical centring for the bird avatars. Cited by `docs/spec/avatars.md`. |
 | `npm run dev:shot-clip` (`dev/shot-clip.mjs`) | Screenshots a horizontal band of a page (`<url> <out> <y> <height>`), for when a full-page shot is mostly whitespace. |
@@ -128,7 +133,8 @@ of them will regenerate.
 | `audit-status.mjs` | Where the security audit stands, proved from the code rather than from a document that can go stale. |
 | `npm-audit-gate.mjs` | The dependency gate (audit H16): `npm audit` with a documented per-advisory allowlist rather than a blanket pass/fail. A gate inside `npm run check`, so it is not something only CI sees. Has a test. |
 | `_dev-login.mjs` | Helper: one sign-in for every QA script, replacing nine hand-copied blocks (audit R6). The secret goes from Node, never into page JavaScript. |
-| `_probe-kit.mjs` | Helper: the ledger, the sign-in, the bootstrap and the database opener the phase probes share. |
+| `_probe-kit.mjs` | Helper: the ledger, the sign-in, the bootstrap and the database opener the phase probes share, plus `chromePath()` -- the one answer to "which Chrome" for every browser script in the repo. |
+| `_shoot.mjs` | Helper: the shot itself, for the three screenshot commands at the top of this file. Owns which Chrome, what `--mobile` means (a phone's pointer, not a 390px laptop), where the file lands and how long to wait. The three stay three commands; what they keep is argument parsing. |
 
 ## The security probes (`qa/phase*-probe.mjs`)
 

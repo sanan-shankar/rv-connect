@@ -8,6 +8,8 @@
  */
 import puppeteer from "puppeteer";
 import { mkdirSync } from "node:fs";
+import { chromePath } from "./_probe-kit.mjs";
+import { viewport } from "./_shoot.mjs";
 
 const mobile = process.argv.includes("--mobile");
 // Extra query string, e.g. --qs "?n=2400&stress=worst"
@@ -39,11 +41,11 @@ const DEEP = [
 
 const browser = await puppeteer.launch({
   headless: true,
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  executablePath: chromePath(),
   args: ["--no-sandbox", "--disable-setuid-sandbox"],
 });
 const page = await browser.newPage();
-await page.setViewport(mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 });
+await page.setViewport(viewport(mobile));
 
 const problems = [];
 page.on("console", (m) => {

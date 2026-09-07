@@ -14,7 +14,7 @@ import bcrypt from "bcryptjs";
 import { createId } from "@paralleldrive/cuid2";
 import puppeteer from "puppeteer";
 import { fetchSessionCookie } from "./_dev-login.mjs";
-import { bootstrap, openDb, makeLedger } from "./_probe-kit.mjs";
+import { bootstrap, openDb, makeLedger, chromePath } from "./_probe-kit.mjs";
 
 const { BASE } = bootstrap(import.meta.url, { chrome: true });
 
@@ -118,7 +118,7 @@ console.log("\n-- H5: a duplicate flag of the same person is rejected by the DB"
 console.log("\n-- H10: verifying a member writes an attributed audit row, and it shows on the view");
 {
   const target = await mkUser("auditverify"); // unverified -> the Verify button shows
-  const browser = await puppeteer.launch({ headless: "new", executablePath: process.env.PUPPETEER_EXECUTABLE_PATH });
+  const browser = await puppeteer.launch({ headless: "new", executablePath: chromePath() });
   try {
     const page = await browser.newPage();
     await page.setCookie({ name: admin.name, value: admin.value, url: BASE, httpOnly: true, path: "/" });

@@ -1,5 +1,31 @@
 # Progress Log
 
+## 2026-09-07 — one answer to which Chrome, and mobile shots that are actually mobile
+
+Refactor audit 2, Phase E: `scripts-e2e-ci` 03, 04 and 15, which the campaign file says are one
+commit because 15's Chrome and 03's viewport are parameters of 04's shared module.
+
+**The `/Applications/Google Chrome` literal was typed out fifteen times under four policies**, one
+of which resolved to `undefined` — the six phase probes passed
+`executablePath: process.env.PUPPETEER_EXECUTABLE_PATH` and were safe only because `bootstrap(...,
+{ chrome: true })` had set it a few lines earlier. `crawl.mjs` and `verify-shot.mjs` passed nothing
+at all and made the caller export it, which is why CLAUDE.md gotcha 2 and `scripts/README.md` each
+carried a paragraph about a trap that now stops existing. There is one answer: `chromePath()` in
+`_probe-kit.mjs`, `existsSync`-guarded so it still degrades to puppeteer's own browser on a machine
+that is not this Mac. Twenty-two launch sites call it. Smoke-run: all three screenshot commands and
+a bare launch, with no `PUPPETEER_EXECUTABLE_PATH` in the environment.
+
+**Finding 03 was 80% already fixed** — `screenshot-auth.mjs`, `verify-shot.mjs` and
+`theme-shots.mjs` got the phone's pointer in `23bae4f` on 2026-09-05. `_dir-room-shots.mjs` had not,
+and has it now.
+
+**`_shoot.mjs` is the shot itself**: which Chrome, what `--mobile` means, where the file lands, and
+the networkidle2-with-a-domcontentloaded-fallback the two screenshot scripts had and `verify-shot`
+did not — so `verify:shot` stops reporting NAV-ERR for a page that loaded perfectly well. The three
+commands stay three commands and keep only their argument parsing: 67 + 118 + 48 lines become 19 +
+53 + 31 over a 179-line module.
+
+
 ## 2026-09-07 — Refactor audit 2, the owner's answers in
 
 His reply to the 28 questions is recorded verbatim in the campaign file with a reading per row, so a

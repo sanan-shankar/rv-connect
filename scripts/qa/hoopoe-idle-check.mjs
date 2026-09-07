@@ -25,7 +25,8 @@
 import puppeteer from "puppeteer";
 import { config } from "dotenv";
 import { devLogin } from "./_dev-login.mjs";
-config({ path: ".env" });
+import { chromePath } from "./_probe-kit.mjs";
+config({ path: ".env", quiet: true });
 
 const BASE = "http://localhost:3000";
 const adminEmail = process.env.ADMIN_EMAIL;
@@ -42,9 +43,7 @@ const check = (ok, label, detail) => {
 
 const browser = await puppeteer.launch({
   headless: true,
-  executablePath:
-    process.env.PUPPETEER_EXECUTABLE_PATH ||
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  executablePath: chromePath(),
   args: ["--no-sandbox", "--disable-setuid-sandbox"],
 });
 const page = await browser.newPage();

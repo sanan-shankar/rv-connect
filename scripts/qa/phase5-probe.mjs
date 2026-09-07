@@ -29,7 +29,7 @@ import bcrypt from "bcryptjs";
 import { createId } from "@paralleldrive/cuid2";
 import puppeteer from "puppeteer";
 import { fetchSessionCookie } from "./_dev-login.mjs";
-import { bootstrap, openDb, makeLedger } from "./_probe-kit.mjs";
+import { bootstrap, openDb, makeLedger, chromePath } from "./_probe-kit.mjs";
 
 const { BASE } = bootstrap(import.meta.url, { chrome: true });
 
@@ -265,7 +265,7 @@ console.log("\n-- the composer: a forged image URL cannot delete a victim's obje
     return { marker, clicked };
   }
 
-  const browser = await puppeteer.launch({ headless: "new", executablePath: process.env.PUPPETEER_EXECUTABLE_PATH });
+  const browser = await puppeteer.launch({ headless: "new", executablePath: chromePath() });
   try {
     // POSITIVE CONTROL: the attacker posts their OWN uploaded image. This must
     // succeed — it proves the composer→createPost path really creates posts, so

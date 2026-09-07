@@ -4,6 +4,7 @@
  * quietly diverging across QA scripts, and phase4-probe/phase4-prod-check
  * were about to repeat that with three fresh copies of their own.
  */
+import { existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { config } from "dotenv";
@@ -20,6 +21,29 @@ export function loadEnv(repoRoot) {
 const MAC_CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
 /**
+ * Which Chrome to launch. The one answer; there used to be four.
+ *
+ * This literal was typed out fifteen times across `scripts/`, under four
+ * different policies: `env || literal`, `env ?? literal`, the literal alone
+ * with no override, and -- the dangerous one -- `executablePath:
+ * process.env.PUPPETEER_EXECUTABLE_PATH` with nothing behind it, which is
+ * `undefined` and dies with "Failed to launch the browser process" the day
+ * its script stops calling `bootstrap(..., { chrome: true })` first.
+ * `crawl.mjs` and `verify-shot.mjs` passed nothing at all and made the CALLER
+ * export the variable, which is what CLAUDE.md gotcha 2 and this folder's
+ * README both had to warn about.
+ *
+ * `existsSync` rather than the bare literal, copied from `screenshot.mjs`,
+ * because it is the only version that degrades to puppeteer's own bundled
+ * browser on a machine that is not this Mac -- which matters the first time
+ * somebody runs this on Linux. `undefined` is puppeteer's "use your own".
+ */
+export function chromePath() {
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
+  return existsSync(MAC_CHROME) ? MAC_CHROME : undefined;
+}
+
+/**
  * The eight lines every probe opened with: find the repo root, work from it,
  * read .env, and point Puppeteer at a Chrome that exists.
  *
@@ -32,7 +56,14 @@ export function bootstrap(importMetaUrl, { base = "http://localhost:3000", chrom
   const repoRoot = resolve(dirname(fileURLToPath(importMetaUrl)), "../..");
   process.chdir(repoRoot);
   loadEnv(repoRoot);
-  if (chrome) process.env.PUPPETEER_EXECUTABLE_PATH ||= MAC_CHROME;
+  /* Kept even though every launch site now calls `chromePath()` directly: a
+     probe that shells out to another tool inherits the variable this way.
+     Never set to a path that is not there -- an absent Chrome must stay
+     absent so `chromePath()` can fall through to the bundled browser. */
+  if (chrome) {
+    const found = chromePath();
+    if (found) process.env.PUPPETEER_EXECUTABLE_PATH = found;
+  }
   return { repoRoot, BASE: base };
 }
 

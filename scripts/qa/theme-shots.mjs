@@ -16,10 +16,12 @@ import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { config } from 'dotenv';
 import { devLogin } from "./_dev-login.mjs";
+import { chromePath } from "./_probe-kit.mjs";
+import { viewport } from "./_shoot.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 process.chdir(repoRoot);
-config({ path: '.env' });
+config({ path: '.env', quiet: true });
 
 const argv = process.argv.slice(2);
 const openMenu = argv.includes('--menu');
@@ -36,20 +38,14 @@ if (!adminEmail) { console.error('ADMIN_EMAIL missing'); process.exit(1); }
 
 const browser = await puppeteer.launch({
   headless: true,
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH
-    || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  executablePath: chromePath(),
   args: ['--no-sandbox', '--disable-setuid-sandbox'],
 });
 
 for (const theme of ['light', 'dark']) {
-  /* A phone is not a narrow desktop. Without deviceScaleFactor/isMobile/hasTouch
-     Chrome keeps desktop pointer semantics at 390px, so `(hover: hover)` matches
-     when it should not and `(pointer: coarse)` does not match when it should, and
-     the shot shows affordances a phone never draws. screenshot.mjs and
-     map-cluster-verify.mjs have had these three since they were written. */
   for (const [vp, size] of [
-    ['desktop', { width: 1440, height: 900 }],
-    ['mobile', { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true }],
+    ['desktop', viewport(false)],
+    ['mobile', viewport(true)],
   ]) {
     const page = await browser.newPage();
     await page.setViewport(size);

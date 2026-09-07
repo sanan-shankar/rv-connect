@@ -7,6 +7,7 @@ import sharp from "sharp";
 import { readFileSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
+import { chromePath } from "../qa/_probe-kit.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 process.chdir(repoRoot);
@@ -26,7 +27,7 @@ const WRITE = !process.argv.includes("--measure-only");
 const existing = JSON.parse(readFileSync(ADJUST_PATH, "utf8"));
 
 const browser = await puppeteer.launch({
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  executablePath: chromePath(),
   headless: true,
   args: ["--no-sandbox"],
 });

@@ -243,8 +243,9 @@ ever wrong it appears in Sentry instead of quietly locking members out.
    P2022 lesson). Never `prisma db push`.
 4. Grep for a removed symbol matches the comment explaining its removal — decomment first. This
    has bitten audit-status probes AND the tests that guard them.
-5. `PUPPETEER_EXECUTABLE_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` for
-   probes; `timeout` doesn't exist on this Mac; `verify:shot` wants a bare filename.
+5. Which Chrome a probe launches is `chromePath()` in `scripts/qa/_probe-kit.mjs`, not an
+   environment variable you export; `timeout` doesn't exist on this Mac; `verify:shot` wants a
+   bare filename.
 6. Deleting a route leaves a stale `.next` type — `rm -f .next/dev/types/validator.ts`.
 7. Heavy parallel load (visual suite + probes + screenshots on one dev server) produces flaky
    failures that look real. Re-run quiet before believing a red.

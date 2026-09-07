@@ -22,7 +22,7 @@ import { createHash, randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import puppeteer from "puppeteer";
 import { fetchSessionCookie } from "./_dev-login.mjs";
-import { bootstrap, openDb } from "./_probe-kit.mjs";
+import { bootstrap, openDb, chromePath } from "./_probe-kit.mjs";
 import { EMAIL_UNVERIFIED } from "../../src/lib/email-gate-message.ts";
 import { MEMBER_UNVERIFIED } from "../../src/lib/member-gate-message.ts";
 
@@ -248,7 +248,7 @@ console.log("\n-- driving the real feed UI");
 {
   const browser = await puppeteer.launch({
     headless: "new",
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+    executablePath: chromePath(),
   });
   try {
     const drive = async (slug, text) => {

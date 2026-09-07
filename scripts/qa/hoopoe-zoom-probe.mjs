@@ -17,14 +17,14 @@
  */
 
 import puppeteer from "puppeteer";
+import { chromePath } from "./_probe-kit.mjs";
 
 const URL = process.argv[2] ?? "http://localhost:3000/login";
-const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const ZOOMS = [1, 1.25, 1.5, 2];
 const PARTS = ["leftWing", "rightWing", "eyeBlinkL", "crest", "head"];
 
 const browser = await puppeteer.launch({
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH ?? CHROME,
+  executablePath: chromePath(),
   headless: "new",
 });
 const page = await browser.newPage();

@@ -22,6 +22,7 @@
 import puppeteer from "puppeteer";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
+import { chromePath } from "./_probe-kit.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 process.chdir(repoRoot);
@@ -36,9 +37,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const browser = await puppeteer.launch({
   headless: true,
-  executablePath:
-    process.env.PUPPETEER_EXECUTABLE_PATH ||
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  executablePath: chromePath(),
   args: ["--no-sandbox", "--disable-setuid-sandbox"],
 });
 
