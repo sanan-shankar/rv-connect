@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { titleCase } from "@/lib/normalize";
-import { legacyCityColumns, placesSchema, resolvePlaces } from "@/lib/place-input";
+import { placesSchema, resolvePlaces } from "@/lib/place-input";
+import { replaceUserPlaces } from "@/lib/place-write";
 import { lookupGazetteerPlaces } from "@/lib/place-lookup";
 import { normalizeHouse } from "@/lib/houses";
 import type { HouseYearEntry } from "@/lib/houses";
@@ -75,36 +76,17 @@ export async function saveOnboardingRegister(input: RegisterStepInput) {
      the duplicate that collapse can leave behind. */
   const cleanedPlaces = await resolvePlaces(places, titleCase, lookupGazetteerPlaces);
 
-  await prisma.$transaction(async (tx) => {
-    await tx.user.update({
-      where: { id: userId },
-      data: {
-        admissionNumber: admissionNumber ?? null,
-        workplace,
-        jobTitle,
-        subjects,
-        // The legacy city columns, from the one place all three writers read
-        // (audit C-101). This step mirrored only the first, like the other
-        // two, so a stale pre-migration secondaryCity survived every save.
-        ...legacyCityColumns(cleanedPlaces),
-      },
-    });
-
-    // Replace the person's city list wholesale with the picker's current set.
-    await tx.userPlace.deleteMany({ where: { userId } });
-    if (cleanedPlaces.length > 0) {
-      await tx.userPlace.createMany({
-        data: cleanedPlaces.map((p, i) => ({
-          userId,
-          placeId: p.placeId,
-          label: p.label,
-          city: p.city,
-          lat: p.lat,
-          lng: p.lng,
-          position: i,
-        })),
-      });
-    }
+  /* The shared transaction, not a third copy of it. This step wrote its own
+     wipe-and-recreate for so long that place-write.ts's header still said
+     "exactly two writers" -- and the register step's four profile columns go
+     in the same transaction, so a save is still all-or-nothing. The legacy
+     city mirror comes from the helper now (audit C-101); this step used to
+     spread it here, which is how it mirrored only the first city for a while. */
+  await replaceUserPlaces(userId, cleanedPlaces, {
+    admissionNumber: admissionNumber ?? null,
+    workplace,
+    jobTitle,
+    subjects,
   });
 
   // Deliberately NOT revalidatePath("/welcome"): this action is called FROM the

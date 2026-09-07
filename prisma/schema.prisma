@@ -961,8 +961,9 @@ model UserPlace {
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   place Place? @relation(fields: [placeId], references: [id])
 
-  // One row per slot per member (audit Low 2). Both writers -- the member's own
-  // settings and the admin's person page -- are wipe-and-recreate transactions:
+  // One row per slot per member (audit Low 2). All three writers -- sign-up's
+  // register step, the profile's cities pen and the admin's person page, and
+  // they share one helper -- are wipe-and-recreate transactions:
   // delete every row, then create the new set at positions 0..n-1. Under READ
   // COMMITTED, an interleaved pair could each delete what they saw and then
   // both insert, leaving the member with two sets of cities, two rows at
