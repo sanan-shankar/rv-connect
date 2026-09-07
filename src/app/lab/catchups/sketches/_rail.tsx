@@ -68,6 +68,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { CaretRight } from "@phosphor-icons/react";
+import Link from "next/link";
 import { AnimatePresence, m } from "motion/react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
@@ -82,12 +83,20 @@ import type { SketchPerson } from "./_types";
  *  the far end of the column, which stranded a single mark 180px from the
  *  person it belongs to. */
 export function Person({ p, size = 30 }: { p: SketchPerson; size?: number }) {
+  /* A LINK, all of it. His, 2026-09-07: "under people all the profiles should
+     be clickable and take you to their profile." A name and a face in this app
+     always go to the person -- the feed's byline, the directory's card, an
+     answer's author -- and this roster was the one place they did not, which
+     made the sheet a dead end you had to back out of to find anybody. */
   return (
-    <span className="flex min-w-0 items-center gap-2.5">
+    <Link
+      href={`/profile/${p.id}`}
+      className="state-layer -mx-2 flex min-w-0 items-center gap-2.5 rounded-full px-2 py-1 transition-opacity duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+    >
       <BirdAvatar user={p} size={size} />
       <span className="min-w-0 truncate text-[14.5px] text-foreground">{p.name}</span>
       {p.isKeeper && <Sprout className="h-3.5 w-3.5 shrink-0 text-cinnamon" aria-label="Keeper" />}
-    </span>
+    </Link>
   );
 }
 

@@ -690,9 +690,11 @@ function Round({ c, onRead }: { c: SketchCatchup; onRead: (r: ShelfRound) => voi
     return (
       <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-5">
         <p className="font-heading text-[17px] text-foreground">This Catch-up is on hold</p>
-        <p className="mt-1.5 text-[14px] text-muted-foreground">
-          Nothing goes out and no clock is running until someone starts it again.
-        </p>
+        {/* The sentence that used to sit here -- "Nothing goes out and no clock
+            is running until someone starts it again" -- is deleted at his word.
+            It explained the mechanism of a state whose name already says it,
+            which is the same fault as the rhythm line and the sentence
+            defining a Round: "we don't need to teach them how to use it." */}
         <Button size="sm" className="mt-4">
           Start it again
         </Button>
@@ -742,7 +744,40 @@ function EarlierRounds({
   onRead: (r: ShelfRound) => void;
   phone: boolean;
 }) {
-  if (c.before.length === 0) return null;
+  /* THE COLUMN NEVER GOES EMPTY. On a Catch-up whose first Round is still
+     being made there are no back numbers, and the sidebar simply vanished --
+     so the page had a wide column and a void beside it, and then grew a
+     sidebar out of nowhere the day Round one came out. His: "make sure you
+     have a pretty way of having at least something even maybe placeholder on
+     the sidebar when it's the first catch up and there's no previous ones."
+
+     What stands in is the Catch-up's own photograph at the cover's exact
+     shape and size, quietened, with one line on it. Not a dashed box and not
+     an empty state illustration: the same object the column is made of, so
+     when the first Round arrives nothing moves -- the picture is simply
+     replaced by the photographs people took. */
+  if (c.before.length === 0) {
+    return (
+      <div
+        className="card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card"
+        aria-hidden
+      >
+        <div className="relative" style={{ aspectRatio: phone ? "3 / 1" : "5 / 2" }}>
+          <Image
+            src={c.picture.src}
+            alt=""
+            fill
+            sizes="360px"
+            style={{ objectPosition: c.picture.focus }}
+            className="object-cover opacity-[0.45] grayscale-[0.35]"
+          />
+        </div>
+        <p className="px-4 py-2.5 font-sans text-[13px] text-muted-foreground">
+          The first Round lands here
+        </p>
+      </div>
+    );
+  }
   return (
     <section>
       {/* NO HEADING. It said "Earlier Rounds" over a column of covers, each
