@@ -530,6 +530,14 @@ function Strip({
  *  height so it still reads as a frame from a film, and wears a play
  *  badge, which is all the platform name a reader needs. */
 export function Media({ items, className }: { items: SketchMedia[]; className?: string }) {
+  /* Which stills turned out not to exist. A YouTube thumbnail is DERIVED from
+     the video id rather than fetched (_media.ts), so nothing has checked that
+     the video is real -- and the pressure corpus contains an invented id on
+     purpose. It 404s, and a 404 in an <img> is a broken-image glyph sitting in
+     the middle of a song card. So a failed still falls back to the same music
+     mark a link with no artwork already uses, and the card looks deliberate
+     either way. */
+  const [broken, setBroken] = useState<Record<string, boolean>>({});
   if (items.length === 0) return null;
   return (
     <div className={cn("space-y-2", className)}>
@@ -541,7 +549,7 @@ export function Media({ items, className }: { items: SketchMedia[]; className?: 
           rel="noreferrer"
           className="state-layer flex items-center gap-3 rounded-[10px] border border-border bg-card p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          {m.art ? (
+          {m.art && !broken[m.url] ? (
             <span className="relative shrink-0">
               {/* Plain <img>, like the shipped SpotifyCard: these hosts are
                   on the CSP img-src allowlist but deliberately NOT on
@@ -549,6 +557,7 @@ export function Media({ items, className }: { items: SketchMedia[]; className?: 
               <img
                 src={m.art}
                 alt=""
+                onError={() => setBroken((b) => ({ ...b, [m.url]: true }))}
                 className="h-[52px] rounded-[6px] object-cover"
                 style={{ width: m.platform === "youtube" ? 92 : 52 }}
               />
