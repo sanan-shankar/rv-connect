@@ -128,7 +128,12 @@ async function resolveOne(f: Found): Promise<SketchMedia> {
       platform: "spotify",
       url: f.url,
       title: str(data?.title) ?? "Song on Spotify",
-      by: f.kind === "track" ? "Spotify" : `Spotify ${f.kind}`,
+      /* Spotify's keyless oembed carries no artist (prior-art.md section 7,
+         "the missing artist field"), and the platform's name is not a
+         substitute for one: "we don't really need to say YouTube, because
+         people can see that from the URL" (R6). A song card with no second
+         row is a title over its cover, which is what a song looks like. */
+      by: null,
       /* i.scdn.co is already on the img-src allowlist (next.config.ts,
          "Spotify album art on Catch-up answers"), so this renders today. */
       art: str(data?.thumbnail_url),
