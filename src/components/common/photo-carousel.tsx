@@ -102,6 +102,7 @@ export function PhotoCarousel({
   onOpen,
   onPreload,
   className,
+  bleed = false,
 }: {
   photos: CarouselPhoto[];
   /** The surface's `sizes` for its column. Each slide is the full column. */
@@ -110,6 +111,10 @@ export function PhotoCarousel({
   onOpen: (index: number) => void;
   onPreload: () => void;
   className?: string;
+  /** The carousel runs to the edges of the card it sits in, so it drops the
+   *  radius and the side borders it would otherwise draw against nothing.
+   *  The card clips the corners instead. */
+  bleed?: boolean;
 }) {
   /* One frame per photograph, each the frame that photograph would have been
      given had it been posted on its own. An unmeasured one -- predating the
@@ -298,7 +303,8 @@ export function PhotoCarousel({
              tallest photograph in the set with nothing computed and nothing
              measured. `items-stretch` then gives every other slide that same
              height to bed its photograph into. */
-          "absolute inset-0 flex snap-x snap-mandatory items-stretch overflow-x-auto rounded-[var(--radius-md)]",
+          "absolute inset-0 flex snap-x snap-mandatory items-stretch overflow-x-auto",
+          bleed ? "rounded-none" : "rounded-[var(--radius-md)]",
           /* The track scrolls sideways inside a page that scrolls down, so a
              horizontal overscroll must stop here rather than becoming the
              browser's back gesture. */
@@ -318,7 +324,10 @@ export function PhotoCarousel({
               onFocus={onPreload}
               aria-label={`View photo ${i + 1} of ${photos.length} full screen`}
               /* `snap-always`: a flick moves one photograph, never three. */
-              className="relative flex w-full flex-none snap-center snap-always items-center justify-center overflow-hidden border border-border bg-mist transition-opacity duration-150 active:opacity-90 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+              className={cn(
+                "relative flex w-full flex-none snap-center snap-always items-center justify-center overflow-hidden border border-border bg-mist transition-opacity duration-150 active:opacity-90 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+                bleed && "border-x-0"
+              )}
             >
               <PhotoBed src={p.src} srcSet={p.srcSet} sizes={promise} loading={i === 0 ? undefined : "lazy"} />
               {/* eslint-disable-next-line @next/next/no-img-element */}
