@@ -1,5 +1,25 @@
 # Progress Log
 
+## 2026-09-07 — one mail row, for the queue and for a person
+
+Refactor audit 2, admin-analytics-05 / E11. The person page drew its own mail row -- the same kind
+label, status chip, tries count, red `lastError` and Try again as `MailRows`, differing only in an
+absolute date and in hiding Try again on anything but a failed row. Owner asked, told exactly what
+would change, and answered **"16a"**: merge and accept it. So on `/admin/people/[id]` the dates read
+"2w ago" instead of "2 September", and every row carries Try again and Clear.
+
+Two things beyond the row itself. `MailRows` gained `showRecipient`, because the queue answers "who,
+what, when" and a person's own page has already said who, at the top, in bigger type -- passing the
+identity through would have printed the same address down eight rows, which is noise he was not asked
+about and did not agree to. And `useAdminAct` lost its `onDone` option: the mail card was its only
+caller and passed `() => router.refresh()`, which is the default written out, so the docblock had
+described a difference that never existed. `MAIL_STATUS_TONE`, `mailKindLabel` and `mailStatusLabel`
+are local again now that nothing outside the file chips a mail state.
+
+Screenshotted at 1440 and 390. The section is 614px on both; rows fit at 390 with the two buttons
+beside the text, no wrap. `/admin/mail` is untouched. `npm run check` 105/105, `npm run visual`
+25/25.
+
 ## 2026-09-07 — the admin tools on a profile stop keeping their own copy of the truth
 
 Refactor audit 2, directory-profile-16. `AdminProfileTools` wrote the busy / try / toast pattern four

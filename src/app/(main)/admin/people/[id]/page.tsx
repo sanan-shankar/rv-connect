@@ -82,6 +82,7 @@ export default async function AdminPersonPage({
       where: { userId: id },
       select: {
         id: true,
+        to: true,
         kind: true,
         status: true,
         attempts: true,
@@ -130,14 +131,21 @@ export default async function AdminPersonPage({
         contributionPaise: netPaise(contributions._sum),
         reportsAgainst,
       }}
+      /* The queue's own MailRow, so the person page draws the queue's row
+         rather than a second copy of it. The identity pair is null because the
+         card passes `showRecipient={false}`: this page IS the recipient, and it
+         has already said so at the top. */
       mail={mail.map((m) => ({
         id: m.id,
+        to: m.to,
         kind: m.kind,
         status: m.status,
         attempts: m.attempts,
         lastError: m.lastError,
         createdAt: m.createdAt.toISOString(),
         sentAt: m.sentAt?.toISOString() ?? null,
+        personId: null,
+        personName: null,
       }))}
     />
   );

@@ -42,12 +42,7 @@ import {
   adminUpdatePerson,
   adminUpdatePlaces,
 } from "@/app/(main)/admin/people/actions";
-import { retryMail } from "@/app/(main)/admin/mail/actions";
-import {
-  MAIL_STATUS_TONE,
-  mailKindLabel,
-  mailStatusLabel,
-} from "@/components/admin/mail/mail-rows";
+import { MailRows, type MailRow } from "@/components/admin/mail/mail-rows";
 
 /* ------------------------------------------------------------------ *
  *  One person, everything about them, everything you can do to them.
@@ -96,16 +91,6 @@ export interface DetailStats {
   reportsAgainst: number;
 }
 
-export interface DetailMail {
-  id: string;
-  kind: string;
-  status: string;
-  attempts: number;
-  lastError: string | null;
-  createdAt: string;
-  sentAt: string | null;
-}
-
 const ACCOUNT_TYPES = [
   { value: "alumnus", label: "Alumnus" },
   { value: "teacher", label: "Teacher" },
@@ -120,7 +105,7 @@ export function PersonDetail({
 }: {
   person: DetailPerson;
   stats: DetailStats;
-  mail: DetailMail[];
+  mail: MailRow[];
   /** True when this is the acting admin's own row. Block, Merge and Delete
    *  are not rendered then: the server refuses all three (bug audit B-023),
    *  and a control that always errors is worse than no control. Blocking is
@@ -183,7 +168,7 @@ export function PersonDetail({
           <DetailsCard person={person} />
           <PlacesCard person={person} />
           <NoteCard person={person} />
-          <MailCard mail={mail} onDone={() => router.refresh()} />
+          <MailCard mail={mail} />
         </div>
 
         {/* ---- right: the things you decide ---- */}
@@ -663,15 +648,7 @@ function NoteCard({ person }: { person: DetailPerson }) {
   );
 }
 
-function MailCard({
-  mail,
-  onDone,
-}: {
-  mail: DetailMail[];
-  onDone: () => void;
-}) {
-  const { busy, act } = useAdminAct({ onDone });
-
+function MailCard({ mail }: { mail: MailRow[] }) {
   if (mail.length === 0) {
     return (
       <AdminSection label="Mail we sent them">
@@ -682,9 +659,6 @@ function MailCard({
     );
   }
 
-  const retry = (id: string) =>
-    act(id, () => retryMail(id), "Back in the queue. It goes out on the next page load.");
-
   return (
     <AdminSection label="Mail we sent them" action={
       <Link
@@ -694,44 +668,11 @@ function MailCard({
         The whole queue
       </Link>
     }>
-      <div className="flex flex-col gap-1.5">
-        {mail.map((m) => (
-          <div
-            key={m.id}
-            className="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-border bg-card px-3 py-2"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 text-[13px] font-medium text-foreground">
-                {mailKindLabel(m.kind)}
-                <Chip label={mailStatusLabel(m.status)} tone={MAIL_STATUS_TONE[m.status] ?? "idle"} />
-              </p>
-              <p className="mt-0.5 text-[12px] text-muted-foreground">
-                {metaLine(
-                  formatDisplayDate(new Date(m.sentAt ?? m.createdAt)),
-                  m.attempts > 1 ? `${m.attempts} tries` : null
-                )}
-              </p>
-              {/* The error is the whole reason a failed row is worth showing.
-                  It was recorded and never rendered anywhere in the old panel. */}
-              {m.lastError && (
-                <p className="mt-1 break-words text-[12px] leading-snug text-destructive">
-                  {m.lastError}
-                </p>
-              )}
-            </div>
-            {m.status === "failed" && (
-              <Button
-                size="xs"
-                variant="outline"
-                disabled={busy === m.id}
-                onClick={() => retry(m.id)}
-              >
-                Try again
-              </Button>
-            )}
-          </div>
-        ))}
-      </div>
+      {/* The queue's own row, not a second drawing of it. They rendered the
+          same facts in two files, and the copy here had drifted to an absolute
+          date and a Try again that only appeared on a failed row. Owner,
+          2026-09-07, told exactly what would change: "16a". */}
+      <MailRows rows={mail} showActions showRecipient={false} />
     </AdminSection>
   );
 }
