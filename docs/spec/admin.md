@@ -1,8 +1,12 @@
 # Spec: admin
 
-**Status:** written 2026-08-18, from the owner's brief ("completely redo admin... it follows no
-design principles, no UI, no UX... rethink it and make sure that every important thing we do has
-been done there also"). Approved in chat on 2026-08-18 before writing. Nothing here is built yet.
+**Status:** written 2026-08-18 as a plan, from the owner's brief ("completely redo admin... it
+follows no design principles, no UI, no UX... rethink it and make sure that every important thing we
+do has been done there also"). Approved in chat on 2026-08-18 before writing. **It was then built.**
+Every route in §2 exists, plus two the plan never named. Where this document and the shipped panel
+disagree, **the panel is the successor** and this is the reasoning behind it: read it for why a
+screen is shaped the way it is, never for what is on screen today. Sections rewritten from disk on
+2026-09-08 are marked as such.
 
 This spec covers the whole admin surface: its navigation, its information architecture, the person
 row that appears on every one of its screens, and the twelve capabilities the code supports today
@@ -54,7 +58,8 @@ matter of taste: 53% of all text on the page is grey.
 
 ### 1.4 Every load fetches everything
 
-`src/app/(main)/admin/page.tsx` issues roughly fifteen round trips to Mumbai on every render:
+The single admin page (now `src/app/(main)/admin/(index)/page.tsx`, one section among eleven)
+issued roughly fifteen round trips to Mumbai on every render:
 
 - five counts in one `Promise.all` (`totalUsers`, `totalPosts`, `newSignups`, `pendingReports`,
   `pendingPhotos`)
@@ -78,30 +83,41 @@ Chrome window allows; confirm at 390 with `npm run screenshot:auth` during imple
 
 ---
 
-## 2. The shape: nine sections, three groups
+## 2. The shape: eleven sections, three groups
 
-`/admin` stops being one page. It becomes nine sections, grouped by the job they serve. Two of them (People and Messages) carry a detail route as well, so eleven routes in all.
+*(Rewritten from `src/components/admin/admin-nav.ts` and `ls src/app/(main)/admin` on 2026-09-08.
+The plan said nine sections and eleven routes; it shipped as eleven and fourteen.)*
+
+`/admin` stops being one page. It becomes a set of sections grouped by the job they serve, and three
+of them (People, Messages and Catch-ups) carry a detail route as well.
 
 ```
 WAITING              things that need you now
   Overview   /admin
-  Messages   /admin/messages
+  Review     /admin/review        (§9.5b -- split out of Content, 2026-08-30)
+  Messages   /admin/messages      + /admin/messages/[id]
   Reports    /admin/reports
 
 THE COMMUNITY        the people and what they made
   People     /admin/people        + /admin/people/[id]
   Content    /admin/content
-  Catch-ups  /admin/catchups
+  Catch-ups  /admin/catchups      + /admin/catchups/[catchupId]
 
 THE PLACE            the health of the thing
   Support    /admin/support
   Mail       /admin/mail
-  Analytics  /admin/analytics     (stub, see 9.9)
+  Audit log  /admin/audit         (§9.10 -- not in the original plan at all)
+  Analytics  /admin/analytics
 ```
 
-The group labels are provisional copy and may change; the grouping is not. Three groups of three is
-what makes nine rows scannable, and it mirrors the main sidebar's own split (nav rows, then the
-account section).
+**`src/components/admin/admin-nav.ts` is the one source for that list**, read by the sidebar (which
+swaps its whole nav while you are under `/admin`) and by the Overview's own section list, which is
+how a phone reaches a section without opening the drawer. Add a section there or it does not exist.
+
+The group labels are provisional copy and may change; the grouping is not. It mirrors the main
+sidebar's own split (nav rows, then the account section). The original argument was "three groups of
+three is what makes nine rows scannable"; two sections arrived after it was written, and four rows
+in a group is still a group you scan.
 
 ### Why routes and not tabs
 
@@ -220,9 +236,9 @@ subtitle.
   login, the thing that gets confirmed, and the thing you search by. Elsewhere in the app it is
   private, which is why this rule is admin's and not the app's.
 - **`batchLine`, never `formatBatch`.** This fixes a real bug already flagged and never closed:
-  `src/components/admin/user-management.tsx:86` is the last `formatBatch` call in the codebase and
-  renders **blank for every teacher** (`progress.md`, round 3: "an admin surface the owner did not
-  name"). It is named now.
+  the old panel's last `formatBatch` call rendered **blank for every teacher** (`progress.md`, round
+  3: "an admin surface the owner did not name"). That component is gone; the rule is what survives
+  it.
 - **State lives in chips on the right**, and chips are the only thing that varies between sections.
   Identity never varies.
 - **Two click targets, clearly different.** The name goes to the public profile. The rest of the row
@@ -362,10 +378,8 @@ anything more. When it is empty it says so in one line and the health strip beco
 the cap, money in this month. Each one links to the section that owns it, which is what the current
 stat strip fails to do (six counts, none clickable, three of them repeated as headings below).
 
-**Constraint:** the hoopoe tour button lives here, in the `PageHeader` actions slot, gated on
-`session.user.email === process.env.ADMIN_EMAIL`. `src/components/tour/tour-steps.ts` ends the tour
-with "use 'hoopoe tour' in the Admin panel", and `manual-tour-entry.test.mjs` asserts the exact
-`PageHeader` markup. That test is updated deliberately as part of this work, not broken in passing.
+**The hoopoe tour used to live here**, in the `PageHeader` actions slot, gated on the owner's own
+email. The whole tour was deleted on 2026-08-27 and `/guide` replaced it, so the slot is free.
 
 ### 9.2 Messages (`/admin/messages`, `/admin/messages/[id]`)
 
@@ -447,6 +461,9 @@ Removal reuses `ModerationDialog` and the existing `adminRemovePost` / `adminRem
 machinery; it builds the missing way to find the thing.
 
 ### 9.5b Review (`/admin/review`)
+
+*(Numbered `9.5b` because it was split out of §9.5 after §9.6-§9.9 were written. It is a section in
+its own right and sits second in the rail, above Messages -- see §2.)*
 
 Where photographs are actually looked at. Split out of §9.5 on 2026-08-30 after the owner saw the
 queue as a filtered list: *"i can barely see what i'm reviewing... there's a million pills so much
@@ -544,11 +561,9 @@ The `OutboundEmail` queue as an operable thing rather than three numbers (gap 9)
 
 ### 9.9 Analytics (`/admin/analytics`)
 
-**Stubbed.** A registered route, a sidebar row, a page that says what it will be and does not
-pretend to have numbers. The owner is building this separately; the job here is to reserve the slot
-so it is not bolted on later.
-
-What it will draw on, recorded now so the stub is useful:
+**Written as a stub to reserve the slot; built since.** `/admin/analytics` is a real surface reading
+`MetricSnapshot`, and the panel is the successor to everything below. What survives here is the list
+of what it was meant to draw on, which is still the argument for each number it shows:
 
 - signups over time (`User.createdAt`), splits by `accountType`, `batchYear`, `verifyState`
 - geography from `UserPlace`, which already denormalises lat/lng for exactly this kind of read
@@ -560,10 +575,30 @@ What it will draw on, recorded now so the stub is useful:
 - page views from PostHog, which is the only analytics tool here: `@vercel/analytics` was
   removed on 2026-08-26 rather than run a second one for the same number
 
-**One schema gap to raise before that build, not after:** `lastSeenAt` on `User` was planned in the
-roadmap's Phase 5 delta list and never added. "Who is actually still using this" is therefore the
-one question the database cannot answer, and it is the first question an analytics hub gets asked.
-Adding the column is cheap now and unbackfillable later. Flagged, not built here.
+**The one schema gap this section raised has been closed.** `lastSeenAt` on `User` was planned in
+the roadmap's Phase 5 delta list and never added, so "who is actually still using this" was the one
+question the database could not answer. The column exists now, stamped every fifteen minutes from
+the `(main)` layout, and it carries a **partial** index (`WHERE "lastSeenAt" IS NOT NULL`) that
+Prisma cannot express -- `prisma/schema.prisma`'s header says why declaring a plain `@@index` for it
+would propose dropping the live one.
+
+### 9.10 Audit log (`/admin/audit`)
+
+*(Added 2026-09-08. The route shipped without a section here, while `docs/SECURITY.md` leaned on it
+three separate times.)*
+
+Two append-only records side by side, because they answer two different questions. **`AuditLog`** is
+who did the things that change standing or destroy data: an admin blocking, deleting, verifying,
+merging or changing a role; a member deleting their own account; a report filed; and the nightly
+`retention.sweep`. That last one is why `SECURITY.md` sends the owner here -- *"is the retention
+pass actually running"* is answered by a line on this page, not by a document. **`LoginAttempt`**'s
+failures are the other question: the shape a break-in makes, a burst of wrong passwords or a run at
+addresses that match no account.
+
+Read-only, and deliberately so: an audit log an admin can edit is not one. The dotted action codes
+(`admin.block`, `account.purge`) get human labels on the page; actor and target ids resolve to names
+where the account still exists and stay as ids where it does not, which is the point of keeping the
+record after the row is gone.
 
 ---
 
@@ -607,7 +642,10 @@ the end.
 
 ## 12. Definition of done
 
-- Nine sections across eleven routes, each loading only its own data, each with a warm-shimmer `loading.tsx`.
+*(The acceptance list as written on 2026-08-18, kept as the record of what was agreed. It shipped as
+eleven sections across fourteen routes -- see §2.)*
+
+- Every section on its own route, each loading only its own data, each with a warm-shimmer `loading.tsx`.
 - No admin screen taller than roughly two viewports at 1440x900.
 - No text below 12px anywhere in admin. Muted text is a minority of the text on every screen.
 - One person row component, no `meta` prop, used on every admin surface that shows a person.
