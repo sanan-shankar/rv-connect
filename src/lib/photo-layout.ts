@@ -90,10 +90,7 @@ export const PHOTO_MAX_HEIGHT = 500;
 /**
  * How far the visible window may travel when a tall photograph is cut.
  *
- * Vertical only. There used to be a horizontal band beside this one, for a
- * photograph between 3:4 and square being squeezed narrower to match the tall
- * target -- a case that no longer exists, because 3:4 became a floor rather
- * than a target (see `framePhoto`). Nothing is ever trimmed at the sides now.
+ * Vertical only: nothing is ever trimmed at the sides (`framePhoto`).
  *
  * The brakes, and they are the load-bearing part rather than a nicety. X
  * cropped timeline previews with a saliency model from 2018, audited it in
@@ -276,9 +273,10 @@ export function framePhoto(facts: PhotoFacts): PhotoFrame {
      trimmed top and bottom, so the sideways aim this branch used to need is
      gone with the case that needed it.
 
-     What the old rule bought was one width for every tall card, and that is
-     the smaller half of the rhythm: the height ceiling already makes every one
-     of them exactly as tall, which is what a scroll actually feels. */
+
+     What went with the old rule was one shared width for every tall card,
+     which is the smaller half of the rhythm: the height ceiling already makes
+     every one of them exactly as tall, and that is what a scroll feels. */
   const shape = Math.max(r, TALL_TARGET);
   return {
     // The ceiling is a HEIGHT, and it reaches CSS as the width that produces
@@ -305,21 +303,16 @@ export function framePhoto(facts: PhotoFacts): PhotoFrame {
 /**
  * How wide a carousel may be drawn, given what is in it.
  *
- * A CAROUSEL SHARES A HEIGHT, NOT A SHAPE. That is the whole of the rule and
- * it is worth stating plainly, because two earlier versions shared a shape and
- * both were wrong in the same way.
+ * A CAROUSEL SHARES A HEIGHT, NOT A SHAPE. Two earlier versions shared a
+ * shape instead (handover D21); the owner found the bill in his own feed on
+ * 2026-08-28, where a shared shape drew the Colosseum 372 x 347 inside a
+ * 372 x 495 frame in a card 850px wide -- "why are all the photos fixed at
+ * that aspect ratio... that photo can take up much more space but we're not
+ * letting it??" At its own shape it is 833 x 500, five times the area.
  *
  * What has to be stable is the CARD's height -- nothing may change size under
- * a reader's thumb mid-swipe. A shared aspect ratio delivers that, but it
- * charges every photograph that is not that shape for it. Version one let the
- * tallest photograph pick the shape, so two landscapes beside a portrait sat
- * in 121px of blurred bed on a phone. Version two picked the MEDIAN, and the
- * owner found the bill for that one in his own feed on 2026-08-28: three
- * photographs, two upright and one of the Colosseum, drew the Colosseum
- * 372 x 347 inside a 372 x 495 frame in a card 850px wide -- "why are all the
- * photos fixed at that aspect ratio... that photo can take up much more space
- * but we're not letting it??" He is right, and the arithmetic is stark: at its
- * own shape it is 833 x 500, which is five times the area.
+ * a reader's thumb mid-swipe. A shared aspect ratio delivers that and charges
+ * every photograph that is not that shape for it.
  *
  * Sharing the HEIGHT gives the stable card for free and costs nothing:
  *
@@ -384,10 +377,13 @@ function mapSizes(columnSizes: string, slotFn: (slot: string) => string): string
  *
  * The rule above is CSS on purpose -- a max-width and an aspect-ratio, which
  * the browser resolves against whatever the column turns out to be -- so
- * nothing in the app calls this. It exists so the rule can be ASSERTED at the
- * three real column widths (358 on a phone, 728 on a laptop, 1216 where the
- * feed stops growing) rather than eyeballed, which is what spec §12 asks for.
- * It is the same arithmetic `width: 100%; max-width: N` does.
+ * nothing NEEDS this to draw a photograph. It exists so the rule can be
+ * ASSERTED at the three real column widths (358 on a phone, 728 on a laptop,
+ * 1216 where the feed stops growing) rather than eyeballed, which is what
+ * spec §12 asks for. It is the same arithmetic `width: 100%; max-width: N`
+ * does, which is why the two callers that want the number ahead of the paint
+ * -- the carousel's height table and /lab/crop's readout -- ask this rather
+ * than measure the DOM.
  */
 export function drawnSize(
   frame: PhotoFrame,
@@ -416,32 +412,22 @@ export function drawnSize(
  *  because each photograph's width is its ratio times the shared height,
  *  and those widths plus the gaps have to come to the container width.
  *
- *  IT IS BUILT AS FLEXBOX, NOT AS MEASURED PIXELS, and that is the one
- *  departure from `/lab/crop`'s model worth stating out loud. The lab
- *  room measured its stage with a ref and computed every rectangle in
- *  JavaScript, which is right for a room whose whole subject is the
- *  arithmetic. In the app it would be wrong for the same reason the
- *  single-photograph rule above is pure CSS: a layout that has to
- *  measure its container can only run after the first paint, so the
- *  photographs would land in the wrong places and then jump -- the
- *  complaint (#18) this phase exists to end, not to relocate.
+ *  IT IS BUILT AS FLEXBOX, NOT AS MEASURED PIXELS (handover D16), and
+ *  that is the one departure from `/lab/crop`'s model worth stating out
+ *  loud: a layout that has to measure its container can only run after
+ *  the first paint, so the photographs would land in the wrong places
+ *  and then jump -- the complaint (#18) this phase exists to end, not to
+ *  relocate. So the browser solves it. Every photograph gets a
+ *  flex-basis of `ratio x targetHeight` and a flex-grow of `ratio`;
+ *  `flex-wrap` breaks the line where the greedy justified walk would,
+ *  and the grow justifies whatever landed there, so every photograph on
+ *  the line comes out the same height and the widths add up exactly.
  *
- *  So the browser solves it. Every photograph gets a flex-basis of
- *  `ratio x targetHeight` -- its natural width at the height we are
- *  aiming for -- and a flex-grow of `ratio`. `flex-wrap` then breaks the
- *  line in the same place the greedy justified walk would, and the grow
- *  justifies whatever landed there: free space is shared in proportion
- *  to ratio, so every photograph on the line comes out the same height
- *  and the widths add up to the container exactly.
- *
- *  THE ROW COUNT FOLLOWS THE COLUMN, which is the reason it is done this
- *  way and not by deciding "three per row" in JavaScript. That was the
- *  first attempt and the phone killed it: three photographs balanced
- *  into one row are 267, 334 and 113px wide in a 730px feed card, which
- *  is right, and 112, 140 and 47px wide in a 316px one, which is a
- *  contact sheet. A basis in real pixels wraps on its own -- three
- *  across a laptop, one across a phone, and each of those photographs
- *  then drawn exactly as a single photograph would be.
+ *  THE ROW COUNT FOLLOWS THE COLUMN (handover D18), rather than a
+ *  "three per row" decided in JavaScript. The phone killed that first
+ *  attempt: three photographs balanced into one row are 267, 334 and
+ *  113px wide in a 730px feed card, which is right, and 112, 140 and
+ *  47px wide in a 316px one, which is a contact sheet.
  *
  *  `drawnRows` at the bottom is the same arithmetic written out, so the
  *  tests can assert what the browser is going to do.
