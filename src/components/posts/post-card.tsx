@@ -190,7 +190,9 @@ export function PostCard({
   const content = edited?.content ?? post.content;
   const title = edited ? edited.title : post.title;
 
-  const images = parseJsonArray(post.images);
+  /* Parsed once per post payload: `viewerImages` and the row layout below
+     both read it, and a fresh array every render would defeat their memos. */
+  const images = useMemo(() => parseJsonArray(post.images), [post.images]);
   const columnSizes = column === "wide" ? PHOTO_SIZES_WIDE_FULL : PHOTO_SIZES_CENTERED_FULL;
   /* Justified rows need every shape up front, so a post whose photographs have
      not all been measured keeps the old stack rather than half a layout. Null
@@ -203,13 +205,13 @@ export function PostCard({
   // Built once per post payload, not on every like/comment re-render.
   const viewerImages = useMemo(
     () =>
-      parseJsonArray(post.images).map((src) => ({
+      images.map((src) => ({
         src,
         author: post.author,
         date: formatDisplayDate(post.createdAt),
         caption: post.kind === "letter" ? null : content,
       })),
-    [post.images, post.author, post.createdAt, post.kind, content]
+    [images, post.author, post.createdAt, post.kind, content]
   );
   const isLetter = post.kind === "letter";
   const isLongText = content.length > READ_MORE_TRUNCATE_LEN;
@@ -537,7 +539,7 @@ export function PostCard({
                      app's second source of the chopped-faces complaint after
                      the Catch-up letterbox. */
                   <PhotoRows photos={rowPhotos} columnSizes={columnSizes}>
-                    {(photo, i, cell) => (
+                    {(_photo, i, cell) => (
                       <PhotoOpener
                         index={i}
                         count={images.length}
@@ -574,15 +576,27 @@ export function PostCard({
             menu). Touch targets stay full-size; only the padding overhangs into the card gutter.
             The vertical cancel is -7px, not the -6px a bare py-1.5 suggests: LoveButton's text-sm
             count span sets a 20px line box around the 18px glyph, so its box is 32px and the
-            glyph's optical inset is (32-18)/2 = 7. That lands the ink 17px above the card's
-            bottom border, equal to the sides (owner: bottom padding must match the sides).
-            (AnswerCard uses -mb-1.5 for a countless heart in a 30px box; 6 is exact THERE.)
+            glyph's optical inset is (32-18)/2 = 7.
             Only when the row is the card's last child: with comments open, CommentsSection
-            takes over the bottom edge and the pull would just crowd the divider. */}
+            takes over the bottom edge and the pull would just crowd the divider.
+
+            A TENTH TIGHTER, top and bottom, 2026-09-07, and it is the owner's arithmetic: he
+            found the same band on a Catch-up answer "a bit loose" and asked for "10% on both
+            the top and the bottom", then told this file to follow "if feed uses the same width,
+            the same number of pixels". It does, measured on both: 8px above the row's box and
+            9px below it, either side of a 32px button whose glyph is inset 7. So the ink sat
+            21px under the words and 23px above the border, and a tenth of each is 2px.
+            mt-2 -> mt-1.5, and the bottom pull -7 -> -9.
+
+            WHAT THAT COSTS, said out loud because it reverses an earlier instruction of his:
+            the -7 was chosen so the ink landed 17px above the border to match the card's 16px
+            sides ("bottom padding must match the sides", 2026-08). At -9 it lands at 15, so it
+            is now a pixel INSIDE the side inset rather than a pixel outside. The later word
+            wins; if the older one is the one he meant, this is the line to change back. */}
         <div
           className={cn(
-            "mt-2 -mx-2.5 flex items-center gap-1 text-muted-foreground",
-            !showComments && "-mb-[7px]"
+            "mt-1.5 -mx-2.5 flex items-center gap-1 text-muted-foreground",
+            !showComments && "-mb-[9px]"
           )}
         >
           <LoveButton liked={liked} count={likeCount} onToggle={handleLike} label="Like this post" />
