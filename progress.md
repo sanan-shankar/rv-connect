@@ -1,5 +1,26 @@
 # Progress Log
 
+## 2026-09-07 — five hand-rolled admin checks go through the one guard
+
+Refactor audit 2, duplication-15 (audit-1's dup-20 residue). `approvePhoto`, `approvePhotos`,
+`declinePhoto` and `adminRemovePhoto` each opened `auth()` and asked `role !== "admin"` themselves,
+and `lab/actions.ts` asked it again with a full stop on the end of the refusal. All five now call the
+shared guard, so the check and its wording cannot drift from the twenty-odd actions beside them. The
+finding's four line numbers were all wrong (1039/1078/1159/1231 against a real 886/925/1006/1078);
+the functions it named were right.
+
+The two approvals take `requireAdminActor` rather than `requireAdminAction`, because they stamp
+`approvedById` — which is the shape `admin/review/actions.ts` already uses for the same write, so the
+two approval paths now read identically. The mixed owner-or-admin checks at `:1055` and `:1155` are
+NOT this rule and were left.
+
+**One trap came out of it.** A refusal returned from the shared guard is not a fresh object literal,
+so TypeScript stops normalising the return union and `{ success: true }` loses its
+`error?: undefined`. That makes the whole result a weak type, and `content-list.tsx:418` — a caller
+neither the finding nor I had thought about — stopped compiling. Fixed by writing
+`Promise<AdminActionResult>` out on the three actions that return that shape, which is what the type
+was created for. `npm run check`: 105/105.
+
 ## 2026-09-07 — the report transaction is written once
 
 Refactor audit 2, feed-posts-14(a). The Report row and the AdminThread that answers it landed in one

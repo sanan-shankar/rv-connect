@@ -2,6 +2,7 @@
 
 import { createId } from "@paralleldrive/cuid2";
 import { auth } from "@/lib/auth";
+import { requireAdminAction, requireAdminActor, type AdminActionResult } from "@/lib/admin";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import {
@@ -881,9 +882,15 @@ export async function togglePhotoLove(photoId: string) {
   return { success: true, loved: true };
 }
 
-export async function approvePhoto(photoId: string) {
-  const session = await auth();
-  if (session?.user?.role !== "admin") return { error: "Not authorized" };
+/* The return type is written out on the three actions below rather than
+   inferred. A refusal returned FROM the shared guard is not a fresh object
+   literal, so TypeScript stops normalising the union and `{ success: true }`
+   loses its `error?: undefined` -- at which point the whole result is a weak
+   type and every caller that reads `result.error` fails to compile. Same trap
+   `AdminActionResult` was written for; here it is used. */
+export async function approvePhoto(photoId: string): Promise<AdminActionResult> {
+  const actor = await requireAdminActor();
+  if (!actor.ok) return { error: actor.error };
 
   /* updateMany, so a row another admin declined a moment ago is ANSWERED
      rather than thrown at (audit C-074/C-130). `update` raises P2025 on a
@@ -893,7 +900,7 @@ export async function approvePhoto(photoId: string) {
      way this happens, not an exotic race. */
   const approved = await prisma.photo.updateMany({
     where: { id: photoId },
-    data: { approved: true, approvedAt: new Date(), approvedById: session.user.id },
+    data: { approved: true, approvedAt: new Date(), approvedById: actor.actorId },
   });
   if (approved.count === 0) return { error: "That photo is no longer here." };
   revalidatePath("/collection");
@@ -921,8 +928,8 @@ export async function approvePhoto(photoId: string) {
  * that is already gone should be counted out rather than thrown.
  */
 export async function approvePhotos(photoIds: string[]) {
-  const session = await auth();
-  if (session?.user?.role !== "admin") return { error: "Not authorized" };
+  const actor = await requireAdminActor();
+  if (!actor.ok) return { error: actor.error };
 
   /* The list is user input, so it is bounded before it becomes an `IN` clause.
      A page of the queue is CONTENT_PAGE_SIZE (40); this is generous room above
@@ -935,7 +942,7 @@ export async function approvePhotos(photoIds: string[]) {
     // `approved: false` so a row somebody else waved through a moment ago
     // keeps THEIR name against it rather than being re-stamped with ours.
     where: { id: { in: ids }, approved: false },
-    data: { approved: true, approvedAt: new Date(), approvedById: session.user.id },
+    data: { approved: true, approvedAt: new Date(), approvedById: actor.actorId },
   });
   if (approved.count === 0) return { error: "Those photos are no longer waiting." };
   revalidatePath("/collection");
@@ -1001,9 +1008,9 @@ async function erasePhoto(
   return { uploaderId: photo.uploaderId };
 }
 
-export async function declinePhoto(photoId: string) {
-  const session = await auth();
-  if (session?.user?.role !== "admin") return { error: "Not authorized" };
+export async function declinePhoto(photoId: string): Promise<AdminActionResult> {
+  const denied = await requireAdminAction();
+  if (denied) return denied;
 
   const erased = await erasePhoto(photoId, "declined");
   if ("error" in erased) return erased;
@@ -1073,9 +1080,9 @@ export async function deleteOwnPhoto(photoId: string) {
  * that mattered (audit M11). Deleting the bytes is best-effort and never
  * throws, so it cannot turn a moderation click into an error page.
  */
-export async function adminRemovePhoto(photoId: string, note?: string) {
-  const session = await auth();
-  if (session?.user?.role !== "admin") return { error: "Not authorized" };
+export async function adminRemovePhoto(photoId: string, note?: string): Promise<AdminActionResult> {
+  const denied = await requireAdminAction();
+  if (denied) return denied;
 
   const photo = await prisma.photo.findUnique({
     where: { id: photoId },
