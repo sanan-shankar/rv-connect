@@ -1,0 +1,49 @@
+-- "Image"."greyscale": a black-and-white flag measured on every feed upload
+-- for a Collection filter that reads a different table.
+--
+-- Refactor audit 2, row D9 (`data-layer-02`). The owner's answer to Q18,
+-- 2026-09-07, against a table row reading "Whether a photograph is black and
+-- white | 3 of 53 are true | stop computing it; it can be worked out again
+-- from the picture": "stop writing info except to [three named columns]".
+-- This is not one of the three.
+--
+-- Idempotent, per CLAUDE.md: never `prisma db push` against this database.
+--
+-- *** DO NOT RUN THIS UNTIL THE CODE CHANGE IS DEPLOYED. ***
+-- Prisma names every column of a model in its SELECT list, so dropping this
+-- while an older build still knows about it breaks `recordImage` and
+-- `photoFactsFor` -- which is every feed and letter photograph's layout. The
+-- build that stopped naming it is the commit this file ships in. Deploy first,
+-- then run this, then the demo. Running it late costs nothing.
+--
+-- Apply:
+--   node scripts/dev/run-sql.mjs prisma/migrations-manual/2026-09-07-drop-image-greyscale.sql
+--   node scripts/dev/run-sql.mjs --env .env.demo prisma/migrations-manual/2026-09-07-drop-image-greyscale.sql
+-- Production and the demo are SEPARATE Supabase projects. Both, or the demo
+-- drifts (docs/TRAPS.md).
+--
+-- THE EVIDENCE. Counted 2026-09-07, on both databases:
+--
+--   SELECT count(*) AS rows, count(*) FILTER (WHERE greyscale) AS greyscale
+--     FROM "Image";
+--
+--   production -> 53 rows, 3 true
+--   demo       -> 2 rows,  0 true
+--
+-- THIS ONE IS NOT EMPTY, and that is said plainly rather than buried: three
+-- real values are being deleted. They are safe to delete because they are
+-- DERIVED -- a pixel pass over the stored image reproduces any of them exactly
+-- -- and because nothing has ever read the column. `Image` is keyed by URL and
+-- written only by the two FEED upload routes; the Collection's rows are
+-- `Photo`, which has no such column, so the "black and white, for free" filter
+-- of collection-rework spec §7.4 could never have used it. That spec section
+-- now says so.
+--
+-- NO INDEX to drop with it: the column was never indexed.
+--
+-- IF THE FILTER IS EVER BUILT, it wants a new column on `Photo`, computed in
+-- contributePhotoDirect's encode chain -- which is NOT toDisplayWebp
+-- (docs/TRAPS.md). The measurement is twenty lines away in git, threshold and
+-- reasoning included.
+
+ALTER TABLE "Image" DROP COLUMN IF EXISTS "greyscale";

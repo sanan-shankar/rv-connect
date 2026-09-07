@@ -175,7 +175,6 @@ export type ImageFacts = {
   /** 0..1 from the left / top. Raw and unclamped; see the schema comment. */
   focalX: number;
   focalY: number;
-  greyscale: boolean;
   blurDataUrl: string | null;
 };
 
@@ -213,43 +212,25 @@ const FOCAL_SQUEEZE = 0.8;
  *  hide. Compared side by side on real photographs before picking. */
 const LQIP_EDGE = 16;
 
-/**
- * Mean chroma below which we call a photograph black and white: 8 of 255.
- *
- * Measured, not guessed. A true greyscale copy of one of our own photographs
- * reads 0.01; the five colour photographs to hand read 16.8 to 49.3. Eight sits
- * in the empty middle with room on both sides for JPEG colour noise in an old
- * scan. Sepia and faded prints read as colour, which is the honest answer --
- * they have a hue -- and is worth remembering before this is offered as a "black
- * and white" filter over a heritage archive.
- */
-const GREYSCALE_CHROMA = 8;
+/* A BLACK-AND-WHITE MEASUREMENT USED TO LIVE HERE -- `meanChroma`,
+   `isGreyscale` and the threshold of 8-in-255 they compared against, run as a
+   pixel pass over the probe buffer on every feed upload.
 
-/**
- * Average colourfulness of raw pixels, 0 (no colour at all) to 255.
- *
- * Per pixel: how far apart its most and least intense channels are, which is
- * exactly zero when r == g == b however light or dark the pixel is. Pure, so it
- * can be tested without a decoder.
- */
-export function meanChroma(pixels: Uint8Array | Buffer, channels: number): number {
-  if (channels < 3) return 0; // a one-channel image has no colour to measure
-  let total = 0;
-  let count = 0;
-  for (let i = 0; i + 2 < pixels.length; i += channels) {
-    const r = pixels[i];
-    const g = pixels[i + 1];
-    const b = pixels[i + 2];
-    total += Math.max(r, g, b) - Math.min(r, g, b);
-    count += 1;
-  }
-  return count === 0 ? 0 : total / count;
-}
+   It was written for the Collection's "black and white, for free" filter
+   (collection-rework spec §7.4), and it could never have served it: `Image` is
+   keyed by URL and written only by the two FEED upload routes, while the
+   Collection's rows are `Photo`, a different table with no such column. So
+   every value described a feed, letter or Catch-up photograph and the filter
+   that wanted it could not read one. Removed 2026-09-07 on the owner's
+   answer to refactor audit 2 Q18: "stop computing it; it can be worked out
+   again from the picture."
 
-/** Whether raw pixels carry no colour worth speaking of. */
-export function isGreyscale(pixels: Uint8Array | Buffer, channels: number): boolean {
-  return meanChroma(pixels, channels) < GREYSCALE_CHROMA;
-}
+   If the filter is built, the measurement is twenty lines to bring back from
+   git -- and it belongs on `Photo`, computed in `contributePhotoDirect`'s
+   encode chain, which is NOT `toDisplayWebp` (docs/TRAPS.md). One thing worth
+   carrying over: sepia and faded prints read as COLOUR, which is honest --
+   they have a hue -- and is worth knowing before offering the filter over a
+   heritage archive. */
 
 /**
  * sharp's attention coordinates as a fraction of the frame.
@@ -311,7 +292,6 @@ export async function describeImage(stored: Buffer): Promise<ImageFacts | null> 
       height: meta.height,
       focalX: focalFraction(cropped.info.attentionX, pw),
       focalY: focalFraction(cropped.info.attentionY, ph),
-      greyscale: isGreyscale(probe.data, channels),
       blurDataUrl: smear ? `data:image/webp;base64,${smear.toString("base64")}` : null,
     };
   } catch (err) {

@@ -80,10 +80,6 @@ export async function forgetImages(urls: (string | null | undefined)[]): Promise
  * What we know about a set of urls, as a map. One query however many photos
  * are on the page, and a url with no row is simply absent -- the caller draws
  * it the way it drew everything before this table existed.
- *
- * `greyscale` is deliberately not selected. It is a filter for the Collection
- * (spec §7.4), not something a card needs in order to lay a photograph out,
- * and every byte here rides in the server component's payload.
  */
 export async function photoFactsFor(
   urls: (string | null | undefined)[]

@@ -360,11 +360,20 @@ The existing year → month, or decade-if-unsure control stays exactly as it is.
 looked at it during the brief and said *"that's pretty smart, actually."* It is the one part
 of the current form that survives untouched.
 
-### 7.4 Black and white, for free
+### 7.4 Black and white, for free — NOT BUILT, and the column has gone
 
 Detected at upload with `sharp` (the `greyscale` column in §2) and offered as a filter. No
 one has to tag it, and it was on the owner's own list of buckets. This is the shape of thing
 worth automating: a property of the file, not a judgement about it.
+
+**What actually happened.** §2 put the column on `Image`, which is keyed by URL and written
+only by the two FEED upload routes; the Collection kept `Photo`, a different table. So the
+measurement ran on every feed upload and the filter that wanted it could never read one. The
+filter was never built. On 2026-09-07 (refactor audit 2 / D9) the owner said *"stop computing
+it; it can be worked out again from the picture"*, and the measurement and the column both
+went. **If this is built, the column belongs on `Photo`**, computed in
+`contributePhotoDirect`'s encode chain — which is not `toDisplayWebp` (`docs/TRAPS.md`). The
+threshold and its reasoning are twenty lines away in git.
 
 ### 7.5 Parked
 

@@ -297,10 +297,14 @@ model Image {
   /// position a person can choose is also a position the machine can guess.
   focalSet    Boolean  @default(false)
 
-  /// True for a photograph with no colour in it, measured rather than declared
-  /// (spec §7.4: a filter nobody has to tag for). Sepia and faded prints read as
-  /// colour here, which is honest -- they have a hue.
-  greyscale   Boolean  @default(false)
+  // `greyscale` was here: true for a photograph with no colour in it, measured
+  // on every feed upload for a Collection filter that could never read it --
+  // the Collection's rows are `Photo`, a different table. 3 of 53 rows were
+  // true. The code stopped computing it on 2026-09-07 (refactor audit 2 / D9);
+  // the column is still in both databases until the owner runs
+  // prisma/migrations-manual/2026-09-07-drop-image-greyscale.sql. It is NOT
+  // NULL DEFAULT false, so Prisma omitting it writes false and nothing breaks
+  // in the meantime.
 
   /// A 16px-longest-edge WebP of the image as a data URI, about 160 bytes: the
   /// thing to show in the reserved space while the real photograph loads. Same

@@ -79,18 +79,18 @@ for (const [i, u] of todo.entries()) {
     const facts = await describeImage(await bytesFor(u));
     if (!facts) throw new Error("could not be measured");
     await client.query(
-      `INSERT INTO "Image" ("url", "width", "height", "focalX", "focalY", "greyscale", "blurDataUrl")
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO "Image" ("url", "width", "height", "focalX", "focalY", "blurDataUrl")
+       VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT ("url") DO UPDATE SET
          "width" = EXCLUDED."width", "height" = EXCLUDED."height",
          "focalX" = EXCLUDED."focalX", "focalY" = EXCLUDED."focalY",
-         "greyscale" = EXCLUDED."greyscale", "blurDataUrl" = EXCLUDED."blurDataUrl"`,
-      [u, facts.width, facts.height, facts.focalX, facts.focalY, facts.greyscale, facts.blurDataUrl]
+         "blurDataUrl" = EXCLUDED."blurDataUrl"`,
+      [u, facts.width, facts.height, facts.focalX, facts.focalY, facts.blurDataUrl]
     );
     measured += 1;
     console.log(
       `  ${i + 1}/${todo.length} ${facts.width}x${facts.height}` +
-        `${facts.greyscale ? " b&w" : ""} focal ${facts.focalX.toFixed(2)},${facts.focalY.toFixed(2)}  ${u}`
+        ` focal ${facts.focalX.toFixed(2)},${facts.focalY.toFixed(2)}  ${u}`
     );
   } catch (err) {
     failures.push([u, err instanceof Error ? err.message : String(err)]);
