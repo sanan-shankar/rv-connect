@@ -1,5 +1,26 @@
 # Progress Log
 
+## 2026-09-07 — the admin tools on a profile stop keeping their own copy of the truth
+
+Refactor audit 2, directory-profile-16. `AdminProfileTools` wrote the busy / try / toast pattern four
+times, and mirrored `isBlocked` and `verifyState` in local state that flipped on the client whether
+or not the write had landed. 222 lines to 194.
+
+**The finding's remedy was half right and I did not take that half.** It says route all four handlers
+through `useAdminAct`. Three of them are `ConfirmDialog` `onConfirm`s, and that dialog ALREADY owns a
+busy state, already runs the action through `callAction` and already shows the refusal -- so the hook
+on top would track "working" twice and toast a refusal the dialog is about to toast. `useAdminAct`'s
+own docblock says as much ("the confirm-dialog flows in person-detail do exactly that"), and
+person-detail is the worked example: `onConfirm` returns the result and the dialog does the rest. So
+the note, the one control not behind a confirmation, takes the hook; the other three hand their
+result back. The generic "Something went wrong" catch is gone either way, which was the real defect:
+a rejected action now gets the app's standard message instead.
+
+Driven live as admin on Jerry's profile: note saved, block and unblock, unverify and re-verify. Every
+label followed the refreshed server prop, every toast fired, no page error. `npm run check`: 105/105.
+His `verifiedAt` is 5.5 hours earlier than it was, because restoring it needed an UPDATE the sandbox
+refused; same date, test account, nothing reads it.
+
 ## 2026-09-07 — onboarding was the third places writer, and it said there were two
 
 Refactor audit 2, directory-profile-11. `place-write.ts`'s header claimed "exactly two writers -- a
