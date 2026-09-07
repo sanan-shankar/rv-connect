@@ -39,10 +39,52 @@ import { decodeKeyset, encodeKeyset, keysetWhere } from "@/lib/keyset";
 import { isLetterDraft } from "@/lib/draft-rule";
 import { AUTHOR_CARD_SELECT } from "@/lib/people-select";
 
-/** The author fields a rendered comment needs. The shared byline shape is all
- *  of them now that `avatarColor` is gone; kept as a named const because three
- *  queries reference it and a rename should touch one line. */
-const COMMENT_AUTHOR_SELECT = { ...AUTHOR_CARD_SELECT } as const;
+/**
+ * One comment as the client's `CommentData` (`comments-section.tsx`).
+ *
+ * The same ten fields were built in three places -- `createComment`'s return,
+ * and both halves of `loadComments` (the rows and the stand-in stubs for
+ * deleted parents). Audit 1 did exactly this for posts, one level up, and its
+ * note records why: "They had already begun to disagree in ways that looked
+ * deliberate but were not." The comment trio had not drifted yet. `isOwn` was
+ * `true` in one, `c.author?.id === userId` in another and `false` in the
+ * third -- all correct today, and all three the kind of thing that stops being
+ * correct the day somebody adds a field to one of them.
+ *
+ * `likeCount`, `liked` and `deleted` are REQUIRED of the caller rather than
+ * defaulted here. A default is what lets a new call site forget one and
+ * compile: the stub means `deleted: true` and a fresh comment means
+ * `likeCount: 0`, and each of those is a fact its own site knows and this
+ * function does not.
+ */
+type CommentRow = {
+  id: string;
+  content: string;
+  parentId: string | null;
+  createdAt: Date;
+  author: Prisma.UserGetPayload<{ select: typeof AUTHOR_CARD_SELECT }> | null;
+  likeCount: number;
+  liked: boolean;
+  deleted: boolean;
+};
+
+function serializeComment(c: CommentRow, viewer: { userId: string; isAdmin: boolean }) {
+  return {
+    id: c.id,
+    content: c.content,
+    parentId: c.parentId,
+    createdAt: c.createdAt.toISOString(),
+    author: c.author,
+    likeCount: c.likeCount,
+    liked: c.liked,
+    deleted: c.deleted,
+    /* Was hardcoded `true` in createComment (the writer is the viewer) and
+       `false` in the stub (whose author is null). Both fall out of the one
+       comparison, which is why the three could be folded at all. */
+    isOwn: c.author?.id === viewer.userId,
+    viewerIsAdmin: viewer.isAdmin,
+  };
+}
 
 /**
  * Delete a post and its stored images, in the order that cannot leave a live
@@ -891,7 +933,7 @@ export async function createComment(formData: FormData) {
       deletedAt: null,
       createdAt: { gte: new Date(Date.now() - DOUBLE_SUBMIT_MS) },
     },
-    include: { author: { select: COMMENT_AUTHOR_SELECT } },
+    include: { author: { select: AUTHOR_CARD_SELECT } },
   });
   const comment =
     twin ??
@@ -902,7 +944,7 @@ export async function createComment(formData: FormData) {
         authorId: session.user.id,
         parentId,
       },
-      include: { author: { select: COMMENT_AUTHOR_SELECT } },
+      include: { author: { select: AUTHOR_CARD_SELECT } },
     }));
 
   // Notifications
@@ -955,18 +997,10 @@ export async function createComment(formData: FormData) {
   return {
     success: true,
     commentId: comment.id,
-    comment: {
-      id: comment.id,
-      content: comment.content,
-      parentId: comment.parentId,
-      createdAt: comment.createdAt.toISOString(),
-      author: comment.author,
-      likeCount: 0,
-      liked: false,
-      deleted: false,
-      isOwn: true,
-      viewerIsAdmin: session.user.role === "admin",
-    },
+    comment: serializeComment(
+      { ...comment, likeCount: 0, liked: false, deleted: false },
+      { userId: session.user.id, isAdmin: session.user.role === "admin" }
+    ),
   };
 }
 
@@ -1452,36 +1486,39 @@ export async function loadComments(
     orderBy: { createdAt: "asc" },
   });
 
+  const viewer = { userId, isAdmin: viewerIsAdmin };
   const visibleIds = new Set(rows.map((r) => r.id));
   const stubs = pageRoots
     .filter((r) => !visibleIds.has(r.id))
-    .map((r) => ({
-      id: r.id,
-      content: "",
-      parentId: null as string | null,
-      createdAt: r.createdAt.toISOString(),
-      author: null,
-      likeCount: 0,
-      liked: false,
-      deleted: true,
-      isOwn: false,
-      viewerIsAdmin,
-    }));
+    .map((r) =>
+      serializeComment(
+        {
+          id: r.id,
+          content: "",
+          parentId: null,
+          createdAt: r.createdAt,
+          author: null,
+          likeCount: 0,
+          liked: false,
+          deleted: true,
+        },
+        viewer
+      )
+    );
 
   return {
     comments: [
-      ...rows.map((c) => ({
-        id: c.id,
-        content: c.content,
-        parentId: c.parentId,
-        createdAt: c.createdAt.toISOString(),
-        author: c.author,
-        likeCount: c._count.commentLikes,
-        liked: c.commentLikes.length > 0,
-        deleted: false,
-        isOwn: c.author?.id === userId,
-        viewerIsAdmin,
-      })),
+      ...rows.map((c) =>
+        serializeComment(
+          {
+            ...c,
+            likeCount: c._count.commentLikes,
+            liked: c.commentLikes.length > 0,
+            deleted: false,
+          },
+          viewer
+        )
+      ),
       ...stubs,
     ],
     nextCursor,
