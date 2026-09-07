@@ -8,6 +8,58 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 — the Catch-ups rework gets a spec, and the database corrects it five times
+
+The shape has been drawn and signed off at `/lab/catchups/sketches`; this session wrote what the
+code and the database have to become for that drawing to be the shipped app.
+`docs/planning/catchups-rework/spec.md`: every decision LOCKED, RECOMMENDED or OPEN, eleven build
+phases each a revertable slice, and ¶1 to ¶52 of his brief mapped to the section that answers it.
+It redraws nothing — `architecture.md` is still the design, and re-deriving a design he has already
+approved has cost this project a session before.
+
+**Five things the live rows said that the plan did not.**
+
+The Edition that was mid-flight in `preparing` published itself between sessions, so there is
+nothing to rescue today — but the migration still has to handle the state, because the daily tick
+can create one at any moment, and `notifyPublished` fires from the action rather than from the
+database. A row published by SQL sends nobody anything, and for its members the Edition simply
+never happened.
+
+The replacement for `preparing`'s 24-hour hold was already in the repository. `vercel.json` runs
+the tick at 02:00 UTC, which is 07:30 IST, so snapping deadlines to **07:00 IST** means that
+morning's cron always publishes, within thirty minutes. That is a number off the app rather than a
+preference, which is the standard the last session set.
+
+`joinBatchGroup`'s swallowed failure — the one its own comment predicted, with no self-heal
+anywhere — **has already happened**: Rukmini Rau carries `batchYear: 2024` and is not in the Batch
+of 2024 group. So the batch phase ships two idempotent passes in the tick, not just a backfill.
+
+Which is what makes the hand-made "Batch of 2024" adoptable. Its snapshot group holds 11 members,
+the real batch group holds 11, ten are in both; the one who is only in the snapshot is Rukmini,
+with no answers and no questions. Heal her membership first and the snapshot becomes a strict
+subset, so re-pointing `Catchup.groupId` at the real batch group loses nobody and hands two 2024
+alumni the earlier Edition — which is ¶4's *"access to previous issues if they join later"*,
+becoming true for the first time.
+
+And eight of eleven batches have four members or fewer, three have exactly one. A batch Catch-up
+for one person is a newsletter to yourself, with reminders. That is owner question 19.
+
+**What the spec settles beyond transcription.** Comments widen the existing `Comment` table rather
+than growing a twin: `CommentLike`, the soft-delete-with-replies rule, the purge behaviour and the
+700-line reading surface all exist and are all already argued for in the schema's own comments, and
+a twin needs a twin of every one of them. Link previews get a `LinkPreview` table keyed by url, the
+way the Collection's `Image` table is, so nothing migrates and a missing row is not an error. The
+composer's song FIELD is deleted rather than drawn — ¶50 asks for the opposite of a dedicated
+field, and F30 measured what keeping it costs: thirteen answers on the songs question and `songUrl`
+null on every one, because people pasted into the body. Column drops are always a second file
+applied after the deploy, because one database serves production and local dev.
+
+Export re-run before any of it: 6 Catch-ups, 7 Editions, 24 questions, 143 answers, 36 photographs,
+521 hearts, 5.8 MB.
+
+Three new owner questions. Twenty is F41, and its stated default is to do nothing until he answers,
+because it is the only item in the spec that would truncate something a member wrote.
+
 ## 2026-09-08 — a letter gets the same three controls a post has
 
 Campaign question 15, answered *"15 b"*: add all three. A letter had no way to be reported,
