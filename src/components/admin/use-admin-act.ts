@@ -24,19 +24,25 @@ import { callAction } from "@/lib/call-action";
  * it (closing a confirm dialog only if the thing it confirmed actually
  * happened).
  *
- * Two options, deliberately not three:
+ * ONE option, deliberately:
  *
- *   onDone          instead of router.refresh() -- the mail card inside a
- *                   person's page refreshes its own list rather than the route
- *   refreshOnError  as well as the toast. The reports queue needs it: its
- *                   commonest refusal is "another admin already settled this"
- *                   (audit M01), so the row on screen is the stale thing that
- *                   caused the mistake, and leaving it invites the same click.
+ *   refreshOnError  refresh as well as the toast. The reports queue needs it:
+ *                   its commonest refusal is "another admin already settled
+ *                   this" (audit M01), so the row on screen is the stale thing
+ *                   that caused the mistake, and leaving it invites the same
+ *                   click.
  *
- * Anything needing a third option should keep its own handler instead. The
- * confirm-dialog flows in person-detail do exactly that.
+ * There was a second, `onDone`, "instead of router.refresh()". It had one
+ * caller, the mail card on a person's page, and that caller passed
+ * `() => router.refresh()` -- the default, written out. The card is the shared
+ * MailRows now and the option went with it (2026-09-07).
+ *
+ * Anything needing a second option should keep its own handler instead. The
+ * confirm-dialog flows in person-detail and on a profile's admin tools do
+ * exactly that: the dialog owns its own busy state and shows its own refusal,
+ * so a hook over the top would do both of those twice.
  */
-export function useAdminAct(options?: { onDone?: () => void; refreshOnError?: boolean }) {
+export function useAdminAct(options?: { refreshOnError?: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -65,8 +71,7 @@ export function useAdminAct(options?: { onDone?: () => void; refreshOnError?: bo
         return false;
       }
       toast.success(done);
-      if (options?.onDone) options.onDone();
-      else router.refresh();
+      router.refresh();
       return true;
     } finally {
       // finally, not a trailing statement: a rejected call used to leave the

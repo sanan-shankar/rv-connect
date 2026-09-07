@@ -20,9 +20,10 @@ export interface MailRow {
   personName: string | null;
 }
 
-/* Exported because person-detail's mail card chips the same four states and
-   had grown its own copy of this map. One vocabulary, one set of colours. */
-export const MAIL_STATUS_TONE: Record<string, ChipTone> = {
+/* One vocabulary, one set of colours. It was exported for person-detail's own
+   mail card, which had grown a copy of this map; that card draws these rows now
+   (2026-09-07), so the map is local again. */
+const MAIL_STATUS_TONE: Record<string, ChipTone> = {
   sent: "good",
   queued: "warn",
   sending: "warn",
@@ -39,12 +40,12 @@ const STATUS_LABEL: Record<string, string> = {
   failed: "Gave up",
 };
 
-export function mailStatusLabel(status: string): string {
+function mailStatusLabel(status: string): string {
   return STATUS_LABEL[status] ?? status;
 }
 
 /** What the template is FOR, in the words of the person receiving it. */
-export function mailKindLabel(kind: string): string {
+function mailKindLabel(kind: string): string {
   switch (kind) {
     case "verify":
       return "Confirm your address";
@@ -60,10 +61,17 @@ export function mailKindLabel(kind: string): string {
 export function MailRows({
   rows,
   showActions = false,
+  showRecipient = true,
 }: {
   rows: MailRow[];
   /** Retry and clear, on the failed list only. Nothing else is actionable. */
   showActions?: boolean;
+  /** False on a page that IS the recipient. The queue answers "who, what,
+   *  when"; a person's own page has already said who, at the top, in bigger
+   *  type -- so the row leads with what the message was instead of printing
+   *  the same address down eight rows. The one difference between the two
+   *  contexts, written once, rather than a second copy of the row. */
+  showRecipient?: boolean;
 }) {
   const { busy, act } = useAdminAct();
 
@@ -76,24 +84,30 @@ export function MailRows({
         >
           <div className="min-w-0 flex-1">
             <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] font-medium text-foreground">
-              {r.personId ? (
-                <Link
-                  href={`/admin/people/${r.personId}`}
-                  className="truncate rounded-sm underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                >
-                  {r.personName}
-                </Link>
+              {!showRecipient ? (
+                <span className="truncate">{mailKindLabel(r.kind)}</span>
               ) : (
-                <span className="truncate">{r.to}</span>
+                <>
+                  {r.personId ? (
+                    <Link
+                      href={`/admin/people/${r.personId}`}
+                      className="truncate rounded-sm underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    >
+                      {r.personName}
+                    </Link>
+                  ) : (
+                    <span className="truncate">{r.to}</span>
+                  )}
+                  <Chip label={mailKindLabel(r.kind)} tone="info" />
+                </>
               )}
-              <Chip label={mailKindLabel(r.kind)} tone="info" />
               {r.status !== "sent" && (
                 <Chip label={mailStatusLabel(r.status)} tone={MAIL_STATUS_TONE[r.status] ?? "idle"} />
               )}
             </p>
             <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
               {metaLine(
-                r.personId ? r.to : null,
+                showRecipient && r.personId ? r.to : null,
                 formatTimeAgo(new Date(r.sentAt ?? r.createdAt)),
                 r.attempts > 1 ? `${r.attempts} tries` : null
               )}
