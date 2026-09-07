@@ -41,7 +41,6 @@ import { useHeartToggle } from "@/components/posts/use-engagement";
 import { appendUnseen, prependUnseen } from "@/lib/append-page";
 import { PhotoStream } from "@/components/common/photo-rows";
 import { cn } from "@/lib/utils";
-import type { ViewerImage } from "@/components/common/image-viewer";
 import { LazyImageViewer } from "@/components/common/lazy-image-viewer";
 import {
   adminRemovePhoto,
@@ -53,7 +52,8 @@ import {
   type RiverOrder,
   type RiverPage,
 } from "@/app/(main)/collection/actions";
-import { HALVES, areaLabel, bandKeyOf, bucketLabel, defaultOrderFor } from "@/lib/collection";
+import { HALVES, bandKeyOf, defaultOrderFor } from "@/lib/collection";
+import { toViewerImage } from "@/lib/collection-viewer-image";
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import type { ScopeFacts } from "@/app/(main)/collection/collection-data";
 import { PhotoRiver, Tile, landAt, warmThumbs } from "./photo-river";
@@ -88,40 +88,6 @@ const EditPhotoDialog = dynamic(
 /** The three strips a viewer can be browsing: the member's own queue, the
  *  river, and the single photograph a shared link landed on. */
 type ViewerList = "pending" | "main" | "linked";
-
-/** Map a Collection photograph onto the shared viewer's shape.
- *
- *  Everything /collection/[id] used to be a separate page for is in here now:
- *  the love, the buckets, the Where line and the uploader's own delete. The
- *  owner on that page: "I don't know if we even need that page... That another
- *  page isn't even pretty."
- *
- *  The date is when the photograph was TAKEN, at whatever precision the
- *  contributor gave, and nothing at all when they gave none -- never
- *  `createdAt`, which is the day somebody scanned it. */
-function toViewerImage(p: PhotoData, isAdmin: boolean): ViewerImage {
-  return {
-    src: p.url,
-    alt: p.caption ?? undefined,
-    caption: p.caption,
-    author: { id: p.uploader.id, name: p.uploader.name },
-    date: p.takenLabel,
-    where: p.area ? areaLabel(p.area) : null,
-    tags: [...p.subject.map(bucketLabel), ...p.freeTags],
-    href: `/collection/${p.id}`,
-    loved: p.loved,
-    loveCount: p.loveCount,
-    /* An EDIT, not a delete, and deliberately instead of one. The owner,
-       2026-08-30: "instead of delete photo button, have an edit icon."
-       Taking the photograph down is inside the dialog this opens, where a
-       destructive act is read rather than pressed by mistake beside
-       Download. Same gate as the delete it replaced -- your own photograph,
-       or an admin's, which is the gate `deleteOwnPhoto` enforces server-side
-       and `editPhoto` now enforces alongside it. */
-    canEdit: p.isOwn || isAdmin,
-    editLabel: p.isOwn ? "Edit this photo" : "Edit this photo's details",
-  };
-}
 
 export function CollectionClient({
   pending,
