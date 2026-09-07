@@ -102,6 +102,13 @@ export async function shoot({
      as evidence of a page it has never seen. */
   tolerateNavError = false,
 }) {
+  /* `/feed` and `http://localhost:3000/feed` both mean the same thing here.
+     They did not until 2026-09-07: `verify:shot` took a bare route, these two
+     took a URL, and the family gave three answers to one question -- the drift
+     this phase exists to close. A path is the form CLAUDE.md's own table uses
+     and the form anybody types. */
+  if (url.startsWith("/")) url = `http://localhost:3000${url}`;
+
   const vp = viewport(mobile);
   mkdirSync(SHOTS_DIR, { recursive: true });
   const outPath = out ? join(SHOTS_DIR, out) : nextShotPath(suffix);
