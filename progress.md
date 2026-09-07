@@ -1,5 +1,18 @@
 # Progress Log
 
+## 2026-09-07 — your own profile stops building a Photos grid you cannot open
+
+Refactor audit 2, directory-profile-12. The letterhead's fourth tab is Saved on your own sheet and
+Photos on everybody else's, so `tab === "photos"` is unreachable on your own profile. The page ran
+the photos query anyway, flattened it, built up to sixty `<Link><img>` nodes and serialized them into
+the RSC payload — on the profile every member opens more often than any other. One query and up to
+sixty image nodes now skipped when `isOwnProfile`.
+
+The finding's letterhead citation was 17 lines out (`:1884-1891` against a real `:1901-1907`); the
+claim held.
+
+`npm run check` 105/105.
+
 ## 2026-09-07 — the directory stops shipping a field nothing reads
 
 Refactor audit 2, directory-profile-09. Every person in every map pin carried an `otherCities`
