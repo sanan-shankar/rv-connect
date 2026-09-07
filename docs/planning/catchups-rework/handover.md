@@ -154,7 +154,7 @@ too, which he allowed in ¶28.
 | Owner culls the sketches | DONE | 2026-09-06: he went through all fifteen out loud, one at a time, and rejected all fifteen. Verbatim in [`review-2026-09-06.md`](review-2026-09-06.md), 51 paragraphs. "There is nothing here that I prefer to what is shipped" (R46), and "you are okay to delete everything else" (R47). Owner questions 7 and 8 are withdrawn: the cull answered 7, and 8 is folded into the front runner |
 | S3c Front runner | DONE | 2026-09-07: ONE reader, by one hand, live at `/lab/catchups/sketches`. The strip under the green bar is the navigator; drawn three ways as asked (R24). The fifteen are deleted (R47). What it answers, and what is his to decide: [`front-runner.md`](front-runner.md), "What was built" |
 | Owner reviews the front runner | PARTIAL | First round of notes given 2026-09-07 and all of them folded in the same day: the drifting navigator (F34), the birds' left edge (F35), the feed's comment row, a three-line cap on a docked question, the laptop's margins and rail, and a jump that no longer fast-forwards. His words are in [`review-2026-09-07.md`](review-2026-09-07.md). Still owed: which navigator (A, B or C), and whether it clears R46 |
-| S4 Rooms | OPEN | blocked on his word on the front runner. The reader is already live; S4 draws the rest of the surfaces from its parts (home, index, composer, people, settings), in the same hand, never a fan-out (F32). `directions.md` Part 3's briefs are dead with the directions they describe. Draw the composer too (F25) |
+| S4 The shape of the whole thing | OPEN | **next.** The architecture settled out of `directions.md` Part 1, plus the two surfaces that carry it drawn live: the list and a Catch-up's home in every state. Its section below is the whole prompt. The composer, the people sheet and the dialogs are the session after (F25) |
 | Owner browses the rooms | OWNER-GATED | |
 | S3b Second round | OPEN | only if he asks for it after the rooms |
 | S5 Pick and spec | OPEN | blocked on the pick |
@@ -1061,42 +1061,50 @@ Update the board and log.
 
 ---
 
-## S4: Rooms
+## S4: The shape of the whole thing (one hand, live)
 
-Build each **surviving** direction from its brief in `directions.md` -- the three or four he
-kept at `/lab/catchups/sketches`, not all six or eight -- one room at a time, yourself. Not
-through subagents: that is this campaign's judgment, not the brief's (the `/campaign` skill's
-reasoning about summarised work applies to a room that has to be looked at as it is built),
-and a room is one long sequence with state. Read `docs/spec/lab-voice.md` before the first
-line: the room is in the **Delight** group, the lede is one line, no scoreboard unless the
-numbers are the finding.
+**This is the next session.** The reader is drawn and he has reviewed it twice; what is left is
+everything around it, and the part he says matters more (N16): *"This aesthetic part is just one
+aspect. We still have to design the aesthetic for every other page, and then more importantly, the
+structures between, behind these pages. How they relate, how you access everything. The entire
+logic of this entire concept."*
 
-- Rooms live at `/lab/catchups/<slug>`, registered in `src/app/lab/_registry.ts` in the same
-  commit, with an index at `/lab/catchups` that lists the directions and the shared checklist
-  so he can move between them on his phone. `node scripts/qa/lab-audit.mjs` and
-  `npm run check` must pass after each room. `/lab/catchups/` is his sandbox for anything
-  (¶52); use it freely, register everything.
-- **Real data, read only, and the pressure corpus.** Server components read the live
-  Catch-ups through the Prisma client the way `src/app/lab/actions.ts` already does; no
-  writes from a room, ever. Every room also takes `?fixture=<name>` and renders a fixture
-  from `src/app/lab/catchups/_fixtures/` through the same loader (D23, D33), so each
-  direction is judged on the real Rounds AND on the extremes in D35: one answer, forty
-  answers, a two-hundred-photo wall, a 3,000-word answer. Complete the invented fixture S1
-  started until it covers all of D35; that is the *"fake catch up or two"* he asked for
-  (¶51), and it is data, not rows. Where a state does not exist in the data (a Round in
-  collecting), the room may fake that one state and must say so on the page.
-- **A pressure room**, `/lab/catchups/pressure`, that shows one chosen direction's reader
-  and list against every fixture in turn, so *"incredibly robust"* (¶51) is something he can
-  scroll through rather than a claim.
-- Both viewports, two rounds each, and his 1512 as well. The `screenshot-qa` pair (desktop and
-  mobile, in parallel, and never more than that pair) after each room. Look at the shots
-  yourself.
-- Faithful to the brief's LOCKED marks; better than its RECOMMENDED marks if you can, and say
-  what you changed in the room's own caption; free on its OPEN marks.
-- One commit per room, with its registry line and its `progress.md` entry inside.
+**Read first, in this order.** [`brief.md`](brief.md) in full; [`review-2026-09-06.md`](review-2026-09-06.md)
+and [`review-2026-09-07.md`](review-2026-09-07.md) in full, which are his two verdicts and outrank
+everything older; [`front-runner.md`](front-runner.md); then `directions.md` **Part 1 only**, which
+is the architecture written by one mind before any fan-out and is the one part of that document
+still worth reading. Parts 2 to 6 are the record of two rejected passes; do not take design from
+them. Then the reader that exists: `src/app/lab/catchups/sketches/`, which is where the parts you
+will reuse live.
 
-Two S4 sessions may run at once if he wants speed; you collide only on `_registry.ts`. Update
-the board (one line per room) and the log.
+**What this session produces.**
+
+1. **The architecture, settled.** Take `directions.md` Part 1 and correct it against everything he
+   has said since: R2, R21, R29 and R33 from the first review, and the whole of the second. It
+   already answers most of it (the six nouns and the one home each, the home's three parts in every
+   state, the cover, how you get anywhere in one move, the two kinds of verb and the one door, who
+   is here versus who wrote in, the batch Catch-up, and the intents-by-state matrix). What it does
+   not have is his decision on the handful of OPEN questions listed under "Decisions" (O1 to O14).
+   Bring those to him as a short numbered list with a recommendation each, the way gate 1 did.
+2. **The two surfaces that carry it, drawn live**, in the same hand and out of the reader's own
+   parts: `/catchups`, the list, designed for two or three items at 390 and 1512; and a Catch-up's
+   home in every state it can be in (no Round yet, collecting, answering, preparing, published and
+   waiting, paused, ended). Live, not stills: the reader proved that a navigation fault is
+   invisible in a picture (F33).
+3. **Nothing else.** The composer, the people sheet, the verbs' dialogs and the magazine are the
+   sessions after this one. A session that draws eight surfaces draws eight mediocre surfaces,
+   which is how the first pass failed.
+
+**How to work.** One hand, never a fan-out (F32). Nothing scaled, ever (F34). Reuse
+`_parts.tsx`, `_navigator.tsx` and `_shell.tsx` rather than redrawing a byline or a tile. Type
+comes off the app's scale and off `PageHeader`'s 30px page title unless there is a reason worth
+writing down; he called this out by name on 2026-09-07. Look at every screen yourself at 390 and
+1512 before saying anything is done, and drive anything that moves. `npm run check` before each
+commit, `npm run visual` after UI work, never both at once (see the memory).
+
+**Update the board and the log before you finish**, and write the next session's paste line at the
+end of the log, because he asked for exactly that: *"just tell me what to paste and what the next
+step is."*
 
 ---
 
@@ -1602,3 +1610,39 @@ which is what he rejected fifteen of. No S4 until he has held the reader. Nothin
 **Next.** He opens it on his phone (the board's next row) and says which navigator, and whether
 it is the one. If it is, S4 builds outward from these parts, one hand. If it is not, R46 is the
 question to answer before anything else is drawn.
+
+### 2026-09-07, S3c second and third rounds (Fable max, then Opus 5, one hand)
+
+He reviewed the front runner twice in one day. Both reviews are in
+[`review-2026-09-07.md`](review-2026-09-07.md), verbatim; both were folded in the same day.
+
+**Round one, the long one.** Two of his notes were bugs with causes worth keeping: the navigator
+drifted instead of sticking (F34, the scaling frame, now deleted) and the birds sat 4px inside
+their boxes (F35, the glyph set, measured and slid flush in the reader only). The rest: replies
+are the feed's row with names and animate open and closed; a docked question stops at three lines;
+the laptop fills the page and its rail is serif, cinnamon and marked by colour rather than weight;
+a far jump cuts instead of fast-forwarding through thirty thousand pixels. He also asked for the
+feed's photographs to run edge to edge, in a commit he can revert alone: that is `295db83` and
+nothing else is in it.
+
+**Round two, the short one.** The type had been chosen by feel. The Catch-up's name was 44px,
+larger than anything in the app; it is 30, which is `PageHeader`'s size on every other page. The
+question headings were 30 on a laptop, the same size as the title above them; they are 24 on both
+viewports, the scale's `h2`. The rail was 16 and took the eye off the page; it is 14, the scale's
+`small`. And the magnification was stepped by whole rows, which he named precisely: it is now a
+bell curve on the pixel distance from the pointer, so every pixel of movement moves every row a
+little, which is what a dock does.
+
+**Four commits, in order:** `3cbdbb3` the front runner, `66798ac` his first round of notes,
+`295db83` the feed's edge-to-edge photographs on its own, `a000d3a` the type scale and the swell.
+`npm run check` green and `npm run visual` 25/25 after each. Nothing pushed.
+
+**Next, and this is what he asked to be told.** He opens `/lab/catchups/sketches` on his phone
+(Reader, then Screens, then Laptop) and says which navigator he wants and whether it clears R46.
+Whatever he says, the session after this one is **S4**, whose section above is its whole prompt.
+The line to paste into a new session:
+
+> @docs/planning/catchups-rework/handover.md
+>
+> You are S4. Read brief.md, review-2026-09-06.md and review-2026-09-07.md in full before you
+> draw anything. Settle the architecture and draw the list and a Catch-up's home, by hand.
