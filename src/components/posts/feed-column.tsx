@@ -11,18 +11,15 @@ import type { AvatarUser } from "@/components/common/bird-avatar";
  * feed; the group-feed variant it also used to serve went with Groups.
  */
 export function FeedColumn({
-  showControls = true,
   currentUser,
   userPlaces,
   initialSearch,
   lastSeenAt,
 }: {
-  showControls?: boolean;
   currentUser?: AvatarUser;
   /** The signed-in poster's own cities, for the composer's "Show to" audience control. */
   userPlaces?: string[];
-  /** Seeds the feed's search (e.g. `?q=` from the header search pill) even
-   *  when the inline search/filter row (`showControls`) is hidden. */
+  /** Seeds the feed's search: the `?q=` the header search pill sets. */
   initialSearch?: string;
   /** The account's "New since you were last here" marker, read server-side.
    *  Passed straight through; see PostFeed for what it draws. */
@@ -38,7 +35,6 @@ export function FeedColumn({
         onPosted={() => setReloadKey((k) => k + 1)}
       />
       <PostFeed
-        showControls={showControls}
         reloadKey={reloadKey}
         initialSearch={initialSearch}
         lastSeenAt={lastSeenAt}

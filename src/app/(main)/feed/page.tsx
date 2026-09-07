@@ -79,7 +79,6 @@ export default async function FeedPage({
       <div className={RAIL_GRID}>
         <div className="min-w-0">
           <FeedColumn
-            showControls={false}
             initialSearch={q}
             currentUser={{ id: session.user.id, name: session.user.name, photoUrl: session.user.photoUrl, birdOverride: session.user.birdOverride }}
             userPlaces={userPlaces}

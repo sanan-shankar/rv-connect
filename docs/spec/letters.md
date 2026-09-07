@@ -117,7 +117,7 @@ The existing `create-post-form.tsx` already has: rich-text bold/italic via `wrap
 
 ### 2.5 Feed integration and the clutter problem
 
-`loadPosts` in `feed/actions.ts` already supports `tag`, `search`, `sortBy`, `timeFilter`, and cursor-ish pagination (`take: 21, skip: page*20`). Letters slot into this with **zero new query plumbing** because they are `Post` rows. Two additions:
+`loadPosts` in `feed/actions.ts` already supports `search` and pagination. (Written when it also took `tag`, `sortBy` and `timeFilter` and paged by offset. `tag` never shipped; paging is keyset now; the sort and time filters were deleted on 2026-09-07, having been unreachable on screen since June.) Letters slot into this with **zero new query plumbing** because they are `Post` rows. Two additions:
 
 - A **"Letters" filter** in the existing tag/sort UI so people can see only long-form pieces (maps to `where: { kind: "letter" }`).
 - Because Letters are sparse and high-effort, optionally surface the **latest Letter** in the right rail (the v2 rail already hosts "Coming up," "New in the directory," "Your groups"; add a "Latest letter" card). This keeps essays discoverable without letting them dominate the chronological sheet.

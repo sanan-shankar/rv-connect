@@ -3,36 +3,23 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { MagnifyingGlass, SlidersHorizontal, X } from "@phosphor-icons/react";
+import { X } from "@phosphor-icons/react";
 import { PostCard, type PostData } from "./post-card";
 import { loadPosts, markFeedSeen } from "@/app/(main)/feed/actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { NoResultsHoopoe } from "@/components/mascot/moments/no-results-hoopoe";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { appendUnseen } from "@/lib/append-page";
 
-type SortBy = "recent" | "liked" | "commented";
-type TimeFilter = "all" | "today" | "week" | "month" | "year";
-
 export function PostFeed({
-  showControls = true,
   reloadKey = 0,
   initialSearch,
   lastSeenAt,
 }: {
-  showControls?: boolean;
   reloadKey?: number;
-  /** Seeds the search query (e.g. from the header search pill's `?q=`) even
-   *  when `showControls` hides the inline search box. */
+  /** Seeds the search query. The feed's own search is the header pill's `?q=`;
+   *  this component draws no search box of its own. */
   initialSearch?: string;
   /** ISO createdAt of the newest post this member has already been shown,
    *  read off their account by the server component above. Null = no marker
@@ -56,11 +43,8 @@ export function PostFeed({
 
   const [searchInput, setSearchInput] = useState(initialSearch ?? "");
   const [search, setSearch] = useState(initialSearch ?? "");
-  const [sortBy, setSortBy] = useState<SortBy>("recent");
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
-  const [filtersOpen, setFiltersOpen] = useState(false);
 
-  // The inline search input (above) covers same-mount edits; this covers a
+  // The banner's Clear covers same-mount edits; this covers a
   // fresh `?q=` arriving from the header search pill while already here (the
   // page doesn't remount, so state wouldn't otherwise pick up the new query).
   // Adjusted during render (React's documented pattern for "reset state when
@@ -99,17 +83,16 @@ export function PostFeed({
       loadPosts({
         cursor: next,
         search: search || undefined,
-        sortBy,
-        timeFilter,
       }),
-    [search, sortBy, timeFilter]
+    [search]
   );
 
-  // First page whenever filters or an external reload trigger change.
+  // First page whenever the search or an external reload trigger changes.
   useEffect(() => {
     let cancelled = false;
     listGeneration.current += 1;
-    // Re-arms the skeleton whenever the filters, group or reload trigger change, so a filter change never leaves the old posts on screen.
+    // Re-arms the skeleton whenever the search or the reload trigger changes,
+    // so a new query never leaves the old posts on screen.
     setLoading(true);
     (async () => {
       // callAction, not a bare .then: a rejected fetch (deploy skew, dropped
@@ -131,12 +114,12 @@ export function PostFeed({
        * on every other device the member is signed in on. Fire-and-forget:
        * the divider is already drawn from the value captured at mount, so
        * nothing on screen is waiting for this to come back. Only the
-       * unfiltered recent feed may stamp -- a search or a "this month" filter
-       * shows a slice, and letting a slice advance the marker would silently
-       * bury everything the member had not actually been shown. Routed
-       * through callAction too, purely so a rejection lands in the console
-       * instead of surfacing as an unhandled promise rejection. */
-      if (data.posts.length > 0 && sortBy === "recent" && !search && timeFilter === "all") {
+       * unsearched feed may stamp -- a search shows a slice, and letting a
+       * slice advance the marker would silently bury everything the member had
+       * not actually been shown. Routed through callAction too, purely so a
+       * rejection lands in the console instead of surfacing as an unhandled
+       * promise rejection. */
+      if (data.posts.length > 0 && !search) {
         const newest = Math.max(
           ...data.posts.map((p) => new Date(p.createdAt).getTime())
         );
@@ -146,7 +129,7 @@ export function PostFeed({
     return () => {
       cancelled = true;
     };
-  }, [fetchPosts, reloadKey, sortBy, search, timeFilter]);
+  }, [fetchPosts, reloadKey, search]);
 
   /* The post a notification sent them to.
    *
@@ -203,16 +186,16 @@ export function PostFeed({
   }, [goToHash]);
 
   // Index of the first post that is NOT newer than last-seen: the divider goes above it.
-  // Only meaningful on the default recent sort and when there is genuinely new content.
+  // Only meaningful on the unsearched feed, where the order is genuinely newest-first.
   const dividerIndex =
-    lastSeen !== null && sortBy === "recent" && !search
+    lastSeen !== null && !search
       ? posts.findIndex((p) => new Date(p.createdAt).getTime() <= lastSeen)
       : -1;
   const showDivider = dividerIndex > 0; // at least one new post above older ones
 
   async function handleLoadMore() {
-    /* The generation this page belongs to. Change the filter, the sort or the
-       search while a "Load more" is in the air and the page that comes back
+    /* The generation this page belongs to. Change the search while a
+       "Load more" is in the air and the page that comes back
        belongs to the PREVIOUS query -- it used to be appended anyway, under a
        list the member had already replaced, and its cursor adopted, so every
        later page continued the wrong query (audit Low 75). Dropping the stale
@@ -255,10 +238,10 @@ export function PostFeed({
 
   return (
     <div className="space-y-4">
-      {/* When the inline search row is hidden (the Feed page's own search now
-          lives in the header pill), there's otherwise no visible way to see
-          what's being searched or clear it. This small banner covers that. */}
-      {!showControls && search && (
+      {/* The feed draws no search box of its own -- the search lives in the
+          header pill -- so without this there is no visible way to see what is
+          being searched or clear it. */}
+      {search && (
         <div className="flex items-center justify-between gap-3 rounded-full border border-border bg-card py-2 pl-4 pr-2 text-[13px]">
           <span className="min-w-0 truncate text-muted-foreground">
             Showing posts for <span className="font-semibold text-foreground">&quot;{search}&quot;</span>
@@ -275,71 +258,6 @@ export function PostFeed({
             <X weight="bold" size={12} />
             Clear
           </button>
-        </div>
-      )}
-
-      {showControls && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="relative min-w-[220px] flex-1">
-              <MagnifyingGlass
-                weight="regular"
-                size={16}
-                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
-              />
-              <Input
-                placeholder="Search the valley..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="h-10 rounded-full border-border bg-card pl-10"
-              />
-            </div>
-            {/* Filters live behind a disclosure so the default feed stays calm. */}
-            <button
-              type="button"
-              onClick={() => setFiltersOpen((o) => !o)}
-              aria-expanded={filtersOpen}
-              /* state-layer sits on the base so the pill answers a cursor in
-                 EITHER state: it tints whatever fill is already there rather
-                 than replacing it, so the active-filter canopy wash survives its
-                 own hover. Idle, the only hover used to be a text-colour shift
-                 on a filled pill, which is not much of a target. */
-              className={`state-layer flex h-10 shrink-0 items-center gap-2 rounded-full border border-border pl-3 pr-4 text-sm font-medium transition-colors duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
-                filtersOpen || sortBy !== "recent" || timeFilter !== "all"
-                  ? "bg-canopy/10 text-canopy"
-                  : "bg-card text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <SlidersHorizontal weight="regular" size={16} />
-              Filters
-            </button>
-          </div>
-          {filtersOpen && (
-            <div className="flex flex-wrap items-center gap-2">
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
-                <SelectTrigger className="h-10 w-[150px] rounded-full bg-card">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recent">Most recent</SelectItem>
-                  <SelectItem value="liked">Most liked</SelectItem>
-                  <SelectItem value="commented">Most discussed</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
-                <SelectTrigger className="h-10 w-[130px] rounded-full bg-card">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All time</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="week">This week</SelectItem>
-                  <SelectItem value="month">This month</SelectItem>
-                  <SelectItem value="year">This year</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
         </div>
       )}
 
