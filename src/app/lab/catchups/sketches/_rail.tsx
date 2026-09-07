@@ -41,7 +41,33 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Sprout } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Archive,
+  Bell,
+  BellRing,
+  CalendarClock,
+  Image as ImageIcon,
+  Inbox,
+  LogOut,
+  Pause as PauseIcon,
+  PenLine,
+  Play,
+  Repeat,
+  Send,
+  SlidersHorizontal,
+  Sprout,
+  Type,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+import { CaretRight } from "@phosphor-icons/react";
 import { AnimatePresence, m } from "motion/react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
@@ -69,231 +95,352 @@ export function Person({ p, size = 30 }: { p: SketchPerson; size?: number }) {
 function Block({ label, children }: { label: string; children: ReactNode }) {
   return (
     <section>
-      <h2 className="mb-3 text-[13px] font-medium text-muted-foreground">{label}</h2>
+      <h2 className="mb-3 font-sans text-[13px] font-medium text-muted-foreground">{label}</h2>
       {children}
     </section>
   );
 }
 
-/* ── reminders ─────────────────────────────────────────────────────── */
+/* ── running this ──────────────────────────────────────────────────── *
+ *  Every control that changes the Catch-up or the Round for everybody else,
+ *  and the only place any of them exists.
+ *
+ *  A one-way control SAYS SO, in its own words, on its own row, and that is
+ *  the whole of the accident rule: "Can anyone open answering? That shouldn't
+ *  be allowed. Because many people would click it by accident. Especially on
+ *  a batch thing ... it seems like the kind of irreversible thing." The first
+ *  draw put a 5px cinnamon dot at the end of the row and a footnote under the
+ *  list explaining what the dot meant, which is a legend for a chart nobody
+ *  asked for. The row carries the words now and the footnote is gone.
+ *
+ *  A BATCH CATCH-UP HAS NO ROUND CONTROLS AT ALL. Nobody keeps it, so nobody
+ *  opens or closes anything: it runs on its rhythm and the only things anyone
+ *  does are ask and answer. */
+type Verb = {
+  label: string;
+  /** What it does, in a phrase. A settings row that is only a verb makes you
+   *  open it to find out, which is the "takes some effort" he objects to. */
+  hint: string;
+  icon: LucideIcon;
+  oneWay?: boolean;
+  /** The current answer, on the right, for the rows that have one. */
+  value?: string;
+};
 
-const REMINDERS = ["Daily", "Last day", "Off"] as const;
+function roundVerbs(c: SketchCatchup): Verb[] {
+  if (!c.canRun || c.paused) return [];
+  if (c.state === "collecting")
+    return [
+      { label: "Open answering", hint: "Stop taking questions, start writing", icon: PenLine, oneWay: true },
+      { label: "Give everyone longer", hint: "Push the deadline back a week", icon: CalendarClock },
+    ];
+  if (c.state === "answering")
+    return [
+      { label: "Nudge everyone", hint: "One reminder to whoever has not", icon: BellRing, oneWay: true },
+      { label: "Give everyone longer", hint: "Push the deadline back a week", icon: CalendarClock },
+      { label: "Close and send it out", hint: "Publish now, before the deadline", icon: Send, oneWay: true },
+    ];
+  if (c.state === "published")
+    /* The control nobody had. He found it himself: "literally after publishing
+       I can't start a new round?!?! I have to wait for two weeks minimum ...
+       there's no control for that??" Confirmed in the code: openNextRoundIfDue
+       fires on the clock alone and nothing starts one early, for anyone. */
+    return [{ label: "Start the next Round now", hint: "Do not wait for the rhythm", icon: Play, oneWay: true }];
+  return [];
+}
 
-function Reminders() {
-  const [at, setAt] = useState<string>("Daily");
+function catchupVerbs(c: SketchCatchup): Verb[] {
+  if (!c.youKeep) return [];
+  return [
+    { label: "Name", hint: "What everyone sees it called", icon: Type, value: c.name },
+    { label: "Picture", hint: "The photograph on its card and header", icon: ImageIcon },
+    { label: "Rhythm", hint: "How often a Round comes round", icon: Repeat, value: c.meta.split("\u00b7").pop()?.trim() ?? "" },
+    c.paused
+      ? { label: "Start it again", hint: "Let the clock run", icon: Play }
+      : { label: "Hold the next Round", hint: "Nothing goes out until you say", icon: PauseIcon },
+    { label: "End this Catch-up", hint: "Everything stays readable. Nothing new starts", icon: Archive, oneWay: true },
+  ];
+}
+
+/* ── one settings row ──────────────────────────────────────────────── *
+ *  Four things in a fixed order, which is the app's grammar for a settings
+ *  list and also iOS's: a mark, what it is called, what it does, and where it
+ *  stands. The first draw had only the second -- a column of bare verbs --
+ *  and he was right about it twice: "just having a bunch of commands just
+ *  hanging in space, not really in any organization", then "it's very bare
+ *  bones and not very user friendly or pretty."
+ *
+ *  The icon tile gives the column a left edge to scan, so the eye lands on
+ *  shape before it reads a word. The hint stops a verb needing to be opened
+ *  to be understood. The value on the right is what makes it a settings panel
+ *  rather than a menu. */
+function Row({ v, onPick }: { v: Verb; onPick?: () => void }) {
+  const Icon = v.icon;
   return (
-    <div className="inline-flex rounded-full border border-border bg-card p-1">
-      {REMINDERS.map((r) => (
-        <button
-          key={r}
-          type="button"
-          aria-pressed={at === r}
-          onClick={() => setAt(r)}
+    <button
+      type="button"
+      onClick={onPick}
+      className="state-layer -mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-[12px] px-2 py-2 text-left focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
+    >
+      <span
+        className={cn(
+          "grid h-8 w-8 shrink-0 place-items-center rounded-[10px]",
+          v.oneWay ? "bg-cinnamon/[0.12] text-cinnamon" : "bg-muted text-muted-foreground",
+        )}
+      >
+        <Icon className="h-[16px] w-[16px]" strokeWidth={1.9} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[14.5px] text-foreground">{v.label}</span>
+        <span
           className={cn(
-            "rounded-full px-3 py-1 text-[12.5px] font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-            at === r ? "bg-canopy text-white" : "text-muted-foreground hover:text-foreground",
+            "mt-0.5 block truncate text-[12.5px]",
+            v.oneWay ? "text-cinnamon/90" : "text-muted-foreground",
           )}
         >
-          {r}
-        </button>
-      ))}
+          {v.oneWay ? `${v.hint}. Cannot be undone` : v.hint}
+        </span>
+      </span>
+      {/* The value and the chevron, never one or the other: with some rows
+          ending in a word and some in a glyph the right-hand edge went ragged
+          and the list stopped reading as a column. */}
+      {v.value && (
+        <span className="max-w-[34%] shrink-0 truncate text-[13px] text-muted-foreground">
+          {v.value}
+        </span>
+      )}
+      <CaretRight size={13} weight="bold" className="shrink-0 text-muted-foreground/70" />
+    </button>
+  );
+}
+
+/* ── reminders ─────────────────────────────────────────────────────── *
+ *  A row among the other settings, not a block of its own with a segmented
+ *  pill in it. His: "I hate the reminders pill ... reminders I feel can go
+ *  with the other settings. I don't know why we're separating it. Because it
+ *  is as important as any other setting. Just because it was separated in the
+ *  shipped version doesn't mean we have to separate it now." */
+const REMINDERS = ["Daily", "On the last day", "Never"] as const;
+
+function ReminderRow() {
+  const [at, setAt] = useState(0);
+  return (
+    <Row
+      v={{
+        label: "Reminders",
+        hint: "While a Round is open for answers",
+        icon: Bell,
+        value: REMINDERS[at],
+      }}
+      onPick={() => setAt((i) => (i + 1) % REMINDERS.length)}
+    />
+  );
+}
+
+/** A titled group. Sentence case, no rule, no uppercase tracking: that
+ *  register is half of why the shipped panel reads, in his word, corporate. */
+function Group({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <section>
+      {/* A label, so sans: globals.css puts the heading face on every h3,
+          and the rule in _home.tsx is that the serif is for titles and names. */}
+      <h3 className="mb-1.5 px-2 font-sans text-[12.5px] font-medium text-muted-foreground">
+        {label}
+      </h3>
+      <div className="space-y-0.5">{children}</div>
+    </section>
+  );
+}
+
+function Running({ c }: { c: SketchCatchup }) {
+  const round = roundVerbs(c);
+  const catchup = catchupVerbs(c);
+  return (
+    <div className="space-y-6">
+      {round.length > 0 && (
+        <Group label="This Round">
+          {round.map((v) => (
+            <Row key={v.label} v={v} />
+          ))}
+        </Group>
+      )}
+      {catchup.length > 0 && (
+        <Group label="This Catch-up">
+          {catchup.map((v) => (
+            <Row key={v.label} v={v} />
+          ))}
+        </Group>
+      )}
+      <Group label="You">
+        <ReminderRow />
+        <Row
+          v={{
+            label: c.kind === "batch" ? "Put it away" : "Leave",
+            hint:
+              c.kind === "batch"
+                ? "It stops showing on your list. Your batch keeps it"
+                : "You stop getting Rounds. What you wrote stays",
+            icon: c.kind === "batch" ? Inbox : LogOut,
+            oneWay: c.kind === "people",
+          }}
+        />
+      </Group>
     </div>
   );
 }
 
-/* ── running this ──────────────────────────────────────────────────── *
- *  Every control that changes the Catch-up or the Round for everybody
- *  else, and the only place any of them exists.
+/* ── a control that sits ON the picture ────────────────────────────── *
+ *  One shape, two of them, hard right along the picture's foot with the
+ *  Catch-up's name at the other end. His, 2026-09-07: "instead of people and
+ *  settings keep the buttons in the same style but use the icons instead of
+ *  text ... let the name of the catch up be from bottom left of the picture.
+ *  same on laptop."
  *
- *  A one-way control is marked and confirms. His rule, given while
- *  looking at "Open answering" sitting under the questions: "That
- *  shouldn't be allowed. Because many people would click it by accident.
- *  Especially on a batch thing ... it seems like the kind of irreversible
- *  thing." So: never in the content, never under a thumb, always in the
- *  rail, always with a confirmation.
- *
- *  A BATCH CATCH-UP HAS NO BLOCK HERE AT ALL. Nobody keeps it, so nobody
- *  opens or closes anything: it runs on its rhythm and the only things
- *  anyone does are ask and answer. That is what makes "nobody owns it"
- *  survivable. */
-type Verb = { label: string; oneWay?: boolean };
-
-/** The Round's verbs: things about this cycle. */
-function roundVerbs(c: SketchCatchup): Verb[] {
-  if (!c.canRun || c.paused) return [];
-  if (c.state === "collecting")
-    return [{ label: "Open answering", oneWay: true }, { label: "Give everyone longer" }];
-  if (c.state === "answering")
-    return [
-      { label: "Nudge everyone", oneWay: true },
-      { label: "Give everyone longer" },
-      { label: "Close and send it out", oneWay: true },
-    ];
-  if (c.state === "published")
-    /* The control nobody had. He found it himself, making a test Catch-up:
-       "literally after publishing I can't start a new round?!?! I have to
-       wait for two weeks minimum, I can't prematurely start, there's no
-       control for that??" Read out of the code: `openNextRoundIfDue` fires
-       on the clock alone, and there is no action anywhere that starts one
-       early -- for anyone, on any Catch-up. */
-    return [{ label: "Start the next Round now", oneWay: true }];
-  return [];
-}
-
-/** The Catch-up's verbs: things about the standing group. Rename and
- *  Change the picture do not exist in the shipped app at all; the name is
- *  the underlying group's and there is no rename action anywhere. */
-function catchupVerbs(c: SketchCatchup): Verb[] {
-  if (!c.youKeep) return [];
-  return [
-    { label: "Rename" },
-    { label: "Change the picture" },
-    { label: "Rhythm" },
-    c.paused ? { label: "Resume" } : { label: "Hold the next Round" },
-    { label: "End this Catch-up", oneWay: true },
-  ];
-}
-
-function Verbs({ verbs }: { verbs: Verb[] }) {
+ *  The word survives in `aria-label` and in the tooltip, which is the right
+ *  trade for a control whose whole job is to leave the photograph alone. It is
+ *  40px square, which is the app's own smallest comfortable target and the
+ *  same box `size="icon-sm"` draws elsewhere, so a thumb has something to land
+ *  on even at the phone's 117px picture height. */
+function PictureDoor({
+  label,
+  icon: Icon,
+  onClick,
+}: {
+  label: string;
+  icon: typeof Users;
+  onClick: () => void;
+}) {
   return (
-    <ul className="space-y-1">
-      {verbs.map((v) => (
-        <li key={v.label}>
-          <button
-            type="button"
-            className="state-layer -mx-2 flex w-[calc(100%+1rem)] items-center gap-2 rounded-[10px] px-2 py-1.5 text-left text-[14px] text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
-          >
-            <span className="min-w-0 flex-1">{v.label}</span>
-            {/* The mark for a control you cannot take back. Right-aligned
-                so the one-way ones read as a column you can scan, rather
-                than a colour on five labels at once. Each one confirms. */}
-            {v.oneWay && (
-              <span
-                className="h-[5px] w-[5px] shrink-0 rounded-full bg-cinnamon"
-                aria-label="cannot be undone"
-              />
-            )}
-          </button>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/35 bg-black/25 text-white backdrop-blur-[2px] transition-colors duration-150 hover:bg-black/45 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+    >
+      <Icon className="h-[17px] w-[17px]" strokeWidth={1.9} />
+    </button>
+  );
+}
+
+/* ── the way to the people ─────────────────────────────────────────── *
+ *  A word on the picture, and a dialog behind it. Not three dots: "those 3
+ *  dots, I would never be able to see them. They're just tucked away in some
+ *  corner." It is white on the picture's own dark fade, with a hairline, so
+ *  it reads as a control against a photograph rather than as a caption.
+ *
+ *  On a phone the same word opens a sheet from the foot, because a dialog
+ *  centred in a 390px window is a sheet with worse manners. */
+export function PeopleDoor({ c, phone }: { c: SketchCatchup; phone: boolean }) {
+  const [open, setOpen] = useState(false);
+  const trigger = <PictureDoor label="People" icon={Users} onClick={() => setOpen(true)} />;
+
+  const list = (
+    <ul className={cn("gap-x-6 gap-y-3", phone ? "space-y-3" : "grid grid-cols-2")}>
+      {c.members.map((p) => (
+        <li key={p.id}>
+          <Person p={p} size={32} />
         </li>
       ))}
     </ul>
   );
-}
 
-/** Two blocks, not one, because the two sets are answers to different
- *  questions and belong to different things: what happens to THIS Round,
- *  and what this Catch-up is. Splitting them is also what makes the
- *  rail legible to a Keeper who has both. */
-function Running({ c }: { c: SketchCatchup }) {
-  const round = roundVerbs(c);
-  const catchup = catchupVerbs(c);
-  if (round.length === 0 && catchup.length === 0) return null;
+  const add = c.kind === "people" && c.youKeep;
+
+  if (phone) {
+    return (
+      <>
+        {trigger}
+        <Sheet open={open} onClose={() => setOpen(false)}>
+          <Block label="People">{list}</Block>
+          {add && (
+            <button
+              type="button"
+              className="state-layer -mx-2 mt-3 rounded-[10px] px-2 py-1.5 text-[14px] font-medium text-canopy focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
+            >
+              Add someone
+            </button>
+          )}
+        </Sheet>
+      </>
+    );
+  }
+
   return (
     <>
-      {round.length > 0 && (
-        <Block label="This Round">
-          <Verbs verbs={round} />
-        </Block>
-      )}
-      {catchup.length > 0 && (
-        <Block label="This Catch-up">
-          <Verbs verbs={catchup} />
-        </Block>
-      )}
-      <p className="-mt-5 text-[12.5px] leading-snug text-muted-foreground">
-        A dot means it cannot be undone.
-      </p>
+      {trigger}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-[19px]">People</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[52dvh] overflow-y-auto pr-1">{list}</div>
+          {add && (
+            <div>
+              <Button variant="outline" size="sm">
+                Add someone
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 
-/* ── the rail, on a laptop ─────────────────────────────────────────── */
-
-export function Rail({ c }: { c: SketchCatchup }) {
-  /* Controls first, people last, and the order matters. People is the
-     only block whose length is unbounded -- twenty-four names on this
-     Catch-up -- so with it at the top, Reminders landed 1,500px down the
-     page and the rail's whole point, that a control has an address you
-     can find, was lost. */
-  return (
-    <div className="space-y-9">
-      <Block label="Reminders">
-        <Reminders />
-      </Block>
-      <Running c={c} />
-      <Block label="People">
-        <ul className="space-y-2.5">
-          {c.members.map((p) => (
-            <li key={p.id}>
-              <Person p={p} size={30} />
-            </li>
-          ))}
-        </ul>
-        {c.kind === "people" && c.youKeep && (
-          <button
-            type="button"
-            className="state-layer -mx-2 mt-2 rounded-[10px] px-2 py-1.5 text-[14px] font-medium text-canopy focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
-          >
-            Add someone
-          </button>
-        )}
-      </Block>
-    </div>
-  );
-}
-
-/* ── the rail, on a phone ──────────────────────────────────────────── *
- *  Two controls in the head, and each opens the same content as a full
- *  sheet over the page. His, 2026-09-07: "on phone the people can just
- *  open into an overlay instead of cluttering that content. And maybe
- *  move it somewhere else, maybe above, instead of having it on its own
- *  line."
+/* ── the way to the settings ───────────────────────────────────────── *
+ *  The second word on the picture, beside People, in the same clothes.
  *
- *  So they sit on the head's own line, beside the name, rather than
- *  taking a row of their own; and they are words, not three dots, because
- *  "those 3 dots, I would never be able to see them. They're just tucked
- *  away in some corner." */
-export function PhoneRail({ c }: { c: SketchCatchup }) {
-  const [open, setOpen] = useState<null | "people" | "run">(null);
-  const verbs = [...roundVerbs(c), ...catchupVerbs(c)];
+ *  It exists because the sidebar no longer does. Every control that changes
+ *  the Catch-up or the Round for everybody else is behind it, grouped, with
+ *  the cinnamon dot still marking the ones that cannot be taken back -- which
+ *  is the rule from the accident note (N30) and does not change with the
+ *  furniture.
+ *
+ *  Words rather than a gear or three dots, for his reason: "those 3 dots, I
+ *  would never be able to see them. They're just tucked away in some corner."
+ *
+ *  ONE THING STILL OPEN, and it is his: "I don't want everything in the
+ *  separated thing. Honestly, the sidebar in the shipped version has some
+ *  settings outside, some not, that is much nicer than this." Everything is
+ *  inside here at the moment. Which one or two belong outside it, on the page,
+ *  is a question for him rather than a thing to guess. */
+export function SettingsDoor({ c, phone }: { c: SketchCatchup; phone: boolean }) {
+  const [open, setOpen] = useState(false);
+  const panel = useRef<HTMLDivElement>(null);
+  const trigger = (
+    <PictureDoor label="Settings" icon={SlidersHorizontal} onClick={() => setOpen(true)} />
+  );
+  if (phone) {
+    return (
+      <>
+        {trigger}
+        <Sheet open={open} onClose={() => setOpen(false)}>
+          <div className="space-y-8">
+            <Running c={c} />
+          </div>
+        </Sheet>
+      </>
+    );
+  }
   return (
     <>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <button
-          type="button"
-          onClick={() => setOpen("people")}
-          className="text-[13.5px] font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
-          People
-        </button>
-        <button
-          type="button"
-          onClick={() => setOpen("run")}
-          className="text-[13.5px] font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
-          {c.youKeep ? "You keep this" : "Reminders"}
-        </button>
-      </div>
-      <Sheet open={open !== null} onClose={() => setOpen(null)}>
-        {open === "people" ? (
-          <Block label="People">
-            <ul className="space-y-3">
-              {c.members.map((p) => (
-                <li key={p.id}>
-                  <Person p={p} size={32} />
-                </li>
-              ))}
-            </ul>
-          </Block>
-        ) : (
-          <div className="space-y-8">
-            <Block label="Reminders">
-              <Reminders />
-            </Block>
-            {verbs.length > 0 && <Running c={c} />}
+      {trigger}
+      <Dialog open={open} onOpenChange={setOpen}>
+        {/* `initialFocus` on the panel itself. Without it Base UI focuses the
+            first focusable child, which here is a settings row -- so the
+            dialog opened with "Start the next Round now" wearing a focus ring
+            and a selected tint, i.e. the one control in the list that cannot
+            be undone looked armed. */}
+        <DialogContent className="sm:max-w-md" initialFocus={panel} ref={panel} tabIndex={-1}>
+          <DialogHeader>
+            <DialogTitle className="font-heading text-[19px]">Settings</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[62dvh] overflow-y-auto pr-1">
+            <Running c={c} />
           </div>
-        )}
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

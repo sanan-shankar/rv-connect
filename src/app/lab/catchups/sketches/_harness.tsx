@@ -114,6 +114,12 @@ type Where = { at: "list" } | { at: "home"; c: SketchCatchup } | { at: "reader" 
  *  it is what the page is designed for. Six is every state at once, which
  *  is a room's job and not a member's page. */
 const REAL_SHELF = 3;
+/* How many the list draws, and the room cycles through them. ONE is the case
+   he says most members are in -- "at least 60% are only going to have their
+   batch catch-up" -- and it is the one a two-column grid handles worst, so it
+   is a state the room has to be able to show. */
+const SHELF_STEPS = [1, 3, 6] as const;
+const SHELF_LABEL: Record<number, string> = { 1: "Just one", 3: "Three", 6: "Every state" };
 
 function Spine({
   round,
@@ -130,7 +136,7 @@ function Spine({
 }) {
   const variants = homeVariants(shelf);
   const startVariant = variants.find((v) => v.key === startState) ?? variants[4];
-  const [all, setAll] = useState(false);
+  const [howMany, setHowMany] = useState(REAL_SHELF);
   const [where, setWhere] = useState<Where>(
     start === "reader"
       ? { at: "reader" }
@@ -157,7 +163,7 @@ function Spine({
     ) : (
       <Framed phone={phone}>
         {where.at === "list" ? (
-          <List shelf={all ? shelf : shelf.slice(0, REAL_SHELF)} onOpen={open} phone={phone} />
+          <List shelf={shelf.slice(0, howMany)} onOpen={open} phone={phone} />
         ) : (
           <Home c={where.c} phone={phone} onRead={() => setWhere({ at: "reader" })} />
         )}
@@ -199,10 +205,12 @@ function Spine({
         {where.at === "list" && (
           <button
             type="button"
-            onClick={() => setAll((v) => !v)}
-            className={`${JUMP} ${all ? PILL_ON : PILL_OFF}`}
+            onClick={() =>
+              setHowMany((n) => SHELF_STEPS[(SHELF_STEPS.indexOf(n as 1 | 3 | 6) + 1) % SHELF_STEPS.length])
+            }
+            className={`${JUMP} ${howMany === REAL_SHELF ? PILL_OFF : PILL_ON}`}
           >
-            {all ? "Three again" : "Every state"}
+            {SHELF_LABEL[howMany]}
           </button>
         )}
       </div>
@@ -236,11 +244,24 @@ function Harness({ round, pressure }: { round: SketchRound; pressure: boolean })
   const bare = params.get("bare") === "1";
   const shelf = buildShelf(round);
 
-  function set(key: string, value: string | null) {
+  function url(key: string, value: string | null) {
     const q = new URLSearchParams(params.toString());
     if (value === null) q.delete(key);
     else q.set(key, value);
-    router.replace(`/lab/catchups/sketches?${q.toString()}`, { scroll: false });
+    return `/lab/catchups/sketches?${q.toString()}`;
+  }
+  /** For the view pills, which only move client state. */
+  function set(key: string, value: string | null) {
+    router.replace(url(key, value), { scroll: false });
+  }
+  /* Which corpus is read by the SERVER component (page.tsx picks the loader
+     off `searchParams.data`), so a client-side `router.replace` changed the
+     address bar and nothing else -- the Pressure pill lit up and the page kept
+     drawing the real Round. His, 2026-09-07: "pressure button does literally
+     nothing." It is a full navigation now, because the thing it switches is
+     decided before any of this renders. */
+  function reload(key: string, value: string | null) {
+    window.location.assign(url(key, value));
   }
   const go = (next: View) => set("w", next);
 
@@ -248,9 +269,15 @@ function Harness({ round, pressure }: { round: SketchRound; pressure: boolean })
 
   return (
     <div className="min-h-screen bg-background">
+      {/* The room's own chrome scrolls rather than pushing the page wider. At
+          390 this row of pills measured 449px, so the DOCUMENT was 59px wider
+          than the window and the whole drawing sat in a horizontally scrolling
+          page -- which is why a list card looked as though it did not reach the
+          right margin. It always did: the cards run 20 to 370 inside a 390
+          viewport. The room was the thing that was too wide. */}
       {!bare && (
-        <header className="border-b border-border px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
+        <header className="border-b border-border py-3">
+          <div className="flex items-center gap-3 overflow-x-auto px-4 [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden">
             <Link
               href="/lab"
               className="state-layer inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-[12.5px] font-semibold text-muted-foreground transition-colors duration-150 hover:text-foreground active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -278,7 +305,7 @@ function Harness({ round, pressure }: { round: SketchRound; pressure: boolean })
                 at a glance. */}
             <SpringPress
               as="button"
-              onClick={() => set("data", pressure ? null : "pressure")}
+              onClick={() => reload("data", pressure ? null : "pressure")}
               aria-pressed={pressure}
               className={`${PILL} ${
                 pressure
