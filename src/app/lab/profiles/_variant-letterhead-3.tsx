@@ -940,6 +940,8 @@ function Letterhead({
     methods.length > 0 ? (
       <GetInTouch
         name={profile.name}
+        person={profile}
+        batchYear={profile.batchYear}
         methods={methods}
         vcard={buildVcard(profile, methods)}
         showSave={false}

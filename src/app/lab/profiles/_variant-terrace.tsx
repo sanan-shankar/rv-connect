@@ -614,7 +614,13 @@ export default function TerraceVariant({ profile }: ProfileVariantProps) {
             {/* Nothing contactable is printed here. Email, phone, Instagram
                 and LinkedIn are all one click inside "Get in touch". */}
             <div className="mt-[var(--space-l)]">
-              <GetInTouch name={profile.name} methods={methods} vcard={vcard} />
+              <GetInTouch
+                name={profile.name}
+                person={profile}
+                batchYear={profile.batchYear}
+                methods={methods}
+                vcard={vcard}
+              />
             </div>
 
             {/* The stamp rides in the identity column at narrow widths; on
