@@ -287,7 +287,7 @@ export default async function AdminCatchupReadingRoom({
                                      bold phrase reads here exactly as it does
                                      in the Edition itself. */
                                   <div
-                                    className="mt-0.5 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground"
+                                    className="mt-0.5 whitespace-pre-wrap break-words text-[13px] leading-relaxed text-foreground"
                                     dangerouslySetInnerHTML={{
                                       __html: renderRichText(entry.body),
                                     }}

@@ -421,7 +421,7 @@ export function PostCard({
                 lands back on a responsive height with no jump at either end. */}
             <div className="mt-2.5">
               <p
-                className="whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground"
+                className="whitespace-pre-wrap break-words text-[15px] leading-[1.7] text-foreground"
                 dangerouslySetInnerHTML={{
                   __html: renderRichText(isLongText && !expanded ? leadText + "..." : leadText),
                 }}
@@ -437,7 +437,7 @@ export function PostCard({
                   style={{ overflow: "hidden" }}
                 >
                   <p
-                    className="whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground"
+                    className="whitespace-pre-wrap break-words text-[15px] leading-[1.7] text-foreground"
                     dangerouslySetInnerHTML={{ __html: renderRichText(restText) }}
                   />
                 </m.div>

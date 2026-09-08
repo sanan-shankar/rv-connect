@@ -66,7 +66,7 @@ export function PhotoWall({ entries }: { entries: EditionEntry[] }) {
                  them, so a caption written with emphasis read `*like this*`
                  here and formatted there (bugs.md #19). */
               <p
-                className="mt-[var(--space-xs)] whitespace-pre-wrap text-[13.5px] leading-[1.55] text-foreground"
+                className="mt-[var(--space-xs)] whitespace-pre-wrap break-words text-[13.5px] leading-[1.55] text-foreground"
                 dangerouslySetInnerHTML={{ __html: renderRichText(entry.body) }}
               />
             )}

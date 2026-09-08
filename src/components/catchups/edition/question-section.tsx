@@ -45,7 +45,7 @@ export function QuestionSection({
   return (
     <section id={id} className="scroll-mt-24">
       <p className="text-[11px] font-bold tracking-[0.1em] text-leaf">Q{index + 1}</p>
-      <h2 className="mt-[var(--space-xxs)] font-heading text-[1.5rem] leading-[1.15] tracking-[-0.02em] text-foreground sm:text-[1.7rem]">
+      <h2 className="mt-[var(--space-xxs)] break-words font-heading text-[1.5rem] leading-[1.15] tracking-[-0.02em] text-foreground sm:text-[1.7rem]">
         {prompt.text}
       </h2>
       {prompt.asker && (
