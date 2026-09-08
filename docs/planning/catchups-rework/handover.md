@@ -183,7 +183,7 @@ too, which he allowed in ¶28.
 | The composer, the picture's crop | PARTIAL | The composer's *shape* is drawn, on the home, because he asked for it there. What is not drawn: the photo attachment flow, the song field, the photo-wall question, and the crop-at-creation surface. The people surface is DONE (a dialog and a sheet, off the sidebar). **`spec.md` §10 rules on each**: the song field is DELETED rather than drawn (a pasted link resolves anywhere, ¶50), the photo-wall control is the drawn photo strip with a higher cap, and the crop-at-creation is assembled from `photo-aim.tsx` and the direct-upload path -- all three inside the build. The photo wall's READING surface goes to S-features, and the confirmations go to the settings session, both before the phase that would need them |
 | The settings surface, refined | **DONE** | 2026-09-09, spec 10.3, **the gate on build phase 7**. He gave notes on the shipped-in-lab list first and every one is answered; his words are in [`review-2026-09-09.md`](review-2026-09-09.md). **The nine icon tiles are deleted** -- *"I don't like that brown. I think that's probably my main gripe with it"* -- and with them every container in the panel: no tile, no rule, no card inside the card. **The idea that replaced them**: a Catch-up's settings are the Catch-up described, so "This Catch-up" holds the same three rows for everybody (Name, Picture, Rhythm) and who you are decides which of them press. That is what stops a batch panel coming out as one lonely row -- it is the same panel with two rows sealed, which also says "the members are fixed" without a sentence teaching it. **Colour appears twice in the whole flow**: the words "Cannot be undone" in a row's value column, and the button that does the thing. Three orange things became one, and the one is language. **Everything presses**, which was his ask, and everything it opens is one of three shapes -- a confirmation, a chooser, an editor -- written together in one file rather than five times inside five build phases. Drawn at `/lab/catchups/settings` for all three cases, with the four confirmations side by side; the same component is behind the spine's Settings door. **Four measured faults fixed**: the 4px sideways scroll, the group heads sitting 8px right of every label under them, the hint truncating at BOTH widths, and the grabber pill. See the session log |
 | **S-features, the second brainstorm** | DONE | **2026-09-09, [`features.md`](features.md), and HE HAS RULED ON EVERY ITEM** (§1, verbatim). **In: a question you answer out loud** (*"We should definitely have this"* — it plays back the AUDIO, transcript through the browser, his own suggestion); **a question the group votes on**; **a longer question library**; **TIME CAPSULE MODE, which is his own idea and is new** (an Edition sealed and released a year later, a switch in settings, with the library tweaked to suit); and **answers hidden until you write your own, but a PUBLISHED Edition open to everybody whether they wrote or not** — that last one changes build phases 7 and 8. **Out: the map; a question from another batch; a one-line answer AS A FEATURE** (*"we can have those questions in the library. We don't have to enforce them in the answers"*). **Parked: more reactions, anonymous answers, and email** (it needs a paid Resend plan). **Open, and it is one sentence from him: then-and-now**, which he did not follow; it is explained plainly in §1. **A build warning that is free today and expensive in November: phase 11 must NOT drop `CatchupEdition.publishAt`** — a time capsule is a scheduled publish date and that is the same column. Originally: the mechanism that makes it cheap (a kind is derived from a category, so a new one needs no migration), the photo wall's three reading shapes and why a grid is wrong, the Letterloop parity list with its one real gap (email), the voice signal from the rest of the space, and seven proposals with a default of "not unless you say so" for him to cut. **The photo wall is the only non-optional item and comes before build phase 8.** Originally: **He has asked twice that this not be lost.** 2026-09-07: *"in my initial request for the catch ups rework I also requested a brainstorm on and research into more features we can incorporate for instance a photo wall round and that can be shown nicely on the reader in a unique way and maybe some other stuff ... have a think and see what people would want and what letterloop and any other similar guys do now. I don't want you to do it in this session but I had requested it at some point and I wanna make sure it gets done at some point and it hasn't been written out of the brief completely."* It has not been: it is ¶16, ¶49 and ¶50 in the brief and rows R15, R16 and P22 in the ledger below. What is missing is a SESSION that does it, and this row is that session. See "S-features" below, and `spec.md` §11, which schedules it before phase 8 because the photo wall's reading surface is the one piece of it that can change a page already drawn |
-| **The photo wall's reading surface** | OWNER-GATED | **Drawn 2026-09-09, `/lab/catchups/wall`, three shapes, one hand, and the pick is his.** `photo-wall` has been a question kind since the feature was built and had never been drawn (¶16, ¶49, D10). A **run** (one band, photographs at their own widths, moving sideways), a **drift** (down the column at three measures chosen from each photograph's own shape, the contributor set at the plate's foot in the margin it leaves) and a **stack** (one at a time, the box tweening to each photograph's shape, a pressable rail). Each is drawn inside a page, with a question above and an ordinary question with two answers below, because his rule is *"it needs to be modular and work with everything else"*. Five walls to change under them: one photograph, three, twenty-four, all portrait, two hundred. **The number that decides it, measured at 1512: at 200 photographs the page is 2,104px for a run, 2,393px for a stack and 116,321px for a drift** -- and the run spends it sideways instead, 65,566px of strip. **A cap of six per person is PROPOSED, not assumed** (answers are capped at 3 today; spec 10.1 says a wall raises it and does not say to what): six is visibly not three, it is where a person stops choosing and starts emptying a camera roll, and against a group of forty the ceiling is 240 with a realistic 40 to 60. **He picks, and nothing is built until he does.** Ships inside build phase 8 |
+| **The photo wall's reading surface** | DONE | **Drawn 2026-09-09 at `/lab/catchups/wall`, three shapes, one hand, and HE PICKED THE RUN the same day**: *"I pick 'a run'"*. `photo-wall` has been a question kind since the feature was built and had never been drawn (¶16, ¶49, D10). The run is one band the width of the reading column, every photograph at its own width and never cropped to match its neighbour, bleeding off the right edge, with one contributor's set sitting together 3px apart under a single name. **Two rules came with the pick.** No captions, because there is nowhere in a band to set a paragraph, so anybody's words live in the viewer. And no count line: one was drawn above the band and he deleted it on sight, *"delete this random stat"*. **And the cap is THREE, not higher** -- *"cap photo wall also at 3 each"* -- so spec 10.1's "the photo strip with a higher cap" is corrected to the photo strip UNCHANGED, and the answering half of a wall question needs nothing built at all. A batch of forty tops out at 120 photographs, a hundred-person Catch-up at 300. **The number that decided it**, measured at 1512 as the wall's own height: at two hundred photographs a run is 353px of page, a stack 666px and a drift 33,469px; the run spends 64,735px sideways instead. A grid was never one of the three: two dozen photographs in a grid is a contact sheet. The drift and the stack stay drawable in the room as the record of why. **Ships inside build phase 8**: transplant `Run` from `src/app/lab/catchups/wall/_shapes.tsx`, keyed off `promptKind(category) === "photo"`; `_corpus.ts` stays behind |
 | **The list, when it has room to spare** | DONE | **Decided by him 2026-09-07, drawn in build phase 6, 2026-09-08.** See "The list's spare slots" below. Scheduled: `spec.md` §5 puts it inside build phase 6, with the list, because it is a rule about what fills that grid rather than a surface of its own |
 | S3b Second round | OPEN | only if he asks for one after browsing the shape |
 | S5 Pick and spec | DONE | 2026-09-08. [`spec.md`](spec.md): the data changes as dated idempotent files, the Round -> Edition rename as one pass, eleven build phases plus track X, the three undrawn surfaces called before-or-inside, and ¶1 to ¶52 mapped. Owner questions 19, 20 and 21 are new and are below. It does NOT redraw anything: `architecture.md` is still the design |
@@ -2805,8 +2805,10 @@ down.
 
 ### 2026-09-09, S13, the photo wall's reading surface (Opus 5, one hand, no fan-out)
 
-`/lab/catchups/wall`, three shapes, live at 390 and 1512, and **the pick is his**. Nothing is
-built until he picks; this session drew and stopped.
+`/lab/catchups/wall`, three shapes, live at 390 and 1512. **He picked the RUN the same day**,
+and capped a wall answer at three, and deleted the count line above the band. All three rulings
+are in the board row above and in `spec.md` §10.1; the shapes he did not pick stay drawable as
+the record of why.
 
 **The three, and what each one is really trading.** A RUN is one band the width of the column,
 every photograph at its own width, moving sideways off the right edge, one name under each
@@ -2816,13 +2818,19 @@ column because it is short, square takes the middle measure, portrait takes the 
 alternating sides. A STACK is one at a time, the box tweening to each photograph's own shape,
 with a pressable rail.
 
-**The number that decides it, measured at 1512.** At two hundred photographs the page is
-**2,104px for a run, 2,393px for a stack and 116,321px for a drift** -- 118 screens of one
-question. The run pays nothing because it spends the room sideways instead: its strip is
-7,938px at twenty-four and 65,566px at two hundred, which is 77 screens nobody will travel. So
-the trade is legible rather than a matter of taste: the drift is the only one where the size of
-the wall is the size of the page, which is both why it feels like a wall and why two hundred
-breaks it.
+**The number that decided it, measured at 1512 as the wall's own height** (not the page's, so
+editing the room's prose cannot move it). At two hundred photographs a run is **353px** of page,
+a stack **666px** and a drift **33,469px**. The run pays nothing because it spends the room
+sideways instead: its strip is 7,938px at twenty-four and 64,735px at two hundred, which is 76
+screens nobody will travel. So the trade was legible rather than a matter of taste: the drift is
+the only one where the size of the wall is the size of the page, which is both why it feels like
+a wall and why two hundred breaks it.
+
+**His cap of three is what made the drift survivable at all**, and the number moved while he was
+deciding: at the proposed cap of six the drift ran 116,321px at two hundred, and at three it runs
+33,469px, because three each means most people arrive as a SET, a set is one justified row, and a
+row of three is a third of the height of three plates. It did not save the drift, but it is worth
+knowing that a per-person cap is a layout lever and not only a policy.
 
 **A grid was not drawn and the reason held all the way through.** Twenty-four photographs in a
 grid is a contact sheet, and a contact sheet says these are proofs, pick one. The drift comes
@@ -2859,14 +2867,12 @@ ONE wall, of twenty-four, which is the happy middle; the four cases that decide 
 photograph, three, two hundred, all portrait) are not in it. Every choice is a function of the
 index, so a reload draws the same wall and two rounds of comparison mean something.
 
-**The one decision proposed rather than assumed: SIX photographs per person on a wall
-question.** An answer is capped at three (F19) and spec 10.1 says a wall raises the cap without
-saying to what. Six is visibly not three, so a wall feels like a different kind of question
-without a different control, and it is where a person stops choosing and starts emptying a
-camera roll. Against a group of forty the ceiling is 240 and the realistic number is 40 to 60,
-because on the live Edition the people who put up a photograph averaged 1.3 of them. If six is
-too many the next number down is four, not three: a wall whose cap equals an ordinary answer's
-is not a wall.
+**The cap was proposed at six and he ruled THREE.** *"cap photo wall also at 3 each"*. The
+proposal's argument was that six is visibly not three so a wall feels like a different kind of
+question; his answer is the simpler one, and it makes the answering half of a wall question cost
+nothing at all -- the control is the photo strip already on the composer, with not one thing
+changed about it. `spec.md` §10.1 said "the photo strip with a higher cap" and now says
+unchanged.
 
 **Deep links**, so a message can name one state:
 `/lab/catchups/wall?w=phone|laptop&shape=run|drift|stack&wall=one|three|real|portrait|flood`.
@@ -3041,11 +3047,11 @@ at runtime.
 
 ## What to paste next
 
-**The photo wall's reading surface is DRAWN and waiting on his pick.** `/lab/catchups/wall`,
-three shapes, five walls, at 390 and 1512. Nothing is built until he picks one, and the session
-that drew it did not pick for him. The winner ships inside build phase 8; the gate on phase 8 is
-now that pick and nothing else. A cap of six photographs per person is PROPOSED in the same room
-and is his to accept or move.
+**The photo wall is DECIDED, all three parts of it.** He looked at `/lab/catchups/wall` and
+picked **a run** (*"I pick 'a run'"*), **deleted the count line** above the band (*"delete this
+random stat"*), and **capped a wall answer at three** like any other answer (*"cap photo wall
+also at 3 each"*). So phase 8 has a transplant rather than a decision waiting for it, and the
+composer needs nothing at all. Nothing gates phase 8 now.
 
 **Track X is done bar one fault, and S-features is done and ruled on.** 2026-09-08/09, six commits.
 The phone overflow, the heart, the caption clamp and the viewer's size snap are fixed and measured.
@@ -3074,8 +3080,8 @@ then-and-now is worth building at all.
 
 Build phase 7, the home. Read the board first: phase 7's gate has lifted --
 the settings surface is DONE (2026-09-09, /lab/catchups/settings) and the
-photo wall's reading surface is DRAWN and waiting on his pick, which phase 8
-needs and phase 7 does not.
+photo wall is fully decided (he picked a run, deleted its count line, and
+capped a wall answer at three), so phase 8 has nothing waiting on him either.
 
 Phase 7 is spec.md section 9, row 7: /catchups/[id] rebuilt from _home.tsx --
 the head and its two doors, the Edition region per state, the state line, the
@@ -3089,7 +3095,7 @@ answering window you can read the answers that have arrived, but only once
 you have written your own. Do not guess this one -- 3.13 says why, and it is
 one sentence from him.
 
-DO NOT redraw the photo wall and DO NOT pick a shape for him.
+DO NOT redraw the photo wall. It is picked, and phase 8 transplants it.
 
 How to work:
   - One hand. No fan-out: a design round is not a fan-out (F32).
@@ -3102,11 +3108,11 @@ How to work:
   - Do not push.
 ```
 
-**And when he has picked a wall shape**, that is a small session of its own or the first
-half hour of phase 8: transplant the picked shape from `src/app/lab/catchups/wall/_shapes.tsx`
-into the reader, keyed off `promptKind(category) === "photo"`, and raise the composer's photo
-cap for a wall question to whatever number he settled on. `_corpus.ts` does not travel; the
-shape reads real entries.
+**The wall shape is picked: a RUN.** It ships inside phase 8, not before, and it is a
+transplant rather than a design job: take `Run` from `src/app/lab/catchups/wall/_shapes.tsx`,
+key it off `promptKind(category) === "photo"`, and leave `_corpus.ts` behind. No captions and no
+count line, both of which are his. **The composer needs nothing**: he capped a wall answer at
+three, the same as any answer, so the strip that is already drawn is the whole answering half.
 
 ### What that session must know, and would otherwise learn the hard way
 

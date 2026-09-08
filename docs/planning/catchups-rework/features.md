@@ -239,7 +239,20 @@ choosing:
   as a slideshow. The only one of the three that survives two hundred photographs, which the
   pressure corpus already carries.
 
-**Draw all three in one lab room and pick with him.**
+**HE PICKED THE RUN**, 2026-09-09, off `/lab/catchups/wall`, after looking at all three live at
+390 and 1512: *"I pick 'a run'"*. Two rules came with it. There is **no caption** on a wall, because
+there is nowhere in a band to set a paragraph, so anybody's words live in the viewer. And there is
+**no count line** above it: one was drawn and he deleted it on sight, *"delete this random stat"*.
+
+**And the cap is THREE, not higher**: *"cap photo wall also at 3 each"*. The spec had said a wall
+question raises the answer's cap of three; it does not. So the answering half is free in the
+strictest sense -- the control is the photo strip already on the composer, unchanged. A batch of
+forty tops out at 120 photographs, a full hundred-person Catch-up at 300.
+
+**The number that decided it**, measured at 1512, the wall's own height: at two hundred photographs
+a run is 353px of page, a stack is 666px, and a drift is 33,469px. The run spends the room sideways
+instead, 64,735px of strip, and a neutral hairline under the band is the only thing that says so.
+The drawing is `Run` in `src/app/lab/catchups/wall/_shapes.tsx` and it ships inside build phase 8.
 
 ---
 

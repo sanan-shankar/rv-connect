@@ -16,7 +16,7 @@ if the month is new), and add one line here, at the top of that month's list.
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
 - 2026-09-09 — the Collection was fetching itself, and nobody had to touch it
-- 2026-09-09 — a wall is not a contact sheet: the photo wall drawn three ways
+- 2026-09-09 — a wall is not a contact sheet: the photo wall drawn three ways, and he picked the run
 - 2026-09-09 — the calling card ships, and the bird stays off the green
 - 2026-09-09 — four brown boxes on a white card
 - 2026-09-08 — the lockup was never too big, it was too heavy

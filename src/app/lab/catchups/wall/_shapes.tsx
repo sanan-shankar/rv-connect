@@ -46,7 +46,7 @@ import {
 } from "@/components/common/lazy-image-viewer";
 import { EASE_IN_OUT_SCENE, EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
-import { byContributor, contributorCount, type WallShot } from "./_corpus";
+import { byContributor, type WallShot } from "./_corpus";
 
 /* ── shared pieces ─────────────────────────────────────────────────── */
 
@@ -159,16 +159,6 @@ function FootLine({
       </span>
     </div>
   );
-}
-
-/** What the wall's size is, said once, above whichever shape is drawn.
- *  It earns its line: a run shows you two photographs of two hundred and
- *  a stack shows you one, so the size of the thing is the one fact
- *  neither shape can tell you by looking. */
-export function wallCountLine(shots: WallShot[]): string {
-  const people = contributorCount(shots);
-  if (shots.length === 1) return "One photograph, from one person";
-  return `${shots.length} photographs from ${people} ${people === 1 ? "person" : "people"}`;
 }
 
 /** The viewer's images, in wall order, so opening at index i opens the one
