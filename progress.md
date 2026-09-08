@@ -37,6 +37,7 @@ if the month is new), and add one line here, at the top of that month's list.
 - 2026-09-08 (later still) — the picture scrim goes a tenth darker
 - 2026-09-08 (later still) — the toast's action button stops being a black pill
 - 2026-09-08 (track X) — the half-centimetre of white space on the right, and it was never the green bar
+- 2026-09-08 (track X) — the heart's animation was a second late because the tap rebuilt the whole Edition
 - 2026-09-07 — the five parked rebuilds get a description he can judge, and five bugs get filed
 - 2026-09-07 — one folder for scratch screenshots, and something that empties it
 - 2026-09-07 — the session log becomes an index, and a test keeps it one

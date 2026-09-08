@@ -8,6 +8,45 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 (track X) — the heart's animation was a second late because the tap rebuilt the whole Edition
+
+His, brief 29: *"if I'm on the feed and I click the heart, the heart just becomes red. But if I
+click a heart on Mohini's answer, it becomes red and the animation kicks in after the second."*
+And on 2026-09-05, correcting the recon's first reading: *"tapping the heart on a catch up taking
+longer to react than tapping heart on feed. noticeably longer."*
+
+**`toggleEntryLove` ended both of its paths with `revalidatePath` on the reader route.** That
+makes Next rebuild the route's server tree the instant the action resolves, and this route
+server-renders every answer in the Edition.
+
+**Measured on "in the loop" Edition 1 (133 answers) at 1440, four taps each way, on the owner's
+own answer so `notifyLove` never fires and no member's bell moves:**
+
+| | bytes down the wire | click to response |
+|---|---|---|
+| with the call | 223 KB | 1,333 to 1,809 ms |
+| without it | **1 KB** | 514 to 781 ms |
+
+The remaining half-second is the round trip to Mumbai, which every write pays. The heart itself
+paints in 30 to 56 ms and always did: `EntryLoveButton` holds `liked` and `count` in its own state
+through `useHeartToggle`, so the rebuilt page was markup nobody read. The four taps left the heart
+exactly where it started.
+
+**The feed already knew.** `toggleLike` deliberately has no such call and states the rule in its
+own comment, written after audit 2 took the last five out and after that same refresh had been
+landing as an occasional scroll-to-top on the heart click: *an action whose result the client
+already holds does not revalidate.* `toggleEntryLove` was written later, with the call in it,
+twice.
+
+**So the rule is now a test rather than a comment**, `src/lib/heart-revalidate-rule.test.mjs`,
+across all four love toggles (the feed's post and comment, the Collection's photograph, the
+Catch-up's answer), proved to fail before it was kept. Nothing else on the reader reads a heart
+count: `catchups-edition-view.ts` hands each card its opening `loveCount` and the client owns it
+from there, and there is no aggregate anywhere on the page.
+
+`npm run check` 112/112. No `npm run visual`: nothing rendered changed, and the reader is not a
+route in the suite.
+
 ## 2026-09-08 (track X) — the half-centimetre of white space on the right, and it was never the green bar
 
 His, four times over, always on his phone (brief 11, 19, 25, 33): *"the top green bar doesn't even

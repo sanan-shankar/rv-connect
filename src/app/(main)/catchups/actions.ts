@@ -1626,7 +1626,6 @@ export async function toggleEntryLove(entryId: string) {
       where: { userId: session.user.id, entryId },
     });
     if (removed.count > 0) {
-      revalidatePath(`/catchups/edition/${entry.editionId}`);
       return { success: true, loved: false };
     }
 
@@ -1651,7 +1650,16 @@ export async function toggleEntryLove(entryId: string) {
       });
     }
 
-    revalidatePath(`/catchups/edition/${entry.editionId}`);
+    /* No revalidatePath, and this is the whole of his "the heart's animation
+       fires a second late" (brief 29). EntryLoveButton holds `liked` and
+       `count` in its own state and flips both optimistically in 28ms, so the
+       server tree it forced Next to rebuild was markup nobody read -- except
+       that rebuilding it meant server-rendering every answer in the Edition.
+       Measured on "in the loop" Edition 1 (133 answers) at 1440: 223 KB and
+       1.3 to 1.8 seconds down the wire on every single tap, against the feed's
+       55 KB and ~270ms. The feed's `toggleLike` deliberately has no such call
+       and states the rule in its own comment: an action whose result the client
+       already holds does not revalidate. It is the same rule here. */
     return { success: true, loved: true };
   });
 }
