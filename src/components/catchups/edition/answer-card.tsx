@@ -80,7 +80,7 @@ export function AnswerCard({ entry, kind = "text" }: { entry: EditionEntry; kind
                formats live now, so the reader has to honour the markers
                instead of printing them. */
             <p
-              className="mt-[var(--space-s)] whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground"
+              className="mt-[var(--space-s)] whitespace-pre-wrap break-words text-[15px] leading-[1.7] text-foreground"
               dangerouslySetInnerHTML={{ __html: renderRichText(entry.body ?? "") }}
             />
           )}

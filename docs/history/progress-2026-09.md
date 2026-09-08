@@ -8,6 +8,49 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 (track X) — the half-centimetre of white space on the right, and it was never the green bar
+
+His, four times over, always on his phone (brief 11, 19, 25, 33): *"the top green bar doesn't even
+extend all the way. It's just cut off partway"*, and *"as if catch-ups just rendered completely and
+then this extra half a centimetre of white space came in on the right-hand side. And it cut through
+the sidebar."*
+
+**It is a pasted Spotify link.** Three answers in the live "in the loop" Edition 1 are one. The
+first piece of `https://open.spotify.com/track/3IuSgREoO5y88HdIcE2Xee?` is 54 characters and 369px
+with no break opportunity anywhere in it, and the reader's answer column on a phone is 316px. The
+paragraph carried `whitespace-pre-wrap` and nothing beside it, so `overflow-wrap` computed
+`normal` and the word simply refused to fit.
+
+**Measured at a true 390x844 with touch emulation, before and after.** The document laid out 414px
+wide in a 390px window — 24px, and half a centimetre is 19 — while the sticky green bar stayed
+exactly 390. `position: sticky` sizes to its containing block and does not follow a sideways pan,
+so the bar ran out where the page kept going. After: 390 against 390, and the paragraph that held
+377px of content in a 316px box now holds 316.
+
+**Why the recon could not reproduce it and this could.** It measured without `isMobile`. With
+touch emulation Chrome shrinks the layout viewport to the overflowing content, which is what iOS
+Safari does; without it, `html { overflow-x: clip }` in globals.css clamps `scrollWidth` and the
+page refuses to pan. The recon's conclusion — that it is a phone bug because of the browser, not
+because of the width — was right; only its "does not reproduce on this machine" was wrong, and it
+was a viewport flag.
+
+**Seven lines, and not one of them is the bar.** Widening the bar would have hidden the pan and
+left the page still pannable, which is the same bug with the symptom painted over. `break-words`
+went on every element that prints a member's typing: the answer body, the photo-wall caption, the
+question heading, the post body's two halves on the feed, a letter's body, and the admin room's
+copy of an answer. The feed and letters were never reported and have the identical fault; the
+column is wider there, so it takes a longer link.
+
+**The guard is `src/lib/rich-text-wrapping.test.mjs`**, proved to fail before it was kept. The
+rule is not "add break-words everywhere" — it is that the handful of elements rendering
+`renderRichText` output each carry a break rule, because that is the only text on any page whose
+width nobody chose. It reads the enclosing few lines rather than one attribute, because
+`comments-section.tsx` had already reached for `[overflow-wrap:anywhere]` on its own and put it on
+the parent.
+
+`npm run check` 111/111. `npm run visual` 25/25, no baseline moved: no page that photographs
+itself contains a link long enough to have been overflowing.
+
 ## 2026-09-08 (later still) — the toast's action button stops being a black pill
 
 His, on the Undo beside "Test was archived": *"sometimes they come with this black thing which is

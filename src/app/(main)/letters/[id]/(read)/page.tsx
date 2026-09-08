@@ -231,7 +231,7 @@ export default async function LetterPage({
       </div>
 
       <div
-        className="mt-7 whitespace-pre-wrap font-heading text-[16px] leading-[1.8] text-foreground [&_a]:font-sans [&_strong]:font-bold"
+        className="mt-7 whitespace-pre-wrap break-words font-heading text-[16px] leading-[1.8] text-foreground [&_a]:font-sans [&_strong]:font-bold"
         dangerouslySetInnerHTML={{ __html: renderRichText(letter.content) }}
       />
 
