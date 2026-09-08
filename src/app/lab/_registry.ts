@@ -194,6 +194,13 @@ export const REGISTRY: LabEntry[] = [
     note: "The Catch-ups front runner, live: the real Edition on a phone, where the strip under the green bar takes each question as its heading leaves and unfolds into the list when tapped. Five stills of moments deep in the page, the navigator drawn three ways, and the same page at 1512. ?w=reader|screens|laptop.",
   },
   {
+    href: "/lab/reach",
+    title: "Where the bird goes",
+    group: "Delight",
+    status: "active",
+    note: "The Get in touch sheet rebuilt as a calling card, four ways. Its tiles were paper on a white float, which is warmth climbing the surface ladder instead of sinking down it, so the boxes are gone and the rows sit on the panel with a copy button each. What is left to decide is the bird: on the green band behind a cream disc, on paper under a printed edge, centred at 64 as a portrait, or dropped so the band can keep the green.",
+  },
+  {
     href: "/lab/viewer",
     title: "The photograph owns the screen",
     group: "Delight",

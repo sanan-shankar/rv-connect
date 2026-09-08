@@ -34,6 +34,58 @@ number. Its own commit, so it can be reverted alone.
 `npm run check` 112/112. `npm run visual` 25/25, no baseline moved — the viewer is not open in any
 baseline shot.
 
+## 2026-09-09 — four brown boxes on a white card
+
+His, opening: *"can you make the dialog for get in touch more beautiful and visually appealing ...
+my main problem is I don't like that brown for the boxes."*
+
+**The brown is a rung inversion.** The Get in touch sheet paints its four contact tiles `--card`
+#F5F2EA and floats them on a `--float` #FFFFFF panel. Paper sits BELOW float on the surface
+ladder, so the warmth is climbing where DESIGN-SYSTEM.md rule 1 says it must sink. Rule 3 catches
+the same tiles again: each carries a fill AND a border where one would have done. So the system's
+own answer was never "pick a less brown fill", it was "these should not be boxes".
+
+Two more things the measuring turned up. The bold line in each tile is the LABEL and the quiet one
+is the address, and there is no way to copy anything: every row is a `mailto:`/`tel:` link, which
+is the wrong verb most of the time.
+
+**`/lab/reach` holds the four ways out**, drawn after he picked the calling card and then asked the
+question the first draft could not answer: the bird was sitting on the canopy band and needed a
+cream disc to be visible at all. *"the birds are different sizes so it'll look weird on the orange
+thrush I imagine."* He is right; the glyphs are not drawn to a common bounding box, so a disc
+exposes whichever one under-fills it. Three of the four rooms put the bird on the white body
+instead, where there is no disc to size. The fourth keeps the band and drops the bird, so the
+choice between charm and green weight is visible rather than argued.
+
+**Front runner: the portrait.** Every number in it traces to something rather than to an eye:
+
+| | value | where it comes from |
+|---|---|---|
+| name | 20px | h3 on the §5 ladder. The ONE dialog title in the app that is not 16px — see below |
+| batch | 12px semibold, 0.12em | the §5 label rung (`0.75rem`, 0.08–0.16em); the 10.5px bolds elsewhere are cinnamon kickers, decoration allowed to be small |
+| row label / value | 13px / 12.5px | unchanged from the shipped tile. The container changed, the type ladder did not |
+| button | 14px | `text-sm`, every CTA in the app |
+| bird top | on the close X's top line | the X is pinned at 16px in every dialog, so the bird moved, not the X |
+| head → first row | 24px | no hairline there, so the gap is the only separator; 24 is the group gap the dialog material already names |
+| between rows | 21px | 10px of row padding either side of a hairline |
+| last row → CTA | 20px | the row rhythm. A filled green pill does not need extra air to stop reading as a fifth row |
+| CTA → panel edge | 16px | the dialog's own padding, unchanged |
+
+Both gaps he flagged were real: the head break measured 34px and the CTA gap 26px, against a
+21px inter-row rhythm, and neither number had a reason behind it.
+
+**The one rule departed from, on his instruction.** The dialog material says "no per-dialog title
+sizes" and every dialog title in the app is 16px. He asked for the name bigger. The reason holds
+up: this title is not naming an action, it is the subject of a card, and it is the only dialog
+title sharing its block with a 64px portrait. If a second dialog ever wants its own title size,
+this is not the precedent to cite.
+
+Also in: the copy button springs on `SPRINGS.snappy` and cross-fades into the tick and back rather
+than cutting; "Batch of", never "Class of", which is what the sidebar byline, the auto-joined group
+and the directory heading all already say.
+
+Nothing shipped. `src/components/profile/get-in-touch.tsx` is untouched until he picks.
+
 ## 2026-09-08 (track X) — the heart's animation was a second late because the tap rebuilt the whole Edition
 
 His, brief 29: *"if I'm on the feed and I click the heart, the heart just becomes red. But if I
