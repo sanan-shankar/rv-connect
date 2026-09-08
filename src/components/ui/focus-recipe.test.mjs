@@ -64,6 +64,7 @@ const BORDERLESS = new Map([
   ["src/components/profile/flag-person-dialog.tsx", "radio inputs only"],
   ["src/components/auth/signup-form.tsx", "checkbox only; its text fields are FloatField"],
   ["src/components/common/attach-image-dialog.tsx", "hidden file input"],
+  ["src/components/catchups/home/picture-picker-dialog.tsx", "hidden file input; the visible control is a Button"],
 ]);
 
 test("every text field with a box wears FIELD_FOCUS (or is on the reasoned borderless list)", () => {
