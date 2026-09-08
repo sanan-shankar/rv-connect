@@ -181,7 +181,7 @@ too, which he allowed in ¶28.
 | S4d Fine-tuning, round one | DONE | 2026-09-07 evening, four commits. The reader's rail magnification rebuilt from scratch on the app's own motion-value mechanism; the home rebuilt around two doors on the picture and a sidebar of back numbers; answering and the questions panel brought onto the page; the type rule written down. `npm run check` green, `npm run visual` 25/25 |
 | The composer, the picture's crop | PARTIAL | The composer's *shape* is drawn, on the home, because he asked for it there. What is not drawn: the photo attachment flow, the song field, the photo-wall question, and the crop-at-creation surface. The people surface is DONE (a dialog and a sheet, off the sidebar). **`spec.md` §10 rules on each**: the song field is DELETED rather than drawn (a pasted link resolves anywhere, ¶50), the photo-wall control is the drawn photo strip with a higher cap, and the crop-at-creation is assembled from `photo-aim.tsx` and the direct-upload path -- all three inside the build. The photo wall's READING surface goes to S-features, and the confirmations go to the settings session, both before the phase that would need them |
 | The settings surface, refined | OPEN | **his, and he has said he will take it in a session of its own.** It is a real settings list now rather than a column of verbs, and he called it *"very bare bones"* before that and has not called it finished since |
-| **S-features, the second brainstorm** | DONE | **2026-09-09, [`features.md`](features.md)**: the mechanism that makes it cheap (a kind is derived from a category, so a new one needs no migration), the photo wall's three reading shapes and why a grid is wrong, the Letterloop parity list with its one real gap (email), the voice signal from the rest of the space, and seven proposals with a default of "not unless you say so" for him to cut. **The photo wall is the only non-optional item and comes before build phase 8.** Originally: **He has asked twice that this not be lost.** 2026-09-07: *"in my initial request for the catch ups rework I also requested a brainstorm on and research into more features we can incorporate for instance a photo wall round and that can be shown nicely on the reader in a unique way and maybe some other stuff ... have a think and see what people would want and what letterloop and any other similar guys do now. I don't want you to do it in this session but I had requested it at some point and I wanna make sure it gets done at some point and it hasn't been written out of the brief completely."* It has not been: it is ¶16, ¶49 and ¶50 in the brief and rows R15, R16 and P22 in the ledger below. What is missing is a SESSION that does it, and this row is that session. See "S-features" below, and `spec.md` §11, which schedules it before phase 8 because the photo wall's reading surface is the one piece of it that can change a page already drawn |
+| **S-features, the second brainstorm** | DONE | **2026-09-09, [`features.md`](features.md), and HE HAS RULED ON EVERY ITEM** (§1, verbatim). **In: a question you answer out loud** (*"We should definitely have this"* — it plays back the AUDIO, transcript through the browser, his own suggestion); **a question the group votes on**; **a longer question library**; **TIME CAPSULE MODE, which is his own idea and is new** (an Edition sealed and released a year later, a switch in settings, with the library tweaked to suit); and **answers hidden until you write your own, but a PUBLISHED Edition open to everybody whether they wrote or not** — that last one changes build phases 7 and 8. **Out: the map; a question from another batch; a one-line answer AS A FEATURE** (*"we can have those questions in the library. We don't have to enforce them in the answers"*). **Parked: more reactions, anonymous answers, and email** (it needs a paid Resend plan). **Open, and it is one sentence from him: then-and-now**, which he did not follow; it is explained plainly in §1. **A build warning that is free today and expensive in November: phase 11 must NOT drop `CatchupEdition.publishAt`** — a time capsule is a scheduled publish date and that is the same column. Originally: the mechanism that makes it cheap (a kind is derived from a category, so a new one needs no migration), the photo wall's three reading shapes and why a grid is wrong, the Letterloop parity list with its one real gap (email), the voice signal from the rest of the space, and seven proposals with a default of "not unless you say so" for him to cut. **The photo wall is the only non-optional item and comes before build phase 8.** Originally: **He has asked twice that this not be lost.** 2026-09-07: *"in my initial request for the catch ups rework I also requested a brainstorm on and research into more features we can incorporate for instance a photo wall round and that can be shown nicely on the reader in a unique way and maybe some other stuff ... have a think and see what people would want and what letterloop and any other similar guys do now. I don't want you to do it in this session but I had requested it at some point and I wanna make sure it gets done at some point and it hasn't been written out of the brief completely."* It has not been: it is ¶16, ¶49 and ¶50 in the brief and rows R15, R16 and P22 in the ledger below. What is missing is a SESSION that does it, and this row is that session. See "S-features" below, and `spec.md` §11, which schedules it before phase 8 because the photo wall's reading surface is the one piece of it that can change a page already drawn |
 | **The list, when it has room to spare** | DONE | **Decided by him 2026-09-07, drawn in build phase 6, 2026-09-08.** See "The list's spare slots" below. Scheduled: `spec.md` §5 puts it inside build phase 6, with the list, because it is a rule about what fills that grid rather than a surface of its own |
 | S3b Second round | OPEN | only if he asks for one after browsing the shape |
 | S5 Pick and spec | DONE | 2026-09-08. [`spec.md`](spec.md): the data changes as dated idempotent files, the Round -> Edition rename as one pass, eleven build phases plus track X, the three undrawn surfaces called before-or-inside, and ¶1 to ¶52 mapped. Owner questions 19, 20 and 21 are new and are below. It does NOT redraw anything: `architecture.md` is still the design |
@@ -1762,6 +1762,54 @@ a 300-character question makes a 211px row against its neighbours' 41), and the 
 question comes down from three to two. Right way round, because the strip is on screen the whole
 time you read and the list is a deliberate pull-down. **F41 is closed.**
 
+**2026-09-09, spoken, verbatim** (his verdict on every proposal in [`features.md`](features.md); the
+full transcript of the passage is that file's §1, and it is the source, not this excerpt):
+
+> "the rest of the space does now move to voice. We should definitely have this. Away. You can just
+> answer your question by talking and it plays back the transcript. Very good idea. Sorry, it plays
+> back the audio. ... Can you do it through the browser? Can probably do it through the browser. So
+> that should be fine. F2. Yes, sure. S3. I kind of don't know what you're saying. Like, what do you
+> want to do with those two pictures? F4 now. Because. Yeah, just know five. Known that people
+> already have questions like what is describe the cell. People can say describe this in one line or
+> whatever, and we can have those questions. In the, in the library. We don't have to enforce them in
+> the answers. Let them answer whatever they want. I think you can, we should have maybe like a time
+> capsule mode. ... where it will release the addition only one year later. ... Maybe something in
+> settings. Say make this a time capsule. And we'd probably change the library a little bit ... so
+> that those questions are more relevant, maybe something's a little bit more personal ... F7. Yeah.
+> We can do that. Honestly, we can start creating this by looking at the questions that people
+> actually like. Yeah, answers are definitely hidden until you write your own. But if the addition is
+> out, you should be able to read it whether or not you participate in. ... Heart is okay. ... But I
+> think for now hearts are okay. Anonymous guys is interesting. Again, do the same thing. Pocket. ...
+> if you're asking and answering anonymously how much catching up is that really. ... Just a question
+> from another batch. No, I'm not going to do that."
+
+And, on the inbox:
+
+> "the inbox thing would require a recent [Resend] subscription. ... So we can just park it as
+> something for the future."
+
+And, asking for something this session then produced:
+
+> "You did a question library. Yes, I need your advice on how to improve that whether I shouldn't use
+> that, what type of questions to include, how to go about it without making that in library super
+> long."
+
+*The reading*, and it is beneath his words rather than mixed into them:
+
+- **IN**: the voice answer (audio played back, transcript from the browser), the poll question, the
+  longer library, **time capsule mode** (his own, and it supersedes the "this time last year" idea
+  entirely), and **answers hidden until you write your own — with a published Edition open to
+  everybody regardless.** That last rule lands in build phases 7 and 8 and is not a new table.
+- **OUT**: the map, the guest question from another batch, and the one-line answer as an enforced
+  cap. The one-line idea survives as WORDING in the library, which is his correction and a better
+  answer than the proposal: *"We don't have to enforce them in the answers."*
+- **PARKED**: more reactions than the heart, anonymous answers, and the emailed issue.
+- **OPEN**: then-and-now. He asked *"what do you want to do with those two pictures?"* and the answer
+  is now written plainly in `features.md` §1. One sentence from him settles it.
+- **He also said §1 of the first draft was incomprehensible** ("Number one, I don't understand what
+  you're even saying"). It opened with an array of category ids and the word migration. It is
+  rewritten; the mechanism now sits in a builder's line rather than in his first paragraph.
+
 ## Session log
 
 ### 2026-09-05, S0, set-up (Fable max)
@@ -2600,6 +2648,51 @@ where the fault does NOT occur: one swipe, one change.
 **V1's fix changes a shared component's motion**, so it is its own revertable commit. The dissolve
 itself is untouched -- he settled that in August -- and the only thing that moves now is the shape.
 
+### 2026-09-09, S12 close, his verdict on every feature (Opus 5)
+
+He went through `features.md` out loud and ruled on all eleven items plus four written up as not
+proposed. Every word is in that file's §1 and under "Owner answers"; the board carries the result.
+
+**He invented one and it is the best thing on the page.** Time capsule mode: an Edition sealed when
+it is written and released a year later, a switch in settings, with the library tweaked so the
+questions are worth opening. It replaces "this time last year" entirely, and it is better for a
+reason worth writing down: the old idea surfaced an old answer beside a new one, while this one
+changes what people write in the first place, because they are writing to themselves in a year.
+
+**A build warning fell out of it that is free today and expensive in November.** Phase 11 is
+scheduled to drop `CatchupEdition.publishAt`, because the `preparing` hold it served went in phase
+2. A time capsule is exactly a scheduled publish date and it is the same column. Phase 11 keeps it.
+
+**He corrected one proposal into something better.** The one-line answer was proposed as a cap the
+app enforces; he said the constraint belongs in the WORDING: *"People can say describe this in one
+line or whatever, and we can have those questions in the library. We don't have to enforce them in
+the answers. Let them answer whatever they want."* His own live data agrees — "Describe your month
+in 3 words" already pulled 33-character answers with nobody enforcing anything.
+
+**And he reversed a "considered and not proposed".** Answers are hidden until you write your own —
+but a PUBLISHED Edition is open to everybody whether they wrote or not. That is sharper than either
+half: while an Edition is being written, reading is earned; once it is out, it is a record, and a
+record is not a reward. It lands inside build phases 7 and 8 and needs no new table.
+
+**He asked for advice this session then produced**, on the question library: whether to use one,
+what to put in it, and how to keep it from becoming six hundred long. The answer is `features.md`
+§2 and it is argued from HIS OWN DATA, which was his suggestion — *"we can start creating this by
+looking at the questions that people actually like."* Ranked by hearts per answer across the live
+Edition: the nosiest question won at 6.0 on 112-character answers, the most thoughtful one came
+last but one on 618-character answers from the fewest people, and **the songs question came last**,
+which is worth knowing since the previews are a whole build phase. The recommendation is sixty to
+eighty questions rather than six hundred, six shown at a time, never a library anyone meets the
+length of, and three rules that keep it short — write for this school, never repeat a question a
+Catch-up has asked, and let the ones people answered surface first.
+
+**A note on how this file is written, from him.** The first draft of `features.md` opened with the
+mechanism — an array of category ids and the word migration — and his first sentence back was *"I
+don't understand what you're even saying."* He is not a programmer and the first thing he reads
+must not be for a builder. It is rewritten; the mechanism now sits in a builder's line further
+down.
+
+---
+
 ### 2026-09-09, S12 continued, S-features: the second brainstorm (Opus 5, one hand, no fan-out)
 
 [`features.md`](features.md). No fan-out, per the allocation: ultracode is S3, S3b and M1 and this
@@ -2761,110 +2854,81 @@ at runtime.
 
 ## What to paste next
 
-**Phases 1 to 6 are DONE (2026-09-08).** The list is the drawing, the spare slots are drawn, the
-read mark is drawn, and archiving has a home on both a finger and a mouse.
+**Track X is done bar one fault, and S-features is done and ruled on.** 2026-09-08/09, six commits.
+The phone overflow, the heart, the caption clamp and the viewer's size snap are fixed and measured.
+**V2 and V3 — the swipe back that lands on the first photograph, and its overshoot — are NOT fixed
+and are not guessed at**: six attempts could not reproduce them, and `/lab/catchups/swipe` is the
+instrument waiting on his own device. He confirmed 2026-09-09 that it happens on phone AND laptop,
+which withdraws the old "needs a real iPhone" note.
 
-**Phase 7 is GATED, and the gate is his.** `spec.md` §10.3 puts the settings surface and its
-confirmations in a session of its own, drawn in the lab, BEFORE phase 7 -- because five
-confirmations designed one at a time inside a build phase is exactly how twelve horizontal rules
-and a pill inside a pill happened the first time. And N100 is him claiming that session: *"I think
-the settings dialog needs refining but no need to do that now I can do it in a separate session."*
-Phase 7 rebuilds the home, and the home's Settings door opens that surface, so it cannot go first.
+**He has now approved five new features and killed three** ([`features.md`](features.md) §1, his
+words). Nothing in `spec.md` knows about any of it yet, and that is the first job below.
 
-**So the next unattended session is track X, the fast fixes.** It is independent of everything
-above, `spec.md` §9 says it "may ship first and at any time", and two of its four rows are live
-faults on a surface seventy members use today. Its root causes are already written down in
-`recon.md`; nothing about it needs a design decision.
+**Phase 7 is still GATED on the settings session, which is his** (N100, spec 10.3). **The photo
+wall's reading surface must land before phase 8**, because it can change a page already drawn, and
+it is the only item on that page that was never optional.
 
-Two other sessions are unblocked and can go in any order after it: **S-features** (spec §11, the
-second brainstorm, which he has asked for twice and which must land before phase 8 because the
-photo wall's reading surface can change a page already drawn) and **M1**, the magazine's layout
-grammar.
+**Two things are still his**: the twenty photographs (`src/lib/catchup-pictures.ts`, one edit, 2:1
+at 2,400px, details rather than valley views) and the settings surface. And one sentence: whether
+then-and-now is worth building at all.
 
-**Nothing is owed to the database.** Every migration this campaign has written is applied to both
-Supabase projects as of 2026-09-08: phase 1's `round-becomes-edition` (61 bell links, 17 view
-rows), phase 2's `preparing-becomes-published` (a no-op backstop, 0 rows on each), phase 3's
-`catchup-picture` (6 rows backfilled on production, 0 on the demo), phase 4's `batch-catchups`
-(1 membership healed, 1 Catch-up adopted, 1 created, 1 Edition on production; a clean no-op on the
-demo) and phase 5's `leaving-and-the-read-mark` (0 rows moved on each, `CatchupEditionRead`
-created on both). **Phase 6 had no migration.** The only thing still deliberately unrun is the
-phase 11 cleanup, which does not exist yet -- it owes the DROP of `CatchupPref.deletedAt` and
-`CatchupEdition.publishAt`.
-
-**Two things are his.** The **twenty photographs** -- the pool is `src/lib/catchup-pictures.ts`
-and dropping them in is ONE edit to that array and no migration; measured guidance is in "The
-twenty photographs" below, and the six stand-ins ship until they arrive. They matter more now than
-they did yesterday: the list is six photographs where it used to be text, and with a pool of six
-the same picture appears three times on one screen. And the **settings surface**, above.
-
-**The nightly sweep is live.** `CRON_SECRET` is set in `.env`, on Vercel and in GitHub, and
-`/api/catchups/tick` was driven with it on 2026-09-08 and answered 200. Do not repeat the claim
-that it is owed: that note in the security ledger is stale, and phase 4 believed it for an
-afternoon before checking.
+**Nothing is owed to the database**, and there are **14 unpushed commits**. A push is his.
 
 ### Paste this into a fresh Opus max session
 
 ```
 @docs/planning/catchups-rework/handover.md
 
-You are S12, TRACK X of docs/planning/catchups-rework/spec.md: the fast fixes.
+You are S13. Two jobs, in this order.
 
-Read spec.md section 9's X row and section 12, then recon.md's findings for the rows
-below -- recon.md is grep, not read. brief.md is the test; read the paragraphs the
-rows name. Do not read directions.md.
+JOB 1, and it is an hour: fold his 2026-09-09 decisions into spec.md.
+Read features.md section 1 first -- it is his verdict on every proposal, in his
+own words, and it outranks anything older. Then add to spec.md section 9:
 
-NOTHING IS OWED TO THE DATABASE and track X has no migration.
+  - a phase for A QUESTION YOU ANSWER OUT LOUD. It plays back the AUDIO. The
+    transcript comes from the browser's own speech recognition while the person
+    is talking, so nothing is sent anywhere and there is no API key -- he raised
+    this himself and he is right. Audio with no transcript has to work on its
+    own, because Firefox has no such API.
+  - a phase for A QUESTION THE GROUP VOTES ON. The feed already has
+    PollOption/PollVote bound to postId; widen it the same way section 9 already
+    widens Comment.
+  - a phase for TIME CAPSULE MODE. His own idea: a switch in a Catch-up's
+    settings, and the Edition is sealed and released a year later. features.md
+    section 3 has what a member sees.
+  - THE RULE THAT TOUCHES PAGES ALREADY DRAWN, and it belongs inside phases 7
+    and 8 rather than in a phase of its own: you cannot read the answers until
+    you have written your own, BUT a published Edition is open to everybody
+    whether they wrote or not. It is not a new table.
+  - A CORRECTION TO PHASE 11: it must NOT drop CatchupEdition.publishAt. A time
+    capsule is a scheduled publish date and that is the same column. Say so in
+    the phase, with the reason.
 
-TRACK X IS FOUR ROWS, all root-caused already, none of them a design decision:
+Do NOT schedule then-and-now: he did not follow it and it is one sentence from
+him. Do NOT schedule the map, a guest question from another batch, or a one-line
+answer cap -- all three are out. More reactions, anonymous answers and the
+emailed issue are PARKED, not dead; record them as parked with his reason.
 
-  - F23, THE HEART. A `revalidatePath` in the love action re-renders the whole
-    Edition on every tap: 603 KB and 2.6 seconds, which is his "the heart's
-    animation is a second late" (brief 29). The fix is deleting two lines.
-    Measure the payload and the latency before and after and put both numbers in
-    the commit.
+JOB 2: draw the photo wall's reading surface, in one lab room, by one hand.
+It is LOCKED (D10), it has never been drawn, and it comes before build phase 8
+because it can change a page already drawn. features.md section 4 argues three
+shapes -- a run, a drift, a stack -- and why a grid is wrong. Draw all three,
+live, at 390 and 1512, against the pressure corpus's two-hundred photograph wall
+(?data=pressure already swaps it). Nothing in that room is ever scaled.
+Notify him when it is up and let him pick. Do not pick for him.
 
-  - F18, THE PHONE OVERFLOW HE CAN SEE TODAY. `break-words` on the answer body
-    and the question heading. His, brief 25 and 33: the green bar cut off, and
-    "the half-centimetre of white space on the right". Check at a true 390.
-
-  - V1 to V3, THE SHARED IMAGE VIEWER: the size snap, the wrong swipe-back, the
-    overshoot (brief 28). He ALLOWED this one to touch the feed, which is where
-    the viewer lives. V1's root cause is in recon.md; V2 and V3 were marked as
-    needing a real iPhone to reproduce -- try them in a real browser first, and
-    if they will not reproduce, PARK them with what you tried rather than
-    guessing at a fix.
-
-  - D38, THE CAPTION CLAMP, 2 lines to 4 (brief 32).
-
-These are four independent fixes. FOUR COMMITS, each with its own test where a
-test makes sense, its progress.md line and its docs/history entry inside it.
-Do not batch them and do not write a trailing docs: commit.
-
-DO NOT START PHASE 7. It is gated on the settings-surface session, which is HIS
-(N100, spec 10.3) and is drawn in the lab before the home is rebuilt.
-
-Phases 1 to 6 are done and are your vocabulary: the noun is Edition, there are no
-Edition numbers on any member-facing surface (the admin room keeps them, his
-decision), `preparing` does not exist, deadlines land on 07:00 IST via deadlineIn(),
-a Keeper can start the next Edition by hand from the rail, every Catchup row carries
-`pictureSrc` and `pictureFocus`, two batch Catch-ups exist with no Keeper and no
-manual transitions, DELETING IS LEAVING (no bin, no countdown, no `deletedAt`), and
-/catchups IS A SHELF OF PHOTOGRAPHS -- the card is the picture, there is no rail, no
-card menu and no Fresh off the press, and archiving is the phone's swipe-left or a
-control that appears in the card's top right on a pointer.
+DO NOT START PHASE 7. It is gated on the settings surface, which is HIS.
 
 How to work:
-  - Take numbers from the app, never from taste. Measure before and after and put the
-    number in the comment.
-  - A note he has given is a DECISION, not a proposal. Ask only about what he has not
-    mentioned.
-  - Do not stop mid-list to check in. Finish the list, then show him.
-  - npm run check before every commit, npm run visual after UI work, never both at once.
-    Read any visual diff before visual:update.
+  - One hand. No fan-out: a design round is not a fan-out (F32).
+  - Take numbers from the app, never from taste.
+  - A note he has given is a DECISION, not a proposal.
+  - npm run check before every commit, npm run visual after UI work, never both
+    at once, and never at the same time as a browser probe -- the machine hangs.
     Stage by pathspec: other sessions are live in this tree.
-  - Update this file's board and session log before you commit, inside the same commit.
+  - Update this file's board and session log inside the same commit.
+  - Do not push.
 ```
-
 
 ### What that session must know, and would otherwise learn the hard way
 

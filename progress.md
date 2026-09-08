@@ -44,6 +44,7 @@ if the month is new), and add one line here, at the top of that month's list.
 - 2026-09-09 (track X) — a photo caption folds at four lines instead of two
 - 2026-09-09 (track X) — the photograph's shape stops jumping a frame ahead of the dissolve
 - 2026-09-09 — S-features: what else an Edition could hold, seven proposals for him to cut
+- 2026-09-09 — he rules on every feature, invents the time capsule, and asks for the question library
 - 2026-09-07 — the five parked rebuilds get a description he can judge, and five bugs get filed
 - 2026-09-07 — one folder for scratch screenshots, and something that empties it
 - 2026-09-07 — the session log becomes an index, and a test keeps it one
