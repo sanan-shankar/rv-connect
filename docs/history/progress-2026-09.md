@@ -139,6 +139,46 @@ short.
 **And a note on writing for him**: the first draft opened with an array of category ids and the
 word migration, and his first sentence back was "I don't understand what you're even saying."
 
+## 2026-09-09 — the settings get their marks back, and their answers stop hanging
+
+His round-two notes on the rework, verbatim in
+`docs/planning/catchups-rework/review-2026-09-09.md` S15 to S18, with a research ask attached:
+Apple's menus, Revolut's, and "build something that looks like that but intersecting with our
+language and aesthetic. Login is a perfect example of that. And don't copy that UI."
+
+The icons come back, and the two notes that looked contradictory ("kinda liked the icons" against
+"I don't like that brown") are one note once the colour protocol is read. Rule 3 allows at most one
+mist fill inside a card and never two adjacent; nine `bg-muted` tiles in a column is nine touching,
+which is what read as brown. The mark was never the problem, the box behind it was, so the glyph
+stays and the fill goes.
+
+Structure comes back too — "it's less approachable than before but with some big bugs solved" —
+as three cards with a hairline and no fill. That is the one shape left open: rule 3's own sentence
+is "if it needs an edge, it earns a border, not a fill", paper on Float was closed in September when
+the Get in touch card was pulled up for warmth climbing the ladder, and three filled groups would be
+three adjacent wells. It also happens to be Revolut's recipe on white, hairline and large radius,
+depth by outline rather than shadow.
+
+The chooser dialogs are deleted. Rhythm, Reminders and Give everyone longer unfold where they stand,
+on the app's own segmented material. Apple is explicit that a disclosure chevron "reveals the next
+level in a hierarchy", and three options are not a hierarchy — so the chevron now appears on exactly
+two rows, Name and Picture, a disclosure caret on the three that unfold, and nothing at all on the
+rows that fire an action, the way iOS Settings draws Sign Out. Give everyone longer gained the
+options he asked for: three days, a week, two weeks.
+
+Nothing hangs in the middle of a row any more. A value sits on the second line under its own label,
+so the row has two left edges and no floating third column — which also settles the hint, because a
+row either has an answer or needs explaining, never both. "Cannot be undone" takes a third line that
+only a one-way row ever has, which makes those rows physically taller.
+
+The group head took three tries and the last one is his: outside the card, 15px on the foreground
+rather than 13px muted, 24px above and 8px below, aligned to the card's own left edge. And the one
+serif word in the list is gone — "why is the Catch-up name the only thing serif in this entire
+thing?" It was the type rule read too literally: in that row the name is not being presented, it is
+being reported as a value.
+
+`npm run check` 112/112, `npm run visual` 25/25, no baseline moved.
+
 ## 2026-09-09 — the settings stop being a list of controls and become a description
 
 Spec 10.3, the gate on build phase 7. He gave notes on the settings list first; they are verbatim

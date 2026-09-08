@@ -181,7 +181,7 @@ too, which he allowed in ¶28.
 | Owner browses the shape, round two | DONE | 2026-09-07 evening. He walked the whole spine out loud and then sent notes continuously for the length of one session. Every one of them is folded in; his own verdict partway through: *"I can't believe i'm saying this but you're actually doing a good job. for the first time in two days and a million sessions I feel like this is coming together."* Verbatim notes in [`review-2026-09-07.md`](review-2026-09-07.md) Part six |
 | S4d Fine-tuning, round one | DONE | 2026-09-07 evening, four commits. The reader's rail magnification rebuilt from scratch on the app's own motion-value mechanism; the home rebuilt around two doors on the picture and a sidebar of back numbers; answering and the questions panel brought onto the page; the type rule written down. `npm run check` green, `npm run visual` 25/25 |
 | The composer, the picture's crop | PARTIAL | The composer's *shape* is drawn, on the home, because he asked for it there. What is not drawn: the photo attachment flow, the song field, the photo-wall question, and the crop-at-creation surface. The people surface is DONE (a dialog and a sheet, off the sidebar). **`spec.md` §10 rules on each**: the song field is DELETED rather than drawn (a pasted link resolves anywhere, ¶50), the photo-wall control is the drawn photo strip with a higher cap, and the crop-at-creation is assembled from `photo-aim.tsx` and the direct-upload path -- all three inside the build. The photo wall's READING surface goes to S-features, and the confirmations go to the settings session, both before the phase that would need them |
-| The settings surface, refined | **DONE** | 2026-09-09, spec 10.3, **the gate on build phase 7**. He gave notes on the shipped-in-lab list first and every one is answered; his words are in [`review-2026-09-09.md`](review-2026-09-09.md). **The nine icon tiles are deleted** -- *"I don't like that brown. I think that's probably my main gripe with it"* -- and with them every container in the panel: no tile, no rule, no card inside the card. **The idea that replaced them**: a Catch-up's settings are the Catch-up described, so "This Catch-up" holds the same three rows for everybody (Name, Picture, Rhythm) and who you are decides which of them press. That is what stops a batch panel coming out as one lonely row -- it is the same panel with two rows sealed, which also says "the members are fixed" without a sentence teaching it. **Colour appears twice in the whole flow**: the words "Cannot be undone" in a row's value column, and the button that does the thing. Three orange things became one, and the one is language. **Everything presses**, which was his ask, and everything it opens is one of three shapes -- a confirmation, a chooser, an editor -- written together in one file rather than five times inside five build phases. Drawn at `/lab/catchups/settings` for all three cases, with the four confirmations side by side; the same component is behind the spine's Settings door. **Four measured faults fixed**: the 4px sideways scroll, the group heads sitting 8px right of every label under them, the hint truncating at BOTH widths, and the grabber pill. See the session log |
+| The settings surface, refined | **DONE** | 2026-09-09, spec 10.3, **the gate on build phase 7**, and **he has signed it off**: *"yep that's fine now. i'm happy."* Two rounds of his notes, both verbatim in [`review-2026-09-09.md`](review-2026-09-09.md); round two reversed round one rather than refining it, so read the session log for what actually stands. He gave notes on the shipped-in-lab list first and every one is answered; his words are in [`review-2026-09-09.md`](review-2026-09-09.md). **The nine icon tiles are deleted** -- *"I don't like that brown. I think that's probably my main gripe with it"* -- and with them every container in the panel: no tile, no rule, no card inside the card. **The idea that replaced them**: a Catch-up's settings are the Catch-up described, so "This Catch-up" holds the same three rows for everybody (Name, Picture, Rhythm) and who you are decides which of them press. That is what stops a batch panel coming out as one lonely row -- it is the same panel with two rows sealed, which also says "the members are fixed" without a sentence teaching it. **Colour appears twice in the whole flow**: the words "Cannot be undone" in a row's value column, and the button that does the thing. Three orange things became one, and the one is language. **Everything presses**, which was his ask, and everything it opens is one of three shapes -- a confirmation, a chooser, an editor -- written together in one file rather than five times inside five build phases. Drawn at `/lab/catchups/settings` for all three cases, with the four confirmations side by side; the same component is behind the spine's Settings door. **Four measured faults fixed**: the 4px sideways scroll, the group heads sitting 8px right of every label under them, the hint truncating at BOTH widths, and the grabber pill. See the session log |
 | **S-features, the second brainstorm** | DONE | **2026-09-09, [`features.md`](features.md), and HE HAS RULED ON EVERY ITEM** (§1, verbatim). **In: a question you answer out loud** (*"We should definitely have this"* — it plays back the AUDIO, transcript through the browser, his own suggestion); **a question the group votes on**; **a longer question library**; **TIME CAPSULE MODE, which is his own idea and is new** (an Edition sealed and released a year later, a switch in settings, with the library tweaked to suit); and **answers hidden until you write your own, but a PUBLISHED Edition open to everybody whether they wrote or not** — that last one changes build phases 7 and 8. **Out: the map; a question from another batch; a one-line answer AS A FEATURE** (*"we can have those questions in the library. We don't have to enforce them in the answers"*). **Parked: more reactions, anonymous answers, and email** (it needs a paid Resend plan). **Open, and it is one sentence from him: then-and-now**, which he did not follow; it is explained plainly in §1. **A build warning that is free today and expensive in November: phase 11 must NOT drop `CatchupEdition.publishAt`** — a time capsule is a scheduled publish date and that is the same column. Originally: the mechanism that makes it cheap (a kind is derived from a category, so a new one needs no migration), the photo wall's three reading shapes and why a grid is wrong, the Letterloop parity list with its one real gap (email), the voice signal from the rest of the space, and seven proposals with a default of "not unless you say so" for him to cut. **The photo wall is the only non-optional item and comes before build phase 8.** Originally: **He has asked twice that this not be lost.** 2026-09-07: *"in my initial request for the catch ups rework I also requested a brainstorm on and research into more features we can incorporate for instance a photo wall round and that can be shown nicely on the reader in a unique way and maybe some other stuff ... have a think and see what people would want and what letterloop and any other similar guys do now. I don't want you to do it in this session but I had requested it at some point and I wanna make sure it gets done at some point and it hasn't been written out of the brief completely."* It has not been: it is ¶16, ¶49 and ¶50 in the brief and rows R15, R16 and P22 in the ledger below. What is missing is a SESSION that does it, and this row is that session. See "S-features" below, and `spec.md` §11, which schedules it before phase 8 because the photo wall's reading surface is the one piece of it that can change a page already drawn |
 | **The photo wall's reading surface** | DONE | **Drawn 2026-09-09 at `/lab/catchups/wall`, three shapes, one hand, and HE PICKED THE RUN the same day**: *"I pick 'a run'"*. `photo-wall` has been a question kind since the feature was built and had never been drawn (¶16, ¶49, D10). The run is one band the width of the reading column, every photograph at its own width and never cropped to match its neighbour, bleeding off the right edge, with one contributor's set sitting together 3px apart under a single name. **Two rules came with the pick.** No captions, because there is nowhere in a band to set a paragraph, so anybody's words live in the viewer. And no count line: one was drawn above the band and he deleted it on sight, *"delete this random stat"*. **And the cap is THREE, not higher** -- *"cap photo wall also at 3 each"* -- so spec 10.1's "the photo strip with a higher cap" is corrected to the photo strip UNCHANGED, and the answering half of a wall question needs nothing built at all. A batch of forty tops out at 120 photographs, a hundred-person Catch-up at 300. **The number that decided it**, measured at 1512 as the wall's own height: at two hundred photographs a run is 353px of page, a stack 666px and a drift 33,469px; the run spends 64,735px sideways instead. A grid was never one of the three: two dozen photographs in a grid is a contact sheet. The drift and the stack stay drawable in the room as the record of why. **Ships inside build phase 8**: transplant `Run` from `src/app/lab/catchups/wall/_shapes.tsx`, keyed off `promptKind(category) === "photo"`; `_corpus.ts` stays behind |
 | **The list, when it has room to spare** | DONE | **Decided by him 2026-09-07, drawn in build phase 6, 2026-09-08.** See "The list's spare slots" below. Scheduled: `spec.md` §5 puts it inside build phase 6, with the list, because it is a rule about what fills that grid rather than a surface of its own |
@@ -2656,6 +2656,79 @@ where the fault does NOT occur: one swipe, one change.
 
 **V1's fix changes a shared component's motion**, so it is its own revertable commit. The dissolve
 itself is untouched -- he settled that in August -- and the only thing that moves now is the shape.
+
+### 2026-09-09, S13 round two, the settings surface as he signed it off (Opus 5, one hand)
+
+**Round one is superseded on four of its decisions.** He read it and said, in one message: *"kinda
+liked the icons ... this still looks like a mess. It's not approachable. It's less approachable than
+before but with some big bugs solved."* Verbatim as S15 to S18 in
+[`review-2026-09-09.md`](review-2026-09-09.md). The lesson worth keeping is that the geometry fixes
+were right and the SUBTRACTION was wrong: deleting every container took the structure out with the
+brown.
+
+**The two notes that looked contradictory are one note.** "Kinda liked the icons" against "I don't
+like that brown, that's probably my main gripe" resolves the moment the colour protocol is read:
+rule 3 allows at most one mist fill inside a card and never two adjacent, and nine `bg-muted` tiles
+in a column is nine touching. That convergence is the documented cause of "everything brown" in this
+app. The mark was never the problem; the box behind it was. So the glyph is back and the fill is
+gone.
+
+**He asked for research and named the model**: *"can you research apple menus and revolut menus and
+their ui style in general and build something that looks like that but intersecting with our
+language and aesthetic. Login is a perfect example of that. And don't copy that UI. That worked for
+that."* What came back and what it settled:
+
+- Apple, HIG *Lists and tables*: the grouped style "uses headers, footers, and additional space to
+  separate groups of data"; **"a disclosure indicator reveals the next level in a hierarchy; it
+  doesn't show details about the item"**; a list of options "highlights a row only briefly before
+  adding an image — such as a checkmark"; "keep item text succinct". Apple's 2025 design system
+  gives a menu row four parts: selection indicator, icon, label, accessory.
+- Revolut: pill selectors `rounded-full`, 36px, 8/16 padding on a soft surface; content cards at a
+  20px radius with **hairline 1px outlines on white**; and no drop-shadow language at all — "depth
+  via colour-blocking".
+- `/login`, his own example: soft filled fields, no borders anywhere, one Canopy pill, warmth
+  carried by material rather than by lines.
+
+**Which lands on the one shape the protocol leaves open.** Paper on Float is closed (the Get in
+touch card was pulled up for it this month: warmth climbing the ladder instead of sinking down it),
+three mist groups would be three adjacent wells, and rule 3's own sentence is *"if it needs an edge,
+it earns a border, not a fill."* So: three cards, hairline, no fill — which is also Revolut's recipe
+on white, arrived at from our own rules rather than copied.
+
+**The chooser dialogs are deleted.** *"Frequency was nicer as a pill chooser than these drop downs.
+Few others like that as well ... this is so boring and not it."* Rhythm, Reminders and Give everyone
+longer now unfold WHERE THEY STAND, on the app's own segmented material. It is not only nicer, it is
+what Apple's rule says: three options are not a hierarchy, so they were never a chevron's business.
+The accessory column now means something — a right chevron on the two rows that open another surface
+(Name, Picture), a disclosure caret on the three that unfold, and nothing at all on the rows that
+fire an action, the way iOS Settings draws Sign Out.
+
+**Nothing hangs in a row any more.** *"The answers for Name and so on don't seem to be aligned to
+anything, they're just hanging there."* They were right-aligned against the row's trailing edge,
+which put every one at a different distance from its own label with nothing above or below it. A
+value sits on the SECOND LINE under its label now, so a row has two x positions — the icon and the
+text — and no third column. That also settled the hint: a row either has an answer or needs
+explaining, never both. "Cannot be undone" takes a third line that only a one-way row has, which
+makes those rows physically taller and slower.
+
+**Give everyone longer gained options**, because he asked why there was one: three days, a week, two
+weeks.
+
+**The group head took three tries and the third is his.** Floating above the card at 12.5px muted
+("seems like an afterthought just squeezed, and it looks yuck"), then inside the card as its
+caption, then — his call — *"maybe try outside the box. The size still annoys me."* It is 15px on
+the foreground, 24px above and 8px below, hanging off its card's own left edge.
+
+**And the serif came out of the list.** *"Why is the Catch-up name the only thing serif in this
+entire thing?"* The type rule was read too literally: serif is a title or a name, but in that row the
+name is not being presented, it is being reported as the row's value, and one serif word in a column
+of sans is an orphan rather than a distinction. The serif still owns every dialog title, including
+"Leave the sunday four", where the name IS the title.
+
+**`npm run check` 112/112, `npm run visual` 25/25, no baseline moved.** His verdict: *"yep that's
+fine now. i'm happy."*
+
+---
 
 ### 2026-09-09, S13, the settings surface (Opus 5, one hand, no fan-out)
 

@@ -17,12 +17,11 @@ import {
   ConfirmBody,
   FLAT_PANEL,
   PictureBody,
-  REMINDERS,
   SettingsDialogs,
   SettingsPanel,
   Sheet,
   confirmCopy,
-  type Opens,
+  useSettings,
 } from "../_settings";
 import type { SketchCatchup } from "../sketches/_shelf";
 
@@ -60,12 +59,7 @@ function cases(shelf: SketchCatchup[]): Case[] {
 
 /* ── one panel, in the dialog's own material ───────────────────────── */
 function Case({ case: k }: { case: Case }) {
-  const [reminder, setReminder] = useState<string>(REMINDERS[0]);
-  const [rhythm, setRhythm] = useState<string>("");
-  const [name, setName] = useState(k.c.name);
-  const [open, setOpen] = useState<Opens | null>(null);
-  const c = { ...k.c, name };
-
+  const s = useSettings(k.c);
   return (
     <div className="min-w-0">
       <h3 className="font-heading text-[15px] font-medium">{k.title}</h3>
@@ -83,20 +77,9 @@ function Case({ case: k }: { case: Case }) {
           <X />
         </Button>
         <h2 className="font-heading text-base leading-none font-medium">Settings</h2>
-        <SettingsPanel c={c} reminder={reminder} rhythm={rhythm} onOpen={setOpen} />
+        <SettingsPanel {...s.panel} />
       </div>
-      <SettingsDialogs
-        c={c}
-        open={open}
-        onClose={() => setOpen(null)}
-        reminder={reminder}
-        onReminder={setReminder}
-        rhythm={rhythm}
-        onRhythm={setRhythm}
-        name={name}
-        onName={setName}
-        onPicture={() => setOpen(null)}
-      />
+      <SettingsDialogs {...s.dialogs} />
     </div>
   );
 }
@@ -107,11 +90,7 @@ function Case({ case: k }: { case: Case }) {
  *  here because at 1512 there is otherwise no way to see it. */
 function Phone({ c }: { c: SketchCatchup }) {
   const [open, setOpen] = useState(false);
-  const [reminder, setReminder] = useState<string>(REMINDERS[0]);
-  const [rhythm, setRhythm] = useState<string>("");
-  const [name, setName] = useState(c.name);
-  const [row, setRow] = useState<Opens | null>(null);
-  const live = { ...c, name };
+  const s = useSettings(c);
   return (
     <>
       <Button variant="outline" onClick={() => setOpen(true)}>
@@ -119,20 +98,9 @@ function Phone({ c }: { c: SketchCatchup }) {
         Open the sheet
       </Button>
       <Sheet open={open} onClose={() => setOpen(false)} title="Settings">
-        <SettingsPanel c={live} reminder={reminder} rhythm={rhythm} onOpen={setRow} className="pb-2" />
+        <SettingsPanel {...s.panel} className="pb-3" />
       </Sheet>
-      <SettingsDialogs
-        c={live}
-        open={row}
-        onClose={() => setRow(null)}
-        reminder={reminder}
-        onReminder={setReminder}
-        rhythm={rhythm}
-        onRhythm={setRhythm}
-        name={name}
-        onName={setName}
-        onPicture={() => setRow(null)}
-      />
+      <SettingsDialogs {...s.dialogs} />
     </>
   );
 }
@@ -181,19 +149,22 @@ export function SettingsRoom({ shelf }: { shelf: SketchCatchup[] }) {
       <h1 className="font-heading text-[26px] leading-tight">The settings are a description</h1>
       <div className="mt-3 max-w-[62ch] space-y-3 text-[15px] leading-[1.6] text-muted-foreground">
         <p>
-          The old list gave every row a beige tile. Nine of them in a column, all the same shape,
-          two of them brown because the row was one-way. Nothing in that column told you anything
-          the words underneath did not.
+          Three cards with a hairline round each, and the marks are back on the rows. What is gone
+          is the brown box behind every mark: the colour protocol allows one recessed fill inside a
+          card and never two touching, and nine of them in a column is nine touching. The mark was
+          never the problem.
         </p>
         <p>
-          So there are no tiles here, and no rules, and no card inside the card. A Catch-up&rsquo;s
-          settings are the Catch-up described: Name, Picture and Rhythm are the same three rows for
-          everybody, and who you are decides which of them open. A row you cannot change still says
-          what it is. That is what stops your batch&rsquo;s panel looking like a mistake.
+          A Catch-up&rsquo;s settings are the Catch-up described. Name, Picture and Rhythm are the
+          same three rows for everybody, and who you are decides which of them press. A row you
+          cannot change still says what it is, which is what stops your batch&rsquo;s panel looking
+          like a mistake.
         </p>
         <p>
-          The only colour left is the words <span className="text-cinnamon">Cannot be undone</span>,
-          where a value would go, and the button that does the thing. Press anything.
+          Nothing hangs in the middle of a row any more: an answer sits under its own label, so a
+          row has two left edges and no third column. And three options are not a hierarchy, so
+          Rhythm, Reminders and Give everyone longer open <em>where they stand</em> rather than
+          throwing a dialog at you. Press one.
         </p>
       </div>
 

@@ -39,14 +39,7 @@ import {
 } from "@/components/ui/dialog";
 import { SlidersHorizontal, Sprout, Users } from "lucide-react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
-import {
-  PictureDoor,
-  REMINDERS,
-  SettingsDialogs,
-  SettingsPanel,
-  Sheet,
-  type Opens,
-} from "../_settings";
+import { PictureDoor, SettingsDialogs, SettingsPanel, Sheet, useSettings } from "../_settings";
 import { cn } from "@/lib/utils";
 import type { SketchCatchup } from "./_shelf";
 import type { SketchPerson } from "./_types";
@@ -177,28 +170,10 @@ export function PeopleDoor({ c, phone }: { c: SketchCatchup; phone: boolean }) {
  *  is a question for him rather than a thing to guess. */
 export function SettingsDoor({ c, phone }: { c: SketchCatchup; phone: boolean }) {
   const [open, setOpen] = useState(false);
-  const [row, setRow] = useState<Opens | null>(null);
-  const [reminder, setReminder] = useState<string>(REMINDERS[0]);
-  const [rhythm, setRhythm] = useState<string>("");
-  const [name, setName] = useState(c.name);
+  const s = useSettings(c);
   const panel = useRef<HTMLDivElement>(null);
-  const live = { ...c, name };
   const trigger = (
     <PictureDoor label="Settings" icon={SlidersHorizontal} onClick={() => setOpen(true)} />
-  );
-  const dialogs = (
-    <SettingsDialogs
-      c={live}
-      open={row}
-      onClose={() => setRow(null)}
-      reminder={reminder}
-      onReminder={setReminder}
-      rhythm={rhythm}
-      onRhythm={setRhythm}
-      name={name}
-      onName={setName}
-      onPicture={() => setRow(null)}
-    />
   );
 
   if (phone) {
@@ -206,9 +181,9 @@ export function SettingsDoor({ c, phone }: { c: SketchCatchup; phone: boolean })
       <>
         {trigger}
         <Sheet open={open} onClose={() => setOpen(false)} title="Settings">
-          <SettingsPanel c={live} reminder={reminder} rhythm={rhythm} onOpen={setRow} className="pb-2" />
+          <SettingsPanel {...s.panel} className="pb-3" />
         </Sheet>
-        {dialogs}
+        <SettingsDialogs {...s.dialogs} />
       </>
     );
   }
@@ -225,16 +200,10 @@ export function SettingsDoor({ c, phone }: { c: SketchCatchup; phone: boolean })
           <DialogHeader>
             <DialogTitle>Settings</DialogTitle>
           </DialogHeader>
-          <SettingsPanel
-            c={live}
-            reminder={reminder}
-            rhythm={rhythm}
-            onOpen={setRow}
-            className="max-h-[60dvh]"
-          />
+          <SettingsPanel {...s.panel} className="max-h-[60dvh]" />
         </DialogContent>
       </Dialog>
-      {dialogs}
+      <SettingsDialogs {...s.dialogs} />
     </>
   );
 }
