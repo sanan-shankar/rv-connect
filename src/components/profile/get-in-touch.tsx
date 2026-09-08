@@ -176,6 +176,14 @@ function ReachRow({ method }: { method: ContactMethod }) {
  * right. 72px, not 64: a glyph does not fill its own box to the edge, so at 64
  * the ink stopped short and the space to the name read as a hole.
  *
+ * **The head has no single gap**, because it holds two different relationships.
+ * Bird to name is 8px; name to batch is 6px. The name and the batch are one
+ * unit and the bird is a separate object above it, so the pair must read closer
+ * to itself than to the glyph. One `gap-2` used to serve both, which made bird
+ * to name 12px and left the name floating (owner, 2026-09-09: "move the name a
+ * bit up"). How far the ink actually sits from the name still varies by
+ * species, and that is not fixable from here: the glyphs share no bounding box.
+ *
  * **The gaps, each one deliberate.** 24px between the head and the first row,
  * because there is no hairline there and the gap is the only separator; 21px
  * between rows, being 10px of row padding either side of a hairline; 20px above
@@ -295,15 +303,15 @@ export function GetInTouch({
                 shape: a short block anchored by an icon. No description line
                 under it -- the material's test is whether it changes which
                 button you press, and "they chose to share these" does not. */}
-            <DialogHeader className="items-center gap-2 pb-1 text-center">
+            <DialogHeader className="items-center gap-0 pb-1 text-center">
               {/* No top padding above the bird: the panel's own 16px is the
                   only space there, which puts the glyph's top edge on the
                   close X's line. The X is not the thing that moves -- top
                   right at 16px is the one inset every dialog shares. */}
               <BirdAvatar user={person} size={72} />
-              <DialogTitle className="mt-1 text-[20px] leading-tight">{name}</DialogTitle>
+              <DialogTitle className="mt-2 text-[20px] leading-tight">{name}</DialogTitle>
               {batchYear !== null && (
-                <p className={`text-muted-foreground ${EYEBROW}`}>{`Batch of ${batchYear}`}</p>
+                <p className={`mt-1.5 text-muted-foreground ${EYEBROW}`}>{`Batch of ${batchYear}`}</p>
               )}
             </DialogHeader>
 

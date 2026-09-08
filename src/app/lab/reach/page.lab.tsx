@@ -286,7 +286,7 @@ function Portrait() {
           bird, which puts the glyph's top edge on the same line as the close
           X (owner asked, 2026-09-09). The X is not the thing that moves --
           top-right at 16px is the one inset every dialog in the app shares. */}
-      <div className="flex flex-col items-center gap-2 pb-1 text-center">
+      <div className="flex flex-col items-center pb-1 text-center">
         <BirdAvatar user={PERSON} size={72} />
         {/* 20px, and this is the ONE place in the app a dialog title is not
             16px. The material's rule says "no per-dialog title sizes"; the
@@ -295,10 +295,10 @@ function Portrait() {
             it is the only dialog title that shares its block with a 64px
             portrait. 20px because that is the h3 rung on the documented ladder
             (DESIGN-SYSTEM §5), not a number that looked right. */}
-        <p className="font-heading mt-1 text-[20px] leading-tight font-medium text-foreground">
+        <p className="font-heading mt-2 text-[20px] leading-tight font-medium text-foreground">
           {PERSON.name}
         </p>
-        <p className={`text-muted-foreground ${EYEBROW}`}>{BATCH}</p>
+        <p className={`mt-1.5 text-muted-foreground ${EYEBROW}`}>{BATCH}</p>
       </div>
       <AddressBlock />
       <SaveCta />
