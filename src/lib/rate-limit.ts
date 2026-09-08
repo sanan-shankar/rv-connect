@@ -122,6 +122,14 @@ const LIMITS = {
    *  session should not be able to rewrite the whole archive at machine speed,
    *  and 600 an hour is far below machine speed and far above a person. */
   photoReview: { tokens: 600, window: "1 h" },
+  /** Per user. Saving a photograph re-encodes it to JPEG on the server, and
+   *  that is the one read path in this app that costs real CPU: a 40-megapixel
+   *  archive scan (the largest in the Collection) is around four seconds of it.
+   *  So this meter is not about the bytes, which the browser could already
+   *  fetch straight off R2 without asking anyone -- it bounds a script pointed
+   *  at the converter. Sixty an hour is far above somebody saving the photos
+   *  they liked from a reunion album and far below a loop. */
+  photoDownloads: { tokens: 60, window: "1 h" },
   /** Per user. Reporting is for summoning a human, and ten summonses a
    *  day is already a campaign; Phase 7 adds the per-pair dedupe. */
   reports: { tokens: 10, window: "24 h" },

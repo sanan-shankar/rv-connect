@@ -82,7 +82,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, Download, Pencil, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Loader2, Pencil, X } from "lucide-react";
 import Link from "next/link";
 import { AnimatePresence, m } from "motion/react";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
@@ -91,6 +91,7 @@ import { ShareButton } from "@/components/common/share-button";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { usePinchZoom } from "@/components/common/pinch-zoom";
 import { cn } from "@/lib/utils";
+import { photoSaveName } from "@/lib/photo-save-name";
 
 export interface ViewerImage {
   src: string;
@@ -110,7 +111,10 @@ export interface ViewerImage {
   tags?: string[];
   /** A shareable address for this photograph, if it has one. */
   href?: string | null;
-  /** Filename for the download action; defaults to the src's basename. */
+  /** What the saved file should be called, before the extension, which the
+   *  route decides. Defaults to the src's basename -- readable for a seeded
+   *  file, an object key for anything a member uploaded, which is why the
+   *  Collection passes a real one. */
   downloadName?: string;
   /** The love state, when the surface has one to give. */
   loved?: boolean;
@@ -197,9 +201,9 @@ const ICON_BUTTON =
 const ARROW_BUTTON =
   "absolute top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/85 transition-[background-color,opacity] duration-200 hover:bg-white/20 hover:text-white active:scale-95 sm:flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
 
-function basename(src: string): string {
-  const clean = src.split("?")[0];
-  return clean.slice(clean.lastIndexOf("/") + 1) || "photo";
+/** The converter every save goes through. See its own file for why. */
+function downloadUrl(src: string): string {
+  return `/api/photo/download?url=${encodeURIComponent(src)}`;
 }
 
 export function ImageViewer({
@@ -232,6 +236,9 @@ export function ImageViewer({
   const [chrome, setChrome] = useState<"shown" | "idle" | "off">("shown");
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
+  /** A save in flight. The server is re-encoding, which takes seconds on a
+   *  full-resolution scan; see the Download button. */
+  const [saving, setSaving] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const captionRef = useRef<HTMLParagraphElement>(null);
@@ -467,11 +474,17 @@ export function ImageViewer({
     setOverflows(el.scrollHeight - el.clientHeight > 1);
   }, [open, at, expanded, current?.caption]);
 
+  /* Saving goes through /api/photo/download, not straight at the stored file.
+     Everything this app stores is WebP, which is right for the wire and wrong
+     for a Downloads folder -- the owner, 2026-09-08: "when I download images
+     from places it comes as webp. people can't really use that." The route
+     re-encodes to JPEG, keeping the date the photograph was taken. */
   async function download() {
-    if (!current) return;
-    const name = current.downloadName ?? basename(current.src);
+    if (!current || saving) return;
+    const name = photoSaveName(current.downloadName, current.src);
+    setSaving(true);
     try {
-      const res = await fetch(current.src);
+      const res = await fetch(downloadUrl(current.src));
       /* A 404 or a 5xx RESOLVES, so without this the XML or HTML of the error
          was saved to disk under the photograph's own name and the member was
          told nothing went wrong (audit C-157). Throwing puts it into the catch
@@ -486,7 +499,11 @@ export function ImageViewer({
       a.click();
       URL.revokeObjectURL(url);
     } catch {
+      /* The stored WebP is a worse file than the one we meant to hand over,
+         and it is still the photograph. Opening it beats a dead button. */
       window.open(current.src, "_blank", "noopener,noreferrer");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -661,8 +678,25 @@ export function ImageViewer({
                     className="h-10 w-10 justify-center px-0 py-0"
                   />
                 )}
-                <button type="button" onClick={download} aria-label="Download photo" className={ICON_BUTTON}>
-                  <Download className="h-[18px] w-[18px]" />
+                {/* Busy while the JPEG is made. A 24-megapixel scan is around
+                    six seconds of decode, encode and download, and a button
+                    that looks idle for six seconds gets pressed again -- which
+                    spends the member's own hourly allowance on the same file.
+                    Disabled says so, and the spinner says which second it is
+                    on. Same 18px box either way, so nothing shifts. */}
+                <button
+                  type="button"
+                  onClick={download}
+                  disabled={saving}
+                  aria-label={saving ? "Preparing your download" : "Download photo"}
+                  aria-busy={saving}
+                  className={cn(ICON_BUTTON, saving && "cursor-wait text-white")}
+                >
+                  {saving ? (
+                    <Loader2 className="h-[18px] w-[18px] animate-spin" />
+                  ) : (
+                    <Download className="h-[18px] w-[18px]" />
+                  )}
                 </button>
                 {current.canEdit && onEdit && (
                   <button
