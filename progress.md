@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-09 — four brown boxes on a white card
 - 2026-09-08 — the lockup was never too big, it was too heavy
 - 2026-09-08 — the six migrations stay unrun, and why
 - 2026-09-08 — the six migrations run, and Groups turns out not to be a feature
