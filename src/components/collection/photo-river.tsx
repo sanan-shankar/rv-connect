@@ -96,7 +96,15 @@ function TileInner({
       // Hover is the scrim below, so no state-layer here (a tint over a
       // photograph is noise). The press only needed an answer: opacity, not a
       // transform, because the tile must not move under the cursor.
-      className="group relative block w-full overflow-hidden rounded-[var(--radius-md)] bg-paper text-left transition-opacity duration-150 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      /* NO CORNER RADIUS, and it is the archive's rule rather than an
+         oversight. A wall of photographs is read as one surface, and rounding
+         every tile puts a hundred little notches of paper through it; the
+         reference galleries -- Google Photos among them -- all square them
+         off. The owner, 2026-09-09: "I don't think they do corner rounding. I
+         don't think we should either for anyone in the collection." Square
+         here and nowhere else: a photograph in a POST is a card and keeps its
+         radius. */
+      className="group relative block w-full overflow-hidden bg-paper text-left transition-opacity duration-150 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       /* The photograph's OWN shape, which is what makes the row justified:
          PhotoStream has already solved the width, and the height follows from
          the ratio, so every tile in a row comes out the same height with
@@ -152,7 +160,16 @@ function TileInner({
            photograph swells 3% INSIDE its fixed, overflow-hidden frame, so
            the control itself never moves (the standing rule) while the
            picture leans toward the cursor. Transform and opacity only. */
-        className="h-full w-full object-cover opacity-0 transition-[opacity,transform] duration-300 ease-out data-[loaded]:opacity-100 group-hover:scale-[1.03] group-focus-visible:scale-[1.03]"
+        /* Two transitions on one element, deliberately given different
+           timings. The ARRIVAL is a 300ms opacity ease-out and stays that
+           way. The HOVER swell used to ride the same declaration, which
+           meant 3% of travel on a curve that starts at full speed and over
+           a duration chosen for a fade: it snapped to size and then coasted.
+           "The hovering zoom in ... is a bit too fast and it's not smooth
+           at all" (owner, 2026-09-09). 450ms on `ease-in-out` gives the
+           magnification a start and a settle, which is the whole difference
+           between a swell and a jump. Transform and opacity only. */
+        className="h-full w-full object-cover opacity-0 data-[loaded]:opacity-100 group-hover:scale-[1.03] group-focus-visible:scale-[1.03] [transition-property:opacity,transform] [transition-duration:300ms,450ms] [transition-timing-function:ease-out,ease-in-out]"
       />
       {!photo.approved && (
         <span className="absolute left-2 top-2 rounded-full bg-foreground/80 px-2 py-0.5 text-[10.5px] font-semibold text-background">
@@ -572,7 +589,12 @@ const BandSection = memo(
               </span>
             </h2>
           )}
-          <PhotoStream photos={band.photos} keyOf={(p) => p.id} className="mb-3">
+          {/* 4px, matching the reference galleries rather than the 12px a card
+              wants. "I need to copy even the tiny thing, like the margins
+              between the photos" (owner, 2026-09-09). Passed here rather
+              than changed in <PhotoStream>, whose default still belongs to
+              the Catch-up photo wall. */}
+          <PhotoStream photos={band.photos} keyOf={(p) => p.id} gap={4} className="mb-3">
             {(p, _i, cell) => <Tile photo={p} cell={cell} onOpen={openerFor(p.id)} />}
           </PhotoStream>
         </section>
