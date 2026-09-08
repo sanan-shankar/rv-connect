@@ -15,7 +15,7 @@
  *  filters an array in memory -- and everything you can SEE lives here.
  * ------------------------------------------------------------------ */
 
-import { useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { PhotoStream, type PhotoCell } from "@/components/common/photo-rows";
 import { bandKeyOf, bandLabel } from "@/lib/collection";
 import type { PhotoData, RiverOrder } from "@/app/(main)/collection/actions";
@@ -77,7 +77,7 @@ export async function warmThumbs(photos: { thumbUrl: string }[], count = 12, pat
   await Promise.race([Promise.all(jobs), new Promise((r) => setTimeout(r, patience))]);
 }
 
-export function Tile({
+function TileInner({
   photo,
   cell,
   onOpen,
@@ -174,6 +174,39 @@ export function Tile({
     </button>
   );
 }
+
+/** The tile, memoised, and the comparator is the point rather than a
+ *  micro-optimisation.
+ *
+ *  Nothing here was memoised, so every page that arrived re-rendered the
+ *  WHOLE river -- and the river is the archive: 1,718 photographs in the
+ *  class collection. Measured on 2026-09-09 at 4x CPU throttle, the worst
+ *  long task caused by one page landing grew straight in line with the
+ *  number of tiles already on screen:
+ *
+ *      48 tiles  120ms      480 tiles  303ms
+ *     240 tiles  263ms      768 tiles  384ms
+ *
+ *  which extrapolates to about 800ms of frozen main thread per page at the
+ *  full archive. That freeze is what swallows the wheel: 41% of a fast
+ *  scroll was spent blocked, input went nowhere, and the page caught up in a
+ *  lurch -- "it constantly readjusts and brings me back down" (owner,
+ *  2026-09-09).
+ *
+ *  A BESPOKE COMPARATOR, because the default one cannot help here. `cell` is
+ *  built fresh inside <PhotoStream> on every render and `onOpen` used to be a
+ *  fresh arrow per tile, so reference equality failed on two of three props
+ *  every time and a plain `memo()` would have been decoration. The fields are
+ *  compared instead; `onOpen` is now stable per photograph (see `openerFor`),
+ *  so it can stay a reference check. */
+export const Tile = memo(
+  TileInner,
+  (a, b) =>
+    a.photo === b.photo &&
+    a.onOpen === b.onOpen &&
+    a.cell.aspectRatio === b.cell.aspectRatio &&
+    a.cell.objectPosition === b.cell.objectPosition
+);
 
 /* ------------------------------------------------------------------ *
  *  Reading the river in time order.
@@ -399,6 +432,39 @@ export function PhotoRiver({
   const bands = useMemo(() => bandsOf(photos, order), [photos, order]);
   const headingRef = useActiveBand(bands, onActiveBandChange);
 
+  /* ONE STABLE OPEN HANDLER PER PHOTOGRAPH, and without it neither memo below
+     is worth anything: `onOpen={() => onOpen(photos.indexOf(p))}` built a new
+     arrow for every tile on every render, which is a changed prop on every
+     tile on every render.
+
+     The index has to be resolved when the tile is PRESSED rather than when it
+     is drawn, because it is an index into a river that grows at both ends --
+     a closure that captured it at render time would point at the wrong
+     photograph the moment a page landed above. `latest` is what keeps that
+     honest while the callback itself stays the same object for the life of
+     the tile. Same cache-a-callback-per-key shape as `useActiveBand` uses for
+     the heading refs, for the same reason. */
+  const latest = useRef({ photos, onOpen });
+  /* In an effect rather than in the render body: writing a ref while
+     rendering is the lint rule `react-hooks/refs` and it is right to complain.
+     After the commit is early enough for everything that reads this, since the
+     only reader is a click handler. */
+  useEffect(() => {
+    latest.current = { photos, onOpen };
+  }, [photos, onOpen]);
+  const openers = useRef(new Map<string, () => void>());
+  const openerFor = useCallback((id: string) => {
+    let fn = openers.current.get(id);
+    if (!fn) {
+      fn = () => {
+        const i = latest.current.photos.findIndex((p) => p.id === id);
+        if (i >= 0) latest.current.onOpen(i);
+      };
+      openers.current.set(id, fn);
+    }
+    return fn;
+  }, []);
+
   return (
     /* The cross-fade. Changing a bucket dims the river the moment the query
        changes and brings the new one up when it lands, so the change reads as
@@ -418,6 +484,48 @@ export function PhotoRiver({
       )}
     >
       {bands.map((band, bi) => (
+        <BandSection
+          key={band.id}
+          band={band}
+          first={bi === 0}
+          headingRef={headingRef(band.key)}
+          openerFor={openerFor}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** One year, memoised, and this is where the 800ms actually goes.
+ *
+ *  Memoising the tile stops each PHOTOGRAPH re-rendering; this stops each
+ *  YEAR being walked at all. A page arriving at the foot changes exactly one
+ *  band -- the last -- and a page arriving at the head changes exactly one,
+ *  the first. Every other year in the river is identical and now says so in
+ *  one comparison instead of several hundred.
+ *
+ *  The comparator cannot use reference equality on `band.photos`: `bandsOf`
+ *  rebuilds every array from scratch whenever `photos` changes, so the arrays
+ *  are always new even when their contents are not. Identity, length and the
+ *  two endpoints are enough here and are not a guess about React -- they are a
+ *  fact about this river. Photographs only ever arrive at one END or the
+ *  other (`appendUnseen`, `prependUnseen`), and the list is sorted, so a band
+ *  whose id, count and first and last photographs are unchanged has not
+ *  changed. An edit that ever inserts into the MIDDLE of a band breaks that
+ *  reasoning and must revisit this. */
+const BandSection = memo(
+  function BandSection({
+    band,
+    first,
+    headingRef,
+    openerFor,
+  }: {
+    band: Band;
+    first: boolean;
+    headingRef: (el: HTMLElement | null) => void;
+    openerFor: (id: string) => () => void;
+  }) {
+    return (
         /* NO `content-visibility` WINDOWING, any more, and it was removed for
            cause rather than tidied away. A skipped band stands in at a
            600px guess until it is scrolled near; the real bands run to
@@ -435,7 +543,7 @@ export function PhotoRiver({
            whole sections behind) nor the band's first photograph (not still:
            a page arriving above rebuilt the year and every tile in it went
            white). */
-        <section key={band.id}>
+        <section>
           {band.key && (
             /* The foldering, inline and free -- and it is a chapter opening
                now rather than a bar.
@@ -458,19 +566,24 @@ export function PhotoRiver({
                of photographs anywhere, who actually cares" -- the rail's
                marks already say how much each year holds, as proportion,
                which is the only form anybody reads. */
-            <h2 ref={headingRef(band.key)} data-band={band.key} className={cn("mb-4", bi > 0 && "mt-12")}>
+            <h2 ref={headingRef} data-band={band.key} className={cn("mb-4", !first && "mt-12")}>
               <span className="block font-heading text-[22px] leading-none tracking-[-0.02em] text-foreground">
                 {bandLabel(band.key)}
               </span>
             </h2>
           )}
           <PhotoStream photos={band.photos} keyOf={(p) => p.id} className="mb-3">
-            {(p, _i, cell) => (
-              <Tile photo={p} cell={cell} onOpen={() => onOpen(photos.indexOf(p))} />
-            )}
+            {(p, _i, cell) => <Tile photo={p} cell={cell} onOpen={openerFor(p.id)} />}
           </PhotoStream>
         </section>
-      ))}
-    </div>
-  );
-}
+    );
+  },
+  (a, b) =>
+    a.band.id === b.band.id &&
+    a.first === b.first &&
+    a.headingRef === b.headingRef &&
+    a.openerFor === b.openerFor &&
+    a.band.photos.length === b.band.photos.length &&
+    a.band.photos[0] === b.band.photos[0] &&
+    a.band.photos[a.band.photos.length - 1] === b.band.photos[b.band.photos.length - 1]
+);

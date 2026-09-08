@@ -621,3 +621,49 @@ test("dragging the scrubber travels to the band it was let go on", async ({ page
     )
     .toBe(landed);
 });
+
+/* ------------------------------------------------------------------ *
+ *  AND IT MUST NOT FETCH WHEN NOBODY IS ASKING.
+ *
+ *  The one test in this file driven against the REAL archive rather than
+ *  /lab/collection, because the bug it pins lives in <CollectionClient>'s
+ *  paging and the lab room has none: it filters an array in memory.
+ *
+ *  Measured on 2026-09-09, landing on the class archive at 2020 and then
+ *  touching nothing at all for ten seconds: 27 pages fetched, 932
+ *  photographs mounted, the document grown from 17,869px to 65,883px, and
+ *  the rail walking 2020 -> 2021 -> 2022 -> 2023 -> 2026 while the reader
+ *  sat still. "It's stuck at the top and then loads all the photos in these
+ *  steps and then goes to higher and higher years ... totally unacceptable"
+ *  (owner, 2026-09-09).
+ *
+ *  Two conditions had to hold at once for it, which is why it survived three
+ *  separate fixes: `wantsNewer` answered yes for as long as `scrollY <= 0`,
+ *  and the scroll correction that was supposed to push the reader off zero
+ *  declined to move anybody above the seam -- so the condition could never
+ *  stop being true. See `wantsNewer` in collection-client.tsx.
+ *
+ *  Asserted as a BOUND, not a count, so it stays true as the archive grows
+ *  and cannot fail because somebody contributed a photograph. One page at a
+ *  landing is by design (the reader is at the head of a seek and has no
+ *  gesture left to make); an unbounded number of them is the bug.
+ * ------------------------------------------------------------------ */
+test("a river nobody is touching does not fetch itself", async ({ page }) => {
+  await page.goto("/collection?scope=class&when=2020&order=taken");
+  await page.locator("section img").first().waitFor({ state: "attached", timeout: 30_000 });
+  // Let the landing, and the one prepend it is entitled to, finish.
+  await page.waitForTimeout(3000);
+
+  const tilesOf = () => page.locator("section img").count();
+  const settled = await tilesOf();
+
+  /* Five seconds of nothing. No scroll, no click, no key -- the exact
+     condition under which this page used to fetch 27 times. */
+  await page.waitForTimeout(5000);
+  const after = await tilesOf();
+
+  expect(
+    after,
+    `the river grew from ${settled} to ${after} photographs with no input at all`
+  ).toBe(settled);
+});
