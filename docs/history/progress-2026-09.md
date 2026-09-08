@@ -8,6 +8,41 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-09 (track X) — the photograph's shape stops jumping a frame ahead of the dissolve
+
+His, brief 28, on his phone, on a real answer: *"Mohini had these 2 long photos. Eiffel Tower,
+swipe left. Statue, swipe left, and now there's a landscape photo and the window size just bounced
+into the smaller shape, and it was very jarring. Is that the best way to do it? Is that a polished
+way of doing it, by just jankily moving up the window size?"* V1.
+
+**Reproduced on the photographs he was actually looking at.** Entry `cmshic6bo` in "in the loop"
+Edition 1 carries three: 1200x1600, 1200x1600, 1288x966. At 390x844 that is 390x520, 390x520,
+390x293. The step is a 220ms cross dissolve, but the SHAPE changed on its first frame, so the
+picture's top and bottom edges moved 113px inward while the pixels were still fading.
+
+**The carousel behind it already did this right.** `heightAt` in `photo-carousel.tsx` interpolates
+the frame across a swipe. The viewer had no equivalent, which is the asymmetry the recon named.
+
+**Both frames now dissolve inside one box that tweens between the two fitted sizes**, on the step's
+own curve and duration. Measured per animation frame: 390x520, 394, 325, 308, 297, 294, 390x293 at
+217ms. Nothing slides and nothing springs — he settled the step itself in August (*"just have a
+simple delightful cross dissolve without any bouncing or other jarring motion"*) and that is
+untouched. The only thing that moves now is the shape, which is the thing that used to jump.
+
+**The sizes are learned, not plumbed.** `ViewerImage` carries no dimensions and four callers build
+one, so passing them through would be an API change on the feed, letters, the Collection and
+Catch-ups for one number. The pre-decode effect already builds an `Image` per neighbour, so it
+records what it decoded — the shape is known BEFORE the step that needs it — and the current
+photograph records itself on load. An unlearned shape falls back to the whole stage, which is
+exactly the old behaviour, and the first box of an opening is set with no tween so opening never
+animates.
+
+**It is the shared viewer**, so the feed and the Collection take it too. Checked live at 1440: the
+feed's viewer opens, the photograph fits the screen, Escape closes it, zero console errors.
+
+`npm run check` 112/112. `npm run visual` 25/25, no baseline moved — the viewer is not open in any
+baseline shot. **V2 and V3 are NOT in this commit and are still open**; see the session log.
+
 ## 2026-09-09 (track X) — a photo caption folds at four lines instead of two
 
 His, brief 32, talking himself around twice and landing on a number: *"I don't want photo captions

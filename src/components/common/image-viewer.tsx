@@ -267,6 +267,60 @@ export function ImageViewer({
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const lastNudge = useRef(0);
 
+  /* ---------------------------------------------------------------- *
+   *  THE SHAPE THE PHOTOGRAPH IS DRAWN AT, AND WHY IT IS ANIMATED.
+   *
+   *  The owner, brief 28, on his phone, on a real answer: "Mohini had
+   *  these 2 long photos. Eiffel Tower, swipe left. Statue, swipe left,
+   *  and now there's a landscape photo and the window size just bounced
+   *  into the smaller shape, and it was very jarring. Is that the best
+   *  way to do it? Is that a polished way of doing it, by just jankily
+   *  moving up the window size?"
+   *
+   *  Measured at 390x844 on those three photographs: 390x520 for each
+   *  1200x1600 portrait, 390x293 for the 1288x966 landscape. The step is
+   *  a 220ms cross dissolve, but the SHAPE changed on the first frame of
+   *  it -- so the picture's top and bottom edges jumped 113px inward
+   *  while the pixels were still fading. The carousel in the page behind
+   *  this one already interpolates its frame across a swipe
+   *  (`heightAt` in photo-carousel.tsx); the viewer did not.
+   *
+   *  So the two frames now cross-dissolve inside one box that tweens
+   *  from the outgoing photograph's fitted size to the incoming one's,
+   *  on the same curve and over the same 220ms. Nothing slides and
+   *  nothing springs -- he settled that in August ("just have a simple
+   *  delightful cross dissolve without any bouncing or other jarring
+   *  motion") and this does not touch it. The only thing that moves is
+   *  the shape, which is the thing that used to jump.
+   *
+   *  The sizes are LEARNED, not passed in. `ViewerImage` carries no
+   *  dimensions and four callers construct it, so plumbing them through
+   *  would be an API change on the feed, letters, the Collection and
+   *  Catch-ups for one number. Instead the pre-decode effect below
+   *  already builds an `Image` for each neighbour, so it records what it
+   *  decoded; the current photograph records itself on load. A shape we
+   *  have not learned yet means the box falls back to the whole stage,
+   *  which is exactly the old behaviour, and the first one is set
+   *  without a tween so opening never animates.
+   * ---------------------------------------------------------------- */
+  const shapes = useRef(new Map<string, { w: number; h: number }>());
+  const [stage, setStage] = useState({ w: 0, h: 0 });
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  /* Bumped when a shape is learned, purely so the effect that fits the box
+     re-runs. A ref alone cannot do that and a state holding the Map would
+     copy it on every photograph. */
+  const [learned, setLearned] = useState(0);
+  /* Whether a box has ever been set for this opening. The FIRST one is
+     applied with no tween -- otherwise opening the viewer would animate the
+     photograph up from the whole screen. */
+  const hadBox = useRef(false);
+
+  const learn = useCallback((src: string, w: number, h: number) => {
+    if (!w || !h || shapes.current.has(src)) return;
+    shapes.current.set(src, { w, h });
+    setLearned((n) => n + 1);
+  }, []);
+
   const count = images.length;
   const at = Math.min(Math.max(index, 0), Math.max(count - 1, 0));
   const current = images[at];
@@ -473,9 +527,47 @@ export function ImageViewer({
       if (!neighbour) continue;
       const img = new window.Image();
       img.src = neighbour.src;
-      img.decode?.().catch(() => {});
+      /* The warmer knows the shape the moment it has the bytes, which is
+         BEFORE the step that needs it -- that is what makes the box tween
+         start at the right size rather than catching up. */
+      const record = () => learn(neighbour.src, img.naturalWidth, img.naturalHeight);
+      img.decode?.().then(record).catch(() => {});
+      img.addEventListener("load", record, { once: true });
     }
-  }, [open, at, images]);
+  }, [open, at, images, learn]);
+
+  /* The stage is the viewport: the dialog is fixed inset-0 and every layer
+     inside it is absolute inset-0. Re-read on resize and on rotation, because
+     a fitted box is only correct against the window it was fitted to. */
+  useEffect(() => {
+    if (!open) return;
+    const read = () => setStage({ w: window.innerWidth, h: window.innerHeight });
+    read();
+    window.addEventListener("resize", read);
+    return () => window.removeEventListener("resize", read);
+  }, [open]);
+
+  /* Fit, never enlarge. The `scale > 1` clamp is the rule this component has
+     carried since it was rebuilt -- a 980px file blown across a 1440px screen
+     is the graininess he has objected to twice -- so a small photograph keeps
+     its own size and the box keeps it too. */
+  const src = current?.src;
+  useEffect(() => {
+    if (!open || !src || !stage.w || !stage.h) return;
+    const nat = shapes.current.get(src);
+    if (!nat) return;
+    const k = Math.min(stage.w / nat.w, stage.h / nat.h, 1);
+    setBox({ w: Math.round(nat.w * k), h: Math.round(nat.h * k) });
+    hadBox.current = true;
+  }, [open, src, stage, learned]);
+
+  /* A fresh open starts from whatever this photograph is, with no tween. */
+  useEffect(() => {
+    if (!open) {
+      hadBox.current = false;
+      setBox(null);
+    }
+  }, [open]);
 
   /* Does the caption run past its four lines (CAPTION_CLAMP)? Measured rather than guessed
      from a character count, because the answer depends on the glyphs and on
@@ -605,9 +697,23 @@ export function ImageViewer({
                  browser answers a two-finger pinch by zooming the PAGE, and
                  you get two zooms at once on top of each other. Every gesture
                  in here is ours. */
-              className="absolute inset-0 touch-none"
+              className="absolute inset-0 flex touch-none items-center justify-center"
               style={{ x: zoom.swipeX }}
             >
+              {/* THE BOX BOTH FRAMES DISSOLVE INSIDE. It is the current
+                  photograph's fitted size, tweened on the step's own curve
+                  and duration, so the shape changes with the pixels rather
+                  than a frame ahead of them. Until a shape has been learned
+                  it is the whole stage, which is what this was before. */}
+              <m.div
+                className="relative"
+                initial={false}
+                animate={box ? { width: box.w, height: box.h } : { width: "100%", height: "100%" }}
+                transition={{
+                  duration: hadBox.current && box ? STEP_SECONDS : 0,
+                  ease: EASE_OUT_SMOOTH,
+                }}
+              >
               <AnimatePresence mode="sync" initial={false}>
                 <m.div
                   key={at}
@@ -641,9 +747,14 @@ export function ImageViewer({
                       y: zoom.y,
                       scale: zoom.scale,
                     }}
+                    onLoad={(e) => {
+                      const el = e.currentTarget;
+                      learn(el.currentSrc || el.src, el.naturalWidth, el.naturalHeight);
+                    }}
                   />
                 </m.div>
               </AnimatePresence>
+              </m.div>
             </m.div>
 
             {/* Desktop step arrows; mobile navigates by dragging the photo. */}
