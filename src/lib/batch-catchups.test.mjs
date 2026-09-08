@@ -21,6 +21,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 import {
   BATCH_CATCHUP_FLOOR,
@@ -121,20 +123,51 @@ test("nobody leaves their own batch, and archiving is the only way out of one", 
 });
 
 test("neither screen offers what the server refuses", () => {
-  /* This page's own house rule, written on `canLeave` in the card menu: an
-     action refused server-side is not shown as a way to be told no. */
+  /* The house rule: an action refused server-side is not shown as a way to be
+     told no. It used to be enforced in two places, the roster and the list's
+     card menu. Build phase 6 deleted that menu with the rest of the card, so
+     the roster is the only screen left that offers Leave -- and it is now also
+     the only exit a member has until phase 7 puts one behind Settings on the
+     home. If this guard goes, a member of a batch Catch-up is offered a Leave
+     that `leaveCatchup` refuses by name. */
   const panel = decomment(read("src/components/catchups/home/people-panel.tsx"));
   assert.match(
     panel,
     /!isCreator && !data\.isBatch/,
     "the roster still offers Leave on a batch Catch-up"
   );
-  const card = decomment(read("src/components/catchups/index/your-catchups-card.tsx"));
-  assert.match(
-    card,
-    /canLeave=\{!card\.isCreator && !card\.isBatch\}/,
-    "the list's card menu still offers Leave on a batch Catch-up"
-  );
+  assert.match(panel, /leaveCatchup/, "the roster no longer offers Leave at all");
+});
+
+test("the list offers no verbs, and archiving is the one thing it does", () => {
+  /* Pinned as ABSENCES, the way build phase 5 pinned the bin. The drawing has
+     no menu on a card at rest (architecture 4), so a three-dot menu coming
+     back is a regression rather than a feature -- and Leave coming back HERE
+     would be the second home for a verb this rework exists to remove. */
+  for (const gone of [
+    "src/components/catchups/index/catchup-card-menu.tsx",
+    "src/components/catchups/index/your-catchups-card.tsx",
+    "src/components/catchups/index/fresh-off-the-press.tsx",
+    "src/components/catchups/index/filed-away.tsx",
+    "src/components/catchups/index/group-first-guidance.tsx",
+  ]) {
+    assert.equal(existsSync(resolve(ROOT, gone)), false, `${gone} is back`);
+  }
+
+  const card = decomment(read("src/components/catchups/index/catchup-card.tsx"));
+  const shelf = decomment(read("src/components/catchups/index/catchup-shelf-view.tsx"));
+  assert.ok(!/leaveCatchup/.test(card + shelf), "the list offers Leave again");
+  /* Archiving is reachable TWO ways, and on a batch Catch-up it is the only
+     exit there is: the phone's swipe (brief 5, WhatsApp) and, because a mouse
+     and a keyboard cannot swipe, a control that appears when the card is
+     pointed at or reached. Losing either one loses a whole class of member. */
+  assert.match(card, /drag="x"/, "the phone's swipe-to-archive is gone");
+  assert.match(card, /aria-label=\{`Archive \$\{c\.name\}`\}/, "the pointer's archive control is gone");
+  /* The action lives on the SHELF rather than the card, because a card that
+     removes itself cannot animate its own exit and the Undo in its toast
+     outlives it. If it moves back onto the card, both of those break quietly. */
+  assert.match(shelf, /setCatchupArchived/, "the list can no longer archive anything");
+  assert.match(shelf, /AnimatePresence/, "cards appear and disappear with no animation again");
 });
 
 test("a batch Catch-up is created with no Keeper, no invite link and a picture", () => {

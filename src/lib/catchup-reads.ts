@@ -48,3 +48,26 @@ export async function markEditionRead(userId: string, editionId: string): Promis
     }
   }
 }
+
+/**
+ * Which of these Editions has this member already opened.
+ *
+ * One query for a whole page, and the answer is a SET rather than a count on
+ * each row: the list needs to know whether there is something new behind a
+ * cover, never how many people have been there ("you're trying so hard to
+ * include useless information", R32). Build phase 6 is its first reader; the
+ * mark itself has been written since phase 5.
+ *
+ * An empty input short-circuits rather than issuing `IN ()`.
+ */
+export async function readEditionIds(
+  userId: string,
+  editionIds: string[]
+): Promise<Set<string>> {
+  if (editionIds.length === 0) return new Set();
+  const rows = await prisma.catchupEditionRead.findMany({
+    where: { userId, editionId: { in: editionIds } },
+    select: { editionId: true },
+  });
+  return new Set(rows.map((r) => r.editionId));
+}

@@ -72,6 +72,47 @@ export const DEFAULT_PICTURE_FOCUS = "center 85%";
  *  each side instead. Aim vertically; keep the subject out of the outer
  *  eighth. */
 
+/* ── The scrim over a photograph that carries words ──────────────────
+ *
+ *  Spotify's, near enough, and it is his correction: "it doesn't have to fade
+ *  to full black it can just be dark like spotify." Then, a day later: "if the
+ *  darkening is the same constant, make both less dark by 15%." Every stop is
+ *  scaled by 0.85 rather than the foot alone, so the curve keeps its shape and
+ *  every surface stays identical: 0.72 -> 0.61, 0.44 -> 0.37, 0.10 -> 0.085.
+ *
+ *  ONE CONSTANT. The list's card, the list's Edition covers and the home's head
+ *  are the same object at three sizes, and he asked whether they matched before
+ *  he asked for them to be lighter. It lives here rather than in a component
+ *  because the lab room and the shipped page both draw it and neither may own
+ *  it. */
+export const PICTURE_SCRIM =
+  "linear-gradient(to top, rgb(20 16 12 / 0.61) 0%, rgb(20 16 12 / 0.37) 26%, rgb(20 16 12 / 0.085) 52%, transparent 74%)";
+
+/* ── An Edition's cover: how many photographs, and how they tile ─────
+ *
+ *  A published Edition is drawn as its photographs (architecture 1), on the
+ *  list and on the home, and both draw the same tiling. THREE, and four is
+ *  wrong rather than merely different: with the lead spanning two columns and
+ *  two rows, a fourth has nowhere to go but a third row beside an empty cell.
+ *
+ *  Here for the same reason PICTURE_SCRIM is: the lab room and the shipped
+ *  page both draw it, a lab room is not importable from `(main)` because the
+ *  public demo's build does not compile one, and neither may own it. The
+ *  number was declared three times before build phase 6 -- the room, the
+ *  server query that fetches the urls, and the card that draws them -- so
+ *  raising it to four would have quietly capped at three in whichever of the
+ *  three was forgotten. */
+export const COVER_SHOTS = 3;
+
+/** The grid a cover's photographs sit in, by how many there are. The first is
+ *  the lead and spans two columns and two rows past two photographs, so an
+ *  Edition reads as having a picture rather than as a contact sheet. */
+export function coverTiles(n: number): string {
+  if (n <= 1) return "grid-cols-1";
+  if (n === 2) return "grid-cols-2";
+  return "grid-cols-3 grid-rows-2";
+}
+
 /** The tightest frame anything draws: the home's head at 1080p and wider.
  *
  *  The aiming control shows THIS band rather than the roomiest one, which

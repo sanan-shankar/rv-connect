@@ -1,50 +1,30 @@
-import { RAIL_GRID, RAIL_ASIDE } from "@/components/layout/rail-grid";
+import { CARD_FRAME, LIST_GRID } from "@/components/catchups/index/picture-door";
 
-/* Mirrors the shape of the Catch-ups index: the header row, cards column,
-   and rail. Skeleton widths approximate the common has-Catch-ups state,
-   so the page does not shift when the real one lands. */
+/* The shape of the rebuilt Catch-ups list (build phase 6): the header row and
+   a shelf of picture cards. Three of them, which is what most members have
+   once the spare slots are counted, so nothing shifts when the real one lands.
+   The rail this used to draw is gone with "Fresh off the press".
+
+   The grid and the card's frame are IMPORTED rather than retyped. A skeleton
+   that has drifted from its page is worse than no skeleton: it moves the
+   content the moment the real thing arrives, which is the one fault a
+   skeleton exists to prevent. */
 export default function CatchupsLoading() {
   return (
-    <div>
-      <div className={RAIL_GRID}>
-        <div className="min-w-0">
-          <header className="mb-6 flex flex-nowrap items-start justify-between gap-4">
-            <div className="skeleton-warm h-8 w-40 rounded-md" />
-            <div className="flex flex-nowrap items-center gap-2.5">
-              {/* The "Start a Catch-up" canopy pill: h-10, ~146px wide. */}
-              <div className="skeleton-warm h-10 w-36 rounded-full" />
-            </div>
-          </header>
-        </div>
-      </div>
+    <div className="max-w-[1096px]">
+      <header className="mb-6 flex flex-nowrap items-start justify-between gap-4">
+        <div className="skeleton-warm h-8 w-40 rounded-md" />
+        {/* The "Start a Catch-up" canopy pill: h-10, ~146px wide. */}
+        <div className="skeleton-warm h-10 w-36 rounded-full" />
+      </header>
 
-      <div className={`${RAIL_GRID} gap-y-[var(--space-m)]`}>
-        <div className="min-w-0 space-y-3.5">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)]"
-            >
-              <div className="skeleton-warm h-5 w-40 rounded-md" />
-              <div className="mt-2 flex items-center gap-2.5">
-                <div className="skeleton-warm h-7 w-7 rounded-full" />
-                <div className="skeleton-warm h-7 w-7 rounded-full" />
-                <div className="skeleton-warm h-3 w-28 rounded-md" />
-              </div>
-            </div>
-          ))}
-        </div>
-        <aside className={RAIL_ASIDE}>
-          <div className="rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)]">
-            <div className="skeleton-warm h-3 w-32 rounded-full" />
-            {[1, 2].map((i) => (
-              <div key={i} className="mt-4 space-y-1.5">
-                <div className="skeleton-warm h-3 w-full rounded-md" />
-                <div className="skeleton-warm h-3 w-2/3 rounded-md" />
-              </div>
-            ))}
-          </div>
-        </aside>
+      <div className={LIST_GRID}>
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className={`skeleton-warm w-full rounded-[var(--radius)] ${CARD_FRAME}`}
+          />
+        ))}
       </div>
     </div>
   );

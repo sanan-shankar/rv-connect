@@ -27,6 +27,7 @@ import { valleyDaysBetween } from "./utils.ts";
 import { isMissingTable } from "./prisma-errors.ts";
 import type {
   Cadence,
+  CatchupStatus,
   CatchupNotifyKind,
   EditionStatus,
   EditionTiming,
@@ -990,6 +991,63 @@ export function describeEditionStatus(
       return "Published";
     default:
       return "";
+  }
+}
+
+/**
+ * The ONE line written under a Catch-up's name on the list (build phase 6).
+ *
+ * "It can just be whatever stage it's going through" -- his, N26, taking the
+ * Edition number off the card in the same breath. So: what this Catch-up is
+ * doing, in words, in the same shape in every state, so the eye learns where
+ * to look once. No counts of any kind, which is the standing objection (R32:
+ * "you're trying so hard to include useless information").
+ *
+ * It is deliberately NOT `describeEditionStatus`. That one answers "where is
+ * this Edition in the machine" for the console and the admin room, and says
+ * "Answering now, 3 days left"; this one answers "what is this Catch-up doing"
+ * for somebody choosing which card to open, and says "Answers close Thursday
+ * 20 August". A countdown belongs on the page you are already on.
+ *
+ * ENDED CARRIES NO DATE, and that is a data fact rather than a design one.
+ * The drawing says "Ended 17 April", but nothing records WHEN a Catch-up
+ * ended: `status` flips to "ended" and `updatedAt` moves for any edit after.
+ * Inventing a column for one line on one card is a migration, and build phase
+ * 6 has none. One word, until something honest can follow it.
+ */
+export function catchupStageLine(
+  catchupStatus: CatchupStatus,
+  edition: {
+    status: EditionStatus;
+    answersCloseAt?: Date | string | null;
+    publishedAt?: Date | string | null;
+  } | null,
+  /** Injected so this stays pure and testable, and so the app has one date
+   *  voice: `formatDayAndDate` and `formatDisplayDateLong` from lib/utils,
+   *  both pinned to the valley's own day. */
+  fmt: { dayAndDate: (d: Date | string) => string; longDate: (d: Date | string) => string }
+): string {
+  // The Catch-up's own state outranks the Edition's: a paused Catch-up with a
+  // live Edition inside it is paused, and today's home hides that Edition
+  // behind a whole replacement page (recon section 11).
+  if (catchupStatus === "paused") return "Paused";
+  if (catchupStatus === "ended") return "Ended";
+  if (!edition) return "No Editions yet";
+  switch (edition.status) {
+    case "collecting":
+      return "Open for questions";
+    case "answering":
+      return edition.answersCloseAt
+        ? `Answers close ${fmt.dayAndDate(edition.answersCloseAt)}`
+        : "Open for answers";
+    case "published":
+      return edition.publishedAt ? `Out ${fmt.longDate(edition.publishedAt)}` : "Out now";
+    // A `draft` Edition is one that exists and has not opened. Nothing creates
+    // one today -- every creation path opens straight into collecting, and the
+    // live database holds none -- but the status is still in the union, and
+    // "Open for questions" would be a lie on the one card that ever had it.
+    default:
+      return "Not open yet";
   }
 }
 
