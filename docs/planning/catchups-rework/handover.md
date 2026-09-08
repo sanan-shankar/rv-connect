@@ -181,8 +181,9 @@ too, which he allowed in ¶28.
 | Owner browses the shape, round two | DONE | 2026-09-07 evening. He walked the whole spine out loud and then sent notes continuously for the length of one session. Every one of them is folded in; his own verdict partway through: *"I can't believe i'm saying this but you're actually doing a good job. for the first time in two days and a million sessions I feel like this is coming together."* Verbatim notes in [`review-2026-09-07.md`](review-2026-09-07.md) Part six |
 | S4d Fine-tuning, round one | DONE | 2026-09-07 evening, four commits. The reader's rail magnification rebuilt from scratch on the app's own motion-value mechanism; the home rebuilt around two doors on the picture and a sidebar of back numbers; answering and the questions panel brought onto the page; the type rule written down. `npm run check` green, `npm run visual` 25/25 |
 | The composer, the picture's crop | PARTIAL | The composer's *shape* is drawn, on the home, because he asked for it there. What is not drawn: the photo attachment flow, the song field, the photo-wall question, and the crop-at-creation surface. The people surface is DONE (a dialog and a sheet, off the sidebar). **`spec.md` §10 rules on each**: the song field is DELETED rather than drawn (a pasted link resolves anywhere, ¶50), the photo-wall control is the drawn photo strip with a higher cap, and the crop-at-creation is assembled from `photo-aim.tsx` and the direct-upload path -- all three inside the build. The photo wall's READING surface goes to S-features, and the confirmations go to the settings session, both before the phase that would need them |
-| The settings surface, refined | OPEN | **his, and he has said he will take it in a session of its own.** It is a real settings list now rather than a column of verbs, and he called it *"very bare bones"* before that and has not called it finished since |
+| The settings surface, refined | **DONE** | 2026-09-09, spec 10.3, **the gate on build phase 7**. He gave notes on the shipped-in-lab list first and every one is answered; his words are in [`review-2026-09-09.md`](review-2026-09-09.md). **The nine icon tiles are deleted** -- *"I don't like that brown. I think that's probably my main gripe with it"* -- and with them every container in the panel: no tile, no rule, no card inside the card. **The idea that replaced them**: a Catch-up's settings are the Catch-up described, so "This Catch-up" holds the same three rows for everybody (Name, Picture, Rhythm) and who you are decides which of them press. That is what stops a batch panel coming out as one lonely row -- it is the same panel with two rows sealed, which also says "the members are fixed" without a sentence teaching it. **Colour appears twice in the whole flow**: the words "Cannot be undone" in a row's value column, and the button that does the thing. Three orange things became one, and the one is language. **Everything presses**, which was his ask, and everything it opens is one of three shapes -- a confirmation, a chooser, an editor -- written together in one file rather than five times inside five build phases. Drawn at `/lab/catchups/settings` for all three cases, with the four confirmations side by side; the same component is behind the spine's Settings door. **Four measured faults fixed**: the 4px sideways scroll, the group heads sitting 8px right of every label under them, the hint truncating at BOTH widths, and the grabber pill. See the session log |
 | **S-features, the second brainstorm** | DONE | **2026-09-09, [`features.md`](features.md), and HE HAS RULED ON EVERY ITEM** (§1, verbatim). **In: a question you answer out loud** (*"We should definitely have this"* — it plays back the AUDIO, transcript through the browser, his own suggestion); **a question the group votes on**; **a longer question library**; **TIME CAPSULE MODE, which is his own idea and is new** (an Edition sealed and released a year later, a switch in settings, with the library tweaked to suit); and **answers hidden until you write your own, but a PUBLISHED Edition open to everybody whether they wrote or not** — that last one changes build phases 7 and 8. **Out: the map; a question from another batch; a one-line answer AS A FEATURE** (*"we can have those questions in the library. We don't have to enforce them in the answers"*). **Parked: more reactions, anonymous answers, and email** (it needs a paid Resend plan). **Open, and it is one sentence from him: then-and-now**, which he did not follow; it is explained plainly in §1. **A build warning that is free today and expensive in November: phase 11 must NOT drop `CatchupEdition.publishAt`** — a time capsule is a scheduled publish date and that is the same column. Originally: the mechanism that makes it cheap (a kind is derived from a category, so a new one needs no migration), the photo wall's three reading shapes and why a grid is wrong, the Letterloop parity list with its one real gap (email), the voice signal from the rest of the space, and seven proposals with a default of "not unless you say so" for him to cut. **The photo wall is the only non-optional item and comes before build phase 8.** Originally: **He has asked twice that this not be lost.** 2026-09-07: *"in my initial request for the catch ups rework I also requested a brainstorm on and research into more features we can incorporate for instance a photo wall round and that can be shown nicely on the reader in a unique way and maybe some other stuff ... have a think and see what people would want and what letterloop and any other similar guys do now. I don't want you to do it in this session but I had requested it at some point and I wanna make sure it gets done at some point and it hasn't been written out of the brief completely."* It has not been: it is ¶16, ¶49 and ¶50 in the brief and rows R15, R16 and P22 in the ledger below. What is missing is a SESSION that does it, and this row is that session. See "S-features" below, and `spec.md` §11, which schedules it before phase 8 because the photo wall's reading surface is the one piece of it that can change a page already drawn |
+| **The photo wall's reading surface** | OWNER-GATED | **Drawn 2026-09-09, `/lab/catchups/wall`, three shapes, one hand, and the pick is his.** `photo-wall` has been a question kind since the feature was built and had never been drawn (¶16, ¶49, D10). A **run** (one band, photographs at their own widths, moving sideways), a **drift** (down the column at three measures chosen from each photograph's own shape, the contributor set at the plate's foot in the margin it leaves) and a **stack** (one at a time, the box tweening to each photograph's shape, a pressable rail). Each is drawn inside a page, with a question above and an ordinary question with two answers below, because his rule is *"it needs to be modular and work with everything else"*. Five walls to change under them: one photograph, three, twenty-four, all portrait, two hundred. **The number that decides it, measured at 1512: at 200 photographs the page is 2,104px for a run, 2,393px for a stack and 116,321px for a drift** -- and the run spends it sideways instead, 65,566px of strip. **A cap of six per person is PROPOSED, not assumed** (answers are capped at 3 today; spec 10.1 says a wall raises it and does not say to what): six is visibly not three, it is where a person stops choosing and starts emptying a camera roll, and against a group of forty the ceiling is 240 with a realistic 40 to 60. **He picks, and nothing is built until he does.** Ships inside build phase 8 |
 | **The list, when it has room to spare** | DONE | **Decided by him 2026-09-07, drawn in build phase 6, 2026-09-08.** See "The list's spare slots" below. Scheduled: `spec.md` §5 puts it inside build phase 6, with the list, because it is a rule about what fills that grid rather than a surface of its own |
 | S3b Second round | OPEN | only if he asks for one after browsing the shape |
 | S5 Pick and spec | DONE | 2026-09-08. [`spec.md`](spec.md): the data changes as dated idempotent files, the Round -> Edition rename as one pass, eleven build phases plus track X, the three undrawn surfaces called before-or-inside, and ¶1 to ¶52 mapped. Owner questions 19, 20 and 21 are new and are below. It does NOT redraw anything: `architecture.md` is still the design |
@@ -2656,6 +2657,107 @@ where the fault does NOT occur: one swipe, one change.
 **V1's fix changes a shared component's motion**, so it is its own revertable commit. The dissolve
 itself is untouched -- he settled that in August -- and the only thing that moves now is the shape.
 
+### 2026-09-09, S13, the settings surface (Opus 5, one hand, no fan-out)
+
+Spec 10.3, the gate on build phase 7. He claimed this one himself (N100) and then gave notes on it
+live; they are in [`review-2026-09-09.md`](review-2026-09-09.md) and every one is answered.
+
+**What was measured before anything moved**, because three of his notes were geometry rather than
+taste:
+
+- **The sideways scroll he reported is real and it is 4px.** The scroll region carried `pr-1` and
+  each row bled 8px past it on both sides, so a row ran 426px wide inside a 414px box. Rows are
+  now `w-full` of a region padded 12px against an 8px bleed, and `scrollWidth === clientWidth` on
+  the scroller at both widths.
+- **"This Catch-up, You -- are things really aligned to anything?" They were not.** The group head
+  carried `px-2` while the row it heads carries `-mx-2 px-2`, so the head's text landed at 222.7
+  and every label under it at 214.7. Both are at 181 now, and so is the dialog's own title: one
+  left edge down the whole panel.
+- **The hint truncated at BOTH widths, not only on a phone.** "You stop getting Editions. What you
+  wrote stays. Cannot be undone" wanted 346px in a 341px box on a 1512 laptop. The cause was the
+  shape of the row: label, hint and value each fighting for one line. The hint has its own full
+  width line now, "Cannot be undone" moved to the value column, and every hint is under 42
+  characters. Nothing truncates at 390 or 1512.
+
+**The tiles are gone, and so is every container in the panel.** His main gripe. The first list was
+iOS's TOP-LEVEL Settings grammar transplanted, where each tile is a different app's icon; nine
+identical beige squares carry no information, and they are the named failure from the brief -- "too
+many pills, man". Apple's own answer for settings INSIDE an app is a grouped table with no icons.
+So the panel is type, space and one left edge, and nothing else.
+
+**The idea that replaced the tiles, and it is what fixes the batch case.** A Catch-up's settings
+are the Catch-up described. "This Catch-up" holds the same three rows for everybody -- Name,
+Picture, Rhythm -- and who you are decides which of them open; a row you may not change still
+states its answer and simply has no chevron. So a batch Catch-up is not a stub of the Keeper's
+panel with the rows deleted, it is the same panel with two rows sealed. It also says the thing he
+wanted said without teaching it: *"the batch catch-up, you don't add members. The members are
+fixed."*
+
+**Colour, which he asked to be rethought** -- *"I don't know if the way to highlight the dangerous
+ones is to make the icon and the subtitle orange ... it seems not right with all three."* Cinnamon
+now appears exactly twice in the whole flow: on the words "Cannot be undone" where a row's value
+would go, and as the fill of the button that does the thing. Three coloured things became one, and
+the one is language rather than a symbol that needs a legend.
+
+**Everything presses.** *"I would love to see what happens when I click on each one of these
+because none of these is clickable."* Every row opens something, and everything is one of three
+shapes: a CONFIRMATION (title naming the object, one line saying what will be true afterwards,
+Cancel then the verb), a CHOOSER (picking is the answer, so there is no footer), and an EDITOR.
+They are written together in one file, which is the whole point of doing this before phase 7
+rather than five times inside it.
+
+**The phone sheet is his, line by line.** It says Settings at the top left and carries an X at the
+top right; the grabber pill is deleted. A downward swipe from the top of the list brings it down,
+and anywhere else a downward swipe still scrolls.
+
+**That gesture could not be built with `drag`, and the reason is worth keeping.** The sheet's body
+IS the scroller, so an unconditional drag eats every upward flick. Framer's own escape hatch --
+`dragListener={false}` plus `dragControls.start()` from a pointermove -- was built and driven and
+does not work either: the moment a finger moves on a scrollable box Chrome takes the gesture and
+fires `pointercancel`, so the pointermove that would start the drag never arrives. Measured: a real
+touch sequence left the sheet exactly where it was. It reads the touch events directly, non-
+passively, and moves the sheet's own motion value. Driven three ways in a real touch browser: a
+downward swipe at the top dismisses, an upward swipe scrolls to 144 and the sheet does not move,
+and a downward swipe while scrolled returns to 0 and dismisses nothing.
+
+**Two standards were being broken by the lab itself**, which is the `dialog-standards-findings.md`
+thesis word for word. The settings and People dialogs set a 19px title where the material's
+`DialogTitle` is 16px medium and DESIGN-SYSTEM.md forbids per-dialog title sizes; both use the
+material now. And the shipped picture picker carries TWO description levels where the standard
+allows one, spending the first on a line that describes the controls drawn underneath it -- the
+exact inversion the Collection's contribute dialog was pulled up for. The lab's twin has one line,
+and it says the thing the frame cannot.
+
+**A bug found by drawing it, not by looking for it.** The picker goes three up above the `sm`
+breakpoint, and its own comment argues that three at 390 draws each photograph 103x41, "a colour
+swatch rather than a picture". But the breakpoint is the VIEWPORT and the panel is a fixed width,
+so on a laptop it went three up inside a 384px box and produced exactly the swatch it was written
+to avoid. Two up, always: 172x69.
+
+**And one in the room's own shell.** The root layout's `<body>` is `flex flex-col`, and an auto
+horizontal margin on a flex child disables `align-self: stretch` -- so `mx-auto max-w-[...]` alone
+sized the page to its own content. It looked right only while the grid inside demanded three fixed
+columns; the moment they could shrink, the room collapsed to 526px in a 1512px window.
+
+**One implementation, two doors.** The list, the sheet and every dialog live in
+`src/app/lab/catchups/_settings.tsx`. `/lab/catchups/settings` draws it for all three cases with
+the confirmations beside it, and the sketches spine's Settings door opens the same component, so
+the room and the spine cannot drift.
+
+**`npm run check` 112/112. `npm run visual` 25/25, no baseline moved**, which is the correct result
+for a change that is entirely under `/lab`. Two earlier visual runs went red on three different
+routes each; both were a peer session's build-error overlay (`Export Tile doesn't exist in target
+module`, `collection-client.tsx`) painting itself into the shots while it was mid-refactor. Nothing
+was rebaselined.
+
+**Still his.** Whether "Cannot be undone" in cinnamon is the better way he asked for, and whether a
+confirmation should stack over the settings panel (two scrims, which is what Apple does) or replace
+it. Also still open from before, in his words: *"I don't want everything in the separated thing.
+Honestly, the sidebar in the shipped version has some settings outside, some not."* Everything is
+inside the door; which one or two belong on the page is his call, not a guess.
+
+---
+
 ### 2026-09-09, S12 close, his verdict on every feature (Opus 5)
 
 He went through `features.md` out loud and ruled on all eleven items plus four written up as not
@@ -2698,6 +2800,83 @@ mechanism — an array of category ids and the word migration — and his first 
 don't understand what you're even saying."* He is not a programmer and the first thing he reads
 must not be for a builder. It is rewritten; the mechanism now sits in a builder's line further
 down.
+
+---
+
+### 2026-09-09, S13, the photo wall's reading surface (Opus 5, one hand, no fan-out)
+
+`/lab/catchups/wall`, three shapes, live at 390 and 1512, and **the pick is his**. Nothing is
+built until he picks; this session drew and stopped.
+
+**The three, and what each one is really trading.** A RUN is one band the width of the column,
+every photograph at its own width, moving sideways off the right edge, one name under each
+person's set. A DRIFT is photographs down the column at three measures, and which measure a
+photograph gets is a fact about the photograph rather than a pattern: landscape takes the full
+column because it is short, square takes the middle measure, portrait takes the small one on
+alternating sides. A STACK is one at a time, the box tweening to each photograph's own shape,
+with a pressable rail.
+
+**The number that decides it, measured at 1512.** At two hundred photographs the page is
+**2,104px for a run, 2,393px for a stack and 116,321px for a drift** -- 118 screens of one
+question. The run pays nothing because it spends the room sideways instead: its strip is
+7,938px at twenty-four and 65,566px at two hundred, which is 77 screens nobody will travel. So
+the trade is legible rather than a matter of taste: the drift is the only one where the size of
+the wall is the size of the page, which is both why it feels like a wall and why two hundred
+breaks it.
+
+**A grid was not drawn and the reason held all the way through.** Twenty-four photographs in a
+grid is a contact sheet, and a contact sheet says these are proofs, pick one. The drift comes
+closest and stops at pairs: two portraits across, never three.
+
+**Six faults found by looking, each fixed before it was called ready.**
+- **next/image cannot fetch anything under `/lab`.** `/lab` requires a session (`src/proxy.ts`,
+  audit M19) and the optimiser fetches the source server-side with no cookie, so
+  `/lab/crop/shape-9x16.webp` answers 307 and `/_next/image` answers 400 while the same file
+  loads perfectly in a plain `<img>` in the crop room. The corpus moved to `public/images/`.
+  **This is true in every room, for ever**, and is written into `_corpus.ts`.
+- The heart right-aligned under a wide frame landed about 30px from the NEXT person's bird and
+  read as theirs. Bird, name, heart is one object; bird, name, gap, heart is two.
+- A cinnamon scroll rail is indistinguishable from a question's own mark: at twenty-four
+  photographs the fill starts 33px wide and the 2px cinnamon mark that opens every question
+  section is 32px. Both rails are neutral now; the mark keeps cinnamon.
+- The drift printed one person's name twice, at two sizes, on opposite sides of the column,
+  because the measure rules ran per photograph. A contributor's set is now ONE justified row
+  with one name, which also took the twenty-four wall from 16,736px to 11,826px.
+- The drift's margin floated a name and a heart in the corner of a 240 by 588 hole, which is
+  brief 31 reappearing inside the shape meant to answer it. The credit is set at the plate's
+  foot now, so the empty part of the margin sits outboard where a page margin belongs.
+- The stack cropped 52% off every portrait: a 2:3 photograph in an 856 column wants 1,283px and
+  the cap pulled it to 620. A tall one gets NARROWER instead, and the box tweens on both axes
+  the way the viewer's does. Nothing in a stack is cropped.
+
+**A justified row needs no measurement**, and it is worth keeping: `flex-grow` set to each
+photograph's ratio makes the widths proportional to the ratios, and `aspect-ratio` on each one
+then resolves every height to the same number. Equal widths were the first cut and gave a row
+whose bottom edge stepped three times.
+
+**The corpus is invented and deterministic**, not `?data=pressure`. The pressure fixture carries
+ONE wall, of twenty-four, which is the happy middle; the four cases that decide a shape (one
+photograph, three, two hundred, all portrait) are not in it. Every choice is a function of the
+index, so a reload draws the same wall and two rounds of comparison mean something.
+
+**The one decision proposed rather than assumed: SIX photographs per person on a wall
+question.** An answer is capped at three (F19) and spec 10.1 says a wall raises the cap without
+saying to what. Six is visibly not three, so a wall feels like a different kind of question
+without a different control, and it is where a person stops choosing and starts emptying a
+camera roll. Against a group of forty the ceiling is 240 and the realistic number is 40 to 60,
+because on the live Edition the people who put up a photograph averaged 1.3 of them. If six is
+too many the next number down is four, not three: a wall whose cap equals an ordinary answer's
+is not a wall.
+
+**Deep links**, so a message can name one state:
+`/lab/catchups/wall?w=phone|laptop&shape=run|drift|stack&wall=one|three|real|portrait|flood`.
+All client state, so `router.replace` is right here and F43 does not apply.
+
+`npm run check`: TypeScript, ESLint, the protocol, the lab registry (50 routes) and the
+advisories all clean. **The unit gate reports 111/112 and the one failure is not this session's**:
+`river-query.test.mjs` fails against another session's uncommitted rewrite of
+`src/components/collection/photo-river.tsx` and `collection-client.tsx`, live in the tree while
+this ran. Nothing here touches the Collection. `npm run visual` 25/25, no baseline moved.
 
 ---
 
@@ -2862,6 +3041,12 @@ at runtime.
 
 ## What to paste next
 
+**The photo wall's reading surface is DRAWN and waiting on his pick.** `/lab/catchups/wall`,
+three shapes, five walls, at 390 and 1512. Nothing is built until he picks one, and the session
+that drew it did not pick for him. The winner ships inside build phase 8; the gate on phase 8 is
+now that pick and nothing else. A cap of six photographs per person is PROPOSED in the same room
+and is his to accept or move.
+
 **Track X is done bar one fault, and S-features is done and ruled on.** 2026-09-08/09, six commits.
 The phone overflow, the heart, the caption clamp and the viewer's size snap are fixed and measured.
 **V2 and V3 — the swipe back that lands on the first photograph, and its overshoot — are NOT fixed
@@ -2887,60 +3072,41 @@ then-and-now is worth building at all.
 ```
 @docs/planning/catchups-rework/handover.md
 
-You are S13. ONE job: draw the photo wall's reading surface.
+Build phase 7, the home. Read the board first: phase 7's gate has lifted --
+the settings surface is DONE (2026-09-09, /lab/catchups/settings) and the
+photo wall's reading surface is DRAWN and waiting on his pick, which phase 8
+needs and phase 7 does not.
 
-(Job 1 of the old paste line, folding his 2026-09-09 decisions into spec.md, was
-done on 2026-09-09 alongside his settings session. spec.md now carries 3.10 to
-3.13 and phases 12 to 14, and phase 11 is corrected. Read those before drawing.)
+Phase 7 is spec.md section 9, row 7: /catchups/[id] rebuilt from _home.tsx --
+the head and its two doors, the Edition region per state, the state line, the
+sidebar of back numbers, the people dialog and sheet, and the settings list,
+which is now the drawn one rather than the shipped one. Answering moves onto
+the page; /answer is deleted and redirected, and Notification.link is a
+stored column so that rename is a data change as well as a file move.
 
-OLD JOB 1, for the record: fold his 2026-09-09 decisions into spec.md.
-Read features.md section 1 first -- it is his verdict on every proposal, in his
-own words, and it outranks anything older. Then add to spec.md section 9:
+It also CARRIES spec 3.13 if he has confirmed reading (b): during the
+answering window you can read the answers that have arrived, but only once
+you have written your own. Do not guess this one -- 3.13 says why, and it is
+one sentence from him.
 
-  - a phase for A QUESTION YOU ANSWER OUT LOUD. It plays back the AUDIO. The
-    transcript comes from the browser's own speech recognition while the person
-    is talking, so nothing is sent anywhere and there is no API key -- he raised
-    this himself and he is right. Audio with no transcript has to work on its
-    own, because Firefox has no such API.
-  - a phase for A QUESTION THE GROUP VOTES ON. The feed already has
-    PollOption/PollVote bound to postId; widen it the same way section 9 already
-    widens Comment.
-  - a phase for TIME CAPSULE MODE. His own idea: a switch in a Catch-up's
-    settings, and the Edition is sealed and released a year later. features.md
-    section 3 has what a member sees.
-  - THE RULE THAT TOUCHES PAGES ALREADY DRAWN, and it belongs inside phases 7
-    and 8 rather than in a phase of its own: you cannot read the answers until
-    you have written your own, BUT a published Edition is open to everybody
-    whether they wrote or not. It is not a new table.
-  - A CORRECTION TO PHASE 11: it must NOT drop CatchupEdition.publishAt. A time
-    capsule is a scheduled publish date and that is the same column. Say so in
-    the phase, with the reason.
-
-Do NOT schedule then-and-now: he did not follow it and it is one sentence from
-him. Do NOT schedule the map, a guest question from another batch, or a one-line
-answer cap -- all three are out. More reactions, anonymous answers and the
-emailed issue are PARKED, not dead; record them as parked with his reason.
-
-JOB 2: draw the photo wall's reading surface, in one lab room, by one hand.
-It is LOCKED (D10), it has never been drawn, and it comes before build phase 8
-because it can change a page already drawn. features.md section 4 argues three
-shapes -- a run, a drift, a stack -- and why a grid is wrong. Draw all three,
-live, at 390 and 1512, against the pressure corpus's two-hundred photograph wall
-(?data=pressure already swaps it). Nothing in that room is ever scaled.
-Notify him when it is up and let him pick. Do not pick for him.
-
-DO NOT START PHASE 7. It is gated on the settings surface, which is HIS.
+DO NOT redraw the photo wall and DO NOT pick a shape for him.
 
 How to work:
   - One hand. No fan-out: a design round is not a fan-out (F32).
   - Take numbers from the app, never from taste.
   - A note he has given is a DECISION, not a proposal.
-  - npm run check before every commit, npm run visual after UI work, never both
-    at once, and never at the same time as a browser probe -- the machine hangs.
+  - npm run check before every commit, npm run visual after UI work, never
+    both at once, and never at the same time as a browser probe.
     Stage by pathspec: other sessions are live in this tree.
   - Update this file's board and session log inside the same commit.
   - Do not push.
 ```
+
+**And when he has picked a wall shape**, that is a small session of its own or the first
+half hour of phase 8: transplant the picked shape from `src/app/lab/catchups/wall/_shapes.tsx`
+into the reader, keyed off `promptKind(category) === "photo"`, and raise the composer's photo
+cap for a wall question to whatever number he settled on. `_corpus.ts` does not travel; the
+shape reads real entries.
 
 ### What that session must know, and would otherwise learn the hard way
 

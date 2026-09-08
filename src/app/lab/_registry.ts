@@ -194,6 +194,13 @@ export const REGISTRY: LabEntry[] = [
     note: "The Catch-ups front runner, live: the real Edition on a phone, where the strip under the green bar takes each question as its heading leaves and unfolds into the list when tapped. Five stills of moments deep in the page, the navigator drawn three ways, and the same page at 1512. ?w=reader|screens|laptop.",
   },
   {
+    href: "/lab/catchups/settings",
+    title: "The settings are a description",
+    group: "Delight",
+    status: "active",
+    note: "The Catch-up settings list with the beige tiles taken out, and every dialog it opens drawn beside it. Name, Picture and Rhythm are the same three rows for everybody -- who you are decides which of them press -- so your batch's panel is no longer one lonely row. Three cases side by side, the phone sheet with an X instead of a grabber, and the four confirmations together.",
+  },
+  {
     href: "/lab/catchups/swipe",
     title: "The swipe that goes back two",
     group: "Delight",

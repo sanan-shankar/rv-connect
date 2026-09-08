@@ -78,6 +78,60 @@ short.
 **And a note on writing for him**: the first draft opened with an array of category ids and the
 word migration, and his first sentence back was "I don't understand what you're even saying."
 
+## 2026-09-09 — the settings stop being a list of controls and become a description
+
+Spec 10.3, the gate on build phase 7. He gave notes on the settings list first; they are verbatim
+in `docs/planning/catchups-rework/review-2026-09-09.md`, and every one is answered.
+
+Three of them were geometry, so they were measured before anything moved. The sideways scroll he
+reported is 4px: the scroll region carried `pr-1` and each row bled 8px past it, so a row ran 426px
+wide inside a 414px box. The group heads "were not aligned to anything" because the head carried
+`px-2` while the row it heads carries `-mx-2 px-2` -- the head's text landed at 222.7 and every
+label under it at 214.7. And the hint truncated at BOTH widths, not only on a phone: "You stop
+getting Editions. What you wrote stays. Cannot be undone" wanted 346px in a 341px box on a laptop.
+
+The nine icon tiles are deleted, which was his main gripe, and with them every container in the
+panel: no tile, no rule, no card inside the card. The first list was iOS's TOP-LEVEL Settings
+grammar transplanted, where each tile is a different app's icon; nine identical beige squares carry
+no information. Apple's own answer for settings inside an app is a grouped table with no icons.
+
+What replaced them is the idea that also fixes the batch case. A Catch-up's settings are the
+Catch-up described, so "This Catch-up" holds the same three rows for everybody -- Name, Picture,
+Rhythm -- and who you are decides which of them open. A row you may not change still states its
+answer and has no chevron. A batch Catch-up is therefore not a stub with the Keeper's rows deleted;
+it is the same panel with two rows sealed.
+
+Colour appears exactly twice in the whole flow: the words "Cannot be undone" where a row's value
+goes, and the fill of the button that does the thing.
+
+Every row opens something, and everything it opens is one of three shapes -- a confirmation, a
+chooser, an editor -- written together in one file rather than five times inside five build phases.
+The phone sheet says Settings at the top left with an X at the top right, the grabber pill is gone,
+and a downward swipe from the top of the list brings it down while anywhere else it still scrolls.
+
+That gesture could not be built on framer's `drag`. The sheet's body IS the scroller, so an
+unconditional drag eats every upward flick; and `dragListener={false}` plus `dragControls.start()`
+from a pointermove does not work either, because the moment a finger moves on a scrollable box
+Chrome takes the gesture and fires `pointercancel`, so the pointermove that would start the drag
+never arrives. Measured -- a real touch sequence left the sheet where it was. It reads the touch
+events directly, non-passively, and moves the sheet's own motion value.
+
+Two standards the lab itself was breaking are enforced on the way past: a 19px `DialogTitle` where
+the material is 16px medium and per-dialog title sizes are forbidden, and the picture picker's two
+description levels where the standard allows one. Two bugs fell out of drawing it. The picker goes
+three up above the `sm` breakpoint, but the breakpoint is the viewport and the panel is a fixed
+width, so on a laptop it drew each photograph 103x41 -- the "colour swatch rather than a picture"
+its own comment was written to avoid. And the root layout's `<body>` is `flex flex-col`, where an
+auto horizontal margin on a child disables `align-self: stretch`, so the new room sized itself to
+its content and collapsed to 526px in a 1512px window.
+
+The list, the sheet and every dialog live in one file. `/lab/catchups/settings` draws it for all
+three cases with the confirmations beside it, and the sketches spine's Settings door opens the same
+component, so the room and the spine cannot drift.
+
+`npm run check` 112/112. `npm run visual` 25/25, no baseline moved, which is the correct result for
+a change entirely under `/lab`.
+
 ## 2026-09-09 — S-features: what else an Edition could hold
 
 The second brainstorm, which he has asked for twice: `docs/planning/catchups-rework/features.md`.
