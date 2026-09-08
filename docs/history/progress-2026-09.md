@@ -8,7 +8,7 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
-## 2026-09-09 — a wall is not a contact sheet: the photo wall drawn three ways
+## 2026-09-09 — a wall is not a contact sheet: the photo wall drawn three ways, and he picked the run
 
 `photo-wall` has been a question kind since Catch-ups was built and had never been drawn. It is
 the owner's, brief 16: *"we definitely have to add a photo wall for questions where people can
@@ -26,11 +26,18 @@ tweening to each photograph's own shape, with a rail you can press to jump.
 **A grid was not drawn.** Twenty-four photographs in a grid is a contact sheet, and a contact
 sheet says these are proofs, pick one. The drift comes closest and stops at pairs.
 
-**The number that decides it, measured at 1512.** At two hundred photographs the page is 2,104px
-for a run, 2,393px for a stack and 116,321px for a drift. The run pays nothing because it spends
-the room sideways instead: 7,938px of strip at twenty-four and 65,566px at two hundred. So the
-drift is the only one where the size of the wall is the size of the page, which is both why it
-feels like a wall and why two hundred breaks it.
+**The number that decided it, measured at 1512 as the wall's own height.** At two hundred
+photographs a run is 353px of page, a stack 666px and a drift 33,469px. The run pays nothing
+because it spends the room sideways instead: 7,938px of strip at twenty-four and 64,735px at two
+hundred. So the drift is the only one where the size of the wall is the size of the page, which
+is both why it feels like a wall and why two hundred breaks it.
+
+**He picked the run**, and ruled on two more things in the same breath. The count line above the
+band is deleted: *"delete this random stat"*. And a wall answer is capped at **three**, the same
+as any answer, not the six proposed here — which means the answering half of a wall question
+costs nothing to build, because the control is the photo strip already on the composer with not
+one thing changed. `spec.md` §10.1 had said "the photo strip with a higher cap" and now says
+unchanged.
 
 **Six faults found by looking, all fixed before it was called ready.** The heart right-aligned
 under a wide frame landed 30px from the next person's bird and read as theirs. A cinnamon scroll
@@ -52,12 +59,13 @@ same file loads perfectly in a plain `<img>` in the room that owns it. The corpu
 the portrait pairs: `flex-grow` set to each photograph's ratio makes the widths proportional to the
 ratios, and `aspect-ratio` then resolves every height to the same number.
 
-**One decision is proposed and not assumed**: six photographs per person on a wall question,
-against three on an ordinary answer. Six is visibly not three, and it is where a person stops
-choosing and starts emptying a camera roll. Against a group of forty the ceiling is 240 and the
-realistic number is 40 to 60.
+**A per-person cap turns out to be a layout lever, not only a policy.** At the proposed six the
+drift ran 116,321px at two hundred photographs; at his three it runs 33,469px, because three each
+means most people arrive as a set, a set is one justified row, and a row of three is a third of
+the height of three plates. It did not save the drift, but it is worth knowing.
 
-The owner picks the shape. Nothing is built until he does.
+The run ships inside build phase 8 as a transplant. The drift and the stack stay drawable in the
+room as the record of why the run won.
 
 ---
 

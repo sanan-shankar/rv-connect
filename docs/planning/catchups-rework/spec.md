@@ -932,7 +932,7 @@ in it.
 | **5** | **Leaving, and the read mark** — **DONE 2026-09-08** | `setCatchupDeleted`, the 30-day bin, its retention sweep, its shelf and `restoreOwnCatchupCopy` all deleted; `leaveCatchup` the only exit and the only holder of the batch refusal; Delete became **Leave** on the list. `CatchupEditionRead` is a table of its own rather than a read of `ContentView` (the analytics counter, no FK on `targetId`, written before the reader knows the status), written past the published gate. **Nothing draws the mark yet; phase 6 does.** `deletedAt` the COLUMN waits for phase 11 | `2026-09-08-leaving-and-the-read-mark.sql`, applied to both: 0 rows moved on each (counted first), the index dropped, the read table created |
 | **6** | **The list** | `/catchups` rebuilt from `_list.tsx`, including the spare slots (§5) and the archived row | none |
 | **7** | **The home** | `/catchups/[id]` rebuilt from `_home.tsx`: the head and its two doors, the Edition region per state, the state line, the sidebar of back numbers, the people dialog and sheet, the settings list. Answering moves onto the page; `/answer` deleted and redirected. **Carries §3.13 if he confirms reading (b)**: during answering you can read what has arrived, but only once you have written | none |
-| **8** | **The reader** | the front runner transplanted; navigator A; the rebuilt magnification; **the two clamps** (§4.3, which closes F41); **N11, the title, decided**; the photo wall's reading surface, drawn and picked before this phase starts. **Carries §3.13's other half, which is already true and must stay true: a PUBLISHED Edition is open to every member whether they wrote or not** | none |
+| **8** | **The reader** | the front runner transplanted; navigator A; the rebuilt magnification; **the two clamps** (§4.3, which closes F41); **N11, the title, decided**; **the photo wall's reading surface, which is a RUN** (§10.1, picked by him 2026-09-09 off `/lab/catchups/wall`): transplant `Run` from `src/app/lab/catchups/wall/_shapes.tsx`, keyed off `promptKind(category) === "photo"`, with no captions and no count line, and `_corpus.ts` staying behind. **Carries §3.13's other half, which is already true and must stay true: a PUBLISHED Edition is open to every member whether they wrote or not** | none |
 | **9** | **Comments** | the widened `Comment`, the five actions, `comments-section.tsx` parameterised, `catchup_comment`, the open/close animation | `Comment.entryId` |
 | **10** | **Link previews** | `LinkPreview`, resolution on any pasted link, Spotify and YouTube cards, the fail-soft rule | the `LinkPreview` table |
 | **11** | **Cleanup** | the dead columns dropped **after phases 2, 5 and 10 have deployed**; the three throwaway Catch-ups and the orphaned snapshot group removed; `docs/spec/catchups.md` rewritten to describe what shipped. **CORRECTED 2026-09-09: `CatchupEdition.publishAt` is NOT dropped.** It was on the list because the `preparing` hold it served died in phase 2 — but a time capsule (§3.12) is exactly a scheduled publish date and it is the same column. Dropping it now to add it back is two migrations against a live database for nothing. Keep it, and say so in the file. `CatchupPref.deletedAt` still goes | the drop file |
@@ -946,8 +946,9 @@ in it.
   needs refining but no need to do that now I can do it in a separate session."* Before phase 7.
 - **S-features** — **DONE 2026-09-09**, `features.md`, and he has ruled on every item. What came out
   of it is now §3.10 to §3.13 and phases 12 to 14 above. **The photo wall's reading surface is the
-  one piece that is not a phase of its own**: it is drawn in the lab, he picks, and it ships inside
-  phase 8, because it can change a page already drawn.
+  one piece that is not a phase of its own**: it was drawn in the lab, **he picked the run on
+  2026-09-09**, and it ships inside phase 8. See §10.1 for what he picked and the two rules that
+  came with it.
 
 **Track M, the magazine**, runs on its own timetable from `M1` and is not sequenced here.
 
@@ -970,13 +971,27 @@ What is not drawn is the photo strip's neighbours.
   criticising in the same breath. F30 measured the cost of keeping it: the songs question has
   thirteen answers and `songUrl` is null on every one, because people pasted into the body. So
   there is nothing to draw — there is one writing box, and §3.8 does the rest.
-- **The photo-wall answering control is the photo strip with a higher cap.** `promptKind` already
-  returns `photo` for the `photo-wall` category, and the strip is drawn, animated and capped at 3
-  (`Attachments` in `_home.tsx`, whose four decisions about displacement are already argued). A
-  wall question raises the cap; nothing else about the control changes. Inside the build.
-- **What is genuinely undrawn is how a wall of twenty-four photographs is READ**, in the reader,
-  in a way that is not a grid. That is his interesting half, and it belongs to **S-features**
-  (§12), before phase 8 touches the reader.
+- **The photo-wall answering control is the photo strip, UNCHANGED. LOCKED 2026-09-09.** This
+  line used to say "with a higher cap", and there is no higher cap: *"cap photo wall also at 3
+  each"*. `promptKind` already returns `photo` for the `photo-wall` category and the strip is
+  drawn, animated and capped at 3 (`Attachments` in `_home.tsx`). So the answering half of a wall
+  question is genuinely free: nothing is built for it. Six had been proposed in the lab room and
+  he moved it back down. The arithmetic that follows: a batch of forty tops out at 120
+  photographs, and a full hundred-person Catch-up at 300.
+- **How a wall is READ is a RUN. LOCKED 2026-09-09**, picked by him off `/lab/catchups/wall`
+  after looking at three shapes drawn live at 390 and 1512: *"I pick 'a run'"*. One band the
+  width of the reading column, every photograph at its own width and never cropped to match its
+  neighbour, bleeding off the right edge, with one contributor's set sitting together 3px apart
+  under a single name. It is 353px of page whether the wall holds three photographs or two
+  hundred; the strip is 7,938px long at twenty-four and 64,735px at two hundred, and a neutral
+  hairline under the band is the only thing that says so. A grid was never one of the three: two
+  dozen photographs in a grid is a contact sheet.
+  **Two rules that came with it and are part of the pick.** A wall carries NO captions, because
+  there is nowhere in a band to set a paragraph, so anybody's words live in the viewer. And there
+  is NO count line above it: one was drawn and he deleted it on sight (*"delete this random
+  stat"*).
+  The drawing is `Run` in `src/app/lab/catchups/wall/_shapes.tsx`; it ships inside phase 8, keyed
+  off `promptKind(category) === "photo"`, and `_corpus.ts` does not travel with it.
 
 ### 10.2 The picture's upload and crop — **inside the build, phase 3**
 

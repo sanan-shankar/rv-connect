@@ -189,35 +189,42 @@ function shot(i: number, plate: Plate, by: WallPerson): WallShot {
   };
 }
 
+/** THE CAP, and it is his, 2026-09-09: **three**, the same as an ordinary
+ *  answer. The spec had said a wall question raises the cap without saying
+ *  to what, and six was proposed here. He said *"cap photo wall also at 3
+ *  each"*, so the answering control is the photo strip exactly as it is
+ *  drawn today, with nothing changed about it at all. */
+export const WALL_CAP = 3;
+
 /** `count` photographs spread over `people`, contributors in order, so
  *  somebody who sent more than one has theirs side by side. That grouping
- *  is what a run and a drift both have to survive: it is the difference
- *  between a wall of people and a wall of pictures. */
+ *  is what a run has to survive: it is the difference between a wall of
+ *  people and a wall of pictures.
+ *
+ *  Nobody exceeds `WALL_CAP`, which is what makes these walls legal rather
+ *  than illustrative. Most people send one; the pattern gives every wall at
+ *  least one person at two and one at three, and if the photographs run out
+ *  before the count is reached it goes round again, still capped. */
 function wall(
   count: number,
   people: number,
   plates: Plate[] = PLATES,
 ): WallShot[] {
-  const out: WallShot[] = [];
-  let i = 0;
-  for (let p = 0; p < people && i < count; p += 1) {
-    const by = personAt(p);
-    /* How many this person sent. Most send one. The pattern gives every
-       wall at least one person with two and one with three, up to the cap
-       proposed in the room. */
-    const mine = Math.min(
-      count - i,
-      p % 9 === 4 ? 3 : p % 4 === 1 ? 2 : 1,
-    );
-    for (let k = 0; k < mine; k += 1, i += 1) {
-      out.push(shot(i, plates[i % plates.length], by));
+  const target = (p: number) => Math.min(WALL_CAP, p % 9 === 4 ? 3 : p % 4 === 1 ? 2 : 1);
+  const order: number[] = [];
+  for (let p = 0; p < people && order.length < count; p += 1) {
+    for (let k = 0; k < target(p) && order.length < count; k += 1) order.push(p);
+  }
+  /* Still short: another pass, one each, and never past the cap. */
+  for (let round = 0; order.length < count && round < WALL_CAP; round += 1) {
+    for (let p = 0; p < people && order.length < count; p += 1) {
+      const mine = order.filter((x) => x === p).length;
+      if (mine < WALL_CAP) order.push(p);
     }
   }
-  /* If the people ran out before the photographs did, keep going round. */
-  for (let p = 0; i < count; p += 1, i += 1) {
-    out.push(shot(i, plates[i % plates.length], personAt(p % people)));
-  }
-  return out;
+  /* Contributors travel together, which is what a run groups on. */
+  order.sort((a, b) => a - b);
+  return order.map((p, i) => shot(i, plates[i % plates.length], personAt(p)));
 }
 
 export type WallKey = "one" | "three" | "real" | "portrait" | "flood";
@@ -248,8 +255,8 @@ export const WALLS: Record<
   },
   flood: {
     label: "Two hundred",
-    note: "Forty people at the proposed cap of five each. The photographs repeat because the app owns twelve of them; the layout does not know that.",
-    shots: wall(200, 40),
+    note: "Eighty people at the cap of three each, which is what a large Catch-up answering in force looks like. The photographs repeat because the app owns twelve of them; the layout does not know that.",
+    shots: wall(200, 80),
   },
 };
 
@@ -264,7 +271,3 @@ export function byContributor(shots: WallShot[]): WallShot[][] {
   return out;
 }
 
-/** How many people are behind a wall. */
-export function contributorCount(shots: WallShot[]): number {
-  return new Set(shots.map((s) => s.by.id)).size;
-}
