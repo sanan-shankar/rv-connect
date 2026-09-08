@@ -8,6 +8,20 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 (later still) — the picture scrim goes a tenth darker
+
+His, once the list was shipped and he could see the card and the home's header side by side:
+*"can you increase the bottom image darkening on both the card and header by 10%."*
+
+One constant, `PICTURE_SCRIM` in `src/lib/catchup-pictures.ts`, and all three stops are scaled
+rather than the foot alone -- 0.61 to 0.67, 0.37 to 0.41, 0.085 to 0.094 -- so the curve keeps its
+shape and every surface drawing it stays identical. That is the same arithmetic his earlier
+correction took in the other direction (*"if the darkening is the same constant, make both less
+dark by 15%"*), and it is the reason "both" is one edit rather than two.
+
+No baseline moved: the list's cards are inside the masked band, and the home is still the lab
+room's until build phase 7.
+
 ## 2026-09-08 (later still) — build phase 6: the list
 
 `/catchups` is the drawing now. `_list.tsx` from `/lab/catchups/sketches` was transplanted
