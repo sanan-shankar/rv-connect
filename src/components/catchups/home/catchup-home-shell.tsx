@@ -36,6 +36,7 @@ import { ExtendDeadlineCard } from "./extend-deadline-card";
 import { KeeperSettingsDialog } from "./keeper-settings-dialog";
 import { PeoplePanel } from "./people-panel";
 import { ReminderPrefControl } from "./reminder-pref-control";
+import { StartNextEditionCard } from "./start-next-edition-card";
 import type { CatchupHomeData } from "./types";
 
 export function CatchupHomeShell({
@@ -110,6 +111,17 @@ export function CatchupHomeShell({
           edition.prompts.some((prompt) => prompt.accepted) && (
             <OpenAnsweringButton editionId={edition.id} onChanged={refresh} />
           )}
+        {/* One-way, so it sits in the rail with a cinnamon dot and confirms,
+            never beside the Edition it would replace (the accident rule,
+            architecture section 6). Only once the newest Edition is actually
+            out: there is nothing to start next while one is still running. */}
+        {viewer.isKeeper && catchupStatus === "active" && edition?.status === "published" && (
+          <StartNextEditionCard
+            catchupId={data.catchupId}
+            nextOpensAt={data.nextOpensAt}
+            onChanged={refresh}
+          />
+        )}
         {viewer.isKeeper && (
           <KeeperSettingsDialog
             catchupId={data.catchupId}

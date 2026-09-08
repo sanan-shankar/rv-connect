@@ -47,6 +47,7 @@ import { revalidatePath } from "next/cache";
 import {
   addCadenceGap,
   advanceEdition,
+  openNextEdition,
   answeringPatch,
   EDITION_TIMING_SELECT,
   extendPatch,
@@ -279,14 +280,14 @@ async function loadCatchupContext(catchupId: string, userId: string) {
  * The refusal every write into a live Edition shares.
  *
  * `advanceEdition` freezes the CLOCK for a paused or ended Catch-up, which is
- * the whole of B-061's automatic half. It is not the whole story: five Keeper
- * controls (open answering, close and prepare, extend, publish now, nudge) and
- * the two member submissions write the edition directly, in their own
- * transactions, and each of them only ever checked the ROUND's status --
- * `answering` stays `answering` through a pause, so "Publish now" on a paused
- * Catch-up still published it and notified the whole group under a home page
- * saying it was paused. A stale tab opened before the pause is enough to reach
- * every one of them.
+ * the whole of B-061's automatic half. It is not the whole story: four Keeper
+ * controls (open answering, close and publish, extend, nudge) and the two
+ * member submissions write the edition directly, in their own transactions,
+ * and each of them only ever checked the EDITION's status -- `answering` stays
+ * `answering` through a pause, so closing it early on a paused Catch-up still
+ * published it and notified the whole group under a home page saying it was
+ * paused. A stale tab opened before the pause is enough to reach every one of
+ * them.
  *
  * So the freeze is enforced in two places by construction, not one: the clock
  * in `advanceEdition`, and every hand-driven write through here.
@@ -1112,6 +1113,90 @@ export async function closeAndPublish(editionId: string) {
     revalidatePath(`/catchups/edition/${editionId}`);
     revalidatePath("/catchups");
     return { success: true, extended: false };
+  });
+}
+
+/**
+ * Keeper-only: start the next Edition NOW, without waiting for the rhythm.
+ *
+ * THE CONTROL NOBODY HAD, and he found it himself: *"literally after
+ * publishing I can't start a new round?!?! I have to wait for two weeks
+ * minimum ... there's no control for that?? I have to create ANOTHER test
+ * catch up."* Confirmed in the code before it was written: `openNextEdition`
+ * fired on the clock alone, and no action anywhere started one early, for
+ * anyone. Build phase 2, architecture section 6.
+ *
+ * It is ONE-WAY. An Edition cannot be un-opened, and opening one notifies
+ * every member that questions are open, so the accident rule applies: the
+ * control lives in the rail, wears a cinnamon dot and confirms, and is never
+ * beside the primary action (architecture section 6, N30).
+ *
+ * The Keeper holds it, like every other one-way Edition control. A batch
+ * Catch-up has no manual transitions at all and so has none of these; that
+ * case arrives with the batch Catch-up itself, in phase 4.
+ *
+ * The opening itself is `openNextEdition`, the same function the clock uses,
+ * so a hand-started Edition is indistinguishable from a scheduled one --
+ * including the compare-and-swap on `nextOpensAt`, which is what stops two
+ * Keepers on two stale tabs minting two Editions.
+ */
+export async function startNextEditionNow(catchupId: string) {
+  return runAction(async () => {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+    if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
+
+    // Reaches every member with a notification, so it waits on a confirmed
+    // address like every other action that does (audit M29's tier).
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
+
+    const scope = await loadKeeperScope(catchupId, session.user.id, {
+      notMember: "You are not a member of this group.",
+      notKeeper: "Only the Keeper can start the next Edition.",
+    });
+    if ("error" in scope) return scope;
+    const { catchup } = scope;
+    if (catchup.status !== "active") {
+      return catchup.status === "paused"
+        ? { error: "This Catch-up is paused. Resume it to start the next Edition." }
+        : { error: "This Catch-up has ended." };
+    }
+
+    /* The newest Edition, read fresh and advanced first. A Keeper looking at a
+       published Edition on a stale tab may be looking at one that has since
+       been superseded, and "start the next one" must mean the next one after
+       whatever is actually there. */
+    const newest = await prisma.catchupEdition.findFirst({
+      where: { catchupId },
+      orderBy: { number: "desc" },
+      select: { id: true, number: true, status: true },
+    });
+    if (!newest) return { error: "This Catch-up has no Edition yet." };
+    if (newest.status !== "published") {
+      return { error: "There is already an Edition running. This one has to come out first." };
+    }
+
+    const group = await prisma.group.findUnique({
+      where: { id: catchup.groupId },
+      select: { id: true, name: true },
+    });
+    if (!group) return { error: "Catch-up not found." };
+
+    const editionId = await openNextEdition(
+      { id: catchupId, nextOpensAt: catchup.nextOpensAt, group },
+      newest,
+      catchup.nextOpensAt,
+      new Date(),
+      session.user.id
+    );
+    // Lost the compare-and-swap: somebody else, or the clock itself, opened it
+    // in the same breath. Nothing went wrong and there is now an Edition.
+    if (!editionId) return { error: "The next Edition just opened. Reload the page." };
+
+    revalidatePath(`/catchups/${catchupId}`);
+    revalidatePath("/catchups");
+    return { success: true as const };
   });
 }
 
