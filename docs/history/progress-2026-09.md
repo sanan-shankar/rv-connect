@@ -8,6 +8,29 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 — the six migrations stay unrun, and why
+
+He pushed and said Vercel was done. Two checks ran before anything irreversible, and one failed.
+
+**The demo is serving an old build.** The new one renamed `/catchups/round` to `/catchups/edition`;
+on `demo.rishivalley.space` the old path exists and 500s while the new one 404s, which is the
+reverse of a current build. Separately the demo 500s on every data route — feed, Collection,
+directory, letters, Catch-ups — while its database is healthy (every column present, the guard
+script 15/15, 40 people seeded), so it is the deployed app. Filed in `bugs.md`. **He deferred it:**
+*"honestly forget the demo site for now. i'll fix that later after launch. let it fail."*
+
+**Production could not be positively confirmed**, which is the reason nothing was dropped. Every
+route redirects to login before routing, so no status code distinguishes the builds. It looks
+healthy; that is not proof, and these are `DROP`s on members' data with no undo.
+
+The close-out now carries the test the next session should use: fetch the landing page, pull its
+chunk URLs, grep them for `prefers-reduced-motion`. Every check was removed in `fabd7042`, one of
+them in the landing footer's bird, so its **absence** proves the new build is live. Its presence
+proves nothing — the `motion` library ships the same string.
+
+Also still open: `Group.description`, 11 of 18 rows non-null, left out of the groups drop because he
+was asked about a different column and has not answered.
+
 ## 2026-09-08 — Round becomes Edition, build phase 1
 
 His, 2026-09-07: *"let's not use Round or Issue let's call them additions"* — then, a minute
