@@ -65,6 +65,8 @@ Nothing in this list is re-argued here. It is an index so a phase can find its o
 | Deleting becomes leaving | one word, and past answers stay | his answer, N18 |
 | Anyone in a batch may replace its picture | it is reversible, unlike a transition | his answer, N47 |
 | The six with no batch year | nothing changes for them | his answer, N47 |
+| Ten is the floor for a batch Catch-up | and under it, Catch-ups is not on your sidebar | his answer, 2026-09-08, §3.5b |
+| The two clamps in the reader | the list's rows 3 lines, the strip's docked question 2 | his answer, 2026-09-08, §4.3 |
 
 **Two things he still owes**, and neither blocks a phase: the **twenty photographs** (owner
 question 17, "I'll give the pictures when I get time") and the **settings surface**, which he has
@@ -307,7 +309,8 @@ The container already exists and nothing about it has to change (F6): a batch is
 `batchYear` set, and a Catch-up is one row per `Group`. So "a batch Catch-up by default" is one
 `Catchup` row per batch group, and **three places have to create it**:
 
-1. **A backfill migration** for the eleven groups that exist now.
+1. **A backfill migration** for the batch groups that already meet the floor in §3.5b, which
+   today is two of the eleven: Batch of 2023 and Batch of 2024.
 2. **At signup**, in `joinBatchGroup` (`src/components/auth/actions.ts`), which already
    find-or-creates the batch group in a race-safe way. The Catch-up is created in the same
    best-effort block.
@@ -316,7 +319,8 @@ The container already exists and nothing about it has to change (F6): a batch is
    re-checks 'an alumnus with a batchYear and no batch-group row'"*. **That failure has already
    happened.** Rukmini Rau carries `batchYear: 2024` and is not in the Batch of 2024 group. So the
    tick does two idempotent passes: every alumnus with a batch year is in their batch group, and
-   every batch group has a Catch-up. Both are upserts; neither can do anything twice.
+   every batch group **at or over the floor** has a Catch-up. Both are upserts; neither can do
+   anything twice, and the second is also what creates a Catch-up the day a batch reaches ten.
 
 **Its shape**, from `architecture.md` §6: `createdById` null (nobody keeps it), no member editing,
 no leaving, archive only, **and no manual transitions at all** — it runs on its rhythm and the
@@ -348,11 +352,48 @@ nobody, and hands the two missing 2024 alumni the earlier Edition — which is �
 previous issues if they join later"*, arriving for the first person it was ever true of. The
 orphaned snapshot group is deleted in the cleanup phase, after the re-point is confirmed.
 
-**OPEN, and it is his (owner question 19, §15).** Nine of eleven batches have four members or
-fewer, and **six have exactly one** (1972, 1978, 1980, 2016, 2021, 2022). A batch Catch-up for one
-person is a newsletter to yourself, with reminders. The **default** taken here is that the Catch-up exists (so it is there the day a second
-person joins) but **does not open an Edition until the batch has two members**. It is one
-predicate; say the word and it goes either way.
+### 3.5b LOCKED — ten is the floor, and under it Catch-ups is not on your sidebar
+
+**His, 2026-09-08**, answering owner question 19 and going further than the question asked:
+
+> *"for people whose batches have less than ten people, let's not even show the catch ups things in
+> the sidebar. it won't be reachble to them. once there's ten it appears and the catch up would be
+> created for that batch."*
+
+So **ten**, and it governs two separate things:
+
+1. **A batch Catch-up is created when its batch reaches ten members**, not when the group is made.
+   The backfill therefore creates **two** Catch-ups today, not eleven: Batch of 2023 (39) and Batch
+   of 2024 (11). The tick's self-heal creates one the day a batch crosses ten, which is also the
+   day it starts collecting.
+2. **The Catch-ups item is not in the sidebar** for a member with nothing behind it.
+
+**Why the arithmetic is so lopsided, so nobody re-derives it.** Nine of the eleven batches have
+four members or fewer and six have exactly one, so under any smaller floor most batch Catch-ups
+would be a newsletter to yourself, with reminders. Ten is his number and it is a comfortable one:
+it is the size at which a Round has enough voices to read like a Round.
+
+**RECOMMENDED — the sidebar test is "have you got a Catch-up", not "is your batch big".** His
+reason for hiding it is *"it won't be reachble to them"* — hide the door when there is nothing
+behind it. But a member of a small batch can still be **invited to a people Catch-up**, and then
+there is something behind the door. Two live cases prove it is not hypothetical: Jerry Maguire has
+no batch year at all and is a member of two Catch-ups, and **the public demo's visitor is a member
+of `demo-catchup`** — a strict batch-size test would delete Catch-ups from the demo sidebar, which
+hides a whole feature from everyone he shows the app to.
+
+So the predicate is: **you see Catch-ups if you can open at least one Catch-up.** A member of a
+ten-plus batch always can, which is his rule exactly; a member of a small batch can once somebody
+invites them. Nothing else changes. If he meant the stricter reading, it is one clause.
+
+**Hiding a door is not access control.** `/catchups` still renders for anyone signed in, and shows
+the empty state; the invite link `/catchups/join/[token]` still works and makes the sidebar item
+appear the moment it is accepted. A nav item that is hidden must never be the thing enforcing who
+may read what — that is what the membership check is for, and it is unchanged.
+
+**What a member under the floor sees:** nothing. No sidebar item, no batch Catch-up, no
+notifications, no reminders. Twenty of the seventy members are in that position today (fourteen in
+a small batch, six with no batch year), and exactly one of them — Jerry, the test account — is
+kept in by the people-Catch-up clause.
 
 ### 3.6 LOCKED — leaving replaces deleting
 
@@ -569,6 +610,28 @@ unfolds downward in place — and it is now the only one (N46).
 tile's vertical padding down 10% top and bottom (N93), which touches the feed if the number is
 shared — and he asked to be asked before it does.
 
+**The two clamps, decided by him 2026-09-08** (owner question 20), and they swap:
+
+> *"a. make this clamp to three lines and the other one that was previously clamped to three
+> lines, clamp to two lines."*
+
+| | Today | After |
+|---|---|---|
+| The **docked question in the strip**, always on screen (`_navigator.tsx:118`) | 3 lines | **2 lines** |
+| A **row in the pull-down list of questions** (`QuestionList`'s `Row`), no clamp at all | unbounded — a 300-character question is **211px against its neighbours' 41** | **3 lines** |
+
+That inversion is right for a reason worth keeping: the strip is on screen the whole time you are
+reading, so it has to be small; the list is a thing you deliberately pull down, so it can afford
+more. **This closes F41.**
+
+Two traps, both from F41 and both already proved: `overflow: hidden` clips at the **padding** box,
+so a clamp written on the padded button bleeds a band of the fourth line into the row beneath — it
+belongs on an inner span. And the rail's swell measures live row rects, so clamping changes row
+heights and the magnification must be re-checked, not assumed.
+
+`QuestionList` has other callers. Apply the three lines to the navigator's rows; if a cover looks
+wrong under the same clamp, say so rather than quietly adding a second number.
+
 **OPEN, and it is the reader's one unanswered note — N11, the title.** *"In the Loop Round 1, 15th
 August. It's super basic. It works okay. I feel like we can still make it much prettier. The
 title. It's just not that beautiful."* The Edition number has since gone (N92) and the date is
@@ -701,11 +764,11 @@ in it.
 | **1** | **Edition** | the rename, one mechanical pass; the route move plus a permanent redirect | notification links rewritten |
 | **2** | **The clock** | `preparing` deleted; deadlines snap to 07:00 IST; **Start the next Edition now** added — the control nobody had (N43) | `preparing` rows published |
 | **3** | **The picture** | the two columns, the pool module out of the lab, the backfill, creation writes one. Nothing renders it yet | picture columns + backfill |
-| **4** | **The batch Catch-up** | one per batch group; the backfill; the ensure at signup; the tick's two self-heals; the 2024 snapshot adopted; no member editing, no leaving, no manual transitions | batch Catch-ups + membership heal + re-point |
+| **4** | **The batch Catch-up** | one per batch group **at ten members or more** (two of eleven today); the backfill; the ensure at signup; the tick's two self-heals; the 2024 snapshot adopted; **the sidebar item hidden when you have no Catch-up to open** (§3.5b); no member editing, no leaving, no manual transitions | batch Catch-ups + membership heal + re-point |
 | **5** | **Leaving, and the read mark** | `deletedAt` retired, `leaveCatchup` the only exit, the 30-day sweep deleted; `CatchupEditionRead` | archive-from-deleted; the read table |
 | **6** | **The list** | `/catchups` rebuilt from `_list.tsx`, including the spare slots (§5) and the archived row | none |
 | **7** | **The home** | `/catchups/[id]` rebuilt from `_home.tsx`: the head and its two doors, the Edition region per state, the state line, the sidebar of back numbers, the people dialog and sheet, the settings list. Answering moves onto the page; `/answer` deleted and redirected | none |
-| **8** | **The reader** | the front runner transplanted; navigator A; the rebuilt magnification; **N11, the title, decided** | none |
+| **8** | **The reader** | the front runner transplanted; navigator A; the rebuilt magnification; **the two clamps** (§4.3, which closes F41); **N11, the title, decided** | none |
 | **9** | **Comments** | the widened `Comment`, the five actions, `comments-section.tsx` parameterised, `catchup_comment`, the open/close animation | `Comment.entryId` |
 | **10** | **Link previews** | `LinkPreview`, resolution on any pasted link, Spotify and YouTube cards, the fail-soft rule | the `LinkPreview` table |
 | **11** | **Cleanup** | the dead columns dropped **after phases 2, 5 and 10 have deployed**; the three throwaway Catch-ups and the orphaned snapshot group removed; `docs/spec/catchups.md` rewritten to describe what shipped | the drop file |
@@ -931,13 +994,8 @@ The ledger in `handover.md` is the aid; **the brief is the test**. ¶1 to ¶52, 
 - **The settings surface and its confirmations.** §10.3 — his own session, before phase 7.
 - **The photo wall's reading surface.** §11 — the S-features session, before phase 8.
 - **N11, the reader's title.** §4.3 — phase 8 owns it, drawn in the lab and shown to him.
-- **F41, one navigator row swallowing the rail.** At the 300-character question cap one row
-  measures **211px against its neighbours' 41**, and clamping it means truncating a member's
-  words in the one place they are how you move. That is a design decision, not a build one, and it
-  is **his** — owner question 20 below. Two traps for whoever eventually fixes it are recorded in
-  F41: `overflow: hidden` clips at the padding box, so a clamp on the padded button bleeds a band
-  of the fourth line into the row beneath and belongs on an inner span; and photographs are keyed
-  by position now, because a duplicate React key is a child React may silently drop.
+- **F41 is no longer open.** He answered it on 2026-09-08: three lines on the list's rows, two on
+  the strip's docked question. It lands in phase 8; see §4.3 for the two traps that come with it.
 - **The refactor pass.** ¶20 fences it: *"We don't have to refactor the catch-ups portion yet."* A
   2,054-line actions file is not this campaign's problem unless a design needs it changed. Phases
   7 and 9 will shrink it as a side effect; nothing here chases it for its own sake.
@@ -947,31 +1005,22 @@ The ledger in `handover.md` is the aid; **the brief is the test**. ¶1 to ¶52, 
 
 ---
 
-## 15. Owner questions this spec opens
+## 15. Owner questions this spec opened, and how they closed
 
-Same five-line shape as the handover's, with a default on each. One reply covers them:
-*"defaults, except..."*. Added to `handover.md` under "Owner questions" as 19, 20 and 21.
+**All three are closed as of 2026-09-08.** Nothing in this spec is waiting on him. What is still
+his, and is not a question, is listed in §1: the twenty photographs, and the settings surface he
+has claimed for a session of his own.
 
-**19. Six of your eleven batches have exactly one person in them.**
-- **What I'd change:** their batch Catch-up still exists, so it is already there the day a second
-  person joins, but it does not start an Edition until there are two of them.
-- **What you'd notice:** nothing, unless you are the only person from your year — in which case
-  you see the Catch-up sitting there quietly instead of being asked questions by yourself.
-- **If I guess wrong:** a person alone in their batch gets a newsletter to themselves, with
-  reminders, forever.
-- **Options:** (a) exists, waits for a second member (b) runs normally from day one (c) no batch
-  Catch-up at all until there are two.
-- **If you don't reply I'll do:** (a).
+**19. ANSWERED 2026-09-08, and he went further than the question.** *"for people whose batches have
+less than ten people, let's not even show the catch ups things in the sidebar. it won't be reachble
+to them. once there's ten it appears and the catch up would be created for that batch."*
+Written up as **§3.5b**, with one reading marked RECOMMENDED: the sidebar test is "have you got a
+Catch-up" rather than "is your batch big", because the demo's visitor and any small-batch member
+invited to a people Catch-up both have something behind the door.
 
-**20. A very long question makes one row of the reader's navigator five times taller than its neighbours.**
-- **What I'd change:** clamp that row to three lines with a "…", which is your own number for the
-  docked question. The full question is still there when you land on it.
-- **What you'd notice:** in the list you pull down while reading, a 300-character question stops
-  taking up 211 pixels against everything else's 41.
-- **If I guess wrong:** we are cutting a member's own words in the one place they are how you move.
-- **Options:** (a) clamp to three lines (b) leave it, a long question is long (c) clamp to two.
-- **If you don't reply I'll do:** nothing — this one waits for you, because it is the only item in
-  this spec that truncates something a member wrote.
+**20. ANSWERED 2026-09-08 — (a), and the strip drops to two.** *"a. make this clamp to three lines
+and the other one that was previously clamped to three lines, clamp to two lines."* Written up in
+§4.3. **This closes F41**, which had been open since 2026-09-07.
 
 **21. WITHDRAWN — it was already answered and already done.** *(asked and withdrawn 2026-09-08,
 within an hour, when the commit was found)*
