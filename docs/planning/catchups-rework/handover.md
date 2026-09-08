@@ -143,8 +143,9 @@ Everything is **max** effort.
 many independent readings of the same thing (research shapes, transcript stretches, failure
 modes, alternative designs from one shared brief), and it hurts when the work is one long
 sequence with state (a browser walked through every Catch-up state; a room built and looked
-at; a build phase with a gate). It also cannot help where the machine is the limit: his Mac
-has hung under browser fleets, so S1 and S4 are one browser each regardless. The one risk he
+at; a build phase with a gate). It also cannot help where the work is one browser walked
+through many states in order, which S1 and S4 both are -- that is a shape limit, not a machine
+limit. **The machine limit is withdrawn: he corrected it on 2026-09-09** (see Operational context). The one risk he
 named, summarisation of summarisation, is avoided by the rule in the writing-for-agents skill:
 every worker reads `brief.md` itself, in full, from disk; nobody gets a digest. So: turn
 ultracode on for **S3 (and S3b) and M1** and leave it off for everything else. S2 already ran
@@ -1454,8 +1455,15 @@ learned since.
 - **The repo root is closed.** Scratch goes to `/tmp` or dies in the command that made it;
   shots to `e2e/.shots/`; notes to `docs/`; scripts that stay to `scripts/dev` or
   `scripts/qa` with their working folder beside them.
-- **His machine has hung under browser fleets.** One `chrome-devtools` instance; the
-  desktop-plus-mobile `screenshot-qa` pair is the ceiling.
+- **There is no browser ceiling. He withdrew it on 2026-09-09**: *"nah it can be anything even
+  photos etc. there's no hanging. it handles 4 sessions sometimes. update whatever told you that."*
+  The old rule -- one `chrome-devtools`, one `screenshot-qa` pair, because his Mac had hung -- is
+  dead everywhere, and this file, `spec.md`, the two audit prompt templates, the `/campaign` skill
+  and the machine-load memory were all corrected the same day. Parallel browser work and parallel
+  sessions are fine. **What is NOT withdrawn** is the other half of that memory, which he has never
+  reversed: usage is spent deliberately, and `npm run check` still must not run at the same time as
+  `npm run visual` -- that one is a false-diff problem, not a memory problem, and it bit twice on
+  2026-08-29.
 - **"kowalski"** anywhere in a message means: reply at once with a compact progress report
   and keep working.
 
@@ -2879,9 +2887,13 @@ then-and-now is worth building at all.
 ```
 @docs/planning/catchups-rework/handover.md
 
-You are S13. Two jobs, in this order.
+You are S13. ONE job: draw the photo wall's reading surface.
 
-JOB 1, and it is an hour: fold his 2026-09-09 decisions into spec.md.
+(Job 1 of the old paste line, folding his 2026-09-09 decisions into spec.md, was
+done on 2026-09-09 alongside his settings session. spec.md now carries 3.10 to
+3.13 and phases 12 to 14, and phase 11 is corrected. Read those before drawing.)
+
+OLD JOB 1, for the record: fold his 2026-09-09 decisions into spec.md.
 Read features.md section 1 first -- it is his verdict on every proposal, in his
 own words, and it outranks anything older. Then add to spec.md section 9:
 

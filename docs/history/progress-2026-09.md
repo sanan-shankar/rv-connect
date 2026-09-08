@@ -8,6 +8,45 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-09 — the approved features become spec, and the browser ceiling is withdrawn
+
+Run beside his settings session, in `docs/planning/` only, so the paths were disjoint.
+
+**Four new spec sections.** §3.10 a question you answer out loud, §3.11 a question the group votes
+on, §3.12 time capsule mode, §3.13 reading before you have written. Three new phases, 12 to 14.
+
+**Two places the spec now disagrees with what S-features proposed, and says so.** The voice answer
+is an answer MODE on any text question rather than a question KIND, because the barrier it removes
+is typing and typing is the barrier on every question, not on one the Keeper remembered to pick.
+And the poll does NOT widen the feed's `PollOption`/`PollVote`: both carry a non-null `postId` and
+a required `Post` relation, so widening means two nullable foreign keys and a permanent coupling
+for no shared behaviour. A `CatchupPromptOption` table plus one nullable column on `CatchupEntry`
+is smaller — and because an entry already carries `@@unique([promptId, authorId])`, one vote per
+person is enforced by a constraint that already exists and a voter appears in "who wrote in" with
+no new code.
+
+**Phase 11 is corrected**: `CatchupEdition.publishAt` is NOT dropped. A time capsule is a scheduled
+publish date and it is the same column.
+
+**One thing is left OPEN rather than decided**, and deliberately. His *"answers are definitely
+hidden until you write your own"* does nothing as the app stands — nothing is readable before an
+Edition is published anyway. So it is either a confirmation of today or a request for a real
+feature, and §3.13 puts both readings down with owner question 22 rather than guessing. This
+campaign was burned once by over-reading him, on 2026-09-05, when a dozen marks had turned "if
+there's a reason, sure" into a locked decision.
+
+**The track X row's numbers are corrected** from the recon's 603 KB / 2.6s to the measured 223 KB
+and 1,333 to 1,809 ms; the older figure was uncompressed.
+
+**And the browser ceiling is withdrawn**, at his instruction: *"nah it can be anything even photos
+etc. there's no hanging. it handles 4 sessions sometimes. update whatever told you that."* The rule
+— one `chrome-devtools`, one `screenshot-qa` pair, because his Mac had hung — is now dead in the
+`/campaign` skill, both audit prompt templates, this campaign's handover and spec, and the
+machine-load memory. **What survives is the other half he has never reversed**: usage is spent
+deliberately. And one concurrency rule survives on its own merits, because it was never about
+memory — `npm run check` still does not run beside `npm run visual`, which caused spurious
+whole-page diffs twice on 2026-08-29.
+
 ## 2026-09-09 — he rules on every feature, invents the time capsule, and asks for the question library
 
 He went through `features.md` out loud and ruled on all eleven proposals plus the four written up

@@ -525,6 +525,166 @@ Edition look different from a read one on the list, without anything counting an
 standing objection is to counts, not to signals (R32: *"you're trying so hard to include useless
 information"*). `ShelfRound.read` in the drawing is already wired for it.
 
+### 3.10 LOCKED that it exists, RECOMMENDED how — a question you answer out loud
+
+His, 2026-09-09, after reading that every product near this one has moved to voice:
+
+> *"We should definitely have this. You can just answer your question by talking and it plays back
+> the transcript. Very good idea. Sorry, it plays back the audio. I'm thinking for transcript we
+> could just do it through. I don't know. Can you do it through the browser? Can probably do it
+> through the browser. So that should be fine."*
+
+Two things are his and settled: **the Edition plays back the AUDIO**, not a written stand-in for
+it, and **the transcript comes from the browser**. He is right about the browser — `SpeechRecognition`
+runs on the device while the person is talking, so no bytes go anywhere, there is no key and there
+is no bill. That matters here: this project has no paid API keys and is not getting one.
+
+**RECOMMENDED — it is an answer MODE, not a question kind.** Any text question can be answered out
+loud. The alternative, a `voice` category beside `photo-wall` and `songs`, is the obvious shape and
+it is worse: the barrier this removes is typing, and typing is the barrier on *every* question, not
+on one the Keeper remembered to pick. A question kind would also mean a member of 1978 can only
+speak when somebody else chose a speaking question.
+
+**The data.** An out-loud answer is an ordinary answer with a recording attached, which keeps the
+magazine, the search and every existing read path working with no branch:
+
+```prisma
+// on CatchupEntry
+audioUrl      String?   // the recording in R2
+audioSeconds  Int?      // for the player's rail, so it draws before the file loads
+audioIsAuto   Boolean @default(false)  // the body was transcribed, not typed
+```
+
+`body` holds the transcript. It is editable, because speech recognition gets names wrong and this
+one will meet "Rishi Valley", "Bhoothi" and forty Indian surnames. `audioIsAuto` is what lets a
+surface say so.
+
+**Three things that will bite, written down now rather than discovered in the phase:**
+
+- **Firefox has no `SpeechRecognition` at all**, and Safari's is `webkit`-prefixed. So **audio with
+  no transcript has to be a complete, unembarrassing answer** — not a degraded one. Draw that case
+  first, not last.
+- **The recording format is not one format.** Chrome's `MediaRecorder` gives webm/opus and Safari
+  gives mp4/aac. Both must play back on both. Store what the browser produced and let the `<audio>`
+  element sort it out; do not transcode on a server we do not have.
+- **`putImage`/`delImage` in `src/lib/storage.ts` is an IMAGE shim** — Sharp, WebP, the 1920px box.
+  Audio needs its own path through the same R2 bucket, and the purge needs to learn about
+  `audioUrl` the way it learned about `pictureSrc` in phase 3.
+
+**A cap of 90 seconds.** A minute is short for a story and three is a podcast. It is one constant.
+
+### 3.11 LOCKED — a question the group votes on
+
+His: *"F2. Yes, sure."*
+
+The evidence it works is already in the database: **"Who believes Sanan made this website?" drew
+eleven answers averaging 46 characters** — a poll that had to be typed because there was no poll.
+
+**RECOMMENDED, and this corrects the shape S-features proposed.** That document said to widen the
+feed's `PollOption`/`PollVote`, on the grounds that the machinery exists. On inspection it is the
+wrong reuse: both tables carry a non-null `postId` and a required `Post` relation, so widening them
+means two nullable foreign keys, two check constraints nobody writes, and a permanent coupling
+between Catch-ups and the feed's poll for no shared behaviour. Smaller and cleaner:
+
+```prisma
+model CatchupPromptOption {
+  id       String @id @default(cuid())
+  promptId String
+  text     String
+  position Int
+  prompt   CatchupPrompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  @@index([promptId])
+}
+
+// on CatchupEntry
+pollOptionId String?
+```
+
+**A vote IS an answer.** `CatchupEntry` already carries `@@unique([promptId, authorId])`, so one
+vote per person per question is enforced by a constraint that already exists, a voter appears in
+"who wrote in" like everybody else, and the heart works on a vote with no new code. The options
+belong to the question because the question is where they are written.
+
+**The published result is a thing worth looking at, and that is the design half.** Not a bar chart
+with percentages — the app's standing objection is to useless information (R32). Who chose what,
+with their birds, is the interesting part in a group of seventy people who know each other.
+
+### 3.12 LOCKED that it exists, RECOMMENDED how — time capsule mode
+
+**His own idea**, 2026-09-09, and the best thing to come out of S-features:
+
+> *"we should have maybe like a time capsule mode ... where it will release the addition only one
+> year later. I don't know how we wire it up. Maybe something in settings. Say make this a time
+> capsule. And we'd probably change the library a little bit, tweak it a little bit so that those
+> questions are more relevant, maybe something's a little bit more personal, maybe some things what
+> would you hope your life looks like in a year later or something like that."*
+
+**What a member sees.** The Catch-up's settings carry a switch. Everyone writes as normal; the
+deadline passes; and instead of the Edition coming out, it is sealed. The home says what it is
+sealed until. A year later it opens, everybody is told, and they read what they wrote when they had
+forgotten writing it.
+
+```prisma
+// on Catchup
+timeCapsule Boolean @default(false)
+```
+
+**And the publish date is `CatchupEdition.publishAt`, the column phase 11 was about to drop.** See
+the correction in §9. A time capsule is exactly a scheduled publish, the column already exists, and
+dropping it now to add it back in November is two migrations against a live database for nothing.
+
+**The clock does not need a new mechanism.** Phase 2 made answering → published one transition on
+the nightly tick at 07:00 IST. A sealed Edition is the same transition with `publishAt` a year out,
+so the tick already does it and `notifyPublished` already fires from the same place.
+
+**Two decisions that are the design and not the data**, and they want drawing before building:
+
+- **What a sealed Edition looks like for a year.** It is not an empty state and it must not read as
+  a Catch-up that has gone quiet. It is the one surface in this feature whose whole content is
+  anticipation.
+- **Whether you can read your own answer while it is sealed.** Yes, is the recommendation: it is
+  your writing, and a capsule you cannot check you contributed to is a worry rather than a promise.
+  Nobody else's, obviously.
+
+**The library tweak is half the feature, not a detail.** A sealed Edition wants questions worth
+opening a year later — what you hope is different, what you are afraid of, where you think you will
+be living. A time capsule full of "best thing you ate this month" is a wasted year. `features.md` §2
+has the shape of the library; this is a set within it.
+
+### 3.13 OPEN — reading before you have written, and it is one sentence from him
+
+His words, and they need a reading rather than a transcription:
+
+> *"Yeah, answers are definitely hidden until you write your own. But if the addition is out, you
+> should be able to read it whether or not you participate in."*
+
+The second half is unambiguous and is **already true**: a published Edition is open to every member
+of the Catch-up, including somebody who wrote nothing and somebody who joined afterwards (¶4).
+Nothing to build.
+
+**The first half is where the reading is needed, because as the app stands today it does nothing.**
+No surface shows anybody's answers before an Edition is published — the reader gates on `published`
+and `not-yet-published.tsx` covers every earlier deep link. So "hidden until you write your own" is
+either a confirmation of what already happens, or it is a request for something new.
+
+- **Reading (a): he is confirming today.** Nothing is readable until publish, then it is open to
+  all. Nothing to build, and his sentence does no work.
+- **Reading (b): during the answering window, answers arrive and you can read the ones that have
+  landed — but only once you have written your own.** This is the only reading under which the
+  first half of his sentence means anything, and it is a real feature: it makes the week between
+  opening and publishing alive instead of dead, and it rewards answering early rather than on the
+  last night. It is also the thing that was written up in `features.md` as *considered and not
+  proposed* on the grounds of being coercive, which he then said yes to.
+
+**Do not guess.** This spec has been burned once by over-reading him — the 2026-09-05 ledger check
+found a dozen marks that had turned "if there's a reason, sure" into a locked decision. (b) is the
+recommendation, because it is the only one where his sentence has content, and because his own
+limit on it is the thing that removes the coercion: once the Edition is out, it is open to
+everybody regardless.
+
+**If (b): it lands inside phases 7 and 8** and needs no new table. "Have I answered this Edition"
+is one `CatchupEntry` row; the answering page already knows it.
+
 ---
 
 ## 4. The surfaces
@@ -764,25 +924,30 @@ in it.
 
 | # | Phase | What lands | Migration |
 |---|---|---|---|
-| **X** | **Fast fixes** | the heart's `revalidatePath` (F23: 603 KB and 2.6s per tap, and the fix is deleting two lines); `break-words` on the answer body and question heading (F18, the phone overflow he can see today); the image viewer's three swipe faults (V1 to V3, which he allowed to touch the feed); the caption clamp 2 lines → 4 (¶32, D38) | none |
+| **X** | **Fast fixes** — **PARTIAL, 2026-09-08/09** | **Done**: the heart's `revalidatePath` deleted (measured on the live Edition at 1440, four taps each way — **223 KB and 1,333 to 1,809 ms a tap became 1 KB and 514 to 781 ms**; the older 603 KB / 2.6s figure was uncompressed and is corrected here); `break-words` on the answer body, the question heading, the photo-wall caption, the feed's post body and a letter's body (F18 — the document laid out **414px wide in a 390px window**, which is his half-centimetre); the caption clamp 2 → 4; **V1, the viewer's size snap**, now a box tweening 520 → 293 across the step's own 220ms. **Open: V2 and V3**, the swipe back that lands on the first photograph and its overshoot. Six attempts could not reproduce them and they are NOT guessed at; `/lab/catchups/swipe` is the instrument, on his own device. He confirmed 2026-09-09 it happens on phone AND laptop | none |
 | **1** | **Edition** — **DONE 2026-09-08** | the rename, one mechanical pass; the route move plus a permanent 308. `roundLabel()` deleted and its five call sites re-worded. `npm run visual` 25/25, no baseline moved | written, **applied after the deploy**: `2026-09-08-round-becomes-edition.sql` rewrites `Notification.link` (61 rows) and `ContentView.kind` (17). Running it first would 404 sixty-one live bell links on the build still deployed |
 | **2** | **The clock** | `preparing` deleted; deadlines snap to 07:00 IST; **Start the next Edition now** added — the control nobody had (N43) | `preparing` rows published |
 | **3** | **The picture** | the two columns, the pool module out of the lab, the backfill, creation writes one. Nothing renders it yet | picture columns + backfill |
 | **4** | **The batch Catch-up** — **DONE 2026-09-08** | two created (2023 and 2024, the only batches at ten); `createdById` and `inviteToken` NULL on both; the 2024 snapshot adopted after an assertion, keeping its Edition; `joinBatchGroup` moved to `src/lib/batch-catchups.ts` and now ensures the Catch-up; the tick's two self-heals, on the CRON sweep only; both Keeper preambles and both exits refuse a batch; the sidebar item hidden when you have no Catch-up to open. **Measured: 51 of 70 members now see Catch-ups, 15 lose the row.** No schema change | `2026-09-08-batch-catchups.sql`, applied to both: 1 membership healed, 1 re-point, 1 Catch-up, 1 Edition on production; a clean no-op on the demo |
 | **5** | **Leaving, and the read mark** — **DONE 2026-09-08** | `setCatchupDeleted`, the 30-day bin, its retention sweep, its shelf and `restoreOwnCatchupCopy` all deleted; `leaveCatchup` the only exit and the only holder of the batch refusal; Delete became **Leave** on the list. `CatchupEditionRead` is a table of its own rather than a read of `ContentView` (the analytics counter, no FK on `targetId`, written before the reader knows the status), written past the published gate. **Nothing draws the mark yet; phase 6 does.** `deletedAt` the COLUMN waits for phase 11 | `2026-09-08-leaving-and-the-read-mark.sql`, applied to both: 0 rows moved on each (counted first), the index dropped, the read table created |
 | **6** | **The list** | `/catchups` rebuilt from `_list.tsx`, including the spare slots (§5) and the archived row | none |
-| **7** | **The home** | `/catchups/[id]` rebuilt from `_home.tsx`: the head and its two doors, the Edition region per state, the state line, the sidebar of back numbers, the people dialog and sheet, the settings list. Answering moves onto the page; `/answer` deleted and redirected | none |
-| **8** | **The reader** | the front runner transplanted; navigator A; the rebuilt magnification; **the two clamps** (§4.3, which closes F41); **N11, the title, decided** | none |
+| **7** | **The home** | `/catchups/[id]` rebuilt from `_home.tsx`: the head and its two doors, the Edition region per state, the state line, the sidebar of back numbers, the people dialog and sheet, the settings list. Answering moves onto the page; `/answer` deleted and redirected. **Carries §3.13 if he confirms reading (b)**: during answering you can read what has arrived, but only once you have written | none |
+| **8** | **The reader** | the front runner transplanted; navigator A; the rebuilt magnification; **the two clamps** (§4.3, which closes F41); **N11, the title, decided**; the photo wall's reading surface, drawn and picked before this phase starts. **Carries §3.13's other half, which is already true and must stay true: a PUBLISHED Edition is open to every member whether they wrote or not** | none |
 | **9** | **Comments** | the widened `Comment`, the five actions, `comments-section.tsx` parameterised, `catchup_comment`, the open/close animation | `Comment.entryId` |
 | **10** | **Link previews** | `LinkPreview`, resolution on any pasted link, Spotify and YouTube cards, the fail-soft rule | the `LinkPreview` table |
-| **11** | **Cleanup** | the dead columns dropped **after phases 2, 5 and 10 have deployed**; the three throwaway Catch-ups and the orphaned snapshot group removed; `docs/spec/catchups.md` rewritten to describe what shipped | the drop file |
+| **11** | **Cleanup** | the dead columns dropped **after phases 2, 5 and 10 have deployed**; the three throwaway Catch-ups and the orphaned snapshot group removed; `docs/spec/catchups.md` rewritten to describe what shipped. **CORRECTED 2026-09-09: `CatchupEdition.publishAt` is NOT dropped.** It was on the list because the `preparing` hold it served died in phase 2 — but a time capsule (§3.12) is exactly a scheduled publish date and it is the same column. Dropping it now to add it back is two migrations against a live database for nothing. Keep it, and say so in the file. `CatchupPref.deletedAt` still goes | the drop file |
+| **12** | **A question you answer out loud** | §3.10. `audioUrl`, `audioSeconds`, `audioIsAuto` on `CatchupEntry`; the recorder in the composer; the player in the reader; the browser's own speech recognition writing the body, editable afterwards. **Draw the no-transcript case first**, because Firefox has none | the three columns |
+| **13** | **A question the group votes on** | §3.11. `CatchupPromptOption`, `CatchupEntry.pollOptionId`; options written where the question is written; the published result drawn as who chose what, with their birds, and never as a percentage | one table, one column |
+| **14** | **Time capsule** | §3.12. `Catchup.timeCapsule`; the switch in the settings surface; `publishAt` a year out and the tick already publishing it; **the sealed-Edition surface, which is a drawing job and the real content of this phase**; the library's own capsule set | one column |
 
 **Two sessions run beside these, not inside them.**
 
 - **The settings surface and the confirmations** (§11.3). His, N100: *"I think the settings dialog
   needs refining but no need to do that now I can do it in a separate session."* Before phase 7.
-- **S-features** (§12). After this spec, before or beside phases 9 and 10, because two of its three
-  pieces are LOCKED decisions those phases have to carry anyway.
+- **S-features** — **DONE 2026-09-09**, `features.md`, and he has ruled on every item. What came out
+  of it is now §3.10 to §3.13 and phases 12 to 14 above. **The photo wall's reading surface is the
+  one piece that is not a phase of its own**: it is drawn in the lab, he picks, and it ships inside
+  phase 8, because it can change a page already drawn.
 
 **Track M, the magazine**, runs on its own timetable from `M1` and is not sequenced here.
 
@@ -918,8 +1083,10 @@ So none of it is explained twice.
 - **Never any Vercel CLI command.** Env vars, domains and settings are his, in the dashboard.
 - **The repo root is closed.** Scratch dies in the command that made it; scripts that stay go in
   `scripts/dev/` or `scripts/qa/` with their working folder beside them.
-- **His machine has hung under browser fleets.** One `chrome-devtools` instance; the
-  desktop-plus-mobile `screenshot-qa` pair is the ceiling.
+- **There is no browser ceiling**, withdrawn by him on 2026-09-09: *"nah it can be anything even
+  photos etc. there's no hanging. it handles 4 sessions sometimes."* Parallel browsers and parallel
+  sessions are fine. `npm run check` and `npm run visual` still do not run at the same time, for a
+  different reason: spurious whole-page diffs, twice on 2026-08-29.
 - **"kowalski"** anywhere in a message: reply at once with a compact progress report, and keep
   working.
 
@@ -1010,6 +1177,23 @@ The ledger in `handover.md` is the aid; **the brief is the test**. ¶1 to ¶52, 
 ---
 
 ## 15. Owner questions this spec opened, and how they closed
+
+**22. Can people read the answers that have come in before the Edition is out?** (opened 2026-09-09,
+§3.13)
+- **What I'd change:** while everyone is still writing, you could read the answers already in — but
+  only once you have written your own. The moment the Edition comes out it is open to everybody,
+  whether they wrote or not, which is your own line and does not change.
+- **What you'd notice:** the week between a Catch-up opening and the Edition arriving stops being
+  dead. You answer on Monday and there is something to come back to on Tuesday.
+- **If I guess wrong:** you said "answers are definitely hidden until you write your own", and as
+  the app stands today that sentence does nothing — nothing is readable before publish anyway. So
+  either you were confirming what already happens, or you meant this. I would rather ask than
+  decide it for you.
+- **Options:** (a) yes, you can read what has arrived once you have written  (b) no, nothing is
+  readable until the Edition is out, which is what happens today.
+- **If you don't reply I'll do:** (b), because it is today's behaviour and building (a) on a
+  reading rather than on your word is how this campaign has gone wrong before.
+
 
 **All three are closed as of 2026-09-08.** Nothing in this spec is waiting on him. What is still
 his, and is not a question, is listed in §1: the twenty photographs, and the settings surface he
