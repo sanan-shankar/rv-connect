@@ -507,19 +507,50 @@ export function CollectionClient({
     movingUp.current = false;
   }, []);
 
+  /** Set while the pull now in flight was asked for by the zero rule below
+   *  rather than by a gesture. The anchor reads it: a zero pull is the one
+   *  prepend that MUST move the reader, and the correction's ordinary guard
+   *  would refuse to. Cleared as it is consumed. */
+  const zeroPull = useRef(false);
+  /** The zero rule, spent. One per river; a new query re-arms it. */
+  const zeroPullSpent = useRef(false);
+
   /** Does the reader want the year above the one they are looking at?
    *
    *  Two ways to say yes, and the second is not a nicety. Travelling upward
    *  is the ordinary one. But a seek can land at the very top of the
    *  document -- a `?when=` link opens there, with nothing above the river
    *  but the page header -- and a reader who is already at zero HAS NO WAY
-   *  to scroll up, so the absence of a gesture IS the request there. It
-   *  fires once: the page that arrives is anchored above them, which puts
-   *  the scroll off zero, and from there the ordinary rule takes over. What
+   *  to scroll up, so the absence of a gesture IS the request there. What
    *  it must never do is fire at a landing the reader can still climb out of
    *  by hand, which is why this is not simply "the seam is on screen". The
-   *  stranding this ends is quoted at the scroll listener below. */
-  const wantsNewer = useCallback(() => movingUp.current || window.scrollY <= 0, []);
+   *  stranding this ends is quoted at the scroll listener below.
+   *
+   *  ONCE PER RIVER, AND IT USED TO BE A STANDING CONDITION. That is the
+   *  whole bug: `scrollY <= 0` cannot stop being true by itself, because the
+   *  correction that was supposed to push the reader off zero declines to
+   *  move anybody above the seam -- and a reader at zero always is. So the
+   *  answer stayed yes, the seam stayed in range, and the river fetched
+   *  itself. Measured on the class archive on 2026-09-09, with no input at
+   *  all for ten seconds after pressing 2020: 27 pages, 932 photographs,
+   *  65,883px of document, and the rail walking 2020 -> 2021 -> 2022 -> 2023
+   *  -> 2026 while the reader sat still. "It's stuck at the top and then
+   *  loads all the photos in these steps and then goes to higher and higher
+   *  years" (owner, 2026-09-09).
+   *
+   *  Two independent brakes, because this has come back three times: the
+   *  latch here means the rule can only ever fire once, and `zeroPull` makes
+   *  the prepend it asks for actually land the reader off zero, so the
+   *  ordinary rule takes over exactly as the paragraph above always claimed
+   *  it did. Either alone would end the loop. Both, because the failure is
+   *  silent, unbounded, and hammers the database. */
+  const wantsNewer = useCallback(() => {
+    if (movingUp.current) return true;
+    if (window.scrollY > 0 || zeroPullSpent.current) return false;
+    zeroPullSpent.current = true;
+    zeroPull.current = true;
+    return true;
+  }, []);
 
   useEffect(() => {
     lastScrollY.current = window.scrollY;
@@ -543,14 +574,62 @@ export function CollectionClient({
          answers the question the reader is actually asking with their finger. */
       if (headNear.current && wantsNewer()) pullNewer.current();
     };
+    /* AT ZERO THERE IS NO SCROLL EVENT TO HEAR, which is the hole the rule
+       above cannot cover on its own. A reader already at the top of the
+       document who flicks upward moves nothing, so `scroll` never fires and
+       the listener never gets to ask the question -- they are stranded at the
+       year they seeked to with no way to reach the one above it. The gesture
+       is real even though the page did not move, and `wheel` is where it
+       still exists.
+
+       This re-arms the latch rather than pulling directly: everything else --
+       the seam being in range, a page not already being in flight -- stays
+       the responsibility of the code that already owns it. Bounded by input
+       by construction, so it cannot become the loop it replaces: a reader who
+       is not touching the trackpad emits no wheel events, and momentum during
+       a fetch is absorbed by `loadNewer`'s own `loadingNewer` guard. */
+    const rearm = () => {
+      if (window.scrollY > 0 || !headNear.current) return;
+      zeroPullSpent.current = false;
+      if (wantsNewer()) pullNewer.current();
+    };
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY < 0) rearm();
+    };
+    /* The same gesture on a phone, where there is no wheel and the finger is
+       the only evidence. Dragging DOWNWARD asks for what is above, which is
+       why this reads `> lastTouchY`; the 4px threshold is the touch-sized
+       version of the dead band the scroll listener keeps. */
+    let lastTouchY = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      lastTouchY = e.touches[0]?.clientY ?? 0;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const y = e.touches[0]?.clientY ?? 0;
+      if (y > lastTouchY + 4) rearm();
+      lastTouchY = y;
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("wheel", onWheel, { passive: true });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+    };
   }, [wantsNewer]);
 
   useEffect(() => {
     if (seeded.current === fetchPage) return;
     let cancelled = false;
     generation.current += 1;
+    /* A new river gets its own zero pull. The latch is per-query, not per
+       session: every seek lands somebody at a head they cannot climb out of
+       by hand, and each of those landings is entitled to exactly one page. */
+    zeroPullSpent.current = false;
+    zeroPull.current = false;
     setLoading(true);
     (async () => {
       // callAction: a rejected fetch (deploy skew, dropped network, expired
@@ -653,6 +732,16 @@ export function CollectionClient({
         toast.error(data.error);
         return;
       }
+      /* WARMED BEFORE IT IS MOUNTED, not awaited. The sentinel fires 1200px
+         early, so this page has a screen and a half of reader-travel to
+         decode in -- and spending it means the tiles arrive already drawn
+         instead of blank boxes that fill in one at a time under a moving eye.
+         "The photos going to appear plainly and they just suddenly appear
+         instead of coming in smoothly" (owner, 2026-09-09); measured on a
+         fast flick at 4x throttle, 14 of 16 tiles in the viewport were still
+         empty. Fire and forget: `new Image().src` starts the fetch on its
+         own, and nothing here should hold up the append. */
+      void warmThumbs(data.photos, data.photos.length, 0);
       setPhotos((prev) => appendUnseen(prev, data.photos));
       setCursor(data.nextCursor);
     } finally {
@@ -727,7 +816,13 @@ export function CollectionClient({
      toward newer photographs, prepended at the head instead of appended at
      the foot. `prependUnseen` is `appendUnseen`'s own mirror, same
      guarantee reversed (see its docblock). */
-  const scrollAnchor = useRef<{ height: number; top: number; seam: number } | null>(null);
+  const scrollAnchor = useRef<{
+    height: number;
+    top: number;
+    seam: number;
+    /** This prepend was asked for by the zero rule, not by a gesture. */
+    fromZero: boolean;
+  } | null>(null);
   const loadNewer = useCallback(async () => {
     /* Never while a page is arriving at the FOOT, and `more` returns the
        same courtesy. The correction below reads one number -- how much
@@ -770,7 +865,12 @@ export function CollectionClient({
              and back into photographs they had just left. That is the second
              half of "it brings me down". */
           seam: (head.current?.getBoundingClientRect().top ?? 0) + scroller.scrollTop,
+          fromZero: zeroPull.current,
         };
+      zeroPull.current = false;
+      // Same warming as the foot, and it matters more here: a page landing
+      // ABOVE the reader is one they are travelling toward at flick speed.
+      void warmThumbs(data.photos, data.photos.length, 0);
       setPhotos((prev) => prependUnseen(data.photos, prev));
       setTopCursor(data.topCursor ?? null);
     } finally {
@@ -820,14 +920,30 @@ export function CollectionClient({
       return;
     }
     if (!scrollAnchor.current) return;
-    const { height, top, seam } = scrollAnchor.current;
+    const { height, top, seam, fromZero } = scrollAnchor.current;
     scrollAnchor.current = null;
     const scroller = document.scrollingElement;
     if (!scroller) return;
     // Above the seam, nothing that arrived is above the reader, so there is
     // nothing to correct for and moving them would be the bug rather than
     // the fix.
-    if (top < seam) return;
+    //
+    // EXCEPT FOR THE ZERO PULL, which is the one prepend nobody gestured for.
+    // A reader parked at the head of a seek is above the seam by definition,
+    // so this guard refused to move them -- and refusing is what left
+    // `scrollY <= 0` true and the river fetching itself (see `wantsNewer`).
+    // It also put the year they did not ask for at the top of their view:
+    // press 2020, get 2021. Correcting instead keeps 2020 under their eye and
+    // hangs 2021 above it, which is what an upward scroll is then FOR.
+    //
+    // `syncScrollWatch` on the way out, not just on the way through. Leaving
+    // early used to skip it, so `movingUp` stayed armed from the flick that
+    // started the pull and the next scroll event asked for another page --
+    // the tight half of the same loop.
+    if (top < seam && !fromZero) {
+      syncScrollWatch();
+      return;
+    }
     landAt(top + (scroller.scrollHeight - height), tail.current);
     syncScrollWatch();
   }, [photos, headOfRiver, topOfBand, syncScrollWatch]);

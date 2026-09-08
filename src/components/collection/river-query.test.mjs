@@ -87,20 +87,25 @@ test("loadNewer does not build its own query", () => {
  * valley's 17 photographs to 41 nodes.
  */
 test("the river's sections are keyed by something unique AND still", () => {
+  /* Matched on the KEY rather than on the element that carries it. The band
+     is rendered through a memoised <BandSection> since 2026-09-09, so the key
+     sits on that wrapper rather than on the <section> it returns -- a move
+     that changes nothing about what this test is protecting, which is which
+     VALUE identifies a band across renders. */
   assert.doesNotMatch(
     river,
-    /<section key=\{band\.key\b/,
+    /key=\{band\.key\b/,
     "PhotoRiver is keying a band by its year again. A year repeats, React stops " +
       "reconciling, and whole sections are left behind."
   );
   assert.doesNotMatch(
     river,
-    /<section key=\{band\.photos/,
+    /key=\{band\.photos/,
     "PhotoRiver is keying a band by a photograph again. A page arriving above " +
       "changes which photograph a year starts at, so the key moves, so React " +
       "rebuilds the year and every tile in it goes white."
   );
-  assert.match(river, /<section key=\{band\.id\}/, "the section key is neither of the two known-good forms");
+  assert.match(river, /key=\{band\.id\}/, "the band key is neither of the two known-good forms");
   assert.match(
     river,
     /id: `\$\{key\}#\$\{nth\}`/,

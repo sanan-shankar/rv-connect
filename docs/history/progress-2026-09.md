@@ -5447,3 +5447,59 @@ Baskerville measured an ink ascent of 12.44px against the app's 14.94px, enough 
 loaded, and reproduced the app's geometry exactly. Do not measure this app's type anywhere else.
 
 `npm run check` clean, 112/112. Verified at 1440x900 and 390x844, light and dark.
+
+## 2026-09-09 — the Collection was fetching itself, and nobody had to touch it
+
+The owner, on the archive he cannot ship: "I scroll and then it constantly readjusts and brings me
+back down ... I've reached the top of the page and it's stuck at the top and then loads all the
+photos in these steps and then goes to higher and higher years ... totally unacceptable." Three
+sessions had tried to fix this by feel. This one measured it first.
+
+**Finding 1: an infinite loop, and it needed no input at all.** Landing on the class archive at 2020
+and then touching nothing for ten seconds: **27 pages fetched, 932 photographs mounted, the document
+grown 17,869px → 65,883px**, and the rail walking 2020 → 2021 → 2022 → 2023 → 2026 while the reader
+sat still. Two separately-correct fixes cancelling out. `wantsNewer` answered yes for as long as
+`scrollY <= 0`, which at the top of a seek is for ever; and the scroll correction meant to push the
+reader off zero declined to move anybody above the seam (`if (top < seam) return`), so the condition
+could never stop being true. That early return also skipped `syncScrollWatch()`, leaving `movingUp`
+armed from the flick that started the pull — the tight half of the same loop.
+
+Fixed with two independent brakes, because this has come back three times. The zero rule is now
+latched to one pull per river, and the prepend it asks for is exempted from the seam guard so it
+actually lands the reader off zero. Either alone ends the loop; verified by removing each in turn.
+A reader at the top emits no `scroll` event, so `wheel` and `touchmove` re-arm the latch — the
+gesture is real even when the page cannot move, which is what un-strands a seek without reopening
+the loop. Idle after the fix: **0 fetches, height stable.**
+
+**Finding 2: every arriving page re-rendered all 1,718 photographs.** Nothing was memoised, and the
+cost grew straight in line with the river (4x CPU throttle): 48 tiles → 120ms, 240 → 263ms, 480 →
+303ms, 768 → 384ms, extrapolating to ~800ms of frozen main thread per page at full size. **41% of a
+fast scroll was spent blocked**, which is what swallows the wheel and makes the page lurch. Memoised
+the band and the tile; the growth is now flat rather than linear (768 tiles: 384 → 106ms, blocking
+41% → 26%). The band comparator leans on a fact about this river — photographs only ever arrive at
+one END — and says so, because an edit that inserts into the middle breaks it.
+
+**Finding 3: the popping.** Up to 14 of 16 viewport tiles were blank mid-flick. `warmThumbs` already
+existed for view swaps; the foot and head pages now warm through it as they arrive, in the screen and
+a half of travel the sentinel buys. Worst-case blanking 14 → 5.
+
+**What was NOT happening**, and it is worth recording because it is what everyone assumed: nothing
+ever resets the scroll. A timeline of every scroll and wheel event through a fast flick shows **zero
+backwards jumps**. "It brings me back down" was the runaway prepending content above the reader, plus
+input latency from the blocking above — not a bad correction.
+
+**The look**, from the same conversation. Corner rounding is gone from Collection tiles ("I don't
+think they do corner rounding. I don't think we should either"), the gap is 4px rather than 12 to
+match the reference galleries, and the hover magnification moved from 300ms `ease-out` to 450ms
+`ease-in-out` — it was snapping to size and then coasting.
+
+Pinned by `a river nobody is touching does not fetch itself` in `e2e/collection-seek.spec.ts`, the one
+test there driven against the real archive rather than /lab/collection, because the bug lives in
+<CollectionClient>'s paging and the lab room has none. Confirmed to fail on the original code and
+pass on the fix.
+
+Phase 2 — computing each band's exact height from the aspect ratios already in the database, so the
+document is full-height from the start and nothing ever shifts — is designed but not built. Google's
+own writeup is the reference: layout on load and resize, never on scroll.
+
+`npm run check` clean, 112/112. `npm run visual` 25/25. Verified at 1440x900 and 390x844.
