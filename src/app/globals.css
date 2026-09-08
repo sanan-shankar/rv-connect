@@ -567,3 +567,65 @@
     height: 0;
   }
 }
+
+/* ------------------------------------------------------------------ *
+ *  The toast's action button.
+ *
+ *  Sonner's default INVERTS the toast to make its button -- literally
+ *  `color: var(--normal-bg); background: var(--normal-text)` in its own
+ *  stylesheet -- which on this app's cream paper comes out as a black
+ *  filled pill. The owner, 2026-09-08, on the Undo beside "Test was
+ *  archived": "sometimes they come with this black thing which is
+ *  jarring. it can just say the thing against the white doesn't have to
+ *  be black."
+ *
+ *  So it is the word, in Canopy, on the toast's own paper. That is the
+ *  same shape the quiet affirmative action takes everywhere else in this
+ *  app (the Archived shelf's "Put back", a link inside a card): the app's
+ *  green, medium weight, no fill until you point at it.
+ *
+ *  It lives here rather than in `classNames` because Sonner's rule is
+ *  `[data-sonner-toast][data-styled='true'] [data-button]`, which a
+ *  Tailwind utility loses to outright. `.cn-toast` is the hook
+ *  `sonner.tsx` has always put on every toast and nothing had ever used.
+ *  `[data-styled]` is carried here too, and it is not decoration: with
+ *  three selectors this rule TIED Sonner's on specificity and lost on
+ *  source order, because the library injects its stylesheet at runtime,
+ *  after ours. Measured -- the button came back black. Four wins.
+ *
+ *  The hit area grows rather than the ink: 28px tall against Sonner's 24,
+ *  which is the design system's rule for a target that has to be bigger.
+ * ------------------------------------------------------------------ */
+[data-sonner-toast][data-styled].cn-toast [data-button] {
+  height: 28px;
+  padding-inline: 8px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent;
+  color: var(--canopy);
+}
+
+[data-sonner-toast][data-styled].cn-toast [data-button]:hover {
+  background: color-mix(in srgb, var(--canopy) 10%, transparent);
+}
+
+[data-sonner-toast][data-styled].cn-toast [data-button]:active {
+  transform: scale(0.97);
+}
+
+[data-sonner-toast][data-styled].cn-toast [data-button]:focus-visible {
+  box-shadow: 0 0 0 2px var(--canopy);
+}
+
+/* Dark: the sidebar green is unreadable on a dark toast, so the action
+   takes the leaf the success icon already uses there. */
+[data-sonner-toaster][data-sonner-theme="dark"] [data-sonner-toast][data-styled].cn-toast [data-button] {
+  color: var(--color-leaf, var(--primary));
+}
+
+[data-sonner-toaster][data-sonner-theme="dark"]
+  [data-sonner-toast].cn-toast
+  [data-button]:hover {
+  background: color-mix(in srgb, var(--color-leaf, var(--primary)) 14%, transparent);
+}

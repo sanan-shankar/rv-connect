@@ -8,6 +8,29 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 (later still) — the toast's action button stops being a black pill
+
+His, on the Undo beside "Test was archived": *"sometimes they come with this black thing which is
+jarring. it can just say the thing against the white doesn't have to be black. or some other way.
+but this doesn't work."*
+
+Sonner's default INVERTS the toast to make its action button -- literally
+`color: var(--normal-bg); background: var(--normal-text)` in its own stylesheet -- so on this
+app's cream paper every toast with an action carried a black filled pill. App-wide, not a
+Catch-ups thing.
+
+It is the word now, in Canopy, on the toast's own paper, which is the shape the quiet affirmative
+action already takes everywhere else here (the Archived shelf's Put back, a link inside a card).
+28px tall against Sonner's 24, because the design system grows the hit area rather than the ink.
+Dark mode takes the leaf the success icon already uses there, since the sidebar green is
+unreadable on a dark toast.
+
+One trap, and it cost a round: `.cn-toast` had been sitting in `sonner.tsx` as a hook with no rule
+behind it, and adding one at three selectors TIED Sonner's `[data-sonner-toast][data-styled='true']
+[data-button]` on specificity and lost on source order, because the library injects its stylesheet
+at runtime, after ours. Measured -- the button came back black. Carrying `[data-styled]` too makes
+it four and it wins.
+
 ## 2026-09-08 (later still) — the picture scrim goes a tenth darker
 
 His, once the list was shipped and he could see the card and the home's header side by side:
