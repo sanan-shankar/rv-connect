@@ -4701,5 +4701,15 @@ And it defaults to showing. A missing prop that hides a whole feature is a worse
 that shows an empty state, and hiding a door was never the access control — the membership check
 is, and it is unchanged.
 
+**One correction, and it is worth recording because of how it travelled.** This session first
+wrote that `CRON_SECRET` was unset and that the nightly tick therefore 401'd, and reasoned around
+a dead cron for an afternoon. It is set, in `.env`, on Vercel and in GitHub, and
+`/api/catchups/tick` answers 200 to a correctly signed request with both self-heal passes coming
+back a clean no-op. The claim came from a one-line memory index that had gone stale and
+contradicted its own file, and from `docs/planning/bugs.md`, which had listed it as owed for
+about three weeks after it stopped being true. Both are corrected, and so is
+`docs/spec/catchups.md`, which still called that route "a future endpoint, not required for MVP"
+long after it shipped.
+
 `npm run check` 109/109. `npm run visual` 25/25 with no baseline moved, which is the correct
 result: nothing was redrawn.

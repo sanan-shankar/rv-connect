@@ -289,8 +289,13 @@ blocks anything; each is a choice the code cannot make for itself.
   ceilings; levers named in `docs/OPERATIONS.md`), **C-186** (the demo project's cron env),
   **C-112/C-167** (plan-ceiling questions: demo's anonymous writes vs its nightly reset;
   type-ahead search vs the Upstash free command quota at 2,000 members).
-- Still owed: **CRON_SECRET**, and a decision on the visual suite's live-data drift
-  (8 of 23 shots red on data, not code, since before that audit ran).
+- **CRON_SECRET is NOT owed** and has not been since before 2026-09-08. It is set in `.env`, on
+  Vercel and in GitHub, and `/api/catchups/tick` was driven with it that day and answered 200.
+  This line said "still owed" for weeks after it stopped being true and the claim reached four
+  other documents and a memory note; a build session then reasoned an afternoon around a cron it
+  believed was dead. Check it, do not carry it: one signed request to that route is the whole test.
+- Still owed: a decision on the visual suite's live-data drift (8 of 23 shots red on data, not
+  code, since before that audit ran).
 
 ## Settled, do not re-open
 
