@@ -24,12 +24,14 @@
  *       tick's two idempotent passes, which repair a signup whose
  *       best-effort block failed.
  *
- *  WHY THE TICK IS NOT THE PRIMARY PATH, and this is measured rather
- *  than assumed: `/api/catchups/tick` requires `CRON_SECRET`, which the
- *  owner has not set yet (security overhaul, still owed), so the nightly
- *  cron currently 401s. The signup path is what actually creates these
- *  today; the tick's passes are the belt under it and start working the
- *  day the secret lands.
+ *  WHICH OF THE TWO ACTUALLY RUNS, checked rather than assumed:
+ *  `/api/catchups/tick` requires `CRON_SECRET`, that secret IS set (in
+ *  .env, on Vercel and in GitHub), and the route answers 200 to a
+ *  correctly signed request -- verified 2026-09-08 against the running
+ *  dev server, with both passes coming back a clean no-op. So the nightly
+ *  sweep is live and both paths are real: signup creates a batch
+ *  Catch-up the moment a batch reaches ten, and the tick catches
+ *  everything signup could not.
  *
  *  What a batch Catch-up is NOT: it has no Keeper (`createdById` null),
  *  no invite link (`inviteToken` null -- there is nobody to invite, the

@@ -2442,10 +2442,11 @@ ensures the Catch-up, so **the tenth person of a batch signing up is the moment 
 The tick's two passes are the belt: every alumnus with a batch year is in their batch group, then
 every batch group at or over the floor has a Catch-up, in that order because healing a membership
 can be what carries a batch over. They run on the UNSCOPED cron sweep only -- both scan a whole
-table, and `advanceDueCatchups` fires on essentially every authenticated page view. **Measured, and
-it changes which path matters**: `/api/catchups/tick` requires `CRON_SECRET`, which he has not set,
-so the nightly cron 401s today and the signup path is doing the work. The heal starts earning its
-keep the day that secret lands.
+table, and `advanceDueCatchups` fires on essentially every authenticated page view. **Both paths
+are live, and this was checked rather than assumed** -- a session note claiming `CRON_SECRET` was
+still owed was three weeks stale; it is set in `.env`, on Vercel and in GitHub, and
+`/api/catchups/tick` answered 200 to a correctly signed request with both passes coming back a
+clean no-op.
 
 **The backfill does not notify anybody, and that is a decision.** `ensureBatchCatchup` does, because
 a batch reaching ten is a real event at a real moment. The migration is not that: it is two batches
@@ -2514,11 +2515,10 @@ measured guidance is in "The twenty photographs" below, and the six stand-ins sh
 arrive -- and the **settings surface**, which he has claimed for a session of his own (N100),
 scheduled before build phase 7 and carrying the confirmation dialogs with it.
 
-**One thing is owed by him and now has a consequence**: `CRON_SECRET` is still unset, so
-`/api/catchups/tick` 401s and the nightly sweep does not run. Phase 4 put two self-heal passes
-behind it. Nothing is broken -- the signup path creates batch Catch-ups and the lazy read-time
-advance still moves Editions -- but the heal that repairs a stranded member is asleep until he
-sets it.
+**The nightly sweep is live.** `CRON_SECRET` is set in `.env`, on Vercel and in GitHub, and
+`/api/catchups/tick` was driven with it on 2026-09-08 and answered 200. Do not repeat the claim
+that it is owed: that note in the security ledger is stale, and phase 4 believed it for an
+afternoon before checking.
 
 ### Paste this into a fresh Opus max session
 
@@ -2638,9 +2638,11 @@ How to work:
   Catch-up", asked once in `(main)/layout.tsx` and passed down as `hasCatchup`, which DEFAULTS TO
   TRUE so a caller that forgets it shows the row rather than hiding a feature. Hiding a door is not
   access control: `/catchups` still renders for anyone signed in and the invite link still works.
-- **`CRON_SECRET` is still unset**, so `/api/catchups/tick` 401s and nothing on a schedule runs the
-  sweep. Everything still works through the lazy read-time advance and the signup path, but phase
-  4's self-heal passes only fire on the cron, so they are asleep until he sets it.
+- **`CRON_SECRET` IS set** -- in `.env`, on Vercel and in GitHub -- so `/api/catchups/tick` runs
+  nightly and phase 4's two self-heal passes run with it. The security ledger still lists it as
+  owed; that line is stale, and phase 4 wasted an afternoon's reasoning on it. To check rather than
+  guess: `fetch("/api/catchups/tick", { headers: { authorization: "Bearer " + CRON_SECRET } })`
+  against the dev server, which answers 200.
 - **A Catch-up cannot be created without a picture.** `Catchup.pictureSrc` is NOT NULL. It has a
   server-side DEFAULT so a build that forgets does not throw -- it quietly gives every new
   Catch-up the same photograph instead, which nothing would report. Any new creation path calls

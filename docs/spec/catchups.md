@@ -133,9 +133,11 @@ is a pure function of the Round's timestamps and the clock; visits make it real.
   authenticated page view. In an active community that fires transitions within minutes of their due
   time, with no cron. Transitions are therefore eventually-consistent, bounded by "next time any
   member touches the app". This is acceptable and documented.
-- A future `/api/catchups/tick` (guarded by `CRON_SECRET`) may call the same `advanceDueCatchups()`
-  with no viewer scope for belt-and-braces timeliness. **Not required for MVP.** Build the helper so
-  the endpoint is a thin wrapper if it is ever added.
+- `/api/catchups/tick` EXISTS (audit M27) and is exactly that thin wrapper: `advanceDueCatchups()`
+  with no viewer scope, guarded by `CRON_SECRET`, on `vercel.json`'s 02:00 UTC schedule. This
+  paragraph called it "a future" endpoint and "not required for MVP" long after it shipped. Since
+  build phase 4 it also runs the two batch self-heal passes, which is why it is the only unscoped
+  caller besides the admin room.
 
 ### 2.5 Making "preparing" feel like a ritual
 
