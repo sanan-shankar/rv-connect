@@ -182,6 +182,9 @@ export default async function AdminCatchupReadingRoom({
           ).size;
 
           return (
+            /* The number is deliberate here; see the note in
+               admin/catchups/(index)/page.tsx. Member-facing surfaces have
+               none, the admin room keeps its key, his decision 2026-09-08. */
             <AdminSection key={edition.id} label={`Edition ${edition.number}`} count={edition.prompts.length}>
               <div className="mb-2 flex flex-wrap items-center gap-2 px-0.5">
                 <Chip label={status.label} tone={status.tone} />
