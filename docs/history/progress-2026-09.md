@@ -8,6 +8,32 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-09 (track X) — a photo caption folds at four lines instead of two
+
+His, brief 32, talking himself around twice and landing on a number: *"I don't want photo captions
+in catch-ups to have a More and Less button. Let it just show all the text... Actually, you know
+what, no, let's keep the More and Less button, but maybe increase it from 2 lines to 3 lines. Or 3
+lines to 4 lines. The threshold. Right now it's just 2 lines and then More. And maybe make it 4
+lines."* Campaign question 6, defaulted to four on his last word; D38.
+
+**Measured on Mohini's 410-character caption**, which is the longest on the live Edition: at 390 it
+shows 90px of 180px, four lines at a 22.475px line height, with More offered. At 1440 the whole
+caption is 90px, so it now shows entire and there is no fold at all — which is the change, rather
+than one more line of the same truncation.
+
+**One constant, written twice on purpose.** A caption that overflows is a button and one that does
+not is a paragraph, and both have to clamp at the same line or "More" appears beside a caption that
+was already whole. `CAPTION_CLAMP` keeps the number in one place. Not written inline, because
+`line-clamp-N` IS a display utility and Tailwind emits `display: block` after it — the trap build
+phase 6 hit, where the two together silently cancel the clamp.
+
+**It is the shared viewer, so this is the feed and the Collection too.** A caption is a caption
+wherever the photograph came from, and a per-caller prop would be an API invented to hold one
+number. Its own commit, so it can be reverted alone.
+
+`npm run check` 112/112. `npm run visual` 25/25, no baseline moved — the viewer is not open in any
+baseline shot.
+
 ## 2026-09-08 (track X) — the heart's animation was a second late because the tap rebuilt the whole Edition
 
 His, brief 29: *"if I'm on the feed and I click the heart, the heart just becomes red. But if I
