@@ -1654,7 +1654,7 @@ after the second pass)
 **Asked 2026-09-08 by S5, out of the spec.** One reply covers all three:
 *"defaults, except 20"*. Full context in [`spec.md`](spec.md) §15.
 
-**19. Three of your eleven batches have exactly one person in them.**
+**19. Six of your eleven batches have exactly one person in them.**
 - **What I'd change:** their batch Catch-up still exists, so it is already there the day a second
   person joins, but it does not start an Edition until there are two of them.
 - **What you'd notice:** nothing, unless you are the only person from your year -- in which case
@@ -1675,17 +1675,11 @@ after the second pass)
 - **If you don't reply I'll do:** nothing -- this one waits for you, because it is the only item in
   the spec that truncates something a member wrote.
 
-**21. Tightening the answer tile by 10% will touch the feed, or it will not.**
-- **What I'd change:** you asked for the padding above and below the heart and comment row to come
-  down 10% top and bottom, and said to make sure it only touches Catch-ups if the number is
-  Catch-ups' own, and to ask you if I was unsure (N93).
-- **What you'd notice:** the answer tiles read slightly tighter. If it is shared, every post in the
-  feed does too.
-- **If I guess wrong:** a change you called high-importance lands on the feed without you seeing it
-  first.
-- **Options:** (a) tell me the measurement first and I will decide (b) Catch-ups only, even if it
-  means a second number (c) both, go ahead.
-- **If you don't reply I'll do:** (a) -- measure it, show you the number, then move.
+**21. WITHDRAWN, 2026-09-08 -- already answered and already done.** The 10% (N93) was measured on
+2026-09-07 and the number IS shared with the feed: 8px above the reaction row and 9px below, so a
+tenth of each is 2px (`mt-2 -> mt-1.5`, bottom pull `-7 -> -9`). It shipped to the feed as
+`2a6f7d25`, on its own so he can revert it alone. The Catch-ups half arrives with build phase 8.
+See `spec.md` §15 for the one cost it carries.
 
 ## Owner answers
 
@@ -2186,7 +2180,7 @@ photographs, 521 hearts, 5.8 MB.
   membership first and the snapshot becomes a strict subset, so re-pointing `Catchup.groupId` at the
   real batch group loses nobody and hands two 2024 alumni the earlier Edition -- ¶4's *"access to
   previous issues if they join later"*, true for the first time.
-- **Eight of eleven batches have four members or fewer, three have exactly one.** A batch Catch-up
+- **Nine of eleven batches have four members or fewer, and six have exactly one.** A batch Catch-up
   for one person is a newsletter to yourself, with reminders. Owner question 19.
 
 **What the spec settles beyond transcription**: comments widen the existing `Comment` table rather

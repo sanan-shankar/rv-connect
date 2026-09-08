@@ -167,7 +167,7 @@ subset, so re-pointing `Catchup.groupId` at the real batch group loses nobody an
 alumni the earlier Edition — which is ¶4's *"access to previous issues if they join later"*,
 becoming true for the first time.
 
-And eight of eleven batches have four members or fewer, three have exactly one. A batch Catch-up
+And nine of eleven batches have four members or fewer, and six have exactly one. A batch Catch-up
 for one person is a newsletter to yourself, with reminders. That is owner question 19.
 
 **What the spec settles beyond transcription.** Comments widen the existing `Comment` table rather
@@ -183,8 +183,16 @@ applied after the deploy, because one database serves production and local dev.
 Export re-run before any of it: 6 Catch-ups, 7 Editions, 24 questions, 143 answers, 36 photographs,
 521 hearts, 5.8 MB.
 
-Three new owner questions. Twenty is F41, and its stated default is to do nothing until he answers,
-because it is the only item in the spec that would truncate something a member wrote.
+Three new owner questions, then two. Twenty is F41, and its stated default is to do nothing until
+he answers, because it is the only item in the spec that would truncate something a member wrote.
+Twenty-one was withdrawn within the hour: the 10% tile tightening he asked to be measured before it
+touched the feed had already been measured (8px above the reaction row, 9px below, shared) and had
+already shipped as `2a6f7d25`, on its own so he can revert it alone.
+
+And a correction to this session's own arithmetic, made the same day: **six** of the eleven batches
+have exactly one person in them, not three, and nine have four or fewer, not eight. More than half
+of the batch Catch-ups would be a newsletter to yourself, which is a different weight of question
+from the one first written down.
 
 ## 2026-09-08 — a letter gets the same three controls a post has
 

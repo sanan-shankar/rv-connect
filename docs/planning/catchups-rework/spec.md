@@ -348,9 +348,9 @@ nobody, and hands the two missing 2024 alumni the earlier Edition — which is �
 previous issues if they join later"*, arriving for the first person it was ever true of. The
 orphaned snapshot group is deleted in the cleanup phase, after the re-point is confirmed.
 
-**OPEN, and it is his (owner question 19, §15).** Eight of eleven batches have four members or
-fewer; three have exactly one. A batch Catch-up for one person is a newsletter to yourself, with
-reminders. The **default** taken here is that the Catch-up exists (so it is there the day a second
+**OPEN, and it is his (owner question 19, §15).** Nine of eleven batches have four members or
+fewer, and **six have exactly one** (1972, 1978, 1980, 2016, 2021, 2022). A batch Catch-up for one
+person is a newsletter to yourself, with reminders. The **default** taken here is that the Catch-up exists (so it is there the day a second
 person joins) but **does not open an Edition until the batch has two members**. It is one
 predicate; say the word and it goes either way.
 
@@ -952,7 +952,7 @@ The ledger in `handover.md` is the aid; **the brief is the test**. ¶1 to ¶52, 
 Same five-line shape as the handover's, with a default on each. One reply covers them:
 *"defaults, except..."*. Added to `handover.md` under "Owner questions" as 19, 20 and 21.
 
-**19. Three of your eleven batches have exactly one person in them.**
+**19. Six of your eleven batches have exactly one person in them.**
 - **What I'd change:** their batch Catch-up still exists, so it is already there the day a second
   person joins, but it does not start an Edition until there are two of them.
 - **What you'd notice:** nothing, unless you are the only person from your year — in which case
@@ -973,14 +973,19 @@ Same five-line shape as the handover's, with a default on each. One reply covers
 - **If you don't reply I'll do:** nothing — this one waits for you, because it is the only item in
   this spec that truncates something a member wrote.
 
-**21. Tightening the answer tile by 10% will touch the feed, or it will not.**
-- **What I'd change:** you asked for the padding above and below the heart and comment row to come
-  down 10% top and bottom, and said to make sure it only touches Catch-ups if the number is
-  Catch-ups' own, and to ask you if I was unsure.
-- **What you'd notice:** the answer tiles read slightly tighter. If it is shared, every post in
-  the feed does too.
-- **If I guess wrong:** a change you called high-importance lands on the feed without you seeing
-  it first.
-- **Options:** (a) tell me the measurement first and I will decide (b) Catch-ups only, even if it
-  means a second number (c) both, go ahead.
-- **If you don't reply I'll do:** (a) — measure it, show you the number, then move.
+**21. WITHDRAWN — it was already answered and already done.** *(asked and withdrawn 2026-09-08,
+within an hour, when the commit was found)*
+
+The 10% tightening (N93) was measured on 2026-09-07 and the number IS shared with the feed: **8px
+above the reaction row's box and 9px below**, either side of a 32px button whose glyph is inset 7,
+so the ink sat 21px under the words and 23px above the border. A tenth of each is 2px:
+`mt-2 -> mt-1.5`, and the bottom pull `-7 -> -9`. It shipped to the feed as
+**`2a6f7d25`, its own revertable commit**, which is exactly the *"keep that as one nuclear commit
+that I can revert"* he asked for in N17. The Catch-ups half arrives with build phase 8, because the
+drawn tile uses the feed's own control at the feed's own sizes.
+
+One cost is recorded in `post-card.tsx` and repeated here so it is not lost: the old `-7` was
+chosen so the ink landed 17px above the border, matching the card's 16px sides (*"bottom padding
+must match the sides"*, 2026-08). At `-9` it lands at 15, a pixel INSIDE the side inset rather
+than a pixel outside. The later instruction won. If the older one is the one he meant, that is the
+line to change back.
