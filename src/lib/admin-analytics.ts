@@ -257,7 +257,7 @@ export async function loadCatchups() {
     entries,
     loves,
     people: answerers.length,
-    /* The health number: a Round with ten questions and two answers is not
+    /* The health number: an Edition with ten questions and two answers is not
      * working, and neither total on its own would say so. */
     answersPerPrompt: prompts > 0 ? entries / prompts : 0,
   };
@@ -877,7 +877,7 @@ export async function loadInteractions() {
 
 /** What actually gets opened: reads against reactions, per letter. */
 export async function loadReading() {
-  const [letters, photos, rounds] = await Promise.all([
+  const [letters, photos, editions] = await Promise.all([
     prisma.$queryRaw<{ title: string | null; reads: bigint; readers: bigint; hearts: bigint }[]>`
       SELECT p."title",
              coalesce(sum(cv."count"), 0)::bigint AS reads,
@@ -894,7 +894,7 @@ export async function loadReading() {
       SELECT coalesce(sum("count"), 0)::bigint AS n FROM "ContentView" WHERE kind = 'photo'
     `,
     prisma.$queryRaw<{ n: bigint }[]>`
-      SELECT coalesce(sum("count"), 0)::bigint AS n FROM "ContentView" WHERE kind = 'round'
+      SELECT coalesce(sum("count"), 0)::bigint AS n FROM "ContentView" WHERE kind = 'edition'
     `,
   ]);
 
@@ -906,7 +906,7 @@ export async function loadReading() {
       hearts: Number(l.hearts),
     })),
     photoViews: Number(photos[0]?.n ?? 0),
-    roundViews: Number(rounds[0]?.n ?? 0),
+    editionViews: Number(editions[0]?.n ?? 0),
   };
 }
 

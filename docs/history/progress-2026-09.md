@@ -8,6 +8,78 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 — Round becomes Edition, build phase 1
+
+His, 2026-09-07: *"let's not use Round or Issue let's call them additions"* — then, a minute
+later, *"Editions not additions."* The database has said `CatchupEdition` since the day it was
+written; everything above it said Round. One mechanical pass, no behaviour change, which is
+`spec.md` §2 and the first of the rework's eleven phases.
+
+`/catchups/round/[editionId]` is now `/catchups/edition/[editionId]`,
+`src/components/catchups/round/` is `edition/`, `catchups-round-view.ts` is
+`catchups-edition-view.ts`, and the types moved with them: `RoundEntry`, `RoundMasthead`,
+`RoundTocRail`, `PublishedRoundView`, `openNextRoundIfDue`, `SketchRound`, `ShelfRound`,
+`RoundState` and the rest. `npm run visual` is 25/25 with no baseline moved, which is the
+proof that a rename is all this was.
+
+**`roundLabel()` is deleted rather than renamed**, and that is the one place phase 1 had to
+choose words. An Edition is identified by its DATE (N92: *"let's ditch the round 1 ... The
+round number is irrelevant"*), so its five call sites each lost a number:
+
+| Surface | Was | Is |
+|---|---|---|
+| the reader's masthead | `Round 1 · Published 5 September 2026` | `Published 5 September 2026` |
+| the home's published tile | `Round 1 is out.` | `The new Edition is out.` |
+| the home's rail | `Round 1`, with a small grey date at the right | the full date **as the row's title** |
+| the rail's label | `Published issues` | `Published Editions` |
+| Fresh off the press | `Round 1 · [Recon] the happy path` | the group name (the date was already there) |
+| a card's status chip | `Round 4 published` | `Published` |
+| the deep-link guard | `Round 4 is not out yet` | `This Edition is not out yet` |
+| the answering page's header | `Round 4` | `Answering` |
+
+The admin room still prints `Edition 3`, in three places, and that is a decision rather than
+an oversight: there the number is the row's actual key (`@@unique([catchupId, number])`), an
+unpublished Edition has no date to go by, and §7's copy rule is about what members read. Said
+out loud so he can reverse it in a sentence.
+
+**Two stored strings say "round" and no amount of renaming in TypeScript reaches them.**
+`Notification.link` holds 61 rows pointing at `/catchups/round/<id>`, and `ContentView.kind`
+holds 17 rows of reader opens that `admin-analytics.ts` reads back with a raw
+`WHERE kind = 'round'`. `2026-09-08-round-becomes-edition.sql` rewrites both, idempotently.
+
+**It has NOT been applied, and that is deliberate.** Running it before this commit deploys
+would point 61 live bell links at a route the running build does not have — a 404 for seventy
+members, for however long the tree sits uncommitted. It is the same ordering rule §3 states
+for a column drop, and for the same reason: one database serves production and local dev. It
+runs against both Supabase projects the moment Vercel finishes deploying. The demo's counts
+are 0 and 0.
+
+The other half of the move is permanent: `src/app/(main)/catchups/round/[editionId]/page.tsx`
+is now a `permanentRedirect`, verified as a 308. The spec asks for both, not either — the
+migration fixes the bell, the redirect fixes anything already shared, bookmarked or sitting in
+an email, and a Catch-up is a keepsake people come back to years later.
+
+**What a 288-identifier sed pass gets wrong, so the next mechanical rename expects it.** Two
+categories, both caught by reading the diff rather than by any gate:
+
+- **The word "round" is not always the noun.** `"How often a Round comes round"` became
+  `"comes edition"` in the lab's settings list; `daysLeftUntil: rounds up` became `editions
+  up`; `round trip` became `edition trip` in three files; the guide's opening line told every
+  member that a Catch-up *"comes edition on a schedule."* Four of those were live copy.
+- **His words are quoted all over this codebase and they are not ours to edit.** Nine of his
+  verbatim sentences were silently rewritten — *"let's ditch the round 1"* became *"the
+  edition 1"*, *"Can't control who's in the catch up once the question round has started"*
+  became *"question edition"*. Every one is restored. A quoted paragraph is evidence; a pass
+  that edits it destroys the record of what he actually said.
+
+Also swept: the `Issue` noun, which he rejected in the same breath as Round. `PublishedIssue`
+is `PublishedEditionContents`, and the guide no longer collects answers *"into one issue."*
+
+`docs/spec/catchups.md` still describes the old route. Phase 11 rewrites it to describe what
+shipped; half-rewriting it now would leave a document claiming things that are not true.
+
+Gate 107/107, seven green. `npm run visual` 25/25.
+
 ## 2026-09-08 — the design lab leaves the demo's build, and only the demo's
 
 Refactor audit 2, rows G1 and G7, and the owner's answer to question 23: **"8 remove it from the

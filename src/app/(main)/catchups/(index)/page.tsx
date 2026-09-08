@@ -8,7 +8,7 @@ import { RAIL_GRID, RAIL_ASIDE } from "@/components/layout/rail-grid";
 import { Button } from "@/components/ui/button";
 import { AlmostReady } from "@/components/catchups/almost-ready";
 import { YourCatchupsCard, type IndexCardView } from "@/components/catchups/index/your-catchups-card";
-import { FreshOffThePress, type FreshRoundItem } from "@/components/catchups/index/fresh-off-the-press";
+import { FreshOffThePress, type FreshEditionItem } from "@/components/catchups/index/fresh-off-the-press";
 import { GroupFirstGuidance } from "@/components/catchups/index/group-first-guidance";
 import { FiledAway, type FiledRow } from "@/components/catchups/index/filed-away";
 import { catchupShelf, type CatchupShelf } from "@/lib/catchup-shelf";
@@ -44,8 +44,8 @@ function buildCta(opts: {
       return { label: "Answer now", href: `/catchups/${catchupId}/answer` };
     case "published":
       return {
-        label: "Read the Round",
-        href: editionId ? `/catchups/round/${editionId}` : `/catchups/${catchupId}`,
+        label: "Read the Edition",
+        href: editionId ? `/catchups/edition/${editionId}` : `/catchups/${catchupId}`,
       };
     case "preparing":
       return { label: "View", href: `/catchups/${catchupId}` };
@@ -61,7 +61,7 @@ function truncate(text: string, max: number): string {
 }
 
 async function loadIndexData(userId: string) {
-  // Lazy read-time advance (spec 2.4): bring every stale Round in the
+  // Lazy read-time advance (spec 2.4): bring every stale Edition in the
   // viewer's groups current before building the cards below. Never throws.
   await advanceDueCatchups(userId);
 
@@ -177,7 +177,7 @@ async function loadIndexData(userId: string) {
       catchupStatus,
       editionId: edition?.id ?? null,
       editionStatus: edition?.status ?? null,
-      roundNumber: edition?.number ?? null,
+      editionNumber: edition?.number ?? null,
       statusLine,
       cta: buildCta({
         catchupStatus,
@@ -264,14 +264,13 @@ async function loadIndexData(userId: string) {
     },
   });
 
-  const freshItems: FreshRoundItem[] = freshEditions.map((ed) => {
+  const freshItems: FreshEditionItem[] = freshEditions.map((ed) => {
     const contributorCount = new Set(ed.entries.map((e) => e.authorId)).size;
     const best = ed.entries
       .filter((e) => e.body && e.body.trim().length > 0)
       .sort((a, b) => b._count.loves - a._count.loves)[0];
     return {
       editionId: ed.id,
-      number: ed.number,
       groupName: ed.catchup.group.name,
       publishedAt: ed.publishedAt,
       contributorCount,

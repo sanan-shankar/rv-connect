@@ -1,17 +1,15 @@
 /* ------------------------------------------------------------------ *
  *  <FreshOffThePress> - the index's right rail: the most recently
- *  published Rounds across the viewer's groups (spec section 3.1).
+ *  published Editions across the viewer's groups (spec section 3.1).
  *  Mirrors the compact rail-card shape used by FeedRail so the app's
  *  right-rail language stays consistent.
  * ------------------------------------------------------------------ */
 
 import Link from "next/link";
-import { roundLabel } from "@/lib/catchups-core";
-import { metaLine, VALLEY_TIME_ZONE } from "@/lib/utils";
+import { VALLEY_TIME_ZONE } from "@/lib/utils";
 
-export type FreshRoundItem = {
+export type FreshEditionItem = {
   editionId: string;
-  number: number;
   groupName: string;
   publishedAt: Date | string | null;
   contributorCount: number;
@@ -19,7 +17,7 @@ export type FreshRoundItem = {
 };
 
 /* The one local formatter left, and the exception is the YEAR, not the voice:
-   this rail lists the last few Rounds, all of them recent, and a year on every
+   this rail lists the last few Editions, all of them recent, and a year on every
    line is noise in a column that narrow. The locale matches the shared pair --
    it was en-US, so the same date read "Aug 5" here and "5 Aug 2026" three
    surfaces away. */
@@ -32,7 +30,7 @@ function formatDate(d: Date | string | null): string {
   });
 }
 
-export function FreshOffThePress({ items }: { items: FreshRoundItem[] }) {
+export function FreshOffThePress({ items }: { items: FreshEditionItem[] }) {
   return (
     <section className="card-elevated rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)]">
       <h3 className="mb-1 text-[10.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
@@ -51,7 +49,7 @@ export function FreshOffThePress({ items }: { items: FreshRoundItem[] }) {
           {items.map((item) => (
             <Link
               key={item.editionId}
-              href={`/catchups/round/${item.editionId}`}
+              href={`/catchups/edition/${item.editionId}`}
               // state-layer, not hover:opacity-80: fading the row dimmed the
               // headline the reader is aiming at. No negative margin, so the
               // tint band stays inside the card's text column and the
@@ -60,7 +58,7 @@ export function FreshOffThePress({ items }: { items: FreshRoundItem[] }) {
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate text-[13px] font-semibold text-foreground">
-                  {metaLine(roundLabel(item.number), item.groupName)}
+                  {item.groupName}
                 </span>
                 <span className="shrink-0 text-[11px] text-muted-foreground">
                   {formatDate(item.publishedAt)}

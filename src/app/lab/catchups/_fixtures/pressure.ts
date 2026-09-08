@@ -9,13 +9,13 @@
  *  incredibly robust can be produced with only pressure testing."
  *
  *  Every direction room in /lab/catchups renders THIS as well as the two
- *  real published Rounds. A layout that only ever meets 133 well-behaved
+ *  real published Editions. A layout that only ever meets 133 well-behaved
  *  answers is not a layout that has been tested; it is a layout that has
  *  been lucky. The magazine engine (track M) reads the same file.
  *
  *  INVENTED PEOPLE, INVENTED WORDS. Not one line here is a real member's.
  *  That is the whole reason this file can be committed while
- *  `scripts/dev/.exports/` cannot: rooms get the real Rounds by reading
+ *  `scripts/dev/.exports/` cannot: rooms get the real Editions by reading
  *  the database live, which is what the owner approved (handover, owner
  *  question 5), and the repo gets only made-up text. The photographs are
  *  the app's own public Collection stills, already in `public/images/`,
@@ -27,7 +27,7 @@
  *      answer body            6,000 characters   actions.ts:147
  *      photos per answer      3                  actions.ts:148
  *      question text          300 characters     actions.ts:129
- *      questions per Round    40                 MAX_ACCEPTED_PROMPTS_PER_EDITION
+ *      questions per Edition    40                 MAX_ACCEPTED_PROMPTS_PER_EDITION
  *      people per Catch-up    100                lib/catchup-caps.ts
  *      Catch-up name          80 characters      actions.ts:117
  *
@@ -169,7 +169,7 @@ const LENGTHS = question("How has the year been?", "text", [
   /* One word in a tile built for a paragraph: his ¶31, "only about 15% of the
      real estate is used, and the rest is just white space". */
   answer(CAST.noBatch, "Same."),
-  /* Nothing at all. The app draws "Showed up for this Round without adding
+  /* Nothing at all. The app draws "Showed up for this Edition without adding
      anything here." */
   answer(CAST.arabic, null),
   /* Only whitespace, which `sharedNothing` does not currently catch. */
@@ -275,7 +275,7 @@ const LONELY = question("Did anyone else go back this summer?", "text", [
 /* Nobody answered. The reader currently prints the heading and nothing. */
 const UNANSWERED = question("What are you reading?", "text", []);
 
-/* Forty answers under one question: the widest a real Round gets. */
+/* Forty answers under one question: the widest a real Edition gets. */
 const CROWDED = question(
   "Describe your month in three words.",
   "text",
@@ -336,10 +336,10 @@ export const PRESSURE_FIXTURE: CatchupExportFile = {
         })),
       ],
       prefs: [],
-      rounds: [
-        /* A Round with one question. */
+      editions: [
+        /* An Edition with one question. */
         {
-          id: "px-round-1",
+          id: "px-edition-1",
           number: 1,
           theme: null,
           status: "published",
@@ -354,7 +354,7 @@ export const PRESSURE_FIXTURE: CatchupExportFile = {
         /* Nobody wrote in. Today this still publishes and still gets promoted
            on the index as "0 people wrote in" (recon.md section 2). */
         {
-          id: "px-round-2",
+          id: "px-edition-2",
           number: 2,
           theme: null,
           status: "published",
@@ -366,10 +366,10 @@ export const PRESSURE_FIXTURE: CatchupExportFile = {
           createdAt: "2026-08-01T04:30:00.000Z",
           questions: [UNANSWERED],
         },
-        /* Everything else, in one Round, which is also the longest Round the
+        /* Everything else, in one Edition, which is also the longest Edition the
            reader will ever have to draw. */
         {
-          id: "px-round-3",
+          id: "px-edition-3",
           number: 3,
           theme: "The one with everything in it",
           status: "published",
@@ -383,7 +383,7 @@ export const PRESSURE_FIXTURE: CatchupExportFile = {
         },
       ],
     },
-    /* Two members and no Round at all: the empty end of the range, which every
+    /* Two members and no Edition at all: the empty end of the range, which every
        batch Catch-up will start at on the day it is created. */
     {
       id: "px-catchup-empty",
@@ -404,7 +404,7 @@ export const PRESSURE_FIXTURE: CatchupExportFile = {
         { ...CAST.shortest, role: "member", joinedAt: "2026-09-01T04:30:00.000Z", isKeeper: false },
       ],
       prefs: [],
-      rounds: [],
+      editions: [],
     },
   ],
 };

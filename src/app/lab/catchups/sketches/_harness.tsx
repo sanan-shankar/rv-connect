@@ -26,7 +26,7 @@
  *    ...&at=list|home|reader   where in the spine to start
  *    ...&state=answering       which home state (see _shelf homeVariants)
  *    ...&bare=1                no lab chrome, so a capture is the drawing
- *    ...&data=pressure         the invented corpus instead of the real Round
+ *    ...&data=pressure         the invented corpus instead of the real Edition
  * ------------------------------------------------------------------ */
 
 import { Suspense, useState, type ReactNode } from "react";
@@ -39,7 +39,7 @@ import { DesktopShell, PhoneBar, PhoneShell } from "./_shell";
 import { List } from "./_list";
 import { Home } from "./_home";
 import { buildShelf, homeVariants, type SketchCatchup } from "./_shelf";
-import { type SketchRound } from "./_types";
+import { type SketchEdition } from "./_types";
 
 type View = "phone" | "laptop";
 
@@ -67,7 +67,7 @@ const JUMP =
 
 /* ── the spine ─────────────────────────────────────────────────────── *
  *  One piece of state, and it is the architecture: you are on the list,
- *  inside a Catch-up, or inside a Round. Every move between them is the
+ *  inside a Catch-up, or inside an Edition. Every move between them is the
  *  one the design says it is -- the panel, the cover, the name at the top
  *  -- so a fault in the relationship shows up here as a dead end rather
  *  than as a paragraph in a document. */
@@ -86,13 +86,13 @@ const SHELF_STEPS = [1, 3, 6] as const;
 const SHELF_LABEL: Record<number, string> = { 1: "Just one", 3: "Three", 6: "Every state" };
 
 function Spine({
-  round,
+  edition,
   shelf,
   phone,
   start,
   startState,
 }: {
-  round: SketchRound;
+  edition: SketchEdition;
   shelf: SketchCatchup[];
   phone: boolean;
   start: string | null;
@@ -109,10 +109,10 @@ function Spine({
         : { at: "list" },
   );
 
-  /* Every cover in the room opens the one real Round there is on this
-     database. On a Catch-up whose Rounds are invented, that is a lie the
+  /* Every cover in the room opens the one real Edition there is on this
+     database. On a Catch-up whose Editions are invented, that is a lie the
      room tells on purpose: the point of the move is that the cover is the
-     door, not which Round is behind it. */
+     door, not which Edition is behind it. */
   const open = (c: SketchCatchup) =>
     setWhere(c.state === "published" ? { at: "reader" } : { at: "home", c });
 
@@ -120,7 +120,7 @@ function Spine({
   const page =
     where.at === "reader" ? (
       <Reader
-        round={round}
+        edition={edition}
         viewport={phone ? "phone" : "laptop"}
         onHome={() => setWhere({ at: "home", c: published })}
       />
@@ -199,13 +199,13 @@ function Framed({ children, phone }: { children: ReactNode; phone: boolean }) {
   );
 }
 
-function Harness({ round, pressure }: { round: SketchRound; pressure: boolean }) {
+function Harness({ edition, pressure }: { edition: SketchEdition; pressure: boolean }) {
   const router = useRouter();
   const params = useSearchParams();
   const w = params.get("w");
   const view: View = w === "laptop" ? "laptop" : "phone";
   const bare = params.get("bare") === "1";
-  const shelf = buildShelf(round);
+  const shelf = buildShelf(edition);
 
   function url(key: string, value: string | null) {
     const q = new URLSearchParams(params.toString());
@@ -220,7 +220,7 @@ function Harness({ round, pressure }: { round: SketchRound; pressure: boolean })
   /* Which corpus is read by the SERVER component (page.tsx picks the loader
      off `searchParams.data`), so a client-side `router.replace` changed the
      address bar and nothing else -- the Pressure pill lit up and the page kept
-     drawing the real Round. His, 2026-09-07: "pressure button does literally
+     drawing the real Edition. His, 2026-09-07: "pressure button does literally
      nothing." It is a full navigation now, because the thing it switches is
      decided before any of this renders. */
   function reload(key: string, value: string | null) {
@@ -295,7 +295,7 @@ function Harness({ round, pressure }: { round: SketchRound; pressure: boolean })
         )}
 
         <Spine
-          round={round}
+          edition={edition}
           shelf={shelf}
           phone={view === "phone"}
           start={params.get("at")}
@@ -307,16 +307,16 @@ function Harness({ round, pressure }: { round: SketchRound; pressure: boolean })
 }
 
 export function SketchHarness({
-  round,
+  edition,
   pressure = false,
 }: {
-  round: SketchRound;
+  edition: SketchEdition;
   pressure?: boolean;
 }) {
   // useSearchParams needs a Suspense boundary in a client component.
   return (
     <Suspense fallback={<div className="min-h-screen bg-background" />}>
-      <Harness round={round} pressure={pressure} />
+      <Harness edition={edition} pressure={pressure} />
     </Suspense>
   );
 }

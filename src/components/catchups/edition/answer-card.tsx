@@ -25,22 +25,22 @@
 
 import Link from "next/link";
 import { IdentityRow } from "@/components/common/identity-row";
-import { SpotifyCard } from "@/components/catchups/round/spotify-card";
-import { EntryLoveButton } from "@/components/catchups/round/entry-love-button";
+import { SpotifyCard } from "@/components/catchups/edition/spotify-card";
+import { EntryLoveButton } from "@/components/catchups/edition/entry-love-button";
 import type { CatchupEntryView, CatchupSongView, PromptKind } from "@/lib/catchups-types";
-import { AnswerPhotos } from "@/components/catchups/round/answer-photos";
+import { AnswerPhotos } from "@/components/catchups/edition/answer-photos";
 import { renderRichText } from "@/lib/rich-text";
 
-export type RoundEntry = CatchupEntryView & { authorMeta: string };
+export type EditionEntry = CatchupEntryView & { authorMeta: string };
 
-export function AnswerCard({ entry, kind = "text" }: { entry: RoundEntry; kind?: PromptKind }) {
+export function AnswerCard({ entry, kind = "text" }: { entry: EditionEntry; kind?: PromptKind }) {
   const bodyText = entry.body?.trim() ?? "";
   // A `songs` question is answered with the song's NAME, and the answering
   // control saves that name in `body` (CatchupEntry has no name-only song
   // column yet - see the TODO in answer/song-attachment.tsx, and note that
   // `songTitle` is only ever written by the Spotify resolver, so it is never
   // populated for a typed name). Print it as a song row rather than as a bare
-  // paragraph, otherwise a songs Round reads identically to a text Round.
+  // paragraph, otherwise a songs Edition reads identically to a text Edition.
   const namedSong: CatchupSongView | null =
     kind === "songs" && !entry.song && bodyText ? { url: "", title: bodyText, art: null } : null;
   const song = entry.song ?? namedSong;
@@ -71,7 +71,7 @@ export function AnswerCard({ entry, kind = "text" }: { entry: RoundEntry; kind?:
 
       {sharedNothing ? (
         <p className="mt-[var(--space-s)] text-[14.5px] italic leading-[1.7] text-muted-foreground">
-          Showed up for this Round without adding anything here.
+          Showed up for this Edition without adding anything here.
         </p>
       ) : (
         <>

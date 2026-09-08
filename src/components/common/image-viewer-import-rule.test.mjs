@@ -23,7 +23,7 @@ import { ROOT, read, decomment, walk, SKIP_DIRS } from "../../lib/test-kit.mjs";
  *  started again on the client. Nothing turned red. The page looked
  *  right, the gates stayed green, and the only trace was one console line
  *  saying "Switched to client rendering because the server rendering
- *  errored" -- on a Round thirty-four thousand pixels tall, rendered
+ *  errored" -- on an Edition thirty-four thousand pixels tall, rendered
  *  twice. It was found by driving a pressure fixture through the room,
  *  which is not a thing that happens on a schedule.
  *

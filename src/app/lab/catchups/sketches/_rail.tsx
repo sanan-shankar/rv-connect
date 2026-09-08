@@ -123,7 +123,7 @@ function Block({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /* ── running this ──────────────────────────────────────────────────── *
- *  Every control that changes the Catch-up or the Round for everybody else,
+ *  Every control that changes the Catch-up or the Edition for everybody else,
  *  and the only place any of them exists.
  *
  *  A one-way control SAYS SO, in its own words, on its own row, and that is
@@ -148,7 +148,7 @@ type Verb = {
   value?: string;
 };
 
-function roundVerbs(c: SketchCatchup): Verb[] {
+function editionVerbs(c: SketchCatchup): Verb[] {
   if (!c.canRun || c.paused) return [];
   if (c.state === "collecting")
     return [
@@ -164,7 +164,7 @@ function roundVerbs(c: SketchCatchup): Verb[] {
   if (c.state === "published")
     /* The control nobody had. He found it himself: "literally after publishing
        I can't start a new round?!?! I have to wait for two weeks minimum ...
-       there's no control for that??" Confirmed in the code: openNextRoundIfDue
+       there's no control for that??" Confirmed in the code: openNextEditionIfDue
        fires on the clock alone and nothing starts one early, for anyone. */
     return [{ label: "Start the next Edition now", hint: "Do not wait for the rhythm", icon: Play, oneWay: true }];
   return [];
@@ -274,13 +274,13 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function Running({ c }: { c: SketchCatchup }) {
-  const round = roundVerbs(c);
+  const edition = editionVerbs(c);
   const catchup = catchupVerbs(c);
   return (
     <div className="space-y-6">
-      {round.length > 0 && (
+      {edition.length > 0 && (
         <Group label="This Edition">
-          {round.map((v) => (
+          {edition.map((v) => (
             <Row key={v.label} v={v} />
           ))}
         </Group>
@@ -413,7 +413,7 @@ export function PeopleDoor({ c, phone }: { c: SketchCatchup; phone: boolean }) {
  *  The second word on the picture, beside People, in the same clothes.
  *
  *  It exists because the sidebar no longer does. Every control that changes
- *  the Catch-up or the Round for everybody else is behind it, grouped, with
+ *  the Catch-up or the Edition for everybody else is behind it, grouped, with
  *  the cinnamon dot still marking the ones that cannot be taken back -- which
  *  is the rule from the accident note (N30) and does not change with the
  *  furniture.
@@ -450,7 +450,7 @@ export function SettingsDoor({ c, phone }: { c: SketchCatchup; phone: boolean })
       <Dialog open={open} onOpenChange={setOpen}>
         {/* `initialFocus` on the panel itself. Without it Base UI focuses the
             first focusable child, which here is a settings row -- so the
-            dialog opened with "Start the next Round now" wearing a focus ring
+            dialog opened with "Start the next Edition now" wearing a focus ring
             and a selected tint, i.e. the one control in the list that cannot
             be undone looked armed. */}
         <DialogContent className="sm:max-w-md" initialFocus={panel} ref={panel} tabIndex={-1}>

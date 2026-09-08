@@ -51,15 +51,15 @@ function* everyReference() {
   }
   for (const s of CATCHUP_MEMBERS) yield [s, "Catch-up member"];
   yield [CATCHUP_KEEPER, "Catch-up keeper"];
-  for (const [n, round] of [
+  for (const [n, edition] of [
     [1, CATCHUP_ROUND_1],
     [2, CATCHUP_ROUND_2],
   ]) {
-    for (const [i, pr] of round.prompts.entries()) {
-      yield [pr.askedBy, `round ${n} prompt ${i} asker`];
+    for (const [i, pr] of edition.prompts.entries()) {
+      yield [pr.askedBy, `edition ${n} prompt ${i} asker`];
       for (const [j, e] of pr.entries.entries()) {
-        yield [e.author, `round ${n} prompt ${i} entry ${j} author`];
-        for (const s of e.loves ?? []) yield [s, `round ${n} prompt ${i} entry ${j} love`];
+        yield [e.author, `edition ${n} prompt ${i} entry ${j} author`];
+        for (const s of e.loves ?? []) yield [s, `edition ${n} prompt ${i} entry ${j} love`];
       }
     }
   }
@@ -90,14 +90,14 @@ test("nobody likes the same thing twice", () => {
   for (const ph of DEMO_PHOTOS) {
     for (const d of duplicates(ph.loves)) bad.push(`photo "${ph.slug}" loved twice by ${d}`);
   }
-  for (const [n, round] of [
+  for (const [n, edition] of [
     [1, CATCHUP_ROUND_1],
     [2, CATCHUP_ROUND_2],
   ]) {
-    for (const [i, pr] of round.prompts.entries()) {
+    for (const [i, pr] of edition.prompts.entries()) {
       for (const [j, e] of pr.entries.entries()) {
         for (const d of duplicates(e.loves ?? []))
-          bad.push(`round ${n} prompt ${i} entry ${j} loved twice by ${d}`);
+          bad.push(`edition ${n} prompt ${i} entry ${j} loved twice by ${d}`);
       }
     }
   }
@@ -123,13 +123,13 @@ test("nobody votes twice in one poll, and every vote is for a real option", () =
 test("nobody answers the same Catch-up question twice", () => {
   // CatchupEntry is @@unique on (promptId, authorId).
   const bad = [];
-  for (const [n, round] of [
+  for (const [n, edition] of [
     [1, CATCHUP_ROUND_1],
     [2, CATCHUP_ROUND_2],
   ]) {
-    for (const [i, pr] of round.prompts.entries()) {
+    for (const [i, pr] of edition.prompts.entries()) {
       for (const d of duplicates(pr.entries.map((e) => e.author))) {
-        bad.push(`round ${n} prompt ${i}: ${d} answered twice`);
+        bad.push(`edition ${n} prompt ${i}: ${d} answered twice`);
       }
     }
   }
@@ -141,14 +141,14 @@ test("only Catch-up members ask or answer its questions", () => {
   // appearing in a private group's newsletter.
   const members = new Set(CATCHUP_MEMBERS);
   const bad = [];
-  for (const [n, round] of [
+  for (const [n, edition] of [
     [1, CATCHUP_ROUND_1],
     [2, CATCHUP_ROUND_2],
   ]) {
-    for (const [i, pr] of round.prompts.entries()) {
-      if (!members.has(pr.askedBy)) bad.push(`round ${n} prompt ${i}: asked by non-member ${pr.askedBy}`);
+    for (const [i, pr] of edition.prompts.entries()) {
+      if (!members.has(pr.askedBy)) bad.push(`edition ${n} prompt ${i}: asked by non-member ${pr.askedBy}`);
       for (const e of pr.entries) {
-        if (!members.has(e.author)) bad.push(`round ${n} prompt ${i}: answered by non-member ${e.author}`);
+        if (!members.has(e.author)) bad.push(`edition ${n} prompt ${i}: answered by non-member ${e.author}`);
       }
     }
   }
@@ -229,8 +229,8 @@ test("no em dashes anywhere in the seeded copy", () => {
     check(person.bio, `${person.name} bio`);
     check(person.about, `${person.name} about`);
   }
-  for (const round of [CATCHUP_ROUND_1, CATCHUP_ROUND_2]) {
-    for (const pr of round.prompts) {
+  for (const edition of [CATCHUP_ROUND_1, CATCHUP_ROUND_2]) {
+    for (const pr of edition.prompts) {
       check(pr.text, `prompt "${pr.text.slice(0, 30)}"`);
       for (const e of pr.entries) check(e.body, `an answer by ${e.author}`);
     }

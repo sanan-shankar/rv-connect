@@ -5,7 +5,7 @@
  *  ("4 of 7 shared") over every question as a row with a check state.
  *  Mobile collapses to a slim sticky bar carrying the same one count.
  *
- *  This is the ONLY place the Round's count is printed. The answer card
+ *  This is the ONLY place the Edition's count is printed. The answer card
  *  used to repeat it as "Question N of M"; that duplicate is gone.
  * ------------------------------------------------------------------ */
 
@@ -71,7 +71,7 @@ export function ProgressRail({
       </div>
 
       <nav
-        aria-label="Questions in this Round"
+        aria-label="Questions in this Edition"
         className="flex flex-col gap-1 rounded-[var(--radius)] border border-border bg-card p-[var(--space-s)]"
       >
         {prompts.map((p, i) => {
@@ -137,7 +137,7 @@ export function MobileProgressBar({
 }) {
   return (
     <nav
-      aria-label="Questions in this Round"
+      aria-label="Questions in this Edition"
       className={cn(
         "glass sticky top-14 z-[var(--z-elevated)] flex items-center gap-2 rounded-[var(--radius-md)] border border-border/70 px-3 py-1.5",
         className

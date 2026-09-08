@@ -440,9 +440,9 @@ async function ContentView() {
             hint: "Times a Collection photo was opened full-size.",
           },
           {
-            label: "Catch-up round opens",
-            value: reading.roundViews,
-            hint: "Times someone opened a finished round to read it.",
+            label: "Catch-up Edition opens",
+            value: reading.editionViews,
+            hint: "Times someone opened a finished Edition to read it.",
           },
           { label: "Poll votes cast", value: inter.pollVotes, hint: "Votes on polls attached to posts." },
           {

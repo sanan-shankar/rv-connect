@@ -4,7 +4,7 @@
  *  <AnswerPhotos> - the photographs on one Catch-up answer, and the
  *  press that opens them.
  *
- *  The owner, reading his own Round: "to make matters worse you can't
+ *  The owner, reading his own Edition: "to make matters worse you can't
  *  click on the images to expand them" (brief #36), against his own
  *  standard for every photograph in the app: "every image is clickable.
  *  And you can open it and see it in our image viewer" (#41). Catch-ups
@@ -70,7 +70,7 @@ export function AnswerPhotos({
     content = (
       <PhotoOpener index={0} count={1} onOpen={viewer.open} className="mt-[var(--space-s)]">
         {/* The bucket's own url, not an optimiser transform. A Catch-up is a
-            newsletter: everyone opens the same Round within a day of each
+            newsletter: everyone opens the same Edition within a day of each
             other, so a cold transform is not amortised across viewers the way
             a feed photo's is -- it is paid by nearly all of them at once. */}
         <PhotoFrame

@@ -1,7 +1,7 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  <CompletionCard> — the end of the deck: "That is you in this Round. See
+ *  <CompletionCard> — the end of the deck: "That is you in this Edition. See
  *  you when it is out." No streaks, no badges, one settled hoopoe.
  *
  *  One-hoopoe rule: gated on `useSoloHoopoe()`. When another bird is
@@ -45,7 +45,7 @@ export function CompletionCard({
             solo && "mt-[var(--space-m)]"
           )}
         >
-          {answeredCount > 0 ? "That is you in this Round." : "Nothing from you yet."}
+          {answeredCount > 0 ? "That is you in this Edition." : "Nothing from you yet."}
         </h2>
         <p className="mx-auto mt-[var(--space-xs)] max-w-sm text-[15px] leading-relaxed text-muted-foreground">
           {answeredCount > 0

@@ -37,7 +37,7 @@ type Db = Prisma.TransactionClient | typeof prisma;
  * `Group.creatorId` is SetNull now (2026-08-21), so the group itself survives
  * the delete — but the member's own `GroupMember` row cascades away with them,
  * and if that row was the only admin the group is left with nobody able to
- * curate questions, pause a Catch-up or publish a Round. Promoting the
+ * curate questions, pause a Catch-up or publish an Edition. Promoting the
  * longest-standing remaining member closes that, inside the purge transaction
  * so it can never half-happen.
  */

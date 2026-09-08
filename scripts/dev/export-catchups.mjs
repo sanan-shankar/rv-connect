@@ -105,7 +105,7 @@ const members = await q(`
 `);
 
 const prefs = await q(`select * from "CatchupReminderPref"`);
-const rounds = await q(`select * from "CatchupEdition" order by "catchupId", number`);
+const editions = await q(`select * from "CatchupEdition" order by "catchupId", number`);
 const prompts = await q(`
   select p.*, u.id as a_id, u.name as a_name, u."batchYear" as a_batch,
          u."photoUrl" as a_photo, u."birdOverride" as a_bird
@@ -136,8 +136,8 @@ const by = (rows, key) => {
 
 const membersByGroup = by(members, "groupId");
 const prefsByCatchup = by(prefs, "catchupId");
-const roundsByCatchup = by(rounds, "catchupId");
-const promptsByRound = by(prompts, "editionId");
+const editionsByCatchup = by(editions, "catchupId");
+const promptsByEdition = by(prompts, "editionId");
 const entriesByPrompt = by(entries, "promptId");
 const heartsByEntry = by(hearts, "entryId");
 
@@ -206,7 +206,7 @@ const out = {
         archivedAt: iso(p.archivedAt),
         deletedAt: iso(p.deletedAt),
       })),
-      rounds: (roundsByCatchup.get(c.id) ?? []).map((r) => ({
+      editions: (editionsByCatchup.get(c.id) ?? []).map((r) => ({
         id: r.id,
         number: r.number,
         theme: r.theme,
@@ -217,7 +217,7 @@ const out = {
         publishedAt: iso(r.publishedAt),
         remindersSent: r.remindersSent,
         createdAt: iso(r.createdAt),
-        questions: (promptsByRound.get(r.id) ?? []).map((p) => ({
+        questions: (promptsByEdition.get(r.id) ?? []).map((p) => ({
           id: p.id,
           author: person(p),
           text: p.text,
@@ -266,12 +266,12 @@ const out = {
 // ─── report, then (only with --write) put it on disk ─────────────────────────
 
 const answers = out.catchups.flatMap((c) =>
-  c.rounds.flatMap((r) => r.questions.flatMap((q2) => q2.answers))
+  c.editions.flatMap((r) => r.questions.flatMap((q2) => q2.answers))
 );
 const totals = {
   catchups: out.catchups.length,
-  rounds: out.catchups.reduce((n, c) => n + c.rounds.length, 0),
-  questions: out.catchups.reduce((n, c) => n + c.rounds.reduce((m, r) => m + r.questions.length, 0), 0),
+  editions: out.catchups.reduce((n, c) => n + c.editions.length, 0),
+  questions: out.catchups.reduce((n, c) => n + c.editions.reduce((m, r) => m + r.questions.length, 0), 0),
   answers: answers.length,
   answersWithPhotos: answers.filter((a) => a.images.length > 0).length,
   photos: answers.reduce((n, a) => n + a.images.length, 0),
@@ -283,7 +283,7 @@ const totals = {
 
 console.log(`\nCatch-ups export  (${WRITE ? "WRITE" : "dry run"}, ${envFile})\n`);
 for (const c of out.catchups) {
-  const rs = c.rounds.map((r) => `R${r.number}:${r.status}`).join(" ");
+  const rs = c.editions.map((r) => `R${r.number}:${r.status}`).join(" ");
   console.log(
     `  ${c.groupName.padEnd(16)} ${c.status.padEnd(7)} ${String(c.members.length).padStart(3)} members  ${rs}`
   );
@@ -326,7 +326,7 @@ for (const { url: u, file } of wanted) {
    photograph" from "this photograph did not come with us". */
 for (const c of out.catchups) {
   for (const m of c.members) if (m.photoFile && !sizes.has(m.photoFile)) m.photoFile = null;
-  for (const r of c.rounds)
+  for (const r of c.editions)
     for (const q2 of r.questions)
       for (const a of q2.answers)
         for (const img of a.images) {

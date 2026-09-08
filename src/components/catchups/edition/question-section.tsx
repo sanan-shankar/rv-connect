@@ -8,7 +8,7 @@
  *  gone (owner review 2026-07-25).
  *
  *  How the answers print is driven by `promptKind(prompt.category)`:
- *   - `photo`  -> a WALL. Everyone adds one picture, so the Round prints
+ *   - `photo`  -> a WALL. Everyone adds one picture, so the Edition prints
  *     the pictures as one grid (fix brief section 4), not as N elevated
  *     cards each wrapping a single letterboxed image.
  *   - `songs` / `text` -> the answer-card stack.
@@ -22,8 +22,8 @@
 
 import Link from "next/link";
 import { IdentityRow } from "@/components/common/identity-row";
-import { AnswerCard, type RoundEntry } from "@/components/catchups/round/answer-card";
-import { PhotoWall } from "@/components/catchups/round/photo-wall";
+import { AnswerCard, type EditionEntry } from "@/components/catchups/edition/answer-card";
+import { PhotoWall } from "@/components/catchups/edition/photo-wall";
 import { promptKind, type CatchupPromptView } from "@/lib/catchups-types";
 
 export function QuestionSection({
@@ -35,7 +35,7 @@ export function QuestionSection({
   id: string;
   index: number;
   prompt: CatchupPromptView;
-  entries: RoundEntry[];
+  entries: EditionEntry[];
 }) {
   const kind = promptKind(prompt.category);
   const isWall = kind === "photo";

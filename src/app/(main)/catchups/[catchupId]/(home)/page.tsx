@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { AlmostReady } from "@/components/catchups/almost-ready";
 import { NotAvailableCard } from "@/components/catchups/not-available";
 import { CatchupHomeShell } from "@/components/catchups/home/catchup-home-shell";
-import type { PublishedIssue } from "@/components/catchups/home/console-published";
+import type { PublishedEditionContents } from "@/components/catchups/home/console-published";
 import type {
   CatchupHomeData,
   CatchupHomeResult,
@@ -33,7 +33,7 @@ import type {
   ReminderMode,
 } from "@/lib/catchups-types";
 import { IDENTITY_SELECT } from "@/lib/people-select";
-import { loadPublishedRoundView } from "@/lib/catchups-round-view";
+import { loadPublishedEditionView } from "@/lib/catchups-edition-view";
 
 /* ------------------------------------------------------------------ *
  *  The Catch-up home (spec 3.3): the command surface for the live
@@ -102,20 +102,20 @@ export async function generateMetadata({
 }
 
 /**
- * The published Round, in full, for reading inline on this page (one surface,
+ * The published Edition, in full, for reading inline on this page (one surface,
  * owner review 2026-07-25). The query and every mapping rule in it are shared
- * with the permalink reader (`lib/catchups-round-view.ts`), which is what
+ * with the permalink reader (`lib/catchups-edition-view.ts`), which is what
  * stops the two surfaces disagreeing about a song or an anonymous asker.
  *
  * Only ever called once the caller has confirmed the fresh status is
- * `published`: answer bodies are never pulled into a render of a Round that
+ * `published`: answer bodies are never pulled into a render of an Edition that
  * has not revealed yet, Keeper included (spec 2.5, threat T-catchups-04).
  */
-async function loadPublishedIssue(
+async function loadPublishedEditionContents(
   editionId: string,
   viewerId: string
-): Promise<PublishedIssue | null> {
-  const view = await loadPublishedRoundView(editionId, viewerId);
+): Promise<PublishedEditionContents | null> {
+  const view = await loadPublishedEditionView(editionId, viewerId);
   if (!view) return null;
   // The console wants an ISO string; the permalink wants the Date. One line
   // here is cheaper than the loader returning both.
@@ -138,7 +138,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     groupRole: membership.role,
   });
 
-  // Lazy read-time advance (spec 2.4): bring the latest Round current on every
+  // Lazy read-time advance (spec 2.4): bring the latest Edition current on every
   // home visit, on top of the global app-shell piggyback (WP7).
   const latestRaw = catchup.editions[0] ?? null;
   if (latestRaw) {
@@ -229,7 +229,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     }
 
     /* Position, then createdAt -- the same total order the answering page and
-       the published Round use. Two questions can share a position (the cap
+       the published Edition use. Two questions can share a position (the cap
        check is a snapshot, not a lock; see submitPrompt), and a bare position
        sort leaves those two in whatever order the rows arrived in, which can
        differ between two loads of the same page (audit C-029). */
@@ -242,7 +242,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
 
     const prompts: HomePromptView[] = [...accepted, ...pending].map((p) => {
       const isOwn = p.authorId === viewerId;
-      // Shared with the published Round page, which used to answer this
+      // Shared with the published Edition page, which used to answer this
       // differently and named anonymous askers to any Keeper (audit M10).
       const revealAsker = askerVisible({ showAsker: p.showAsker, authorId: p.authorId }, viewerId);
       return {
@@ -289,19 +289,19 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     };
   }
 
-  // Archive: every published Round (spec 3.7), including the latest if it just published.
+  // Archive: every published Edition (spec 3.7), including the latest if it just published.
   const publishedEditions = await prisma.catchupEdition.findMany({
     where: { catchupId: catchup.id, status: "published" },
     orderBy: { number: "desc" },
     select: { id: true, number: true, publishedAt: true },
   });
 
-  /* Contributor counts for EVERY published Round, in one query (audit M13).
-     This used to be a query per Round, each pulling every entry's full BODY
+  /* Contributor counts for EVERY published Edition, in one query (audit M13).
+     This used to be a query per Edition, each pulling every entry's full BODY
      just to count distinct authors and find the most-loved one -- so a group
      three years into a monthly rhythm ran 36 queries and read tens of
      thousands of answer bodies into memory on every visit to this page.
-     `groupBy` returns one small row per (Round, author) pair instead: the
+     `groupBy` returns one small row per (Edition, author) pair instead: the
      distinct set IS the answer, and no body is read at all. */
   const contributorPairs =
     publishedEditions.length > 0
@@ -316,18 +316,18 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
   }
 
   /**
-   * How many of the most recent Rounds carry a teaser line on the shelf.
+   * How many of the most recent Editions carry a teaser line on the shelf.
    *
    * Six, matching the index rail's own "Fresh off the press" take, because a
    * teaser is a nudge to re-open something recent and the shelf's older rows
    * are read as a list of what exists rather than browsed. The cost of one is
-   * a query returning a single row; the cost of doing it for every Round on
+   * a query returning a single row; the cost of doing it for every Edition on
    * the shelf is the N+1 this block exists to have removed.
    */
   const TEASER_ROUNDS = 6;
   const teasered = publishedEditions.slice(0, TEASER_ROUNDS).map((ed) => ed.id);
   const teasers = new Map<string, string>();
-  /* One row per Round, in one query. This was six `findFirst`s in a
+  /* One row per Edition, in one query. This was six `findFirst`s in a
      `Promise.all`, and Prisma compiles an `orderBy` on a relation count into a
      correlated subquery, so it was six correlated one-row queries on a
      five-connection pool -- two waves for six short strings. `DISTINCT ON` is
@@ -399,11 +399,11 @@ export default async function CatchupHomePage({
   if (!session?.user?.id) redirect("/login");
 
   let result: CatchupHomeResult;
-  let issue: PublishedIssue | null = null;
+  let contents: PublishedEditionContents | null = null;
   try {
     result = await loadHome(catchupId, session.user.id);
     if (result.kind === "ok" && result.edition?.status === "published") {
-      issue = await loadPublishedIssue(result.edition.id, session.user.id);
+      contents = await loadPublishedEditionContents(result.edition.id, session.user.id);
     }
   } catch (err) {
     if (isMissingCatchupTable(err)) {
@@ -453,7 +453,7 @@ export default async function CatchupHomePage({
             : result.title
         }
       />
-      <CatchupHomeShell data={result} issue={issue} />
+      <CatchupHomeShell data={result} contents={contents} />
     </div>
   );
 }

@@ -1,12 +1,13 @@
 /* ------------------------------------------------------------------ *
- *  <RoundMasthead> - the header of a published Round.
+ *  <EditionMasthead> - the header of a published Edition.
  *
  *  Owner review 2026-07-25 rewrote this. It now:
  *   - sits inside <main>'s own gutter (the old `-mx-5 sm:-mx-7 lg:-mx-10`
  *     full bleed cancelled the app shell padding, so the band ran flush
  *     against the green sidebar with no margin at all);
  *   - prints the Catch-up's name exactly ONCE, in the h1. The meta line
- *     carries only "Round N" and the publish date;
+ *     carries the publish date, which since 2026-09-08 is the Edition's
+ *     whole name: no "Edition N", because there are no Edition numbers;
  *   - carries no eyebrow (the sidebar already says Catch-ups) and no
  *     oversized plate numeral (it sat badly at top right and opened a big
  *     empty band on mobile);
@@ -16,7 +17,6 @@
 
 import Link from "next/link";
 import { BirdAvatar } from "@/components/common/bird-avatar";
-import { roundLabel } from "@/lib/catchups-core";
 import { formatDisplayDateLong, metaLine } from "@/lib/utils";
 import type { CatchupPersonRef } from "@/lib/catchups-types";
 
@@ -25,7 +25,7 @@ const MAX_SHOWN_CONTRIBUTORS = 14;
 /** The byline: who wrote in. Names them up to three, then counts. */
 function contributorsCopy(contributors: CatchupPersonRef[]): string {
   const n = contributors.length;
-  // This byline only ever renders on a published Round, so "yet" would be wrong.
+  // This byline only ever renders on a published Edition, so "yet" would be wrong.
   if (n === 0) return "No one wrote in.";
   if (n === 1) return `${contributors[0].name} wrote in.`;
   if (n === 2) return `${contributors[0].name} and ${contributors[1].name} wrote in.`;
@@ -35,26 +35,24 @@ function contributorsCopy(contributors: CatchupPersonRef[]): string {
   return `${n} of the group wrote in.`;
 }
 
-export function RoundMasthead({
+export function EditionMasthead({
   title,
   publishedAt,
-  number,
   contributors,
 }: {
   title: string;
   publishedAt: Date | string | null;
-  number: number;
   contributors: CatchupPersonRef[];
 }) {
   const dateLabel = publishedAt ? formatDisplayDateLong(publishedAt) : null;
 
-  const pressLine = metaLine(roundLabel(number), dateLabel && `Published ${dateLabel}`);
+  const pressLine = metaLine(dateLabel && `Published ${dateLabel}`);
 
   const shown = contributors.slice(0, MAX_SHOWN_CONTRIBUTORS);
   const overflow = contributors.length - shown.length;
 
   return (
-    <section className="border-b border-border pb-[var(--space-l)]" aria-label="Round masthead">
+    <section className="border-b border-border pb-[var(--space-l)]" aria-label="Edition masthead">
       <h1 className="font-heading text-[1.9rem] leading-[1.05] tracking-[-0.025em] text-foreground sm:text-[2.3rem]">
         {title}
       </h1>

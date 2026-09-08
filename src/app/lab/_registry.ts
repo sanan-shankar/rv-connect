@@ -191,7 +191,7 @@ export const REGISTRY: LabEntry[] = [
     title: "The strip is the navigator",
     group: "Delight",
     status: "active",
-    note: "The Catch-ups front runner, live: the real Round on a phone, where the strip under the green bar takes each question as its heading leaves and unfolds into the list when tapped. Five stills of moments deep in the page, the navigator drawn three ways, and the same page at 1512. ?w=reader|screens|laptop.",
+    note: "The Catch-ups front runner, live: the real Edition on a phone, where the strip under the green bar takes each question as its heading leaves and unfolds into the list when tapped. Five stills of moments deep in the page, the navigator drawn three ways, and the same page at 1512. ?w=reader|screens|laptop.",
   },
   {
     href: "/lab/viewer",

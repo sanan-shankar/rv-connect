@@ -192,7 +192,7 @@ export function KeeperSettingsDialog({
         open={confirmingEnd}
         onClose={() => setConfirmingEnd(false)}
         title="End catch-up"
-        description="Past Rounds stay readable, but no new one will open."
+        description="Past Editions stay readable, but no new one will open."
         actionLabel="End catch-up"
         onConfirm={handleEnd}
       />

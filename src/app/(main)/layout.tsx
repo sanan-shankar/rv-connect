@@ -52,7 +52,7 @@ export default async function MainLayout({
      slowest of the three, and that can be this one (audit Low 24). The await
      is deliberate rather than accidental: the advance is what makes the page
      you are about to read correct, and moving it behind the response would
-     render a Round in the state it was in a moment ago. It stays bounded by
+     render an Edition in the state it was in a moment ago. It stays bounded by
      the pool's own query timeout, and a nightly cron does the same sweep
      (/api/catchups/tick) so nothing depends on this having run.
      

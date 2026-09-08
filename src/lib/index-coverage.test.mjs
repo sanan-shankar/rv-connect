@@ -52,7 +52,7 @@ const REQUIRED = [
   ["CommentLike", "commentId", "a comment's like count"],
   ["PhotoLove", "photoId", "the Collection grid's love counts"],
   ["Bookmark", "postId", "a post's saved state"],
-  ["CatchupEntryLove", "entryId", "a Round's hearts"],
+  ["CatchupEntryLove", "entryId", "an Edition's hearts"],
   ["Post", "authorId", "a profile's Posts and Letters tabs"],
   ["Photo", "uploaderId", "photos by this member, and the account purge"],
 ];
@@ -75,7 +75,7 @@ const NO_INDEX_NEEDED = {
   "CatchupPref.userId":
     "every live read leads with catchupId (the reminder fan-out, the bin sweep, the member's own row); only adminMergeUsers filters by userId alone, once, by hand",
   "CatchupEntry.authorId":
-    "the Round reads lead with editionId or promptId, both indexed; authorId alone is only the account data export",
+    "the Edition reads lead with editionId or promptId, both indexed; authorId alone is only the account data export",
   "Report.reportedUserId":
     "the flag-count groupBy in reportUser is the only reader, on a moderation table that grows by a handful of rows a month",
 };

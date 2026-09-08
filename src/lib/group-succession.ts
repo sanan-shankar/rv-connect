@@ -9,7 +9,7 @@
  * The longest-standing remaining member gets it — "any remaining member may act
  * as Keeper" (docs/spec/catchups.md §7), decided here rather than left to
  * whoever notices, because a group with no admin has no way to curate
- * questions, pause a Catch-up or publish a Round, and no way to say so.
+ * questions, pause a Catch-up or publish an Edition, and no way to say so.
  */
 export type GroupMemberRow = { userId: string; role: string; joinedAt: Date };
 
@@ -42,7 +42,7 @@ export function chooseGroupSuccessor(
  * Catch-up, a Keeper removing somebody, the nightly sweep emptying a bin. Each
  * of those could take the last member holding "keeper" or "admin", and once
  * `Catchup.createdById` has gone null (its holder's account purged) there is
- * then nobody who can curate a question, publish a Round, pause it or end it,
+ * then nobody who can curate a question, publish an Edition, pause it or end it,
  * and no way for anyone to claim it: setCatchupKeeper itself needs a Keeper to
  * call it (audit C-023). The Catch-up keeps running on its clock, notifying a
  * group that can no longer steer it.

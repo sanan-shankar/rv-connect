@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------ *
- *  The shape of one published Round, as the sketch room draws it.
+ *  The shape of one published Edition, as the sketch room draws it.
  *
  *  A drawing is made inside a fixed-width frame that the harness scales
  *  to fit (see _frame.tsx), so it sizes itself from the `viewport` prop
@@ -7,7 +7,7 @@
  *  window rather than the frame. Anything that would be `fixed` on a real
  *  phone is `absolute` or `sticky` inside the frames.
  *
- *  The data is the live "in the loop" Round 1 (13 people, 133 answers),
+ *  The data is the live "in the loop" Edition 1 (13 people, 133 answers),
  *  read from the database at render time, the way the lab already does
  *  and the owner approved (handover, owner question 5). Members' words
  *  stay on this admin-only page and never enter git.
@@ -45,7 +45,7 @@ export type SketchEntry = {
   photos: (StoredPhoto | null)[];
   song: SketchSong | null;
   /** Spotify and YouTube links found in the body and resolved to a title,
-   *  an artist and a still. See _media.ts: on this Round the `song` column
+   *  an artist and a still. See _media.ts: on this Edition the `song` column
    *  above is null on every single answer, and the links people actually
    *  pasted are sitting in their body text as raw URLs. */
   media: SketchMedia[];
@@ -76,7 +76,7 @@ export type SketchQuestion = {
   entries: SketchEntry[];
 };
 
-export type SketchRound = {
+export type SketchEdition = {
   catchupId: string;
   /** Plain, no suffix (brief para 25). */
   catchupName: string;

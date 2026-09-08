@@ -1,8 +1,8 @@
-export default function RoundLoading() {
+export default function EditionLoading() {
   return (
     <div className="pb-4">
       {/* Masthead skeleton. It sits in the shell's own gutter, matching
-          RoundMasthead: no full-bleed negative margins, so nothing runs
+          EditionMasthead: no full-bleed negative margins, so nothing runs
           flush against the sidebar. */}
       <div className="border-b border-border pb-[var(--space-l)]">
         <div className="skeleton-warm h-9 w-2/3 max-w-md rounded-md" />

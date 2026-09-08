@@ -5,7 +5,7 @@ import { requireCronSecret } from "@/lib/api-gate";
 /**
  * The nightly Catch-up advance (audit M27). `vercel.json` has scheduled this
  * path daily at 02:00 all along, but the route never existed, so every night
- * the cron 404'd and Catch-up rounds only ever advanced when a member happened
+ * the cron 404'd and Catch-up Editions only ever advanced when a member happened
  * to load an authenticated page (the lazy tick in the `(main)` layout). On a
  * quiet week a deadline could silently fail to fire.
  *

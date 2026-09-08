@@ -2,14 +2,14 @@ import { BirdAvatar } from "@/components/common/bird-avatar";
 import { Chapter, Section, P, Scale, Compare, BlankMark, Doorway } from "../guide-kit";
 
 /* True to docs/spec/catchups.md sections 1, 2.2, 2.3, 2.5, 2.6 and 7.
-   "Keeper" and "Round" are the shipped UI's own words, so they are used
+   "Keeper" and "Edition" are the shipped UI's own words, so they are used
    here rather than explained around. */
 
 export function CatchupsChapter() {
   return (
     <Chapter
       title="Catch-ups"
-      lede="A Catch-up is a group newsletter that comes round on a schedule. Everyone answers the same questions while the window is open. When it shuts, the answers are collected into one issue the whole group reads."
+      lede="A Catch-up is a group newsletter that comes round on a schedule. Everyone answers the same questions while the window is open. When it shuts, the answers are collected into one Edition the whole group reads."
     >
       <Section title="Who is in one">
         <P>
@@ -19,8 +19,8 @@ export function CatchupsChapter() {
         </P>
       </Section>
 
-      <Section title="How a Round runs">
-        <P>One cycle is called a Round. It runs in one direction and does not go back.</P>
+      <Section title="How an Edition runs">
+        <P>One cycle is called an Edition. It runs in one direction and does not go back.</P>
         <Scale
           steps={[
             { key: "ask", weight: 3, tone: "soft", label: "Questions", amount: "3 days", note: "Anyone can add one" },
@@ -37,7 +37,7 @@ export function CatchupsChapter() {
 
       <Section title="The day it is hidden">
         <P>
-          When answering closes, the Round disappears for a day. Nobody can read it, the
+          When answering closes, the Edition disappears for a day. Nobody can read it, the
           Keeper included. Then it publishes and everyone sees it at the same time. The day
           is there so that publishing is an event rather than a page filling up over a week.
         </P>
@@ -73,7 +73,7 @@ export function CatchupsChapter() {
 
       <Section title="If hardly anyone answers">
         <P>
-          A first Round will not publish empty. If nobody has written by the time answering
+          A first Edition will not publish empty. If nobody has written by the time answering
           closes, the window reopens for three more days and everyone is reminded. After
           that it publishes with whatever it has.
         </P>

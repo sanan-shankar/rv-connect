@@ -2,7 +2,7 @@
  *  Catch-ups: shared TypeScript vocabulary.
  *
  *  This file is the one place the whole feature agrees on its shapes:
- *   - the string-literal unions for the Round state machine and cadence,
+ *   - the string-literal unions for the Edition state machine and cadence,
  *   - the pure-function input shape (EditionTiming) the state machine reads,
  *   - the view models the screens (index / home / answer / reader) render,
  *   - the notify-builder signatures, declared here so WP2 and WP7 can
@@ -92,7 +92,7 @@ export type CatchupNotifyKind =
 // ─── Pure state-machine input ────────────────────────────────────────────────
 
 /**
- * The minimal slice of a Round the pure state machine reads. `computeStatus`
+ * The minimal slice of an Edition the pure state machine reads. `computeStatus`
  * and `planNextAction` take exactly this — no relations, no DB. Timestamps may
  * arrive as Date or as the ISO strings a JSON round-trip produces.
  */
@@ -164,8 +164,8 @@ export type CatchupIndexCard = {
   catchupStatus: CatchupStatus | null;
   editionId: string | null;
   editionStatus: EditionStatus | null;
-  roundNumber: number | null;
-  /** Human status line, e.g. "Questions open, 2 days left" / "Answering now" / "Round 4 published". */
+  editionNumber: number | null;
+  /** Human status line, e.g. "Questions open, 2 days left" / "Answering now" / "Published". */
   statusLine: string;
   cta: { label: string; href: string } | null;
 };

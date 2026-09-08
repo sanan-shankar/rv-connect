@@ -384,8 +384,8 @@ export async function seedDemo(
       },
     });
 
-    async function writeRound(
-      round: { theme: string; prompts: DemoPrompt[] },
+    async function writeEdition(
+      edition: { theme: string; prompts: DemoPrompt[] },
       number: number,
       status: "published" | "answering",
       dates: {
@@ -400,7 +400,7 @@ export async function seedDemo(
           id: `demo-ed-${number}`,
           catchupId: "demo-catchup",
           number,
-          theme: round.theme,
+          theme: edition.theme,
           status,
           questionsCloseAt: dates.questionsCloseAt,
           answersCloseAt: dates.answersCloseAt,
@@ -411,7 +411,7 @@ export async function seedDemo(
       });
 
       await tx.catchupPrompt.createMany({
-        data: round.prompts.map((prompt, i) => ({
+        data: edition.prompts.map((prompt, i) => ({
           id: `demo-pr-${number}-${i}`,
           editionId: `demo-ed-${number}`,
           authorId: uid(prompt.askedBy),
@@ -426,7 +426,7 @@ export async function seedDemo(
       });
 
       await tx.catchupEntry.createMany({
-        data: round.prompts.flatMap((prompt, i) =>
+        data: edition.prompts.flatMap((prompt, i) =>
           prompt.entries.map((entry, j) => {
             const at = hoursAfter(dates.questionsCloseAt, 24 + j * 7);
             return {
@@ -443,7 +443,7 @@ export async function seedDemo(
       });
 
       await tx.catchupEntryLove.createMany({
-        data: round.prompts.flatMap((prompt, i) =>
+        data: edition.prompts.flatMap((prompt, i) =>
           prompt.entries.flatMap((entry, j) =>
             (entry.loves ?? []).map((slug) => ({
               id: `demo-el-${number}-${i}-${j}-${slug}`,
@@ -455,23 +455,23 @@ export async function seedDemo(
       });
     }
 
-    // Round 1 finished and published five weeks ago: a complete artefact to
+    // Edition 1 finished and published five weeks ago: a complete artefact to
     // read, so the feature explains itself before anyone is asked to use it.
-    await writeRound(CATCHUP_ROUND_1, 1, "published", {
+    await writeEdition(CATCHUP_ROUND_1, 1, "published", {
       questionsCloseAt: daysAgo(46),
       answersCloseAt: daysAgo(38),
       publishAt: daysAgo(37),
       publishedAt: daysAgo(37),
     });
 
-    // Round 2 closes in four days, so the countdown reads live and there is an
+    // Edition 2 closes in four days, so the countdown reads live and there is an
     // obvious, low-stakes thing for the visitor to actually do. Held in one
     // variable (not called twice) so the notification below can name the
     // exact day this reset actually set, rather than drifting from it.
-    const round2AnswersCloseAt = daysAgo(-4);
-    await writeRound(CATCHUP_ROUND_2, 2, "answering", {
+    const edition2AnswersCloseAt = daysAgo(-4);
+    await writeEdition(CATCHUP_ROUND_2, 2, "answering", {
       questionsCloseAt: daysAgo(6),
-      answersCloseAt: round2AnswersCloseAt,
+      answersCloseAt: edition2AnswersCloseAt,
       publishAt: daysAgo(-5),
     });
 
@@ -495,10 +495,10 @@ export async function seedDemo(
         {
           type: "admin",
           // The real deadline is always reset-time + 4 days (see
-          // round2AnswersCloseAt above), which lands on a different weekday
+          // edition2AnswersCloseAt above), which lands on a different weekday
           // depending on when the reset ran. A hard-coded "Friday" was
           // wrong six days out of seven (bug audit Low 68).
-          message: `Round 2 of ${CATCHUP_META.title} is open for answers until ${round2AnswersCloseAt.toLocaleDateString("en-US", { weekday: "long", timeZone: VALLEY_TIME_ZONE })}`,
+          message: `Edition 2 of ${CATCHUP_META.title} is open for answers until ${edition2AnswersCloseAt.toLocaleDateString("en-US", { weekday: "long", timeZone: VALLEY_TIME_ZONE })}`,
           link: "/catchups/demo-catchup",
           read: false,
           days: 2.4,

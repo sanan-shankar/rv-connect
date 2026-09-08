@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminPage, overdueEditionWhere } from "@/lib/admin";
 import { ADMIN_MEASURE, AdminEmpty, AdminSection } from "@/components/admin/admin-chrome";
 import { Chip } from "@/components/admin/admin-chip";
-import { ROUND_STATUS, SERIES_STATUS } from "@/components/admin/catchup-status";
+import { EDITION_STATUS, SERIES_STATUS } from "@/components/admin/catchup-status";
 import { formatDisplayDate, metaLine } from "@/lib/utils";
 import { advanceDueCatchups } from "@/lib/catchups";
 
@@ -17,10 +17,10 @@ export const metadata: Metadata = {
  * Oversight, not a second control panel.
  *
  * Catch-ups is the app's largest subsystem: six models, twenty server
- * actions, and a lifecycle with real deadlines. Rounds advance in
+ * actions, and a lifecycle with real deadlines. Editions advance in
  * `advanceDueCatchups`, which runs off whoever happens to load a page, and
  * when given a member id it only advances the Catch-ups THAT PERSON is in. So
- * a Round belonging to a group where nobody has visited lately can sit past
+ * an Edition belonging to a group where nobody has visited lately can sit past
  * its own closing date, and there was nowhere at all that would say so.
  * (A nightly cron sweeps them too, since audit M27; this page is what answers
  * the question in between.)
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
  * usually not in that group (audit Low 11). Rather than correct the sentence
  * to say there was nothing they could do, the page now does the nudging: the
  * sweep is idempotent, cannot throw, and an admin looking at a list of overdue
- * Rounds is exactly the person who wants them moved on.
+ * Editions is exactly the person who wants them moved on.
  *
  * The Keeper still runs their own Catch-up. This page answers one question:
  * is any of this stuck.
@@ -87,19 +87,19 @@ export default async function AdminCatchupsPage() {
   const running = catchups.filter((c) => !stuck.includes(c));
 
   function card(c: (typeof catchups)[number]) {
-    const round = c.editions[0];
-    const status = round ? (ROUND_STATUS[round.status] ?? ROUND_STATUS.draft) : null;
-    const isStuck = round ? overdueIds.has(round.id) : false;
+    const edition = c.editions[0];
+    const status = edition ? (EDITION_STATUS[edition.status] ?? EDITION_STATUS.draft) : null;
+    const isStuck = edition ? overdueIds.has(edition.id) : false;
 
-    // The date this Round is actually waiting on, which depends on where it
+    // The date this Edition is actually waiting on, which depends on where it
     // has got to. Showing all three would say almost nothing.
     const due =
-      round?.status === "collecting"
-        ? round.questionsCloseAt
-        : round?.status === "answering"
-          ? round.answersCloseAt
-          : round?.status === "preparing"
-            ? round.publishAt
+      edition?.status === "collecting"
+        ? edition.questionsCloseAt
+        : edition?.status === "answering"
+          ? edition.answersCloseAt
+          : edition?.status === "preparing"
+            ? edition.publishAt
             : null;
 
     return (
@@ -139,21 +139,21 @@ export default async function AdminCatchupsPage() {
           </div>
         </div>
 
-        {round ? (
+        {edition ? (
           <p className="text-[12.5px] leading-snug text-muted-foreground">
             {metaLine(
-              `Round ${round.number}`,
-              `${round._count.prompts} ${round._count.prompts === 1 ? "question" : "questions"}`,
-              `${round._count.entries} ${round._count.entries === 1 ? "answer" : "answers"}`,
-              round.publishedAt
-                ? `Sent ${formatDisplayDate(round.publishedAt)}`
+              `Edition ${edition.number}`,
+              `${edition._count.prompts} ${edition._count.prompts === 1 ? "question" : "questions"}`,
+              `${edition._count.entries} ${edition._count.entries === 1 ? "answer" : "answers"}`,
+              edition.publishedAt
+                ? `Sent ${formatDisplayDate(edition.publishedAt)}`
                 : due
                   ? `${isStuck ? "Was due" : "Due"} ${formatDisplayDate(due)}`
                   : null
             )}
           </p>
         ) : (
-          <p className="text-[12.5px] text-muted-foreground">No Rounds yet.</p>
+          <p className="text-[12.5px] text-muted-foreground">No Editions yet.</p>
         )}
       </div>
     );
@@ -165,11 +165,11 @@ export default async function AdminCatchupsPage() {
 
       <AdminSection label="Past its date" count={stuck.length}>
         {stuck.length === 0 ? (
-          <AdminEmpty>Nothing is stuck. Every Round is inside its own dates.</AdminEmpty>
+          <AdminEmpty>Nothing is stuck. Every Edition is inside its own dates.</AdminEmpty>
         ) : (
           <>
             <p className="px-0.5 pb-1 text-[12.5px] leading-relaxed text-muted-foreground">
-              These Rounds are past a date they should have moved on from. Rounds advance when
+              These Editions are past a date they should have moved on from. Editions advance when
               somebody in that group loads a page, so a quiet group can leave one sitting here.
               Loading this page has already tried to move every one of them on, so anything still
               listed is stuck for a reason worth looking at.

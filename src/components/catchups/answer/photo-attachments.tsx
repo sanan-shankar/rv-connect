@@ -6,7 +6,7 @@
  *
  *  `max` is 3 when photos ride along with a written answer, and 1 for a
  *  `photo` prompt, where the picture IS the answer: everyone adds one, and
- *  the Round prints them as a wall. That single picture gets a real plate
+ *  the Edition prints them as a wall. That single picture gets a real plate
  *  rather than a thumbnail, since nothing else sits beside it.
  *
  *  A dumb controlled list: the parent (AnswerCard) owns the autosave call

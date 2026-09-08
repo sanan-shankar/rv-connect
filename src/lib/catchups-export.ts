@@ -14,7 +14,7 @@
  *
  *  2. The lab rooms and the magazine engine READ it, from
  *     `src/app/lab/catchups/_fixtures/`. A direction room renders a real
- *     exported Round and an invented pressure fixture through the same
+ *     exported Edition and an invented pressure fixture through the same
  *     loader, so "does this design survive a 3,000-word answer" is
  *     answered by dropping a file in, not by writing a second renderer.
  *     (Campaign decisions D23, D30, D33, D35.)
@@ -132,7 +132,7 @@ export type ExportedQuestion = {
   answers: ExportedAnswer[];
 };
 
-export type ExportedRound = {
+export type ExportedEdition = {
   id: string;
   number: number;
   theme: string | null;
@@ -168,7 +168,7 @@ export type ExportedCatchup = {
   updatedAt: string;
   members: ExportedMembership[];
   prefs: ExportedPref[];
-  rounds: ExportedRound[];
+  editions: ExportedEdition[];
 };
 
 /** What a reader should check before trusting a file it was handed. Cheap,
@@ -188,7 +188,7 @@ export function isCatchupExportFile(value: unknown): value is CatchupExportFile 
  *  want: "render every answer" and "count the photographs" both start here. */
 export function everyAnswer(file: CatchupExportFile): ExportedAnswer[] {
   return file.catchups.flatMap((c) =>
-    c.rounds.flatMap((r) => r.questions.flatMap((q) => q.answers))
+    c.editions.flatMap((r) => r.questions.flatMap((q) => q.answers))
   );
 }
 
@@ -197,9 +197,9 @@ export function exportTotals(file: CatchupExportFile) {
   const answers = everyAnswer(file);
   return {
     catchups: file.catchups.length,
-    rounds: file.catchups.reduce((n, c) => n + c.rounds.length, 0),
+    editions: file.catchups.reduce((n, c) => n + c.editions.length, 0),
     questions: file.catchups.reduce(
-      (n, c) => n + c.rounds.reduce((m, r) => m + r.questions.length, 0),
+      (n, c) => n + c.editions.reduce((m, r) => m + r.questions.length, 0),
       0
     ),
     answers: answers.length,

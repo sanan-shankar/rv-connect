@@ -223,7 +223,7 @@ export async function GET() {
     [
       /* The questions they ASKED, not just the answers they wrote (audit
          C-078). `CatchupPrompt.authorId` is a real member FK and the text is
-         entirely theirs -- often the most personal thing in a Round -- and it
+         entirely theirs -- often the most personal thing in an Edition -- and it
          was the one authored relation this file's own "what the person gave
          the site or wrote on it" promise did not keep. `showAsker` travels
          with it, because whether they asked anonymously is part of what they

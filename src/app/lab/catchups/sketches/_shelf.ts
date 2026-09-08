@@ -1,57 +1,45 @@
 /* ------------------------------------------------------------------ *
  *  A shelf of Catch-ups, in every state a Catch-up can be in.
  *
- *  There is exactly one published Round on this database (F1), so the
+ *  There is exactly one published Edition on this database (F1), so the
  *  seven states cannot be read off it. They are built HERE, out of that
- *  Round's own questions and its own people, so every screen is drawn
+ *  Edition's own questions and its own people, so every screen is drawn
  *  against real questions of real length written by real members, and
  *  only the state machine is invented. His ask, para 51: "it's important
  *  especially to see how literally every state of the catch up looks and
  *  every sequence of events through those states looks."
  *
- *  Everything derived from a date is derived from the Round's OWN
+ *  Everything derived from a date is derived from the Edition's OWN
  *  publication date, never from `new Date()`: a clock read at render time
  *  gives the server one answer and the browser another, and React tears
  *  the page down over the difference.
  * ------------------------------------------------------------------ */
 
-import type { SketchPerson, SketchQuestion, SketchRound } from "./_types";
+import type { SketchPerson, SketchQuestion, SketchEdition } from "./_types";
 
-/* ── THE NOUN IS "EDITION", NOT "ROUND" ────────────────────────────── *
- *  His, 2026-09-07: "let's not use Round or Issue let's call them
- *  additions" -- then, a minute later, "Editions not additions."
- *
- *  Every user-facing string in this room says Edition now. The TYPES below
- *  still say Round (`ShelfRound`, `roundVerbs`, `RoundState`) and that is on
- *  purpose for one more session: the database already calls them Editions
- *  (`CatchupEdition`, and the shipped reader lives at
- *  `/catchups/round/[editionId]`, which is the drift in one URL), so the
- *  rename wants doing in one pass across the schema, the actions, the routes
- *  and the room together rather than scattered here first. S5's spec owns it.
- *
- *  A Round's state, which is the only thing the home's middle branches
- *  on. A Catch-up being paused is a MARK on one of these, never an
- *  eighth: today's pause replaces the page and hides a live Round
+/*  An Edition's state, which is the only thing the home's middle branches
+ *  on. A Catch-up being paused is a MARK on one of these, never a
+ *  fifth: today's pause replaces the page and hides a live Edition
  *  (recon section 11). */
-export type RoundState =
+export type EditionState =
   | "collecting"
   | "answering"
   | "published"
   | "ended";
 
 /* `preparing` is deleted, and it is deleted rather than redrawn. It is a
-   hard-coded 24-hour hold between answers closing and the Round coming
+   hard-coded 24-hour hold between answers closing and the Edition coming
    out (PREPARING_HOLD_HOURS in catchups-core.ts), during which nothing
    happens and nobody -- Keeper included -- can read a word. Its only real
-   job is stopping a Round landing at 3am, and "Publish now" exists solely
+   job is stopping an Edition landing at 3am, and "Publish now" exists solely
    to skip it. His question, 2026-09-07: "Why doesn't it just publish
    immediately? Is there a reason we have to have a separate preparing
    section? I can't just publish at midnight and the deadline is done."
-   There is not. Answers close and the Round comes out at the same moment,
+   There is not. Answers close and the Edition comes out at the same moment,
    and that moment is a civil hour. One state, one console and one control
    go with it. */
 
-export type ShelfRound = {
+export type ShelfEdition = {
   number: number;
   questions: SketchQuestion[];
   /** Published only. */
@@ -62,15 +50,15 @@ export type ShelfRound = {
   nextOpensAt: string | null;
   /** Answering only, by name, never a count (R21, R32). */
   wroteIn: SketchPerson[];
-  /** Whether the viewer has written in this Round. */
+  /** Whether the viewer has written in this Edition. */
   youAnswered: boolean;
   /** Invented. Whether the viewer has read it. */
   read: boolean;
-  /** Photographs from inside the Round. A published Round's cover is
+  /** Photographs from inside the Edition. A published Edition's cover is
    *  these, not a list of its questions: "the way that it's shown over
    *  here, it just looks like a bunch of questions ... it looks like work
    *  honestly. It's not like an appetizing, beautiful thing you want to
-   *  click and find out." (2026-09-07) A Round with none falls back to the
+   *  click and find out." (2026-09-07) An Edition with none falls back to the
    *  Catch-up's own picture. */
   photos: string[];
 };
@@ -81,7 +69,7 @@ export type SketchCatchup = {
   kind: "batch" | "people";
   /** The rhythm in words, and for a batch, whose it is. */
   meta: string;
-  state: RoundState;
+  state: EditionState;
   paused: boolean;
   /** Whether the viewer keeps it: the CATCH-UP's verbs, which are rhythm,
    *  hold and end. A batch Catch-up has no Keeper and never gets these --
@@ -100,10 +88,10 @@ export type SketchCatchup = {
    *  closes anything, and there is nothing to press by mistake. The only
    *  things anyone does on one are ask and answer. */
   canRun: boolean;
-  /** The Round that Now is about. Null only when the state is `none`. */
-  round: ShelfRound | null;
-  /** Published Rounds that are NOT the one in Now, newest first. */
-  before: ShelfRound[];
+  /** The Edition that Now is about. Null only when the state is `none`. */
+  edition: ShelfEdition | null;
+  /** Published Editions that are NOT the one in Now, newest first. */
+  before: ShelfEdition[];
   /** Ended only. */
   endedAt: string | null;
   members: SketchPerson[];
@@ -178,7 +166,7 @@ export const PICTURES: Picture[] = [
   { src: "/images/collection/c3.webp", focus: "center 85%" },
 ];
 
-/* ── dates, all off the Round's own ────────────────────────────────── */
+/* ── dates, all off the Edition's own ────────────────────────────────── */
 
 function shift(iso: string, days: number): string {
   const d = new Date(iso);
@@ -197,7 +185,7 @@ export function dayAndDate(iso: string): string {
 }
 
 /** "15 August 2026". A published Edition is dated in full, because that date
- *  is its NAME -- the Round number is gone, so this is the only thing that
+ *  is its NAME -- the Edition number is gone, so this is the only thing that
  *  tells one apart from another, and a shelf of them spans years. His,
  *  2026-09-07: "also include the year for the past editions not just the date
  *  and the month."
@@ -215,23 +203,23 @@ export function shortDate(iso: string): string {
 
 /* ── the shelf ─────────────────────────────────────────────────────── */
 
-/** Six Catch-ups covering all seven states, built from one real Round.
+/** Six Catch-ups covering all seven states, built from one real Edition.
  *  The order is the order the list draws them in: whatever wants
  *  something from you first, then whatever there is to read, then the
  *  quiet ones. */
-export function buildShelf(round: SketchRound): SketchCatchup[] {
-  const q = round.questions;
-  const base = round.publishedAt;
-  const people = round.members;
-  const wrote = round.contributors;
+export function buildShelf(edition: SketchEdition): SketchCatchup[] {
+  const q = edition.questions;
+  const base = edition.publishedAt;
+  const people = edition.members;
+  const wrote = edition.contributors;
 
-  /* Every photograph anyone put in this Round, in the order they appear.
+  /* Every photograph anyone put in this Edition, in the order they appear.
      A cover takes the first few. */
   const shots = q.flatMap((s) => s.entries.flatMap((e) => e.images));
   const from = (n: number) => shots.slice(n, n + 4);
 
-  const published: ShelfRound = {
-    number: round.number,
+  const published: ShelfEdition = {
+    number: edition.number,
     questions: q,
     publishedAt: base,
     closesAt: null,
@@ -254,7 +242,7 @@ export function buildShelf(round: SketchRound): SketchCatchup[] {
       paused: false,
       youKeep: false,
       canRun: false,
-      round: {
+      edition: {
         number: 4,
         questions: q.slice(0, 5),
         publishedAt: null,
@@ -276,15 +264,15 @@ export function buildShelf(round: SketchRound): SketchCatchup[] {
 
     /* Out, and not yet read. The whole panel opens the reader. */
     {
-      id: round.catchupId,
-      name: round.catchupName,
+      id: edition.catchupId,
+      name: edition.catchupName,
       kind: "people",
       meta: "Every month",
       state: "published",
       paused: false,
       youKeep: true,
       canRun: true,
-      round: published,
+      edition: published,
       before: [],
       endedAt: null,
       members: people,
@@ -301,7 +289,7 @@ export function buildShelf(round: SketchRound): SketchCatchup[] {
       paused: false,
       youKeep: true,
       canRun: true,
-      round: {
+      edition: {
         number: 2,
         questions: q.slice(5, 8),
         publishedAt: null,
@@ -319,7 +307,7 @@ export function buildShelf(round: SketchRound): SketchCatchup[] {
     },
 
     /* Out, and read, with two behind it. The state `preparing` used to sit
-       here and is deleted; a Round now comes out at the moment answers
+       here and is deleted; an Edition now comes out at the moment answers
        close. */
     {
       id: "crimes",
@@ -330,7 +318,7 @@ export function buildShelf(round: SketchRound): SketchCatchup[] {
       paused: false,
       youKeep: true,
       canRun: true,
-      round: {
+      edition: {
         ...published,
         number: 3,
         publishedAt: shift(base, -14),
@@ -349,7 +337,7 @@ export function buildShelf(round: SketchRound): SketchCatchup[] {
     },
 
     /* A batch on its first day. It opens straight into collecting -- there
-       is no "no Round yet" any more, because there is no moment a member can
+       is no "no Edition yet" any more, because there is no moment a member can
        reach one: "when you start a catch-up, it should immediately start into
        questions." */
     {
@@ -361,7 +349,7 @@ export function buildShelf(round: SketchRound): SketchCatchup[] {
       paused: false,
       youKeep: false,
       canRun: false,
-      round: {
+      edition: {
         number: 1,
         questions: [],
         publishedAt: null,
@@ -388,7 +376,7 @@ export function buildShelf(round: SketchRound): SketchCatchup[] {
       paused: false,
       youKeep: true,
       canRun: true,
-      round: null,
+      edition: null,
       before: [{ ...published, number: 1, publishedAt: shift(base, -240), questions: q.slice(0, 5), read: true, photos: from(6) }],
       endedAt: shift(base, -120),
       members: people.slice(0, 5),
@@ -398,7 +386,7 @@ export function buildShelf(round: SketchRound): SketchCatchup[] {
 }
 
 /** The paused variant of a Catch-up, for the home's state picker. A
- *  pause is a mark on whatever the Round is doing, so this is the same
+ *  pause is a mark on whatever the Edition is doing, so this is the same
  *  Catch-up with one flag turned on and nothing else changed. */
 export function paused(c: SketchCatchup): SketchCatchup {
   return { ...c, id: `${c.id}-paused`, paused: true };
@@ -410,16 +398,16 @@ export function shelfOf(all: SketchCatchup[], howMany: number): SketchCatchup[] 
   return all.slice(0, howMany);
 }
 
-/** The home, in every state a Round can be in, plus held. The room's state
+/** The home, in every state an Edition can be in, plus held. The room's state
  *  picker walks this list.
  *
  *  FIVE, not seven, and two went for his reasons on 2026-09-07.
  *
- *  "No Round yet" is deleted: "I don't understand when the situation would
+ *  "No Edition yet" is deleted: "I don't understand when the situation would
  *  occur because it's like when you start a catch-up, it should immediately
  *  start into questions." He is right -- a Catch-up that has just been made is
  *  collecting, and a batch whose turn has come opens straight into collecting
- *  too. There is no moment a member can reach a home with no Round on it, so
+ *  too. There is no moment a member can reach a home with no Edition on it, so
  *  there is no state to draw.
  *
  *  "Out, with earlier ones" and "Published" are one: "Out with the early ones,
@@ -442,7 +430,7 @@ export function homeVariants(
     { key: "first", label: "First Edition", c: by("batch-1978") },
     { key: "answering", label: "Answering", c: answering },
     { key: "published", label: "Published", c: by("crimes") },
-    /* A hold is a mark on a live Round, so the illustrative case is a Round
+    /* A hold is a mark on a live Edition, so the illustrative case is an Edition
        mid-answer: the page says it is held and offers the one control that
        changes that, rather than redrawing the answering page with one word
        swapped ("why is paused the same as answering?"). */

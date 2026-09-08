@@ -1,7 +1,7 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  <ConsoleCollecting> - the console while a Round is collecting
+ *  <ConsoleCollecting> - the console while an Edition is collecting
  *  questions (spec 3.3 + 3.3.1).
  *
  *  Two things, in the order they matter: the box for writing a question
@@ -43,7 +43,7 @@ export function ConsoleCollecting({
   onChanged: () => void;
 }) {
   const { viewer } = data;
-  // Every question is in the Round the moment it is asked (2026-08-05), so
+  // Every question is in the Edition the moment it is asked (2026-08-05), so
   // there is one list, not an accepted one and a queue behind it.
   const accepted = edition.prompts.filter((p) => p.accepted);
 
@@ -79,7 +79,7 @@ function SubmissionPanel({
   editionId: string;
   viewerName: string;
   promptLibrary: CatchupHomeData["promptLibrary"];
-  /** True while the Round has nothing in it yet: the heading changes, the copy does not multiply. */
+  /** True while the Edition has nothing in it yet: the heading changes, the copy does not multiply. */
   firstAsk: boolean;
   onSubmitted: () => void;
 }) {
@@ -113,7 +113,7 @@ function SubmissionPanel({
         return;
       }
       // Always "added": since 2026-08-05 nothing waits on a Keeper.
-      toast.success("Added to the round.");
+      toast.success("Added to the Edition.");
       setText("");
       setCategory(null);
       setShowAsker(true);
@@ -312,7 +312,7 @@ function QuestionsList({
         {order.length > 0 && (
           <div>
             <p className="text-sm font-semibold text-foreground">
-              {order.length} {order.length === 1 ? "question" : "questions"} in this round
+              {order.length} {order.length === 1 ? "question" : "questions"} in this Edition
             </p>
             <div ref={listRef} className="mt-[var(--space-s)] space-y-[var(--space-xs)]">
               {order.map((p, i) => (

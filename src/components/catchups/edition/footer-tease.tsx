@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------ *
- *  <RoundFooterTease> - the close of the reader: when the next Round opens
+ *  <EditionFooterTease> - the close of the reader: when the next Edition opens
  *  (recurring cadences only), and the way back to this group's Catch-up
  *  home rather than the global /catchups index.
  *
@@ -12,21 +12,21 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { formatDisplayDateLong } from "@/lib/utils";
 
-export function RoundFooterTease({
+export function EditionFooterTease({
   catchupId,
   nextOpensAt,
   showNextOpens,
 }: {
   catchupId: string;
   nextOpensAt: Date | string | null;
-  /** False for a paused/ended Catchup, where there is no next Round. */
+  /** False for a paused/ended Catchup, where there is no next Edition. */
   showNextOpens: boolean;
 }) {
   const nextLabel = showNextOpens && nextOpensAt ? formatDisplayDateLong(nextOpensAt) : null;
 
   return (
     <footer className="mt-[var(--space-xl)] border-t border-border pt-[var(--space-l)] text-center">
-      {nextLabel && <p className="text-sm text-muted-foreground">Next Round opens {nextLabel}.</p>}
+      {nextLabel && <p className="text-sm text-muted-foreground">Next Edition opens {nextLabel}.</p>}
       <Link
         href={`/catchups/${catchupId}`}
         className="mt-[var(--space-xs)] inline-flex items-center gap-1.5 rounded-md text-sm font-semibold text-leaf hover:underline active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
