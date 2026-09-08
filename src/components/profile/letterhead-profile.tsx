@@ -223,20 +223,61 @@ const PAPER_GRAIN =
  *  up optically centred on the mark and a little above its base, which
  *  is the state the owner remembers and asked for back.
  *
- *  Sizes are the ones from that same review and are kept: the mark at 16
- *  (== the row height) and the numerals on 13px, the app's small-UI rung
- *  (every segmented pill label, every filter chip), with tracking at
- *  0.16em so the sheet carries ONE caps tracking value rather than two.
+ *  The mark stays at 16 (== the row height). THE NUMERALS MOVED FROM 13px
+ *  TO 16px on 2026-09-08, because the number was losing to the hill. The
+ *  test is the ratio the sidebar lockup is built on (see the Wordmark
+ *  comment in peaks-mark.tsx): cap height over the mark's INK height, which
+ *  wants to land between 0.70 and 0.85. At 13px it was 0.56, well under,
+ *  which is why the owner could feel something wrong without being able to
+ *  name it -- "something needs to change I can't point my finger at the
+ *  problem". At 16px it is 0.69.
+ *
+ *  TRACKING IS 0.12em, AND THE em VALUE DELIBERATELY DIFFERS FROM THE REST
+ *  OF THE SHEET. It used to be 0.16em, matching BATCH / IN THE VALLEY /
+ *  CITIES / ABOUT / HOUSES, with a comment saying that kept ONE caps
+ *  tracking value on the sheet. That was the right goal reached by the
+ *  wrong measure: letter-spacing in `em` scales with font size, so equal em
+ *  is only equal space when the sizes match. Those labels are 11px and 12px
+ *  and carry 1.76px and 1.92px of space. At 16px, 0.16em is 2.56px -- 45%
+ *  airier than anything else here, which is why it had to move at all.
+ *
+ *  0.14em is 2.24px. The arithmetic argued for 0.12em, which is 1.92px and
+ *  therefore identical to ABOUT and HOUSES; the owner looked at both and
+ *  took 0.14em anyway (2026-09-08). Recorded rather than quietly corrected,
+ *  because the two are half a pixel apart and his eye is the tiebreak: the
+ *  digits want reading as an accession number, and the tighter value starts
+ *  reading as a quantity. Do not "fix" this back to 0.12em on the strength
+ *  of the paragraph above.
+ *
+ *  THE GAP WENT 6px -> 9px in the same pass, also on his eye, and walked
+ *  there in three goes: "increase the gap a good amount", then "just a bit"
+ *  (10px), then "a teeny bit closer" (9px). It is a step toward the sidebar
+ *  lockup's proportion without arriving: gap over the mark's ink height is
+ *  0.65 here against the Wordmark's 0.83. Past 12px the number stops
+ *  belonging to the hill and becomes a second object on the row, which is
+ *  the ceiling this sits under rather than on. 9px is off the Tailwind
+ *  scale on purpose -- gap-2 is 8 and gap-2.5 is 10, and both were looked
+ *  at beside it.
+ *
+ *  THE THREE NEAR-MISSES, kept because the owner asked for them by name as
+ *  the ones to reach for if this ever wants changing (2026-09-08): 16px at
+ *  0.12em, and 15px at either 0.12em or 0.14em (both ratio 0.64, still
+ *  slightly under the band). Weight stays 700 and the mark stays 16 in all
+ *  four -- he ruled both out of scope.
  * ------------------------------------------------------------------ */
 const COLOPHON = {
   /** px. Equal to `--lh-colophon`, so the mark fills the row exactly. */
   markSize: 16,
   /**
-   * px, downward, paint-only so it can never reflow the row. The Wordmark
-   * uses 2px against Libre Baskerville at 18px; these are Source Sans 3
-   * caps at 13px, whose cap height sits differently in the box, so this is
-   * measured rather than copied. See scripts/qa/colophon-probe.mjs, which
-   * reports the gap from the digits' visual centre to the mark's.
+   * px, downward, paint-only so it can never reflow the row. Centring two
+   * boxes puts the digits high, because a text box carries ascender and
+   * descender air that four numerals do not fill. 1px lands the digits'
+   * cap band 0.4px below the mark's geometric centre -- the same rule the
+   * Wordmark follows, and still correct at 16px, so it did not move when
+   * the numerals grew. Not the mark's centre of MASS, which sits 66.6% down
+   * (a hill is bottom-heavy): aligning there drops the digits far enough
+   * that the peaks loom, which is the bottom-aligned version the owner
+   * rejected on 2026-08-03.
    */
   numberNudge: 1,
 } as const;
@@ -883,7 +924,7 @@ export function LetterheadProfile({
                       /* Byte-for-byte the read-only lockup below, with the
                          number swapped for a field: same row height, same
                          gap, same 13px caps, same paint-only nudge. */
-                      <span className="flex h-[var(--lh-colophon)] w-fit items-center gap-1.5 text-cinnamon">
+                      <span className="flex h-[var(--lh-colophon)] w-fit items-center gap-[9px] text-cinnamon">
                         <button
                           type="button"
                           onClick={fireStamp}
@@ -893,7 +934,7 @@ export function LetterheadProfile({
                           <PeaksMark size={COLOPHON.markSize} />
                         </button>
                         <span
-                          className="text-[13px] font-bold uppercase leading-none tracking-[0.16em]"
+                          className="text-[16px] font-bold uppercase leading-none tracking-[0.14em]"
                           style={{ transform: `translateY(${COLOPHON.numberNudge}px)` }}
                         >
                           <PenValue
@@ -916,11 +957,11 @@ export function LetterheadProfile({
                         type="button"
                         onClick={fireStamp}
                         aria-label={`Admission number ${admissionNumber}. Press to stamp the sheet.`}
-                        className="flex h-[var(--lh-colophon)] w-fit items-center gap-1.5 rounded-sm text-cinnamon transition-opacity duration-150 hover:opacity-75 active:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        className="flex h-[var(--lh-colophon)] w-fit items-center gap-[9px] rounded-sm text-cinnamon transition-opacity duration-150 hover:opacity-75 active:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                       >
                         <PeaksMark size={COLOPHON.markSize} />
                         <span
-                          className="text-[13px] font-bold uppercase leading-none tracking-[0.16em]"
+                          className="text-[16px] font-bold uppercase leading-none tracking-[0.14em]"
                           style={{ transform: `translateY(${COLOPHON.numberNudge}px)` }}
                         >
                           {admissionNumber}
