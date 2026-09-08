@@ -39,6 +39,8 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
   way it resumes from the file's board, which `scripts/qa/campaign.test.mjs` keeps well-formed.
 - **`/lab` is the one index of every dev and preview room.** Nothing is browsable that is not listed
   in `src/app/lab/_registry.ts`. `/lab/v2` is the approved look; `/lab/logo` documents the final mark.
+  Rooms are `page.lab.tsx` files so the public demo's build can leave the whole tree out; his own
+  build keeps it.
 
 # Hard Rules
 
@@ -306,8 +308,11 @@ for the shots that go on the record and for sweeps; the MCP is for the measuring
    `next-devtools` for `get_errors`.
 4. **`verify-shot.mjs` and `crawl.mjs` sign in first**, so `/` redirects to `/feed`. Use
    `screenshot.mjs` for anything that must be seen signed out.
-5. **Every new dev/preview page must be registered** in `src/app/lab/_registry.ts` in the same change.
-   `npm run check` fails if it is not.
+5. **Every new dev/preview page must be registered** in `src/app/lab/_registry.ts` in the same change,
+   **and its file is `page.lab.tsx`, not `page.tsx`.** That suffix is what keeps the lab out of the
+   public demo's build and only the demo's (owner, 2026-09-08): `pageExtensions` in `next.config.ts`
+   carries `lab.tsx` on every build except that one. `npm run check` fails on a missing registry row
+   and on either half of the naming rule.
 6. **A lab room has a house voice.** Read `docs/spec/lab-voice.md` before writing one, and do not
    infer the style from whichever room you read last. That is how every room ended up opening with a
    stats scoreboard it had no numbers for. Short sentences, plain words, something to actually look

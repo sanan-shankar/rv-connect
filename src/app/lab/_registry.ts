@@ -13,12 +13,19 @@
  *  "delight" and "second-look" survive only as the group headings below and
  *  not as URL segments. /preview is gone; its URLs are not redirected.
  *
- *  `/lab` (./page.tsx) renders this list; nothing may be reachable on disk
- *  that is not also reachable from here.
+ *  `/lab` (./page.lab.tsx) renders this list; nothing may be reachable on
+ *  disk that is not also reachable from here.
+ *
+ *  EVERY ROOM'S FILE IS `page.lab.tsx`, NOT `page.tsx`. That suffix is on
+ *  `pageExtensions` in next.config.ts for every build except the public
+ *  demo's, which is how the lab leaves the demo's build and only the demo's
+ *  (owner, 2026-09-08, question 23). Name a new room `page.tsx` and it works
+ *  perfectly here and quietly ships to a deployment where /lab is closed.
+ *  `scripts/qa/lab-audit.mjs` refuses either mistake.
  *
  *  `scripts/qa/lab-audit.mjs` proves that both directions hold: every
- *  page.tsx on disk has a row below, and every href below points at a
- *  real page.tsx. Add the row in the SAME change that adds the page.
+ *  page file on disk has a row below, and every href below points at a
+ *  real one. Add the row in the SAME change that adds the page.
  *
  *  Adding a room: append an entry. Retiring one: flip its status to
  *  "archived" rather than deleting the row (or the file) so history

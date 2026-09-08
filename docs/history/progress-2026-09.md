@@ -8,6 +8,61 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 — the design lab leaves the demo's build, and only the demo's
+
+Refactor audit 2, rows G1 and G7, and the owner's answer to question 23: **"8 remove it from the
+demo."** His own site keeps the lab; the public demo stops carrying it.
+
+**The mechanism is one line of config and 47 renamed files.** Every room is now `page.lab.tsx`
+rather than `page.tsx`, and `next.config.ts` puts `"lab.tsx"` on `pageExtensions` for every build
+except one with `DEMO_MODE=1` in its environment — the env var the demo's second Vercel project
+already sets, so nothing new was invented. `lab-01` named the one thing that would kill this option:
+whether Turbopack honours a multi-dot `pageExtensions` in the App Router. It does. A full build
+lists all 47 lab routes; a `DEMO_MODE=1` build lists none.
+
+**Measured on cold paired builds of the same commit**, this Mac at load average 9-11:
+
+| | with the lab | demo build | delta |
+|---|---|---|---|
+| App routes | 120 | 73 | −47 |
+| `.next/server/app` | 11,760 KB | 7,568 KB | −4,192 KB |
+| `.next/static/chunks` | 7,324 KB | 4,412 KB | −2,912 KB |
+| `.next/static/media` | 3,040 KB, 72 woff2 | 256 KB, 9 woff2 | −2,784 KB, −63 fonts |
+| Turbopack compile | 34.1 s | 21.8 s | −12.3 s |
+| TypeScript | 36.0 s | 29.9 s | −6.1 s |
+| Static pages | 98 | 57 | −41 |
+
+**The 63 font files are `lab-04`, and they were verified rather than believed**: `next/font/google`
+self-hosts at build time, so with no page importing `/lab/type`'s `_fonts.ts` the demo build simply
+stops fetching nine families from Google before it can finish. Nothing outside those two rooms
+imports either font file.
+
+**One audit number is honestly overstated, and it is the headline one.** `bundle-build-07` promised
+~4-6 s on a warm build. With each configuration's own Turbopack cache in place and no source change,
+the two builds are **16 s and 15 s**. Vercel restores `.next/cache` between deploys, so a real demo
+deploy sits somewhere between that and the cold pair, nearer the warm end. The artifact saving,
+−9,888 KB, is unconditional; the seconds are not.
+
+**Why the demo only.** `/lab/collection` is the Collection rework's test fixture, because the real
+`/collection` holds two photographs that both say "asdf". Two committed Playwright suites drive it,
+and `verify:crawl`, `dev:centroid` and the two `apple-edge` scripts all reach lab routes. None of
+them runs against a demo build, which is exactly why the demo-only form is safe and a main-build
+exclusion is not.
+
+**`scripts/qa/lab-audit.mjs` learned the new name and then learned to enforce it.** It now fails on
+a lab page called `page.tsx` and on a non-lab page called `page.lab.tsx` — both proved by renaming a
+real file and watching the gate go red, then putting it back. Without that, a new room named
+`page.tsx` would pass every existing check and quietly ship to a deployment where `/lab` is closed
+and nobody can open it.
+
+**`layout.tsx` and `loading.tsx` were deliberately not renamed**, against `lab-01`'s instruction. A
+layout with no page beneath it never enters the demo's route tree, so the rename buys nothing, and
+leaving them alone keeps `loading-boundary-rule.test.mjs` and the M19 admin-gate greps looking at
+the filenames they expect.
+
+The demo's three layers were re-proved on the real demo database, not just in theory:
+`src/lib/demo.test.mjs` 22/22 and `npx tsx scripts/demo/verify-guard.mts` 15 passed, 0 failed.
+
 ## 2026-09-08 — a closed audit's working notes go to git history
 
 Refactor audit 2, row `docs-01`, and the rule the owner agreed in question 21: when an audit

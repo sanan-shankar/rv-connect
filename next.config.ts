@@ -6,6 +6,15 @@ import { withSentryConfig } from "@sentry/nextjs";
  * says "fetch this over https instead" has nothing to reach. */
 const isProd = process.env.NODE_ENV === "production";
 
+/* True only when this build is the public demo (demo.rishivalley.space), a
+ * SECOND Vercel project built from this same repository with DEMO_MODE=1 in
+ * its environment. Declared here rather than imported from src/lib/demo.ts,
+ * for the same reason src/proxy.ts declares its own: this file is read by the
+ * Next CLI before any application module is resolvable, and the whole value of
+ * the flag is that it costs one env var to read. Only `pageExtensions` below
+ * uses it. */
+const IS_DEMO = process.env.DEMO_MODE === "1";
+
 /* Every host this app's own images are served from -- and NOTHING else.
  *
  * This list feeds both the CSP (img-src, connect-src) and next/image's
@@ -195,6 +204,33 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["sharp"],
+  /* THE LAB LEAVES THE DEMO'S BUILD, AND ONLY THE DEMO'S (owner, 2026-09-08,
+   * question 23: "8 remove it from the demo").
+   *
+   * Every room under src/app/lab is `page.lab.tsx`, not `page.tsx`, so Next
+   * only sees it as a page when "lab.tsx" is on this list. The demo build
+   * leaves it off; every other build keeps it. The lab is 47 routes, ~113
+   * files and 44,363 lines of the TypeScript program, and on the demo
+   * deployment /lab is in DEMO_CLOSED_PATHS -- so the demo was compiling,
+   * type-checking and shipping a tree that literally nobody there can open.
+   *
+   * It stays in his own build deliberately: /lab/collection is the Collection
+   * rework's test fixture (the real /collection holds two photographs), two
+   * committed Playwright suites drive it, and npm run verify:crawl,
+   * npm run dev:centroid and the two apple-edge scripts all reach lab routes.
+   * A main-build exclusion would break all of those; this one breaks none,
+   * because none of them runs against the demo.
+   *
+   * The 63 Google font files that /lab/type and /lab/craft download at build
+   * time ride along: with no page importing _fonts.ts, next/font never fetches
+   * them, and nothing outside those two rooms imports either file.
+   *
+   * "tsx"/"ts" stay first and stay present because pageExtensions governs
+   * proxy.ts and instrumentation.ts too, not just pages.
+   *
+   * scripts/qa/lab-audit.mjs knows this filename. If you change it, change
+   * that too, or every registry href becomes a dead link. */
+  pageExtensions: IS_DEMO ? ["tsx", "ts", "jsx", "js"] : ["tsx", "ts", "jsx", "js", "lab.tsx"],
   devIndicators: false,
   /* WHO MAY LOAD THE DEV SERVER'S ASSETS. Development only -- Next ignores
    * this in a production build.

@@ -231,6 +231,46 @@ because it caught two leaks that every unit test happily passed over:
 A correct policy that is not actually attached to the client protects nothing,
 and no amount of unit testing will tell you.
 
+### The lab is not in this build at all
+
+`/lab` is on `DEMO_CLOSED_PATHS` above, but on the demo it is more than closed:
+the rooms are not compiled. Every room's file is `page.lab.tsx`, and
+`pageExtensions` in `next.config.ts` carries `lab.tsx` on every build except
+this one (owner, 2026-09-08, question 23: *"remove it from the demo"*).
+
+Measured on two cold builds of the same commit, this Mac, load average 9-11:
+
+| | with the lab | demo build | delta |
+|---|---|---|---|
+| App routes in `app-path-routes-manifest.json` | 120 | 73 | **−47** |
+| `.next/server/app` | 11,760 KB | 7,568 KB | −4,192 KB |
+| `.next/static/chunks` | 7,324 KB | 4,412 KB | −2,912 KB |
+| `.next/static/media` (75 files, 72 woff2 → 12 files, 9 woff2) | 3,040 KB | 256 KB | −2,784 KB |
+| **Deployed artifact, those three** | | | **−9,888 KB** |
+| Turbopack compile | 34.1 s | 21.8 s | −12.3 s |
+| TypeScript | 36.0 s | 29.9 s | −6.1 s |
+| Static pages generated | 98 | 57 | −41 |
+
+The 63 `woff2` files are `/lab/type` and `/lab/craft`: `next/font/google`
+downloads and self-hosts at build time, so with no page importing
+`_fonts.ts` the demo build stops fetching nine font families from Google
+before it can finish. Nothing outside those two rooms imports either file.
+
+**A warm rebuild is a different story and the honest number is small**: with
+each configuration's own Turbopack cache in place and no source change,
+16 s against 15 s. Vercel restores `.next/cache` between deploys, so a real
+demo deploy sits between the two figures, nearer the warm one.
+
+This is a build-time saving, not a security layer, and it is deliberately
+demo-only. The main build keeps the lab because `/lab/collection` is the
+Collection rework's test fixture (the real `/collection` holds two
+photographs), two committed Playwright suites drive it, and
+`npm run verify:crawl`, `npm run dev:centroid` and the two `apple-edge`
+scripts all reach lab routes. None of those runs against a demo build, which
+is why the demo-only form is safe and a main-build exclusion is not.
+`scripts/qa/lab-audit.mjs` fails on a lab page named `page.tsx` or a
+non-lab page named `page.lab.tsx`, so the rule cannot rot quietly.
+
 ### Identity
 
 There is no login and no session token. `auth()` in `src/lib/auth.ts` returns a
