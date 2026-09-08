@@ -18,7 +18,7 @@
  *    are trying to improve on Letterloop. Letterloop's things are too
  *    fixed."
  *
- *  And the measurement that made it urgent. On the live Round being drawn
+ *  And the measurement that made it urgent. On the live Edition being drawn
  *  here, the songs question has THIRTEEN answers and the `songUrl` column
  *  is null on every one of them, because today's resolver only runs when
  *  the composer's dedicated song field is used. Four answers carry pasted

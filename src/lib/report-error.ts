@@ -15,7 +15,7 @@ import * as Sentry from "@sentry/nextjs";
  *  because "with 49 members, nobody reports a broken page, they leave"
  *  (src/instrumentation.ts) -- only ever sees what is THROWN. So the
  *  Catch-up engine could fail on every page view for a week and the one
- *  symptom would be that Rounds stopped happening, with no alert and
+ *  symptom would be that Editions stopped happening, with no alert and
  *  nothing in the inbox (bug audit M09).
  *
  *  A guard that hides its own breakage is worse than no guard. This is

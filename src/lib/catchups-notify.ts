@@ -47,7 +47,7 @@ import type {
  * An ARCHIVED copy is not excluded, and that is deliberate. Archiving is
  * filing; muting has its own control (`CatchupPref.reminderMode`), and quietly
  * making one mean the other would leave a member who filed a Catch-up away
- * missing the Round they were still expecting.
+ * missing the Edition they were still expecting.
  */
 async function groupMemberIds(
   db: CatchupDb,
@@ -74,7 +74,7 @@ async function answeredUserIds(db: CatchupDb, editionId: string): Promise<Set<st
   return new Set(rows.map((r) => r.authorId));
 }
 
-/** Members who have not written any Entry in this Round. */
+/** Members who have not written any Entry in this Edition. */
 async function nonAnswererIds(
   db: CatchupDb,
   groupId: string,
@@ -104,7 +104,7 @@ async function createMany(
 
 // ─── Triggers ────────────────────────────────────────────────────────────────
 
-/** Round enters `collecting`: invite everyone to add a question. */
+/** Edition enters `collecting`: invite everyone to add a question. */
 export const notifyQuestionsOpen: NotifyQuestionsOpenFn = async (db, ctx) => {
   const members = (await groupMemberIds(db, ctx.groupId, ctx.catchupId)).filter(
     (id) => id !== ctx.excludeUserId
@@ -118,7 +118,7 @@ export const notifyQuestionsOpen: NotifyQuestionsOpenFn = async (db, ctx) => {
   );
 };
 
-/** Round enters `answering`: answers are open. Re-fired to non-answerers on a too-few extension. */
+/** Edition enters `answering`: answers are open. Re-fired to non-answerers on a too-few extension. */
 export const notifyAnswersOpen: NotifyAnswersOpenFn = async (db, ctx) => {
   const audience = ctx.onlyNonAnswerers
     ? await nonAnswererIds(db, ctx.groupId, ctx.catchupId, ctx.editionId)
@@ -204,7 +204,7 @@ export const notifyReminder: NotifyReminderFn = async (db, ctx) => {
   await createMany(db, recipients, "catchup_reminder", message, link);
 };
 
-/** Round enters `published`: the reveal notification, the moment the ritual pays off. */
+/** Edition enters `published`: the reveal notification, the moment the ritual pays off. */
 export const notifyPublished: NotifyPublishedFn = async (db, ctx) => {
   const members = (await groupMemberIds(db, ctx.groupId, ctx.catchupId)).filter(
     (id) => id !== ctx.excludeUserId
@@ -214,22 +214,22 @@ export const notifyPublished: NotifyPublishedFn = async (db, ctx) => {
     members,
     "catchup_published",
     `Your ${ctx.groupName} Catch-up is ready to read.`,
-    `/catchups/round/${ctx.editionId}`
+    `/catchups/edition/${ctx.editionId}`
   );
 };
 
 /**
  * Optional post-publish stickiness nudge: someone hearted your answer. Coalesced
- * to at most one unread `catchup_love` per author per Round so it can never spam.
+ * to at most one unread `catchup_love` per author per Edition so it can never spam.
  */
 export const notifyLove: NotifyLoveFn = async (db, ctx) => {
   if (ctx.authorId === ctx.likerId) return; // never notify yourself
 
-  /* Only somebody the Round is still open to (audit C-030).
+  /* Only somebody the Edition is still open to (audit C-030).
    *
    * A published answer stays where it is when its author leaves -- that is
-   * the owner's decision, and the Round is a keepsake the whole group has
-   * read. But the AUTHOR is gone, and the Round page 404s for a non-member,
+   * the owner's decision, and the Edition is a keepsake the whole group has
+   * read. But the AUTHOR is gone, and the Edition page 404s for a non-member,
    * so hearting an ex-member's answer put a bell entry in their pocket
    * pointing at a door that no longer opens for them. The same is true of
    * somebody who has binned their own copy: `groupMemberIds` stops every
@@ -244,7 +244,7 @@ export const notifyLove: NotifyLoveFn = async (db, ctx) => {
   ]);
   if (stillIn === 0 || binned > 0) return;
 
-  const link = `/catchups/round/${ctx.editionId}`;
+  const link = `/catchups/edition/${ctx.editionId}`;
   const existing = await db.notification.findFirst({
     where: { userId: ctx.authorId, type: "catchup_love", link, read: false },
     select: { id: true },

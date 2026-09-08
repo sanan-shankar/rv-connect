@@ -4,11 +4,11 @@
  *  <CatchupHomeShell> - the Catch-up home's top composition.
  *
  *  Layout shape (spec 3.3, BINDING): asymmetric two-column. Left (wide) =
- *  the live console, which swaps by Round status and is the ONE surface
+ *  the live console, which swaps by Edition status and is the ONE surface
  *  the whole cycle happens on (owner review 2026-07-25): questions get
- *  added here while collecting, and the issue is read here once it is
+ *  added here while collecting, and the Edition is read here once it is
  *  published. Right rail = the member's reminder setting, the published
- *  issues, and Keeper actions/settings. Never a centered single column on
+ *  Editions, and Keeper actions/settings. Never a centered single column on
  *  desktop; collapses to one stack on mobile.
  *
  *  There is no "Keeper controls" box. "Open answering" is the full-width
@@ -28,11 +28,11 @@ import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { FadeRise } from "@/components/common/motion";
 import { AlmostReady } from "@/components/catchups/almost-ready";
-import { PublishNowButton } from "@/components/catchups/round/publish-now-button";
+import { PublishNowButton } from "@/components/catchups/edition/publish-now-button";
 import { resumeCatchup } from "@/app/(main)/catchups/actions";
 import { ConsoleCollecting, OpenAnsweringButton } from "./console-collecting";
 import { ConsoleAnswering } from "./console-answering";
-import { ConsolePublished, type PublishedIssue } from "./console-published";
+import { ConsolePublished, type PublishedEditionContents } from "./console-published";
 import { ArchiveShelf } from "./archive-shelf";
 import { ExtendDeadlineCard } from "./extend-deadline-card";
 import { KeeperSettingsDialog } from "./keeper-settings-dialog";
@@ -42,11 +42,11 @@ import type { CatchupHomeData } from "./types";
 
 export function CatchupHomeShell({
   data,
-  issue,
+  contents,
 }: {
   data: CatchupHomeData;
-  /** The latest Round's full contents, present only once it has published. */
-  issue?: PublishedIssue | null;
+  /** The latest Edition's full contents, present only once it has published. */
+  contents?: PublishedEditionContents | null;
 }) {
   const router = useRouter();
   const refresh = () => router.refresh();
@@ -70,10 +70,13 @@ export function CatchupHomeShell({
           <ConsoleAnswering data={data} edition={edition} onChanged={refresh} />
         ) : edition.status === "preparing" ? (
           <FadeRise>
+            {/* No eyebrow: it was `Round ${edition.number}`, and the numbers
+                are gone (spec section 3.3). The Catch-up's own name is already
+                the h1 directly above this, so the default would only repeat
+                it. */}
             <AlmostReady
-              eyebrow={`Round ${edition.number}`}
               title="Putting your Catch-up together."
-              body="No one can read the answers yet, not even the Keeper. They all appear together the moment this Round publishes."
+              body="No one can read the answers yet, not even the Keeper. They all appear together the moment this Edition publishes."
             />
             {viewer.isKeeper && (
               <div className="mt-[var(--space-m)] flex justify-center">
@@ -82,7 +85,7 @@ export function CatchupHomeShell({
             )}
           </FadeRise>
         ) : (
-          <ConsolePublished edition={edition} issue={issue ?? null} />
+          <ConsolePublished edition={edition} contents={contents ?? null} />
         )}
       </div>
 
@@ -188,8 +191,8 @@ function PausedOrEndedBanner({
         </h2>
         <p className="relative mx-auto mt-[var(--space-xs)] max-w-sm text-sm leading-relaxed text-muted-foreground">
           {isPaused
-            ? "No new Round opens until it is resumed. Every published Round is still here to read."
-            : "No new Round will open. Every published Round is still here to read."}
+            ? "No new Edition opens until it is resumed. Every published Edition is still here to read."
+            : "No new Edition will open. Every published Edition is still here to read."}
         </p>
         {isPaused && isKeeper && (
           <div className="relative mt-[var(--space-m)]">
@@ -209,7 +212,7 @@ function EmptyNoEditionCard({ groupName }: { groupName: string }) {
     <FadeRise>
       <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-[var(--space-l)] text-center">
         <p className="font-heading text-lg tracking-tight text-foreground">
-          Setting up {groupName}&apos;s first Round...
+          Setting up {groupName}&apos;s first Edition...
         </p>
         <p className="mt-[var(--space-xs)] text-sm text-muted-foreground">
           Give it a moment and refresh the page.

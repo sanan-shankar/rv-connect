@@ -1,12 +1,12 @@
 /* ------------------------------------------------------------------ *
- *  The published Round, as both readers see it.
+ *  The published Edition, as both readers see it.
  *
- *  A Round is read on two surfaces — inline on the Catch-up home
+ *  An Edition is read on two surfaces — inline on the Catch-up home
  *  (`[catchupId]/page.tsx`) and at its own permalink
- *  (`round/[editionId]/page.tsx`) — and until this file existed each of
+ *  (`edition/[editionId]/page.tsx`) — and until this file existed each of
  *  them carried its own copy of the heavy query, the anonymity mapping
  *  and the song rule. `loadPublishedIssue`'s docblock admitted it in so
- *  many words: "Mirrors the heavy query in round/[editionId]/page.tsx".
+ *  many words: "Mirrors the heavy query in edition/[editionId]/page.tsx".
  *
  *  They had already drifted. The permalink printed a song as soon as it
  *  had a NAME for one; the home printed one only when a URL was stored,
@@ -19,12 +19,12 @@
  *  comment.
  *
  *  SECRECY, and the reason this is a loader and not a component: answer
- *  bodies must never be pulled into a server render of a Round that has
+ *  bodies must never be pulled into a server render of an Edition that has
  *  not revealed yet, Keeper included (spec 2.5, threat T-catchups-04).
  *  Both callers confirm a FRESH `published` status before they call this,
  *  and this function does not check it for them — it is the heavy read
- *  itself, so anything that calls it has already decided the Round is
- *  public. A future surface that wants Round contents must make the same
+ *  itself, so anything that calls it has already decided the Edition is
+ *  public. A future surface that wants Edition contents must make the same
  *  decision first; there is no other gate below this line.
  * ------------------------------------------------------------------ */
 
@@ -37,14 +37,14 @@ import type {
   PromptCategory,
   PromptSource,
 } from "@/lib/catchups-types";
-import type { RoundEntry } from "@/components/catchups/round/answer-card";
+import type { EditionEntry } from "@/components/catchups/edition/answer-card";
 import { batchLine, parseJsonArray } from "@/lib/utils";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 
-export type PublishedRoundView = {
+export type PublishedEditionView = {
   number: number;
   publishedAt: Date | null;
-  sections: Array<{ prompt: CatchupPromptView; entries: RoundEntry[] }>;
+  sections: Array<{ prompt: CatchupPromptView; entries: EditionEntry[] }>;
 };
 
 const toPersonRef = (u: {
@@ -60,15 +60,15 @@ const toPersonRef = (u: {
 });
 
 /**
- * Every question and answer in a published Round, with this viewer's hearts
- * resolved. Null when the Round row is gone: the home renders nothing, the
+ * Every question and answer in a published Edition, with this viewer's hearts
+ * resolved. Null when the Edition row is gone: the home renders nothing, the
  * permalink calls `notFound()`.
  */
-export async function loadPublishedRoundView(
+export async function loadPublishedEditionView(
   editionId: string,
   viewerId: string
-): Promise<PublishedRoundView | null> {
-  const round = await prisma.catchupEdition.findUnique({
+): Promise<PublishedEditionView | null> {
+  const edition = await prisma.catchupEdition.findUnique({
     where: { id: editionId },
     select: {
       number: true,
@@ -121,20 +121,20 @@ export async function loadPublishedRoundView(
       },
     },
   });
-  if (!round) return null;
+  if (!edition) return null;
 
-  /* Every photograph in the Round, measured in one query rather than one per
+  /* Every photograph in the Edition, measured in one query rather than one per
      answer: shape, focal point, and the smear that holds its place. Without
      these a single Catch-up photograph was letterboxed to 21:9 and a portrait
      of a group of friends came out as a row of shoulders. */
   const photos = await photoFactsFor(
-    round.prompts.flatMap((p) => p.entries.flatMap((e) => parseJsonArray(e.images)))
+    edition.prompts.flatMap((p) => p.entries.flatMap((e) => parseJsonArray(e.images)))
   );
 
-  const sections = round.prompts.map((p) => {
+  const sections = edition.prompts.map((p) => {
     /* Not `p.showAsker || keeper`, which is what the permalink said until
        2026-08-21: a Keeper saw the name behind every anonymous question, in
-       the Round the whole group reads, with no cue that it had been asked
+       the Edition the whole group reads, with no cue that it had been asked
        anonymously (audit M10). The home page had always got it right, and the
        two were reconciled onto this one function — which is now called once
        rather than from each page. */
@@ -151,11 +151,11 @@ export async function loadPublishedRoundView(
       accepted: p.accepted,
       position: p.position,
       // A null author is a member who has since left, or an asker who deleted
-      // their account. The question stays in the Round — it is what everyone
+      // their account. The question stays in the Edition — it is what everyone
       // else answered — and the byline goes.
       asker: revealAsker && p.author ? toPersonRef(p.author) : null,
     };
-    const entries: RoundEntry[] = p.entries.map((e) => {
+    const entries: EditionEntry[] = p.entries.map((e) => {
       // The songUrl/songTitle/songArt trio is Spotify-shaped: `songTitle` is
       // only ever written by the oembed resolver, so it carries rows from the
       // old per-question "paste a Spotify link" field. A song is worth
@@ -186,5 +186,5 @@ export async function loadPublishedRoundView(
     return { prompt, entries };
   });
 
-  return { number: round.number, publishedAt: round.publishedAt, sections };
+  return { number: edition.number, publishedAt: edition.publishedAt, sections };
 }

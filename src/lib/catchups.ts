@@ -194,9 +194,9 @@ async function applyEditionAction(
      * `status: "answering"` alongside the bucket, which the three branches
      * above all carry and this one did not (audit Low 23). `dueReminder` only
      * ever returns while answering, but that is read from a snapshot: between
-     * the plan and this write the Round can publish, or the Keeper can pause or
+     * the plan and this write the Edition can publish, or the Keeper can pause or
      * end it, and the bucket alone happily agreed. The group then got "two days
-     * left to answer" about a Round that had already gone out. */
+     * left to answer" about an Edition that had already gone out. */
     const cas = await tx.catchupEdition.updateMany({
       where: { id: editionId, status: "answering", remindersSent: before.remindersSent },
       data: action.patch,
@@ -213,8 +213,8 @@ async function applyEditionAction(
 }
 
 /**
- * Bring one Round to the status the clock justifies, firing each crossed
- * transition's one-time side effects. Loops so a very stale Round settles fully
+ * Bring one Edition to the status the clock justifies, firing each crossed
+ * transition's one-time side effects. Loops so a very stale Edition settles fully
  * in a single visit; bounded so a logic bug can never spin. Never throws: a
  * missing table (pre-migration) or any error is swallowed, because the app-shell
  * piggyback that calls this runs on every authenticated page.
@@ -252,7 +252,7 @@ export async function advanceEdition(
     const meta = await loadMeta(edition);
     if (!meta) return;
   
-    // A paused or ended Catch-up's clock stops with it. Without this the Round
+    // A paused or ended Catch-up's clock stops with it. Without this the Edition
     // kept advancing, kept sending a daily reminder to answer, and published
     // itself, all while the home page showed "This Catch-up is paused" and no
     // way to answer (audit B-061).
@@ -284,9 +284,9 @@ export async function advanceEdition(
         ed.status === "collecting" &&
         nextEditionStatus(ed, now) === "answering"
       ) {
-        // `accepted` is what actually renders in a Round, and it is what
-        // submitPrompt counts for the per-Round ceiling. Count the same rows,
-        // so "this Round has no questions" means the same thing everywhere.
+        // `accepted` is what actually renders in an Edition, and it is what
+        // submitPrompt counts for the per-Edition ceiling. Count the same rows,
+        // so "this Edition has no questions" means the same thing everywhere.
         promptCount = await prisma.catchupPrompt.count({
           where: { editionId: edition.id, accepted: true },
         });
@@ -322,22 +322,22 @@ export async function advanceEdition(
     /* Reported, not just logged (bug-report-2 C-149). This function never
        re-throws -- an edition that cannot advance must not take the page it
        was called from down -- so the reportSwallowed calls in
-       advanceDueCatchups and openNextRoundIfDue never see a per-edition
-       failure. Round-OPENING failures reached Sentry and round-ADVANCING
+       advanceDueCatchups and openNextEditionIfDue never see a per-edition
+       failure. Edition-OPENING failures reached Sentry and Edition-ADVANCING
        failures did not, which is the M09 fix applied to half the clock. A
-       console line on Vercel reaches nobody: the Round quietly stops moving,
+       console line on Vercel reaches nobody: the Edition quietly stops moving,
        the countdown keeps counting down, and the first anybody hears of it is
-       a member asking why the Round never closed. */
+       a member asking why the Edition never closed. */
     reportSwallowed("catchups", err, { step: "advanceEdition", editionId: edition.id });
   }
 }
 
 /**
- * Open the next Round for a recurring Catch-up once its nextOpensAt has passed.
+ * Open the next Edition for a recurring Catch-up once its nextOpensAt has passed.
  * Idempotent: the compare-and-swap on nextOpensAt (set back to null) means only
  * one visit opens it, and the unique [catchupId, number] index is the backstop.
  */
-async function openNextRoundIfDue(
+async function openNextEditionIfDue(
   catchup: {
     id: string;
     status: string;
@@ -353,7 +353,7 @@ async function openNextRoundIfDue(
   if (!opensAt || now.getTime() < opensAt.getTime()) return;
 
   const latest = catchup.editions[0];
-  // Only open a fresh Round when the previous one has actually published.
+  // Only open a fresh Edition when the previous one has actually published.
   if (!latest || latest.status !== "published") return;
 
   await prisma.$transaction(async (tx) => {
@@ -382,9 +382,9 @@ async function openNextRoundIfDue(
 
 /**
  * The lazy, read-time, no-cron advance (spec section 2.4). Finds every stale
- * Round in the viewer's groups (or across all groups when unscoped, so a future
+ * Edition in the viewer's groups (or across all groups when unscoped, so a future
  * CRON_SECRET /api/catchups/tick is a thin wrapper) and advances each, then opens
- * any next Rounds whose nextOpensAt has passed. Wrapped so it can NEVER throw:
+ * any next Editions whose nextOpensAt has passed. Wrapped so it can NEVER throw:
  * it is piggy-backed on the app-shell notification-count query that runs on
  * essentially every authenticated page view, and a missing table (pre-migration)
  * or any error must degrade to a no-op, never a 500.
@@ -410,7 +410,7 @@ export async function advanceDueCatchups(userId?: string): Promise<void> {
        `now + cadence gap` -- always in the future -- so a Catch-up it
        publishes cannot also become due to OPEN in the same pass, which is
        exactly what the second read was positioned after to see. And in the
-       other direction `openNextRoundIfDue` compare-and-swaps on the
+       other direction `openNextEditionIfDue` compare-and-swaps on the
        `nextOpensAt` it was handed, so a value that moved under it is a no-op
        rather than a double open. */
     const STALE = ["collecting", "answering", "preparing"];
@@ -423,7 +423,7 @@ export async function advanceDueCatchups(userId?: string): Promise<void> {
       include: {
         group: { select: { id: true, name: true } },
         /* Every edition, newest first: the stale ones feed advanceEdition and
-           the newest feeds openNextRoundIfDue, and Prisma cannot include the
+           the newest feeds openNextEditionIfDue, and Prisma cannot include the
            same relation twice under two filters. A Catch-up has one edition
            per cadence period, so this is tens of small rows at most, and only
            for the Catch-ups the `where` already narrowed to. */
@@ -449,12 +449,12 @@ export async function advanceDueCatchups(userId?: string): Promise<void> {
 
     for (const c of catchups) {
       try {
-        await openNextRoundIfDue(c, now);
+        await openNextEditionIfDue(c, now);
       } catch (err) {
         if (!isMissingCatchupTable(err)) {
           // Reported, not just logged: this is the engine, and nobody notices
-          // it stop -- the symptom is Rounds that never open (audit M09).
-          reportSwallowed("catchups", err, { step: "openNextRoundIfDue", catchupId: c.id });
+          // it stop -- the symptom is Editions that never open (audit M09).
+          reportSwallowed("catchups", err, { step: "openNextEditionIfDue", catchupId: c.id });
         }
       }
     }
@@ -463,7 +463,7 @@ export async function advanceDueCatchups(userId?: string): Promise<void> {
     // Swallow: this runs on every authenticated page and must never break one.
     // But say so somewhere a human will hear it. Before this the whole
     // Catch-ups feature could be failing on every page view and the only
-    // outward sign would be Rounds quietly not happening (audit M09).
+    // outward sign would be Editions quietly not happening (audit M09).
     reportSwallowed("catchups", err, { step: "advanceDueCatchups", userId });
   }
 }

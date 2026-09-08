@@ -9,7 +9,7 @@
  *    songs  -> the song name field
  *
  *  Everything autosaves on blur; every field is optional and nothing here
- *  can block moving on. The count of where you are in the Round lives in
+ *  can block moving on. The count of where you are in the Edition lives in
  *  the progress rail, once, and is deliberately not repeated on the card.
  *
  *  Remounts fresh on every prompt change (the parent keys its wrapper on

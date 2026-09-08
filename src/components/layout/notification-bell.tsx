@@ -81,7 +81,7 @@ const NOTIFICATION_ICON_META: Record<string, { icon: typeof Bell; heart?: boolea
   catchup_questions_open: { icon: HelpCircle, label: "Questions open" },
   catchup_answers_open: { icon: PenLine, label: "Answers open" },
   catchup_reminder: { icon: Clock, label: "Reminder" },
-  catchup_published: { icon: BookOpen, label: "Round published" },
+  catchup_published: { icon: BookOpen, label: "Edition published" },
   catchup_love: { icon: Heart, heart: true, label: "Loved your answer" },
   // Written by the Razorpay webhook when IT, and not the payer's browser,
   // recorded the payment -- the tab-died case the webhook exists for. It is

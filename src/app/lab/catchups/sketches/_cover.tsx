@@ -1,12 +1,12 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  A Round's cover, and the rule that a card is a door.
+ *  An Edition's cover, and the rule that a card is a door.
  *
  *  ONE OBJECT, TWO DEPTHS (architecture.md section 1). The questions of a
- *  Round, hung off a vertical measure, is a single component. It is the
- *  cover on a Catch-up's home -- in Now when the newest Round is out, and
- *  once per Round under Earlier Rounds -- and it is the navigator inside
+ *  Edition, hung off a vertical measure, is a single component. It is the
+ *  cover on a Catch-up's home -- in Now when the newest Edition is out, and
+ *  once per Edition under Earlier Editions -- and it is the navigator inside
  *  the reader. Same file, same face, same measure. What changes with
  *  depth is what the measure is DOING: faint or warm on a cover, filling
  *  as you read in the reader.
@@ -19,7 +19,7 @@
  *  rather than which Catch-up to open.
  *
  *  That retires the thing he has complained about longest. A published
- *  Round is drawn ten ways on four surfaces today, with two teaser
+ *  Edition is drawn ten ways on four surfaces today, with two teaser
  *  lengths, two typefaces and two hovers for one object (recon section 5;
  *  his para 13 and para 39: "this preview of this Round 1 tile is the
  *  kind of thing that is done in 15 different ways and 15 different
@@ -28,7 +28,7 @@
  *  And it never carries a quoted answer. Para 9: "It's like you're
  *  showing the first sentence of a book ... I'm just not gonna see this
  *  sentence again and again and again." A cover carries its headlines,
- *  which change every Round and are the actual reason to open it.
+ *  which change every Edition and are the actual reason to open it.
  *
  *  A CARD IS A DOOR. On the list and on the home, a bordered card means
  *  "this opens something" and the WHOLE card is the target. Everything
@@ -45,7 +45,7 @@ import type { ReactNode } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { QuestionList } from "./_navigator";
-import { shortDate, type ShelfRound } from "./_shelf";
+import { shortDate, type ShelfEdition } from "./_shelf";
 
 /* ── The scrim over a photograph that carries words ───────────────── *
  *  Spotify's, near enough, and it is his correction: "it doesn't have to
@@ -120,7 +120,7 @@ export function Own({ children, className }: { children: ReactNode; className?: 
 /* ── The contents ──────────────────────────────────────────────────── */
 
 /** How many questions a cover prints before it stops. Eleven is the real
- *  Round and it fits; forty is the pressure corpus and it would turn the
+ *  Edition and it fits; forty is the pressure corpus and it would turn the
  *  list into a document. What stops it is a fade, not a count and not an
  *  "and 6 more": "you're trying so hard to include useless information"
  *  (R32), and he rejected "and 8 others" for people on the same grounds
@@ -129,13 +129,13 @@ export function Own({ children, className }: { children: ReactNode; className?: 
 const COVER_CAP = 8;
 
 export function Contents({
-  round,
+  edition,
   className,
 }: {
-  round: ShelfRound;
+  edition: ShelfEdition;
   className?: string;
 }) {
-  const over = round.questions.length > COVER_CAP;
+  const over = edition.questions.length > COVER_CAP;
   const fade = {
     maskImage: "linear-gradient(to bottom, black calc(100% - 42px), transparent 100%)",
     WebkitMaskImage: "linear-gradient(to bottom, black calc(100% - 42px), transparent 100%)",
@@ -143,9 +143,9 @@ export function Contents({
   return (
     <div className={className} style={over ? fade : undefined}>
       <QuestionList
-        questions={over ? round.questions.slice(0, COVER_CAP) : round.questions}
+        questions={over ? edition.questions.slice(0, COVER_CAP) : edition.questions}
         size="cover"
-        spine={round.read ? "read" : "unread"}
+        spine={edition.read ? "read" : "unread"}
       />
     </div>
   );
@@ -153,12 +153,12 @@ export function Contents({
 
 /* `RoundLine` used to live here: "Round 3 · 12 May", a number and a date on
    one row. Nothing had called it for two passes, and on 2026-09-07 he took
-   the Round number out of the reader as well -- "let's ditch the round 1 ...
+   the Edition number out of the reader as well -- "let's ditch the round 1 ...
    The round number is irrelevant" -- so there is now nowhere in the drawing a
-   Round number is printed at all. Deleted rather than left as a component
+   Edition number is printed at all. Deleted rather than left as a component
    that contradicts the rule. */
 
-/* ── The cover of a published Round ───────────────────────────────── *
+/* ── The cover of a published Edition ───────────────────────────────── *
  *  ITS PHOTOGRAPHS, not its questions. His, 2026-09-07, on the version
  *  that printed the questions here: "the round is just this total
  *  enjoyable experience reading everyone's answers. This is fun, that is
@@ -168,13 +168,13 @@ export function Contents({
  *  out. Oh wow, what is this? It just seems very drab and unappealing."
  *
  *  He is right, and the questions were never the appetising part. What is
- *  inside a Round that anybody would want is the photographs: on the real
- *  Round, 32 of 141 answers carry one. So a cover is up to four of them,
- *  tiled, with the date. A Round with no photographs falls back to the
+ *  inside an Edition that anybody would want is the photographs: on the real
+ *  Edition, 32 of 141 answers carry one. So a cover is up to four of them,
+ *  tiled, with the date. An Edition with no photographs falls back to the
  *  Catch-up's own picture, dimmed, so the shape never changes and there is
  *  never an empty cover.
  *
- *  No questions, no counts, no quoted answer, no Round number: "Why do we
+ *  No questions, no counts, no quoted answer, no Edition number: "Why do we
  *  need to have the round 4? It doesn't matter what round, it's going to
  *  be round 15." */
 
@@ -182,7 +182,7 @@ export function Contents({
  *  Four was drawn first and is wrong: with the lead photograph spanning
  *  two columns and two rows, the fourth has nowhere to go but a third row
  *  of its own, beside an empty grey cell. Three is the number that tiles
- *  without a hole, and it is enough to say what a Round was like. */
+ *  without a hole, and it is enough to say what an Edition was like. */
 const COVER_SHOTS = 3;
 
 function tiles(n: number): string {
@@ -192,28 +192,28 @@ function tiles(n: number): string {
 }
 
 export function Cover({
-  round,
+  edition,
   fallback,
   onOpen,
   className,
   compact = false,
   phone = false,
 }: {
-  round: ShelfRound;
-  /** The Catch-up's picture, for a Round nobody photographed. */
+  edition: ShelfEdition;
+  /** The Catch-up's picture, for an Edition nobody photographed. */
   fallback: { src: string; focus: string };
   onOpen?: () => void;
   className?: string;
-  /** Under Earlier Rounds, where a cover is a row rather than the page's
+  /** Under Earlier Editions, where a cover is a row rather than the page's
    *  one object. */
   compact?: boolean;
   phone?: boolean;
 }) {
-  const shots = round.photos.slice(0, COVER_SHOTS);
+  const shots = edition.photos.slice(0, COVER_SHOTS);
   const has = shots.length > 0;
-  /* Under Earlier Rounds a cover is a back number, not the thing you came
+  /* Under Earlier Editions a cover is a back number, not the thing you came
      for, and it was as tall as one. His, 2026-09-07: "I think the earlier
-     rounds, like each round is too big. It can be smaller. I don't know
+     editions, like each edition is too big. It can be smaller. I don't know
      whether you want to make that smaller vertically or horizontally, but I
      think Earlier rounds can definitely be a bit smaller."
      Vertically, by about a quarter: 4:1 on a laptop, where a 3:1 row of a
@@ -223,7 +223,7 @@ export function Cover({
   const ratio = compact ? (phone ? "3 / 1" : "5 / 2") : "16 / 9";
   return (
     <Door
-      label={`Read the Edition from ${shortDate(round.publishedAt ?? "")}`}
+      label={`Read the Edition from ${shortDate(edition.publishedAt ?? "")}`}
       onOpen={onOpen}
       className={cn("group", className)}
     >
@@ -234,13 +234,13 @@ export function Cover({
         {has ? (
           shots.map((src, i) => (
             <span
-              /* By position: a Round's first photographs can repeat one url,
+              /* By position: an Edition's first photographs can repeat one url,
                  and a duplicate React key is a child React may silently
                  drop. */
               key={`${i}-${src}`}
               className={cn(
                 "relative block overflow-hidden bg-muted",
-                /* The first photograph is the big one, so a Round reads as
+                /* The first photograph is the big one, so an Edition reads as
                    having a lead picture rather than as a contact sheet. */
                 shots.length > 2 && i === 0 && "col-span-2 row-span-2",
               )}
@@ -272,7 +272,7 @@ export function Cover({
           className="font-heading text-foreground"
           style={{ fontSize: compact ? 15 : 18, letterSpacing: "-0.01em" }}
         >
-          {shortDate(round.publishedAt ?? "")}
+          {shortDate(edition.publishedAt ?? "")}
         </p>
       </div>
     </Door>
@@ -298,7 +298,7 @@ export function Cover({
  *  (BirdAvatar), and a Catch-up is not a person. A rounded rectangle is
  *  what iOS uses for exactly this distinction, an app against a contact.
  *
- *  NOT IN THE READER. The reader is the Round, not the Catch-up, and the
+ *  NOT IN THE READER. The reader is the Edition, not the Catch-up, and the
  *  green bar there already carries the name. A picture in it would be the
  *  same thing said twice, which is the fault this whole rework is about
  *  (R13: "in the loop is said twice, Round 1 is said twice, the date is

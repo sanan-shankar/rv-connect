@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 
 /**
  * The "you cannot read this" surface both Catch-up routes need: a broken or
- * old link, a Round that has been deleted, a non-member who has the URL.
+ * old link, an Edition that has been deleted, a non-member who has the URL.
  *
  * One component for the two routes, because two of them had already drifted.
  * The Catch-up home's copy took the owner's 2026-07-25 correction -- symmetric

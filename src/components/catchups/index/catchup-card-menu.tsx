@@ -128,7 +128,7 @@ export function CatchupCardMenu({
         description={
           <>
             This removes it from your Catch-ups and stops its notifications to you. Nobody else&apos;s
-            list changes, and anything you have already shared stays in the Rounds it was published
+            list changes, and anything you have already shared stays in the Editions it was published
             in. You can put it back for {RECENTLY_DELETED_DAYS} days; after that you are out of this
             Catch-up for good.
           </>

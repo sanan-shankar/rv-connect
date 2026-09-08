@@ -8,22 +8,22 @@
  *  draws it.
  *
  *  TWO SOURCES, ONE LOADER. By default the room reads the live "in the
- *  loop" Round from the database, read-only, which the owner approved
+ *  loop" Edition from the database, read-only, which the owner approved
  *  (handover, owner question 5). With `?data=pressure` it reads the
  *  invented corpus in `_fixtures/pressure.ts` instead: a forty-answer
  *  question, a twenty-four photograph wall, an answer over the 6,000
  *  character cap, a hundred people, links nobody has a resolver for. His
  *  instruction, brief para 51: "make sure it surves the most varying
  *  input. incredibly robust can be produced with only pressure testing."
- *  Both arrive as the same `SketchRound`, so nothing in the room can be
+ *  Both arrive as the same `SketchEdition`, so nothing in the room can be
  *  true of one and false of the other.
  *
  *  Admin only, through the lab layout. Writes nothing.
  * ------------------------------------------------------------------ */
 
 import { auth } from "@/lib/auth";
-import { loadSketchRound } from "./_data";
-import { loadPressureRound } from "./_pressure";
+import { loadSketchEdition } from "./_data";
+import { loadPressureEdition } from "./_pressure";
 import { SketchHarness } from "./_harness";
 
 export const dynamic = "force-dynamic";
@@ -36,17 +36,17 @@ export default async function SketchesPage({
   const params = await searchParams;
   const pressure = params.data === "pressure";
   const session = await auth();
-  const round = pressure
-    ? await loadPressureRound()
+  const edition = pressure
+    ? await loadPressureEdition()
     : session?.user?.id
-      ? await loadSketchRound(session.user.id)
+      ? await loadSketchEdition(session.user.id)
       : null;
-  if (!round) {
+  if (!edition) {
     return (
       <div className="px-6 py-10 text-sm text-muted-foreground">
-        No published Round on this database to draw. The sketches need one.
+        No published Edition on this database to draw. The sketches need one.
       </div>
     );
   }
-  return <SketchHarness round={round} pressure={pressure} />;
+  return <SketchHarness edition={edition} pressure={pressure} />;
 }

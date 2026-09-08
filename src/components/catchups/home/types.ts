@@ -35,7 +35,7 @@ export type HomePersonRef = {
 };
 
 // Kept in sync with the server ceiling, but the UI must NOT print it: the
-// question count is shown as a plain "N questions in this round". The
+// question count is shown as a plain "N questions in this Edition". The
 // companion per-member pending cap went with the approval step it capped
 // (2026-08-05): nothing pends, so nothing needed counting.
 
@@ -72,7 +72,7 @@ export type HomeArchiveRow = {
   number: number;
   publishedAt: string | null;
   contributorCount: number;
-  /** A one-line teaser pulled from the most-loved answer, or null when the Round has none. */
+  /** A one-line teaser pulled from the most-loved answer, or null when the Edition has none. */
   teaser: string | null;
 };
 
@@ -93,9 +93,9 @@ export type CatchupHomeData = {
     isKeeper: boolean;
     reminderMode: ReminderMode;
   };
-  /** The latest Round, or null for the near-impossible edge of a Catchup with none yet. */
+  /** The latest Edition, or null for the near-impossible edge of a Catchup with none yet. */
   edition: HomeEditionView | null;
-  /** Every published Round, most recent first (spec 3.7, "vellum spines on a shelf"). */
+  /** Every published Edition, most recent first (spec 3.7, "vellum spines on a shelf"). */
   archive: HomeArchiveRow[];
   /** The built-in question library, threaded down once from the server (`CATCHUP_PROMPT_SETS`). */
   promptLibrary: CatchupPromptSet[];

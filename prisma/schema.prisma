@@ -515,7 +515,7 @@ model Group {
   // start it. It used to be Cascade, which meant the first alumnus of a batch
   // to sign up silently owned "Batch of 2010", and whoever started a Catch-up
   // owned its hidden Group -- so deleting that one account took the group, the
-  // Catch-up, every Round and every OTHER member's answers with it. A null
+  // Catch-up, every Edition and every OTHER member's answers with it. A null
   // creator is a group nobody owns; any remaining member may act as Keeper
   // (spec 7, and `promoteOrphanedGroups` in account-purge.ts leaves an admin
   // behind so the powers are never unreachable).
@@ -1045,8 +1045,8 @@ model Catchup {
   // because the column was added to a live table; every row has one and
   // createCatchup* always writes one.
   inviteToken String?   @unique
-  nextOpensAt DateTime?                      // when the next Round auto-opens (recurring cadences)
-  // When the Keeper paused. Pausing FREEZES the live Round (the clock, the
+  nextOpensAt DateTime?                      // when the next Edition auto-opens (recurring cadences)
+  // When the Keeper paused. Pausing FREEZES the live Edition (the clock, the
   // reminders, the publish), so resume shifts every unreached deadline forward
   // by exactly this long: the group gets back the window it had, rather than
   // finding it silently expired. NULL means "not paused".
@@ -1095,14 +1095,14 @@ model CatchupPrompt {
   // Nullable and SetNull: a question is answered by everyone, so it cannot die
   // with the person who asked it. Cascade here meant purging one member erased
   // every prompt they had ever written in ANY Catch-up, and each prompt took
-  // all thirty answers under it out of a published Round. Null renders as an
+  // all thirty answers under it out of a published Edition. Null renders as an
   // asker who left, which the anonymous path already draws.
   authorId  String?                         // always stored, even when shown anonymously
   text      String
   category  String?                          // library set id (e.g. "valley-days") or null for custom
   source    String   @default("member")     // "library" | "member" | "keeper"
   showAsker Boolean  @default(true)          // false = submitted anonymously
-  accepted  Boolean  @default(false)         // curated into the Round by the Keeper
+  accepted  Boolean  @default(false)         // curated into the Edition by the Keeper
   position  Int      @default(0)
   createdAt DateTime @default(now())
 
@@ -1115,7 +1115,7 @@ model CatchupPrompt {
 
 model CatchupEntry {
   id        String   @id @default(cuid())
-  editionId String                          // denormalized for fast whole-Round reads
+  editionId String                          // denormalized for fast whole-Edition reads
   promptId  String
   authorId  String
   body      String?
@@ -1404,7 +1404,12 @@ model ContentView {
   id String @id @default(cuid())
 
   viewerId String
-  // "profile" | "letter" | "post" | "photo" | "round"
+  // "profile" | "letter" | "post" | "photo" | "edition"
+  //
+  // 'round' until 2026-09-08, when Round became Edition. The rows carrying it
+  // are rewritten by 2026-09-08-round-becomes-edition.sql, which runs AFTER
+  // that commit deploys -- admin-analytics.ts reads this back with a raw
+  // `WHERE kind = 'edition'`, so the type and the rows have to agree.
   kind     String
   // The profile's user id, the letter's post id, and so on. Not a foreign key:
   // one column cannot reference five tables, and a view of something later
@@ -1427,7 +1432,7 @@ model ContentView {
   // index, which no query uses. Every ContentView read filters on `kind`,
   // served by the pair above. 110 lifetime scans, 0 across
   // /admin/analytics?view=faces on 2026-09-07, on a table written on every
-  // profile, letter, photograph and Round view.
+  // profile, letter, photograph and Edition view.
 }
 
 // ─── Who could not get in ───────────────────────────────────────────────────

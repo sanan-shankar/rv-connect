@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 /**
- * Spec 3.4 edge state: entering /answer when the Round is not `answering`
+ * Spec 3.4 edge state: entering /answer when the Edition is not `answering`
  * (still collecting, being prepared, or already published) bounces back to
  * the Catch-up home with a toast, rather than showing a broken or empty
  * answering shell.

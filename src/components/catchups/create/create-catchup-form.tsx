@@ -6,7 +6,7 @@
  *
  *  Question-picking was removed here on the owner's instruction
  *  (2026-07-25): "why did I have to ask questions in the previous page
- *  when this page is the asking questions page?" Round 1 opens in
+ *  when this page is the asking questions page?" The first Edition opens in
  *  `collecting` with no questions, which is the correct initial state for
  *  a screen whose whole job is collecting questions. The live preview card
  *  went with it. The form is short on purpose; do not pad it back out.
@@ -99,7 +99,7 @@ export function CreateCatchupForm({
       router.push(`/catchups/${result.catchupId}`);
     } finally {
       // finally, not a trailing statement: a rejected call used to leave
-      // "Start the first Round" disabled for the rest of the session (audit B-042).
+      // "Start the first Edition" disabled for the rest of the session (audit B-042).
       submittingRef.current = false;
       setSubmitting(false);
     }
@@ -169,7 +169,7 @@ export function CreateCatchupForm({
           onClick={handleSubmit}
           disabled={submitting || !trimmedName}
         >
-          {submitting ? "Starting..." : "Start the first Round"}
+          {submitting ? "Starting..." : "Start the first Edition"}
         </Button>
       </div>
       {emailGate.dialog}

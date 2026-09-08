@@ -156,7 +156,7 @@ export function Byline({
   );
 }
 
-/** 15 August 2026. The Round has one date; an answer inside it has none. */
+/** 15 August 2026. The Edition has one date; an answer inside it has none. */
 export function longDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", {
     day: "numeric",
@@ -398,7 +398,7 @@ export function Photographs({
      -- so every page holding a photograph threw "document is not defined"
      during SSR and React silently threw the server's whole render away and
      started again on the client. Recoverable, invisible, and on a long
-     Round it is the whole page rendered twice. `lazy-image-viewer.tsx` says
+     Edition it is the whole page rendered twice. `lazy-image-viewer.tsx` says
      at the top that every caller must come through it, and now this one
      does; `image-viewer-import-rule.test.mjs` is what keeps it that way.
      The latch and the pointer preload come with it, which is the reason it

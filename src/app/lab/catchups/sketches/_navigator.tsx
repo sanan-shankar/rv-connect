@@ -12,7 +12,7 @@
  *
  *  THE STRIP. Under the app's green bar sits one strip, always there. At
  *  rest it says "Round 1 · 15 August 2026", which is the one place the
- *  Round and its date are printed. Once a question's heading has scrolled
+ *  Edition and its date are printed. Once a question's heading has scrolled
  *  under the bar, the strip carries that question instead. Three lines at
  *  most, then it cuts, because he weighed the two costs himself on
  *  2026-09-07: "I think it should not be 8 lines, it should be 3 lines,
@@ -21,7 +21,7 @@
  *  of dot dot dots everywhere", which was about a 20-character cut.
  *
  *  THE LINE. Along the strip's top edge, a thin cinnamon line grows from
- *  the left as you read: how far through the Round you are. It is R28's
+ *  the left as you read: how far through the Edition you are. It is R28's
  *  cinnamon line given a job, in the top bar where R34 wanted it.
  *
  *  THE INDICATOR. When the strip opens into the list of questions, the
@@ -43,7 +43,7 @@ import { CaretDown } from "@phosphor-icons/react";
 import { m, useMotionValue, useSpring, useTransform, type MotionValue } from "motion/react";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
-import type { SketchQuestion, SketchRound } from "./_types";
+import type { SketchQuestion, SketchEdition } from "./_types";
 import { longDate } from "./_parts";
 
 /** The app's phone bar. */
@@ -53,13 +53,13 @@ export const BAR = 56;
  *
  *  His, 2026-09-07: "In the reader, let's ditch the round 1. Let's only have
  *  the date, and then let the date be orange. Let's not have the round number.
- *  The round number is irrelevant." That closes the last place a Round number
+ *  The round number is irrelevant." That closes the last place an Edition number
  *  survived anywhere in the drawing, and it takes the middle dot with it --
- *  there is nothing left to separate. A Round is identified by its date. */
-export function RoundMeta({ round, className }: { round: SketchRound; className?: string }) {
+ *  there is nothing left to separate. An Edition is identified by its date. */
+export function EditionMeta({ edition, className }: { edition: SketchEdition; className?: string }) {
   return (
     <span className={cn("font-medium text-cinnamon", className)}>
-      {longDate(round.publishedAt)}
+      {longDate(edition.publishedAt)}
     </span>
   );
 }
@@ -84,10 +84,10 @@ export function Strip({
   floating = false,
   interactive = true,
 }: {
-  /** The current question when `docked`, otherwise the Round's meta line. */
+  /** The current question when `docked`, otherwise the Edition's meta line. */
   label: ReactNode;
   docked: boolean;
-  /** 0 to 1, how far through the Round. Drawn as the line along the top. */
+  /** 0 to 1, how far through the Edition. Drawn as the line along the top. */
   progress: number;
   open?: boolean;
   onToggle?: () => void;
@@ -178,7 +178,7 @@ const LIST: Record<
   ListSize,
   { size: number; lineHeight: number; padY: number; indent: number; spineX: number; serif: boolean }
 > = {
-  /* A Round's contents, printed on its cover, on a Catch-up's home. The
+  /* An Edition's contents, printed on its cover, on a Catch-up's home. The
      same object as the rail and the panel, at the same measure, in the
      same face. Nothing is truncated and nothing is numbered; a cover
      carries its headlines the way a magazine's does, and never a quoted
@@ -371,10 +371,10 @@ export function QuestionList({
    *  cover is asked instead: have I read this one?
    *
    *  Warm means READ, and it has to, because a full measure is what the
-   *  reader leaves behind when you get to the end of a Round. Marking the
+   *  reader leaves behind when you get to the end of an Edition. Marking the
    *  UNREAD one warm would read better on a list -- the new thing lights
    *  up -- and would make the same colour mean opposite things two taps
-   *  apart. So a Round you have not opened is a measure with nothing in
+   *  apart. So an Edition you have not opened is a measure with nothing in
    *  it yet, which is exactly what it is. No count, no dot, no
    *  percentage. */
   spine?: "progress" | "read" | "unread";
@@ -474,14 +474,14 @@ export function QuestionList({
 /* ── First way: the strip unfolds ──────────────────────────────────── */
 
 export function UnfoldedPanel({
-  round,
+  edition,
   current,
   within,
   onPick,
   maxHeight,
   bare = false,
 }: {
-  round: SketchRound;
+  edition: SketchEdition;
   current: number;
   within: number;
   onPick?: (index: number) => void;
@@ -502,7 +502,7 @@ export function UnfoldedPanel({
     >
       <div className="overflow-y-auto pt-1.5" style={{ maxHeight }}>
         <QuestionList
-          questions={round.questions}
+          questions={edition.questions}
           current={current}
           within={within}
           size="panel"

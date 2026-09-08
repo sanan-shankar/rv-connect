@@ -29,7 +29,7 @@ import { IDENTITY_SELECT } from "@/lib/people-select";
 /* ------------------------------------------------------------------ *
  *  /catchups/[catchupId]/answer — spec 3.4, the answering experience.
  *
- *  Loads the Catch-up's latest Round, brings it current with the same
+ *  Loads the Catch-up's latest Edition, brings it current with the same
  *  lazy-advance touchpoint every other Catch-ups surface uses
  *  (`advanceEdition`, spec 2.4), then either hands off to the two-pane
  *  <AnswerExperience> (status === answering) or bounces to the Catch-up
@@ -39,15 +39,15 @@ import { IDENTITY_SELECT } from "@/lib/people-select";
 function redirectMessageFor(status: EditionStatus, groupName: string): string {
   switch (status) {
     case "draft":
-      return `${groupName}'s Catch-up has not opened its Round yet.`;
+      return `${groupName}'s Catch-up has not opened its Edition yet.`;
     case "collecting":
       return "Questions are still open. Answering starts once the Keeper opens it.";
     case "preparing":
-      return "Answers are in. This Round is being put together.";
+      return "Answers are in. This Edition is being put together.";
     case "published":
-      return "This Round is already out. Come read it.";
+      return "This Edition is already out. Come read it.";
     default:
-      return "Answering is not open for this Round right now.";
+      return "Answering is not open for this Edition right now.";
   }
 }
 
@@ -141,7 +141,7 @@ export default async function CatchupAnswerPage({
           body={
             catchup.status === "paused"
               ? "Answering picks up where it left off when the Keeper resumes it."
-              : "Its published Rounds are still there to read."
+              : "Its published Editions are still there to read."
           }
           cta={{ href: `/catchups/${catchup.id}`, label: "Go to the Catch-up" }}
         />
@@ -157,14 +157,14 @@ export default async function CatchupAnswerPage({
     if (!latestEdition) {
       return (
         <NotAvailableCard
-          title="This Catch-up has not opened a Round yet."
-          body="Check back once the first Round starts collecting questions."
+          title="This Catch-up has not opened an Edition yet."
+          body="Check back once the first Edition starts collecting questions."
           cta={{ href: `/catchups/${catchup.id}`, label: "Go to the Catch-up" }}
         />
       );
     }
 
-    // Lazy read-time advance (spec 2.4): bring this Round to the status the
+    // Lazy read-time advance (spec 2.4): bring this Edition to the status the
     // clock justifies before deciding whether answering is actually open.
     await advanceEdition({
       catchupId: catchup.id,
@@ -181,7 +181,7 @@ export default async function CatchupAnswerPage({
       return (
         <NotAvailableCard
           title="This Catch-up is not available."
-          body="This Round may have been removed."
+          body="This Edition may have been removed."
           cta={{ href: `/catchups/${catchup.id}`, label: "Go to the Catch-up" }}
         />
       );
@@ -226,7 +226,7 @@ export default async function CatchupAnswerPage({
     if (prompts.length === 0) {
       return (
         <NotAvailableCard
-          title="No questions in this Round yet."
+          title="No questions in this Edition yet."
           body="Check back once the Keeper has added a few questions to answer."
           cta={{ href: `/catchups/${catchup.id}`, label: "Go to the Catch-up" }}
         />
@@ -269,7 +269,13 @@ export default async function CatchupAnswerPage({
           {catchupSurfaceTitle(catchup.title, catchup.group.name)}
         </Link>
 
-        <PageHeader title={`Round ${edition.number}`} subtitle={closesLabel(edition.answersCloseAt)} />
+        {/* "Answering", not "Edition 4": Edition numbers are gone (spec
+            section 3.3) and this Edition has no date yet -- it gets one when
+            it publishes. The back-link above already names the Catch-up and
+            the subtitle already carries the deadline, so the title says the
+            one thing neither of them does, which is what you are here to
+            do. */}
+        <PageHeader title="Answering" subtitle={closesLabel(edition.answersCloseAt)} />
 
         <AnswerExperience
           catchupId={catchup.id}

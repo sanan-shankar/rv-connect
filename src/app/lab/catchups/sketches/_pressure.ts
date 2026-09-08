@@ -12,22 +12,22 @@
  *  `_fixtures/pressure.ts` is written in the EXPORT's shape, because that
  *  is the one shape a Catch-up takes when it leaves the database
  *  (`src/lib/catchups-export.ts`) and the magazine engine will read the
- *  same file. The drawing speaks `SketchRound`. This is the only place the
+ *  same file. The drawing speaks `SketchEdition`. This is the only place the
  *  two meet, and it is deliberately the only adapter: one loader, two
- *  sources, so nothing in the room can be true of the real Round and false
+ *  sources, so nothing in the room can be true of the real Edition and false
  *  of the fixture.
  *
- *  ONE ROUND, EIGHT QUESTIONS. The fixture holds three Rounds, and the
- *  interesting shapes are spread across them: the everything Round has the
+ *  ONE ROUND, EIGHT QUESTIONS. The fixture holds three Editions, and the
+ *  interesting shapes are spread across them: the everything Edition has the
  *  forty-answer question, the twenty-four photograph wall, the 6,000 and
- *  9,000 character answers and the 300-character question; Round 1 has the
- *  question only one person answered; Round 2 has the question NOBODY
- *  answered. All eight are folded into one Round here, because every one of
+ *  9,000 character answers and the 300-character question; Edition 1 has the
+ *  question only one person answered; Edition 2 has the question NOBODY
+ *  answered. All eight are folded into one Edition here, because every one of
  *  them is a shape the READER has to survive in a single scroll, and a room
  *  that makes you reload to see the empty one is a room nobody checks the
- *  empty one in. The Round-level empties (a Round with one question, a
- *  Round nobody wrote in) belong to the cover and the home, and the shelf
- *  builder already draws those from this same Round.
+ *  empty one in. The Edition-level empties (an Edition with one question, a
+ *  Edition nobody wrote in) belong to the cover and the home, and the shelf
+ *  builder already draws those from this same Edition.
  *
  *  Nothing here is a real member's word or photograph. See the fixture's
  *  own header for why that matters and why it can be committed.
@@ -42,7 +42,7 @@ import type {
   ExportedQuestion,
 } from "@/lib/catchups-export";
 import { resolveMedia, stripLinks } from "./_media";
-import type { SketchEntry, SketchPerson, SketchRound } from "./_types";
+import type { SketchEntry, SketchPerson, SketchEdition } from "./_types";
 
 /** The fixture's photographs are the app's own public stills, and the file
  *  records each one's real pixel size in a comment beside it. Carried here
@@ -124,19 +124,19 @@ async function questionOf(q: ExportedQuestion, keeperId: string | null) {
   };
 }
 
-/** The corpus as one Round the reader can be driven through. */
-export async function loadPressureRound(
+/** The corpus as one Edition the reader can be driven through. */
+export async function loadPressureEdition(
   file: CatchupExportFile = PRESSURE_FIXTURE,
-): Promise<SketchRound | null> {
-  const catchup = file.catchups.find((c) => c.rounds.length > 0);
+): Promise<SketchEdition | null> {
+  const catchup = file.catchups.find((c) => c.editions.length > 0);
   if (!catchup) return null;
   const keeperId = catchup.createdById;
 
-  /* Newest Round first, so the everything Round's questions lead and the
-     two single-question Rounds fall in behind them. */
-  const rounds = [...catchup.rounds].sort((a, b) => b.number - a.number);
+  /* Newest Edition first, so the everything Edition's questions lead and the
+     two single-question Editions fall in behind them. */
+  const editions = [...catchup.editions].sort((a, b) => b.number - a.number);
   const questions = await Promise.all(
-    rounds.flatMap((r) => r.questions).map((q) => questionOf(q, keeperId)),
+    editions.flatMap((r) => r.questions).map((q) => questionOf(q, keeperId)),
   );
 
   const members = catchup.members.map((m) => person(m, m.isKeeper));
@@ -150,7 +150,7 @@ export async function loadPressureRound(
     }
   }
 
-  const newest = rounds[0];
+  const newest = editions[0];
   return {
     catchupId: catchup.id,
     catchupName: catchup.title ?? catchup.groupName,

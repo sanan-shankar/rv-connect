@@ -47,7 +47,7 @@ const LAPTOP_SCREEN_HEIGHT = 982;
  *  also the way up to the Catch-up's home, which is why it is a button.
  *
  *  His words on the earlier sketch that did this: "I do like the idea of
- *  using the top bar like you are now, so saying 'in the loop, Round 1',
+ *  using the top bar like you are now, so saying 'in the loop, Edition 1',
  *  that's done fine." (R19) And: "If we're doing a green bar, might as well
  *  make it the top one." (R41) */
 export function PhoneBar({
@@ -57,7 +57,7 @@ export function PhoneBar({
 }: {
   title?: string;
   position?: "static" | "absolute" | "sticky";
-  /** What the name does. It is the way up out of a Round, and it is the
+  /** What the name does. It is the way up out of an Edition, and it is the
    *  only one: getting back to the Catch-up is 44,381px of scrolling on
    *  the shipped reader ("I scroll all the way to the bottom, which takes
    *  me a week", para 35). */

@@ -14,7 +14,7 @@
  *  seeing the roster, changing it, and the invite link (which was its own
  *  rail card, `invite-link-card.tsx`, now folded in here).
  *
- *  It sits in the rail at EVERY Round status, which is the "consistent
+ *  It sits in the rail at EVERY Edition status, which is the "consistent
  *  thing throughout questions and answers and reading" part: the same
  *  faces in the same place whether the group is asking, answering or
  *  reading. What changes with the phase is one line of truth about them,
@@ -680,7 +680,7 @@ function InviteLink({ token }: { token: string }) {
  * Leave this Catch-up.
  *
  * Immediate, confirmed and permanent, and the copy says all three. What you
- * have already written stays where it is: a published Round is a keepsake the
+ * have already written stays where it is: a published Edition is a keepsake the
  * whole group has read, and pulling one person's answers out of it afterwards
  * would put holes in something other people remember (owner's decision,
  * 2026-08-21). Rejoining is only possible by invitation, which is the part
@@ -707,8 +707,8 @@ function LeaveCatchupDialog({
       title="Leave this catch-up?"
       description={
         <>
-          You will stop hearing from {data.groupName} and lose access to its Rounds. Anything you
-          have already shared stays in the Rounds it was published in. Getting back in needs an
+          You will stop hearing from {data.groupName} and lose access to its Editions. Anything you
+          have already shared stays in the Editions it was published in. Getting back in needs an
           invitation.
         </>
       }

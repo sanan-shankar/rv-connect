@@ -7,11 +7,11 @@
  *
  *  The right rail. "Fresh off the press" is deleted, not restyled, and
  *  with it go the curved divider, the hover with no padding on three
- *  sides, the teaser truncated twice, the empty Round promoted above a
- *  Round with 133 answers, and the fact that the whole rail is
+ *  sides, the teaser truncated twice, the empty Edition promoted above a
+ *  Edition with 133 answers, and the fact that the whole rail is
  *  `display: none` on a phone and always was (recon I9, section 12). Its
  *  job was to say what is new to read. A Catch-up showing its own newest
- *  Round says that better, in the place you were already looking. That
+ *  Edition says that better, in the place you were already looking. That
  *  also answers I1 -- "sort out the stuff in the left column and the
  *  stuff on the right" -- by removing the right column.
  *
@@ -34,7 +34,7 @@
  *  the gap between the title at one end and the View button at the other,
  *  and 67 to 82% of the window was neither sidebar nor card (recon I2).
  *  There is no gap here because there is nothing at the other end: a
- *  panel is a heading, a state line and the Round's own contents, and its
+ *  panel is a heading, a state line and the Edition's own contents, and its
  *  height is set by what is in it. At a laptop's width two panels sit
  *  side by side, which is how a page with two or three Catch-ups on it
  *  fills a screen without anything being padded out.
@@ -52,12 +52,12 @@ import { Door, PICTURE_SCRIM } from "./_cover";
 import { dayAndDate, shortDate, type SketchCatchup } from "./_shelf";
 
 /* ── the one line under a Catch-up's name ──────────────────────────── *
- *  Cinnamon for the Round, the app's own dot, then the fact. One line,
+ *  Cinnamon for the Edition, the app's own dot, then the fact. One line,
  *  one place, in the same shape in every state, so the eye learns where
  *  to look once. No counts: not answers, not photographs, not people.
  *  "You're trying so hard to include useless information." (R32) */
 function stageOf(c: SketchCatchup): string {
-  const r = c.round;
+  const r = c.edition;
   if (c.paused) return "Paused";
   if (c.state === "ended" && c.endedAt) return `Ended ${shortDate(c.endedAt)}`;
   if (!r) return "No Editions yet";
@@ -96,12 +96,12 @@ export function Panel({
   phone,
 }: {
   c: SketchCatchup;
-  /** ALWAYS the home. It used to be the reader for a published Round and
+  /** ALWAYS the home. It used to be the reader for a published Edition and
    *  the home for everything else, and the thing he says he hates most
    *  about what ships is exactly that unpredictability: "I still can't
    *  predict where it's gonna open when I click it. It just does whatever
    *  it wants and I don't have a sense of it in my head." One rule costs
-   *  a tap on the way to a Round and buys knowing where you will land. */
+   *  a tap on the way to an Edition and buys knowing where you will land. */
   onOpen: (c: SketchCatchup) => void;
   phone: boolean;
 }) {

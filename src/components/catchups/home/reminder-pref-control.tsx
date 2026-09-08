@@ -61,7 +61,7 @@ export function ReminderPrefControl({
               than as a line of sub-copy, because the 2026-07-25 review deleted
               the sub-copy under this exact heading. */}
           <InfoTooltip label="What these reminders are">
-            Reminders to answer, once the round is open to replies.
+            Reminders to answer, once the Edition is open to replies.
           </InfoTooltip>
         </div>
         {/* Daily / Last day / Off need no sub-copy: the three labels are the

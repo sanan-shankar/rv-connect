@@ -53,10 +53,10 @@ import type {
  *
  * The ONE place this is decided, because the two surfaces that render a
  * question disagreed (bug audit M10). The Catch-up home hid an anonymous
- * asker from everybody but the asker; the published Round revealed them to any
+ * asker from everybody but the asker; the published Edition revealed them to any
  * Keeper, with nothing on screen to say the question had been asked
  * anonymously. So a member picked "Ask anonymously", saw their name withheld
- * on the console, and was named in the Round the whole group then read.
+ * on the console, and was named in the Edition the whole group then read.
  *
  * The spec grants no Keeper exception: "the author is always stored;
  * `showAsker=false` only hides the asker in the UI" (catchups.md:257), and
@@ -164,7 +164,7 @@ export function daysLeftUntil(closeAt: Date | string | null | undefined, now: Da
   return Math.max(1, Math.ceil(diff / DAY_MS));
 }
 
-/** Forward-only order of the Round state machine. */
+/** Forward-only order of the Edition state machine. */
 const STATUS_ORDER: EditionStatus[] = [
   "draft",
   "collecting",
@@ -239,7 +239,7 @@ export const CATCHUP_PROMPT_SETS: CatchupPromptSet[] = [
     ],
   },
   {
-    // Not a text question: everyone adds one picture and the Round prints them
+    // Not a text question: everyone adds one picture and the Edition prints them
     // as a wall. `promptKind()` switches the answering control on this id.
     id: "photo-wall",
     label: "A photo from everyone",
@@ -268,7 +268,7 @@ export const CATCHUP_PROMPT_SETS: CatchupPromptSet[] = [
  * UTC-safe month addition (deterministic across machines; no timezone
  * machinery, per spec), with the day of the month CLAMPED to the target month.
  *
- * `setUTCMonth` alone overflows: a Round published on 31 January and set to a
+ * `setUTCMonth` alone overflows: an Edition published on 31 January and set to a
  * monthly rhythm asked for 31 February and got 3 March, skipping February
  * altogether; 31 October + 1 month landed on 1 December, skipping November
  * (audit C-144). About one publish in ten falls on a 29th-31st, and the
@@ -305,15 +305,11 @@ export function addCadenceGap(from: Date, cadence: Cadence): Date {
   }
 }
 
-export function roundLabel(n: number): string {
-  return `Round ${n}`;
-}
-
 /**
  * The two ways a Catch-up names itself. A Keeper's own title always wins; the
  * difference is only in what stands in when there is not one.
  *
- * These were three copies in three page files, and the round reader's TODO had
+ * These were three copies in three page files, and the Edition reader's TODO had
  * been asking for this since it wrote the third: "it wants to be one exported
  * helper in src/lib/catchups.ts". They replace `catchupTitle`, a fourth
  * spelling with a third fallback ("{group} Catch-ups", plural) whose docblock
@@ -383,17 +379,17 @@ function ms(t: Date | string | null | undefined): number | null {
  * Five minutes: comfortably more than a scheduler's run-to-run wobble, which
  * is what the whole failure is made of, and small enough to stay well inside
  * the shortest thing here measured in hours (the 24-hour preparing hold). A
- * Round can now be at most five minutes "early", which no surface counting in
+ * Edition can now be at most five minutes "early", which no surface counting in
  * days or hours can show, and can no longer be a day late.
  *
  * Applied inside `computeStatus` rather than to the stored deadlines, so the
  * advance and the render remain the same function: a page loaded in those last
- * five minutes and the tick that follows it agree about what the Round is.
+ * five minutes and the tick that follows it agree about what the Edition is.
  */
 export const TICK_GRACE_MS = 5 * 60 * 1000;
 
 /**
- * The status a Round SHOULD be in given its timestamps and the clock. Pure and
+ * The status an Edition SHOULD be in given its timestamps and the clock. Pure and
  * forward-only: it never returns a status earlier than the stored one, and it
  * never writes. Draft and published are terminal to the clock (draft only opens
  * by an explicit Keeper action; published is forever).
@@ -423,7 +419,7 @@ export function computeStatus(ed: EditionTiming, now: Date): EditionStatus {
   return s;
 }
 
-/** The single next forward step the clock justifies, or null when the Round is settled. */
+/** The single next forward step the clock justifies, or null when the Edition is settled. */
 export function nextEditionStatus(ed: EditionTiming, now: Date): EditionStatus | null {
   const target = computeStatus(ed, now);
   const ci = STATUS_ORDER.indexOf(ed.status);
@@ -458,14 +454,14 @@ export function shouldExtendForTooFew(ed: EditionTiming, entryCount: number): bo
  * No-questions: extend the question window once when it closes with nothing in
  * it. The mirror of `shouldExtendForTooFew`, one phase earlier.
  *
- * After that extension a Round with still no questions goes DORMANT rather than
+ * After that extension an Edition with still no questions goes DORMANT rather than
  * opening answering (see planNextAction). Opening it would invite the whole
  * group to answer nothing, then nudge every one of them daily for a week about
  * the questions that do not exist, then publish an empty keepsake and start the
  * cycle again next cadence -- forever, until a human ends the Catch-up (audit
- * B-062). Doing nothing is the honest state for a Round nobody asked anything
+ * B-062). Doing nothing is the honest state for an Edition nobody asked anything
  * in, and it is self-healing: the first question submitted revives it
- * (`reviveDormantRound` in the actions).
+ * (`reviveDormantEdition` in the actions).
  */
 function shouldExtendForNoQuestions(ed: EditionTiming, promptCount: number): boolean {
   return promptCount === 0 && (ed.remindersSent & REMINDER_QUESTIONS_EXTENDED) === 0;
@@ -507,7 +503,7 @@ export function answeringPatch(ed: EditionTiming, now: Date): EditionPatch {
  * and re-seeds the daily bucket, so buying the group more time does not
  * immediately spend it on a reminder saying so.
  *
- * From the deadline OR from now, whichever is later (audit C-028). A Round
+ * From the deadline OR from now, whichever is later (audit C-028). An Edition
  * that went dormant -- its question window closed empty, its one automatic
  * extension already spent -- keeps a `questionsCloseAt` weeks in the past, and
  * extending from that put the new deadline in the past too: the write applied,
@@ -574,7 +570,7 @@ export function shiftPausedInstant(
   return new Date(m + by);
 }
 
-/** `shiftPausedInstant` over a Round's three deadlines, as a patch. */
+/** `shiftPausedInstant` over an Edition's three deadlines, as a patch. */
 export function shiftEditionPatch(
   // Only the three deadlines, not a whole EditionTiming: the status and the
   // reminder bitmask play no part, and asking for less lets a caller hand over
@@ -637,8 +633,8 @@ export type EditionAction =
   | { kind: "reminder"; daysLeft: number; patch: EditionPatch };
 
 /**
- * What the Round has in it right now. Two counts, because two decisions need
- * one each: `prompts` gates collecting -> answering (a Round with no questions
+ * What the Edition has in it right now. Two counts, because two decisions need
+ * one each: `prompts` gates collecting -> answering (an Edition with no questions
  * must not open for answers), `entries` gates answering -> preparing (the
  * too-few auto-extend). Named rather than positional so a call site cannot
  * quietly swap them.
@@ -658,7 +654,7 @@ export function planNextAction(ed: EditionTiming, counts: EditionCounts, now: Da
   if (next) {
     if (ed.status === "collecting" && next === "answering" && counts.prompts === 0) {
       // Nothing was asked. Give the group one more window to ask something,
-      // then stop: a Round with no questions has nothing to open for.
+      // then stop: an Edition with no questions has nothing to open for.
       if (shouldExtendForNoQuestions(ed, counts.prompts)) {
         return {
           kind: "extend-questions",
@@ -793,7 +789,7 @@ function daysUntilLabel(t: Date | string | null | undefined, now: Date): string 
   return `${days} days left`;
 }
 
-/** Countdown-only copy for the live part of a Round. */
+/** Countdown-only copy for the live part of an Edition. */
 export function editionCountdownLabel(
   ed: {
     status: EditionStatus;
@@ -807,10 +803,19 @@ export function editionCountdownLabel(
   return null;
 }
 
+/**
+ * One line saying where an Edition is, in the words a member would use.
+ *
+ * It takes no `number` and prints none. An Edition is identified by its DATE,
+ * never by a position in a sequence -- the owner, 2026-09-07: "let's ditch the
+ * round 1 ... The round number is irrelevant." The `number` column survives
+ * because `@@unique([catchupId, number])` is what makes "one Edition at a
+ * time" enforceable, but nothing prints it. `roundLabel()`, which returned
+ * "Round N" for five surfaces, was deleted here rather than renamed.
+ */
 export function describeEditionStatus(
   ed: {
     status: EditionStatus;
-    number: number;
     questionsCloseAt?: Date | string | null;
     answersCloseAt?: Date | string | null;
   },
@@ -828,9 +833,9 @@ export function describeEditionStatus(
       return left ? `Answering now, ${left}` : "Answering now";
     }
     case "preparing":
-      return "Preparing the Round";
+      return "Preparing the Edition";
     case "published":
-      return `${roundLabel(ed.number)} published`;
+      return "Published";
     default:
       return "";
   }

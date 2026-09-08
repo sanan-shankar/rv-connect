@@ -36,7 +36,6 @@ import {
   answersCloseSentence,
   valleyDaysLeft,
   addDays,
-  roundLabel,
   catchupDisplayName,
   catchupSurfaceTitle,
   isEffectiveKeeper,
@@ -76,7 +75,7 @@ function edition(overrides = {}) {
 
 /**
  * Counts for planNextAction. `prompts` defaults to 3 -- "somebody asked
- * something", which is the ordinary Round. The no-questions cases below pass
+ * something", which is the ordinary Edition. The no-questions cases below pass
  * `prompts: 0` explicitly, so a test that cares says so.
  */
 const counts = (entries = 0, prompts = 3) => ({ entries, prompts });
@@ -165,7 +164,7 @@ test("computeStatus: preparing holds until publishAt, then published", () => {
   assert.equal(computeStatus(edition({ status: "preparing", publishAt: at(-1) }), NOW), "published");
 });
 
-test("computeStatus: a very stale collecting Round cascades all the way to published", () => {
+test("computeStatus: a very stale collecting Edition cascades all the way to published", () => {
   const ed = edition({
     status: "collecting",
     questionsCloseAt: at(-3 * DAY_MS),
@@ -196,7 +195,7 @@ test("planNextAction: collecting -> answering fires answers-open once, then is a
   assert.equal(planNextAction(ed, counts(0), NOW).kind, "none"); // idempotent
 });
 
-test("planNextAction: preparing -> published fires published + schedules the next Round", () => {
+test("planNextAction: preparing -> published fires published + schedules the next Edition", () => {
   const ed = edition({ status: "preparing", publishAt: at(-1000) });
   const a = planNextAction(ed, counts(5), NOW);
   assert.equal(a.kind, "transition");
@@ -309,8 +308,8 @@ test("extendPhasePatch: answering moves the answer deadline and re-seeds the buc
   assert.equal(planNextAction(applyPatch(ed, patch), counts(0), NOW).kind, "none");
 });
 
-test("C-028: extending a dormant Round lands in the future, not in the past", () => {
-  /* A Round whose question window closed empty keeps a `questionsCloseAt`
+test("C-028: extending a dormant Edition lands in the future, not in the past", () => {
+  /* An Edition whose question window closed empty keeps a `questionsCloseAt`
      weeks old. Extending from that put the new deadline in the past too: the
      write applied, the Keeper was told it had worked, and the card still said
      the same thing (audit C-028). */
@@ -368,7 +367,7 @@ test("planNextAction: after an extension it proceeds to preparing even with zero
   assert.equal(a.to, "preparing");
 });
 
-// ─── a Round nobody asked anything in (audit B-062) ──────────────────────────
+// ─── an Edition nobody asked anything in (audit B-062) ──────────────────────────
 
 test("planNextAction: a question window closing with no questions extends once, not opens", () => {
   let ed = edition({ status: "collecting", questionsCloseAt: at(-HOUR_MS), remindersSent: 0 });
@@ -386,7 +385,7 @@ test("planNextAction: a question window closing with no questions extends once, 
   assert.equal(planNextAction(ed, counts(0, 0), NOW).kind, "none"); // window is future again
 });
 
-test("planNextAction: after its one extension a still-empty Round goes dormant, forever", () => {
+test("planNextAction: after its one extension a still-empty Edition goes dormant, forever", () => {
   const ed = edition({
     status: "collecting",
     questionsCloseAt: at(-HOUR_MS),
@@ -411,7 +410,7 @@ test("planNextAction: one question is enough to open answering normally", () => 
   assert.equal(a.notify, "catchup_answers_open");
 });
 
-// ─── pause freezes the Round; resume hands the time back (audit B-060/B-061) ──
+// ─── pause freezes the Edition; resume hands the time back (audit B-060/B-061) ──
 
 test("shiftEditionPatch: moves every deadline still ahead of the freeze, by the pause", () => {
   const pausedAt = at(-2 * DAY_MS); // paused two days ago
@@ -429,7 +428,7 @@ test("shiftEditionPatch: moves every deadline still ahead of the freeze, by the 
   assert.equal(patch.publishAt, undefined);
 });
 
-test("shiftEditionPatch: a Round paused mid-answering resumes with the same days left", () => {
+test("shiftEditionPatch: an Edition paused mid-answering resumes with the same days left", () => {
   const pausedAt = at(-30 * DAY_MS);
   const ed = edition({ status: "answering", answersCloseAt: at(-27 * DAY_MS) });
   const patch = shiftEditionPatch(ed, pausedAt, NOW);
@@ -437,8 +436,8 @@ test("shiftEditionPatch: a Round paused mid-answering resumes with the same days
   assert.equal(daysLeftUntil(patch.answersCloseAt, NOW), 3);
 });
 
-test("shiftPausedInstant: the next Round's schedule gets the same credit", () => {
-  // A Catch-up paused a month before its next Round is due should not open one
+test("shiftPausedInstant: the next Edition's schedule gets the same credit", () => {
+  // A Catch-up paused a month before its next Edition is due should not open one
   // the instant it resumes: nextOpensAt moves by the pause, like everything else.
   const nextOpensAt = at(-20 * DAY_MS); // was due 20 days ago, during the freeze
   const shifted = shiftPausedInstant(nextOpensAt, at(-30 * DAY_MS), NOW);
@@ -532,8 +531,7 @@ test("isEffectiveKeeper: creator OR group admin, nobody else", () => {
   assert.equal(isEffectiveKeeper({ viewerId: null, createdById: "u1", groupRole: "admin" }), false);
 });
 
-test("roundLabel + the two title fallbacks", () => {
-  assert.equal(roundLabel(4), "Round 4");
+test("the two title fallbacks", () => {
   // A Keeper's own title wins on every surface, whitespace does not count as
   // one, and the two differ only in what stands in when there is none: the
   // home says the group's name bare, everywhere else appends the word.
@@ -552,7 +550,7 @@ test("describeEditionStatus: readable per-status copy", () => {
   );
   /* A deadline 24 hours out is TOMORROW's, not today's: this asserted "last
      day" until C-031, which is the day-early claim that started the whole
-     disagreement. "last day" now means the valley day the Round closes on. */
+     disagreement. "last day" now means the valley day the Edition closes on. */
   assert.equal(
     editionCountdownLabel({ status: "answering", answersCloseAt: at(DAY_MS) }, NOW),
     "closes tomorrow"
@@ -563,11 +561,15 @@ test("describeEditionStatus: readable per-status copy", () => {
   );
   assert.equal(editionCountdownLabel({ status: "published" }, NOW), null);
   assert.equal(
-    describeEditionStatus({ status: "answering", number: 2, answersCloseAt: at(3 * DAY_MS) }, NOW),
+    describeEditionStatus({ status: "answering", answersCloseAt: at(3 * DAY_MS) }, NOW),
     "Answering now, 3 days left"
   );
-  assert.equal(describeEditionStatus({ status: "preparing", number: 2 }, NOW), "Preparing the Round");
-  assert.equal(describeEditionStatus({ status: "published", number: 5 }, NOW), "Round 5 published");
+  assert.equal(describeEditionStatus({ status: "preparing" }, NOW), "Preparing the Edition");
+  /* No number, on purpose: `roundLabel()` was deleted in the Edition rename
+     (2026-09-08) rather than renamed, because an Edition is identified by its
+     date. If this ever reads "Edition 5 published" again, the rule has been
+     lost. */
+  assert.equal(describeEditionStatus({ status: "published" }, NOW), "Published");
 });
 
 // ─── resolveSpotify: host/path allowlist + fail-soft (stubbed fetch) ─────────
@@ -715,9 +717,9 @@ test("an anonymous question whose asker deleted their account stays anonymous", 
 });
 
 /* The rule above was already right, and a renderer disagreed with it anyway.
- * The home page's inline published Round declared `const askerVisible =
+ * The home page's inline published Edition declared `const askerVisible =
  * p.showAsker || isKeeper` INSIDE its map, which shadowed the imported helper,
- * so the same Round named its anonymous askers to a Keeper on one page and hid
+ * so the same Edition named its anonymous askers to a Keeper on one page and hid
  * them on the other (audit C-019). A behavioural test of the helper cannot see
  * that; only a sweep of the renderers can.
  *
@@ -766,7 +768,7 @@ test("every surface that names an asker asks the one helper", () => {
  *  Three surfaces printed the same deadline from two different
  *  arithmetics -- the index card, the masthead and the bell counted
  *  24-hour blocks, the answer page counted IST calendar days -- so with
- *  a Round closing at 07:30 IST the bell said "Last day to answer" from
+ *  an Edition closing at 07:30 IST the bell said "Last day to answer" from
  *  half past seven the MORNING BEFORE, one tap away from a page saying
  *  "Answers close tomorrow".
  * ------------------------------------------------------------------ */

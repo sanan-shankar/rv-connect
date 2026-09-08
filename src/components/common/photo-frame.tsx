@@ -91,7 +91,7 @@ export function PhotoFrame({
    *  photographs -- served straight off R2 since the day they shipped --
    *  through Vercel's image optimiser. A transform nobody has asked for before
    *  takes about 880ms against 260ms for the same bytes from the bucket's own
-   *  edge, so every photograph in a Round made the reader wait on it. Measured
+   *  edge, so every photograph in an Edition made the reader wait on it. Measured
    *  2026-08-27 after the owner reported exactly that. Whether a surface wants
    *  the optimiser is the surface's call; see image-cdn.ts, and spec §4 for
    *  where all of this is meant to end up (precomputed derivatives on R2, no

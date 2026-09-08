@@ -12,25 +12,25 @@
  *  It is a client component for one reason: a press opens the shared
  *  viewer, which was the owner's #36 ("you can't click on the images to
  *  expand them"). And it opens on the WHOLE WALL rather than on the one
- *  photograph, so a Round is something you can sit and step through --
+ *  photograph, so an Edition is something you can sit and step through --
  *  which is the closest this app has to an evening of somebody's
  *  photographs.
  * ------------------------------------------------------------------ */
 
 import Link from "next/link";
-import { EntryLoveButton } from "@/components/catchups/round/entry-love-button";
+import { EntryLoveButton } from "@/components/catchups/edition/entry-love-button";
 import { renderRichText } from "@/lib/rich-text";
 import { PhotoStream } from "@/components/common/photo-rows";
 import { LazyImageViewer, useImageViewer } from "@/components/common/lazy-image-viewer";
 import { PhotoOpener } from "@/components/common/photo-opener";
-import type { RoundEntry } from "@/components/catchups/round/answer-card";
+import type { EditionEntry } from "@/components/catchups/edition/answer-card";
 import { formatDisplayDate } from "@/lib/utils";
 
 
 /** A photograph nobody has measured keeps the square it has always had. */
 const UNMEASURED = { width: 1, height: 1 };
 
-export function PhotoWall({ entries }: { entries: RoundEntry[] }) {
+export function PhotoWall({ entries }: { entries: EditionEntry[] }) {
   const viewer = useImageViewer();
 
   const cells = entries.map((entry) => ({
@@ -61,7 +61,7 @@ export function PhotoWall({ entries }: { entries: RoundEntry[] }) {
             </PhotoOpener>
             {entry.body?.trim() && (
               /* renderRichText, the same as the answer card beside it. The
-                 same field used to render two ways in the same round: the
+                 same field used to render two ways in the same edition: the
                  card honoured the composer's markers and the wall printed
                  them, so a caption written with emphasis read `*like this*`
                  here and formatted there (bugs.md #19). */

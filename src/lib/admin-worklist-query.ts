@@ -221,7 +221,7 @@ export async function loadWorklist(): Promise<WorkItem[]> {
     ...stuck.map((e) => ({
       key: `catchup-${e.id}`,
       queue: "catchup" as const,
-      title: `Round ${e.number} of ${e.catchup.title ?? `${e.catchup.group.name} Catch-ups`} is past its date`,
+      title: `Edition ${e.number} of ${e.catchup.title ?? `${e.catchup.group.name} Catch-ups`} is past its date`,
       detail:
         e.status === "collecting"
           ? "Still taking questions"

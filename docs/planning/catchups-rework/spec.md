@@ -761,7 +761,7 @@ in it.
 | # | Phase | What lands | Migration |
 |---|---|---|---|
 | **X** | **Fast fixes** | the heart's `revalidatePath` (F23: 603 KB and 2.6s per tap, and the fix is deleting two lines); `break-words` on the answer body and question heading (F18, the phone overflow he can see today); the image viewer's three swipe faults (V1 to V3, which he allowed to touch the feed); the caption clamp 2 lines → 4 (¶32, D38) | none |
-| **1** | **Edition** | the rename, one mechanical pass; the route move plus a permanent redirect | notification links rewritten |
+| **1** | **Edition** — **DONE 2026-09-08** | the rename, one mechanical pass; the route move plus a permanent 308. `roundLabel()` deleted and its five call sites re-worded. `npm run visual` 25/25, no baseline moved | written, **applied after the deploy**: `2026-09-08-round-becomes-edition.sql` rewrites `Notification.link` (61 rows) and `ContentView.kind` (17). Running it first would 404 sixty-one live bell links on the build still deployed |
 | **2** | **The clock** | `preparing` deleted; deadlines snap to 07:00 IST; **Start the next Edition now** added — the control nobody had (N43) | `preparing` rows published |
 | **3** | **The picture** | the two columns, the pool module out of the lab, the backfill, creation writes one. Nothing renders it yet | picture columns + backfill |
 | **4** | **The batch Catch-up** | one per batch group **at ten members or more** (two of eleven today); the backfill; the ensure at signup; the tick's two self-heals; the 2024 snapshot adopted; **the sidebar item hidden when you have no Catch-up to open** (§3.5b); no member editing, no leaving, no manual transitions | batch Catch-ups + membership heal + re-point |

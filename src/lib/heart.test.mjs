@@ -39,7 +39,7 @@ const HEARTS = {
   "post card (like)": "../components/posts/post-card.tsx",
   "comment": "../components/posts/comments-section.tsx",
   "letter": "../components/letters/letter-engagement.tsx",
-  "catch-up answer": "../components/catchups/round/entry-love-button.tsx",
+  "catch-up answer": "../components/catchups/edition/entry-love-button.tsx",
   /* The Collection's heart moved into the grid on 2026-08-28: it is drawn in
      the full-screen viewer now, and the row it changes lives on the page
      behind, so the two agree when the viewer closes. `photo-love-button.tsx`

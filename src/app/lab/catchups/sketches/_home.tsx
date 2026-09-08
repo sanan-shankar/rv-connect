@@ -13,9 +13,9 @@
  *  every member:
  *
  *    the head        the picture, the name
- *    the Round       what this cycle is right now, and ONE thing to do
+ *    the Edition       what this cycle is right now, and ONE thing to do
  *    the rail        People / Reminders / Running this  (_rail.tsx)
- *    earlier         the Rounds that have already come out
+ *    earlier         the Editions that have already come out
  *
  *  Only what is inside the second region changes. The first draft
  *  reshaped the whole page per state, which is why he could not find the
@@ -29,7 +29,7 @@
  *  asking is probably even better now on the shipped version than what
  *  you've created." Answering: Answer, large, with nothing beside it,
  *  because in my first draft "the biggest elements are the people,
- *  questions, the people who have written, and then the earlier rounds.
+ *  questions, the people who have written, and then the earlier editions.
  *  The actual answering is not even there."
  *
  *  NO LIST OF QUESTIONS except where the questions are the thing being
@@ -38,20 +38,20 @@
  *  I just don't get it. It's so annoying."
  *
  *  NO ROUND NUMBERS. "Why do we need to have the round 4? It doesn't
- *  matter what round, it's going to be round 15. How does it matter
+ *  matter what edition, it's going to be edition 15. How does it matter
  *  whether it's 15 or 16?"
  *
  *  WHICH FACE, AND WHY. He asked for a rule on 2026-09-07, having found the
  *  two faces used for the same job one line apart: "the text above it is
  *  'Answers close Thursday 20 August' and the parallel text is 'Earlier
- *  Rounds' except that's in serif. please make it clear and sensible what's
+ *  Editions' except that's in serif. please make it clear and sensible what's
  *  serif and what sans serif and have some logic behind it and consistency."
  *
  *  The rule, and it is one line:
  *
  *      SERIF is a TITLE or a NAME. The page's title, a Catch-up's name, a
  *      dialog's title, a card's own title, a question, and the date that
- *      identifies a Round on its cover.
+ *      identifies an Edition on its cover.
  *
  *      SANS is the APP TALKING. The label over a group, a state line, a
  *      hint, a value, a control, a count -- everything set small and muted.
@@ -81,7 +81,7 @@ import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 import { Cover, PICTURE_SCRIM } from "./_cover";
 import { PeopleDoor, SettingsDoor } from "./_rail";
-import { dayAndDate, shortDate, type SketchCatchup, type ShelfRound } from "./_shelf";
+import { dayAndDate, shortDate, type SketchCatchup, type ShelfEdition } from "./_shelf";
 
 /** THE APP'S OWN RAIL GRID, and it is not a new number.
  *
@@ -97,7 +97,7 @@ import { dayAndDate, shortDate, type SketchCatchup, type ShelfRound } from "./_s
  *  the middle than every other two-column page in the app.
  *
  *  WHICH COLUMN TAKES THE SPACE BACK: the main one, and it keeps no cap. Its
- *  content is a photograph the width of the column (a Round's cover) and a
+ *  content is a photograph the width of the column (an Edition's cover) and a
  *  box you write a question into; both are better wider. The rail's content
  *  is a stack of small covers whose whole point is that they are back
  *  numbers, and 318 is already the widest the app makes a rail. */
@@ -196,7 +196,7 @@ function Head({ c, phone }: { c: SketchCatchup; phone: boolean }) {
             {c.name}
           </h1>
           {/* Both doors, at both widths, because the sidebar that used to
-              hold their contents is now the Earlier Rounds column. */}
+              hold their contents is now the Earlier Editions column. */}
           <span className="flex shrink-0 items-center gap-2">
             <PeopleDoor c={c} phone={phone} />
             <SettingsDoor c={c} phone={phone} />
@@ -207,9 +207,9 @@ function Head({ c, phone }: { c: SketchCatchup; phone: boolean }) {
   );
 }
 
-/* ── the Round ─────────────────────────────────────────────────────── */
+/* ── the Edition ─────────────────────────────────────────────────────── */
 
-/** One line, the stage in words. No Round number, no counts, and nothing the
+/** One line, the stage in words. No Edition number, no counts, and nothing the
  *  thing underneath already says.
  *
  *  Two lines were deleted here on 2026-09-07, both his:
@@ -222,7 +222,7 @@ function Head({ c, phone }: { c: SketchCatchup; phone: boolean }) {
  *  don't need to say it comes out the same day. That's almost like implied.
  *  That's so stupid." So the deadline is the deadline and nothing else. */
 function Stage({ c }: { c: SketchCatchup }) {
-  const r = c.round;
+  const r = c.edition;
   /* Nothing while it is held. The deadline is not running, so printing
      "Answers close Thursday 20 August" under a card that says the Catch-up is
      on hold is the page contradicting itself in two lines. */
@@ -431,7 +431,7 @@ function LibraryDialog() {
  *  a bit more approachable, but there's something nicer about that." So the
  *  question itself is the heading face on paper, and the asker's name under
  *  it is the app's own small sans, exactly as the shipped row has it. */
-function AskedPanel({ r, youKeep }: { r: ShelfRound; youKeep: boolean }) {
+function AskedPanel({ r, youKeep }: { r: ShelfEdition; youKeep: boolean }) {
   const [order, setOrder] = useState(r.questions);
   if (order.length === 0) return null;
 
@@ -550,7 +550,7 @@ function RowButton({
  *
  *  He is right and it is the same argument twice: asking happens in a box on
  *  this page, so answering has no business being a different address. The
- *  Round region is now the writing surface itself -- the question you are on,
+ *  Edition region is now the writing surface itself -- the question you are on,
  *  the box, somewhere to put photographs, and the way forward.
  *
  *  Two things carried over from the shipped composer he already fixed by eye
@@ -663,7 +663,7 @@ function Attachments({
   );
 }
 
-function Answering({ r }: { r: ShelfRound }) {
+function Answering({ r }: { r: ShelfEdition }) {
   const [at, setAt] = useState(0);
   /* Each question keeps what you typed and what you attached, so moving
      between them is free and nothing is lost by looking ahead. */
@@ -762,7 +762,7 @@ function Answering({ r }: { r: ShelfRound }) {
             as next." It is -- neither writes anything and both move you on. */}
         {/* Back sits WITH Next, not out by the photograph: "in answering have
             the back button near the next button not near the photo button."
-            They are one pair, the way through the Round, and a control's
+            They are one pair, the way through the Edition, and a control's
             neighbours are what say what it does. */}
         <div className="ml-auto flex items-center gap-1.5">
           <Button
@@ -784,12 +784,12 @@ function Answering({ r }: { r: ShelfRound }) {
   );
 }
 
-function Round({ c, onRead }: { c: SketchCatchup; onRead: (r: ShelfRound) => void }) {
-  const r = c.round;
+function Edition({ c, onRead }: { c: SketchCatchup; onRead: (r: ShelfEdition) => void }) {
+  const r = c.edition;
 
   /* Over. Tested BEFORE the branches below, because an ended Catch-up has no
-     live Round: `!r` was true and it fell through to offering **Start the
-     first Round** on a Catch-up that is finished and has already had several.
+     live Edition: `!r` was true and it fell through to offering **Start the
+     first Edition** on a Catch-up that is finished and has already had several.
      His: "why is ended start the first round? ... Firstly, it wouldn't be the
      first round anyway." */
   if (c.state === "ended") return null;
@@ -808,7 +808,7 @@ function Round({ c, onRead }: { c: SketchCatchup; onRead: (r: ShelfRound) => voi
             is running until someone starts it again" -- is deleted at his word.
             It explained the mechanism of a state whose name already says it,
             which is the same fault as the rhythm line and the sentence
-            defining a Round: "we don't need to teach them how to use it." */}
+            defining an Edition: "we don't need to teach them how to use it." */}
         <Button size="sm" className="mt-4">
           Start it again
         </Button>
@@ -828,7 +828,7 @@ function Round({ c, onRead }: { c: SketchCatchup; onRead: (r: ShelfRound) => voi
   if (c.state === "answering") return <Answering r={r} />;
 
   /* Out. The cover, and nothing else. */
-  return <Cover round={r} fallback={c.picture} onOpen={() => onRead(r)} />;
+  return <Cover edition={r} fallback={c.picture} onOpen={() => onRead(r)} />;
 }
 
 /* ── the page ──────────────────────────────────────────────────────── */
@@ -843,32 +843,32 @@ function Round({ c, onRead }: { c: SketchCatchup; onRead: (r: ShelfRound) => voi
  *  anything and there is nothing to run -- it was ONE row, Reminders, alone
  *  in a 300px column. The verbs are behind the Settings door on the picture
  *  now, with the people, so the column carries the one thing that is worth a
- *  column: every Round that has already come out, as its own cover.
+ *  column: every Edition that has already come out, as its own cover.
  *
- *  It also puts them where the eye is already going. Earlier Rounds used to
+ *  It also puts them where the eye is already going. Earlier Editions used to
  *  sit under the content, which on a published home meant scrolling past the
  *  newest cover to find the older ones, and on a phone meant the page ended
  *  in a stack of pictures he called "so huge and look so disgusting". */
-function EarlierRounds({
+function EarlierEditions({
   c,
   onRead,
   phone,
 }: {
   c: SketchCatchup;
-  onRead: (r: ShelfRound) => void;
+  onRead: (r: ShelfEdition) => void;
   phone: boolean;
 }) {
-  /* THE COLUMN NEVER GOES EMPTY. On a Catch-up whose first Round is still
+  /* THE COLUMN NEVER GOES EMPTY. On a Catch-up whose first Edition is still
      being made there are no back numbers, and the sidebar simply vanished --
      so the page had a wide column and a void beside it, and then grew a
-     sidebar out of nowhere the day Round one came out. His: "make sure you
+     sidebar out of nowhere the day Edition one came out. His: "make sure you
      have a pretty way of having at least something even maybe placeholder on
      the sidebar when it's the first catch up and there's no previous ones."
 
      What stands in is the Catch-up's own photograph at the cover's exact
      shape and size, quietened, with one line on it. Not a dashed box and not
      an empty state illustration: the same object the column is made of, so
-     when the first Round arrives nothing moves -- the picture is simply
+     when the first Edition arrives nothing moves -- the picture is simply
      replaced by the photographs people took. */
   if (c.before.length === 0) {
     return (
@@ -906,7 +906,7 @@ function EarlierRounds({
         {c.before.map((r) => (
           <Cover
             key={r.number}
-            round={r}
+            edition={r}
             fallback={c.picture}
             onOpen={() => onRead(r)}
             compact
@@ -924,12 +924,12 @@ export function Home({
   phone,
 }: {
   c: SketchCatchup;
-  onRead: (r: ShelfRound) => void;
+  onRead: (r: ShelfEdition) => void;
   phone: boolean;
 }) {
-  const round = (
+  const edition = (
     <div className={phone ? "mt-5" : "mt-6"}>
-      <Round c={c} onRead={onRead} />
+      <Edition c={c} onRead={onRead} />
       <Stage c={c} />
     </div>
   );
@@ -938,9 +938,9 @@ export function Home({
     return (
       <div>
         <Head c={c} phone />
-        {round}
+        {edition}
         <div className="mt-11">
-          <EarlierRounds c={c} onRead={onRead} phone />
+          <EarlierEditions c={c} onRead={onRead} phone />
         </div>
       </div>
     );
@@ -960,9 +960,9 @@ export function Home({
         className="grid items-start"
         style={{ gridTemplateColumns: `minmax(0,1fr) ${HOME_RAIL}px`, columnGap: HOME_GAP }}
       >
-        <div className="min-w-0">{round}</div>
+        <div className="min-w-0">{edition}</div>
         <aside className="sticky self-start pt-6" style={{ top: 40 }}>
-          <EarlierRounds c={c} onRead={onRead} phone={false} />
+          <EarlierEditions c={c} onRead={onRead} phone={false} />
         </aside>
       </div>
     </div>

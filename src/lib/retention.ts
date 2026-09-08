@@ -271,7 +271,7 @@ export async function runRetentionSweep(): Promise<SweepResult> {
      and the membership row goes with the stamp. Only the acting member's own
      row: this is a personal delete by the owner's decision, so nothing here
      touches another member's copy or the Catch-up itself, and their published
-     answers stay in the Rounds they were published in.
+     answers stay in the Editions they were published in.
 
      Batched like the account purge above, for the same reason -- everything in
      this sweep shares one serverless invocation's duration budget. 200 rather

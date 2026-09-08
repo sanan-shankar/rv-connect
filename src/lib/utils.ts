@@ -228,7 +228,7 @@ export function formatDisplayDate(date: Date | string): string {
 /**
  * The same date spelled out ("22 May 2026" becomes "22 May 2026" with the
  * month unabbreviated), for the surfaces that announce rather than attribute:
- * a Round's masthead, the console's "Published ...", the next-round tease.
+ * an Edition's masthead, the console's "Published ...", the next-edition tease.
  *
  * One locale tag for both, because the valley has one day (VALLEY_TIME_ZONE)
  * and should have one date voice. Six local formatters in three tags -- en-US,

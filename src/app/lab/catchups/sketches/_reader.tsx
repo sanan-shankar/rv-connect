@@ -37,7 +37,7 @@
  *  No masthead (the bar and the strip are the masthead, so the first
  *  screen holds a whole answer, which the shipped reader's does not).
  *  No row of birds, no counts, no question numbers, no timestamps,
- *  nothing about Round 2, no rule under anything.
+ *  nothing about Edition 2, no rule under anything.
  * ------------------------------------------------------------------ */
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -46,7 +46,7 @@ import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import type {
   SketchEntry,
   SketchQuestion,
-  SketchRound,
+  SketchEdition,
   SketchViewport,
 } from "./_types";
 import { PhoneBar, PhoneShell, DesktopShell } from "./_shell";
@@ -62,7 +62,7 @@ import {
 import {
   BAR,
   QuestionList,
-  RoundMeta,
+  EditionMeta,
   Strip,
   UnfoldedPanel,
 } from "./_navigator";
@@ -374,11 +374,11 @@ function glide(to: number) {
 /* ── the reader ────────────────────────────────────────────────────── */
 
 export function Reader({
-  round,
+  edition,
   viewport,
   onHome,
 }: {
-  round: SketchRound;
+  edition: SketchEdition;
   viewport: SketchViewport;
   /** The Catch-up's name is the way up, at every scroll depth: the green
    *  bar carries it on a phone and the page title carries it on a laptop.
@@ -459,10 +459,10 @@ export function Reader({
     [landing],
   );
 
-  const q = round.questions[spy.current];
+  const q = edition.questions[spy.current];
   const showQuestion = spy.docked && !open && q;
 
-  const questions = round.questions.map((question, i) => (
+  const questions = edition.questions.map((question, i) => (
     <Section
       key={question.id}
       q={question}
@@ -501,7 +501,7 @@ export function Reader({
   if (phone) {
     return (
       <PhoneShell>
-        <PhoneBar title={round.catchupName} position="sticky" onTitle={onHome} />
+        <PhoneBar title={edition.catchupName} position="sticky" onTitle={onHome} />
         <div ref={root} className="relative">
           {/* Zero height, sticky under the bar, so the strip and whatever
               unfolds from it overlay the page without displacing it. */}
@@ -522,7 +522,7 @@ export function Reader({
             </AnimatePresence>
             <div className="absolute inset-x-0 top-0">
               <Strip
-                label={showQuestion ? q.text : <RoundMeta round={round} />}
+                label={showQuestion ? q.text : <EditionMeta edition={edition} />}
                 docked={Boolean(showQuestion)}
                 progress={spy.progress}
                 open={open}
@@ -546,7 +546,7 @@ export function Reader({
                     className="overflow-hidden"
                   >
                     <UnfoldedPanel
-                      round={round}
+                      edition={edition}
                       current={spy.current}
                       within={spy.within}
                       onPick={pick}
@@ -580,11 +580,11 @@ export function Reader({
      is that, with a wider rail because the list is set in the heading
      face now. The paragraph inside a tile still caps at 68ch (see Body);
      the photographs use the whole width. */
-  /* The name, and the Round and date UNDER it only when nothing else is
+  /* The name, and the Edition and date UNDER it only when nothing else is
      carrying them. On a phone the green bar has the name and the strip has
      the meta; on a wide laptop nothing is pinned, so the header carries
      both; on a narrow laptop the strip is back, so the header would be
-     saying the Round and the date a second time. That is the fault he
+     saying the Edition and the date a second time. That is the fault he
      listed twice in the first review: "in the loop is said twice, Round 1
      is said twice, the date is said twice." */
   const head = (
@@ -600,19 +600,19 @@ export function Reader({
             onClick={onHome}
             className="text-left transition-opacity duration-150 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
-            {round.catchupName}
+            {edition.catchupName}
           </button>
         ) : (
-          round.catchupName
+          edition.catchupName
         )}
       </h1>
-      {/* The date, in cinnamon, and no Round number: "let's ditch the round 1.
+      {/* The date, in cinnamon, and no Edition number: "let's ditch the round 1.
           Let's only have the date, and then let the date be orange ... The
           round number is irrelevant." With the number gone the middle dot goes
           too, because there is nothing left for it to separate. */}
       {mode === "rail" && (
         <p className="mt-2.5 text-[14px] font-medium text-cinnamon">
-          {new Date(round.publishedAt).toLocaleDateString("en-GB", {
+          {new Date(edition.publishedAt).toLocaleDateString("en-GB", {
             day: "numeric",
             month: "long",
             year: "numeric",
@@ -655,7 +655,7 @@ export function Reader({
                     spy.docked && !open && q ? (
                       q.text
                     ) : (
-                      <RoundMeta round={round} />
+                      <EditionMeta edition={edition} />
                     )
                   }
                   docked={Boolean(spy.docked && !open && q)}
@@ -677,7 +677,7 @@ export function Reader({
                       className="overflow-hidden"
                     >
                       <UnfoldedPanel
-                        round={round}
+                        edition={edition}
                         current={spy.current}
                         within={spy.within}
                         onPick={pick}
@@ -735,7 +735,7 @@ export function Reader({
               The reason it kept being too big is that it was being measured
               against the wrong thing. 36 was half of the 72 between one
               question and the next -- but that 72 separates two peers, and
-              this gap separates a Round's name from the Round's own first
+              this gap separates an Edition's name from the Edition's own first
               item, which is a heading to its content. A third of the
               between-questions distance is the proportion the rest of the app
               uses for exactly that relationship, and 24 is what a 72 gives. */}
@@ -747,7 +747,7 @@ export function Reader({
               had and the same cause. */}
         <aside className="sticky self-start" style={{ top: 40 }}>
           <QuestionList
-            questions={round.questions}
+            questions={edition.questions}
             current={spy.current}
             within={spy.within}
             size="rail"

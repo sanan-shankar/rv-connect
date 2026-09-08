@@ -797,9 +797,9 @@ export const DEMO_PHOTOS: DemoPhoto[] = [
 /* ---------------------------------------------------------------- *
  *  The Catch-up
  *
- *  Two Rounds, deliberately: Round 1 is published, so a visitor can read
+ *  Two Editions, deliberately: Edition 1 is published, so a visitor can read
  *  a finished issue immediately and see what the feature is FOR, and
- *  Round 2 is open for answers, so they can write into it themselves and
+ *  Edition 2 is open for answers, so they can write into it themselves and
  *  watch their own words land in a real page. One without the other
  *  leaves the most interesting thing the site does looking either empty
  *  or inert.
@@ -844,7 +844,7 @@ export const CATCHUP_META = {
   cadence: "monthly",
 };
 
-/** Round 1: published. This is the finished artefact a visitor reads. */
+/** Edition 1: published. This is the finished artefact a visitor reads. */
 export const CATCHUP_ROUND_1: { theme: string; prompts: DemoPrompt[] } = {
   theme: "Things we have not thrown away",
   prompts: [
@@ -876,7 +876,7 @@ export const CATCHUP_ROUND_1: { theme: string; prompts: DemoPrompt[] } = {
       ],
     },
     {
-      text: "Where were you when you last thought about the valley, before this Round?",
+      text: "Where were you when you last thought about the valley, before this Edition?",
       askedBy: "ishaan-verma",
       category: null,
       entries: [
@@ -918,11 +918,11 @@ export const CATCHUP_ROUND_1: { theme: string; prompts: DemoPrompt[] } = {
   ],
 };
 
-/** Round 2: open for answers right now, with a few entries already in so
+/** Edition 2: open for answers right now, with a few entries already in so
  *  the page is not a blank form. The visitor has deliberately NOT answered
  *  the first question, so there is an obvious, inviting thing to do. */
 export const CATCHUP_ROUND_2: { theme: string; prompts: DemoPrompt[] } = {
-  theme: "The long way round",
+  theme: "The long way edition",
   prompts: [
     {
       text: "What is something you do now that started in the valley without you noticing?",

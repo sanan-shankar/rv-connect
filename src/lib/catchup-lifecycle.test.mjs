@@ -55,13 +55,13 @@ test("B-061: pausing stamps the freeze, ending and resuming clear it", () => {
   );
 });
 
-test("B-061: every hand-driven write into a live Round refuses a frozen Catch-up", () => {
+test("B-061: every hand-driven write into a live Edition refuses a frozen Catch-up", () => {
   const src = decomment(read("src/app/(main)/catchups/actions.ts"));
 
   // The clock gate in advanceEdition covers the automatic half only. These
   // seven write the edition directly, in their own transactions, and each used
   // to check the ROUND's status alone -- which does not change on a pause. A
-  // Keeper with a tab opened before the pause could still publish the Round and
+  // Keeper with a tab opened before the pause could still publish the Edition and
   // notify the whole group under a page saying it was paused.
   const MUST_REFUSE_WHEN_FROZEN = [
     "openAnswering",
@@ -85,7 +85,7 @@ test("B-061: every hand-driven write into a live Round refuses a frozen Catch-up
     assert.match(
       body,
       /refuseIfFrozen\(|loadKeeperEdition\(/,
-      `${name} writes into a Round without refusing a paused or ended Catch-up`
+      `${name} writes into an Edition without refusing a paused or ended Catch-up`
     );
     // Delegating is not enough: `loadKeeperEdition` only runs the freeze when
     // it is GIVEN a pausedHint, so a call without one looks gated and is not.
@@ -120,7 +120,7 @@ test("B-061: every hand-driven write into a live Round refuses a frozen Catch-up
 test("B-060: resume re-arms the rhythm rather than leaving a dead Catch-up", () => {
   const src = decomment(read("src/app/(main)/catchups/actions.ts"));
   // resumeCatchup must reach for addCadenceGap: without it, a Catch-up whose
-  // Round published while paused sits active forever with no future Round and
+  // Edition published while paused sits active forever with no future Edition and
   // no control anywhere in the app to start one.
   const resume = src.slice(src.indexOf("export async function resumeCatchup"));
   const body = resume.slice(0, resume.indexOf("export async function", 1));
@@ -197,7 +197,7 @@ test("C-027: the answer window is re-read at write time, not trusted", () => {
     body.indexOf("prisma.$transaction") < body.indexOf("catchupEdition.count"),
     "the re-read is outside the transaction that writes, so it can go stale again"
   );
-  assert.match(body, /Answering has closed for this Round/);
+  assert.match(body, /Answering has closed for this Edition/);
 });
 
 test("C-125: the answering surface actually sends the version it holds", () => {
@@ -237,7 +237,7 @@ test("C-020: rejoining through the invite link disarms your own bin", () => {
   );
 });
 
-test("C-021: a Round with no questions cannot be opened for answering", () => {
+test("C-021: an Edition with no questions cannot be opened for answering", () => {
   const src = decomment(read("src/app/(main)/catchups/actions.ts"));
   const start = src.indexOf("export async function openAnswering(");
   assert.notEqual(start, -1);
@@ -249,14 +249,14 @@ test("C-021: a Round with no questions cannot be opened for answering", () => {
   assert.match(body, /if \(accepted === 0\) return "empty"/);
   assert.ok(
     body.indexOf("catchupPrompt.count") < body.indexOf("catchupEdition.updateMany"),
-    "the questions are counted after the Round is already open"
+    "the questions are counted after the Edition is already open"
   );
   assert.ok(
     body.indexOf("prisma.$transaction") < body.indexOf("catchupPrompt.count"),
     "the count is outside the transaction, so it can go stale before the write"
   );
   // ...and the member is told why, rather than getting the generic refusal.
-  assert.match(body, /no questions in this Round yet/);
+  assert.match(body, /no questions in this Edition yet/);
 });
 
 test("C-025: taking the Keeper's hat off leaves the group's own admin role alone", () => {
@@ -317,12 +317,12 @@ test("C-029: two questions sharing a position still render in one stable order",
     "the home console is back to a bare position sort"
   );
   // The same total order the query already asks the database for. That query
-  // now lives in the loader both Round readers share, so the pin follows it
+  // now lives in the loader both Edition readers share, so the pin follows it
   // there -- one query for two surfaces, rather than one per page to keep in
   // step. What is pinned is unchanged: the database is asked for the order the
   // console then sorts by, so the filter+sort above cannot invent a different
   // one.
-  const loader = decomment(read("src/lib/catchups-round-view.ts"));
+  const loader = decomment(read("src/lib/catchups-edition-view.ts"));
   assert.match(loader, /orderBy: \[\{ position: "asc" \}, \{ createdAt: "asc" \}\]/);
 
   // ...and the comment above the cap check no longer claims a serialization a
@@ -339,13 +339,13 @@ test("C-029: two questions sharing a position still render in one stable order",
   assert.match(capComment, /READ\s+COMMITTED/);
 });
 
-test("C-030: a heart does not nudge somebody the Round has closed to", () => {
+test("C-030: a heart does not nudge somebody the Edition has closed to", () => {
   const notify = decomment(read("src/lib/catchups-notify.ts"));
   const start = notify.indexOf("export const notifyLove");
   assert.notEqual(start, -1);
   const body = notify.slice(start);
 
-  // A published answer stays when its author leaves, but the Round page 404s
+  // A published answer stays when its author leaves, but the Edition page 404s
   // for a non-member, so the bell entry pointed at a door that no longer
   // opens. Binned copies are excluded on the same footing as every broadcast.
   assert.match(body, /groupMember\.count\(\{ where: \{ groupId: ctx\.groupId, userId: ctx\.authorId \} \}\)/);
@@ -365,11 +365,11 @@ test("C-030: a heart does not nudge somebody the Round has closed to", () => {
 test("C-149: every swallowed failure on the clock is reported, not just logged", () => {
   /* advanceEdition never re-throws -- an edition that cannot advance must not
      take down the page it was called from -- so the reportSwallowed calls in
-     advanceDueCatchups and openNextRoundIfDue cannot see a per-edition
+     advanceDueCatchups and openNextEditionIfDue cannot see a per-edition
      failure. Its catch did console.error only, and console.error on Vercel
      reaches nobody: round-OPENING failures went to Sentry and round-ADVANCING
      failures did not, which is the M09 fix applied to half the clock. The
-     Round just stops moving while the countdown keeps counting down.
+     Edition just stops moving while the countdown keeps counting down.
 
      Swept rather than pinned to one function: every catch in this file that
      swallows (does not re-throw) has to report. */

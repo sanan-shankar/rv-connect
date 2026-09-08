@@ -8,7 +8,7 @@
  *      P2021 says the six tables do not exist yet. It must read as an
  *      intentional, beautiful "almost here" state, never a broken page.
  *   2. It doubles as the shape of the "preparing" ritual (spec 2.5): a
- *      settled hoopoe over a warm shimmer while the Round is assembled.
+ *      settled hoopoe over a warm shimmer while the Edition is assembled.
  *
  *  Composition is deliberately not a lone thin column: a soft gradient
  *  medallion holds the settled hoopoe on one side, the copy and a
@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 export function AlmostReady({
   eyebrow = "Catch-ups",
   title = "Catch-ups are almost ready.",
-  body = "Everyone answers a few questions, and their replies become one issue the whole group reads. Check back in a moment.",
+  body = "Everyone answers a few questions, and their replies become one Edition the whole group reads. Check back in a moment.",
   className,
 }: {
   eyebrow?: string;
@@ -82,7 +82,7 @@ export function AlmostReady({
             </div>
           )}
 
-          {/* copy + a quiet preview of the Round coming together */}
+          {/* copy + a quiet preview of the Edition coming together */}
           <div className={cn("min-w-0 flex-1 text-center", solo && "md:text-left")}>
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-leaf">
               {eyebrow}

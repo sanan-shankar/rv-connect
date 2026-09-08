@@ -15,7 +15,7 @@
  *  needs ONE new nullable column, `CatchupEntry.songs Json?`, holding an
  *  array of `{ title: string }` (art/url optional, filled in later if a
  *  lookup is ever added), plus a `songs` field on `submitEntry`'s schema
- *  and a list renderer in `round/answer-card.tsx`. Until that column
+ *  and a list renderer in `edition/answer-card.tsx`. Until that column
  *  exists, one name is stored, and it is stored in `CatchupEntry.body`:
  *  the existing `songUrl`/`songTitle`/`songArt` trio is Spotify-shaped
  *  (`submitEntry` only accepts a resolvable open.spotify.com URL, and the

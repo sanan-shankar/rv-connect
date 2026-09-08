@@ -81,7 +81,7 @@ function cascadeReachableFromUser(rels) {
 
 /**
  * Rows that belong to more than one person. A Group is a batch or a Catch-up's
- * membership container; an Edition is a published Round other members read
+ * membership container; an Edition is what other members read
  * "forever"; a Prompt is a question whose answers were written by everybody
  * else. None of them is one member's property, so none of them may die with
  * one member. (CatchupEntry is deliberately NOT on this list: an entry is the
@@ -101,7 +101,7 @@ const OWN_CONTENT = {
   AdminThread: "their private conversation with the admins, which the purge exists to remove",
   AuthToken: "their unused password-reset and email-confirmation tokens",
   Bookmark: "posts they saved; private to the saver",
-  CatchupEntry: "their own answer to a Round; the question and the Round outlive them",
+  CatchupEntry: "their own answer to an Edition; the question and the Edition outlive them",
   CatchupEntryLove: "hearts they gave; the count is derived, so nobody else's entry changes",
   CatchupPref: "their per-Catch-up reminder settings",
   Comment: "reachable only THROUGH their own posts; the direct User edge is SetNull (M34)",

@@ -1,10 +1,10 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  <ConsoleAnswering> - the console while a Round is answering
+ *  <ConsoleAnswering> - the console while an Edition is answering
  *  (spec 3.3): how many people have shared, the "Answer now" pill, and
  *  the frozen question list. No answer content is readable by anyone,
- *  Keeper included, until the Round publishes.
+ *  Keeper included, until the Edition publishes.
  *
  *  Same shape as the collecting console (owner review 2026-07-25). The
  *  countdown sits beside the Catch-up name in the page heading, so the
@@ -12,7 +12,7 @@
  *
  *  DEFERRED, flagged per the fix brief section 6: answering still hands
  *  off to /catchups/[catchupId]/answer instead of running inline here.
- *  The published Round already reads inline (console-published.tsx);
+ *  The published Edition already reads inline (console-published.tsx);
  *  moving the whole answer experience in is the larger lift and the
  *  brief says to do the published case first rather than half-do both.
  * ------------------------------------------------------------------ */
@@ -71,7 +71,7 @@ export function ConsoleAnswering({
         <div className={TILE}>
           <p className="text-sm font-semibold text-foreground">
             {edition.prompts.length}{" "}
-            {edition.prompts.length === 1 ? "question" : "questions"} in this round
+            {edition.prompts.length === 1 ? "question" : "questions"} in this Edition
           </p>
           <div className="mt-[var(--space-s)] space-y-[var(--space-xs)]">
             {edition.prompts.map((p) => (
@@ -125,7 +125,7 @@ function KeeperAnsweringActions({
       toast.success(
         "extended" in result && result.extended && "message" in result && result.message
           ? String(result.message)
-          : "Closing the round. Answers are sealed until it publishes."
+          : "Closing the Edition. Answers are sealed until it publishes."
       );
       onChanged();
     } finally {

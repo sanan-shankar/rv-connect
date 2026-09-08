@@ -136,7 +136,7 @@ export default async function JoinCatchupPage({
       </h1>
       <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
         A Catch-up is a letter this group writes together. Someone asks a few questions, everyone
-        answers in their own time, and it goes out as one Round.
+        answers in their own time, and it goes out as one Edition.
         {others > 0 && (
           <>
             {" "}

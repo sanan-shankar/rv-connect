@@ -1,7 +1,7 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  Round table of contents: one shared scroll-spy hook, two renderings.
+ *  Edition table of contents: one shared scroll-spy hook, two renderings.
  *
  *  Spec 3.6 (BINDING): a right-hand floating sticky TOC on desktop, which
  *  collapses to a top "jump to" chip row on mobile. Those are two different
@@ -68,7 +68,7 @@ function useActiveSection(ids: string[]): number {
 }
 
 /** Desktop: the sticky floating rail. Render inside a `sticky` aside. */
-export function RoundTocRail({ items }: { items: TocItem[] }) {
+export function EditionTocRail({ items }: { items: TocItem[] }) {
   const active = useActiveSection(items.map((i) => i.id));
   const itemRefs = useRef<Array<HTMLAnchorElement | null>>([]);
   const [marker, setMarker] = useState({ y: 0, h: 20 });
@@ -83,7 +83,7 @@ export function RoundTocRail({ items }: { items: TocItem[] }) {
   return (
     <nav aria-label="Jump to a question" className="relative">
       <p className="mb-[var(--space-s)] text-[10.5px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-        In this Round
+        In this Edition
       </p>
       <div className="relative pl-4">
         <m.span
@@ -117,7 +117,7 @@ export function RoundTocRail({ items }: { items: TocItem[] }) {
 }
 
 /** Mobile: a horizontal, scrollable "jump to" chip row above the body. */
-export function RoundTocChips({ items, className }: { items: TocItem[]; className?: string }) {
+export function EditionTocChips({ items, className }: { items: TocItem[]; className?: string }) {
   const active = useActiveSection(items.map((i) => i.id));
 
   if (items.length === 0) return null;

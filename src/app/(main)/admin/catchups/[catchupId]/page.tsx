@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminPage } from "@/lib/admin";
 import { ADMIN_MEASURE, AdminEmpty, AdminSection } from "@/components/admin/admin-chrome";
 import { Chip } from "@/components/admin/admin-chip";
-import { ROUND_STATUS, SERIES_STATUS } from "@/components/admin/catchup-status";
+import { EDITION_STATUS, SERIES_STATUS } from "@/components/admin/catchup-status";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { formatDisplayDate, metaLine } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
  * IT WRITES NOTHING AND JOINS NOTHING. No GroupMember row is created, no
  * `CatchupPref` is touched, and there is no server action on this page — so
  * reading a Catch-up cannot make the reader appear inside it. Views are not
- * recorded either: `ContentView` is for profiles, and an admin reading a Round
+ * recorded either: `ContentView` is for profiles, and an admin reading an Edition
  * is not a member opening one.
  *
  * ANONYMOUS QUESTIONS ARE ATTRIBUTED HERE, and that is a deliberate exception
@@ -113,7 +113,7 @@ export default async function AdminCatchupReadingRoom({
             orderBy: [{ accepted: "desc" }, { position: "asc" }, { createdAt: "asc" }],
           },
         },
-        // Newest Round first: what is happening now is the thing somebody
+        // Newest Edition first: what is happening now is the thing somebody
         // came here to read, and the archive is underneath it.
         orderBy: { number: "desc" },
       },
@@ -142,7 +142,7 @@ export default async function AdminCatchupReadingRoom({
             `${members} ${members === 1 ? "person" : "people"}`,
             catchup.cadence,
             catchup.createdBy ? `Kept by ${catchup.createdBy.name}` : "No keeper",
-            `${catchup.editions.length} ${catchup.editions.length === 1 ? "Round" : "Rounds"}`
+            `${catchup.editions.length} ${catchup.editions.length === 1 ? "Edition" : "Editions"}`
           )}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-1">
@@ -160,37 +160,37 @@ export default async function AdminCatchupReadingRoom({
       </div>
 
       {catchup.editions.length === 0 ? (
-        <AdminEmpty>This Catch-up has no Rounds yet.</AdminEmpty>
+        <AdminEmpty>This Catch-up has no Editions yet.</AdminEmpty>
       ) : (
-        catchup.editions.map((round) => {
-          const status = ROUND_STATUS[round.status] ?? ROUND_STATUS.draft;
-          // The date this Round is actually waiting on, which depends on where
+        catchup.editions.map((edition) => {
+          const status = EDITION_STATUS[edition.status] ?? EDITION_STATUS.draft;
+          // The date this Edition is actually waiting on, which depends on where
           // it has got to. Showing all three would say almost nothing.
           const due =
-            round.status === "collecting"
-              ? round.questionsCloseAt
-              : round.status === "answering"
-                ? round.answersCloseAt
-                : round.status === "preparing"
-                  ? round.publishAt
+            edition.status === "collecting"
+              ? edition.questionsCloseAt
+              : edition.status === "answering"
+                ? edition.answersCloseAt
+                : edition.status === "preparing"
+                  ? edition.publishAt
                   : null;
-          // Answers live under prompts, so the Round's own total is a sum
+          // Answers live under prompts, so the Edition's own total is a sum
           // rather than a stored number that could disagree with the list.
-          const answers = round.prompts.reduce((n, p) => n + p.entries.length, 0);
+          const answers = edition.prompts.reduce((n, p) => n + p.entries.length, 0);
           const wroteIn = new Set(
-            round.prompts.flatMap((p) => p.entries.map((e) => e.author.id))
+            edition.prompts.flatMap((p) => p.entries.map((e) => e.author.id))
           ).size;
 
           return (
-            <AdminSection key={round.id} label={`Round ${round.number}`} count={round.prompts.length}>
+            <AdminSection key={edition.id} label={`Edition ${edition.number}`} count={edition.prompts.length}>
               <div className="mb-2 flex flex-wrap items-center gap-2 px-0.5">
                 <Chip label={status.label} tone={status.tone} />
                 <p className="text-[12.5px] text-muted-foreground">
                   {metaLine(
-                    round.theme,
+                    edition.theme,
                     `${answers} ${answers === 1 ? "answer" : "answers"} from ${wroteIn} ${wroteIn === 1 ? "person" : "people"}`,
-                    round.publishedAt
-                      ? `Sent ${formatDisplayDate(round.publishedAt)}`
+                    edition.publishedAt
+                      ? `Sent ${formatDisplayDate(edition.publishedAt)}`
                       : due
                         ? `Due ${formatDisplayDate(due)}`
                         : null
@@ -198,11 +198,11 @@ export default async function AdminCatchupReadingRoom({
                 </p>
               </div>
 
-              {round.prompts.length === 0 ? (
-                <AdminEmpty>Nobody has asked anything in this Round yet.</AdminEmpty>
+              {edition.prompts.length === 0 ? (
+                <AdminEmpty>Nobody has asked anything in this Edition yet.</AdminEmpty>
               ) : (
                 <div className="flex flex-col gap-2">
-                  {round.prompts.map((prompt) => (
+                  {edition.prompts.map((prompt) => (
                     <div
                       key={prompt.id}
                       className="flex flex-col gap-2.5 rounded-[var(--radius)] border border-border bg-card p-3.5"
@@ -211,11 +211,11 @@ export default async function AdminCatchupReadingRoom({
                         <p className="min-w-0 text-[13.5px] font-semibold leading-snug text-foreground">
                           {prompt.text}
                         </p>
-                        {/* Only when it is NOT in the Round: an accepted
+                        {/* Only when it is NOT in the Edition: an accepted
                             question is the ordinary case and does not need a
                             chip on every row saying so. */}
                         {!prompt.accepted && (
-                          <Chip label="Not in the Round" tone="idle" />
+                          <Chip label="Not in the Edition" tone="idle" />
                         )}
                       </div>
 
@@ -285,7 +285,7 @@ export default async function AdminCatchupReadingRoom({
                                   /* renderRichText, the same call the member's
                                      own answer card makes, so a mention or a
                                      bold phrase reads here exactly as it does
-                                     in the Round itself. */
+                                     in the Edition itself. */
                                   <div
                                     className="mt-0.5 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground"
                                     dangerouslySetInnerHTML={{

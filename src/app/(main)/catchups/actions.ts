@@ -17,7 +17,7 @@
  *     the Keeper role, computed via `isEffectiveKeeper` (WP1) from freshly-read
  *     rows, never trusted from the caller.
  *
- *  The lazy-advance touchpoint (spec 2.4): any action that reads a Round's
+ *  The lazy-advance touchpoint (spec 2.4): any action that reads an Edition's
  *  status first calls WP1's `advanceEdition` on it via `loadFreshEdition`, so
  *  a mutation can never act on a status the clock already passed underneath a
  *  stale page (e.g. a late "open answering now" click after the window had
@@ -88,7 +88,7 @@ import { DOUBLE_SUBMIT_MS } from "@/lib/double-submit";
 // ─── Soft caps (spec 3.3.1, enforced here rather than only surfaced as UI copy) ──
 
 // Raised from 12 and no longer surfaced anywhere in the UI. The owner's call:
-// a visible "3 of 12" counter made a Round feel rationed for no reason nobody
+// a visible "3 of 12" counter made an Edition feel rationed for no reason nobody
 // could explain. This is now purely a runaway/spam ceiling that a real group
 // will never reach, not a budget members are asked to manage. The companion
 // per-member pending cap is gone: since 2026-08-05 nothing pends.
@@ -198,7 +198,7 @@ type EditionContext = {
   };
 };
 
-/** The Round's own columns, read twice by `loadFreshEdition` below: once
+/** The Edition's own columns, read twice by `loadFreshEdition` below: once
  *  before `advanceEdition` and once after, because the point of the second
  *  read is that the row has changed. What must not differ between the two is
  *  which columns they ask for, so they ask once. (The first read also nests
@@ -216,9 +216,9 @@ const EDITION_COLUMNS = {
 } as const;
 
 /**
- * Load a Round plus its Catch-up/group context, bringing its status current
+ * Load an Edition plus its Catch-up/group context, bringing its status current
  * against the clock first (the lazy-advance touchpoint, spec 2.4). Every
- * action below that reads a Round's status goes through this helper, so none
+ * action below that reads an Edition's status goes through this helper, so none
  * can act on a status the clock already passed underneath a stale page (e.g.
  * a "close and prepare now" click after the answer window had already
  * auto-closed, or a question submitted a beat after questionsCloseAt).
@@ -279,7 +279,7 @@ async function loadCatchupContext(catchupId: string, userId: string) {
 }
 
 /**
- * The refusal every write into a live Round shares.
+ * The refusal every write into a live Edition shares.
  *
  * `advanceEdition` freezes the CLOCK for a paused or ended Catch-up, which is
  * the whole of B-061's automatic half. It is not the whole story: five Keeper
@@ -308,7 +308,7 @@ function refuseIfFrozen(
 }
 
 /**
- * The Round a member is acting in, or the reason they may not.
+ * The Edition a member is acting in, or the reason they may not.
  *
  * Load it fresh (so the clock has advanced), then prove the caller is in the
  * group behind it. Three member actions and every Keeper action below start
@@ -317,7 +317,7 @@ function refuseIfFrozen(
  */
 async function loadMemberEdition(editionId: string, viewerId: string) {
   const edition = await loadFreshEdition(editionId);
-  if (!edition) return { error: "Catch-up round not found." as const };
+  if (!edition) return { error: "Catch-up Edition not found." as const };
   const membership = await loadMembership(edition.catchup.group.id, viewerId);
   if (!membership) return { error: "You are not a member of this group." as const };
   return { edition, membership };
@@ -335,7 +335,7 @@ async function loadMemberEdition(editionId: string, viewerId: string) {
  * `pausedHint` is what makes this refuse a paused or ended Catch-up (B-061),
  * so omitting it is a real choice, not a default: `curatePrompt`'s two
  * branches leave it off because they are already gated to a `collecting`
- * Round, which a freeze cannot be reached through. Everything else passes one,
+ * Edition, which a freeze cannot be reached through. Everything else passes one,
  * and catchup-lifecycle.test.mjs fails a caller that forgets.
  */
 async function loadKeeperEdition(
@@ -431,7 +431,7 @@ export async function createCatchupWithPeople(input: {
     /* The server half of the double-submit guard (audit Low 29).
      *
      * A duplicated invocation minted a WHOLE second Catch-up -- its own group,
-     * its own Round 1 -- and notified up to a hundred people about it twice.
+     * its own Edition 1 -- and notified up to a hundred people about it twice.
      * The rate limit caps volume, not duplicates. A group is free text so no
      * unique index can dedupe it; the same creator starting the same name
      * seconds apart is a double press, and the first one is handed back as
@@ -462,9 +462,9 @@ export async function createCatchupWithPeople(input: {
       const catchup = await tx.catchup.create({
         data: { groupId: group.id, createdById: creatorId, cadence, inviteToken: newInviteToken() },
       });
-      // Round 1 opens straight into `collecting` with NO questions. Questions
+      // Edition 1 opens straight into `collecting` with NO questions. Questions
       // are no longer picked at creation time (owner: "why would I need to add
-      // questions while creating the catch-up?"), so an empty collecting Round
+      // questions while creating the catch-up?"), so an empty collecting Edition
       // is the correct initial state: the home screen's whole job right now is
       // to collect them.
       const edition = await tx.catchupEdition.create({
@@ -574,7 +574,7 @@ export async function updateCatchupCadence(catchupId: string, cadence: Cadence) 
 
     /* Reschedule what is already booked (audit M08).
      *
-     * `nextOpensAt` is stamped once, when a Round publishes, as
+     * `nextOpensAt` is stamped once, when an Edition publishes, as
      * publishedAt + the gap for the cadence AT THAT MOMENT. Changing the
      * cadence used to write the new word and leave that stamp untouched, so a
      * Keeper moving a quarterly Catch-up to monthly because three months was
@@ -583,10 +583,10 @@ export async function updateCatchupCadence(catchupId: string, cadence: Cadence) 
      * nothing else did.
      *
      * Recomputed from the same ORIGIN rather than from now, because "monthly"
-     * has to mean a month after the last Round, not a month after somebody
+     * has to mean a month after the last Edition, not a month after somebody
      * touched a setting: anchoring on now would let a Keeper push the next
-     * Round away by opening a menu. If that instant has already gone by, it
-     * lands on now and the next tick opens the Round, which is the honest
+     * Edition away by opening a menu. If that instant has already gone by, it
+     * lands on now and the next tick opens the Edition, which is the honest
      * reading of "you are overdue under the new rhythm".
      *
      * A Catch-up that has never published has no origin and no rhythm yet, so
@@ -631,7 +631,7 @@ export async function pauseCatchup(catchupId: string) {
     const { catchup } = scope;
     if (catchup.status === "ended") return { error: "This Catch-up has already ended." };
 
-    // `pausedAt` stamps the moment the freeze begins. From here the live Round
+    // `pausedAt` stamps the moment the freeze begins. From here the live Edition
     // stops advancing entirely (the gate is in advanceEdition), and resume
     // shifts every unreached deadline forward by this long, so the group gets
     // back the window it had rather than finding it expired (audit B-061).
@@ -685,10 +685,10 @@ export async function resumeCatchup(catchupId: string) {
       if (latest.status === "published") {
         // Nothing live to un-freeze, so the thing to restore is the rhythm.
         //
-        // Re-arm it when it is missing. A Round that published while the
+        // Re-arm it when it is missing. An Edition that published while the
         // Catch-up was paused never wrote nextOpensAt, and nothing else in the
         // app ever sets it, so the Catch-up sat "active" forever with no future
-        // Round and no control anywhere to start one (audit B-060). Freezing on
+        // Edition and no control anywhere to start one (audit B-060). Freezing on
         // pause should make that unreachable now; this is the belt, and it also
         // repairs any row already stuck that way. Conditional on the column
         // still being null so it cannot stamp over a live schedule.
@@ -699,8 +699,8 @@ export async function resumeCatchup(catchupId: string) {
         if (rearmed.count > 0) return;
 
         // Otherwise the schedule survived, and it gets the same credit a live
-        // Round's deadlines get: a Catch-up paused a month before its next
-        // Round should not open one the instant it resumes.
+        // Edition's deadlines get: a Catch-up paused a month before its next
+        // Edition should not open one the instant it resumes.
         const shifted = shiftPausedInstant(catchup.nextOpensAt, pausedAt, now);
         if (shifted) {
           await tx.catchup.updateMany({
@@ -711,7 +711,7 @@ export async function resumeCatchup(catchupId: string) {
         return;
       }
 
-      // A live Round: give back exactly the time the freeze took.
+      // A live Edition: give back exactly the time the freeze took.
       const patch = shiftEditionPatch(latest, pausedAt, now);
       if (Object.keys(patch).length > 0) {
         await tx.catchupEdition.update({ where: { id: latest.id }, data: patch });
@@ -723,7 +723,7 @@ export async function resumeCatchup(catchupId: string) {
   });
 }
 
-/** Keeper-only: end a Catch-up. Past published Rounds stay readable forever. */
+/** Keeper-only: end a Catch-up. Past published Editions stay readable forever. */
 export async function endCatchup(catchupId: string) {
   return runAction(async () => {
     const session = await auth();
@@ -752,15 +752,15 @@ export async function endCatchup(catchupId: string) {
 // ─── Prompts (spec 3.3.1) ──────────────────────────────────────────────────────
 
 /**
- * Submit a question for the current Round, named or anonymous (`showAsker`).
+ * Submit a question for the current Edition, named or anonymous (`showAsker`).
  * The author is always stored regardless of `showAsker`.
  *
- * Every submission goes straight into the Round (owner, 2026-08-05: "don't
+ * Every submission goes straight into the Edition (owner, 2026-08-05: "don't
  * make the keeper verify everyone's questions, let it automatically be
  * included in the round"). The Keeper's approval step is gone; what they keep
  * is the ability to REMOVE a question and to reorder the list, which is the
  * moderation that actually gets used. The pending-submission cap went with it
- * (nothing pends any more); the silent per-Round ceiling stays as the only
+ * (nothing pends any more); the silent per-Edition ceiling stays as the only
  * limit, and it is a runaway guard rather than a budget anyone is asked to
  * manage.
  */
@@ -774,7 +774,7 @@ export async function submitPrompt(input: {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
 
-    // A question put to a whole Round, under your name or anonymously. Same
+    // A question put to a whole Edition, under your name or anonymously. Same
     // footing as a post.
     const gate = await requireVerifiedMember();
     if (!gate.ok) return { error: gate.error };
@@ -787,7 +787,7 @@ export async function submitPrompt(input: {
     if ("error" in scope) return scope;
     const { edition, membership } = scope;
     if (edition.status !== "collecting") {
-      return { error: "The question window for this Round is closed." };
+      return { error: "The question window for this Edition is closed." };
     }
     const frozen = refuseIfFrozen(
       edition.catchup.status,
@@ -801,7 +801,7 @@ export async function submitPrompt(input: {
       groupRole: membership.role,
     });
 
-    /* `position` is the Round's rendered, reorderable order, and this is "next
+    /* `position` is the Edition's rendered, reorderable order, and this is "next
        in line" -- but it used to be the COUNT of accepted rows, which is not
        the same thing the moment one is removed. Positions 0,1,2 minus the
        middle one leaves 0 and 2, and the count is 2, so the next question
@@ -844,23 +844,23 @@ export async function submitPrompt(input: {
         select: { id: true },
       });
       // Read inside the transaction too: whether this was the FIRST question
-      // decides the dormant-Round revival below, and a count taken outside
+      // decides the dormant-Edition revival below, and a count taken outside
       // could be a different moment's answer.
       return { row, wasFirst: _count === 0 };
     });
 
     if (!created) {
-      return { error: "This Round has as many questions as it can hold. Remove one to add another." };
+      return { error: "This Edition has as many questions as it can hold. Remove one to add another." };
     }
     const prompt = created.row;
     const firstQuestion = created.wasFirst;
 
-    // Reviving a dormant Round. A Round whose question window closed with
+    // Reviving a dormant Edition. An Edition whose question window closed with
     // nothing in it does not open for answers -- it goes quiet instead of
     // nudging the group daily to answer nothing (audit B-062). This is the way
     // back out: the first question restarts the window, so the rest of the
     // group gets the usual few days to add theirs rather than being dropped
-    // straight into answering a Round with exactly one question in it.
+    // straight into answering an Edition with exactly one question in it.
     //
     // The three conditions together are the dormant state and nothing else:
     // still collecting, the window already closed, the one auto-extension
@@ -889,12 +889,12 @@ export type CuratePromptInput =
   | { action: "reorder"; editionId: string; orderedPromptIds: string[] };
 
 /**
- * Keeper curation of a Round's questions (spec 3.3): remove one, or persist a
- * new order. Both require effective Keeper power and only run while the Round
+ * Keeper curation of an Edition's questions (spec 3.3): remove one, or persist a
+ * new order. Both require effective Keeper power and only run while the Edition
  * is still `collecting`.
  *
  * There is no longer an "accept" action. Every question now goes straight into
- * the Round (owner, 2026-08-05), so there is nothing to approve; removing and
+ * the Edition (owner, 2026-08-05), so there is nothing to approve; removing and
  * reordering are the moderation that is left. The branch was deleted rather
  * than kept for rows written before that change, because there are none: the
  * table held nine prompts and zero pending ones when this was verified, so
@@ -962,7 +962,7 @@ export async function curatePrompt(input: CuratePromptInput) {
   });
 }
 
-// ─── Round transitions (Keeper-only early triggers; the clock drives the rest) ─
+// ─── Edition transitions (Keeper-only early triggers; the clock drives the rest) ─
 
 /** Keeper-only: collecting -> answering, ahead of `questionsCloseAt`. */
 export async function openAnswering(editionId: string) {
@@ -973,22 +973,22 @@ export async function openAnswering(editionId: string) {
 
     const scope = await loadKeeperEdition(editionId, session.user.id, {
       notKeeper: "Only the Keeper can open answering.",
-      pausedHint: "Resume it to pick the Round back up.",
+      pausedHint: "Resume it to pick the Edition back up.",
     });
     if ("error" in scope) return scope;
     const { edition } = scope;
     if (edition.status !== "collecting") {
-      return { error: "This Round is not collecting questions right now." };
+      return { error: "This Edition is not collecting questions right now." };
     }
 
     const now = new Date();
     const patch = answeringPatch(edition, now);
 
     const applied = await prisma.$transaction(async (tx) => {
-      /* A Round with nothing to answer must not open (audit C-021).
+      /* An Edition with nothing to answer must not open (audit C-021).
        *
        * The clock already refuses this: planNextAction returns "extend the
-       * questions" and then leaves the Round dormant rather than opening an
+       * questions" and then leaves the Edition dormant rather than opening an
        * empty one, precisely to avoid the reminder loop B-062 closed. The
        * Keeper's own early trigger had no such rule -- and the button being
        * hidden is not the guard, because a stale second tab, a second Keeper,
@@ -1016,9 +1016,9 @@ export async function openAnswering(editionId: string) {
       return "opened" as const;
     });
     if (applied === "empty") {
-      return { error: "There are no questions in this Round yet, so there is nothing to answer." };
+      return { error: "There are no questions in this Edition yet, so there is nothing to answer." };
     }
-    if (applied === "moved") return { error: "This Round already moved on." };
+    if (applied === "moved") return { error: "This Edition already moved on." };
 
     revalidatePath(`/catchups/${edition.catchupId}`);
     return { success: true };
@@ -1038,12 +1038,12 @@ export async function closeAndPrepare(editionId: string) {
 
     const scope = await loadKeeperEdition(editionId, session.user.id, {
       notKeeper: "Only the Keeper can close and prepare early.",
-      pausedHint: "Resume it to pick the Round back up.",
+      pausedHint: "Resume it to pick the Edition back up.",
     });
     if ("error" in scope) return scope;
     const { edition } = scope;
     if (edition.status !== "answering") {
-      return { error: "This Round is not open for answers right now." };
+      return { error: "This Edition is not open for answers right now." };
     }
 
     const now = new Date();
@@ -1066,7 +1066,7 @@ export async function closeAndPrepare(editionId: string) {
         });
         return true;
       });
-      if (!applied) return { error: "This Round already moved on." };
+      if (!applied) return { error: "This Edition already moved on." };
 
       revalidatePath(`/catchups/${edition.catchupId}`);
       return {
@@ -1081,7 +1081,7 @@ export async function closeAndPrepare(editionId: string) {
       where: { id: editionId, status: "answering" },
       data: patch,
     });
-    if (cas.count === 0) return { error: "This Round already moved on." };
+    if (cas.count === 0) return { error: "This Edition already moved on." };
 
     revalidatePath(`/catchups/${edition.catchupId}`);
     return { success: true, extended: false };
@@ -1092,7 +1092,7 @@ export async function closeAndPrepare(editionId: string) {
  * Keeper-only: push the current phase's deadline out by 1, 2, 4 or 7 days
  * (owner, 2026-08-05). Works on BOTH windows: `collecting` moves
  * `questionsCloseAt`, `answering` moves `answersCloseAt`. Which one is being
- * moved is read from the Round's own fresh status, never from the caller, so a
+ * moved is read from the Edition's own fresh status, never from the caller, so a
  * stale page cannot extend the phase it thinks it is looking at.
  *
  * The compare-and-swap is on the deadline itself rather than just the status:
@@ -1101,7 +1101,7 @@ export async function closeAndPrepare(editionId: string) {
  * second one loses and is told so.
  *
  * `preparing` and `published` are refused: there is no window left to extend,
- * and reopening a sealed Round is a different (and unasked-for) feature.
+ * and reopening a sealed Edition is a different (and unasked-for) feature.
  */
 export async function extendDeadline(editionId: string, days: number) {
   return runAction(async () => {
@@ -1113,7 +1113,7 @@ export async function extendDeadline(editionId: string, days: number) {
 
     const scope = await loadKeeperEdition(editionId, session.user.id, {
       notKeeper: "Only a Keeper can extend the deadline.",
-      pausedHint: "Resume it to pick the Round back up.",
+      pausedHint: "Resume it to pick the Edition back up.",
     });
     if ("error" in scope) return scope;
     const { edition } = scope;
@@ -1123,7 +1123,7 @@ export async function extendDeadline(editionId: string, days: number) {
     // `extendPhasePatch` returns null only for a status past the two open
     // windows, so this is the one thing left to say.
     if (!patch) {
-      return { error: "This Round has closed. There is no deadline left to extend." };
+      return { error: "This Edition has closed. There is no deadline left to extend." };
     }
 
     const cas = await prisma.catchupEdition.updateMany({
@@ -1163,12 +1163,12 @@ export async function publishNow(editionId: string) {
 
     const scope = await loadKeeperEdition(editionId, session.user.id, {
       notKeeper: "Only the Keeper can publish early.",
-      pausedHint: "Resume it to pick the Round back up.",
+      pausedHint: "Resume it to pick the Edition back up.",
     });
     if ("error" in scope) return scope;
     const { edition } = scope;
     if (edition.status !== "preparing") {
-      return { error: "This Round is not ready to publish yet." };
+      return { error: "This Edition is not ready to publish yet." };
     }
 
     const now = new Date();
@@ -1195,10 +1195,10 @@ export async function publishNow(editionId: string) {
       });
       return true;
     });
-    if (!applied) return { error: "This Round already moved on." };
+    if (!applied) return { error: "This Edition already moved on." };
 
     revalidatePath(`/catchups/${edition.catchupId}`);
-    revalidatePath(`/catchups/round/${editionId}`);
+    revalidatePath(`/catchups/edition/${editionId}`);
     revalidatePath("/catchups");
     return { success: true };
   });
@@ -1226,7 +1226,7 @@ export async function submitEntry(input: {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
 
-    // An answer carries prose and images into a Round that gets published to
+    // An answer carries prose and images into an Edition that gets published to
     // everyone in it. The upload routes are gated too, so the images could not
     // have been produced by an unconfirmed account either.
     const gate = await requireVerifiedMember();
@@ -1240,13 +1240,13 @@ export async function submitEntry(input: {
       where: { id: promptId },
       select: { id: true, editionId: true, accepted: true },
     });
-    if (!prompt || !prompt.accepted) return { error: "This question is not part of the Round." };
+    if (!prompt || !prompt.accepted) return { error: "This question is not part of the Edition." };
 
     const scope = await loadMemberEdition(prompt.editionId, session.user.id);
     if ("error" in scope) return scope;
     const { edition } = scope;
     if (edition.status !== "answering") {
-      return { error: "Answering is not open for this Round right now." };
+      return { error: "Answering is not open for this Edition right now." };
     }
     const frozen = refuseIfFrozen(
       edition.catchup.status,
@@ -1295,7 +1295,7 @@ export async function submitEntry(input: {
      * C-125, the same instrument editPost carries for M66).
      *
      * The answering surface autosaves the whole field on every blur, and the
-     * write had no precondition: a member with the same Round open on a
+     * write had no precondition: a member with the same Edition open on a
      * laptop and a phone who wrote three paragraphs on the laptop, then
      * touched the still-open phone, had the phone's stale copy silently
      * replace all of it -- and both surfaces said "Saved".
@@ -1329,8 +1329,8 @@ export async function submitEntry(input: {
      * Between the two sits `resolveSpotify`, a network call with a 3-second
      * budget, and every other transition in this feature is a CAS on status
      * for exactly this reason. In those three seconds a Keeper's "close and
-     * prepare", or any page view's clock advance, can move the Round out of
-     * `answering` -- and this write would have landed an answer in a Round
+     * prepare", or any page view's clock advance, can move the Edition out of
+     * `answering` -- and this write would have landed an answer in an Edition
      * already being made ready to publish, where it appears in the keepsake
      * with nobody expecting it. Counted inside the transaction that does the
      * write, so nothing can move in between. */
@@ -1366,7 +1366,7 @@ export async function submitEntry(input: {
     });
 
     if (entry === "closed") {
-      return { error: "Answering has closed for this Round. Your answer was not saved." };
+      return { error: "Answering has closed for this Edition. Your answer was not saved." };
     }
     if (entry === "stale") {
       return {
@@ -1375,14 +1375,14 @@ export async function submitEntry(input: {
       };
     }
 
-    /* Erasing everything withdraws you from the Round (audit Low 36).
+    /* Erasing everything withdraws you from the Edition (audit Low 36).
      *
      * There was no delete path at all: clearing every field left the row, so a
      * member who wrote something personal and then took it all back was still
-     * published -- an answer card reading "Showed up for this Round without
+     * published -- an answer card reading "Showed up for this Edition without
      * adding anything here.", their bird in the masthead strip, and a place in
      * "12 of the group wrote in". The empty row also counted as an entry for
-     * the too-few-answers rule, so a Round whose only answer was an erased one
+     * the too-few-answers rule, so an Edition whose only answer was an erased one
      * skipped the extension and published with nothing to read.
      *
      * Deleted rather than kept-and-filtered because there is nothing left in
@@ -1411,7 +1411,7 @@ export async function submitEntry(input: {
 /**
  * Heart one answer (spec 3.6). Hearts belong to the published reader: an
  * edition still `preparing` hides every answer from everyone, Keeper
- * included, so a heart cannot be cast until the Round is `published`.
+ * included, so a heart cannot be cast until the Edition is `published`.
  */
 export async function toggleEntryLove(entryId: string) {
   return runAction(async () => {
@@ -1432,7 +1432,7 @@ export async function toggleEntryLove(entryId: string) {
     if ("error" in scope) return scope;
     const { edition } = scope;
     if (edition.status !== "published") {
-      return { error: "Hearts open once the Round is published." };
+      return { error: "Hearts open once the Edition is published." };
     }
 
     /* Delete-first, then create and let the unique settle a tie -- the shape
@@ -1448,7 +1448,7 @@ export async function toggleEntryLove(entryId: string) {
       where: { userId: session.user.id, entryId },
     });
     if (removed.count > 0) {
-      revalidatePath(`/catchups/round/${entry.editionId}`);
+      revalidatePath(`/catchups/edition/${entry.editionId}`);
       return { success: true, loved: false };
     }
 
@@ -1473,7 +1473,7 @@ export async function toggleEntryLove(entryId: string) {
       });
     }
 
-    revalidatePath(`/catchups/round/${entry.editionId}`);
+    revalidatePath(`/catchups/edition/${entry.editionId}`);
     return { success: true, loved: true };
   });
 }
@@ -1484,7 +1484,7 @@ export async function toggleEntryLove(entryId: string) {
 //   Might still want to add and remove and just see who all are part of it
 //   while it's going on. Also the ability to make other people the keeper."
 //
-//  None of these look at the Round's status: adding, removing and handing over
+//  None of these look at the Edition's status: adding, removing and handing over
 //  the Keeper's hat are things a group does mid-cycle, and refusing them once
 //  questions open was the bug being reported. They are Keeper-only, and they
 //  operate on `GroupMember` because that is the membership container every
@@ -1526,7 +1526,7 @@ const CATCHUP_NOTIFICATION_TYPES = [
  * Clear one member's waiting notifications for one Catch-up.
  *
  * Two link shapes, because the reveal and the love nudge point at a ROUND
- * (`/catchups/round/<editionId>`) rather than at the Catch-up, so a
+ * (`/catchups/edition/<editionId>`) rather than at the Catch-up, so a
  * `startsWith('/catchups/<catchupId>')` filter alone quietly leaves the two
  * that matter most sitting in the bell, aimed at a page the member can no
  * longer open.
@@ -1536,14 +1536,14 @@ async function clearCatchupNotifications(userId: string, catchupId: string): Pro
     where: { catchupId },
     select: { id: true },
   });
-  const roundLinks = editions.map((e) => `/catchups/round/${e.id}`);
+  const editionLinks = editions.map((e) => `/catchups/edition/${e.id}`);
   await prisma.notification.deleteMany({
     where: {
       userId,
       type: { in: [...CATCHUP_NOTIFICATION_TYPES] },
       OR: [
         { link: { startsWith: `/catchups/${catchupId}` } },
-        ...(roundLinks.length > 0 ? [{ link: { in: roundLinks } }] : []),
+        ...(editionLinks.length > 0 ? [{ link: { in: editionLinks } }] : []),
       ],
     },
   });
@@ -1734,7 +1734,7 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
 /**
  * Keeper-only: take someone out of a live Catch-up.
  *
- * Their words stay where they are. A published Round is a record of what the
+ * Their words stay where they are. A published Edition is a record of what the
  * group wrote, and unpublishing someone's answer out of it after the fact is
  * not what "remove" means here; what removal does is end their access and stop
  * their notifications. Re-adding restores both, which is why this is safe to
@@ -1788,7 +1788,7 @@ export async function removeCatchupMember(catchupId: string, userId: string) {
  * existed the only way out was to ask a Keeper to remove you, because
  * `removeCatchupMember` refuses self-removal by design (bug audit B-063).
  *
- * Your words stay where they are. A published Round is a keepsake the whole
+ * Your words stay where they are. A published Edition is a keepsake the whole
  * group has read, and pulling one person's answers out of it afterwards would
  * put holes in something other people remember (owner's decision, 2026-08-21).
  * What leaving does is end your access and stop your notifications.
@@ -1822,7 +1822,7 @@ export async function leaveCatchup(catchupId: string) {
       /* Hand the hat on first, if this is the last head wearing it (audit
          C-023). A Catch-up whose `createdById` has gone null holds its Keeper
          powers entirely in `GroupMember.role`, so the last role-holder walking
-         out leaves nobody who can curate a question, publish a Round or end
+         out leaves nobody who can curate a question, publish an Edition or end
          it -- and no way to claim it, since making a Keeper needs a Keeper.
          A no-op whenever somebody else still holds the powers. */
       await promoteGroupSuccessor(tx, ctx.catchup.groupId, viewerId);
@@ -2021,7 +2021,7 @@ export async function nudgeGroup(editionId: string) {
 
     const scope = await loadKeeperEdition(editionId, session.user.id, {
       notKeeper: "Only the Keeper can nudge the group.",
-      pausedHint: "Resume it to pick the Round back up.",
+      pausedHint: "Resume it to pick the Edition back up.",
     });
     if ("error" in scope) return scope;
     const { edition } = scope;

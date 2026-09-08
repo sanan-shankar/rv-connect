@@ -185,7 +185,7 @@ too, which he allowed in ¶28.
 | **The list, when it has room to spare** | OPEN | **Decided by him 2026-09-07, drawn by nobody yet.** See "The list's spare slots" below. Scheduled: `spec.md` §5 puts it inside build phase 6, with the list, because it is a rule about what fills that grid rather than a surface of its own |
 | S3b Second round | OPEN | only if he asks for one after browsing the shape |
 | S5 Pick and spec | DONE | 2026-09-08. [`spec.md`](spec.md): the data changes as dated idempotent files, the Round -> Edition rename as one pass, eleven build phases plus track X, the three undrawn surfaces called before-or-inside, and ¶1 to ¶52 mapped. Owner questions 19, 20 and 21 are new and are below. It does NOT redraw anything: `architecture.md` is still the design |
-| S6+ Build | OPEN | unblocked. Eleven phases in `spec.md` §9, each a revertable slice; track X (the fast fixes) may ship first and at any time |
+| S6+ Build | **PARTIAL** | **Phase 1 of eleven is DONE**, 2026-09-08: the Round -> Edition rename, one pass, `npm run visual` 25/25 with no baseline moved. The route, the component folder, `catchups-round-view.ts`, 288 identifiers and every user-facing string moved; `roundLabel()` deleted; the old route left as a permanent 308. **One thing is owed the moment this is pushed**: `prisma/migrations-manual/2026-09-08-round-becomes-edition.sql` is written and deliberately NOT applied -- running it before the deploy points 61 live bell links at a route the running build has not got. Apply to BOTH projects after Vercel finishes. Phases 2 to 11 open; track X may ship first and at any time |
 | M1 Magazine design | OPEN | unblocked. D27 is answered in `recon.md` section 6: photographs are boxed to 1920px, which is 164 dpi at A4 full-bleed |
 | M2+ Magazine build | OPEN | blocked on M1 |
 | X Fast fixes | OPEN | unblocked. Root causes for R6/F8, I9, R4, V1 and R13 are in `recon.md`; V2 and V3 need a real iPhone first |
@@ -2211,14 +2211,75 @@ batches hold exactly one person, not three, and nine hold four or fewer, not eig
 being a newsletter to yourself is a different weight of question from the one first written down,
 and it is very likely why the answer came back as ten rather than two.
 
+### 2026-09-08, S6, build phase 1: Round becomes Edition (Opus 5, one hand, no fan-out)
+
+Read `spec.md` and `architecture.md` in full, plus this file's board and the S6+ section. Drew
+nothing and re-derived nothing: `npm run visual` is 25/25 with **no baseline moved**, which is
+the whole proof that phase 1 was a rename.
+
+**Ran the export first** (`--write`, §3.1): 6 Catch-ups, 7 Editions, 24 questions, 143 answers,
+36 photographs, 522 hearts, 5.8 MB. One heart more than S5 counted.
+
+**What moved.** `/catchups/round/[editionId]` -> `/catchups/edition/[editionId]`;
+`src/components/catchups/round/` -> `edition/`; `catchups-round-view.ts` ->
+`catchups-edition-view.ts`; `RoundEntry`, `RoundMasthead`, `RoundTocRail`/`Chips`,
+`RoundFooterTease`, `FreshRoundItem`, `PublishedRoundView`, `loadPublishedRoundView`,
+`openNextRoundIfDue`, `reviveDormantRound`, `ExportedRound`, `ROUND_STATUS`, `roundNumber`,
+`roundViews`, and in the lab `SketchRound`, `ShelfRound`, `RoundState`, `roundVerbs`,
+`RoundMeta`, `EarlierRounds`, `loadSketchRound`, `loadPressureRound`. The lab room draws at 200
+on all three of `?w=phone|laptop`, `?data=pressure`, with zero "Round" in the HTML.
+
+**`roundLabel()` deleted, and its five call sites are the only copy phase 1 chose.** Every one
+lost a number, per N92. The table is in `docs/history/progress-2026-09.md`. **One decision the
+other way, and it is stated out loud so he can reverse it**: the ADMIN room still prints
+`Edition 3`, in three places, because there the number is the row's actual key
+(`@@unique([catchupId, number])`), an unpublished Edition has no date, and §7's copy rule is
+about what members read.
+
+**The migration is written and NOT applied.** `2026-09-08-round-becomes-edition.sql` rewrites
+`Notification.link` (61 production rows) and `ContentView.kind` (17), both idempotent, both
+counted read-only. Applying it before this commit deploys would point 61 live bell links at a
+route the running build has not got -- a 404 for seventy members. That is §3's own ordering rule
+for a column drop, applied to a stored VALUE for the same reason: one database behind
+production and local dev. It runs against both projects the moment Vercel finishes. The demo's
+counts are 0 and 0. The redirect is what makes waiting free: the old route is a permanent 308,
+verified.
+
+**Two failure modes a big mechanical rename has, for whoever runs the next one.**
+
+- **"round" is not always the noun.** `"How often a Round comes round"` -> `"comes edition"`;
+  `daysLeftUntil: rounds up` -> `editions up`; `round trip` -> `edition trip`, three files; and
+  the guide's opening line told every member a Catch-up *"comes edition on a schedule."* Four
+  of those were live copy, and no gate would ever have caught one of them.
+- **His quoted words are everywhere in this codebase, and a sed does not know they are his.**
+  Nine verbatim sentences were rewritten -- *"let's ditch the round 1"* became *"the edition
+  1"*, *"once the question round has started"* became *"question edition"*, *"be round 15"*
+  became *"be edition 15"*. Every one restored by diffing each file against HEAD and reading
+  the quoted lines. A quoted paragraph is evidence; editing it destroys the record of what he
+  said, which is the one thing this campaign has been most careful about.
+
+**Working in a shared tree.** A peer session held the `page.tsx` -> `page.lab.tsx` rename
+staged for the whole of this pass, including
+`src/app/lab/catchups/sketches/page.lab.tsx`, which phase 1 had to edit. Committing that path
+by pathspec would have swept their rename in without their `next.config.ts`, breaking the lab.
+Messaged them, worked around it, did the lab last; they landed `ed51b119` before this commit.
+
+Gate 107/107, seven green.
+
 ---
 
 ## What to paste next
 
-**The next session is BUILD PHASE 1, and it is the mechanical one on purpose.** `spec.md` §9 has
-eleven phases; the first is the Round -> Edition rename, with no behaviour change in it at all,
-which makes it the cheapest thing to revert if it surprises anyone. Track X (the fast fixes) is
-independent and may ship before, after or beside it.
+**Phase 1 is DONE (2026-09-08). The next session is BUILD PHASE 2, the clock.** `spec.md` §9 has
+eleven phases; §3.3 is phase 2's authority. Track X (the fast fixes) is independent and may ship
+before, after or beside it.
+
+**One thing is owed before phase 2 touches the database.** Phase 1 left
+`prisma/migrations-manual/2026-09-08-round-becomes-edition.sql` written and DELIBERATELY NOT
+APPLIED: running it before phase 1's commit deploys would point 61 live bell links at a route the
+running build has not got. Push phase 1, let both Vercel projects finish, then apply it to both
+Supabase projects. If it has already been applied, `SELECT count(*) FROM "Notification" WHERE link
+LIKE '/catchups/round/%'` answers 0.
 
 **Nothing is waiting on him.** Owner questions 19, 20 and 21 all closed on 2026-09-08. What is
 still his, and is not a question: the **twenty photographs** (details rather than valley views,
@@ -2231,7 +2292,7 @@ carries the confirmation dialogs with it.
 ```
 @docs/planning/catchups-rework/handover.md
 
-You are S6, build phase 1 of docs/planning/catchups-rework/spec.md.
+You are S7, build phase 2 of docs/planning/catchups-rework/spec.md.
 
 Read spec.md in full, then architecture.md in full. brief.md is the test the spec is
 measured against; read it if you find yourself exercising judgment rather than
@@ -2239,24 +2300,39 @@ executing. Everything else in docs/planning/catchups-rework/ is reference -- see
 much of this you actually have to read" near the top of the handover. Do not read
 directions.md.
 
-PHASE 1 IS THE ROUND -> EDITION RENAME. One mechanical pass, no behaviour change:
-spec.md section 2. The database already says CatchupEdition and does not move; the
-@@map("CatchupSeries") and @@map("CatchupReminderPref") lines do not move either, and
-the schema header says why. What moves is the route, the component folder, the types,
-the helpers and the copy -- 288 identifiers say Round today.
+BEFORE ANYTHING ELSE: phase 1 owes one migration. If phase 1 has been pushed and both
+Vercel projects have deployed, apply
+prisma/migrations-manual/2026-09-08-round-becomes-edition.sql to BOTH Supabase projects
+(the second with --env .env.demo). If it has not been pushed, say so and leave it; the
+old route is a permanent 308, so nothing is broken by waiting. Check with:
+SELECT count(*) FROM "Notification" WHERE link LIKE '/catchups/round/%'  -- 0 when done.
 
-Two things a rename breaks here, and both are real:
-  - Notification.link is a stored column. Rows already in members' bells point at
-    /catchups/round/<id>. Rewrite them in a dated migration AND leave the old route as
-    a permanent redirect. Both, not either.
-  - roundLabel() is deleted rather than renamed. An Edition is identified by its date,
-    never by a number, at his word.
+PHASE 2 IS THE CLOCK: spec.md section 3.3. Three things, one commit each if they are
+independent:
+  - `preparing` is DELETED. The status member, preparingPatch, PREPARING_HOLD_HOURS,
+    the publishAt column, the "Publish now" control and publishNowButton, the
+    almost-ready and not-yet-published screens, the branch in computeStatus and in
+    planNextAction. closeAndPrepare becomes closeAndPublish. His reason is N88 and it
+    is in architecture.md section 6.
+  - Deadlines snap to a CIVIL HOUR, 07:00 IST (01:30 UTC), on questionsCloseAt and
+    answersCloseAt wherever they are set. The hour is not a preference: vercel.json
+    runs /api/catchups/tick at 02:00 UTC, 07:30 IST, so 07:00 is always picked up by
+    that morning's cron within thirty minutes. Put that number in the comment.
+  - "Start the next Edition now" is ADDED -- the control nobody had (N43). He found it
+    himself: "literally after publishing I can't start a new round?!?!"
 
-Re-run `node scripts/dev/export-catchups.mjs --write` before the migration. Apply the
-migration to BOTH Supabase projects (the second with --env .env.demo). Never
-prisma db push.
+The publish migration is the part that is easy to get wrong. Count first
+(SELECT count(*) FROM "CatchupEdition" WHERE status='preparing'). If it is not zero,
+publish those Editions THROUGH THE ACTION, because notifyPublished fires from the
+action and not from the database -- an Edition published by SQL sends nobody anything,
+and for its members it simply never happened. The migration stays as the idempotent
+backstop either way. The publishAt COLUMN is not dropped here; drops are phase 11,
+after this has deployed.
 
-Do not start phase 2. Do not redraw anything: /lab/catchups/sketches is the approved
+Re-run `node scripts/dev/export-catchups.mjs --write` before any migration. Apply every
+migration to BOTH Supabase projects. Never prisma db push.
+
+Do not start phase 3. Do not redraw anything: /lab/catchups/sketches is the approved
 design and it is transplanted, not re-derived. If a drawn decision looks wrong, say so
 in a sentence and let him decide.
 

@@ -16,7 +16,7 @@
  *
  *  Shown only while there is a window to move (collecting or answering),
  *  and only to a Keeper. Which window it moves is decided server-side
- *  from the Round's own fresh status; the phase passed in here is for the
+ *  from the Edition's own fresh status; the phase passed in here is for the
  *  wording alone.
  * ------------------------------------------------------------------ */
 

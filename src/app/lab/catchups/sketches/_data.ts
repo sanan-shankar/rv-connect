@@ -1,26 +1,26 @@
 /* ------------------------------------------------------------------ *
- *  The real Round, loaded once for every sketch.
+ *  The real Edition, loaded once for every sketch.
  *
  *  Read-only, through the same loader the shipped reader uses
- *  (`loadPublishedRoundView`), so a sketch is drawn against exactly what
+ *  (`loadPublishedEditionView`), so a sketch is drawn against exactly what
  *  a member sees today: the same anonymity rule, the same song rule, the
  *  same measured photographs. Nothing here writes, and nothing here
- *  advances a Round's clock.
+ *  advances an Edition's clock.
  *
- *  Which Round: the published one with the most answers, which is "in the
- *  loop" Round 1 (133 answers, 13 people, 11 questions) on the live
+ *  Which Edition: the published one with the most answers, which is "in the
+ *  loop" Edition 1 (133 answers, 13 people, 11 questions) on the live
  *  database. Not pinned to its id, so a database without it (the demo)
  *  still renders something rather than a 404.
  * ------------------------------------------------------------------ */
 
 import { prisma } from "@/lib/prisma";
-import { loadPublishedRoundView } from "@/lib/catchups-round-view";
+import { loadPublishedEditionView } from "@/lib/catchups-edition-view";
 import { askerVisible, catchupDisplayName } from "@/lib/catchups-core";
 import { promptKind } from "@/lib/catchups-types";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 import { batchLine } from "@/lib/utils";
 import { resolveMedia, stripLinks } from "./_media";
-import type { SketchEntry, SketchPerson, SketchRound } from "./_types";
+import type { SketchEntry, SketchPerson, SketchEdition } from "./_types";
 
 const MEMBER_SELECT = {
   role: true,
@@ -67,9 +67,9 @@ function inventedCommentCount(id: string): number {
   return n < 3 ? 0 : n - 2;
 }
 
-export async function loadSketchRound(
+export async function loadSketchEdition(
   viewerId: string,
-): Promise<SketchRound | null> {
+): Promise<SketchEdition | null> {
   const edition = await prisma.catchupEdition.findFirst({
     where: { status: "published" },
     orderBy: [{ entries: { _count: "desc" } }, { publishedAt: "desc" }],
@@ -97,7 +97,7 @@ export async function loadSketchRound(
   });
   if (!edition || !edition.publishedAt) return null;
 
-  const view = await loadPublishedRoundView(edition.id, viewerId);
+  const view = await loadPublishedEditionView(edition.id, viewerId);
   if (!view) return null;
 
   const keeperId = edition.catchup.createdById;
@@ -134,7 +134,7 @@ export async function loadSketchRound(
       isKeeper: false,
     };
 
-  /* Resolve every pasted link in the Round up front, in one wave, rather
+  /* Resolve every pasted link in the Edition up front, in one wave, rather
      than per answer as it renders: seven links across four answers, and
      _media.ts caches them for the life of the process. */
   const mediaByEntry = new Map<
