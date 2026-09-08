@@ -766,6 +766,8 @@ export function LetterheadProfile({
     // and this is a different fact with a different fix.
     <GetInTouch
       name={user.name}
+      person={user}
+      batchYear={user.batchYear}
       methods={[]}
       vcard={vcard}
       showSave={false}
@@ -773,7 +775,15 @@ export function LetterheadProfile({
       lock={contactsLock}
     />
   ) : contactMethods.length > 0 ? (
-    <GetInTouch name={user.name} methods={contactMethods} vcard={vcard} showSave={false} size="default" />
+    <GetInTouch
+      name={user.name}
+      person={user}
+      batchYear={user.batchYear}
+      methods={contactMethods}
+      vcard={vcard}
+      showSave={false}
+      size="default"
+    />
   ) : null;
 
   return (

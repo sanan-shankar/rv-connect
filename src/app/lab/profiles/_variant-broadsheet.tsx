@@ -706,6 +706,8 @@ export default function BroadsheetVariant({ profile }: ProfileVariantProps) {
             <RailSection title={`Reach ${firstName}`}>
               <GetInTouch
                 name={profile.name}
+                person={profile}
+                batchYear={profile.batchYear}
                 methods={contactMethods}
                 vcard={buildVcard(profile, email, phone)}
               />

@@ -287,7 +287,7 @@ function Portrait() {
           X (owner asked, 2026-09-09). The X is not the thing that moves --
           top-right at 16px is the one inset every dialog in the app shares. */}
       <div className="flex flex-col items-center gap-2 pb-1 text-center">
-        <BirdAvatar user={PERSON} size={64} />
+        <BirdAvatar user={PERSON} size={72} />
         {/* 20px, and this is the ONE place in the app a dialog title is not
             16px. The material's rule says "no per-dialog title sizes"; the
             owner asked for it bigger (2026-09-09) and the reason holds up --

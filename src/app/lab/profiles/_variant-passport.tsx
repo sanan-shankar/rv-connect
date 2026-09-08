@@ -691,6 +691,8 @@ export default function PassportVariant({ profile }: ProfileVariantProps) {
           <div className="mt-[var(--space-l)]">
             <GetInTouch
               name={profile.name}
+              person={profile}
+              batchYear={profile.batchYear}
               methods={contactMethods(profile)}
               vcard={vcardFor(profile)}
             />

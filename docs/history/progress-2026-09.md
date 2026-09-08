@@ -95,6 +95,48 @@ number. Its own commit, so it can be reverted alone.
 `npm run check` 112/112. `npm run visual` 25/25, no baseline moved — the viewer is not open in any
 baseline shot.
 
+## 2026-09-09 — the calling card ships, and the bird stays off the green
+
+Follows the room below. He picked the calling card, then took it apart: the boxes' type
+hierarchy, the copy button's motion, the batch line, the gaps, and the bird's ring.
+
+**Shipped: the portrait.** `src/components/profile/get-in-touch.tsx` no longer draws tiles. The
+bird sits at 72px over the name and "Batch of {year}", then the reach-outs as rows on the panel
+itself, one hairline per gap inset past the icon gutter, a copy button per row.
+
+**The bird is on white, never on green.** The canopy band drew first and needed a cream disc
+behind the glyph to be visible at all. His objection killed it: *"the birds are different sizes so
+it'll look weird on the orange thrush I imagine."* He is right, the 50 glyphs share no common
+bounding box. On paper there is no disc and nothing to size. Confirmed on a real fixture whose
+seeded species IS an orange bird -- it reads fine, and reads smaller than the kingfisher, which on
+white is simply a smaller bird rather than a glyph rattling in a circle.
+
+**Every number traces to something.** Name 20px (h3 rung), batch 12px semibold at 0.12em (the §5
+label rung; the 10.5-11px bolds elsewhere are cinnamon kickers, decoration allowed to be small),
+row label 13px and value 12.5px both unchanged from the shipped tile, button 14px. Bird top on the
+close X's line -- the X does not move, top-right at 16px is the one inset every dialog shares.
+Gaps: 24px head to first row, 21px between rows, 20px above the button, 16px to the panel edge.
+Measured identical in the lab room and in the shipped dialog.
+
+**Two of those gaps were holes.** He asked what the whitespace above the email and above the CTA
+was for. Measured 34px and 26px inside a 21px rhythm, and neither had a reason.
+
+**The rule departed from.** The name is 20px, so this is now the only dialog title in the app that
+is not 16px, against the dialog material's "no per-dialog title sizes". He asked for it and the
+reason holds: this title names a subject, not an action, and it is the only one sharing its block
+with a 72px portrait. The component header says not to cite it as precedent.
+
+**Copy is new and it is not silent.** `navigator.clipboard.writeText` fails on an insecure origin
+and on a denied permission, so a failure raises a toast rather than a tick over nothing.
+
+Seven call sites took the two new props. `person` and `batchYear` are required, not optional: a
+fallback would give the app two different contact dialogs, which is the drift the one-material rule
+exists to stop.
+
+`npm run check` clean, `npm run visual` 25/25. One thing unchanged and worth knowing: the dialog
+still autofocuses its first link, so the top row wears a focus ring on open. It did that before
+this rework too; it is more conspicuous now only because it is the one filled-looking thing left.
+
 ## 2026-09-09 — four brown boxes on a white card
 
 His, opening: *"can you make the dialog for get in touch more beautiful and visually appealing ...

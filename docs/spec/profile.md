@@ -151,6 +151,8 @@ The brief flags "Message?" as unclear and asks for a recommendation.
 
 - **Visibility guard:** if the viewed person has shared **no** contact methods at all, "Get in touch" is disabled with helper text "This member hasn't shared contact details yet." Never render a primary CTA that leads to an empty state.
 
+- **What the sheet looks like (2026-09-09).** It is the person's calling card, not a list of tiles: their bird at 72px over the name and "Batch of {year}", then the reach-outs as rows on the panel itself, a hairline between each, a copy button per row that springs into a tick and back. The tiles it replaced painted `--card` on the `--float` panel, which is warmth climbing the surface ladder instead of sinking down it, and carried a fill and a border where one would have done ("I don't like that brown for the boxes"). The bird sits on white and never on green: a canopy band needs a disc behind the glyph to be visible, and the 50 glyphs share no bounding box, so one disc cannot fit them all. `/lab/reach` holds the four constructions this was picked from; the reasoning behind every number is in the component's own header.
+
 Rationale: every CTA must resolve to something real (CLAUDE.md: "Every clickable element needs hover, focus-visible, active. No exceptions" — and by extension, a destination). "Get in touch" is honest about being a directory, reuses the Contact data, and is forward-compatible with a future inbox.
 
 ---
