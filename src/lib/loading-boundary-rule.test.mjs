@@ -28,15 +28,20 @@ const APP = `${ROOT}/src/app`;
    used to re-walk every skeleton's own directory looking for a `page.tsx`,
    which is `src/app` swept once plus a subtree per skeleton. */
 const SKELETONS = walk(APP, { match: (name) => name === "loading.tsx" });
-const PAGES = walk(APP, { match: (name) => name === "page.tsx" });
+/* Both page filenames. Lab rooms are `page.lab.tsx` so the public demo's build
+   can leave the whole tree out (next.config.ts's pageExtensions, 2026-09-08);
+   they are still pages, and `src/app/lab/loading.tsx` is still their skeleton,
+   so matching only `page.tsx` would make the lab's own boundary look orphaned
+   and would quietly drop 47 pages out of the sweep below. */
+const PAGES = walk(APP, { match: (name) => name === "page.tsx" || name === "page.lab.tsx" });
 
 test("the sweep found the skeletons at all", () => {
   /* Both tests below are "nothing is wrong" assertions, which an empty list
      satisfies for free. This is the line that says the list was not empty. */
   assert.ok(
     SKELETONS.length >= 20 && PAGES.length >= 60,
-    `swept ${SKELETONS.length} loading.tsx and ${PAGES.length} page.tsx under ` +
-      `src/app; there were 36 and 99. The walk has drifted and the two rules ` +
+    `swept ${SKELETONS.length} loading.tsx and ${PAGES.length} page files under ` +
+      `src/app; there were 36 and 98. The walk has drifted and the two rules ` +
       `below are passing over nothing`,
   );
 });

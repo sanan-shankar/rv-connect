@@ -2,9 +2,9 @@
 /* ------------------------------------------------------------------ *
  *  lab-audit.mjs — the anti-stranding check for /lab.
  *
- *  Every page.tsx under src/app, outside (main), (auth), and the root
+ *  Every page file under src/app, outside (main), (auth), and the root
  *  landing page, must have a matching entry in src/app/lab/_registry.ts,
- *  and every href in that registry must point at a real page.tsx. This
+ *  and every href in that registry must point at a real one. This
  *  is what keeps rooms from going stranded again: add a preview/dev
  *  page without registering it (or delete one without updating the
  *  registry) and this script fails.
@@ -13,6 +13,12 @@
  *  rather than importing it, so this needs no build step and no ts-node:
  *
  *    node scripts/qa/lab-audit.mjs
+ *
+ *  Every lab room is page.lab.tsx, not page.tsx: next.config.ts puts
+ *  "lab.tsx" on pageExtensions for every build EXCEPT the public demo's,
+ *  which is how the lab leaves the demo's build and only the demo's. Both
+ *  names count here, because the audit runs against the source tree rather
+ *  than against a build.
  *
  *  Dynamic segments (e.g. src/app/preview/[dir]/page.tsx) are handled by
  *  turning each disk route into a matcher where a bracketed segment
@@ -34,7 +40,11 @@ function isExcludedSegment(segment) {
   return /^\(.*\)$/.test(segment);
 }
 
-/** Recursively collect every page.tsx under `dir`. */
+/** The two names a page file can have. See the header: the lab's rooms are
+ *  page.lab.tsx so the demo build can drop them. */
+const PAGE_FILES = ["page.tsx", "page.lab.tsx"];
+
+/** Recursively collect every page file under `dir`. */
 function findPageFiles(dir) {
   const out = [];
   for (const entry of readdirSync(dir)) {
@@ -42,7 +52,7 @@ function findPageFiles(dir) {
     const stat = statSync(full);
     if (stat.isDirectory()) {
       out.push(...findPageFiles(full));
-    } else if (entry === "page.tsx") {
+    } else if (PAGE_FILES.includes(entry)) {
       out.push(full);
     }
   }
@@ -54,7 +64,7 @@ function findPageFiles(dir) {
  *  leading slash for a `/page\.tsx$` pattern to match against. */
 function toRoute(filePath) {
   const rel = relative(APP_DIR, filePath).split(sep).join("/");
-  const dir = rel.replace(/page\.tsx$/, "").replace(/\/$/, "");
+  const dir = rel.replace(/page(\.lab)?\.tsx$/, "").replace(/\/$/, "");
   return "/" + dir;
 }
 
@@ -95,13 +105,38 @@ const allPageFiles = findPageFiles(APP_DIR);
 const diskRoutes = [];
 for (const file of allPageFiles) {
   const rel = relative(APP_DIR, file).split(sep).join("/");
-  const segments = rel.split("/").slice(0, -1); // drop "page.tsx"
+  const segments = rel.split("/").slice(0, -1); // drop the page file name
   if (segments.some(isExcludedSegment)) continue; // (main), (auth)
   const route = toRoute(file);
   if (route === "/") continue; // the real landing page
   if (route === "/lab") continue; // the index itself is not an entry in itself
   if (PRODUCT_ROUTES.some((re) => re.test(route))) continue;
   diskRoutes.push(route);
+}
+
+// ---- 2b: the lab's page files are page.lab.tsx, and only the lab's ----
+//
+// This is what makes next.config.ts's demo exclusion hold. A new room named
+// page.tsx would pass every other check here and then quietly ship to the
+// public demo, where /lab is closed and nobody can open it; a page.lab.tsx
+// outside the lab would vanish from the demo build without anybody meaning
+// it to. Both are one-character mistakes, so both are checked rather than
+// remembered.
+
+const misnamed = [];
+for (const file of allPageFiles) {
+  const rel = relative(APP_DIR, file).split(sep).join("/");
+  const inLab = rel === "lab/page.lab.tsx" || rel === "lab/page.tsx" || rel.startsWith("lab/");
+  const isLabName = rel.endsWith("/page.lab.tsx");
+  if (inLab && !isLabName) misnamed.push([rel, "under src/app/lab, so it must be page.lab.tsx"]);
+  if (!inLab && isLabName) misnamed.push([rel, "outside src/app/lab, so it must be page.tsx"]);
+}
+
+if (misnamed.length > 0) {
+  console.error(`\nWrongly named page files (see next.config.ts's pageExtensions):`);
+  for (const [rel, why] of misnamed) console.error(`  - src/app/${rel} — ${why}`);
+  console.error("\nlab audit FAILED. Rename the file; the demo build depends on this name.");
+  process.exit(1);
 }
 
 // ---- 3: parse the registry as text ----
@@ -139,7 +174,7 @@ if (stranded.length > 0) {
 
 if (deadLinks.length > 0) {
   ok = false;
-  console.error(`\nDead links: in the registry, no matching page.tsx on disk:`);
+  console.error(`\nDead links: in the registry, no matching page file on disk:`);
   for (const href of deadLinks) console.error(`  - ${href}`);
 }
 
