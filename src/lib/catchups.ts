@@ -77,7 +77,6 @@ export const EDITION_TIMING_SELECT = {
   status: true,
   questionsCloseAt: true,
   answersCloseAt: true,
-  publishAt: true,
   publishedAt: true,
   remindersSent: true,
 } as const;
@@ -86,7 +85,6 @@ function toTiming(row: {
   status: string;
   questionsCloseAt: Date | string | null;
   answersCloseAt: Date | string | null;
-  publishAt: Date | string | null;
   publishedAt: Date | string | null;
   remindersSent: number;
 }): EditionTiming {
@@ -94,7 +92,6 @@ function toTiming(row: {
     status: row.status as EditionStatus,
     questionsCloseAt: row.questionsCloseAt,
     answersCloseAt: row.answersCloseAt,
-    publishAt: row.publishAt,
     publishedAt: row.publishedAt,
     remindersSent: row.remindersSent,
   };
@@ -275,7 +272,7 @@ export async function advanceEdition(
       if (
         entryCount === null &&
         ed.status === "answering" &&
-        nextEditionStatus(ed, now) === "preparing"
+        nextEditionStatus(ed, now) === "published"
       ) {
         entryCount = await prisma.catchupEntry.count({ where: { editionId: edition.id } });
       }
@@ -413,7 +410,7 @@ export async function advanceDueCatchups(userId?: string): Promise<void> {
        other direction `openNextEditionIfDue` compare-and-swaps on the
        `nextOpensAt` it was handed, so a value that moved under it is a no-op
        rather than a double open. */
-    const STALE = ["collecting", "answering", "preparing"];
+    const STALE = ["collecting", "answering"];
     const catchups = await prisma.catchup.findMany({
       where: {
         status: "active",

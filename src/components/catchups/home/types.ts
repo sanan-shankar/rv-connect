@@ -57,7 +57,6 @@ export type HomeEditionView = {
   status: EditionStatus;
   questionsCloseAt: string | null;
   answersCloseAt: string | null;
-  publishAt: string | null;
   publishedAt: string | null;
   /** Countdown-only copy used beside the Catch-up name in the page heading. */
   countdownLabel: string | null;

@@ -3,12 +3,15 @@
 /* ------------------------------------------------------------------ *
  *  <AlmostReady> — the warm holding scene for Catch-ups.
  *
- *  Two lives:
- *   1. Pre-migration, every /catchups* route renders this when a Prisma
- *      P2021 says the six tables do not exist yet. It must read as an
- *      intentional, beautiful "almost here" state, never a broken page.
- *   2. It doubles as the shape of the "preparing" ritual (spec 2.5): a
- *      settled hoopoe over a warm shimmer while the Edition is assembled.
+ *  One life, and it used to have two. Every /catchups* route renders this
+ *  when a Prisma P2021 says the six tables do not exist yet: it must read as
+ *  an intentional, beautiful "almost here" state, never a broken page.
+ *
+ *  The second life was the `preparing` ritual -- the same shimmer, standing in
+ *  for an Edition nobody could read yet. `preparing` is deleted (2026-09-08),
+ *  and the two uses were the finding behind it: a screen whose own meaning is
+ *  "the backend is not there" was being shown as the payoff of the whole
+ *  cycle. Do not give it a second job again.
  *
  *  Composition is deliberately not a lone thin column: a soft gradient
  *  medallion holds the settled hoopoe on one side, the copy and a

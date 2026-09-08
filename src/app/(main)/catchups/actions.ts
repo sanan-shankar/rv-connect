@@ -55,7 +55,6 @@ import {
   isEffectiveKeeper,
   isMissingCatchupTable,
   newInviteToken,
-  preparingPatch,
   publishPatch,
   QUESTION_WINDOW_DAYS,
   REMINDER_QUESTIONS_EXTENDED,
@@ -187,7 +186,6 @@ type EditionContext = {
   status: EditionStatus;
   questionsCloseAt: Date | null;
   answersCloseAt: Date | null;
-  publishAt: Date | null;
   publishedAt: Date | null;
   remindersSent: number;
   catchup: {
@@ -210,7 +208,6 @@ const EDITION_COLUMNS = {
   status: true,
   questionsCloseAt: true,
   answersCloseAt: true,
-  publishAt: true,
   publishedAt: true,
   remindersSent: true,
 } as const;
@@ -220,7 +217,7 @@ const EDITION_COLUMNS = {
  * against the clock first (the lazy-advance touchpoint, spec 2.4). Every
  * action below that reads an Edition's status goes through this helper, so none
  * can act on a status the clock already passed underneath a stale page (e.g.
- * a "close and prepare now" click after the answer window had already
+ * a "close answers now" click after the answer window had already
  * auto-closed, or a question submitted a beat after questionsCloseAt).
  */
 async function loadFreshEdition(editionId: string): Promise<EditionContext | null> {
@@ -1026,18 +1023,23 @@ export async function openAnswering(editionId: string) {
 }
 
 /**
- * Keeper-only: answering -> preparing, ahead of `answersCloseAt`. Evaluates
+ * Keeper-only: answering -> published, ahead of `answersCloseAt`. Evaluates
  * the too-few-answers rule (spec 2.6) exactly like the natural close: zero
  * entries auto-extends the window once instead of proceeding.
+ *
+ * It was `closeAndPrepare` and it stopped a step short, at a 24-hour hold
+ * nobody could read through; `publishNow` existed only to skip that hold and
+ * is deleted with it. Closing early now IS publishing, which is what a Keeper
+ * pressing it always meant.
  */
-export async function closeAndPrepare(editionId: string) {
+export async function closeAndPublish(editionId: string) {
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     if (typeof editionId !== "string" || !editionId) return { error: "Invalid request." };
 
     const scope = await loadKeeperEdition(editionId, session.user.id, {
-      notKeeper: "Only the Keeper can close and prepare early.",
+      notKeeper: "Only the Keeper can close answers early.",
       pausedHint: "Resume it to pick the Edition back up.",
     });
     if ("error" in scope) return scope;
@@ -1076,14 +1078,39 @@ export async function closeAndPrepare(editionId: string) {
       };
     }
 
-    const patch = preparingPatch(edition, now);
-    const cas = await prisma.catchupEdition.updateMany({
-      where: { id: editionId, status: "answering" },
-      data: patch,
+    /* The publish and the bell in one transaction, and `nextOpensAt` stamped
+       alongside, exactly as the clock's own `applyEditionAction` does it. An
+       Edition published without `notifyPublished` is an Edition that, for its
+       members, simply never happened -- which is why the migration that
+       drained `preparing` published those rows through this path rather than
+       in SQL. */
+    const patch = publishPatch(now);
+    const applied = await prisma.$transaction(async (tx) => {
+      const cas = await tx.catchupEdition.updateMany({
+        where: { id: editionId, status: "answering" },
+        data: patch,
+      });
+      if (cas.count === 0) return false;
+      if (edition.catchup.status === "active") {
+        await tx.catchup.update({
+          where: { id: edition.catchupId },
+          data: { nextOpensAt: addCadenceGap(now, edition.catchup.cadence) },
+        });
+      }
+      await notifyPublished(tx, {
+        catchupId: edition.catchupId,
+        editionId,
+        groupId: edition.catchup.group.id,
+        groupName: edition.catchup.group.name,
+        excludeUserId: session.user.id,
+      });
+      return true;
     });
-    if (cas.count === 0) return { error: "This Edition already moved on." };
+    if (!applied) return { error: "This Edition already moved on." };
 
     revalidatePath(`/catchups/${edition.catchupId}`);
+    revalidatePath(`/catchups/edition/${editionId}`);
+    revalidatePath("/catchups");
     return { success: true, extended: false };
   });
 }
@@ -1100,8 +1127,8 @@ export async function closeAndPrepare(editionId: string) {
  * add two days, not four, and matching on the timestamp they both saw means the
  * second one loses and is told so.
  *
- * `preparing` and `published` are refused: there is no window left to extend,
- * and reopening a sealed Edition is a different (and unasked-for) feature.
+ * `published` is refused: there is no window left to extend, and reopening a
+ * sealed Edition is a different (and unasked-for) feature.
  */
 export async function extendDeadline(editionId: string, days: number) {
   return runAction(async () => {
@@ -1151,56 +1178,6 @@ export async function extendDeadline(editionId: string, days: number) {
       days: parsedDays.data,
       phase: edition.status === "collecting" ? ("questions" as const) : ("answers" as const),
     };
-  });
-}
-
-/** Keeper-only: preparing -> published, shortcutting the 24h ritual hold. */
-export async function publishNow(editionId: string) {
-  return runAction(async () => {
-    const session = await auth();
-    if (!session?.user?.id) return { error: "Not authenticated" };
-    if (typeof editionId !== "string" || !editionId) return { error: "Invalid request." };
-
-    const scope = await loadKeeperEdition(editionId, session.user.id, {
-      notKeeper: "Only the Keeper can publish early.",
-      pausedHint: "Resume it to pick the Edition back up.",
-    });
-    if ("error" in scope) return scope;
-    const { edition } = scope;
-    if (edition.status !== "preparing") {
-      return { error: "This Edition is not ready to publish yet." };
-    }
-
-    const now = new Date();
-    const patch = publishPatch(now);
-
-    const applied = await prisma.$transaction(async (tx) => {
-      const cas = await tx.catchupEdition.updateMany({
-        where: { id: editionId, status: "preparing" },
-        data: patch,
-      });
-      if (cas.count === 0) return false;
-      if (edition.catchup.status === "active") {
-        await tx.catchup.update({
-          where: { id: edition.catchupId },
-          data: { nextOpensAt: addCadenceGap(now, edition.catchup.cadence) },
-        });
-      }
-      await notifyPublished(tx, {
-        catchupId: edition.catchupId,
-        editionId,
-        groupId: edition.catchup.group.id,
-        groupName: edition.catchup.group.name,
-        excludeUserId: session.user.id,
-      });
-      return true;
-    });
-    if (!applied) return { error: "This Edition already moved on." };
-
-    revalidatePath(`/catchups/${edition.catchupId}`);
-    revalidatePath(`/catchups/edition/${editionId}`);
-    revalidatePath("/catchups");
-    return { success: true };
   });
 }
 
@@ -1410,8 +1387,9 @@ export async function submitEntry(input: {
 
 /**
  * Heart one answer (spec 3.6). Hearts belong to the published reader: an
- * edition still `preparing` hides every answer from everyone, Keeper
- * included, so a heart cannot be cast until the Edition is `published`.
+ * edition still collecting or answering hides every answer from everyone,
+ * Keeper included, so a heart cannot be cast until the Edition is
+ * `published`.
  */
 export async function toggleEntryLove(entryId: string) {
   return runAction(async () => {

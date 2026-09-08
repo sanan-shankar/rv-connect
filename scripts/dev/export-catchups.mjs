@@ -213,7 +213,6 @@ const out = {
         status: r.status,
         questionsCloseAt: iso(r.questionsCloseAt),
         answersCloseAt: iso(r.answersCloseAt),
-        publishAt: iso(r.publishAt),
         publishedAt: iso(r.publishedAt),
         remindersSent: r.remindersSent,
         createdAt: iso(r.createdAt),

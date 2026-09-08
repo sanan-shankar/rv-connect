@@ -17,13 +17,8 @@ import type { StoredPhoto } from "@/lib/photo-layout";
 
 // ─── String-literal unions (mirror the free-string columns in schema) ────────
 
-/** CatchupEdition.status — forward-only: draft -> collecting -> answering -> preparing -> published. */
-export type EditionStatus =
-  | "draft"
-  | "collecting"
-  | "answering"
-  | "preparing"
-  | "published";
+/** CatchupEdition.status — forward-only: draft -> collecting -> answering -> published. */
+export type EditionStatus = "draft" | "collecting" | "answering" | "published";
 
 /** Catchup.status. */
 export type CatchupStatus = "active" | "paused" | "ended";
@@ -100,7 +95,6 @@ export type EditionTiming = {
   status: EditionStatus;
   questionsCloseAt: Date | string | null;
   answersCloseAt: Date | string | null;
-  publishAt: Date | string | null;
   publishedAt: Date | string | null;
   remindersSent: number;
 };

@@ -1,0 +1,56 @@
+-- `preparing` is deleted (spec section 3.3), so no row may be left standing in
+-- it. This is the backstop for a state the CODE no longer has.
+--
+-- His, N88: "Why are we preparing? ... why doesn't it just publish
+-- immediately? Is there a reason we have to have a separate preparing section?
+-- I can't just publish at midnight and the deadline is done."
+--
+-- `preparing` was a hard-coded 24-hour hold between answers closing and the
+-- Edition coming out, during which nobody -- Keeper included -- could read a
+-- word. Answers now close and the Edition comes out in the same transition,
+-- and `answersCloseAt` is a civil hour (07:00 IST), so an Edition lands with
+-- the morning rather than at 3am. `publishAt` and "Publish now" go with it.
+--
+-- THE NOTIFICATION IS THE PART THAT IS EASY TO GET WRONG, so it is written
+-- here rather than in a session's head. `notifyPublished` fires from the
+-- publish ACTION, not from the database. A row this file flips to `published`
+-- sends nobody anything: for its members that Edition simply never happened.
+-- So the procedure, every time, is COUNT FIRST:
+--
+--   SELECT count(*) FROM "CatchupEdition" WHERE status = 'preparing';
+--
+-- Zero, and this file is a no-op and there is nothing to notify. Not zero, and
+-- those Editions are published THROUGH the action first (the Keeper's control
+-- on the home), and this file is left as the idempotent backstop underneath.
+--
+-- Counted 2026-09-08 before this was written: production held 2 collecting and
+-- 5 published and NOTHING preparing, and the demo project held no Editions at
+-- all. Nor could one appear before the deploy: preparing is only reachable
+-- from `answering`, production has no answering Edition, and the shortest path
+-- into one is a three-day question window.
+--
+-- WHEN TO APPLY THIS: before the commit it belongs to is pushed, and again
+-- after both Vercel projects have finished deploying. It is the opposite
+-- ordering from a column drop, and for the opposite reason -- the RUNNING
+-- build understands `published` perfectly, while the NEW build has no
+-- `preparing` branch at all: `computeStatus` would fall through it and
+-- `STATUS_ORDER.indexOf` would return -1, which reads as "advance this Edition
+-- to draft". A row left in `preparing` when the new code lands is the one way
+-- this phase can break something.
+--
+-- `publishAt` is NOT dropped here. Column drops wait for the deploy and land
+-- in the cleanup file, phase 11 (spec section 3); this commit only stops
+-- Prisma naming the column, which is what makes that drop safe later. The
+-- `@@index([status, publishAt])` goes with it there.
+--
+-- Idempotent: scoped to `status = 'preparing'`, so a second run matches
+-- nothing.
+
+-- The date an Edition caught mid-hold was always going to come out: its own
+-- publishAt if the hold had been set, else the moment answers closed. COALESCE
+-- rather than now(), so a row that sat here for a week is not backdated to
+-- today and does not jump the shelf.
+UPDATE "CatchupEdition"
+   SET status = 'published',
+       "publishedAt" = COALESCE("publishedAt", "publishAt", "answersCloseAt", now())
+ WHERE status = 'preparing';

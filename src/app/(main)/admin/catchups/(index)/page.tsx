@@ -65,7 +65,6 @@ export default async function AdminCatchupsPage() {
             status: true,
             questionsCloseAt: true,
             answersCloseAt: true,
-            publishAt: true,
             publishedAt: true,
             _count: { select: { prompts: true, entries: true } },
           },
@@ -92,15 +91,13 @@ export default async function AdminCatchupsPage() {
     const isStuck = edition ? overdueIds.has(edition.id) : false;
 
     // The date this Edition is actually waiting on, which depends on where it
-    // has got to. Showing all three would say almost nothing.
+    // has got to. Showing both would say almost nothing.
     const due =
       edition?.status === "collecting"
         ? edition.questionsCloseAt
         : edition?.status === "answering"
           ? edition.answersCloseAt
-          : edition?.status === "preparing"
-            ? edition.publishAt
-            : null;
+          : null;
 
     return (
       <div

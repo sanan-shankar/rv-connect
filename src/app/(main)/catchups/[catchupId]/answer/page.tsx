@@ -42,8 +42,6 @@ function redirectMessageFor(status: EditionStatus, groupName: string): string {
       return `${groupName}'s Catch-up has not opened its Edition yet.`;
     case "collecting":
       return "Questions are still open. Answering starts once the Keeper opens it.";
-    case "preparing":
-      return "Answers are in. This Edition is being put together.";
     case "published":
       return "This Edition is already out. Come read it.";
     default:
@@ -69,7 +67,6 @@ const editionSelect = {
   status: true,
   questionsCloseAt: true,
   answersCloseAt: true,
-  publishAt: true,
   publishedAt: true,
   remindersSent: true,
 } as const;

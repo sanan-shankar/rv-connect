@@ -76,7 +76,6 @@ const loadCatchup = cache(async function loadCatchup(catchupId: string) {
           status: true,
           questionsCloseAt: true,
           answersCloseAt: true,
-          publishAt: true,
           publishedAt: true,
           remindersSent: true,
           createdAt: true,
@@ -148,7 +147,6 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       status: latestRaw.status as EditionStatus,
       questionsCloseAt: latestRaw.questionsCloseAt,
       answersCloseAt: latestRaw.answersCloseAt,
-      publishAt: latestRaw.publishAt,
       publishedAt: latestRaw.publishedAt,
       remindersSent: latestRaw.remindersSent,
       catchup: {
@@ -204,7 +202,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     const now = Date.now();
 
     let answeredAuthorIds: string[] = [];
-    if (status === "answering" || status === "preparing") {
+    if (status === "answering") {
       const distinct = await prisma.catchupEntry.findMany({
         where: { editionId: freshLatest.id },
         select: { authorId: true },
@@ -266,7 +264,6 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       status,
       questionsCloseAt: freshLatest.questionsCloseAt?.toISOString() ?? null,
       answersCloseAt: freshLatest.answersCloseAt?.toISOString() ?? null,
-      publishAt: freshLatest.publishAt?.toISOString() ?? null,
       publishedAt: freshLatest.publishedAt?.toISOString() ?? null,
       // No countdown on a frozen Catch-up. The clock genuinely is not running
       // (advanceEdition returns early while paused or ended), and the shell

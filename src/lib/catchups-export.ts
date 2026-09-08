@@ -139,7 +139,6 @@ export type ExportedEdition = {
   status: EditionStatus;
   questionsCloseAt: string | null;
   answersCloseAt: string | null;
-  publishAt: string | null;
   publishedAt: string | null;
   remindersSent: number;
   createdAt: string;

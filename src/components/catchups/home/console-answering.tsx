@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { FadeRise } from "@/components/common/motion";
-import { closeAndPrepare, nudgeGroup } from "@/app/(main)/catchups/actions";
+import { closeAndPublish, nudgeGroup } from "@/app/(main)/catchups/actions";
 import type { CatchupHomeData, HomeEditionView } from "./types";
 import { QuestionRow } from "./question-row";
 
@@ -115,7 +115,7 @@ function KeeperAnsweringActions({
   async function handleClose() {
     setBusy(true);
     try {
-      const result = await callAction(() => closeAndPrepare(editionId));
+      const result = await callAction(() => closeAndPublish(editionId));
       if (result && "error" in result) {
         toast.error(result.error);
         return;
@@ -125,7 +125,7 @@ function KeeperAnsweringActions({
       toast.success(
         "extended" in result && result.extended && "message" in result && result.message
           ? String(result.message)
-          : "Closing the Edition. Answers are sealed until it publishes."
+          : "The Edition is out. Everyone has been told."
       );
       onChanged();
     } finally {
@@ -140,7 +140,7 @@ function KeeperAnsweringActions({
         Nudge the group
       </Button>
       <Button variant="outline" size="sm" disabled={busy} onClick={handleClose}>
-        Close answering now
+        Close and publish now
         <ArrowRight className="h-3.5 w-3.5" />
       </Button>
     </div>

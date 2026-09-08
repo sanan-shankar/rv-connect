@@ -1068,10 +1068,9 @@ model CatchupEdition {
   catchupId        String
   number           Int
   theme            String?
-  status           String    @default("collecting") // draft|collecting|answering|preparing|published
+  status           String    @default("collecting") // draft|collecting|answering|published
   questionsCloseAt DateTime?
   answersCloseAt   DateTime?
-  publishAt        DateTime?                          // = answersCloseAt + 24h (the preparing ritual)
   publishedAt      DateTime?
   // Packed reminder bookkeeping, see `dailyBucket`/`withDailyBucket` in
   // src/lib/catchups.ts. Low byte = flags (4 = auto-extended once; 1 and 2 are
@@ -1086,7 +1085,6 @@ model CatchupEdition {
   entries CatchupEntry[]
 
   @@unique([catchupId, number])
-  @@index([status, publishAt])
 }
 
 model CatchupPrompt {

@@ -227,7 +227,6 @@ export function overdueEditionWhere(now: Date) {
     OR: [
       { status: "collecting", questionsCloseAt: { lt: now } },
       { status: "answering", answersCloseAt: { lt: now } },
-      { status: "preparing", publishAt: { lt: now } },
     ],
   };
 }
