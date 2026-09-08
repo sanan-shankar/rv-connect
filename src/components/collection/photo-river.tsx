@@ -160,16 +160,27 @@ function TileInner({
            photograph swells 3% INSIDE its fixed, overflow-hidden frame, so
            the control itself never moves (the standing rule) while the
            picture leans toward the cursor. Transform and opacity only. */
-        /* Two transitions on one element, deliberately given different
-           timings. The ARRIVAL is a 300ms opacity ease-out and stays that
-           way. The HOVER swell used to ride the same declaration, which
-           meant 3% of travel on a curve that starts at full speed and over
-           a duration chosen for a fade: it snapped to size and then coasted.
-           "The hovering zoom in ... is a bit too fast and it's not smooth
-           at all" (owner, 2026-09-09). 450ms on `ease-in-out` gives the
-           magnification a start and a settle, which is the whole difference
-           between a swell and a jump. Transform and opacity only. */
-        className="h-full w-full object-cover opacity-0 data-[loaded]:opacity-100 group-hover:scale-[1.03] group-focus-visible:scale-[1.03] [transition-property:opacity,transform] [transition-duration:300ms,450ms] [transition-timing-function:ease-out,ease-in-out]"
+        /* `scale`, NOT `transform`, and that one word is the whole bug.
+           Tailwind v4 compiles `scale-[1.03]` to the standalone CSS `scale`
+           property rather than to a `transform: scale(...)`. This transition
+           listed `transform`, which the tile never sets -- so the hover
+           magnification was not slow, or badly eased, or fighting the
+           compositor: it was NOT ANIMATING AT ALL. Measured 2026-09-09,
+           sampling every frame through a hover: `scale` goes `none` -> `1.03`
+           between one frame and the next while the computed `transform` reads
+           `none` for the entire 700ms. A one-frame jump is what "it's a bit
+           too fast and it's not smooth at all" (owner, 2026-09-09) was
+           describing, and tuning the duration could never have fixed it.
+
+           Ordinary `ease-out` at 300ms rather than anything cleverer: a hover
+           answers a cursor, so it wants to start immediately and settle,
+           which is also what the scrim below does. The two now finish
+           together instead of 250ms apart. Transform-family and opacity only.
+
+           THE TRAP GENERALISES: any `transition-[...transform...]` in this
+           codebase paired with a Tailwind v4 `scale-*`, `rotate-*` or
+           `translate-*` utility is animating nothing. */
+        className="h-full w-full object-cover opacity-0 transition-[opacity,scale] duration-300 ease-out data-[loaded]:opacity-100 group-hover:scale-[1.03] group-focus-visible:scale-[1.03]"
       />
       {!photo.approved && (
         <span className="absolute left-2 top-2 rounded-full bg-foreground/80 px-2 py-0.5 text-[10.5px] font-semibold text-background">
@@ -180,7 +191,7 @@ function TileInner({
           love count that used to be here: "I don't think we need to show the
           caption and the number of likes. We could just show the person. The
           person and the year maybe, that would be good." */}
-      <div className="pointer-events-none absolute inset-0 flex items-end bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+      <div className="pointer-events-none absolute inset-0 flex items-end bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100 group-focus-visible:opacity-100">
         <div className="flex w-full items-baseline gap-2 p-3 text-[12px] text-white">
           <span className="min-w-0 truncate font-medium">{photo.uploader.name}</span>
           {photo.takenShort && (

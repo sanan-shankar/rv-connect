@@ -5510,4 +5510,41 @@ Phase 2 — computing each band's exact height from the aspect ratios already in
 document is full-height from the start and nothing ever shifts — is designed but not built. Google's
 own writeup is the reference: layout on load and resize, never on scroll.
 
+**Correction, same day: the hover zoom was never animating.** He came back with "the zoom is much
+more janky and breaky than before", and he was right. Tailwind v4 compiles `scale-[1.03]` to the
+standalone CSS `scale` property, not to `transform` — so `transition-[opacity,transform]` named a
+property the tile never sets, and the magnification arrived in ONE FRAME. Sampled every frame
+through a hover: computed `scale` goes `none` -> `1.03` between two consecutive frames while
+computed `transform` reads `none` for the whole 700ms. Retuning the duration and the curve, which is
+what this session did first and what an earlier one had done before it, could never have worked.
+Now `transition-[opacity,scale]` at 300ms ease-out: 20 distinct scale values across the transition,
+16-17ms frames. The scrim was also finishing 250ms before the picture, so it moved to 300ms too and
+the two land together. Written up in TRAPS.md, because roughly seventy other call sites — the shared
+`Button` among them — pair a transform transition with an `active:scale-*` and are very likely the
+same defect. Not audited yet; his call.
+
+**And the white flash on the way up was a guard reading the wrong thing.** He kept reporting it and
+it kept surviving: seek to a year, flick up fast, and for a frame the photographs vanish or half the
+screen shows nothing beside half a screen of pictures. Instrumented every height change against
+every scroll change through one fast flick: `docHeight +1617px, scrollY +0` — twice. The anchor was
+declining to correct because `top < seam`, which reasons about the reader's position in the
+DOCUMENT. The seam sits just under the page header, so a reader at the top of a seek is "above" it
+while looking straight at the photographs beneath — and a page landing there was inserted into the
+middle of their view, uncorrected. The condition is now the VIEWPORT against the seam
+(`top + clientHeight <= seam`), so anybody with the river in shot gets the correction and only a
+reader with the river entirely below the fold is left alone. Uncompensated insertions per flick:
+2 → 0. `fromZero` went with it, redundant once the rule reasons about what is on screen.
+
+**Which is where the patching stops.** With the correction now arithmetically perfect, every one of
+those insertions is a 1,617px instantaneous teleport: he was travelling UP, hit the ceiling because
+the content above does not exist yet, and got yanked DOWN by the correction. Anchor it and you get a
+teleport; do not and you get the white flash; fetch earlier and you get the runaway. There is no
+correct setting of these dials, because the document does not know its own height. Three sessions
+have now failed here by tuning them. Escalated to the architecture rather than attempted a fourth
+time, per systematic-debugging's rule, and he approved the rebuild: solve the justified rows from
+the aspect ratios already in the database, reserve exact space for what has not loaded, and delete
+the correction system entirely. Exact heights also make `content-visibility` safe again, which
+windows the river — and that is the answer to the last symptom he reported, individual tiles
+flashing white on the way up, which is Chrome evicting decoded bitmaps when 900+ images are live.
+
 `npm run check` clean, 112/112. `npm run visual` 25/25. Verified at 1440x900 and 390x844.
