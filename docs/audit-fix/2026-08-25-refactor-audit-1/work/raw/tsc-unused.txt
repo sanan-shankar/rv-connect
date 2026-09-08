@@ -1,4 +1,0 @@
-scripts/dev/merge-cities.ts(39,7): error TS6133: 'CANONICAL_PLACE_ID' is declared but its value is never read.
-src/components/ui/combobox.tsx(3,1): error TS6133: 'React' is declared but its value is never read.
-src/components/ui/popover.tsx(3,1): error TS6133: 'React' is declared but its value is never read.
-src/lib/utils.ts(205,3): error TS6133: 'batchType' is declared but its value is never read.

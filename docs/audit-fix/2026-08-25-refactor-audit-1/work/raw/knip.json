@@ -1,7 +1,0 @@
-{
-  "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["scripts/**/*.{mjs,mts,ts}", "src/**/*.test.mjs", "src/lib/test-fn-body.mjs", "e2e/**/*.ts", ".puppeteerrc.cjs", "prisma.config.ts"],
-  "project": ["src/**/*.{ts,tsx,mjs,mts}", "scripts/**/*.{mjs,mts,ts}", "e2e/**/*.ts"],
-  "ignore": [".claude/**", "src/generated/**"],
-  "ignoreDependencies": []
-}

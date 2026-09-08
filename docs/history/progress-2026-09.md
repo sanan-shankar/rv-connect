@@ -8,6 +8,37 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 — a closed audit's working notes go to git history
+
+Refactor audit 2, row `docs-01`, and the rule the owner agreed in question 21: when an audit
+closes, its working notes go and a pointer stays. He asked for it this session — *"7 just do this
+in this sesion"*. Bug audit 1 set the shape in August; refactor audit 1 had kept everything.
+
+**Gone: `docs/audit-fix/2026-08-25-refactor-audit-1/work/`, 72 files and 1,866,717 bytes** —
+54.5 % of `docs/` by weight for a campaign that closed on 2026-08-27. `report.md` and
+`fix-prompt.md` stay, because they are the record `docs/audit-fix/README.md` promises and
+`CLAUDE.md` points at.
+
+**The part that is not free, and the reason this was a question rather than a `git rm`.** The two
+surviving files cite `work/` constantly: **20 lines, not the 13 the audit counted** — nine in
+`report.md`, eleven in `fix-prompt.md`. Deleting the folder without touching them would have
+manufactured 20 dead paths inside the record that was kept, which is the exact rot `docs-08` is
+about. Each file now opens with a note saying the folder is in git history, giving the
+`git show <sha>:<path>` form for reading one and the `git log --diff-filter=D` form for finding the
+removal, and stating that every `work/…` path below it is a path in history. That is one banner
+rather than twenty inline repetitions, which keeps the record readable; the citations themselves
+still name the file a reader wants, which is the useful half of them.
+
+Two sentences did need rewriting rather than covering, because they asserted the opposite of what
+is now true: session 10 and the close-out both recorded that *"bug audit 2 kept its `work/` after
+closing, so this one does too."* Both now carry the date that superseded them.
+
+`docs/audit-fix/README.md` gained the rule itself, so the next audit to close knows what survives
+and knows that the citation rewrite ships in the same commit.
+
+**Not touched: refactor audit 2's own `work/` folder.** That campaign is still running, and
+archiving it is its own close-out question.
+
 ## 2026-09-08 — the demo photograph importer that never imported a photograph
 
 Refactor audit 2, row D10 (`lib-core-config-04`), parked at the close because he had never actually
@@ -307,7 +338,23 @@ already shipped as `2a6f7d25`, on its own so he can revert it alone.
 And a correction to this session's own arithmetic, made the same day: **six** of the eleven batches
 have exactly one person in them, not three, and nine have four or fewer, not eight. More than half
 of the batch Catch-ups would be a newsletter to yourself, which is a different weight of question
-from the one first written down.
+from the one first written down — and very likely why the answer came back as it did.
+
+**He answered both the same evening, and nineteen came back bigger than the question.** Not "wait
+for a second member" but *"for people whose batches have less than ten people, let's not even show
+the catch ups things in the sidebar ... once there's ten it appears and the catch up would be
+created for that batch."* So ten is the floor, the backfill creates two Catch-ups rather than
+eleven, and a member with nothing behind the door does not get the door. One clause is a reading
+rather than his words and is marked as such: the test is *have you got a Catch-up*, not *is your
+batch big*, because his reason was that it would not be reachable — and a small-batch member
+invited to a people Catch-up can reach one. Two live cases prove it is not hypothetical: Jerry has
+no batch year and is in two, and the public demo's visitor is a member of `demo-catchup`, so a
+strict batch-size test would have quietly deleted Catch-ups from the demo's sidebar.
+
+Twenty answered (a), and the two clamps swap: the pull-down list of questions gets three lines
+where it had none, and the strip's docked question comes down from three to two. Right way round —
+the strip is on screen the whole time you read, the list is a deliberate pull-down. **F41 closes**,
+after a day open as the only item in the spec that would truncate a member's own words.
 
 ## 2026-09-08 — a letter gets the same three controls a post has
 

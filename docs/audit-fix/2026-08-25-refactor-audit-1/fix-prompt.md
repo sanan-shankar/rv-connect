@@ -8,6 +8,16 @@
 > waiting for a fix session. What remains is a short list of things only the owner can do,
 > at the very bottom of this file. Everything below is kept as the campaign's record.
 
+> **The `work/` folder is in git history, not on disk.** Seventy-two files and 1.9 MB of
+> working notes — `task_plan.md`, `findings.md`, `brief-common.md`, `raw/` tool output,
+> `agents/` (the 18 full agent reports), `verify/` (the adversarial verdicts) — were removed
+> on 2026-09-08 under the rule the owner set in refactor audit 2's question 21: a closed
+> audit keeps its report and its fix prompt, and git keeps the rest. **Every `work/…` path
+> named below is therefore a path in history, not one you can open.** Read one with
+> `git show <sha>:docs/audit-fix/2026-08-25-refactor-audit-1/work/agents/dead-code.md` for
+> any `<sha>` before the removal, and find the removal itself with
+> `git log --diff-filter=D -- "docs/audit-fix/2026-08-25-refactor-audit-1/work/*"`.
+
 **This file was the entire handover.** The owner started a fix session by @-ing it and
 nothing else. You (the fix session, running on Opus, max effort) read it top to bottom,
 execute the next unfinished work, and **edit this same file before your session ends** —
@@ -88,7 +98,8 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
       Only local disk is unmeasured; that is the owner's own folder move.
       `../README.md` flipped to Closed. §7.4's archive convention needed no move — the
       folder is already at the path the convention names, and bug audit 2 kept its `work/`
-      after closing, so this one does too.
+      after closing, so this one does too. (Superseded 2026-09-08: the owner made archiving
+      the rule, and this audit's `work/` went to git history — see the note at the top.)
 
 Within a phase, mark finished items inline in the session log with their commit SHA.
 Phases 1–4 are mutually independent; 5 after 1–2; 6 needs owner approvals.
@@ -1589,7 +1600,8 @@ tool invocation as the tree at `033ea43`, so nothing is compared against §1a's 
 Two rows are marked not-re-measured rather than guessed — `next build`, because a production
 build shares `.next` with a dev server started at 10:01 by another session, and local disk,
 which is the owner's own move. §7.4 needed no file move: the folder already sits at the path
-the convention names, and bug audit 2 kept its `work/` after closing.
+the convention names, and bug audit 2 kept its `work/` after closing. (Superseded
+2026-09-08 — see the note at the top of this file.)
 
 **Verification**: `npm run check` green before every commit (TS, ESLint, protocol, lab
 registry 45, unit 76/76). `npm run visual` 23/23 after the composer split. Desktop and mobile
