@@ -80,14 +80,14 @@ export type ExportedMembership = ExportedPerson & {
   isKeeper: boolean;
 };
 
-/** One member's private copy state, which is why archiving and deleting are
- *  personal. Exported because losing it would silently un-file every member's
- *  shelf. */
+/** One member's private copy state, which is why archiving is personal.
+ *  Exported because losing it would silently un-file every member's shelf.
+ *  `deletedAt` was here until build phase 5, when deleting became leaving and
+ *  the thirty-day bin went with the word; no row ever carried one. */
 export type ExportedPref = {
   userId: string;
   reminderMode: ReminderMode;
   archivedAt: string | null;
-  deletedAt: string | null;
 };
 
 export type ExportedImage = {

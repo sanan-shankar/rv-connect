@@ -118,7 +118,7 @@ async function loadIndexData(userId: string) {
             select: {
               id: true,
               status: true,
-              // Only to decide whether to OFFER Delete: a founder is refused
+              // Only to decide whether to OFFER Leave: a founder is refused
               // it server-side, and this page's own rule (see PeoplePanel) is
               // that an action refused server-side is not put on screen as a
               // way to be told no.
@@ -129,7 +129,7 @@ async function loadIndexData(userId: string) {
                  (catchupId, userId). */
               prefs: {
                 where: { userId },
-                select: { archivedAt: true, deletedAt: true },
+                select: { archivedAt: true },
               },
               editions: {
                 orderBy: { number: "desc" },
@@ -150,9 +150,10 @@ async function loadIndexData(userId: string) {
   });
 
   const now = new Date();
-  /** The card plus which of the three sections it belongs in. The shelf is
-   *  never rendered on the card itself; it only decides where the card goes. */
-  type ShelvedCard = IndexCardView & { shelf: CatchupShelf; deletedAt: Date | null };
+  /** The card plus which of the two sections it belongs in. The shelf is
+   *  never rendered on the card itself; it only decides where the card goes.
+   *  There were three until build phase 5 deleted the bin. */
+  type ShelvedCard = IndexCardView & { shelf: CatchupShelf };
   const cards: ShelvedCard[] = memberships
     .map(({ group }): ShelvedCard | null => {
     // Viewer first, so the card's cluster (which shows only the first few)
@@ -184,7 +185,6 @@ async function loadIndexData(userId: string) {
 
     return {
       shelf: catchupShelf(pref),
-      deletedAt: pref?.deletedAt ?? null,
       isCreator: !!group.catchup.createdById && group.catchup.createdById === userId,
       isBatch: isBatchCatchup(group.batchYear),
       groupId: group.id,
@@ -236,22 +236,16 @@ async function loadIndexData(userId: string) {
   }
 
   const live = cards.filter((c) => c.shelf === "active");
-  const toFiledRow = (c: ShelvedCard): FiledRow => ({
-    catchupId: c.catchupId as string,
-    groupName: c.groupName,
-    statusLine: c.statusLine,
-    deletedAt: c.deletedAt ? c.deletedAt.toISOString() : null,
-  });
-  // Newest decision first in both bins: the thing you just filed or binned is
-  // the thing you are most likely to have second thoughts about.
   const archived = cards
     .filter((c) => c.shelf === "archived")
-    .map(toFiledRow)
+    .map(
+      (c): FiledRow => ({
+        catchupId: c.catchupId as string,
+        groupName: c.groupName,
+        statusLine: c.statusLine,
+      })
+    )
     .sort((a, b) => a.groupName.localeCompare(b.groupName));
-  const deleted = cards
-    .filter((c) => c.shelf === "deleted")
-    .map(toFiledRow)
-    .sort((a, b) => (b.deletedAt ?? "").localeCompare(a.deletedAt ?? ""));
 
   live.sort((a, b) => {
     const pa = a.catchupId ? (STATUS_PRIORITY[a.editionStatus ?? "draft"] ?? 50) : 90;
@@ -265,10 +259,11 @@ async function loadIndexData(userId: string) {
       status: "published",
       catchup: {
         group: { members: { some: { userId } } },
-        // A Catch-up you binned is out of your list, so it is out of the rail
-        // too; an ARCHIVED one stays, because archiving files a Catch-up away
-        // without saying you have stopped caring what it publishes (B-063).
-        prefs: { none: { userId, deletedAt: { not: null } } },
+        /* Nothing to exclude here any more. A binned copy was out of your
+           list and therefore out of this rail (B-063); leaving takes the
+           membership row itself, so this query cannot see one. An ARCHIVED
+           Catch-up stays, because archiving files it away without saying you
+           have stopped caring what it publishes. */
       },
     },
     orderBy: { publishedAt: "desc" },
@@ -296,7 +291,7 @@ async function loadIndexData(userId: string) {
     };
   });
 
-  return { cards: live, archived, deleted, freshItems };
+  return { cards: live, archived, freshItems };
 }
 
 export default async function CatchupsPage() {
@@ -380,10 +375,10 @@ export default async function CatchupsPage() {
         </div>
       </div>
 
-      {/* Nothing on any of the three shelves. Same card as the never-in-a-
+      {/* Nothing on either shelf. Same card as the never-in-a-
           group case, because it answers the same question: this is where a
           Catch-up would be, and here is how to start one. */}
-      {data.cards.length === 0 && data.archived.length === 0 && data.deleted.length === 0 ? (
+      {data.cards.length === 0 && data.archived.length === 0 ? (
         <GroupFirstGuidance />
       ) : (
         // Both columns start at the same y, so the rail's first card lines up
@@ -395,10 +390,10 @@ export default async function CatchupsPage() {
             {data.cards.map((card) => (
               <YourCatchupsCard key={card.groupId} card={card} />
             ))}
-            {/* Renders nothing at all when both are empty, which is the state
+            {/* Renders nothing at all when it is empty, which is the state
                 almost every member is in (owner: "hidden entirely when the
                 member has none, no dead buttons"). */}
-            <FiledAway archived={data.archived} deleted={data.deleted} />
+            <FiledAway archived={data.archived} />
           </div>
           <aside className={RAIL_ASIDE}>
             <div className="sticky top-7">

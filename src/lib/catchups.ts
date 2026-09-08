@@ -3,8 +3,7 @@
  *
  *  advanceEdition (one Prisma transaction per step, idempotent side effects
  *  guarded by the status column plus the remindersSent bitmask) and
- *  advanceDueCatchups (the lazy, read-time, no-cron advance), plus
- *  restoreOwnCatchupCopy.
+ *  advanceDueCatchups (the lazy, read-time, no-cron advance).
  *
  *  The pure state machine, the question library, the calendar math and the
  *  copy helpers are in `./catchups-core.ts`, which this file drives. That
@@ -217,30 +216,15 @@ async function applyEditionAction(
  * missing table (pre-migration) or any error is swallowed, because the app-shell
  * piggyback that calls this runs on every authenticated page.
  */
-/**
- * Take one member's own copy of a Catch-up back out of their bin.
- *
- * Binning is personal: it sets `CatchupPref.deletedAt`, which files the card
- * under "Recently deleted", stops every broadcast reaching them, and starts a
- * 30-day clock after which the retention sweep removes their membership
- * outright. Rejoining through the invite link left all of that armed -- the
- * link found the membership still there and simply showed them the Catch-up,
- * so the card stayed in the bin and the sweep still removed them from
- * something they had just walked back into (audit C-020).
- *
- * `archivedAt` is deliberately untouched: archiving is filing, not deletion,
- * and nothing sweeps it. Scoped to one member's own row, so following a link
- * can never change anybody else's filing.
- */
-export async function restoreOwnCatchupCopy(
-  catchupId: string,
-  userId: string
-): Promise<void> {
-  await prisma.catchupPref.updateMany({
-    where: { catchupId, userId, deletedAt: { not: null } },
-    data: { deletedAt: null },
-  });
-}
+/* `restoreOwnCatchupCopy` stood here until build phase 5. It took one
+   member's copy back out of the thirty-day bin when they followed their own
+   invite link, because the join path would otherwise redirect an existing
+   member straight past the action and leave the sweep armed on somebody who
+   had just walked back in (audit C-020). Deleting became LEAVING (his, N18):
+   leaving takes the `GroupMember` row itself, so a member who is out is not a
+   member the invite link can redirect, and there is no stamp left to disarm.
+   Archiving is untouched by that path, exactly as it was -- filing something
+   away and then opening it again should not unfile it. */
 
 export async function advanceEdition(
   edition: AdvanceEditionInput,

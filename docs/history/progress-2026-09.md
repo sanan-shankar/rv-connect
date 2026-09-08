@@ -4713,3 +4713,69 @@ long after it shipped.
 
 `npm run check` 109/109. `npm run visual` 25/25 with no baseline moved, which is the correct
 result: nothing was redrawn.
+
+## 2026-09-08 — build phase 5: leaving, and the read mark
+
+Deleting your copy of a Catch-up is gone, and what replaced it is one word of his (N18):
+*"defaults, except deleting becomes leaving."* So there is one exit now, it happens in the
+moment you confirm it, and what you already published stays where other people have read it.
+
+**The bin was leaving with a fuse on it, and that is the whole argument.** `setCatchupDeleted`
+stamped `CatchupPref.deletedAt`, which stopped every broadcast reaching you at once and armed a
+nightly sweep to take your `GroupMember` row on the thirtieth night. Between those two moments you
+were still in the group, out of every notification, with a countdown on a row you had to go
+looking for. Four things went with it: the sweep in `retention.ts` (a Serializable transaction, a
+200-a-night batch and a Keeper succession hand-off), the subtraction in `groupMemberIds` that kept
+the audience and the membership honest for a month, the "Recently deleted" shelf and its
+countdown, and `restoreOwnCatchupCopy`.
+
+**Counted first, on both projects: 16 preference rows on production and none on the demo, of which
+zero are archived and zero are binned.** So the migration's `UPDATE ... SET archivedAt =
+COALESCE(archivedAt, deletedAt)` moved nothing. It exists so it cannot become a no-op later: a
+member who bins a copy in the hours before this deploys lands in Archived rather than in a bin
+nothing empties any more. The column itself is NOT dropped — that is phase 11, after this deploys
+— but its index went tonight, because an index drop has no ordering and the sweep that was its
+only reader is deleted in the same commit.
+
+**Two audit findings close by deletion rather than by fix, and both are pinned as absences.**
+C-020 was a rejoin hole: following your own invite link redirected an existing member past the
+join action, so the bin stayed armed and the sweep removed somebody who had just walked back in.
+There is no bin to arm. C-023's third path — the sweep that removed a membership and therefore had
+to promote a successor first — is gone, and `group-succession.test.mjs` now asserts retention
+removes no memberships at all. A test that reads nothing is worse than no test, so each one fails
+if the thing it describes comes back.
+
+**The refusal must not be deleted with the action that shared it.** Phase 4 put
+`BATCH_LEAVE_REFUSAL` on both exits; deleting one of them is exactly how a guard quietly goes
+missing. `leaveCatchup` is now the only exit and the only place that refusal can live, and
+`batch-catchups.test.mjs` says so from the other side too: it fails if `setCatchupDeleted` comes
+back without one, and it fails if `setCatchupArchived` ever starts refusing a batch — because on a
+batch Catch-up archiving is the only way out there is.
+
+**On the list, Delete became Leave**, with the confirmation rewritten to say what actually
+happens: you come out now, your published answers stay, nobody else's list changes, coming back
+needs a fresh invitation. Driven in a real browser at 1440 and at 390: the menu reads Archive then
+Leave, the dialog carries that copy, zero console errors. The batch card offers Archive alone,
+which is the server's answer shown rather than a way to be told no.
+
+**The read mark is a table of its own, and the reasoning is worth keeping.** `ContentView` already
+writes a `(viewerId, "edition", targetId)` row from the same page, so the obvious move was to read
+it back. Three things stopped it: it is the admin analytics counter and is under standing pressure
+to stay bounded (its own comments record an index dropped and its columns argued over), its
+`targetId` is deliberately not a foreign key, and it is written BEFORE the reader knows the
+Edition's status — so a deep link followed while an Edition was still collecting would have made
+it look read on the day it came out. A member-facing unread mark should not be one retention
+decision away from flipping. `CatchupEditionRead` is one row per person per Edition, both sides
+Cascade, `update: {}` so a re-read keeps the first time you saw it.
+
+Proved live rather than asserted: opening a published Edition as Jerry wrote exactly one row;
+opening it again left `readAt` at 05:29:42.228; opening a collecting Edition wrote nothing. Nothing
+draws it yet — the list that shows an unread Edition differently is phase 6 — which is the point of
+writing it now: the marks accumulate from tonight, so that list has something to draw.
+
+One tooling note, because it cost a restore: `npx prisma format` re-aligned all 501 lines of
+`schema.prisma` and moved several comment blocks relative to the attributes they explain. The
+edits went back in by hand. Do not run it on this schema.
+
+`npm run check` 110/110. `npm run visual` 25/25 with no baseline moved, which is correct: the only
+visible change lives inside a dropdown, and the shelf that went was empty for every member.

@@ -12,14 +12,19 @@
  *  another member relies on.
  *
  *  Archive asks nothing, because it is instantly reversible and one
- *  section down the same page. Delete asks, because a bin that quietly
- *  takes you out of the group in thirty days is not what "delete"
- *  usually promises, and the dialog is where that gets said.
+ *  section down the same page. Leave asks, because it is not: you are
+ *  out of the Catch-up the moment you confirm, and only a fresh
+ *  invitation brings you back.
+ *
+ *  The second verb was DELETE until build phase 5, and it opened a
+ *  thirty-day bin whose last night removed you from the group. It is
+ *  one word of his (N18): "defaults, except deleting becomes leaving."
+ *  What you already published stays where it is either way.
  * ------------------------------------------------------------------ */
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Loader2, MoreHorizontal, Trash2 } from "lucide-react";
+import { Archive, Loader2, LogOut, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
@@ -31,33 +36,34 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MENU_TRIGGER_HIT } from "@/components/ui/menu-material";
-import { RECENTLY_DELETED_DAYS } from "@/lib/catchup-shelf";
-import { setCatchupArchived, setCatchupDeleted } from "@/app/(main)/catchups/actions";
+import { leaveCatchup, setCatchupArchived } from "@/app/(main)/catchups/actions";
 
 export function CatchupCardMenu({
   catchupId,
   groupName,
-  canDelete,
+  canLeave,
 }: {
   catchupId: string;
   groupName: string;
   /**
-   * False for whoever started this Catch-up. The action refuses them anyway
-   * (the sweep would strip the founder's membership row and leave a Catch-up
-   * whose Keeper cannot open it), and this page's house rule is that an action
-   * refused server-side is not shown as a way to be told no. Archive still is:
-   * tidying a list is not the same as leaving.
+   * False for whoever started this Catch-up, and false on a batch Catch-up.
+   * The action refuses both anyway (a founder who left would be a Keeper that
+   * every Keeper-scoped action calls a stranger; a batch is your year, and the
+   * nightly membership heal would put you straight back), and this page's
+   * house rule is that an action refused server-side is not shown as a way to
+   * be told no. Archive still is: tidying a list is not the same as leaving,
+   * and on a batch Catch-up it is the only exit there is.
    */
-  canDelete: boolean;
+  canLeave: boolean;
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [pending, start] = useTransition();
 
-  /* router.refresh(), not local state: which of the three sections a card
-     belongs in is the server's answer, computed from the same pref row the
-     action just wrote. Mirroring that decision on the client would be a second
-     copy of the rule, free to disagree with the first. */
+  /* router.refresh(), not local state: whether a card is on the list or on
+     the Archived shelf is the server's answer, computed from the same pref row
+     the action just wrote. Mirroring that decision on the client would be a
+     second copy of the rule, free to disagree with the first. */
 
   function archive() {
     start(async () => {
@@ -109,12 +115,12 @@ export function CatchupCardMenu({
             <Archive className="mr-2 size-4" aria-hidden />
             Archive
           </DropdownMenuItem>
-          {canDelete && (
+          {canLeave && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setConfirming(true)} variant="destructive">
-                <Trash2 className="mr-2 size-4" aria-hidden />
-                Delete
+                <LogOut className="mr-2 size-4" aria-hidden />
+                Leave
               </DropdownMenuItem>
             </>
           )}
@@ -124,18 +130,17 @@ export function CatchupCardMenu({
       <ConfirmDialog
         open={confirming}
         onClose={() => setConfirming(false)}
-        title={`Delete ${groupName}?`}
+        title={`Leave ${groupName}?`}
         description={
           <>
-            This removes it from your Catch-ups and stops its notifications to you. Nobody else&apos;s
-            list changes, and anything you have already shared stays in the Editions it was published
-            in. You can put it back for {RECENTLY_DELETED_DAYS} days; after that you are out of this
-            Catch-up for good.
+            You come out of this Catch-up now, and it stops sending you anything. Anything you have
+            already shared stays in the Editions it was published in, and nobody else&apos;s list
+            changes. Coming back needs a fresh invitation.
           </>
         }
-        actionLabel="Delete"
+        actionLabel="Leave"
         onConfirm={async () => {
-          const result = await setCatchupDeleted(catchupId, true);
+          const result = await leaveCatchup(catchupId);
           if (result && "error" in result) return result;
           router.refresh();
           return;

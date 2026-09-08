@@ -103,6 +103,7 @@ const OWN_CONTENT = {
   Bookmark: "posts they saved; private to the saver",
   CatchupEntry: "their own answer to an Edition; the question and the Edition outlive them",
   CatchupEntryLove: "hearts they gave; the count is derived, so nobody else's entry changes",
+  CatchupEditionRead: "which Editions they had opened; nobody else's list is drawn from it",
   CatchupPref: "their per-Catch-up reminder settings",
   Comment: "reachable only THROUGH their own posts; the direct User edge is SetNull (M34)",
   CommentLike: "hearts they gave on comments",

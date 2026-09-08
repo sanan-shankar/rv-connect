@@ -87,6 +87,12 @@ const ALLOWED_WRITE_MODELS: ReadonlySet<string> = new Set([
   "CatchupEntry",
   "CatchupEntryLove",
   "CatchupPref",
+  /* The read mark (build phase 5). Every visitor is the same persona here, so
+     these are that persona's marks and an Edition somebody else opened reads
+     as read -- which is true of every other personal signal in the demo, and
+     better than a list where nothing is ever marked. The nightly reset takes
+     them with the Editions they point at. */
+  "CatchupEditionRead",
 ]);
 
 /** Prisma operations that change data. Everything else is a read. */

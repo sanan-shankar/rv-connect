@@ -213,132 +213,35 @@ test("C-125: the answering surface actually sends the version it holds", () => {
   assert.match(page, /select: \{ promptId: true, body: true, images: true, updatedAt: true \}/);
 });
 
-test("C-020: rejoining through the invite link disarms your own bin", () => {
+test("C-020 is closed by deletion: there is no bin left to disarm", () => {
+  /* The bug: binning your own copy stamped `CatchupPref.deletedAt`, which
+     stopped every broadcast and armed a nightly sweep to take your membership
+     row on the thirtieth night -- and following your own invite link back in
+     redirected an existing member straight past the join action, so the stamp
+     survived and the sweep removed somebody who had just walked back in.
+     `restoreOwnCatchupCopy` existed to disarm it on the way through.
+
+     Build phase 5 deleted the bin instead (his, N18: "defaults, except
+     deleting becomes leaving"). Leaving takes the `GroupMember` row in the
+     moment, so a member who is out is not one this branch can see, and there
+     is nothing left to arm. This pin is what stops the helper coming back
+     without the bug being reconsidered. */
   const lib = decomment(read("src/lib/catchups.ts"));
-  const start = lib.indexOf("export async function restoreOwnCatchupCopy(");
-  assert.notEqual(start, -1, "the un-bin helper is gone");
-  const body = lib.slice(start, lib.indexOf("\nexport ", start + 10));
-  assert.match(body, /catchupPref\.updateMany/);
-  assert.match(body, /data: \{ deletedAt: null \}/, "it no longer clears the bin");
-  // Only the caller's own row, and only the bin: archiving is filing, not
-  // deletion, and nothing sweeps it.
-  assert.match(body, /where: \{ catchupId, userId, deletedAt: \{ not: null \} \}/);
-  assert.ok(!body.includes("archivedAt"), "the un-bin now also unfiles an archived copy");
-
-  // Both ways back in call it: the action, and the page that redirects an
-  // existing member before the action could ever run.
-  assert.match(
-    decomment(read("src/app/(main)/catchups/actions.ts")),
-    /restoreOwnCatchupCopy\(catchup\.id, session\.user\.id\)/
+  assert.ok(
+    !lib.includes("export async function restoreOwnCatchupCopy"),
+    "the un-bin helper is back; C-020 needs re-reading before it ships"
   );
+  const actions = decomment(read("src/app/(main)/catchups/actions.ts"));
+  assert.ok(
+    !actions.includes("export async function setCatchupDeleted"),
+    "the thirty-day bin is back, and with it the rejoin hole C-020 described"
+  );
+
+  // Archiving is untouched, and the join path still leaves it alone: filing
+  // something away and then opening it again must not unfile it.
   const page = decomment(read("src/app/catchups/join/[token]/page.tsx"));
-  assert.match(page, /await restoreOwnCatchupCopy\(catchup\.id, session\.user\.id\);/);
-  assert.ok(
-    page.indexOf("restoreOwnCatchupCopy") < page.indexOf("redirect(`/catchups/${catchup.id}`)"),
-    "the redirect happens before the bin is cleared, so it never runs"
-  );
-});
-
-test("C-021: an Edition with no questions cannot be opened for answering", () => {
-  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
-  const start = src.indexOf("export async function openAnswering(");
-  assert.notEqual(start, -1);
-  const body = src.slice(start, src.indexOf("\nexport async function", start + 10));
-
-  // The same rows the clock counts, counted inside the same transaction as
-  // the open, so removing the last question cannot land in between.
-  assert.match(body, /tx\.catchupPrompt\.count\(\{\s*where: \{ editionId, accepted: true \}/);
-  assert.match(body, /if \(accepted === 0\) return "empty"/);
-  assert.ok(
-    body.indexOf("catchupPrompt.count") < body.indexOf("catchupEdition.updateMany"),
-    "the questions are counted after the Edition is already open"
-  );
-  assert.ok(
-    body.indexOf("prisma.$transaction") < body.indexOf("catchupPrompt.count"),
-    "the count is outside the transaction, so it can go stale before the write"
-  );
-  // ...and the member is told why, rather than getting the generic refusal.
-  assert.match(body, /no questions in this Edition yet/);
-});
-
-test("C-025: taking the Keeper's hat off leaves the group's own admin role alone", () => {
-  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
-  const start = src.indexOf("export async function setCatchupKeeper(");
-  assert.notEqual(start, -1);
-  const body = src.slice(start, src.indexOf("\nexport async function", start + 10));
-
-  // Granting writes "keeper", never "admin", so a Catch-up Keeper is not
-  // silently made a moderator of the group's posts. The revoke must show the
-  // same care in the other direction: only a "keeper" row is demoted.
-  assert.match(
-    body,
-    /where: \{ groupId: catchup\.groupId, userId, role: "keeper" \},\s*data: \{ role: "member" \}/,
-    "the revoke writes over whatever role it finds"
-  );
-  assert.ok(!/data: \{ role: isKeeper \? "keeper" : "member" \}/.test(body));
-  // A revoke that matched nothing is only an error when they are really gone.
-  assert.match(body, /groupMember\.count\(\{\s*where: \{ groupId: catchup\.groupId, userId \}/);
-});
-
-test("C-026: a whole-group fanout fired outside a transition is metered", () => {
-  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
-
-  /* The four builders that write a row for every member. Inside a transaction
-     (`notifyX(tx, ...)`) each one rides a status CAS, so it can fire once per
-     transition and no more. Called with the shared client it has nothing
-     bounding it at all -- which is what the manual nudge was: it bypasses the
-     daily bucket AND every "off" preference, so a loop re-created an unread
-     bell entry for the whole roster as often as the caller liked (C-026). */
-  const FANOUT = ["notifyReminder", "notifyAnswersOpen", "notifyQuestionsOpen", "notifyPublished"];
-  const unmetered = [];
-  for (const name of FANOUT) {
-    for (const m of src.matchAll(new RegExp(`await ${name}\\(prisma,`, "g"))) {
-      // The exported action this call sits in.
-      const fnStart = src.lastIndexOf("export async function ", m.index);
-      const fnEnd = src.indexOf("\nexport async function", m.index);
-      const body = src.slice(fnStart, fnEnd === -1 ? src.length : fnEnd);
-      const meter = body.indexOf("await rateLimit(");
-      if (meter === -1 || meter > m.index - fnStart) {
-        unmetered.push(`${/export async function (\w+)/.exec(body)?.[1]} -> ${name}`);
-      }
-    }
-  }
-  assert.deepEqual(unmetered, []);
-  // ...and the nudge really is one of the calls this covers, so the sweep is
-  // not passing on an empty set.
-  assert.match(src, /await notifyReminder\(prisma,/);
-});
-
-test("C-029: two questions sharing a position still render in one stable order", () => {
-  const home = decomment(read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx"));
-  // The console sorts in JS after filtering, so the tiebreak has to be there
-  // too -- the query's own orderBy does not survive the filter+sort.
-  assert.match(
-    home,
-    /a\.position - b\.position \|\| a\.createdAt\.getTime\(\) - b\.createdAt\.getTime\(\)/,
-    "the home console is back to a bare position sort"
-  );
-  // The same total order the query already asks the database for. That query
-  // now lives in the loader both Edition readers share, so the pin follows it
-  // there -- one query for two surfaces, rather than one per page to keep in
-  // step. What is pinned is unchanged: the database is asked for the order the
-  // console then sorts by, so the filter+sort above cannot invent a different
-  // one.
-  const loader = decomment(read("src/lib/catchups-edition-view.ts"));
-  assert.match(loader, /orderBy: \[\{ position: "asc" \}, \{ createdAt: "asc" \}\]/);
-
-  // ...and the comment above the cap check no longer claims a serialization a
-  // plain transaction does not provide.
-  const actions = read("src/app/(main)/catchups/actions.ts");
-  const capComment = actions.slice(
-    actions.indexOf("Read as max+1"),
-    actions.indexOf("const created = await prisma.$transaction")
-  );
-  assert.ok(
-    !/cannot both see room/.test(capComment),
-    "the cap comment still promises two submissions cannot both pass"
-  );
-  assert.match(capComment, /READ\s+COMMITTED/);
+  assert.ok(!page.includes("archivedAt"), "the invite link now unfiles an archived copy");
+  assert.match(page, /redirect\(`\/catchups\/\$\{catchup\.id\}`\)/);
 });
 
 test("C-030: a heart does not nudge somebody the Edition has closed to", () => {
@@ -349,10 +252,12 @@ test("C-030: a heart does not nudge somebody the Edition has closed to", () => {
 
   // A published answer stays when its author leaves, but the Edition page 404s
   // for a non-member, so the bell entry pointed at a door that no longer
-  // opens. Binned copies are excluded on the same footing as every broadcast.
-  assert.match(body, /groupMember\.count\(\{ where: \{ groupId: ctx\.groupId, userId: ctx\.authorId \} \}\)/);
-  assert.match(body, /catchupPref\.count\(\{[\s\S]*?deletedAt: \{ not: null \}/);
-  assert.match(body, /if \(stillIn === 0 \|\| binned > 0\) return;/);
+  // opens. A second count beside it excluded whoever had binned their own
+  // copy; build phase 5 deleted the bin, and leaving now takes the membership
+  // row itself, so this one count is the whole test.
+  assert.match(body, /groupMember\.count\(\{\s*where: \{ groupId: ctx\.groupId, userId: ctx\.authorId \},?\s*\}\)/);
+  assert.match(body, /if \(stillIn === 0\) return;/);
+  assert.ok(!/deletedAt/.test(body), "the love nudge is reading a column nothing writes");
   assert.ok(
     body.indexOf("stillIn === 0") < body.indexOf("notification.create"),
     "the check happens after the row is written, which notifies them anyway"

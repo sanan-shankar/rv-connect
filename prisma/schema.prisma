@@ -220,6 +220,7 @@ model User {
   catchupEntries  CatchupEntry[]     @relation("CatchupEntriesAuthored")
   catchupLoves    CatchupEntryLove[] @relation("CatchupLoves")
   catchupPrefs    CatchupPref[]      @relation("CatchupPrefs")
+  catchupReads    CatchupEditionRead[] @relation("CatchupEditionReads")
 
   contributions   Contribution[]     @relation("Contributions")
 
@@ -1107,11 +1108,42 @@ model CatchupEdition {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  catchup Catchup         @relation(fields: [catchupId], references: [id], onDelete: Cascade)
+  catchup Catchup             @relation(fields: [catchupId], references: [id], onDelete: Cascade)
   prompts CatchupPrompt[]
   entries CatchupEntry[]
+  reads   CatchupEditionRead[]
 
   @@unique([catchupId, number])
+}
+
+// Who has read which Edition (build phase 5, spec 3.9).
+//
+// One row per person per Edition, written when the reader opens a PUBLISHED
+// Edition. Its whole job is to let an unread Edition look different from a read
+// one on the list and on the home's covers, without anything counting anything
+// -- his standing objection is to counts, not to signals (R32).
+//
+// NOT ContentView, which already carries a (viewerId, kind "edition", targetId)
+// row written from the same page. That table is the admin analytics counter: it
+// is deliberately bounded, it has already had an index dropped and its columns
+// argued over for size, its `targetId` is not a foreign key ("one column cannot
+// reference five tables"), and it is written for an UNPUBLISHED Edition too. A
+// member-facing unread mark that shares fate with an analytics table is one
+// retention decision away from silently flipping every member's list.
+model CatchupEditionRead {
+  userId    String
+  editionId String
+  readAt    DateTime @default(now())
+
+  user    User           @relation("CatchupEditionReads", fields: [userId], references: [id], onDelete: Cascade)
+  edition CatchupEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
+
+  // The pair IS the identity; a surrogate id would be a column nothing selects.
+  @@id([userId, editionId])
+  // Postgres indexes the referencing side of a foreign key for nobody, and
+  // deleting an Edition would otherwise scan this whole table once per row. The
+  // user side is served by the primary key's leading column.
+  @@index([editionId])
 }
 
 model CatchupPrompt {
@@ -1177,23 +1209,26 @@ model CatchupPref {
   catchupId    String
   userId       String
   reminderMode String @default("all")       // "all" | "last" | "off"
-  // One member's own copy of this Catch-up, filed or thrown away. Both are
-  // PERSONAL by decision (owner, 2026-08-21): nobody else's view changes, so
-  // no member action can destroy something another member relies on. This row
-  // is already unique on (catchupId, userId) and cascades from both sides,
-  // which is why the state lives here rather than on Catchup or GroupMember --
-  // per-member state cannot leak across members by construction.
+  // One member's own copy of this Catch-up, filed away. PERSONAL by decision
+  // (owner, 2026-08-21): nobody else's view changes, so no member action can
+  // destroy something another member relies on. This row is already unique on
+  // (catchupId, userId) and cascades from both sides, which is why the state
+  // lives here rather than on Catchup or GroupMember -- per-member state
+  // cannot leak across members by construction.
+  //
+  // `deletedAt` WAS here, and the 30-day bin with it. Deleting became LEAVING
+  // in build phase 5 (his, N18: "defaults, except deleting becomes leaving"),
+  // so there is one exit -- `leaveCatchup`, which takes the membership row now
+  // rather than in thirty nights -- and one filing state, this one. The COLUMN
+  // is dropped in phase 11, after this deploys; nothing names it from here on,
+  // which is what makes that drop safe. Its index went with the nightly sweep
+  // that was its only reader (2026-09-08-leaving-and-the-read-mark.sql).
   archivedAt   DateTime?                    // tucked into "Archived" on /catchups; still a member, still notified
-  deletedAt    DateTime?                    // in "Recently deleted"; notifications stop, restorable for 30 days
 
   catchup Catchup @relation(fields: [catchupId], references: [id], onDelete: Cascade)
   user    User    @relation("CatchupPrefs", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([catchupId, userId])
-  // The nightly retention sweep's only predicate: find the copies whose 30 days
-  // are up. Partial would be tighter, but Prisma cannot express one and the
-  // table is one row per (member, Catch-up) they have an opinion about.
-  @@index([deletedAt])
   @@map("CatchupReminderPref") // see collision note above; legacy "CatchupPref" table has `optedOut boolean`, not `reminderMode`
 }
 

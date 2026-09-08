@@ -135,9 +135,15 @@ test("C-023: every path that removes a membership promotes first", async () => {
       `${label} promotes outside the transaction that removes the row`
     );
   }
-  // ...and the nightly sweep, which empties a bin the same way.
+  /* There was a THIRD path: the nightly sweep that emptied the thirty-day bin
+     took the membership row on the last night, and promoted a successor first
+     for the same reason. Build phase 5 deleted the bin (his, N18), so the
+     sweep is gone and retention removes no memberships at all. Pinned as an
+     absence: a sweep that starts removing them again must promote first, and
+     this is where that would be noticed. */
   const retention = read("./retention.ts");
-  const step = retention.slice(retention.indexOf('await step("catchupCopies"'));
-  assert.match(step, /promoteGroupSuccessor\(tx, row\.catchup\.groupId, row\.userId\)/);
-  assert.ok(step.indexOf("promoteGroupSuccessor") < step.indexOf("groupMember.deleteMany"));
+  assert.ok(
+    !retention.includes("groupMember.deleteMany"),
+    "the retention sweep removes memberships again; it must promote a successor first"
+  );
 });

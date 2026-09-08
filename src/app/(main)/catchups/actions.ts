@@ -69,7 +69,6 @@ import {
   deadlineIn,
   REMINDER_QUESTIONS_EXTENDED,
   resolveSpotify,
-  restoreOwnCatchupCopy,
   shiftEditionPatch,
   shiftPausedInstant,
   shouldExtendForTooFew,
@@ -576,10 +575,6 @@ export async function joinCatchupByToken(token: string) {
       create: { groupId: catchup.groupId, userId: session.user.id, role: "member" },
       update: {},
     });
-    // ...and out of their own bin, if they had put it there: rejoining
-    // something you binned must not leave the 30-day sweep armed (C-020).
-    await restoreOwnCatchupCopy(catchup.id, session.user.id);
-
     revalidatePath("/catchups");
     revalidatePath(`/catchups/${catchup.id}`);
     return { success: true as const, catchupId: catchup.id, groupName: catchup.group.name };
@@ -1733,8 +1728,11 @@ async function clearCatchupNotifications(userId: string, catchupId: string): Pro
 }
 
 /**
- * The gate the three personal-copy actions share: you must be in a Catch-up to
- * have a copy of it. Returns the two facts they need and nothing else.
+ * The gate a personal-copy action shares with the guards around it: you must
+ * be in a Catch-up to have a copy of it. Returns the three facts they need and
+ * nothing else. There were three such actions until build phase 5 took the bin
+ * away; `leaveCatchup` still asks the same two questions inline, and
+ * `batchYear` is here because it is what tells the two apart.
  */
 async function loadOwnCatchupCopy(catchupId: string, viewerId: string) {
   const ctx = await loadCatchupContext(catchupId, viewerId);
@@ -1766,7 +1764,7 @@ async function loadOwnCatchupCopy(catchupId: string, viewerId: string) {
 async function upsertCatchupPref(
   catchupId: string,
   userId: string,
-  data: { archivedAt?: Date | null; deletedAt?: Date | null }
+  data: { archivedAt?: Date | null }
 ): Promise<void> {
   try {
     await prisma.catchupPref.upsert({
@@ -1891,12 +1889,12 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
     });
 
     /* Being added puts the Catch-up back on your list. Without this, someone
-       who binned their copy and was later re-added would come back with the
-       stamp still on: the card would reappear in "Recently deleted" rather
-       than among their Catch-ups, and the nightly sweep would then quietly
-       remove them a second time from something they had just been invited
-       into. Their reminder setting is left alone -- that is a preference, not
-       a filing state.
+       who had filed their copy away before a Keeper took them out would come
+       back with the stamp still on, and an invitation they had just accepted
+       would land at the foot of the list rather than among their Catch-ups.
+       Their reminder setting is left alone -- that is a preference, not a
+       filing state. (This cleared the thirty-day bin too, until build phase 5
+       deleted it.)
 
        Scoped to the people this call actually ADDED, never to everyone named
        in it. Archiving and deleting are personal by the owner's decision, and
@@ -1909,12 +1907,8 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
     const newlyAdded = real.map((u) => u.id).filter((id) => !alreadyIn.has(id));
     if (newlyAdded.length > 0) {
       await prisma.catchupPref.updateMany({
-        where: {
-          catchupId,
-          userId: { in: newlyAdded },
-          OR: [{ archivedAt: { not: null } }, { deletedAt: { not: null } }],
-        },
-        data: { archivedAt: null, deletedAt: null },
+        where: { catchupId, userId: { in: newlyAdded }, archivedAt: { not: null } },
+        data: { archivedAt: null },
       });
     }
 
@@ -1974,12 +1968,19 @@ export async function removeCatchupMember(catchupId: string, userId: string) {
 }
 
 /**
- * Leave a Catch-up you were put into.
+ * Leave a Catch-up you were put into. Since build phase 5 this is the ONLY way
+ * out, which is his word: "defaults, except deleting becomes leaving" (N18).
  *
  * Nobody accepts an invitation to a Catch-up: `createCatchupWithPeople` and
  * `addCatchupMembers` enrol up to a hundred people directly, and until this
  * existed the only way out was to ask a Keeper to remove you, because
  * `removeCatchupMember` refuses self-removal by design (bug audit B-063).
+ *
+ * It happens NOW rather than in thirty nights. The bin that `setCatchupDeleted`
+ * opened was leaving with a fuse on it -- a member who thought they had
+ * deleted something stayed in the group for a month, out of every broadcast,
+ * and was then removed by a nightly sweep nobody was watching. One verb, one
+ * moment, and a confirmation that says what it does.
  *
  * Your words stay where they are. A published Edition is a keepsake the whole
  * group has read, and pulling one person's answers out of it afterwards would
@@ -2076,57 +2077,14 @@ export async function setCatchupArchived(catchupId: string, archived: boolean) {
   });
 }
 
-/**
- * Throw your own copy of a Catch-up away, or take it back out of the bin.
- *
- * Only your copy. Nobody else's view changes, and nothing anyone else relies
- * on is destroyed -- the owner was offered the Keeper-only variant that
- * soft-deletes the shared Catch-up for everyone, and declined it (2026-08-21).
- *
- * Deleting stops this Catch-up's notifications to you at once and clears the
- * ones already waiting. After `RECENTLY_DELETED_DAYS` the nightly retention
- * sweep takes your `GroupMember` row for real, so delete is the gentle version
- * of leaving: same destination, with a month to change your mind. The
- * confirmation copy says exactly that, because a bin that quietly removes you
- * from a group in thirty days is not what "delete" usually promises.
- *
- * Refused for whoever started it, for the same reason `leaveCatchup` is: the
- * sweep would strip the founder's membership row and leave a Catch-up whose
- * Keeper cannot open it. Archiving is open to them, and so is ending it.
- */
-export async function setCatchupDeleted(catchupId: string, deleted: boolean) {
-  return runAction(async () => {
-    const session = await auth();
-    if (!session?.user?.id) return { error: "Not authenticated" };
-    if (IS_DEMO) return { error: DEMO_SHARED_COPY_REFUSAL };
-    if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
-    if (typeof deleted !== "boolean") return { error: "Invalid request." };
-    const viewerId = session.user.id;
-
-    const copy = await loadOwnCatchupCopy(catchupId, viewerId);
-    if ("error" in copy) return { error: copy.error };
-    /* Deleting is leaving with a thirty-day fuse -- the sweep takes the
-       GroupMember row at the end of it -- so a batch Catch-up refuses it for
-       exactly the reason `leaveCatchup` does. Restoring (deleted === false) is
-       always allowed: a row stamped before this guard existed must still be
-       recoverable. */
-    if (deleted && isBatchCatchup(copy.batchYear)) {
-      return { error: BATCH_LEAVE_REFUSAL };
-    }
-    if (deleted && copy.createdById && copy.createdById === viewerId) {
-      return {
-        error:
-          "You started this Catch-up. Archive it to tidy your list, or end it for everyone.",
-      };
-    }
-
-    await upsertCatchupPref(catchupId, viewerId, { deletedAt: deleted ? new Date() : null });
-    if (deleted) await clearCatchupNotifications(viewerId, catchupId);
-
-    revalidatePath("/catchups");
-    return { success: true as const, deleted };
-  });
-}
+/* `setCatchupDeleted` stood here: your own copy into a thirty-day bin, out of
+   which the nightly sweep took your membership row on the last night.
+   Deleting became LEAVING in build phase 5, and it is one word of his (N18):
+   "defaults, except deleting becomes leaving." What you already published
+   STAYS -- other people have read it and replied to it -- and the bin went
+   with the word. `leaveCatchup` above is now the only exit, which is why its
+   batch refusal and its founder refusal matter more than they did: they were
+   duplicated here, and there is nowhere else left holding them. */
 
 /**
  * Keeper-only: hand someone else the Keeper's hat, or take it back.

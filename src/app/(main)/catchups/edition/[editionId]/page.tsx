@@ -42,6 +42,7 @@ import { QuestionSection } from "@/components/catchups/edition/question-section"
 import { EditionFooterTease } from "@/components/catchups/edition/footer-tease";
 import { NotYetPublished } from "@/components/catchups/edition/not-yet-published";
 import { recordView } from "@/lib/content-view";
+import { markEditionRead } from "@/lib/catchup-reads";
 
 const LIGHT_EDITION_SELECT = {
   id: true,
@@ -185,6 +186,14 @@ export default async function EditionPage({
       />
     );
   }
+
+  /* The read mark (spec 3.9), and it is written HERE rather than beside
+     recordView above: an Edition you deep-linked while it was still collecting
+     is not one you have read, and marking it would leave it looking read on
+     the day it finally comes out. `after()` for the same reason recordView
+     uses it -- neither is worth a millisecond of the render. */
+  const viewerId = session.user.id;
+  after(() => markEditionRead(viewerId, edition.id));
 
   // Published: now, and only now, load every prompt/entry/love. Shared with
   // the Catch-up home, which reads the same Edition inline — including the

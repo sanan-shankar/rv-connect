@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { Wordmark } from "@/components/layout/peaks-mark";
-import { isMissingCatchupTable, restoreOwnCatchupCopy } from "@/lib/catchups";
+import { isMissingCatchupTable } from "@/lib/catchups";
 import { AcceptInvite } from "@/components/catchups/join/accept-invite";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 
@@ -103,14 +103,12 @@ export default async function JoinCatchupPage({
       select: { id: true },
     });
     if (membership) {
-      /* Following your own invite link is an explicit "take me back into
-         this", so it disarms the bin on the way through (audit C-020).
-         Written during a render, which is normally a thing to avoid -- it is
-         allowed here because it is idempotent, touches only the caller's own
-         preference row, and there is no other moment to catch: the redirect
-         below means the join action never runs for someone already a
-         member. */
-      await restoreOwnCatchupCopy(catchup.id, session.user.id);
+      /* This used to disarm the member's own thirty-day bin on the way
+         through (audit C-020), because the redirect below means the join
+         action never runs for somebody already a member. Build phase 5
+         deleted the bin: leaving takes the membership row itself, so anyone
+         this branch can see is simply in the Catch-up already. An ARCHIVED
+         copy stays archived, as it always did. */
       redirect(`/catchups/${catchup.id}`);
     }
   }
