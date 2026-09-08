@@ -4631,3 +4631,75 @@ photograph from the end-to-end test rather than its backfilled pool pick. Deleti
 was refused by the sandbox, and a row pointing at it is better than an orphan nothing can
 enumerate; it is a throwaway Catch-up that phase 11 removes anyway, and it should take the object
 with it.
+
+
+## 2026-09-08 — build phase 4: the batch Catch-up, and a sidebar row that has to earn itself
+
+Phase 4 of eleven, `docs/planning/catchups-rework/spec.md` §3.5 and §3.5b. His, from the paragraph
+the whole feature comes from: *"anyone in that batch is automatically added to that catch-up, can
+see the history of rounds ... This batch catch-up should exist by default"*, and *"the batch catch
+up can't edit people in and out it's just people in that batch."*
+
+**Nothing was modelled.** A batch was already a `Group` with `batchYear` set and a Catch-up was
+already one row per `Group`, so the whole phase is rows, guards and one predicate: no schema
+change and no `prisma generate`. That is worth saying because the obvious reading of "a batch
+Catch-up" is a new kind of thing, and it is not one.
+
+**Two Catch-ups now exist that never did**, not eleven. Ten is his floor, 2026-09-08: *"for people
+whose batches have less than ten people, let's not even show the catch ups things in the sidebar.
+it won't be reachble to them. once there's ten it appears and the catch up would be created for
+that batch."* Measured against the live database: eleven batch groups, of which 2023 holds 39
+members and 2024 holds 11. Nine of the other batches hold four or fewer and six hold exactly one,
+so under any smaller floor most batch Catch-ups would have been a newsletter to yourself, with
+reminders.
+
+**The 2024 one was adopted rather than duplicated, and the assertion is the point of the file.**
+A 2024 alumnus had made a "Batch of 2024" Catch-up through `/catchups/new` back in August, which
+always mints a NEW group — so it sat on an 11-person snapshot with no `batchYear` while the real
+batch group had no Catch-up at all. One migration, in this order: heal the memberships, ASSERT that
+every snapshot member is in the real group, then re-point `Catchup.groupId`. Re-pointing a Catch-up
+at a different group changes who can read it, so if that subset ever failed to hold the whole file
+would abort rather than quietly take somebody's access away. It kept its published Edition, its 8
+answers and its 8 questions exactly where they were, and it handed two 2024 alumni an Edition they
+were never in — which is the brief's *"access to previous issues if they join later"* arriving for
+the first people it was ever true of. Rehearsed on both projects inside a transaction that rolled
+back before anything was applied for real.
+
+**The membership heal fixed a failure the code had predicted about itself.** `registerUser` calls
+`joinBatchGroup` in a best-effort block, and the comment beside it said, in as many words, that
+nothing anywhere re-checks *"an alumnus with a batchYear and no batch-group row"*. One member was
+in that state: Rukmini Rau, batch 2024, absent from her own batch group since signup. She is in it
+now, and the tick has a nightly pass so the next one lasts a day rather than for ever.
+
+**A batch Catch-up carries two NULLs on purpose.** `createdById`, because nobody keeps one, and
+`inviteToken`, because there is nobody to invite — the membership IS the batch. The second is what
+closes the invite-link door on it and why the roster shows no link.
+
+**The refusals are rules rather than accidents, and that distinction is the work.** Nobody could
+have passed the Keeper check on a batch group anyway: `createdById` is null and every role in one
+is `"member"`. But that is a property of today's data, not a guarantee, and one mis-aimed
+`setCatchupKeeper` would end it. So both Keeper preambles refuse a batch BEFORE they ask who the
+Keeper is, which covers all thirteen controls that come through them in one place, and the two
+exits refuse it by name. Leaving would have been undone by the nightly heal putting the person
+straight back, so refusing is the honest answer rather than the strict one. Neither screen offers
+what the server refuses: no Leave row in the roster, no Delete in the card menu, and the settings
+dialog comes out as the Picture row alone — which is the previous phase's `canChangePicture`
+/`isKeeper` split working exactly as it was built to, with nothing touched.
+
+**The sidebar row now has to earn itself, and the test is not the obvious one.** His reason for
+hiding it is *"it won't be reachble to them"* — hide the door when there is nothing behind it. The
+obvious implementation is "is your batch big", and it would have been wrong: a member of a small
+batch can still be invited to a Catch-up somebody else started, and two live accounts prove it is
+not hypothetical, including the public demo's visitor. So the predicate is **"can you open at
+least one Catch-up"**, one `findFirst` in the authenticated layout, inside the `Promise.all` that
+was already waiting on the notification count. 0.117ms execution and 2.1ms planning on the live
+database; skipped entirely for teachers, who were already out. Measured across all seventy
+members: **51 now see Catch-ups, 15 lose the row, 4 teachers were already hidden.** Before this,
+only the members of a hand-made Catch-up had anything there at all.
+
+And it defaults to showing. A missing prop that hides a whole feature is a worse failure than one
+that shows an empty state, and hiding a door was never the access control — the membership check
+is, and it is unchanged.
+
+`npm run check` 109/109. `npm run visual` 25/25 with no baseline moved, which is the correct
+result: nothing was redrawn.

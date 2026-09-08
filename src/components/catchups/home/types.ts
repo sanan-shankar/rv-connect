@@ -95,6 +95,13 @@ export type CatchupHomeData = {
    *  yet -- the head is build phase 7 -- but the settings row that changes it
    *  ships in phase 3, and it has to show what it is changing. */
   picture: { src: string; focus: string };
+  /** Is this the batch's own Catch-up? `Group.batchYear` is the whole test
+   *  (F6). It runs on its rhythm and the only things anyone does on one are
+   *  ask and answer (architecture 6, his correction N30), so this screen shows
+   *  no way to leave it, no invite link, and none of the Keeper's controls.
+   *  Every one of those is refused server-side too; this decides what is
+   *  OFFERED, never what is allowed. */
+  isBatch: boolean;
   members: HomePersonRef[];
   viewer: {
     id: string;

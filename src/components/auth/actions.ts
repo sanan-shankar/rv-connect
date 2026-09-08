@@ -15,6 +15,7 @@ import { mintHumanPass } from "@/lib/human-pass";
 import { hasPassedTrivia } from "./trivia-actions";
 import { reportSwallowed } from "@/lib/report-error";
 import { isUniqueViolation } from "@/lib/prisma-errors";
+import { joinBatchGroup } from "@/lib/batch-catchups";
 
 export async function registerUser(formData: FormData) {
   // The trivia gate is enforced server-side: a valid signed pass cookie must be
@@ -184,13 +185,17 @@ export async function registerUser(formData: FormData) {
      a launch-day burst left that member out of their batch permanently, with
      no witness but a Vercel log line.
 
-     What that costs, honestly, is nothing a member can see TODAY. Batch
-     targeting does not go through this row: `batchScopeWhere` matches
-     Post.targetBatches against the viewer's own batch key, and a post cannot
-     be scoped to a group at all any more. So a self-heal would be
-     repairing something nothing reads. The report is the right size of fix: if
-     the batch group ever becomes load-bearing again, the failures are already
-     visible rather than needing to be discovered. */
+     THE SELF-HEAL NOW EXISTS, and this row is now load-bearing. Build phase 4
+     made the batch group the container of the batch's own Catch-up, so a
+     member missing from it is a member missing from the Catch-up they are
+     supposed to be in by default -- and it had already happened once, to one
+     2024 alumna. `healBatchGroupMemberships` in batch-catchups.ts is the
+     nightly re-check the previous version of this comment said did not exist.
+     The report stays: the heal fixes it by tomorrow, the report says it
+     happened tonight.
+
+     `joinBatchGroup` also makes sure the batch has its Catch-up, which is why
+     the tenth member of a batch signing up is the moment one appears. */
   if (isAlum && batchYear != null) {
     try {
       await joinBatchGroup(user.id, batchYear);
@@ -217,55 +222,4 @@ export async function registerUser(formData: FormData) {
   await mintHumanPass(user.email);
 
   return { success: true, email: parsed.data.email };
-}
-
-/**
- * Find-or-create the "Batch of {year}" group and add the user as a member.
- *
- * The batch's identity is `Group.batchYear`, which is unique, NOT its name.
- * This used to be a findFirst-by-name then create with nothing constraining it:
- * two members of the same batch registering in the same second both missed the
- * read and both created "Batch of 2010", after which every later signup landed
- * in whichever one the unordered findFirst returned. The batch was permanently
- * split into two groups whose members could not see each other, and launch day
- * is exactly the concurrency spike that needs (bug audit B-121).
- *
- * So: try to create, and let the LOSER of the race be told by the database
- * rather than by a read it did a moment earlier. Same shape createCatchupWithPeople uses.
- *
- * The group has no creator. Everyone joins as a plain member, the first person
- * included, so creatorId would only have recorded who signed up first -- while
- * making their account deletion look like it owned the batch.
- *
- * Idempotent on membership via the GroupMember (groupId, userId) unique, so
- * re-running is safe.
- */
-async function joinBatchGroup(userId: string, batchYear: number) {
-  const find = () => prisma.group.findFirst({ where: { batchYear }, select: { id: true } });
-
-  let group = await find();
-  if (!group) {
-    try {
-      group = await prisma.group.create({
-        data: {
-          name: `Batch of ${batchYear}`,
-          batchYear,
-          creatorId: null,
-        },
-        select: { id: true },
-      });
-    } catch (err) {
-      if (!isUniqueViolation(err)) throw err;
-      // Somebody else from this batch created it between our read and our
-      // write. Their row is the batch's group; join that one.
-      group = await find();
-      if (!group) throw err;
-    }
-  }
-
-  await prisma.groupMember.upsert({
-    where: { groupId_userId: { groupId: group.id, userId } },
-    create: { groupId: group.id, userId, role: "member" },
-    update: {},
-  });
 }

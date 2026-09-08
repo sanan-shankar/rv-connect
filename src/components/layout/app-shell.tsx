@@ -19,6 +19,7 @@ export function AppShell({
   user,
   unreadCount,
   demo = false,
+  hasCatchup = true,
   notice,
   children,
 }: {
@@ -35,6 +36,9 @@ export function AppShell({
    *  inlines as undefined in a client bundle: the Sidebar below is a client
    *  component and would silently see `false` if it imported the flag. */
   demo?: boolean;
+  /** Passed straight through to the Sidebar, which explains it: does this
+   *  member have a Catch-up to open, and therefore a Catch-ups row? */
+  hasCatchup?: boolean;
   children: React.ReactNode;
 }) {
   /* A flex COLUMN below md, a row from md up, and `dvh` rather than `screen`.
@@ -62,7 +66,7 @@ export function AppShell({
         style={{ backgroundImage: "url(/images/landing.jpeg)" }}
       />
       <KonamiEggs />
-      <Sidebar user={user} unreadCount={unreadCount} demo={demo} />
+      <Sidebar user={user} unreadCount={unreadCount} demo={demo} hasCatchup={hasCatchup} />
       {/* No bottom padding on mobile any more. The `pb-16` here reserved 64px
           for "the fixed bottom tab bar", and there is no bottom tab bar: the
           mobile navigation is the drawer behind the header. So every page on a

@@ -24,6 +24,7 @@ import {
   isEffectiveKeeper,
   isMissingCatchupTable,
   mayChangeCatchupPicture,
+  isBatchCatchup,
   catchupDisplayName,
   type AdvanceEditionInput,
 } from "@/lib/catchups";
@@ -378,6 +379,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     nextOpensAt: catchup.nextOpensAt?.toISOString() ?? null,
     catchupStatus: catchup.status as CatchupStatus,
     picture: { src: catchup.pictureSrc, focus: catchup.pictureFocus },
+    isBatch: isBatchCatchup(catchup.group.batchYear),
     members,
     viewer: {
       id: viewerId,

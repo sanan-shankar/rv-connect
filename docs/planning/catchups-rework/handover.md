@@ -185,7 +185,7 @@ too, which he allowed in ¶28.
 | **The list, when it has room to spare** | OPEN | **Decided by him 2026-09-07, drawn by nobody yet.** See "The list's spare slots" below. Scheduled: `spec.md` §5 puts it inside build phase 6, with the list, because it is a rule about what fills that grid rather than a surface of its own |
 | S3b Second round | OPEN | only if he asks for one after browsing the shape |
 | S5 Pick and spec | DONE | 2026-09-08. [`spec.md`](spec.md): the data changes as dated idempotent files, the Round -> Edition rename as one pass, eleven build phases plus track X, the three undrawn surfaces called before-or-inside, and ¶1 to ¶52 mapped. Owner questions 19, 20 and 21 are new and are below. It does NOT redraw anything: `architecture.md` is still the design |
-| S6+ Build | **PARTIAL** | **Phases 1, 2 and 3 of eleven are DONE**, 2026-09-08. **Phase 1**, the Round -> Edition rename: one pass, `npm run visual` 25/25 with no baseline moved, the route moved with a permanent 308, `roundLabel()` deleted, the admin room keeping its numbers by his decision. **Phase 2, the clock**: `preparing` deleted (N88) so answering goes straight to published in one transition; every deadline snapped to **07:00 IST**, which is the hour `vercel.json`'s 02:00 UTC tick catches within thirty minutes, pinned by a test that reads `vercel.json`; and **Start the next Edition now** added (N43), the one-way control in the rail with a cinnamon dot and a confirmation, sharing `openNextEdition` with the clock. Three commits. Two files the spec listed for deletion SURVIVE, with the reason in each docblock: `almost-ready.tsx` is the P2021 holding scene on six routes, `not-yet-published.tsx` covers draft/collecting/answering deep links and was never the preparing screen. Phase 2's migration is a no-op backstop and **is applied to both projects** (0 preparing rows on each, counted first). `publishAt` the COLUMN is NOT dropped -- that is phase 11, after this deploys. **Phase 3, the picture**: two columns on `Catchup` (`pictureSrc`, `pictureFocus`), NOT NULL with a deterministic backfill in the same file, applied to BOTH projects; the pool moved out of the lab to `src/lib/catchup-pictures.ts`, so **his twenty are one edit and no migration**; both creation paths pick from it; `mayChangeCatchupPicture` written wide enough for phase 4 (anyone in a batch); and the settings row that opens a picker with a **Use your own** branch, driven end to end in a real browser — a pool pick wrote `center 81%` and an upload came back as a real R2 url. The aiming frame is the TIGHTEST band (1520x240), not the roomiest, which is the thing that had fooled two sessions. Nothing renders any of it: `npm run visual` 25/25, no baseline moved, which is the correct result. The purge learned about the column in the same commit. **Phases 4 to 11 open; track X may ship first and at any time**
+| S6+ Build | **PARTIAL** | **Phases 1, 2 and 3 of eleven are DONE**, 2026-09-08. **Phase 1**, the Round -> Edition rename: one pass, `npm run visual` 25/25 with no baseline moved, the route moved with a permanent 308, `roundLabel()` deleted, the admin room keeping its numbers by his decision. **Phase 2, the clock**: `preparing` deleted (N88) so answering goes straight to published in one transition; every deadline snapped to **07:00 IST**, which is the hour `vercel.json`'s 02:00 UTC tick catches within thirty minutes, pinned by a test that reads `vercel.json`; and **Start the next Edition now** added (N43), the one-way control in the rail with a cinnamon dot and a confirmation, sharing `openNextEdition` with the clock. Three commits. Two files the spec listed for deletion SURVIVE, with the reason in each docblock: `almost-ready.tsx` is the P2021 holding scene on six routes, `not-yet-published.tsx` covers draft/collecting/answering deep links and was never the preparing screen. Phase 2's migration is a no-op backstop and **is applied to both projects** (0 preparing rows on each, counted first). `publishAt` the COLUMN is NOT dropped -- that is phase 11, after this deploys. **Phase 3, the picture**: two columns on `Catchup` (`pictureSrc`, `pictureFocus`), NOT NULL with a deterministic backfill in the same file, applied to BOTH projects; the pool moved out of the lab to `src/lib/catchup-pictures.ts`, so **his twenty are one edit and no migration**; both creation paths pick from it; `mayChangeCatchupPicture` written wide enough for phase 4 (anyone in a batch); and the settings row that opens a picker with a **Use your own** branch, driven end to end in a real browser — a pool pick wrote `center 81%` and an upload came back as a real R2 url. The aiming frame is the TIGHTEST band (1520x240), not the roomiest, which is the thing that had fooled two sessions. Nothing renders any of it: `npm run visual` 25/25, no baseline moved, which is the correct result. The purge learned about the column in the same commit. **Phase 4, the batch Catch-up**: two Catch-ups exist that never did, on the two batch groups at or over the floor of ten -- Batch of 2023 (39) and Batch of 2024 (11, now 12). The 2024 one was ADOPTED rather than duplicated: one migration heals the memberships, ASSERTS the subset relation, then re-points `Catchup.groupId` at the real batch group, so its published Edition, 8 answers and 8 questions stayed exactly where they were and two 2024 alumni were handed an Edition they were never in. `createdById` and `inviteToken` are NULL on both: nobody keeps one and there is nobody to invite. Both Keeper preambles (`loadKeeperScope`, `loadKeeperEdition`) refuse a batch BEFORE they ask who the Keeper is, and `leaveCatchup` and `setCatchupDeleted` refuse it by name, so there are no manual transitions, no member editing and no way out but archiving. `joinBatchGroup` moved to `src/lib/batch-catchups.ts` and now ensures the Catch-up, which makes the tenth signup of a batch the moment one appears; the tick gained two idempotent self-heal passes that run on the CRON sweep only, never on a page view. **The sidebar's test is 'have you got a Catch-up', not 'is your batch big'** (spec 3.5b RECOMMENDED): measured on the live database, 51 of 70 members now see the row, 15 lose it and 4 teachers were already out. Applied to BOTH projects; a genuine no-op on the demo, which has no batch groups. `npm run visual` 25/25, no baseline moved. **Phases 5 to 11 open; track X may ship first and at any time**
 | M1 Magazine design | OPEN | unblocked. D27 is answered in `recon.md` section 6: photographs are boxed to 1920px, which is 164 dpi at A4 full-bleed |
 | M2+ Magazine build | OPEN | blocked on M1 |
 | X Fast fixes | OPEN | unblocked. Root causes for R6/F8, I9, R4, V1 and R13 are in `recon.md`; V2 and V3 need a real iPhone first |
@@ -2394,32 +2394,138 @@ Gate 108/108, seven green. `npm run visual` 25/25.
 
 ---
 
+### 2026-09-08, S9, build phase 4: the batch Catch-up (Opus 5, one hand, no fan-out)
+
+`spec.md` §3.5 and §3.5b, `architecture.md` §6. His, brief 4 and 51: *"anyone in that batch is
+automatically added to that catch-up ... This batch catch-up should exist by default"*, and *"the
+batch catch up can't edit people in and out."*
+
+**Nothing was modelled.** A batch was already a Group with `batchYear` set and a Catch-up was
+already one row per Group (F6), so the whole phase is rows, guards and one predicate. No schema
+change, no Prisma edit, no `prisma generate`.
+
+**Two Catch-ups now exist that never did**, not eleven: Batch of 2023 (39 members) and Batch of
+2024 (11, 12 after the heal). Nine of the eleven batch groups hold four members or fewer and six
+hold exactly one, so under any smaller floor most batch Catch-ups would be a newsletter to
+yourself, with reminders. Ten is his number.
+
+**The 2024 one was adopted, not duplicated, and the assertion is the point.** F17's snapshot group
+(a 2024 alumnus made it through `/catchups/new`, which always mints a new group) is now the thing
+the Catch-up used to sit on, and the Catch-up sits on the real batch group. One migration, in
+order: heal the memberships, ASSERT that every snapshot member is in the real group, then
+re-point. Re-pointing changes who can read a thing, so the file aborts rather than quietly taking
+somebody's access away. Rehearsed on both projects inside a transaction that rolled back before
+it was applied for real: 1 membership healed, 1 re-point, 1 Catch-up, 1 Edition on production;
+four zeroes on the demo. Its published Edition, 8 answers and 8 questions did not move, and two
+2024 alumni were handed an Edition they were never in, which is ¶4's *"access to previous issues
+if they join later"* arriving for the first people it was ever true of.
+
+**A batch Catch-up carries two NULLs on purpose.** `createdById`, because nobody keeps one, and
+`inviteToken`, because there is nobody to invite: the membership IS the batch. The second is what
+closes `joinCatchupByToken` on it and why the roster shows no invite link.
+
+**The refusals are rules, not accidents.** Nobody could have passed the Keeper check on a batch
+group anyway -- `createdById` is null and every role in one is `"member"` -- but that is a property
+of today's data, and one `setCatchupKeeper` against the wrong group would end it. So both Keeper
+preambles refuse a batch BEFORE they ask who the Keeper is, which covers all thirteen controls
+that come through them in one place, and `leaveCatchup` and `setCatchupDeleted` refuse it by name.
+Leaving would have been undone by the nightly heal putting them straight back, so refusing is the
+honest answer rather than the strict one. Neither screen offers what the server refuses: no Leave
+row in the roster, no Delete in the card menu. **The settings dialog was not touched** and on a
+batch it comes out as the Picture row alone, which is phase 3's `canChangePicture`/`isKeeper`
+split working exactly as it was built to.
+
+**Three creation paths, plus the backfill, and only one of them is the primary one today.**
+`joinBatchGroup` moved out of `src/components/auth/actions.ts` into `src/lib/batch-catchups.ts`
+(a `"use server"` file may export nothing but server actions, and the tick needs it too) and now
+ensures the Catch-up, so **the tenth person of a batch signing up is the moment one appears**.
+The tick's two passes are the belt: every alumnus with a batch year is in their batch group, then
+every batch group at or over the floor has a Catch-up, in that order because healing a membership
+can be what carries a batch over. They run on the UNSCOPED cron sweep only -- both scan a whole
+table, and `advanceDueCatchups` fires on essentially every authenticated page view. **Measured, and
+it changes which path matters**: `/api/catchups/tick` requires `CRON_SECRET`, which he has not set,
+so the nightly cron 401s today and the signup path is doing the work. The heal starts earning its
+keep the day that secret lands.
+
+**The backfill does not notify anybody, and that is a decision.** `ensureBatchCatchup` does, because
+a batch reaching ten is a real event at a real moment. The migration is not that: it is two batches
+that crossed the floor months ago, at whatever hour he happens to apply it, and 51 bells is not the
+place to say "a thing that should always have existed now does". They find it on their list.
+
+**The sidebar's test is "have you got a Catch-up", not "is your batch big"** (spec 3.5b
+RECOMMENDED). His reason for hiding it is *"it won't be reachble to them"* -- hide the door when
+there is nothing behind it -- and a strict batch-size test would have deleted Catch-ups from the
+sidebar of two live accounts that can open one: Jerry, who has no batch year at all and is in two,
+and the demo's visitor. One `findFirst` in the layout, inside the Promise.all that was already
+waiting, measured at 0.117ms execution and 2.1ms planning on the semi-join; skipped entirely for
+teachers, who were already out. `hasCatchup` defaults to TRUE so a caller that forgets it shows the
+row rather than hiding a feature. Measured on the live database: **51 of 70 members now see
+Catch-ups, 15 lose the row, 4 teachers were already hidden.** Before this, only people-Catch-up
+members had anything there.
+
+**Verified in a real browser at both viewports**, signed in as the owner's own account, which is
+batch 2023 and therefore a member of the new Catch-up. The batch card's overflow menu offers
+Archive and nothing else; the home offers the composer, the roster, reminders and Settings and not
+one Keeper control; the roster dialog has no Leave and no invite link; the settings dialog is the
+Picture row alone. One transient `Query read timeout` appeared on `/catchups` in 1 of 3 mobile
+runs and did not reproduce in four further runs across three routes -- the list's own member
+fan-out measures 0.4ms on the database, so it is a cold pool reaching Mumbai from a dev server, not
+this change.
+
+`npm run check` 109/109, seven green. `npm run visual` 25/25, no baseline moved -- correct, because
+nothing about the list or the home was redrawn.
+
+**One thing found and fixed on the way, in its own commit**: phase 3's picture picker shipped a
+`sr-only` file input, which the focus-edge gate walks for, so `npm run check` was already red at
+HEAD. It joined the borderless allowlist beside the two other hidden file inputs.
+
+**The write-path review found two things and both were true, and both were comments overclaiming
+rather than code being wrong.** It said the self-heal runs on `/admin/catchups` too, not only on
+the cron -- checked, and it does: that page calls `advanceDueCatchups()` unscoped on purpose,
+because its job is to show every Catch-up's true state. Harmless (one person, both passes normally
+zero rows) but not what the comment said. So the comment is accurate now, and the test that
+claimed to pin it now actually does: it greps for every UNSCOPED caller and fails on a third one,
+which is the failure that would matter -- two table scans quietly added to a member-facing page.
+It also said `healBatchGroupMemberships` is not the "indexed read" its docstring claimed: checked,
+and `User.batchYear` and `User.accountType` carry no index, so the plan is a seq scan of `User`
+feeding a hash anti-join against memberships that ARE indexed. Measured: 0.35ms over 64 alumni.
+That is the right trade -- an index to serve one nightly pass would cost every signup a write --
+but the docstring says what actually happens now.
+
+---
+
 ## What to paste next
 
-**Phases 1, 2 and 3 are DONE (2026-09-08). The next session is BUILD PHASE 4, the batch Catch-up.**
-`spec.md` §9 has eleven phases; §3.5 and §3.5b are phase 4's authority, with `architecture.md` §6
-for what a batch Catch-up may and may not do. Track X (the fast fixes) is independent and may ship
-before, after or beside it.
+**Phases 1, 2, 3 and 4 are DONE (2026-09-08). The next session is BUILD PHASE 5, leaving and the
+read mark.** `spec.md` §9 has eleven phases; §3.6 and §3.9 are phase 5's authority. Track X (the
+fast fixes) is independent and may ship before, after or beside it.
 
 **Nothing is owed to the database.** Every migration this campaign has written is applied to both
 Supabase projects as of 2026-09-08: phase 1's `round-becomes-edition` (61 bell links, 17 view
-rows), phase 2's `preparing-becomes-published` (a no-op backstop, 0 rows on each) and phase 3's
-`catchup-picture` (6 rows backfilled on production, 0 on the demo). The five refactor-audit drops
-went with them. The only thing still deliberately unrun is the phase 11 cleanup, which does not
-exist yet.
+rows), phase 2's `preparing-becomes-published` (a no-op backstop, 0 rows on each), phase 3's
+`catchup-picture` (6 rows backfilled on production, 0 on the demo) and phase 4's `batch-catchups`
+(1 membership healed, 1 Catch-up adopted, 1 created, 1 Edition on production; a clean no-op on the
+demo). The five refactor-audit drops went with them. The only thing still deliberately unrun is
+the phase 11 cleanup, which does not exist yet.
 
-**Two things are his, and neither blocks phase 4.** The **twenty photographs** — the pool is now
+**Two things are his, and neither blocks phase 5.** The **twenty photographs** -- the pool is
 `src/lib/catchup-pictures.ts` and dropping them in is ONE edit to that array and no migration;
 measured guidance is in "The twenty photographs" below, and the six stand-ins ship until they
-arrive — and the **settings surface**, which he has claimed for a session of his own (N100),
+arrive -- and the **settings surface**, which he has claimed for a session of his own (N100),
 scheduled before build phase 7 and carrying the confirmation dialogs with it.
+
+**One thing is owed by him and now has a consequence**: `CRON_SECRET` is still unset, so
+`/api/catchups/tick` 401s and the nightly sweep does not run. Phase 4 put two self-heal passes
+behind it. Nothing is broken -- the signup path creates batch Catch-ups and the lazy read-time
+advance still moves Editions -- but the heal that repairs a stranded member is asleep until he
+sets it.
 
 ### Paste this into a fresh Opus max session
 
 ```
 @docs/planning/catchups-rework/handover.md
 
-You are S9, build phase 4 of docs/planning/catchups-rework/spec.md.
+You are S10, build phase 5 of docs/planning/catchups-rework/spec.md.
 
 Read spec.md in full, then architecture.md in full. brief.md is the test the spec is
 measured against; read it if you find yourself exercising judgment rather than
@@ -2427,74 +2533,65 @@ executing. Everything else in docs/planning/catchups-rework/ is reference -- see
 much of this you actually have to read" near the top of the handover. Do not read
 directions.md.
 
-NOTHING IS OWED TO THE DATABASE. Every migration through phase 3 is applied to both
+NOTHING IS OWED TO THE DATABASE. Every migration through phase 4 is applied to both
 Supabase projects. Do not go looking for an unrun one.
 
-PHASE 4 IS THE BATCH CATCH-UP: spec.md 3.5 and 3.5b, with architecture.md 6 for what
-one may and may not do. His, para 4 and para 51: "anyone in that batch is automatically
-added to that catch-up, can see the history of rounds ... can participate in any future
-rounds ... This batch catch-up should exist by default", and "the batch catch up can't
-edit people in and out it's just people in that batch and they're all automatically
-added and have access to previous issues if they join later."
+ONE THING PHASE 4 LEFT FOR PHASE 6, flagged rather than fixed: the list page
+reads EVERY member of every group you are in, with no `take`, to draw a
+five-avatar cluster. That was fine when every Catch-up was a set of people you
+picked; a batch group is everyone from a year and it grows on its own. 39 rows
+and 0.4ms today, so nothing is wrong yet. The fix is not a bare `take` -- that
+is the 2026-08-04 bug where the viewer fell out of their own card -- it is the
+viewer's row plus a few others, and the comment in the file says so.
 
-  - THE CONTAINER ALREADY EXISTS and nothing about it changes (F6): a batch is a
-    Group with `batchYear` set, and a Catch-up is one row per Group. So "a batch
-    Catch-up by default" is one Catchup row per batch group, created in THREE
-    places: a backfill migration, `joinBatchGroup` at signup, and a self-heal in
-    the daily tick. The tick's two idempotent passes are in spec.md 3.5, and one
-    of them fixes a failure that HAS ALREADY HAPPENED -- Rukmini Rau carries
-    batchYear 2024 and is not in the Batch of 2024 group.
+PHASE 5 IS LEAVING AND THE READ MARK: spec.md 3.6 and 3.9.
 
-  - TEN IS THE FLOOR, and it is his, 2026-09-08: "for people whose batches have
-    less than ten people, let's not even show the catch ups things in the sidebar.
-    it won't be reachble to them. once there's ten it appears and the catch up
-    would be created for that batch." So the backfill creates TWO Catch-ups today,
-    not eleven: Batch of 2023 (39) and Batch of 2024 (11). Do not write eleven
-    anywhere. The sidebar predicate is spec.md 3.5b, and read the RECOMMENDED
-    paragraph there before you write it: a strict batch-size test would delete
-    Catch-ups from the public demo's sidebar.
+  - DELETING BECOMES LEAVING, and it is one word of his (N18): "defaults, except
+    deleting becomes leaving." What you already published STAYS -- other people
+    have read it and replied to it -- and the thirty-day bin goes with the word.
+    `CatchupPref.deletedAt`, `setCatchupDeleted`, the "Recently deleted" shelf in
+    `index/filed-away.tsx`, the 30-day retention sweep and `@@index([deletedAt])`
+    all go; `archivedAt`, `setCatchupArchived` and one quiet "Archived" row at the
+    foot of the list stay. The migration is
+    `UPDATE ... SET "archivedAt" = COALESCE("archivedAt", "deletedAt")` and then
+    the DROP, and the drop is phase 11, not this phase. ZERO ROWS are affected
+    today -- nobody has archived or binned a copy -- so the data half is a no-op
+    that exists so it cannot become one later.
 
-  - THE 2024 SNAPSHOT IS ADOPTED, NOT DUPLICATED, in the ordered three-step
-    migration in spec.md 3.5 -- heal the memberships, ASSERT the subset relation,
-    then re-point `Catchup.groupId`. It keeps its published Edition, its 8 answers
-    and its 8 questions, and it hands two 2024 alumni an Edition they were never
-    in, which is para 4's "access to previous issues if they join later" arriving
-    for the first person it was ever true of.
+  - PHASE 4 ALREADY TOUCHED BOTH EXITS. `leaveCatchup` and `setCatchupDeleted`
+    each refuse a batch Catch-up by name (`BATCH_LEAVE_REFUSAL`), and
+    `loadOwnCatchupCopy` carries `batchYear` for that reason. When
+    `setCatchupDeleted` is deleted, that refusal must not be deleted with it:
+    `leaveCatchup` becomes the only exit and it is the one that has to keep it.
+    `src/lib/batch-catchups.test.mjs` fails if either guard goes missing, and it
+    names the file it expects to find it in.
 
-  - A BATCH CATCH-UP HAS NO MANUAL TRANSITIONS AT ALL (architecture 6, and it is
-    his correction N30): nobody opens answering, nobody closes it, nobody
-    publishes, nobody renames it, nobody edits who is in it, nobody leaves. It
-    runs on its rhythm and the only things anyone does on one are ask and answer.
-    That is what makes "nobody keeps it" survivable. `createdById` is null.
+  - THE READ MARK is `CatchupEditionRead`, spec.md 3.9, and it is RECOMMENDED
+    rather than locked. Read that section's reasoning before choosing a shape.
 
-  - THE PICTURE GUARD IS ALREADY WRITTEN FOR YOU. `mayChangeCatchupPicture` in
-    catchups-core.ts already says "the Keeper, or anyone in a batch", and the home
-    already passes `canChangePicture` beside `isKeeper`. Phase 4 flips one boolean;
-    do not rewrite the rule. And DO NOT TIDY THE SETTINGS DIALOG the Picture row
-    sits in. That is the shipped bare-bones one, on purpose: the settings surface
-    is HIS, claimed for a session of his own (N100), scheduled before phase 7, and
-    phase 3 put the row in that dialog's existing grammar rather than inventing a
-    second one inside it. The picker, the aiming control and the action behind
-    them are finished work and survive that rework untouched.
-
-  - THE 100-PERSON CAP DOES NOT APPLY to a batch (spec.md 3.5). MAX_CATCHUP_PEOPLE
-    is the reach limit on a roster you assemble; a batch's membership is the batch.
+  - ARCHIVING IS A MEMBER'S OWN COPY and it is his WhatsApp model (para 5): "when
+    you archive, you don't see it in your main feed ... But I don't want to
+    fucking see archived things. And then there's a Put back button, which is
+    right there." One row at the foot, revealed the way the sidebar's own profile
+    menu reveals, and Put back only after you have opened it. On a batch Catch-up
+    archiving is the ONLY exit there is, so it must keep working there.
 
 Re-run node scripts/dev/export-catchups.mjs --write before any migration of your own.
 Never prisma db push. A column ADD deploys freely; only DROPs wait for a deploy, and
 they are phase 11.
 
-Phases 1 to 3 are done and are your vocabulary: the noun is Edition, there are no
+Phases 1 to 4 are done and are your vocabulary: the noun is Edition, there are no
 Edition numbers on any member-facing surface (the admin room keeps them, his
 decision), `preparing` does not exist, deadlines land on 07:00 IST via deadlineIn(),
-a Keeper can start the next Edition by hand from the rail, and every Catchup row
-carries `pictureSrc` and `pictureFocus` -- so a Catch-up you CREATE must pick one,
-with `pictureFor(seed)` from src/lib/catchup-pictures.ts, exactly as
-createCatchupWithPeople and the demo seed already do. A batch Catch-up made by SQL
-needs one too; the migration's own backfill pattern is in
-prisma/migrations-manual/2026-09-08-catchup-picture.sql.
+a Keeper can start the next Edition by hand from the rail, every Catchup row carries
+`pictureSrc` and `pictureFocus`, and TWO BATCH CATCH-UPS NOW EXIST -- Batch of 2023
+and Batch of 2024, with `createdById` and `inviteToken` null, no Keeper, no manual
+transitions and no way out but archiving. `isBatchCatchup(batchYear)` is the test and
+`BATCH_CATCHUP_FLOOR` is ten. The sidebar hides Catch-ups from anyone with none, and
+the predicate is "have you got a Catch-up", not "is your batch big" -- do not
+re-derive it as a batch-size test, and read spec.md 3.5b before touching it.
 
-Do not start phase 5. Do not redraw anything: /lab/catchups/sketches is the approved
+Do not start phase 6. Do not redraw anything: /lab/catchups/sketches is the approved
 design and it is transplanted, not re-derived. If a drawn decision looks wrong, say so
 in a sentence and let him decide.
 
@@ -2530,7 +2627,20 @@ How to work:
   flipped by `router.replace` (F43).
 - **A client-side link from `/lab` into `(main)` loses the app's layout** -- measured, `main` at
   left 0 instead of 248. Lab-only; use a plain `<a>` there and `next/link` in the real app.
-- **`npm run visual` was 25/25 green** at the end of phase 3, `/catchups` included.
+- **`npm run visual` was 25/25 green** at the end of phase 4, `/catchups` included.
+- **Two batch Catch-ups exist now** (phase 4): Batch of 2023 and Batch of 2024, `createdById` and
+  `inviteToken` NULL. `isBatchCatchup(batchYear)` is the whole test, `BATCH_CATCHUP_FLOOR` is ten,
+  and `src/lib/batch-catchups.ts` is where creation and the two self-heal passes live. Both Keeper
+  preambles in `actions.ts` refuse a batch before they ask who the Keeper is, which is what covers
+  all thirteen controls in one place; deleting either refusal is how a batch Catch-up quietly
+  acquires a Keeper.
+- **The Catch-ups sidebar row is now conditional.** The predicate is "can you open at least one
+  Catch-up", asked once in `(main)/layout.tsx` and passed down as `hasCatchup`, which DEFAULTS TO
+  TRUE so a caller that forgets it shows the row rather than hiding a feature. Hiding a door is not
+  access control: `/catchups` still renders for anyone signed in and the invite link still works.
+- **`CRON_SECRET` is still unset**, so `/api/catchups/tick` 401s and nothing on a schedule runs the
+  sweep. Everything still works through the lazy read-time advance and the signup path, but phase
+  4's self-heal passes only fire on the cron, so they are asleep until he sets it.
 - **A Catch-up cannot be created without a picture.** `Catchup.pictureSrc` is NOT NULL. It has a
   server-side DEFAULT so a build that forgets does not throw -- it quietly gives every new
   Catch-up the same photograph instead, which nothing would report. Any new creation path calls

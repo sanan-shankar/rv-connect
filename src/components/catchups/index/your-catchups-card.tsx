@@ -37,6 +37,10 @@ export type IndexCardView = CatchupIndexCard & {
    *  bin. Decides only what the card's menu OFFERS; the action refuses either
    *  way. */
   isCreator: boolean;
+  /** The batch's own Catch-up, which nobody leaves and nobody bins: the
+   *  membership IS the batch, and the nightly heal would restore anyone who
+   *  got out (spec 3.5). Archive still works; tidying a list is not leaving. */
+  isBatch: boolean;
 };
 
 export function YourCatchupsCard({ card }: { card: IndexCardView }) {
@@ -136,7 +140,7 @@ export function YourCatchupsCard({ card }: { card: IndexCardView }) {
           <CatchupCardMenu
             catchupId={card.catchupId}
             groupName={card.groupName}
-            canDelete={!card.isCreator}
+            canDelete={!card.isCreator && !card.isBatch}
           />
         )}
       </div>
