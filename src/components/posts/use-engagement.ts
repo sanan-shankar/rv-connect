@@ -46,17 +46,42 @@ type Options = {
   /** Flip on screen but write nothing. The demo's posts are read-only, and a
    *  heart that refuses to move reads as broken rather than as a demo. */
   skipAction?: boolean;
+  /** WHICH thing this tap is about -- a post id, a photograph id. The
+   *  in-flight guard is kept per subject, and the action is handed this back,
+   *  so one hook can serve a whole list of hearts.
+   *
+   *  Four of the five hearts are drawn by a component that IS one subject (a
+   *  card, a comment row, a letter), so their hook instance is one subject's
+   *  too and they leave this alone. The Collection is the exception and always
+   *  was: its viewer draws one heart for whichever of hundreds of photographs
+   *  is on screen, so a single hook instance serves the lot. */
+  subject?: string;
 };
 
 function useOptimistic<T>(
-  action: () => Promise<ToggleResult>,
+  action: (subject: string) => Promise<ToggleResult>,
   flip: (before: T) => T,
   settle: (before: T, result: ToggleResult) => T
 ) {
   /* A ref, not state: `disabled={busy}` binds on the NEXT render, so a
      double tap gets through it, and re-rendering merely to record that a
-     request is in the air would be a render nobody asked for. */
-  const busy = useRef(false);
+     request is in the air would be a render nobody asked for.
+
+     A SET of subjects, not one boolean, and that is a fix rather than a
+     generalisation. The guard is meant to refuse a second tap on the heart
+     that is already mid-flight; as one boolean it refused a tap on any OTHER
+     heart the same hook instance drew. The Collection has exactly one such
+     instance for the whole archive, so hearting a photograph and then swiping
+     to the next and hearting that one -- a second apart on a phone, well
+     inside one round trip -- silently dropped the second tap. The celebration
+     had already played (the button animates on press, not on the answer), so
+     the flecks flew and the heart stayed empty: "I get the celebration with
+     the heart, the heart didn't fill in" (owner, 2026-09-08, on an S23).
+
+     Held per subject it does what it always said it did. Callers that pass no
+     subject share the key "", which is the old behaviour exactly -- correct
+     for them, because their hook instance already only ever draws one. */
+  const busy = useRef(new Set<string>());
 
   /** Resolves with the state that STUCK, or undefined if nothing did -- the
    *  tap was refused as a double, or the action was and the flip rolled back.
@@ -67,13 +92,14 @@ function useOptimistic<T>(
     commit: (next: T) => void,
     opts?: Options
   ): Promise<T | undefined> {
-    if (busy.current) return undefined;
+    const subject = opts?.subject ?? "";
+    if (busy.current.has(subject)) return undefined;
     const optimistic = flip(before);
     commit(optimistic);
     if (opts?.skipAction) return optimistic;
-    busy.current = true;
+    busy.current.add(subject);
     try {
-      const result = await callAction(action);
+      const result = await callAction(() => action(subject));
       if (result.error) {
         commit(before);
         toast.error(result.error);
@@ -83,7 +109,7 @@ function useOptimistic<T>(
       commit(next);
       return next;
     } finally {
-      busy.current = false;
+      busy.current.delete(subject);
     }
   };
 }
@@ -91,7 +117,7 @@ function useOptimistic<T>(
 /** A heart, with its count. The count is put back where it BEGAN on a
  *  rollback rather than guessed at from a delta, which is why `before`
  *  carries both. */
-export function useHeartToggle(action: () => Promise<ToggleResult>) {
+export function useHeartToggle(action: (subject: string) => Promise<ToggleResult>) {
   return useOptimistic<{ liked: boolean; count: number }>(
     action,
     (before) => ({
@@ -103,7 +129,7 @@ export function useHeartToggle(action: () => Promise<ToggleResult>) {
 }
 
 /** A bookmark: the same choreography with nothing to count. */
-export function useBookmarkToggle(action: () => Promise<ToggleResult>) {
+export function useBookmarkToggle(action: (subject: string) => Promise<ToggleResult>) {
   return useOptimistic<boolean>(
     action,
     (before) => !before,

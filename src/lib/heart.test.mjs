@@ -66,10 +66,42 @@ test("C-010/C-133: the shared toggle is what actually guards and adopts", () => 
     "utf8"
   );
   assert.match(hook, /settledHeart\(before, result\.liked \?\? result\.loved\)/, "the hook ignores what the server said");
-  // One toggle in flight at a time: a ref the handler returns on, read and
-  // set in the same tick a second tap would arrive in.
-  assert.match(hook, /const busy = useRef\(false\);/, "the hook has no in-flight guard");
-  assert.match(hook, /if \(busy\.current\) return undefined;/, "the hook keeps a busy flag but does not act on it");
-  assert.match(hook, /busy\.current = true;/, "the hook never sets its guard");
-  assert.match(hook, /} finally \{\s*busy\.current = false;/, "the guard is not released in a finally, so one rejection wedges it shut");
+  // One toggle in flight PER SUBJECT: a ref the handler returns on, read and
+  // set in the same tick a second tap would arrive in. A Set, not a boolean --
+  // see below for what the boolean cost.
+  assert.match(hook, /const busy = useRef\(new Set<string>\(\)\);/, "the hook has no in-flight guard");
+  assert.match(hook, /if \(busy\.current\.has\(subject\)\) return undefined;/, "the hook keeps a busy set but does not act on it");
+  assert.match(hook, /busy\.current\.add\(subject\);/, "the hook never sets its guard");
+  assert.match(hook, /} finally \{\s*busy\.current\.delete\(subject\);/, "the guard is not released in a finally, so one rejection wedges it shut");
+});
+
+test("the in-flight guard is held per subject, not per hook", () => {
+  /* 2026-09-08, an S23 in the Collection: "I get the celebration with the
+     heart, the heart didn't fill in. when I tried on another it worked."
+     Measured with the network throttled -- the second tap made ZERO requests.
+
+     The guard was one boolean per hook INSTANCE. That is the same thing as
+     per subject for four of the five hearts, because a card, a comment row
+     and a letter each draw exactly one. The Collection draws one heart for
+     the whole archive: the viewer walks the river and the page holds a single
+     hook. So a tap on any photograph while another photograph's toggle was in
+     the air was refused -- silently, and after the button had already played
+     its flecks, because it animates on press rather than on the answer.
+
+     Two lines carry the fix and both are checked: the id reaching the guard,
+     and the id reaching the action (which is what let the target ref go). */
+  const src = readFileSync(
+    new URL("../components/collection/collection-client.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(
+    src,
+    /\{ subject: photo\.id \}/,
+    "the Collection's heart does not tell the guard which photograph it is about"
+  );
+  assert.match(
+    src,
+    /useHeartToggle\(\(photoId\) => togglePhotoLove\(photoId\)\)/,
+    "the Collection's action does not take the photograph from the tap that fired it"
+  );
 });
