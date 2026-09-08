@@ -29,11 +29,11 @@ import type {
 } from "@/lib/catchups-types";
 import {
   addCadenceGap,
-  addDays,
   isMissingCatchupTable,
   nextEditionStatus,
   planNextAction,
   QUESTION_WINDOW_DAYS,
+  deadlineIn,
   type EditionAction,
 } from "./catchups-core";
 
@@ -365,7 +365,7 @@ async function openNextEditionIfDue(
         catchupId: catchup.id,
         number: latest.number + 1,
         status: "collecting",
-        questionsCloseAt: addDays(now, QUESTION_WINDOW_DAYS),
+        questionsCloseAt: deadlineIn(now, QUESTION_WINDOW_DAYS),
       },
     });
     await notify.notifyQuestionsOpen(tx, {
