@@ -8,6 +8,59 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-09 — a wall is not a contact sheet: the photo wall drawn three ways
+
+`photo-wall` has been a question kind since Catch-ups was built and had never been drawn. It is
+the owner's, brief 16: *"we definitely have to add a photo wall for questions where people can
+just, I don't know, add photos, but it needs to be modular and work with everything else."* It is
+a locked decision and it comes before build phase 8, because the reader is drawn in phase 8 and a
+wall changes a page already drawn.
+
+`/lab/catchups/wall`, three shapes, live at 390 and 1512, drawn by one hand. **A run**: one band
+the width of the column, every photograph at its own width, moving sideways off the right edge,
+one name under each person's set. **A drift**: photographs down the column at three measures, and
+which measure a photograph gets is a fact about the photograph rather than a pattern, with the
+contributor set at the plate's foot in the margin it leaves. **A stack**: one at a time, the box
+tweening to each photograph's own shape, with a rail you can press to jump.
+
+**A grid was not drawn.** Twenty-four photographs in a grid is a contact sheet, and a contact
+sheet says these are proofs, pick one. The drift comes closest and stops at pairs.
+
+**The number that decides it, measured at 1512.** At two hundred photographs the page is 2,104px
+for a run, 2,393px for a stack and 116,321px for a drift. The run pays nothing because it spends
+the room sideways instead: 7,938px of strip at twenty-four and 65,566px at two hundred. So the
+drift is the only one where the size of the wall is the size of the page, which is both why it
+feels like a wall and why two hundred breaks it.
+
+**Six faults found by looking, all fixed before it was called ready.** The heart right-aligned
+under a wide frame landed 30px from the next person's bird and read as theirs. A cinnamon scroll
+rail was indistinguishable from a question's own 32px cinnamon mark. The drift printed one
+person's name twice at two sizes on opposite sides of the column, so a contributor's set became
+one justified row with one name, which also took the twenty-four wall from 16,736px to 11,826px.
+The drift's margin floated a name in the corner of a 240 by 588 hole, which is brief 31
+reappearing inside the shape meant to answer it, so the credit moved to the plate's foot. And the
+stack cropped 52% off every portrait, so a tall one now gets narrower rather than shorter and the
+box tweens on both axes the way the viewer's does.
+
+**A trap worth keeping: `next/image` cannot fetch anything under `/lab`.** That path requires a
+session (`src/proxy.ts`, audit M19) and the optimiser fetches the source server-side with no
+cookie, so a file in `public/lab/` answers 307 to it and `/_next/image` answers 400 — while the
+same file loads perfectly in a plain `<img>` in the room that owns it. The corpus moved to
+`public/images/`.
+
+**A justified row needs no measurement**, and it is the shape behind both the contributor sets and
+the portrait pairs: `flex-grow` set to each photograph's ratio makes the widths proportional to the
+ratios, and `aspect-ratio` then resolves every height to the same number.
+
+**One decision is proposed and not assumed**: six photographs per person on a wall question,
+against three on an ordinary answer. Six is visibly not three, and it is where a person stops
+choosing and starts emptying a camera roll. Against a group of forty the ceiling is 240 and the
+realistic number is 40 to 60.
+
+The owner picks the shape. Nothing is built until he does.
+
+---
+
 ## 2026-09-09 — the approved features become spec, and the browser ceiling is withdrawn
 
 Run beside his settings session, in `docs/planning/` only, so the paths were disjoint.
