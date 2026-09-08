@@ -330,9 +330,64 @@ export async function advanceEdition(
 }
 
 /**
+ * Mint the next Edition of a Catch-up: one transaction, the questions open,
+ * everyone told.
+ *
+ * Shared by the CLOCK (`openNextEditionIfDue`, below) and by the KEEPER'S OWN
+ * HAND (`startNextEditionNow` in the actions), because until 2026-09-08 only
+ * the first of those existed. The owner found the hole himself: *"literally
+ * after publishing I can't start a new round?!?! I have to wait for two weeks
+ * minimum ... there's no control for that?? I have to create ANOTHER test
+ * catch up."* One function, so a hand-started Edition is the same object as a
+ * scheduled one in every respect, down to the notification.
+ *
+ * Idempotent, and it is `expectedNextOpensAt` that makes it so: the
+ * compare-and-swap clears `nextOpensAt` only if it still holds the value the
+ * caller read, so two visits (or two Keepers on two stale tabs) produce one
+ * Edition and the loser is told nothing happened. The unique
+ * [catchupId, number] index is the backstop under that. Returns the new
+ * Edition's id, or null when somebody else got there first.
+ */
+export async function openNextEdition(
+  catchup: {
+    id: string;
+    nextOpensAt: Date | null;
+    group: { id: string; name: string };
+  },
+  latest: { number: number },
+  expectedNextOpensAt: Date | null,
+  now: Date,
+  excludeUserId?: string
+): Promise<string | null> {
+  return prisma.$transaction(async (tx) => {
+    const cas = await tx.catchup.updateMany({
+      where: { id: catchup.id, nextOpensAt: expectedNextOpensAt },
+      data: { nextOpensAt: null },
+    });
+    if (cas.count === 0) return null;
+
+    const edition = await tx.catchupEdition.create({
+      data: {
+        catchupId: catchup.id,
+        number: latest.number + 1,
+        status: "collecting",
+        questionsCloseAt: deadlineIn(now, QUESTION_WINDOW_DAYS),
+      },
+    });
+    await notify.notifyQuestionsOpen(tx, {
+      catchupId: catchup.id,
+      editionId: edition.id,
+      groupId: catchup.group.id,
+      groupName: catchup.group.name,
+      excludeUserId,
+    });
+    return edition.id;
+  });
+}
+
+/**
  * Open the next Edition for a recurring Catch-up once its nextOpensAt has passed.
- * Idempotent: the compare-and-swap on nextOpensAt (set back to null) means only
- * one visit opens it, and the unique [catchupId, number] index is the backstop.
+ * The clock's half: it decides WHETHER, `openNextEdition` does the opening.
  */
 async function openNextEditionIfDue(
   catchup: {
@@ -353,28 +408,7 @@ async function openNextEditionIfDue(
   // Only open a fresh Edition when the previous one has actually published.
   if (!latest || latest.status !== "published") return;
 
-  await prisma.$transaction(async (tx) => {
-    const cas = await tx.catchup.updateMany({
-      where: { id: catchup.id, nextOpensAt: opensAt },
-      data: { nextOpensAt: null },
-    });
-    if (cas.count === 0) return;
-
-    const edition = await tx.catchupEdition.create({
-      data: {
-        catchupId: catchup.id,
-        number: latest.number + 1,
-        status: "collecting",
-        questionsCloseAt: deadlineIn(now, QUESTION_WINDOW_DAYS),
-      },
-    });
-    await notify.notifyQuestionsOpen(tx, {
-      catchupId: catchup.id,
-      editionId: edition.id,
-      groupId: catchup.group.id,
-      groupName: catchup.group.name,
-    });
-  });
+  await openNextEdition(catchup, latest, opensAt, now);
 }
 
 /**

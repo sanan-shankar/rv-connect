@@ -370,6 +370,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     groupName: catchup.group.name,
     title: catchupDisplayName(catchup.title, catchup.group.name),
     cadence: catchup.cadence as Cadence,
+    nextOpensAt: catchup.nextOpensAt?.toISOString() ?? null,
     catchupStatus: catchup.status as CatchupStatus,
     members,
     viewer: {

@@ -8,6 +8,85 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 — build phase 2: the clock
+
+Three things, three commits, `spec.md` §3.3. Nothing here is drawn: the surfaces are phases 6
+to 8. This is the mechanism underneath them.
+
+**`preparing` is deleted.** His, N88: *"Why are we preparing? ... why doesn't it just publish
+immediately? Is there a reason we have to have a separate preparing section? I can't just
+publish at midnight and the deadline is done."* It was a hard-coded 24-hour hold between
+answers closing and the Edition coming out, during which nobody — Keeper included — could read
+a word. Answering now goes straight to published in ONE transition, which fixes a second thing
+nobody had named: the close used to be silent and the bell came a day later, so the two could
+come apart. They are the same write now.
+
+Gone: `PREPARING_HOLD_HOURS`, `preparingPatch`, `publishNow` and its button, the `publishAt`
+field on the Prisma model, the branch in `computeStatus`, `planNextAction`, `STATUS_ORDER`,
+`overdueEditionWhere`, the admin chip, the index's sort priority, and the preparing screens on
+the home and the reader. `closeAndPrepare` is `closeAndPublish`.
+
+**Two files the spec listed for deletion are still here, deliberately.** `almost-ready.tsx` is
+the pre-migration P2021 holding scene on six routes; only its second job, standing in for
+`preparing`, is gone, and its docblock now says not to give it a third. `not-yet-published.tsx`
+was never the preparing screen — its own docblock said so — it covers draft, collecting and
+answering deep links, all three still reachable. Deleting it would dead-end every link shared
+while an Edition is still taking questions.
+
+**Every deadline lands on a civil hour: 07:00 IST.** A deadline was `addDays(now, N)`, so it
+inherited whatever minute the phase happened to open at, and an Edition came out at that minute
+forever after. The hour is read off the app, not chosen: `vercel.json` runs
+`/api/catchups/tick` at 02:00 UTC, which is 07:30 IST, so a 07:00 IST deadline is always swept
+by that morning's cron **within thirty minutes**. A test asserts that gap against `vercel.json`
+itself, so moving the cron fails the build.
+
+`snapToDeadlineHour` rounds forward only and is idempotent — a window is never shorter than its
+nominal length, and an extension anchored on a stored deadline cannot walk it forward a day per
+call. It costs up to one extra day per window, which is why the reminder bucket now seeds at 8
+on a seven-day window rather than 7. Applied in `answeringPatch`, `extendPhasePatch`,
+`extendPatch`, `questionsExtendPatch`, the create path, the dormant revive and
+`openNextEdition`.
+
+**Resume is the one deadline that does not snap**, and the reason is written where a later
+session would otherwise "finish" the rule: a resume credits back exactly the time the freeze
+took, and rounding forward hands back time nobody was owed. The cost is bounded — a resumed
+deadline sits at an odd minute, and a deadline is a threshold rather than a scheduled moment,
+so the Edition still lands on the next tick or the next page view.
+
+**"Start the next Edition now" is added — the control nobody had.** He found it himself:
+*"literally after publishing I can't start a new round?!?! I have to wait for two weeks minimum
+... there's no control for that?? I have to create ANOTHER test catch up."* Confirmed in the
+code before it was written: the next Edition opened on the clock alone.
+
+`openNextEdition` is now one function shared by the clock and the Keeper's hand, so a
+hand-started Edition is the same object as a scheduled one down to the notification, and the
+compare-and-swap on `nextOpensAt` is what stops two Keepers on two stale tabs minting two
+Editions. It is ONE-WAY, so the accident rule governs it (architecture §6, N30): the card sits
+in the rail with a cinnamon dot and confirms, never beside the Edition it would replace.
+
+Two numbers came out of measuring rather than looking. The dot is in a 16px box because a bare
+6px dot in the same `gap-2` row started its label **30px** from the card edge against the three
+sibling cards' **40px** — a ten-pixel step down the rail. And "Cannot be undone." is its own
+row in the confirmation rather than the tail of a sentence, which is `spec.md` §7's rule; as
+one string it landed on its own line only because the measure happened to break there.
+
+**Proved on the app, not asserted.** Clicked through on `[Recon] the happy path`: Edition 2
+opened `collecting` with `questionsCloseAt` at **2026-09-12 07:00 IST**, against Edition 1's
+inherited **22:20**. `nextOpensAt` cleared, one notification written, the owner excluded from
+it. `npm run check` green, `npm run visual` 25/25 with no baseline moved.
+
+**The migration is a no-op backstop and was applied to both projects.**
+`2026-09-08-preparing-becomes-published.sql` publishes any Edition caught mid-hold, dated when
+it was always going to come out. Counted first, which is the procedure the file now carries:
+production held 2 collecting and 5 published and nothing preparing, the demo held no Editions
+at all, and neither could grow one before the deploy because `preparing` is only reachable from
+`answering` and production has no answering Edition. **The notification is the part that is
+easy to miss** — `notifyPublished` fires from the action, not the database, so a row published
+by SQL sends nobody anything. Zero rows, so nothing was owed.
+
+`publishAt` the COLUMN is not dropped. This commit only stops Prisma naming it, which is what
+makes the drop safe; the drop, and `@@index([status, publishAt])` with it, wait for phase 11.
+
 ## 2026-09-08 — the six migrations stay unrun, and why
 
 He pushed and said Vercel was done. Two checks ran before anything irreversible, and one failed.

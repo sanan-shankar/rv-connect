@@ -84,6 +84,10 @@ export type CatchupHomeData = {
   groupName: string;
   title: string;
   cadence: Cadence;
+  /** When the rhythm opens the next Edition, ISO, or null when nothing is
+   *  scheduled (paused, ended, or an Edition already running). The rail's
+   *  "Start it now" prints it, because the date is what that button skips. */
+  nextOpensAt: string | null;
   catchupStatus: CatchupStatus;
   members: HomePersonRef[];
   viewer: {

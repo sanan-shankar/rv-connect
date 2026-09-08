@@ -185,7 +185,7 @@ too, which he allowed in ¶28.
 | **The list, when it has room to spare** | OPEN | **Decided by him 2026-09-07, drawn by nobody yet.** See "The list's spare slots" below. Scheduled: `spec.md` §5 puts it inside build phase 6, with the list, because it is a rule about what fills that grid rather than a surface of its own |
 | S3b Second round | OPEN | only if he asks for one after browsing the shape |
 | S5 Pick and spec | DONE | 2026-09-08. [`spec.md`](spec.md): the data changes as dated idempotent files, the Round -> Edition rename as one pass, eleven build phases plus track X, the three undrawn surfaces called before-or-inside, and ¶1 to ¶52 mapped. Owner questions 19, 20 and 21 are new and are below. It does NOT redraw anything: `architecture.md` is still the design |
-| S6+ Build | **PARTIAL** | **Phase 1 of eleven is DONE**, 2026-09-08: the Round -> Edition rename, one pass, `npm run visual` 25/25 with no baseline moved. The route, the component folder, `catchups-round-view.ts`, 288 identifiers and every user-facing string moved; `roundLabel()` deleted; the old route left as a permanent 308. **One thing is owed the moment this is pushed**: `prisma/migrations-manual/2026-09-08-round-becomes-edition.sql` is written and deliberately NOT applied -- running it before the deploy points 61 live bell links at a route the running build has not got. Apply to BOTH projects after Vercel finishes. Phase 1 opened one question and he closed it the same day: the admin room keeps its Edition numbers. Phases 2 to 11 open; track X may ship first and at any time |
+| S6+ Build | **PARTIAL** | **Phases 1 and 2 of eleven are DONE**, 2026-09-08. **Phase 1**, the Round -> Edition rename: one pass, `npm run visual` 25/25 with no baseline moved, the route moved with a permanent 308, `roundLabel()` deleted, the admin room keeping its numbers by his decision. **Phase 2, the clock**: `preparing` deleted (N88) so answering goes straight to published in one transition; every deadline snapped to **07:00 IST**, which is the hour `vercel.json`'s 02:00 UTC tick catches within thirty minutes, pinned by a test that reads `vercel.json`; and **Start the next Edition now** added (N43), the one-way control in the rail with a cinnamon dot and a confirmation, sharing `openNextEdition` with the clock. Three commits. Two files the spec listed for deletion SURVIVE, with the reason in each docblock: `almost-ready.tsx` is the P2021 holding scene on six routes, `not-yet-published.tsx` covers draft/collecting/answering deep links and was never the preparing screen. Phase 2's migration is a no-op backstop and **is applied to both projects** (0 preparing rows on each, counted first). `publishAt` the COLUMN is NOT dropped -- that is phase 11, after this deploys. **Phases 3 to 11 open; track X may ship first and at any time**
 | M1 Magazine design | OPEN | unblocked. D27 is answered in `recon.md` section 6: photographs are boxed to 1920px, which is 164 dpi at A4 full-bleed |
 | M2+ Magazine build | OPEN | blocked on M1 |
 | X Fast fixes | OPEN | unblocked. Root causes for R6/F8, I9, R4, V1 and R13 are in `recon.md`; V2 and V3 need a real iPhone first |
@@ -2210,6 +2210,67 @@ surface.
 batches hold exactly one person, not three, and nine hold four or fewer, not eight. More than half
 being a newsletter to yourself is a different weight of question from the one first written down,
 and it is very likely why the answer came back as ten rather than two.
+
+### 2026-09-08, S7, build phase 2: the clock (Opus 5, one hand, no fan-out)
+
+Read `spec.md` and `architecture.md` in full plus this board. Drew nothing. Ran the export first
+(§3.1): 6 Catch-ups, 7 Editions, 522 hearts, 38 files, 5.8 MB. Three commits, because the three
+things turned out to be genuinely independent.
+
+**1. `preparing` deleted** (N88). Answering -> published is now ONE transition, which fixed a
+thing nobody had named: the close was silent and the bell came a day later on the second
+transition, so the two could come apart. They are the same write now, and a test says so.
+
+**2. Every deadline snaps to 07:00 IST.** The hour is read off `vercel.json`, not chosen: the
+tick runs at 02:00 UTC = 07:30 IST, so a 07:00 IST deadline is always swept by that morning's
+cron within thirty minutes. **A test asserts that gap by parsing `vercel.json`**, so moving the
+cron fails the build rather than silently making every Edition a day late.
+
+**3. "Start the next Edition now"** (N43). `openNextEdition` is now one function shared by the
+clock and the Keeper's hand, so a hand-started Edition is the same object as a scheduled one
+down to the notification, and the compare-and-swap on `nextOpensAt` stops two stale tabs
+minting two Editions. In the rail, cinnamon dot, confirmation — the accident rule, N30.
+
+**Three judgment calls, so the next session does not re-litigate them.**
+
+- **Two files on the spec's deletion list SURVIVE**, and this is a correction to §3.3 rather
+  than a departure from a decision of his. `almost-ready.tsx` is the pre-migration P2021
+  holding scene on **six** routes; only its second job, standing in for `preparing`, is gone.
+  `not-yet-published.tsx` was NEVER the preparing screen — its own docblock said so — it covers
+  draft, collecting and answering deep links, all three still reachable, and deleting it would
+  dead-end every link shared while an Edition is taking questions. His words (N88) are about the
+  preparing state; the file list around them was S5's enumeration, and it over-reached by two.
+- **Resume does not snap.** It credits back exactly the time a freeze took, and rounding forward
+  hands back time nobody was owed — which would have broken a pinned invariant ("paused with two
+  days left, resumed with two days left"). §3.3 names three places that snap and resume is not
+  one. The reason is in the code, where a later session would otherwise "finish" the rule.
+- **The snap costs up to a day per window.** A 7-day window opened at noon rounds to ~7.5 days,
+  so the reminder bucket seeds at 8 rather than 7. That is the price of the civil hour and it is
+  paid in the members' favour; the alternative, rounding back, shortens a window somebody was
+  promised.
+
+**Measured, not eyeballed.** The one-way dot sits in a 16px box because a bare 6px dot in the
+same `gap-2` row started its label **30px** from the card edge against the three sibling rail
+cards' **40px**. "Cannot be undone." is a structural row in the confirmation rather than the
+tail of a sentence (§7's rule); as one string it landed on its own line only by luck of the
+measure.
+
+**Proved by clicking it, not by asserting it.** On `[Recon] the happy path`: Edition 2 opened
+`collecting` with `questionsCloseAt` at **2026-09-12 07:00 IST**, against Edition 1's inherited
+**22:20**; `nextOpensAt` cleared; one notification written with the actor excluded. `npm run
+check` green, `npm run visual` 25/25, no baseline moved. **That Catch-up is left with a live
+Edition 2 and `nextOpensAt` null** — the restore SQL was blocked by the sandbox and is in the
+close-out. It is one of the three throwaways phase 11 deletes.
+
+**The migration is applied to both projects and is a no-op**, which is the opposite ordering
+from a column drop and the file says why: the RUNNING build understands `published` perfectly,
+while the NEW build has no `preparing` branch at all — `STATUS_ORDER.indexOf` would return -1
+and read as "advance this Edition to draft". A row left in `preparing` when this deploys is the
+one way phase 2 can break something. Counted first: 0 preparing on production (2 collecting, 5
+published) and no Editions at all on the demo.
+
+**`publishAt` the COLUMN is not dropped.** This commit only stops Prisma naming it, which is
+what makes the drop safe. It and `@@index([status, publishAt])` go in phase 11.
 
 ### 2026-09-08, S6, build phase 1: Round becomes Edition (Opus 5, one hand, no fan-out)
 
