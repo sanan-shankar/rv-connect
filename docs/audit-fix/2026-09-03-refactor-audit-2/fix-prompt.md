@@ -439,7 +439,20 @@ Each is committed with its reasoning. This is the part of the night worth readin
 
 Nothing in this campaign ran a `DROP`. The code stopped writing these columns first, so running
 these late is free and running them early would have been an outage. Each file explains itself and
-refuses if a row has picked up a value. **Run each twice — once for the real site, once for the demo:**
+refuses if a row has picked up a value.
+
+**THE ORDER IS: push -> let both Vercel projects finish deploying -> THEN run these.** Not before.
+Prisma names every column of a model in its SELECT list, so dropping a column while the old build is
+still serving traffic breaks every feed, Collection, letter and profile query. As of 2026-09-08 the
+deployed build is ~180 commits behind and still selects all five.
+
+**There are SIX files, not five.** The Catch-ups rework session added
+`2026-09-08-round-becomes-edition.sql` on 2026-09-08 (its own campaign, committed as `2c342cea`),
+which rewrites 61 `Notification.link` rows to `/catchups/edition/<id>` — a route the deployed build
+does not have. **Same precondition, same ordering.** Run all six after the deploy; order among them
+does not matter.
+
+**Run each twice — once for the real site, once for the demo:**
 
 ```
 node scripts/dev/run-sql.mjs prisma/migrations-manual/2026-09-07-drop-collection-legacy-tags.sql
@@ -447,7 +460,8 @@ node scripts/dev/run-sql.mjs --env .env.demo prisma/migrations-manual/2026-09-07
 ```
 
 and the same pair for `2026-09-07-drop-groups-residue.sql`, `2026-09-07-drop-image-greyscale.sql`,
-`2026-09-07-drop-bounce-kind.sql` and `2026-09-07-drop-unused-indexes.sql`.
+`2026-09-07-drop-bounce-kind.sql`, `2026-09-07-drop-unused-indexes.sql` and the Catch-ups session's
+`2026-09-08-round-becomes-edition.sql`.
 
 **One of them needs a decision first.** `Group.description` is **11 of 18 rows non-null** — every
 value is the sentence signup generates, and nothing has ever read it, but you were asked about
