@@ -326,6 +326,16 @@ register IS the template, and it lives in exactly one file - `src/components/ui/
   trays, no full-width buttons, no per-dialog title sizes. Inner boxes step down the radius
   ladder (12px inputs/tiles inside the 20.8px panel). Button *variants* carry the semantics
   (primary / destructive); the layout never changes per dialog.
+- **Sections are separated by space, never a hairline (2026-09-08).** The menu rule above
+  puts a `DropdownMenuSeparator` over a destructive item, and its own stated reason is that
+  *the gap is the warning*: a menu row is flush against its neighbours, so a line is the
+  only gap available. A dialog row already has 16px around it and its controls are outlined
+  pills, so a `border-t` there is a third horizontal edge between two button borders. It is
+  also not what the line rule is copied from: iOS draws hairlines BETWEEN rows inside one
+  grouped container, inset from the leading edge, and separates the groups themselves with
+  whitespace — never a full-bleed line between two standalone buttons. Widen the gap
+  instead. The keeper settings dialog is the worked example: 24px above the Pause/End
+  group, 12px inside it, no rules drawn.
 - **Two text levels, and the second must earn its place (2026-08-29).** A dialog is a
   title plus at most one description line — no system on earth permits more (Apple: title
   + optional informative text; M3 marks even the *headline* optional; five levels has no

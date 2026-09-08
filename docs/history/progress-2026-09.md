@@ -8,6 +8,31 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 (later) — the Catch-up settings dialog loses its rules
+
+His question, and the answer is yes: *"it added a separating line between each line. iOS doesn't
+do it that way. do we really have to do it that way?"* The dialog is
+`keeper-settings-dialog.tsx`, the only dialog in the app carrying more than one `border-t` — one
+hairline above **Pause this Catch-up**, another between Pause and **End this Catch-up**.
+
+Both are gone; the gap does the work instead. 24px above the pair, 12px inside it, measured back
+at 1440 and 390. The dialog is 22px shorter.
+
+The line rule was real, and it was transplanted from the wrong place. DESIGN-SYSTEM.md's menu
+section (2026-08-29) puts a `DropdownMenuSeparator` over a destructive item and states its own
+reason: **the gap is the warning**. A menu row is flush against its neighbours, so a line is the
+only gap there is. A dialog row already has 16px around it and both of these rows are outlined
+pills — the hairline was a third horizontal edge inside a 33px space that already held two button
+borders. Applying the rule's REASON removes the rule's mechanism.
+
+He is also right about iOS specifically, and in a way worth writing down: iOS draws hairlines
+BETWEEN rows inside one grouped container, inset from the leading edge, and separates the groups
+themselves with whitespace. It never draws a full-bleed line between two standalone buttons. Both
+of ours were the second thing. That distinction is now a bullet in the Dialogs section, so the
+next session reads it before re-adding a border.
+
+`npm run check` green, `npm run visual` 25/25 — the dialog is behind a click, so no baseline moved.
+
 ## 2026-09-08 — the six migrations run, and Groups turns out not to be a feature
 
 The queue that had been waiting on a deploy since 2026-09-07 is empty. Confirmed first, with the
