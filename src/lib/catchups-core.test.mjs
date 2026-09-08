@@ -44,6 +44,7 @@ import {
   mayChangeCatchupPicture,
   editionCountdownLabel,
   describeEditionStatus,
+  catchupStageLine,
   resolveSpotify,
   isMissingCatchupTable,
   CATCHUP_PROMPT_SETS,
@@ -57,6 +58,7 @@ import {
   shiftPausedInstant,
 } from "./catchups-core.ts";
 import { PROMPT_CATEGORIES } from "./catchups-types.ts";
+import { formatDayAndDate, formatDisplayDateLong } from "./utils.ts";
 import { read, decomment } from "./test-kit.mjs";
 
 // A fixed clock so every case is deterministic.
@@ -642,6 +644,50 @@ test("describeEditionStatus: readable per-status copy", () => {
      date. If this ever reads "Edition 5 published" again, the rule has been
      lost. */
   assert.equal(describeEditionStatus({ status: "published" }, NOW), "Published");
+});
+
+/* ── the list's one line under a Catch-up's name (build phase 6) ───── */
+
+/** The two real formatters, so the copy asserted here is the copy that ships. */
+const FMT = { dayAndDate: formatDayAndDate, longDate: formatDisplayDateLong };
+
+test("catchupStageLine: the Catch-up's own state outranks the Edition's", () => {
+  const live = { status: "answering", answersCloseAt: at(3 * DAY_MS) };
+  /* A paused Catch-up with a live Edition inside it reads as paused, and a
+     card never says two things at once. */
+  assert.equal(catchupStageLine("paused", live, FMT), "Paused");
+  /* No date after "Ended": nothing records when a Catch-up ended, and
+     inventing a column for one line on one card is a migration. */
+  assert.equal(catchupStageLine("ended", live, FMT), "Ended");
+});
+
+test("catchupStageLine: a stage, in words, and never a number", () => {
+  assert.equal(catchupStageLine("active", { status: "collecting" }, FMT), "Open for questions");
+  assert.equal(
+    catchupStageLine("active", { status: "answering", answersCloseAt: "2026-08-20T01:30:00.000Z" }, FMT),
+    "Answers close Thursday 20 August"
+  );
+  assert.equal(
+    catchupStageLine("active", { status: "published", publishedAt: "2026-08-15T01:30:00.000Z" }, FMT),
+    "Out 15 August 2026"
+  );
+});
+
+test("catchupStageLine: a countdown belongs on the page you are already on", () => {
+  /* describeEditionStatus answers "where is this Edition in the machine" for
+     the console and the admin room; this answers "what is this Catch-up
+     doing" for somebody choosing which card to open. If this line ever gains
+     "3 days left", the two have collapsed back into one. */
+  const line = catchupStageLine("active", { status: "answering", answersCloseAt: at(3 * DAY_MS) }, FMT);
+  assert.ok(!/left|tomorrow|last day/.test(line), line);
+});
+
+test("catchupStageLine: every state has a line, including the ones nothing reaches", () => {
+  assert.equal(catchupStageLine("active", null, FMT), "No Editions yet");
+  assert.equal(catchupStageLine("active", { status: "draft" }, FMT), "Not open yet");
+  /* Missing timestamps must not print "Answers close undefined". */
+  assert.equal(catchupStageLine("active", { status: "answering" }, FMT), "Open for answers");
+  assert.equal(catchupStageLine("active", { status: "published" }, FMT), "Out now");
 });
 
 // ─── resolveSpotify: host/path allowlist + fail-soft (stubbed fetch) ─────────

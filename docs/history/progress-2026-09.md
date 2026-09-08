@@ -8,6 +8,128 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 (later still) — build phase 6: the list
+
+`/catchups` is the drawing now. `_list.tsx` from `/lab/catchups/sketches` was transplanted
+rather than re-derived: the card IS the photograph, 5:2 on a laptop and 16:9 on a phone, two up
+from 1180px, the Catch-up's name in the heading face and one line of state written on it over
+the shared scrim. No rail, no Fresh off the press, no View, no three dots, no row of birds, no
+count of anything, no Edition number. Measured against the room at 1440: the shelf is 1096 wide
+starting at x 288, a card is 538 by 216 against the room's 536 by 214 (the two pixels are the
+card's own border), and the "Start a Catch-up" pill now right-aligns with the cards instead of
+with a rail column that no longer exists. At 390 a card is 350 by 198 against the room's 348 by
+196.
+
+Five files deleted rather than restyled: `fresh-off-the-press.tsx`, `filed-away.tsx`,
+`your-catchups-card.tsx`, `catchup-card-menu.tsx`, `group-first-guidance.tsx`. All five are
+pinned as absences in `batch-catchups.test.mjs`, so a three-dot menu coming back fails the
+build.
+
+**The spare slots**, spec 5, decided by him on 2026-09-07 and drawn by nobody until now. The
+grid holds four things; Catch-up cards first, the remainder filled with the newest published
+Editions. `editionSlots()` is in `catchup-shelf.ts` with a table test: 1 to 3, 2 to 2, 3 to 1, 4
+or more to none, and 0 to none because an Edition is only reachable through a membership.
+
+**The Edition cover was drawn twice.** The first version wrote the date onto the photograph
+exactly the way a Catch-up card writes its name, and failed his own test for it -- *"just so
+it's obvious that they're different types of elements"* -- outright. Three of the five published
+Editions on this database carry no photograph at all, so the cover fell back to its Catch-up's
+own picture and came out as a paler copy of the card two inches to its left: same picture, same
+words in the same corner, with a 2px mark carrying the whole distinction. Looked at, at 1440,
+and rebuilt. The cover now has a FOOT: the picture stops short and the date is set on the card's
+own paper under it, with the Catch-up's name beside it when the member has more than one. A card
+with a caption bar is a different object from a photograph with words on it, at any size and
+whatever the picture turns out to be, and it is the shape the home's Earlier Editions covers
+already have. It keeps the Catch-up card's outline exactly, so the shelf has no ragged row in
+it: the picture takes whatever the foot leaves.
+
+**The read mark is drawn for the first time.** `CatchupEditionRead` has been written since phase
+5 and nothing looked at it; `readEditionIds()` is one query for the whole page and the answer is
+a set, never a count. It shows as the 2px measure beside the date on a cover: cinnamon while
+unread, the page's own hairline once read. Cinnamon is the app's own "there is something here",
+which is what the bell wears. Both states were driven live -- the 15 August Edition unread, the
+5 September one already marked read by phase 5's own testing.
+
+**Where archiving went when the card menu died.** The drawing has no menu on a card at rest and
+architecture 4 replaces it with the phone's swipe-left (his WhatsApp gesture, brief 5). That is
+built, with the undo toast, and it was driven with a real touch sequence: a left swipe archives,
+a vertical swipe scrolls the page and archives nothing, because `dragDirectionLock` sets
+`touch-action: pan-y` itself. But a swipe leaves a mouse and a keyboard with nothing, and on a
+batch Catch-up archiving is the ONLY exit there is. So the same action has a second door on a
+fine pointer: a control in the card's top right, which is where he said dots belong *"if at
+all"* (brief 24), invisible until the card is pointed at or reached with Tab. Verified: focus
+lands on it, `:focus-visible` matches, opacity 1. `useCoarsePointer()` picks between them, and
+it asks about the pointer rather than the viewport because a 1,024px tablet is a finger and a
+1,024px window is not.
+
+Leaving is untouched and was CHECKED rather than assumed: `home/people-panel.tsx` still offers
+it to a non-creator on a people Catch-up, so no member is left with no way out between phases 6
+and 7.
+
+**Two numbers came from the app rather than from taste.** The card's ratio switches at 500px,
+not at the app's `sm`: at 639 the shelf is one column so a card is 599 by 338, and at 640 it is
+584 by 235 -- a 103px jump on one pixel of viewport. 500 is where a card stops being
+phone-shaped (below it a card is at most 460 wide and the widest phone in portrait is 430), and
+the jump there is 74px. And the name clamps to two lines, which is a pressure finding: at the
+80-character cap `actions.ts` allows, drawn at 390, the name took four lines, covered the
+photograph from 18px below the card's top to its foot, and put its first line above where the
+scrim has any ink in it. One trap on the way, worth writing down: `line-clamp-2` IS a display
+utility, and Tailwind emits `display: block` after it, so the two together silently cancel the
+clamp.
+
+`shortDate` and `dayAndDate` left the lab room for `formatDisplayDateLong` and a new
+`formatDayAndDate` in `lib/utils.ts`, both pinned to the valley's own day -- the room's versions
+read the server's clock, which is UTC on Vercel and would have printed the wrong day for
+anything published between 00:00 and 05:30 IST. The stage line itself is `catchupStageLine()` in
+`catchups-core.ts`, pure, with its own cases. It deliberately carries no countdown: that is
+`describeEditionStatus`'s job on the page you are already on. "Ended" carries no date because
+nothing records when a Catch-up ended, and inventing a column for one line on one card is a
+migration phase 6 does not have.
+
+The list's old query that read EVERY member of every group, with no `take`, to draw a
+five-avatar cluster -- flagged in phase 4, since a batch group is everyone from a year and grows
+on its own -- is deleted rather than bounded. The drawn card has no birds on it, so 39 rows and
+0.4ms became 0.
+
+**Cards appear and disappear, and the shelf owns that.** His, once it was on screen: *"can you
+have a pretty and thoughtful animation for the archiving of ccatchups basically the appearing and
+disappearing of any of those cards on that screen. we need that level of attention to detail
+throughout."* Archiving started on the card and that was the wrong altitude twice over: a card
+that removes itself cannot animate its own exit, and the Undo in its toast outlives it. So
+membership is the shelf's fact now. A card leaves DOWNWARD, 18px and 0.94 over 260ms, because
+down is where an archived Catch-up actually goes; `mode="popLayout"` takes it out of the grid's
+flow at once so the survivors slide up while it is still fading, and `layout="position"` keeps
+the photograph inside untouched. Two numbers came from watching it rather than from taste: the
+exit needed its own curve (on the app's default ease-out it was at 21% opacity by 100ms, gone
+before it had visibly moved, while the slide took 400ms), and every entrance holds its fade for
+140ms because archiving frees a slot, so one cover leaves the cell as another arrives and both at
+half strength put two dates legibly on top of each other.
+
+**And a bug he found in it, which was mine.** *"there was one edition showing and when put back an
+archived one the edition disappeared the the catch up didn't appear. it just disappeared from the
+archived list."* Exactly right. The shelf hides a card optimistically while the server round trip
+runs, and nothing ever took the id out again -- so **Put back**, which happens in a different
+component at the foot of the page, correctly handed the shelf the Catch-up back and the shelf
+went on hiding it, while the Edition cover that had been filling its slot correctly went away.
+The optimistic hide now lasts exactly as long as the server takes to disagree with it: a new list
+of ids IS the answer, whatever it says. Adjusted during render rather than in an effect, because
+an effect paints the wrong frame first and that frame is the bug. Driven through his sequence and
+four neighbours of it -- archive, let the toast expire, put back; archive two and put them back
+one at a time; archive everything; reload -- and a reload now agrees with the screen in every one.
+
+**A real hole in the visual mask, found while chasing a diff.** `/catchups` is masked past its
+header by marking the first run of elements that starts clear of it. The grid and the Archived row
+were two siblings, so they were marked as two boxes, and the 8px between them was comparing live
+page background on every run. One wrapper, one box, no seam. A suite that cries wolf is worse than
+no suite, which is what its own docblock says.
+
+The swipe panel behind a card is Canopy rather than cinnamon, and that is a rule rather than a
+preference: cinnamon means one-way in this app, every control that cannot be undone wears it, and
+archiving is undoable from the toast before your thumb has left the screen.
+
+`npm run check` 110/110. `npm run visual` 25/25 with one baseline moved, read first: the desktop
+`/catchups` header, where the CTA travels 332px right to sit flush with the shelf.
+
 ## 2026-09-08 (later) — the Catch-up settings dialog loses its rules
 
 His question, and the answer is yes: *"it added a separating line between each line. iOS doesn't

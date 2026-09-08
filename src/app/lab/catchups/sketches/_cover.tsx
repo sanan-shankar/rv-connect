@@ -45,28 +45,17 @@ import type { ReactNode } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { QuestionList } from "./_navigator";
+import { COVER_SHOTS, coverTiles } from "@/lib/catchup-pictures";
 import { shortDate, type ShelfEdition } from "./_shelf";
 
-/* ── The scrim over a photograph that carries words ───────────────── *
- *  Spotify's, near enough, and it is his correction: "it doesn't have to
- *  fade to full black it can just be dark like spotify."
- *
- *  A FIFTEENTH LIGHTER AGAIN, 2026-09-07: "if the darkening is the same
- *  constant, make both less dark by 15%." Every stop is scaled by 0.85 rather
- *  than the foot alone, so the curve keeps its shape and the two surfaces
- *  stay identical: 0.72 -> 0.61, 0.44 -> 0.37, 0.10 -> 0.085.
- *
- *  So the foot is a warm near-black rather than pure black at 82%,
- *  and it carries the page's own ink hue instead of #000 -- a true black
- *  under a green photograph reads as a hole cut in the picture, which is
- *  what "looks so bad" was. Two stops, not one: a single linear gradient
- *  over 55% of a light photograph leaves the name sitting on a grey wash
- *  halfway up. Transparent for the top half, then away quickly.
- *
- *  One constant, used by the list card and by the home's head, because the
- *  two are the same object at two sizes. */
-export const PICTURE_SCRIM =
-  "linear-gradient(to top, rgb(20 16 12 / 0.61) 0%, rgb(20 16 12 / 0.37) 26%, rgb(20 16 12 / 0.085) 52%, transparent 74%)";
+/* The scrim MOVED OUT OF THIS FILE on 2026-09-08 (build phase 6). The shipped
+   list draws it too, and a lab room is not importable from `(main)` -- the
+   public demo's build does not compile one. It lives beside the pool in
+   src/lib/catchup-pictures.ts, with the reasoning and his two corrections;
+   re-exported here so this room reads as it did and there is only ever one
+   scrim. */
+export { PICTURE_SCRIM } from "@/lib/catchup-pictures";
+
 
 /* ── A door ────────────────────────────────────────────────────────── *
  *  A card whose whole area navigates. The target is one absolutely
@@ -178,18 +167,10 @@ export function Contents({
  *  need to have the round 4? It doesn't matter what round, it's going to
  *  be round 15." */
 
-/** Three photographs at most, and the tiling is explicit for each count.
- *  Four was drawn first and is wrong: with the lead photograph spanning
- *  two columns and two rows, the fourth has nowhere to go but a third row
- *  of its own, beside an empty grey cell. Three is the number that tiles
- *  without a hole, and it is enough to say what an Edition was like. */
-const COVER_SHOTS = 3;
-
-function tiles(n: number): string {
-  if (n <= 1) return "grid-cols-1";
-  if (n === 2) return "grid-cols-2";
-  return "grid-cols-3 grid-rows-2";
-}
+/* COVER_SHOTS and the tiling MOVED OUT on 2026-09-08 (build phase 6), for the
+   reason the scrim did: the shipped list draws the same cover, and a number
+   declared in a room and again in `(main)` is a number that drifts. Both live
+   in src/lib/catchup-pictures.ts with the argument for three rather than four. */
 
 export function Cover({
   edition,
@@ -228,7 +209,7 @@ export function Cover({
       className={cn("group", className)}
     >
       <div
-        className={cn("relative grid gap-[3px] bg-border", has ? tiles(shots.length) : "grid-cols-1")}
+        className={cn("relative grid gap-[3px] bg-border", has ? coverTiles(shots.length) : "grid-cols-1")}
         style={{ aspectRatio: ratio }}
       >
         {has ? (

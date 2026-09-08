@@ -244,6 +244,25 @@ export function formatDisplayDateLong(date: Date | string): string {
 }
 
 /**
+ * A deadline, as anyone actually reads one: "Thursday 20 August".
+ *
+ * The weekday leads because that is the part a deadline is judged by, and
+ * there is no year on it: a Catch-up's deadline is always inside a fortnight,
+ * so the year would be one more true and useless fact (his standing objection,
+ * R32). A date that has already happened -- a published Edition, a photograph's
+ * attribution -- takes formatDisplayDateLong instead, which does carry the
+ * year, because a shelf of back numbers spans them.
+ */
+export function formatDayAndDate(date: Date | string): string {
+  return new Date(date).toLocaleDateString("en-GB", {
+    timeZone: VALLEY_TIME_ZONE,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  })
+}
+
+/**
  * The same date with the clock time on it: "4 Sept 2026, 23:34 IST".
  *
  * For the surfaces where the day is not the answer -- the contributions
