@@ -204,8 +204,15 @@ export function KeeperSettingsDialog({
         </div>
         )}
 
+        {/* The two actions are one group, and whitespace is what says so.
+            The menu rule -- destructive last, under a DropdownMenuSeparator --
+            exists because menu rows are flush: there the hairline IS the gap
+            it calls the warning (DESIGN-SYSTEM.md, the item level). A dialog
+            row already has 16px around it and these two rows are outlined
+            pills, so the line was a third horizontal edge between two button
+            borders. Gap instead: 24px above the group, 12px inside it. */}
         {isKeeper && catchupStatus !== "ended" && (
-          <div className="border-t border-border pt-4">
+          <div className="mt-2 flex flex-col gap-3">
             <Button
               variant="outline"
               className="w-full justify-center"
@@ -224,11 +231,6 @@ export function KeeperSettingsDialog({
                 </>
               )}
             </Button>
-          </div>
-        )}
-
-        {isKeeper && catchupStatus !== "ended" && (
-          <div className="border-t border-border pt-4">
             <Button
               variant="destructive"
               className="w-full justify-center"

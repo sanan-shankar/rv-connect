@@ -32,6 +32,7 @@ if the month is new), and add one line here, at the top of that month's list.
 - 2026-09-08 — build phase 3: the picture
 - 2026-09-08 — build phase 4: the batch Catch-up, and a sidebar row that has to earn itself
 - 2026-09-08 — build phase 5: leaving, and the read mark
+- 2026-09-08 (later) — the Catch-up settings dialog loses its rules
 - 2026-09-07 — the five parked rebuilds get a description he can judge, and five bugs get filed
 - 2026-09-07 — one folder for scratch screenshots, and something that empties it
 - 2026-09-07 — the session log becomes an index, and a test keeps it one
