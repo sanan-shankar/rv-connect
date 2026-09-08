@@ -298,9 +298,10 @@ function NavLinks({
   // Each rendered nav list owns its own marker group, so the desktop rail and
   // the open mobile drawer never try to share (and fight over) one indicator.
   markerId: string;
-  /** Catch-ups is an alumni feature (owner, 2026-08-18: "remove catch ups
-   *  for teachers"); teacher accounts never see the row. The /catchups
-   *  routes themselves redirect too, so this is presentation, not the gate. */
+  /** True for a teacher, and now also for anyone with no Catch-up to open.
+   *  Computed once in `Sidebar` below; see the reasoning there. The /catchups
+   *  routes still render for everyone signed in, so this is presentation, not
+   *  the gate. */
   hideCatchups?: boolean;
 }) {
   const nav = hideCatchups ? NAV.filter((n) => n.href !== "/catchups") : NAV;
@@ -575,20 +576,47 @@ export function Sidebar({
   user,
   unreadCount,
   demo = false,
+  hasCatchup = true,
 }: {
   user: SidebarUser;
   unreadCount: number;
   /** True on the demo deployment; see the note in app-shell.tsx for why this
    *  arrives as a prop instead of being read from `IS_DEMO` here. */
   demo?: boolean;
+  /** Is there at least one Catch-up this member can open? Counted by the
+   *  layout, because it is a database question and this is a client
+   *  component.
+   *
+   *  DEFAULTS TO TRUE on purpose. A caller that forgets it (the preview room
+   *  in /lab, anything added later) shows the row, which lands on the empty
+   *  state; the other default would hide a whole feature over a missing prop.
+   *  Hiding a door is not access control either way -- /catchups renders for
+   *  anyone signed in and the invite link still works. */
+  hasCatchup?: boolean;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const inAdmin = user.role === "admin" && isAdminRoute(pathname);
   /* Read once and passed to both, so the desktop rail and the mobile drawer
-     cannot come to disagree about who sees Catch-ups. */
+     cannot come to disagree about who sees Catch-ups.
+
+     TWO REASONS TO HIDE IT. The older one is that Catch-ups is an alumni
+     feature (owner, 2026-08-18: "remove catch ups for teachers").
+
+     The newer one is his, 2026-09-08, about the batch Catch-up: "for people
+     whose batches have less than ten people, let's not even show the catch ups
+     things in the sidebar. it won't be reachble to them. once there's ten it
+     appears and the catch up would be created for that batch."
+
+     THE TEST IS "HAVE YOU GOT A CATCH-UP", NOT "IS YOUR BATCH BIG", and the
+     difference is not academic. A member of a ten-plus batch always has one,
+     which is his rule exactly. But a member of a small batch can be INVITED to
+     a people Catch-up, and then there is something behind the door: Jerry
+     Maguire has no batch year at all and is in two, and the public demo's
+     visitor is a member of `demo-catchup` -- a strict batch-size test would
+     have deleted Catch-ups from the sidebar of the build he shows people. */
   const hideCatchups =
-    user.accountType === "teacher" || user.accountType === "ex_teacher";
+    user.accountType === "teacher" || user.accountType === "ex_teacher" || !hasCatchup;
 
   return (
     <>

@@ -158,9 +158,14 @@ test("a batch has exactly one group, and the database is what says so", () => {
       "for one batch, and launch day is the concurrency that produces them"
   );
 
-  const signup = readFileSync(resolve(ROOT, "src/components/auth/actions.ts"), "utf8");
-  const i = signup.indexOf("async function joinBatchGroup");
-  const fn = signup.slice(i, signup.indexOf("\n}", i));
+  /* It lives in src/lib/batch-catchups.ts since build phase 4, not in the
+     signup action: the tick's self-heal calls it too, and a `"use server"`
+     file may export nothing but async server actions, so it could not stay
+     there and be shared. */
+  const lib = readFileSync(resolve(ROOT, "src/lib/batch-catchups.ts"), "utf8");
+  const i = lib.indexOf("async function joinBatchGroup");
+  assert.ok(i >= 0, "joinBatchGroup has moved again; this pin is reading nothing");
+  const fn = lib.slice(i, lib.indexOf("\n}", i));
   /* Either spelling counts: the shared predicate, or the raw code it wraps.
      What is being pinned is that the race is ANSWERED, not which helper does
      it -- and matching only `P2002` broke the moment the hand-rolled check

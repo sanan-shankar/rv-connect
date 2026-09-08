@@ -58,6 +58,9 @@ import {
   extendPatch,
   extendPhasePatch,
   isEffectiveKeeper,
+  isBatchCatchup,
+  BATCH_CATCHUP_REFUSAL,
+  BATCH_LEAVE_REFUSAL,
   isMissingCatchupTable,
   mayChangeCatchupPicture,
   newInviteToken,
@@ -199,7 +202,7 @@ type EditionContext = {
     createdById: string | null;
     cadence: Cadence;
     status: CatchupStatus;
-    group: { id: string; name: string };
+    group: { id: string; name: string; batchYear: number | null };
   };
 };
 
@@ -237,7 +240,9 @@ async function loadFreshEdition(editionId: string): Promise<EditionContext | nul
           createdById: true,
           cadence: true,
           status: true,
-          group: { select: { id: true, name: true } },
+          // `batchYear` is the whole test for "this is a batch Catch-up" (F6),
+          // and every Keeper control below refuses one outright.
+          group: { select: { id: true, name: true, batchYear: true } },
         },
       },
     },
@@ -275,6 +280,9 @@ async function loadCatchupContext(catchupId: string, userId: string) {
       cadence: true,
       nextOpensAt: true,
       pausedAt: true,
+      // See loadFreshEdition: the batch test, for the guard in loadKeeperScope
+      // and for the two exits that refuse a batch Catch-up by name.
+      group: { select: { batchYear: true } },
     },
   });
   if (!catchup) return null;
@@ -350,6 +358,14 @@ async function loadKeeperEdition(
   const scope = await loadMemberEdition(editionId, viewerId);
   if ("error" in scope) return scope;
   const { edition, membership } = scope;
+  /* A BATCH CATCH-UP HAS NO MANUAL TRANSITIONS AT ALL (architecture 6, his
+     correction N30), so it is refused before the Keeper question is even
+     asked. Nobody could pass that question anyway -- a batch group has no
+     `createdById` and every role in it is "member" -- but "nobody happens to
+     qualify" is an accident of the data, and this is the rule. */
+  if (isBatchCatchup(edition.catchup.group.batchYear)) {
+    return { error: BATCH_CATCHUP_REFUSAL };
+  }
   if (
     !isEffectiveKeeper({
       viewerId,
@@ -1724,7 +1740,11 @@ async function loadOwnCatchupCopy(catchupId: string, viewerId: string) {
   const ctx = await loadCatchupContext(catchupId, viewerId);
   if (!ctx) return { error: "Catch-up not found." as const };
   if (!ctx.membership) return { error: "You are not in this Catch-up." as const };
-  return { groupId: ctx.catchup.groupId, createdById: ctx.catchup.createdById };
+  return {
+    groupId: ctx.catchup.groupId,
+    createdById: ctx.catchup.createdById,
+    batchYear: ctx.catchup.group.batchYear,
+  };
 }
 
 /**
@@ -1787,6 +1807,12 @@ async function loadKeeperScope(
   const ctx = await loadCatchupContext(catchupId, viewerId);
   if (!ctx) return { error: "Catch-up not found." as const };
   if (!ctx.membership) return { error: refusal.notMember };
+  // The same refusal loadKeeperEdition makes, and for the same reason: on a
+  // batch Catch-up there is no rhythm to change, nobody to add or remove, no
+  // hat to hand over and nothing to pause or end.
+  if (isBatchCatchup(ctx.catchup.group.batchYear)) {
+    return { error: BATCH_CATCHUP_REFUSAL };
+  }
   if (
     !isEffectiveKeeper({
       viewerId,
@@ -1978,6 +2004,15 @@ export async function leaveCatchup(catchupId: string) {
     const ctx = await loadCatchupContext(catchupId, viewerId);
     if (!ctx) return { error: "Catch-up not found." };
     if (!ctx.membership) return { error: "You are not in this Catch-up." };
+    /* You cannot leave your own batch. His, brief 51: "the batch catch up
+       can't edit people in and out it's just people in that batch and they're
+       all automatically added". A leave would also be undone by the next
+       nightly `healBatchGroupMemberships` pass, which would put them straight
+       back -- so refusing is the honest answer rather than the strict one.
+       Archiving still works, and that is what the sentence points at. */
+    if (isBatchCatchup(ctx.catchup.group.batchYear)) {
+      return { error: BATCH_LEAVE_REFUSAL };
+    }
     if (ctx.catchup.createdById && ctx.catchup.createdById === viewerId) {
       return {
         error:
@@ -2070,6 +2105,14 @@ export async function setCatchupDeleted(catchupId: string, deleted: boolean) {
 
     const copy = await loadOwnCatchupCopy(catchupId, viewerId);
     if ("error" in copy) return { error: copy.error };
+    /* Deleting is leaving with a thirty-day fuse -- the sweep takes the
+       GroupMember row at the end of it -- so a batch Catch-up refuses it for
+       exactly the reason `leaveCatchup` does. Restoring (deleted === false) is
+       always allowed: a row stamped before this guard existed must still be
+       recoverable. */
+    if (deleted && isBatchCatchup(copy.batchYear)) {
+      return { error: BATCH_LEAVE_REFUSAL };
+    }
     if (deleted && copy.createdById && copy.createdById === viewerId) {
       return {
         error:

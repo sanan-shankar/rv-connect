@@ -12,7 +12,12 @@ import { FreshOffThePress, type FreshEditionItem } from "@/components/catchups/i
 import { GroupFirstGuidance } from "@/components/catchups/index/group-first-guidance";
 import { FiledAway, type FiledRow } from "@/components/catchups/index/filed-away";
 import { catchupShelf, type CatchupShelf } from "@/lib/catchup-shelf";
-import { advanceDueCatchups, describeEditionStatus, isMissingCatchupTable } from "@/lib/catchups";
+import {
+  advanceDueCatchups,
+  describeEditionStatus,
+  isBatchCatchup,
+  isMissingCatchupTable,
+} from "@/lib/catchups";
 import type { CatchupPersonRef, CatchupStatus, EditionStatus } from "@/lib/catchups-types";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 
@@ -82,15 +87,30 @@ async function loadIndexData(userId: string) {
         select: {
           id: true,
           name: true,
+          // The batch test (F6). Same job as `createdById` below: it decides
+          // only what the card's menu offers, because a batch Catch-up has no
+          // way out but archiving.
+          batchYear: true,
           _count: { select: { members: true } },
           /* No `take` here any more. It used to fetch an arbitrary 6 with no
              ordering, so whether the VIEWER appeared in the card's avatar
              cluster came down to whatever order Postgres happened to return,
              and members who fell outside that 6 asked the owner whether they
              were even in the Catch-up (2026-08-04). The rows are four scalar
-             columns each and these groups are a set of people you picked, so
-             reading them all and putting the viewer first below costs nothing
-             worth protecting. `_count` above still supplies the true total. */
+             columns each and putting the viewer first below is what the card
+             actually needs. `_count` above still supplies the true total.
+
+             THE JUSTIFICATION HAS HALF EXPIRED, and it is worth saying rather
+             than leaving for somebody to discover. It used to read "these
+             groups are a set of people you picked", which was true of every
+             Catch-up until build phase 4. A BATCH group is not a set you
+             picked: it is everyone from a year, and it grows on its own. The
+             largest today is 39 and the whole fan-out measures 0.4ms on the
+             live database, so nothing is wrong yet -- but a 200-person batch
+             would make this read 200 identity rows to draw five avatars. The
+             fix is not a bare `take` (that is the 2026-08-04 bug again); it is
+             the viewer's own row plus a few others, and it belongs to phase 6,
+             which rebuilds this page. */
           members: {
             select: { user: { select: IDENTITY_SELECT } },
           },
@@ -166,6 +186,7 @@ async function loadIndexData(userId: string) {
       shelf: catchupShelf(pref),
       deletedAt: pref?.deletedAt ?? null,
       isCreator: !!group.catchup.createdById && group.catchup.createdById === userId,
+      isBatch: isBatchCatchup(group.batchYear),
       groupId: group.id,
       groupName: group.name,
       members,

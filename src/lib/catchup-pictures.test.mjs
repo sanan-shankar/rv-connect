@@ -145,18 +145,27 @@ test("the schema's default is the pool's first entry", () => {
   assert.equal(DEFAULT_PICTURE_FOCUS, "center 85%");
 });
 
+/** The VALUES list a migration retypes the pool into, checked against the
+ *  real array. Two files carry one now, and a photograph added to the pool and
+ *  to neither gets picked by `pictureFor` for every new Catch-up and by
+ *  nothing for a backfilled one. */
+function assertPoolMatches(sql, where) {
+  const rows = [...sql.matchAll(/\(\s*(\d+),\s*'([^']+)',\s*'([^']+)'\s*\)/g)];
+  assert.equal(rows.length, CATCHUP_PICTURES.length, `${where}: the VALUES list is a different length`);
+  rows.forEach((row, i) => {
+    assert.equal(Number(row[1]), i + 1, `${where}: the ordinals are not 1..n in order`);
+    assert.equal(row[2], CATCHUP_PICTURES[i].src, where);
+    assert.equal(row[3], CATCHUP_PICTURES[i].focus, where);
+  });
+  return rows.length;
+}
+
 test("the migration's backfill is this pool, in this order", () => {
   /* The SQL cannot import the array, so it retypes it. This is what stops the
      two drifting: a photograph added here and not there gets picked by
      `pictureFor` for every new Catch-up and by nothing for an old one. */
   const sql = read("prisma/migrations-manual/2026-09-08-catchup-picture.sql");
-  const rows = [...sql.matchAll(/\(\s*(\d+),\s*'([^']+)',\s*'([^']+)'\s*\)/g)];
-  assert.equal(rows.length, CATCHUP_PICTURES.length, "the backfill's VALUES list is a different length");
-  rows.forEach((row, i) => {
-    assert.equal(Number(row[1]), i + 1, "the backfill's ordinals are not 1..n in order");
-    assert.equal(row[2], CATCHUP_PICTURES[i].src);
-    assert.equal(row[3], CATCHUP_PICTURES[i].focus);
-  });
+  assertPoolMatches(sql, "2026-09-08-catchup-picture.sql");
 
   // Re-runnable, and it has to be: it is applied to two Supabase projects and
   // there is no migration table saying which have had it.
@@ -170,6 +179,20 @@ test("the migration's backfill is this pool, in this order", () => {
      migration on whichever project happened to hold a row that hashed
      negative. */
   assert.match(sql, /hashtext\(c\.id\) & 2147483647/);
+});
+
+test("the batch backfill retypes the same pool, and modulos it by the same length", () => {
+  /* The second migration to carry a copy of the pool (build phase 4: one
+     Catch-up per batch group at ten members or more). It hard-codes the
+     pool's LENGTH in its modulo rather than counting the VALUES list the way
+     the picture migration does, so growing the pool to twenty without
+     touching this number would leave fourteen photographs unreachable to
+     every batch Catch-up made by it. This is the line that says so. */
+  const sql = read("prisma/migrations-manual/2026-09-08-batch-catchups.sql");
+  const n = assertPoolMatches(sql, "2026-09-08-batch-catchups.sql");
+  const modulo = sql.match(/hashtext\(e\.id\) & 2147483647\) % (\d+)\)/);
+  assert.ok(modulo, "the batch backfill no longer picks a picture by hashing the group id");
+  assert.equal(Number(modulo[1]), n, "the batch backfill's modulo is not the pool's length");
 });
 
 test("every path that mints a Catch-up gives it a picture", () => {

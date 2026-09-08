@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { unreadNotificationCount } from "@/lib/notification-count";
 import { AppShell } from "@/components/layout/app-shell";
 import { advanceDueCatchups } from "@/lib/catchups";
@@ -59,7 +60,31 @@ export default async function MainLayout({
      If it ever needs to stop blocking, `after()` is the tool -- and the
      Catch-up surfaces themselves already re-run it, so only the piggyback
      would be lost. */
-  const [unreadCount, mailState] = await Promise.all([
+
+  /* Is there a Catch-up this member can open? The sidebar hides its Catch-ups
+     row when there is not (spec 3.5b, and his words are quoted in sidebar.tsx).
+
+     Counted here rather than in the sidebar because the sidebar is a client
+     component, and asked on every authenticated page because membership can
+     change under a member at any moment: accepting an invite, or the tenth
+     person from their batch signing up, both have to make the row appear
+     without them reloading anything the app cannot revalidate.
+
+     `findFirst` with one column, not a `count`: the question is "at least
+     one", and Postgres can stop at the first row. Teachers never see the row
+     at all, so they are not asked; that also spares the query on every
+     teacher's page view.
+
+     What it costs, measured on the live database 2026-09-08 with EXPLAIN
+     ANALYZE: 0.117ms execution, 2.1ms planning, on the semi-join through
+     `GroupMember (groupId, userId)`. The real cost is the Mumbai round trip,
+     not the query, and it rides inside the Promise.all that was already
+     waiting on the notification count and the advance -- so the page waits for
+     the slowest of four rather than the slowest of three, and this is not it. */
+  const isTeacher =
+    session.user.accountType === "teacher" || session.user.accountType === "ex_teacher";
+
+  const [unreadCount, mailState, ownCatchup] = await Promise.all([
     unreadNotificationCount(session.user.id),
     // Only asked for when it can change what the banner says. A confirmed
     // account never queries the queue at all.
@@ -72,6 +97,12 @@ export default async function MainLayout({
     session.user.emailConfirmed
       ? Promise.resolve(null)
       : verificationMailState(session.user.id),
+    isTeacher
+      ? Promise.resolve(null)
+      : prisma.catchup.findFirst({
+          where: { group: { members: { some: { userId: session.user.id } } } },
+          select: { id: true },
+        }),
     advanceDueCatchups(session.user.id),
   ]);
 
@@ -136,6 +167,7 @@ export default async function MainLayout({
         }}
         unreadCount={unreadCount}
         demo={IS_DEMO}
+        hasCatchup={!!ownCatchup}
         notice={
           mailState ? (
             <VerifyEmailBanner

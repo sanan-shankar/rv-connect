@@ -344,7 +344,12 @@ function PeopleDialog({
             Catch-up rather than through their membership row, so leaving would
             leave a Catch-up nobody can tend. The action refuses them anyway;
             not offering it is the honest half. */}
-        {!isCreator && (
+        {/* And absent on the batch's own Catch-up, which nobody can leave:
+            his, brief 51, "the batch catch up can't edit people in and out
+            it's just people in that batch and they're all automatically
+            added". `leaveCatchup` refuses it, and the nightly membership heal
+            would put anyone who got through straight back. */}
+        {!isCreator && !data.isBatch && (
           <div className="border-t border-border pt-[var(--space-m)]">
             <button
               type="button"

@@ -405,6 +405,74 @@ export function isEffectiveKeeper(opts: {
   return opts.groupRole === "keeper" || opts.groupRole === "admin";
 }
 
+/* ------------------------------------------------------------------ *
+ *  The batch Catch-up (spec 3.5, architecture 6).
+ * ------------------------------------------------------------------ */
+
+/**
+ * How many people a batch needs before it gets a Catch-up of its own, and
+ * before "Catch-ups" appears on their sidebar at all.
+ *
+ * His, 2026-09-08: "for people whose batches have less than ten people, let's
+ * not even show the catch ups things in the sidebar. it won't be reachble to
+ * them. once there's ten it appears and the catch up would be created for
+ * that batch."
+ *
+ * Why the number bites so hard here, so nobody re-derives it: measured on
+ * 2026-09-08, nine of the eleven batch groups hold four members or fewer and
+ * six hold exactly one. Under any smaller floor most batch Catch-ups would be
+ * a newsletter to yourself, with reminders. Two batches clear ten today,
+ * 2023 (39) and 2024 (11).
+ */
+export const BATCH_CATCHUP_FLOOR = 10;
+
+/**
+ * Is this a batch Catch-up?
+ *
+ * `Group.batchYear` is the whole test (F6): a batch is a Group with the year
+ * set, a Catch-up is one row per Group, and nothing else in the app writes
+ * that column. One function rather than eleven inline `batchYear != null`
+ * checks, because the reason it means "batch" is not obvious from the
+ * expression.
+ */
+export function isBatchCatchup(batchYear: number | null | undefined): boolean {
+  return batchYear != null;
+}
+
+/**
+ * What a batch Catch-up refuses, in one sentence, for every control that
+ * refuses it.
+ *
+ * A batch Catch-up has NO MANUAL TRANSITIONS AT ALL and no member editing --
+ * his own correction, N30, after asking "Can anyone open answering? That
+ * shouldn't be allowed. Because many people would click it by accident.
+ * Especially on a batch thing ... it seems like the kind of irreversible
+ * thing." Nobody opens answering, nobody closes it, nobody publishes, nobody
+ * renames it, nobody adds or removes anyone. It runs on its rhythm and the
+ * only things anyone does on one are ask and answer. That is what makes
+ * "nobody keeps it" survivable.
+ *
+ * ONE sentence rather than a sentence per control, unlike the ten
+ * "Only the Keeper can ..." refusals it sits beside, because the reason is
+ * the same every time and has nothing to do with who is asking: there is no
+ * Keeper to be. Nobody should ever read it -- every one of these controls is
+ * absent from a batch Catch-up's screen -- so it is the backstop, not the
+ * explanation.
+ */
+export const BATCH_CATCHUP_REFUSAL =
+  "A batch Catch-up runs on its own. Everyone in the batch is in it, nobody keeps it, and there is nothing here to change.";
+
+/**
+ * And the exit, which refuses for a different reason and so says a different
+ * thing. His, in the paragraph the whole feature comes from (brief 51): "the
+ * batch catch up can't edit people in and out it's just people in that batch
+ * and they're all automatically added and have access to previous issues if
+ * they join later." Leaving your own batch is not a thing you can do, so the
+ * sentence points at the control that does work.
+ */
+export const BATCH_LEAVE_REFUSAL =
+  "This is your batch's Catch-up, so there is nobody to leave it to. You can archive it instead.";
+
 /**
  * Who may replace a Catch-up's photograph.
  *
@@ -420,10 +488,9 @@ export function isEffectiveKeeper(opts: {
  * one (`createdById` is null), so a rule of "only the Keeper" would mean nobody
  * at all, for ever, on the Catch-ups most members are actually in.
  *
- * `batchYear` is the whole test for "this is a batch Catch-up": a batch is a
- * Group with the year set, and a Catch-up is one row per Group. Batch
- * Catch-ups do not exist until build phase 4; this is written now so that
- * phase does not have to come back and widen a guard.
+ * `isBatchCatchup` is the whole test, and since build phase 4 (2026-09-08)
+ * this is the one control on a batch Catch-up that anybody holds: every other
+ * Catch-up-level control refuses one outright (`BATCH_CATCHUP_REFUSAL`).
  *
  * Membership is NOT checked here -- every caller has already established it,
  * because you cannot act on a Catch-up you are not in. This answers the
@@ -437,7 +504,7 @@ export function mayChangeCatchupPicture(opts: {
   batchYear: number | null | undefined;
 }): boolean {
   if (!opts.viewerId) return false;
-  if (opts.batchYear != null) return true;
+  if (isBatchCatchup(opts.batchYear)) return true;
   return isEffectiveKeeper(opts);
 }
 

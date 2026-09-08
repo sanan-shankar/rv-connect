@@ -21,6 +21,7 @@
 import { prisma } from "@/lib/prisma";
 import * as notify from "@/lib/catchups-notify";
 import { reportSwallowed } from "@/lib/report-error";
+import { healBatchCatchupsAndMemberships } from "@/lib/batch-catchups";
 import type {
   Cadence,
   CatchupStatus,
@@ -413,15 +414,27 @@ async function openNextEditionIfDue(
 
 /**
  * The lazy, read-time, no-cron advance (spec section 2.4). Finds every stale
- * Edition in the viewer's groups (or across all groups when unscoped, so a future
- * CRON_SECRET /api/catchups/tick is a thin wrapper) and advances each, then opens
+ * Edition in the viewer's groups (or across all groups when unscoped, so
+ * /api/catchups/tick is a thin wrapper) and advances each, then opens
  * any next Editions whose nextOpensAt has passed. Wrapped so it can NEVER throw:
  * it is piggy-backed on the app-shell notification-count query that runs on
  * essentially every authenticated page view, and a missing table (pre-migration)
  * or any error must degrade to a no-op, never a 500.
+ *
+ * `userId` is not just a filter: it is the difference between the two callers,
+ * and one thing here happens on only one of them. The batch self-heal below
+ * scans two whole tables, which is a nightly cost and would be an absurd
+ * per-page-view one, so it runs on the unscoped cron sweep alone.
  */
 export async function advanceDueCatchups(userId?: string): Promise<void> {
   const now = new Date();
+
+  /* The nightly half, before the advance rather than after it: a batch that
+     crossed the floor gets its Catch-up and its first Edition here, and the
+     advance below is then the pass that can move it. It never throws and it
+     reports its own failures (see batch-catchups.ts). */
+  if (!userId) await healBatchCatchupsAndMemberships();
+
   try {
       const scope = userId ? { group: { members: { some: { userId } } } } : {};
 
