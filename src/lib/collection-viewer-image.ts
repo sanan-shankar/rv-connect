@@ -22,6 +22,7 @@
 import type { ViewerImage } from "@/components/common/image-viewer";
 import type { PhotoData } from "@/lib/collection-shape";
 import { bucketLabel } from "@/lib/collection";
+import { collectionSaveName } from "@/lib/photo-save-name";
 
 /**
  * Map a Collection photograph onto the shared viewer's shape.
@@ -51,6 +52,9 @@ export function toViewerImage(p: PhotoData, isAdmin: boolean): ViewerImage {
     date: p.takenLabel,
     tags: p.subject.map(bucketLabel),
     href: `/collection/${p.id}`,
+    /* Without this a saved photograph is called by its object key. The
+       archive knows what it is and when it was, so it says so. */
+    downloadName: collectionSaveName(p.caption, p.takenLabel),
     loved: p.loved,
     loveCount: p.loveCount,
     /* An EDIT, not a delete, and deliberately instead of one. The owner,

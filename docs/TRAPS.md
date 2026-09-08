@@ -273,6 +273,17 @@ needs its own `connect-src` entry. Without one the browser refuses the PUT, the 
 and every upload silently falls back through the server and its ~4.5MB body cap -- which is the one
 thing presigning exists to avoid. It was in exactly that state until 2026-08-21.
 
+**Vercel's 4.5MB cap is on the RESPONSE body too, not only the request.** Everyone here knows the
+request half, because presigned uploads exist to dodge it. The same sentence in Vercel's own limits
+page ends "or the response body", and a function that returns more answers 413
+`FUNCTION_PAYLOAD_TOO_LARGE`. That is not a theoretical size for this app: the largest photograph in
+the Collection is 40 megapixels, and even a mid-sized 6000x4000 scan is 3.9MB as a JPEG, so
+`/api/photo/download` would have started failing on the biggest archive photographs and nowhere
+else. **Streamed responses are exempt** and it is Vercel's own documented answer, so that route
+pipes sharp's output straight through (`Readable.toWeb`) and never calls `.toBuffer()`. Any route
+handing back image bytes must do the same: buffering is the bug, and it only shows up on the files
+that matter most.
+
 ## Layout
 
 **A Turnstile site key only works on the hostnames listed in Cloudflare, and a Vercel deployment

@@ -134,6 +134,41 @@ concluded the Collection stores 1920px copies. See `docs/TRAPS.md`.
 
 Implementation note: the current route hard-caps file input at `5 * 1024 * 1024` (5MB) and rejects non-`image/` types. For the archive, **raise the input cap to 15MB** (people want to contribute good DSLR shots, the owner explicitly wants "higher-quality shots") but keep the *output* tightly compressed via the three-variant pass, so storage stays bounded regardless of input size. Reject HEIC up front with a clear message, or add `heic-convert`; sharp's HEIC support depends on the libvips build and is not guaranteed on every deploy target, so guard it.
 
+### 4.2b The third rendition: what Download hands over
+
+**Added 2026-09-08.** Two derivatives are STORED; a third is made on demand and
+kept nowhere. The owner: *"when I download images from places it comes as webp.
+people can't really use that."* He is right — older Photoshop, Preview's print
+dialog and most print shops still refuse a `.webp`, so the Download button was
+handing an alumnus a file they could not open, named after its object key.
+
+`GET /api/photo/download?url=…` re-encodes the stored display copy to **JPEG
+q92** and streams it. Full resolution, unresized: the archive stores full-res on
+purpose and a download is the one moment that matters.
+
+- **Not PNG**, which was asked for first. Measured on real archive photographs:
+  6000x4000 is 3.9MB as JPEG and 43.5MB as PNG; 3456x4608 is 2.7MB against
+  20.4MB. Eight to eleven times the traffic for no picture, because what PNG
+  would losslessly preserve is a WebP that was already lossy.
+- **The taken-date survives.** `.keepExif()`, which on a stored copy means
+  exactly `DateTimeOriginal` and nothing else — the GPS a phone writes was
+  dropped at upload (M12). So the file files itself under 1978 in somebody's
+  photo app rather than under today, which is why the date was kept in the
+  first place (§4.2, 2026-09-01).
+- **The input check is `keyForUrl`**, the same one the delete path trusts, so
+  the converter cannot be aimed off-host and made an open proxy. Session-gated
+  and metered (`photoDownloads`, 60/hour) because the CPU is the cost, not the
+  bytes — the stored object was always publicly fetchable.
+- **The response is streamed, and must stay streamed.** See `docs/TRAPS.md`:
+  Vercel caps a buffered response at 4.5MB, which the larger half of this
+  archive exceeds as a JPEG.
+- **The filename is built client-side** (`src/lib/photo-save-name.ts`), from
+  the caption and the taken-date: "Rishi Valley 1978 Sports day.jpg". It is set
+  through the anchor's `download` attribute rather than a `Content-Disposition`
+  header, so a member-written caption never reaches a header.
+- The button shows a spinner and refuses a second press while a save is in
+  flight; a 24-megapixel photograph is around six seconds end to end.
+
 ### 4.3 Lazy loading, thumbnails, and a blur placeholder
 
 - Every grid `<img>` uses `loading="lazy"` (the post-card already does this, `post-card.tsx` line 211) plus `decoding="async"`.

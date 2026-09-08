@@ -110,6 +110,37 @@ export async function vetLookupRequest(): Promise<Vetted> {
 }
 
 /**
+ * The door on the route that converts a stored photograph for saving.
+ *
+ * Signed in, and metered. Deliberately NOT `requireVerifiedEmail`: this hands
+ * back a photograph the caller is already looking at, and every stored object
+ * is publicly fetchable from the image host anyway -- the browser could always
+ * have saved the WebP itself. So there is no disclosure to gate, and holding a
+ * download behind a confirmation email would only stop a member saving a photo
+ * of themselves.
+ *
+ * What IS worth gating is the CPU. Re-encoding a 40-megapixel scan is seconds
+ * of it, and an ungated converter is a free one pointed at our own bucket. The
+ * session identifies whom to meter; `photoDownloads` does the rest.
+ *
+ * No origin check either: a GET that writes nothing has no cross-site write to
+ * refuse, same reasoning as the lookup door above.
+ */
+export async function vetPhotoDownload(): Promise<Vetted> {
+  const session = await auth();
+  if (!session?.user) {
+    return { ok: false, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+
+  const limited = await rateLimit("photoDownloads", session.user.id);
+  if (!limited.ok) {
+    return { ok: false, response: NextResponse.json({ error: limited.error }, { status: 429 }) };
+  }
+
+  return { ok: true, userId: session.user.id };
+}
+
+/**
  * The door on a scheduled route: a bearer secret, compared in constant time.
  *
  * Returns the refusal to hand straight back, or null to carry on.
