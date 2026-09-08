@@ -158,11 +158,9 @@ export default function NotFoundStage() {
     let token: Token | null = null;
     const pos = { x: 0, y: 0 };
 
-    // The one thing that honours prefers-reduced-motion is the click FLIGHT
-    // (the rig's own micro-delights are a locked always-on decision, see
-    // hoopoe-kit.ts): with reduced motion the bird teleports to the click
-    // instead of arcing, but still emotes in place either way.
-    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // The click FLIGHT used to teleport instead of arcing for a visitor with
+    // the OS reduce-motion setting on. It was the last such check in the app
+    // and the owner removed it on 2026-09-08: the bird arcs for everybody.
 
     const setPos = (x: number, y: number) => {
       pos.x = x;
@@ -219,11 +217,6 @@ export default function NotFoundStage() {
       const dy = to.y - from.y;
       const dist = Math.hypot(dx, dy);
       if (dist < 4) return;
-      if (calm) {
-        setPos(to.x, to.y); // reduced motion: no arc, just be there
-        return;
-      }
-
       const dir: 1 | -1 = dx >= 0 ? 1 : -1;
       const ms = clamp(540 + dist * 1.05, 620, 1650);
       const lift = clamp(40 + dist * 0.2, 46, 160); // arch above the straight chord

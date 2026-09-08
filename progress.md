@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-08 — nothing checks the reduce-motion setting any more
 - 2026-09-08 — the second heart you press in the Collection
 - 2026-09-08 — refactor audit 2: eleven units, and the close-out
 - 2026-09-08 — the documentation pass: eleven documents that described a different app

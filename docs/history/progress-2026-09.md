@@ -8,6 +8,27 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 — nothing checks the reduce-motion setting any more
+
+Three shipped files still gated on the OS reduce-motion preference, all written before the owner
+ruled on it. Asked at the campaign's close whether they should go too, he said **"make them animate
+for everybody"**, so they did:
+
+- `landing/footer-hoopoe.tsx` argued in its own docblock that it was a deliberate scoped exception,
+  and stood the bird down to a static perch. The state, its `matchMedia` effect, its ref, the
+  `blocked` clause and the flattened bob pose are all gone.
+- `mascot/moments/not-found-stage.tsx` teleported the bird to a click instead of arcing to it.
+- `landing/showcase-shot.tsx` dropped its parallax transform.
+
+DESIGN-SYSTEM §7 now says **zero** shipped files check it, and makes the count the rule: a grep for
+`prefers-reduced-motion` outside a comment returning a hit is a regression, not a new exception.
+The one remaining mention is `motion.tsx`'s own line saying it must never be wired up.
+
+His reasoning, from 2026-09-07: *"I know these people. they'd want to see these fun things. don't
+make anything boring because they have rduced motion on."*
+
+107/107 tests, `npm run visual` 25/25.
+
 ## 2026-09-08 — the second heart you press in the Collection
 
 The owner, on an S23 with the app installed: *"I tried to like a photo in collection and though I

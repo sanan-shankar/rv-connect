@@ -56,13 +56,13 @@
  *  flight sit far above the fold, the footer is the last thing on the
  *  page), but the check costs nothing and keeps the rule airtight.
  *
- *  Respects prefers-reduced-motion (a deliberate, scoped exception:
- *  the app-wide `useMotionGovernor` never gates on the OS preference by
- *  design, but that governs the rig's own always-on idle breathing -
- *  this file's own scheduling of cross-ledge flights and reactions is
- *  new orchestration on top of it, and the task asks it to stand down
- *  to a static perch when the visitor has asked for less motion). Tab
- *  visibility still goes through the shared governor.
+ *  Motion always plays. This file used to carry a scoped exception that
+ *  stood the bird down to a static perch for a visitor with the OS
+ *  reduce-motion setting on; the owner removed it on 2026-09-08:
+ *  "reduce motion shouldn't be considered anywhere. I know these people.
+ *  they'd want to see these fun things. don't make anything boring
+ *  because they have rduced motion on." Tab visibility still goes through
+ *  the shared governor, and remains the only thing that pauses motion.
  *
  *  Cheap by construction: no rAF loop, just one IntersectionObserver
  *  and one self-rescheduling setTimeout. Only transform + opacity ever
@@ -169,25 +169,11 @@ export function FooterHoopoe() {
   const pausedRef = useRef(paused);
   pausedRef.current = paused;
 
-  // Scoped exception to the app's "never gate on prefers-reduced-motion"
-  // rule - see the file docblock above.
-  const [reducedMotion, setReducedMotion] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const onChange = () => setReducedMotion(mq.matches);
-    onChange();
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  const reducedRef = useRef(reducedMotion);
-  reducedRef.current = reducedMotion;
-
   // One intentional idle beat on top of the rig's own always-on breathing: a
   // slow bob + side-to-side tilt on the puppet's OWN wrapper (a different
   // element than anything the rig's verbs touch, so it never fights preen,
   // peck, or a flutterTo hop mid-move - it just keeps the resting bird feeling
-  // alive). transform-only; stands down to a level, static pose under
-  // reduced motion, same scoped exception as the rest of this file.
+  // alive). transform-only, and it plays for everybody.
   const [bobUp, setBobUp] = useState(false);
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>;
@@ -249,7 +235,6 @@ export function FooterHoopoe() {
     const blocked =
       !api ||
       api.isBusy() ||
-      reducedRef.current ||
       pausedRef.current ||
       !inViewRef.current ||
       anotherHoopoeVisible(puppetWrapRef.current);
@@ -305,7 +290,7 @@ export function FooterHoopoe() {
         <m.div animate={{ x: xOffset }} transition={SPRINGS.gentle}>
           <m.div
             style={{ transformOrigin: "bottom center" }}
-            animate={reducedMotion ? { y: 0, rotate: 0 } : { y: bobUp ? -4 : 0, rotate: bobUp ? -2.5 : 2.5 }}
+            animate={{ y: bobUp ? -4 : 0, rotate: bobUp ? -2.5 : 2.5 }}
             transition={SPRINGS.settle}
           >
             <Hoopoe size={RIG_SIZE} onReady={handleReady} />
