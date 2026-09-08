@@ -523,3 +523,13 @@ Each entry says what to delete, when, and why that date.
   still describe `approvePhotos`**, which was deleted on 2026-09-07 with the second photo-approval
   screen. Two live planning documents now describe code that does not exist. Left for whoever owns
   those campaigns rather than edited mid-flight by another one.
+
+- [ ] **The public demo returns 500 on every data route.** `/feed`, `/collection`, `/directory`,
+  `/letters` and `/catchups` all 500 on `demo.rishivalley.space`; only `/` and `/login` render, and
+  `/privacy` 404s. Found 2026-09-08 while checking whether a deploy had landed. **The demo database
+  is healthy** — every column the current schema selects is present, `verify-guard.mts` passes 15/15
+  and there are 40 seeded people — so this is the deployed app, not the data. **The demo is also
+  still serving an OLD build**: the new one renamed `/catchups/round` to `/catchups/edition`, and on
+  the demo the old path exists (500s) while the new one 404s, which is the reverse of what a current
+  build would do. Whether the 500s predate that stuck deploy is unknown; nothing records the demo
+  having been checked recently. Six manual migrations are waiting on this deploy landing.
