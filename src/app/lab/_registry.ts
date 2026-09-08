@@ -201,6 +201,13 @@ export const REGISTRY: LabEntry[] = [
     note: "The Catch-up settings list with the beige tiles taken out, and every dialog it opens drawn beside it. Name, Picture and Rhythm are the same three rows for everybody -- who you are decides which of them press -- so your batch's panel is no longer one lonely row. Three cases side by side, the phone sheet with an X instead of a grabber, and the four confirmations together.",
   },
   {
+    href: "/lab/catchups/wall",
+    title: "A wall is not a contact sheet",
+    group: "Delight",
+    status: "active",
+    note: "The photo-wall question, which has existed since Catch-ups was built and has never been drawn. Three shapes to flick between: a run that moves sideways, a drift down the column with each person in the margin, and a stack you move through one at a time. Change the wall under them: one photograph, three, twenty-four, all portrait, two hundred.",
+  },
+  {
     href: "/lab/catchups/swipe",
     title: "The swipe that goes back two",
     group: "Delight",
