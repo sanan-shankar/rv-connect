@@ -8,6 +8,37 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-09 — he rules on every feature, invents the time capsule, and asks for the question library
+
+He went through `features.md` out loud and ruled on all eleven proposals plus the four written up
+as not proposed. His words are verbatim in that file's §1 and in the handover's "Owner answers".
+
+**In**: a question you answer out loud (the audio plays back, the transcript from the browser,
+which he raised himself); a question the group votes on; a longer question library; and **answers
+hidden until you write your own — but a published Edition open to everybody regardless**, which he
+reversed from a "considered and not proposed" and which lands inside build phases 7 and 8.
+
+**Out**: the map, a guest question from another batch, and the one-line answer as an enforced cap.
+**Parked**: more reactions, anonymous answers, and the emailed issue, which needs a paid Resend
+plan. **Open**: then-and-now, which he did not follow and which is now explained plainly.
+
+**He invented time capsule mode**, and it replaces "this time last year" entirely: an Edition
+sealed when written and released a year later, a switch in settings, with the library tweaked to
+suit. Better than the idea it replaces because it changes what people write rather than what they
+are shown.
+
+**A build warning fell out of it.** Phase 11 must NOT drop `CatchupEdition.publishAt` — a time
+capsule is a scheduled publish date and it is the same column.
+
+**The question library advice he asked for** is argued from his own data, as he suggested. Ranked
+by hearts per answer on the live Edition: the nosiest question won at 6.0 on 112-character answers,
+the deepest came last but one on 618-character answers from the fewest people, and the songs
+question came last of all. Sixty to eighty questions, six shown at a time, three rules to keep it
+short.
+
+**And a note on writing for him**: the first draft opened with an array of category ids and the
+word migration, and his first sentence back was "I don't understand what you're even saying."
+
 ## 2026-09-09 — S-features: what else an Edition could hold
 
 The second brainstorm, which he has asked for twice: `docs/planning/catchups-rework/features.md`.
@@ -116,6 +147,9 @@ label rung; the 10.5-11px bolds elsewhere are cinnamon kickers, decoration allow
 row label 13px and value 12.5px both unchanged from the shipped tile, button 14px. Bird top on the
 close X's line -- the X does not move, top-right at 16px is the one inset every dialog shares.
 Gaps: 24px head to first row, 21px between rows, 20px above the button, 16px to the panel edge.
+Inside the head, 8px bird to name and 6px name to batch -- two numbers, not one, because the name
+and the batch are one unit and the bird is a separate object above them. One `gap-2` served both
+at first, which made bird to name 12px and left the name floating (*"move the name a bit up"*).
 Measured identical in the lab room and in the shipped dialog.
 
 **Two of those gaps were holes.** He asked what the whitespace above the email and above the CTA
