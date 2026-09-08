@@ -2333,29 +2333,28 @@ Gate 107/107, seven green.
 
 ## What to paste next
 
-**Phase 1 is DONE (2026-09-08). The next session is BUILD PHASE 2, the clock.** `spec.md` §9 has
-eleven phases; §3.3 is phase 2's authority. Track X (the fast fixes) is independent and may ship
-before, after or beside it.
+**Phases 1 and 2 are DONE (2026-09-08). The next session is BUILD PHASE 3, the picture.**
+`spec.md` §9 has eleven phases; §3.4 plus `architecture.md` §1b are phase 3's authority. Track X
+(the fast fixes) is independent and may ship before, after or beside it.
 
-**One thing is owed before phase 2 touches the database.** Phase 1 left
-`prisma/migrations-manual/2026-09-08-round-becomes-edition.sql` written and DELIBERATELY NOT
-APPLIED: running it before phase 1's commit deploys would point 61 live bell links at a route the
-running build has not got. Push phase 1, let both Vercel projects finish, then apply it to both
-Supabase projects. If it has already been applied, `SELECT count(*) FROM "Notification" WHERE link
-LIKE '/catchups/round/%'` answers 0.
+**Nothing is owed to the database.** Every migration this campaign has written is applied to both
+Supabase projects as of 2026-09-08: phase 1's `round-becomes-edition` (61 bell links, 17 view
+rows) and phase 2's `preparing-becomes-published` (a no-op backstop, 0 rows on each). The five
+refactor-audit drops went with them. `verify:crawl` is 21/21 at 200 against the migrated
+database. The only thing still deliberately unrun is the phase 11 cleanup, which does not exist
+yet and drops `publishAt` and `@@index([status, publishAt])` after phase 2 has deployed.
 
-**Nothing is waiting on him.** Owner questions 19, 20 and 21 all closed on 2026-09-08. What is
-still his, and is not a question: the **twenty photographs** (details rather than valley views,
-2,400px+ on the long edge, nothing with a recognisable face), and the **settings surface**, which
-he has said he will take in a session of his own (N100) -- scheduled before build phase 7, and it
-carries the confirmation dialogs with it.
+**Two things are his, and neither blocks phase 3.** The **twenty photographs** — measured
+guidance is in "The twenty photographs" below, and the six stand-ins ship until they arrive — and
+the **settings surface**, which he has claimed for a session of his own (N100), scheduled before
+build phase 7 and carrying the confirmation dialogs with it.
 
 ### Paste this into a fresh Opus max session
 
 ```
 @docs/planning/catchups-rework/handover.md
 
-You are S7, build phase 2 of docs/planning/catchups-rework/spec.md.
+You are S8, build phase 3 of docs/planning/catchups-rework/spec.md.
 
 Read spec.md in full, then architecture.md in full. brief.md is the test the spec is
 measured against; read it if you find yourself exercising judgment rather than
@@ -2363,39 +2362,72 @@ executing. Everything else in docs/planning/catchups-rework/ is reference -- see
 much of this you actually have to read" near the top of the handover. Do not read
 directions.md.
 
-BEFORE ANYTHING ELSE: phase 1 owes one migration. If phase 1 has been pushed and both
-Vercel projects have deployed, apply
-prisma/migrations-manual/2026-09-08-round-becomes-edition.sql to BOTH Supabase projects
-(the second with --env .env.demo). If it has not been pushed, say so and leave it; the
-old route is a permanent 308, so nothing is broken by waiting. Check with:
-SELECT count(*) FROM "Notification" WHERE link LIKE '/catchups/round/%'  -- 0 when done.
+NOTHING IS OWED TO THE DATABASE. Every migration through phase 2 is applied to both
+Supabase projects. Do not go looking for an unrun one. Confirm in one query if you
+want to: SELECT count(*) FROM "CatchupEdition" WHERE status='preparing'  -- 0.
 
-PHASE 2 IS THE CLOCK: spec.md section 3.3. Three things, one commit each if they are
-independent:
-  - `preparing` is DELETED. The status member, preparingPatch, PREPARING_HOLD_HOURS,
-    the publishAt column, the "Publish now" control and publishNowButton, the
-    almost-ready and not-yet-published screens, the branch in computeStatus and in
-    planNextAction. closeAndPrepare becomes closeAndPublish. His reason is N88 and it
-    is in architecture.md section 6.
-  - Deadlines snap to a CIVIL HOUR, 07:00 IST (01:30 UTC), on questionsCloseAt and
-    answersCloseAt wherever they are set. The hour is not a preference: vercel.json
-    runs /api/catchups/tick at 02:00 UTC, 07:30 IST, so 07:00 is always picked up by
-    that morning's cron within thirty minutes. Put that number in the comment.
-  - "Start the next Edition now" is ADDED -- the control nobody had (N43). He found it
-    himself: "literally after publishing I can't start a new round?!?!"
+PHASE 3 IS THE PICTURE: spec.md section 3.4, drawn in architecture.md section 1b.
+Every Catch-up gets a wide photograph from the day it is made, and it is NEVER
+optional -- his reason, N23: "then we'd have to have 2 different architectures."
+His diagnosis is the whole point of the phase, N19: "Catch-ups is the only one that
+has like nothing, no images, no media. It's just all text and organization and very
+functional and very corporate."
 
-The publish migration is the part that is easy to get wrong. Count first
-(SELECT count(*) FROM "CatchupEdition" WHERE status='preparing'). If it is not zero,
-publish those Editions THROUGH THE ACTION, because notifyPublished fires from the
-action and not from the database -- an Edition published by SQL sends nobody anything,
-and for its members it simply never happened. The migration stays as the idempotent
-backstop either way. The publishAt COLUMN is not dropped here; drops are phase 11,
-after this has deployed.
+  - TWO COLUMNS on Catchup, not a table: `pictureSrc` (a path into the shipped pool
+    or an R2 url someone uploaded -- one column, because they are the same thing to
+    every reader of it) and `pictureFocus` (the object-position its crop is taken
+    at, default "center 85%"). The exact Prisma block and the exact SQL are in
+    spec.md 3.4. Added NOT NULL with a deterministic backfill IN THE SAME FILE, so
+    there is never a row without a picture and never a no-picture layout to draw.
 
-Re-run `node scripts/dev/export-catchups.mjs --write` before any migration. Apply every
-migration to BOTH Supabase projects. Never prisma db push.
+  - THE POOL MOVES OUT OF THE LAB. `PICTURES` currently lives in
+    src/app/lab/catchups/sketches/_shelf.ts with six stand-ins. It becomes
+    src/lib/catchup-pictures.ts, one exported array of { src, focus }, imported by
+    the pool picker, the settings row and the seed. Adding his twenty is then one
+    file edit and no migration.
 
-Do not start phase 3. Do not redraw anything: /lab/catchups/sketches is the approved
+  - CREATION WRITES ONE. Every path that mints a Catchup row picks from the pool.
+
+  - THE UPLOAD AND CROP surface, spec.md 10.2: a settings row opening a picker (the
+    pool) with an "upload your own" branch. Both halves already exist -- photo-aim.tsx
+    is the aiming control, and the R2 direct-upload path (/api/upload/presign and
+    /finalize) has been unblocked since 2026-08-21. This is assembly, not design.
+    The thing that has fooled two sessions: THE CROP MOVES BETWEEN SCREENS, so the
+    aiming control shows the NARROWEST band while you aim, not the widest, and the
+    hint says what is guaranteed to survive.
+
+  - NOTHING RENDERS IT YET. The list is phase 6 and the home is phase 7. Phase 3 is
+    the data and the control only. Do not start drawing the surfaces.
+
+WHO MAY CHANGE IT: whoever may run the Catch-up, and on a batch Catch-up ANYONE in
+the batch -- his answer to owner question 18, safe because it is reversible unlike an
+Edition's transitions. Batch Catch-ups do not exist until phase 4; write the guard so
+phase 4 does not have to revisit it.
+
+THE MEASURED CROPS, so nothing is re-derived. Taken off the approved room on
+2026-09-08, and every one uses object-fit: cover with a per-photograph
+object-position:
+
+  home head, laptop    1076 x 240   4.48 : 1     the widest
+  list card, laptop     536 x 214   2.50 : 1
+  home head, phone      350 x 172   2.03 : 1
+  list card, phone      348 x 196   1.78 : 1     the narrowest
+
+The head is a HEIGHT and never a ratio (architecture 1b), so a wider screen shows
+MORE photograph rather than a thinner slice. The six stand-ins are 900 to 1280px on
+the long edge, which is upscaled at retina on a 1076px banner; that is a stated
+compromise until his twenty arrive, not an oversight.
+
+Re-run node scripts/dev/export-catchups.mjs --write before any migration of your own.
+Never prisma db push. A column ADD deploys freely; only DROPs wait for a deploy, and
+they are phase 11.
+
+Phases 1 and 2 are done and are your vocabulary: the noun is Edition, there are no
+Edition numbers on any member-facing surface (the admin room keeps them, his
+decision), `preparing` does not exist, deadlines land on 07:00 IST via deadlineIn(),
+and a Keeper can start the next Edition by hand from the rail.
+
+Do not start phase 4. Do not redraw anything: /lab/catchups/sketches is the approved
 design and it is transplanted, not re-derived. If a drawn decision looks wrong, say so
 in a sentence and let him decide.
 
@@ -2430,6 +2462,39 @@ How to work:
 - **A client-side link from `/lab` into `(main)` loses the app's layout** -- measured, `main` at
   left 0 instead of 248. Lab-only; use a plain `<a>` there and `next/link` in the real app.
 - **`npm run visual` was 25/25 green** at the end of S4d, `/catchups` included.
+
+### The twenty photographs, with the crops measured
+
+He asked on 2026-09-08 what aspect ratio to supply. Measured off the approved room the same day,
+rather than quoted from the spec. Every surface uses `object-fit: cover` with a per-photograph
+`object-position`, so a frame wider than the source crops the TOP AND BOTTOM and a frame narrower
+than the source crops the SIDES.
+
+| Where it appears | Pixels | Ratio |
+|---|---|---|
+| the home's head, laptop | 1076 x 240 | **4.48 : 1** — the widest |
+| the list card, laptop | 536 x 214 | 2.50 : 1 |
+| the home's head, phone | 350 x 172 | 2.03 : 1 |
+| the list card, phone | 348 x 196 | **1.78 : 1** — the narrowest |
+
+**Supply 5:2 (2.5:1).** It is the list-on-laptop ratio exactly, so the surface a member sees most
+is uncropped; against the head it gives up 44% of its height, which is precisely what the
+per-photograph focus band exists to aim; against the phone card it gives up 29% of its width,
+centred. The crop-minimising answer is the geometric mean of the two extremes, **2.82:1**, which
+loses about 37% at both ends instead of 44/29 — take that if the head matters more than the list.
+Anything at a normal camera ratio (3:2, 4:3) is the WORST choice, because it is narrower than
+every frame here and the head would show a third of it: the "insanely cropped in, like, 30x zoom"
+he already complained about.
+
+**The safe zone, which is the part that actually matters.** Keep the subject inside the middle
+**70% horizontally** and the bottom **56% vertically**, and out of the bottom-left corner — the
+Catch-up's name is written there over the shared `PICTURE_SCRIM`, a warm near-black fade over the
+bottom 74%. Nothing important at the very edge, nothing important dead centre.
+
+Unchanged from spec 3.4: landscape, **2,400px or more on the long edge** (retina on a 1076px
+banner is 2,152), nothing with a recognisable face in it, and **details rather than valley
+views** — the landing page and half the Collection are already wide valley views, so twenty more
+would read as the same photograph twenty times.
 
 ### Still his, whenever he wants it
 

@@ -8,6 +8,44 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 — the six migrations run, and Groups turns out not to be a feature
+
+The queue that had been waiting on a deploy since 2026-09-07 is empty. Confirmed first, with the
+test the previous session left rather than by looking at the site and calling it healthy: zero of
+the 21 landing-page chunks contain `prefers-reduced-motion: reduce`. The two hits for the bare
+string are Sonner's stylesheet and the `motion` library's own `initPrefersReducedMotion`, which
+asks for `"(prefers-reduced-motion)"` with no `: reduce` — both third-party, both inconclusive by
+design, which is why the agreed answer was the exact string and its ABSENCE. `fabd7042` is new in
+this push, so the test is about this deploy and not an earlier one.
+
+Then all six, against both Supabase projects. **61** bell links rewritten from `/catchups/round/`
+to `/catchups/edition/`, **17** `ContentView` rows merged and re-kinded; seven unused indexes;
+`OutboundEmail.bounceKind` (0 rows); `Image.greyscale` (3 true of 53, recomputable);
+`Photo.area` and `Photo.freeTags` with their trigram indexes (0 of 1,749 photographs); and
+`Post.groupId`, `Group.description`, `Group.coverImage`. Every file carries a guard that refuses
+if a row has picked up a value, and every guard passed.
+
+**`Group.description` was the one open decision and his answer closed it sideways.** Asked in
+plain English — 11 of 18 groups, every value the sentence signup auto-writes, nothing has ever
+read it — he said *"wtf is a group we don't have them"*, then *"what if we just delete groups
+entirely?"* Both are the right instinct and the answer to the second is no: **a Group is not a
+feature, it is the invisible membership container under a Catch-up.** The browsable Groups
+feature was removed months ago; the table survived carrying 105 memberships, all six Catch-ups,
+and the 11 batch groups keyed on `batchYear @unique` that build phase 4 creates a Catch-up for.
+Deleting it deletes who is in what. The *name* is the residue, not the object — worth a rename
+one day, not a deletion, and `spec.md` §14 already fences that refactor out of this campaign.
+
+**Run against the demo too, which contradicts what the fix-prompt said, deliberately.** That file
+said production only, because the demo is serving an old build. His instruction was later and
+explicit: *"run all six against BOTH Supabase projects."* The demo was already 500ing on every
+data route before any of this and still is — the old-build bug he deferred (*"let it fail"*) — so
+the drops changed nothing about its health, and when it is redeployed the columns will be
+correctly absent rather than drifted.
+
+**Verified after, and this is the part that matters**, because a bad column drop shows up as every
+page 500ing at once, not as an error in the file: `check.mjs` green 107/107 and
+`npm run verify:crawl` **21/21 at 200** signed in, against the migrated database.
+
 ## 2026-09-08 — build phase 2: the clock
 
 Three things, three commits, `spec.md` §3.3. Nothing here is drawn: the surfaces are phases 6

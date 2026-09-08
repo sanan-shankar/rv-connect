@@ -441,39 +441,52 @@ Nothing in this campaign ran a `DROP`. The code stopped writing these columns fi
 these late is free and running them early would have been an outage. Each file explains itself and
 refuses if a row has picked up a value.
 
-**STATE AS OF 2026-09-08, AFTER HIS PUSH: still unrun, and here is exactly why.**
+**STATE AS OF 2026-09-08: ALL SIX ARE RUN, against BOTH projects, and verified. This section is
+history now; nothing below is owed.**
 
-He pushed and said Vercel was done. Two checks were run before touching anything, and one failed:
+The deployment was confirmed first, with the test the previous session left. Fetching
+`https://rishivalley.space/` and grepping all 21 landing-page chunks for
+`prefers-reduced-motion: reduce` returns **zero** hits. The two hits for the bare string
+`prefers-reduced-motion` are third-party and prove nothing either way: Sonner's stylesheet
+(`@media (prefers-reduced-motion)`) and the `motion` library's own `initPrefersReducedMotion`,
+which asks for `"(prefers-reduced-motion)"` without `: reduce`. The app's own
+`matchMedia("(prefers-reduced-motion: reduce)")` in the landing footer's bird is gone, and
+`fabd7042` is genuinely new in this push (`git merge-base --is-ancestor fabd7042 72b5a1df`
+fails against the previously deployed head). **Absence, which was the agreed answer.**
 
-- **The demo is serving an OLD build.** The new build renamed `/catchups/round` to
-  `/catchups/edition`. On `demo.rishivalley.space` the OLD path exists (500s) and the NEW one 404s —
-  the reverse of a current build. **He has declared the demo out of scope**: *"honestly forget the
-  demo site for now. i'll fix that later after launch. let it fail."* So **do not run any of the six
-  against `.env.demo`** until he says the demo is back. The two databases are independent and the
-  files run against each separately, so this costs nothing.
-- **Production could not be positively confirmed.** Every route redirects to login *before* routing,
-  so no status code distinguishes the old build from the new one. It looks healthy. That is not the
-  same as proof, and these are `DROP`s.
+What each one did, counted on production before and after:
 
-**So the next session's first job is to confirm the production deployment, then run the six against
-production only.** The cheapest positive test found: fetch `https://rishivalley.space/`, pull the
-landing page's chunk URLs out of the HTML, and grep them for `prefers-reduced-motion`. Every check
-was removed on 2026-09-08 (`fabd7042`), one of them in the landing page's own footer bird, so its
-ABSENCE proves the new build is live. Its presence is inconclusive — the `motion` library ships its
-own copy of that string — so treat only the absence as an answer.
+| File | Effect |
+|---|---|
+| `round-becomes-edition` | **61** `Notification.link` rows rewritten to `/catchups/edition/`, **17** `ContentView` rows merged and re-kinded to `edition`; both verification blocks passed, and the stale counts are now 0 and 0 |
+| `drop-unused-indexes` | 7 indexes dropped. The only reversible file here |
+| `drop-bounce-kind` | `OutboundEmail.bounceKind` dropped; 0 rows carried a value |
+| `drop-image-greyscale` | `Image.greyscale` dropped; it held 3 true and 50 false, and is recomputable from the image |
+| `drop-collection-legacy-tags` | `Photo.area` and `Photo.freeTags` dropped with their two trigram indexes; the guard counted 0 of 1,749 photographs using either |
+| `drop-groups-residue` | `Post.groupId` and its index, `Group.description`, `Group.coverImage`. The guard counted 0 posts carrying a groupId |
 
-**THE ORDER IS: push -> let both Vercel projects finish deploying -> THEN run these.** Not before.
-Prisma names every column of a model in its SELECT list, so dropping a column while the old build is
-still serving traffic breaks every feed, Collection, letter and profile query. As of 2026-09-08 the
-deployed build is ~180 commits behind and still selects all five.
+**`Group.description` WAS dropped, and that closes the one open decision.** Put to the owner in
+plain English on 2026-09-08, with the count (11 of 18 groups, every value the sentence signup
+generates, nothing has ever read it). His reply: *"wtf is a group we don't have them"* — which is
+the correct reaction, because a Group is not a feature: it is the invisible membership container
+under a Catch-up, and the browsable Groups feature was removed long ago. Combined with his *"yes
+run them"* on the same line, the column went. It is one `ALTER TABLE ... ADD COLUMN` to bring
+back if groups ever want real descriptions.
 
-**There are SIX files, not five.** The Catch-ups rework session added
-`2026-09-08-round-becomes-edition.sql` on 2026-09-08, from its own campaign, which rewrites 61
-`Notification.link` rows to `/catchups/edition/<id>` — a route the deployed build does not have.
-(**The filename is the reference, deliberately.** This line named a commit SHA until that commit was
-amended out of existence an hour later, leaving the one document the owner acts from pointing at
-something `git show` refuses. A filename cannot be orphaned by somebody's amend.) **Same precondition, same ordering.** Run all six after the deploy; order among them
-does not matter.
+**Run against the demo as well, which contradicts what this section used to say, deliberately.**
+The earlier caution was "production only, the demo is serving an old build". His instruction on
+2026-09-08 was the opposite and is later: *"run all six against BOTH Supabase projects."* The
+demo was **already** 500ing on every data route before any of this ran and still is, from the
+old-build bug he deferred (*"honestly forget the demo site for now ... let it fail"*), so the
+drops changed nothing about its health; and when the demo is redeployed onto current code the
+columns will be correctly absent rather than drifted. Both projects now report 0 stale bell
+links, 0 stale view rows and 0 of the seven dropped columns present.
+
+**Verified after, not assumed.** `node scripts/qa/check.mjs` green (107/107) and
+`npm run verify:crawl` **21/21 at 200**, signed in, against the migrated database — which is the
+check that matters, because the failure mode of a bad drop is every page 500ing at once.
+
+The commands, kept for the record:
 
 **Run each twice — once for the real site, once for the demo:**
 
