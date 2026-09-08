@@ -506,11 +506,13 @@ Each entry says what to delete, when, and why that date.
   from one of its own child pages, so nobody arrives at it. The owner was asked and chose to leave
   it unlinked for now and record it here rather than add a menu item (campaign question 9, answer
   "9b but mark it as a bug in bugs"). The fix, when wanted, is one line in the account menu.
-- [ ] **Confirm the rate limiter's two keys are set in production.** `UPSTASH_REDIS_REST_URL` and
-  `UPSTASH_REDIS_REST_TOKEN`. The limiter **fails open**, so if they are missing nothing errors and
-  the sign-in form simply has no rate limit — there is no symptom to notice. No session can read
-  production config; only the owner can check the Vercel dashboard. He was asked and replied *"28i
-  don't know what you're saying. should be fine"*, which is not a confirmation, so it stays open.
+- [x] ~~**Confirm the rate limiter's two keys are set in production.**~~ **CLOSED 2026-09-08.**
+  `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. The limiter fails open, so a missing key
+  has no symptom at all — nothing errors, the sign-in form simply stops being rate limited. No
+  session can read production config. Asked once he replied *"should be fine"*, which was not a
+  confirmation and was left open; asked again in plainer words he checked and answered **"those are
+  already there in vercel"**. Kept here briefly for the record. **If the limiter is ever suspected
+  again, the check is the dashboard, not the code** — the code cannot tell you.
 - [ ] **`/admin/review` logs a Base UI error on every render.** The `Done` control passes `Button` a
   `render={<Link/>}` while `nativeButton` is true, so the component is told it is a button and given
   an anchor (`components/admin/review/review-room.tsx:754-765`). Console noise today; a real
