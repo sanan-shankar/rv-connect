@@ -197,6 +197,28 @@ const FRAME_VARIANTS = {
 const ICON_BUTTON =
   "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white/80 transition-colors duration-150 hover:bg-white/12 hover:text-white active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
 
+/* How much caption shows before "More".
+ *
+ * The owner, brief 32, talking himself around twice and landing here: "I don't
+ * want photo captions in catch-ups to have a More and Less button. Let it just
+ * show all the text... Actually, you know what, no, let's keep the More and
+ * Less button, but maybe increase it from 2 lines to 3 lines. Or 3 lines to 4
+ * lines. The threshold. Right now it's just 2 lines and then More. And maybe
+ * make it 4 lines."
+ *
+ * One constant, and it is written twice below because a caption that overflows
+ * is a button and one that does not is a paragraph -- both must clamp at the
+ * same line or "More" appears against a caption that was already whole. It is
+ * the shared viewer, so this is the feed and the Collection too; a caption is a
+ * caption wherever the photograph came from.
+ *
+ * Not `line-clamp-4` inline: `line-clamp-N` is a DISPLAY utility and Tailwind
+ * emits `display: block` after it, so a second display utility in the same
+ * className silently cancels the clamp. Keeping the number in one place is what
+ * stops the two sites drifting.
+ */
+const CAPTION_CLAMP = "line-clamp-4";
+
 /** The two step arrows, which differ only in which edge they sit against. */
 const ARROW_BUTTON =
   "absolute top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/85 transition-[background-color,opacity] duration-200 hover:bg-white/20 hover:text-white active:scale-95 sm:flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
@@ -455,7 +477,7 @@ export function ImageViewer({
     }
   }, [open, at, images]);
 
-  /* Does the caption run past its two lines? Measured rather than guessed
+  /* Does the caption run past its four lines (CAPTION_CLAMP)? Measured rather than guessed
      from a character count, because the answer depends on the glyphs and on
      how wide the screen is. Layout effect, so "More" never flickers in.
 
@@ -779,7 +801,7 @@ export function ImageViewer({
                           "text-[14.5px] leading-[1.55] text-white/92",
                           expanded
                             ? "max-h-[42vh] overflow-y-auto overscroll-contain pr-1"
-                            : "line-clamp-2"
+                            : CAPTION_CLAMP
                         )}
                       >
                         {caption}
@@ -791,7 +813,7 @@ export function ImageViewer({
                   ) : (
                     <p
                       ref={captionRef}
-                      className="line-clamp-2 max-w-2xl text-[14.5px] leading-[1.55] text-white/92"
+                      className={cn(CAPTION_CLAMP, "max-w-2xl text-[14.5px] leading-[1.55] text-white/92")}
                     >
                       {caption}
                     </p>
