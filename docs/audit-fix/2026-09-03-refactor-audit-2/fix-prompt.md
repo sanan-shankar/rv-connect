@@ -441,6 +441,27 @@ Nothing in this campaign ran a `DROP`. The code stopped writing these columns fi
 these late is free and running them early would have been an outage. Each file explains itself and
 refuses if a row has picked up a value.
 
+**STATE AS OF 2026-09-08, AFTER HIS PUSH: still unrun, and here is exactly why.**
+
+He pushed and said Vercel was done. Two checks were run before touching anything, and one failed:
+
+- **The demo is serving an OLD build.** The new build renamed `/catchups/round` to
+  `/catchups/edition`. On `demo.rishivalley.space` the OLD path exists (500s) and the NEW one 404s —
+  the reverse of a current build. **He has declared the demo out of scope**: *"honestly forget the
+  demo site for now. i'll fix that later after launch. let it fail."* So **do not run any of the six
+  against `.env.demo`** until he says the demo is back. The two databases are independent and the
+  files run against each separately, so this costs nothing.
+- **Production could not be positively confirmed.** Every route redirects to login *before* routing,
+  so no status code distinguishes the old build from the new one. It looks healthy. That is not the
+  same as proof, and these are `DROP`s.
+
+**So the next session's first job is to confirm the production deployment, then run the six against
+production only.** The cheapest positive test found: fetch `https://rishivalley.space/`, pull the
+landing page's chunk URLs out of the HTML, and grep them for `prefers-reduced-motion`. Every check
+was removed on 2026-09-08 (`fabd7042`), one of them in the landing page's own footer bird, so its
+ABSENCE proves the new build is live. Its presence is inconclusive — the `motion` library ships its
+own copy of that string — so treat only the absence as an answer.
+
 **THE ORDER IS: push -> let both Vercel projects finish deploying -> THEN run these.** Not before.
 Prisma names every column of a model in its SELECT list, so dropping a column while the old build is
 still serving traffic breaks every feed, Collection, letter and profile query. As of 2026-09-08 the

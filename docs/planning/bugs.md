@@ -532,4 +532,7 @@ Each entry says what to delete, when, and why that date.
   still serving an OLD build**: the new one renamed `/catchups/round` to `/catchups/edition`, and on
   the demo the old path exists (500s) while the new one 404s, which is the reverse of what a current
   build would do. Whether the 500s predate that stuck deploy is unknown; nothing records the demo
-  having been checked recently. Six manual migrations are waiting on this deploy landing.
+  having been checked recently. **The owner has deferred this until after launch**, 2026-09-08,
+  verbatim: *"honestly forget the demo site for now. i'll fix that later after launch. let it
+  fail."* So it is knowingly broken, not unnoticed — do not spend a session on it unasked. The six
+  manual migrations must NOT be run against the demo database while this stands.
