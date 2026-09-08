@@ -77,8 +77,21 @@ export const DEFAULT_PICTURE_FOCUS = "center 85%";
  *  Spotify's, near enough, and it is his correction: "it doesn't have to fade
  *  to full black it can just be dark like spotify." Then, a day later: "if the
  *  darkening is the same constant, make both less dark by 15%." Every stop is
- *  scaled by 0.85 rather than the foot alone, so the curve keeps its shape and
- *  every surface stays identical: 0.72 -> 0.61, 0.44 -> 0.37, 0.10 -> 0.085.
+ *  scaled rather than the foot alone, so the curve keeps its shape and every
+ *  surface stays identical: 0.72 -> 0.61, 0.44 -> 0.37, 0.10 -> 0.085.
+ *
+ *  AND BACK UP A TENTH, 2026-09-08, once the list was shipped and he could see
+ *  the card and the header side by side: "can you increase the bottom image
+ *  darkening on both the card and header by 10%." Same arithmetic in the other
+ *  direction, on the same three stops -- 0.61 -> 0.67, 0.37 -> 0.41,
+ *  0.085 -> 0.094 -- so "both" stays one edit, which is what he asked for the
+ *  first time and the reason this is a constant at all.
+ *
+ *  The foot is a warm near-black carrying the page's own ink hue rather than
+ *  #000: a true black under a green photograph reads as a hole cut in the
+ *  picture. Two stops, not one -- a single linear gradient over 55% of a light
+ *  photograph leaves the name sitting on a grey wash halfway up, which reads as
+ *  a bug. Transparent for the top half, then away quickly.
  *
  *  ONE CONSTANT. The list's card, the list's Edition covers and the home's head
  *  are the same object at three sizes, and he asked whether they matched before
@@ -86,7 +99,7 @@ export const DEFAULT_PICTURE_FOCUS = "center 85%";
  *  because the lab room and the shipped page both draw it and neither may own
  *  it. */
 export const PICTURE_SCRIM =
-  "linear-gradient(to top, rgb(20 16 12 / 0.61) 0%, rgb(20 16 12 / 0.37) 26%, rgb(20 16 12 / 0.085) 52%, transparent 74%)";
+  "linear-gradient(to top, rgb(20 16 12 / 0.67) 0%, rgb(20 16 12 / 0.41) 26%, rgb(20 16 12 / 0.094) 52%, transparent 74%)";
 
 /* ── An Edition's cover: how many photographs, and how they tile ─────
  *
