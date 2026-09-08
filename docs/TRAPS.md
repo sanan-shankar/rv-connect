@@ -336,6 +336,34 @@ shorter and every shared pixel is identical.
 module load. Constructing an Intl object is the expensive part of using one, and `getInitials` runs
 per avatar.
 
+**A Tailwind v4 `scale-*` / `rotate-*` / `translate-*` sets the CSS `scale` (or `rotate`, or
+`translate`) property, NOT `transform` — so `transition-[...,transform]` beside it animates
+nothing.** The utility still works; it just arrives in a single frame. The Collection's hover
+magnification was written as `transition-[opacity,transform] ... group-hover:scale-[1.03]` and
+looked like a tuning problem for weeks — "it's a bit too fast and it's not smooth at all" (owner,
+2026-09-09). It was not eased badly, it was not fighting the compositor, and it was not slow: it
+was not animating at all. Sampling every frame through a hover, computed `scale` went `none` ->
+`1.03` between two consecutive frames while computed `transform` read `none` for the entire 700ms.
+Two sessions had adjusted the duration and the curve, which could never have worked.
+
+The fix is one word — name the property you are actually changing:
+
+```
+- transition-[opacity,transform] ... group-hover:scale-[1.03]
++ transition-[opacity,scale]     ... group-hover:scale-[1.03]
+```
+
+**How to tell, in ten seconds:** hover the thing and read `getComputedStyle(el).transform`. If it
+says `none` while the element is visibly transformed, the transition list is naming a property that
+never changes. `transition-all` would mask this, which is one more reason the ban on it costs
+something and is still right.
+
+Not audited beyond the Collection as of 2026-09-09: roughly seventy call sites pair a
+`transition-[...transform...]` with an `active:scale-*` press response, including the shared
+`Button` (`transition-[color,background-color,border-color,box-shadow,transform]` with
+`active:scale-[0.97]`). If those presses have never animated, that is the same defect and not a
+separate one.
+
 ## Working here
 
 **Another session may share this checkout.** Stage by name, never `git add -A`. It has gone wrong

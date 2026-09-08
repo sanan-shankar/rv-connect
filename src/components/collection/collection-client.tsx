@@ -507,11 +507,6 @@ export function CollectionClient({
     movingUp.current = false;
   }, []);
 
-  /** Set while the pull now in flight was asked for by the zero rule below
-   *  rather than by a gesture. The anchor reads it: a zero pull is the one
-   *  prepend that MUST move the reader, and the correction's ordinary guard
-   *  would refuse to. Cleared as it is consumed. */
-  const zeroPull = useRef(false);
   /** The zero rule, spent. One per river; a new query re-arms it. */
   const zeroPullSpent = useRef(false);
 
@@ -548,7 +543,6 @@ export function CollectionClient({
     if (movingUp.current) return true;
     if (window.scrollY > 0 || zeroPullSpent.current) return false;
     zeroPullSpent.current = true;
-    zeroPull.current = true;
     return true;
   }, []);
 
@@ -629,7 +623,6 @@ export function CollectionClient({
        session: every seek lands somebody at a head they cannot climb out of
        by hand, and each of those landings is entitled to exactly one page. */
     zeroPullSpent.current = false;
-    zeroPull.current = false;
     setLoading(true);
     (async () => {
       // callAction: a rejected fetch (deploy skew, dropped network, expired
@@ -820,8 +813,6 @@ export function CollectionClient({
     height: number;
     top: number;
     seam: number;
-    /** This prepend was asked for by the zero rule, not by a gesture. */
-    fromZero: boolean;
   } | null>(null);
   const loadNewer = useCallback(async () => {
     /* Never while a page is arriving at the FOOT, and `more` returns the
@@ -865,9 +856,7 @@ export function CollectionClient({
              and back into photographs they had just left. That is the second
              half of "it brings me down". */
           seam: (head.current?.getBoundingClientRect().top ?? 0) + scroller.scrollTop,
-          fromZero: zeroPull.current,
         };
-      zeroPull.current = false;
       // Same warming as the foot, and it matters more here: a page landing
       // ABOVE the reader is one they are travelling toward at flick speed.
       void warmThumbs(data.photos, data.photos.length, 0);
@@ -920,27 +909,38 @@ export function CollectionClient({
       return;
     }
     if (!scrollAnchor.current) return;
-    const { height, top, seam, fromZero } = scrollAnchor.current;
+    const { height, top, seam } = scrollAnchor.current;
     scrollAnchor.current = null;
     const scroller = document.scrollingElement;
     if (!scroller) return;
-    // Above the seam, nothing that arrived is above the reader, so there is
-    // nothing to correct for and moving them would be the bug rather than
-    // the fix.
-    //
-    // EXCEPT FOR THE ZERO PULL, which is the one prepend nobody gestured for.
-    // A reader parked at the head of a seek is above the seam by definition,
-    // so this guard refused to move them -- and refusing is what left
-    // `scrollY <= 0` true and the river fetching itself (see `wantsNewer`).
-    // It also put the year they did not ask for at the top of their view:
-    // press 2020, get 2021. Correcting instead keeps 2020 under their eye and
-    // hangs 2021 above it, which is what an upward scroll is then FOR.
-    //
-    // `syncScrollWatch` on the way out, not just on the way through. Leaving
-    // early used to skip it, so `movingUp` stayed armed from the flick that
-    // started the pull and the next scroll event asked for another page --
-    // the tight half of the same loop.
-    if (top < seam && !fromZero) {
+    /* CORRECT WHENEVER THE RIVER IS IN SHOT, which is the fix for the last
+       thing left of "it brings me down".
+
+       This used to skip the correction for any reader ABOVE the seam, on the
+       reasoning that nothing which arrived is above them. That is true of the
+       DOCUMENT and false of the SCREEN, and the screen is what the promise is
+       about. At the top of a seek the seam sits just under the page header,
+       so a reader at zero is "above" it while looking straight at the
+       photographs underneath -- and a page landing there was inserted into
+       the middle of their view with no correction at all. Measured 2026-09-09
+       on a fast upward flick: `docHeight +1617px, scrollY +0`, twice in one
+       flick. The photographs being read were shoved 1,617px down and replaced
+       by tiles that had not rastered yet, which is why it reads as half a
+       screen of nothing beside half a screen of pictures, for a frame or two,
+       every single time. "I scroll up really fast ... without fail every time
+       for a single frame everything goes white" (owner, 2026-09-09).
+
+       The condition is therefore the VIEWPORT against the seam, not the
+       scroll position against it: if any part of the river is on screen, a
+       page arriving at its head moved what the reader is looking at, and the
+       scroll owes them the difference. Only a reader with the entire river
+       still below the fold is left alone, which is the narrow case the old
+       guard was actually written for.
+
+       `syncScrollWatch` on the way out as well as on the way through: leaving
+       early used to skip it, so `movingUp` stayed armed from the flick that
+       started the pull and the next scroll event asked for another page. */
+    if (top + scroller.clientHeight <= seam) {
       syncScrollWatch();
       return;
     }
