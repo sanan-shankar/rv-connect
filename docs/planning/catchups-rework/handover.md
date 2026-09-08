@@ -2408,15 +2408,18 @@ THE MEASURED CROPS, so nothing is re-derived. Taken off the approved room on
 2026-09-08, and every one uses object-fit: cover with a per-photograph
 object-position:
 
-  home head, laptop    1076 x 240   4.48 : 1     the widest
+  home head, laptop    1112 x 240   4.63 : 1
+  home head, 1080p+    1520 x 240   6.33 : 1     the widest, and it caps here
   list card, laptop     536 x 214   2.50 : 1
-  home head, phone      350 x 172   2.03 : 1
+  home head, phone      388 x 172   2.26 : 1
   list card, phone      348 x 196   1.78 : 1     the narrowest
 
 The head is a HEIGHT and never a ratio (architecture 1b), so a wider screen shows
-MORE photograph rather than a thinner slice. The six stand-ins are 900 to 1280px on
-the long edge, which is upscaled at retina on a 1076px banner; that is a stated
-compromise until his twenty arrive, not an oversight.
+MORE photograph rather than a thinner slice -- which is why its ratio slides and
+nothing can be authored to match it. The six stand-ins are 900 to 1280px on the long
+edge, which is upscaled at retina on a banner up to 1520px wide; that is a stated
+compromise until his twenty arrive, not an oversight. See "The twenty photographs"
+in the handover for the safe zone every crop shares.
 
 Re-run node scripts/dev/export-catchups.mjs --write before any migration of your own.
 Never prisma db push. A column ADD deploys freely; only DROPs wait for a deploy, and
@@ -2465,36 +2468,45 @@ How to work:
 
 ### The twenty photographs, with the crops measured
 
-He asked on 2026-09-08 what aspect ratio to supply. Measured off the approved room the same day,
-rather than quoted from the spec. Every surface uses `object-fit: cover` with a per-photograph
-`object-position`, so a frame wider than the source crops the TOP AND BOTTOM and a frame narrower
-than the source crops the SIDES.
+He asked on 2026-09-08 what aspect ratio to supply. Every number below was measured off
+`/lab/catchups/sketches` the same day, at four real viewports. Every surface uses
+`object-fit: cover` with a per-photograph `object-position` near the bottom, so a frame WIDER
+than the source crops the top and bottom, and a frame NARROWER than the source crops the sides.
 
 | Where it appears | Pixels | Ratio |
 |---|---|---|
-| the home's head, laptop | 1076 x 240 | **4.48 : 1** — the widest |
+| the home's head, 13in laptop | 1112 x 240 | 4.63 : 1 |
+| the home's head, 14in MBP | 1184 x 240 | 4.93 : 1 |
+| the home's head, 1080p and wider | 1520 x 240 | **6.33 : 1** — the widest, and it caps here |
 | the list card, laptop | 536 x 214 | 2.50 : 1 |
-| the home's head, phone | 350 x 172 | 2.03 : 1 |
+| the home's head, phone | 388 x 172 | 2.26 : 1 |
 | the list card, phone | 348 x 196 | **1.78 : 1** — the narrowest |
 
-**Supply 5:2 (2.5:1).** It is the list-on-laptop ratio exactly, so the surface a member sees most
-is uncropped; against the head it gives up 44% of its height, which is precisely what the
-per-photograph focus band exists to aim; against the phone card it gives up 29% of its width,
-centred. The crop-minimising answer is the geometric mean of the two extremes, **2.82:1**, which
-loses about 37% at both ends instead of 44/29 — take that if the head matters more than the list.
-Anything at a normal camera ratio (3:2, 4:3) is the WORST choice, because it is narrower than
-every frame here and the head would show a third of it: the "insanely cropped in, like, 30x zoom"
-he already complained about.
+**The head has no ratio to match, by design.** It is a fixed 240px HEIGHT (architecture 1b, so a
+wider screen shows MORE photograph rather than a thinner slice), which means its ratio slides from
+4.63:1 to 6.33:1 with the window. Nothing can match that. The head is meant to be a BAND taken out
+of the picture, and `pictureFocus` is what aims the band.
 
-**The safe zone, which is the part that actually matters.** Keep the subject inside the middle
-**70% horizontally** and the bottom **56% vertically**, and out of the bottom-left corner — the
-Catch-up's name is written there over the shared `PICTURE_SCRIM`, a warm near-black fade over the
-bottom 74%. Nothing important at the very edge, nothing important dead centre.
+**So the ratio is set by the LIST, which is where the photograph is seen as a photograph.**
+Supply **2:1 — 2400 x 1200**. Against the phone card (1.78:1) it loses 11% of its width, 5.5% off
+each side; against the laptop card (2.5:1) it loses 20% of its height off the top. 5:2 was the
+first answer and is worse: it costs 29% of the width on the phone, which is his own primary
+device.
 
-Unchanged from spec 3.4: landscape, **2,400px or more on the long edge** (retina on a 1076px
-banner is 2,152), nothing with a recognisable face in it, and **details rather than valley
-views** — the landing page and half the Collection are already wide valley views, so twenty more
-would read as the same photograph twenty times.
+**The safe zone, which matters more than the ratio.** Running the four crops against a 2:1 source
+at the pool's default `center 85%`, the band that survives every one of them is:
+
+> **the horizontal strip from 58% to 90% down the frame, and the middle 85% of its width.**
+
+Put the subject there. Not the very bottom edge, not dead centre, not the outer eighth. And keep
+the **bottom-left corner quiet** — the Catch-up's name is written across it over `PICTURE_SCRIM`,
+a warm near-black fade covering the bottom 74%.
+
+Unchanged from spec 3.4: landscape, **2,400px or more on the long edge** (retina on a 1,520px
+banner is 3,040, so 2,400 is already a mild upscale at the widest; more is better), nothing with a
+recognisable face in it, and **details rather than valley views** — the landing page and half the
+Collection are already wide valley views, so twenty more would read as the same photograph twenty
+times.
 
 ### Still his, whenever he wants it
 
