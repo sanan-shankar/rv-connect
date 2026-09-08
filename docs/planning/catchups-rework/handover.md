@@ -507,10 +507,10 @@ Numbered so later sessions can cite and correct them. **Verified** means a sessi
   reverted with the rest, because it changes what the rail looks like and that is his call, not a
   session's. **Show him the fix before shipping it.**
 
-- **F41, one rail row can swallow the rail (S4c). STILL NOT FIXED**, and still deliberately: a
-  300-character question in the reader's navigator measures 211px against its neighbours' 41, and
-  clamping it is a design decision about truncating a member's words. He has not been asked yet.
-  Original finding:
+- **F41, one rail row can swallow the rail (S4c). ANSWERED 2026-09-08, ships in build phase 8.**
+He chose three lines for the list's rows and moved the strip's docked question from three to two:
+*"a. make this clamp to three lines and the other one that was previous clamped to three lines,
+clamp to two lines."* `spec.md` §4.3. Original finding:
 
 - **F41 (original), one rail row can swallow the rail (S4c).** At the app's 300-character question
   cap one row of the reader's question rail measured **211px against its neighbours' 41**. A
@@ -1654,26 +1654,9 @@ after the second pass)
 **Asked 2026-09-08 by S5, out of the spec.** One reply covers all three:
 *"defaults, except 20"*. Full context in [`spec.md`](spec.md) §15.
 
-**19. Six of your eleven batches have exactly one person in them.**
-- **What I'd change:** their batch Catch-up still exists, so it is already there the day a second
-  person joins, but it does not start an Edition until there are two of them.
-- **What you'd notice:** nothing, unless you are the only person from your year -- in which case
-  you see the Catch-up sitting there quietly instead of being asked questions by yourself.
-- **If I guess wrong:** a person alone in their batch gets a newsletter to themselves, with
-  reminders, forever.
-- **Options:** (a) exists, waits for a second member (b) runs normally from day one (c) no batch
-  Catch-up at all until there are two.
-- **If you don't reply I'll do:** (a).
+**19. ANSWERED 2026-09-08.** See "Owner answers" below and `spec.md` §3.5b.
 
-**20. A very long question makes one row of the reader's navigator five times taller than its neighbours.** (this is F41, and it has been yours since 2026-09-07)
-- **What I'd change:** clamp that row to three lines with a "...", which is your own number for the
-  docked question. The full question is still there when you land on it.
-- **What you'd notice:** in the list you pull down while reading, a 300-character question stops
-  taking up 211 pixels against everything else's 41.
-- **If I guess wrong:** we are cutting a member's own words in the one place they are how you move.
-- **Options:** (a) clamp to three lines (b) leave it, a long question is long (c) clamp to two.
-- **If you don't reply I'll do:** nothing -- this one waits for you, because it is the only item in
-  the spec that truncates something a member wrote.
+**20. ANSWERED 2026-09-08 -- (a), and it closes F41.** See "Owner answers" below and `spec.md` §4.3.
 
 **21. WITHDRAWN, 2026-09-08 -- already answered and already done.** The 10% (N93) was measured on
 2026-09-07 and the number IS shared with the feed: 8px above the reaction row and 9px below, so a
@@ -1753,6 +1736,31 @@ full. Do not work from the summary in `architecture.md` §1b; read his paragraph
 twenty he will supply, replaceable by whoever may run it. It is on the list (where it IS the card)
 and on the home (as an identity mark), and deliberately not in the reader. And the list stops
 carrying the Round's questions.
+
+**2026-09-08, typed, verbatim** (answering S5's owner questions 19 and 20):
+
+> 19. good point. for people whose batches have less than ten people, let's not even show the catch
+> ups things in the sidebar. it won't be reachble to them. once there's ten it appears and the catch
+> up would be created for that batch.
+
+> 20 a. make this clamp to three lines and the other one that was previous clamped to three lines,
+> clamp to two lines.
+
+*The reading:* **ten is the floor.** A batch Catch-up is created when its batch reaches ten members,
+not when the group is made -- which is two of the eleven groups today, Batch of 2023 (39) and Batch
+of 2024 (11) -- and the **Catch-ups item leaves the sidebar** for a member with nothing to open.
+`spec.md` §3.5b carries it, with one clause marked RECOMMENDED rather than assumed: the sidebar test
+is *"have you got a Catch-up"* rather than *"is your batch big"*, because his own reason is
+*"it won't be reachble to them"* and a small-batch member invited to a people Catch-up **does** have
+something to reach. Two live cases: Jerry has no batch year and is in two Catch-ups, and the public
+demo's visitor is a member of `demo-catchup`, so a strict batch-size test would delete Catch-ups
+from the demo's sidebar. Twenty of the seventy members sit under the floor today; exactly one of
+them, Jerry, is kept in by that clause.
+
+On 20, the two clamps **swap**: the pull-down list's rows get three lines (they have none today, and
+a 300-character question makes a 211px row against its neighbours' 41), and the strip's docked
+question comes down from three to two. Right way round, because the strip is on screen the whole
+time you read and the list is a deliberate pull-down. **F41 is closed.**
 
 ## Session log
 
@@ -2191,47 +2199,62 @@ the song FIELD is deleted rather than drawn, because ¶50 asks for the opposite 
 and F30 measured what keeping it costs. Column drops are a second file applied after the deploy,
 because one database serves production and local dev.
 
-**Three new owner questions** (19, 20, 21) and one correction to carry: F41 was already his, and it
-is now question 20 with a stated default of *do nothing until he answers* -- it is the only item in
-the spec that would truncate something a member wrote.
+**Three new owner questions, then two, then none.** 21 was withdrawn within the hour -- the 10%
+tile tightening had already been measured and had already shipped as `2a6f7d25`. He answered 19 and
+20 the same evening, and 19 came back bigger than the question: **ten** is the floor for a batch
+Catch-up, and under it Catch-ups leaves the sidebar entirely. **F41 is closed with 20.** Nothing in
+`spec.md` is waiting on him now; what is still his is the twenty photographs and the settings
+surface.
+
+**And a correction to this session's own arithmetic**, made before he answered: six of the eleven
+batches hold exactly one person, not three, and nine hold four or fewer, not eight. More than half
+being a newsletter to yourself is a different weight of question from the one first written down,
+and it is very likely why the answer came back as ten rather than two.
 
 ---
 
 ## What to paste next
 
 **The next session is BUILD PHASE 1, and it is the mechanical one on purpose.** `spec.md` §9 has
-eleven phases; the first is the Round -> Edition rename with no behaviour change in it at all,
-which makes it the cheapest thing to revert if it surprises you. Track X (the fast fixes) is
+eleven phases; the first is the Round -> Edition rename, with no behaviour change in it at all,
+which makes it the cheapest thing to revert if it surprises anyone. Track X (the fast fixes) is
 independent and may ship before, after or beside it.
 
-### First, and it is not a paste: the three answers that are still his
+**Nothing is waiting on him.** Owner questions 19, 20 and 21 all closed on 2026-09-08. What is
+still his, and is not a question: the **twenty photographs** (details rather than valley views,
+2,400px+ on the long edge, nothing with a recognisable face), and the **settings surface**, which
+he has said he will take in a session of his own (N100) -- scheduled before build phase 7, and it
+carries the confirmation dialogs with it.
 
-1. **The twenty photographs.** The only thing blocking the picture from being real. Details, not
-   valley views; 2,400px+ on the long edge; nothing with a recognisable face.
-2. **Owner questions 19, 20 and 21**, above. 20 is F41 and nothing happens until he answers it.
-3. **The settings surface**, which he has said he will take in a session of his own (N100). It is
-   scheduled before build phase 7, and it carries the confirmations with it.
-
-### Then paste this into a fresh Opus max session
+### Paste this into a fresh Opus max session
 
 ```
 @docs/planning/catchups-rework/handover.md
 
 You are S6, build phase 1 of docs/planning/catchups-rework/spec.md.
 
-Read spec.md in full, then architecture.md in full, then your phase's rows. brief.md is
-the test the spec is measured against; read it if you find yourself exercising judgment
-rather than executing. Everything else in the folder is reference -- see "How much of
-this you actually have to read" near the top of this file.
+Read spec.md in full, then architecture.md in full. brief.md is the test the spec is
+measured against; read it if you find yourself exercising judgment rather than
+executing. Everything else in docs/planning/catchups-rework/ is reference -- see "How
+much of this you actually have to read" near the top of the handover. Do not read
+directions.md.
 
-Phase 1 is the Round -> Edition rename, ONE mechanical pass, no behaviour change:
-spec.md section 2. The database already says CatchupEdition and does not move. The route
-does: /catchups/round/[editionId] becomes /catchups/edition/[editionId], with a
-permanent redirect left behind AND a dated migration rewriting the stored
-Notification.link rows, because both are real and neither covers the other.
+PHASE 1 IS THE ROUND -> EDITION RENAME. One mechanical pass, no behaviour change:
+spec.md section 2. The database already says CatchupEdition and does not move; the
+@@map("CatchupSeries") and @@map("CatchupReminderPref") lines do not move either, and
+the schema header says why. What moves is the route, the component folder, the types,
+the helpers and the copy -- 288 identifiers say Round today.
 
-Re-run scripts/dev/export-catchups.mjs --write before the migration. Apply it to BOTH
-Supabase projects (--env .env.demo). Never prisma db push.
+Two things a rename breaks here, and both are real:
+  - Notification.link is a stored column. Rows already in members' bells point at
+    /catchups/round/<id>. Rewrite them in a dated migration AND leave the old route as
+    a permanent redirect. Both, not either.
+  - roundLabel() is deleted rather than renamed. An Edition is identified by its date,
+    never by a number, at his word.
+
+Re-run `node scripts/dev/export-catchups.mjs --write` before the migration. Apply the
+migration to BOTH Supabase projects (the second with --env .env.demo). Never
+prisma db push.
 
 Do not start phase 2. Do not redraw anything: /lab/catchups/sketches is the approved
 design and it is transplanted, not re-derived. If a drawn decision looks wrong, say so
@@ -2255,12 +2278,12 @@ How to work:
   anything drawn and the spec wins on anything mechanical.
 - **`Notification.link` is a stored column**, so a route rename is a data change as well as a file
   move, and `/catchups/[id]/answer` gets the same treatment when phase 7 deletes it.
-- **Do not touch `@@map("CatchupSeries")` or `@@map("CatchupReminderPref")`.** They dodge the dead
-  tables the 2026-07 reverted build left in this database; the schema header says why.
 - **Production and the demo are separate Supabase projects.** Every migration is applied twice.
 - **A column drop before its code has deployed breaks production**, because one database serves
-  both. Drops are a second file, in phase 11.
-- **F41 is real and unfixed on purpose**, and is now owner question 20.
+  production and local dev. Drops are always a second file, in phase 11.
+- **Ten is the floor** (spec.md §3.5b): a batch Catch-up exists at ten members, which is two of the
+  eleven batches today, and under it the Catch-ups item leaves the sidebar. That lands in phase 4,
+  not phase 1, but it changes what the backfill creates, so do not write eleven anywhere.
 - **He owes about twenty photographs.** Two of the six stand-ins had to be dropped (F46) and the
   rest are 900 to 1280px, so every wide crop is still upscaled at retina.
 - **Nothing in that room is ever scaled** (F34), and a lab switch the SERVER reads cannot be
@@ -2269,13 +2292,12 @@ How to work:
   left 0 instead of 248. Lab-only; use a plain `<a>` there and `next/link` in the real app.
 - **`npm run visual` was 25/25 green** at the end of S4d, `/catchups` included.
 
-### Still his, whenever he wants to answer
+### Still his, whenever he wants it
 
-The twenty photographs; owner questions 19, 20 and 21; and which shape the settings surface takes.
-
-He answered the rest on 2026-09-07: the shape of the list, the home in every state, the reader, the
-noun, and the list's spare slots. Navigator **A**. Delete becomes **leave**. Nobody keeps a batch
-Catch-up and it has no manual transitions. Pause becomes **hold the next Edition**. The six with no
-batch year get nothing, and that is fine. Anyone in a batch may change its picture. His own verdict
-partway through that round: *"for the first time in two days and a million sessions I feel like
-this is coming together."*
+The twenty photographs, and the shape of the settings surface. Everything else he has answered:
+navigator **A**; delete becomes **leave**; nobody keeps a batch Catch-up and it has no manual
+transitions; pause becomes **hold the next Edition**; the six with no batch year get nothing;
+anyone in a batch may change its picture; **ten** is the floor and under it Catch-ups is not on the
+sidebar; the list's question rows clamp to three lines and the strip's docked question to two. His
+own verdict partway through the fine-tuning round: *"for the first time in two days and a million
+sessions I feel like this is coming together."*
