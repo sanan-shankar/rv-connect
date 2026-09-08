@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRef, useState, useEffect } from "react";
-import { useScroll, useTransform, m, useReducedMotion } from "motion/react";
+import { useScroll, useTransform, m } from "motion/react";
 import { Search } from "lucide-react";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 
@@ -52,7 +52,6 @@ export function ShowcaseShot({
   tilt?: Tilt;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
 
   // Only arm the scroll-linked parallax after mount so the server-rendered
   // HTML (no transform) matches the client's first render and never triggers
@@ -84,7 +83,7 @@ export function ShowcaseShot({
           true on-screen top edge, not a static layout box. */}
       <m.div
         data-shot
-        style={reduce || !mounted ? undefined : { y }}
+        style={!mounted ? undefined : { y }}
         className="card-elevated relative overflow-hidden rounded-[var(--radius-2xl)] border border-border bg-card"
       >
         {/* Faux in-app top bar. Sized in em off a cqw-driven font-size so the bar

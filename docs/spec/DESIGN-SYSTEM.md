@@ -404,12 +404,13 @@ register IS the template, and it lives in exactly one file - `src/components/ui/
   (`src/components/common/motion.tsx`) is the only place that decides it. Its `ambientReduced` field
   is permanently false and exists as the seam for an in-app toggle he might one day ask for; it must
   never be wired to `matchMedia`.
-  **Three shipped files still check the OS setting**, all written before that answer:
-  `landing/footer-hoopoe.tsx` (which argues in its own comment that it is a scoped exception),
-  `mascot/moments/not-found-stage.tsx` (the click flight) and `landing/showcase-shot.tsx` (inside
-  the switched-off landing showcase). They were deliberately left alone: he answered a question
-  about ADDING two guards, not about stripping the ones already there. Whether they come out is
-  still open with him. Nothing new joins that list.
+  **Zero shipped files check the OS setting.** Three did when that answer was given, all written
+  before it: `landing/footer-hoopoe.tsx` (which argued in its own comment that it was a scoped
+  exception), `mascot/moments/not-found-stage.tsx` (the click flight teleported instead of arcing)
+  and `landing/showcase-shot.tsx` (the parallax). Asked whether they should come out too, he said
+  *"make them animate for everybody"* (2026-09-08), and they did. **The count is the rule**: if a
+  grep for `prefers-reduced-motion` outside a comment ever returns a hit again, that is a
+  regression, not a new exception.
 - **Curves:** import `EASE_POP` / `EASE_SPRING` / `EASE_OUT_SMOOTH` / `EASE_IN_OUT_SCENE` / `SPRINGS`
   from `src/components/common/motion.tsx`. Never hand-type a `cubic-bezier(...)`.
   Picking between the two slide curves: `EASE_OUT_SMOOTH` starts at full speed, which is right for a
