@@ -194,6 +194,13 @@ export const REGISTRY: LabEntry[] = [
     note: "The Catch-ups front runner, live: the real Edition on a phone, where the strip under the green bar takes each question as its heading leaves and unfolds into the list when tapped. Five stills of moments deep in the page, the navigator drawn three ways, and the same page at 1512. ?w=reader|screens|laptop.",
   },
   {
+    href: "/lab/catchups/swipe",
+    title: "The swipe that goes back two",
+    group: "Delight",
+    status: "active",
+    note: "His: from the last photograph, one swipe back lands on the first. Six attempts on a dev machine could not reproduce it, so this puts the instrument on his own device — the real photographs, the real shared viewer, and a trace of every finger and every change of picture.",
+  },
+  {
     href: "/lab/reach",
     title: "Where the bird goes",
     group: "Delight",
