@@ -5045,3 +5045,44 @@ edits went back in by hand. Do not run it on this schema.
 
 `npm run check` 110/110. `npm run visual` 25/25 with no baseline moved, which is correct: the only
 visible change lives inside a dropdown, and the shelf that went was empty for every member.
+
+## 2026-09-08 — the lockup was never too big, it was too heavy
+
+The owner, on the sidebar: *"the eye is too drawn to the logo ... it now seems bigger and more
+imposing."* It was not bigger. Flattening the mark to one cream silhouette a few days earlier
+(`bed93ca1`) had raised its ink by **64%** at an unchanged 24px — measured by summing luminance
+departure from the rail green over the mark's box, three-plane 61% against flat 100%. So the
+complaint was real and the obvious fix was the wrong one.
+
+The ratio that governs both lockups turned out to be **cap height over the mark's INK height**.
+Under ~0.65 the mark reads as the subject and the type as its caption; over ~0.85 the mark shrinks
+to punctuation. The sidebar sat at 0.66. The profile sheet's colophon sat at **0.56** — the same
+fault, further along, and the thing the owner had been circling for weeks without a name: *"there's
+something that doesn't feel right about the number ... I can't point my finger at the problem."*
+
+**Sidebar**: mark 24 → 19 (ratio 0.83), gap 10 → 14px, `tracking-tight` → `tracking-wide`. Shrinking
+alone would have pulled the lockup 13px narrower and the rail's 248px is justified by the lockup
+reaching across it, so the width comes back out of the two spacing values instead: 191.2px against
+the old 192.3px. He asked whether the margins either side of the ink were equal. They were not —
+`translateX(3px)`, an optical nudge eyeballed against the old mark and never re-derived, was pushing
+the lockup 7.3px right of true. Now `-0.7px`, which equalises the ink at 28.1px a side.
+
+**Profile colophon**: numerals 13 → 16px (ratio 0.69), gap 6 → 9px, tracking 0.16 → 0.14em. The old
+comment said 0.16em kept ONE caps tracking value on the sheet; right goal, wrong measure, because
+`em` scales with size — the sheet's other caps labels are 11 and 12px and carry 1.76 and 1.92px of
+space, while 0.16em at 16px is 2.56px. The arithmetic pointed at 0.12em (1.92px, identical to ABOUT
+and HOUSES); he looked at both and took 0.14em. Recorded in the comment rather than quietly
+corrected, along with the three variants he named as the ones to reach for next time.
+
+**What did not move, and that is the finding.** Vertical alignment. A six-way sweep confirmed the
+existing rule — cap band on the mark's *geometric* centre — beats both alternatives. Not the centre
+of mass, which sits 66.6% down because a hill is bottom-heavy; aligning there, or bottom-aligning
+the baseline to the hill's base, makes the peaks loom over the word. That is the arrangement he
+rejected on this same colophon on 2026-08-03. Both nudges stay where they were.
+
+One tooling note. The first specimen sheets used Google Fonts webfonts and were **wrong** — Libre
+Baskerville measured an ink ascent of 12.44px against the app's 14.94px, enough to invalidate every
+1px judgement. Specimens after that were rendered inside the running app, where next/font is already
+loaded, and reproduced the app's geometry exactly. Do not measure this app's type anywhere else.
+
+`npm run check` clean, 112/112. Verified at 1440x900 and 390x844, light and dark.
