@@ -122,11 +122,20 @@ export function CatchupHomeShell({
             onChanged={refresh}
           />
         )}
-        {viewer.isKeeper && (
+        {/* Not `isKeeper` alone: on a batch Catch-up anyone in the batch may
+            replace the picture and nobody is the Keeper, so a Keeper-only door
+            would mean nobody could reach it at all (his answer to owner
+            question 18). Today the two booleans agree -- batch Catch-ups arrive
+            in build phase 4 -- and the dialog shows a non-Keeper the picture
+            row and nothing else. */}
+        {(viewer.isKeeper || viewer.canChangePicture) && (
           <KeeperSettingsDialog
             catchupId={data.catchupId}
             cadence={data.cadence}
             catchupStatus={data.catchupStatus}
+            picture={data.picture}
+            isKeeper={viewer.isKeeper}
+            canChangePicture={viewer.canChangePicture}
             onChanged={refresh}
           />
         )}

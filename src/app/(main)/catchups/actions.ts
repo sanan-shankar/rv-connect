@@ -40,6 +40,11 @@ import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { MAX_CATCHUP_PEOPLE } from "@/lib/catchup-caps";
+import {
+  isPoolPicture,
+  isValidPictureFocus,
+  pictureFor,
+} from "@/lib/catchup-pictures";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { ownedUploadUrls } from "@/lib/upload-ownership";
@@ -54,6 +59,7 @@ import {
   extendPhasePatch,
   isEffectiveKeeper,
   isMissingCatchupTable,
+  mayChangeCatchupPicture,
   newInviteToken,
   publishPatch,
   QUESTION_WINDOW_DAYS,
@@ -457,8 +463,21 @@ export async function createCatchupWithPeople(input: {
         },
         select: { id: true, name: true },
       });
+      /* A Catch-up gets its photograph at the moment it is made, not the
+         first time somebody thinks to add one (spec 3.4). Seeded off the
+         group id -- which exists by now and is as unique as the Catch-up's
+         own -- so the pick is deterministic rather than a coin toss, and a
+         retried creation lands on the same picture. */
+      const picture = pictureFor(group.id);
       const catchup = await tx.catchup.create({
-        data: { groupId: group.id, createdById: creatorId, cadence, inviteToken: newInviteToken() },
+        data: {
+          groupId: group.id,
+          createdById: creatorId,
+          cadence,
+          inviteToken: newInviteToken(),
+          pictureSrc: picture.src,
+          pictureFocus: picture.focus,
+        },
       });
       // Edition 1 opens straight into `collecting` with NO questions. Questions
       // are no longer picked at creation time (owner: "why would I need to add
@@ -611,6 +630,91 @@ export async function updateCatchupCadence(catchupId: string, cadence: Cadence) 
     revalidatePath(`/catchups/${catchupId}`);
     revalidatePath("/catchups");
     return { success: true };
+  });
+}
+
+/**
+ * Replace the Catch-up's photograph, and where its crop is taken from.
+ *
+ * WHO MAY: whoever may run the Catch-up, and on a BATCH Catch-up anyone in the
+ * batch -- his answer to owner question 18, 2026-09-07: "anyone can replace the
+ * batch picture." The rule itself is `mayChangeCatchupPicture`, pure and
+ * tested, and it says there why a picture escapes the accident rule that keeps
+ * every other Catch-up-level control in the Keeper's hands: it is reversible,
+ * it destroys nothing, and nobody keeps a batch Catch-up, so "only the Keeper"
+ * would mean nobody at all on the Catch-ups most members are in.
+ *
+ * WHAT MAY BE WRITTEN, and this is the half that matters. `pictureSrc` goes
+ * into a column every member of the Catch-up then loads in their browser, so
+ * an arbitrary url here is somebody else's server being told who read what,
+ * from a settings row. Exactly two things pass: a path in the shipped pool, or
+ * an image this app minted under the CALLER's own `uploads/<their id>/` prefix
+ * -- the same `ownedUploadUrls` rule a post's images go through (audit C2/M10).
+ * `pictureFocus` is interpolated into a style attribute, so it is matched
+ * against a pattern rather than trusted.
+ *
+ * Not gated on `requireVerifiedMember`: this reaches nobody. It sends no
+ * notification and no email, it changes one picture on a page the people
+ * involved are already reading, and the next person who dislikes it changes it
+ * back.
+ *
+ * A paused or ended Catch-up is NOT refused, and that is deliberate: the freeze
+ * is on the Edition clock (`refuseIfFrozen`), and a photograph is not part of
+ * the cycle. Tidying the picture on something that has ended is harmless.
+ */
+export async function setCatchupPicture(
+  catchupId: string,
+  picture: { src: string; focus: string }
+) {
+  return runAction(async () => {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+    if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
+    const src = typeof picture?.src === "string" ? picture.src : "";
+    const focus = typeof picture?.focus === "string" ? picture.focus : "";
+    if (!isValidPictureFocus(focus)) return { error: "That crop is in an unexpected shape." };
+
+    const uploaded = !isPoolPicture(src);
+    if (uploaded) {
+      // Bytes into a bucket, which the demo does not do (see the notable
+      // absences on ALLOWED_WRITE_MODELS). The pool half above works there in
+      // full, so a visitor can still change the picture.
+      if (IS_DEMO) {
+        return { error: "Uploading a picture needs a bucket, so the demo keeps that one switched off. The gallery above works." };
+      }
+      const owned = ownedUploadUrls([src], session.user.id);
+      if (!owned.ok) return { error: "That picture is not one of yours." };
+    }
+
+    const catchup = await prisma.catchup.findUnique({
+      where: { id: catchupId },
+      // `batchYear` is the whole test for "this is a batch Catch-up" (F6: a
+      // batch is a Group with the year set, and a Catch-up is one row per
+      // Group). Batch Catch-ups arrive in build phase 4; the guard is written
+      // now so that phase does not have to widen it.
+      select: { id: true, createdById: true, groupId: true, group: { select: { batchYear: true } } },
+    });
+    if (!catchup) return { error: "Catch-up not found." };
+    const membership = await loadMembership(catchup.groupId, session.user.id);
+    if (!membership) return { error: "You are not a member of this Catch-up." };
+    if (
+      !mayChangeCatchupPicture({
+        viewerId: session.user.id,
+        createdById: catchup.createdById,
+        groupRole: membership.role,
+        batchYear: catchup.group.batchYear,
+      })
+    ) {
+      return { error: "Only a Keeper can change this Catch-up's picture." };
+    }
+
+    await prisma.catchup.update({
+      where: { id: catchupId },
+      data: { pictureSrc: src, pictureFocus: focus },
+    });
+    revalidatePath(`/catchups/${catchupId}`);
+    revalidatePath("/catchups");
+    return { success: true as const };
   });
 }
 

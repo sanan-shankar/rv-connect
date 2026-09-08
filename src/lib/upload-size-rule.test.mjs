@@ -34,10 +34,15 @@ const SENDERS = [
      the same HEIC off the same phone shrank during onboarding and died at
      the platform cap from the profile. Both go through useAvatarUpload now. */
   "src/components/profile/letterhead-profile.tsx",
+  /* The Catch-up's picture (spec 3.4). One file, no batch, nothing to report
+     while it climbs, so it delegates to `uploadOneImage` -- which shrinks on
+     the proxied fallback exactly as the composer's own copy does, pinned
+     below. */
+  "src/components/catchups/home/picture-picker-dialog.tsx",
 ];
 
 /** The shared avatar hook counts as shrinking, because it does -- pinned below. */
-const SHRINKS = /shrinkForUpload|downscaleImage|useAvatarUpload/;
+const SHRINKS = /shrinkForUpload|downscaleImage|useAvatarUpload|uploadOneImage/;
 
 test("the limit is under what the platform will actually carry", () => {
   const PLATFORM_CAP = 4.5 * 1024 * 1024;
@@ -64,6 +69,17 @@ test("the shared avatar hook is not an empty promise", () => {
     decomment(read("src/components/settings/avatar-upload.ts")),
     /shrinkForUpload\(/,
     "useAvatarUpload no longer shrinks, so the two callers trusting it send raw bytes"
+  );
+});
+
+test("the shared single-image helper is not an empty promise either", () => {
+  /* Same reasoning as the avatar hook above: the picture dialog satisfies the
+     assertion by delegating, so gutting `uploadOneImage` would leave that pin
+     green while a picked file went to our own server whole. */
+  assert.match(
+    decomment(read("src/lib/upload-client.ts")),
+    /export async function uploadOneImage[\s\S]*?downscaleImage\(/,
+    "uploadOneImage no longer shrinks on its fallback, so its callers send raw bytes"
   );
 });
 

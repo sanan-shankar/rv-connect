@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 
+import { downscaleImage } from "@/lib/image-downscale";
 import type { PhotoFacts } from "@/lib/photo-layout";
 
 /**
@@ -98,6 +99,46 @@ export async function directUploadPut(
   }
 
   return { key: presign.key, publicUrl: presign.publicUrl };
+}
+
+/**
+ * One image, uploaded, and the url it landed on.
+ *
+ * The whole ceremony in one call, for the surfaces that take a SINGLE picture
+ * and have nothing to say while it climbs: presign the PUT straight to R2, ask
+ * `/api/upload/finalize` to turn the staged full-resolution original into the
+ * display WebP, and fall back to the classic proxied POST -- browser-downscaled,
+ * because that is the path Vercel's ~4.5MB body cap can actually bite -- when
+ * the direct one is unavailable.
+ *
+ * The composer keeps its own copy of this rather than calling here, and that is
+ * not duplication left lying around: it uploads a BATCH, it keeps the facts
+ * each response carries so its crop handle opens where the card draws, and it
+ * reports "3 of 5". None of that collapses into a helper without making the
+ * helper worse for the caller that wants one line.
+ *
+ * Throws on failure, with a sentence the caller can toast.
+ */
+export async function uploadOneImage(file: File, subject = "That picture"): Promise<string> {
+  const staged = await directUploadPut(file, "post");
+  if (staged) {
+    const fin = await fetch("/api/upload/finalize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keys: [staged.key] }),
+    });
+    const data = await fin.json().catch(() => ({}));
+    if (fin.ok && data.urls?.[0]) {
+      announceUploadNotices(data.notices);
+      return data.urls[0] as string;
+    }
+    throw new Error(data.error || `${subject} did not upload. Try again.`);
+  }
+  // Only the fallback shrinks: the direct path PUTs the original untouched,
+  // which is the whole point of it (owner, 2026-07-30).
+  const shrunk = await downscaleImage(file);
+  const { urls } = await postImages([shrunk], { subject });
+  return urls[0];
 }
 
 /* ------------------------------------------------------------------ *

@@ -9,7 +9,7 @@
  * ------------------------------------------------------------------ */
 
 import { useState } from "react";
-import { PauseCircle, PlayCircle, Settings2, XOctagon } from "lucide-react";
+import { ChevronRight, PauseCircle, PlayCircle, Settings2, XOctagon } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { callAction } from "@/lib/call-action";
@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { EASE_SEGMENT_GLIDE, SEGMENT_GLIDE_SECONDS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 import { endCatchup, pauseCatchup, resumeCatchup, updateCatchupCadence } from "@/app/(main)/catchups/actions";
+import { PicturePickerDialog } from "./picture-picker-dialog";
 import type { Cadence, CatchupStatus } from "@/lib/catchups-types";
 
 const CADENCE_OPTIONS: Array<{ value: Cadence; label: string }> = [
@@ -38,14 +39,27 @@ export function KeeperSettingsDialog({
   catchupId,
   cadence,
   catchupStatus,
+  picture,
+  isKeeper,
+  canChangePicture,
   onChanged,
 }: {
   catchupId: string;
   cadence: Cadence;
   catchupStatus: CatchupStatus;
+  picture: { src: string; focus: string };
+  /** Holds the Keeper's controls: the rhythm, pause, end. */
+  isKeeper: boolean;
+  /** Wider than `isKeeper`, and deliberately: on a batch Catch-up anyone in
+   *  the batch may replace the picture (his answer to owner question 18),
+   *  because it is reversible and nobody keeps one. Batch Catch-ups arrive in
+   *  build phase 4, so today the two are the same boolean; this is what stops
+   *  that phase having to come back and unpick this component. */
+  canChangePicture: boolean;
   onChanged: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [pickingPicture, setPickingPicture] = useState(false);
   const [busy, setBusy] = useState(false);
   const [localCadence, setLocalCadence] = useState(cadence);
 
@@ -109,9 +123,48 @@ export function KeeperSettingsDialog({
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="font-heading tracking-tight">Catch-up settings</DialogTitle>
-          <DialogDescription>Change the rhythm, or pause / end this Catch-up.</DialogDescription>
+          <DialogDescription>
+            {isKeeper
+              ? "Change the picture or the rhythm, or pause / end this Catch-up."
+              : "Change this Catch-up's picture."}
+          </DialogDescription>
         </DialogHeader>
 
+        {/* The picture, first, because it is the only row here that is not a
+            decision about the clock -- and on a batch Catch-up it is the only
+            row at all. The thumbnail IS the value: a settings row whose value
+            is a photograph shows the photograph. */}
+        {canChangePicture && (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              Picture
+            </p>
+            <button
+              type="button"
+              onClick={() => setPickingPicture(true)}
+              className="group relative mt-2 block w-full overflow-hidden rounded-[var(--radius)] bg-mist transition-[box-shadow] duration-150 hover:shadow-[0_0_0_2px_var(--color-canopy)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              style={{ aspectRatio: "5 / 2" }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- a public
+                  path or an R2 url interchangeably, drawn once in a dialog. */}
+              <img
+                src={picture.src}
+                alt=""
+                className="h-full w-full object-cover"
+                style={{ objectPosition: picture.focus }}
+              />
+              <span className="absolute bottom-2 right-2 flex items-center gap-0.5 rounded-full bg-foreground/60 py-1 pl-2.5 pr-1.5 text-xs font-medium text-background backdrop-blur-sm">
+                Change
+                <ChevronRight className="h-3.5 w-3.5" strokeWidth={2} />
+              </span>
+            </button>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Pick one of ours, or use your own.
+            </p>
+          </div>
+        )}
+
+        {isKeeper && (
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
             Rhythm
@@ -149,8 +202,9 @@ export function KeeperSettingsDialog({
           </div>
           <p className="mt-1.5 text-xs text-muted-foreground">You can change this anytime.</p>
         </div>
+        )}
 
-        {catchupStatus !== "ended" && (
+        {isKeeper && catchupStatus !== "ended" && (
           <div className="border-t border-border pt-4">
             <Button
               variant="outline"
@@ -173,7 +227,7 @@ export function KeeperSettingsDialog({
           </div>
         )}
 
-        {catchupStatus !== "ended" && (
+        {isKeeper && catchupStatus !== "ended" && (
           <div className="border-t border-border pt-4">
             <Button
               variant="destructive"
@@ -187,6 +241,14 @@ export function KeeperSettingsDialog({
           </div>
         )}
       </DialogContent>
+
+      <PicturePickerDialog
+        open={pickingPicture}
+        onOpenChange={setPickingPicture}
+        catchupId={catchupId}
+        picture={picture}
+        onChanged={onChanged}
+      />
 
       <ConfirmDialog
         open={confirmingEnd}

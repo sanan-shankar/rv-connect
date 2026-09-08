@@ -185,7 +185,7 @@ too, which he allowed in ¶28.
 | **The list, when it has room to spare** | OPEN | **Decided by him 2026-09-07, drawn by nobody yet.** See "The list's spare slots" below. Scheduled: `spec.md` §5 puts it inside build phase 6, with the list, because it is a rule about what fills that grid rather than a surface of its own |
 | S3b Second round | OPEN | only if he asks for one after browsing the shape |
 | S5 Pick and spec | DONE | 2026-09-08. [`spec.md`](spec.md): the data changes as dated idempotent files, the Round -> Edition rename as one pass, eleven build phases plus track X, the three undrawn surfaces called before-or-inside, and ¶1 to ¶52 mapped. Owner questions 19, 20 and 21 are new and are below. It does NOT redraw anything: `architecture.md` is still the design |
-| S6+ Build | **PARTIAL** | **Phases 1 and 2 of eleven are DONE**, 2026-09-08. **Phase 1**, the Round -> Edition rename: one pass, `npm run visual` 25/25 with no baseline moved, the route moved with a permanent 308, `roundLabel()` deleted, the admin room keeping its numbers by his decision. **Phase 2, the clock**: `preparing` deleted (N88) so answering goes straight to published in one transition; every deadline snapped to **07:00 IST**, which is the hour `vercel.json`'s 02:00 UTC tick catches within thirty minutes, pinned by a test that reads `vercel.json`; and **Start the next Edition now** added (N43), the one-way control in the rail with a cinnamon dot and a confirmation, sharing `openNextEdition` with the clock. Three commits. Two files the spec listed for deletion SURVIVE, with the reason in each docblock: `almost-ready.tsx` is the P2021 holding scene on six routes, `not-yet-published.tsx` covers draft/collecting/answering deep links and was never the preparing screen. Phase 2's migration is a no-op backstop and **is applied to both projects** (0 preparing rows on each, counted first). `publishAt` the COLUMN is NOT dropped -- that is phase 11, after this deploys. **Phases 3 to 11 open; track X may ship first and at any time**
+| S6+ Build | **PARTIAL** | **Phases 1, 2 and 3 of eleven are DONE**, 2026-09-08. **Phase 1**, the Round -> Edition rename: one pass, `npm run visual` 25/25 with no baseline moved, the route moved with a permanent 308, `roundLabel()` deleted, the admin room keeping its numbers by his decision. **Phase 2, the clock**: `preparing` deleted (N88) so answering goes straight to published in one transition; every deadline snapped to **07:00 IST**, which is the hour `vercel.json`'s 02:00 UTC tick catches within thirty minutes, pinned by a test that reads `vercel.json`; and **Start the next Edition now** added (N43), the one-way control in the rail with a cinnamon dot and a confirmation, sharing `openNextEdition` with the clock. Three commits. Two files the spec listed for deletion SURVIVE, with the reason in each docblock: `almost-ready.tsx` is the P2021 holding scene on six routes, `not-yet-published.tsx` covers draft/collecting/answering deep links and was never the preparing screen. Phase 2's migration is a no-op backstop and **is applied to both projects** (0 preparing rows on each, counted first). `publishAt` the COLUMN is NOT dropped -- that is phase 11, after this deploys. **Phase 3, the picture**: two columns on `Catchup` (`pictureSrc`, `pictureFocus`), NOT NULL with a deterministic backfill in the same file, applied to BOTH projects; the pool moved out of the lab to `src/lib/catchup-pictures.ts`, so **his twenty are one edit and no migration**; both creation paths pick from it; `mayChangeCatchupPicture` written wide enough for phase 4 (anyone in a batch); and the settings row that opens a picker with a **Use your own** branch, driven end to end in a real browser — a pool pick wrote `center 81%` and an upload came back as a real R2 url. The aiming frame is the TIGHTEST band (1520x240), not the roomiest, which is the thing that had fooled two sessions. Nothing renders any of it: `npm run visual` 25/25, no baseline moved, which is the correct result. The purge learned about the column in the same commit. **Phases 4 to 11 open; track X may ship first and at any time**
 | M1 Magazine design | OPEN | unblocked. D27 is answered in `recon.md` section 6: photographs are boxed to 1920px, which is 164 dpi at A4 full-bleed |
 | M2+ Magazine build | OPEN | blocked on M1 |
 | X Fast fixes | OPEN | unblocked. Root causes for R6/F8, I9, R4, V1 and R13 are in `recon.md`; V2 and V3 need a real iPhone first |
@@ -619,7 +619,7 @@ independent critics on 2026-09-05 and repaired; if you find a gap, add the row.
 | I12 | A member is in only two or three Catch-ups; design a short list, not a library | 1 | closed by S4: two up on a laptop is a screen; the room's default shelf is three |
 | I13 | The long-box problem is everywhere in the app, and the worst case he names is a TV | 1 | open |
 
-| I14 | **The picture.** Catch-ups is the only surface with no imagery and it reads *"very functional and very corporate"*; every Catch-up gets a photograph when it is made, from a pool of about twenty of the school he will supply, replaceable by whoever runs it and positioned at creation; it appears in several places as part of the Catch-up's identity, *"almost like a group chat photo"* | N19-N24 | partial: designed and drawn (`architecture.md` §1b). **He owes the twenty photographs.** The upload and crop are a later session |
+| I14 | **The picture.** Catch-ups is the only surface with no imagery and it reads *"very functional and very corporate"*; every Catch-up gets a photograph when it is made, from a pool of about twenty of the school he will supply, replaceable by whoever runs it and positioned at creation; it appears in several places as part of the Catch-up's identity, *"almost like a group chat photo"* | N19-N24 | **built, 2026-09-08, build phase 3**: two columns, the pool at `src/lib/catchup-pictures.ts`, both creation paths, and the picker with its upload and aim. Nothing DRAWS it until phases 6 and 7. **He still owes the twenty photographs**, and they are one edit to that array |
 | I15 | The list must not carry the Round's questions: *"it's overcrowding ... too much text going on for something that should just be a navigation"*, and the picture must be *"a spectacle"* that *"makes you wanna click it"* | N25 | closed by S4 |
 
 ### Lifecycle: archive, delete, pause, end, leave (L)
@@ -2329,32 +2329,97 @@ Messaged them, worked around it, did the lab last; they landed `ed51b119` before
 
 Gate 107/107, seven green.
 
+### 2026-09-08, S8, build phase 3: the picture (Opus 5, one hand, no fan-out)
+
+`spec.md` §3.4 and §10.2. Data and control only; nothing draws it, which is why `npm run visual`
+came back 25/25 with no baseline moved. That is the phase passing, not the phase missing.
+
+**Two columns, and the DEFAULT is the part worth reading.** `pictureSrc` NOT NULL with a
+deterministic `hashtext` backfill in the same file, `pictureFocus` defaulting to `center 85%`. The
+column also carries a server-side DEFAULT, and that is not laziness: one database serves
+production and local dev, so a NOT NULL column with no default breaks the RUNNING build's
+`catchup.create` the moment it is added, and adding it after the deploy breaks the NEW build
+instead. With a default, either ordering is safe and the file went in before the push like every
+other additive change. Applied to both projects the same hour: 6 rows on production, 0 on the
+demo. The backfill carries the FOCUS through with the pick rather than leaving it on the default,
+because three of the six stand-ins are aimed at 88, 90 and 92 per cent and a picture taken without
+its aim comes back as green canopy.
+
+**The pool is `src/lib/catchup-pictures.ts` now.** It had to leave the room: the creation path,
+the settings control and the demo seed all read it, and none of them can import a lab file,
+because the demo's build leaves the whole tree out. `_shelf.ts` re-exports it, so there is exactly
+one pool and the room reads the same as it did. **His twenty are one edit to that array**, and
+`catchup-pictures.test.mjs` is what says whether the edit was complete: every file on disk, no
+duplicates, every focus valid, and the migration's own retyped VALUES list still in step.
+
+**The aiming frame is the TIGHTEST band, and that is the thing that had fooled two sessions.**
+1520x240, 6.33:1 — the home's head at 1080p and wider. Not the roomiest. What you place inside it
+survives every other frame; aim in the roomy one and a phone-shaped choice quietly falls out of
+the banner a laptop draws, which nobody would ever see happen. Measured in the dialog: 478x75 on a
+laptop, 324x51 on a phone. An arrow key moves the aim two points, a 30px drag moved it seven.
+
+**Driven end to end in a real browser rather than assumed**, both halves: a pool pick plus an aim
+wrote `center 81%` to the column, and an upload came back as a real `images.rishivalley.space`
+url and saved. The upload goes through a new `uploadOneImage` in `upload-client.ts` (presign →
+finalize, downscaled proxied fallback). The composer keeps its own copy on purpose — it uploads a
+batch, keeps the facts its crop handle opens on, and reports "3 of 5" — and collapsing that into a
+helper would make the helper worse for the caller that wants one line.
+
+**Three things nobody asked for and all three are consequences of the column, not scope.** The
+purge now collects an uploaded picture's url and puts the row back on its pool pick, because
+`pictureSrc` cannot take the null that `User.coverPhoto` does. `setCatchupPicture` accepts exactly
+a pool path or an image minted under the caller's OWN `uploads/<id>/` prefix, through the same
+`ownedUploadUrls` rule a post's images use — an arbitrary url in that column is somebody else's
+server learning who read what, from a settings row. And `pictureFocus` is matched against a
+pattern rather than trusted, because it is interpolated into a style attribute.
+
+**The guard is written for phase 4 already.** `mayChangeCatchupPicture` is pure and tested: the
+Keeper, or ANYONE in a batch (owner question 18). It is the one place this feature leaves the
+accident rule, and it has to — nobody keeps a batch Catch-up, so Keeper-only would mean nobody at
+all on the Catch-ups most members end up in. The home passes `canChangePicture` beside `isKeeper`
+and the settings dialog splits on them, so phase 4 flips one boolean rather than unpicking a
+component.
+
+**What is NOT done, deliberately.** Nothing renders the picture: the list is phase 6, the home is
+phase 7. The settings row it lives in is the shipped "very bare bones" dialog, because that
+surface is HIS (N100) and is scheduled before phase 7; the row is a labelled thumbnail in that
+dialog's existing grammar rather than a new one invented beside it.
+
+**One thing left behind on purpose.** `[Recon] the happy path` is carrying the uploaded photograph
+from the end-to-end test instead of its backfilled pool pick. Deleting the R2 object was refused by
+the sandbox, and a row pointing at an object is better than an orphan nothing can enumerate. It is
+a throwaway that phase 11 removes; it should take the object with it.
+
+Gate 108/108, seven green. `npm run visual` 25/25.
+
 ---
 
 ## What to paste next
 
-**Phases 1 and 2 are DONE (2026-09-08). The next session is BUILD PHASE 3, the picture.**
-`spec.md` §9 has eleven phases; §3.4 plus `architecture.md` §1b are phase 3's authority. Track X
-(the fast fixes) is independent and may ship before, after or beside it.
+**Phases 1, 2 and 3 are DONE (2026-09-08). The next session is BUILD PHASE 4, the batch Catch-up.**
+`spec.md` §9 has eleven phases; §3.5 and §3.5b are phase 4's authority, with `architecture.md` §6
+for what a batch Catch-up may and may not do. Track X (the fast fixes) is independent and may ship
+before, after or beside it.
 
 **Nothing is owed to the database.** Every migration this campaign has written is applied to both
 Supabase projects as of 2026-09-08: phase 1's `round-becomes-edition` (61 bell links, 17 view
-rows) and phase 2's `preparing-becomes-published` (a no-op backstop, 0 rows on each). The five
-refactor-audit drops went with them. `verify:crawl` is 21/21 at 200 against the migrated
-database. The only thing still deliberately unrun is the phase 11 cleanup, which does not exist
-yet and drops `publishAt` and `@@index([status, publishAt])` after phase 2 has deployed.
+rows), phase 2's `preparing-becomes-published` (a no-op backstop, 0 rows on each) and phase 3's
+`catchup-picture` (6 rows backfilled on production, 0 on the demo). The five refactor-audit drops
+went with them. The only thing still deliberately unrun is the phase 11 cleanup, which does not
+exist yet.
 
-**Two things are his, and neither blocks phase 3.** The **twenty photographs** — measured
-guidance is in "The twenty photographs" below, and the six stand-ins ship until they arrive — and
-the **settings surface**, which he has claimed for a session of his own (N100), scheduled before
-build phase 7 and carrying the confirmation dialogs with it.
+**Two things are his, and neither blocks phase 4.** The **twenty photographs** — the pool is now
+`src/lib/catchup-pictures.ts` and dropping them in is ONE edit to that array and no migration;
+measured guidance is in "The twenty photographs" below, and the six stand-ins ship until they
+arrive — and the **settings surface**, which he has claimed for a session of his own (N100),
+scheduled before build phase 7 and carrying the confirmation dialogs with it.
 
 ### Paste this into a fresh Opus max session
 
 ```
 @docs/planning/catchups-rework/handover.md
 
-You are S8, build phase 3 of docs/planning/catchups-rework/spec.md.
+You are S9, build phase 4 of docs/planning/catchups-rework/spec.md.
 
 Read spec.md in full, then architecture.md in full. brief.md is the test the spec is
 measured against; read it if you find yourself exercising judgment rather than
@@ -2362,75 +2427,74 @@ executing. Everything else in docs/planning/catchups-rework/ is reference -- see
 much of this you actually have to read" near the top of the handover. Do not read
 directions.md.
 
-NOTHING IS OWED TO THE DATABASE. Every migration through phase 2 is applied to both
-Supabase projects. Do not go looking for an unrun one. Confirm in one query if you
-want to: SELECT count(*) FROM "CatchupEdition" WHERE status='preparing'  -- 0.
+NOTHING IS OWED TO THE DATABASE. Every migration through phase 3 is applied to both
+Supabase projects. Do not go looking for an unrun one.
 
-PHASE 3 IS THE PICTURE: spec.md section 3.4, drawn in architecture.md section 1b.
-Every Catch-up gets a wide photograph from the day it is made, and it is NEVER
-optional -- his reason, N23: "then we'd have to have 2 different architectures."
-His diagnosis is the whole point of the phase, N19: "Catch-ups is the only one that
-has like nothing, no images, no media. It's just all text and organization and very
-functional and very corporate."
+PHASE 4 IS THE BATCH CATCH-UP: spec.md 3.5 and 3.5b, with architecture.md 6 for what
+one may and may not do. His, para 4 and para 51: "anyone in that batch is automatically
+added to that catch-up, can see the history of rounds ... can participate in any future
+rounds ... This batch catch-up should exist by default", and "the batch catch up can't
+edit people in and out it's just people in that batch and they're all automatically
+added and have access to previous issues if they join later."
 
-  - TWO COLUMNS on Catchup, not a table: `pictureSrc` (a path into the shipped pool
-    or an R2 url someone uploaded -- one column, because they are the same thing to
-    every reader of it) and `pictureFocus` (the object-position its crop is taken
-    at, default "center 85%"). The exact Prisma block and the exact SQL are in
-    spec.md 3.4. Added NOT NULL with a deterministic backfill IN THE SAME FILE, so
-    there is never a row without a picture and never a no-picture layout to draw.
+  - THE CONTAINER ALREADY EXISTS and nothing about it changes (F6): a batch is a
+    Group with `batchYear` set, and a Catch-up is one row per Group. So "a batch
+    Catch-up by default" is one Catchup row per batch group, created in THREE
+    places: a backfill migration, `joinBatchGroup` at signup, and a self-heal in
+    the daily tick. The tick's two idempotent passes are in spec.md 3.5, and one
+    of them fixes a failure that HAS ALREADY HAPPENED -- Rukmini Rau carries
+    batchYear 2024 and is not in the Batch of 2024 group.
 
-  - THE POOL MOVES OUT OF THE LAB. `PICTURES` currently lives in
-    src/app/lab/catchups/sketches/_shelf.ts with six stand-ins. It becomes
-    src/lib/catchup-pictures.ts, one exported array of { src, focus }, imported by
-    the pool picker, the settings row and the seed. Adding his twenty is then one
-    file edit and no migration.
+  - TEN IS THE FLOOR, and it is his, 2026-09-08: "for people whose batches have
+    less than ten people, let's not even show the catch ups things in the sidebar.
+    it won't be reachble to them. once there's ten it appears and the catch up
+    would be created for that batch." So the backfill creates TWO Catch-ups today,
+    not eleven: Batch of 2023 (39) and Batch of 2024 (11). Do not write eleven
+    anywhere. The sidebar predicate is spec.md 3.5b, and read the RECOMMENDED
+    paragraph there before you write it: a strict batch-size test would delete
+    Catch-ups from the public demo's sidebar.
 
-  - CREATION WRITES ONE. Every path that mints a Catchup row picks from the pool.
+  - THE 2024 SNAPSHOT IS ADOPTED, NOT DUPLICATED, in the ordered three-step
+    migration in spec.md 3.5 -- heal the memberships, ASSERT the subset relation,
+    then re-point `Catchup.groupId`. It keeps its published Edition, its 8 answers
+    and its 8 questions, and it hands two 2024 alumni an Edition they were never
+    in, which is para 4's "access to previous issues if they join later" arriving
+    for the first person it was ever true of.
 
-  - THE UPLOAD AND CROP surface, spec.md 10.2: a settings row opening a picker (the
-    pool) with an "upload your own" branch. Both halves already exist -- photo-aim.tsx
-    is the aiming control, and the R2 direct-upload path (/api/upload/presign and
-    /finalize) has been unblocked since 2026-08-21. This is assembly, not design.
-    The thing that has fooled two sessions: THE CROP MOVES BETWEEN SCREENS, so the
-    aiming control shows the NARROWEST band while you aim, not the widest, and the
-    hint says what is guaranteed to survive.
+  - A BATCH CATCH-UP HAS NO MANUAL TRANSITIONS AT ALL (architecture 6, and it is
+    his correction N30): nobody opens answering, nobody closes it, nobody
+    publishes, nobody renames it, nobody edits who is in it, nobody leaves. It
+    runs on its rhythm and the only things anyone does on one are ask and answer.
+    That is what makes "nobody keeps it" survivable. `createdById` is null.
 
-  - NOTHING RENDERS IT YET. The list is phase 6 and the home is phase 7. Phase 3 is
-    the data and the control only. Do not start drawing the surfaces.
+  - THE PICTURE GUARD IS ALREADY WRITTEN FOR YOU. `mayChangeCatchupPicture` in
+    catchups-core.ts already says "the Keeper, or anyone in a batch", and the home
+    already passes `canChangePicture` beside `isKeeper`. Phase 4 flips one boolean;
+    do not rewrite the rule. And DO NOT TIDY THE SETTINGS DIALOG the Picture row
+    sits in. That is the shipped bare-bones one, on purpose: the settings surface
+    is HIS, claimed for a session of his own (N100), scheduled before phase 7, and
+    phase 3 put the row in that dialog's existing grammar rather than inventing a
+    second one inside it. The picker, the aiming control and the action behind
+    them are finished work and survive that rework untouched.
 
-WHO MAY CHANGE IT: whoever may run the Catch-up, and on a batch Catch-up ANYONE in
-the batch -- his answer to owner question 18, safe because it is reversible unlike an
-Edition's transitions. Batch Catch-ups do not exist until phase 4; write the guard so
-phase 4 does not have to revisit it.
-
-THE MEASURED CROPS, so nothing is re-derived. Taken off the approved room on
-2026-09-08, and every one uses object-fit: cover with a per-photograph
-object-position:
-
-  home head, laptop    1112 x 240   4.63 : 1
-  home head, 1080p+    1520 x 240   6.33 : 1     the widest, and it caps here
-  list card, laptop     536 x 214   2.50 : 1
-  home head, phone      388 x 172   2.26 : 1
-  list card, phone      348 x 196   1.78 : 1     the narrowest
-
-The head is a HEIGHT and never a ratio (architecture 1b), so a wider screen shows
-MORE photograph rather than a thinner slice -- which is why its ratio slides and
-nothing can be authored to match it. The six stand-ins are 900 to 1280px on the long
-edge, which is upscaled at retina on a banner up to 1520px wide; that is a stated
-compromise until his twenty arrive, not an oversight. See "The twenty photographs"
-in the handover for the safe zone every crop shares.
+  - THE 100-PERSON CAP DOES NOT APPLY to a batch (spec.md 3.5). MAX_CATCHUP_PEOPLE
+    is the reach limit on a roster you assemble; a batch's membership is the batch.
 
 Re-run node scripts/dev/export-catchups.mjs --write before any migration of your own.
 Never prisma db push. A column ADD deploys freely; only DROPs wait for a deploy, and
 they are phase 11.
 
-Phases 1 and 2 are done and are your vocabulary: the noun is Edition, there are no
+Phases 1 to 3 are done and are your vocabulary: the noun is Edition, there are no
 Edition numbers on any member-facing surface (the admin room keeps them, his
 decision), `preparing` does not exist, deadlines land on 07:00 IST via deadlineIn(),
-and a Keeper can start the next Edition by hand from the rail.
+a Keeper can start the next Edition by hand from the rail, and every Catchup row
+carries `pictureSrc` and `pictureFocus` -- so a Catch-up you CREATE must pick one,
+with `pictureFor(seed)` from src/lib/catchup-pictures.ts, exactly as
+createCatchupWithPeople and the demo seed already do. A batch Catch-up made by SQL
+needs one too; the migration's own backfill pattern is in
+prisma/migrations-manual/2026-09-08-catchup-picture.sql.
 
-Do not start phase 4. Do not redraw anything: /lab/catchups/sketches is the approved
+Do not start phase 5. Do not redraw anything: /lab/catchups/sketches is the approved
 design and it is transplanted, not re-derived. If a drawn decision looks wrong, say so
 in a sentence and let him decide.
 
@@ -2459,12 +2523,18 @@ How to work:
   eleven batches today, and under it the Catch-ups item leaves the sidebar. That lands in phase 4,
   not phase 1, but it changes what the backfill creates, so do not write eleven anywhere.
 - **He owes about twenty photographs.** Two of the six stand-ins had to be dropped (F46) and the
-  rest are 900 to 1280px, so every wide crop is still upscaled at retina.
+  rest are 900 to 1280px, so every wide crop is still upscaled at retina. Since phase 3 the pool
+  is `src/lib/catchup-pictures.ts` and dropping them in is one edit to that array, with no
+  migration; `catchup-pictures.test.mjs` says whether the edit was complete.
 - **Nothing in that room is ever scaled** (F34), and a lab switch the SERVER reads cannot be
   flipped by `router.replace` (F43).
 - **A client-side link from `/lab` into `(main)` loses the app's layout** -- measured, `main` at
   left 0 instead of 248. Lab-only; use a plain `<a>` there and `next/link` in the real app.
-- **`npm run visual` was 25/25 green** at the end of S4d, `/catchups` included.
+- **`npm run visual` was 25/25 green** at the end of phase 3, `/catchups` included.
+- **A Catch-up cannot be created without a picture.** `Catchup.pictureSrc` is NOT NULL. It has a
+  server-side DEFAULT so a build that forgets does not throw -- it quietly gives every new
+  Catch-up the same photograph instead, which nothing would report. Any new creation path calls
+  `pictureFor(seed)`, and `catchup-pictures.test.mjs` greps for it.
 
 ### The twenty photographs, with the crops measured
 

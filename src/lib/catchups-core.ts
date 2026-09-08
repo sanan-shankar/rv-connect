@@ -405,6 +405,42 @@ export function isEffectiveKeeper(opts: {
   return opts.groupRole === "keeper" || opts.groupRole === "admin";
 }
 
+/**
+ * Who may replace a Catch-up's photograph.
+ *
+ * Whoever may run it -- and on a BATCH Catch-up, anyone in the batch. His
+ * answer to owner question 18, 2026-09-07: "anyone can replace the batch
+ * picture."
+ *
+ * That is not the rule the rest of this feature follows, and the difference is
+ * the accident rule (architecture 6). Every other Catch-up-level control is
+ * one-way or close to it: end it, remove a member, open answering. A picture is
+ * none of those. It is reversible by the next person who dislikes it, it
+ * destroys nothing, and a batch Catch-up has no Keeper to ask -- nobody keeps
+ * one (`createdById` is null), so a rule of "only the Keeper" would mean nobody
+ * at all, for ever, on the Catch-ups most members are actually in.
+ *
+ * `batchYear` is the whole test for "this is a batch Catch-up": a batch is a
+ * Group with the year set, and a Catch-up is one row per Group. Batch
+ * Catch-ups do not exist until build phase 4; this is written now so that
+ * phase does not have to come back and widen a guard.
+ *
+ * Membership is NOT checked here -- every caller has already established it,
+ * because you cannot act on a Catch-up you are not in. This answers the
+ * narrower question of which member.
+ */
+export function mayChangeCatchupPicture(opts: {
+  viewerId: string | null | undefined;
+  createdById: string | null | undefined;
+  groupRole: string | null | undefined;
+  /** The Group's `batchYear`; null on a people Catch-up. */
+  batchYear: number | null | undefined;
+}): boolean {
+  if (!opts.viewerId) return false;
+  if (opts.batchYear != null) return true;
+  return isEffectiveKeeper(opts);
+}
+
 // ─── Pure state machine ──────────────────────────────────────────────────────
 
 function ms(t: Date | string | null | undefined): number | null {
