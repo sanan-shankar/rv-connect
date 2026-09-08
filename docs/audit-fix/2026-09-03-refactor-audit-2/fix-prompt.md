@@ -447,9 +447,11 @@ still serving traffic breaks every feed, Collection, letter and profile query. A
 deployed build is ~180 commits behind and still selects all five.
 
 **There are SIX files, not five.** The Catch-ups rework session added
-`2026-09-08-round-becomes-edition.sql` on 2026-09-08 (its own campaign, committed as `2c342cea`),
-which rewrites 61 `Notification.link` rows to `/catchups/edition/<id>` — a route the deployed build
-does not have. **Same precondition, same ordering.** Run all six after the deploy; order among them
+`2026-09-08-round-becomes-edition.sql` on 2026-09-08, from its own campaign, which rewrites 61
+`Notification.link` rows to `/catchups/edition/<id>` — a route the deployed build does not have.
+(**The filename is the reference, deliberately.** This line named a commit SHA until that commit was
+amended out of existence an hour later, leaving the one document the owner acts from pointing at
+something `git show` refuses. A filename cannot be orphaned by somebody's amend.) **Same precondition, same ordering.** Run all six after the deploy; order among them
 does not matter.
 
 **Run each twice — once for the real site, once for the demo:**
