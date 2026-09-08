@@ -36,7 +36,6 @@ import {
   DEMO_POSTS,
   type DemoPrompt,
 } from "./content";
-import { GENERATED_PHOTOS } from "./photos.generated";
 import { DEMO_PLACES } from "./places";
 import { DEMO_USER_ID } from "@/lib/demo";
 import { VALLEY_TIME_ZONE } from "@/lib/utils";
@@ -307,10 +306,14 @@ export async function seedDemo(
     //
     // Served straight out of /public. The demo owns no bucket and needs none,
     // which is precisely why it can afford to refuse every upload.
-    // The hand-written banyan framings, plus anything the owner has dropped
-    // into demo-photos/ and run scripts/demo/add-photos.mjs over. Generated
-    // ones come first so the newest real photographs lead the Collection.
-    const allPhotos = [...GENERATED_PHOTOS, ...DEMO_PHOTOS];
+    /* The hand-written banyan framings. There used to be a second source
+       here -- `photos.generated.ts`, written by `scripts/demo/add-photos.mjs`
+       from a `demo-photos/` folder at the repo root -- merged ahead of these.
+       It never produced a photograph: the generated file was an empty array
+       for its whole life, its one commit being the day it was created, and
+       its documented working folder broke the closed-root rule. Deleted
+       2026-09-08 on the owner's word ("2 delete it"). */
+    const allPhotos = DEMO_PHOTOS;
     log(`Writing ${allPhotos.length} Collection photos...`);
     await tx.photo.createMany({
       data: allPhotos.map((ph, i) => ({

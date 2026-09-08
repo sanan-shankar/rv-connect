@@ -134,21 +134,15 @@ exactly one photograph (the banyan and the assembly benches, cropped twelve
 ways), so the demo seeds six framings of it rather than pretending to a fuller
 archive than exists.
 
-To fill it, put images in `demo-photos/` at the repo root, naming each file
-with the caption you want under it, then:
+There was an importer for this -- `scripts/demo/add-photos.mjs`, which read a
+`demo-photos/` folder at the repo root and regenerated a merged list. **It never
+produced a single photograph.** The generated file held an empty array for its
+whole life, and the folder it documented breaks the closed-root rule. Both were
+deleted on 2026-09-08.
 
-```bash
-node scripts/demo/add-photos.mjs   # any format sharp reads
-npx tsx scripts/demo/seed-demo.mts
-```
-
-The filename becomes the caption, a four-digit year in it sets the decade
-filter, credits rotate across six invented contributors, and each photo gets a
-stable heart count so a reseed does not reshuffle "Most loved". It writes the
-1600px display copy and 480px thumbnail (the same pipeline the real upload
-route uses) into `public/images/collection/`, and regenerates
-`src/lib/demo-seed/photos.generated.ts`, which the seed merges ahead of the
-hand-written six. Nothing hand-written is edited, so reruns are always safe.
+So the demo's Collection is the six hand-written framings in
+`src/lib/demo-seed/content.ts`, and filling it properly means writing an
+importer that works, not reviving that one.
 
 No bucket is involved at any point, which is exactly why the demo can afford
 to refuse every upload a visitor attempts.

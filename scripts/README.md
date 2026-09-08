@@ -65,7 +65,6 @@ Full runbook in `docs/spec/demo.md`. These four are that pipeline.
 |---|---|
 | `apply-schema.mjs` | Applies a generated schema to the demo database. Refuses to touch the real one. |
 | `seed-demo.mts` | Wipes and re-seeds the demo database with fictional people and posts. Refuses to run unless it is pointed at the demo DB. |
-| `add-photos.mjs` | Turns a folder of photographs into Collection entries for the demo. |
 | `verify-guard.mts` | Proves at runtime that the demo cannot write to the database. Run after touching anything auth- or write-related. |
 
 ## Data and one-time-ish jobs (`dev/`)
