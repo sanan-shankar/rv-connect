@@ -125,10 +125,11 @@ agent brief in this session:
 6. If any tool run mutates files (a formatter, a `--fix` flag), do not use that mode. Report-only
    flags everywhere.
 7. **Resource discipline.** The no-time-limit grant is for depth, not waste: don't burn usage on
-   preventable retry loops, re-derivation, or agents doing what a grep answers. And the owner's
-   machine has hung before under parallel heavy processes: reading agents may fan out freely, but
-   run at most ONE headless Chrome and ONE build (or visual suite) at a time — serialize anything
-   screenshot- or build-shaped.
+   preventable retry loops, re-derivation, or agents doing what a grep answers. The machine ceiling that used to sit here is
+   **withdrawn** — the owner, 2026-09-09: *"there's no hanging. it handles 4 sessions sometimes."*
+   Fan out freely, browsers included. The one thing that still does not run concurrently is
+   `npm run check` alongside `npm run visual`, and that is a false-diff problem rather than a
+   memory one.
 
 ## 5. Your arsenal — use all of it, not the best of it
 
