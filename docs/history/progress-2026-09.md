@@ -8,6 +8,66 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 — the demo photograph importer that never imported a photograph
+
+Refactor audit 2, row D10 (`lib-core-config-04`), parked at the close because he had never actually
+been asked about it. Asked directly, he said **"2 delete it"**.
+
+A 200-line script read a `demo-photos/` folder at the repo root, encoded each image and regenerated
+`src/lib/demo-seed/photos.generated.ts`, which the seeder merged ahead of the six hand-written
+banyan framings. **The generated file was `[]` for its entire life** — one commit in its history,
+the day it was created — so the merge at `seed.ts:313` had always been `[...[], ...DEMO_PHOTOS]`.
+Its documented working folder also broke the closed-root rule, and its ignore line went with it.
+
+Gone: the script, the generated file, the import, the merge, the ledger row, the ignore line, and
+the section of `docs/spec/demo.md` that told you to run it. The spec now says plainly that filling
+the demo's Collection means writing an importer that works rather than reviving this one.
+
+## 2026-09-08 — a download you can actually open
+
+The owner: *"when I download images from places it comes as webp. people can't really use that. it
+has to be jpg or png no."* He is right, and it had been true since the viewer shipped. Everything
+this app stores is WebP, and the Download button saved the stored bytes — so an alumnus who wanted a
+print of 1978 got `dw8j9tcpcln8puf1mjrqj3rt.webp`, which older Photoshop, Preview's print dialog and
+most print shops in India refuse to open.
+
+**JPEG, not the PNG he asked for first, and the numbers are why.** Measured on three real archive
+photographs before deciding: 6000x4000 is 3.9MB as JPEG q92 and **43.5MB as PNG**; 3456x4608 is
+2.7MB against 20.4MB. Eight to eleven times the traffic per press, buying nothing — what PNG would
+losslessly preserve is a WebP that was already lossy, so it can only store this file's existing
+compression artefacts perfectly. He had said "prefer png but if it increases my costs a lot then no
+need"; it does, so it did not.
+
+`GET /api/photo/download` re-encodes on demand and stores nothing. Full resolution, unresized.
+`.keepExif()` carries the taken-date through, which is the whole point of having kept it
+(2026-09-01): the file lands in a classmate's photo app under the right year instead of under today.
+Verified against a real 6000x4000 photograph — stored WebP dated 2022-09, saved JPEG dated 2022-09,
+same dimensions.
+
+**The response is streamed, and that is not an optimisation.** Vercel's 4.5MB cap is on the response
+body as well as the request — everyone here knew the request half, because presigned uploads exist
+to dodge it. The largest photograph in this Collection is 40 megapixels; a buffered route would have
+413'd on exactly the photographs that matter most and worked fine on everything else. Streaming is
+Vercel's own documented exemption. Now a `docs/TRAPS.md` entry, because the next route handing back
+image bytes will have the same shape.
+
+Three things the change picked up on the way:
+
+- **The filename.** It was the object key. It is now "Rishi Valley 1978 Sports day.jpg", built from
+  the caption and the taken-date. Set through the anchor's `download` attribute rather than a
+  `Content-Disposition` header, so a member-written caption never reaches a header;
+  `photo-save-name.test.mjs` pins the extension replacement (`photo.webp.jpg` is the naive fix and
+  is no better than what it replaced), the length cut, and a caption that tries to be a path.
+- **A busy state.** A 24-megapixel scan is around six seconds end to end, and a button that looks
+  idle for six seconds gets pressed again — spending the member's own hourly allowance on the same
+  file. Spinner in the same 40px box, disabled while in flight, verified at 1440x900 and 390x844.
+- **The gate.** Session plus a new `photoDownloads` meter, 60/hour. Not about the bytes: the stored
+  object was always publicly fetchable off R2. It bounds a script pointed at the converter, which is
+  the one read path in this app that costs real CPU. `keyForUrl` does the input check, so it cannot
+  be aimed off-host — verified: off-host, traversal and unknown-root URLs all 400, signed out 401.
+
+107/107 tests, `npm run visual` green.
+
 ## 2026-09-08 — nothing checks the reduce-motion setting any more
 
 Three shipped files still gated on the OS reduce-motion preference, all written before the owner
