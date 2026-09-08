@@ -45,6 +45,7 @@ if the month is new), and add one line here, at the top of that month's list.
 - 2026-09-08 (track X) — the heart's animation was a second late because the tap rebuilt the whole Edition
 - 2026-09-09 (track X) — a photo caption folds at four lines instead of two
 - 2026-09-09 (track X) — the photograph's shape stops jumping a frame ahead of the dissolve
+- 2026-09-09 — the settings get their marks back, and their answers stop hanging
 - 2026-09-09 — the settings stop being a list of controls and become a description
 - 2026-09-09 — S-features: what else an Edition could hold, seven proposals for him to cut
 - 2026-09-09 — he rules on every feature, invents the time capsule, and asks for the question library

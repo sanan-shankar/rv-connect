@@ -56,8 +56,26 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Check, ImageUp, SlidersHorizontal, X } from "lucide-react";
-import { CaretRight } from "@phosphor-icons/react";
+import {
+  Archive,
+  Bell,
+  BellRing,
+  CalendarClock,
+  Image as ImageIcon,
+  ImageUp,
+  Inbox,
+  LogOut,
+  Pause as PauseIcon,
+  PenLine,
+  Play,
+  Repeat,
+  Send,
+  SlidersHorizontal,
+  Type,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import { CaretDown, CaretRight } from "@phosphor-icons/react";
 import { AnimatePresence, animate, m, useMotionValue } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,18 +90,43 @@ import { CATCHUP_PICTURES, PICTURE_BAND_RATIO } from "@/lib/catchup-pictures";
 import { cn } from "@/lib/utils";
 import type { SketchCatchup } from "./sketches/_shelf";
 
-/* ── what a row is ─────────────────────────────────────────────────── */
+/* ── what a row is ─────────────────────────────────────────────────── *
+ *  Four things in a fixed order, which is the anatomy Apple's 2025 design
+ *  system gives a menu row -- selection indicator, icon, label, accessory
+ *  -- and which iOS Settings has always given a grouped list.
+ *
+ *  ONE TEXT EDGE, and it is the fix for "the answers for Name and so on
+ *  don't seem to be aligned to anything, they're just hanging there."
+ *  They were right-aligned against the row's trailing edge, which put
+ *  every one of them at a different distance from its own label, floating
+ *  in the middle of the row with nothing under or over it. A value now
+ *  sits on the SECOND LINE, under its label, on the same left edge. So a
+ *  row has exactly two x positions in it -- the icon, and the text -- and
+ *  nothing is left hanging in between.
+ *
+ *  Which also settles the hint. A row either has an answer or it needs
+ *  explaining, never both: "Rhythm / Every month" wants no gloss, and
+ *  "Open answering / Stop taking questions, start writing" has no answer
+ *  to give. Apple's own rule for the same reason -- "keep item text
+ *  succinct so row content is comfortable to read."
+ *
+ *  And "Cannot be undone" gets the THIRD line, which only a one-way row
+ *  ever has. That makes those rows physically taller and slower to read,
+ *  which is the right shape for a control you cannot take back, and it is
+ *  the "its own row" the settled grammar asked for rather than the tail
+ *  of a sentence. */
 
-/** Which of the three dialog shapes a row opens, and with what in it. */
+/** Which of the shapes a row opens. `choose` opens nothing at all: it
+ *  unfolds inside the card. */
 export type Opens =
   | { shape: "confirm"; key: ConfirmKey }
-  | { shape: "choose"; key: "rhythm" | "reminders" }
   | { shape: "edit"; key: "name" }
   | { shape: "picture" };
 
+export type ChoiceKey = "rhythm" | "reminders" | "extend";
+
 export type ConfirmKey =
   | "open-answering"
-  | "extend"
   | "nudge"
   | "close-now"
   | "start-next"
@@ -96,75 +139,104 @@ export type ConfirmKey =
 type Row = {
   key: string;
   label: string;
-  /** What it does, in a phrase. Capped at 42 characters, which is what
-   *  fits on one line at 390 without an ellipsis -- his: "some of the
-   *  text wraps ... it doesn't wrap, it [truncates] into the dots. And
-   *  that means I literally can't see the description because it's given
-   *  nowhere else. So maybe we just have to change the copy." */
-  hint: string;
-  /** Where it stands, right-aligned on the label's own line. */
-  value?: string;
-  /** A value that is somebody's own words rather than the app's
-   *  vocabulary, so it is set in the serif. The type rule from the home:
-   *  serif is a title or a name, sans is the app talking. */
-  valueIsName?: boolean;
+  icon: LucideIcon;
+  /** The second line: the row's current answer, or what it does. Never
+   *  both, and capped at 42 characters, which is what fits at 390 without
+   *  an ellipsis. */
+  line: string;
   oneWay?: boolean;
-  /** Absent means this row states a fact and does not press. */
+  /** Opens a dialog. A chevron is drawn for these and ONLY these, because
+   *  Apple is explicit that "a disclosure indicator reveals the next level
+   *  in a hierarchy; it doesn't show details about the item" -- so a row
+   *  that fires an action, or that unfolds where it stands, has no
+   *  business wearing one. */
   opens?: Opens;
+  /** Unfolds a row of pills under itself. */
+  choose?: ChoiceKey;
+  /** Absent `opens` and `choose` both means this row states a fact. */
 };
 
 type Group = { label: string; rows: Row[] };
+
+/* ── the choices, and the pills they draw ──────────────────────────── */
+
+export const REMINDERS = ["Daily", "On the last day", "Never"] as const;
+export const RHYTHMS = [
+  "Every month",
+  "Every two months",
+  "Every three months",
+  "Twice a year",
+] as const;
+/** His: "why are we only giving a week more instead of more options?"
+ *  Three, because two is not a choice and five is a form. */
+export const LONGER = ["Three days", "A week", "Two weeks"] as const;
+
+export const CHOICES: Record<ChoiceKey, readonly string[]> = {
+  rhythm: RHYTHMS,
+  reminders: REMINDERS,
+  extend: LONGER,
+};
 
 /* ── the rows, one table, three permission sets ────────────────────── */
 
 /** The rhythm in words, off the Catch-up's own meta line. */
 function rhythmOf(c: SketchCatchup): string {
-  const tail = c.meta.split("·").pop()?.trim() ?? "";
+  const tail = c.meta.split("\u00b7").pop()?.trim() ?? "";
   return tail ? tail[0].toUpperCase() + tail.slice(1) : "";
 }
 
-/** This Edition: the Keeper's controls over the clock, and the only
- *  place a one-way control over other people's time exists. A batch
- *  Catch-up has no manual transitions at all, so this group is simply
- *  absent on one -- nobody keeps it, it runs on its rhythm. */
-function editionGroup(c: SketchCatchup): Group | null {
+/** 20 August. The deadline a Keeper is deciding whether to move. */
+function dayMonth(iso: string | null): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+}
+
+/** This Edition: the Keeper's controls over the clock. A batch Catch-up
+ *  has no manual transitions at all, so this group is simply absent on
+ *  one -- nobody keeps it, it runs on its rhythm. */
+function editionGroup(c: SketchCatchup, extend: string): Group | null {
   if (!c.canRun || c.paused) return null;
+  const closes = dayMonth(c.edition?.closesAt ?? null);
+  const longer: Row = {
+    key: "extend",
+    label: "Give everyone longer",
+    icon: CalendarClock,
+    line: extend
+      ? `${extend} more`
+      : closes
+        ? `Answers close ${closes}`
+        : "Push the deadline back",
+    choose: "extend",
+  };
   const rows: Row[] =
     c.state === "collecting"
       ? [
           {
             key: "open-answering",
             label: "Open answering",
-            hint: "Stop taking questions, start writing",
+            icon: PenLine,
+            line: "Stop taking questions, start writing",
             oneWay: true,
             opens: { shape: "confirm", key: "open-answering" },
           },
-          {
-            key: "extend",
-            label: "Give everyone longer",
-            hint: "Push the deadline back a week",
-            opens: { shape: "confirm", key: "extend" },
-          },
+          longer,
         ]
       : c.state === "answering"
         ? [
-            {
-              key: "extend",
-              label: "Give everyone longer",
-              hint: "Push the deadline back a week",
-              opens: { shape: "confirm", key: "extend" },
-            },
+            longer,
             {
               key: "nudge",
               label: "Nudge everyone",
-              hint: "One reminder to whoever has not",
+              icon: BellRing,
+              line: "One reminder to whoever has not",
               oneWay: true,
               opens: { shape: "confirm", key: "nudge" },
             },
             {
               key: "close-now",
               label: "Close and send it out",
-              hint: "Publish now, before the deadline",
+              icon: Send,
+              line: "Publish now, before the deadline",
               oneWay: true,
               opens: { shape: "confirm", key: "close-now" },
             },
@@ -174,7 +246,8 @@ function editionGroup(c: SketchCatchup): Group | null {
               {
                 key: "start-next",
                 label: "Start the next Edition now",
-                hint: "Do not wait for the rhythm",
+                icon: Play,
+                line: "Do not wait for the rhythm",
                 oneWay: true,
                 opens: { shape: "confirm", key: "start-next" },
               },
@@ -195,23 +268,23 @@ function catchupGroup(c: SketchCatchup, rhythm: string): Group {
     {
       key: "name",
       label: "Name",
-      hint: "What everyone sees it called",
-      value: c.name,
-      valueIsName: true,
+      icon: Type,
+      line: c.name,
       opens: c.youKeep ? { shape: "edit", key: "name" } : undefined,
     },
     {
       key: "picture",
       label: "Picture",
-      hint: "The photograph on its card and header",
+      icon: ImageIcon,
+      line: "The photograph on its card and header",
       opens: mayPicture ? { shape: "picture" } : undefined,
     },
     {
       key: "rhythm",
       label: "Rhythm",
-      hint: "How often an Edition comes round",
-      value: rhythm || rhythmOf(c),
-      opens: c.youKeep ? { shape: "choose", key: "rhythm" } : undefined,
+      icon: Repeat,
+      line: rhythm,
+      choose: c.youKeep ? "rhythm" : undefined,
     },
   ];
   if (c.youKeep && c.state !== "ended") {
@@ -220,20 +293,23 @@ function catchupGroup(c: SketchCatchup, rhythm: string): Group {
         ? {
             key: "resume",
             label: "Start it again",
-            hint: "Let the clock run",
+            icon: Play,
+            line: "Let the clock run",
             opens: { shape: "confirm", key: "resume" },
           }
         : {
             key: "hold",
             label: "Hold the next Edition",
-            hint: "Nothing goes out until you say",
+            icon: PauseIcon,
+            line: "Nothing goes out until you say",
             opens: { shape: "confirm", key: "hold" },
           },
     );
     rows.push({
       key: "end",
       label: "End this Catch-up",
-      hint: "Nothing new starts. It stays readable",
+      icon: Archive,
+      line: "Nothing new starts. It stays readable",
       oneWay: true,
       opens: { shape: "confirm", key: "end" },
     });
@@ -253,21 +329,23 @@ function youGroup(c: SketchCatchup, reminder: string): Group {
       {
         key: "reminders",
         label: "Reminders",
-        hint: "While an Edition is open for answers",
-        value: reminder,
-        opens: { shape: "choose", key: "reminders" },
+        icon: Bell,
+        line: reminder,
+        choose: "reminders",
       },
       batch
         ? {
             key: "put-away",
             label: "Put it away",
-            hint: "It stops showing on your list",
+            icon: Inbox,
+            line: "It stops showing on your list",
             opens: { shape: "confirm", key: "put-away" },
           }
         : {
             key: "leave",
             label: "Leave",
-            hint: "You stop getting Editions",
+            icon: LogOut,
+            line: "You stop getting Editions",
             oneWay: true,
             opens: { shape: "confirm", key: "leave" },
           },
@@ -275,121 +353,301 @@ function youGroup(c: SketchCatchup, reminder: string): Group {
   };
 }
 
-export function settingsGroups(c: SketchCatchup, reminder: string, rhythm = ""): Group[] {
-  const edition = editionGroup(c);
-  return [...(edition ? [edition] : []), catchupGroup(c, rhythm), youGroup(c, reminder)];
+export type Chosen = { rhythm: string; reminders: string; extend: string };
+
+/** Everything the panel and its dialogs need, in one place, so a phone
+ *  and a laptop cannot end up holding different state for the same
+ *  Catch-up -- and so a call site is two spreads rather than eleven
+ *  props. */
+export function useSettings(c: SketchCatchup) {
+  const [at, setAt] = useState<Chosen>({
+    rhythm: rhythmOf(c),
+    reminders: REMINDERS[0],
+    /* Empty means nobody has pushed the deadline this cycle, which is why
+       the row shows the deadline itself until somebody does. */
+    extend: "",
+  });
+  const [name, setName] = useState(c.name);
+  const [row, setRow] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<Opens | null>(null);
+  const live = { ...c, name };
+  return {
+    live,
+    panel: {
+      c: live,
+      at,
+      open: row,
+      onOpenRow: setRow,
+      onOpen: setDialog,
+      onPick: (k: ChoiceKey, v: string) => {
+        setAt((was) => ({ ...was, [k]: v }));
+        /* The row folds itself up once you have answered it, the way a
+           menu closes on a pick. Leaving it open makes the panel jump
+           twice for one decision. */
+        setRow(null);
+      },
+    },
+    dialogs: {
+      c: live,
+      open: dialog,
+      onClose: () => setDialog(null),
+      name,
+      onName: setName,
+      onPicture: () => setDialog(null),
+    },
+  };
 }
 
-/* ── one row ───────────────────────────────────────────────────────── *
- *  Two lines. The label and its value share the first, because together
- *  they are "what this is and where it stands"; the hint gets the second
- *  ON ITS OWN, full width, which is the whole reason nothing truncates
- *  any more. The old row put the label, the hint and the value on one
- *  line each fighting for 341px, and the hint lost.
+export function settingsGroups(c: SketchCatchup, at: Chosen): Group[] {
+  const edition = editionGroup(c, at.extend);
+  return [...(edition ? [edition] : []), catchupGroup(c, at.rhythm), youGroup(c, at.reminders)];
+}
+
+/* ── the pills a row unfolds ───────────────────────────────────────── *
+ *  His, on the dialog this replaced: "I feel like frequency was nicer as
+ *  a pill chooser than these drop downs. Few others like that as well.
+ *  And it doesn't have to be pill chooser but this is so boring and not
+ *  it."
  *
- *  A one-way control's value is its price: "Cannot be undone", in the
- *  column that already holds the answer to "where does this stand". Its
- *  own words on its own row rather than the tail of a sentence, which is
- *  what was truncating at BOTH widths. */
-function SettingRow({ r, onOpen }: { r: Row; onOpen: (o: Opens) => void }) {
-  const value = r.oneWay ? "Cannot be undone" : r.value;
-  const body = (
-    <>
-      <span className="flex min-w-0 items-baseline gap-3">
-        <span className="min-w-0 flex-1 truncate text-[15px] text-foreground">{r.label}</span>
-        {value && (
-          <span
+ *  It is not only boring, it is wrong: Apple reserves the chevron for
+ *  navigation, and three options are not a hierarchy. A short set is
+ *  picked WHERE IT STANDS. So the row unfolds and the answers arrive
+ *  under it, in the card, on the app's own segmented material -- an
+ *  outline pill that fills Canopy when it is the one you are on, which
+ *  the colour protocol names as the app's single selected state.
+ *
+ *  Height animates rather than the row swapping instantly, because the
+ *  point of unfolding rather than opening is that you never lose your
+ *  place. Only transform and opacity are meant to animate here; height
+ *  is the exception a disclosure cannot avoid, and it is 220ms on the
+ *  app's own curve. */
+function Pills({
+  options,
+  at,
+  onPick,
+}: {
+  options: readonly string[];
+  at: string;
+  onPick: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5 pt-0.5 pb-1 pl-[30px]">
+      {options.map((o) => {
+        const on = o === at;
+        return (
+          <button
+            key={o}
+            type="button"
+            aria-pressed={on}
+            onClick={() => onPick(o)}
             className={cn(
-              "max-w-[52%] shrink-0 truncate text-[13.5px]",
-              r.oneWay ? "text-cinnamon" : "text-muted-foreground",
-              r.valueIsName && "font-heading",
+              "rounded-full px-3.5 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+              /* 34px, between the app's xs (32) and sm (36) pills: this one
+                 sits inside a settings row rather than beside a heading, and
+                 a full sm pill made the unfolded state taller than the row
+                 that opened it. */
+              "h-[34px]",
+              on
+                ? "bg-canopy text-white"
+                : "state-layer border border-border text-muted-foreground",
             )}
           >
-            {value}
-          </span>
+            {o}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── one row ───────────────────────────────────────────────────────── */
+function SettingRow({
+  r,
+  open,
+  at,
+  onOpen,
+  onToggle,
+  onPick,
+}: {
+  r: Row;
+  open: boolean;
+  at: Chosen;
+  onOpen: (o: Opens) => void;
+  onToggle: () => void;
+  onPick: (k: ChoiceKey, v: string) => void;
+}) {
+  const Icon = r.icon;
+  const press = r.opens ? () => onOpen(r.opens!) : r.choose ? onToggle : undefined;
+
+  const body = (
+    <>
+      {/* The icon is back, and it is a GLYPH rather than a tile. His:
+          "kinda liked the icons", and before that, "I don't like the brown
+          outlines for those icons ... I don't like that brown." Both are
+          the same note once you know the colour protocol: rule 3 allows at
+          most ONE mist region inside a card and never two adjacent, and
+          nine `bg-muted` tiles in a column is nine of them touching. The
+          mark was never the problem; the fill behind it was. */}
+      <Icon
+        className={cn(
+          "mt-[2px] h-[18px] w-[18px] shrink-0",
+          press ? "text-muted-foreground" : "text-muted-foreground/55",
+        )}
+        strokeWidth={1.8}
+      />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[15px] text-foreground">{r.label}</span>
+        {/* SANS, including the Catch-up's own name. His: "why is the
+            Catch-up name the only thing serif in this entire thing?" It was
+            the type rule read too literally -- serif is for a title or a
+            NAME, but in this row the name is not being presented, it is
+            being reported as the row's current value, and one serif word in
+            a column of sans is an orphan rather than a distinction. The
+            serif still owns every dialog title, including "Leave the sunday
+            four", where the name IS the title. */}
+        <span className="mt-[3px] block truncate text-[13.5px] text-muted-foreground">
+          {r.line}
+        </span>
+        {r.oneWay && (
+          <span className="mt-[3px] block text-[12.5px] text-cinnamon">Cannot be undone</span>
         )}
       </span>
-      <span className="mt-[3px] block truncate text-[13px] text-muted-foreground">{r.hint}</span>
+      {/* TWO ACCESSORIES, AND THEY MEAN DIFFERENT THINGS. Apple is explicit
+          that a right chevron "reveals the next level in a hierarchy", so it
+          goes on the two rows that genuinely open another surface -- Name and
+          Picture -- and nowhere else. A row that unfolds where it stands
+          takes a DISCLOSURE caret, pointing down and turning over when it
+          opens. A row that fires an action takes neither, the way iOS
+          Settings draws Sign Out. */}
+      {r.opens?.shape === "edit" || r.opens?.shape === "picture" ? (
+        <CaretRight size={13} weight="bold" className="mt-[5px] shrink-0 text-muted-foreground/70" />
+      ) : r.choose ? (
+        <CaretDown
+          size={13}
+          weight="bold"
+          className={cn(
+            "mt-[5px] shrink-0 text-muted-foreground/70 transition-transform duration-200",
+            open && "rotate-180",
+          )}
+        />
+      ) : null}
     </>
   );
 
-  /* A fact, not a control: no chevron, no state layer, nothing to press.
-     This is the row a batch Catch-up's Name and Rhythm become, and it is
-     how the panel says "fixed" without a sentence explaining it. */
-  if (!r.opens) {
+  /* A fact, not a control: no glyph weight, nothing to press. This is the
+     row a batch Catch-up's Name and Rhythm become, and it is how the panel
+     says "fixed" without a sentence explaining it. */
+  if (!press) {
     return (
-      <div className="flex items-center gap-3 px-2 py-2.5">
-        <span className="min-w-0 flex-1">{body}</span>
-        {/* A blank the width of a chevron, so a sealed row's value stays
-            in the same column as an openable one's. Without it the right
-            edge of the list went ragged wherever a batch sealed a row. */}
-        <span aria-hidden className="w-[13px] shrink-0" />
-      </div>
+      <div className="flex items-start gap-3 px-3 py-2.5">{body}</div>
     );
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(r.opens!)}
-      className="state-layer -mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-[12px] px-2 py-2.5 text-left focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
-    >
-      <span className="min-w-0 flex-1">{body}</span>
-      <CaretRight size={13} weight="bold" className="shrink-0 text-muted-foreground/70" />
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={press}
+        aria-expanded={r.choose ? open : undefined}
+        className="state-layer flex w-full items-start gap-3 rounded-[10px] px-3 py-2.5 text-left focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
+      >
+        {body}
+      </button>
+      <AnimatePresence initial={false}>
+        {r.choose && open && (
+          <m.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: EASE_OUT_SMOOTH }}
+            className="overflow-hidden px-3"
+          >
+            <Pills
+              options={CHOICES[r.choose]}
+              at={at[r.choose]}
+              onPick={(v) => onPick(r.choose!, v)}
+            />
+          </m.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
 /* ── the panel ─────────────────────────────────────────────────────── *
- *  The head of each group is 14px medium on the FOREGROUND, and it starts
- *  at exactly the same x as every label under it. Both of those are his,
- *  2026-09-09: "this edition, this catch up font way too small", and
- *  "This Catch-up, You -- are things really aligned to anything? They're
- *  just randomly hanging there." They were not: the head sat 8px inside
- *  the row's icon tile and 44px outside its label, so it lined up with
- *  neither.
+ *  Each group is a card with a HAIRLINE and no fill, and that is the one
+ *  shape the colour protocol leaves open. Rule 3: "at most one mist
+ *  recessed region inside any card, and never two mist surfaces adjacent
+ *  ... everything else sits directly on the card's paper; if it needs an
+ *  edge, it earns a border, not a fill." Three filled groups would be
+ *  three adjacent wells. Paper on Float is closed too -- the Get in touch
+ *  card was pulled up for it in September, warmth climbing the ladder
+ *  instead of sinking down it.
  *
- *  24px between groups and 12px inside one, which is the number the
- *  design system already settled for a dialog's sections and names the
- *  keeper settings dialog as its worked example. No rules drawn: "the gap
- *  is the warning."
+ *  Which lands on the same recipe Revolut uses on white: a 1px hairline
+ *  and a large radius, depth by outline rather than by shadow. And it is
+ *  what brings back the structure that went missing when the tiles were
+ *  deleted -- his: "this still looks like a mess. It's not approachable.
+ *  It's less approachable than before but with some big bugs solved."
  *
- *  THE HORIZONTAL SCROLL, measured before it was fixed. The scroll region
- *  carried `pr-1` and each row bled 8px past it on both sides, so a row
- *  ran 426px wide inside a 414px box and the panel scrolled sideways by
- *  4px -- "I can scroll left to right on the settings dialog." The bleed
- *  is now 8px inside a 12px pad, so the row can never reach the edge. */
+ *  Nothing is drawn BETWEEN rows. Apple's grouped style separates groups
+ *  "with headers, footers and additional space", and the twelve
+ *  horizontal lines he counted in the shipped panel were rules between
+ *  rows, not around groups.
+ *
+ *  The head sits outside its card, 13px, the way a grouped list's header
+ *  does -- it does not have to carry the structure any more, because the
+ *  card does. */
 export function SettingsPanel({
   c,
-  reminder,
-  rhythm = "",
+  at,
+  open,
+  onOpenRow,
   onOpen,
+  onPick,
   className,
 }: {
   c: SketchCatchup;
-  reminder: string;
-  /** The rhythm as this session has changed it, if it has. Empty means
-   *  the Catch-up's own. */
-  rhythm?: string;
+  at: Chosen;
+  /** Which row is unfolded. One at a time. */
+  open: string | null;
+  onOpenRow: (key: string | null) => void;
   onOpen: (o: Opens) => void;
+  onPick: (k: ChoiceKey, v: string) => void;
   className?: string;
 }) {
   return (
-    <div className={cn("-mx-3 space-y-7 overflow-y-auto px-3", className)}>
-      {settingsGroups(c, reminder, rhythm).map((g) => (
+    <div className={cn("space-y-6 overflow-y-auto", className)}>
+      {settingsGroups(c, at).map((g) => (
         <section key={g.label}>
-          {/* A label, so sans: globals.css puts the heading face on h3, and
-              the type rule is that the serif is for titles and names. */}
-          {/* NO horizontal padding, and that is the whole of his "This
-              Catch-up, You -- are things really aligned to anything?" The head
-              used to carry px-2 while the row it heads carries -mx-2 px-2, so
-              the head's text landed 8px right of every label under it and
-              lined up with nothing on the panel. Measured at 1512: head 222.7,
-              labels 214.7. */}
-          <h3 className="mb-2 font-sans text-[14px] font-medium text-foreground">{g.label}</h3>
-          <div className="space-y-px">
+          {/* OUTSIDE the card, and given room. It has now been three ways:
+              floating above the card at 12.5px muted ("seems like an
+              afterthought just squeezed, and it looks yuck"), then inside the
+              card as its caption, then here. His call, and the two things he
+              asked for with it were AIR and SIZE -- "the size still annoys
+              me". So it is 15px on the foreground rather than 13px muted,
+              which is the same size as the row labels it heads and heavier,
+              with 8px under it and 24px above; the hierarchy comes from being
+              outside the box rather than from being small.
+
+              Aligned to the CARD's own left edge, which is the only thing out
+              here for it to hang off.
+
+              Sans, not serif. The type rule is that serif is a title or a
+              name, and "This Edition" is the app naming its own furniture --
+              which is the app talking. */}
+          <h3 className="mb-2 font-sans text-[15px] font-medium text-foreground">{g.label}</h3>
+          <div className="rounded-[14px] border border-border p-1">
             {g.rows.map((r) => (
-              <SettingRow key={r.key} r={r} onOpen={onOpen} />
+              <SettingRow
+                key={r.key}
+                r={r}
+                at={at}
+                open={open === r.key}
+                onOpen={onOpen}
+                onToggle={() => onOpenRow(open === r.key ? null : r.key)}
+                onPick={onPick}
+              />
             ))}
           </div>
         </section>
@@ -633,7 +891,10 @@ export const FLAT_PANEL =
 
 /** Shape one: a confirmation. Title names the object, one line says what
  *  will be true afterwards, Cancel then the verb. Nothing is auto-focused,
- *  so Enter cannot do it by itself. */
+ *  so Enter cannot do it by itself.
+ *
+ *  There used to be a third shape, a chooser dialog. It is gone: a short
+ *  set of options is picked in the row it belongs to. */
 export function ConfirmBody({
   title,
   line,
@@ -670,44 +931,7 @@ export function ConfirmBody({
   );
 }
 
-/** Shape two: a chooser. Picking IS the answer, so there is no footer to
- *  press -- the same behaviour iOS gives a settings row with a list
- *  behind it. A Cancel and a Save under three radio buttons is two extra
- *  presses for a choice already made. */
-export function ChooseBody({
-  title,
-  options,
-  at,
-  flat,
-  onPick,
-}: {
-  title: string;
-  options: readonly string[];
-  at: string;
-  flat?: boolean;
-  onPick: (v: string) => void;
-}) {
-  return (
-    <>
-      <Head flat={flat} title={title} />
-      <div className="-mx-1 space-y-px">
-        {options.map((o) => (
-          <button
-            key={o}
-            type="button"
-            onClick={() => onPick(o)}
-            className="state-layer flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-left text-[15px] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
-          >
-            <span className="min-w-0 flex-1 truncate">{o}</span>
-            {o === at && <Check className="h-4 w-4 shrink-0 text-canopy" strokeWidth={2.4} />}
-          </button>
-        ))}
-      </div>
-    </>
-  );
-}
-
-/** Shape three: an editor. One field, and the verb on the button is the
+/** Shape two: an editor. One field, and the verb on the button is the
  *  one on the row that opened it. */
 export function EditBody({
   title,
@@ -847,9 +1071,6 @@ export function PictureBody({
  *  button carrying the same verb as the row that opened it. And the
  *  warmth budget: nothing here is warm. One warm line per surface, spent
  *  on a title or a success state, never on a one-way act. */
-export const REMINDERS = ["Daily", "On the last day", "Never"] as const;
-export const RHYTHMS = ["Every month", "Every two months", "Every three months", "Twice a year"] as const;
-
 export function confirmCopy(
   key: ConfirmKey,
   c: SketchCatchup,
@@ -861,13 +1082,6 @@ export function confirmCopy(
         line: "Nobody can add a question after this. Everyone is told they have until the deadline to write.",
         verb: "Open it",
         oneWay: true,
-      };
-    case "extend":
-      return {
-        title: "Give everyone longer",
-        line: "The deadline moves back a week. Everyone who has not written yet is told.",
-        verb: "Give a week",
-        oneWay: false,
       };
     case "nudge":
       return {
@@ -960,10 +1174,6 @@ export function SettingsDialogs({
   c,
   open,
   onClose,
-  reminder,
-  onReminder,
-  rhythm,
-  onRhythm,
   name,
   onName,
   onPicture,
@@ -971,15 +1181,10 @@ export function SettingsDialogs({
   c: SketchCatchup;
   open: Opens | null;
   onClose: () => void;
-  reminder: string;
-  onReminder: (v: string) => void;
-  rhythm: string;
-  onRhythm: (v: string) => void;
   name: string;
   onName: (v: string) => void;
   onPicture: () => void;
 }) {
-  const is = (s: Opens["shape"]) => open?.shape === s;
   /* `initialFocus` on the panel. Base UI otherwise focuses the first
      focusable child, which on a confirmation is Cancel -- so the dialog
      opened with a green ring already drawn round a button nobody had
@@ -1003,29 +1208,7 @@ export function SettingsDialogs({
               />
             );
           })()}
-        {open?.shape === "choose" && open.key === "reminders" && (
-          <ChooseBody
-            title="Reminders"
-            options={REMINDERS}
-            at={reminder}
-            onPick={(v) => {
-              onReminder(v);
-              onClose();
-            }}
-          />
-        )}
-        {open?.shape === "choose" && open.key === "rhythm" && (
-          <ChooseBody
-            title="Rhythm"
-            options={RHYTHMS}
-            at={rhythm || rhythmOf(c)}
-            onPick={(v) => {
-              onRhythm(v);
-              onClose();
-            }}
-          />
-        )}
-        {is("edit") && (
+        {open?.shape === "edit" && (
           <EditBody
             title="Name"
             value={name}
@@ -1036,7 +1219,7 @@ export function SettingsDialogs({
             }}
           />
         )}
-        {is("picture") && <PictureBody c={c} onCancel={onClose} onUse={onPicture} />}
+        {open?.shape === "picture" && <PictureBody c={c} onCancel={onClose} onUse={onPicture} />}
       </DialogContent>
     </Dialog>
   );
