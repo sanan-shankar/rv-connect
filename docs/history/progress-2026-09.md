@@ -8,6 +8,40 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-08 — the second heart you press in the Collection
+
+The owner, on an S23 with the app installed: *"I tried to like a photo in collection and though I
+get the celebration with the heart, the heart didn't fill in. when I tried on another it worked. but
+obviously it should always work not only sometimes."*
+
+**It was the in-flight guard, and it was a page-wide lock.** `useHeartToggle` refuses a second tap
+while the first is still in the air — that is audit C-010/C-178, and it is right. But it kept that
+fact in one boolean per hook INSTANCE. For four of the five hearts those are the same thing: a post
+card, a comment row, a letter and a Catch-up answer each draw one heart and each hold their own
+hook. The Collection is the fifth and it is shaped differently — the heart lives in the full-screen
+viewer, the viewer walks the whole river, and `collection-client.tsx` holds a single hook for the
+archive. So a tap on any photograph while another photograph's toggle was still in the air was
+dropped. Not queued, not retried: returned on at line one, before any request was made.
+
+And it was silent in the worst way, because `LoveButton` animates on **press**, not on the answer.
+The flecks flew and the pop played and the heart stayed empty — which is exactly the two sentences
+above, in that order.
+
+**Measured before it was fixed and after.** chrome-devtools at 390x844 on Slow 3G, signed in as
+Jerry Maguire: heart photograph A, step to B, heart B while A is still going. Before — B reads
+`aria-pressed="false"` for ever and the page made **one** POST for two taps. After — B fills and
+stays filled, and the page makes **two**. The control (tapping B alone, nothing in flight) passed
+both times, which is why it "worked on another one".
+
+**The fix is per subject.** `busy` is a `Set<string>` and `fire()` takes `{ subject }`; the action
+is handed that subject back, so `togglePhotoLove` takes the id from the tap that fired it rather
+than from a `loveTarget` ref the page had to keep beside the hook. That ref is gone. Callers that
+pass nothing share the key `""`, which is byte-for-byte the old behaviour and correct for them.
+
+`heart.test.mjs` pins both halves — the `Set` in the hook, and the Collection actually passing
+`{ subject: photo.id }` — because the boolean version passed every test in that file. All seven
+gates green. No pixels moved, so no baselines did either.
+
 ## 2026-09-08 — refactor audit 2: eleven units, and the close-out
 
 The campaign ran unattended from the owner's 28 answers to a close. **Phases A, B, C, D and H are

@@ -983,23 +983,35 @@ export function CollectionClient({
   );
 
   /* The heart runs on the app's one optimistic toggle (`useHeartToggle`),
-     which carries the three things a hand-rolled flip keeps forgetting: a ref
-     that refuses a double tap in the same tick `disabled` would only catch on
-     the next render (C-010/C-178), a rollback to where the count BEGAN, and
-     adopting what the row actually says over what the tap assumed (C-133). */
-  const loveTarget = useRef<{ list: ViewerList; photo: PhotoData } | null>(null);
-  const fireLove = useHeartToggle(() => togglePhotoLove(loveTarget.current!.photo.id));
+     which carries the three things a hand-rolled flip keeps forgetting: a
+     guard that refuses a double tap in the same tick `disabled` would only
+     catch on the next render (C-010/C-178), a rollback to where the count
+     BEGAN, and adopting what the row actually says over what the tap assumed
+     (C-133).
+
+     The `subject` is the whole of the difference between this heart and the
+     other four. They are each drawn by a component that IS one post or one
+     comment, so their hook instance is one subject's. This ONE instance draws
+     the heart for every photograph in the archive, because the heart lives in
+     the viewer and the viewer walks the river -- so the id has to travel with
+     the tap, both to name what the guard is guarding and to say what to
+     toggle. Without it, hearting one photograph and then swiping on and
+     hearting the next dropped the second tap on the floor while the first was
+     still in the air. */
+  const fireLove = useHeartToggle((photoId) => togglePhotoLove(photoId));
 
   function handleToggleLove(index: number) {
     if (!viewer) return;
     const photo = listFor(viewer.list)[index];
     if (!photo) return;
-    loveTarget.current = { list: viewer.list, photo };
     /* Written back into the strip the photograph came from, so the river
        behind the viewer holds the same fact: a heart pressed full-screen is
        already lit on the tile when the viewer closes. */
-    void fireLove({ liked: photo.loved, count: photo.loveCount }, ({ liked, count }) =>
-      patch(viewer.list, photo.id, (p) => ({ ...p, loved: liked, loveCount: count }))
+    void fireLove(
+      { liked: photo.loved, count: photo.loveCount },
+      ({ liked, count }) =>
+        patch(viewer.list, photo.id, (p) => ({ ...p, loved: liked, loveCount: count })),
+      { subject: photo.id }
     );
   }
 
