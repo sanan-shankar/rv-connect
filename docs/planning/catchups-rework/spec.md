@@ -708,7 +708,11 @@ redrawn, and each has its reason written above.
 - **"In the loop", not "In the loop catch-up"** (¶25). This reverses his own 2026-07-25 decision,
   which `catchupSurfaceTitle`'s docblock cites; record it as a reversal, not as a bug (F22).
 - **The Keeper is "Keeper"**, and nothing more (¶38).
-- **No Edition numbers, anywhere.** A date is its name.
+- **No Edition numbers, anywhere a member reads.** A date is its name. **One exception, his,
+  2026-09-08: the admin room keeps them** -- three places (`/admin/catchups`, the reading room's
+  section labels, the stuck-Edition alert). There the number is the row's actual key,
+  `@@unique([catchupId, number])`, and an unpublished Edition has no date to go by. All three
+  carry a comment saying so, because otherwise a later phase "finishes" the rename.
 - **No counts** unless the number is the finding: not answers, not photographs, not people.
 - **Nothing that teaches.** ¶ and N: *"everyone from 1978, every 3 months, that doesn't need to be
   said"*, and *"we don't need to teach them how to use it."*

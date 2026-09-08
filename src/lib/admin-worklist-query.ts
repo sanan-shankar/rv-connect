@@ -221,6 +221,9 @@ export async function loadWorklist(): Promise<WorkItem[]> {
     ...stuck.map((e) => ({
       key: `catchup-${e.id}`,
       queue: "catchup" as const,
+      /* The number is deliberate here; see the note in
+         app/(main)/admin/catchups/(index)/page.tsx. Member-facing surfaces
+         have none, the admin room keeps its key, his decision 2026-09-08. */
       title: `Edition ${e.number} of ${e.catchup.title ?? `${e.catchup.group.name} Catch-ups`} is past its date`,
       detail:
         e.status === "collecting"

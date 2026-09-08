@@ -185,7 +185,7 @@ too, which he allowed in ¶28.
 | **The list, when it has room to spare** | OPEN | **Decided by him 2026-09-07, drawn by nobody yet.** See "The list's spare slots" below. Scheduled: `spec.md` §5 puts it inside build phase 6, with the list, because it is a rule about what fills that grid rather than a surface of its own |
 | S3b Second round | OPEN | only if he asks for one after browsing the shape |
 | S5 Pick and spec | DONE | 2026-09-08. [`spec.md`](spec.md): the data changes as dated idempotent files, the Round -> Edition rename as one pass, eleven build phases plus track X, the three undrawn surfaces called before-or-inside, and ¶1 to ¶52 mapped. Owner questions 19, 20 and 21 are new and are below. It does NOT redraw anything: `architecture.md` is still the design |
-| S6+ Build | **PARTIAL** | **Phase 1 of eleven is DONE**, 2026-09-08: the Round -> Edition rename, one pass, `npm run visual` 25/25 with no baseline moved. The route, the component folder, `catchups-round-view.ts`, 288 identifiers and every user-facing string moved; `roundLabel()` deleted; the old route left as a permanent 308. **One thing is owed the moment this is pushed**: `prisma/migrations-manual/2026-09-08-round-becomes-edition.sql` is written and deliberately NOT applied -- running it before the deploy points 61 live bell links at a route the running build has not got. Apply to BOTH projects after Vercel finishes. Phases 2 to 11 open; track X may ship first and at any time |
+| S6+ Build | **PARTIAL** | **Phase 1 of eleven is DONE**, 2026-09-08: the Round -> Edition rename, one pass, `npm run visual` 25/25 with no baseline moved. The route, the component folder, `catchups-round-view.ts`, 288 identifiers and every user-facing string moved; `roundLabel()` deleted; the old route left as a permanent 308. **One thing is owed the moment this is pushed**: `prisma/migrations-manual/2026-09-08-round-becomes-edition.sql` is written and deliberately NOT applied -- running it before the deploy points 61 live bell links at a route the running build has not got. Apply to BOTH projects after Vercel finishes. Phase 1 opened one question and he closed it the same day: the admin room keeps its Edition numbers. Phases 2 to 11 open; track X may ship first and at any time |
 | M1 Magazine design | OPEN | unblocked. D27 is answered in `recon.md` section 6: photographs are boxed to 1920px, which is 164 dpi at A4 full-bleed |
 | M2+ Magazine build | OPEN | blocked on M1 |
 | X Fast fixes | OPEN | unblocked. Root causes for R6/F8, I9, R4, V1 and R13 are in `recon.md`; V2 and V3 need a real iPhone first |
@@ -2231,10 +2231,12 @@ on all three of `?w=phone|laptop`, `?data=pressure`, with zero "Round" in the HT
 
 **`roundLabel()` deleted, and its five call sites are the only copy phase 1 chose.** Every one
 lost a number, per N92. The table is in `docs/history/progress-2026-09.md`. **One decision the
-other way, and it is stated out loud so he can reverse it**: the ADMIN room still prints
-`Edition 3`, in three places, because there the number is the row's actual key
+other way, put to him and CONFIRMED the same day**: the ADMIN room still prints `Edition 3`, in
+three places, because there the number is the row's actual key
 (`@@unique([catchupId, number])`), an unpublished Edition has no date, and §7's copy rule is
-about what members read.
+about what members read. His answer, 2026-09-08: *"admin room can keep printing number."* All
+three sites now carry a comment saying so, and `spec.md` §7 states the exception, because the
+failure mode is a later phase tidily "finishing" the rename.
 
 **The migration is written and NOT applied.** `2026-09-08-round-becomes-edition.sql` rewrites
 `Notification.link` (61 production rows) and `ContentView.kind` (17), both idempotent, both

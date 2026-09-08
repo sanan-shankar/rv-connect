@@ -140,6 +140,16 @@ export default async function AdminCatchupsPage() {
         </div>
 
         {edition ? (
+          /* THE NUMBER STAYS, AND ONLY HERE. Every member-facing surface lost
+             it in the 2026-09-08 rename -- an Edition is named by its date
+             (N92, "the round number is irrelevant") -- and `roundLabel()` was
+             deleted rather than kept. The admin room is the exception, his
+             decision the same day: this is the owner's own diagnostic, the
+             number is the row's actual key (`@@unique([catchupId, number])`),
+             and an Edition that has not published has no date to go by. Two
+             other places print it, both marked: the reading room's section
+             labels and the stuck-Edition alert in admin-worklist-query.ts.
+             Do not "finish" the rename by taking these three out. */
           <p className="text-[12.5px] leading-snug text-muted-foreground">
             {metaLine(
               `Edition ${edition.number}`,

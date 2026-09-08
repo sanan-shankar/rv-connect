@@ -39,8 +39,10 @@ round number is irrelevant"*), so its five call sites each lost a number:
 
 The admin room still prints `Edition 3`, in three places, and that is a decision rather than
 an oversight: there the number is the row's actual key (`@@unique([catchupId, number])`), an
-unpublished Edition has no date to go by, and §7's copy rule is about what members read. Said
-out loud so he can reverse it in a sentence.
+unpublished Edition has no date to go by, and §7's copy rule is about what members read. Put to
+him rather than assumed, and confirmed the same day: *"admin room can keep printing number."*
+All three sites carry a comment saying it is deliberate, and `spec.md` §7 now states the
+exception beside the rule -- otherwise a later phase tidies the rename by taking them out.
 
 **Two stored strings say "round" and no amount of renaming in TypeScript reaches them.**
 `Notification.link` holds 61 rows pointing at `/catchups/round/<id>`, and `ContentView.kind`
