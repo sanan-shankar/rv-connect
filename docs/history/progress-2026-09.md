@@ -4539,3 +4539,95 @@ anyway. The rail is a fixed 318px column, so 260 does not move with the viewport
 It looks at the 24 most recent landscape photographs and takes the first that fits; a
 photograph with no caption has nothing to truncate and stays eligible. If none of the 24 fit,
 the card hides, which is what it already does when the archive is empty.
+
+## 2026-09-08 — build phase 3: the picture
+
+`spec.md` §3.4 and §10.2, drawn in `architecture.md` §1b. Every Catch-up now carries a
+photograph in the database, from the day it is made, and there is a control that changes it.
+**Nothing draws it yet** — the list is phase 6 and the home is phase 7 — so `npm run visual` is
+25/25 with no baseline moved, which is the correct result rather than a suspicious one.
+
+His diagnosis is the whole reason the phase exists (N19): *"In feed, you have these images, you
+have the birds and everything ... Directory, you have the whole graphic of the map ...
+Collection, obviously there's so much graphics ... Catch-ups is the only one that has like
+nothing, no images, no media. It's just all text and organization and very functional and very
+corporate."* And N23 is why it is compulsory rather than an upload people may skip: *"then we'd
+have to have 2 different architectures."*
+
+**Two columns, NOT NULL, with the backfill in the same file.** `Catchup.pictureSrc` is a path
+into the shipped pool or an https url on our own image host — one column, because they are the
+same thing to every reader of it — and `Catchup.pictureFocus` is the `object-position` its crop
+is taken at. The backfill is deterministic on `hashtext(id)`, masked positive first because
+Postgres's `%` keeps the sign of the dividend and a negative index would leave the row NULL for
+the `SET NOT NULL` to refuse. It carries the FOCUS through with the pick rather than leaving it
+on the column default: three of the six stand-ins are aimed at 88, 90 and 92 per cent, and
+taking the photograph without its aim is what returns a band of green canopy where a horizon
+should be. Applied to **both** Supabase projects: 6 rows on production, 0 on the demo, which
+seeds its own.
+
+**The column has a DEFAULT, and that is not laziness.** One database serves production and local
+dev, so a NOT NULL column with no default breaks the RUNNING build's `catchup.create` the moment
+it lands, and applying it after the deploy breaks the NEW build instead. A default makes both
+orderings safe, so this file could be applied before the push like every other additive change.
+`catchup-pictures.test.mjs` pins it equal to `CATCHUP_PICTURES[0]`.
+
+**The pool left the lab.** `PICTURES` lived in `src/app/lab/catchups/sketches/_shelf.ts`, which
+the public demo's build does not compile at all — and the creation path, the settings control and
+the demo seed all need it. It is `src/lib/catchup-pictures.ts` now, with the measured band beside
+it, and the room re-exports it so there is exactly one pool. **Adding his twenty is one edit to
+that array and no migration**, and the test file is what says whether the edit was complete: it
+checks every file is on disk, no duplicates, and that the migration's own retyped VALUES list
+still matches.
+
+**Creation writes one**, in both places that mint a `Catchup`: `createCatchupWithPeople` seeds
+`pictureFor` off the group id, which exists inside the transaction already, and the demo seed off
+`demo-catchup`. Deterministic rather than random, so a retried creation and a re-seed land on the
+same photograph.
+
+**Who may change it, written now so phase 4 does not have to widen it.**
+`mayChangeCatchupPicture` is pure and tested: whoever may run the Catch-up, and on a batch
+Catch-up **anyone in the batch** — his answer to owner question 18. It is the one place this
+feature departs from the accident rule, and it has to: nobody keeps a batch Catch-up, so
+Keeper-only would mean nobody at all, for ever, on the Catch-ups most members will be in. Batch
+Catch-ups arrive in phase 4; `Group.batchYear` is the whole test and the guard already reads it.
+The home passes `canChangePicture` alongside `isKeeper`, and the settings dialog shows the
+picture row on the first and the clock controls on the second, so phase 4 flips one boolean.
+
+**THE CROP MOVES BETWEEN SCREENS, and that is what the aiming control is about.** The same
+photograph is a 6.33:1 band on a wide monitor's banner, 2.5:1 on a laptop's list card and 1.78:1
+on a phone's. So the frame you drag is the TIGHTEST of them, 1520x240, not the roomiest: what
+you place inside it survives everywhere. Aim in the roomy one and a phone-shaped choice quietly
+falls out of the banner a laptop draws, which nobody would ever see happen. Measured live: the
+frame comes out 478x75 in the dialog on a laptop and 324x51 on a phone, an arrow key moves the
+aim two points and a 30px drag moved it seven.
+
+**The upload branch is assembly, and it was checked end to end rather than assumed.** Presign →
+finalize with the proxied fallback, through a new `uploadOneImage` in `upload-client.ts`; the
+composer keeps its own copy, because it uploads a batch, keeps the facts for its crop handle and
+reports "3 of 5", and none of that collapses into a helper without making the helper worse. Both
+halves were driven in a real browser: a pool pick plus an aim wrote `center 81%`, and an upload
+came back as a real `images.rishivalley.space/uploads/...` url and saved. `upload-size-rule.test.mjs`
+gained the dialog and a pin that the helper actually shrinks, which is what stops the delegation
+being the whole answer.
+
+**What `pictureSrc` will accept, and this is the half that matters.** It goes into a column every
+member of the Catch-up then loads in their browser, so an arbitrary url would be somebody else's
+server being told who read what, from a settings row. Exactly two things pass: a pool path, or an
+image this app minted under the CALLER's own `uploads/<their id>/` prefix, through the same
+`ownedUploadUrls` rule a post's images go through. `pictureFocus` is interpolated into a style
+attribute, so it is matched against a pattern rather than trusted for having come from our own
+dialog.
+
+**And the consequence nobody had to ask for.** A member who uploads a picture and then deletes
+their account used to be two bugs at once: their bytes would survive the purge, because nothing
+collected them, and the Catch-up would be left pointing at an object about to vanish. The purge
+now collects the url and puts the row back on its pool pick — it cannot write a null the way
+`User.coverPhoto` does, because the column is NOT NULL by design.
+
+`npm run check` green, 108/108. `npm run visual` 25/25.
+
+**One thing left behind on purpose.** `[Recon] the happy path` is carrying the uploaded
+photograph from the end-to-end test rather than its backfilled pool pick. Deleting the R2 object
+was refused by the sandbox, and a row pointing at it is better than an orphan nothing can
+enumerate; it is a throwaway Catch-up that phase 11 removes anyway, and it should take the object
+with it.

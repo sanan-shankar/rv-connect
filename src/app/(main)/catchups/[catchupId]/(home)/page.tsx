@@ -23,6 +23,7 @@ import {
   editionCountdownLabel,
   isEffectiveKeeper,
   isMissingCatchupTable,
+  mayChangeCatchupPicture,
   catchupDisplayName,
   type AdvanceEditionInput,
 } from "@/lib/catchups";
@@ -57,6 +58,10 @@ const loadCatchup = cache(async function loadCatchup(catchupId: string) {
         select: {
           id: true,
           name: true,
+          // The whole test for "this is a batch Catch-up" (F6), and the reason
+          // the picture control is not Keeper-only: on a batch, anyone in the
+          // batch may replace it. His answer to owner question 18.
+          batchYear: true,
           members: {
             select: {
               // The role IS the second-Keeper flag: `setCatchupKeeper` writes
@@ -372,11 +377,18 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     cadence: catchup.cadence as Cadence,
     nextOpensAt: catchup.nextOpensAt?.toISOString() ?? null,
     catchupStatus: catchup.status as CatchupStatus,
+    picture: { src: catchup.pictureSrc, focus: catchup.pictureFocus },
     members,
     viewer: {
       id: viewerId,
       name: viewerName,
       isKeeper,
+      canChangePicture: mayChangeCatchupPicture({
+        viewerId,
+        createdById: catchup.createdById,
+        groupRole: membership.role,
+        batchYear: catchup.group.batchYear,
+      }),
       reminderMode: (pref?.reminderMode as ReminderMode) ?? "all",
     },
     edition: editionView,

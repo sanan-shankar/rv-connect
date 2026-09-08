@@ -15,6 +15,7 @@
  *  the page down over the difference.
  * ------------------------------------------------------------------ */
 
+import { CATCHUP_PICTURES, type CatchupPicture } from "@/lib/catchup-pictures";
 import type { SketchPerson, SketchQuestion, SketchEdition } from "./_types";
 
 /*  An Edition's state, which is the only thing the home's middle branches
@@ -113,58 +114,16 @@ export type SketchCatchup = {
   picture: Picture;
 };
 
-/** The pool a new Catch-up's picture is drawn from, and WHERE EACH ONE IS
- *  CROPPED. Stand-ins for the twenty he will supply.
- *
- *  He asked for these to be judged rather than picked off a filename, after
- *  looking at the first attempt: "can you please stop picking an insanely
- *  cropped in, like, 30x zoom picture for the header? Because there's like 5
- *  pixels there ... Can you pick a nice high-resolution picture?"
- *
- *  Three things came out of actually opening them.
- *
- *  ONE WAS A DUPLICATE. `v1.webp` and `demo-banyan-pillar.webp` are the same
- *  photograph. Two of the first three cards on the list were the same picture
- *  and it read as a rendering bug. Dropped.
- *
- *  ONE WAS PORTRAIT. `demo-assembly-wide.webp`, despite the name, is 760x1140
- *  -- taller than it is wide. Cropped to a 4:1 banner it keeps about a ninth
- *  of the frame and upscales that sliver, which is the "30x zoom" exactly.
- *  Dropped.
- *
- *  AND THE CROP WAS IN THE WRONG PLACE. These are photographs of a place, and
- *  in every one of them what tells you it is a place -- the horizon, the stone
- *  benches, the ground under the banyan -- sits in the lower quarter. A
- *  centred band lands in the canopy and returns green texture, and the
- *  arithmetic is unforgiving: a 240px band across a 1,076px column takes only
- *  a quarter of a 900px-tall photograph, so "a bit lower" has to mean 90 per
- *  cent, not 65. So
- *  each carries its own `focus`, the `object-position` its wide crop is taken
- *  at, chosen by looking at the picture. That is also the thing the real
- *  twenty will need ("you have to figure out how you'd crop it. Different
- *  places"), so the mechanism is here rather than a constant.
- *
- *  What is left is still only 900 to 1280px on the long edge, so a banner
- *  1,076 CSS px wide is upscaled at retina. Nothing wider is in the
- *  repository. The real twenty want 2,400px or more, landscape, with the
- *  subject off dead centre. */
-export type Picture = { src: string; focus: string };
-
-export const PICTURES: Picture[] = [
-  /* Sky, a treeline and four rows of stone benches. The only one with a real
-     horizon in it, so it survives a letterbox better than any other. */
-  { src: "/images/collection/demo-banyan-benches.webp", focus: "center 92%" },
-  /* The banyan with the whitewashed pillar and the benches behind. Cropped a
-     little below centre so the band holds the trunk's base and the grass
-     rather than a ceiling of leaves. */
-  { src: "/images/collection/demo-banyan-pillar.webp", focus: "center 88%" },
-  /* The trunk, a single stone seat, open grass. The seat is the thing worth
-     keeping and it sits low left. */
-  { src: "/images/collection/demo-banyan-canopy.webp", focus: "center 90%" },
-  { src: "/images/collection/demo-banyan-arch.webp", focus: "center 85%" },
-  { src: "/images/collection/demo-banyan-trunk.webp", focus: "center 85%" },
-  { src: "/images/collection/c3.webp", focus: "center 85%" },
-];
+/* The pool, and the type the room's cards carry. BOTH MOVED OUT OF THIS
+   FILE on 2026-09-08 (spec 3.4): the picture is a real column now, and the
+   pool has to be readable by the creation path, the settings control and
+   the demo seed -- none of which can import a lab room, because the public
+   demo's build does not compile one. The judgement that picked these six
+   and the crop each is taken at travelled with them; see
+   src/lib/catchup-pictures.ts. Re-exported here so the room reads the same
+   as it did, and so there is only ever one pool. */
+export type Picture = CatchupPicture;
+export const PICTURES = CATCHUP_PICTURES;
 
 /* ── dates, all off the Edition's own ────────────────────────────────── */
 

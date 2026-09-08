@@ -41,6 +41,7 @@ import {
   catchupDisplayName,
   catchupSurfaceTitle,
   isEffectiveKeeper,
+  mayChangeCatchupPicture,
   editionCountdownLabel,
   describeEditionStatus,
   resolveSpotify,
@@ -574,6 +575,33 @@ test("isEffectiveKeeper: creator OR group admin, nobody else", () => {
   assert.equal(isEffectiveKeeper({ viewerId: "u2", createdById: "u1", groupRole: "admin" }), true);
   assert.equal(isEffectiveKeeper({ viewerId: "u2", createdById: "u1", groupRole: "member" }), false);
   assert.equal(isEffectiveKeeper({ viewerId: null, createdById: "u1", groupRole: "admin" }), false);
+});
+
+test("mayChangeCatchupPicture: the Keeper, or ANYONE in a batch", () => {
+  const keeper = { viewerId: "u1", createdById: "u1", groupRole: "member" };
+  const stranger = { viewerId: "u2", createdById: "u1", groupRole: "member" };
+
+  // A people Catch-up follows the Keeper rule exactly.
+  assert.equal(mayChangeCatchupPicture({ ...keeper, batchYear: null }), true);
+  assert.equal(mayChangeCatchupPicture({ ...stranger, batchYear: null }), false);
+  assert.equal(
+    mayChangeCatchupPicture({ viewerId: "u2", createdById: "u1", groupRole: "keeper", batchYear: null }),
+    true
+  );
+
+  /* A batch Catch-up opens it to everybody, which is his answer to owner
+     question 18: "anyone can replace the batch picture". It is the one place
+     this feature departs from the accident rule, and it has to: nobody keeps a
+     batch Catch-up (`createdById` is null), so a Keeper-only rule would mean
+     nobody at all, for ever, on the Catch-ups most members are in. */
+  assert.equal(mayChangeCatchupPicture({ ...stranger, batchYear: 2024 }), true);
+  assert.equal(
+    mayChangeCatchupPicture({ viewerId: "u2", createdById: null, groupRole: "member", batchYear: 1978 }),
+    true
+  );
+
+  // Signed out is nobody, on either kind.
+  assert.equal(mayChangeCatchupPicture({ viewerId: null, createdById: null, groupRole: "member", batchYear: 2024 }), false);
 });
 
 test("the two title fallbacks", () => {

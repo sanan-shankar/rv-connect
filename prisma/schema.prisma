@@ -1051,6 +1051,33 @@ model Catchup {
   // by exactly this long: the group gets back the window it had, rather than
   // finding it silently expired. NULL means "not paused".
   pausedAt    DateTime?
+  // The Catch-up's photograph, and it is NOT NULL on purpose. Every Catch-up
+  // has one from the day it is made, so there is never a no-picture layout to
+  // draw -- his reason, review-2026-09-07 N23: "then we'd have to have 2
+  // different architectures."
+  //
+  // Where it is: a path into the shipped pool ("/images/catchups/07.webp") or
+  // an https url on our own image host, for one somebody uploaded. ONE column,
+  // because the two are the same thing to every reader of it.
+  //
+  // THE DEFAULT IS A DEPLOY BACKSTOP, not the path anything takes. Every
+  // creation path picks from the pool and writes the value explicitly. It
+  // exists because one Supabase project serves production and local dev: a
+  // NOT NULL column with no default breaks the RUNNING build's `catchup.create`
+  // the moment it is added, and adding it after the deploy breaks the NEW
+  // build instead. A default makes both orderings safe, so this file can be
+  // applied before the push like every other additive change. Kept afterwards
+  // for the same reason it is NOT NULL: there is never a row without a picture.
+  // Pinned equal to CATCHUP_PICTURES[0] by catchup-pictures.test.mjs.
+  pictureSrc   String    @default("/images/collection/demo-banyan-benches.webp")
+  // The `object-position` its wide crop is taken at. What makes these
+  // photographs read as a PLACE -- a horizon, the stone benches, the ground
+  // under the banyan -- is in the lower quarter of nearly all of them, so a
+  // centred crop comes back as green canopy texture. Every surface draws the
+  // file at a different shape with `object-fit: cover`, so the one thing that
+  // has to travel with it is where the middle of it is. See
+  // src/lib/catchup-pictures.ts for the pool and the measured band.
+  pictureFocus String    @default("center 85%")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

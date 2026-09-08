@@ -89,11 +89,23 @@ export type CatchupHomeData = {
    *  "Start it now" prints it, because the date is what that button skips. */
   nextOpensAt: string | null;
   catchupStatus: CatchupStatus;
+  /** The Catch-up's photograph and the `object-position` its crop is taken at.
+   *  Never null: every Catch-up has one from the day it is made (spec 3.4), so
+   *  there is no no-picture layout to draw. Nothing on this page RENDERS it
+   *  yet -- the head is build phase 7 -- but the settings row that changes it
+   *  ships in phase 3, and it has to show what it is changing. */
+  picture: { src: string; focus: string };
   members: HomePersonRef[];
   viewer: {
     id: string;
     name: string;
     isKeeper: boolean;
+    /** May replace the picture. Wider than `isKeeper` on purpose: on a batch
+     *  Catch-up anyone in the batch may, because it is reversible and nobody
+     *  keeps one. Mirrors `mayChangeCatchupPicture` server-side; it decides
+     *  what this screen OFFERS, never what anyone is allowed to do, which
+     *  `setCatchupPicture` re-derives from the database for itself. */
+    canChangePicture: boolean;
     reminderMode: ReminderMode;
   };
   /** The latest Edition, or null for the near-impossible edge of a Catchup with none yet. */

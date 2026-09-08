@@ -23,6 +23,7 @@
 
 import type { PrismaClient } from "@/generated/prisma/client";
 import { CITY_COORDS } from "@/lib/city-coords";
+import { pictureFor } from "@/lib/catchup-pictures";
 import { sourceOf, tagsOf, withParents } from "@/lib/profession-tags";
 import { ALL_DEMO_PEOPLE, type DemoPerson } from "./people";
 import {
@@ -366,6 +367,7 @@ export async function seedDemo(
       })),
     });
 
+    const demoPicture = pictureFor("demo-catchup");
     await tx.catchup.create({
       data: {
         id: "demo-catchup",
@@ -380,6 +382,11 @@ export async function seedDemo(
         // for a secret worth rotating.
         inviteToken: "demo-invite-token-not-a-secret",
         nextOpensAt: daysAgo(-20),
+        // Every Catch-up has a photograph from the day it is made (spec 3.4),
+        // including this one -- the demo is where most people meet the
+        // feature. Picked off the id so a re-seed lands on the same one.
+        pictureSrc: demoPicture.src,
+        pictureFocus: demoPicture.focus,
         createdAt: daysAgo(120),
       },
     });

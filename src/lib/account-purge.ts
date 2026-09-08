@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { pictureFor } from "./catchup-pictures";
 import { forgetImages } from "./image-record";
 import { delImage } from "./storage";
 import { chooseGroupSuccessor } from "./group-succession";
@@ -102,7 +103,7 @@ async function promoteOrphanedGroups(db: Db, userId: string): Promise<number> {
  * (refactor audit 2 / D6); a group has no image to collect.
  */
 async function collectImageUrls(db: Db, userId: string): Promise<string[]> {
-  const [user, posts, photos, entries, adminMessages] = await Promise.all([
+  const [user, posts, photos, entries, catchupPictures, adminMessages] = await Promise.all([
     db.user.findUnique({ where: { id: userId }, select: { photoUrl: true } }),
     db.post.findMany({ where: { authorId: userId }, select: { images: true } }),
     db.photo.findMany({
@@ -110,6 +111,16 @@ async function collectImageUrls(db: Db, userId: string): Promise<string[]> {
       select: { thumbUrl: true, url: true },
     }),
     db.catchupEntry.findMany({ where: { authorId: userId }, select: { images: true } }),
+    // A Catch-up's own picture, when this member uploaded it. Not keyed by a
+    // column -- ownership is the `uploads/<their id>/` prefix the server wrote
+    // into the key, which no request can forge, and which a pool path can
+    // never match. `restoreCatchupPicturesUploadedBy` puts those rows back on
+    // the pool in the same transaction, so the bytes go and nothing is left
+    // pointing at them.
+    db.catchup.findMany({
+      where: { pictureSrc: { contains: `/uploads/${userId}/` } },
+      select: { pictureSrc: true },
+    }),
     // EVERY message in the member's own admin threads, not just the ones they
     // wrote: AdminThread.member is Cascade, so the whole conversation dies
     // with them, taking the only rows that point at the screenshots attached
@@ -128,6 +139,7 @@ async function collectImageUrls(db: Db, userId: string): Promise<string[]> {
   for (const m of adminMessages) {
     if (m.imageUrl) urls.push(m.imageUrl);
   }
+  for (const c of catchupPictures) urls.push(c.pictureSrc);
   // Post and Catch-up images are JSON-encoded string arrays; a malformed
   // column is skipped rather than failing the whole purge.
   for (const row of [...posts, ...entries]) {
@@ -237,6 +249,41 @@ async function tombstoneComments(db: Db, userId: string): Promise<void> {
  * Runs inside the purge transaction and BEFORE the account row goes, because
  * the member's own Photo rows are what name the URLs to look for.
  */
+/**
+ * Put back the pool photograph on any Catch-up wearing a picture THIS member
+ * uploaded.
+ *
+ * The same class of problem as `clearCoversPointingAtThisMember` above, and
+ * the same shape of fix, but it cannot end in a null: `Catchup.pictureSrc` is
+ * NOT NULL by design, so that there is never a Catch-up without a picture and
+ * never a no-picture layout to draw (schema, spec 3.4). So the row goes back
+ * to the pool pick it would have been given the day it was made, deterministic
+ * in its own id -- a state the Catch-up has already been in, rather than a new
+ * one nobody chose.
+ *
+ * Which pictures are this member's is not a column: it is the R2 key the
+ * server wrote at upload time, `uploads/<their id>/...`, which no request can
+ * forge. A pool path can never match, because it has no `/uploads/` in it.
+ *
+ * Runs inside the purge transaction and BEFORE the account row goes. The bytes
+ * themselves are collected by `collectImageUrls` and deleted after the row
+ * delete succeeds, like every other object this member uploaded.
+ */
+async function restoreCatchupPicturesUploadedBy(db: Db, userId: string): Promise<number> {
+  const rows = await db.catchup.findMany({
+    where: { pictureSrc: { contains: `/uploads/${userId}/` } },
+    select: { id: true },
+  });
+  for (const row of rows) {
+    const picture = pictureFor(row.id);
+    await db.catchup.update({
+      where: { id: row.id },
+      data: { pictureSrc: picture.src, pictureFocus: picture.focus },
+    });
+  }
+  return rows.length;
+}
+
 async function clearCoversPointingAtThisMember(db: Db, userId: string): Promise<number> {
   const photos = await db.photo.findMany({
     where: { uploaderId: userId },
@@ -314,6 +361,7 @@ export async function purgeUserAccount(
         await tx.report.deleteMany({ where: { reporterId: userId } });
         await tombstoneComments(tx, userId);
         await clearCoversPointingAtThisMember(tx, userId);
+        await restoreCatchupPicturesUploadedBy(tx, userId);
         const removed = await tx.user.deleteMany({
           where: {
             id: userId,
