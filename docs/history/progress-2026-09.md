@@ -8,6 +8,32 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-09 — S-features: what else an Edition could hold
+
+The second brainstorm, which he has asked for twice: `docs/planning/catchups-rework/features.md`.
+One hand, no fan-out — ultracode is allocated to S3, S3b and M1 and this is none of them.
+
+**Why the shortlist can be seven items.** A question's kind is derived from its category and the
+categories are a plain array, so a new kind of thing an Edition can hold is one id, one branch, one
+answering control and one reading surface. No column, no migration.
+
+**The photo wall is the only non-optional item**: LOCKED since D10, never drawn, and it comes
+before build phase 8 because it can change a page that is already drawn. Three shapes are argued —
+a run, a drift, a stack — against the rule that a grid is a contact sheet.
+
+**Letterloop parity, eleven rows, one real gap**: the issue arrives in your inbox and ours does
+not. He gated email himself on the magazine being good, so it stays gated and is named for
+honesty. The cheap gap is the question library, 600+ against our eight categories, and it is no
+code at all.
+
+**The signal in the wider space**: every memory-capture product near this one has moved to voice,
+on the shared diagnosis that typing is the barrier. And their product is the printed keepsake,
+which confirms track M.
+
+Seven proposals with a default of "not unless you say so", four written up as considered and not
+proposed, and the session's lean stated in one line. What is not measured is stated too: nobody
+opened Letterloop's own published issue.
+
 ## 2026-09-09 (track X) — the photograph's shape stops jumping a frame ahead of the dissolve
 
 His, brief 28, on his phone, on a real answer: *"Mohini had these 2 long photos. Eiffel Tower,

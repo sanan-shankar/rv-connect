@@ -181,7 +181,7 @@ too, which he allowed in ¶28.
 | S4d Fine-tuning, round one | DONE | 2026-09-07 evening, four commits. The reader's rail magnification rebuilt from scratch on the app's own motion-value mechanism; the home rebuilt around two doors on the picture and a sidebar of back numbers; answering and the questions panel brought onto the page; the type rule written down. `npm run check` green, `npm run visual` 25/25 |
 | The composer, the picture's crop | PARTIAL | The composer's *shape* is drawn, on the home, because he asked for it there. What is not drawn: the photo attachment flow, the song field, the photo-wall question, and the crop-at-creation surface. The people surface is DONE (a dialog and a sheet, off the sidebar). **`spec.md` §10 rules on each**: the song field is DELETED rather than drawn (a pasted link resolves anywhere, ¶50), the photo-wall control is the drawn photo strip with a higher cap, and the crop-at-creation is assembled from `photo-aim.tsx` and the direct-upload path -- all three inside the build. The photo wall's READING surface goes to S-features, and the confirmations go to the settings session, both before the phase that would need them |
 | The settings surface, refined | OPEN | **his, and he has said he will take it in a session of its own.** It is a real settings list now rather than a column of verbs, and he called it *"very bare bones"* before that and has not called it finished since |
-| **S-features, the second brainstorm** | OPEN | **He has asked twice that this not be lost.** 2026-09-07: *"in my initial request for the catch ups rework I also requested a brainstorm on and research into more features we can incorporate for instance a photo wall round and that can be shown nicely on the reader in a unique way and maybe some other stuff ... have a think and see what people would want and what letterloop and any other similar guys do now. I don't want you to do it in this session but I had requested it at some point and I wanna make sure it gets done at some point and it hasn't been written out of the brief completely."* It has not been: it is ¶16, ¶49 and ¶50 in the brief and rows R15, R16 and P22 in the ledger below. What is missing is a SESSION that does it, and this row is that session. See "S-features" below, and `spec.md` §11, which schedules it before phase 8 because the photo wall's reading surface is the one piece of it that can change a page already drawn |
+| **S-features, the second brainstorm** | DONE | **2026-09-09, [`features.md`](features.md)**: the mechanism that makes it cheap (a kind is derived from a category, so a new one needs no migration), the photo wall's three reading shapes and why a grid is wrong, the Letterloop parity list with its one real gap (email), the voice signal from the rest of the space, and seven proposals with a default of "not unless you say so" for him to cut. **The photo wall is the only non-optional item and comes before build phase 8.** Originally: **He has asked twice that this not be lost.** 2026-09-07: *"in my initial request for the catch ups rework I also requested a brainstorm on and research into more features we can incorporate for instance a photo wall round and that can be shown nicely on the reader in a unique way and maybe some other stuff ... have a think and see what people would want and what letterloop and any other similar guys do now. I don't want you to do it in this session but I had requested it at some point and I wanna make sure it gets done at some point and it hasn't been written out of the brief completely."* It has not been: it is ¶16, ¶49 and ¶50 in the brief and rows R15, R16 and P22 in the ledger below. What is missing is a SESSION that does it, and this row is that session. See "S-features" below, and `spec.md` §11, which schedules it before phase 8 because the photo wall's reading surface is the one piece of it that can change a page already drawn |
 | **The list, when it has room to spare** | DONE | **Decided by him 2026-09-07, drawn in build phase 6, 2026-09-08.** See "The list's spare slots" below. Scheduled: `spec.md` §5 puts it inside build phase 6, with the list, because it is a rule about what fills that grid rather than a surface of its own |
 | S3b Second round | OPEN | only if he asks for one after browsing the shape |
 | S5 Pick and spec | DONE | 2026-09-08. [`spec.md`](spec.md): the data changes as dated idempotent files, the Round -> Edition rename as one pass, eleven build phases plus track X, the three undrawn surfaces called before-or-inside, and ¶1 to ¶52 mapped. Owner questions 19, 20 and 21 are new and are below. It does NOT redraw anything: `architecture.md` is still the design |
@@ -2599,6 +2599,47 @@ where the fault does NOT occur: one swipe, one change.
 
 **V1's fix changes a shared component's motion**, so it is its own revertable commit. The dissolve
 itself is untouched -- he settled that in August -- and the only thing that moves now is the shape.
+
+### 2026-09-09, S12 continued, S-features: the second brainstorm (Opus 5, one hand, no fan-out)
+
+[`features.md`](features.md). No fan-out, per the allocation: ultracode is S3, S3b and M1 and this
+is not one of them.
+
+**The finding that makes the rest of it cheap.** A question's kind is DERIVED from its category,
+and the categories are an array in `catchups-types.ts`. So a new kind of thing an Edition can hold
+is one id, one branch in `promptKind`, one answering control and one reading surface. No column and
+no migration. That is why the shortlist is seven items rather than two.
+
+**The photo wall's data is done and its reading is not.** `photo-wall` has been a category since
+the feature was built and has never been drawn. Three shapes are written up — a run, a drift, a
+stack — with the argument that a grid is a contact sheet and a contact sheet is what a magazine
+designer would never print. Only the stack survives two hundred photographs, which the pressure
+corpus already carries. **This is the one item here that is not optional**: it is LOCKED (D10) and
+it comes before build phase 8 because it can change a page already drawn.
+
+**The Letterloop parity list, read against the live product.** Eleven rows, and exactly one real
+gap: **the issue arrives in your inbox and ours does not.** Letterloop is an email newsletter with
+a website; we are a website with no email. That is ¶21 and he gated it himself on the magazine
+being good, so it stays gated — it is named so the list is honest rather than flattering. The cheap
+gap is the question LIBRARY: 600+ against our eight categories, and closing it is no code at all,
+just somebody writing questions, and it should be him because they are the voice of the thing.
+
+**The one signal in the rest of the space.** StoryWorth, Remento, Storii, Tell Mel, Heritage
+Whisper and Memorygram have all moved to VOICE — recorded, telephoned, transcribed — on a shared
+diagnosis that typing is the barrier rather than willingness. For a member of 1978 that is the
+difference between answering and not. The second signal is that their product is the printed
+keepsake, which is a straight confirmation of track M.
+
+**Seven proposals, each with a default of "not unless you say so"**, plus four written up as
+considered and not proposed (answers hidden until you write; more reactions than the heart;
+anonymous answers; a guest question from another batch). The session's lean is F5 then F2 then F1:
+one-line answers are nearly free and eight of ten designers invented the shape unasked (F24); a
+poll reuses the feed's own machinery; the voice answer has the real upside and the real unknowns
+and wants a session.
+
+**What is NOT measured**, and it is said in the file: nobody opened Letterloop's own published
+issue or its composer. The parity table is read off marketing pages and a store listing, which is
+the same limit `prior-art.md` §1 has and F15 warns about.
 
 ---
 
