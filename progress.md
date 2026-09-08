@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-08 — a closed audit's working notes go to git history
 - 2026-09-08 — the demo photograph importer that never imported a photograph
 - 2026-09-08 — a download you can actually open
 - 2026-09-08 — nothing checks the reduce-motion setting any more

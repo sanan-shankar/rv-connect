@@ -1,6 +1,0 @@
-components/ui/badge.tsx
-components/ui/tabs.tsx
-generated/prisma/browser.ts
-instrumentation.ts
-proxy.ts
-types/next-auth.d.ts

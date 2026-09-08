@@ -1,10 +1,17 @@
 # Pre-release simplification audit — report
 
-Audit-only session, 2026-08-25. Working files: `docs/audit-fix/2026-08-25-refactor-audit-1/work/`
-(`work/task_plan.md`, `findings.md`, `brief-common.md`, `raw/` tool output, `agents/` — the 18
-full agent reports, `verify/` — adversarial verdicts). This file is the deliverable; the
-agent reports are its appendices and carry the per-finding evidence, exact line ranges,
-steps, risks and gates.
+Audit-only session, 2026-08-25. This file is the deliverable; the 18 agent reports were its
+appendices and carry the per-finding evidence, exact line ranges, steps, risks and gates.
+
+> **The `work/` folder is in git history, not on disk.** Seventy-two files and 1.9 MB of
+> working notes — `task_plan.md`, `findings.md`, `brief-common.md`, `raw/` tool output,
+> `agents/` (the 18 full agent reports), `verify/` (the adversarial verdicts) — were removed
+> on 2026-09-08 under the rule the owner set in refactor audit 2's question 21: a closed
+> audit keeps its report and its fix prompt, and git keeps the rest. **Every `work/…` path
+> named below is therefore a path in history, not one you can open.** Read one with
+> `git show <sha>:docs/audit-fix/2026-08-25-refactor-audit-1/work/agents/dead-code.md` for
+> any `<sha>` before the removal, and find the removal itself with
+> `git log --diff-filter=D -- "docs/audit-fix/2026-08-25-refactor-audit-1/work/*"`.
 
 How to read this: section 2 is the plan — six fix sessions plus one owner conversation,
 executable top to bottom. Every item carries its finding id(s); the full detail for an id
