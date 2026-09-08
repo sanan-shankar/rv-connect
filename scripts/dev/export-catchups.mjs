@@ -204,7 +204,6 @@ const out = {
         userId: p.userId,
         reminderMode: p.reminderMode,
         archivedAt: iso(p.archivedAt),
-        deletedAt: iso(p.deletedAt),
       })),
       editions: (editionsByCatchup.get(c.id) ?? []).map((r) => ({
         id: r.id,

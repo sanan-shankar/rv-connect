@@ -110,6 +110,7 @@ export async function seedDemo(
     await tx.photo.deleteMany({});
     await tx.post.deleteMany({});
     await tx.notification.deleteMany({});
+    await tx.catchupEditionRead.deleteMany({});
     await tx.catchupEntryLove.deleteMany({});
     await tx.catchupEntry.deleteMany({});
     await tx.catchupPrompt.deleteMany({});

@@ -37,32 +37,24 @@ import type {
 /**
  * Everyone this Catch-up should reach.
  *
- * Group membership minus anyone who has thrown their own copy away (bug audit
- * B-063). A deleted copy sits in "Recently deleted" for 30 days before the
- * nightly sweep takes the membership row for real, and those 30 days are an
- * undo window, not a notice period: a member who binned a Catch-up must stop
- * hearing from it the moment they do, or the bin is only a filing cabinet with
- * a countdown.
+ * Everyone in the group, which since build phase 5 is the whole answer.
+ *
+ * It used to subtract whoever had thrown their own copy away (bug audit
+ * B-063): a binned copy sat in "Recently deleted" for thirty nights with the
+ * membership row still in place, so the audience and the membership disagreed
+ * for a month and this query was what kept them honest. Deleting became
+ * LEAVING (his, N18), and leaving takes the `GroupMember` row in the same
+ * breath, so there is nothing left to subtract -- a member who is out is out
+ * of this query by construction.
  *
  * An ARCHIVED copy is not excluded, and that is deliberate. Archiving is
  * filing; muting has its own control (`CatchupPref.reminderMode`), and quietly
  * making one mean the other would leave a member who filed a Catch-up away
  * missing the Edition they were still expecting.
  */
-async function groupMemberIds(
-  db: CatchupDb,
-  groupId: string,
-  catchupId: string
-): Promise<string[]> {
-  const [rows, binned] = await Promise.all([
-    db.groupMember.findMany({ where: { groupId }, select: { userId: true } }),
-    db.catchupPref.findMany({
-      where: { catchupId, deletedAt: { not: null } },
-      select: { userId: true },
-    }),
-  ]);
-  const out = new Set(binned.map((r) => r.userId));
-  return rows.map((r) => r.userId).filter((id) => !out.has(id));
+async function groupMemberIds(db: CatchupDb, groupId: string): Promise<string[]> {
+  const rows = await db.groupMember.findMany({ where: { groupId }, select: { userId: true } });
+  return rows.map((r) => r.userId);
 }
 
 async function answeredUserIds(db: CatchupDb, editionId: string): Promise<Set<string>> {
@@ -78,11 +70,10 @@ async function answeredUserIds(db: CatchupDb, editionId: string): Promise<Set<st
 async function nonAnswererIds(
   db: CatchupDb,
   groupId: string,
-  catchupId: string,
   editionId: string
 ): Promise<string[]> {
   const [members, answered] = await Promise.all([
-    groupMemberIds(db, groupId, catchupId),
+    groupMemberIds(db, groupId),
     answeredUserIds(db, editionId),
   ]);
   return members.filter((id) => !answered.has(id));
@@ -106,7 +97,7 @@ async function createMany(
 
 /** Edition enters `collecting`: invite everyone to add a question. */
 export const notifyQuestionsOpen: NotifyQuestionsOpenFn = async (db, ctx) => {
-  const members = (await groupMemberIds(db, ctx.groupId, ctx.catchupId)).filter(
+  const members = (await groupMemberIds(db, ctx.groupId)).filter(
     (id) => id !== ctx.excludeUserId
   );
   await createMany(
@@ -121,8 +112,8 @@ export const notifyQuestionsOpen: NotifyQuestionsOpenFn = async (db, ctx) => {
 /** Edition enters `answering`: answers are open. Re-fired to non-answerers on a too-few extension. */
 export const notifyAnswersOpen: NotifyAnswersOpenFn = async (db, ctx) => {
   const audience = ctx.onlyNonAnswerers
-    ? await nonAnswererIds(db, ctx.groupId, ctx.catchupId, ctx.editionId)
-    : await groupMemberIds(db, ctx.groupId, ctx.catchupId);
+    ? await nonAnswererIds(db, ctx.groupId, ctx.editionId)
+    : await groupMemberIds(db, ctx.groupId);
   const members = audience.filter((id) => id !== ctx.excludeUserId);
   await createMany(
     db,
@@ -159,7 +150,7 @@ export const notifyReminder: NotifyReminderFn = async (db, ctx) => {
   const link = `/catchups/${ctx.catchupId}/answer`;
   const days = ctx.daysLeft ?? 0;
   const [members, answered] = await Promise.all([
-    groupMemberIds(db, ctx.groupId, ctx.catchupId),
+    groupMemberIds(db, ctx.groupId),
     answeredUserIds(db, ctx.editionId),
   ]);
   const nonAnswerers = members.filter((id) => !answered.has(id));
@@ -206,7 +197,7 @@ export const notifyReminder: NotifyReminderFn = async (db, ctx) => {
 
 /** Edition enters `published`: the reveal notification, the moment the ritual pays off. */
 export const notifyPublished: NotifyPublishedFn = async (db, ctx) => {
-  const members = (await groupMemberIds(db, ctx.groupId, ctx.catchupId)).filter(
+  const members = (await groupMemberIds(db, ctx.groupId)).filter(
     (id) => id !== ctx.excludeUserId
   );
   await createMany(
@@ -231,18 +222,16 @@ export const notifyLove: NotifyLoveFn = async (db, ctx) => {
    * the owner's decision, and the Edition is a keepsake the whole group has
    * read. But the AUTHOR is gone, and the Edition page 404s for a non-member,
    * so hearting an ex-member's answer put a bell entry in their pocket
-   * pointing at a door that no longer opens for them. The same is true of
-   * somebody who has binned their own copy: `groupMemberIds` stops every
-   * broadcast reaching them the moment they do, and a love notification is
-   * hearing from it. Checked directly rather than through that helper because
-   * this is one person, not an audience. */
-  const [stillIn, binned] = await Promise.all([
-    db.groupMember.count({ where: { groupId: ctx.groupId, userId: ctx.authorId } }),
-    db.catchupPref.count({
-      where: { catchupId: ctx.catchupId, userId: ctx.authorId, deletedAt: { not: null } },
-    }),
-  ]);
-  if (stillIn === 0 || binned > 0) return;
+   * pointing at a door that no longer opens for them. Checked directly rather
+   * than through `groupMemberIds` because this is one person, not an audience.
+   *
+   * A second count beside it excluded whoever had binned their own copy, and
+   * went with the bin in build phase 5: leaving takes the membership row
+   * itself, so the one count below is now the whole test. */
+  const stillIn = await db.groupMember.count({
+    where: { groupId: ctx.groupId, userId: ctx.authorId },
+  });
+  if (stillIn === 0) return;
 
   const link = `/catchups/edition/${ctx.editionId}`;
   const existing = await db.notification.findFirst({

@@ -140,7 +140,7 @@ export function YourCatchupsCard({ card }: { card: IndexCardView }) {
           <CatchupCardMenu
             catchupId={card.catchupId}
             groupName={card.groupName}
-            canDelete={!card.isCreator && !card.isBatch}
+            canLeave={!card.isCreator && !card.isBatch}
           />
         )}
       </div>

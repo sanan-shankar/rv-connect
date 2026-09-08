@@ -91,26 +91,37 @@ test("a batch Catch-up has no manual transitions at all", () => {
   }
 });
 
-test("nobody leaves their own batch, and nobody bins it either", () => {
+test("nobody leaves their own batch, and archiving is the only way out of one", () => {
   /* Leaving would be undone by the next `healBatchGroupMemberships` pass, which
      would put them straight back, so refusing is the honest answer rather than
-     the strict one. Deleting is leaving with a thirty-day fuse -- the sweep
-     takes the GroupMember row at the end of it -- so it refuses for the same
-     reason. */
+     the strict one.
+
+     THERE WERE TWO EXITS when this was written, and `setCatchupDeleted` held
+     the same refusal. Build phase 5 deleted it (his, N18: "defaults, except
+     deleting becomes leaving"), so `leaveCatchup` is the only one left and it
+     is the only one that can carry the guard. That is the half of this pin
+     that matters now: a phase that deletes the other exit must not take the
+     refusal with it. */
   const src = decomment(read("src/app/(main)/catchups/actions.ts"));
-  for (const fn of ["export async function leaveCatchup", "export async function setCatchupDeleted"]) {
-    const body = balancedBody(src, fn);
-    assert.ok(body, `${fn} is gone; this pin is reading nothing`);
-    assert.match(body, /BATCH_LEAVE_REFUSAL/, `${fn} no longer refuses a batch Catch-up`);
-  }
-  // Restoring must stay open: a row stamped before the guard existed has to be
-  // recoverable, so the refusal is scoped to `deleted === true`.
-  const del = balancedBody(src, "export async function setCatchupDeleted");
-  assert.match(del, /deleted && isBatchCatchup\(/, "the bin refuses to RESTORE a batch copy too");
+  const body = balancedBody(src, "export async function leaveCatchup");
+  assert.ok(body, "leaveCatchup is gone; this pin is reading nothing");
+  assert.match(body, /BATCH_LEAVE_REFUSAL/, "leaveCatchup no longer refuses a batch Catch-up");
+
+  assert.ok(
+    !/export async function setCatchupDeleted/.test(src),
+    "the thirty-day bin is back; it needs its own batch refusal again if so"
+  );
+  // Archiving stays open on a batch, and is the only exit there is from one.
+  const archive = balancedBody(src, "export async function setCatchupArchived");
+  assert.ok(archive, "setCatchupArchived is gone; a batch Catch-up now has no exit at all");
+  assert.ok(
+    !/BATCH_LEAVE_REFUSAL/.test(archive),
+    "archiving now refuses a batch Catch-up, which leaves no way out of one"
+  );
 });
 
 test("neither screen offers what the server refuses", () => {
-  /* This page's own house rule, written on `canDelete` in the card menu: an
+  /* This page's own house rule, written on `canLeave` in the card menu: an
      action refused server-side is not shown as a way to be told no. */
   const panel = decomment(read("src/components/catchups/home/people-panel.tsx"));
   assert.match(
@@ -121,8 +132,8 @@ test("neither screen offers what the server refuses", () => {
   const card = decomment(read("src/components/catchups/index/your-catchups-card.tsx"));
   assert.match(
     card,
-    /canDelete=\{!card\.isCreator && !card\.isBatch\}/,
-    "the list's card menu still offers Delete on a batch Catch-up"
+    /canLeave=\{!card\.isCreator && !card\.isBatch\}/,
+    "the list's card menu still offers Leave on a batch Catch-up"
   );
 });
 

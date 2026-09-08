@@ -1,8 +1,6 @@
 import { prisma } from "./prisma";
 import { writeAudit } from "./audit";
 import { purgeUserAccount, drainPendingImagePurges, DELETION_GRACE_DAYS } from "./account-purge";
-import { RECENTLY_DELETED_DAYS } from "./catchup-shelf";
-import { promoteGroupSuccessor } from "./group-succession";
 import { reportSwallowed } from "./report-error";
 import { valleyDayKey } from "./utils";
 
@@ -24,8 +22,6 @@ const DAY_MS = 86_400_000;
 
 /** Accounts purged per nightly pass. See the comment at its use site. */
 const PURGE_BATCH = 10;
-/** Binned Catch-up copies emptied per nightly pass. See the comment at its use site. */
-const CATCHUP_BIN_BATCH = 200;
 const cutoff = (days: number) => new Date(Date.now() - days * DAY_MS);
 
 /** Owner's schedule. Days, not "2y", so the cutoff arithmetic stays exact. */
@@ -79,11 +75,6 @@ const KEEP_DAYS = {
    *  30 -- so the rows this now removes are precisely the ones no query can
    *  reach. Keep this number and that lookback equal; the test says so too. */
   presence: 90,
-  /** A binned Catch-up copy: 30 days in "Recently deleted", then the
-   *  membership row goes for real. Imported rather than written out, because
-   *  the countdown a member reads on the row ("4 days left") and the cutoff
-   *  this sweep deletes by have to be the same number or the row lies. */
-  catchupBin: RECENTLY_DELETED_DAYS,
 } as const;
 
 /**
@@ -106,10 +97,9 @@ const KEEP_NOTIFICATIONS = 100;
  *
  * Eight of them were written out longhand, five lines each, differing only in
  * the model, the column and the number of days. Anything needing a
- * transaction, a batch, a window function or a successor hand-off is NOT
- * here: `adminMessages`, the notification cap, `catchupCopies` and the
- * account purge are each written out below because each is genuinely its own
- * thing.
+ * transaction, a batch or a window function is NOT here: `adminMessages`, the
+ * notification cap and the account purge are each written out below because
+ * each is genuinely its own thing.
  *
  * `run` is a closure rather than a model NAME and a column name, which is the
  * obvious way to write this and the wrong one. Strings would need a cast past
@@ -155,8 +145,6 @@ export type SweepResult = {
   outboundEmails: number;
   visits: number;
   searches: number;
-  /** Catch-up copies whose 30 days in "Recently deleted" ran out tonight. */
-  catchupCopiesEmptied: number;
   accountsPurged: number;
   /** Accounts that were due tonight and are still here, because the member
    *  signed in (which cancels the request) before their turn came round. */
@@ -265,73 +253,14 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     `,
   );
 
-  /* "Recently deleted" Catch-ups, emptied (bug audit B-063). A member who
-     bins their own copy stops hearing from it at once and keeps a month to
-     change their mind; tonight is when the month runs out for the rows below,
-     and the membership row goes with the stamp. Only the acting member's own
-     row: this is a personal delete by the owner's decision, so nothing here
-     touches another member's copy or the Catch-up itself, and their published
-     answers stay in the Editions they were published in.
-
-     Batched like the account purge above, for the same reason -- everything in
-     this sweep shares one serverless invocation's duration budget. 200 rather
-     than 10, because each of these is two small deletes rather than a whole
-     account's transaction plus its R2 objects, and a night that binned more
-     than 200 copies across the whole community is not a night this should be
-     the slow step of. The remainder rolls to tomorrow by design. */
-  let catchupCopiesEmptied = 0;
-  await step("catchupCopies", async () => {
-    /* Serializable, and the read is INSIDE it.
-     *
-     * "Restorable for 30 days" is a promise printed on the row, and the naive
-     * shape breaks it: read the due list, then delete, and a member pressing
-     * "Put back" in the gap has their restore silently undone -- membership
-     * gone, no error anywhere, the row that said 4 days left simply not there
-     * in the morning (write-path review, 2026-08-21). Under Serializable that
-     * restore and this read conflict, so one of them aborts. If it is this
-     * one, `step` records the error and tomorrow's pass does the work: the
-     * sweep is idempotent by design, so losing a night costs nothing, and a
-     * member's undo is the thing worth protecting. Same instrument the
-     * last-admin guard uses (audit M26).
-     */
-    const emptied = await prisma.$transaction(
-      async (tx) => {
-        const due = await tx.catchupPref.findMany({
-          where: { deletedAt: { lt: cutoff(KEEP_DAYS.catchupBin) } },
-          select: { id: true, userId: true, catchup: { select: { groupId: true } } },
-          orderBy: { deletedAt: "asc" },
-          take: CATCHUP_BIN_BATCH,
-        });
-        if (due.length === 0) return 0;
-        // The membership first, then the stamp. In that order a crash in
-        // between leaves a member out of the Catch-up with the bin row still
-        // showing -- which the next sweep tidies, and which reads as what they
-        // asked for. The other order would leave them back on the list with no
-        // way to tell.
-        /* Hand the hat on before taking the head out of the group (audit
-           C-023). A bin emptied tonight can be the last member holding
-           "keeper" on a Catch-up whose creator's account is already gone,
-           which would leave it running on its clock with nobody able to
-           curate, publish or end it. A no-op in every ordinary case. */
-        for (const row of due) {
-          await promoteGroupSuccessor(tx, row.catchup.groupId, row.userId);
-        }
-        await tx.groupMember.deleteMany({
-          where: { OR: due.map((r) => ({ groupId: r.catchup.groupId, userId: r.userId })) },
-        });
-        await tx.catchupPref.deleteMany({ where: { id: { in: due.map((r) => r.id) } } });
-        return due.length;
-      },
-      { isolationLevel: "Serializable" }
-    );
-    catchupCopiesEmptied = emptied;
-    if (emptied >= CATCHUP_BIN_BATCH) {
-      console.info(
-        `[retention] catch-up bin batch full (${emptied}); more copies are due tomorrow`
-      );
-    }
-    return emptied;
-  });
+  /* The "Recently deleted" Catch-up sweep WAS here (bug audit B-063): the
+     step that, on the thirtieth night, took the `GroupMember` row of anyone
+     who had binned their own copy. Deleting became LEAVING in build phase 5
+     (his, N18), and leaving takes that row itself, in the moment, with the
+     member watching -- so there is no fuse left burning and nothing for a
+     nightly pass to finish on their behalf. It went with `CatchupPref.deletedAt`,
+     its Serializable transaction, its 200-a-night batch and the succession
+     hand-off it shared with `leaveCatchup`, which still runs there. */
 
   /* The deletion-request purge (audits H9 + M35): accounts whose 60-day
      grace window has closed are erased for real — rows and R2 bytes both,
@@ -418,7 +347,6 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     adminMessages,
     ...cut,
     notificationsCapped,
-    catchupCopiesEmptied,
     accountsPurged,
     accountsSpared,
     imagesRetried,
