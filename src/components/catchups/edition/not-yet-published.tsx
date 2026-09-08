@@ -1,9 +1,14 @@
 /* ------------------------------------------------------------------ *
  *  <NotYetPublished> - a deep link to an Edition that is still draft /
- *  collecting / answering. Not one of the spec's named states (that is the
- *  preparing ritual, handled separately with <AlmostReady>), but a plain
- *  safety net so a shared/bookmarked link never dead-ends on a 404 or a
- *  half-rendered reader before the Edition exists to read.
+ *  collecting / answering: a plain safety net so a shared or bookmarked link
+ *  never dead-ends on a 404 or a half-rendered reader before the Edition
+ *  exists to read.
+ *
+ *  It survived the deletion of `preparing` (2026-09-08) because it was never
+ *  that state's screen -- those three are the states it does cover, and all
+ *  three are still reachable. The spec's deletion list named it alongside the
+ *  preparing screens; taking it out would dead-end every link shared while an
+ *  Edition is still collecting questions.
  *
  *  The one line under the heading states where the Edition actually is, which
  *  the heading does not; it is not a restatement of it.

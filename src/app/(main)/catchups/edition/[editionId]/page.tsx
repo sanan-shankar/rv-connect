@@ -5,16 +5,14 @@
  *   1. A LIGHT query (timestamps + Catchup/Group meta only) so the lazy
  *      read-time advance (spec 2.4) can bring the stored status current
  *      before we decide what to render - a deep link visited right as
- *      `answersCloseAt` passes must show the preparing ritual, not stale
- *      "answering" state, and an Edition that has already reached its
- *      `publishAt` must reveal, not sit stuck in preparing forever because
- *      nobody happened to load the Catch-up home first.
+ *      `answersCloseAt` passes must reveal the Edition, not sit stuck on
+ *      stale "answering" state because nobody happened to load the
+ *      Catch-up home first.
  *   2. Only once that fresh status is confirmed `published` do we run the
  *      HEAVY query (every prompt, every entry, every love). This is
- *      defense in depth for the preparing-window secrecy rule (spec 2.5,
- *      threat T-catchups-04): answer bodies are never even pulled into a
- *      server render for an Edition that is not published yet, Keeper
- *      included.
+ *      defense in depth for the secrecy rule (threat T-catchups-04):
+ *      answer bodies are never even pulled into a server render for an
+ *      Edition that is not published yet, Keeper included.
  *
  *  Every query path is wrapped so a missing table (P2021, pre-migration)
  *  renders the shared <AlmostReady/> holding scene instead of a 500.
@@ -28,7 +26,6 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   advanceEdition,
-  isEffectiveKeeper,
   catchupSurfaceTitle,
   isMissingCatchupTable,
   type AdvanceEditionInput,
@@ -43,7 +40,6 @@ import { EditionMasthead } from "@/components/catchups/edition/masthead";
 import { EditionTocRail, EditionTocChips, type TocItem } from "@/components/catchups/edition/toc";
 import { QuestionSection } from "@/components/catchups/edition/question-section";
 import { EditionFooterTease } from "@/components/catchups/edition/footer-tease";
-import { PublishNowButton } from "@/components/catchups/edition/publish-now-button";
 import { NotYetPublished } from "@/components/catchups/edition/not-yet-published";
 import { recordView } from "@/lib/content-view";
 
@@ -54,7 +50,6 @@ const LIGHT_EDITION_SELECT = {
   status: true,
   questionsCloseAt: true,
   answersCloseAt: true,
-  publishAt: true,
   publishedAt: true,
   remindersSent: true,
   catchup: {
@@ -177,32 +172,10 @@ export default async function EditionPage({
 
   const status = edition.status as EditionStatus;
   const title = catchupSurfaceTitle(edition.catchup.title, edition.catchup.group.name);
-  const keeper = isEffectiveKeeper({
-    viewerId: session.user.id,
-    createdById: edition.catchup.createdById,
-    groupRole: membership.role,
-  });
 
-  // Preparing: the ritual holding scene (spec 2.5). No answers are readable
-  // by anyone, Keeper included, until publishAt (or the Keeper shortcuts it).
-  if (status === "preparing") {
-    return (
-      <div className="py-10">
-        <AlmostReady
-          eyebrow={title}
-          title="Putting your Catch-up together."
-          body="No one can read the answers yet, not even the Keeper. They all appear at once when this Edition publishes."
-        />
-        {keeper && (
-          <div className="mx-auto mt-[var(--space-l)] flex max-w-3xl justify-center">
-            <PublishNowButton editionId={edition.id} />
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // draft / collecting / answering: nothing to read yet.
+  // draft / collecting / answering: nothing to read yet. There is no fourth
+  // case any more: `preparing` is deleted, so an Edition whose answers have
+  // closed is already published and falls through to the reader below.
   if (status !== "published") {
     return (
       <NotYetPublished

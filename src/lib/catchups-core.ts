@@ -80,7 +80,6 @@ export function askerVisible(
 export const DAY_MS = 24 * 60 * 60 * 1000;
 export const HOUR_MS = 60 * 60 * 1000;
 
-/** Question window: 3 days. Answer window: 7 days. Preparing hold: 24h. */
 /**
  * A fresh Catch-up invite token: 32 hex characters from the platform CSPRNG.
  *
@@ -96,9 +95,9 @@ export function newInviteToken(): string {
   return randomUUID().replace(/-/g, "");
 }
 
+/** Question window: 3 days. Answer window: 7 days. Both snap to DEADLINE_HOUR. */
 export const QUESTION_WINDOW_DAYS = 3;
 const ANSWER_WINDOW_DAYS = 7;
-const PREPARING_HOLD_HOURS = 24;
 /** Too-few-answers auto-extend, applied at most once. */
 const EXTEND_DAYS = 3;
 
@@ -164,14 +163,19 @@ export function daysLeftUntil(closeAt: Date | string | null | undefined, now: Da
   return Math.max(1, Math.ceil(diff / DAY_MS));
 }
 
-/** Forward-only order of the Edition state machine. */
-const STATUS_ORDER: EditionStatus[] = [
-  "draft",
-  "collecting",
-  "answering",
-  "preparing",
-  "published",
-];
+/**
+ * Forward-only order of the Edition state machine.
+ *
+ * `preparing` sat between answering and published until 2026-09-08 and is
+ * deleted, not renamed. His, N88: "Why are we preparing? ... why doesn't it
+ * just publish immediately? Is there a reason we have to have a separate
+ * preparing section? I can't just publish at midnight and the deadline is
+ * done." It was a 24-hour hold during which nobody -- Keeper included --
+ * could read a word, and its only real job was stopping an Edition landing
+ * at 3am. `DEADLINE_HOUR_UTC_MS` below does that job instead, and does it
+ * without hiding a finished Edition from the people who wrote it.
+ */
+const STATUS_ORDER: EditionStatus[] = ["draft", "collecting", "answering", "published"];
 
 export const CADENCE_LABELS: Record<Cadence, string> = {
   biweekly: "Biweekly",
@@ -378,9 +382,9 @@ function ms(t: Date | string | null | undefined): number | null {
  *
  * Five minutes: comfortably more than a scheduler's run-to-run wobble, which
  * is what the whole failure is made of, and small enough to stay well inside
- * the shortest thing here measured in hours (the 24-hour preparing hold). A
- * Edition can now be at most five minutes "early", which no surface counting in
- * days or hours can show, and can no longer be a day late.
+ * the shortest window here (three days). An Edition can be at most five
+ * minutes "early", which no surface counting in days or hours can show, and
+ * can no longer be a day late.
  *
  * Applied inside `computeStatus` rather than to the stored deadlines, so the
  * advance and the render remain the same function: a page loaded in those last
@@ -409,11 +413,12 @@ export function computeStatus(ed: EditionTiming, now: Date): EditionStatus {
     s = "answering";
   }
   if (s === "answering") {
+    // Answers close and the Edition comes out at the same moment. There is no
+    // hold in between any more (see STATUS_ORDER), and no second timestamp to
+    // wait on: `answersCloseAt` is itself a civil hour, so this lands the
+    // Edition with the morning rather than at whatever minute the phase
+    // happened to open at.
     if (!passed(ed.answersCloseAt)) return "answering";
-    s = "preparing";
-  }
-  if (s === "preparing") {
-    if (!passed(ed.publishAt)) return "preparing";
     s = "published";
   }
   return s;
@@ -473,7 +478,6 @@ export type EditionPatch = {
   status?: EditionStatus;
   questionsCloseAt?: Date;
   answersCloseAt?: Date;
-  publishAt?: Date;
   publishedAt?: Date;
   remindersSent?: number;
 };
@@ -524,18 +528,19 @@ export function extendPhasePatch(ed: EditionTiming, days: number, now: Date): Ed
       remindersSent: withDailyBucket(ed.remindersSent, daysLeftUntil(answersCloseAt, now)),
     };
   }
-  return null; // preparing and published have no window left to extend
+  return null; // published has no window left to extend
 }
 
-/** answering -> preparing. Sets the 24h ritual hold (publishAt = answersCloseAt + 24h). */
-export function preparingPatch(ed: EditionTiming, now: Date): EditionPatch {
-  const existing = ms(ed.publishAt);
-  if (existing != null) return { status: "preparing" };
-  const base = ms(ed.answersCloseAt) ?? now.getTime();
-  return { status: "preparing", publishAt: new Date(base + PREPARING_HOLD_HOURS * HOUR_MS) };
-}
-
-/** preparing -> published. */
+/**
+ * answering -> published. The only way an Edition comes out, by the clock or
+ * by the Keeper's hand: `preparingPatch` and the 24-hour hold it set are
+ * deleted (see STATUS_ORDER).
+ *
+ * `publishedAt` is the real instant, not the snapped deadline, because it is
+ * the Edition's NAME on every surface -- the date a member reads. An Edition
+ * that publishes at 07:00 IST and one a Keeper closes early at 16:12 should
+ * both say the day they actually came out.
+ */
 export function publishPatch(now: Date): EditionPatch {
   return { status: "published", publishedAt: now };
 }
@@ -570,7 +575,7 @@ export function shiftPausedInstant(
   return new Date(m + by);
 }
 
-/** `shiftPausedInstant` over an Edition's three deadlines, as a patch. */
+/** `shiftPausedInstant` over an Edition's two deadlines, as a patch. */
 export function shiftEditionPatch(
   // Only the three deadlines, not a whole EditionTiming: the status and the
   // reminder bitmask play no part, and asking for less lets a caller hand over
@@ -578,7 +583,6 @@ export function shiftEditionPatch(
   ed: {
     questionsCloseAt: Date | string | null;
     answersCloseAt: Date | string | null;
-    publishAt: Date | string | null;
   },
   pausedAt: Date | string | null | undefined,
   resumedAt: Date
@@ -588,8 +592,6 @@ export function shiftEditionPatch(
   if (q) patch.questionsCloseAt = q;
   const a = shiftPausedInstant(ed.answersCloseAt, pausedAt, resumedAt);
   if (a) patch.answersCloseAt = a;
-  const p = shiftPausedInstant(ed.publishAt, pausedAt, resumedAt);
-  if (p) patch.publishAt = p;
   return patch;
 }
 
@@ -635,7 +637,7 @@ export type EditionAction =
 /**
  * What the Edition has in it right now. Two counts, because two decisions need
  * one each: `prompts` gates collecting -> answering (an Edition with no questions
- * must not open for answers), `entries` gates answering -> preparing (the
+ * must not open for answers), `entries` gates answering -> published (the
  * too-few auto-extend). Named rather than positional so a call site cannot
  * quietly swap them.
  */
@@ -664,17 +666,21 @@ export function planNextAction(ed: EditionTiming, counts: EditionCounts, now: Da
       }
       return { kind: "none" }; // dormant; revived by the first question
     }
-    if (ed.status === "answering" && next === "preparing") {
+    if (ed.status === "answering" && next === "published") {
       if (shouldExtendForTooFew(ed, counts.entries)) {
         return { kind: "extend", patch: extendPatch(ed, now), notify: "catchup_answers_open" };
       }
+      // Straight out. This step used to be answering -> preparing, silent, with
+      // the notification a day later on preparing -> published; now the close
+      // and the announcement are the same transition, so an Edition can never
+      // be published with nobody told (N88).
       return {
         kind: "transition",
         from: "answering",
-        to: "preparing",
-        patch: preparingPatch(ed, now),
-        notify: null,
-        setsNextOpensAt: false,
+        to: "published",
+        patch: publishPatch(now),
+        notify: "catchup_published",
+        setsNextOpensAt: true,
       };
     }
     if (next === "answering") {
@@ -685,16 +691,6 @@ export function planNextAction(ed: EditionTiming, counts: EditionCounts, now: Da
         patch: answeringPatch(ed, now),
         notify: "catchup_answers_open",
         setsNextOpensAt: false,
-      };
-    }
-    if (next === "published") {
-      return {
-        kind: "transition",
-        from: "preparing",
-        to: "published",
-        patch: publishPatch(now),
-        notify: "catchup_published",
-        setsNextOpensAt: true,
       };
     }
     // Any other single step (e.g. a staged draft opening) carries no clock side effects.
@@ -832,8 +828,6 @@ export function describeEditionStatus(
       const left = editionCountdownLabel(ed, now);
       return left ? `Answering now, ${left}` : "Answering now";
     }
-    case "preparing":
-      return "Preparing the Edition";
     case "published":
       return "Published";
     default:

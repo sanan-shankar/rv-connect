@@ -81,7 +81,6 @@ export default async function AdminCatchupReadingRoom({
           status: true,
           questionsCloseAt: true,
           answersCloseAt: true,
-          publishAt: true,
           publishedAt: true,
           prompts: {
             select: {
@@ -171,9 +170,7 @@ export default async function AdminCatchupReadingRoom({
               ? edition.questionsCloseAt
               : edition.status === "answering"
                 ? edition.answersCloseAt
-                : edition.status === "preparing"
-                  ? edition.publishAt
-                  : null;
+                : null;
           // Answers live under prompts, so the Edition's own total is a sum
           // rather than a stored number that could disagree with the list.
           const answers = edition.prompts.reduce((n, p) => n + p.entries.length, 0);

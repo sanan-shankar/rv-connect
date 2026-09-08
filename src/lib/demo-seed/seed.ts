@@ -391,7 +391,6 @@ export async function seedDemo(
       dates: {
         questionsCloseAt: Date;
         answersCloseAt: Date;
-        publishAt: Date;
         publishedAt?: Date;
       },
     ) {
@@ -404,7 +403,6 @@ export async function seedDemo(
           status,
           questionsCloseAt: dates.questionsCloseAt,
           answersCloseAt: dates.answersCloseAt,
-          publishAt: dates.publishAt,
           publishedAt: dates.publishedAt ?? null,
           createdAt: dates.questionsCloseAt,
         },
@@ -460,7 +458,6 @@ export async function seedDemo(
     await writeEdition(CATCHUP_ROUND_1, 1, "published", {
       questionsCloseAt: daysAgo(46),
       answersCloseAt: daysAgo(38),
-      publishAt: daysAgo(37),
       publishedAt: daysAgo(37),
     });
 
@@ -472,7 +469,6 @@ export async function seedDemo(
     await writeEdition(CATCHUP_ROUND_2, 2, "answering", {
       questionsCloseAt: daysAgo(6),
       answersCloseAt: edition2AnswersCloseAt,
-      publishAt: daysAgo(-5),
     });
 
     // ── 6. Notifications, so the bell is not a dead control ──

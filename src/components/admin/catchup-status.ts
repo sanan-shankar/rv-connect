@@ -16,11 +16,10 @@ export const SERIES_STATUS: Record<string, { label: string; tone: ChipTone }> = 
   ended: { label: "Ended", tone: "idle" },
 };
 
-/** The five states an Edition moves through, in the words a person would use. */
+/** The four states an Edition moves through, in the words a person would use. */
 export const EDITION_STATUS: Record<string, { label: string; tone: ChipTone }> = {
   draft: { label: "Not opened yet", tone: "idle" },
   collecting: { label: "Taking questions", tone: "info" },
   answering: { label: "Taking answers", tone: "info" },
-  preparing: { label: "Being put together", tone: "warn" },
   published: { label: "Sent out", tone: "good" },
 };

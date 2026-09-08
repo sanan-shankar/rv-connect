@@ -66,7 +66,6 @@ function edition(overrides = {}) {
     status: "collecting",
     questionsCloseAt: null,
     answersCloseAt: null,
-    publishAt: null,
     publishedAt: null,
     remindersSent: 0,
     ...overrides,
@@ -90,7 +89,6 @@ test("computeStatus: draft never advances by the clock", () => {
     status: "draft",
     questionsCloseAt: at(-DAY_MS),
     answersCloseAt: at(-DAY_MS),
-    publishAt: at(-DAY_MS),
   });
   assert.equal(computeStatus(ed, NOW), "draft");
 });
@@ -122,10 +120,6 @@ test("computeStatus: a deadline the next tick just undershoots still fires (C-14
   );
   assert.equal(
     computeStatus(edition({ status: "answering", answersCloseAt: at(undershoot) }), NOW),
-    "preparing"
-  );
-  assert.equal(
-    computeStatus(edition({ status: "preparing", publishAt: at(undershoot) }), NOW),
     "published"
   );
 });
@@ -137,11 +131,11 @@ test("computeStatus: the grace is a wobble, not a shortened phase (C-142)", () =
     "collecting"
   );
   // And the grace stays far below the granularity the deadlines are set in.
-  // Still holding with an hour to run: the grace must not eat into the
-  // shortest thing here measured in hours, the 24-hour preparing hold.
+  // Still holding with an hour to run: an Edition an hour from its close is
+  // still open, not out.
   assert.equal(
-    computeStatus(edition({ status: "preparing", publishAt: at(HOUR_MS) }), NOW),
-    "preparing"
+    computeStatus(edition({ status: "answering", answersCloseAt: at(HOUR_MS) }), NOW),
+    "answering"
   );
   assert.ok(TICK_GRACE_MS < HOUR_MS, `a grace of ${TICK_GRACE_MS}ms is not a wobble`);
 });
@@ -154,14 +148,12 @@ test("computeStatus: collecting cannot skip past answering when the later close 
   );
 });
 
-test("computeStatus: answering holds until answersCloseAt, then preparing", () => {
+test("computeStatus: answering holds until answersCloseAt, then PUBLISHED", () => {
   assert.equal(computeStatus(edition({ status: "answering", answersCloseAt: at(DAY_MS) }), NOW), "answering");
-  assert.equal(computeStatus(edition({ status: "answering", answersCloseAt: at(-1) }), NOW), "preparing");
-});
-
-test("computeStatus: preparing holds until publishAt, then published", () => {
-  assert.equal(computeStatus(edition({ status: "preparing", publishAt: at(HOUR_MS) }), NOW), "preparing");
-  assert.equal(computeStatus(edition({ status: "preparing", publishAt: at(-1) }), NOW), "published");
+  /* Straight out, with no hold in between: `preparing` is deleted (N88, "why
+     doesn't it just publish immediately?"). If a fourth state ever appears
+     between these two again, this line is what says it was not asked for. */
+  assert.equal(computeStatus(edition({ status: "answering", answersCloseAt: at(-1) }), NOW), "published");
 });
 
 test("computeStatus: a very stale collecting Edition cascades all the way to published", () => {
@@ -169,7 +161,6 @@ test("computeStatus: a very stale collecting Edition cascades all the way to pub
     status: "collecting",
     questionsCloseAt: at(-3 * DAY_MS),
     answersCloseAt: at(-2 * DAY_MS),
-    publishAt: at(-DAY_MS),
   });
   assert.equal(computeStatus(ed, NOW), "published");
 });
@@ -195,23 +186,20 @@ test("planNextAction: collecting -> answering fires answers-open once, then is a
   assert.equal(planNextAction(ed, counts(0), NOW).kind, "none"); // idempotent
 });
 
-test("planNextAction: preparing -> published fires published + schedules the next Edition", () => {
-  const ed = edition({ status: "preparing", publishAt: at(-1000) });
+test("planNextAction: answering -> published fires published + schedules the next Edition", () => {
+  /* One transition where there were two. The close used to be silent
+     (answering -> preparing, notify null) and the announcement came a day
+     later; now they are the same step, so an Edition cannot come out with
+     nobody told. */
+  const ed = edition({ status: "answering", answersCloseAt: at(-HOUR_MS) });
   const a = planNextAction(ed, counts(5), NOW);
   assert.equal(a.kind, "transition");
+  assert.equal(a.from, "answering");
   assert.equal(a.to, "published");
   assert.equal(a.notify, "catchup_published");
   assert.equal(a.setsNextOpensAt, true);
   assert.ok(a.patch.publishedAt instanceof Date);
-});
-
-test("planNextAction: answering -> preparing with answers present proceeds (no extend, no notify)", () => {
-  const ed = edition({ status: "answering", answersCloseAt: at(-HOUR_MS) });
-  const a = planNextAction(ed, counts(2), NOW);
-  assert.equal(a.kind, "transition");
-  assert.equal(a.to, "preparing");
-  assert.equal(a.notify, null);
-  assert.ok(a.patch.publishAt instanceof Date);
+  assert.equal(a.patch.publishAt, undefined, "publishAt is gone, not merely unset");
 });
 
 // ─── daily reminders (owner, 2026-08-05: one a day while answers are open) ───
@@ -331,7 +319,6 @@ test("C-028: extending a dormant Edition lands in the future, not in the past", 
 });
 
 test("extendPhasePatch: nothing left to extend once the window has closed", () => {
-  assert.equal(extendPhasePatch(edition({ status: "preparing" }), 1, NOW), null);
   assert.equal(extendPhasePatch(edition({ status: "published" }), 1, NOW), null);
 });
 
@@ -355,7 +342,7 @@ test("planNextAction: zero answers at close extends the window once (bit 4)", ()
   assert.equal(planNextAction(ed, counts(0), NOW).kind, "none"); // window now in the future; no second extend
 });
 
-test("planNextAction: after an extension it proceeds to preparing even with zero answers", () => {
+test("planNextAction: after an extension it publishes even with zero answers", () => {
   // Extended once (bit 4 set), and the extended window has now also closed with no entries.
   const ed = edition({
     status: "answering",
@@ -364,7 +351,7 @@ test("planNextAction: after an extension it proceeds to preparing even with zero
   });
   const a = planNextAction(ed, counts(0), NOW);
   assert.equal(a.kind, "transition");
-  assert.equal(a.to, "preparing");
+  assert.equal(a.to, "published");
 });
 
 // ─── an Edition nobody asked anything in (audit B-062) ──────────────────────────
@@ -418,14 +405,12 @@ test("shiftEditionPatch: moves every deadline still ahead of the freeze, by the 
     status: "answering",
     questionsCloseAt: at(-5 * DAY_MS), // already past when the freeze began: history
     answersCloseAt: at(-DAY_MS), // 1 day left at the freeze, now expired
-    publishAt: null,
   });
   const patch = shiftEditionPatch(ed, pausedAt, NOW);
   assert.equal(patch.questionsCloseAt, undefined); // untouched
   // The answer window had one day left when the freeze began; it has one day
   // left again now, two days later.
   assert.equal(patch.answersCloseAt.getTime(), at(DAY_MS).getTime());
-  assert.equal(patch.publishAt, undefined);
 });
 
 test("shiftEditionPatch: an Edition paused mid-answering resumes with the same days left", () => {
@@ -564,7 +549,6 @@ test("describeEditionStatus: readable per-status copy", () => {
     describeEditionStatus({ status: "answering", answersCloseAt: at(3 * DAY_MS) }, NOW),
     "Answering now, 3 days left"
   );
-  assert.equal(describeEditionStatus({ status: "preparing" }, NOW), "Preparing the Edition");
   /* No number, on purpose: `roundLabel()` was deleted in the Edition rename
      (2026-09-08) rather than renamed, because an Edition is identified by its
      date. If this ever reads "Edition 5 published" again, the rule has been

@@ -27,8 +27,6 @@ import { useState } from "react";
 import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { FadeRise } from "@/components/common/motion";
-import { AlmostReady } from "@/components/catchups/almost-ready";
-import { PublishNowButton } from "@/components/catchups/edition/publish-now-button";
 import { resumeCatchup } from "@/app/(main)/catchups/actions";
 import { ConsoleCollecting, OpenAnsweringButton } from "./console-collecting";
 import { ConsoleAnswering } from "./console-answering";
@@ -68,22 +66,6 @@ export function CatchupHomeShell({
           <ConsoleCollecting data={data} edition={edition} onChanged={refresh} />
         ) : edition.status === "answering" ? (
           <ConsoleAnswering data={data} edition={edition} onChanged={refresh} />
-        ) : edition.status === "preparing" ? (
-          <FadeRise>
-            {/* No eyebrow: it was `Round ${edition.number}`, and the numbers
-                are gone (spec section 3.3). The Catch-up's own name is already
-                the h1 directly above this, so the default would only repeat
-                it. */}
-            <AlmostReady
-              title="Putting your Catch-up together."
-              body="No one can read the answers yet, not even the Keeper. They all appear together the moment this Edition publishes."
-            />
-            {viewer.isKeeper && (
-              <div className="mt-[var(--space-m)] flex justify-center">
-                <PublishNowButton editionId={edition.id} />
-              </div>
-            )}
-          </FadeRise>
         ) : (
           <ConsolePublished edition={edition} contents={contents ?? null} />
         )}

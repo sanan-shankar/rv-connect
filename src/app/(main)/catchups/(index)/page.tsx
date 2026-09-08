@@ -24,9 +24,8 @@ export const metadata: Metadata = {
 const STATUS_PRIORITY: Partial<Record<EditionStatus, number>> = {
   answering: 0,
   collecting: 1,
-  preparing: 2,
-  draft: 3,
-  published: 4,
+  draft: 2,
+  published: 3,
 };
 
 function buildCta(opts: {
@@ -47,8 +46,6 @@ function buildCta(opts: {
         label: "Read the Edition",
         href: editionId ? `/catchups/edition/${editionId}` : `/catchups/${catchupId}`,
       };
-    case "preparing":
-      return { label: "View", href: `/catchups/${catchupId}` };
     case "collecting":
     default:
       return { label: "Add a question", href: `/catchups/${catchupId}` };

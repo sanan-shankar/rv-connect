@@ -59,15 +59,17 @@ test("B-061: every hand-driven write into a live Edition refuses a frozen Catch-
   const src = decomment(read("src/app/(main)/catchups/actions.ts"));
 
   // The clock gate in advanceEdition covers the automatic half only. These
-  // seven write the edition directly, in their own transactions, and each used
-  // to check the ROUND's status alone -- which does not change on a pause. A
+  // six write the edition directly, in their own transactions, and each used
+  // to check the EDITION's status alone -- which does not change on a pause. A
   // Keeper with a tab opened before the pause could still publish the Edition and
   // notify the whole group under a page saying it was paused.
+  //
+  // Six, not seven: `publishNow` is deleted with `preparing` (2026-09-08), and
+  // `closeAndPrepare` is `closeAndPublish` -- the close IS the publish now.
   const MUST_REFUSE_WHEN_FROZEN = [
     "openAnswering",
-    "closeAndPrepare",
+    "closeAndPublish",
     "extendDeadline",
-    "publishNow",
     "nudgeGroup",
     "submitPrompt",
     "submitEntry",

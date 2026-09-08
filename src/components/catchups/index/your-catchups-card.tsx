@@ -21,7 +21,6 @@ import type { CatchupIndexCard, CatchupPersonRef, EditionStatus } from "@/lib/ca
 const STATUS_TONE: Partial<Record<EditionStatus, string>> = {
   collecting: "text-leaf",
   answering: "text-cinnamon",
-  preparing: "text-muted-foreground",
   published: "text-canopy",
   draft: "text-muted-foreground",
 };
