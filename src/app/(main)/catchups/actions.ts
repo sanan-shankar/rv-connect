@@ -46,7 +46,6 @@ import { ownedUploadUrls } from "@/lib/upload-ownership";
 import { revalidatePath } from "next/cache";
 import {
   addCadenceGap,
-  addDays,
   advanceEdition,
   answeringPatch,
   EDITION_TIMING_SELECT,
@@ -57,6 +56,7 @@ import {
   newInviteToken,
   publishPatch,
   QUESTION_WINDOW_DAYS,
+  deadlineIn,
   REMINDER_QUESTIONS_EXTENDED,
   resolveSpotify,
   restoreOwnCatchupCopy,
@@ -469,7 +469,7 @@ export async function createCatchupWithPeople(input: {
           catchupId: catchup.id,
           number: 1,
           status: "collecting",
-          questionsCloseAt: addDays(now, QUESTION_WINDOW_DAYS),
+          questionsCloseAt: deadlineIn(now, QUESTION_WINDOW_DAYS),
         },
       });
       await notifyQuestionsOpen(tx, {
@@ -872,7 +872,7 @@ export async function submitPrompt(input: {
     if (wasDormant) {
       await prisma.catchupEdition.updateMany({
         where: { id: editionId, status: "collecting", remindersSent: edition.remindersSent },
-        data: { questionsCloseAt: addDays(new Date(), QUESTION_WINDOW_DAYS) },
+        data: { questionsCloseAt: deadlineIn(new Date(), QUESTION_WINDOW_DAYS) },
       });
     }
 

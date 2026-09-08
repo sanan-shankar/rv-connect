@@ -36,6 +36,8 @@ import {
   answersCloseSentence,
   valleyDaysLeft,
   addDays,
+  deadlineIn,
+  snapToDeadlineHour,
   catchupDisplayName,
   catchupSurfaceTitle,
   isEffectiveKeeper,
@@ -180,7 +182,7 @@ test("planNextAction: collecting -> answering fires answers-open once, then is a
   assert.equal(a1.to, "answering");
   assert.equal(a1.notify, "catchup_answers_open");
   assert.ok(a1.patch.answersCloseAt instanceof Date);
-  assert.equal(a1.patch.answersCloseAt.getTime(), addDays(NOW, 7).getTime());
+  assert.equal(a1.patch.answersCloseAt.getTime(), deadlineIn(NOW, 7).getTime());
 
   ed = applyPatch(ed, a1.patch); // the DB flip
   assert.equal(planNextAction(ed, counts(0), NOW).kind, "none"); // idempotent
@@ -243,15 +245,22 @@ test("answeringPatch: seeds the bucket so the first daily nudge is a day away", 
   const action = planNextAction(ed, counts(0), NOW);
   assert.equal(action.kind, "transition");
   assert.equal(action.to, "answering");
-  // 7-day window seeded at 7, so "answers are open" is not immediately
-  // followed by "7 days left to answer" on the same page view.
-  assert.equal(dailyBucket(action.patch.remindersSent), 7);
+  /* The window is seeded at whatever the snapped deadline is actually worth,
+     so "answers are open" is not immediately followed by "N days left to
+     answer" on the same page view. Eight, not seven: a 7-day window opened at
+     12:00 UTC rounds forward to the next 07:00 IST, which is the civil-hour
+     rule paid for in up to one extra day (see `snapToDeadlineHour`). */
+  assert.equal(
+    dailyBucket(action.patch.remindersSent),
+    daysLeftUntil(deadlineIn(NOW, 7), NOW)
+  );
+  assert.equal(dailyBucket(action.patch.remindersSent), 8);
   const opened = applyPatch(ed, action.patch);
   assert.equal(planNextAction(opened, counts(0), NOW).kind, "none");
-  // A day later it does fire, counting 6.
+  // A day later it does fire, counting one fewer.
   const next = planNextAction(opened, counts(0), at(DAY_MS));
   assert.equal(next.kind, "reminder");
-  assert.equal(next.daysLeft, 6);
+  assert.equal(next.daysLeft, 7);
 });
 
 test("dailyBucket / withDailyBucket: the bucket never clobbers the flag bits", () => {
@@ -272,13 +281,61 @@ test("daysLeftUntil: rounds up, floors at 1 while open, 0 once past", () => {
   assert.equal(daysLeftUntil(null, NOW), 0);
 });
 
+// ─── every deadline lands on 07:00 IST (spec section 3.3) ───────────────────
+
+test("snapToDeadlineHour: every deadline lands at 01:30 UTC, which is 07:00 IST", () => {
+  for (const offset of [0, 1, 7, 30, 400, -3]) {
+    const snapped = snapToDeadlineHour(addDays(NOW, offset));
+    assert.equal(snapped.getUTCHours(), 1, `${snapped.toISOString()} is not on the hour`);
+    assert.equal(snapped.getUTCMinutes(), 30);
+    assert.equal(snapped.getUTCSeconds(), 0);
+    assert.equal(snapped.getUTCMilliseconds(), 0);
+    // Read back in the valley's own zone, it says seven in the morning.
+    assert.equal(
+      snapped.toLocaleTimeString("en-GB", { timeZone: "Asia/Kolkata", hour12: false }),
+      "07:00:00"
+    );
+  }
+});
+
+test("snapToDeadlineHour: rounds forward only, and is idempotent", () => {
+  const from = addDays(NOW, 7);
+  const once = snapToDeadlineHour(from);
+  assert.ok(once.getTime() >= from.getTime(), "a snapped window must never be SHORTER");
+  assert.ok(once.getTime() - from.getTime() < DAY_MS, "and never longer by more than a day");
+  /* Idempotent, which is what lets an extension anchor on a stored deadline
+     and a resume shift one without walking it forward a day per call. */
+  assert.equal(snapToDeadlineHour(once).getTime(), once.getTime());
+});
+
+test("07:00 IST is picked up by that morning's cron, within thirty minutes", () => {
+  /* The hour is not a preference. `vercel.json` runs /api/catchups/tick on
+     "0 2 * * *" -- 02:00 UTC, 07:30 IST -- and a deadline at 07:00 IST is
+     therefore always swept by that morning's run rather than waiting on the
+     lazy read-time advance and whoever happens to open a page. If the cron
+     ever moves, this fails, and the deadline hour has to move with it. */
+  const vercel = JSON.parse(read("vercel.json"));
+  const tick = vercel.crons.find((c) => c.path === "/api/catchups/tick");
+  assert.ok(tick, "the Catch-ups tick is no longer a cron");
+  const [minute, hour] = tick.schedule.split(" ");
+  const cronUtcMs = (Number(hour) * 60 + Number(minute)) * 60 * 1000;
+
+  const deadline = snapToDeadlineHour(addDays(NOW, 7));
+  const deadlineUtcMs =
+    (deadline.getUTCHours() * 60 + deadline.getUTCMinutes()) * 60 * 1000;
+  const wait = cronUtcMs - deadlineUtcMs;
+  assert.ok(wait > 0, "the cron runs BEFORE the deadline, so an Edition waits a whole day");
+  assert.ok(wait <= 30 * 60 * 1000, `an Edition waits ${wait / 60000} minutes for the tick`);
+});
+
 // ─── extending a deadline by hand (Keeper, owner 2026-08-05) ─────────────────
 
 test("extendPhasePatch: collecting moves the question deadline from the deadline", () => {
   const ed = edition({ status: "collecting", questionsCloseAt: at(DAY_MS) });
   const patch = extendPhasePatch(ed, 2, NOW);
-  // +2 days from the DEADLINE (NOW + 1d), not from now.
-  assert.equal(patch.questionsCloseAt.getTime(), at(3 * DAY_MS).getTime());
+  // +2 days from the DEADLINE (NOW + 1d), not from now, then landed on the
+  // civil hour like every other deadline this file mints.
+  assert.equal(patch.questionsCloseAt.getTime(), deadlineIn(at(DAY_MS), 2).getTime());
   assert.equal(patch.answersCloseAt, undefined);
 });
 
@@ -289,8 +346,8 @@ test("extendPhasePatch: answering moves the answer deadline and re-seeds the buc
     remindersSent: withDailyBucket(REMINDER_EXTENDED, 1),
   });
   const patch = extendPhasePatch(ed, 7, NOW);
-  assert.equal(patch.answersCloseAt.getTime(), at(8 * DAY_MS).getTime());
-  assert.equal(dailyBucket(patch.remindersSent), 8);
+  assert.equal(patch.answersCloseAt.getTime(), deadlineIn(at(DAY_MS), 7).getTime());
+  assert.equal(dailyBucket(patch.remindersSent), daysLeftUntil(patch.answersCloseAt, NOW));
   assert.equal(patch.remindersSent & REMINDER_EXTENDED, REMINDER_EXTENDED);
   // Buying the group a week does not immediately spend it on a reminder.
   assert.equal(planNextAction(applyPatch(ed, patch), counts(0), NOW).kind, "none");
@@ -304,18 +361,21 @@ test("C-028: extending a dormant Edition lands in the future, not in the past", 
   const dormant = edition({ status: "collecting", questionsCloseAt: at(-20 * DAY_MS) });
   const patch = extendPhasePatch(dormant, 2, NOW);
   assert.ok(patch.questionsCloseAt.getTime() > NOW.getTime(), "the new deadline is still in the past");
-  assert.equal(patch.questionsCloseAt.getTime(), at(2 * DAY_MS).getTime());
+  assert.equal(patch.questionsCloseAt.getTime(), deadlineIn(NOW, 2).getTime());
 
   // The same for an answer window found already closed.
   const late = edition({ status: "answering", answersCloseAt: at(-3 * DAY_MS) });
   const answerPatch = extendPhasePatch(late, 1, NOW);
-  assert.equal(answerPatch.answersCloseAt.getTime(), at(DAY_MS).getTime());
+  assert.equal(answerPatch.answersCloseAt.getTime(), deadlineIn(NOW, 1).getTime());
 
   // ...and a live window is still extended from the DEADLINE, which is the
   // whole point of the original design: "extend by 2 days" moves the date on
   // the page by two days.
   const live = edition({ status: "collecting", questionsCloseAt: at(DAY_MS) });
-  assert.equal(extendPhasePatch(live, 2, NOW).questionsCloseAt.getTime(), at(3 * DAY_MS).getTime());
+  assert.equal(
+    extendPhasePatch(live, 2, NOW).questionsCloseAt.getTime(),
+    deadlineIn(at(DAY_MS), 2).getTime()
+  );
 });
 
 test("extendPhasePatch: nothing left to extend once the window has closed", () => {
@@ -362,7 +422,7 @@ test("planNextAction: a question window closing with no questions extends once, 
   const a1 = planNextAction(ed, counts(0, 0), NOW);
   assert.equal(a1.kind, "extend-questions");
   assert.equal(a1.notify, "catchup_questions_open");
-  assert.equal(a1.patch.questionsCloseAt.getTime(), addDays(NOW, 3).getTime());
+  assert.equal(a1.patch.questionsCloseAt.getTime(), deadlineIn(NOW, 3).getTime());
   assert.equal(a1.patch.remindersSent & REMINDER_QUESTIONS_EXTENDED, REMINDER_QUESTIONS_EXTENDED);
   // Crucially it did NOT open answering, which would have invited the whole
   // group to answer nothing.

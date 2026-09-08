@@ -296,6 +296,51 @@ export function addDays(date: Date, n: number): Date {
   return new Date(date.getTime() + n * DAY_MS);
 }
 
+/* ------------------------------------------------------------------ *
+ *  Every deadline lands on a civil hour: 07:00 IST.
+ *
+ *  A deadline used to be `addDays(now, N)`, so it inherited whatever minute
+ *  the phase happened to open at -- 03:47 on a Tuesday if that is when the
+ *  tick ran -- and an Edition came out at that minute forever after. The
+ *  24-hour `preparing` hold existed largely to stop an Edition landing at
+ *  3am; deleting it (spec section 3.3) means the deadline itself has to be a
+ *  decent hour.
+ *
+ *  WHY 07:00, and the number is from the app rather than from taste:
+ *  `vercel.json` runs /api/catchups/tick at **02:00 UTC, which is 07:30
+ *  IST**. A deadline at 07:00 IST is therefore picked up by that morning's
+ *  cron **within thirty minutes**, every time, rather than waiting on the
+ *  lazy read-time advance and whoever happens to open a page. So an Edition
+ *  lands with the morning, and the hold bought nothing.
+ *
+ *  01:30 UTC is 07:00 IST on every day of the year. Hard-coding the offset
+ *  is safe here for the reason `valleyMidnight` in utils.ts already gives:
+ *  India has kept one fixed offset with no daylight saving since 1945. That
+ *  keeps this pure UTC arithmetic, with no timezone machinery, like every
+ *  other calendar helper in this file.
+ *
+ *  It rounds FORWARD, never back, so a snapped window is always at least the
+ *  nominal length -- seven days becomes seven-and-a-bit, never six-and-a-bit.
+ *  Nobody loses time they were promised, and the most anyone gains is a day.
+ * ------------------------------------------------------------------ */
+const DEADLINE_HOUR_UTC_MS = 90 * 60 * 1000; // 01:30 UTC = 07:00 IST
+
+/**
+ * The next 07:00 IST at or after `at`. Idempotent: an instant already on the
+ * hour is returned unchanged, so re-snapping a stored deadline (an extension
+ * anchored on it, a resume shifting it) cannot walk it forward a day at a
+ * time.
+ */
+export function snapToDeadlineHour(at: Date): Date {
+  const days = Math.ceil((at.getTime() - DEADLINE_HOUR_UTC_MS) / DAY_MS);
+  return new Date(days * DAY_MS + DEADLINE_HOUR_UTC_MS);
+}
+
+/** `addDays`, landed on the civil hour. Every phase deadline is minted here. */
+export function deadlineIn(from: Date, days: number): Date {
+  return snapToDeadlineHour(addDays(from, days));
+}
+
 /** nextOpensAt = publishedAt + cadenceGap: 14d biweekly, ~1 month monthly, ~3 months quarterly. */
 export function addCadenceGap(from: Date, cadence: Cadence): Date {
   switch (cadence) {
@@ -488,7 +533,7 @@ export type EditionPatch = {
  * away rather than landing on the same page view as "answers are open".
  */
 export function answeringPatch(ed: EditionTiming, now: Date): EditionPatch {
-  const answersCloseAt = addDays(now, ANSWER_WINDOW_DAYS);
+  const answersCloseAt = deadlineIn(now, ANSWER_WINDOW_DAYS);
   return {
     status: "answering",
     answersCloseAt,
@@ -519,10 +564,10 @@ export function extendPhasePatch(ed: EditionTiming, days: number, now: Date): Ed
   const anchor = (t: Date | string | null | undefined): Date =>
     new Date(Math.max(ms(t) ?? now.getTime(), now.getTime()));
   if (ed.status === "collecting") {
-    return { questionsCloseAt: addDays(anchor(ed.questionsCloseAt), days) };
+    return { questionsCloseAt: deadlineIn(anchor(ed.questionsCloseAt), days) };
   }
   if (ed.status === "answering") {
-    const answersCloseAt = addDays(anchor(ed.answersCloseAt), days);
+    const answersCloseAt = deadlineIn(anchor(ed.answersCloseAt), days);
     return {
       answersCloseAt,
       remindersSent: withDailyBucket(ed.remindersSent, daysLeftUntil(answersCloseAt, now)),
@@ -588,6 +633,16 @@ export function shiftEditionPatch(
   resumedAt: Date
 ): EditionPatch {
   const patch: EditionPatch = {};
+  /* NOT snapped to the civil hour, deliberately, and this is the one place a
+     deadline is not. A resume credits back exactly the time the freeze took --
+     "paused with two days left, resumed with two days left" -- and rounding
+     forward to the next 07:00 hands the group up to a day it was not owed,
+     which breaks the one guarantee this function makes. The spec names the
+     three places that snap (answeringPatch, extendPhasePatch, the create
+     path); resume is not one of them. The cost is small and bounded: a
+     resumed deadline sits at an odd minute, and the Edition it belongs to
+     still lands on the next tick or the next page view, because a deadline
+     is a threshold rather than a scheduled moment. */
   const q = shiftPausedInstant(ed.questionsCloseAt, pausedAt, resumedAt);
   if (q) patch.questionsCloseAt = q;
   const a = shiftPausedInstant(ed.answersCloseAt, pausedAt, resumedAt);
@@ -598,14 +653,14 @@ export function shiftEditionPatch(
 /** No-questions extension: push the question window 3 days and set bit 3. */
 function questionsExtendPatch(ed: EditionTiming, now: Date): EditionPatch {
   return {
-    questionsCloseAt: addDays(now, EXTEND_DAYS),
+    questionsCloseAt: deadlineIn(now, EXTEND_DAYS),
     remindersSent: ed.remindersSent | REMINDER_QUESTIONS_EXTENDED,
   };
 }
 
 /** Too-few extension: push the answer window 3 days and set the extended bit. */
 export function extendPatch(ed: EditionTiming, now: Date): EditionPatch {
-  const answersCloseAt = addDays(now, EXTEND_DAYS);
+  const answersCloseAt = deadlineIn(now, EXTEND_DAYS);
   return {
     answersCloseAt,
     // Extended flag AND a fresh daily bucket: this transition already re-fires
