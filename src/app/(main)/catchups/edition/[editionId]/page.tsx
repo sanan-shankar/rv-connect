@@ -26,20 +26,16 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   advanceEdition,
+  catchupDisplayName,
   catchupSurfaceTitle,
   isMissingCatchupTable,
   type AdvanceEditionInput,
 } from "@/lib/catchups";
-import type {
-  CatchupPersonRef,
-  EditionStatus,
-} from "@/lib/catchups-types";
+import { promptKind, type EditionStatus } from "@/lib/catchups-types";
 import { loadPublishedEditionView } from "@/lib/catchups-edition-view";
 import { AlmostReady } from "@/components/catchups/almost-ready";
-import { EditionMasthead } from "@/components/catchups/edition/masthead";
-import { EditionTocRail, EditionTocChips, type TocItem } from "@/components/catchups/edition/toc";
-import { QuestionSection } from "@/components/catchups/edition/question-section";
-import { EditionFooterTease } from "@/components/catchups/edition/footer-tease";
+import { EditionReader } from "@/components/catchups/edition/reader";
+import type { ReaderQuestion } from "@/components/catchups/edition/reader-types";
 import { NotYetPublished } from "@/components/catchups/edition/not-yet-published";
 import { recordView } from "@/lib/content-view";
 import { markEditionRead } from "@/lib/catchup-reads";
@@ -201,63 +197,27 @@ export default async function EditionPage({
   // step by hand and had already stopped agreeing on.
   const view = await loadPublishedEditionView(edition.id, session.user.id);
   if (!view) notFound();
-  const { sections } = view;
 
-  const contributorMap = new Map<string, CatchupPersonRef>();
-  for (const section of sections) {
-    for (const entry of section.entries) {
-      if (!contributorMap.has(entry.author.id)) contributorMap.set(entry.author.id, entry.author);
-    }
-  }
-  const contributors = Array.from(contributorMap.values());
-
-  const tocItems: TocItem[] = sections.map((s, i) => ({
-    id: `q-${s.prompt.id}`,
-    label: `${i + 1}. ${s.prompt.text.length > 44 ? `${s.prompt.text.slice(0, 44).trimEnd()}...` : s.prompt.text}`,
+  /* The loader's shape, mapped to the reader's. Nothing is DECIDED here: who
+     may be named came out of `askerVisible` inside the loader and arrives as
+     `askerReading`, and a component that re-derived it is audit C-019, where
+     the home and this page came to disagree about anonymity. */
+  const questions: ReaderQuestion[] = view.sections.map(({ prompt, entries }) => ({
+    id: prompt.id,
+    text: prompt.text,
+    kind: promptKind(prompt.category),
+    asker: prompt.askerReading,
+    entries,
   }));
 
-  const catchupActive = edition.catchup.status === "active";
-
   return (
-    <div className="pb-4">
-      <EditionMasthead
-        title={title}
-        publishedAt={view.publishedAt}
-        contributors={contributors}
-      />
-
-      <EditionTocChips items={tocItems} className="mt-[var(--space-l)] lg:hidden" />
-
-      {sections.length === 0 ? (
-        <p className="mt-[var(--space-l)] text-center text-sm italic text-muted-foreground">
-          This Edition did not gather any questions.
-        </p>
-      ) : (
-        <div className="mt-[var(--space-l)] grid grid-cols-1 gap-x-[30px] gap-y-[var(--space-xl)] lg:grid-cols-[minmax(0,1fr)_220px]">
-          <div className="min-w-0 space-y-[var(--space-xl)]">
-            {sections.map((section, i) => (
-              <QuestionSection
-                key={section.prompt.id}
-                id={`q-${section.prompt.id}`}
-                index={i}
-                prompt={section.prompt}
-                entries={section.entries}
-              />
-            ))}
-          </div>
-          <aside className="hidden lg:block">
-            <div className="sticky top-7">
-              <EditionTocRail items={tocItems} />
-            </div>
-          </aside>
-        </div>
-      )}
-
-      <EditionFooterTease
-        catchupId={edition.catchupId}
-        nextOpensAt={edition.catchup.nextOpensAt}
-        showNextOpens={catchupActive}
-      />
-    </div>
+    <EditionReader
+      edition={{
+        catchupId: edition.catchupId,
+        catchupName: catchupDisplayName(edition.catchup.title, edition.catchup.group.name),
+        publishedAt: view.publishedAt ?? new Date(),
+        questions,
+      }}
+    />
   );
 }

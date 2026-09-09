@@ -32,14 +32,25 @@ import { prisma } from "@/lib/prisma";
 import { photoFactsFor } from "@/lib/image-record";
 import { askerVisible } from "@/lib/catchups-core";
 import type {
+  CatchupEntryView,
   CatchupPersonRef,
   CatchupPromptView,
   PromptCategory,
   PromptSource,
 } from "@/lib/catchups-types";
-import type { EditionEntry } from "@/components/catchups/edition/answer-card";
 import { batchLine, parseJsonArray } from "@/lib/utils";
 import { IDENTITY_SELECT } from "@/lib/people-select";
+
+/**
+ * One member's answer, as both readers receive it: the stored row plus the
+ * byline this app prints under a name everywhere else.
+ *
+ * It used to live in `edition/answer-card.tsx` and be imported back up here by
+ * the loader that produces it, which is upside down -- and it outlived that
+ * component, which build phase 8 deleted when the reader was rebuilt from the
+ * front runner. A type belongs with the function that makes one.
+ */
+export type EditionEntry = CatchupEntryView & { authorMeta: string };
 
 export type PublishedEditionView = {
   number: number;
@@ -154,6 +165,20 @@ export async function loadPublishedEditionView(
       // their account. The question stays in the Edition — it is what everyone
       // else answered — and the byline goes.
       asker: revealAsker && p.author ? toPersonRef(p.author) : null,
+      /* And the reading a page prints, decided here rather than in a
+         component, because `askerVisible` above is the only thing entitled to
+         say who may be named. `revealAsker` is true for a public question and
+         for your own anonymous one, so `showAsker` is what separates the two;
+         with neither, nobody is named and the page says the question was asked
+         anonymously, which is the cue a bare question was missing. */
+      askerReading:
+        revealAsker && p.author
+          ? p.showAsker
+            ? { kind: "named", id: p.author.id, name: p.author.name }
+            : { kind: "you-anonymous" }
+          : p.showAsker
+            ? null
+            : { kind: "anonymous" },
     };
     const entries: EditionEntry[] = p.entries.map((e) => {
       // The songUrl/songTitle/songArt trio is Spotify-shaped: `songTitle` is

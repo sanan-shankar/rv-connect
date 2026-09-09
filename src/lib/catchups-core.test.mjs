@@ -848,7 +848,16 @@ const CATCHUP_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 /* Files that DECIDE an asker, not files that merely declare the field: a
    ternary or a guard on the right of `asker:`. A type declaration reads
-   `asker: AnswerAsker | null;` and has nothing to get wrong. */
+   `asker: AnswerAsker | null;` and has nothing to get wrong.
+
+   THE MATCH STOPS AT A `;` OR A NEWLINE, which is what "on the right of
+   `asker:`" means and what this used to only approximate. It scanned 200
+   characters ahead for any `?`, so a props type written
+   `{ asker: ReaderAsker; className?: string }` was read as a decision because
+   of the OTHER field's optional marker -- and then any ternary later in the
+   file kept it flagged. A real decider has no `;` between the colon and its
+   `?` (`asker: reveal && p.author ? toPersonRef(p.author) : null,`), so
+   nothing this test is for stops being caught. */
 const askerSurfaces = execSync(
   "git grep -l 'asker:' -- src/app src/components ':!*.test.*'",
   { cwd: resolve(CATCHUP_ROOT, ".."), encoding: "utf8" }
@@ -856,7 +865,7 @@ const askerSurfaces = execSync(
   .split("\n")
   .filter(Boolean)
   .map((f) => [f, decomment(readFileSync(resolve(CATCHUP_ROOT, "..", f), "utf8"))])
-  .filter(([, src]) => /asker:[\s\S]{0,200}?[?]|asker:[^\n]*&&/.test(src));
+  .filter(([, src]) => /asker:[^;\n]{0,200}?[?]|asker:[^\n]*&&/.test(src));
 
 test("every surface that names an asker asks the one helper", () => {
   assert.ok(askerSurfaces.length > 0, "nothing renders an asker; retarget this test");

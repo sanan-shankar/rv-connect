@@ -116,6 +116,27 @@ export type CatchupSongView = {
   art: string | null;
 };
 
+/**
+ * Who to print under a question, already decided.
+ *
+ * A shape rather than a name because there are three cases and each one is a
+ * finding: a member who may be named; YOU, looking at a question you asked
+ * anonymously, where saying the word is what stops your own name reading like
+ * the anonymity having failed (audit M10); and a question asked anonymously by
+ * somebody else, where naming nobody at all left a reader to guess whether the
+ * asker was hidden or simply gone.
+ *
+ * It is resolved in `catchups-edition-view.ts`, on the same line as
+ * `askerVisible`, and never re-derived by a renderer. Two renderers deciding
+ * this for themselves is audit C-019, where the home and the permalink came to
+ * disagree about anonymity on these very pages.
+ */
+export type CatchupAskerReading =
+  | { kind: "named"; id: string; name: string }
+  | { kind: "you-anonymous" }
+  | { kind: "anonymous" }
+  | null;
+
 export type CatchupPromptView = {
   id: string;
   text: string;
@@ -131,6 +152,9 @@ export type CatchupPromptView = {
    *  The author always sees their own name; they are the only person who
    *  already knows. `askerVisible()` in catchups.ts is the one authority. */
   asker: CatchupPersonRef | null;
+  /** The same fact as `asker` and `showAsker` together, read out once so a
+   *  renderer never has to combine them. See CatchupAskerReading. */
+  askerReading: CatchupAskerReading;
 };
 
 export type CatchupEntryView = {

@@ -8,6 +8,74 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-10 — the reader is the front runner, and the bar hands over instead of blinking
+
+Build phase 8 of the Catch-ups rework. `/catchups/edition/[id]` is the front runner transplanted
+out of `/lab/catchups/sketches`, not re-derived: eight files deleted (the masthead, the table of
+contents, the question section, the answer card and its photographs, the footer tease, the Spotify
+card and the photo wall) and six written. The answers are quiet paper tiles at the feed's own sizes
+and the one bespoke object is the strip under the green bar, which is the navigator — navigator A,
+the only one left after N46.
+
+**The green bar carries the Catch-up's name on a phone**, and it is the way back up at every scroll
+depth (architecture 7, and the 44,381px of scrolling recon measured as the only way home). It
+arrives through a store rather than a prop because the bar lives in `Sidebar`, a SIBLING of the page
+in the `(main)` layout, and no prop can travel that path; `useLayoutEffect` sets it before paint, so
+a client navigation never shows the wordmark first.
+
+**The layout is chosen in CSS, which is the one place this departs from the room.** A room draws
+inside a fixed frame, so it picked between its three layouts in JavaScript from a prop. A page
+cannot: the server would render one of the three and the browser would paint it before swapping —
+on a laptop that is the phone layout, full-bleed, with a strip pinned under a bar that is not there.
+So every structural choice is a class and the server's single render is right at every width.
+JavaScript keeps only the two scroll offsets, which nothing paints.
+
+**Tailwind emits `md:` AFTER an arbitrary `min-[1180px]:`.** Measured: `h-16 md:h-[88px]
+min-[1180px]:h-0` computed to 88px at 1440 and put the page title 88px below the shell's own 40px
+gutter. Every three-way rule in the file bounds its middle range, and `reader-geometry.test.mjs`
+fails on any that does not — along with nine other pins between a constant and the class that
+mirrors it.
+
+**The two clamps swap, closing F41**: the docked question in the strip goes 3 → 2 lines, a row in
+the pull-down list goes unbounded → 3. The row's clamp sits on an inner span, because
+`overflow: hidden` clips at the padding box and the same rule one level up bleeds a band of the
+fourth line into the row beneath.
+
+**The photo wall ships as the RUN he picked** — one band, every photograph at its own width,
+bleeding off the right edge, one contributor's set 3px apart under a single name, no captions and
+no count line. **It has never rendered against real data and cannot**: `photo-wall` has been a
+question category since the feature was built and the live database holds zero prompts carrying it.
+So its arithmetic moved to `lib/photo-wall.ts` and `photo-wall.test.mjs` pins the part that can be
+wrong — the grouping, and that the viewer opens on the photograph that was touched. A guarded flip
+of a live prompt to see it once was attempted and correctly refused.
+
+**Eight notes from him while it was on screen**, all folded in the same session:
+
+- the names sat too far from the birds. Cause found by measuring: flushing a glyph's left edge
+  slides its right edge left too, so a bird sat **16px** from its name against a photograph's 12,
+  and the first fix returned only the right inset and closed half of it. What comes back is the box
+  minus the ink; both are **12** now.
+- the question heading's 26ch measure came off — *"summer goes onto the next line when there's
+  plenty of space. idk why that's fixed like that."*
+- on a laptop the strip now **fades in only past the first question**, never says the date, and
+  **hands over from question to question**. The blink between questions was one number doing two
+  jobs: the strip was labelled from the question you are READING, which changes a screen and a half
+  before its heading reaches the bar, so in that window nothing was docked and it fell back to the
+  date. It is labelled from the last heading that went UNDER the bar instead.
+- the 88px that held a place for that bar is gone with it — *"a massive gap above the title."*
+- the grabber pill under the list is deleted.
+- the panel's chrome no longer changes as it opens: the border used to flip instantly while the
+  height took 300ms, which is the *"outline that follows it a beat late."*
+- one clock instead of three. Height carries opacity, 260 in and 200 out, and the caret joins it.
+
+Measured at four widths: no horizontal overflow anywhere, the reading column **856 at 1512** (the
+room's own number), page margins 40 both sides at 1440, and the title at the shell's own gutter at
+every width. `npm run check` green, `npm run visual` 25/25 with no baseline moved.
+
+**Phase 8 leaves two things behind, both by design**: comments are phase 9 and the replies control
+is not drawn until there is something to open, and a link pasted into an answer's body is still
+printed as text until phase 10 resolves it.
+
 ## 2026-09-09 — the home becomes a place, and answering stops taking you away from it
 
 Build phase 7 of the Catch-ups rework. `/catchups/[id]` is rebuilt as a PLACE rather than a page
