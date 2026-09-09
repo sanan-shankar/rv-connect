@@ -682,7 +682,31 @@ export type RiverPage = {
    *  Only ever present on the first page of a seeked "taken" query. */
   above?: PhotoData[];
   bands?: BandCount[];
+  /** THE LAYOUT INDEX: every photograph in this query, in river order, as its
+   *  aspect ratio and the band it belongs to. Rides only on the first page,
+   *  like `bands`, because it cannot change while paging through one query.
+   *
+   *  This is what lets the river be its true height before a single
+   *  photograph is fetched. Justified row-breaking is arithmetic on aspect
+   *  ratios and a known column width (`drawnRows`), so with these the client
+   *  can compute the exact pixel height of every year it has not loaded, draw
+   *  the whole archive at full height from the first frame, and ask for the
+   *  photographs at the position the reader actually scrolled to -- instead of
+   *  growing the document under them and correcting the scroll afterwards,
+   *  which is a bug with no good setting (see the 2026-09-09 progress entry).
+   *
+   *  It is cheap enough that the argument is over before it starts: measured
+   *  on the real class archive, 1,718 photographs come to 20.6 KB of JSON and
+   *  1.3 KB gzipped, which is less than one 480px thumbnail. Ratios are
+   *  rounded to three decimals because that is a sub-pixel difference at any
+   *  column width this layout uses, and it halves the payload. */
+  shapes?: PhotoShapeIndex;
 };
+
+/** `[aspectRatio, bandKey]` per photograph, in the order the river draws them.
+ *  A tuple rather than an object: 1,718 of them, and `{"r":1.5,"b":"2019"}`
+ *  is four times the bytes of `[1.5,"2019"]` for the same two facts. */
+export type PhotoShapeIndex = [number, string][];
 
 export async function loadPhotos(
   opts?: RiverFilters & { cursor?: string | null; direction?: "newer" }
@@ -772,19 +796,43 @@ export async function loadPhotos(
   };
   const skip: number = cursor && "offset" in cursor ? cursor.offset : 0;
 
+  /* A PAGE OF WHOLE YEARS, in the order that draws years.
+   *
+   *  The river reserves each year at its computed height and only draws one
+   *  once it holds ALL of it (a year drawn from half its photographs is
+   *  shorter than its box, which moves the document). A page cut purely by
+   *  size ends mid-year, so its trailing year was discarded and immediately
+   *  re-fetched whole -- two round trips before the first screen could draw,
+   *  which is the pause and the late-arriving photographs on every scope and
+   *  bucket change: "it takes a second ... the photos don't appear smoothly,
+   *  they just come late and then suddenly turn on" (owner, 2026-09-10).
+   *
+   *  So the cut is moved to the next year boundary instead. Over-fetched in
+   *  ONE query rather than chased with a second, and bounded: a year larger
+   *  than the allowance is handed back as far as it goes and finished by
+   *  `loadBand` as before, which is the rare case rather than every page. */
+  const rounding = order === "taken" ? PAGE_SIZE * 4 : 0;
   const rows = await prisma.photo.findMany({
     where,
     include: includeFor(session.user.id),
     orderBy: orderByFor(order),
-    take: PAGE_SIZE + 1,
+    take: PAGE_SIZE + 1 + rounding,
     ...(skip ? { skip } : {}),
   });
 
-  const hasMore = rows.length > PAGE_SIZE;
-  const trimmed = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
+  let trimmed = rows.length > PAGE_SIZE ? rows.slice(0, PAGE_SIZE) : rows;
+  if (rounding > 0 && rows.length > PAGE_SIZE) {
+    const cut = bandKeyOf(rows[PAGE_SIZE - 1]);
+    let end = PAGE_SIZE;
+    while (end < rows.length && bandKeyOf(rows[end]) === cut) end += 1;
+    // `end === rows.length` means the year runs past the allowance; give what
+    // we have and let the client finish that one year the ordinary way.
+    trimmed = rows.slice(0, end);
+  }
+  const hasMore = rows.length > trimmed.length;
   const last = trimmed[trimmed.length - 1];
   const nextCursor =
-    hasMore && last ? encodeCursor(order, last, skip + PAGE_SIZE) : null;
+    hasMore && last ? encodeCursor(order, last, skip + trimmed.length) : null;
 
   const page: RiverPage = {
     photos: trimmed.map((p) => shape(p, session.user.id)),
@@ -842,9 +890,83 @@ export async function loadPhotos(
       tally.set(key, (tally.get(key) ?? 0) + g._count._all);
     }
     page.bands = [...tally].map(([key, count]) => ({ key, count }));
+
+    /* And the geometry, in the same order the river draws. One indexed read of
+       four small columns over the same `where` the tally just used; no joins,
+       no photographs, no URLs. See `PhotoShapeIndex` for why it is worth it. */
+    const geometry = await prisma.photo.findMany({
+      where: filters,
+      orderBy: orderByFor(order),
+      select: { width: true, height: true, photoYear: true, era: true },
+    });
+    page.shapes = geometry.map((g) => [
+      /* Guarded, because a zero height would be an Infinity that poisons every
+         row it lands in. Nothing in the archive is missing these (checked:
+         0 of 1,718), and a layout is not the place to find out otherwise. */
+      g.width > 0 && g.height > 0 ? Number((g.width / g.height).toFixed(3)) : 1,
+      bandKeyOf(g),
+    ]);
   }
 
   return page;
+}
+
+/**
+ * Every photograph of ONE year, which is how the river loads now.
+ *
+ * The cursor walk this sits beside answers "what comes after what I already
+ * have", and that is the wrong question for a reader who has just scrolled
+ * three decades in one flick: the pages arrive in order from wherever the
+ * river happened to end, so the year actually under their eye is the last
+ * thing to load. Asking for a POSITION instead is what the shape index makes
+ * possible -- the client knows the whole archive's geometry, so it knows the
+ * offset it is looking at is 1994 and can simply ask for 1994.
+ *
+ * A YEAR IS THE UNIT, deliberately. It divides the archive at the same seams
+ * the headings and the rail already use, so a band is either drawn or reserved
+ * and never half of each -- which is what keeps a photograph from shuffling
+ * within its year as the rest of the year arrives. The class archive averages
+ * about forty photographs a year, so this is a page-sized request in practice;
+ * `take` is a guard against the one year somebody uploads a thousand
+ * photographs into, not an expected path.
+ */
+export async function loadBand(
+  key: string,
+  opts?: RiverFilters
+): Promise<{ photos: PhotoData[] } | { error: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+  /* The same scope resolution the river itself does, and for the same reason:
+     entitlement is read off the row, never off the JWT, so a member who
+     verified an hour ago is not answered from a stale claim. Neither half
+     entitled means an empty answer, never an unscoped query. */
+  const viewer = opts?.scope === "class" ? await viewerFacts(session.user.id) : null;
+  const scopeWhere = photoScopeWhere(opts?.scope ?? "valley", {
+    id: session.user.id,
+    role: session.user.role,
+    verifyState: viewer?.verifyState,
+    batchYear: viewer?.batchYear,
+  });
+  if (!scopeWhere) return { photos: [] };
+  const filters = buildCollectionWhere(scopeWhere, opts);
+
+  /* The same arithmetic `bandSeekBoundary` uses, read as a half-open range:
+     a year owns every `takenKey` from YYYY00 up to the next year's. Undated
+     photographs carry 0, which is a real answer here rather than a missing
+     one (see `orderByFor`). */
+  const year = /^\d{4}$/.test(key) ? Number(key) : null;
+  const range =
+    year !== null
+      ? { takenKey: { gte: year * 100, lt: (year + 1) * 100 } }
+      : { takenKey: 0 };
+
+  const rows = await prisma.photo.findMany({
+    where: { ...filters, ...range },
+    orderBy: orderByFor("taken"),
+    take: 600,
+    include: includeFor(session.user.id),
+  });
+  return { photos: rows.map((p) => shape(p, session.user.id)) };
 }
 
 export async function togglePhotoLove(photoId: string) {

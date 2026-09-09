@@ -20,6 +20,7 @@ import { PhotoStream, type PhotoCell } from "@/components/common/photo-rows";
 import { bandKeyOf, bandLabel } from "@/lib/collection";
 import type { PhotoData, RiverOrder } from "@/app/(main)/collection/actions";
 import { cn } from "@/lib/utils";
+import type { BandBox } from "@/lib/river-geometry";
 import { preloadImageViewer } from "@/components/common/lazy-image-viewer";
 
 /** Scroll the document to `want`, LENGTHENING IT FIRST if it is too short
@@ -57,6 +58,10 @@ export function landAt(want: number, tail: HTMLElement | null) {
  *  and a wrong answer only costs one fade. */
 const seenThumbs = new Set<string>();
 
+/** One frozen empty list, so a reserved band does not hand <BandSection> a
+ *  fresh array every render and defeat its own memo. */
+const EMPTY: PhotoData[] = [];
+
 /** Decode the first screenful BEFORE the river swaps, so a new view arrives
  *  formed instead of assembling itself tile by tile -- the owner, on exactly
  *  that: "it's a full reloading and things populate unevenly, it's not
@@ -81,10 +86,13 @@ function TileInner({
   photo,
   cell,
   onOpen,
+  index,
 }: {
   photo: PhotoData;
   cell: PhotoCell;
   onOpen: () => void;
+  /** Position within its year, for the arrival stagger below. */
+  index: number;
 }) {
   return (
     <button
@@ -143,9 +151,31 @@ function TileInner({
            invisible tile. */
         ref={(el) => {
           if (!el) return;
-          if (el.complete || seenThumbs.has(el.src)) {
-            seenThumbs.add(el.src);
+          /* SEEN BEFORE: straight to visible, before first paint, so no
+             transition runs. That is the remount case and it must stay
+             instant -- a fade replayed every time a tile is rebuilt is the
+             blinking this latch was added to stop.
+
+             NEW, BUT ALREADY DECODED: fade it anyway, on the next frame.
+             This is the case the old code got wrong. `warmThumbs` decodes a
+             page before it mounts, so its tiles arrive `complete`, took this
+             branch, and were marked visible in the same frame they were
+             created -- opacity went 0 to 1 with no transition to run, and a
+             whole screenful did it at once. That is the "photos don't appear
+             smoothly, they just come late and then suddenly turn on" the
+             owner has reported since long before the archive was reserved
+             (2026-09-10). Setting the flag a frame later leaves the tile at
+             opacity 0 for one frame, which is what gives the transition
+             something to animate FROM. */
+          if (seenThumbs.has(el.src)) {
             el.dataset.loaded = "";
+            return;
+          }
+          if (el.complete) {
+            seenThumbs.add(el.src);
+            requestAnimationFrame(() => {
+              el.dataset.loaded = "";
+            });
           }
         }}
         onLoad={(e) => {
@@ -180,6 +210,20 @@ function TileInner({
            THE TRAP GENERALISES: any `transition-[...transform...]` in this
            codebase paired with a Tailwind v4 `scale-*`, `rotate-*` or
            `translate-*` utility is animating nothing. */
+        /* A WAVE, NOT A SWITCH. Every tile fading on the same frame reads as
+           the page being turned on rather than photographs arriving, and
+           that is true even when the fade itself is smooth. 22ms is a frame
+           and a half apart -- the smallest gap that reads as sequence rather
+           than simultaneity -- and it is CAPPED at ten tiles because the
+           delay is a grace note, not a queue: a year of two hundred
+           photographs must not take four seconds to appear, and only the
+           first screenful is ever watched arriving anyway.
+
+           Two delays, because there are two transitions on this element and
+           only one of them wants one: a hover that waited 200ms before
+           moving would feel broken. The list matches `transition-property`
+           below, in order. */
+        style={{ transitionDelay: `${Math.min(index, 10) * 22}ms, 0ms` }}
         className="h-full w-full object-cover opacity-0 transition-[opacity,scale] duration-300 ease-out data-[loaded]:opacity-100 group-hover:scale-[1.03] group-focus-visible:scale-[1.03]"
       />
       {!photo.approved && (
@@ -232,6 +276,7 @@ export const Tile = memo(
   (a, b) =>
     a.photo === b.photo &&
     a.onOpen === b.onOpen &&
+    a.index === b.index &&
     a.cell.aspectRatio === b.cell.aspectRatio &&
     a.cell.objectPosition === b.cell.objectPosition
 );
@@ -442,6 +487,8 @@ export function PhotoRiver({
   onOpen,
   dimmed = false,
   onActiveBandChange,
+  boxes,
+  onNeedBand,
   className,
 }: {
   photos: PhotoData[];
@@ -455,10 +502,30 @@ export function PhotoRiver({
    *  from scroll position, never from a filter (see `useActiveBand`). Fires
    *  only in "taken" order, where headings exist at all. */
   onActiveBandChange?: (era: string) => void;
+  /** THE WHOLE ARCHIVE'S GEOMETRY, when the caller has it: every year with
+   *  the exact height its photographs occupy, computed from the shape index.
+   *  Given these the river draws every year whether or not it has been
+   *  fetched, so the document is its full height from the first frame and no
+   *  page ever changes it. Absent -- /lab/collection, which filters an array
+   *  in memory -- the river falls back to drawing only what it holds. */
+  boxes?: BandBox[];
+  /** A reserved year has come within reach and its photographs are wanted. */
+  onNeedBand?: (key: string) => void;
   className?: string;
 }) {
   const bands = useMemo(() => bandsOf(photos, order), [photos, order]);
-  const headingRef = useActiveBand(bands, onActiveBandChange);
+  /* WHICH YEARS THE RAIL CAN LIGHT. With geometry every year is on the page,
+     including the ones whose photographs have not been fetched -- so the
+     reading has to consider all of them, not just the ones that happen to be
+     loaded. Otherwise scrolling to a year that is still reserved lights its
+     nearest loaded neighbour instead: measured, landing on 2019 lit 2020. */
+  const readable = useMemo(
+    () => (boxes && boxes.length > 0
+      ? boxes.map((b) => ({ key: b.key, id: b.key, photos: EMPTY }))
+      : bands),
+    [boxes, bands]
+  );
+  const headingRef = useActiveBand(readable, onActiveBandChange);
 
   /* ONE STABLE OPEN HANDLER PER PHOTOGRAPH, and without it neither memo below
      is worth anything: `onOpen={() => onOpen(photos.indexOf(p))}` built a new
@@ -472,6 +539,21 @@ export function PhotoRiver({
      honest while the callback itself stays the same object for the life of
      the tile. Same cache-a-callback-per-key shape as `useActiveBand` uses for
      the heading refs, for the same reason. */
+  /* The loaded photographs, filed by year, so a box can ask "do I have this
+     one" in constant time. Only built when the caller brought geometry;
+     otherwise the river draws its flat list exactly as it always did. */
+  const byBand = useMemo(() => {
+    const m = new Map<string, Band>();
+    if (!boxes || boxes.length === 0) return m;
+    for (const p of photos) {
+      const key = bandKeyOf(p);
+      const at = m.get(key);
+      if (at) at.photos.push(p);
+      else m.set(key, { key, id: key, photos: [p] });
+    }
+    return m;
+  }, [photos, boxes]);
+
   const latest = useRef({ photos, onOpen });
   /* In an effect rather than in the render body: writing a ref while
      rendering is the lint rule `react-hooks/refs` and it is right to complain.
@@ -493,6 +575,32 @@ export function PhotoRiver({
     return fn;
   }, []);
 
+  /* ASK FOR WHAT THE READER IS LOOKING AT, not for what comes next.
+     One observer over every reserved year. The cursor walk this replaces
+     could only ever fetch the page adjacent to what it already held, so a
+     reader who flicked through three decades got those decades in order from
+     wherever the river happened to end -- the year under their eye last. A
+     reserved box knows which year it IS, so reaching one asks for that year.
+
+     A screen and a half of warning, which is the same runway the foot
+     sentinel always used; the difference is that missing the runway now costs
+     a year that fills in late rather than a scroll correction. */
+  useEffect(() => {
+    if (!onNeedBand || !boxes || boxes.length === 0) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          const key = (e.target as HTMLElement).dataset.reserved;
+          if (key) onNeedBand(key);
+        }
+      },
+      { rootMargin: "1200px 0px" }
+    );
+    for (const el of document.querySelectorAll("[data-reserved]")) io.observe(el);
+    return () => io.disconnect();
+  }, [boxes, byBand, onNeedBand]);
+
   return (
     /* The cross-fade. Changing a bucket dims the river the moment the query
        changes and brings the new one up when it lands, so the change reads as
@@ -511,15 +619,39 @@ export function PhotoRiver({
         className
       )}
     >
-      {bands.map((band, bi) => (
-        <BandSection
-          key={band.id}
-          band={band}
-          first={bi === 0}
-          headingRef={headingRef(band.key)}
-          openerFor={openerFor}
-        />
-      ))}
+      {(boxes ?? []).length > 0
+        ? boxes!.map((box, bi) => {
+            /* COMPLETE, or reserved. A year drawn from SOME of its
+               photographs is shorter than the box computed for all of them,
+               so admitting a half-filled year is the document changing height
+               under the reader by the back door -- and pages are cut by size,
+               not by year, so the first page almost always ends mid-year.
+               Measured: pressing 2017 landed 5,513px short because the year
+               above it was drawn from a partial page and then grew when the
+               rest arrived. A year is therefore either all here or none of
+               it, which is also what makes `loadBand` fetch whole years. */
+            const got = byBand.get(box.key);
+            const complete = got != null && got.photos.length === box.count;
+            return (
+              <BandSection
+                key={box.key}
+                band={complete ? got : { key: box.key, id: box.key, photos: EMPTY }}
+                first={bi === 0}
+                headingRef={headingRef(box.key)}
+                openerFor={openerFor}
+                reserved={complete ? undefined : box.gridHeight}
+              />
+            );
+          })
+        : bands.map((band, bi) => (
+            <BandSection
+              key={band.id}
+              band={band}
+              first={bi === 0}
+              headingRef={headingRef(band.key)}
+              openerFor={openerFor}
+            />
+          ))}
     </div>
   );
 }
@@ -547,11 +679,15 @@ const BandSection = memo(
     first,
     headingRef,
     openerFor,
+    reserved,
   }: {
     band: Band;
     first: boolean;
     headingRef: (el: HTMLElement | null) => void;
     openerFor: (id: string) => () => void;
+    /** When set, this year's photographs have not been fetched and the box
+     *  stands in for them at exactly the height they will occupy. */
+    reserved?: number;
   }) {
     return (
         /* NO `content-visibility` WINDOWING, any more, and it was removed for
@@ -605,15 +741,30 @@ const BandSection = memo(
               between the photos" (owner, 2026-09-09). Passed here rather
               than changed in <PhotoStream>, whose default still belongs to
               the Catch-up photo wall. */}
-          <PhotoStream photos={band.photos} keyOf={(p) => p.id} gap={4} className="mb-3">
-            {(p, _i, cell) => <Tile photo={p} cell={cell} onOpen={openerFor(p.id)} />}
-          </PhotoStream>
+          {reserved != null ? (
+            /* THE YEAR, AT ITS TRUE HEIGHT, WITHOUT ITS PHOTOGRAPHS.
+               Not a placeholder and not a guess: `river-geometry.ts` solves
+               the same justified rows the browser will, from aspect ratios
+               that rode back with the first page, and agrees with what is
+               actually drawn to within half a pixel across both viewports.
+               So when this year's photographs arrive they replace exactly
+               their own height and NOTHING on the page moves -- which is the
+               whole point, because every glitch the owner has reported for
+               three sessions happened at the moment a scroll correction ran.
+               There is no correction any more; there is nothing to correct. */
+            <div style={{ height: reserved }} className="mb-3" data-reserved={band.key} />
+          ) : (
+            <PhotoStream photos={band.photos} keyOf={(p) => p.id} gap={4} className="mb-3">
+              {(p, i, cell) => <Tile photo={p} cell={cell} index={i} onOpen={openerFor(p.id)} />}
+            </PhotoStream>
+          )}
         </section>
     );
   },
   (a, b) =>
     a.band.id === b.band.id &&
     a.first === b.first &&
+    a.reserved === b.reserved &&
     a.headingRef === b.headingRef &&
     a.openerFor === b.openerFor &&
     a.band.photos.length === b.band.photos.length &&
