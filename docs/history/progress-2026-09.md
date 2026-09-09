@@ -5587,4 +5587,38 @@ the correction system entirely. Exact heights also make `content-visibility` saf
 windows the river — and that is the answer to the last symptom he reported, individual tiles
 flashing white on the way up, which is Chrome evicting decoded bitmaps when 900+ images are live.
 
+**Two shortcuts tried and REVERTED, recorded so nobody spends a day on them again.** Both aimed at
+the last symptom -- flick upward fast from a seek and you meet the page title, then get pushed back
+down -- and both were built, measured against the real archive at 4x throttle, and thrown away.
+
+1. *Reserve the true height of everything above, as one block.* From `bands`, which already carries
+   a count for every year, at the river's own measured height-per-photograph. It works on its own
+   terms: landing is correct (the 2017 heading lands 105px down), zero jumps, and the reader never
+   meets the title. It is still useless. Pages fill in at the BOTTOM of that block, beside the
+   river, so climbing thirty thousand pixels leaves you in blank paper: **0 photographs in the
+   viewport** after 20 flicks. One opaque spacer cannot say WHICH photographs belong at the position
+   you scrolled to, so nothing can know what to load.
+
+2. *Cap that reservation at a 2.5-screen runway and refill it on every arrival* -- always taller
+   than one flick, always inside the head sentinel's 3000px reach, so climbing into it is always
+   already fetching. A treadmill. The reader outruns it: a 1400px flick every 110ms spends about
+   12,700px/sec and one page is ~3,800px per round trip. **20 of 25 flicks landed on empty paper**,
+   with 6 ceiling hits and 6 jumps -- worse than doing nothing.
+
+The lesson both teach is the same and it is worth stating plainly: **without per-year positioning
+you can either show blank paper or teleport the reader, and there is no third option.** Reserving
+space you cannot fill in time is blank paper; not reserving it is the teleport. Three sessions have
+now been spent tuning the dials between those two, and the dials do not have a good setting.
+
+So the next session builds the real thing, and should not try a fourth variation on the anchor. The
+river's state stops being one contiguous array and becomes a map of band -> (loaded photographs OR a
+reserved height), every year drawn at its own computed height whether or not its photographs are
+there. The loader then fetches BY POSITION rather than by walking pages: at document position Y the
+band boxes say that is 1994, so it asks for 1994, which the server already does -- `?when=` seek is
+exactly that query. Aspect ratios for the arithmetic are already in the database, and `drawnRows` in
+photo-layout.ts already solves row breaks and heights and mirrors flexbox. Exact heights also make
+`content-visibility` safe again, which windows the river and answers the last unexplained symptom:
+individual tiles flashing white on the way up, which is Chrome evicting decoded bitmaps once 900+
+images are live in the DOM.
+
 `npm run check` clean, 112/112. `npm run visual` 25/25. Verified at 1440x900 and 390x844.
