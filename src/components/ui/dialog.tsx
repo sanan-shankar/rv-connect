@@ -28,6 +28,14 @@ function DialogPortal({ ...props }: DialogPrimitive.Portal.Props) {
  * entering a beat (80ms) after the backdrop on a spring-ish curve; the exit
  * runs immediately (no delay) so closing never lags. Every dialog in the app
  * comes through this file - divergence is a bug, not a choice. */
+/** The modal scrim, as a class, so nothing outside this file has to write
+ *  the hex again. `ui/sheet.tsx` is the edge-anchored variant of this
+ *  material and the Catch-up settings sheet is a hand-driven one (it reads
+ *  its own touch events, so it cannot use Base UI's backdrop) -- all three
+ *  are the same wash, and the protocol audit fails a raw hex in production
+ *  code precisely so it stays that way. */
+export const MODAL_SCRIM = "bg-[#241a12]/55"
+
 function DialogOverlay({
   className,
   ...props
@@ -36,7 +44,7 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-[#241a12]/55 backdrop-blur-md opacity-100 transition-[opacity] duration-[220ms] ease-out-smooth data-starting-style:opacity-0 data-ending-style:opacity-0 data-closed:opacity-0 data-closed:duration-[180ms]",
+        `fixed inset-0 isolate z-50 ${MODAL_SCRIM} backdrop-blur-md opacity-100 transition-[opacity] duration-[220ms] ease-out-smooth data-starting-style:opacity-0 data-ending-style:opacity-0 data-closed:opacity-0 data-closed:duration-[180ms]`,
         className
       )}
       {...props}

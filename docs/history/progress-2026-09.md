@@ -8,6 +8,54 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-09 — the home becomes a place, and answering stops taking you away from it
+
+Build phase 7 of the Catch-ups rework. `/catchups/[id]` is rebuilt as a PLACE rather than a page
+that reshapes itself, which is his own framing: *"is there a home page that you then keep
+navigating from to do things like answer or whatever, or does the home page transform into
+something each time. I think the answer being its own page is good."*
+
+Four regions, always in the same spot. The **head** is the picture with the name written on it and
+People and Settings as two doors on it — 240px on a laptop and 172 on a phone, a HEIGHT and never a
+ratio, so a wider screen shows more photograph rather than a thinner slice. The **Edition region**
+draws exactly one thing per state. The **state line** sits under it, right-aligned. The **sidebar**
+is the back numbers as covers and nothing else.
+
+**Answering moved onto it**, his N77: *"it doesn't make sense to have the collecting in the home
+screen and then the answering takes you away from it."* The composer keeps every audited invariant
+— the per-prompt save queue, the row-version guard, the failed-save status — and loses its 272px
+rail for the drawn marks, which are now buttons to each question rather than a read-only bar
+(*"I can't really navigate between questions while answering them"*). Skip for now is gone
+(*"skip for now is same as next"*) and Back moved beside Next. `/catchups/[id]/answer` is a
+permanent 308, and a dated migration rewrites the twelve `Notification.link` rows that point at it
+— not cosmetic, because the daily reminder de-duplicates itself by matching on that link, so a
+stale row would have left a member a permanent reminder beside every new one.
+
+**One representation of a published Edition.** The sidebar and the Edition region both draw
+`EditionCoverCard`, the same component `/catchups` uses. That is brief 13 and 39 answered in an
+import rather than a fourth drawing.
+
+**Thirteen files deleted**, including the 733-line people panel he called *"done so badly"*. Its
+three verbs — add someone, remove a member, make a Keeper — came with it onto the People door,
+which a test caught me dropping: deleting the panel took the last alumni-only people search with
+it, so a Keeper had no way left to add anybody.
+
+**Measured at 1440**: no horizontal overflow, rail 318 wide, page margins **40 left and 40 right**
+where they were 40 and 148 (*"the margin on the right is so much bigger than the margin on the
+left. That makes no sense."*), and the sidebar's first cover top-aligns with the main column's
+first tile at y=304. `npm run check` 113/113, `npm run visual` 25/25 with no baseline moved.
+
+**Three faults found by looking rather than reasoning.** An ended Catch-up's only published Edition
+was drawn nowhere — the region skips it and the sidebar excluded it as "the latest" — so it was
+unreachable from its own home. And both dialogs opened with their first row focused and tinted: on
+the settings panel that row was "Open answering", the one control that cannot be undone, looking
+armed.
+
+**Also in this session**: `renameCatchup`, which had never existed, refusing a batch Catch-up
+through the same preamble as every other Catch-up-level control; the `/catchups` list reading a
+Catch-up's own name instead of its group's, found by a review and then read in the file; and a
+`sharp` advisory that was blocking every commit in the repo, patched and installed.
+
 ## 2026-09-09 — a wall is not a contact sheet: the photo wall drawn three ways, and he picked the run
 
 `photo-wall` has been a question kind since Catch-ups was built and had never been drawn. It is

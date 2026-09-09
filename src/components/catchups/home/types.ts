@@ -17,6 +17,9 @@
 
 import type { Cadence, CatchupStatus, EditionStatus, ReminderMode } from "@/lib/catchups-types";
 import type { CatchupPromptSet } from "@/lib/catchups-core";
+import type { ListEdition } from "@/components/catchups/index/edition-cover-card";
+import type { AnswerPromptData } from "@/components/catchups/answer/types";
+import type { SettingsCatchup } from "@/components/catchups/settings/types";
 
 export type HomePersonRef = {
   id: string;
@@ -66,14 +69,13 @@ export type HomeEditionView = {
   answeredAuthorIds: string[];
 };
 
-export type HomeArchiveRow = {
-  editionId: string;
-  number: number;
-  publishedAt: string | null;
-  contributorCount: number;
-  /** A one-line teaser pulled from the most-loved answer, or null when the Edition has none. */
-  teaser: string | null;
-};
+/* `HomeArchiveRow` is gone. It carried an Edition NUMBER, a contributor
+   COUNT and a quoted TEASER, and he deleted all three: "Why do we need to
+   have the round 4?", R32 on counts, and the whole of "Fresh off the press"
+   for the teaser rail. What replaces it is `ListEdition` -- the cover the
+   /catchups list already draws -- so a published Edition has ONE
+   representation in this app rather than "15 different ways in 15 different
+   places" (brief 13, 39). */
 
 export type CatchupHomeData = {
   catchupId: string;
@@ -117,8 +119,21 @@ export type CatchupHomeData = {
   };
   /** The latest Edition, or null for the near-impossible edge of a Catchup with none yet. */
   edition: HomeEditionView | null;
-  /** Every published Edition, most recent first (spec 3.7, "vellum spines on a shelf"). */
-  archive: HomeArchiveRow[];
+  /** The latest Edition as a COVER, when it has published. This is what the
+   *  Edition region draws in the `published` state. */
+  latest: ListEdition | null;
+  /** The published Editions that are not `latest`, newest first: the sidebar. */
+  earlier: ListEdition[];
+  /** One line under the Edition region, right-aligned, or null when the thing
+   *  above it already says everything (collecting, and anything on hold). */
+  stateLine: string | null;
+  /** The questions to answer, loaded only while the Edition is `answering`.
+   *  Empty otherwise, so the composer is never handed a stale set. */
+  answering: AnswerPromptData[];
+  /** What the Settings door needs. Built server-side beside the permissions it
+   *  reports, so this screen and the actions behind it cannot disagree about
+   *  who may run what. */
+  settings: SettingsCatchup;
   /** The built-in question library, threaded down once from the server (`CATCHUP_PROMPT_SETS`). */
   promptLibrary: CatchupPromptSet[];
 };

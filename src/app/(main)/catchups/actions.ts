@@ -1427,12 +1427,15 @@ export async function extendDeadline(editionId: string, days: number) {
     // daily reminder writes an accurate one on its next pass.
     if (edition.status === "answering") {
       await prisma.notification.deleteMany({
-        where: { type: "catchup_reminder", link: `/catchups/${edition.catchupId}/answer` },
+        /* Matches what `notifyReminder` now writes: the home, since answering
+           moved onto it in build phase 7. A stale reminder still pointing at
+           `/catchups/<id>/answer` is left alone by this delete and cleared by
+           the dated migration instead. */
+        where: { type: "catchup_reminder", link: `/catchups/${edition.catchupId}` },
       });
     }
 
     revalidatePath(`/catchups/${edition.catchupId}`);
-    revalidatePath(`/catchups/${edition.catchupId}/answer`);
     return {
       success: true as const,
       days: parsedDays.data,
@@ -1628,12 +1631,12 @@ export async function submitEntry(input: {
      * The `promptId_authorId` unique makes a second delete a no-op. */
     if (!entry.body && !entry.images && !entry.songUrl) {
       await prisma.catchupEntry.deleteMany({ where: { id: entry.id } });
-      revalidatePath(`/catchups/${edition.catchupId}/answer`);
+      revalidatePath(`/catchups/${edition.catchupId}`);
       // No row, so no version: the next save creates one afresh.
       return { success: true, entryId: null, updatedAt: null, songWarning };
     }
 
-    revalidatePath(`/catchups/${edition.catchupId}/answer`);
+    revalidatePath(`/catchups/${edition.catchupId}`);
     /* The new version, so the surface that just saved can hold it and keep
        saving; without this every save after the first would look stale. */
     return {

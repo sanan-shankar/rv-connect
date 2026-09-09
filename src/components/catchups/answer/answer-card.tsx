@@ -18,6 +18,7 @@
  * ------------------------------------------------------------------ */
 
 import { useRef, useState } from "react";
+import { ChevronLeft } from "lucide-react";
 import { FIELD_FOCUS_WITHIN } from "@/components/ui/field-focus";
 import Link from "next/link";
 import { BirdAvatar } from "@/components/common/bird-avatar";
@@ -63,15 +64,18 @@ export function AnswerCard({
     onBodyBlur(value);
   }
 
-  const hasContent =
-    prompt.kind === "photo" ? entry.images.length > 0 : Boolean(body.trim() || entry.images.length);
-  // The primary pill is always "Next"/"Share": the empty first frame should
-  // invite an answer, not lead with an exit. It disables until there is
-  // something to carry forward, and "Skip for now" stays beside it.
+  /* The primary pill is always "Next"/"Share", and it is never disabled.
+     It used to disable until the question had something in it, with "Skip for
+     now" beside it as the way past an empty one; he deleted that -- "skip for
+     now is same as next" -- so the one pill has to do both jobs. */
   const advanceLabel = isLast ? "Share" : "Next";
 
   return (
-    <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)] sm:p-[var(--space-l)]">
+    /* NO CARD OF ITS OWN. The answering region IS one card, and it is
+       drawn by <AnswerExperience> so that the question marks sit inside it
+       above the question. This used to carry the frame itself, which put a
+       card inside a card the moment answering moved onto the home. */
+    <div>
       <h2 className="max-w-lg font-heading text-[1.35rem] font-bold leading-[1.25] tracking-[-0.02em] text-foreground sm:text-[1.55rem]">
         {prompt.text}
       </h2>
@@ -133,13 +137,21 @@ export function AnswerCard({
         )}
       </div>
 
-      <div className="mt-[var(--space-m)] flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-[var(--space-m)]">
-        <div className="flex items-center gap-3">
-          {position > 1 && (
-            <Button type="button" variant="ghost" size="sm" onClick={onBack}>
-              Back
-            </Button>
-          )}
+      {/* ONE LINE, AND NO RULE ABOVE IT, which is his own edit to this
+          composer: "I would remove that horizontal line under add a photo and
+          just move the skip for now and share above, on the same line."
+
+          BACK SITS WITH NEXT, not out by the photograph: "in answering have
+          the back button near the next button not near the photo button."
+          They are one pair -- the way through the Edition -- and a control's
+          neighbours are what say what it does.
+
+          AND THERE IS NO "SKIP FOR NOW": "remove skip for now. just have next.
+          skip for now is same as next." It is: neither writes anything and
+          both move you on. Next is no longer disabled on an empty question,
+          because it is now the only way past one. */}
+      <div className="mt-[var(--space-m)] flex flex-wrap items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           {saveStatus !== "idle" && (
             /* A failed save says so, in the destructive red, and stays said.
                It used to fall back to "idle", which renders nothing at all, so
@@ -162,23 +174,17 @@ export function AnswerCard({
           )}
         </div>
 
-        <div className="flex items-center gap-4">
-          {!hasContent && (
-            <button
-              type="button"
-              onClick={() => {
-                flushBody();
-                onAdvance();
-              }}
-              className="rounded-sm text-sm font-medium text-muted-foreground hover:text-foreground hover:underline active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-              Skip for now
-            </button>
+        <div className="ml-auto flex items-center gap-1.5">
+          {position > 1 && (
+            <Button type="button" variant="ghost" size="sm" onClick={onBack} aria-label="The question before">
+              <ChevronLeft className="h-4 w-4" />
+              Back
+            </Button>
           )}
           <Button
             type="button"
             variant="primary"
-            disabled={!hasContent}
+            size="sm"
             onClick={() => {
               flushBody();
               onAdvance();

@@ -33,7 +33,6 @@ import {
   planNextAction,
   addCadenceGap,
   answerReminderMessage,
-  answersCloseSentence,
   valleyDaysLeft,
   addDays,
   deadlineIn,
@@ -902,20 +901,16 @@ test("C-141: the countdown, the page sentence and the bell agree, hour by hour",
     const now = new Date(CLOSE.getTime() - h * 3_600_000);
     const days = valleyDaysLeft(CLOSE, now);
     const label = editionCountdownLabel({ status: "answering", answersCloseAt: CLOSE }, now);
-    const page = answersCloseSentence(CLOSE, now);
     const bell = answerReminderMessage("Batch of '23", CLOSE, now);
 
     if (days === 0) {
       assert.equal(label, "last day", `${now.toISOString()}`);
-      assert.equal(page, "Answers close today.");
       assert.match(bell, /^Last day to answer/);
     } else if (days === 1) {
       assert.equal(label, "closes tomorrow");
-      assert.equal(page, "Answers close tomorrow.");
       assert.match(bell, /^Answers close tomorrow/);
     } else {
       assert.equal(label, `${days} days left`);
-      assert.equal(page, `Answers close in ${days} days.`);
       assert.match(bell, new RegExp(`^${days} days left`));
     }
   }
@@ -933,10 +928,19 @@ test("C-031: 'last day' means the day it closes, not the day before", () => {
   // as "last day" too, but only by accident of the same threshold.
   const justAfterValleyMidnight = iso("2026-06-14T19:00:00.000Z");
   assert.equal(valleyDaysLeft(CLOSE, justAfterValleyMidnight), 0);
-  assert.equal(answersCloseSentence(CLOSE, justAfterValleyMidnight), "Answers close today.");
+  /* Said through the bell, which is the only countdown left in the app: the
+     answering page's own sentence went with build phase 7, when answering
+     moved onto the home and the deadline there became a date. */
+  assert.match(
+    answerReminderMessage("Batch of '23", CLOSE, justAfterValleyMidnight),
+    /^Last day to answer/
+  );
   // Past it: a transition, not a countdown.
   assert.equal(valleyDaysLeft(CLOSE, iso("2026-06-15T03:00:00.000Z")), null);
-  assert.equal(answersCloseSentence(CLOSE, iso("2026-06-15T03:00:00.000Z")), "Answers are closing.");
+  assert.equal(
+    editionCountdownLabel({ status: "answering", answersCloseAt: CLOSE }, iso("2026-06-15T03:00:00.000Z")),
+    "closing"
+  );
 });
 
 test("C-141: the reminder BUCKET still counts 24-hour blocks", () => {
@@ -951,14 +955,22 @@ test("C-141: the reminder BUCKET still counts 24-hour blocks", () => {
 });
 
 test("C-141: nothing prints a countdown from a raw millisecond gap any more", () => {
-  // The answer page and the bell both take their words from the shared pair.
-  assert.match(
-    read("src/app/(main)/catchups/[catchupId]/answer/page.tsx"),
-    /return answersCloseSentence\(at, new Date\(\)\);/
-  );
+  /* There is ONE countdown left in the app, and it is the bell's. The
+     answering page had the other one; build phase 7 moved answering onto the
+     Catch-up's home, where the deadline is a DATE rather than a count of days
+     ("Answers close Thursday 20 August"), so the two surfaces C-141 caught
+     disagreeing can no longer phrase the same instant two ways. */
   assert.match(read("src/lib/catchups-notify.ts"), /answerReminderMessage\(ctx\.groupName, ctx\.closesAt/);
   // ...and the deadline actually reaches the bell.
   assert.match(read("src/lib/catchups.ts"), /closesAt: before\.answersCloseAt,/);
+  /* The home's line comes off the same column, through the one helper, so it
+     cannot start counting for itself. */
+  const home = read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx");
+  assert.match(home, /homeStateLine\(/, "the home no longer uses the shared state-line helper");
+  assert.ok(
+    !/answersCloseSentence/.test(home),
+    "the deleted countdown sentence is back on the answering surface"
+  );
 });
 
 test("C-182: a photo removed mid-upload is not resurrected when the upload lands", () => {
