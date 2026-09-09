@@ -36,6 +36,7 @@ import { useAdminCounts } from "@/components/admin/admin-counts";
 import { NotificationBell } from "./notification-bell";
 import { Wordmark } from "./peaks-mark";
 import { SidebarHoopoe } from "@/components/mascot/sidebar-hoopoe";
+import { useAppBarTitle } from "./app-bar-title";
 import { LogoEasterEgg } from "@/components/mascot/moments/logo-easter-egg-hoopoe";
 
 export interface SidebarUser {
@@ -596,6 +597,7 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const barTitle = useAppBarTitle();
   const inAdmin = user.role === "admin" && isAdminRoute(pathname);
   /* Read once and passed to both, so the desktop rail and the mobile drawer
      cannot come to disagree about who sees Catch-ups.
@@ -777,7 +779,22 @@ export function Sidebar({
             </div>
           </SheetContent>
         </Sheet>
-        <Brand className="min-w-0 flex-1" />
+        {/* The wordmark, unless the page underneath has a better name for
+            where you are. Only the Edition reader does: it puts the
+            Catch-up's name here and makes it the way back up, at every
+            scroll depth (architecture 7). See app-bar-title.tsx for why the
+            name arrives through a store rather than a prop. */}
+        {barTitle ? (
+          <Link
+            href={barTitle.href}
+            aria-label={`${barTitle.title}, back to the Catch-up`}
+            className="ml-0.5 min-w-0 flex-1 truncate rounded-xl py-1 text-left font-heading text-[17px] leading-none text-sidebar-foreground transition-[opacity,transform] duration-150 hover:opacity-80 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring"
+          >
+            {barTitle.title}
+          </Link>
+        ) : (
+          <Brand className="min-w-0 flex-1" />
+        )}
         {/* /feed renders its own PageHeader bell at every width (the
             preferred entry point), so skip this one there to avoid a
             duplicate. Every other route has no header bell of its own, so
