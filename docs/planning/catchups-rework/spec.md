@@ -651,7 +651,17 @@ opening a year later — what you hope is different, what you are afraid of, whe
 be living. A time capsule full of "best thing you ate this month" is a wasted year. `features.md` §2
 has the shape of the library; this is a set within it.
 
-### 3.13 OPEN — reading before you have written, and it is one sentence from him
+### 3.13 CLOSED 2026-09-09 — reading before you have written: **(a)**, nothing is built
+
+**He answered at the top of build phase 7, and he chose the reading this section argued against:**
+
+> *"no I wanted todays behaviour only. it's only readable once the edition is out"*
+
+So: nothing is readable until an Edition is published, and then it is open to every member whether
+they wrote or not. **Phase 7 does not carry a read-during-answering window and phase 8 carries only
+the half that is already true.** (b) is DECLINED rather than deferred; a later session must not
+re-propose it, because the case for it below was this campaign's and never his. The rest of this
+section is kept as the record of what was asked and why the guess would have been wrong.
 
 His words, and they need a reading rather than a transcription:
 
@@ -931,8 +941,8 @@ in it.
 | **4** | **The batch Catch-up** — **DONE 2026-09-08** | two created (2023 and 2024, the only batches at ten); `createdById` and `inviteToken` NULL on both; the 2024 snapshot adopted after an assertion, keeping its Edition; `joinBatchGroup` moved to `src/lib/batch-catchups.ts` and now ensures the Catch-up; the tick's two self-heals, on the CRON sweep only; both Keeper preambles and both exits refuse a batch; the sidebar item hidden when you have no Catch-up to open. **Measured: 51 of 70 members now see Catch-ups, 15 lose the row.** No schema change | `2026-09-08-batch-catchups.sql`, applied to both: 1 membership healed, 1 re-point, 1 Catch-up, 1 Edition on production; a clean no-op on the demo |
 | **5** | **Leaving, and the read mark** — **DONE 2026-09-08** | `setCatchupDeleted`, the 30-day bin, its retention sweep, its shelf and `restoreOwnCatchupCopy` all deleted; `leaveCatchup` the only exit and the only holder of the batch refusal; Delete became **Leave** on the list. `CatchupEditionRead` is a table of its own rather than a read of `ContentView` (the analytics counter, no FK on `targetId`, written before the reader knows the status), written past the published gate. **Nothing draws the mark yet; phase 6 does.** `deletedAt` the COLUMN waits for phase 11 | `2026-09-08-leaving-and-the-read-mark.sql`, applied to both: 0 rows moved on each (counted first), the index dropped, the read table created |
 | **6** | **The list** | `/catchups` rebuilt from `_list.tsx`, including the spare slots (§5) and the archived row | none |
-| **7** | **The home** | `/catchups/[id]` rebuilt from `_home.tsx`: the head and its two doors, the Edition region per state, the state line, the sidebar of back numbers, the people dialog and sheet, the settings list. Answering moves onto the page; `/answer` deleted and redirected. **Carries §3.13 if he confirms reading (b)**: during answering you can read what has arrived, but only once you have written | none |
-| **8** | **The reader** | the front runner transplanted; navigator A; the rebuilt magnification; **the two clamps** (§4.3, which closes F41); **N11, the title, decided**; **the photo wall's reading surface, which is a RUN** (§10.1, picked by him 2026-09-09 off `/lab/catchups/wall`): transplant `Run` from `src/app/lab/catchups/wall/_shapes.tsx`, keyed off `promptKind(category) === "photo"`, with no captions and no count line, and `_corpus.ts` staying behind. **Carries §3.13's other half, which is already true and must stay true: a PUBLISHED Edition is open to every member whether they wrote or not** | none |
+| **7** | **The home** | `/catchups/[id]` rebuilt from `_home.tsx`: the head and its two doors, the Edition region per state, the state line, the sidebar of back numbers, the people dialog and sheet, the settings list. Answering moves onto the page; `/answer` deleted and redirected. **§3.13 is CLOSED as (a), 2026-09-09: there is no read-during-answering window and nothing here builds one** | none |
+| **8** | **The reader** | the front runner transplanted; navigator A; the rebuilt magnification; **the two clamps** (§4.3, which closes F41); **N11, the title, decided**; **the photo wall's reading surface, which is a RUN** (§10.1, picked by him 2026-09-09 off `/lab/catchups/wall`): transplant `Run` from `src/app/lab/catchups/wall/_shapes.tsx`, keyed off `promptKind(category) === "photo"`, with no captions and no count line, and `_corpus.ts` staying behind. **Carries §3.13, now CLOSED as (a): a PUBLISHED Edition is open to every member whether they wrote or not, which is already true and must stay true. Nothing is readable before publication** | none |
 | **9** | **Comments** | the widened `Comment`, the five actions, `comments-section.tsx` parameterised, `catchup_comment`, the open/close animation | `Comment.entryId` |
 | **10** | **Link previews** | `LinkPreview`, resolution on any pasted link, Spotify and YouTube cards, the fail-soft rule | the `LinkPreview` table |
 | **11** | **Cleanup** | the dead columns dropped **after phases 2, 5 and 10 have deployed**; the three throwaway Catch-ups and the orphaned snapshot group removed; `docs/spec/catchups.md` rewritten to describe what shipped. **CORRECTED 2026-09-09: `CatchupEdition.publishAt` is NOT dropped.** It was on the list because the `preparing` hold it served died in phase 2 — but a time capsule (§3.12) is exactly a scheduled publish date and it is the same column. Dropping it now to add it back is two migrations against a live database for nothing. Keep it, and say so in the file. `CatchupPref.deletedAt` still goes | the drop file |
@@ -1193,8 +1203,10 @@ The ledger in `handover.md` is the aid; **the brief is the test**. ¶1 to ¶52, 
 
 ## 15. Owner questions this spec opened, and how they closed
 
-**22. Can people read the answers that have come in before the Edition is out?** (opened 2026-09-09,
-§3.13)
+**22. ANSWERED 2026-09-09 — (b).** *"no I wanted todays behaviour only. it's only readable once the
+edition is out"*. Nothing is readable before publication; then it is open to everybody. §3.13 is
+closed, phase 7 builds nothing for it, and (a) is declined rather than deferred. The question as it
+was asked:
 - **What I'd change:** while everyone is still writing, you could read the answers already in — but
   only once you have written your own. The moment the Edition comes out it is open to everybody,
   whether they wrote or not, which is your own line and does not change.
@@ -1210,7 +1222,8 @@ The ledger in `handover.md` is the aid; **the brief is the test**. ¶1 to ¶52, 
   reading rather than on your word is how this campaign has gone wrong before.
 
 
-**All three are closed as of 2026-09-08.** Nothing in this spec is waiting on him. What is still
+**All four are closed**, 22 on 2026-09-09 and the rest on 2026-09-08. Nothing in this spec is
+waiting on him. What is still
 his, and is not a question, is listed in §1: the twenty photographs, and the settings surface he
 has claimed for a session of his own.
 
