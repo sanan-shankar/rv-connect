@@ -269,15 +269,33 @@ async function settle(page: Page) {
     window.scrollTo(0, 0);
   });
   await quiet(page);
-  /* Every <img> actually decoded, so the grid on /collection and the 50
-   * glyphs on /birds are never caught half-painted. */
-  await page.evaluate(() =>
-    Promise.all(
-      Array.from(document.images)
-        .filter((img) => !img.complete)
-        .map((img) => img.decode().catch(() => {})),
-    ),
-  );
+  /* Every <img> THAT WILL BE IN THE SHOT actually decoded, so the grid on
+   * /collection and the 50 glyphs on /birds are never caught half-painted.
+   *
+   * Near the viewport, not every image on the page, and bounded by a timeout.
+   * Both guards exist for the same reason: since the Collection draws its
+   * whole archive at full height (river-geometry.ts), a page can hold several
+   * hundred `loading="lazy"` images that are thousands of pixels away and will
+   * never be fetched at all. `decode()` on one of those does not reject -- it
+   * simply never settles -- so the old unbounded `Promise.all` hung until the
+   * 90-second test timeout rather than failing on a diff. Only what can appear
+   * in the screenshot needs to be decoded before taking it. */
+  await page.evaluate(async () => {
+    const reach = window.innerHeight * 2;
+    const near = Array.from(document.images).filter((img) => {
+      if (img.complete) return false;
+      const r = img.getBoundingClientRect();
+      return r.bottom > -reach && r.top < window.innerHeight + reach;
+    });
+    await Promise.all(
+      near.map((img) =>
+        Promise.race([
+          img.decode().catch(() => {}),
+          new Promise((r) => setTimeout(r, 2_000)),
+        ]),
+      ),
+    );
+  });
 }
 
 for (const route of ROUTES) {

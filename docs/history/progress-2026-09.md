@@ -5738,3 +5738,103 @@ individual tiles flashing white on the way up, which is Chrome evicting decoded 
 images are live in the DOM.
 
 `npm run check` clean, 112/112. `npm run visual` 25/25. Verified at 1440x900 and 390x844.
+
+## 2026-09-09 (later) — the Collection stops guessing its own height
+
+The rebuild the two reverted shortcuts pointed at, and it closes every scrolling symptom the archive
+has had for three sessions. The owner, on the last one: "every single time the scrolling indicator
+readjusts ... I get a glitch regardless of speed." He was exactly right, and that was the diagnosis:
+the glitch WAS the correction. So the correction is gone rather than tuned.
+
+**The one fact that changes everything.** Justified row-breaking is arithmetic on aspect ratios and a
+column width, and every photograph's dimensions are already in the database. So the geometry of the
+whole archive is knowable before a single thumbnail loads. `PhotoShapeIndex` — `[ratio, bandKey]` per
+photograph, in river order — now rides back with the first page. Measured on the class archive:
+**1,718 photographs, 20.6 KB of JSON, 1.3 KB gzipped**, which is less than one 480px thumbnail. We
+had been paying for that information in scroll bugs instead of in 1.3 KB.
+
+**`src/lib/river-geometry.ts`** turns it into per-year boxes. The hard part was making a reserved box
+EXACTLY the height of the photographs that will fill it — a few pixels a year is a document that
+drifts, and the glitch comes straight back. Three attempts, each measured against the browser:
+treating the trailing row as justified was **210px** out on a 208-photograph year; treating it as the
+target height was **29px** out on a one-photograph year, because <PhotoStream>'s ghost cell does not
+swallow all the slack — flex shares free space in proportion to grow factors and the photographs have
+their own. Modelling that share lands it at **0.5px worst case across six bands and both viewports**,
+including a 319-photograph year on a phone (19,805 drawn against 19,804.5 computed).
+
+**What the river does now.** Every year is on the page from the first frame, drawn if its photographs
+are held and reserved at its exact height if not. `loadBand` fetches ONE YEAR, and the river asks for
+the year the reader is actually looking at rather than walking pages from wherever it happened to
+stop. A year is all-or-nothing: pages are cut by size and end mid-year, and a year drawn from half
+its photographs is shorter than its box — which is how pressing 2017 came to land 5,513px short until
+the "complete or reserved" rule went in. Pressing a year on the rail is now a scroll to a known
+offset with no query at all.
+
+Measured on the class archive at 4x CPU throttle, document 105,772px on arrival:
+
+| | 25 hard flicks UP | 20 hard flicks DOWN |
+|---|---|---|
+| document height changes | 0 | 0 |
+| scroll corrections | 0 | 0 |
+| frames at the page title | 0 | — |
+| flicks landing on empty paper | 0 of 25 | 0 of 20 |
+
+`scrollAnchor`, `landAt`'s corrections and the zero-pull latch are all dead weight in the geometry
+path and stand down there; the cursor walk still serves /lab/collection and the orders that are not
+years. One visual-suite fix rode along, and it is the same story in miniature: `settle()` called
+`decode()` on every image on the page, and a river that draws its whole archive holds hundreds of
+lazy images thousands of pixels away that never load — `decode()` on those never settles, so the
+shot hung to the 90-second timeout. Bounded to what can appear in the frame; the suite went from
+4.2 minutes to 1.1.
+
+One pre-existing failure is NOT fixed and is not mine: `every year the rail offers lands on that
+year, lit` (collection-journeys) fails against the live archive. Verified by A/B — with the geometry
+switched off it fails EARLIER, at the first year instead of the fifth.
+
+`npm run check` clean, 113/113. `npm run visual` 25/25. Verified at 1440x900 and 390x844.
+
+**2026-09-10, the fine-tuning pass on top of it.** Four things, all of them his.
+
+**Pressing a year went to 2026.** My own regression from the day before: the instant seek set
+`seekBand`, which changes `fetchPage`, which fires the query effect and rebuilds the river from its
+head. So a press paused for a round trip and then landed on the newest year, every time. With
+geometry a seek touches NO query state at all -- it is a scroll to an offset already on the page.
+`landAt` rather than `scrollTo`, because the oldest year ends the document and the scroll position
+that would put its heading at the top does not exist until the tail grows: pressing 2015 came to
+rest 569px down while every other year landed exactly. All ten years now land at 24px on desktop and
+66px on a phone (clear of its 56px bar), with the rail lighting the right one -- which needed
+`useActiveBand` to read the BOX keys rather than the loaded ones, or landing on a year still
+reserved lit its nearest loaded neighbour.
+
+**The rail folded to decades at random.** `useColumnHeight` measured
+`getBoundingClientRect().top + window.scrollY` -- a document coordinate -- and then subtracted it
+from `window.innerHeight`, which is a window measurement. At the top of the page the two agree, so it
+looked right; 20,000px down it computed a negative height, clamped to zero, and the rail decided it
+had no room. That is why it "happens very occasionally and a reload fixes it" (owner): a reload puts
+you back where the coordinate spaces agree. A/B'd to be sure -- with the old line, scrolled to
+45,000px: two decades. With the fix: ten years, at every depth.
+
+**The rail's type was too small,** and he was right. 11px of muted tabular numerals is under the
+floor for something meant to be read and clicked, and this is the one control that indexes the whole
+archive. 12.5px now, one clean step below the bucket row's 14px instead of two. Every other number
+in that file moved by the same 1.136 rather than being re-chosen, so the rail keeps the density it
+was tuned to: pitch 23.5 -> 26.7, row 22.5 -> 25.6, squeeze floor 17 -> 19.3, Undated gap 10 -> 11.4,
+dock falloff 64 -> 72.7 (still 2.7 rows either side), label box 34 -> 39px.
+
+**And the photographs stopped switching on all at once.** Two causes, one of them mine. A page is cut
+by SIZE, so it ended mid-year; the river only draws a year it holds completely, so that trailing year
+was discarded and immediately re-fetched -- two round trips before the first screen could draw, which
+is the pause on every scope and bucket change. The page now rounds up to the next year boundary in
+the same query. Measured: one round trip, photographs on screen in 157-392ms at 4x throttle.
+
+The second cause predates all of this. `warmThumbs` decodes a page before it mounts, so its tiles
+arrived `complete`, the ref callback marked them visible in the frame they were created, and the
+300ms fade had nothing to animate from -- a whole screenful appearing between two frames. A
+first-time thumbnail now gets its flag one frame later so the fade actually runs, with a 22ms stagger
+capped at ten tiles so it reads as a wave rather than a switch. Sampled per frame on a cold load:
+**25 frames mid-fade against 0 before, and up to 7 distinct opacities in a single frame against 1.**
+
+`npm run check` clean, 115/115. `npm run visual` 25/25. The collection suite is 21 passed with one
+PRE-EXISTING failure (`every year the rail offers lands on that year, lit`), which A/B confirms is
+not this work: with the geometry switched off it fails earlier, at the first year instead of the
+fifth, and its slowness is what knocks the lab seek test over in a long run.

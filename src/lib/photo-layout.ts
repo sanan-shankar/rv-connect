@@ -510,7 +510,15 @@ export const PHOTO_ROW_TARGET = 150;
  * row they would have shared was 207px high -- nearer 220 than the layout
  * that rejected it. At 190 they sit together.
  */
-export const PHOTO_GRID_TARGET = "min(190px, 30%)";
+export const PHOTO_GRID_TARGET_PX = 190;
+export const PHOTO_GRID_TARGET = `min(${PHOTO_GRID_TARGET_PX}px, 30%)`;
+
+/** The same target as a NUMBER, for the code that has to know a height rather
+ *  than hand one to CSS. `river-geometry.ts` computes a year's exact pixel
+ *  height before its photographs exist, and it cannot do that from a `min()`
+ *  expression -- but the two must never drift, so the CSS above is built from
+ *  this constant rather than repeating the literal. */
+export const PHOTO_GRID_MAX_SCALE = 2.5;
 
 /**
  * A photograph's flex-basis: its natural width at the height the row is

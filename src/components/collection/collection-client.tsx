@@ -42,7 +42,7 @@ import { appendUnseen, prependUnseen } from "@/lib/append-page";
 import { PhotoStream } from "@/components/common/photo-rows";
 import { cn } from "@/lib/utils";
 import { LazyImageViewer } from "@/components/common/lazy-image-viewer";
-import {
+import { loadBand,
   adminRemovePhoto,
   deleteOwnPhoto,
   loadPhotos,
@@ -53,6 +53,7 @@ import {
   type RiverPage,
 } from "@/app/(main)/collection/actions";
 import { HALVES, bandKeyOf, defaultOrderFor } from "@/lib/collection";
+import { bandBoxes } from "@/lib/river-geometry";
 import { toViewerImage } from "@/lib/collection-viewer-image";
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import type { ScopeFacts } from "@/app/(main)/collection/collection-data";
@@ -145,6 +146,14 @@ export function CollectionClient({
      `loadNewer` and the note on `RiverPage.topCursor`. */
   const [topCursor, setTopCursor] = useState<string | null>(firstPage.topCursor ?? null);
   const [bands, setBands] = useState<BandCount[]>(firstPage.bands ?? []);
+  /** The archive's geometry: every photograph's aspect ratio and year, in
+   *  river order. 1.3 KB gzipped for 1,718 photographs, and it is what lets
+   *  the river be its true height before anything is fetched. */
+  const [shapes, setShapes] = useState(firstPage.shapes ?? []);
+  /** The column the river is drawn in. Every reserved height depends on it,
+   *  so it is measured rather than assumed and re-measured on resize. */
+  const [column, setColumn] = useState(0);
+
 
   /* THE ORDER THE PHOTOGRAPHS ON SCREEN WERE FETCHED IN, which is a different
      fact from `order` below -- that one is the order that has been ASKED for.
@@ -156,6 +165,24 @@ export function CollectionClient({
      section keys came from (see PhotoRiver) and why a year heading appeared
      under Newest at all. The rail lit the wrong year in the same window. */
   const [riverOrder, setRiverOrder] = useState<RiverOrder>(filters.order ?? "newest");
+
+  /* Every year with the exact height its photographs occupy. Only in "taken"
+     order: the reserved boxes are years, and "newest" or "loved" is not a
+     sequence of years. Without these the river falls back to the cursor walk,
+     which is still what /lab/collection and the other orders use. */
+  const boxes = useMemo(
+    () => (riverOrder === "taken" && shapes.length > 0 && column > 0
+      ? bandBoxes(shapes, column)
+      : []),
+    [riverOrder, shapes, column]
+  );
+
+  /** What each year holds, once fetched. The flat `photos` list is rebuilt
+   *  from this in BAND ORDER, so the viewer steps through the river in the
+   *  order the reader sees rather than the order things happened to arrive. */
+  const held = useRef(new Map<string, PhotoData[]>());
+  const asking = useRef(new Set<string>());
+
 
   /* The server has answered again -- a contribution landed and called
      `router.refresh()`, or the reader came back to this route. Re-seeding from
@@ -210,6 +237,7 @@ export function CollectionClient({
       setCursor(firstPage.nextCursor);
       setTopCursor(firstPage.topCursor ?? null);
       setBands(firstPage.bands ?? []);
+      setShapes(firstPage.shapes ?? []);
       setRiverOrder(filters.order ?? "newest");
     }
   }
@@ -416,6 +444,78 @@ export function CollectionClient({
      Collection was the one list of the three without it (audit C-179). */
   const generation = useRef(0);
 
+  /** The boxes as a ref, so `needBand` can read the current geometry without
+   *  being rebuilt (and re-firing every observer) each time it changes. */
+  const boxesRef = useRef(boxes);
+  useEffect(() => {
+    boxesRef.current = boxes;
+  }, [boxes]);
+
+  /* THE FIRST PAGE'S PHOTOGRAPHS, kept only where they complete a year.
+     A page is cut by size, not by year, so it usually ends mid-1994 -- and a
+     year drawn from half its photographs is shorter than the box reserved for
+     it, which is the document changing height under the reader by another
+     route. A partially covered year is therefore left reserved and fetched
+     whole; only the years the page happens to cover completely are kept. */
+  useEffect(() => {
+    if (boxes.length === 0 || held.current.size > 0 || photos.length === 0) return;
+    const by = new Map<string, PhotoData[]>();
+    for (const p of photos) {
+      const k = bandKeyOf(p);
+      const at = by.get(k);
+      if (at) at.push(p);
+      else by.set(k, [p]);
+    }
+    let kept = false;
+    for (const b of boxes) {
+      const got = by.get(b.key);
+      if (got && got.length === b.count) {
+        held.current.set(b.key, got);
+        kept = true;
+      }
+    }
+    if (kept) setPhotos(boxes.flatMap((b) => held.current.get(b.key) ?? []));
+  }, [boxes, photos]);
+
+  /** Fetch one year, because the reader has scrolled to where it lives.
+   *
+   *  The whole paging model in one function, and it replaces three: no
+   *  cursor, no direction, no anchor. A year arrives, takes exactly the room
+   *  its reserved box was already holding, and nothing else on the page
+   *  moves -- so there is no scroll to correct, which is what every glitch
+   *  the owner reported for three sessions actually was.
+   *
+   *  `asking` rather than a loading flag: several years can be in the air at
+   *  once (a fast flick crosses a decade) and they do not conflict, because
+   *  each one only ever fills its own box. */
+  const needBand = useCallback(
+    async (key: string) => {
+      if (held.current.has(key) || asking.current.has(key)) return;
+      asking.current.add(key);
+      const mine = generation.current;
+      try {
+        const data = await callAction(() =>
+          loadBand(key, { scope, bucket: bucket || undefined, search: search || undefined })
+        );
+        if (mine !== generation.current) return;
+        if ("error" in data) {
+          toast.error(data.error);
+          return;
+        }
+        void warmThumbs(data.photos, data.photos.length, 0);
+        held.current.set(key, data.photos);
+        /* Rebuilt in BAND ORDER from the boxes, never appended: the viewer
+           indexes into this list, and a reader who opened a photograph would
+           otherwise step into whichever year happened to load first. */
+        setPhotos(boxesRef.current.flatMap((b) => held.current.get(b.key) ?? []));
+      } finally {
+        asking.current.delete(key);
+      }
+    },
+    [scope, bucket, search]
+  );
+
+
   /* The effect below would otherwise re-ask the server, on mount, the question
      it has already answered into `firstPage`. Held against the IDENTITY of the
      first `fetchPage` rather than a one-shot boolean: a boolean also has to
@@ -619,6 +719,8 @@ export function CollectionClient({
     if (seeded.current === fetchPage) return;
     let cancelled = false;
     generation.current += 1;
+    held.current.clear();
+    asking.current.clear();
     /* A new river gets its own zero pull. The latch is per-query, not per
        session: every seek lands somebody at a head they cannot climb out of
        by hand, and each of those landings is entitled to exactly one page. */
@@ -651,6 +753,7 @@ export function CollectionClient({
       setCursor(data.nextCursor);
       setTopCursor(data.topCursor ?? null);
       setBands(data.bands ?? []);
+      if (data.shapes) setShapes(data.shapes);
       // Committed WITH the photographs it describes, never before them.
       setRiverOrder(order);
       /* A new river, so the old scroll position is not a fact about it any
@@ -711,6 +814,12 @@ export function CollectionClient({
   const more = useCallback(async () => {
     // ...and not while one is arriving at the head, for the reason given on
     // `loadNewer`: the scroll correction cannot tell the two apart.
+    /* THE CURSOR WALK STANDS DOWN when the river is drawn from geometry.
+       Every year is already on the page at its true height and is filled by
+       `needBand` when the reader reaches it, so appending pages here would
+       add photographs the boxes have not accounted for -- and that IS the
+       document growing under the reader, which is the whole bug. */
+    if (boxesRef.current.length > 0) return;
     if (!cursor || loadingMore || loadingNewer || loading) return;
     const mine = generation.current;
     setLoadingMore(true);
@@ -790,6 +899,40 @@ export function CollectionClient({
      having at rest -- and pressing it is what commits to reading in time. */
   const seekTo = useCallback(
     (key: string) => {
+      /* WITH GEOMETRY, A SEEK IS A SCROLL AND NOTHING ELSE. Every year is
+         already on the page at its true offset -- drawn if it is held,
+         reserved at its exact height if it is not -- so pressing one is a
+         move to a position we already know. No query, no landing to arrange
+         afterwards, nothing to correct.
+
+         AND NO QUERY STATE IS TOUCHED, which is the whole trick and was
+         worth a bug to learn: setting `seekBand` here changed `fetchPage`,
+         which fired the query effect, which rebuilt the river from its head
+         -- so pressing 1978 paused for a round trip and then landed on 2026,
+         every time (owner, 2026-09-10). A scroll is a scroll. `activeBand`
+         is set so the rail lights the moment it is pressed rather than
+         waiting for the scroll listener to notice, and that is presentation,
+         not query.
+
+         This runs BEFORE the "already seeked here" case below, because with
+         geometry that case is wrong too: the river no longer begins at the
+         pressed year, so scrolling to zero would land on the newest year
+         rather than the one under the finger. */
+      if (order === "taken" && boxesRef.current.length > 0) {
+        const want = topOfBand(key);
+        if (want != null) {
+          setActiveBand(key);
+          /* `landAt`, not `scrollTo`, and the OLDEST year is why: its box ends
+             the document, so the scroll position that would put its heading at
+             the top does not exist and the browser clamps. Measured, pressing
+             2015: the heading came to rest 569px down instead of 24px, while
+             every other year landed exactly. `landAt` grows the blank after
+             the river by the shortfall first, which is the job it has always
+             had. */
+          landAt(want, tail.current);
+          return;
+        }
+      }
       /* Pressing the year the river already starts at changes no state, so
          no fetch is coming to do the travelling -- but it is still a request
          to go back to the top of that year, and it is answered here. */
@@ -802,7 +945,7 @@ export function CollectionClient({
       setOrder("taken");
       setActiveBand(key);
     },
-    [seekBand, order]
+    [seekBand, order, topOfBand]
   );
 
   /* Climbing back out of a seek: the one place the river is walked UPWARD,
@@ -828,6 +971,8 @@ export function CollectionClient({
        generation guard below only catches the pages that were already in
        flight when the query changed -- not one started afterwards from a
        stale cursor. Same reasoning on `more`. */
+    // Same as `more`: with geometry there is no climbing, only filling.
+    if (boxesRef.current.length > 0) return;
     if (!topCursor || loadingNewer || loadingMore || loading) return;
     const mine = generation.current;
     setLoadingNewer(true);
@@ -887,6 +1032,18 @@ export function CollectionClient({
        point of doing it here rather than where the decision was made. */
     if (pendingLanding.current) {
       pendingLanding.current = null;
+      /* GEOMETRY LANDS LATER, AND MUST. When the query brought shapes back,
+         the river the reader will see has not been drawn yet -- the boxes are
+         computed from those shapes one render after the photographs commit.
+         Landing here would measure the short river that exists for this one
+         frame, which is exactly how pressing 2017 came to rest 5,513px away
+         from 2017. `landOn` is therefore left standing for the effect that
+         runs once the boxes exist. */
+      if (shapes.length > 0 && landOn.current) {
+        scrollAnchor.current = null;
+        if (tail.current) tail.current.style.height = "0px";
+        return;
+      }
       /* AND THE ANCHOR GOES WITH IT. A prepend that committed in the same
          pass as a landing left its {height, top} sitting in the ref, measured
          against a river that no longer exists; the next page to arrive then
@@ -946,7 +1103,22 @@ export function CollectionClient({
     }
     landAt(top + (scroller.scrollHeight - height), tail.current);
     syncScrollWatch();
-  }, [photos, headOfRiver, topOfBand, syncScrollWatch]);
+  }, [photos, headOfRiver, topOfBand, syncScrollWatch, shapes.length]);
+
+  /* A seek that had to change the order first cannot land in the layout
+     effect above: that runs when the photographs commit, which is one render
+     BEFORE the geometry those photographs' shapes produce has been drawn. It
+     measured the old short river and landed 5,513px away from the year it was
+     asked for. Landing here instead, once the boxes exist, measures the river
+     the reader will actually see. */
+  useEffect(() => {
+    if (boxes.length === 0 || !landOn.current) return;
+    const want = topOfBand(landOn.current);
+    if (want == null) return;
+    landOn.current = "";
+    window.scrollTo({ top: want });
+    syncScrollWatch();
+  }, [boxes, topOfBand, syncScrollWatch]);
 
   /* The mirror of the foot sentinel: sits above the river, so a page that
      exists above the fold gets pulled in and scroll-anchored into place
@@ -954,6 +1126,18 @@ export function CollectionClient({
      mounted where `topCursor` can be truthy at all -- a seek short of the
      newest year -- so this is a no-op everywhere else. */
   const head = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    /* Measured off the head sentinel, which is a full-width block in the same
+       column the river is drawn in -- so it is the column, and no element had
+       to be added to ask. Every reserved height is solved for this width. */
+    const el = head.current;
+    if (!el) return;
+    const read = () => setColumn(Math.round(el.getBoundingClientRect().width));
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   useEffect(() => {
     const el = head.current;
     if (!el || !topCursor) return;
@@ -1316,6 +1500,7 @@ export function CollectionClient({
                       <Tile
                         photo={p}
                         cell={cell}
+                        index={i}
                         onOpen={() => {
                           setViewerMounted(true);
                           setViewer({ list: "pending", index: i });
@@ -1369,6 +1554,8 @@ export function CollectionClient({
                   <div ref={head} aria-hidden className="h-px -mb-px" />
                   <PhotoRiver
                     photos={photos}
+                    boxes={boxes}
+                    onNeedBand={needBand}
                     order={riverOrder}
                     dimmed={loading}
                     onActiveBandChange={riverOrder === "taken" ? setActiveBand : undefined}
