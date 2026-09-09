@@ -120,7 +120,13 @@ export const notifyAnswersOpen: NotifyAnswersOpenFn = async (db, ctx) => {
     members,
     "catchup_answers_open",
     `Answers are open for ${ctx.groupName}'s Catch-up. Share yours.`,
-    `/catchups/${ctx.catchupId}/answer`
+    /* The HOME, not `/answer`. Answering moved onto the Catch-up's own home
+       in build phase 7 and `/catchups/[id]/answer` is a 308 to it; a bell
+       link that has to bounce through a redirect is one avoidable round trip
+       on the tap this notification exists to invite. The rows written before
+       that are rewritten by
+       `prisma/migrations-manual/2026-09-09-answering-moves-to-the-home.sql`. */
+    `/catchups/${ctx.catchupId}`
   );
 };
 
@@ -147,7 +153,8 @@ export const notifyAnswersOpen: NotifyAnswersOpenFn = async (db, ctx) => {
  * the gap where the old one is gone and the new one is not there yet.
  */
 export const notifyReminder: NotifyReminderFn = async (db, ctx) => {
-  const link = `/catchups/${ctx.catchupId}/answer`;
+  // The home, not `/answer` -- see notifyAnswersOpen above.
+  const link = `/catchups/${ctx.catchupId}`;
   const days = ctx.daysLeft ?? 0;
   const [members, answered] = await Promise.all([
     groupMemberIds(db, ctx.groupId),

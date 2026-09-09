@@ -5,6 +5,7 @@ import { Dialog as SheetPrimitive } from "@base-ui/react/dialog"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { MODAL_SCRIM } from "@/components/ui/dialog"
 import { XIcon } from "lucide-react"
 
 function Sheet({ ...props }: SheetPrimitive.Root.Props) {
@@ -32,7 +33,7 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
         // the #241a12 reasoning): the sheet is the edge-anchored variant of
         // that material, so it shares the same backdrop instead of the old
         // colder bg-black/10 wash. Only opacity animates.
-        "fixed inset-0 z-50 bg-[#241a12]/55 backdrop-blur-md transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0",
+        `fixed inset-0 z-50 ${MODAL_SCRIM} backdrop-blur-md transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0`,
         className
       )}
       {...props}

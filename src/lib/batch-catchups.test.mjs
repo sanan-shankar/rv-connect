@@ -152,19 +152,41 @@ test("nobody leaves their own batch, and archiving is the only way out of one", 
 
 test("neither screen offers what the server refuses", () => {
   /* The house rule: an action refused server-side is not shown as a way to be
-     told no. It used to be enforced in two places, the roster and the list's
-     card menu. Build phase 6 deleted that menu with the rest of the card, so
-     the roster is the only screen left that offers Leave -- and it is now also
-     the only exit a member has until phase 7 puts one behind Settings on the
-     home. If this guard goes, a member of a batch Catch-up is offered a Leave
-     that `leaveCatchup` refuses by name. */
-  const panel = decomment(read("src/components/catchups/home/people-panel.tsx"));
-  assert.match(
-    panel,
-    /!isCreator && !data\.isBatch/,
-    "the roster still offers Leave on a batch Catch-up"
+     told no. It used to be enforced on the roster (`home/people-panel.tsx`),
+     which build phase 7 deleted with the rest of the sidebar. The exit now
+     lives behind Settings on the home, so the guard moved with it -- and it
+     is now a BRANCH rather than a condition: a batch Catch-up is offered "Put
+     it away", which archives, and a people Catch-up is offered "Leave", which
+     `leaveCatchup` refuses by name on a batch.
+
+     If this goes, a member of a batch Catch-up is offered a Leave the server
+     turns down, which is the exact thing the rule exists to prevent. */
+  const settings = decomment(
+    read("src/components/catchups/settings/settings-surface.tsx")
   );
-  assert.match(panel, /leaveCatchup/, "the roster no longer offers Leave at all");
+  const you = balancedBody(settings, "function youGroup");
+  assert.ok(you, "youGroup is gone; this pin is reading nothing");
+  assert.match(
+    you,
+    /c\.isBatch[\s\S]*?put-away[\s\S]*?leave/,
+    "the settings surface no longer branches Leave away from a batch Catch-up"
+  );
+  assert.match(settings, /leaveCatchup/, "the settings surface no longer offers Leave at all");
+  assert.match(
+    settings,
+    /setCatchupArchived/,
+    "the settings surface no longer offers a batch Catch-up its one exit"
+  );
+
+  /* And the roster it moved off is pinned as an absence, like the bin in
+     phase 5 and the card menu in phase 6. It was 733 lines in a sticky column
+     that could not be reached past the first screen at the app's own people
+     cap (F40); it coming back is a regression, not a feature. */
+  assert.equal(
+    existsSync(resolve(ROOT, "src/components/catchups/home/people-panel.tsx")),
+    false,
+    "the 733-line people panel is back"
+  );
 });
 
 test("the list offers no verbs, and archiving is the one thing it does", () => {

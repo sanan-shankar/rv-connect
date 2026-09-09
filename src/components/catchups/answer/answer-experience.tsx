@@ -12,16 +12,14 @@
  * ------------------------------------------------------------------ */
 
 import { useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { AnimatePresence, m } from "motion/react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
-import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
+import { cn } from "@/lib/utils";
 import { EASE_SPRING } from "@/components/common/motion";
 import { submitEntry } from "@/app/(main)/catchups/actions";
 import { AnswerCard } from "./answer-card";
 import { CompletionCard } from "./completion-card";
-import { MobileProgressBar, ProgressRail } from "./progress-rail";
 import { isMeaningfulEntry, type AnswerEntryDraft, type AnswerPromptData } from "./types";
 
 /**
@@ -35,18 +33,20 @@ import { isMeaningfulEntry, type AnswerEntryDraft, type AnswerPromptData } from 
  */
 type SaveStatus = "idle" | "saving" | "saved" | "failed";
 
+/* The "N people have answered so far" line and its row of birds are GONE
+   from this surface. Answering is now a region on the Catch-up's own home
+   (architecture.md section 5), where the head, the people door and the state
+   line already say who is here and where the cycle is; the same fact stated a
+   third time, above the box you are writing in, is the app narrating itself.
+   Who has written is read from the roster behind the People door. */
 export function AnswerExperience({
   catchupId,
   groupName,
   prompts,
-  othersAnsweredCount,
-  clusterPeople,
 }: {
   catchupId: string;
   groupName: string;
   prompts: AnswerPromptData[];
-  othersAnsweredCount: number;
-  clusterPeople: AvatarUser[];
 }) {
   const [entries, setEntries] = useState<Record<string, AnswerEntryDraft>>(() =>
     Object.fromEntries(prompts.map((p) => [p.id, p.entry]))
@@ -161,63 +161,55 @@ export function AnswerExperience({
     void persist(promptId, { images });
   }
 
-  const hasAnsweredAny = answeredIds.size > 0;
-
   return (
-    <div>
-      <p className="mb-[var(--space-l)] flex flex-wrap items-center gap-2 text-left text-sm text-muted-foreground">
-        {othersAnsweredCount > 0 && clusterPeople.length > 0 && (
-          <span className="mr-0.5 flex -space-x-2">
-            {clusterPeople.map((p) => (
-              // rounded-full is load-bearing: the ring is a box-shadow drawn
-              // on the avatar's border box, and the avatar root is not
-              // itself rounded, so without it each bird sat in a square
-              // card-coloured frame (owner, 2026-08-13: "white boxes around
-              // the birds").
-              <Link
-                key={p.id}
-                href={`/profile/${p.id}`}
-                aria-label={p.name ?? "Member profile"}
-                className="rounded-full transition-opacity duration-150 hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-              >
-                <BirdAvatar user={p} size={22} className="rounded-full ring-2 ring-card" />
-              </Link>
-            ))}
-          </span>
-        )}
-        {othersAnsweredCount === 0
-          ? hasAnsweredAny
-            ? "You are the first to answer."
-            : "Nobody has answered yet."
-          : hasAnsweredAny
-            ? `You and ${othersAnsweredCount} other${othersAnsweredCount === 1 ? "" : "s"} have answered so far.`
-            : `${othersAnsweredCount} ${othersAnsweredCount === 1 ? "person has" : "people have"} answered so far.`}
-      </p>
+    <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)] sm:p-[var(--space-l)]">
+      {/* THE MARKS ARE THE NAVIGATOR, and they are inside the card with the
+          question rather than in a 272px rail beside it. They were a
+          read-only progress bar and he could not get past them: "I can't
+          really navigate between questions while answering them." So every
+          mark is a button to its own question, the one you are on is wide,
+          and the ones you have answered are filled.
 
-      {/* Unwrapped, outside the grid, on purpose: a sticky box cannot leave
-          its parent, so inside the grid (or inside a wrapper of its own
-          height) it would never actually stick. Here its parent is the whole
-          experience and it rides the scroll. */}
-      <MobileProgressBar
-        prompts={prompts}
-        answeredIds={answeredIds}
-        currentIndex={index}
-        onJump={(i) => goTo(i, i > index ? 1 : -1)}
-        className="mb-[var(--space-m)] lg:hidden"
-      />
+          No "4 of 11" anywhere near them: "How does it matter whether it's 15
+          or 16?"
 
-      <div className="grid grid-cols-1 gap-[var(--space-xl)] lg:grid-cols-[272px_minmax(0,1fr)]">
-        <aside className="hidden lg:block">
-          <ProgressRail
-            prompts={prompts}
-            answeredIds={answeredIds}
-            currentIndex={index}
-            onJump={(i) => goTo(i, i > index ? 1 : -1)}
-          />
-        </aside>
+          Tighter, top and bottom, at his word: "the padding above and below
+          the orange progress bar while answering is too big. too much space
+          above and too much below. seems imbalanced." */}
+      <ol
+        className="-mt-1 mb-2.5 flex flex-wrap items-center gap-1.5"
+        aria-label="The questions in this Edition"
+      >
+        {prompts.map((p, i) => (
+          <li key={p.id}>
+            <button
+              type="button"
+              onClick={() => goTo(i, i > index ? 1 : -1)}
+              aria-label={p.text}
+              aria-current={i === index ? "step" : undefined}
+              title={p.text}
+              className="group grid h-3.5 place-items-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              <span
+                className={cn(
+                  /* The two properties by name rather than `transition-all`,
+                     which the design system bans outright: a mark changes
+                     WIDTH when it becomes the one you are on, and colour when
+                     its question gets an answer. */
+                  "block h-[3px] rounded-full transition-[width,background-color] duration-300 ease-out",
+                  i === index
+                    ? "w-7 bg-cinnamon"
+                    : answeredIds.has(p.id)
+                      ? "w-3 bg-cinnamon/45 group-hover:bg-cinnamon/70"
+                      : "w-3 bg-border group-hover:bg-muted-foreground/50",
+                )}
+              />
+            </button>
+          </li>
+        ))}
+      </ol>
 
-        <div className="min-w-0">
-          <AnimatePresence mode="wait" custom={direction}>
+      <AnimatePresence mode="wait" custom={direction}>
             {current ? (
               <m.div
                 key={current.id}
@@ -249,9 +241,7 @@ export function AnswerExperience({
                 <CompletionCard catchupId={catchupId} groupName={groupName} answeredCount={answeredIds.size} />
               </m.div>
             )}
-          </AnimatePresence>
-        </div>
-      </div>
+      </AnimatePresence>
     </div>
   );
 }

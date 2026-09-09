@@ -905,25 +905,24 @@ export function valleyDaysLeft(
 }
 
 /**
- * The one sentence that says when to write by, and the bell's version of it.
+ * The bell's sentence for a deadline.
  *
- * Both live here, next to the count they share, because the whole of
- * C-141/C-031 was three surfaces phrasing the same deadline from two different
- * arithmetics. Keeping the words in one place is what stops them drifting
- * apart again; the tests call these, not a copy of them.
+ * It lives here next to `valleyDaysLeft`, the count it shares with every other
+ * surface that names a last day, because the whole of C-141/C-031 was three
+ * surfaces phrasing the same deadline from two different arithmetics -- the
+ * cards counting 24-hour blocks while the answering page counted IST calendar
+ * days, so the bell said "Last day to answer" from the morning before a page
+ * saying "Answers close tomorrow".
+ *
+ * ITS SIBLING, `answersCloseSentence`, IS GONE, and so is the class of bug.
+ * That one printed the same countdown on the answering page. Build phase 7
+ * moved answering onto the Catch-up's home, where the deadline is stated as a
+ * DATE -- "Answers close Thursday 20 August" -- by `homeStateLine`, which is
+ * the drawn design (he cut the second half of that line himself: "you don't
+ * need to say it comes out the same day"). A date and a countdown cannot
+ * contradict each other, so there is now exactly ONE countdown left in the
+ * app and it is this one.
  */
-export function answersCloseSentence(
-  closeAt: Date | string | null | undefined,
-  now: Date
-): string {
-  if (closeAt == null) return "Answering now.";
-  const days = valleyDaysLeft(closeAt, now);
-  if (days === null) return "Answers are closing.";
-  if (days === 0) return "Answers close today.";
-  if (days === 1) return "Answers close tomorrow.";
-  return `Answers close in ${days} days.`;
-}
-
 export function answerReminderMessage(
   groupName: string,
   closeAt: Date | string | null | undefined,
@@ -1015,6 +1014,52 @@ export function describeEditionStatus(
  * Inventing a column for one line on one card is a migration, and build phase
  * 6 has none. One word, until something honest can follow it.
  */
+/**
+ * The one line UNDER the Edition region on a Catch-up's own home.
+ *
+ * Not the same sentence as `catchupStageLine` below, which labels a card on
+ * the list and has to say what state the Catch-up is in. This one sits beneath
+ * the thing it describes, so it only speaks when the region above it has not
+ * already said the same thing. Two lines were deleted here at his word:
+ *
+ *   "Open for questions is not necessary because if the box is there, it
+ *    implies that it's open for questions."
+ *
+ *   "Answers close Thursday 20 August, and it comes out the same day. Well,
+ *    you don't need to say it comes out the same day. That's almost like
+ *    implied. That's so stupid."
+ *
+ * So collecting returns null -- the ask box IS the line -- and answering
+ * carries the deadline and nothing else. Held returns null too: the clock is
+ * not running, so printing a deadline under a card that says the Catch-up is
+ * on hold is the page contradicting itself in two lines.
+ */
+export function homeStateLine(
+  catchupStatus: CatchupStatus,
+  edition: {
+    status: EditionStatus;
+    answersCloseAt?: Date | string | null;
+  } | null,
+  nextOpensAt: Date | string | null,
+  fmt: { dayAndDate: (d: Date | string) => string; longDate: (d: Date | string) => string }
+): string | null {
+  if (catchupStatus === "paused") return null;
+  /* "Ended" and not "Ended 17 April", for the same reason `catchupStageLine`
+     gives below: NOTHING RECORDS WHEN A CATCH-UP ENDED. `status` flips to
+     "ended" and `updatedAt` moves again for any edit after, so a date here
+     would be a plausible-looking lie. The drawing asked for the date; the
+     column to draw it from does not exist and phase 7 has no migration. */
+  if (catchupStatus === "ended") return "Ended";
+  if (!edition) return null;
+  if (edition.status === "answering") {
+    return edition.answersCloseAt ? `Answers close ${fmt.dayAndDate(edition.answersCloseAt)}` : null;
+  }
+  if (edition.status === "published") {
+    return nextOpensAt ? `The next one opens ${fmt.longDate(nextOpensAt)}` : null;
+  }
+  return null;
+}
+
 export function catchupStageLine(
   catchupStatus: CatchupStatus,
   edition: {

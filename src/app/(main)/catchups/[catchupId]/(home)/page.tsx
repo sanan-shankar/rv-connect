@@ -6,21 +6,22 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { AlmostReady } from "@/components/catchups/almost-ready";
 import { NotAvailableCard } from "@/components/catchups/not-available";
-import { CatchupHomeShell } from "@/components/catchups/home/catchup-home-shell";
-import type { PublishedEditionContents } from "@/components/catchups/home/console-published";
+import { CatchupHome } from "@/components/catchups/home/catchup-home";
 import type {
   CatchupHomeData,
   CatchupHomeResult,
-  HomeArchiveRow,
   HomeEditionView,
   HomePersonRef,
   HomePromptView,
 } from "@/components/catchups/home/types";
+import type { ListEdition } from "@/components/catchups/index/edition-cover-card";
+import type { AnswerPromptData } from "@/components/catchups/answer/types";
 import {
   advanceEdition,
   askerVisible,
   CATCHUP_PROMPT_SETS,
   editionCountdownLabel,
+  homeStateLine,
   isEffectiveKeeper,
   isMissingCatchupTable,
   mayChangeCatchupPicture,
@@ -35,7 +36,10 @@ import type {
   ReminderMode,
 } from "@/lib/catchups-types";
 import { IDENTITY_SELECT } from "@/lib/people-select";
-import { loadPublishedEditionView } from "@/lib/catchups-edition-view";
+import { COVER_SHOTS } from "@/lib/catchup-pictures";
+import { readEditionIds } from "@/lib/catchup-reads";
+import { promptKind, type PromptCategory } from "@/lib/catchups-types";
+import { formatDayAndDate, formatDisplayDateLong, parseJsonArray } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ *
  *  The Catch-up home (spec 3.3): the command surface for the live
@@ -104,27 +108,6 @@ export async function generateMetadata({
   } catch {
     return { title: "Catch-ups" };
   }
-}
-
-/**
- * The published Edition, in full, for reading inline on this page (one surface,
- * owner review 2026-07-25). The query and every mapping rule in it are shared
- * with the permalink reader (`lib/catchups-edition-view.ts`), which is what
- * stops the two surfaces disagreeing about a song or an anonymous asker.
- *
- * Only ever called once the caller has confirmed the fresh status is
- * `published`: answer bodies are never pulled into a render of an Edition that
- * has not revealed yet, Keeper included (spec 2.5, threat T-catchups-04).
- */
-async function loadPublishedEditionContents(
-  editionId: string,
-  viewerId: string
-): Promise<PublishedEditionContents | null> {
-  const view = await loadPublishedEditionView(editionId, viewerId);
-  if (!view) return null;
-  // The console wants an ISO string; the permalink wants the Date. One line
-  // here is cheaper than the loader returning both.
-  return { publishedAt: view.publishedAt?.toISOString() ?? null, sections: view.sections };
 }
 
 async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHomeResult> {
@@ -292,82 +275,131 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     };
   }
 
-  // Archive: every published Edition (spec 3.7), including the latest if it just published.
+  /* THE PUBLISHED EDITIONS, AS COVERS. `HomeArchiveRow` is gone and with it
+     the Edition number, the contributor count and the quoted teaser -- he
+     deleted all three. What a published Edition is on this page is the same
+     `ListEdition` the /catchups list draws, so there is ONE representation of
+     one rather than "15 different ways in 15 different places" (brief 13, 39).
+
+     The newest goes in the Edition region when it is the live one; the rest
+     are the sidebar. */
   const publishedEditions = await prisma.catchupEdition.findMany({
     where: { catchupId: catchup.id, status: "published" },
-    orderBy: { number: "desc" },
-    select: { id: true, number: true, publishedAt: true },
+    orderBy: { publishedAt: "desc" },
+    select: { id: true, publishedAt: true },
   });
 
-  /* Contributor counts for EVERY published Edition, in one query (audit M13).
-     This used to be a query per Edition, each pulling every entry's full BODY
-     just to count distinct authors and find the most-loved one -- so a group
-     three years into a monthly rhythm ran 36 queries and read tens of
-     thousands of answer bodies into memory on every visit to this page.
-     `groupBy` returns one small row per (Edition, author) pair instead: the
-     distinct set IS the answer, and no body is read at all. */
-  const contributorPairs =
-    publishedEditions.length > 0
-      ? await prisma.catchupEntry.groupBy({
-          by: ["editionId", "authorId"],
-          where: { editionId: { in: publishedEditions.map((e) => e.id) } },
+  /* The photographs, in one query rather than as a nested `entries` select:
+     the biggest live Edition has 143 entries and a cover needs three urls off
+     the front of it. Bounded by the entries that carry a photograph at all,
+     which is 30 on that Edition and 0 on three of the five published ones.
+
+     Together with the read marks, because neither depends on the other and
+     they are two round trips to a pooler in Mumbai. */
+  const editionIds = publishedEditions.map((e) => e.id);
+  const [withPhotos, readIds] = await Promise.all([
+    editionIds.length > 0
+      ? prisma.catchupEntry.findMany({
+          where: { editionId: { in: editionIds }, images: { not: null } },
+          orderBy: { createdAt: "asc" },
+          select: { editionId: true, images: true },
         })
-      : [];
-  const contributorCounts = new Map<string, number>();
-  for (const row of contributorPairs) {
-    contributorCounts.set(row.editionId, (contributorCounts.get(row.editionId) ?? 0) + 1);
+      : [],
+    readEditionIds(viewerId, editionIds),
+  ]);
+  const photosByEdition = new Map<string, string[]>();
+  for (const entry of withPhotos) {
+    const have = photosByEdition.get(entry.editionId) ?? [];
+    if (have.length >= COVER_SHOTS) continue;
+    have.push(...parseJsonArray(entry.images));
+    photosByEdition.set(entry.editionId, have);
   }
 
-  /**
-   * How many of the most recent Editions carry a teaser line on the shelf.
-   *
-   * Six, matching the index rail's own "Fresh off the press" take, because a
-   * teaser is a nudge to re-open something recent and the shelf's older rows
-   * are read as a list of what exists rather than browsed. The cost of one is
-   * a query returning a single row; the cost of doing it for every Edition on
-   * the shelf is the N+1 this block exists to have removed.
-   */
-  const TEASER_ROUNDS = 6;
-  const teasered = publishedEditions.slice(0, TEASER_ROUNDS).map((ed) => ed.id);
-  const teasers = new Map<string, string>();
-  /* One row per Edition, in one query. This was six `findFirst`s in a
-     `Promise.all`, and Prisma compiles an `orderBy` on a relation count into a
-     correlated subquery, so it was six correlated one-row queries on a
-     five-connection pool -- two waves for six short strings. `DISTINCT ON` is
-     the same instruction said once; Prisma has no expression for it, which is
-     why this is raw.
+  const fallback = { src: catchup.pictureSrc, focus: catchup.pictureFocus };
+  const covers: ListEdition[] = publishedEditions
+    .filter((e) => e.publishedAt !== null)
+    .map((e) => ({
+      editionId: e.id,
+      publishedAt: e.publishedAt as Date,
+      photos: (photosByEdition.get(e.id) ?? []).slice(0, COVER_SHOTS),
+      /* Never printed here: you are already inside this Catch-up, so saying
+         which one it came from is the same fact twice. */
+      fromName: null,
+      fallback,
+      read: readIds.has(e.id),
+    }));
 
-     `id` breaks the tie, because ordering on a count alone is not total and
-     the teaser would otherwise change between two identical page loads. */
-  const tops =
-    teasered.length > 0
-      ? await prisma.$queryRaw<{ editionId: string; body: string | null }[]>`
-          SELECT DISTINCT ON (e."editionId") e."editionId", e.body
-          FROM "CatchupEntry" e
-          LEFT JOIN "CatchupEntryLove" l ON l."entryId" = e.id
-          WHERE e."editionId" = ANY(${teasered}) AND e.body IS NOT NULL
-          GROUP BY e.id
-          ORDER BY e."editionId", count(l.id) DESC, e.id ASC
-        `
-      : [];
-  for (const top of tops) {
-    const body = top.body?.trim();
-    if (!body) continue;
-    teasers.set(top.editionId, body.length > 140 ? `${body.slice(0, 140).trimEnd()}...` : body);
-  }
+  /* The live Edition's own cover, when the REGION is going to draw it, and
+     everything else for the sidebar.
 
-  const archive: HomeArchiveRow[] = publishedEditions.map((ed) => ({
-    editionId: ed.id,
-    number: ed.number,
-    publishedAt: ed.publishedAt?.toISOString() ?? null,
-    contributorCount: contributorCounts.get(ed.id) ?? 0,
-    teaser: teasers.get(ed.id) ?? null,
-  }));
+     The test is the CATCH-UP's state and not just the Edition's, and that is
+     a bug found by looking at one: an ended Catch-up draws no Edition region
+     at all (architecture 5), so pulling its newest Edition out of the sidebar
+     to be drawn there left it drawn NOWHERE -- the one published Edition of
+     an ended Catch-up was unreachable from its own home, with the sidebar
+     showing "Your previous Editions appear here" beside it. Same for a paused
+     one, where the region is the on-hold card.
+
+     So: the region claims the newest cover only while the Catch-up is active
+     and that Edition has actually published. Otherwise every published
+     Edition is a back number and the sidebar has all of them. */
+  const regionDrawsLatest = catchup.status === "active" && freshLatest?.status === "published";
+  const latest = regionDrawsLatest
+    ? (covers.find((c) => c.editionId === freshLatest.id) ?? null)
+    : null;
+  const earlier = latest ? covers.filter((c) => c.editionId !== latest.editionId) : covers;
 
   const pref = await prisma.catchupPref.findUnique({
     where: { catchupId_userId: { catchupId: catchup.id, userId: viewerId } },
     select: { reminderMode: true },
   });
+
+  /* THE QUESTIONS TO ANSWER, and only while the Edition is `answering`.
+     Answering happens on this page now (his N77: "it doesn't make sense to
+     have the collecting in the home screen and then the answering takes you
+     away from it"), so what `/catchups/[id]/answer` used to load, this loads.
+
+     Only the viewer's OWN entries, and only for accepted questions. Nobody's
+     answers are readable before the Edition publishes -- his, 2026-09-09: "no
+     I wanted todays behaviour only. it's only readable once the edition is
+     out" (spec 3.13, closed as reading (a)). */
+  let answering: AnswerPromptData[] = [];
+  if (freshLatest?.status === "answering") {
+    const accepted = freshLatest.prompts
+      .filter((p) => p.accepted)
+      .sort((a, b) => a.position - b.position || a.createdAt.getTime() - b.createdAt.getTime());
+    const mine = accepted.length
+      ? await prisma.catchupEntry.findMany({
+          where: { promptId: { in: accepted.map((p) => p.id) }, authorId: viewerId },
+          select: { promptId: true, body: true, images: true, updatedAt: true },
+        })
+      : [];
+    const byPrompt = new Map(mine.map((e) => [e.promptId, e]));
+    answering = accepted.map((p) => {
+      const entry = byPrompt.get(p.id);
+      return {
+        id: p.id,
+        text: p.text,
+        // The category doubles as the question's kind (photo-wall / songs
+        // switch the answering control; everything else writes text).
+        kind: promptKind(p.category as PromptCategory | null),
+        // The one helper, like every other surface that names an asker. Its
+        // shape is what stops a Keeper exception growing back into one of
+        // them (audit C-019); what it does here is let an anonymous asker
+        // see their own byline on their own question.
+        asker: askerVisible({ showAsker: p.showAsker, authorId: p.author?.id ?? null }, viewerId)
+          ? p.author
+          : null,
+        entry: { body: entry?.body ?? "", images: parseJsonArray(entry?.images) },
+        // The row version this page was rendered from, sent back with every
+        // save so a second device cannot silently replace what the first one
+        // wrote (audit C-125).
+        entryUpdatedAt: entry?.updatedAt.toISOString() ?? null,
+      };
+    });
+  }
+
+  const isBatch = isBatchCatchup(catchup.group.batchYear);
 
   const data: CatchupHomeData = {
     catchupId: catchup.id,
@@ -379,7 +411,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     nextOpensAt: catchup.nextOpensAt?.toISOString() ?? null,
     catchupStatus: catchup.status as CatchupStatus,
     picture: { src: catchup.pictureSrc, focus: catchup.pictureFocus },
-    isBatch: isBatchCatchup(catchup.group.batchYear),
+    isBatch,
     members,
     viewer: {
       id: viewerId,
@@ -394,7 +426,45 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       reminderMode: (pref?.reminderMode as ReminderMode) ?? "all",
     },
     edition: editionView,
-    archive,
+    latest,
+    earlier,
+    stateLine: homeStateLine(
+      catchup.status as CatchupStatus,
+      freshLatest
+        ? { status: freshLatest.status as EditionStatus, answersCloseAt: freshLatest.answersCloseAt }
+        : null,
+      catchup.nextOpensAt,
+      { dayAndDate: formatDayAndDate, longDate: formatDisplayDateLong }
+    ),
+    answering,
+    settings: {
+      catchupId: catchup.id,
+      name: catchupDisplayName(catchup.title, catchup.group.name),
+      isBatch,
+      state: (freshLatest?.status as EditionStatus | undefined) ?? "none",
+      paused: catchup.status === "paused",
+      ended: catchup.status === "ended",
+      /* Both are FALSE on a batch Catch-up, and that is his own correction
+         (N30): "Can anyone open answering? That shouldn't be allowed. Because
+         many people would click it by accident. Especially on a batch thing."
+         Nobody keeps a batch and it has no manual transitions at all. Every
+         one of these is refused server-side too -- `loadKeeperScope` and
+         `loadKeeperEdition` both turn a batch away before they ask who the
+         Keeper is -- so this decides what is OFFERED, never what is allowed. */
+      youKeep: isKeeper && !isBatch,
+      canRun: isKeeper && !isBatch,
+      canChangePicture: mayChangeCatchupPicture({
+        viewerId,
+        createdById: catchup.createdById,
+        groupRole: membership.role,
+        batchYear: catchup.group.batchYear,
+      }),
+      cadence: catchup.cadence as Cadence,
+      reminderMode: (pref?.reminderMode as ReminderMode) ?? "all",
+      editionId: freshLatest?.id ?? null,
+      answersCloseAt: freshLatest?.answersCloseAt?.toISOString() ?? null,
+      picture: fallback,
+    },
     promptLibrary: CATCHUP_PROMPT_SETS,
   };
 
@@ -411,12 +481,8 @@ export default async function CatchupHomePage({
   if (!session?.user?.id) redirect("/login");
 
   let result: CatchupHomeResult;
-  let contents: PublishedEditionContents | null = null;
   try {
     result = await loadHome(catchupId, session.user.id);
-    if (result.kind === "ok" && result.edition?.status === "published") {
-      contents = await loadPublishedEditionContents(result.edition.id, session.user.id);
-    }
   } catch (err) {
     if (isMissingCatchupTable(err)) {
       return (
@@ -456,16 +522,10 @@ export default async function CatchupHomePage({
     );
   }
 
-  return (
-    <div>
-      <PageHeader
-        title={
-          result.edition?.countdownLabel
-            ? `${result.title} · ${result.edition.countdownLabel}`
-            : result.title
-        }
-      />
-      <CatchupHomeShell data={result} contents={contents} />
-    </div>
-  );
+  /* NO <PageHeader>. The head IS the page's title: the Catch-up's name is
+     written on its own photograph, which is the thing he asked for -- "let's
+     have it fade to black and again have the name". A second title above it,
+     with the countdown appended, was the page saying its own name twice and
+     the deadline in a third place. */
+  return <CatchupHome data={result} />;
 }

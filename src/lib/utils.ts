@@ -244,6 +244,26 @@ export function formatDisplayDateLong(date: Date | string): string {
 }
 
 /**
+ * A date with no weekday and no year: "20 August".
+ *
+ * For a value REPORTED rather than announced. The settings row "Give everyone
+ * longer" states the deadline it is offering to move, and there the weekday is
+ * the announcement's job, not the value's -- `formatDayAndDate` below is what
+ * the state line under the Edition uses to say the same instant, because there
+ * the day of the week is the part being judged.
+ *
+ * Timezone-bound like every other formatter here: the valley has one day, and
+ * `valley-day.test.mjs` fails the build for a bare `toLocaleDateString`.
+ */
+export function formatDayMonth(date: Date | string): string {
+  return new Date(date).toLocaleDateString("en-GB", {
+    timeZone: VALLEY_TIME_ZONE,
+    day: "numeric",
+    month: "long",
+  })
+}
+
+/**
  * A deadline, as anyone actually reads one: "Thursday 20 August".
  *
  * The weekday leads because that is the part a deadline is judged by, and

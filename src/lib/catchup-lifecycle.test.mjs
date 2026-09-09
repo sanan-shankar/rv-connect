@@ -111,11 +111,26 @@ test("B-061: every hand-driven write into a live Edition refuses a frozen Catch-
     "loadKeeperEdition no longer refuses a frozen Catch-up, so five Keeper controls lost their gate at once"
   );
 
-  const page = decomment(read("src/app/(main)/catchups/[catchupId]/answer/page.tsx"));
-  assert.match(
-    page,
-    /catchup\.status !== "active"/,
-    "the answer page no longer refuses a frozen Catch-up"
+  /* And the SCREEN. `/catchups/[catchupId]/answer` is a 308 to the home since
+     build phase 7 -- answering happens on the home now (N77) -- so the screen
+     half of this guard moved with it. The home's Edition region tests the
+     CATCH-UP's state before the Edition's, so a paused Catch-up gets the "on
+     hold" card and an ended one gets nothing; neither can reach the composer.
+
+     Order is the whole of it. Read the other way round, `answering` would
+     match first and a frozen Catch-up would draw a writing box whose saves
+     `submitEntry` then refuses one at a time. */
+  const home = decomment(read("src/components/catchups/home/catchup-home.tsx"));
+  const region = balancedBody(home, "function EditionRegion");
+  assert.ok(region, "EditionRegion is gone; this pin is reading nothing");
+  const ended = region.indexOf('catchupStatus === "ended"');
+  const paused = region.indexOf('catchupStatus === "paused"');
+  const answering = region.indexOf('status === "answering"');
+  assert.ok(ended > -1 && paused > -1, "the home no longer tests the Catch-up's own state");
+  assert.ok(answering > -1, "the home no longer draws the composer; this pin is reading nothing");
+  assert.ok(
+    ended < answering && paused < answering,
+    "the home offers the composer before it checks for a frozen Catch-up"
   );
 });
 
@@ -208,7 +223,13 @@ test("C-125: the answering surface actually sends the version it holds", () => {
   assert.match(experience, /versions\.current\[promptId\] = "updatedAt" in result/);
   // Seeded from what the page rendered, not from nothing.
   assert.match(experience, /prompts\.map\(\(p\) => \[p\.id, p\.entryUpdatedAt\]\)/);
-  const page = decomment(read("src/app/(main)/catchups/[catchupId]/answer/page.tsx"));
+  /* The loader moved to the HOME in build phase 7, with answering itself.
+     Same two lines, same reason: the version has to be seeded from the row
+     this page rendered, or every save after the first looks stale to the
+     guard and the whole optimistic-concurrency check turns into a refusal. */
+  const page = decomment(
+    read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx")
+  );
   assert.match(page, /entryUpdatedAt: entry\?\.updatedAt\.toISOString\(\) \?\? null/);
   assert.match(page, /select: \{ promptId: true, body: true, images: true, updatedAt: true \}/);
 });
