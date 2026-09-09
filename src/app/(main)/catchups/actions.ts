@@ -132,6 +132,15 @@ const createCatchupWithPeopleSchema = z.object({
   cadence: cadenceSchema.default("monthly"),
 });
 
+/* The same 80 characters creation allows, and the same sentence when it is
+   over, so a name that was accepted when the Catch-up was made cannot be
+   rejected when it is edited. Empty is allowed here and is not there: clearing
+   the name falls back to the group's own, which is a thing a Keeper may want,
+   whereas creating a nameless Catch-up is not. */
+const renameCatchupSchema = z.object({
+  title: z.string().trim().max(80, "Keep the name under 80 characters."),
+});
+
 const submitPromptSchema = z.object({
   editionId: z.string().min(1),
   text: z.string().trim().min(1, "Ask something for the group.").max(300, "Keep it under 300 characters."),
@@ -578,6 +587,57 @@ export async function joinCatchupByToken(token: string) {
     revalidatePath("/catchups");
     revalidatePath(`/catchups/${catchup.id}`);
     return { success: true as const, catchupId: catchup.id, groupName: catchup.group.name };
+  });
+}
+
+/**
+ * Keeper-only: rename the Catch-up.
+ *
+ * The Name row in the settings surface (spec 10.3) is the first thing that
+ * needed this, and nothing had it: a Catch-up could be named at creation and
+ * never again. The drawn panel states Name for EVERY member, because a
+ * Catch-up's settings are the Catch-up described -- but only a Keeper's row
+ * opens, and this action is the half that enforces it rather than the panel.
+ *
+ * A BATCH CATCH-UP IS REFUSED, and it is refused by `loadKeeperScope` before
+ * the question of who keeps it is even asked. That is his 2026-08-21 reasoning
+ * and it is the whole reason the shortcut that renamed a batch group was
+ * removed: a private naming choice must not rename a shared batch. Nobody keeps
+ * a batch Catch-up, so "only the Keeper" would mean nobody, which is the
+ * correct answer here rather than an accident.
+ *
+ * `title` is nullable and the display name falls back to the group's own name
+ * (`catchupDisplayName`), so clearing the field is a legitimate act: it puts
+ * the Catch-up back to being called after its group. An empty string is stored
+ * as NULL rather than as "", so the fallback is one test and not two.
+ *
+ * Not gated on `requireVerifiedMember`: this reaches nobody. It sends no
+ * notification and no email, and it changes one word on a page the people
+ * involved are already reading. A paused or ended Catch-up is not refused for
+ * the same reason `setCatchupPicture` is not -- the freeze is on the Edition
+ * clock, and a name is not part of the cycle.
+ */
+export async function renameCatchup(catchupId: string, title: string) {
+  return runAction(async () => {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+    if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
+    const parsed = renameCatchupSchema.safeParse({ title });
+    if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+    const scope = await loadKeeperScope(catchupId, session.user.id, {
+      notMember: "You are not a member of this group.",
+      notKeeper: "Only the Keeper can rename this Catch-up.",
+    });
+    if ("error" in scope) return scope;
+
+    await prisma.catchup.update({
+      where: { id: catchupId },
+      data: { title: parsed.data.title || null },
+    });
+    revalidatePath(`/catchups/${catchupId}`);
+    revalidatePath("/catchups");
+    return { success: true };
   });
 }
 
