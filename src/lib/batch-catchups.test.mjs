@@ -93,6 +93,34 @@ test("a batch Catch-up has no manual transitions at all", () => {
   }
 });
 
+test("nobody renames a batch Catch-up", () => {
+  /* A batch Catch-up is called after its batch, and that name is shared by
+     everybody in it. His 2026-08-21 reasoning, when the one-tap batch shortcut
+     was removed, was exactly this: a private naming choice must not rename a
+     shared batch group.
+
+     `renameCatchup` is new in build phase 7 -- the settings surface states Name
+     for every member and opens it only for a Keeper -- so the refusal is
+     pinned here rather than trusted to the panel. It comes free from
+     `loadKeeperScope`, which the test above proves refuses a batch before it
+     asks who the Keeper is; what this pins is that renaming actually goes
+     through that preamble and does not grow a check of its own. */
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const body = balancedBody(src, "export async function renameCatchup");
+  assert.ok(body, "renameCatchup is gone; this pin is reading nothing");
+  assert.match(
+    body,
+    /loadKeeperScope\(/,
+    "renameCatchup no longer goes through the preamble that refuses a batch"
+  );
+  /* Writing `title` and nothing else. A rename that reached `Group.name` would
+     be the 2026-08-21 bug back, on a different row. */
+  assert.ok(
+    !/prisma\.group\.update/.test(body),
+    "renameCatchup writes the GROUP's name, which renames it for a whole batch"
+  );
+});
+
 test("nobody leaves their own batch, and archiving is the only way out of one", () => {
   /* Leaving would be undone by the next `healBatchGroupMemberships` pass, which
      would put them straight back, so refusing is the honest answer rather than
