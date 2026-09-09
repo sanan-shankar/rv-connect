@@ -15,7 +15,7 @@ import { catchupShelf, editionSlots } from "@/lib/catchup-shelf";
 import { readEditionIds } from "@/lib/catchup-reads";
 import { COVER_SHOTS } from "@/lib/catchup-pictures";
 import { advanceDueCatchups, isMissingCatchupTable } from "@/lib/catchups";
-import { catchupStageLine } from "@/lib/catchups-core";
+import { catchupDisplayName, catchupStageLine } from "@/lib/catchups-core";
 import type { CatchupStatus, EditionStatus } from "@/lib/catchups-types";
 import { formatDayAndDate, formatDisplayDateLong, parseJsonArray } from "@/lib/utils";
 
@@ -95,6 +95,14 @@ async function loadIndexData(userId: string) {
             select: {
               id: true,
               status: true,
+              /* The Catch-up's own name, which a Keeper may now change
+                 (`renameCatchup`, build phase 7). This card printed
+                 `group.name` bare, so a renamed Catch-up kept its old name
+                 here for ever while its home and its browser tab showed the
+                 new one -- `revalidatePath("/catchups")` had nothing to
+                 invalidate INTO. `catchupDisplayName` is the one spelling of
+                 this fallback and every other surface already uses it. */
+              title: true,
               pictureSrc: true,
               pictureFocus: true,
               /* The viewer's own copy state, and only the viewer's: the
@@ -138,7 +146,7 @@ async function loadIndexData(userId: string) {
       editionStatus: edition?.status ?? null,
       card: {
         catchupId: group.catchup.id,
-        name: group.name,
+        name: catchupDisplayName(group.catchup.title, group.name),
         stage: catchupStageLine(catchupStatus, edition, DATE_VOICE),
         picture: { src: group.catchup.pictureSrc, focus: group.catchup.pictureFocus },
       },
@@ -174,7 +182,12 @@ async function loadIndexData(userId: string) {
         id: true,
         publishedAt: true,
         catchup: {
-          select: { pictureSrc: true, pictureFocus: true, group: { select: { name: true } } },
+          select: {
+            pictureSrc: true,
+            pictureFocus: true,
+            title: true,
+            group: { select: { name: true } },
+          },
         },
       },
     });
@@ -217,7 +230,10 @@ async function loadIndexData(userId: string) {
         photos: (photosByEdition.get(c.id) ?? []).slice(0, COVER_SHOTS),
         // "we'd have to show the date and from which catch up it is if there's
         // more than one catch up." With one, saying so is the same fact twice.
-        fromName: live.length > 1 ? c.catchup.group.name : null,
+        fromName:
+          live.length > 1
+            ? catchupDisplayName(c.catchup.title, c.catchup.group.name)
+            : null,
         fallback: { src: c.catchup.pictureSrc, focus: c.catchup.pictureFocus },
         read: read.has(c.id),
       }));
