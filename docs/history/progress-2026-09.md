@@ -8,6 +8,19 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-10 (later) — More under an answer only shows when there is more
+
+He opened More under Mohini's answer in the reader and nothing more appeared. The cause was two
+tests disagreeing: the button showed on a CHARACTER count (over 600) while the fold is a LINE count
+(10). Measured on her 805 characters: 7 lines at 1512 and 8 at 1440, so the fold hid **0px** under
+a button that promised more; 18 lines at 390, where it hid 198px and the button was right.
+
+Now the fold is measured the way the viewer's caption already is (`scrollHeight - clientHeight`),
+re-asked by a ResizeObserver when the column changes width. The character count stays as the cheap
+first pass, and the button starts shown so the server and first client render agree -- the phone,
+where long answers really fold, never sees it arrive late. After: no button at 1512 or 1440; at
+390 More reveals all 446px and turns to Less. Pinned in `reader-geometry.test.mjs`.
+
 ## 2026-09-10 (later) — the line beside an Edition's date is cinnamon, read or not
 
 His words: *"on the list of catch ups when it shows an edition it has this grey line to the left of

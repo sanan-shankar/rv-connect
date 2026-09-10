@@ -174,3 +174,16 @@ test("nothing in the reader is scaled, and no ancestor clips the strip", () => {
     "an ancestor of the strip clips its overflow, which kills position: sticky",
   );
 });
+
+test("an answer's More only shows when the fold actually hides something", () => {
+  /* The button used to be gated on a CHARACTER count while the fold is a
+     LINE count, and on a laptop the two disagreed: an 805-character answer
+     is 7 lines at 1512, so a 10-line fold hid nothing under a button that
+     promised more (his report, 2026-09-10). Both halves are pinned: the
+     measurement, and the button actually reading it. */
+  const src = read(join("src", "components", "catchups", "edition", "reader-parts.tsx"));
+  const body = src.slice(src.indexOf("export function Body"), src.indexOf("export function AskedBy"));
+  assert.match(body, /el\.scrollHeight - el\.clientHeight > 1/, "the fold is measured, not guessed");
+  assert.match(body, /new ResizeObserver\(measure\)/, "a width change re-asks the question");
+  assert.match(body, /\{long && \(folds \|\| open\) && \(/, "More is gated on the measurement");
+});
