@@ -30,7 +30,7 @@
 
 ALTER TABLE "CatchupSeries" ADD COLUMN IF NOT EXISTS "pictureSrc" text;
 ALTER TABLE "CatchupSeries"
-  ALTER COLUMN "pictureSrc" SET DEFAULT '/images/collection/demo-banyan-benches.webp';
+  ALTER COLUMN "pictureSrc" SET DEFAULT '/images/catchups/shaded-path.webp';
 
 ALTER TABLE "CatchupSeries"
   ADD COLUMN IF NOT EXISTS "pictureFocus" text NOT NULL DEFAULT 'center 85%';
@@ -49,16 +49,16 @@ ALTER TABLE "CatchupSeries"
 -- cent rather than 85, and taking the picture without its aim is what produces
 -- a band of green canopy where a horizon should be.
 --
--- This list is CATCHUP_PICTURES, in order, and catchup-pictures.test.mjs fails
--- if the two ever disagree.
+-- Every row of this list must be in CATCHUP_PICTURES with the same focus, and
+-- catchup-pictures.test.mjs fails if one leaves the pool. It was the whole
+-- pool of six stand-ins until 2026-09-10, when his first three replaced them;
+-- the rows it backfilled were moved by 2026-09-10-catchup-pictures-his-three.sql,
+-- not by editing this.
 WITH pool AS (
   SELECT * FROM (VALUES
-    (1, '/images/collection/demo-banyan-benches.webp', 'center 92%'),
-    (2, '/images/collection/demo-banyan-pillar.webp',  'center 88%'),
-    (3, '/images/collection/demo-banyan-canopy.webp',  'center 90%'),
-    (4, '/images/collection/demo-banyan-arch.webp',    'center 85%'),
-    (5, '/images/collection/demo-banyan-trunk.webp',   'center 85%'),
-    (6, '/images/collection/c3.webp',                  'center 85%')
+    (1, '/images/catchups/shaded-path.webp',   'center 66%'),
+    (2, '/images/catchups/stone-benches.webp', 'center 68%'),
+    (3, '/images/catchups/boulder-hill.webp',  'center 48%')
   ) AS t(n, src, focus)
 )
 UPDATE "CatchupSeries" c

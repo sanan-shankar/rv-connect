@@ -12,15 +12,16 @@
  *  backfill is the same list in the same order, and creation paths that
  *  write one.
  *
- *  It matters most on the day HIS TWENTY arrive, which is meant to be
- *  one edit to `CATCHUP_PICTURES` and no migration. These tests are what
- *  says whether that edit was complete.
+ *  It matters most on the day more of HIS photographs arrive, which is
+ *  meant to be one file and one edit to `CATCHUP_PICTURES` and no
+ *  migration. These tests are what says whether that edit was complete.
  * ------------------------------------------------------------------ */
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import sharp from "sharp";
 
 import {
   CATCHUP_PICTURES,
@@ -30,6 +31,7 @@ import {
   bandKeptFraction,
   isPoolPicture,
   isValidPictureFocus,
+  pictureAvoiding,
   pictureFor,
 } from "./catchup-pictures.ts";
 import { ROOT, read, decomment } from "./test-kit.mjs";
@@ -47,9 +49,9 @@ test("the pool is a real pool: no duplicates, and every file is on disk", () => 
     seen.add(picture.src);
 
     assert.ok(
-      picture.src.startsWith("/images/"),
-      `${picture.src} is not a path into public/images; a pool entry is a shipped file, ` +
-        `not a url (an uploaded picture reaches the column through setCatchupPicture)`
+      picture.src.startsWith("/images/catchups/"),
+      `${picture.src} is not in public/images/catchups; a pool entry is a shipped file ` +
+        `in that folder, not a url (an uploaded picture reaches the column through setCatchupPicture)`
     );
     assert.ok(
       existsSync(resolve(ROOT, "public", picture.src.replace(/^\//, ""))),
@@ -59,6 +61,24 @@ test("the pool is a real pool: no duplicates, and every file is on disk", () => 
     assert.ok(
       isValidPictureFocus(picture.focus),
       `${picture.src} has a focus (${picture.focus}) the picture control would refuse`
+    );
+  }
+});
+
+test("every pool photograph is the shape and size the band was measured for", async () => {
+  /* The brief his photographs were asked for (handover, "The twenty
+     photographs"): 2 : 1 and 2,400px wide or better. The band arithmetic and
+     every focus in the pool assume it -- a 2 : 1 source keeps 31.6% of its
+     height through the tightest band -- and the stand-ins this replaced were
+     900px squares, upscaled at retina. A file that misses either is a
+     question for him, not something to ship quietly. */
+  for (const picture of CATCHUP_PICTURES) {
+    const { width, height } = await sharp(resolve(ROOT, "public", picture.src.slice(1))).metadata();
+    assert.ok(width >= 2400, `${picture.src} is ${width}px wide; the brief is 2,400 or better`);
+    const ratio = width / height;
+    assert.ok(
+      Math.abs(ratio - 2) < 0.05,
+      `${picture.src} is ${ratio.toFixed(3)} : 1, not 2 : 1; its focus and the band's safe zone assume 2 : 1`
     );
   }
 });
@@ -109,6 +129,39 @@ test("pictureFor is deterministic, always answers, and spreads", () => {
   assert.ok(CATCHUP_PICTURES.includes(pictureFor("")));
 });
 
+test("pictureAvoiding gives nobody a repeat while a picture they lack is free", () => {
+  /* His rule, 2026-09-10: "to the extent possible one person doesn't have two
+     catch ups with the same header when there's a picture available that they
+     don't have a catch up for." `held` counts (member, Catch-up) pairs. */
+  const [a, b, c] = CATCHUP_PICTURES;
+  const seeds = Array.from({ length: 50 }, (_, i) => `group-${i}`);
+
+  // Nobody holds anything: exactly the plain seeded pick, so nothing moved for
+  // a Catch-up whose people have no others.
+  for (const seed of seeds) assert.deepEqual(pictureAvoiding(seed, new Map()), pictureFor(seed));
+
+  // One picture unheld: it wins from every starting point.
+  for (const seed of seeds) {
+    assert.equal(pictureAvoiding(seed, new Map([[a.src, 1], [b.src, 4]])).src, c.src);
+  }
+
+  // Everything held: the fewest repeats, never the most.
+  for (const seed of seeds) {
+    assert.equal(pictureAvoiding(seed, new Map([[a.src, 3], [b.src, 1], [c.src, 2]])).src, b.src);
+  }
+
+  // A tie is broken by the seed, so it is stable for one Catch-up and still
+  // spreads across many rather than always taking the first.
+  const tied = new Map([[a.src, 0], [b.src, 0], [c.src, 5]]);
+  assert.deepEqual(pictureAvoiding("group-7", tied), pictureAvoiding("group-7", tied));
+  const picks = new Set(seeds.map((s) => pictureAvoiding(s, tied).src));
+  assert.deepEqual([...picks].sort(), [a.src, b.src].sort());
+
+  // A count for something that has left the pool is ignored, not picked.
+  const stale = new Map([["/images/collection/c3.webp", 0], [a.src, 1], [b.src, 1], [c.src, 1]]);
+  assert.ok(CATCHUP_PICTURES.includes(pictureAvoiding("x", stale)));
+});
+
 test("the band is the TIGHTEST crop, not the roomiest", () => {
   /* This is the thing that has fooled two sessions (spec 10.2). The aiming
      control shows this band, so what a person places inside it survives every
@@ -122,8 +175,8 @@ test("the band is the TIGHTEST crop, not the roomiest", () => {
   // height through that band, which is where the safe zone in the handover
   // ("58% to 90% down the frame") comes from.
   assert.equal(Math.round(bandKeptFraction(2400, 1200) * 1000), 316);
-  // A square one keeps half as much again, which is the stated compromise the
-  // six stand-ins ship under.
+  // A square one keeps half as much again, which is why the square stand-ins
+  // this pool once held read as a 30x zoom.
   assert.equal(Math.round(bandKeptFraction(900, 900) * 1000), 158);
   // Nothing is cropped out of a source already wider than the band.
   assert.equal(bandKeptFraction(3040, 240), 1);
@@ -146,26 +199,30 @@ test("the schema's default is the pool's first entry", () => {
 });
 
 /** The VALUES list a migration retypes the pool into, checked against the
- *  real array. Two files carry one now, and a photograph added to the pool and
- *  to neither gets picked by `pictureFor` for every new Catch-up and by
- *  nothing for a backfilled one. */
-function assertPoolMatches(sql, where) {
+ *  real array: numbered 1..n, and every row a pool entry with that entry's
+ *  focus, so nothing a migration writes can be a broken image or a crop
+ *  aimed for some other photograph.
+ *
+ *  A SUBSET, not the whole pool. It used to demand equality, which made
+ *  every photograph ADDED to the pool a retyping of migrations that had
+ *  already run and would match no row if run again -- the opposite of "one
+ *  edit and no migration". What still matters is that what they name exists. */
+function assertPoolRows(sql, where) {
   const rows = [...sql.matchAll(/\(\s*(\d+),\s*'([^']+)',\s*'([^']+)'\s*\)/g)];
-  assert.equal(rows.length, CATCHUP_PICTURES.length, `${where}: the VALUES list is a different length`);
+  assert.ok(rows.length > 0, `${where}: no VALUES list found; this check is reading nothing`);
   rows.forEach((row, i) => {
     assert.equal(Number(row[1]), i + 1, `${where}: the ordinals are not 1..n in order`);
-    assert.equal(row[2], CATCHUP_PICTURES[i].src, where);
-    assert.equal(row[3], CATCHUP_PICTURES[i].focus, where);
+    const entry = CATCHUP_PICTURES.find((p) => p.src === row[2]);
+    assert.ok(entry, `${where}: ${row[2]} is not in the pool`);
+    assert.equal(row[3], entry.focus, `${where}: ${row[2]} is aimed differently from the pool`);
   });
   return rows.length;
 }
 
-test("the migration's backfill is this pool, in this order", () => {
-  /* The SQL cannot import the array, so it retypes it. This is what stops the
-     two drifting: a photograph added here and not there gets picked by
-     `pictureFor` for every new Catch-up and by nothing for an old one. */
+test("the migration's backfill names only pool photographs", () => {
+  /* The SQL cannot import the array, so it retypes it. */
   const sql = read("prisma/migrations-manual/2026-09-08-catchup-picture.sql");
-  assertPoolMatches(sql, "2026-09-08-catchup-picture.sql");
+  assertPoolRows(sql, "2026-09-08-catchup-picture.sql");
 
   // Re-runnable, and it has to be: it is applied to two Supabase projects and
   // there is no migration table saying which have had it.
@@ -181,18 +238,41 @@ test("the migration's backfill is this pool, in this order", () => {
   assert.match(sql, /hashtext\(c\.id\) & 2147483647/);
 });
 
-test("the batch backfill retypes the same pool, and modulos it by the same length", () => {
+test("the batch backfill names only pool photographs, and modulos by its own list", () => {
   /* The second migration to carry a copy of the pool (build phase 4: one
-     Catch-up per batch group at ten members or more). It hard-codes the
-     pool's LENGTH in its modulo rather than counting the VALUES list the way
-     the picture migration does, so growing the pool to twenty without
-     touching this number would leave fourteen photographs unreachable to
-     every batch Catch-up made by it. This is the line that says so. */
+     Catch-up per batch group at ten members or more). It hard-codes its
+     list's LENGTH in the modulo rather than counting the VALUES the way the
+     picture migration does, so a list and a modulo that disagree index off
+     the end and mint a Catch-up with no picture. This is the line that says so. */
   const sql = read("prisma/migrations-manual/2026-09-08-batch-catchups.sql");
-  const n = assertPoolMatches(sql, "2026-09-08-batch-catchups.sql");
+  const n = assertPoolRows(sql, "2026-09-08-batch-catchups.sql");
   const modulo = sql.match(/hashtext\(e\.id\) & 2147483647\) % (\d+)\)/);
   assert.ok(modulo, "the batch backfill no longer picks a picture by hashing the group id");
   assert.equal(Number(modulo[1]), n, "the batch backfill's modulo is not the pool's length");
+});
+
+test("retiring the stand-ins moves only rows on a retired path, and never re-dates one", () => {
+  /* 2026-09-10: his first three replaced the six stand-ins, and six live rows
+     were pointing at one. */
+  const sql = decomment(read("prisma/migrations-manual/2026-09-10-catchup-pictures-his-three.sql"));
+  assertPoolRows(sql, "2026-09-10-catchup-pictures-his-three.sql");
+  assert.match(sql, /SET DEFAULT '([^']+)'/);
+  assert.equal(sql.match(/SET DEFAULT '([^']+)'/)[1], CATCHUP_PICTURES[0].src, "the default it sets is not the pool's first entry");
+
+  /* Selected by the RETIRED paths, named. "Not in the pool" would read the
+     same today and, re-run after the pool grows, would drag every row on a
+     newer photograph back onto these three. */
+  const retired = sql.match(/"pictureSrc" IN \(([^)]+)\)/);
+  assert.ok(retired, "the retirement no longer selects rows by a named list of retired paths");
+  const paths = [...retired[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  assert.equal(paths.length, 6);
+  for (const p of paths) assert.ok(!isPoolPicture(p), `${p} is retired and back in the pool`);
+  assert.doesNotMatch(sql, /NOT IN/);
+
+  // An ended Catch-up shows `updatedAt` as the day it ended; a picture swap
+  // nobody made must not move it.
+  assert.doesNotMatch(sql, /"updatedAt"/);
+  assert.match(sql, /theirs\."groupId" <> mine\."groupId"/, "it counts the row's own Catch-up against itself");
 });
 
 test("every path that mints a Catch-up gives it a picture", () => {
@@ -202,7 +282,11 @@ test("every path that mints a Catch-up gives it a picture", () => {
   const actions = decomment(read("src/app/(main)/catchups/actions.ts"));
   const create = actions.slice(actions.indexOf("export async function createCatchupWithPeople"));
   const tx = create.slice(0, create.indexOf("\n  });"));
-  assert.match(tx, /pictureFor\(/, "createCatchupWithPeople does not pick from the pool");
+  assert.match(
+    tx,
+    /pickCatchupPicture\(tx, group\.id\)/,
+    "createCatchupWithPeople does not pick against what its people already see"
+  );
   assert.match(tx, /pictureSrc:/, "createCatchupWithPeople does not write a picture");
 
   const seed = decomment(read("src/lib/demo-seed/seed.ts"));
@@ -229,6 +313,7 @@ test("a purged member's uploaded picture does not leave a broken card behind", (
      survive their own account deletion. */
   const purge = decomment(read("src/lib/account-purge.ts"));
   assert.match(purge, /restoreCatchupPicturesUploadedBy/);
+  assert.match(purge, /pickCatchupPicture\(db, row\.groupId\)/);
   assert.match(purge, /pictureSrc: \{ contains: `\/uploads\/\$\{userId\}\/` \}/);
   assert.match(purge, /urls\.push\(c\.pictureSrc\)/);
 });

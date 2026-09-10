@@ -149,17 +149,17 @@ UPDATE "CatchupSeries" c
 -- the same hash) that `pictureFor` gives the TypeScript paths: a re-applied
 -- migration lands on the same photograph rather than shuffling the app under
 -- somebody. `hashtext` is masked to positive first because it returns a signed
--- int4 and Postgres's `%` keeps the sign of the dividend. The list below is
--- CATCHUP_PICTURES in order, and catchup-pictures.test.mjs fails if the two
--- ever disagree.
+-- int4 and Postgres's `%` keeps the sign of the dividend. Every row of the
+-- list below must be in CATCHUP_PICTURES with the same focus, and the modulo
+-- must be its length; catchup-pictures.test.mjs fails otherwise. It was the
+-- six stand-ins until 2026-09-10, when his first three replaced them; the row
+-- this minted was moved by 2026-09-10-catchup-pictures-his-three.sql, not by
+-- editing this.
 WITH pool AS (
   SELECT * FROM (VALUES
-    (1, '/images/collection/demo-banyan-benches.webp', 'center 92%'),
-    (2, '/images/collection/demo-banyan-pillar.webp',  'center 88%'),
-    (3, '/images/collection/demo-banyan-canopy.webp',  'center 90%'),
-    (4, '/images/collection/demo-banyan-arch.webp',    'center 85%'),
-    (5, '/images/collection/demo-banyan-trunk.webp',   'center 85%'),
-    (6, '/images/collection/c3.webp',                  'center 85%')
+    (1, '/images/catchups/shaded-path.webp',   'center 66%'),
+    (2, '/images/catchups/stone-benches.webp', 'center 68%'),
+    (3, '/images/catchups/boulder-hill.webp',  'center 48%')
   ) AS t(n, src, focus)
 ),
 eligible AS (
@@ -175,7 +175,7 @@ INSERT INTO "CatchupSeries"
 SELECT gen_random_uuid()::text, e.id, NULL, 'monthly', 'active', NULL, NULL,
        pool.src, pool.focus, now(), now()
   FROM eligible e
-  JOIN pool ON pool.n = ((hashtext(e.id) & 2147483647) % 6) + 1;
+  JOIN pool ON pool.n = ((hashtext(e.id) & 2147483647) % 3) + 1;
 
 -- Edition 1, open and collecting, for any batch Catch-up that has no Edition
 -- at all. Scoped to batch Catch-ups (`batchYear` not null) so it can never

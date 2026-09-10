@@ -118,12 +118,17 @@ export type SketchCatchup = {
    FILE on 2026-09-08 (spec 3.4): the picture is a real column now, and the
    pool has to be readable by the creation path, the settings control and
    the demo seed -- none of which can import a lab room, because the public
-   demo's build does not compile one. The judgement that picked these six
-   and the crop each is taken at travelled with them; see
+   demo's build does not compile one. The judgement that picked them and
+   the crop each is taken at travelled with them; see
    src/lib/catchup-pictures.ts. Re-exported here so the room reads the same
    as it did, and so there is only ever one pool. */
 export type Picture = CatchupPicture;
 export const PICTURES = CATCHUP_PICTURES;
+
+/** The shelf's cards go round the pool rather than indexing into it. Six
+ *  cards and three photographs, since his first three replaced six
+ *  stand-ins: a card past the end of the pool would have drawn nothing. */
+const pictureAt = (i: number): Picture => PICTURES[i % PICTURES.length];
 
 /* ── dates, all off the Edition's own ────────────────────────────────── */
 
@@ -218,7 +223,7 @@ export function buildShelf(edition: SketchEdition): SketchCatchup[] {
       ],
       endedAt: null,
       members: people,
-      picture: PICTURES[0],
+      picture: pictureAt(0),
     },
 
     /* Out, and not yet read. The whole panel opens the reader. */
@@ -235,7 +240,7 @@ export function buildShelf(edition: SketchEdition): SketchCatchup[] {
       before: [],
       endedAt: null,
       members: people,
-      picture: PICTURES[1],
+      picture: pictureAt(1),
     },
 
     /* Questions are being gathered. */
@@ -262,7 +267,7 @@ export function buildShelf(edition: SketchEdition): SketchCatchup[] {
       before: [{ ...published, number: 1, publishedAt: shift(base, -60), questions: q.slice(2, 7), read: true, photos: from(2) }],
       endedAt: null,
       members: people.slice(0, 4),
-      picture: PICTURES[2],
+      picture: pictureAt(2),
     },
 
     /* Out, and read, with two behind it. The state `preparing` used to sit
@@ -292,7 +297,7 @@ export function buildShelf(edition: SketchEdition): SketchCatchup[] {
       ],
       endedAt: null,
       members: people.slice(0, 8),
-      picture: PICTURES[3],
+      picture: pictureAt(3),
     },
 
     /* A batch on its first day. It opens straight into collecting -- there
@@ -322,7 +327,7 @@ export function buildShelf(edition: SketchEdition): SketchCatchup[] {
       before: [],
       endedAt: null,
       members: people.slice(0, 11),
-      picture: PICTURES[4],
+      picture: pictureAt(4),
     },
 
     /* Over. */
@@ -339,7 +344,7 @@ export function buildShelf(edition: SketchEdition): SketchCatchup[] {
       before: [{ ...published, number: 1, publishedAt: shift(base, -240), questions: q.slice(0, 5), read: true, photos: from(6) }],
       endedAt: shift(base, -120),
       members: people.slice(0, 5),
-      picture: PICTURES[5],
+      picture: pictureAt(5),
     },
   ];
 }

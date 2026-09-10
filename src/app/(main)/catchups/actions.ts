@@ -48,11 +48,8 @@ import {
   toggleCommentLikeRow,
   writeComment,
 } from "@/lib/comment-thread";
-import {
-  isPoolPicture,
-  isValidPictureFocus,
-  pictureFor,
-} from "@/lib/catchup-pictures";
+import { isPoolPicture, isValidPictureFocus } from "@/lib/catchup-pictures";
+import { pickCatchupPicture } from "@/lib/catchup-picture-pick";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { ownedUploadUrls } from "@/lib/upload-ownership";
@@ -497,11 +494,11 @@ export async function createCatchupWithPeople(input: {
         select: { id: true, name: true },
       });
       /* A Catch-up gets its photograph at the moment it is made, not the
-         first time somebody thinks to add one (spec 3.4). Seeded off the
-         group id -- which exists by now and is as unique as the Catch-up's
-         own -- so the pick is deterministic rather than a coin toss, and a
-         retried creation lands on the same picture. */
-      const picture = pictureFor(group.id);
+         first time somebody thinks to add one (spec 3.4). The one its people
+         see least on the Catch-ups they already have, which the member rows
+         written just above are what make askable; ties seeded off the group
+         id, so a retried creation lands on the same picture. */
+      const picture = await pickCatchupPicture(tx, group.id);
       const catchup = await tx.catchup.create({
         data: {
           groupId: group.id,

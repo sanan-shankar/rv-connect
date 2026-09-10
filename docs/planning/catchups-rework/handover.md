@@ -561,7 +561,8 @@ clamp to two lines."* `spec.md` §4.3. Original finding:
   portrait to a wide banner keeps a ninth of it and upscales that, which is exactly the *"insanely
   cropped in, like, 30x zoom"* he kept seeing. Both dropped, and each survivor now carries the band
   its wide crop is taken at, because the horizon and the benches are in the lower quarter of all of
-  them. **He still owes the twenty**, and they want 2,400px or more on the long edge.
+  them. **The first three of his arrived 2026-09-10** and replaced all six; the rest are still
+  owed, and they want 2,400px or more on the long edge.
 
 ---
 
@@ -621,7 +622,7 @@ independent critics on 2026-09-05 and repaired; if you find a gap, add the row.
 | I12 | A member is in only two or three Catch-ups; design a short list, not a library | 1 | closed by S4: two up on a laptop is a screen; the room's default shelf is three |
 | I13 | The long-box problem is everywhere in the app, and the worst case he names is a TV | 1 | open |
 
-| I14 | **The picture.** Catch-ups is the only surface with no imagery and it reads *"very functional and very corporate"*; every Catch-up gets a photograph when it is made, from a pool of about twenty of the school he will supply, replaceable by whoever runs it and positioned at creation; it appears in several places as part of the Catch-up's identity, *"almost like a group chat photo"* | N19-N24 | **built, 2026-09-08, build phase 3**: two columns, the pool at `src/lib/catchup-pictures.ts`, both creation paths, and the picker with its upload and aim. Nothing DRAWS it until phases 6 and 7. **He still owes the twenty photographs**, and they are one edit to that array |
+| I14 | **The picture.** Catch-ups is the only surface with no imagery and it reads *"very functional and very corporate"*; every Catch-up gets a photograph when it is made, from a pool of about twenty of the school he will supply, replaceable by whoever runs it and positioned at creation; it appears in several places as part of the Catch-up's identity, *"almost like a group chat photo"* | N19-N24 | **built, 2026-09-08, build phase 3**: two columns, the pool at `src/lib/catchup-pictures.ts`, both creation paths, and the picker with its upload and aim. Nothing DRAWS it until phases 6 and 7. **His first three arrived 2026-09-10** and replaced the six stand-ins, at full resolution with each aim chosen by looking, plus the repeat rule he asked for the same day ("to the extent possible one person doesn't have two catch ups with the same header when there's a picture available that they don't have a catch up for") -- `pictureAvoiding` picks the photograph a Catch-up's people see least, and a dated migration moved the six live rows. **More are still owed**, and each is one file and one line |
 | I15 | The list must not carry the Round's questions: *"it's overcrowding ... too much text going on for something that should just be a navigation"*, and the picture must be *"a spectacle"* that *"makes you wanna click it"* | N25 | closed by S4 |
 
 ### Lifecycle: archive, delete, pause, end, leave (L)
@@ -1716,7 +1717,11 @@ these: *"defaults, except ..."*.
 - **Options:** (a) you run it when you have a minute (b) I change the code on a guess (c) drop it.
 - **If you don't reply I'll do:** (a), and it stays open.
 
-**25. The twenty photographs. (question 17, said again, because it is still the one thing missing)**
+**25. The twenty photographs. ANSWERED 2026-09-10, in part: three arrived, the rest are still owed.**
+- **His:** *"I was supposed to provide 20. I have three. that'll do for now. i'll add more later.
+  it's unlikely for someone to be in more than three catch ups anyway."* The three shipped at full
+  resolution, 2 : 1, and the six stand-ins are gone from Catch-ups entirely. Adding the rest stays
+  one file in `public/images/catchups/` and one line in `CATCHUP_PICTURES`.
 - **What I need:** about twenty pictures of the school, as files. Details rather than valley views --
   a wall, a bit of the banyan, a shadow on a step, a doorway, a bench, a window. Landscape, at least
   2,400 pixels wide, two-to-one, nothing with a recognisable face, and nothing with the subject dead
@@ -1725,7 +1730,7 @@ these: *"defaults, except ..."*.
   green trees, which is the thing the picture was added to fix.
 - **If I guess wrong:** every Catch-up looks like every other Catch-up.
 - **Options:** (a) you supply them (b) I pick twenty out of the Collection (c) leave the stand-ins.
-- **If you don't reply I'll do:** keep the stand-ins and wait for you.
+- **He chose (a)**, three at a time.
 
 **26. The last phase cannot run until you release, and it deletes three test Catch-ups.**
 - **What is true:** 33 finished commits are sitting on this machine and have never been sent.

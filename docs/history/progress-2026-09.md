@@ -8,6 +8,58 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-10 (later) — his first three photographs replace the six stand-ins, and nobody sees the same header twice
+
+He sent three photographs of the school, cropped to 2 : 1 by hand, against the twenty the pool
+has been waiting for since build phase 3: *"I was supposed to provide 20. I have three. that'll
+do for now."* They replace six stand-ins cut from the demo Collection, five of them the same
+banyan from different angles, none wider than 1,280px -- *"I don't wanna see any of those."*
+
+**The files ship uncropped**, WebP q90 at 3,456 to 4,608px wide, camera metadata stripped
+(a Lumix writes GPS). Nothing is baked in: every surface still takes its own crop with
+`object-fit: cover` and the photograph's own `focus`, which is what he asked for -- his crop is
+the file, ours is the aim. **Each aim was chosen by looking**, not computed: every candidate was
+cut at all four frame shapes the app draws (6.33 : 1 down to 1.78 : 1), with the scrim and a name
+over it, and read at the tightest band. The path 66%, the benches 68% -- they fill 47% to 80% of
+the frame, a little more than the band holds, so the front bench's foot goes under the scrim --
+and the hill 48%, aimed at the boulder's top because the boulder is taller than the band.
+
+**His rule about repeats is now the pick.** *"To the extent possible one person doesn't have two
+catch ups with the same header when there's a picture available that they don't have a catch up
+for."* `pictureAvoiding` counts, per photograph, the (member, Catch-up) pairs already showing it
+-- exactly how many people would see it twice -- and takes the least held, so the count is zero
+whenever anybody in the room has a picture free. Ties go round the pool from the old seeded pick,
+so an empty count is byte-for-byte what shipped before and a retried creation still lands on the
+same photograph. One query (`pickCatchupPicture`) fills it, and all three paths that mint a
+picture share it: starting a Catch-up, a batch reaching ten, and the purge putting one back after
+its uploader deletes their account. The rule is pure and tested; the query is the only impure half.
+
+**The six live rows are the half an edit cannot reach**, since each stores its own path. A dated
+migration moves them with the same rule in SQL, greedy in creation order. Rehearsed against
+production inside a transaction that rolled back: all six move, the one Catch-up on an uploaded
+photograph is untouched, and of 51 people across every Catch-up exactly one ends with a repeat --
+the account holding six Catch-ups, five of them on the pool, where three photographs can only go
+2-2-1. **It is applied AFTER the deploy, not before**: the running build has no
+`/images/catchups/` until then, and the stand-in files stay in `public/images/collection/` for the
+demo's Collection, so a row that has not moved yet keeps drawing.
+
+**One test rule was loosened on purpose.** Two applied migrations retype the pool, and the test
+demanded they equal it exactly -- so every photograph ADDED would have meant retyping migrations
+that had already run and would match no row again, which is the opposite of the "one edit, no
+migration" the pool was moved out of the lab for. It now checks that what they name is still in
+the pool with the same aim. Adding photographs stays one file and one line; retiring one is a
+migration, and this is the worked example. The new migration selects by the six RETIRED paths by
+name rather than "not in the pool", so re-running it after the pool grows cannot drag a row on a
+newer photograph back onto these three.
+
+Also: the lab shelf drew six cards by indexing `PICTURES[0..5]` and would have drawn nothing for
+three of them, so it goes round the pool instead; and a new test pins every pool file at 2,400px
+or wider and within 2% of 2 : 1, which is the brief his next batch will be measured against.
+
+`npm run check` 116/116, `npm run visual` 25/25 with no baseline moved -- the correct result,
+since the live rows do not move until the migration runs. The `/simplify` pass's four review
+agents all died on a session rate limit; the diff was reviewed by hand instead.
+
 ## 2026-09-10 (later) — More under an answer only shows when there is more
 
 He opened More under Mohini's answer in the reader and nothing more appeared. The cause was two
