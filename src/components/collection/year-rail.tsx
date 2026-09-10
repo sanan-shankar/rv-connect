@@ -69,20 +69,30 @@ export type BandCount = { key: string; count: number };
  *
  *  A row was `py-[3px]` around an 11px label at the inherited 16.5px
  *  line-height -- 22.5px -- in a column with `gap-px` between rows, so the
- *  pitch is 23.5. Both numbers are kept because the difference is the gap,
+ *  pitch was 23.5. Both numbers are kept because the difference is the gap,
  *  and a row that fills its pitch would close it.
+ *
+ *  SCALED BY 1.136 ON 2026-09-10, when the label went 11px -> 12.5px. Eleven
+ *  pixels of muted tabular numerals is under the floor for something meant to
+ *  be read and clicked, and this is the one control that indexes the whole
+ *  archive -- the owner raised it and he is right. Every number here moved by
+ *  the same factor rather than being re-chosen, so the rail keeps the density
+ *  and the proportions it was tuned to: pitch 26.7, row 25.6, the squeeze
+ *  floor 19.3, the Undated gap 11.4 and the dock's falloff 72.7, which holds
+ *  its reach at the same 2.7 rows either side of the pointer. The label's box
+ *  went 34px -> 39px with it, so a four-digit year still sits on one line.
  * ------------------------------------------------------------------ */
-const ROW = 23.5;
-const ROW_H = 22.5;
+const ROW = 26.7;
+const ROW_H = 25.6;
 
 /** The floor the rows may be squeezed to, and only on a window too short to
  *  hold the rail at full size -- an overflowing rail is worse than a tight
  *  one, and a tight one is still better than a scrollbar. */
-const ROW_MIN = 17;
+const ROW_MIN = 19.3;
 
 /** The gap that lifts "Undated" off the decades. It is not a decade and does
  *  not belong in their run. */
-const UNDATED_GAP = 10;
+const UNDATED_GAP = 11.4;
 
 /** What the rail leaves below itself, so its foot is not welded to the
  *  bottom of the window. */
@@ -101,7 +111,7 @@ const SWITCH_TRAVEL = ROW;
  *  the right-aligned labels stay a clean column while the rows grow
  *  leftward -- and the swell never moves a row, only its paint.
  * ------------------------------------------------------------------ */
-const DOCK_REACH = 64; // px of falloff either side of the pointer
+const DOCK_REACH = 72.7; // px of falloff either side of the pointer
 const DOCK_PEAK = 1.16;
 const DOCK_SPRING = { stiffness: 400, damping: 28 };
 
@@ -125,7 +135,18 @@ function useColumnHeight(rowCount: number) {
   const measure = useCallback(() => {
     const el = nav.current;
     if (!el) return;
-    const top = el.getBoundingClientRect().top + window.scrollY;
+    /* THE RAIL'S TOP IN THE WINDOW, not in the document, and the difference
+       is a bug that only appeared once you had scrolled. `+ window.scrollY`
+       turns a viewport coordinate into a document one, and the height left
+       below the rail is a fact about the WINDOW -- so once the reader was
+       20,000px down, this computed `innerHeight - 20,024 - 24`, clamped to
+       zero, and the rail decided it had no room and folded into decades. A
+       reload put the reader back at the top where the two coordinate spaces
+       agree, which is why it "sometimes" happened and a reload always fixed
+       it (owner, 2026-09-10). Sticky at `top-6`, the rect's own top is 24
+       once scrolled and the river's start before that -- which is exactly
+       the number this wants, in both states, with nothing added. */
+    const top = el.getBoundingClientRect().top;
     setHeight(Math.max(0, window.innerHeight - top - RAIL_FOOT));
   }, []);
   /* Layout effect, so the corrected height is in place before the browser
@@ -418,7 +439,7 @@ function RailRow({
            shipped rail let the label take the inherited 16.5px line box, and
            that is a third of the row's height. */
         className={cn(
-          "w-[34px] shrink-0 text-[11px] tabular-nums tracking-[0.04em]",
+          "w-[39px] shrink-0 text-[12.5px] tabular-nums tracking-[0.04em]",
           isActive ? "font-semibold" : row.head ? "font-medium" : "font-normal"
         )}
       >
