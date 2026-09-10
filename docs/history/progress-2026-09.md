@@ -1,3 +1,77 @@
+## 2026-09-11 — the bot check stops being able to lock a member out, and starts saying why it turned them away
+
+A member reported that sign-in kept telling her "We couldn't confirm you're human. Refresh the page
+and try once more", on Safari, not incognito, with no checkbox ever appearing. She had tried three
+times. The table said six: six `bot-check` refusals between 13:19 and 13:28 UTC on 2026-09-10, no
+successes, against a verified account with a password and no block on it. Two other people passed
+the same door in the same nine minutes — one signed in, one got their password wrong twice — so
+nothing was down. Cloudflare had simply decided to challenge her, and the challenge is where
+people die.
+
+**The number that made this a shape problem rather than a bug.** Thirteen of the thirty-nine
+sign-in attempts in the fortnight to 2026-09-10 were refused at the bot check. Seven of the
+thirteen were the owner's own.
+
+**Why three sessions had already failed to fix it.** M07 fixed the blocked script. 2026-08-22
+fixed the widget re-arming under a live submit. 2026-08-28 fixed the hostname list. Every one was
+a real cause and every one was fixed correctly, and none of them touched what was underneath: a
+tokenless sign-in was a THROW, so any failure of the widget — for any reason, including reasons
+nobody had met yet — was a permanent lockout, wearing a sentence that told the member to refresh.
+Refreshing was never once the thing wrong. Worse, the reset form wears the same widget, so the
+recovery path was shut too.
+
+**The asymmetry nobody had argued for.** `verifyTurnstile` fails OPEN when Cloudflare is
+unreachable from the SERVER, on the stated ground that a bot check which takes sign-in down with
+it is worse than the bots. Failing CLOSED when the failure was on the visitor's side was not a
+decision, it was where the code fell. So sign-in now runs an unvouched attempt on
+`login-unverified` — five an hour per IP, spent on success as well as failure. A person gets in on
+the first try. A stuffing run gets five guesses an hour with `login-ip` (30 failures a quarter
+hour), `login-account` (10), bcrypt at cost 12, the block list and `credentialVersion` all still
+standing behind it. Signup and the reset REQUEST keep the hard refusal: a bot minting accounts is
+what Turnstile is most for, and someone turned away there has a human to write to. Owner's call,
+asked and given before any of this was written.
+
+**And it now says why.** The thing that made this unsolvable was that the failure erased its own
+evidence: Cloudflare names its reason in the console of the person who cannot get in, and the
+server recorded the single word `bot-check`. `LoginAttempt.detail` now carries `no-token/timeout`,
+`no-token/error-110200`, `refused/timeout-or-duplicate`, and /admin/audit shows it. The half after
+the slash is the widget's own account, sent with the request and **trusted for nothing** —
+allowlisted by `bot-check-detail.ts`, recorded, never branched on. Proved on the live path, not
+just in the unit test: a hint of `<script>alert(1)</script>` is written down as plain `no-token`.
+
+**A blocked script no longer stops at the client.** The form used to short-circuit on it and never
+send the request, which was right when every such attempt was refused and is wrong now that they
+are not — the person likeliest to be permanently locked out was the one being spared the round
+trip. It sends, and the "something in this browser is blocking it" sentence is held back and shown
+only if the server does refuse.
+
+**Two documents were asserting something about the owner's Cloudflare dashboard that was not
+true.** `docs/SECURITY.md:213` and `docs/TRAPS.md:296` both said `vercel.app` was on the widget's
+hostname list. It is not; the list reads `localhost`, `rishivalley.space`,
+`rv-alumni-demo.vercel.app`, `rv-alumni.vercel.app`. The 2026-08-28 session designed the widening,
+wrote it up as shipped, and the dashboard is the owner's. That is why every past deployment still
+answers 110200 and why he still cannot open one. Both files now say what is actually there and
+that the entry is still worth adding — `turnstile-origin-rule.ts` was built to make it safe and
+still would. It is a convenience now rather than a rescue, because an old deployment carries its
+own build and none of today's code reaches it.
+
+**Ruled out, so the next session does not chase it.** `frame-src` in the CSP has no `blob:`, and a
+`blob:` iframe on rishivalley.space IS blocked — proved with a live `securitypolicyviolation`. It
+is not this bug. An isolated probe serving the production CSP, a permissive one and none at all
+gave the identical result, so the widget failing to draw its checkbox in an automated Chrome is
+the automation, not the policy. Left alone rather than "fixed" on suspicion.
+
+**Verification.** `npm run check` clean, 117/117 test files (the new one is
+`bot-check-detail.test.mjs`, five cases on the untrusted hint). The behaviour proved against the running server
+rather than asserted: a sign-in carrying no token at all is judged on its credentials for five
+attempts and refused with `bot-check` on the sixth. Probe rows deleted afterwards, along with a
+`not-a-real-account-turnstile-probe@example.invalid` row the 2026-08-28 session left behind, which
+had been sitting in the analytics "locked out, worth emailing them" panel ever since.
+
+**H22's probe went red on the rename** (`verifyTurnstile` → `checkTurnstile` at the sign-in door)
+and now names all three spellings. It broke the day the door was improved, which is the least
+useful moment for a security board to go red.
+
 # Session history — September 2026
 
 Moved out of the root `progress.md`, unedited. The root file is the index: one line per

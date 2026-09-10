@@ -40,6 +40,11 @@ export function recordLoginAttempt(input: {
   ok: boolean;
   reason: LoginReason;
   userId?: string | null;
+  /** WHY, for the one reason whose cause is not visible from here. See the
+   *  column comment in schema.prisma. Capped and stored verbatim; part of it
+   *  is an untrusted hint from the browser, so it is written to be READ, never
+   *  matched on and never used to decide anything. */
+  detail?: string | null;
 }): void {
   const write = async () => {
     try {
@@ -49,6 +54,7 @@ export function recordLoginAttempt(input: {
           ok: input.ok,
           reason: input.reason,
           userId: input.userId ?? null,
+          detail: input.detail ? input.detail.slice(0, 120) : null,
         },
       });
     } catch (err) {

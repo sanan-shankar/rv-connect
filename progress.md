@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-11 — the bot check stops being able to lock a member out, and starts saying why it turned them away
 - 2026-09-10 (later) — his first three photographs replace the six stand-ins, and nobody sees the same header twice
 - 2026-09-10 (later) — More under an answer only shows when there is more
 - 2026-09-10 (later) — the line beside an Edition's date is cinnamon, read or not
