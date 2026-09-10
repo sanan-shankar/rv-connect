@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
@@ -42,36 +43,41 @@ export async function DirectoryModule({ userId }: { userId: string }) {
 
   return (
     <RailCard label="New in the directory">
-      <div className="[&>*:last-child]:pb-0 [&>div+div]:border-t [&>div+div]:border-border">
-        {recentMembers.map((m) => (
-          <IdentityRow
-            key={m.id}
-            user={{ id: m.id, name: m.name, photoUrl: m.photoUrl ?? null, birdOverride: m.birdOverride }}
-            avatarHref={`/profile/${m.id}`}
-            avatarLabel={m.name}
-            className="py-2.5"
-            textClassName="flex-1"
-            name={
-              <Link
-                href={`/profile/${m.id}`}
-                className="block truncate text-[13.5px] font-semibold leading-none text-foreground hover:underline focus-visible:outline-none focus-visible:underline"
-              >
-                {m.name}
-              </Link>
-            }
-            meta={
-              /* metaLine: blankWhenUnknown keeps this deliberately blank for
-                 members with no batch year (a compact rail, no "Member" filler
-                 wanted), and the blank must take its dot with it or the row
-                 reads "· City". batchLine, not formatBatch, so a teacher reads
-                 "Teacher" here rather than falling through to that same blank. */
-              metaLine(
-                batchLine(m, { blankWhenUnknown: true }),
-                m.currentCity && shortPlaceLabel(m.currentCity)
-              )
-            }
-            metaClassName="truncate leading-none"
-          />
+      <div className="[&>*:last-child]:pb-0">
+        {recentMembers.map((m, i) => (
+          <Fragment key={m.id}>
+            {/* Starts at the name, not the bird: the 40px sm avatar plus the
+                row's gap-3, same convention an icon-led menu uses -- the rule
+                separates the text, not the glyph beside it. */}
+            {i > 0 && <div aria-hidden className="ml-[52px] h-px bg-border" />}
+            <IdentityRow
+              user={{ id: m.id, name: m.name, photoUrl: m.photoUrl ?? null, birdOverride: m.birdOverride }}
+              avatarHref={`/profile/${m.id}`}
+              avatarLabel={m.name}
+              className="py-2.5"
+              textClassName="flex-1"
+              name={
+                <Link
+                  href={`/profile/${m.id}`}
+                  className="block truncate text-[13.5px] font-semibold leading-none text-foreground hover:underline focus-visible:outline-none focus-visible:underline"
+                >
+                  {m.name}
+                </Link>
+              }
+              meta={
+                /* metaLine: blankWhenUnknown keeps this deliberately blank for
+                   members with no batch year (a compact rail, no "Member" filler
+                   wanted), and the blank must take its dot with it or the row
+                   reads "· City". batchLine, not formatBatch, so a teacher reads
+                   "Teacher" here rather than falling through to that same blank. */
+                metaLine(
+                  batchLine(m, { blankWhenUnknown: true }),
+                  m.currentCity && shortPlaceLabel(m.currentCity)
+                )
+              }
+              metaClassName="truncate leading-none"
+            />
+          </Fragment>
         ))}
       </div>
     </RailCard>
