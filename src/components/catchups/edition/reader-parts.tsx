@@ -42,7 +42,7 @@
  *     phase 9; there is nothing to open yet, so nothing is drawn.
  * ------------------------------------------------------------------ */
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
@@ -102,6 +102,35 @@ export function Body({ text, className }: { text: string; className?: string }) 
   const [open, setOpen] = useState(false);
   const long = text.length > CLAMP_OVER_CHARS;
 
+  /* WHETHER "More" SHOWS IS MEASURED, not guessed. It used to be the
+     character count alone, while the fold is a LINE count, and the two
+     disagreed: he opened More on Mohini's answer and nothing more appeared
+     (2026-09-10). Measured on her 805 characters -- 7 lines at 1512 and 8 at
+     1440, so a 10-line fold hid 0px under a button that promised more; 18
+     lines at 390, where it hid 198px and was right. The viewer's caption
+     already learnt this and says why: the answer depends on the glyphs and on
+     how wide the screen is (common/image-viewer.tsx).
+
+     The character count stays as the cheap first pass, so an answer that
+     cannot possibly fold never pays for a measurement. `folds` STARTS TRUE so
+     the server's render and the first client render agree, which is what
+     keeps the phone -- his own device, where long answers really do fold --
+     from ever seeing the button arrive late and push the heart down. On a
+     laptop a false button leaves in the layout effect instead. A
+     ResizeObserver re-asks when the column changes width, because the
+     answer changes with it. */
+  const ref = useRef<HTMLParagraphElement>(null);
+  const [folds, setFolds] = useState(true);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || !long || open) return;
+    const measure = () => setFolds(el.scrollHeight - el.clientHeight > 1);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [long, open, text]);
+
   /* The fold, hoisted out of the element so the class list and the render call
      stay next to each other. `rich-text-wrapping.test.mjs` reads the 600
      characters BEFORE a `renderRichText` render looking for a break rule, and
@@ -127,6 +156,7 @@ export function Body({ text, className }: { text: string; className?: string }) 
   return (
     <>
       <p
+        ref={ref}
         /* `break-words` is not cosmetic. This is the bug recon root-caused on
            the shipped reader (F18): a member's pasted Spotify link is a
            54-character run with no break opportunity, so without it the
@@ -141,7 +171,7 @@ export function Body({ text, className }: { text: string; className?: string }) 
         style={fold}
         dangerouslySetInnerHTML={{ __html: renderRichText(text) }}
       />
-      {long && (
+      {long && (folds || open) && (
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
