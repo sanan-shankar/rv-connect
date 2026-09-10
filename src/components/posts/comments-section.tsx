@@ -19,13 +19,6 @@ import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import Link from "next/link";
 import { formatTimeAgo } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
-import {
-  createComment,
-  deleteComment,
-  loadComments,
-  toggleCommentLike,
-  adminRemoveComment,
-} from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { appendUnseen } from "@/lib/append-page";
@@ -59,6 +52,47 @@ interface CommentData {
   author: CommentAuthor | null;
 }
 
+/**
+ * THE FIVE THINGS A THREAD CAN DO, handed in rather than imported.
+ *
+ * This file used to reach straight into the feed's actions, which was fine
+ * while a comment could only hang off a post. Build phase 9 gave a Catch-up
+ * answer its own thread (spec 3.7), and his ask was to reuse this surface
+ * rather than draw a second one: "I feel like the comment section can be done
+ * the same way that we do it in feed ... I think we can just copy that comment
+ * section" (N1).
+ *
+ * Taking the five as a prop is the smallest change that makes it serve two
+ * owners. Nothing about WHO MAY read or write moved out here: each bundle's
+ * actions carry their own gate, so a caller cannot widen access by choosing a
+ * different one. Letters already reused this file unchanged, which is what
+ * proved the seam was in the right place.
+ *
+ * The two bundles are `FEED_COMMENT_ACTIONS` and `ENTRY_COMMENT_ACTIONS`; the
+ * shapes differ only in the id they take first, which is why `targetId` below
+ * is no longer called `postId`.
+ */
+export type CommentActions = {
+  load: (
+    targetId: string,
+    opts?: { cursor?: string | null; take?: number }
+  ) => Promise<
+    | { comments: CommentData[]; nextCursor: string | null; hasMore: boolean }
+    | { error: string }
+  >;
+  create: (
+    targetId: string,
+    content: string,
+    parentId?: string | null
+  ) => Promise<{ error?: string; success?: boolean; comment?: CommentData }>;
+  remove: (commentId: string) => Promise<{ error?: string; success?: boolean }>;
+  toggleLike: (commentId: string) => Promise<{ error?: string; liked?: boolean }>;
+  adminRemove: (
+    commentId: string,
+    note?: string
+  ) => Promise<{ error?: string; success?: boolean }>;
+};
+
 /* The thread loads in pages of top-level comments: a short first page so the
    panel opens light, then bigger pages as the reader actually scrolls (the
    sentinel below the list triggers the next fetch just before they reach the
@@ -70,14 +104,18 @@ const NEXT_PAGE = 10;
 // Renders the comment thread for a post. Feed/group cards toggle it open as an accordion
 // (one coordinated open/close timeline); Letters pass `alwaysOpen` to render it expanded.
 export function CommentsSection({
-  postId,
+  targetId,
+  actions,
   onCommentAdded,
   onCommentRemoved,
   alwaysOpen = false,
   viewerIsAdmin = false,
   expectedCount,
 }: {
-  postId: string;
+  /** The post, or the Catch-up answer, this thread hangs off. */
+  targetId: string;
+  /** Which of the two owners this is; see CommentActions above. */
+  actions: CommentActions;
   onCommentAdded: () => void;
   /** Fired after a removal is confirmed, so the post's visible comment count drops too. */
   onCommentRemoved?: () => void;
@@ -150,7 +188,7 @@ export function CommentsSection({
       // callAction: a rejected first page (deploy skew, dropped network,
       // expired session) used to leave `loading` true forever, so the panel
       // stayed on its skeleton rows with no way to recover (audit B-042).
-      const data = await callAction(() => loadComments(postId, { take: FIRST_PAGE }));
+      const data = await callAction(() => actions.load(targetId, { take: FIRST_PAGE }));
       if (cancelled) return;
       if ("error" in data) {
         toast.error(data.error);
@@ -165,7 +203,7 @@ export function CommentsSection({
     return () => {
       cancelled = true;
     };
-  }, [postId]);
+  }, [targetId, actions]);
 
   // Infinite scroll: the sentinel sits under the last loaded comment, and the
   // page (not the panel -- the panel clips but does not scroll) carries it
@@ -183,7 +221,7 @@ export function CommentsSection({
         loadingMoreRef.current = true;
         try {
           const data = await callAction(() =>
-            loadComments(postId, { cursor: nextCursor, take: NEXT_PAGE })
+            actions.load(targetId, { cursor: nextCursor, take: NEXT_PAGE })
           );
           if ("error" in data) {
             toast.error(data.error);
@@ -203,7 +241,7 @@ export function CommentsSection({
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [hasMore, loading, nextCursor, postId, mergeComments]);
+  }, [hasMore, loading, nextCursor, targetId, actions, mergeComments]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -212,13 +250,10 @@ export function CommentsSection({
     submittingRef.current = true;
     setSubmitting(true);
 
-    const formData = new FormData();
-    formData.set("content", newComment);
-    formData.set("postId", postId);
-    if (replyTo) formData.set("parentId", replyTo.id);
-
     try {
-      const result = await callAction(() => createComment(formData));
+      const result = await callAction(() =>
+        actions.create(targetId, newComment, replyTo?.id ?? null)
+      );
       if (result.error) {
         // An unconfirmed address gets the dialog, which explains and offers to
         // send the link again; everything else is still a toast.
@@ -272,14 +307,14 @@ export function CommentsSection({
   }
 
   async function handleDelete(id: string) {
-    const result = await callAction(() => deleteComment(id));
+    const result = await callAction(() => actions.remove(id));
     if (result.error) return result;
     removeLocally(id);
   }
 
   async function handleModerationConfirm(note: string) {
     if (!moderatingId) return { error: "Nothing selected" };
-    const result = await callAction(() => adminRemoveComment(moderatingId, note || undefined));
+    const result = await callAction(() => actions.adminRemove(moderatingId, note || undefined));
     if (!result.error) {
       removeLocally(moderatingId);
     }
@@ -356,6 +391,7 @@ export function CommentsSection({
                 ) : (
                   <CommentItem
                     comment={comment}
+                    toggleLike={actions.toggleLike}
                     onReply={() =>
                       setReplyTo({ id: comment.id, name: comment.author!.name })
                     }
@@ -371,6 +407,7 @@ export function CommentsSection({
                       <li key={reply.id}>
                         <CommentItem
                           comment={reply}
+                          toggleLike={actions.toggleLike}
                           onReply={() =>
                             setReplyTo({
                               /* The TAPPED reply, always. The server reparents
@@ -500,7 +537,7 @@ export function CommentsSection({
   // Letters: permanently expanded, no accordion (avoids a stray open animation on page load).
   if (alwaysOpen) {
     return (
-      <div id={`comments-${postId}`} className="mt-3">
+      <div id={`comments-${targetId}`} className="mt-3">
         {body}
       </div>
     );
@@ -511,7 +548,7 @@ export function CommentsSection({
   // with no second step and no divider left behind.
   return (
     <m.div
-      id={`comments-${postId}`}
+      id={`comments-${targetId}`}
       initial={{ height: 0, opacity: 0 }}
       animate={{ height: contentHeight, opacity: 1 }}
       exit={{
@@ -563,6 +600,7 @@ function DeletedComment() {
 
 function CommentItem({
   comment,
+  toggleLike,
   onReply,
   onLikeToggle,
   viewerIsAdmin = false,
@@ -570,6 +608,8 @@ function CommentItem({
   onDelete,
 }: {
   comment: CommentData;
+  /** `actions.toggleLike`, handed down so this row does not import an owner. */
+  toggleLike: CommentActions["toggleLike"];
   onReply: () => void;
   onLikeToggle: (id: string, liked: boolean, count: number) => void;
   /** Site admin viewing this thread: shows the "Remove" moderation control. */
@@ -580,7 +620,7 @@ function CommentItem({
 }) {
   const author = comment.author!;
 
-  const fireLike = useHeartToggle(() => toggleCommentLike(comment.id));
+  const fireLike = useHeartToggle(() => toggleLike(comment.id));
 
   function handleLike() {
     // The row belongs to the thread above, so the commit writes there rather

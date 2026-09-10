@@ -151,7 +151,7 @@ function useMedia(query: string, serverValue: boolean): boolean {
  *  byline and a thick band under the heart. Here the byline is one line,
  *  the words sit 10px under the name (R20: "the name is close to their
  *  answer"), and the heart is 6px under the words. */
-function Tile({ entry }: { entry: EditionEntry }) {
+function Tile({ entry, viewerIsAdmin }: { entry: EditionEntry; viewerIsAdmin: boolean }) {
   const body = entry.body?.trim() ?? "";
   return (
     /* The padding is the phone's 16 and the laptop's 20: LiftKit's card rule
@@ -184,7 +184,7 @@ function Tile({ entry }: { entry: EditionEntry }) {
           which he asked for by name. The feed's half of the same change
           shipped separately as 2a6f7d25 so he can revert it alone. */}
       <div className="px-4 pb-1.5 pt-1 md:px-5 md:pb-2 md:pt-1.5">
-        <Reactions entry={entry} />
+        <Reactions entry={entry} viewerIsAdmin={viewerIsAdmin} />
       </div>
     </article>
   );
@@ -201,10 +201,12 @@ function Tile({ entry }: { entry: EditionEntry }) {
  *  wall question still gets a tile, so nothing anybody wrote is dropped. */
 function Section({
   q,
+  viewerIsAdmin,
   sectionRef,
   headingRef,
 }: {
   q: ReaderQuestion;
+  viewerIsAdmin: boolean;
   sectionRef?: (el: HTMLElement | null) => void;
   headingRef?: (el: HTMLDivElement | null) => void;
 }) {
@@ -252,7 +254,7 @@ function Section({
         <div className="mt-4 space-y-3">
           {wall.length > 0 && <PhotoRun entries={wall} gutter={GUTTER} />}
           {tiles.map((e) => (
-            <Tile key={e.id} entry={e} />
+            <Tile key={e.id} entry={e} viewerIsAdmin={viewerIsAdmin} />
           ))}
         </div>
       )}
@@ -707,6 +709,7 @@ export function EditionReader({ edition }: { edition: ReaderEdition }) {
                   <Section
                     key={question.id}
                     q={question}
+                    viewerIsAdmin={edition.viewerIsAdmin}
                     sectionRef={(el) => {
                       sections.current[i] = el;
                     }}

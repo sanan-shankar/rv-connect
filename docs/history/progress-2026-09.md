@@ -8,6 +8,37 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-10 (later) — build phase 9: a Catch-up answer gets the feed's comments, on the feed's own table
+
+His ask was plain (review-2026-09-07 N1): *"I feel like the comment section can be done the same way
+that we do it in feed ... I think we can just copy that comment section."* So nothing about the
+thread is new, and the work was making one thread serve two owners without a second copy of it.
+
+**One table.** `Comment.postId` is nullable, `entryId` sits beside it, and `Comment_one_target`
+says exactly one is set. Prisma cannot express that, so it lives in
+`2026-09-10-comments-on-answers.sql` and `comment-target-rule.test.mjs` is the only thing
+connecting the two. Additive and a relaxation, so it went to both projects before the deploy.
+
+**One implementation.** `lib/comment-thread.ts` now holds the paging, the deleted-parent stub, the
+double-submit guard, the one-level reparenting (C-016), the same-thread check (M28) and the
+serialiser. `feed/actions.ts` and `catchups/actions.ts` each keep only their own gate and their
+own bell. `comments-section.tsx` takes its five actions as a prop.
+
+**On the page.** The replies control is the feed's -- 51x32 beside a 51x32 heart, 4px apart, glyph
+centres level -- and the panel brings its own open/close clock. Driven as Jerry at 1440 and 390:
+count 0 -> 1 -> 2, one bell for two comments from one person, both deleted through the shared
+action as blanked soft-deletes. No overflow, no console errors.
+
+**The bell is per person per answer**, not per Edition, and that departs from the spec: owner
+question 27. Keyed on the exact sentence, because a name prefix would merge "Ravi" into "Ravi Kumar".
+
+**Found by tracing every reader of the widened column**: leaving a Catch-up would have left every
+comment bell behind, the admin list would have linked to `/feed#null`, and the export would have
+dropped Catch-up comments. The write-path review added one real gap (no Remove control for an
+admin on a Catch-up thread, now wired) and one true-but-intended cascade, whose record is corrected.
+
+`npm run check` 116/116, `npm run visual` 25/25 with no baseline moved.
+
 ## 2026-09-10 (later) — the .vcf drops its houses for an about line, and a divider stops running under the bird
 
 Two small owner callouts on Save Contact and the feed rail.

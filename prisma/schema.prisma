@@ -731,7 +731,21 @@ model Comment {
   // outright by purgeUserAccount. Same shape as AdminMessage.authorId, and the
   // read path already renders an anchor stub with no author (audit M34).
   authorId  String?
-  postId    String
+  /* ONE table, two owners: a comment hangs off a feed post OR off one answer
+     in a Catch-up Edition, and exactly one of the two is set. Widened rather
+     than twinned (build phase 9, spec 3.7): CommentLike, the soft-delete-with-
+     replies rule, the admin hide, the SetNull purge behaviour above and the
+     700-line reading surface all already exist and are all already argued for
+     here. A CatchupEntryComment twin would need a twin of every one of them.
+
+     The "exactly one" half cannot be said in Prisma, so it is a CHECK
+     constraint written by
+     prisma/migrations-manual/2026-09-10-comments-on-answers.sql, and
+     `comment-target-rule.test.mjs` fails if this pair ever stops being
+     enforced there. Reads never rely on it: every query names the column it
+     wants. */
+  postId    String?
+  entryId   String?
   parentId  String?
   isHidden  Boolean  @default(false) // admin soft-hide (moderation); matches Post.isHidden / Photo.isHidden
   // Author's own delete. Soft, never a row delete: replies key off parentId,
@@ -744,13 +758,22 @@ model Comment {
   createdAt DateTime  @default(now())
 
   author       User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  post         Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post         Post?         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  // Cascade, the same as `post` above and for the same reason: an answer that
+  // is gone has nothing left to hang a thread under. An entry dies with its
+  // Edition, its prompt, or its author's purge, and in all three the answer
+  // itself has already left the page.
+  entry        CatchupEntry? @relation(fields: [entryId], references: [id], onDelete: Cascade)
   parent       Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
   replies      Comment[]     @relation("CommentReplies")
   commentLikes CommentLike[]
 
   @@index([postId, createdAt])
   @@index([postId, isHidden])
+  // The entry half of the two indexes above. One index, not two: a Catch-up
+  // answer's thread is read whole (there is no "hidden only" listing of it),
+  // so the moderation arm rides on the same (entryId, createdAt) scan.
+  @@index([entryId, createdAt])
   // Thread reads walk parentId. Unindexed, opening one comment thread
   // scanned every comment in the database (B-090).
   @@index([parentId])
@@ -1185,8 +1208,9 @@ model CatchupEntry {
 
   edition CatchupEdition    @relation(fields: [editionId], references: [id], onDelete: Cascade)
   prompt  CatchupPrompt     @relation(fields: [promptId], references: [id], onDelete: Cascade)
-  author  User              @relation("CatchupEntriesAuthored", fields: [authorId], references: [id], onDelete: Cascade)
-  loves   CatchupEntryLove[]
+  author   User              @relation("CatchupEntriesAuthored", fields: [authorId], references: [id], onDelete: Cascade)
+  loves    CatchupEntryLove[]
+  comments Comment[]
 
   @@unique([promptId, authorId])
   @@index([editionId])

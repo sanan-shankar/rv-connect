@@ -102,6 +102,11 @@ export async function loadContent(f: ContentFilters): Promise<ContentItem[]> {
             isHidden: true,
             createdAt: true,
             postId: true,
+            entryId: true,
+            /* Which Edition the answer sits in, so a moderator can open the
+               page the comment is actually on. Two hops, because a comment
+               names the ANSWER and the reader is addressed by Edition. */
+            entry: { select: { editionId: true } },
             author: { select: { id: true, name: true } },
           },
           orderBy: { createdAt: "desc" },
@@ -122,7 +127,14 @@ export async function loadContent(f: ContentFilters): Promise<ContentItem[]> {
             createdAt: c.createdAt.toISOString(),
             isHidden: c.isHidden,
             approved: null,
-            href: `/feed#${c.postId}`,
+            /* One table, two owners since build phase 9, so this row can be
+               a feed comment OR a comment under a Catch-up answer -- and
+               `/feed#null` is what the old unconditional template produced
+               for the second kind. The Catch-up arm lands on the answer, the
+               same anchor its notification uses. */
+            href: c.entry
+              ? `/catchups/edition/${c.entry.editionId}#entry-${c.entryId}`
+              : `/feed#${c.postId}`,
           }))
         )
     );

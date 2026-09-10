@@ -281,6 +281,19 @@ export const commentSchema = z.object({
   parentId: z.string().optional(),
 });
 
+/* The same words, under a Catch-up answer instead of a post (build phase 9).
+   The target is not in here because it arrives as its own argument rather
+   than as a form field -- `createEntryComment(entryId, content, parentId)` --
+   so there is no string to validate, only the two the member typed. The cap
+   is deliberately the same 1000: his ask was the feed's comment section, and
+   a different limit on one of the two is the kind of drift nobody notices
+   until somebody's paragraph is refused on one page and accepted on the
+   other. */
+export const entryCommentSchema = z.object({
+  content: z.string().min(1, "Comment cannot be empty").max(1000),
+  parentId: z.string().optional(),
+});
+
 // Messages between a member and the admins (src/lib/admin-threads.ts). The
 // only required field anywhere in this feature is the text itself: the kind
 // chip and the screenshot are both optional, so the fast path stays "type one

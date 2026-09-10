@@ -83,6 +83,11 @@ const NOTIFICATION_ICON_META: Record<string, { icon: typeof Bell; heart?: boolea
   catchup_reminder: { icon: Clock, label: "Reminder" },
   catchup_published: { icon: BookOpen, label: "Edition published" },
   catchup_love: { icon: Heart, heart: true, label: "Loved your answer" },
+  // Somebody wrote under your answer, or answered you (build phase 9). The
+  // feed's own comment rows use Reply/MessageCircle; this one is a Catch-up
+  // and lands on the answer itself, so it takes the same glyph the reader's
+  // replies control does rather than inventing a third.
+  catchup_comment: { icon: MessageCircle, label: "Replies to your answer" },
   // Written by the Razorpay webhook when IT, and not the payer's browser,
   // recorded the payment -- the tab-died case the webhook exists for. It is
   // the only way that supporter ever hears the money landed, and the only

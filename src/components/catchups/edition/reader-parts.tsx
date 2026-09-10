@@ -43,11 +43,15 @@
  * ------------------------------------------------------------------ */
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { MusicNotes, Play } from "@phosphor-icons/react";
+import { AnimatePresence, m } from "motion/react";
+import { ChatCircle, MusicNotes, Play } from "@phosphor-icons/react";
+import { SPRINGS } from "@/components/common/motion";
 import { FlushAvatar } from "@/components/common/flush-avatar";
 import { EntryLoveButton } from "@/components/catchups/edition/entry-love-button";
+import { ENTRY_COMMENT_ACTIONS } from "@/components/catchups/edition/entry-comment-actions";
 import {
   LazyImageViewer,
   preloadImageViewer,
@@ -426,24 +430,97 @@ export function SongCard({
   );
 }
 
-/* ── The heart ─────────────────────────────────────────────────────── *
+/* ── The heart, and the replies ─────────────────────────────────────── *
  *  Bottom left, at the feed's sizes, in the same place on every tile
  *  (R31, R15, R26). The negative left margin is the feed's too: it pulls
  *  the heart's own padding outward so the GLYPH lines up with the text
  *  above it.
  *
- *  The replies control that sits beside it in the drawing is build phase 9
- *  (spec 3.7). Drawing a control that opens nothing would be the "dead
- *  tile" fault in miniature (D18), so it arrives with the comments. */
-export function Reactions({ entry, className }: { entry: EditionEntry; className?: string }) {
+ *  The replies control arrived with the comments (build phase 9), which is
+ *  the order it was always going to arrive in: drawing a control that
+ *  opens nothing would be the "dead tile" fault in miniature (D18). It is
+ *  the feed's own control -- same ChatCircle at 18, same count beside it,
+ *  same padding -- because that is precisely what he asked for. N1: "I
+ *  feel like the comment section can be done the same way that we do it in
+ *  feed. I don't know why we're trying to do it in a different way ... I
+ *  think we can just copy that comment section."
+ *
+ *  THE PANEL IS THE FEED'S TOO, and it brings its own open/close timeline
+ *  with it -- one height spring driven by a ResizeObserver over the real
+ *  content, which is N4 ("the comment section has to animate opening and
+ *  closing correctly") answered by reuse rather than by a second
+ *  implementation. All this file supplies is the AnimatePresence around it,
+ *  the same as the feed card.
+ *
+ *  Loaded on demand, and preloaded on hover and focus: an Edition holds
+ *  eleven questions and every answer under them owns one of these, so
+ *  shipping the 700-line surface to a reader who never opens a thread would
+ *  be the whole panel eleven times over for nothing.
+ *
+ *  THE COUNT IS NOT OPTIMISTIC ABOUT THE THREAD IT HAS NOT LOADED. It moves
+ *  on the two events this component can actually witness -- a comment
+ *  written here, a comment removed here -- and `expectedCount` hands the
+ *  panel the same number so its skeleton is the right height on the way in.
+ */
+
+const CommentsSection = dynamic(
+  () => import("@/components/posts/comments-section").then((m) => m.CommentsSection),
+  { ssr: false }
+);
+const preloadComments = () => void import("@/components/posts/comments-section");
+
+export function Reactions({
+  entry,
+  viewerIsAdmin = false,
+  className,
+}: {
+  entry: EditionEntry;
+  /** Shows the moderation "Remove" on every comment, as on the feed. */
+  viewerIsAdmin?: boolean;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [commentCount, setCommentCount] = useState(entry.commentCount);
+
   return (
-    <div className={cn("-ml-2.5 flex items-center gap-1 text-muted-foreground", className)}>
-      <EntryLoveButton
-        entryId={entry.id}
-        initialLoved={entry.lovedByViewer}
-        initialCount={entry.loveCount}
-      />
-    </div>
+    <>
+      <div className={cn("-ml-2.5 flex items-center gap-1 text-muted-foreground", className)}>
+        <EntryLoveButton
+          entryId={entry.id}
+          initialLoved={entry.lovedByViewer}
+          initialCount={entry.loveCount}
+        />
+
+        <m.button
+          onClick={() => setOpen((v) => !v)}
+          onPointerEnter={preloadComments}
+          onFocus={preloadComments}
+          aria-expanded={open}
+          aria-controls={`comments-${entry.id}`}
+          aria-label={open ? "Hide replies" : "Show replies"}
+          whileTap={{ scale: 0.93 }}
+          transition={SPRINGS.snappy}
+          className="state-layer flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          <ChatCircle size={18} weight="regular" />
+          <span>{commentCount}</span>
+        </m.button>
+      </div>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <CommentsSection
+            key="comments"
+            targetId={entry.id}
+            actions={ENTRY_COMMENT_ACTIONS}
+            onCommentAdded={() => setCommentCount((c) => c + 1)}
+            onCommentRemoved={() => setCommentCount((c) => Math.max(0, c - 1))}
+            viewerIsAdmin={viewerIsAdmin}
+            expectedCount={commentCount}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 

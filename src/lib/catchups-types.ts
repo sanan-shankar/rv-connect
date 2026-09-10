@@ -82,7 +82,8 @@ export type CatchupNotifyKind =
   | "catchup_answers_open"
   | "catchup_reminder"
   | "catchup_published"
-  | "catchup_love";
+  | "catchup_love"
+  | "catchup_comment";
 
 // ─── Pure state-machine input ────────────────────────────────────────────────
 
@@ -169,6 +170,13 @@ export type CatchupEntryView = {
   song: CatchupSongView | null;
   loveCount: number;
   lovedByViewer: boolean;
+  /** How many replies this answer has, BEFORE the thread is opened (build
+   *  phase 9). It sizes the panel's loading state as well as labelling the
+   *  control, which is why the reader needs it up front rather than after the
+   *  first fetch: a two-row skeleton springing open and then shrinking onto a
+   *  one-line "No comments yet" was the feed panel's overshoot bug. Excludes
+   *  deleted and admin-hidden rows, the same as every count on the feed. */
+  commentCount: number;
   createdAt: Date | string;
 };
 
@@ -238,6 +246,31 @@ export type NotifyReminderFn = (
 export type NotifyPublishedFn = (
   db: CatchupDb,
   ctx: NotifyBaseCtx & { excludeUserId?: string }
+) => Promise<void>;
+
+/**
+ * Somebody wrote under your answer, or answered your comment (build phase 9).
+ *
+ * The same context the heart needs, plus who is being written to: for a
+ * comment that is the ANSWER's author, and for a reply it is the person whose
+ * name the composer printed -- which is not always the root comment's author,
+ * because threads are one level deep (audit C-016).
+ */
+export type NotifyCommentFn = (
+  db: CatchupDb,
+  ctx: {
+    catchupId: string;
+    editionId: string;
+    groupId: string;
+    groupName: string;
+    entryId: string;
+    /** Who hears about it. */
+    recipientId: string;
+    writerId: string;
+    writerName: string;
+    /** A reply reads differently from a comment on your answer. */
+    kind: "comment" | "reply";
+  }
 ) => Promise<void>;
 
 export type NotifyLoveFn = (
