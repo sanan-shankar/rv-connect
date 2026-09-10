@@ -236,10 +236,9 @@ export function PicturePickerDialog({
         {/* The pool. Drawn at the list card's shape, because that is where the
             photograph is seen as a photograph rather than as a band. */}
         {/* Two up on a phone, three on a laptop. Three at 390 draws each
-            photograph 103x41, which is a colour swatch rather than a picture:
-            four of the six are the same banyan from different angles and at
-            that size they are indistinguishable. Two up gives 155x62 and the
-            extra row costs 112px in a dialog that had 371 to spare. */}
+            photograph 103x41, which is a colour swatch rather than a picture.
+            Two up gives 155x62 and the extra row costs 112px in a dialog that
+            had 371 to spare. */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {options.map((option) => {
             const selected = option.src === src;

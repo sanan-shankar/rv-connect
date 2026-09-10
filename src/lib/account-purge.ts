@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { pictureFor } from "./catchup-pictures";
+import { pickCatchupPicture } from "./catchup-picture-pick";
 import { forgetImages } from "./image-record";
 import { delImage } from "./storage";
 import { chooseGroupSuccessor } from "./group-succession";
@@ -257,9 +257,8 @@ async function tombstoneComments(db: Db, userId: string): Promise<void> {
  * the same shape of fix, but it cannot end in a null: `Catchup.pictureSrc` is
  * NOT NULL by design, so that there is never a Catch-up without a picture and
  * never a no-picture layout to draw (schema, spec 3.4). So the row goes back
- * to the pool pick it would have been given the day it was made, deterministic
- * in its own id -- a state the Catch-up has already been in, rather than a new
- * one nobody chose.
+ * to the pool, picked the way a new Catch-up is: the photograph its people see
+ * least on their other Catch-ups.
  *
  * Which pictures are this member's is not a column: it is the R2 key the
  * server wrote at upload time, `uploads/<their id>/...`, which no request can
@@ -272,10 +271,10 @@ async function tombstoneComments(db: Db, userId: string): Promise<void> {
 async function restoreCatchupPicturesUploadedBy(db: Db, userId: string): Promise<number> {
   const rows = await db.catchup.findMany({
     where: { pictureSrc: { contains: `/uploads/${userId}/` } },
-    select: { id: true },
+    select: { id: true, groupId: true },
   });
   for (const row of rows) {
-    const picture = pictureFor(row.id);
+    const picture = await pickCatchupPicture(db, row.groupId);
     await db.catchup.update({
       where: { id: row.id },
       data: { pictureSrc: picture.src, pictureFocus: picture.focus },

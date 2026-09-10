@@ -234,7 +234,11 @@ test("a batch Catch-up is created with no Keeper, no invite link and a picture",
   // closes joinCatchupByToken on it.
   assert.match(body, /inviteToken: null/, "a batch Catch-up is being given an invite link");
   // Every Catch-up has a photograph from the day it is made (spec 3.4).
-  assert.match(body, /pictureFor\(/, "a batch Catch-up is not picking a picture from the pool");
+  assert.match(
+    body,
+    /pickCatchupPicture\(prisma, group\.id\)/,
+    "a batch Catch-up is not picking a picture against what the batch already sees"
+  );
   // Under the floor, nothing at all is created: no Catch-up, and per spec 3.5b
   // no sidebar row either, so there is no empty door.
   assert.match(

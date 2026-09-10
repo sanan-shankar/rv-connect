@@ -45,7 +45,7 @@ import { prisma } from "@/lib/prisma";
 import { notifyQuestionsOpen } from "@/lib/catchups-notify";
 import { reportSwallowed } from "@/lib/report-error";
 import { isUniqueViolation } from "@/lib/prisma-errors";
-import { pictureFor } from "@/lib/catchup-pictures";
+import { pickCatchupPicture } from "@/lib/catchup-picture-pick";
 import {
   BATCH_CATCHUP_FLOOR,
   QUESTION_WINDOW_DAYS,
@@ -142,9 +142,9 @@ export async function joinBatchGroup(userId: string, batchYear: number) {
  *   - `createdById` null. Nobody keeps a batch Catch-up (architecture 6).
  *   - `inviteToken` null. There is nobody to invite: the membership is the
  *     batch, and `joinCatchupByToken` is the one door this closes.
- *   - a picture, from the shipped pool, seeded off the group id, exactly as
- *     `createCatchupWithPeople` does (spec 3.4). Every Catch-up has one from
- *     the day it is made.
+ *   - a picture, from the shipped pool, the one the batch sees least on the
+ *     Catch-ups its members already have, exactly as `createCatchupWithPeople`
+ *     picks (spec 3.4). Every Catch-up has one from the day it is made.
  *   - Edition 1, open and `collecting`, with a question deadline on the civil
  *     hour. A batch that has just reached ten starts collecting the same day,
  *     which is his own reading of the floor: "once there's ten it appears and
@@ -169,7 +169,7 @@ export async function ensureBatchCatchup(
   if (group._count.members < BATCH_CATCHUP_FLOOR) return null;
 
   const now = new Date();
-  const picture = pictureFor(group.id);
+  const picture = await pickCatchupPicture(prisma, group.id);
 
   try {
     return await prisma.$transaction(async (tx) => {

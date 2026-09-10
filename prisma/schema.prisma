@@ -1080,7 +1080,7 @@ model Catchup {
   // draw -- his reason, review-2026-09-07 N23: "then we'd have to have 2
   // different architectures."
   //
-  // Where it is: a path into the shipped pool ("/images/catchups/07.webp") or
+  // Where it is: a path into the shipped pool ("/images/catchups/shaded-path.webp") or
   // an https url on our own image host, for one somebody uploaded. ONE column,
   // because the two are the same thing to every reader of it.
   //
@@ -1093,7 +1093,7 @@ model Catchup {
   // applied before the push like every other additive change. Kept afterwards
   // for the same reason it is NOT NULL: there is never a row without a picture.
   // Pinned equal to CATCHUP_PICTURES[0] by catchup-pictures.test.mjs.
-  pictureSrc   String    @default("/images/collection/demo-banyan-benches.webp")
+  pictureSrc   String    @default("/images/catchups/shaded-path.webp")
   // The `object-position` its wide crop is taken at. What makes these
   // photographs read as a PLACE -- a horizon, the stone benches, the ground
   // under the banyan -- is in the lower quarter of nearly all of them, so a
