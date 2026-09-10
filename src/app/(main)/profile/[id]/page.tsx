@@ -9,7 +9,7 @@ import { getViewerCities } from "@/lib/city-scope";
 import { batchLine, parseJsonArray } from "@/lib/utils";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { socialHref, socialDisplay, parseUserLinks } from "@/lib/social";
-import { academicSpanLabel, parseHouseSpans, parseHouseYearEntries } from "@/lib/house-spans";
+import { parseHouseSpans, parseHouseYearEntries } from "@/lib/house-spans";
 import { AdminProfileTools } from "@/components/profile/admin-profile-tools";
 import { FlagPersonDialog } from "@/components/profile/flag-person-dialog";
 import { StrayHair } from "@/components/profile/stray-hair";
@@ -342,23 +342,17 @@ export default async function ProfilePage({
     })),
   ].filter(Boolean) as ContactMethod[];
 
-  // vCard: the shown email, all cities, houses summarised in the note. Years
-  // are academic years (stored `year: 2014` reads as "2014-15"), same span
-  // label as the profile's houses chain.
+  // vCard: the shown email, all cities. Years are academic years (stored
+  // `year: 2014` reads as "2014-15"), same span label as the profile's
+  // houses chain -- used on the page itself, not in the card's NOTE, which
+  // carries the batch line and, if the person wrote one, their about text
+  // rather than a house history nobody outside the school can parse.
   const houseSpans = parseHouseSpans(user.houses);
-  const houseNote =
-    houseSpans.length > 0
-      ? "; Houses: " +
-        houseSpans.map((h) => `${h.house} ${academicSpanLabel(h.fromYear, h.toYear)}`).join(", ")
-      : "";
   // The vCard carries the same details in a second format, so it is gated on
   // the same fact. An unconfirmed viewer gets a card with a name and a batch
   // on it and nothing to dial.
   /* Every text value goes through vcardValue, and the lines are joined with
-     CRLF (audit Low 97). The NOTE below is the one that made this urgent: it
-     is built with commas and a semicolon, which a vCard reads as FIELD
-     SEPARATORS, so the house history arrived in an address book as several
-     mangled fields rather than one sentence. */
+     CRLF (audit Low 97). */
   const vcard = vcardLines([
     "BEGIN:VCARD",
     "VERSION:3.0",
@@ -375,7 +369,7 @@ export default async function ProfilePage({
     maySeeContacts && user.linkedin
       ? `URL:${vcardValue(socialHref("linkedin", user.linkedin))}`
       : null,
-    `NOTE:${vcardValue(`${batchLine(user)}, Rishi Valley community${houseNote}`)}`,
+    `NOTE:${vcardValue(`${batchLine(user)}, Rishi Valley community${user.about ? `\n\n${user.about}` : ""}`)}`,
     "END:VCARD",
   ]);
 

@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-10 (later) — the .vcf drops its houses for an about line, and a divider stops running under the bird
 - 2026-09-10 — the reader is the front runner, and the bar hands over instead of blinking
 - 2026-09-09 (later) — the Collection stops guessing its own height
 - 2026-09-09 — the home becomes a place, and answering stops taking you away from it

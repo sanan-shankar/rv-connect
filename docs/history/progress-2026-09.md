@@ -8,6 +8,24 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-10 (later) — the .vcf drops its houses for an about line, and a divider stops running under the bird
+
+Two small owner callouts on Save Contact and the feed rail.
+
+The downloaded `.vcf`'s NOTE used to append every house year (`; Houses: Aravalli 2014-15, ...`) —
+dropped, since a house name means nothing to a phone's Contacts app outside the school. In its
+place: the person's `about` text, if they wrote one, joined to the batch line by a blank line
+(`user.about ? `\n\n${user.about}` : ""`). `academicSpanLabel` came out with it — nothing else in
+the file still called it.
+
+**"New in the directory"**, the feed rail module, drew its row divider as a `border-t` on each
+row's own `<div>`, so the line ran the row's full width, under the bird glyph as well as the name.
+Moved to a separate hairline (`h-px bg-border`) inset `ml-[52px]` — the sm avatar's 40px plus the
+row's `gap-3` — the convention an icon-led menu usually uses, separating the text rather than the
+glyph beside it. Putting the border on the row's text column instead was tried and dropped: that
+column is only as tall as its two lines of centered text, not the row's full height, so its border
+would sit lower than the row boundary rather than on it.
+
 ## 2026-09-10 — the reader is the front runner, and the bar hands over instead of blinking
 
 Build phase 8 of the Catch-ups rework. `/catchups/edition/[id]` is the front runner transplanted
