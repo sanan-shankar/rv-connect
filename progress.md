@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-10 (later) — the line beside an Edition's date is cinnamon, read or not
 - 2026-09-10 (later) — build phase 9: a Catch-up answer gets the feed's comments, on the feed's own table
 - 2026-09-10 (later) — the .vcf drops its houses for an about line, and a divider stops running under the bird
 - 2026-09-10 — the reader is the front runner, and the bar hands over instead of blinking

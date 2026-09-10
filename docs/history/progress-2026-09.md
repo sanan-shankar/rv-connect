@@ -8,6 +8,16 @@ Newest first. Until 2026-09-07 the root log ran in two directions at once — so
 prepended, some appended — so entries from the same day that came from the two different
 halves are ordered by date and then by where they already sat. No text was edited.
 
+## 2026-09-10 (later) — the line beside an Edition's date is cinnamon, read or not
+
+His words: *"on the list of catch ups when it shows an edition it has this grey line to the left of
+the date. can you make that line cinnamon instead of grey."* The grey was the read mark's second
+state -- cinnamon while an Edition was unread, the page's hairline once opened (build phase 6) -- so
+the measure is now cinnamon on every cover and read and unread no longer look different. Two things
+are kept so that is one class to undo: `e.read` still arrives from `readEditionIds()`, and a screen
+reader still hears "Not read yet." on an unread one. Seen on `/catchups` at 1440 and 390, on an
+Edition the owner has read.
+
 ## 2026-09-10 (later) — build phase 9: a Catch-up answer gets the feed's comments, on the feed's own table
 
 His ask was plain (review-2026-09-07 N1): *"I feel like the comment section can be done the same way

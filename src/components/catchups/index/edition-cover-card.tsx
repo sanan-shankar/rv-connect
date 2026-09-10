@@ -47,12 +47,14 @@
  *  ragged row in it and the difference is in the object rather than in
  *  its size.
  *
- *  THE MEASURE beside the date is the read mark, and it is the whole of
- *  it: cinnamon while the Edition is unread, the page's own hairline
- *  once it has been opened. A yes or a no, never "read by 9 of 23"
- *  (R32). Cinnamon is the app's own "there is something here" -- it is
- *  what the bell wears for an unread notification -- and the 2px rounded
- *  rule is the reader's own measure, seen small.
+ *  THE MEASURE beside the date is cinnamon on every cover, read or not.
+ *  It was the read mark -- cinnamon while unread, the page's own hairline
+ *  once opened -- until he asked on 2026-09-10: "it has this grey line to
+ *  the left of the date. can you make that line cinnamon instead of grey."
+ *  So it is now the reader's own 2px measure, seen small, and nothing
+ *  else. The read state still reaches a screen reader through the line
+ *  below the bar, and `e.read` still arrives, so bringing a visible
+ *  difference back is one class here rather than a query to rebuild.
  * ------------------------------------------------------------------ */
 
 import Image from "next/image";
@@ -137,13 +139,7 @@ export function EditionCoverCard({ e }: { e: ListEdition }) {
             quiet. Fixed heights rather than padding, because this bar is what
             the picture above it is sized against. */}
         <span className="flex h-[38px] shrink-0 items-center gap-2.5 border-t border-border bg-card px-4 min-[500px]:h-[42px] min-[500px]:px-5">
-          <span
-            aria-hidden
-            className={cn(
-              "h-[17px] w-[2px] shrink-0 rounded-full",
-              e.read ? "bg-border" : "bg-cinnamon"
-            )}
-          />
+          <span aria-hidden className="h-[17px] w-[2px] shrink-0 rounded-full bg-cinnamon" />
           <span className="truncate font-heading text-[15px] tracking-[-0.01em] text-foreground min-[500px]:text-[16px]">
             {date}
           </span>
