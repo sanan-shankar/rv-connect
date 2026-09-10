@@ -111,6 +111,17 @@ export default async function AdminAuditPage() {
               <li key={a.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 px-4 py-3">
                 <span className="text-sm text-foreground">{a.email}</span>
                 <span className="text-[13px] text-muted-foreground">{a.reason}</span>
+                {/* The cause, where the reason word is not enough to act on.
+                    Only "bot-check" carries one, and it is the whole point of
+                    the column: "no-token/timeout" and "no-token/error-110200"
+                    are two different problems that read as one refusal for
+                    three sessions running. Monospace because it is a code to
+                    be repeated back, not prose. */}
+                {a.detail && (
+                  <span className="rounded-[var(--radius-sm)] bg-muted/60 px-1.5 py-0.5 font-mono text-[11.5px] text-muted-foreground/80">
+                    {a.detail}
+                  </span>
+                )}
                 <span className="ml-auto shrink-0 text-[13px] tabular-nums text-muted-foreground/70">
                   {formatTimeAgo(a.createdAt)}
                 </span>

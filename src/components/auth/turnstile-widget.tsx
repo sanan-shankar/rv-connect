@@ -31,12 +31,9 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
  *  What happens when it CANNOT produce one used to be described here as
  *  "the form submits without a token, and a broken third party never
  *  bricks sign-in". That was wrong, and it was the bug (audit M07).
- *  `verifyTurnstile` fails open only when Cloudflare is unreachable from
- *  the SERVER; a request that simply arrives with no token is a plain no
- *  in every environment. So a visitor whose browser cannot reach
- *  challenges.cloudflare.com got "We couldn't confirm you're human.
- *  Refresh the page and try once more", refreshed, and got it again,
- *  for ever. Two things changed:
+ *  A tokenless request got "We couldn't confirm you're human. Refresh the
+ *  page and try once more" — for ever, because refreshing was never the
+ *  thing wrong. Three fixes have now landed on that sentence:
  *
  *   - A challenge error no longer latches the widget dead for the life
  *     of the page. It resets and tries again, up to ERROR_RETRIES, so a
@@ -45,6 +42,12 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
  *     ("blocked") rather than as a generic failure, because the two need
  *     different advice: one is "try again", the other is "something in
  *     this browser is stopping it, and refreshing will not help".
+ *   - And SIGN-IN no longer refuses a tokenless attempt at all: it takes
+ *     it on a small hourly allowance instead (2026-09-11, the note at the
+ *     refusal in auth.ts). Every fix above narrowed one CAUSE of a widget
+ *     that cannot answer; that one stops the class of them being a
+ *     lockout. This file's job is now to say clearly WHY it could not
+ *     answer — see lastFailure() — so the next cause is a lookup.
  * ------------------------------------------------------------------ */
 
 type TurnstileApi = {
@@ -105,6 +108,15 @@ export type TurnstileFailure = "interaction" | "blocked";
 
 export type TurnstileHandle = {
   getToken: () => Promise<string | null | TurnstileFailure>;
+  /** What went wrong last time, in a word, for the sign-in request to carry
+   *  to the server so the refusal can be RECORDED with a cause.
+   *
+   *  This exists because of what a lockout used to look like from the inside:
+   *  Cloudflare names its reason (110200, "domain not allowed", say) and the
+   *  line went to a console belonging to the person who could not get in, so
+   *  the same failure was investigated from scratch three times. Never used
+   *  to decide anything — see the note at the refusal in auth.ts. */
+  lastFailure: () => string | null;
   /** Re-arm for another go. Called by the form when an attempt FAILED and
    *  the person is still on the page: the token they just spent cannot be
    *  sent twice, so the next attempt needs a new one. Never called on the
@@ -120,6 +132,8 @@ export const TurnstileWidget = forwardRef<TurnstileHandle, { siteKey: string | n
     const dead = useRef(false); // out of retries; stop waiting
     const blocked = useRef(false); // the script itself never loaded
     const errors = useRef(0);
+    /** The last thing that went wrong, for lastFailure() above. */
+    const failure = useRef<string | null>(null);
     const interactive = useRef(false); // Cloudflare is showing its checkbox
     const waiters = useRef<Array<(t: string | null | TurnstileFailure) => void>>([]);
 
@@ -188,6 +202,7 @@ export const TurnstileWidget = forwardRef<TurnstileHandle, { siteKey: string | n
                  it either. One line, and the next one of these is a lookup
                  rather than an investigation. */
               console.warn(`[turnstile] challenge error${code ? `: ${code}` : ""}`);
+              failure.current = code ? `error-${code}` : "error";
               errors.current += 1;
               if (errors.current > ERROR_RETRIES) {
                 dead.current = true;
@@ -204,6 +219,7 @@ export const TurnstileWidget = forwardRef<TurnstileHandle, { siteKey: string | n
           // "the challenge failed", and it is the one the form must show.
           blocked.current = true;
           dead.current = true;
+          failure.current = "blocked";
           waiters.current.splice(0).forEach((w) => w("blocked"));
         });
       return () => {
@@ -230,6 +246,11 @@ export const TurnstileWidget = forwardRef<TurnstileHandle, { siteKey: string | n
           const timer = setTimeout(() => {
             const i = waiters.current.indexOf(settle);
             if (i >= 0) waiters.current.splice(i, 1);
+            // Nothing errored and nothing arrived: the widget simply never
+            // answered. Its own outcome, and worth telling apart from an
+            // error — a hang points at the network to Cloudflare, an error
+            // points at the challenge.
+            failure.current = "timeout";
             resolve(null);
           }, 12_000);
           const settle = (t: string | null | TurnstileFailure) => {
@@ -239,6 +260,11 @@ export const TurnstileWidget = forwardRef<TurnstileHandle, { siteKey: string | n
           };
           waiters.current.push(settle);
         });
+      },
+      lastFailure() {
+        // "dead" outlives the error that caused it, so the recorded cause is
+        // the first real one rather than whatever the last attempt saw.
+        return failure.current;
       },
       reset() {
         // Pointless on a widget that never rendered (blocked) or has spent

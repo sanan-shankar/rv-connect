@@ -44,6 +44,30 @@ const LIMITS = {
    *  attacker hammering a victim's address on purpose inconveniences them
    *  for at most the tail of the window — it slides shut behind them. */
   "login-account": { tokens: 10, window: "15 m" },
+  /** Sign-in attempts the bot check could NOT vouch for, per IP, spent
+   *  whether they succeed or fail.
+   *
+   *  This is the meter that replaced a permanent lockout. Turnstile answers
+   *  for a browser, and when it cannot — the script is blocked, the challenge
+   *  errors out, the widget hangs past its wait — the member holding the
+   *  correct password used to have no way in at all, for ever, under a
+   *  sentence telling them to refresh (13 of the 39 sign-in attempts in the
+   *  fortnight to 2026-09-10 died there; six of them were one member's, on
+   *  Safari, in nine minutes, and seven more were the owner's). The server
+   *  already fails OPEN when Cloudflare is unreachable from ITS side; failing
+   *  closed when the failure is on the visitor's side was an asymmetry nobody
+   *  had argued for.
+   *
+   *  Five an hour is set by the two things it must separate. A real person
+   *  signing in gets it on the first or second go, and a fifth attempt in an
+   *  hour from one address means something is wrong that a bigger number
+   *  would not fix. A credential-stuffing run, which is what the bot check is
+   *  for, needs thousands: five an hour per IP makes the tokenless door
+   *  useless to it while the ordinary `login-ip` meter (30 failures a quarter
+   *  hour) still stands behind this one. Spent on SUCCESS too, unlike every
+   *  other login meter — the cap is on how much guessing can happen without a
+   *  bot check at all, and a run that guesses right must not get a free ride. */
+  "login-unverified": { tokens: 5, window: "1 h" },
   /** Per IP. Ten allows for the launch-day case of a reunion table or an
    *  office NAT signing up together; a bot farm burning 240 accounts a day
    *  per IP is still pointless, because every account it mints is Stage 0,

@@ -326,7 +326,13 @@ const CHECKS = [
       const missing = [];
       // The form doors verify through verifyHumanFromForm, which wraps
       // verifyTurnstile — the simplify pass consolidated them post-Phase 4.
-      const door = /verifyTurnstile\(|verifyHumanFromForm\(/;
+      // Sign-in calls checkTurnstile, the verdict-returning form of the same
+      // check (2026-09-11): it needs the REASON, not just the yes or no, in
+      // order to record why a member was turned away. Three spellings of one
+      // door, so the probe names all three rather than the one it was written
+      // against — it broke the day the door was improved, which is the least
+      // useful moment for a security board to go red.
+      const door = /verifyTurnstile\(|checkTurnstile\(|verifyHumanFromForm\(/;
       if (!door.test(decomment(read("src/lib/auth.ts")))) missing.push("login");
       if (!door.test(decomment(read("src/components/auth/actions.ts")))) missing.push("signup");
       if (!door.test(decomment(read("src/components/auth/email-actions.ts")))) missing.push("reset");
@@ -335,7 +341,7 @@ const CHECKS = [
         return open(env ? "keys in .env but no code verifies them yet" : "no Turnstile anywhere");
       }
       return missing.length ? open(`Turnstile verified on some doors but not: ${missing.join(", ")}`)
-        : ok("Turnstile verified server-side on login, signup and reset");
+        : ok("verified server-side on login, signup and reset; sign-in falls back to a metered allowance when the widget cannot answer");
     }},
 
   // ------------------------------------------------------------------ MEDIUM

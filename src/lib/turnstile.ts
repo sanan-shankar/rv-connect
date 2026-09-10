@@ -17,7 +17,10 @@ import { normaliseHost, sameOrigin } from "./turnstile-origin-rule";
  *  the widget always passes without interaction and siteverify accepts
  *  its tokens — so local sign-in, the e2e suite and the visual suite run
  *  exactly the enforcement path production runs, minus the challenge.
- *  A request with NO token is refused in both environments alike.
+ *  A request with NO token gets no verdict, in both environments alike —
+ *  which SIGN-IN now answers with a small hourly allowance rather than a
+ *  refusal (see the long note in auth.ts), while signup and the reset
+ *  request still refuse outright.
  *  `TURNSTILE_DEV_CHALLENGE=1` swaps in the key that always challenges,
  *  for working on the interactive path; off by default, because every
  *  unattended flow depends on the widget passing on its own.
@@ -84,6 +87,36 @@ export function hostFromRequest(req: Request): string | null {
   return normaliseHost(req.headers.get("host"));
 }
 
+export type BotCheckFailure =
+  /** The request carried no token at all. Every widget failure ends here —
+   *  the script was blocked, the challenge errored its retries out, or the
+   *  12-second wait elapsed — and until 2026-09-11 this branch returned
+   *  `false` without saying a word, which is the whole reason three sessions
+   *  in a row could not tell which of those was happening. */
+  | "no-token"
+  /** Cloudflare had the token and said no. `detail` carries its error codes. */
+  | "refused"
+  /** Genuine token, spent on a host it was not solved on (origin rule). */
+  | "wrong-host";
+
+export type HumanVerdict =
+  | { ok: true }
+  | { ok: false; why: BotCheckFailure; detail: string | null };
+
+/**
+ * The boolean form, for the two form doors (signup, reset request) that only
+ * ever needed a yes or a no. Sign-in uses `checkTurnstile` directly, because
+ * it is the door where knowing WHY is the difference between helping a
+ * locked-out member and guessing at it for a third time.
+ */
+export async function verifyTurnstile(
+  token: string | null | undefined,
+  ip: string | undefined,
+  host: string | null,
+): Promise<boolean> {
+  return (await checkTurnstile(token, ip, host)).ok;
+}
+
 /**
  * The server-side verdict on a widget token. Fail-open ONLY when Turnstile
  * is unconfigured or Cloudflare itself is unreachable: a bot check that
@@ -98,17 +131,17 @@ export function hostFromRequest(req: Request): string | null {
  * that check — the exact shape of the bugs this file's own history is made
  * of. Pass null where there is genuinely nothing to read.
  */
-export async function verifyTurnstile(
+export async function checkTurnstile(
   token: string | null | undefined,
   ip: string | undefined,
   host: string | null,
-): Promise<boolean> {
+): Promise<HumanVerdict> {
   /* Defence in depth, same posture as rate-limit.ts: every route that could
      reach this is already closed on the demo by DEMO_CLOSED_PATHS, but the
      owner's real keys ARE on that project, so without this line a future
      route added without remembering the proxy list would silently start
      spending real Cloudflare calls on invented traffic. */
-  if (IS_DEMO) return true;
+  if (IS_DEMO) return { ok: true };
   const secret = turnstileSecret();
   if (!secret) {
     // Unconfigured: nothing to verify against, so fail open -- but in
@@ -118,9 +151,9 @@ export async function verifyTurnstile(
     // so say so loudly rather than let it pass unnoticed. (Not a throw: taking
     // the auth surface down over a config gap would be the worse failure.)
     if (IS_PROD) console.error("[turnstile] TURNSTILE_SECRET_KEY is unset in production; bot checks are OFF");
-    return true;
+    return { ok: true };
   }
-  if (!token) return false;
+  if (!token) return { ok: false, why: "no-token", detail: null };
 
   try {
     const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
@@ -145,7 +178,7 @@ export async function verifyTurnstile(
       // with nothing else to go on, on both sides of the wire (2026-08-28).
       const why = data["error-codes"]?.join(",");
       if (why) console.warn(`[turnstile] siteverify refused a token: ${why}`);
-      return false;
+      return { ok: false, why: "refused", detail: why ?? null };
     }
     /* Only the REAL key pair needs an origin check. The pinned test secret
        accepts tokens minted anywhere and reports a hostname of Cloudflare's
@@ -162,12 +195,12 @@ export async function verifyTurnstile(
       console.error(
         `[turnstile] token was solved on ${data.hostname} but the request arrived on ${host}; refusing`,
       );
-      return false;
+      return { ok: false, why: "wrong-host", detail: `${data.hostname} != ${host}` };
     }
-    return true;
+    return { ok: true };
   } catch (err) {
     console.error("[turnstile] siteverify unreachable; failing open", err);
-    return true;
+    return { ok: true };
   }
 }
 

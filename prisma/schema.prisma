@@ -1541,7 +1541,18 @@ model LoginAttempt {
 
   ok Boolean
   // "ok" | "no-account" | "no-password-set" | "wrong-password"
+  //   | "blocked" | "rate-limited" | "bot-check"
   reason String
+
+  /* WHY, where the reason alone is not enough to act on. Null for every
+     ordinary outcome; set on "bot-check", which is the one refusal whose
+     cause lives in a browser nobody here can see.
+     "no-token/timeout", "no-token/error-110200", "refused/timeout-or-duplicate".
+     Free text on purpose: the half after the slash is Cloudflare's vocabulary
+     and an untrusted hint from the widget, neither of which is ours to model.
+     Added 2026-09-11 — before it, a member locked out by the bot check and a
+     member whose browser had never loaded it were the same single word. */
+  detail String?
 
   createdAt DateTime @default(now())
 

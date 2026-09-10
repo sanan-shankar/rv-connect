@@ -4,8 +4,9 @@ import { IS_DEMO, DEMO_USER_ID } from "./demo";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { recordLoginAttempt } from "@/lib/login-attempt";
+import { botCheckDetail } from "@/lib/bot-check-detail";
 import { hasBudget, consume, ipFromRequest } from "@/lib/rate-limit";
-import { verifyTurnstile, devBypassAllowed, hostFromRequest } from "@/lib/turnstile";
+import { checkTurnstile, devBypassAllowed, hostFromRequest } from "@/lib/turnstile";
 import { humanPassValid, humanPassFromCookieHeader } from "@/lib/human-pass-rule";
 import { appSecret } from "@/lib/app-secret";
 import { writeAudit } from "@/lib/audit";
@@ -68,6 +69,12 @@ const nextAuth = NextAuth({
         turnstileToken: { type: "text" },
         /* QA scripts only; see devBypassAllowed — dead in production. */
         devBypass: { type: "text" },
+        /* The widget's own account of why it could not produce a token
+           ("timeout", "blocked", "error-110200"). DIAGNOSTIC ONLY: it is
+           recorded on the refusal and never read by any branch, because it
+           comes from the browser and a browser that cannot pass the bot check
+           is exactly the one whose word is worth least. */
+        botFailHint: { type: "text" },
       },
       async authorize(credentials, request) {
         /* One net over everything below (bug audit M18). The two refusals
@@ -107,23 +114,73 @@ const nextAuth = NextAuth({
              cost order: the five-minute pass a fresh signup or reset already
              earned (no network), the QA bypass (refused outright in
              production), then a live Turnstile token checked with
-             Cloudflare. bcrypt never runs for a caller with none of them. */
-          const human =
+             Cloudflare. bcrypt never runs for a caller the last of these
+             cannot vouch for AND who has no spare budget below. */
+          const vouched =
             humanPassValid(
               humanPassFromCookieHeader(request.headers.get("cookie")),
               acctKey,
               Date.now(),
               appSecret(),
-            ) ||
-            devBypassAllowed(credentials?.devBypass as string | undefined) ||
-            (await verifyTurnstile(
-              credentials?.turnstileToken as string | undefined,
-              ip,
-              hostFromRequest(request),
-            ));
-          if (!human) {
-            recordLoginAttempt({ email, ok: false, reason: "bot-check" });
-            throw new BotCheckFailed();
+            ) || devBypassAllowed(credentials?.devBypass as string | undefined);
+
+          const verdict = vouched
+            ? ({ ok: true } as const)
+            : await checkTurnstile(
+                credentials?.turnstileToken as string | undefined,
+                ip,
+                hostFromRequest(request),
+              );
+
+          if (!verdict.ok) {
+            /* THE BOT CHECK COULD NOT ANSWER FOR THIS BROWSER. It is not a
+               verdict that the visitor is a bot — `no-token`, far and away
+               the commonest of the three, means only that the widget never
+               produced one, and the widget fails for blocked scripts, network
+               filters, a challenge that errors its retries out, and a wait
+               that simply elapses.
+
+               Until 2026-09-11 this threw, and that was a PERMANENT lockout:
+               a member with the correct password, whose browser Cloudflare
+               had decided to challenge, could not sign in, could not reset
+               (the reset form wears the same widget), and was told to refresh
+               the page and try once more, which never once helped. Thirteen
+               of the thirty-nine sign-in attempts in the fortnight to
+               2026-09-10 died here.
+
+               So the refusal becomes a much smaller allowance instead. The
+               attempt goes through on the `login-unverified` meter — five an
+               hour per IP, spent whether it succeeds or fails — which a
+               person signing in never notices and a stuffing run cannot work
+               with. Everything else still applies underneath: the ordinary
+               login meters, bcrypt at cost 12, the block list, and
+               credentialVersion. The bot check is one layer of several, and
+               it is now the only one that cannot lock somebody out on its
+               own. Signup and the reset REQUEST keep the hard refusal: a bot
+               minting accounts is the thing Turnstile is most for, and
+               someone turned away there has a human to write to.
+
+               `detail` is what makes this diagnosable rather than a fourth
+               investigation from scratch. The half after the slash is the
+               widget's own account of what went wrong, sent with the request
+               and TRUSTED FOR NOTHING — it is recorded, never branched on. */
+            const detail = botCheckDetail(
+              verdict.why,
+              credentials?.botFailHint as string | undefined,
+              verdict.detail,
+            );
+
+            const spare = await hasBudget("login-unverified", ip);
+            // Spent before the verdict is acted on, so a caller that races
+            // many attempts through at once cannot outrun its own meter.
+            await consume("login-unverified", ip);
+            if (!spare) {
+              recordLoginAttempt({ email, ok: false, reason: "bot-check", detail });
+              throw new BotCheckFailed();
+            }
+            console.warn(
+              `[turnstile] no verdict for a sign-in (${detail}); allowing it on the unverified budget`,
+            );
           }
 
           /* Every refusal below is what the limiter counts: guesses, not

@@ -210,7 +210,12 @@ DNS-only and Pre-Clearance is not available to us.
 
 ### The hostname list, and why a token is bound to its host (2026-08-28)
 
-The widget's Cloudflare hostname list now contains **`vercel.app`** as well as `rishivalley.space`.
+**The widget's Cloudflare hostname list does NOT contain `vercel.app`, and this section said it did
+for a fortnight.** The widening below was designed on 2026-08-28 and written up as shipped; the dashboard
+is the owner's, the entry was never added, and on 2026-09-11 the list still read `localhost`,
+`rishivalley.space`, `rv-alumni-demo.vercel.app`, `rv-alumni.vercel.app`. Everything after this
+paragraph is therefore the ARGUMENT for adding `vercel.app`, which still holds, and not a record
+of it being there.
 
 The reason is the owner's habit of opening past deployments to see how the site used to look. Every
 one of them lives at its own `rv-alumni-<hash>-….vercel.app` URL, generated per deployment and
@@ -226,6 +231,36 @@ our (public, it ships in the HTML) site key to every other site on that domain. 
 pays for it is `src/lib/turnstile-origin-rule.ts`: siteverify reports the hostname a token was
 solved on, and a token is only accepted by a request that arrived on that same host. Tokens farmed
 on someone else's `*.vercel.app` page are then worth nothing at `rishivalley.space`.
+
+### The bot check stopped being able to lock anybody out (2026-09-11)
+
+The section above is the third fix in a row aimed at one CAUSE of a widget that cannot produce a
+token: the script being blocked (M07), the widget re-arming under a live submit (2026-08-22), the
+hostname list (2026-08-28). Each was real. None of them touched the shape underneath, which was
+that **any** such failure was a permanent lockout: `authorize` threw on a tokenless sign-in, the
+member was told to refresh the page, and refreshing was never once the thing wrong. Thirteen of
+the thirty-nine sign-in attempts in the fortnight to 2026-09-10 died there — six of them one
+member's, in nine minutes, on Safari, while two other people signed in normally in the same
+window, and seven of them the owner's.
+
+The asymmetry is the argument. The server already fails OPEN when Cloudflare is unreachable from
+its side, on the stated ground that a bot check which takes sign-in down with it is worse than the
+bots. Failing CLOSED when the failure is on the visitor's side was never argued for; it was just
+where the code fell.
+
+So a sign-in the bot check cannot vouch for now runs on `login-unverified` — five an hour per IP,
+spent on success as well as failure. A person gets in on the first attempt. A stuffing run gets
+five guesses an hour with the ordinary `login-ip` (30 failures a quarter hour), `login-account`
+(10), bcrypt at cost 12, the block list and `credentialVersion` all still behind it. Signup and
+the reset REQUEST keep the hard refusal: a bot minting accounts is what Turnstile is most for, and
+someone turned away there has a human to write to.
+
+And the refusal now says why. `LoginAttempt.detail` carries `no-token/timeout`,
+`no-token/error-110200`, `refused/timeout-or-duplicate`, shown in /admin/audit. The half after the
+slash is the widget's own account, sent with the request, allowlisted by `bot-check-detail.ts` and
+**trusted for nothing** — it is recorded, never branched on. Before it, the browser console line
+naming Cloudflare's code belonged to the person who could not get in, which is why the same
+lockout was investigated from scratch three times.
 
 Deliberately not an allow-list of hostnames — one here would have to contain everything Cloudflare's
 list contains, and so would buy nothing. Unknown host on either side is a PASS, the same fail-open

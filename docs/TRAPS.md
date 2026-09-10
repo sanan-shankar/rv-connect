@@ -293,7 +293,15 @@ no checkbox to click — `interaction-only` means the widget is invisible when i
 when it passes. Cloudflare is saying 110200, "domain not allowed". **An env var will not fix it:
 Vercel bakes env vars in at build time, so nothing you change in code or config reaches a
 deployment that already exists.** The Cloudflare hostname list is the only lever that applies
-retroactively; `vercel.app` is on it now, and `turnstile-origin-rule.ts` is what keeps that safe.
+retroactively, and as of 2026-09-11 **`vercel.app` is NOT on it** — the list reads `localhost`,
+`rishivalley.space`, `rv-alumni-demo.vercel.app`, `rv-alumni.vercel.app`. This paragraph and
+`docs/SECURITY.md` both said it was, for a fortnight, because the session that designed the
+widening wrote the entry up as done and the dashboard is the owner's. `turnstile-origin-rule.ts`
+was built precisely to make that entry safe, and it is still the thing that would; the entry is
+what is missing. **Two lessons, and the second is the expensive one:** a doc must not record an
+owner-side action as complete, and a bot check must not be the only thing between a member and
+their account — which since 2026-09-11 it is not, at sign-in (see `login-unverified` in
+rate-limit.ts). Adding `vercel.app` is still worth doing; it is now a convenience, not a rescue.
 
 **A flex item with `mx-auto` does not stretch — it shrink-wraps.** `align-self: stretch` applies
 only when the cross-size is auto AND the cross-axis margins are not auto; auto margins absorb the

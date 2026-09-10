@@ -138,20 +138,29 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
         setLoading(false);
         return;
       }
-      // The check's own script never loaded, so no attempt from this browser
-      // can carry a token and the server refuses every one of them. Say that,
-      // instead of sending a request whose refusal reads as "try again"
-      // (audit M07).
-      if (turnstileToken === "blocked") {
-        setError(BOT_CHECK_BLOCKED);
-        setLoading(false);
-        return;
-      }
+      /* The check's own script never loaded — an extension, a filter, a
+         network that cannot reach challenges.cloudflare.com. This used to
+         stop here, because every such attempt was refused and saying so
+         locally at least spared them the round trip (audit M07). It no
+         longer stops here: the server takes a tokenless sign-in on the
+         unverified budget, so the person most likely to be permanently
+         locked out is exactly the one who must be allowed to try. The
+         sentence is held back and shown only if the server does refuse. */
+      const scriptBlocked = turnstileToken === "blocked";
 
+      /* No token: still worth sending, because the server no longer refuses
+         these outright — it takes them on a small hourly allowance and
+         records WHY (auth.ts). The hint is the widget's own account of what
+         went wrong and is trusted for nothing; it exists so the next report
+         of "it says it can't confirm I'm human" is a lookup in /admin/audit
+         rather than a fourth investigation. */
+      const token = typeof turnstileToken === "string" && !scriptBlocked ? turnstileToken : null;
+      const hint = token ? null : turnstileRef.current?.lastFailure();
       const result = await signIn("credentials", {
         email,
         password,
-        ...(turnstileToken ? { turnstileToken } : {}),
+        ...(token ? { turnstileToken: token } : {}),
+        ...(hint ? { botFailHint: hint } : {}),
         redirect: false,
       });
 
@@ -166,7 +175,12 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
           code === "rate-limited"
             ? RATE_LIMITED
             : code === "bot-check"
-              ? BOT_CHECK_FAILED
+              ? // Only now is the blocked-script sentence the right one: the
+                // server has refused, so "refresh and try once more" would be
+                // the wrong advice for the second time in this file's history.
+                scriptBlocked
+                ? BOT_CHECK_BLOCKED
+                : BOT_CHECK_FAILED
               : code === "unavailable"
                 ? SIGN_IN_UNAVAILABLE
                 : "Invalid email or password.",

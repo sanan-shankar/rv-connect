@@ -1,0 +1,12 @@
+-- Why a sign-in was refused, where the reason word is not enough to act on.
+--
+-- "bot-check" is the only refusal whose cause is invisible from here: it
+-- happens in the visitor's browser, and the console line naming Cloudflare's
+-- error code goes with them when they close the tab. Six refusals for one
+-- member on 2026-09-10 and seven for the owner across the fortnight before it
+-- were recorded as the same single word, which is why the same lockout was
+-- investigated from scratch three times.
+--
+-- Nullable, no default, no index: written on a refusal only, read by eye in
+-- /admin/audit. Idempotent.
+ALTER TABLE "LoginAttempt" ADD COLUMN IF NOT EXISTS "detail" TEXT;
