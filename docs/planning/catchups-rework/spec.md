@@ -461,8 +461,17 @@ to be checked before it touches the feed**.
 already in the file; the open/close is the caller's, and it uses the app's own springs.
 
 **Notifications**: one new type, `catchup_comment`, linking to
-`/catchups/edition/<editionId>#<entryId>`, coalesced the way `catchup_love` already is — at most
-one unread per author per Edition, so a busy Edition cannot spam a bell.
+`/catchups/edition/<editionId>#entry-<entryId>` (the reader's tiles carry `id="entry-<id>"`, so the
+bare `#<entryId>` first written here would have landed nowhere). **CORRECTED 2026-09-10, build
+phase 9: coalesced per PERSON per answer, not per Edition.** This section first said "the way
+`catchup_love` already is — at most one unread per author per Edition", by analogy with the heart,
+and the analogy was the part that was wrong: a heart is a gesture nobody is waiting on, but a
+comment is somebody talking to you, and under the Edition-wide rule the second and third person to
+write would never be announced at all. So the bucket is (recipient, writer, answer): one person
+writing five times is one bell, two people is two. A reply to your comment rings you the same way,
+and the answer's author is not rung twice for one sentence. **A liked comment rings nobody**, which
+is a decision rather than an omission: the feed rings for one, but a Catch-up already rings for a
+loved answer. Owner question 27 carries the choice and its alternative.
 
 **Reporting**: unchanged and out of scope. `Report.targetType` is `post | user`; a feed comment is
 not reportable today either, so a Catch-up comment is not a regression.
@@ -943,7 +952,7 @@ in it.
 | **6** | **The list** | `/catchups` rebuilt from `_list.tsx`, including the spare slots (§5) and the archived row | none |
 | **7** | **The home** | `/catchups/[id]` rebuilt from `_home.tsx`: the head and its two doors, the Edition region per state, the state line, the sidebar of back numbers, the people dialog and sheet, the settings list. Answering moves onto the page; `/answer` deleted and redirected. **§3.13 is CLOSED as (a), 2026-09-09: there is no read-during-answering window and nothing here builds one** | none |
 | **8** | **The reader** | the front runner transplanted; navigator A; the rebuilt magnification; **the two clamps** (§4.3, which closes F41); **N11, the title, decided**; **the photo wall's reading surface, which is a RUN** (§10.1, picked by him 2026-09-09 off `/lab/catchups/wall`): transplant `Run` from `src/app/lab/catchups/wall/_shapes.tsx`, keyed off `promptKind(category) === "photo"`, with no captions and no count line, and `_corpus.ts` staying behind. **Carries §3.13, now CLOSED as (a): a PUBLISHED Edition is open to every member whether they wrote or not, which is already true and must stay true. Nothing is readable before publication** | none |
-| **9** | **Comments** | the widened `Comment`, the five actions, `comments-section.tsx` parameterised, `catchup_comment`, the open/close animation | `Comment.entryId` |
+| **9** | **Comments** — **DONE 2026-09-10** | the widened `Comment` (`postId` nullable, `entryId` beside it, `Comment_one_target` CHECK); the thread moved to `lib/comment-thread.ts` so both owners share one implementation and each keeps only its gate and its bell; `comments-section.tsx` takes its five actions as a prop; the replies control beside the heart; `catchup_comment` per person per answer (3.7, corrected). `npm run visual` 25/25, no baseline moved | `2026-09-10-comments-on-answers.sql`, additive, **applied to both** before the deploy, which is safe |
 | **10** | **Link previews** | `LinkPreview`, resolution on any pasted link, Spotify and YouTube cards, the fail-soft rule | the `LinkPreview` table |
 | **11** | **Cleanup** | the dead columns dropped **after phases 2, 5 and 10 have deployed**; the three throwaway Catch-ups and the orphaned snapshot group removed; `docs/spec/catchups.md` rewritten to describe what shipped. **CORRECTED 2026-09-09: `CatchupEdition.publishAt` is NOT dropped.** It was on the list because the `preparing` hold it served died in phase 2 — but a time capsule (§3.12) is exactly a scheduled publish date and it is the same column. Dropping it now to add it back is two migrations against a live database for nothing. Keep it, and say so in the file. `CatchupPref.deletedAt` still goes | the drop file |
 | **12** | **A question you answer out loud** | §3.10. `audioUrl`, `audioSeconds`, `audioIsAuto` on `CatchupEntry`; the recorder in the composer; the player in the reader; the browser's own speech recognition writing the body, editable afterwards. **Draw the no-transcript case first**, because Firefox has none | the three columns |

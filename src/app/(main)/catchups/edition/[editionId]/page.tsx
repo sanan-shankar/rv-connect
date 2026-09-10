@@ -217,6 +217,7 @@ export default async function EditionPage({
         catchupName: catchupDisplayName(edition.catchup.title, edition.catchup.group.name),
         publishedAt: view.publishedAt ?? new Date(),
         questions,
+        viewerIsAdmin: session.user.role === "admin",
       }}
     />
   );

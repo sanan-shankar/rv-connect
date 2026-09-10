@@ -40,6 +40,7 @@ import type {
 } from "@/lib/catchups-types";
 import { batchLine, parseJsonArray } from "@/lib/utils";
 import { IDENTITY_SELECT } from "@/lib/people-select";
+import { VISIBLE_COMMENT } from "@/lib/posts";
 
 /**
  * One member's answer, as both readers receive it: the stored row plus the
@@ -124,7 +125,12 @@ export async function loadPublishedEditionView(
                   batchYear: true,
                 },
               },
-              _count: { select: { loves: true } },
+              /* `comments` filtered by VISIBLE_COMMENT, never a bare count:
+                 a deleted or admin-hidden comment, or one by a blocked
+                 member, still has a row -- soft delete is what keeps replies
+                 anchored -- and counting it made the card promise a thread
+                 that then rendered empty (audit C-003, on the feed). */
+              _count: { select: { loves: true, comments: { where: VISIBLE_COMMENT } } },
               loves: { where: { userId: viewerId }, select: { id: true } },
             },
           },
@@ -205,6 +211,7 @@ export async function loadPublishedEditionView(
         song: songTitle ? { url: e.songUrl ?? "", title: songTitle, art: e.songArt } : null,
         loveCount: e._count.loves,
         lovedByViewer: e.loves.length > 0,
+        commentCount: e._count.comments,
         createdAt: e.createdAt,
       };
     });

@@ -17,6 +17,8 @@ import { ShareButton } from "@/components/common/share-button";
    `alwaysOpen` on a letter and draws its own skeleton rows from
    `expectedCount` -- taking that out of the HTML would leave a hole under the
    letter until hydration. This is a client-chunk split only. */
+import { FEED_COMMENT_ACTIONS } from "@/components/posts/feed-comment-actions";
+
 const CommentsSection = dynamic(() =>
   import("@/components/posts/comments-section").then((m) => m.CommentsSection)
 );
@@ -80,7 +82,8 @@ export function LetterEngagement({
       </div>
 
       <CommentsSection
-        postId={postId}
+        targetId={postId}
+        actions={FEED_COMMENT_ACTIONS}
         onCommentAdded={() => setCommentCount((c) => c + 1)}
         onCommentRemoved={() => setCommentCount((c) => Math.max(0, c - 1))}
         alwaysOpen

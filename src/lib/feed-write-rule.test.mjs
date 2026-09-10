@@ -19,6 +19,12 @@ import { isPostTwin } from "./double-submit.ts";
  * ------------------------------------------------------------------ */
 
 const FEED = decomment(read("src/app/(main)/feed/actions.ts"));
+/* The thread itself -- paging, stubs, the double-submit guard, the serialiser
+   -- moved here in build phase 9, when a Catch-up answer got the same thread
+   on the same widened `Comment` table (spec 3.7). Several findings below are
+   about that code rather than about the feed, so they follow it. */
+const THREAD = decomment(read("src/lib/comment-thread.ts"));
+const CATCHUPS = decomment(read("src/app/(main)/catchups/actions.ts"));
 
 /* ---- C-009: a twin is the same POST, not the same words ---------- */
 
@@ -109,6 +115,10 @@ test("C-003: no _count.comments filter is hand-rolled", () => {
     "src/app/(main)/feed/actions.ts",
     "src/app/(main)/letters/(index)/page.tsx",
     "src/app/(main)/letters/[id]/(read)/page.tsx",
+    /* The reader's replies control, build phase 9. A Catch-up answer now
+       carries a comment count for exactly the same reason a post card does,
+       and it can go wrong in exactly the same way. */
+    "src/lib/catchups-edition-view.ts",
   ];
   let seen = 0;
   for (const f of files) {
@@ -131,27 +141,50 @@ test("C-003: no _count.comments filter is hand-rolled", () => {
      than one filter. The remaining three are that builder, the letters index
      and a letter. Lowering this number is the dangerous edit in this file: do
      it only with the disappeared site named, as here. */
-  assert.equal(seen, 3, `expected 3 comment-count filters, found ${seen}`);
+  /* FOUR since 2026-09-10: a Catch-up answer's replies count joined the three
+     (build phase 9). Raising this number needs the new site named, as here;
+     LOWERING it is the dangerous edit, and needs the disappeared site named. */
+  assert.equal(seen, 4, `expected 4 comment-count filters, found ${seen}`);
 });
 
 test("C-003: VISIBLE_COMMENT is the fragment the thread query uses too", () => {
+  /* The thread query moved to `lib/comment-thread.ts` in build phase 9, when
+     a Catch-up answer got the same thread on the same table. The rule did not
+     move: the count and the fetch must be filtered by ONE fragment, or a card
+     promises a thread that then renders empty. */
   const posts = decomment(read("src/lib/posts.ts"));
   assert.match(posts, /export const VISIBLE_COMMENT = \{[\s\S]*?AUTHOR_IN_GOOD_STANDING/);
-  assert.match(FEED, /where:\s*\{[\s\S]{0,200}\.\.\.VISIBLE_COMMENT/);
+  assert.match(THREAD, /where:\s*\{[\s\S]{0,200}\.\.\.VISIBLE_COMMENT/);
 });
 
 /* ---- C-016: the reply reaches the person it named ---------------- */
 
-test("C-016: createComment notifies the comment that was replied TO", () => {
-  const start = FEED.indexOf("export async function createComment");
-  assert.ok(start > 0);
-  const body = FEED.slice(start, FEED.indexOf("export async function", start + 10));
-  assert.match(body, /const repliedToId = parentId;/, "the pre-reparenting target is captured");
-  assert.match(
-    body,
-    /findUnique\(\{\s*where: \{ id: repliedToId \}/,
-    "the reply notification looks up repliedToId, not the promoted root"
-  );
+test("C-016: a reply notifies the comment that was replied TO", () => {
+  /* Threads are one level deep, so a reply to a reply is STORED under the
+     root -- but the person being answered is the one whose name the composer
+     printed. Notifying the root's author instead told somebody else entirely
+     while the addressee heard nothing.
+
+     The capture moved into `writeComment` in build phase 9 and is now made
+     once for both owners; the LOOKUP stayed at each call site, because each
+     one writes a different bell. So all three halves are pinned, and the
+     Catch-up half is pinned by name -- it is new code walking into the exact
+     hole this finding came out of. */
+  assert.match(THREAD, /const repliedToId = parentId;/, "the pre-reparenting target is captured");
+
+  for (const [label, src, marker] of [
+    ["the feed", FEED, "export async function createComment"],
+    ["a Catch-up answer", CATCHUPS, "export async function createEntryComment"],
+  ]) {
+    const start = src.indexOf(marker);
+    assert.ok(start > 0, `${label}: ${marker} is gone`);
+    const body = src.slice(start, start + 4000);
+    assert.match(
+      body,
+      /findUnique\(\{\s*where: \{ id: repliedToId \}/,
+      `${label}: the reply notification must look up repliedToId, not the promoted root`
+    );
+  }
 });
 
 test("C-016: the composer targets the tapped reply", () => {
@@ -211,15 +244,34 @@ test("a comment reaches the client through one serializer", () => {
      serialisers, two date conversions. A third means somebody built one by
      hand again -- or added a serialiser on purpose, in which case this number
      is the conversation. */
-  const dates = (FEED.match(/\.createdAt\.toISOString\(\)/g) ?? []).length;
+  const postDates = (FEED.match(/\.createdAt\.toISOString\(\)/g) ?? []).length;
   assert.equal(
-    dates,
-    2,
-    `expected one date conversion per serialiser (post, comment) and found ${dates}: ` +
-      "a row is being shaped for the client outside serializePost/serializeComment"
+    postDates,
+    1,
+    `expected exactly one date conversion in feed/actions.ts (serializePost) and found ${postDates}: ` +
+      "a row is being shaped for the client by hand"
   );
-  const calls = (FEED.match(/serializeComment\(/g) ?? []).length;
-  assert.equal(calls, 4, `serializeComment is defined once and called three times; found ${calls} mentions`);
+  /* The comment half went to `lib/comment-thread.ts` with the serialiser in
+     build phase 9. One conversion there, for the same reason: the stubs and
+     the fresh comment go through the same function as the rows. */
+  const commentDates = (THREAD.match(/\.createdAt\.toISOString\(\)/g) ?? []).length;
+  assert.equal(
+    commentDates,
+    1,
+    `expected exactly one date conversion in comment-thread.ts and found ${commentDates}`
+  );
+
+  /* DEFINED ONCE, ANYWHERE. This used to count mentions inside one file,
+     which a second feature's own copy would have sailed straight past --
+     and build phase 9 added exactly such a feature. */
+  const defs = walk(resolve(ROOT, "src"), { skip: [...SKIP_DIRS, "lab", "generated"] })
+    .filter((f) => /function serializeComment\s*\(/.test(readFileSync(f, "utf8")))
+    .map((f) => relative(ROOT, f));
+  assert.deepEqual(
+    defs,
+    ["src/lib/comment-thread.ts"],
+    `serializeComment must be defined exactly once; found: ${defs.join(", ")}`
+  );
 });
 
 /* ---- C-018: shared bytes survive one row's deletion -------------- */

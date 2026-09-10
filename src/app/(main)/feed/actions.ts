@@ -38,53 +38,13 @@ import { DOUBLE_SUBMIT_MS, isPostTwin } from "@/lib/double-submit";
 import { decodeKeyset, encodeKeyset, keysetWhere } from "@/lib/keyset";
 import { isLetterDraft } from "@/lib/draft-rule";
 import { AUTHOR_CARD_SELECT } from "@/lib/people-select";
-
-/**
- * One comment as the client's `CommentData` (`comments-section.tsx`).
- *
- * The same ten fields were built in three places -- `createComment`'s return,
- * and both halves of `loadComments` (the rows and the stand-in stubs for
- * deleted parents). Audit 1 did exactly this for posts, one level up, and its
- * note records why: "They had already begun to disagree in ways that looked
- * deliberate but were not." The comment trio had not drifted yet. `isOwn` was
- * `true` in one, `c.author?.id === userId` in another and `false` in the
- * third -- all correct today, and all three the kind of thing that stops being
- * correct the day somebody adds a field to one of them.
- *
- * `likeCount`, `liked` and `deleted` are REQUIRED of the caller rather than
- * defaulted here. A default is what lets a new call site forget one and
- * compile: the stub means `deleted: true` and a fresh comment means
- * `likeCount: 0`, and each of those is a fact its own site knows and this
- * function does not.
- */
-type CommentRow = {
-  id: string;
-  content: string;
-  parentId: string | null;
-  createdAt: Date;
-  author: Prisma.UserGetPayload<{ select: typeof AUTHOR_CARD_SELECT }> | null;
-  likeCount: number;
-  liked: boolean;
-  deleted: boolean;
-};
-
-function serializeComment(c: CommentRow, viewer: { userId: string; isAdmin: boolean }) {
-  return {
-    id: c.id,
-    content: c.content,
-    parentId: c.parentId,
-    createdAt: c.createdAt.toISOString(),
-    author: c.author,
-    likeCount: c.likeCount,
-    liked: c.liked,
-    deleted: c.deleted,
-    /* Was hardcoded `true` in createComment (the writer is the viewer) and
-       `false` in the stub (whose author is null). Both fall out of the one
-       comparison, which is why the three could be folded at all. */
-    isOwn: c.author?.id === viewer.userId,
-    viewerIsAdmin: viewer.isAdmin,
-  };
-}
+import {
+  EMPTY_COMMENT_PAGE,
+  readCommentPage,
+  serializeComment,
+  toggleCommentLikeRow,
+  writeComment,
+} from "@/lib/comment-thread";
 
 /**
  * Delete a post and its stored images, in the order that cannot leave a live
@@ -860,70 +820,18 @@ export async function createComment(formData: FormData) {
   const visible = await canViewPost(parsed.data.postId, session.user);
   if (!visible.ok) return { error: POST_NOT_VISIBLE };
 
-  // If replying to a reply, redirect to the parent comment (enforce 1-level depth)
-  let parentId = parsed.data.parentId || null;
-  /* Who the reply was actually AIMED at, before the reparenting below.
-     Threads are one level deep, so a reply to a reply is stored under the
-     root -- but the person being answered is the one whose name the composer
-     printed, and notifying the root's author instead told somebody else
-     entirely while the addressee heard nothing (audit C-016). */
-  const repliedToId = parentId;
-  if (parentId) {
-    const parent = await prisma.comment.findUnique({
-      where: { id: parentId },
-      select: { parentId: true, postId: true, deletedAt: true, isHidden: true },
-    });
-    // The UI offers no reply button on a "[deleted]" stub, so this only fires
-    // when the target was deleted between render and submit.
-    if (!parent || parent.deletedAt || parent.isHidden) {
-      return { error: "That comment is gone" };
-    }
-    /* The parent must belong to the post being commented on (audit M28).
-       Nothing checked this: `postId` and `parentId` arrived as two independent
-       fields, so a crafted call could file a reply under a comment on a
-       DIFFERENT post -- the reply rendered in a thread it was never written
-       for, and both posts' comment counts moved. `canViewPost` above vets the
-       post; this vets the pair. */
-    if (parent.postId !== parsed.data.postId) {
-      return { error: "That comment is not on this post" };
-    }
-    if (parent.parentId) {
-      parentId = parent.parentId; // reply to the root comment instead
-    }
-  }
-
-  /* The server half of the double-submit guard (audit M35).
-   *
-   * Comment is free text, so there is no unique index that could dedupe it,
-   * and the client's in-flight ref cannot cover two tabs, a retried request or
-   * a hand-made call. The same person writing the same words under the same
-   * comment within seconds is a duplicate submission, not a person saying it
-   * twice, so the first row is returned as if the second call had made it --
-   * the caller merges it into the thread and nothing on screen betrays that
-   * anything happened. The window is deliberately tight: a deliberate repeat a
-   * minute later still lands. */
-  const twin = await prisma.comment.findFirst({
-    where: {
-      postId: parsed.data.postId,
-      authorId: session.user.id,
-      parentId,
-      content: parsed.data.content,
-      deletedAt: null,
-      createdAt: { gte: new Date(Date.now() - DOUBLE_SUBMIT_MS) },
-    },
-    include: { author: { select: AUTHOR_CARD_SELECT } },
+  /* The reparenting, the "is this parent even on this post" check and the
+     double-submit guard all moved to `lib/comment-thread.ts` in build phase 9,
+     when a Catch-up answer got the same thread. Every reason they exist is
+     written out there; each one is a live bug that happened once. */
+  const written = await writeComment({
+    target: { postId: parsed.data.postId },
+    authorId: session.user.id,
+    content: parsed.data.content,
+    parentId: parsed.data.parentId,
   });
-  const comment =
-    twin ??
-    (await prisma.comment.create({
-      data: {
-        content: parsed.data.content,
-        postId: parsed.data.postId,
-        authorId: session.user.id,
-        parentId,
-      },
-      include: { author: { select: AUTHOR_CARD_SELECT } },
-    }));
+  if ("error" in written) return { error: written.error };
+  const { comment, repliedToId, twin } = written;
 
   // Notifications
   const post = await prisma.post.findUnique({
@@ -975,10 +883,10 @@ export async function createComment(formData: FormData) {
   return {
     success: true,
     commentId: comment.id,
-    comment: serializeComment(
-      { ...comment, likeCount: 0, liked: false, deleted: false },
-      { userId: session.user.id, isAdmin: session.user.role === "admin" }
-    ),
+    comment: serializeComment(comment, {
+      userId: session.user.id,
+      isAdmin: session.user.role === "admin",
+    }),
   };
 }
 
@@ -1280,19 +1188,10 @@ export async function toggleCommentLike(commentId: string) {
   const visible = await canViewPostOfComment(commentId, session.user);
   if (!visible.ok) return { error: POST_NOT_VISIBLE };
 
-  // Delete-first; see the note in toggleLike above.
-  const removed = await prisma.commentLike.deleteMany({
-    where: { userId: session.user.id, commentId },
-  });
-  if (removed.count > 0) return { success: true, liked: false };
-
-  let created = true;
-  try {
-    await prisma.commentLike.create({ data: { userId: session.user.id, commentId } });
-  } catch (err) {
-    if (!isUniqueViolation(err)) throw err;
-    created = false;
-  }
+  // Delete-first, and the whole toggle now lives in `lib/comment-thread.ts`:
+  // a Catch-up answer's comments carry the same heart, on the same table.
+  const { liked, created } = await toggleCommentLikeRow(session.user.id, commentId);
+  if (!liked) return { success: true, liked: false };
 
   if (created) {
     const comment = await prisma.comment.findUnique({
@@ -1300,7 +1199,11 @@ export async function toggleCommentLike(commentId: string) {
       select: { authorId: true, postId: true, post: { select: { kind: true } } },
     });
 
-    if (comment?.authorId && comment.authorId !== session.user.id) {
+    /* `postId` is nullable since build phase 9 -- a Catch-up answer's
+       comments share this table. This branch cannot meet one:
+       `canViewPostOfComment` above answers not-found when there is no post,
+       which is how the feed's heart declines a thread that is not its own. */
+    if (comment?.authorId && comment.postId && comment.authorId !== session.user.id) {
       // The same one-per-unread rule toggleLike uses (audit M33) -- the same
       // call now, rather than the same twelve lines typed again.
       await notifyMemberOnceUnread({
@@ -1319,14 +1222,10 @@ export async function toggleCommentLike(commentId: string) {
 }
 
 /**
- * One page of a post's thread. Pagination walks TOP-LEVEL comments only
- * (keyset on (createdAt, id), oldest first); each page carries every visible
- * reply of its parents, so a parent can never be sliced away from its thread.
- *
- * A deleted or admin-hidden parent whose replies survive is still returned,
- * as a content-free stub (`deleted: true`, no author) — the client renders
- * "[deleted]" and the replies keep their place. Without the stub the replies
- * silently vanished from the UI while `_count.comments` still included them.
+ * One page of a post's thread. The paging, the stub rule and the serialiser
+ * all live in `lib/comment-thread.ts` now that a Catch-up answer has a thread
+ * too (build phase 9); what stays here is the half that is the FEED's — who
+ * is allowed to read this one.
  */
 export async function loadComments(
   postId: string,
@@ -1334,9 +1233,7 @@ export async function loadComments(
 ) {
   // Comments were readable signed-out before; nothing else on the feed is.
   const session = await auth();
-  if (!session?.user?.id) return { comments: [], nextCursor: null, hasMore: false };
-  const userId = session.user.id;
-  const viewerIsAdmin = session.user.role === "admin";
+  if (!session?.user?.id) return EMPTY_COMMENT_PAGE;
 
   /* Requiring a session was only half of it. This returned every comment on
      any post id -- content, author name, photo, batch -- for private-group
@@ -1344,89 +1241,13 @@ export async function loadComments(
      right answer, and it is the same answer a post that does not exist gives,
      so this cannot be used to discover which ids are real. */
   const visible = await canViewPost(postId, session.user);
-  if (!visible.ok) return { comments: [], nextCursor: null, hasMore: false };
+  if (!visible.ok) return EMPTY_COMMENT_PAGE;
 
-  const take = Math.min(Math.max(opts?.take ?? 10, 1), 50);
-
-  // A top-level row earns a slot on the page if it is itself visible, or if
-  // it must stand in as the anchor for visible replies.
-  const after = decodeKeyset(opts?.cursor);
-  const rootWhere = {
-    postId,
-    parentId: null,
-    OR: [VISIBLE_COMMENT, { replies: { some: VISIBLE_COMMENT } }],
-  };
-  // Value keyset, oldest-first. A root comment can leave this set between two
-  // pages -- soft-deleted with no visible replies left, or hidden by a
-  // moderator -- and naming it as a Prisma cursor then returned nothing at all
-  // (see keyset.ts).
-  const roots = await prisma.comment.findMany({
-    where: after ? { AND: [rootWhere, keysetWhere(after, "asc")] } : rootWhere,
-    select: { id: true, createdAt: true },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    take: take + 1,
-  });
-
-  const hasMore = roots.length > take;
-  const pageRoots = hasMore ? roots.slice(0, take) : roots;
-  const nextCursor = hasMore ? encodeKeyset(pageRoots[pageRoots.length - 1]) : null;
-  const rootIds = pageRoots.map((r) => r.id);
-
-  const rows = await prisma.comment.findMany({
-    where: {
-      OR: [
-        { id: { in: rootIds }, ...VISIBLE_COMMENT },
-        { parentId: { in: rootIds }, ...VISIBLE_COMMENT },
-      ],
-    },
-    include: {
-      author: {
-        select: { ...AUTHOR_CARD_SELECT },
-      },
-      _count: { select: { commentLikes: true } },
-      commentLikes: { where: { userId }, select: { id: true } },
-    },
-    orderBy: { createdAt: "asc" },
-  });
-
-  const viewer = { userId, isAdmin: viewerIsAdmin };
-  const visibleIds = new Set(rows.map((r) => r.id));
-  const stubs = pageRoots
-    .filter((r) => !visibleIds.has(r.id))
-    .map((r) =>
-      serializeComment(
-        {
-          id: r.id,
-          content: "",
-          parentId: null,
-          createdAt: r.createdAt,
-          author: null,
-          likeCount: 0,
-          liked: false,
-          deleted: true,
-        },
-        viewer
-      )
-    );
-
-  return {
-    comments: [
-      ...rows.map((c) =>
-        serializeComment(
-          {
-            ...c,
-            likeCount: c._count.commentLikes,
-            liked: c.commentLikes.length > 0,
-            deleted: false,
-          },
-          viewer
-        )
-      ),
-      ...stubs,
-    ],
-    nextCursor,
-    hasMore,
-  };
+  return readCommentPage(
+    { postId },
+    { userId: session.user.id, isAdmin: session.user.role === "admin" },
+    opts
+  );
 }
 
 /**

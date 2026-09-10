@@ -327,6 +327,13 @@ export async function adminSetRole(
  * group, the same answer to the same question -- the duplicate's row is dropped
  * rather than moved. It used to abort the entire merge instead (audit M02).
  *
+ * A dropped answer takes the replies under it with it (build phase 9 gave an
+ * answer a thread, `Comment.entry` is Cascade). Decided, not overlooked: the
+ * alternative is re-pointing them at the survivor's answer, which files
+ * somebody's reply under words they never read. It needs one human with two
+ * accounts, both in one Catch-up, both answering one question, and somebody
+ * replying to the duplicate -- the same trade the post cascade already makes.
+ *
  * One transaction: a half-merged pair is worse than either state.
  */
 export async function adminMergeUsers(

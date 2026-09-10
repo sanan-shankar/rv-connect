@@ -172,7 +172,15 @@ test("the public list names only functions that still exist", () => {
  *  reviewed decision; a new action in neither place is the accident.
  * ------------------------------------------------------------------ */
 
-const VISIBILITY_GUARD = /canViewPost\s*\(|canViewPostOfComment\s*\(/;
+/* `loadCommentableEntry` is the third spelling, and it is a visibility check
+   rather than an exemption: a Catch-up answer's comments (build phase 9) are
+   readable by a member of the group once the Edition is PUBLISHED, which is
+   the heart's gate exactly (architecture 8 puts comment and heart in one
+   cell). Widening the guard rather than listing the three actions under
+   AUTHORISED_OTHERWISE is deliberate -- an exemption would mean a FOURTH
+   Catch-up comment action could arrive with no gate at all and still pass. */
+const VISIBILITY_GUARD =
+  /canViewPost\s*\(|canViewPostOfComment\s*\(|loadCommentableEntry\s*\(/;
 
 const AUTHORISED_OTHERWISE = {
   "src/app/(main)/feed/actions.ts": {

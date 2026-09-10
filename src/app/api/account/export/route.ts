@@ -176,7 +176,11 @@ export async function GET() {
       "comments",
       (after) =>
         prisma.comment.findMany({
-          select: { id: true, content: true, postId: true, createdAt: true },
+          /* `entryId` beside `postId` since build phase 9: a comment hangs
+             off a post OR off a Catch-up answer, and exporting only the first
+             gave a member a file that silently omitted everything they had
+             written in a Catch-up. */
+          select: { id: true, content: true, postId: true, entryId: true, createdAt: true },
           ...keyset({ authorId: userId, deletedAt: null }, after),
         }),
     ],

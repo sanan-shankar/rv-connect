@@ -46,4 +46,9 @@ export type ReaderEdition = {
   catchupName: string;
   publishedAt: Date | string;
   questions: ReaderQuestion[];
+  /** A site admin is reading: every comment thread under an answer shows the
+   *  moderation "Remove" control, exactly as a feed post's does. A rendering
+   *  instruction, never the permission -- `adminRemoveComment` checks the role
+   *  itself on the server. */
+  viewerIsAdmin: boolean;
 };

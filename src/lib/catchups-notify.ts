@@ -25,6 +25,7 @@ import { answerReminderMessage } from "@/lib/catchups-core";
 import type {
   CatchupDb,
   NotifyAnswersOpenFn,
+  NotifyCommentFn,
   NotifyLoveFn,
   NotifyPublishedFn,
   NotifyQuestionsOpenFn,
@@ -253,5 +254,70 @@ export const notifyLove: NotifyLoveFn = async (db, ctx) => {
       message: `${ctx.likerName} loved your answer in ${ctx.groupName}'s Catch-up.`,
       link,
     },
+  });
+};
+
+/**
+ * Somebody wrote under your answer, or answered your comment (build phase 9,
+ * spec 3.7).
+ *
+ * COALESCED PER PERSON PER ANSWER, and that is the one place this
+ * deliberately parts company with `notifyLove` above, whose bucket is the
+ * whole Edition. A heart is a gesture nobody is waiting on, so one unread for
+ * an Edition is generous. A comment is somebody talking to you: under the
+ * Edition-wide rule the second and third person to write would never be
+ * announced at all, and you would only find them by going back and looking.
+ * So the bucket is (recipient, writer, answer) -- Alice writing five times
+ * under one answer is one bell, Alice and then Ravi is two, and Alice under
+ * two different answers of yours is two, because those are two conversations.
+ * The ceiling is real people who addressed you, which is not what "spam"
+ * means.
+ *
+ * Owner question 27 records the choice with its alternative, and `spec.md`
+ * 3.7 (which had written down the Edition-wide rule by analogy with the
+ * heart) is corrected to match.
+ *
+ * The writer's own name is in the message rather than the type, so the bell's
+ * existing icon map needs one row and nothing else.
+ */
+export const notifyComment: NotifyCommentFn = async (db, ctx) => {
+  if (ctx.recipientId === ctx.writerId) return; // never notify yourself
+
+  /* Only somebody the Edition is still open to (audit C-030). A published
+     answer stays where it is when its author leaves -- his decision, and the
+     Edition is a keepsake the whole group has read -- but the Edition page
+     404s for a non-member, so writing to an ex-member puts a bell in their
+     pocket aimed at a door that no longer opens for them. */
+  const stillIn = await db.groupMember.count({
+    where: { groupId: ctx.groupId, userId: ctx.recipientId },
+  });
+  if (stillIn === 0) return;
+
+  /* The link lands on the ANSWER, not just the Edition: the reader gives
+     every tile `id="entry-<id>"` for exactly this. */
+  const link = `/catchups/edition/${ctx.editionId}#entry-${ctx.entryId}`;
+
+  const message =
+    ctx.kind === "reply"
+      ? `${ctx.writerName} replied to you in ${ctx.groupName}'s Catch-up.`
+      : `${ctx.writerName} commented on your answer in ${ctx.groupName}'s Catch-up.`;
+
+  /* The per-writer bucket, keyed on the WHOLE sentence. `Notification` has no
+     column for who sent it, and the sentence is the only place the writer is
+     recorded, so it is the key. It is matched EXACTLY, not by prefix: a
+     prefix of "Ravi " also matches an unread "Ravi Kumar commented ...", and
+     Ravi's bell would be swallowed by somebody else's. Equality can only merge
+     two bells that would read identically in the list, which is the thing
+     coalescing is for. Built by the same template on both sides, so a change
+     to the wording moves both together; the cost is one extra bell for a row
+     an older build wrote, once. `comment-target-rule.test.mjs` pins it. */
+  const existing = await db.notification.findFirst({
+    where: { userId: ctx.recipientId, type: "catchup_comment", link, message, read: false },
+    select: { id: true },
+  });
+  if (existing) return; // coalesce
+
+  await db.notification.create({
+    data: { userId: ctx.recipientId, type: "catchup_comment", message, link },
   });
 };

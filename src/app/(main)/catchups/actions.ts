@@ -40,6 +40,14 @@ import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { MAX_CATCHUP_PEOPLE } from "@/lib/catchup-caps";
+import { entryCommentSchema } from "@/lib/validators";
+import {
+  EMPTY_COMMENT_PAGE,
+  readCommentPage,
+  serializeComment,
+  toggleCommentLikeRow,
+  writeComment,
+} from "@/lib/comment-thread";
 import {
   isPoolPicture,
   isValidPictureFocus,
@@ -76,6 +84,7 @@ import {
 } from "@/lib/catchups";
 import {
   notifyAnswersOpen,
+  notifyComment,
   notifyLove,
   notifyPublished,
   notifyQuestionsOpen,
@@ -1727,6 +1736,197 @@ export async function toggleEntryLove(entryId: string) {
   });
 }
 
+/* ── Comments on an answer (build phase 9, spec 3.7) ───────────────── *
+ *  His, review-2026-09-07 N1: "I feel like the comment section can be done
+ *  the same way that we do it in feed ... I think we can just copy that
+ *  comment section."
+ *
+ *  So the thread itself is not written twice: `lib/comment-thread.ts` holds
+ *  the paging, the stub rule, the double-submit guard and the serialiser,
+ *  on the one `Comment` table both features now share. What lives here is
+ *  the half that is genuinely a Catch-up's -- WHO MAY READ AND WRITE, which
+ *  is the published gate, and WHO HEARS ABOUT IT.
+ *
+ *  THE GATE IS THE HEART'S, EXACTLY. `toggleEntryLove` above already decided
+ *  it: you must be in the group, and the Edition must be `published`. An
+ *  Edition still collecting or answering hides every answer from everyone,
+ *  Keeper included, so there is nothing to comment on; and once published it
+ *  is open to every member whether they wrote or not (spec 3.13, closed as
+ *  (a) by him on 2026-09-09). architecture.md section 8 puts comment and
+ *  heart in one cell for that reason, and this keeps them there.
+ *
+ *  An ENDED Catch-up still takes comments, which is the same table row: the
+ *  Edition stays published, and architecture 8 reads "same" across that
+ *  column. Nothing here asks about the Catch-up's own state.
+ */
+
+/**
+ * The three facts a comment action needs, and the refusal if it may not have
+ * them. Shared by all three below so the published rule is stated once: three
+ * copies of it is how one of them ends up admitting a `collecting` Edition.
+ */
+async function loadCommentableEntry(entryId: string, viewerId: string) {
+  if (typeof entryId !== "string" || !entryId) return { error: "Invalid request." as const };
+  const entry = await prisma.catchupEntry.findUnique({
+    where: { id: entryId },
+    select: { id: true, authorId: true, editionId: true },
+  });
+  if (!entry) return { error: "Answer not found." as const };
+
+  const scope = await loadMemberEdition(entry.editionId, viewerId);
+  /* `{ error: scope.error }` rather than `scope`: returning the narrowed
+     object itself drags `membership` into this function's return type, and
+     every caller then has to prove it is not looking at one. */
+  if ("error" in scope) return { error: scope.error };
+  if (scope.edition.status !== "published") {
+    return { error: "Comments open once the Edition is published." as const };
+  }
+  return { entry, edition: scope.edition };
+}
+
+/** One page of an answer's thread. */
+export async function loadEntryComments(
+  entryId: string,
+  opts?: { cursor?: string | null; take?: number }
+) {
+  const session = await auth();
+  if (!session?.user?.id) return EMPTY_COMMENT_PAGE;
+
+  /* An empty page, never an error, and never a different empty page: this is
+     the same answer an entry that does not exist gives, so it cannot be used
+     to discover which ids are real -- the rule `loadComments` states for the
+     feed, and the reason the caller renders "No comments yet" either way. */
+  const scope = await loadCommentableEntry(entryId, session.user.id);
+  if ("error" in scope) return EMPTY_COMMENT_PAGE;
+
+  return readCommentPage(
+    { entryId },
+    { userId: session.user.id, isAdmin: session.user.role === "admin" },
+    opts
+  );
+}
+
+/** Write one comment under an answer, or under another comment on it. */
+export async function createEntryComment(
+  entryId: string,
+  content: string,
+  parentId?: string | null
+) {
+  return runAction(async () => {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+    // The same tier as the feed's comments: writing in public is a Stage 2 write.
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
+
+    // Verified is not unlimited, and it is the SAME bucket as the feed's
+    // (audit M2): the limit is on a person writing comments, not on which
+    // page they happen to be writing them from.
+    const limited = await rateLimit("comments", session.user.id);
+    if (!limited.ok) return { error: limited.error };
+
+    const parsed = entryCommentSchema.safeParse({ content, parentId: parentId || undefined });
+    if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+    const scope = await loadCommentableEntry(entryId, session.user.id);
+    if ("error" in scope) return scope;
+    const { entry, edition } = scope;
+
+    const written = await writeComment({
+      target: { entryId },
+      authorId: session.user.id,
+      content: parsed.data.content,
+      parentId: parsed.data.parentId,
+    });
+    if ("error" in written) return { error: written.error };
+    const { comment, repliedToId, twin } = written;
+
+    /* Skipped when this call was the second half of a double submission: the
+       bell already rang with the first one, and the bell is exactly where a
+       duplicate would be noticed. */
+    if (!twin) {
+      const base = {
+        catchupId: edition.catchupId,
+        editionId: entry.editionId,
+        groupId: edition.catchup.group.id,
+        groupName: edition.catchup.group.name,
+        entryId,
+        writerId: session.user.id,
+        writerName: session.user.name,
+      };
+
+      /* Who was ANSWERED, before the reparenting. Threads are one level deep,
+         so a reply to a reply is stored under the root -- but the person being
+         answered is the one whose name the composer printed, and notifying the
+         root's author instead told somebody else entirely while the addressee
+         heard nothing (audit C-016). */
+      let repliedToAuthorId: string | null = null;
+      if (repliedToId) {
+        const parent = await prisma.comment.findUnique({
+          where: { id: repliedToId },
+          select: { authorId: true },
+        });
+        // Nullable since audit M34: a purged author's comment survives as an
+        // authorless stub, and there is nobody to tell.
+        repliedToAuthorId = parent?.authorId ?? null;
+      }
+
+      if (repliedToAuthorId) {
+        await notifyComment(prisma, { ...base, recipientId: repliedToAuthorId, kind: "reply" });
+      }
+      /* The answer's author hears about it too -- unless they are the person
+         just written to, which would be two bells for one sentence. */
+      if (entry.authorId !== repliedToAuthorId) {
+        await notifyComment(prisma, { ...base, recipientId: entry.authorId, kind: "comment" });
+      }
+    }
+
+    /* No revalidatePath, for the reason `toggleEntryLove` states at length:
+       the client already holds this comment and slots it in, and rebuilding
+       the server tree means re-rendering every answer in the Edition. */
+    return {
+      success: true,
+      commentId: comment.id,
+      comment: serializeComment(comment, {
+        userId: session.user.id,
+        isAdmin: session.user.role === "admin",
+      }),
+    };
+  });
+}
+
+/** The heart on one comment under an answer. */
+export async function toggleEntryCommentLike(commentId: string) {
+  return runAction(async () => {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
+    if (typeof commentId !== "string" || !commentId) return { error: "Invalid request." };
+
+    /* The comment tells us which answer, and the answer is what carries the
+       gate. A comment with no `entryId` is a FEED comment and is refused here
+       by the same lookup, which is the mirror of `canViewPostOfComment`
+       declining a Catch-up one. */
+    const row = await prisma.comment.findUnique({
+      where: { id: commentId },
+      select: { entryId: true, deletedAt: true, isHidden: true },
+    });
+    if (!row?.entryId || row.deletedAt || row.isHidden) return { error: "Comment not found." };
+
+    const scope = await loadCommentableEntry(row.entryId, session.user.id);
+    if ("error" in scope) return scope;
+
+    const { liked } = await toggleCommentLikeRow(session.user.id, commentId);
+    /* No bell on this one, and it is a decision rather than an omission: the
+       feed rings for a liked comment, but a Catch-up already rings for a
+       loved ANSWER, and adding a second heart notification to the same
+       Edition is the spam the coalescing in `notifyComment` exists to avoid.
+       He asked for the feed's comment section, not for the feed's bell. */
+    return { success: true, liked };
+  });
+}
+
 // ─── Who is in it (owner, 2026-08-05) ─────────────────────────────────────────
 //
 //  "Can't control who's in the catch up once the question round has started.
@@ -1769,6 +1969,7 @@ const CATCHUP_NOTIFICATION_TYPES = [
   "catchup_reminder",
   "catchup_published",
   "catchup_love",
+  "catchup_comment",
 ] as const;
 
 /**
@@ -1785,6 +1986,12 @@ async function clearCatchupNotifications(userId: string, catchupId: string): Pro
     where: { catchupId },
     select: { id: true },
   });
+  /* PREFIX, not equality. `catchup_comment` (build phase 9) links at one
+     ANSWER -- `/catchups/edition/<id>#entry-<id>` -- so an exact match on the
+     Edition's own path walked straight past every one of them and left them
+     in the bell, aimed at a door that no longer opens. That is the same fault
+     this function's docblock already describes, one link shape later. An
+     Edition id is a cuid, so a prefix cannot reach a second Edition. */
   const editionLinks = editions.map((e) => `/catchups/edition/${e.id}`);
   await prisma.notification.deleteMany({
     where: {
@@ -1792,7 +1999,7 @@ async function clearCatchupNotifications(userId: string, catchupId: string): Pro
       type: { in: [...CATCHUP_NOTIFICATION_TYPES] },
       OR: [
         { link: { startsWith: `/catchups/${catchupId}` } },
-        ...(editionLinks.length > 0 ? [{ link: { in: editionLinks } }] : []),
+        ...editionLinks.map((link) => ({ link: { startsWith: link } })),
       ],
     },
   });

@@ -69,6 +69,8 @@ import { safeTruncateIndex } from "@/lib/rich-truncate";
  *  and focus, so on any normal pointer the chunk is already in memory
  *  before the click lands and the deferral is invisible.
  * ------------------------------------------------------------------ */
+import { FEED_COMMENT_ACTIONS } from "./feed-comment-actions";
+
 const CommentsSection = dynamic(
   () => import("./comments-section").then((m) => m.CommentsSection),
   { ssr: false }
@@ -633,7 +635,8 @@ export function PostCard({
           {showComments && (
             <CommentsSection
               key="comments"
-              postId={post.id}
+              targetId={post.id}
+              actions={FEED_COMMENT_ACTIONS}
               onCommentAdded={() => setCommentCount((c) => c + 1)}
               onCommentRemoved={() => setCommentCount((c) => Math.max(0, c - 1))}
               viewerIsAdmin={post.viewerIsAdmin}

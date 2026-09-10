@@ -105,7 +105,7 @@ const OWN_CONTENT = {
   CatchupEntryLove: "hearts they gave; the count is derived, so nobody else's entry changes",
   CatchupEditionRead: "which Editions they had opened; nobody else's list is drawn from it",
   CatchupPref: "their per-Catch-up reminder settings",
-  Comment: "reachable only THROUGH their own posts; the direct User edge is SetNull (M34)",
+  Comment: "reachable only THROUGH their own posts and, since build phase 9, their own Catch-up answers; a thread goes with the thing it hangs off, and the direct User edge is SetNull (M34)",
   CommentLike: "hearts they gave on comments",
   ContentView: "their own read receipts",
   GroupMember: "their membership rows; the Group itself is communal and stays",
@@ -186,8 +186,12 @@ test("a comment does not take somebody else's reply with it", () => {
      reply underneath to a top-level comment -- a stray sentence with no
      question above it, in a thread that then lied about its shape (audit M34).
 
-     Note Comment is still cascade-reachable above, through Post: a member's
-     comments on their OWN posts go with the post. What changed is the direct
+     Note Comment is still cascade-reachable above, through Post and -- since
+     build phase 9 widened the table -- through CatchupEntry: EVERY comment on a
+     member's own post or own answer goes with it, whoever wrote it, because a
+     thread whose anchor has been deleted has nowhere left to render. That is
+     the post rule applied to an answer, not M34: M34 was a thread that
+     SURVIVED with its replies promoted out from under it. What changed is the direct
      User -> Comment edge, which is now SetNull, and purgeUserAccount does the
      removing explicitly so it can tell an anchor from an ordinary comment. Both
      halves are asserted, because either one alone brings the bug back. */
