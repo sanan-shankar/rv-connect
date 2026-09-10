@@ -52,7 +52,7 @@ There's **no formal archives team**, but several people have been gathering/host
 
 | What | Where | Who / notes |
 |---|---|---|
-| Hundreds of old pics (mostly undescribed) | `flickr.com/photos/202987385@N02/albums/` | Posted by **Chinmay**; group was asked to add to Flickr per doc guidelines |
+| Hundreds of old pics (mostly undescribed) | `flickr.com/photos/202987385@N02/albums/ or https://sites.google.com/view/rvsarchives/home?authuser=0` | Posted by **Chinmay**; group was asked to add to Flickr per doc guidelines |
 | "wanderer's" annotated RV photos (Jan 2024) | `flickr.com/gp/nomadclickr/kfyj4tM60G` | Personal, well-captioned |
 | Rustam Roy's 2022 RV visit album | `photos.app.goo.gl/5bKJtyw3e6x2x1fW7` | Google Photos |
 | Shared Drive folder (photos) | `drive.google.com/drive/folders/1Pn_9rL6p3_Q6VRkqRRBwzFTetxCs3mmF` | Posted by **Mahesh** |
