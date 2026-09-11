@@ -1,3 +1,31 @@
+## 2026-09-11 (later) — a saved contact wears the member's face: their photo, or their bird
+
+Asked for on 2026-09-10 and twice left unbuilt. The Save contact card download now carries a
+PHOTO: the member's uploaded picture, or the bird the app draws for them, chosen by
+`contactPhotoSrc` with BirdAvatar's own precedence so the two cannot disagree.
+
+**The birds are pre-rendered, not drawn per request.** `BirdGlyphV2` is JSX, and Next will not
+compile a manual `renderToStaticMarkup` inside `app/` (the app icon hit this first). With no disc a
+bird's pixels depend only on species and pose, so there are exactly 102 of them.
+`scripts/dev/generate-bird-photos.mjs` drives `/lab/centroid` in a real browser and writes
+`public/images/birds/`, 852 KB in all. The probe grew `flip` and `pad`: pad widens the frame to 125
+units, because a Kingfisher's bill and a Coucal's tail run past the 100-unit box, which the avatar
+clips at its edge unseen but which floated as a hard cut inside a contact's circle on the first pass.
+Each sits on `--card`, since phones crop to a circle and some paint transparency black.
+
+**Fetched on open, not baked into the page.** Inline it would have added ~11 KB of base64 to every
+profile view. The card starts the fetch when it opens, so Save still lands inside the tap (Safari
+drops a download that comes long after the gesture), re-encodes on a canvas as a 384px JPEG
+(Apple Contacts takes no WebP), and saves without a face rather than not at all if the image fails.
+A photo goes through `photoSrc`; hand-building the optimizer URL with `q=80` returned 400, since
+Next 16 allows only `q=75`.
+
+Verified by downloading real cards in Chrome: Adit Ajay's carries his owlet, Venkatesh B R's his
+flycatcher photograph, no console errors. `npm run check` 117/117, `npm run visual` 25/25.
+
+Also found: `scripts/dev/centroid.mjs` has been unable to reach `/lab/centroid` since /lab became
+admin-only (audit M19); it never signs in. Not fixed here.
+
 ## 2026-09-11 — the bot check stops being able to lock a member out, and starts saying why it turned them away
 
 A member reported that sign-in kept telling her "We couldn't confirm you're human. Refresh the page

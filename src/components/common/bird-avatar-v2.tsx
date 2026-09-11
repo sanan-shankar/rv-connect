@@ -1770,6 +1770,13 @@ export const BG_MODE: "none" | "outline" | "inset" = "none";
 /** Inset scale for "inset" mode (bird sits inside the disc with margin). */
 const INSET_SCALE = 0.66;
 
+/** Whether this member's bird faces left. Pose is hashed from the seed alone, so a species
+ *  override keeps the member's pose. Shared with the contact-card photo, which picks the
+ *  pre-rendered file for the same species and pose (scripts/dev/generate-bird-photos.mjs). */
+export function isMirrored(seed: string): boolean {
+  return birdFor(seed).pose >= 2;
+}
+
 /**
  * The bird glyph, sized to `px`. In "none" mode it is just the centred bird on a transparent
  * background (BirdAvatar gives it a non-clipping container so crest/bill are never cut).
@@ -1787,7 +1794,7 @@ export function BirdGlyphV2({
 }) {
   const bird = birdFor(seed);
   const arche = ARCHES[(speciesOverride ?? hashSpeciesFor(seed)) % ARCHES.length];
-  const flip = bird.pose >= 2;
+  const flip = isMirrored(seed);
   const inner = (
     <g transform={flip ? "translate(100 0) scale(-1 1)" : undefined}>
       <g transform={archeTransform(arche)}>{arche.draw()}</g>

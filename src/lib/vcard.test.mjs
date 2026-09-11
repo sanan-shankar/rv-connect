@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { vcardLines, vcardValue } from "./vcard.ts";
+import { vcardLines, vcardValue, vcardWithPhoto } from "./vcard.ts";
 
 /* The bug (audit Low 97): a comma and a semicolon are STRUCTURE in a vCard
    value, and the profile's card put both into NOTE unescaped on every single
@@ -35,4 +35,12 @@ test("lines are joined with CRLF and the card ends with one", () => {
   assert.equal(card, "BEGIN:VCARD\r\nVERSION:3.0\r\nEND:VCARD\r\n");
   // Nothing is joined with a bare LF: Outlook has historically refused those.
   assert.equal(/[^\r]\n/.test(card), false);
+});
+
+test("the photo goes inside the card, as the last property", () => {
+  const card = vcardLines(["BEGIN:VCARD", "VERSION:3.0", "FN:Asha", "END:VCARD"]);
+  assert.equal(
+    vcardWithPhoto(card, "QUJD"),
+    "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Asha\r\nPHOTO;ENCODING=b;TYPE=JPEG:QUJD\r\nEND:VCARD\r\n"
+  );
 });
