@@ -22,7 +22,7 @@ function transformFor(adj?: { x?: number; y?: number; s?: number }): string | un
 export default async function CentroidProbe({
   searchParams,
 }: {
-  searchParams: Promise<{ i?: string }>;
+  searchParams: Promise<{ i?: string; flip?: string; pad?: string }>;
 }) {
   const sp = await searchParams;
   const i = ((Number(sp?.i ?? 0) % ARCHETYPES.length) + ARCHETYPES.length) % ARCHETYPES.length;
@@ -30,14 +30,23 @@ export default async function CentroidProbe({
   const adjustMap = JSON.parse(
     readFileSync(join(process.cwd(), "src/components/common/bird-adjust.json"), "utf8"),
   ) as Record<string, { x?: number; y?: number; s?: number }>;
+  // Mirrors BirdGlyphV2's own flip: an outer group around the (already-adjusted) bird, not folded
+  // into transformFor's scale -- scripts/dev/generate-bird-photos.mjs needs both poses of each
+  // archetype and this is the one place that draws a bird outside that component.
+  const flip = sp?.flip === "1";
+  // pad=1 widens the frame by 12.5 units a side: a Kingfisher's bill or a Coucal's tail runs past
+  // the 100-unit box, which an avatar clips at its own edge unseen, but a contact photo shows the
+  // bird inside a disc where that cut would float in mid-air.
+  const viewBox = sp?.pad === "1" ? "-12.5 -12.5 125 125" : "0 0 100 100";
+  const inner = <g transform={transformFor(adjustMap[a.name])}>{a.draw()}</g>;
   return (
     <div
       data-count={ARCHETYPES.length}
       data-name={a.name}
       style={{ margin: 0, padding: 0, background: "transparent", width: 600, height: 600 }}
     >
-      <svg width={600} height={600} viewBox="0 0 100 100" style={{ display: "block" }}>
-        <g transform={transformFor(adjustMap[a.name])}>{a.draw()}</g>
+      <svg width={600} height={600} viewBox={viewBox} style={{ display: "block" }}>
+        {flip ? <g transform="translate(100 0) scale(-1 1)">{inner}</g> : inner}
       </svg>
     </div>
   );

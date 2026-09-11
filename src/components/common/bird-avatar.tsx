@@ -1,7 +1,8 @@
 import Image from "next/image";
 import { getInitials } from "@/lib/utils";
+import { photoSrc } from "@/lib/image-cdn";
 import { speciesForMember } from "@/lib/avatar";
-import { BirdGlyphV2, BG_MODE, resolveBirdOverride } from "@/components/common/bird-avatar-v2";
+import { BirdGlyphV2, BG_MODE, isMirrored, resolveBirdOverride } from "@/components/common/bird-avatar-v2";
 
 /**
  * BirdAvatar - the default identity mark across the app.
@@ -30,6 +31,23 @@ export interface AvatarUser {
   avatarSpecies?: number | null;
   /** Manual per-user species override (DB column `User.birdOverride`), a slug like "peregrine-falcon". */
   birdOverride?: string | null;
+}
+
+function birdSeed(user: AvatarUser): string {
+  return user.id || user.name || "valley";
+}
+
+/**
+ * The same face BirdAvatar draws, as a same-origin image URL for the saved contact card: the
+ * member's photo through the optimizer via photoSrc (same-origin, so the download can re-encode it
+ * on a canvas, as a JPEG, since Apple Contacts takes no WebP), or their bird from the 102
+ * pre-rendered by scripts/dev/generate-bird-photos.mjs -- re-run it if a bird's drawing changes.
+ */
+export function contactPhotoSrc(user: AvatarUser): string {
+  if (user.photoUrl) return photoSrc(user.photoUrl);
+  const seed = birdSeed(user);
+  const species = speciesForMember(seed, resolveBirdOverride(user.id, user.birdOverride));
+  return `/images/birds/${species}-${isMirrored(seed) ? 1 : 0}.png`;
 }
 
 const SIZE_TOKENS = { xs: 28, sm: 40, md: 64, lg: 104 } as const;
@@ -104,7 +122,7 @@ export function BirdAvatar({
     );
   }
 
-  const seed = user.id || user.name || "valley";
+  const seed = birdSeed(user);
   // birdOverride (resolved, Hoopoe-guarded) > owner/staff pin > deterministic hash (Hoopoe-excluded).
   const overrideIndex = resolveBirdOverride(user.id, user.birdOverride);
   const speciesPick = speciesForMember(seed, overrideIndex);

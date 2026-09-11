@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AnimatePresence, m } from "motion/react";
 import {
   Mail,
@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
+import { BirdAvatar, contactPhotoSrc, type AvatarUser } from "@/components/common/bird-avatar";
+import { vcardWithPhoto } from "@/lib/vcard";
 import { SPRINGS } from "@/components/common/motion";
 import {
   Dialog,
@@ -154,6 +155,25 @@ function ReachRow({ method }: { method: ContactMethod }) {
   );
 }
 
+/** A same-origin image as a square 384px JPEG, base64, for a contact card's PHOTO. */
+async function jpegBase64(src: string): Promise<string> {
+  const res = await fetch(src);
+  if (!res.ok) throw new Error(`${res.status} for ${src}`);
+  const image = await createImageBitmap(await res.blob());
+  const side = 384;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = side;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("no 2d canvas");
+  // Cover, not contain: a member's photo is cropped square on upload but need not arrive square.
+  const scale = Math.max(side / image.width, side / image.height);
+  const w = image.width * scale;
+  const h = image.height * scale;
+  ctx.drawImage(image, (side - w) / 2, (side - h) / 2, w, h);
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+  return dataUrl.slice(dataUrl.indexOf(",") + 1);
+}
+
 /**
  * "Get in touch" CTA for other people's profiles. Opens the person's calling
  * card: their bird and batch over the reach-outs they actually shared, plus a
@@ -244,9 +264,28 @@ export function GetInTouch({
   const [open, setOpen] = useState(false);
   const locked = !!lock;
   const hasMethods = methods.length > 0;
+  const photo = useRef<Promise<string | null> | null>(null);
 
-  function saveContact() {
-    const blob = new Blob([vcard], { type: "text/vcard" });
+  /* Started when the card opens, so by the time Save is pressed the photo is usually already
+     here and the download still runs inside the tap: Safari refuses a download that arrives long
+     after the gesture that asked for it. The contact saves without a face rather than not at all
+     if the image cannot be had, and says so in the console. */
+  function contactPhoto() {
+    photo.current ??= jpegBase64(contactPhotoSrc(person)).catch((err) => {
+      console.error("[save contact] saved without a photo:", err);
+      return null;
+    });
+    return photo.current;
+  }
+
+  function openCard() {
+    void contactPhoto();
+    setOpen(true);
+  }
+
+  async function saveContact() {
+    const face = await contactPhoto();
+    const blob = new Blob([face ? vcardWithPhoto(vcard, face) : vcard], { type: "text/vcard" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -264,7 +303,7 @@ export function GetInTouch({
         <Button
           size={size}
           className="rounded-full"
-          onClick={() => setOpen(true)}
+          onClick={openCard}
           disabled={!hasMethods && !locked}
           title={hasMethods || locked ? undefined : "This member hasn't shared contact details yet."}
         >

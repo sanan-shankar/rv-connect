@@ -20,6 +20,11 @@
 >   `src/components/common/bird-adjust.json` (read via `archeTransform`). Birds are sized by visual
 >   MASS (area-equivalent radius), not their farthest tip, so a long bill/tail/crest never shrinks
 >   the body. Converged: every bird centroid = (50,50), consistent body size.
+> - **Contact-card photos** are the same birds, pre-rendered: `scripts/dev/generate-bird-photos.mjs`
+>   writes all 51 species x 2 poses to `public/images/birds/{species}-{0|1}.png`, on `--card` with
+>   room around the box so a phone's circle crop never cuts a tip. `contactPhotoSrc` in
+>   `bird-avatar.tsx` picks the file with the same precedence BirdAvatar uses. **Re-run it whenever a
+>   bird's drawing or `bird-adjust.json` changes**, or saved contacts keep the old bird.
 > - **Owner pin**: `SPECIES_PINS` in `src/lib/avatar.ts` pins a user id to a species (the owner is
 >   pinned to the Indian Roller, not the Hoopoe - see the reservations below).
 > - **Manual per-user override (2026-07, shipped)**: `User.birdOverride` (DB column, a species slug
@@ -47,7 +52,7 @@
 >   would have woken up as a different bird. Taking slot 3 changed only the members who used to hash
 >   onto the Roller. **Never raise `BIRD_SPECIES_COUNT` to add a species**; take a slot inside 0..49.
 > - Rooms: **`/lab/birds-rv`** (gallery, mirrors the shipped `/birds`) and **`/lab/centroid`**
->   (dev harness for the centering script). Verified by `src/lib/avatar.test.mjs`, which covers both
+>   (dev harness for the centering script and the contact-card photos). Verified by `src/lib/avatar.test.mjs`, which covers both
 >   the hash distribution and the two reservations.
 >
 > **Everything below this line is the ORIGINAL design proposal. It is superseded by the shipped

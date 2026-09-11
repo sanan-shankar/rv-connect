@@ -46,3 +46,13 @@ export function vcardValue(text: string): string {
 export function vcardLines(lines: (string | null | undefined | false)[]): string {
   return lines.filter((l): l is string => Boolean(l)).join("\r\n") + "\r\n";
 }
+
+/**
+ * Add an inline JPEG as the card's PHOTO, just before END:VCARD.
+ *
+ * Inline and base64 rather than a URL: Apple Contacts and Google Contacts both ignore a
+ * PHOTO;VALUE=uri on import. Unfolded like every other line, for the reason vcardLines gives.
+ */
+export function vcardWithPhoto(card: string, jpegBase64: string): string {
+  return card.replace(/END:VCARD\r\n$/, `PHOTO;ENCODING=b;TYPE=JPEG:${jpegBase64}\r\nEND:VCARD\r\n`);
+}
