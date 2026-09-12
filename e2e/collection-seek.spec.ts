@@ -502,8 +502,26 @@ test("the rail says where the reader is after a jump, not only after a scroll", 
  *
  *  "You have to think of an ingenious non-intrusive way of doing it on
  *  phone as well, something like the google photos scroller" (owner,
- *  2026-09-02). Non-intrusive is the part with teeth, so it is the part
- *  pinned first: at rest there is nothing there at all.
+ *  2026-09-02). Non-intrusive used to be read as invisible, and the test
+ *  below pinned exactly that: nothing at rest, raised by a scroll, gone
+ *  a second and a half later.
+ *
+ *  THAT IS NOW THE OPPOSITE OF THE REQUIREMENT, and this file says so
+ *  rather than quietly dropping it. Invisible at rest is what made the
+ *  control undiscoverable and unhittable: "people don't really intuit
+ *  that you can drag on the normal looking one and it's hard to contact
+ *  it at times" (owner, 2026-09-12). Four faces were drawn at
+ *  /lab/collection/scrub and he picked the year chip, staying put:
+ *  "ship signpost. stays put on. tap open off."
+ *
+ *  So what has teeth now is the reverse. The chip is THERE before
+ *  anybody has touched the page, and it is still there once the river
+ *  has stopped -- because the old fade is half of what "hard to contact"
+ *  meant. You scroll, you see it, you stop scrolling to aim, and it
+ *  leaves while you are aiming.
+ *
+ *  Still true, and still pinned below: nothing LARGE is drawn until it
+ *  is held, and in an order sorted by upload date it claims no year.
  *
  *  It scrubs the BANDS rather than the page, which is why it can be
  *  trusted on a cursor-paginated river: what is loaded is a window onto
@@ -525,7 +543,9 @@ async function readChronologicallyOnAPhone(page: import("@playwright/test").Page
   await expect(page.locator("h2[data-band]").first()).toBeVisible();
 }
 
-test("the phone's scrubber is not there until the river moves", async ({ page }, testInfo) => {
+test("the phone's scrubber is there before anybody touches the page, and stays", async ({
+  page,
+}, testInfo) => {
   mobileOnly(testInfo.project.name);
   /* THE ORDER THE COLLECTION ACTUALLY OPENS IN, not the one that suits the
      scrubber. It was gated to Chronological once, which meant that on a
@@ -534,23 +554,26 @@ test("the phone's scrubber is not there until the river moves", async ({ page },
   await page.goto("/lab/collection");
   await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Newest/);
 
-  // Nothing at rest. No track, no rule, no furniture down the edge.
-  await expect(scrubber(page)).toHaveCount(0);
-
-  await page.mouse.wheel(0, 3000);
+  /* THERE, WITH NO SCROLL AT ALL. This is the assertion that replaced its own
+     opposite, and it is the whole of the 2026-09-12 change: a control nobody
+     can see is a control nobody drags. */
   await expect(scrubber(page)).toBeVisible();
-  /* And in an order sorted by upload date it does NOT claim a year, because
-     there is no year to claim -- it is an indicator and says so. */
+  /* In an order sorted by upload date it does NOT claim a year, because there
+     is no year to claim -- it is an indicator and says so. */
   await expect(scrubber(page)).toHaveAttribute("aria-label", "Jump to when the photograph was taken");
-  /* And it says where you are, in the same words the river's own headings
-     use -- the band, not a percentage. Read off the accessible name rather
-     than the thumb's text, because the thumb HAS no text: it is a hairline,
-     and the year only appears, large, once it is held. */
-  /* Nothing large is drawn until it is held -- the whole of "non-intrusive". */
+  /* Nothing large is drawn until it is held. The chip names the band in four
+     small digits; the forty-pixel year belongs to the gesture. */
   await expect(page.locator("[data-scrub-year]")).toHaveCount(0);
 
-  // And it goes again once the river stops.
-  await expect(scrubber(page)).toHaveCount(0, { timeout: 6000 });
+  /* AND IT IS STILL THERE AFTER THE RIVER STOPS. The old build took itself
+     away 1400ms after the last scroll event, which is long enough to see it
+     and not long enough to stop, aim and land on it. Six seconds is four
+     times that fade, so a regression to any timer at all fails here. */
+  await page.mouse.wheel(0, 3000);
+  await expect(scrubber(page)).toBeVisible();
+  await page.waitForTimeout(6000);
+  await expect(scrubber(page)).toBeVisible();
+  await expect(page.locator("[data-scrub-year]")).toHaveCount(0);
 });
 
 test("using the scrubber from another order turns the river to Chronological", async ({
