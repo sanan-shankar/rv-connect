@@ -60,6 +60,7 @@ import {
   type PhotoScope,
 } from "@/lib/photo-visibility-rule";
 import { viewerFacts } from "@/lib/collection-viewer-facts";
+import { ratioOf } from "@/lib/river-geometry";
 import { notifyAdminNote } from "@/lib/admin-note";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
@@ -899,13 +900,9 @@ export async function loadPhotos(
       orderBy: orderByFor(order),
       select: { width: true, height: true, photoYear: true, era: true },
     });
-    page.shapes = geometry.map((g) => [
-      /* Guarded, because a zero height would be an Infinity that poisons every
-         row it lands in. Nothing in the archive is missing these (checked:
-         0 of 1,718), and a layout is not the place to find out otherwise. */
-      g.width > 0 && g.height > 0 ? Number((g.width / g.height).toFixed(3)) : 1,
-      bandKeyOf(g),
-    ]);
+    // `ratioOf` is the client's too: it reshapes this index when a year
+    // changes under it, and must round every photograph the way it was written.
+    page.shapes = geometry.map((g) => [ratioOf(g.width, g.height), bandKeyOf(g)]);
   }
 
   return page;

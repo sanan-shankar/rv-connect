@@ -1,3 +1,49 @@
+## 2026-09-12 (later) — a year of the Collection stops going blank when a photograph joins or leaves it
+
+The owner: "when I add or remove photos, the photos from that year disappear until I reload the
+page. so when I upload something to 2014, all the photos of that year disappear. happens for other
+people too not just me."
+
+The river draws a year only when it holds EXACTLY as many photographs as the box reserved for it,
+because a year drawn from half its photographs is shorter than its box and that moves the document
+(2026-09-10). The count comes from the shape index, which was written when the page opened and never
+moved again. So anything that changed a year made the two disagree, and a year that disagrees is not
+drawn short -- it is drawn as nothing, a blank box at the old height, and `held` then blocks the
+re-fetch that would have put it right. Three routes to the same blank:
+
+- deleting one: `forget` took the photograph out of the flat list and nowhere else, leaving its year
+  one short of its box;
+- adding one: the index still said N, and the year arrived from `loadBand` holding N+1;
+- somebody else adding or deleting while your page was open -- the "other people too" half, and the
+  same mismatch from the other side.
+
+The index now follows the archive. `reshapeBand`/`holdsBand`/`sameIndex` in river-geometry.ts (pure,
+unit-tested) replace one year's run with the shapes of what that year actually holds; `ratioOf` is
+shared with the server so both round a photograph identically. `needBand` reshapes on arrival, so a
+year that has changed since the page opened takes the room it needs. `forget` takes the photograph
+out of its year and out of the index together. And a fresh index from the server -- which arrives
+after every contribution, deletion and edit -- is adopted without giving up the river: years that
+still match are kept, a year that gained or lost one is let go and fetched again whole, which is what
+puts a new contribution into 2014 without a reload.
+
+Two brakes, because this area has produced a runaway fetch three times. The re-seed that replaces the
+river with page one is now refused while the river is drawn from geometry (there the cursors never
+move, so nothing ever looked "walked", and page one is only the newest few years -- adopting it
+blanked every year below them). And the reconcile compares the server's index against ITS OWN LAST
+ANSWER rather than against the screen: the two differ on purpose after `needBand` corrects a year,
+and comparing against the screen would undo that correction, re-fetch, and be answered again for as
+long as they disagreed.
+
+Measured in a real browser against the live archive, with the page size temporarily cut so the Valley
+loads year by year the way the class archive does, and one year made to look as though a photograph
+had just been added to it. Before: reaching that year drew BLANK, and deleting one photograph from a
+year of nine drew BLANK. After: 5 photographs and 8 photographs, no console errors, and no further
+requests in the five seconds after it settled. Also fixed alongside, same cause: a heart or a caption
+edit was written into the flat list only, so the next year to arrive rebuilt the river from copies
+made before the change.
+
+`npm run check` clean, 118/118.
+
 ## 2026-09-12 — "Read more" continues the sentence instead of breaking it onto a new line
 
 The owner pointed at three feed posts, each broken mid-sentence once opened: "Am / visiting RV",

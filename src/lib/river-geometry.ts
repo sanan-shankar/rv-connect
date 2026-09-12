@@ -157,6 +157,69 @@ export function bandBoxes(shapes: PhotoShapeIndex, width: number): BandBox[] {
   return out;
 }
 
+/** A photograph's entry in the shape index. The server writes the index with
+ *  this and the client reshapes it with this, so the two can never round the
+ *  same photograph differently. A zero side would be an Infinity that poisons
+ *  every row it lands in, so it reads as square instead. */
+export function ratioOf(width: number, height: number): number {
+  return width > 0 && height > 0 ? Number((width / height).toFixed(3)) : 1;
+}
+
+/** Whether two indexes describe the same archive, entry for entry. */
+export function sameIndex(a: PhotoShapeIndex, b: PhotoShapeIndex): boolean {
+  return a === b || (a.length === b.length && a.every((s, i) => s[0] === b[i][0] && s[1] === b[i][1]));
+}
+
+/** Where one year's run sits in the index, `[from, to)`; empty at the end
+ *  when the index does not have that year. */
+function runOf(shapes: PhotoShapeIndex, key: string): [number, number] {
+  const from = shapes.findIndex((s) => s[1] === key);
+  if (from < 0) return [shapes.length, shapes.length];
+  let to = from;
+  while (to < shapes.length && shapes[to][1] === key) to += 1;
+  return [from, to];
+}
+
+/** Whether `photos` are exactly the year the index describes: same count,
+ *  same shapes, same order. The river only draws a year that passes this, so
+ *  it is also the question "is what I hold for this year still true". */
+export function holdsBand(
+  shapes: PhotoShapeIndex,
+  key: string,
+  photos: { width: number; height: number }[]
+): boolean {
+  const [from, to] = runOf(shapes, key);
+  if (to - from !== photos.length) return false;
+  return photos.every((p, i) => shapes[from + i][0] === ratioOf(p.width, p.height));
+}
+
+/**
+ * The index with one year's run replaced by what that year actually holds.
+ *
+ * A year is drawn only when it holds exactly as many photographs as its box
+ * was computed for, so an index that stops describing the archive does not
+ * draw a year wrongly -- it draws NOTHING, a blank box at the old height, and
+ * nothing re-fetches it. Taking one photograph out of 2014 did exactly that
+ * until a reload, and so did a year that somebody else had added to since the
+ * page opened. So whatever changes a year's photographs reshapes its run here.
+ *
+ * Only that year moves: every other run keeps its place. The same index comes
+ * back when nothing changed, so a caller can hand this to a state setter
+ * without costing a render. A year the index never had cannot be placed and
+ * is left out; the server's next page brings it.
+ */
+export function reshapeBand(
+  shapes: PhotoShapeIndex,
+  key: string,
+  photos: { width: number; height: number }[]
+): PhotoShapeIndex {
+  if (holdsBand(shapes, key, photos)) return shapes;
+  const [from, to] = runOf(shapes, key);
+  if (from === to) return shapes;
+  const run: PhotoShapeIndex = photos.map((p) => [ratioOf(p.width, p.height), key]);
+  return [...shapes.slice(0, from), ...run, ...shapes.slice(to)];
+}
+
 /** The river's whole height: what the document should be from the first frame. */
 export function riverHeightOf(boxes: BandBox[]): number {
   const last = boxes[boxes.length - 1];

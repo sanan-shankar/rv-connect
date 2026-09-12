@@ -53,7 +53,7 @@ import { loadBand,
   type RiverPage,
 } from "@/app/(main)/collection/actions";
 import { HALVES, bandKeyOf, defaultOrderFor } from "@/lib/collection";
-import { bandBoxes } from "@/lib/river-geometry";
+import { bandBoxes, holdsBand, reshapeBand, sameIndex } from "@/lib/river-geometry";
 import { toViewerImage } from "@/lib/collection-viewer-image";
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import type { ScopeFacts } from "@/app/(main)/collection/collection-data";
@@ -224,7 +224,12 @@ export function CollectionClient({
      seed, so replacing it with its own successor costs nothing. Moved, and the
      server's page one is no longer a description of what is on screen. The
      price is that a contribution made from deep in a long river waits for the
-     next visit to show up, which is the cheaper of the two disappointments. */
+     next visit to show up, which is the cheaper of the two disappointments.
+
+     NEVER WHEN THE RIVER IS DRAWN FROM GEOMETRY. There the cursors never move,
+     so nothing ever looks walked, and page one is only the newest few years:
+     adopting it as the river emptied every year below them into a blank box
+     that nothing re-fetched. That case is `lastIndex`'s, further down. */
   const [seed, setSeed] = useState(firstPage);
   if (firstPage !== seed) {
     const walked = cursor !== seed.nextCursor || topCursor !== (seed.topCursor ?? null);
@@ -232,7 +237,11 @@ export function CollectionClient({
     // Asked through the shared dedupe rather than a Set of ids here, and the
     // helper's answer IS the question: would appending the server's page add
     // a single photograph the river does not already show?
-    if (!walked && appendUnseen(photos, firstPage.photos).length > photos.length) {
+    if (
+      !walked &&
+      boxes.length === 0 &&
+      appendUnseen(photos, firstPage.photos).length > photos.length
+    ) {
       setPhotos(firstPage.photos);
       setCursor(firstPage.nextCursor);
       setTopCursor(firstPage.topCursor ?? null);
@@ -504,6 +513,10 @@ export function CollectionClient({
         }
         void warmThumbs(data.photos, data.photos.length, 0);
         held.current.set(key, data.photos);
+        /* The index is as old as the page, and somebody may have added to this
+           year or taken from it since. A year one short of its box is drawn as
+           nothing at all, so the box follows what actually arrived. */
+        setShapes((prev) => reshapeBand(prev, key, data.photos));
         /* Rebuilt in BAND ORDER from the boxes, never appended: the viewer
            indexes into this list, and a reader who opened a photograph would
            otherwise step into whichever year happened to load first. */
@@ -515,6 +528,52 @@ export function CollectionClient({
     [scope, bucket, search]
   );
 
+  /* THE SERVER'S FRESH INDEX, ADOPTED WITHOUT GIVING UP THE RIVER. Every change
+     to the archive -- a contribution, a deletion, an edit that moves a
+     photograph to another year -- ends with the server rendering this page
+     again, and the whole index rides back on it. Without this the index stayed
+     as old as the page, so a year somebody had added to was one photograph
+     over its box when it arrived and was drawn as blank paper until a reload:
+     "when I upload something to 2014, all the photos of that year disappear"
+     (owner, 2026-09-12).
+
+     A year this page holds is kept only while it is still exactly what the
+     new index says. One that gained, lost or moved a photograph is let go,
+     stands as a box at its new height, and is fetched again whole -- which is
+     also what puts a new contribution into its year without a reload.
+
+     ONLY WHEN THE SERVER'S OWN INDEX HAS CHANGED since its last answer, not
+     whenever it differs from the one on screen. The two differ on purpose
+     after `needBand` corrects a year the index was wrong about, and the
+     server answers again after actions nobody meant as a refresh (see the
+     re-seed above) -- compared against the screen, each answer would undo
+     that correction, re-fetch the year, and be answered again: a loop for as
+     long as the two disagree. Compared against the last answer, it acts once
+     per change. */
+  const lastIndex = useRef(firstPage.shapes);
+  useEffect(() => {
+    const next = firstPage.shapes;
+    if (!next || next === lastIndex.current) return;
+    const unchanged = lastIndex.current != null && sameIndex(next, lastIndex.current);
+    lastIndex.current = next;
+    if (unchanged || boxesRef.current.length === 0) return;
+    // A page for a view the reader has since left describes another river.
+    if (
+      (filters.scope ?? "valley") !== scope ||
+      (filters.bucket ?? "") !== bucket ||
+      (filters.search ?? "") !== search ||
+      (filters.order ?? "newest") !== order
+    )
+      return;
+    if (sameIndex(next, shapes)) return;
+    for (const [key, got] of held.current) {
+      if (!holdsBand(next, key, got)) held.current.delete(key);
+    }
+    setShapes(next);
+    if (firstPage.bands) setBands(firstPage.bands);
+    const years = [...new Set(next.map(([, key]) => key))];
+    setPhotos(years.flatMap((key) => held.current.get(key) ?? []));
+  }, [firstPage, filters, scope, bucket, search, order, shapes]);
 
   /* The effect below would otherwise re-ask the server, on mount, the question
      it has already answered into `firstPage`. Held against the IDENTITY of the
@@ -1234,7 +1293,13 @@ export function CollectionClient({
       if (list === "pending")
         setQueues((prev) => ({ ...prev, [scope]: next(prev[scope] ?? []) }));
       else if (list === "linked") setLinked(next);
-      else setPhotos(next);
+      else {
+        setPhotos(next);
+        // And into the years the river is rebuilt from: `needBand` rebuilds
+        // the flat list from those, so without this the next year to arrive
+        // would put back copies from before the change.
+        for (const [key, got] of held.current) held.current.set(key, next(got));
+      }
     },
     [scope]
   );
@@ -1318,6 +1383,16 @@ export function CollectionClient({
   /** A photograph is gone: out of every strip that holds it, and out of the
    *  viewer, which was showing the thing that no longer exists. */
   function forget(id: string) {
+    /* Out of its year as well, and out of the index. Taken out of the flat
+       list alone, its year was left one short of its box, and the river draws
+       a short year as a blank one -- every photograph of 2014 vanished until
+       a reload because one of them was deleted. */
+    for (const [key, got] of held.current) {
+      if (!got.some((p) => p.id === id)) continue;
+      const rest = got.filter((p) => p.id !== id);
+      held.current.set(key, rest);
+      setShapes((prev) => reshapeBand(prev, key, rest));
+    }
     setPhotos((prev) => prev.filter((p) => p.id !== id));
     // Every queue, not the one on screen: the viewer can be open on a
     // photograph from either half (a shared link), and a row that is gone is
