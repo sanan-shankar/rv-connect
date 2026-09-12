@@ -73,6 +73,23 @@ test("C-011: the card uses the safe index rather than a raw slice", () => {
   );
 });
 
+test("the remainder continues the lead's paragraph instead of starting its own", () => {
+  /* It was a second <p>, so an opened post broke its sentence onto a new line
+     wherever the cut landed, the new line led by the space the cut sits on
+     ("Am / visiting RV right now", owner, 2026-09-12). */
+  const card = decomment(read("src/components/posts/post-card.tsx"));
+  assert.match(
+    card,
+    /<m\.span[^>]*?__html: renderRichText\(restText\)/,
+    "the remainder is not an inline span"
+  );
+  assert.doesNotMatch(
+    card,
+    /<p[^>]*?__html: renderRichText\(restText\)/,
+    "the remainder is its own paragraph again"
+  );
+});
+
 /* ---- C-180: a double tap does not append a page twice ----------- */
 
 test("C-180: both Load-more handlers guard synchronously and dedupe by id", () => {

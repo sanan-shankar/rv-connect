@@ -210,17 +210,9 @@ Media:
 
 <!-- sourceNote: S Thomas, Prashant Rao, Anita Reddy, Usha K — WhatsApp Chat - RVS Alumni, 07/07/2026–08/07/2026 (lines 9676–9767 of _chat.txt); published Anonymous -->
 
-There is a mind-boggling 3D mural waiting for you at RV. The mural uses wood from the Big Banyan Tree. Installed at the Dining Hall.
+There is a mind-boggling 3D mural waiting for you at RV. The mural uses wood from the Big Banyan Tree. Installed at the Dining Hall. The details are stunning, to say the least.
 
-The details are stunning, to say the least.
-
-It seems the entire community took part in its composition and installation, made by an alumnus from the 2005 batch.
-
-Am visiting RV right now and was lucky to witness the finishing touches and installation of the Big Banyan Tree (as it's called now) mural. Stunning it is.
-
-Anita Reddy: A fabulous idea. Helps us all feel the shade of the banyan tree. Many a dream were also born under its branches.
-
-Usha K: Befitting place, no other theme could have given the space a better meaning.
+It seems the entire community took part in its composition and installation, made by an alumnus from the 2005 batch. Am visiting RV right now and was lucky to witness the finishing touches and installation of the Big Banyan Tree (as it's called now) mural. Stunning it is.
 
 ---
 
