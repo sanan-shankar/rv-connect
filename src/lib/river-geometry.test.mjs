@@ -59,3 +59,73 @@ test("the heading's own line box is accounted for", () => {
   assert.match(river, /text-\[22px\] leading-none/, "the band heading's type changed");
   assert.equal(constant("BAND_HEADING"), 22, "leading-none means the line box is the font size");
 });
+
+/* ------------------------------------------------------------------ *
+ *  A year is drawn only when it holds exactly as many photographs as its
+ *  box was computed for, so the index has to follow the archive when it
+ *  changes. It did not: taking one photograph out of 2014 left 2014 one
+ *  short of its box, and the whole year was drawn as blank paper until a
+ *  reload -- "when I add or remove photos, the photos from that year
+ *  disappear until I reload the page" (owner, 2026-09-12).
+ * ------------------------------------------------------------------ */
+const { holdsBand, ratioOf, reshapeBand, sameIndex } = await import("./river-geometry.ts");
+
+const shot = (w, h) => ({ width: w, height: h });
+const index = [
+  [1.5, "2015"],
+  [0.667, "2014"],
+  [1.5, "2014"],
+  [1.333, "2014"],
+  [1, "2013"],
+];
+
+test("a ratio is rounded exactly as the server writes it into the index", () => {
+  assert.equal(ratioOf(3000, 2000), 1.5);
+  assert.equal(ratioOf(2000, 3000), 0.667);
+  assert.equal(ratioOf(0, 100), 1, "a missing dimension is a square, never Infinity");
+});
+
+test("a year holds its band only when every shape matches, in order", () => {
+  const year = [shot(2000, 3000), shot(3000, 2000), shot(4000, 3000)];
+  assert.equal(holdsBand(index, "2014", year), true);
+  assert.equal(holdsBand(index, "2014", year.slice(1)), false, "one taken out");
+  assert.equal(holdsBand(index, "2014", [...year, shot(1, 1)]), false, "one added");
+  assert.equal(holdsBand(index, "2014", [year[1], year[0], year[2]]), false, "reordered");
+  assert.equal(holdsBand(index, "2012", []), true, "a year the index lacks holds nothing");
+  assert.equal(holdsBand(index, "2012", [shot(1, 1)]), false);
+});
+
+test("removing a photograph reshapes only its own year", () => {
+  const rest = [shot(2000, 3000), shot(4000, 3000)];
+  assert.deepEqual(reshapeBand(index, "2014", rest), [
+    [1.5, "2015"],
+    [0.667, "2014"],
+    [1.333, "2014"],
+    [1, "2013"],
+  ]);
+});
+
+test("a year that arrives bigger than the index said takes the room it needs", () => {
+  const grown = [shot(2000, 3000), shot(3000, 2000), shot(4000, 3000), shot(1000, 1000)];
+  const next = reshapeBand(index, "2014", grown);
+  assert.equal(next.filter(([, k]) => k === "2014").length, 4);
+  assert.deepEqual(next.at(-1), [1, "2013"], "the years below keep their place");
+});
+
+test("an unchanged year hands back the same index, so nothing re-renders", () => {
+  const year = [shot(2000, 3000), shot(3000, 2000), shot(4000, 3000)];
+  assert.equal(reshapeBand(index, "2014", year), index);
+});
+
+test("the last photograph out of a year takes the year with it", () => {
+  assert.deepEqual(
+    reshapeBand([[1, "2015"], [1, "2014"]], "2014", []),
+    [[1, "2015"]]
+  );
+});
+
+test("two answers describing the same archive compare equal, whatever their identity", () => {
+  assert.equal(sameIndex(index, index.map((s) => [...s])), true);
+  assert.equal(sameIndex(index, index.slice(1)), false);
+  assert.equal(sameIndex(index, index.map(([r, k]) => [r, k === "2013" ? "2012" : k])), false);
+});
