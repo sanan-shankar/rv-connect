@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-12 (later still) — four ways to say "hold this", for the phone's scrubber; and the 20px gutter that decides which of them need paper underneath
 - 2026-09-12 (later still) — a notification you have read stays read; the badge stops re-arming itself on every page change
 - 2026-09-12 (later) — a year of the Collection stops going blank when a photograph joins or leaves it
 - 2026-09-12 (later) — "Read more" folds by lines, and prefers a paragraph to a sentence

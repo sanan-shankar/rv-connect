@@ -180,6 +180,11 @@ export const REGISTRY: LabEntry[] = [
     note: "The rebuilt Collection page, live, against 240 made-up photographs -- the real one holds two. Press a bucket and watch the underline glide, press a decade on the right-hand rail whose marks are how many each holds, or switch the order to Chronological and scroll past the decades.",
     children: [
       {
+        href: "/lab/collection/scrub",
+        title: "Four ways to say hold this",
+        note: "The phone's scrubber, which nobody can tell is draggable and nobody can reliably hit. Four faces to flick between on the real 240-photograph river: two lines you grip, the year itself riding the edge, a bead on a thread, and a ruler you can grab anywhere. Switch whether it stays put, whether a tap opens it, and whether the river runs in time.",
+      },
+      {
         href: "/lab/collection/swap",
         title: "Nothing until everything",
         note: "The caret between the two halves. The title turns over, a small mark holds the place while the page is genuinely fetched and decoded, and then the photographs arrive whole instead of filling in. Today's swap sits beside it, reproduced beat for beat including its half second of grey.",

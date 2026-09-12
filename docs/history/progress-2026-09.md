@@ -6216,3 +6216,65 @@ Measured after, same route, same account: 3 -> mark all read -> 0, and 0 across 
 a return to /feed and the Back button. Clicking a single notification: 3 -> 2, still 2 two pages
 later, database 2. A notification inserted mid-session while browsing still lights the badge on the
 next feed render, so nothing went quiet. `npm run check` clean, 119/119 (7 new).
+
+## 2026-09-12 (later still) — four ways to say "hold this", for the phone's scrubber
+
+"People don't really intuit that you can drag on the normal looking one and it's hard to contact it
+at times. Google photos is a very obvious easy to use one. Something like that probably but more
+pretty. Or if you have a different way also that works. Work in lab" (owner, 2026-09-12).
+
+**The shipped scrubber is disguised as something you cannot drag, and the disguise is deliberate.**
+`photo-scrubber.tsx` describes its own resting form as "an iOS scroll indicator, near enough, three
+pixels wide and no lettering at all". That is what it was aiming at and it hit it. iOS scroll
+indicators are not draggable and everyone knows it, so the thing reads as decoration reporting a
+position rather than a control.
+
+Three more causes, and together they are the "at times":
+
+- It leaves 1.4 seconds after the river stops. Scroll, see it, stop scrolling to aim, watch it fade
+  while you are aiming.
+- The target is 44 wide and 28 tall. Apple's number is 44 both ways, and on a vertical control the
+  vertical axis is the one you have to land on.
+- It sits flush at `right: 0` — curved glass, the back-swipe zone, and a right thumb hooking over
+  the edge of the phone to reach it.
+
+**A fifth cause was claimed and then disproved, which changed the work.** The first reading of a
+mobile screenshot said the river was full-bleed, so the hairline was being drawn over photographs
+and vanishing against bright sky. Measured on the real `/collection` at 390: the photographs run
+20 to 370. There is a 20px margin of page down each side and the hairline sits in it, on paper,
+perfectly legible. Every face had been given its own sheet of paper to sit on; three of those
+sheets were cream laid over cream and did nothing, and came out.
+
+What the measurement leaves behind is a better rule than either claim: **the gutter is 20px and it
+decides which faces need ground.** Grip (18px) and Bead (13px) fit inside it and carry nothing.
+The year chip is 50px, so 38 of them are over a photograph and it has to be opaque — accent, which
+is also its right rung on the ladder for a small thing floating over the page. The ruler's longest
+ticks reach about 10px past the edge of a photograph exactly as they become the one you are meant
+to read, so it keeps a paper gradient under them. Confirmed by finding a scroll position where the
+chip's own centre has an `IMG` in its hit stack, and photographing it there.
+
+**The room is `/lab/collection/scrub`.** Four faces on the real 240-photograph river, swapped from a
+bench in the bottom left, with the held state byte-identical across all four — the paper coming up,
+the scale up the edge, the year at forty pixels is the part he already approved and it is not what
+is being asked about. Only the resting face changes, so the only question the room asks is which one
+you reach for.
+
+- **Grip** — two lines instead of one, the mark every drag handle uses.
+- **Signpost** — the year is the handle. A number that moves as you scroll is obviously about
+  position, and in Newest or Most loved, where no year would be honest, it shows the gesture instead.
+- **Bead** — a bead on a thread, the most literal slider there is, and the only face that leaves a
+  line down the edge at rest.
+- **Ruler** — the scale faintly present all the time, grabbable anywhere. It is the only face that
+  takes something away: the right 32px stop scrolling the river, and its caption says so.
+
+All four get the fixes that are not in question: a 56px seat, the art held 8px in from the edge with
+the hit box still reaching it, and a stay that does not expire while you are aiming. Two switches
+settle by feel what would otherwise have been guessed at — whether it stays put at rest, and whether
+a tap opens the scale for somebody who will never drag anything.
+
+Nothing shipped changed. `photo-scrubber.tsx` is untouched until a face is picked, and the kit is
+lab-local so the pick is a transplant rather than an unpick.
+
+Measured after: hit boxes 72x56 reaching the true edge, against the shipped 44x28. Art at 13, 18 and
+50px wide, all ending 8px in. Tap-to-open raises the scale and tapping away clears it. `npm run
+check` clean, 119/119; `npm run visual` 25/25.
