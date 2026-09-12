@@ -52,7 +52,7 @@ Concretely, a Letter can be written anywhere the shared composer appears: the **
 | Length | short, soft-capped, current 5000-char limit | long, raised cap (see below) |
 | Title | none | optional **title** line (renders as a heading) |
 | Composer | inline textarea that grows to 4 rows | full-height editor mode (modal or expanded sheet) with the existing bold/italic toolbar still available |
-| Feed rendering | full content (with a 300-char "Read more" clamp already in `post-card.tsx`) | **collapsed preview card** in the feed: title + first ~2 lines + "Read this letter" → opens a dedicated reading view. It must NOT dominate the feed. |
+| Feed rendering | full content (with the seven-line "Read more" fold already in `post-card.tsx`) | **collapsed preview card** in the feed: title + first ~2 lines + "Read this letter" → opens a dedicated reading view. It must NOT dominate the feed. |
 | Reading view | n/a (read in place) | a focused `/letters/[id]` route with serif body, generous measure, the author header, and comments/likes reused |
 
 ### 2.3 How it renders without dominating the feed (decision)

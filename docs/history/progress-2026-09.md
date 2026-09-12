@@ -44,6 +44,49 @@ made before the change.
 
 `npm run check` clean, 118/118.
 
+## 2026-09-12 (later) — "Read more" folds by lines, and prefers a paragraph to a sentence
+
+His second look at the same control: "make sure the read more appears not by character count but only
+after 7 lines of written content. it's appearing too early now. but prefer to show read more when
+there's a para break so if it breaks after 5 lines let's still show it."
+
+So the fold is measured, not counted. A character count cannot know the width, the font or where a
+paragraph ends -- 300 characters is four lines on a desktop and ten on a phone, which is why it fired
+early. `src/lib/read-more-fold.ts` splits the job: the browser reports the vertical centre of every
+rendered line (`Range.getClientRects`, one rect per line; a blank line has no glyphs, so a paragraph
+break shows up as a gap wider than a line), and a pure `chooseFold` decides. Seven lines, or the
+LATEST paragraph that ends on line 5, 6 or 7. A post nine lines long is the first that folds at all:
+hiding a single line saves no height when "Read more" takes a line of its own.
+
+Measured again when the width changes and once `document.fonts.ready` resolves, because both rewrap
+the text. The server render, which cannot measure, clamps a post over 300 characters to `7lh` so the
+first paint is close to the final one rather than printing every line and snapping shut.
+
+**Nothing is split any more.** The whole post renders in one `renderRichText` call and the paragraph
+is clipped in CSS, which retires audit C-011 rather than re-fixing it: `rich-truncate.ts` and its
+`safeTruncateIndex` are deleted, since there is no second render to keep in step with the first.
+
+**How the fold looks.** A fold at a paragraph's end just stops -- the full stop already says so. A
+fold inside a paragraph lets its last line trail off, fading over its right 40% to nothing, the way
+iOS ends a clipped description, instead of the "..." this used to print. It is a mask, not a
+card-coloured gradient over the text, because the card also renders in a sheet on a different
+surface; a second mask layer keeps every other line solid, including the ones below the fold that
+"Read more" grows into, and `--fold-fade` lifts the trail from 0 to 1 as the post opens. The label
+moved from `mt-1` to `mt-2` (at 4px it sat inside the paragraph's leading and read as one more line
+of the post) and carries MENU_TRIGGER_HIT's device: 44px of touch on a coarse pointer, invisible.
+
+Measured on the real posts at 1440 and 390: a 14-line post stops at its line-6 paragraph with no
+fade, a 24-line one at seven with the fade, an 8-line one not at all; the open eases 178 -> 434px
+with `--fold-fade` 0.17 -> 1 across the same beat. No page errors at either width.
+
+**`npm run visual` could not be trusted this session and was not updated.** All 24 routes fail,
+including the signed-out landing and login, which hold no post card. The reason is not this work:
+the dev server is serving `@font-face` rules for the metric FALLBACKS only (`local(Times New Roman)`,
+`local(Arial)`) and no webfont file is requested at all, so the whole app is set in Times and Arial
+against baselines shot in Libre Baskerville and Source Sans 3. The font files are present in
+`.next/dev/static/media`; the CSS that points at them is not. A restart of the dev server is what
+that wants, and the server belongs to another session working in this tree.
+
 ## 2026-09-12 — "Read more" continues the sentence instead of breaking it onto a new line
 
 The owner pointed at three feed posts, each broken mid-sentence once opened: "Am / visiting RV",

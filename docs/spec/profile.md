@@ -453,7 +453,7 @@ model UserMemory {       // NEW — prompted school-memories, keyed by prompt
 - **Header dotseps:** computed by `filter(Boolean).join(' · ')`, never hardcoded, so a person with only a batch shows just the batch, no dangling dots.
 - **Teacher who never studied here:** `batchYear` may be a "joined as staff" year; if `isTeacher && !yearJoined`, the header shows profession + "Teacher" and suppresses the alumni batch token rather than inventing a batch.
 - **Photo vs bird:** photo upload override is per Section 1; deleting a photo reverts to the stable bird (same `birdVariant`), never to a random new bird.
-- **Long About / labels:** `about` clamps to a "Read more" past ~6 lines (reuse the `isLongText` pattern from `PostCard`); link labels truncate with ellipsis but title-attr shows full.
+- **Long About / labels:** `about` clamps to a "Read more" past ~6 lines (reuse the fold from `PostCard`: `src/lib/read-more-fold.ts`, which measures rendered lines and prefers a paragraph break); link labels truncate with ellipsis but title-attr shows full.
 - **Admission number leak:** assert at the data layer that `admissionNumber` is stripped from the serialized user for non-owner/non-admin viewers, not merely hidden in JSX.
 - **Person-in-focus consent:** never spotlight `featureOptOut` users or users with empty memories; deterministic-by-date selection so it does not reshuffle on refresh.
 - **Mobile:** rail content is relocated above tabs, not hidden (Section 7); avatar uses column layout to avoid clipping (Section 2.1). Verify at 390x844 per CLAUDE.md.
