@@ -6278,3 +6278,55 @@ lab-local so the pick is a transplant rather than an unpick.
 Measured after: hit boxes 72x56 reaching the true edge, against the shipped 44x28. Art at 13, 18 and
 50px wide, all ending 8px in. Tap-to-open raises the scale and tapping away clears it. `npm run
 check` clean, 119/119; `npm run visual` 25/25.
+
+## 2026-09-13 — the year is the handle
+
+"Ship signpost. stays put on. tap open off" (owner, 2026-09-13), picking from the four faces drawn
+at /lab/collection/scrub the night before.
+
+**What it replaces described itself accurately and that was the problem.** The old resting form was
+"an iOS scroll indicator, near enough, three pixels wide and no lettering at all", in its own
+docblock. It was exactly that, and an iOS scroll indicator is a thing everybody knows you cannot
+drag, so the disguise worked and the control vanished into it. A number is not chrome: it moves as
+you scroll, so it is visibly about position, and it is text, so it reads as something to touch. It
+also answers a question the hairline could not, which is what year am I in without holding anything.
+
+**The shipped component came out simpler than the lab version, because both switches resolved to
+deletions.** "Stays put" removed the 1400ms linger, the hide timer and the `shown` state; "tap open
+off" removed the pin state, the tap threshold and the press-vs-drag bookkeeping. Two states now,
+and the first one is no longer nothing.
+
+**Staying put is what broke the top of the page, and it is the one thing the lab could not have
+caught.** A control that only appeared mid-scroll never had to share the top-right corner with
+anything. Resting at the top of a 96px track it landed 7px inside the Contribute button and read as
+a second round button stacked under the first. The track starts at 124 now: the chip's top is 138
+against Contribute's bottom of 117, twenty-one clear, for 28px of a 652px travel. And the caret form
+shown in Newest was 31px, very nearly a circle, which is what made it mimic a button at all -- it is
+held to 46px now, so the control is one silhouette whose contents change with the order rather than
+two different shapes.
+
+**Two things that were true stopped being true, and both are written down rather than quietly
+dropped.** `e2e/collection-seek.spec.ts` pinned "nothing at rest", raised by a scroll, gone 1.4s
+later -- the exact behaviour just reversed. It now pins the opposite, including a six-second wait
+that fails on a regression to any timer at all. And the visual suite masked the scrubber because it
+was "a TIMER, not a state"; that reason expired, so the mask note says what the reason is now
+(presence races image decoding, since the chip only exists once the river overflows the window).
+
+**A cold load needed a ResizeObserver.** Presence depends on there being something to scroll, and
+the river lazy-loads: at mount the page is one screen tall, so a scroll listener alone would keep
+the chip away until the reader scrolled, which they cannot do until the photographs arrive and give
+the page its height. That is the whole control failing to appear, on exactly the load where it is
+most wanted.
+
+Measured after, on the real /collection at 390: hit box 72x56 reaching the true edge, against 44x28;
+chip 46x28 in Newest and 48x28 in Chronological, both ending 8px in; drag names a band and seeks to
+it; a tap pins nothing. Absent at 1440, where the rail is. `npm run check` clean, 119/119;
+`npm run visual` 25/25 after rebaselining the two mobile Collection shots, whose only real change is
+the mask rectangle around a control that changed size and place.
+
+**Unrelated, found while running the full suite and left alone:**
+`collection-journeys.spec.ts` "every year the rail offers lands on that year, lit" fails on desktop.
+It swaps to whichever half is deeper, then reads the rail before it has caught up with the new
+scope, so it collects the valley's years (which include 2014) and clicks them against the class rail
+(2015-2026, no 2014). Live-data dependent, desktop-only, and nothing to do with the scrubber, which
+is `display: none` at that width and skipped on mobile. Its own commit.

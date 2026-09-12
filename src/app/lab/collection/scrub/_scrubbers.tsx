@@ -34,6 +34,13 @@
  *  are drawn. Grip and Bead fit in the gutter and carry nothing, because
  *  paper laid over paper is chrome that does no work.
  *
+ *  SIGNPOST WON. "Ship signpost. stays put on. tap open off" (owner,
+ *  2026-09-13). It is on /collection now; `photo-scrubber.tsx` carries
+ *  the shipped version, which is this one minus the two switches -- no
+ *  linger, because it stays put, and no tap-to-pin, because he turned it
+ *  off. This room stays as the record, so the three he did not pick can
+ *  still be held against the one he did.
+ *
  *  THE HELD STATE IS THE SAME IN ALL FOUR, deliberately. The paper
  *  coming up, the scale up the edge, the year at forty pixels: that is
  *  the part he already approved and the part that works. Only what you

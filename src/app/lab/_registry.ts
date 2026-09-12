@@ -182,7 +182,7 @@ export const REGISTRY: LabEntry[] = [
       {
         href: "/lab/collection/scrub",
         title: "Four ways to say hold this",
-        note: "The phone's scrubber, which nobody can tell is draggable and nobody can reliably hit. Four faces to flick between on the real 240-photograph river: two lines you grip, the year itself riding the edge, a bead on a thread, and a ruler you can grab anywhere. Switch whether it stays put, whether a tap opens it, and whether the river runs in time.",
+        note: "SIGNPOST WON (2026-09-13) and is on /collection now, staying put, with tap-to-open off. The room stays as the record: four faces to flick between on the real 240-photograph river -- two lines you grip, the year itself riding the edge, a bead on a thread, and a ruler you can grab anywhere. The three he did not pick are still here to hold against the one he did.",
       },
       {
         href: "/lab/collection/swap",
