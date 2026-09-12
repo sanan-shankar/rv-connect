@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { MoreHorizontal, Trash2, Flag, Pencil, ArrowRight, ShieldAlert, MapPin } from "lucide-react";
@@ -43,7 +43,7 @@ import { PollDisplay } from "./poll-display";
 import { cn, formatTimeAgo, formatDisplayDate, parseJsonArray, batchLine, letterTitle, plainExcerpt, readMinutes } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
 import { toggleLike, deletePost, toggleBookmark, adminRemovePost } from "@/app/(main)/feed/actions";
-import { m, AnimatePresence } from "motion/react";
+import { m, AnimatePresence, animate } from "motion/react";
 import { SPRINGS, EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { safeTruncateIndex } from "@/lib/rich-truncate";
 
@@ -233,6 +233,37 @@ export function PostCard({
   const leadText = isLongText ? content.slice(0, cut) : content;
   const restText = isLongText ? content.slice(cut) : "";
 
+  /* "Read more" eases the paragraph from its collapsed height to its full one.
+     The remainder continues the lead's own paragraph, so there is no second box
+     to animate open; instead the height the paragraph had BEFORE the click is
+     read in the handler and the grow is played from it, before the first paint
+     of the longer text. At rest the height is auto again, so a resize reflows. */
+  const bodyRef = useRef<HTMLParagraphElement>(null);
+  const openFromRef = useRef<number | null>(null);
+  const readMore = () => {
+    openFromRef.current = bodyRef.current?.offsetHeight ?? null;
+    setExpanded(true);
+  };
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    const from = openFromRef.current;
+    openFromRef.current = null;
+    if (!expanded || !el || from === null) return;
+    const to = el.offsetHeight;
+    el.style.overflow = "hidden";
+    el.style.height = `${from}px`;
+    const grow = animate(el, { height: [from, to] }, { duration: 0.26, ease: EASE_OUT_SMOOTH });
+    const settle = () => {
+      el.style.height = "";
+      el.style.overflow = "";
+    };
+    grow.then(settle);
+    return () => {
+      grow.stop();
+      settle();
+    };
+  }, [expanded]);
+
   // Letter preview: plain-text excerpt + estimated read time.
   const letterExcerpt = plainExcerpt(content, 200);
   const minutes = readMinutes(content);
@@ -413,40 +444,34 @@ export function PostCard({
           </Link>
         ) : (
           <>
-            {/* Content. Long posts render as two pieces: the always-visible lead
-                (first 300 chars) and the remainder inside a height-animated
-                wrapper. Clicking "Read more" eases the wrapper open (height +
-                a soft fade on the new text) instead of snapping the full text
-                in and jolting the card. `initial={false}` keeps the very first
-                mount instant (no phantom animation on load); once mounted,
-                Framer measures the real "auto" height itself, so the wrapper
-                lands back on a responsive height with no jump at either end. */}
+            {/* Content. A long post shows its first ~300 characters, and "Read
+                more" continues the SAME paragraph: the remainder is an inline
+                span after the lead, fading in while the paragraph grows (see
+                readMore above). It used to be a second <p>, which broke the
+                sentence onto a new line wherever the cut fell, mid-clause and
+                led by a stray space ("Am / visiting RV", 2026-09-12). */}
             <div className="mt-2.5">
               <p
+                ref={bodyRef}
                 className="whitespace-pre-wrap break-words text-[15px] leading-[1.7] text-foreground"
-                dangerouslySetInnerHTML={{
-                  __html: renderRichText(isLongText && !expanded ? leadText + "..." : leadText),
-                }}
-              />
-              {isLongText && (
-                <m.div
-                  initial={false}
-                  animate={{ height: expanded ? "auto" : 0, opacity: expanded ? 1 : 0 }}
-                  transition={{
-                    height: { duration: 0.26, ease: EASE_OUT_SMOOTH },
-                    opacity: { duration: 0.22, ease: "easeOut", delay: expanded ? 0.06 : 0 },
+              >
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: renderRichText(isLongText && !expanded ? leadText + "..." : leadText),
                   }}
-                  style={{ overflow: "hidden" }}
-                >
-                  <p
-                    className="whitespace-pre-wrap break-words text-[15px] leading-[1.7] text-foreground"
+                />
+                {isLongText && expanded && (
+                  <m.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.22, ease: "easeOut", delay: 0.06 }}
                     dangerouslySetInnerHTML={{ __html: renderRichText(restText) }}
                   />
-                </m.div>
-              )}
+                )}
+              </p>
               {isLongText && !expanded && (
                 <button
-                  onClick={() => setExpanded(true)}
+                  onClick={readMore}
                   /* Bare text, so its states are ink-only: no state-layer (a tint
                      behind a 2-word label reads as a stray chip). active:opacity-70
                      is the press it was missing. */

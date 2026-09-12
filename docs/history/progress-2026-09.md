@@ -1,3 +1,25 @@
+## 2026-09-12 — "Read more" continues the sentence instead of breaking it onto a new line
+
+The owner pointed at three feed posts, each broken mid-sentence once opened: "Am / visiting RV",
+"first / impressions", "in a / way those were". None of it was in the text. The database held
+ordinary spaces. The card drew the first ~300 characters as one `<p>` and the remainder as a
+second `<p>` inside a height-animated box, so every opened long post broke at wherever the cut
+fell, and the new line opened with the space the cut sits on.
+
+The remainder is now an inline span inside the lead's paragraph, fading in as before. The height
+ease had nothing left to wrap, so the handler reads the paragraph's collapsed height and a layout
+effect plays the grow from it before the longer text paints, then hands back `height: auto`.
+Measured on all three posts at 1440 and 390: one paragraph, height easing 128 -> 153px (mural,
+desktop) with no inline style left at rest, no page errors. `rich-truncate.test.mjs` pins the
+remainder as an inline span.
+
+Data, same session: the Big Banyan Tree mural post (`seed-wa-the-big-banyan-tree-mural`) is
+rewritten to his two paragraphs. The two WhatsApp replies (Anita Reddy, Usha K) that had been
+pasted into its body are gone, and `picks.json`/`picks.md` match, though the seed skips existing
+ids anyway.
+
+`npm run check` clean, 117/117. `npm run visual` 25/25.
+
 ## 2026-09-11 (later) — a saved contact wears the member's face: their photo, or their bird
 
 Asked for on 2026-09-10 and twice left unbuilt. The Save contact card download now carries a
