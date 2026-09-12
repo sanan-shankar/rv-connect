@@ -1,94 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { safeTruncateIndex } from "./rich-truncate.ts";
-import { renderRichText } from "./rich-text.ts";
-import { read, decomment, hasLoneSurrogate, balancedBody } from "./test-kit.mjs";
+import { read, decomment, balancedBody } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
- *  "Read more", and the four things it used to break.
- *
- *  The card renders the lead and the remainder as two SEPARATE calls
- *  to renderRichText, which needs both delimiters of a run in one
- *  string and matches a mention whole. So the property worth pinning is
- *  not where the cut lands -- it is that cutting there changes nothing
- *  about what either half renders as.
+ *  Audit pins for the feed's paging, the composer and the letters
+ *  index. The file is named for `src/lib/rich-truncate.ts`, which it
+ *  was written for and which no longer exists: "Read more" folds by
+ *  measured LINES now, so nothing is cut in two and the C-011 family of
+ *  bugs cannot happen. Those pins, and the fold's own rules, live in
+ *  `read-more-fold.test.mjs`. The name stays because several audit
+ *  documents cite the tests below by this file and line.
  * ------------------------------------------------------------------ */
-
-/** The card's own rule: render the two halves and stick them together. */
-const asCard = (text, max) => {
-  const i = safeTruncateIndex(text, max);
-  return renderRichText(text.slice(0, i)) + renderRichText(text.slice(i));
-};
-
-/** What it would look like if nothing were split. */
-const whole = (text) => renderRichText(text);
-
-const MAX = 300;
-const filler = (n) => "word ".repeat(Math.ceil(n / 5)).slice(0, n);
-
-test("C-011: a bold run spanning the cut still renders as bold", () => {
-  const text = `${filler(290)}**a bold phrase that straddles the boundary** ${filler(60)}`;
-  assert.match(whole(text), /<strong>/, "the control does not even render bold; the case is wrong");
-  assert.match(asCard(text, MAX), /<strong>/, "the split broke the bold run into raw asterisks");
-});
-
-test("C-011: a mention spanning the cut still renders as a mention", () => {
-  const text = `${filler(292)}@[Anantha Rao](abc123def456) ${filler(60)}`;
-  assert.match(whole(text), /href="\/profile\/abc123def456"/);
-  assert.match(asCard(text, MAX), /href="\/profile\/abc123def456"/, "the split printed the mention's source");
-});
-
-test("C-011: an emoji is never split into lone surrogates", () => {
-  for (const text of [
-    `${filler(299)}\u{1F600}${filler(60)}`,
-    `${filler(298)}\u{1F468}‍\u{1F469}‍\u{1F467}${filler(60)}`,
-    `${"\u{1F600}".repeat(400)}`,
-  ]) {
-    const i = safeTruncateIndex(text, MAX);
-    assert.ok(!hasLoneSurrogate(text.slice(0, i)), "the lead ends on half a character");
-    assert.ok(!hasLoneSurrogate(text.slice(i)), "the remainder starts on half a character");
-  }
-});
-
-test("C-011: the cut lands on a space, so nothing breaks mid-word", () => {
-  const text = filler(600);
-  const i = safeTruncateIndex(text, MAX);
-  assert.match(text[i], /\s/, "the remainder begins mid-word");
-  assert.ok(i <= MAX, "the lead grew past the cap");
-  assert.ok(i > MAX * 0.6, `the cut backed off to ${i}, which is most of the lead thrown away`);
-});
-
-test("C-011: short text is not cut at all", () => {
-  assert.equal(safeTruncateIndex("A short post.", MAX), "A short post.".length);
-});
-
-test("C-011: the card uses the safe index rather than a raw slice", () => {
-  const card = read("src/components/posts/post-card.tsx");
-  assert.match(card, /safeTruncateIndex\(content, READ_MORE_TRUNCATE_LEN\)/, "the helper is not called");
-  assert.doesNotMatch(
-    card,
-    /content\.slice\(0, READ_MORE_TRUNCATE_LEN\)/,
-    "the raw 300-character slice is back"
-  );
-});
-
-test("the remainder continues the lead's paragraph instead of starting its own", () => {
-  /* It was a second <p>, so an opened post broke its sentence onto a new line
-     wherever the cut landed, the new line led by the space the cut sits on
-     ("Am / visiting RV right now", owner, 2026-09-12). */
-  const card = decomment(read("src/components/posts/post-card.tsx"));
-  assert.match(
-    card,
-    /<m\.span[^>]*?__html: renderRichText\(restText\)/,
-    "the remainder is not an inline span"
-  );
-  assert.doesNotMatch(
-    card,
-    /<p[^>]*?__html: renderRichText\(restText\)/,
-    "the remainder is its own paragraph again"
-  );
-});
 
 /* ---- C-180: a double tap does not append a page twice ----------- */
 

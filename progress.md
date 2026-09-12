@@ -17,6 +17,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 - 2026-09-12 (later still) — a notification you have read stays read; the badge stops re-arming itself on every page change
 - 2026-09-12 (later) — a year of the Collection stops going blank when a photograph joins or leaves it
+- 2026-09-12 (later) — "Read more" folds by lines, and prefers a paragraph to a sentence
 - 2026-09-12 — "Read more" continues the sentence instead of breaking it onto a new line; the mural post drops its two pasted replies
 
 - 2026-09-11 (later) — a saved contact wears the member's face: their photo, or their bird

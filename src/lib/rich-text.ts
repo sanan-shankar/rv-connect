@@ -8,8 +8,9 @@
  *  constructed on /privacy and /login, which render no rich text at all.
  *  The second is that this is the security-sensitive one -- it is the only
  *  defence between a member's typing and `dangerouslySetInnerHTML`, and its
- *  two siblings, `rich-text-editing.ts` and `rich-truncate.ts`, already live
- *  as their own modules and were reaching back into utils for it.
+ *  sibling `rich-text-editing.ts` already lives as its own module and was
+ *  reaching back into utils for it. (A second sibling, `rich-truncate.ts`,
+ *  went with the character-based "Read more" on 2026-09-12.)
  * ------------------------------------------------------------------ */
 
 /**

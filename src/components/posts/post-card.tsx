@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { MoreHorizontal, Trash2, Flag, Pencil, ArrowRight, ShieldAlert, MapPin } from "lucide-react";
@@ -45,7 +45,7 @@ import { renderRichText } from "@/lib/rich-text";
 import { toggleLike, deletePost, toggleBookmark, adminRemovePost } from "@/app/(main)/feed/actions";
 import { m, AnimatePresence, animate } from "motion/react";
 import { SPRINGS, EASE_OUT_SMOOTH } from "@/components/common/motion";
-import { safeTruncateIndex } from "@/lib/rich-truncate";
+import { chooseFold, lineCentres, FOLD_LINES, type Fold } from "@/lib/read-more-fold";
 
 /* ------------------------------------------------------------------ *
  *  Four pieces of this card only exist after somebody asks for them,
@@ -88,9 +88,41 @@ const ModerationDialog = dynamic(
 );
 const preloadComments = () => void import("./comments-section");
 
-/* "Read more" reveals text beyond this many raw characters. Kept as a module
-   constant (not a magic number inline) since it is read in two places below. */
-const READ_MORE_TRUNCATE_LEN = 300;
+/* Before the browser has measured a post (the server render), one this long is
+   assumed to fold, so the first paint is already close to the final one rather
+   than printing every line and then snapping shut. Measuring replaces the guess
+   within a frame of hydration; the fold itself is by lines (read-more-fold.ts). */
+const PROBABLY_FOLDS_AT = 300;
+
+/**
+ * The paragraph's clip, and how its last line looks.
+ *
+ * A fold at a paragraph's end just stops: the full stop already says so. A fold
+ * inside a paragraph lets its last line trail off, fading over the right 40% to
+ * nothing, the way iOS ends a clipped description, instead of the "..." this
+ * used to print. It is a MASK rather than a card-coloured gradient laid over the
+ * text, because the card also renders in a sheet with a different surface. The
+ * second layer keeps every other line solid, including the ones below the fold
+ * that "Read more" grows into, while `--fold-fade` lifts the trail (0 -> 1).
+ */
+function foldStyle(fold: Fold | null | "unmeasured", folded: boolean): CSSProperties | undefined {
+  if (fold === "unmeasured") {
+    return folded ? { maxHeight: `${FOLD_LINES}lh`, overflow: "hidden" } : undefined;
+  }
+  if (!fold) return undefined;
+  const clip = folded ? { maxHeight: fold.clip, overflow: "hidden", "--fold-fade": 0 } : {};
+  if (!fold.trailsOff) return folded ? clip : undefined;
+  const lastLine = fold.clip - fold.lineHeight;
+  return {
+    ...clip,
+    maskImage:
+      `linear-gradient(to right, #000 60%, rgb(0 0 0 / var(--fold-fade, 1))), ` +
+      `linear-gradient(#000 ${lastLine}px, transparent ${lastLine}px ${fold.clip}px, #000 ${fold.clip}px)`,
+    maskSize: `100% ${fold.lineHeight}px, 100% 100%`,
+    maskPosition: `0 ${lastLine}px, 0 0`,
+    maskRepeat: "no-repeat",
+  } as CSSProperties;
+}
 
 export interface PostData {
   id: string;
@@ -216,29 +248,48 @@ export function PostCard({
     [images, post.author, post.createdAt, post.kind, content]
   );
   const isLetter = post.kind === "letter";
-  const isLongText = content.length > READ_MORE_TRUNCATE_LEN;
-  /* Split (rather than swap) the text so "Read more" can ease the remainder
-     open instead of snapping the whole paragraph to its full length.
 
-     At a SAFE index, not at exactly 300 (audit C-011). The two halves are
-     rendered separately, and `renderRichText` needs both delimiters of a run
-     in one string and matches a mention whole -- so a bold phrase, a mention
-     or an emoji straddling the boundary came apart into raw markers or a pair
-     of lone surrogates. `safeTruncateIndex` finds the last space at or below
-     the cap that is outside every mention and every formatting run. */
-  const cut = useMemo(
-    () => safeTruncateIndex(content, READ_MORE_TRUNCATE_LEN),
-    [content]
-  );
-  const leadText = isLongText ? content.slice(0, cut) : content;
-  const restText = isLongText ? content.slice(cut) : "";
-
-  /* "Read more" eases the paragraph from its collapsed height to its full one.
-     The remainder continues the lead's own paragraph, so there is no second box
-     to animate open; instead the height the paragraph had BEFORE the click is
-     read in the handler and the grow is played from it, before the first paint
-     of the longer text. At rest the height is auto again, so a resize reflows. */
+  /* The fold. The whole post is always rendered, in one piece, and a long one
+     is clipped to the lines `chooseFold` picks; "unmeasured" is the server
+     render and the frame before the browser has counted lines. Nothing is ever
+     split, so a mention or a bold run can no longer straddle a cut (audit
+     C-011, which the old character cut needed a helper to dodge). Measured
+     again when the width changes (the text rewraps) and once the web font has
+     landed (it wraps differently from the fallback). */
   const bodyRef = useRef<HTMLParagraphElement>(null);
+  const [fold, setFold] = useState<Fold | null | "unmeasured">("unmeasured");
+  const folds = fold === "unmeasured" ? content.length > PROBABLY_FOLDS_AT : fold !== null;
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    if (!el || expanded) return;
+    let live = true;
+    const measure = () => {
+      if (!live) return;
+      const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
+      const next = chooseFold(lineCentres(el, lineHeight), lineHeight);
+      setFold((prev) =>
+        prev !== "unmeasured" &&
+        prev?.clip === next?.clip &&
+        prev?.trailsOff === next?.trailsOff
+          ? prev
+          : next
+      );
+    };
+    measure();
+    const widths = new ResizeObserver(measure);
+    widths.observe(el);
+    void document.fonts.ready.then(measure);
+    return () => {
+      live = false;
+      widths.disconnect();
+    };
+  }, [content, expanded]);
+
+  /* "Read more" eases the paragraph from its folded height to its full one:
+     the height it had BEFORE the click is read in the handler, and the grow is
+     played from it before the first paint of the open text. A fold that
+     trailed off lifts its fade over the same beat. At rest the height is auto
+     again, so a resize reflows. */
   const openFromRef = useRef<number | null>(null);
   const readMore = () => {
     openFromRef.current = bodyRef.current?.offsetHeight ?? null;
@@ -252,7 +303,9 @@ export function PostCard({
     const to = el.offsetHeight;
     el.style.overflow = "hidden";
     el.style.height = `${from}px`;
+    el.style.setProperty("--fold-fade", "0");
     const grow = animate(el, { height: [from, to] }, { duration: 0.26, ease: EASE_OUT_SMOOTH });
+    const lift = animate(el, { "--fold-fade": [0, 1] }, { duration: 0.22, ease: "easeOut" });
     const settle = () => {
       el.style.height = "";
       el.style.overflow = "";
@@ -260,6 +313,7 @@ export function PostCard({
     grow.then(settle);
     return () => {
       grow.stop();
+      lift.stop();
       settle();
     };
   }, [expanded]);
@@ -444,38 +498,28 @@ export function PostCard({
           </Link>
         ) : (
           <>
-            {/* Content. A long post shows its first ~300 characters, and "Read
-                more" continues the SAME paragraph: the remainder is an inline
-                span after the lead, fading in while the paragraph grows (see
-                readMore above). It used to be a second <p>, which broke the
-                sentence onto a new line wherever the cut fell, mid-clause and
-                led by a stray space ("Am / visiting RV", 2026-09-12). */}
+            {/* Content: one paragraph, the whole post, clipped at the fold
+                (see `fold` above and foldStyle below). */}
             <div className="mt-2.5">
               <p
                 ref={bodyRef}
                 className="whitespace-pre-wrap break-words text-[15px] leading-[1.7] text-foreground"
-              >
-                <span
-                  dangerouslySetInnerHTML={{
-                    __html: renderRichText(isLongText && !expanded ? leadText + "..." : leadText),
-                  }}
-                />
-                {isLongText && expanded && (
-                  <m.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.22, ease: "easeOut", delay: 0.06 }}
-                    dangerouslySetInnerHTML={{ __html: renderRichText(restText) }}
-                  />
-                )}
-              </p>
-              {isLongText && !expanded && (
+                style={foldStyle(fold, folds && !expanded)}
+                dangerouslySetInnerHTML={{ __html: renderRichText(content) }}
+              />
+              {folds && !expanded && (
                 <button
                   onClick={readMore}
                   /* Bare text, so its states are ink-only: no state-layer (a tint
                      behind a 2-word label reads as a stray chip). active:opacity-70
-                     is the press it was missing. */
-                  className="mt-1 rounded-sm text-sm font-medium text-leaf transition-opacity duration-150 hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                     is the press it was missing.
+
+                     mt-2 rather than mt-1: at 4px it sat inside the paragraph's
+                     own leading and read as one more line of the post rather
+                     than the control that opens it. The ::after box is the same
+                     device as MENU_TRIGGER_HIT -- 44px of touch on a coarse
+                     pointer, across the label's own width, visible to nobody. */
+                  className="relative mt-2 rounded-sm text-sm font-medium text-leaf transition-opacity duration-150 after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2 after:content-[''] hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [@media(hover:hover)_and_(pointer:fine)]:after:hidden"
                 >
                   Read more
                 </button>
