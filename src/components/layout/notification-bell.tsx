@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   Check,
   Bell,
@@ -36,6 +36,13 @@ import {
 } from "@/app/(main)/notifications/actions";
 import { useRouter } from "next/navigation";
 import { SPRINGS, EASE_POP } from "@/components/common/motion";
+import {
+  decrementUnread,
+  getUnread,
+  seedUnread,
+  setUnread,
+  subscribeUnread,
+} from "./unread-store";
 
 interface NotificationBellProps {
   initialUnreadCount: number;
@@ -105,7 +112,16 @@ export function NotificationBell({
 }: NotificationBellProps) {
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
+  /* The badge number is shared across every bell in the document rather than
+     owned by this instance -- see unread-store.ts for why a per-instance
+     `useState(initialUnreadCount)` put read notifications back on the badge on
+     every page change. The server snapshot is the prop, which is what a fresh
+     document renders anyway, so hydration matches. */
+  const unreadCount = useSyncExternalStore(
+    subscribeUnread,
+    () => getUnread() ?? initialUnreadCount,
+    () => initialUnreadCount
+  );
   const [loaded, setLoaded] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -114,7 +130,10 @@ export function NotificationBell({
   // It only ever rises when the unread count climbs, so the bell gives one
   // gentle decaying shake per new notification, never on decrement or hover.
   const [shakeKey, setShakeKey] = useState(0);
-  const prevUnread = useRef(initialUnreadCount);
+  // The value this instance first RENDERED, not the prop: a bell mounting mid
+  // session adopts the shared count, and adopting 3 after a prop of 0 is not a
+  // notification arriving.
+  const prevUnread = useRef(getUnread() ?? initialUnreadCount);
 
   useEffect(() => {
     if (unreadCount > prevUnread.current) {
@@ -143,19 +162,22 @@ export function NotificationBell({
    * hard page load and never again: it could fall, never rise, and the shake
    * animation this component ships for "a new one arrived" was unreachable.
    *
-   * The initial value comes from the server prop, which was computed on the
-   * same request milliseconds earlier -- so there is no refresh on mount; that
-   * was a third query for an integer the page had just counted. What the
-   * listener below covers is the drift AFTER that: whenever the tab regains
-   * focus, and on every open of the panel (handleOpen above takes it from the
-   * same payload). Focus rather than a short interval: the count only matters
-   * when somebody is looking, and a poll on every open tab would be a query
-   * per member per interval for a number nobody is reading.
+   * The initial value comes from the server prop, which on a real page load
+   * was computed on the same request milliseconds earlier -- so a mount costs
+   * no query unless the prop and the shared store disagree (see the seeding
+   * effect below, and unread-store.ts: that disagreement is the OTHER half of
+   * the same staleness, and it used to put read notifications back on the
+   * badge on every navigation). What the listener below covers is the drift
+   * after that: whenever the tab regains focus, and on every open of the panel
+   * (handleOpen above takes it from the same payload). Focus rather than a
+   * short interval: the count only matters when somebody is looking, and a
+   * poll on every open tab would be a query per member per interval for a
+   * number nobody is reading.
    */
   const refreshCount = useCallback(async () => {
     const data = await callAction(() => getUnreadNotificationCount());
     if ("error" in data) return; // a background refresh says nothing on failure
-    setUnreadCount(data.unreadCount);
+    setUnread(data.unreadCount);
   }, []);
 
   useEffect(() => {
@@ -163,6 +185,15 @@ export function NotificationBell({
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [refreshCount]);
+
+  /* What this mount does with the count the server rendered: seed the store if
+     this is the first bell in the document, ignore a prop that agrees with it
+     or that this document has already been handed, and ask the server about a
+     number never seen before. `seedUnread` holds the rule and unread-store.ts
+     explains why each case is what it is. */
+  useEffect(() => {
+    if (seedUnread(initialUnreadCount) === "verify") void refreshCount();
+  }, [initialUnreadCount, refreshCount]);
 
   // One transform-only decaying shake, pivoting from the top so it reads as a
   // wobble. A cubic-bezier tween mirroring the preview lab (never a spring with
@@ -192,7 +223,7 @@ export function NotificationBell({
     setNextCursor(data.nextCursor);
     setHasMore(data.hasMore);
     // The server's count, not this component's arithmetic. See refreshCount.
-    setUnreadCount(data.unreadCount);
+    setUnread(data.unreadCount);
     setLoaded(true);
   }
 
@@ -231,7 +262,7 @@ export function NotificationBell({
         setNotifications((prev) =>
           prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
         );
-        setUnreadCount((c) => Math.max(0, c - 1));
+        decrementUnread();
       }
     }
     if (notif.link) {
@@ -246,7 +277,7 @@ export function NotificationBell({
       return;
     }
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    setUnreadCount(0);
+    setUnread(0);
   }
 
   /* One tree for the two places a bell lives. They differ in exactly three

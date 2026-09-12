@@ -6132,3 +6132,44 @@ capped at ten tiles so it reads as a wave rather than a switch. Sampled per fram
 PRE-EXISTING failure (`every year the rail offers lands on that year, lit`), which A/B confirms is
 not this work: with the geometry switched off it fails earlier, at the first year instead of the
 fifth, and its slowness is what knocks the lab seek test over in a long run.
+
+## 2026-09-12 (later still) — a notification you have read stays read
+
+Owner: *"though I mark a notification as read it constantly marks it as unread every time I change a
+page. we can't let notifications become annoying and have alarm fatigue."* Reproduced at 390x844
+before touching anything: mark all read on /feed, tap through to /directory, and the badge says
+"3 unread notifications" again while `SELECT count(*) ... read=false` for that member returns 0.
+Every page change after that put it back.
+
+**There are two bells and they take turns.** /feed renders its own in the page header; every other
+route gets the one in the mobile top band, which lives in the (main) layout. Each held the badge
+number in its own `useState(initialUnreadCount)`, and that is the whole bug in two halves. The
+band's prop comes from the layout, and Next does not re-render a shared layout on a soft navigation
+(`staleTimes.md`: "shared layouts won't automatically be refetched on every navigation, only the
+page segment that changes"), so it is frozen at whatever the last FULL page load counted — for the
+rest of the session. Leaving /feed then mounts that bell fresh, and a fresh mount re-seeds the badge
+from the frozen number. Nothing was un-reading anything; the writes were always correct, and the
+database proved it at every step. A stale prop was simply overwriting the truth once per navigation.
+
+Desktop never showed it, which is why it survived: off /feed there is no bell at that width, so the
+only way in was the browser Back button.
+
+**The fix is one shared count per document** (`src/components/layout/unread-store.ts`), read through
+`useSyncExternalStore`, so a remount adopts what the member's own clicks produced instead of
+resurrecting a prop. Module state, so a real page load still starts empty and the server's freshly
+computed number seeds it. Not React context: the two bells sit in different trees and a provider
+high enough to hold both would re-render the app shell on every count change.
+
+What a mounting bell does with the prop is the part worth pinning, so it is a pure function with a
+test: seed when nothing has set a count yet, ignore a prop that agrees or that this document has
+already been handed, and ask the server — one indexed count — for a number never seen before, which
+is the only case where frozen and genuinely-new are indistinguishable. Remembering every count seen,
+not just the last, is what keeps the ordinary feed/directory back-and-forth at zero round trips.
+The residual: read three, have exactly three arrive, and a page rendering "3" reads as the frozen
+"3", so the badge under-reports until the next focus or panel open. That is the quiet direction of
+the error, and the loud one is what made the badge worth ignoring.
+
+Measured after, same route, same account: 3 -> mark all read -> 0, and 0 across a soft navigation,
+a return to /feed and the Back button. Clicking a single notification: 3 -> 2, still 2 two pages
+later, database 2. A notification inserted mid-session while browsing still lights the badge on the
+next feed render, so nothing went quiet. `npm run check` clean, 119/119 (7 new).
