@@ -73,7 +73,10 @@ The `create-post-form.tsx` More-options item is moot: that composer was rebuilt 
 ### 5. No desktop notifications affordance outside the feed
 Pre-existing: Directory/Groups/Letters/Collection/Catch-ups never pass `unreadCount` to their
 PageHeader, so desktop (>=768px) has no bell there (mobile keeps the sidebar-bar bell). Needs a
-product decision on a global pattern.
+product decision on a global pattern. Whenever that pattern arrives, the badge arithmetic is no
+longer a hazard: every bell in the document now reads one shared count
+(`src/components/layout/unread-store.ts`, 2026-09-12), so a new bell on a new route cannot
+contradict the one beside it or resurrect a count the member already cleared.
 - Size: medium (decision first).
 
 ### 5b. Signed-out visitors never see the custom 404
