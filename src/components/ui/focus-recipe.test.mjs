@@ -50,12 +50,6 @@ test("field-focus.ts: tint on click, one snug 2px edge on Tab, never a halo or a
    design decision, not a shortcut. */
 const BORDERLESS = new Map([
   ["src/components/profile/pen.tsx", "profile pen: a gradient underline, border-0"],
-  /* The header search stopped having a box on 2026-08-30: it is a rule you
-     write on, so there is no border to tint and no edge to hug. It carries
-     the recipe's SPLIT rather than its classes -- the rule is a hairline on
-     click and doubles to 2px on Tab, read off the same html[data-modality]
-     the constant uses. See the note in search-pill.tsx. */
-  ["src/components/layout/search-pill.tsx", "header search: a rule, not a box; the rule is the focus edge"],
   ["src/components/common/rich-text-area.tsx", "unstyled primitive: the box and its focus edge come from the caller's className"],
   ["src/components/common/filters/facet-search-select.tsx", "search line inside a popover header"],
   ["src/components/collection/photo-questions.tsx", "year digits inside a grouped bare row"],

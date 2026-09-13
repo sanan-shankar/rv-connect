@@ -113,13 +113,12 @@ export function PageHeader({
             nesting one button in another is both an accessibility error and
             a way to open the guide every time somebody swaps. */}
         {/* The title steps aside for an open search, and only on a phone.
-            The search line has no box of its own (see SearchPill: it is a rule
-            you write on), so anything under it shows through the words. On a
-            wide header there is nothing under it -- the line draws into the
-            gap between the title and the actions. At 390px there is no gap:
-            68vw of line lands straight across "The Valley Collection" and both
-            become unreadable. Opacity only, so the row never reflows and the
-            title is exactly where it was when the line retracts.
+            On a wide header the search pill grows into the gap between the
+            title and the actions. At 390px there is no gap: the pill lands
+            across "The Valley Collection" and cuts it off mid-word, which
+            reads as a collision rather than a field. Opacity only, so the row
+            never reflows and the title is exactly where it was when the pill
+            closes.
             `group-has`, rather than a prop threaded through three call sites:
             all three pills are passed IN -- the feed's through `search`, the
             Collection's and the directory's through `actions` -- so this
