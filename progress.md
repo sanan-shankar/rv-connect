@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-14 — the white ring goes: the unfolded circle hovers like every canopy CTA
 - 2026-09-13 (descenders) — the tails of g and y stop being shaved off names
 - 2026-09-13 (latest, round 5) — the badge unfolds: Badge is the pick, and its plus becomes a full circle when the bird flies out
 - 2026-09-13 (latest, round 4) — the socket goes: the bird fills the pill's round end instead, and a plus takes its place while it is out

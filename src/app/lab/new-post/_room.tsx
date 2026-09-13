@@ -376,11 +376,29 @@ function NewPostButton({
             centre is at (34, 34) and the slot's is at (20, 20). -14 on each
             axis and scale 2 lands it exactly on the bird's circle. Transform
             only; `snappy` because it is a small thing answering a press, and
-            it settles before the bird, which flies on `gentle`, gets home. The
-            page-coloured halo is what lets green sit on a green bird. */}
+            it settles before the bird, which flies on `gentle`, gets home. */}
+        {/* The halo, on its own element. It is what lets a green plus sit on a
+            green bird, so it only exists while there is a bird under it and
+            fades as the bird leaves. It used to be a box-shadow ON the disc,
+            which kept it on the full circle (doubled to 4px by the scale) and
+            put it under the hover's brightness filter: lifted, a ring the
+            colour of the page turned lighter than the page, and the circle
+            grew a white edge on hover (owner, 2026-09-14). 24px on the badge's
+            own centre is the 2px ring. */}
         <m.span
           aria-hidden
-          className="absolute -right-1 -bottom-1 size-5 rounded-full bg-canopy shadow-[0_0_0_2px_var(--background)] group-hover/np:brightness-[1.08] group-active/np:scale-90"
+          className="absolute -right-1.5 -bottom-1.5 size-6 rounded-full bg-background"
+          initial={false}
+          animate={{ opacity: birdAway ? 0 : 1 }}
+          transition={{ duration: 0.12 }}
+        />
+        {/* Hover and press are the canopy CTA's own, from button.tsx: the
+            1.08 brightness lift, the 0.97 sink and the canopy drop shadow.
+            It is the same button as every other green one once it is a
+            circle, so it answers the same way. */}
+        <m.span
+          aria-hidden
+          className="absolute -right-1 -bottom-1 size-5 rounded-full bg-canopy shadow-[0_5px_13px_-12px_var(--color-canopy)] group-hover/np:brightness-[1.08] group-active/np:scale-[0.97]"
           initial={false}
           animate={birdAway ? { x: -14, y: -14, scale: 2 } : { x: 0, y: 0, scale: 1 }}
           transition={SPRINGS.snappy}
