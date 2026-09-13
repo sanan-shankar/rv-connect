@@ -6414,3 +6414,15 @@ The bird leaves the pill and stands beside it at 40px, the `sm` size posts, the 
 rails use, with no disc. The pill gets its plus back. Bird and pill stay one button, hover and press
 on the pill only, and the bird's 40px slot holds its width while the bird is out so the pill never
 slides. The composer's slot is also 40px, so the flight is now a move with no scaling.
+
+## 2026-09-13 (latest, round 3) — one shape, not two buttons
+
+"but now we have two buttons with that have the same purpose. I know i'm giving you a bunch of
+constaints but is there any way past it" (owner, 2026-09-13), on the bird standing beside the pill.
+
+A 40px bird next to a 40px pill reads as two objects whatever the wiring, so the bench now offers two
+ways to make them one shape without a box. Overlap: the pill starts under the bird's middle and a
+round socket 3px wider than the bird is masked out of the green, so the bird stands on the page
+colour and the green wraps it; the empty socket waits while the bird is out. Badge: no pill, the bird
+is the button and wears a 20px canopy plus with a page-coloured halo. It is one object for certain
+and gives up the words.

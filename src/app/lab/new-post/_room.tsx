@@ -16,6 +16,18 @@
  *  `layoutId`) and lands in the composer's avatar slot, also 40px, so the
  *  flight is a plain move with no scaling in it.
  *
+ *  Round three (owner, 2026-09-13): "now we have two buttons that have the
+ *  same purpose". A 40px bird beside a 40px pill is two objects however it
+ *  is wired. So the bench holds two ways to make them ONE shape without
+ *  putting the bird back in a box:
+ *    Overlap  the pill starts under the bird's middle, and a round socket
+ *             3px wider than the bird is cut out of the green. The bird
+ *             stands on the page colour, never on green; the green wraps
+ *             it, and the empty socket waits while the bird is out.
+ *    Badge    no pill. The bird is the button and wears a small canopy
+ *             plus at its corner, the "add to your story" shape. One object
+ *             for certain, but it gives up the words.
+ *
  *  Only the bird travels. Morphing the whole card out of a 120px pill was
  *  considered and not taken: a card scaled up from a pill stretches every
  *  word inside it on the way, which is the "layout prop stretches" trap.
@@ -70,6 +82,18 @@ const FACES: { id: Face; name: string; says: string }[] = [
 
 // One id for the one bird. It exists in exactly one place at a time.
 const BIRD = "lab-new-post-bird";
+
+type Look = "overlap" | "badge";
+const LOOKS: { id: Look; name: string }[] = [
+  { id: "overlap", name: "Overlap" },
+  { id: "badge", name: "Badge" },
+];
+
+/* The socket. Centred on the pill's left edge, which sits under the bird's
+   middle (ml-5 = half of 40px). 23px is the bird's 20px radius plus a 3px
+   gap of page colour, enough to read as a cut rather than a collision. The
+   0.5px ramp anti-aliases the edge. */
+const SOCKET = "radial-gradient(circle at 0 50%, transparent 23px, black 23.5px)";
 
 /* The canopy pill, spelled out rather than buttonVariants so the New post
    button can put its fill on an inner span (the bird beside it is part of
@@ -129,6 +153,7 @@ function useIsPhone() {
 
 export function NewPostRoom({ you }: { you: AvatarUser & { id: string; name: string } }) {
   const [face, setFace] = useState<Face>("inplace");
+  const [look, setLook] = useState<Look>("overlap");
   const [open, setOpen] = useState(false);
   /* Where the bird is, apart from whether the composer is open. In place
      they are the same thing. In the sheet the bird waits for the sheet to
@@ -207,6 +232,7 @@ export function NewPostRoom({ you }: { you: AvatarUser & { id: string; name: str
                 </button>
                 <NewPostButton
                   ref={buttonRef}
+                  look={look}
                   you={you}
                   birdAway={birdAway}
                   expanded={open}
@@ -255,6 +281,8 @@ export function NewPostRoom({ you }: { you: AvatarUser & { id: string; name: str
           <Bench
             face={face}
             onFace={switchFace}
+            look={look}
+            onLook={setLook}
             onReset={() => {
               close();
               setDraft("");
@@ -287,44 +315,65 @@ function RoomStrip({ face }: { face: Face }) {
 
 function NewPostButton({
   ref,
+  look,
   you,
   birdAway,
   expanded,
   onPress,
 }: {
   ref: React.Ref<HTMLButtonElement>;
+  look: Look;
   you: AvatarUser;
   birdAway: boolean;
   expanded: boolean;
   onPress: () => void;
 }) {
+  const bird = !birdAway && (
+    <m.span layoutId={BIRD} transition={SPRINGS.gentle} className="grid place-items-center">
+      <BirdAvatar user={you} size="sm" />
+    </m.span>
+  );
+  const shell =
+    "group/np relative inline-flex shrink-0 items-center rounded-full outline-none select-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+  const common = {
+    ref,
+    type: "button" as const,
+    onClick: onPress,
+    "aria-expanded": expanded,
+    "aria-label": "New post",
+    /* Kept off the outside-click test, so pressing it while open focuses
+       the editor instead of closing and reopening it. */
+    "data-lab-keep-open": true,
+  };
+
+  if (look === "badge") {
+    return (
+      <button {...common} className={shell}>
+        {/* The slot keeps its 40px while the bird is out, so the plus stays
+            where the thumb left it. */}
+        <span className="grid size-10 place-items-center">{bird}</span>
+        {/* The page-coloured 2px halo is what lets a green plus sit on any
+            bird, including the green ones, without a box round the bird. */}
+        <span
+          aria-hidden
+          className="absolute -right-1 -bottom-1 grid size-[20px] place-items-center rounded-full bg-canopy text-white shadow-[0_0_0_2px_var(--background)] transition-[transform] duration-150 ease-pop group-hover/np:brightness-[1.08] group-active/np:scale-90"
+        >
+          <Plus className="size-3" strokeWidth={3} />
+        </span>
+      </button>
+    );
+  }
+
   return (
-    /* One button, two parts: the bird on the page surface and the pill.
-       Hover and press land on the pill only, because the pill is the thing
-       that says what pressing does; the bird is who is doing it. */
-    <button
-      ref={ref}
-      type="button"
-      onClick={onPress}
-      aria-expanded={expanded}
-      aria-label="New post"
-      className="group/np inline-flex shrink-0 items-center gap-2.5 rounded-full outline-none select-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-      /* Kept off the outside-click test, so pressing it while open focuses
-         the editor instead of closing and reopening it. */
-      data-lab-keep-open
-    >
-      {/* The slot keeps its 40px while the bird is out, so the pill never
-          slides left under the cursor that just pressed it. */}
-      <span className="grid size-10 place-items-center">
-        {!birdAway && (
-          <m.span layoutId={BIRD} transition={SPRINGS.gentle} className="grid place-items-center">
-            <BirdAvatar user={you} size="sm" />
-          </m.span>
-        )}
-      </span>
+    <button {...common} className={shell}>
+      <span className="absolute top-0 left-0 z-10 grid size-10 place-items-center">{bird}</span>
+      {/* pl-[33px]: the 23px socket plus the pill's own 10px before the plus
+          glyph, so the icon clears the cut by the same gap it keeps from
+          the words. */}
       <span
         aria-hidden
-        className={cn(PILL_FILL, "px-4 group-hover/np:brightness-[1.08] group-active/np:scale-[0.97]")}
+        className={cn(PILL_FILL, "ml-5 pr-4 pl-[33px] group-hover/np:brightness-[1.08] group-active/np:scale-[0.97]")}
+        style={{ maskImage: SOCKET, WebkitMaskImage: SOCKET }}
       >
         <Plus className="h-[17px] w-[17px]" />
         New post
@@ -558,7 +607,19 @@ function SheetComposer({ onSettled, ...p }: ComposerProps & { onSettled: () => v
 
 /** Bottom left, out of the way of both the header button and the sheet's
  *  Post pill. */
-function Bench({ face, onFace, onReset }: { face: Face; onFace: (f: Face) => void; onReset: () => void }) {
+function Bench({
+  face,
+  onFace,
+  look,
+  onLook,
+  onReset,
+}: {
+  face: Face;
+  onFace: (f: Face) => void;
+  look: Look;
+  onLook: (l: Look) => void;
+  onReset: () => void;
+}) {
   return (
     <div
       data-lab-bench
@@ -580,6 +641,23 @@ function Bench({ face, onFace, onReset }: { face: Face; onFace: (f: Face) => voi
               )}
             >
               {f.name}
+            </button>
+          ))}
+        </div>
+        <div role="radiogroup" aria-label="Which button" className="mt-2 grid grid-cols-2 gap-1 border-t border-border pt-2">
+          {LOOKS.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              role="radio"
+              aria-checked={look === l.id}
+              onClick={() => onLook(l.id)}
+              className={cn(
+                "state-layer rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                look === l.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {l.name}
             </button>
           ))}
         </div>
