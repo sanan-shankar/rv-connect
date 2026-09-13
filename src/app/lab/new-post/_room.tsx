@@ -20,13 +20,20 @@
  *  same purpose". A 40px bird beside a 40px pill is two objects however it
  *  is wired. So the bench holds two ways to make them ONE shape without
  *  putting the bird back in a box:
- *    Overlap  the pill starts under the bird's middle, and a round socket
- *             3px wider than the bird is cut out of the green. The bird
- *             stands on the page colour, never on green; the green wraps
- *             it, and the empty socket waits while the bird is out.
+ *    Chip     an ordinary pill whose round left end IS the bird, the way
+ *             an account chip holds its avatar. Round at both ends, no
+ *             cut, no box. While the bird is out a plus fades into its
+ *             place, so the button still says add.
  *    Badge    no pill. The bird is the button and wears a small canopy
  *             plus at its corner, the "add to your story" shape. One object
  *             for certain, but it gives up the words.
+ *
+ *  Considered and not taken: Overlap, a round socket 3px wider than the
+ *  bird masked out of the pill so the green wrapped a bird standing on the
+ *  page colour. The owner (2026-09-13): "it's just standing out in the ui
+ *  this crescent thing. plus the ends of the green bit are quite sharp".
+ *  The sharp ends were geometry, not tuning: a 23px cut through a 20px
+ *  half-height has to leave two points where it crosses the edges.
  *
  *  Only the bird travels. Morphing the whole card out of a 120px pill was
  *  considered and not taken: a card scaled up from a pill stretches every
@@ -50,6 +57,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -83,17 +91,12 @@ const FACES: { id: Face; name: string; says: string }[] = [
 // One id for the one bird. It exists in exactly one place at a time.
 const BIRD = "lab-new-post-bird";
 
-type Look = "overlap" | "badge";
+type Look = "chip" | "badge";
 const LOOKS: { id: Look; name: string }[] = [
-  { id: "overlap", name: "Overlap" },
+  { id: "chip", name: "Chip" },
   { id: "badge", name: "Badge" },
 ];
 
-/* The socket. Centred on the pill's left edge, which sits under the bird's
-   middle (ml-5 = half of 40px). 23px is the bird's 20px radius plus a 3px
-   gap of page colour, enough to read as a cut rather than a collision. The
-   0.5px ramp anti-aliases the edge. */
-const SOCKET = "radial-gradient(circle at 0 50%, transparent 23px, black 23.5px)";
 
 /* The canopy pill, spelled out rather than buttonVariants so the New post
    button can put its fill on an inner span (the bird beside it is part of
@@ -151,9 +154,17 @@ function useIsPhone() {
   );
 }
 
-export function NewPostRoom({ you }: { you: AvatarUser & { id: string; name: string } }) {
+export function NewPostRoom({ you: me }: { you: AvatarUser & { id: string; name: string } }) {
   const [face, setFace] = useState<Face>("inplace");
-  const [look, setLook] = useState<Look>("overlap");
+  const [look, setLook] = useState<Look>("chip");
+  /* The worst case for a bird sitting on canopy is a green bird. Kavya Rao's
+     seed id hashes to one, so this borrows it rather than naming a species
+     slug that could be renamed. The name stays the owner's. */
+  const [greenBird, setGreenBird] = useState(false);
+  const you = useMemo(
+    () => (greenBird ? { ...me, id: "lab-seed-3", photoUrl: null, birdOverride: null } : me),
+    [greenBird, me]
+  );
   const [open, setOpen] = useState(false);
   /* Where the bird is, apart from whether the composer is open. In place
      they are the same thing. In the sheet the bird waits for the sheet to
@@ -283,6 +294,8 @@ export function NewPostRoom({ you }: { you: AvatarUser & { id: string; name: str
             onFace={switchFace}
             look={look}
             onLook={setLook}
+            greenBird={greenBird}
+            onGreenBird={setGreenBird}
             onReset={() => {
               close();
               setDraft("");
@@ -364,19 +377,34 @@ function NewPostButton({
     );
   }
 
+  /* Chip. The press sinks the whole button, bird included, so the bird never
+     slides against the green under a thumb; hover lights only the green,
+     because a brightness filter on the bird would change its colours. */
   return (
-    <button {...common} className={shell}>
-      <span className="absolute top-0 left-0 z-10 grid size-10 place-items-center">{bird}</span>
-      {/* pl-[33px]: the 23px socket plus the pill's own 10px before the plus
-          glyph, so the icon clears the cut by the same gap it keeps from
-          the words. */}
-      <span
-        aria-hidden
-        className={cn(PILL_FILL, "ml-5 pr-4 pl-[33px] group-hover/np:brightness-[1.08] group-active/np:scale-[0.97]")}
-        style={{ maskImage: SOCKET, WebkitMaskImage: SOCKET }}
-      >
-        <Plus className="h-[17px] w-[17px]" />
+    <button {...common} className={cn(shell, "transition-[transform] duration-150 ease-pop active:scale-[0.97]")}>
+      {/* pl-12: the 40px bird plus 8px before the words. */}
+      <span aria-hidden className={cn(PILL_FILL, "pr-4 pl-12 group-hover/np:brightness-[1.08]")}>
         New post
+      </span>
+      <span className="absolute top-0 left-0 grid size-10 place-items-center">
+        <AnimatePresence>
+          {/* 20px in, not centred in the bird's 40px: centred left a 19px hole
+              before the words, where the ordinary pill keeps 8. */}
+          {birdAway && (
+            <m.span
+              key="plus"
+              aria-hidden
+              className="absolute inset-y-0 left-5 grid place-items-center text-white"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              <Plus className="h-[17px] w-[17px]" />
+            </m.span>
+          )}
+        </AnimatePresence>
+        {bird}
       </span>
     </button>
   );
@@ -612,12 +640,16 @@ function Bench({
   onFace,
   look,
   onLook,
+  greenBird,
+  onGreenBird,
   onReset,
 }: {
   face: Face;
   onFace: (f: Face) => void;
   look: Look;
   onLook: (l: Look) => void;
+  greenBird: boolean;
+  onGreenBird: (v: boolean) => void;
   onReset: () => void;
 }) {
   return (
@@ -661,6 +693,18 @@ function Bench({
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={greenBird}
+          onClick={() => onGreenBird(!greenBird)}
+          className="state-layer mt-2 flex w-full items-center justify-between rounded-md border-t border-border px-1 py-[5px] text-[12px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          Green bird
+          <span className={cn("block h-[14px] w-[24px] rounded-full p-[2px] transition-colors", greenBird ? "bg-primary" : "bg-border")}>
+            <span className={cn("block size-[10px] rounded-full bg-background transition-transform", greenBird && "translate-x-[10px]")} />
+          </span>
+        </button>
         <button
           type="button"
           onClick={onReset}

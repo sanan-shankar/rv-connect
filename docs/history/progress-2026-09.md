@@ -6426,3 +6426,16 @@ round socket 3px wider than the bird is masked out of the green, so the bird sta
 colour and the green wraps it; the empty socket waits while the bird is out. Badge: no pill, the bird
 is the button and wears a 20px canopy plus with a page-coloured halo. It is one object for certain
 and gives up the words.
+
+## 2026-09-13 (latest, round 4) — the socket goes
+
+"it's a bit of a weird shape for the green bit. that sticks out. it's just standing out in the ui this
+crescent thing. plus the ends of the green bit are quite sharp and that looks weird as well" (owner,
+2026-09-13), on Overlap.
+
+The sharp ends were geometry: a socket 23px in radius cut through a pill 20px in half-height has to
+leave two points. Overlap is gone (kept in the room's comment as considered and not taken). Chip
+replaces it: an ordinary pill whose round left end is the 40px bird, no cut and no box. The press
+sinks the whole button; hover brightens only the green, since a filter on the bird would recolour it.
+While the bird is out a plus fades into its place. A Green bird switch on the bench borrows a seed
+id that hashes to a green species, because a green bird on canopy is the case that could fail.
