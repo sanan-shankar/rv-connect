@@ -11,6 +11,7 @@ import { SearchPill } from "@/components/layout/search-pill";
 import { RAIL_GRID, RAIL_ASIDE } from "@/components/layout/rail-grid";
 import { FeedRail } from "@/components/feed/feed-rail";
 import { NewPostCTA } from "@/components/feed/new-post-cta";
+import { NewPostDock } from "@/components/feed/new-post-dock";
 import { CelebrationSignals } from "@/components/mascot/moments/celebration-signals";
 import { batchTargetKey } from "@/lib/post-visibility-rule";
 
@@ -51,6 +52,13 @@ export default async function FeedPage({
     }),
   ]);
 
+  const you = {
+    id: session.user.id,
+    name: session.user.name,
+    photoUrl: session.user.photoUrl,
+    birdOverride: session.user.birdOverride,
+  };
+
   return (
     <>
       {/* Post-signup welcome, first-Letter, and proud-moment celebrations
@@ -60,6 +68,9 @@ export default async function FeedPage({
           signup lands there first, before ever reaching this page) — this
           mount stays for the other two, which are unrelated to onboarding. */}
       <CelebrationSignals userId={session.user.id} />
+      {/* The New post badge in the header and the composer in the column are
+          one control split across two grid rows; the dock is what they share. */}
+      <NewPostDock>
       <div className={RAIL_GRID}>
         <div className="min-w-0">
           {/* The header lives in the main column, so the space beside it (above the
@@ -71,7 +82,7 @@ export default async function FeedPage({
             title="Feed"
             search={<SearchPill />}
             unreadCount={unreadCount}
-            actions={<NewPostCTA />}
+            actions={<NewPostCTA user={you} />}
           />
         </div>
       </div>
@@ -79,7 +90,7 @@ export default async function FeedPage({
         <div className="min-w-0">
           <FeedColumn
             initialSearch={q}
-            currentUser={{ id: session.user.id, name: session.user.name, photoUrl: session.user.photoUrl, birdOverride: session.user.birdOverride }}
+            currentUser={you}
             userPlaces={userPlaces}
             lastSeenAt={marker?.feedSeenAt?.toISOString() ?? null}
           />
@@ -95,6 +106,7 @@ export default async function FeedPage({
           />
         </aside>
       </div>
+      </NewPostDock>
     </>
   );
 }

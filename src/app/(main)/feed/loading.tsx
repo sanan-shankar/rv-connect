@@ -4,11 +4,8 @@ export default function FeedLoading() {
   return (
     <div className={RAIL_GRID}>
       <div className="min-w-0 space-y-6">
-      {/* Create post skeleton */}
-      <div className="rounded-[var(--radius)] border border-border bg-card p-6">
-        <div className="skeleton-warm h-20 w-full rounded-md" />
-      </div>
-
+      {/* No composer skeleton: the feed has no composer row until New post
+          opens one, so the posts are the first thing under the header. */}
       {/* Post skeletons */}
       {[1, 2, 3].map((i) => (
         <div key={i} className="rounded-[var(--radius)] border border-border bg-card p-6">
