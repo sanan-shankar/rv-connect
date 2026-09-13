@@ -59,7 +59,7 @@ export async function DirectoryModule({ userId }: { userId: string }) {
               name={
                 <Link
                   href={`/profile/${m.id}`}
-                  className="block truncate text-[13.5px] font-semibold leading-none text-foreground hover:underline focus-visible:outline-none focus-visible:underline"
+                  className="descender-room block truncate text-[13.5px] font-semibold leading-none text-foreground hover:underline focus-visible:outline-none focus-visible:underline"
                 >
                   {m.name}
                 </Link>

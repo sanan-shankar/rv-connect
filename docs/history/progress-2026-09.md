@@ -6451,3 +6451,18 @@ and doubles, landing exactly on the 40px circle the bird left, and folds back as
 only, on `snappy`, so it settles before the bird (on `gentle`) arrives home. The plus is not scaled with
 the disc, because doubling a 12px glyph with a 3px stroke gives a 6px stroke. The small plus rides the
 disc and fades, and an ordinary 17px plus fades in at the centre.
+
+
+## 2026-09-13 (descenders) — the tails of g and y stop being shaved off names
+
+"the names in new in the directory get cut off. like the low letters like yg and so on. this happens
+in a very subtle way in a bunch of places particularly in the admin panel" (owner, 2026-09-13).
+
+An overflow clip cuts at the padding box, and `leading-none` makes the line box shorter than the
+glyphs. Measured in Chrome: the feed rail's names lost 0.43px off every descender (the Link carries
+its own `truncate`, so IdentityRow's clip/visible split never reached it), the mobile header's
+"Rishi Valley" 1.68px. Admin rows already measured clean in Chrome, so the fix is engine-proof rather
+than Chrome-tuned: a `descender-room` utility in tailwind-theme.css pads the clip box 0.25em each way
+and hands it back with an equal negative margin, so no row moves. Applied to IdentityRow's name and
+meta rows, the rail link, the sidebar wordmark and two catch-up name lines. After: ink sits 2.8 to
+3.4px inside every clip box. WebKit was not measured (not installed).

@@ -113,13 +113,18 @@ export function IdentityRow({
             (2026-08-27): a real scrollbar, scrolling a real 1px overflow.
             `clip` is exempt from that rule, so the pair survives as written
             and nothing scrolls. Measured before and after in
-            chrome-devtools; pinned by identity-row-overflow-rule.test.mjs. */}
-        <div className={cn(nameClassName, "min-w-0 overflow-x-clip overflow-y-visible leading-none")}>
+            chrome-devtools; pinned by identity-row-overflow-rule.test.mjs.
+
+            `descender-room` is the second guard, for what the axis split
+            cannot reach: a caller's own clipping child inside `name` (the
+            feed rail's truncating Link), and any engine that treats a
+            one-axis clip as both. See tailwind-theme.css. */}
+        <div className={cn(nameClassName, "descender-room min-w-0 overflow-x-clip overflow-y-visible leading-none")}>
           {name}
         </div>
         {meta ? (
           <div
-            className={cn(META_CLASS, metaClassName, "min-w-0 overflow-x-clip overflow-y-visible leading-none")}
+            className={cn(META_CLASS, metaClassName, "descender-room min-w-0 overflow-x-clip overflow-y-visible leading-none")}
           >
             {meta}
           </div>

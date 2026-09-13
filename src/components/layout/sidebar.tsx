@@ -130,7 +130,7 @@ function Brand({
         textClassName={
           nowrap
             ? "block whitespace-nowrap text-sidebar-foreground"
-            : "min-w-0 truncate text-sidebar-foreground"
+            : "descender-room min-w-0 truncate text-sidebar-foreground"
         }
       />
     </Link>
