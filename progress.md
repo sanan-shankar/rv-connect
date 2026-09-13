@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-13 (latest, round 2) — the bird steps out of the button: beside New post at 40px, no disc
 - 2026-09-13 (later again) — pressing the oldest year from another order lands it at the top; and the rail's journey test stops reading the half it just left
 - 2026-09-13 (latest) — the bird in the button: a lab room where the pill above the feed is gone, your bird rides in New post, and the composer opens two ways
 - 2026-09-13 (later) — the admission number on a profile drops from 16px to 15px

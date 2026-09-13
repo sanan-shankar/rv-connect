@@ -177,7 +177,7 @@ export const REGISTRY: LabEntry[] = [
     title: "The bird in the button",
     group: "Delight",
     status: "active",
-    note: "The pill above the feed is gone and your own bird sits in the New post button instead. Press it: two ways the composer opens, in place at the top of the feed or as a sheet, with the bird flying out to meet it and the post landing where you wrote it.",
+    note: "The pill above the feed is gone and your own bird stands beside New post instead, at its usual 40px. Press it: two ways the composer opens, in place at the top of the feed or as a sheet, with the bird flying out to meet it and the post landing where you wrote it.",
   },
   {
     href: "/lab/collection",

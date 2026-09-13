@@ -5,12 +5,16 @@
  *  pill on the page for it to grow out of.
  *
  *  What both faces share. The pill row above the feed is gone, so the
- *  first post starts right under the header. The owner's own bird moves
- *  INTO the New post button, in a card-coloured disc where the plus used
- *  to be. The word "New post" already says add; the plus was saying it
- *  twice. Opening the composer, the bird leaves the button (a shared
- *  `layoutId`) and lands in the composer's avatar slot, and the empty
- *  disc it left behind stays as a nest until it comes home.
+ *  first post starts right under the header. The owner's own bird stands
+ *  beside the New post pill at 40px, the size it is on every post and in
+ *  every rail. It was first tried INSIDE the pill, in a card-coloured disc
+ *  where the plus was, and the owner turned that down (2026-09-13): "we
+ *  have to inset the bird in a white box and now the bird is waay too
+ *  small". The disc was a box the bird wears nowhere else, and it shrank
+ *  the bird to 24px. Bird and pill are one button, so the bird never reads
+ *  as an account menu. Opening the composer, the bird leaves (a shared
+ *  `layoutId`) and lands in the composer's avatar slot, also 40px, so the
+ *  flight is a plain move with no scaling in it.
  *
  *  Only the bird travels. Morphing the whole card out of a 120px pill was
  *  considered and not taken: a card scaled up from a pill stretches every
@@ -67,12 +71,14 @@ const FACES: { id: Face; name: string; says: string }[] = [
 // One id for the one bird. It exists in exactly one place at a time.
 const BIRD = "lab-new-post-bird";
 
-/* The canopy pill, spelled out rather than buttonVariants: that recipe
-   forces every descendant <svg> without a size- class to 16px, and the
-   bird glyph is an <svg>. `filter` stays out of the transition list for the
-   reason button.tsx gives: the curve overshoots and the colour changes twice. */
-const PILL =
-  "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-canopy text-sm font-medium whitespace-nowrap text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] outline-none select-none transition-[transform] duration-150 ease-pop hover:brightness-[1.08] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+/* The canopy pill, spelled out rather than buttonVariants so the New post
+   button can put its fill on an inner span (the bird beside it is part of
+   the same button, outside the green). `filter` stays out of the transition
+   list for the reason button.tsx gives: the curve overshoots and the colour
+   changes twice. */
+const PILL_FILL =
+  "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-canopy text-sm font-medium whitespace-nowrap text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-[transform] duration-150 ease-pop";
+const PILL = `${PILL_FILL} outline-none select-none hover:brightness-[1.08] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`;
 
 const ICON_BTN =
   "state-layer inline-grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
@@ -293,34 +299,36 @@ function NewPostButton({
   onPress: () => void;
 }) {
   return (
-    /* pl-[5px]: a 30px disc in a 40px pill sits 5px in on every side, so the
-       disc is concentric with the pill's round end. */
+    /* One button, two parts: the bird on the page surface and the pill.
+       Hover and press land on the pill only, because the pill is the thing
+       that says what pressing does; the bird is who is doing it. */
     <button
       ref={ref}
       type="button"
       onClick={onPress}
       aria-expanded={expanded}
-      className={cn(PILL, "pr-4 pl-[5px]")}
+      aria-label="New post"
+      className="group/np inline-flex shrink-0 items-center gap-2.5 rounded-full outline-none select-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       /* Kept off the outside-click test, so pressing it while open focuses
          the editor instead of closing and reopening it. */
       data-lab-keep-open
     >
-      <span className="relative grid size-[30px] place-items-center">
-        {/* The nest. It dims while the bird is out rather than vanishing, so
-            the button keeps its shape and says where the bird will return. */}
-        <m.span
-          aria-hidden
-          className="absolute inset-0 rounded-full bg-card"
-          animate={{ opacity: birdAway ? 0.28 : 1 }}
-          transition={{ duration: 0.2 }}
-        />
+      {/* The slot keeps its 40px while the bird is out, so the pill never
+          slides left under the cursor that just pressed it. */}
+      <span className="grid size-10 place-items-center">
         {!birdAway && (
-          <m.span layoutId={BIRD} transition={SPRINGS.gentle} className="relative grid place-items-center">
-            <BirdAvatar user={you} size={24} />
+          <m.span layoutId={BIRD} transition={SPRINGS.gentle} className="grid place-items-center">
+            <BirdAvatar user={you} size="sm" />
           </m.span>
         )}
       </span>
-      New post
+      <span
+        aria-hidden
+        className={cn(PILL_FILL, "px-4 group-hover/np:brightness-[1.08] group-active/np:scale-[0.97]")}
+      >
+        <Plus className="h-[17px] w-[17px]" />
+        New post
+      </span>
     </button>
   );
 }

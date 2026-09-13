@@ -6403,3 +6403,14 @@ theirs, not a global expect timeout.
 Measured after: the journeys spec twice on both viewports, 8 passed and 1 skipped each time (the
 year test is desktop-only), the year test walking all ten Class years including 2015. `npm run
 check` clean, 119/119; `npm run visual` 25/25.
+
+## 2026-09-13 (latest, round 2) — the bird steps out of the button
+
+"I thought of this but wasn't the biggest fan because we have to inset the bird in a white box and
+now the bird is waay too small and smaller than how the bird appears in basically every other
+instance on the website" (owner, 2026-09-13), on `/lab/new-post`.
+
+The bird leaves the pill and stands beside it at 40px, the `sm` size posts, the composer and the
+rails use, with no disc. The pill gets its plus back. Bird and pill stay one button, hover and press
+on the pill only, and the bird's 40px slot holds its width while the bird is out so the pill never
+slides. The composer's slot is also 40px, so the flight is now a move with no scaling.
