@@ -26,7 +26,10 @@
  *             place, so the button still says add.
  *    Badge    no pill. The bird is the button and wears a small canopy
  *             plus at its corner, the "add to your story" shape. One object
- *             for certain, but it gives up the words.
+ *             for certain, but it gives up the words. When the bird flies
+ *             out, the badge unfolds into a full 40px canopy circle in the
+ *             bird's place, and folds back as it returns. The owner's pick
+ *             of the two (2026-09-13), so it is the default.
  *
  *  Considered and not taken: Overlap, a round socket 3px wider than the
  *  bird masked out of the pill so the green wrapped a bird standing on the
@@ -93,8 +96,8 @@ const BIRD = "lab-new-post-bird";
 
 type Look = "chip" | "badge";
 const LOOKS: { id: Look; name: string }[] = [
-  { id: "chip", name: "Chip" },
   { id: "badge", name: "Badge" },
+  { id: "chip", name: "Chip" },
 ];
 
 
@@ -156,7 +159,7 @@ function useIsPhone() {
 
 export function NewPostRoom({ you: me }: { you: AvatarUser & { id: string; name: string } }) {
   const [face, setFace] = useState<Face>("inplace");
-  const [look, setLook] = useState<Look>("chip");
+  const [look, setLook] = useState<Look>("badge");
   /* The worst case for a bird sitting on canopy is a green bird. Kavya Rao's
      seed id hashes to one, so this borrows it rather than naming a species
      slug that could be renamed. The name stays the owner's. */
@@ -362,17 +365,48 @@ function NewPostButton({
   if (look === "badge") {
     return (
       <button {...common} className={shell}>
-        {/* The slot keeps its 40px while the bird is out, so the plus stays
-            where the thumb left it. */}
+        {/* The slot keeps its 40px while the bird is out, so the circle that
+            takes its place has somewhere to be. */}
         <span className="grid size-10 place-items-center">{bird}</span>
-        {/* The page-coloured 2px halo is what lets a green plus sit on any
-            bird, including the green ones, without a box round the bird. */}
-        <span
+        {/* The badge is the button's green, folded small. When the bird
+            leaves, it unfolds into the 40px circle the bird left (owner,
+            2026-09-13: "so the plus becomes a full circle when the bird flies
+            away"), so the badge never reads as an afterthought.
+            Geometry: the 20px badge sits 4px past the slot's corner, so its
+            centre is at (34, 34) and the slot's is at (20, 20). -14 on each
+            axis and scale 2 lands it exactly on the bird's circle. Transform
+            only; `snappy` because it is a small thing answering a press, and
+            it settles before the bird, which flies on `gentle`, gets home. The
+            page-coloured halo is what lets green sit on a green bird. */}
+        <m.span
           aria-hidden
-          className="absolute -right-1 -bottom-1 grid size-[20px] place-items-center rounded-full bg-canopy text-white shadow-[0_0_0_2px_var(--background)] transition-[transform] duration-150 ease-pop group-hover/np:brightness-[1.08] group-active/np:scale-90"
+          className="absolute -right-1 -bottom-1 size-5 rounded-full bg-canopy shadow-[0_0_0_2px_var(--background)] group-hover/np:brightness-[1.08] group-active/np:scale-90"
+          initial={false}
+          animate={birdAway ? { x: -14, y: -14, scale: 2 } : { x: 0, y: 0, scale: 1 }}
+          transition={SPRINGS.snappy}
+        />
+        {/* Two pluses rather than one scaled with the disc: doubled, the
+            badge's 12px plus with its 3px stroke would be 6px thick. The
+            small one rides the disc to the centre and fades; the ordinary
+            17px plus fades in from where the badge was. */}
+        <m.span
+          aria-hidden
+          className="pointer-events-none absolute -right-1 -bottom-1 grid size-5 place-items-center text-white"
+          initial={false}
+          animate={birdAway ? { opacity: 0, x: -14, y: -14 } : { opacity: 1, x: 0, y: 0 }}
+          transition={SPRINGS.snappy}
         >
           <Plus className="size-3" strokeWidth={3} />
-        </span>
+        </m.span>
+        <m.span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 grid place-items-center text-white"
+          initial={false}
+          animate={birdAway ? { opacity: 1, x: 0, y: 0, scale: 1 } : { opacity: 0, x: 14, y: 14, scale: 0.7 }}
+          transition={SPRINGS.snappy}
+        >
+          <Plus className="h-[17px] w-[17px]" />
+        </m.span>
       </button>
     );
   }

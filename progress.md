@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-13 (latest, round 5) — the badge unfolds: Badge is the pick, and its plus becomes a full circle when the bird flies out
 - 2026-09-13 (latest, round 4) — the socket goes: the bird fills the pill's round end instead, and a plus takes its place while it is out
 - 2026-09-13 (latest, round 3) — one shape, not two buttons: the pill wraps the bird in a socket, or the bird wears a plus
 - 2026-09-13 (latest, round 2) — the bird steps out of the button: beside New post at 40px, no disc

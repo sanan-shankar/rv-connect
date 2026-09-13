@@ -6439,3 +6439,15 @@ replaces it: an ordinary pill whose round left end is the 40px bird, no cut and 
 sinks the whole button; hover brightens only the green, since a filter on the bird would recolour it.
 While the bird is out a plus fades into its place. A Green bird switch on the bench borrows a seed
 id that hashes to a green species, because a green bird on canopy is the case that could fail.
+
+## 2026-09-13 (latest, round 5) — the badge unfolds
+
+"badge is honestly pretty good. if you can make the green plus enlarge when it's clicked on so it
+doesn't look like this afterthought that would be good. so the plus becomes a full circle when the bird
+flies away" (owner, 2026-09-13).
+
+Badge is the room's default now. While the bird is out, the 20px canopy badge moves 14px up and left
+and doubles, landing exactly on the 40px circle the bird left, and folds back as it returns. Transform
+only, on `snappy`, so it settles before the bird (on `gentle`) arrives home. The plus is not scaled with
+the disc, because doubling a 12px glyph with a 3px stroke gives a 6px stroke. The small plus rides the
+disc and fades, and an ordinary 17px plus fades in at the centre.
