@@ -80,7 +80,7 @@ export function Byline({
   return (
     <div className={cn("flex min-w-0 items-center gap-3", className)}>
       <FlushAvatar person={person} size={size} />
-      <span className="min-w-0 truncate text-[17px] font-medium leading-none text-foreground">
+      <span className="descender-room min-w-0 truncate text-[17px] font-medium leading-none text-foreground">
         {person.name}
       </span>
     </div>

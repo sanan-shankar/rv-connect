@@ -232,3 +232,25 @@
     background-image: none;
   }
 }
+
+/* ------------------------------------------------------------------ *
+ *  descender-room: for any text that clips (`truncate`, overflow-hidden)
+ *  on a tight line box (`leading-none`).
+ *
+ *  An overflow clip cuts at the padding box, and a line-height of 1 is
+ *  shorter than the glyphs: the tail of a g, y, p, j, q sits below it.
+ *  Measured 2026-09-13 in Chrome: the feed rail's "New in the directory"
+ *  names lost their bottom 0.43px, the mobile header's "Rishi Valley" 1.68px
+ *  off its y. Small enough to read as "something is slightly off", which is
+ *  how it was reported.
+ *
+ *  Padding grows the clip box; the equal negative margin hands the space
+ *  back, so flex centring and stack gaps (which use the margin box) do not
+ *  move by a pixel. Both edges, not just the bottom: accents clip at the top
+ *  the same way, and a focus outline stays even. 0.25em covers Source Sans 3
+ *  and Libre Baskerville with room for engines that place the baseline lower.
+ * ------------------------------------------------------------------ */
+@utility descender-room {
+  padding-block: 0.25em;
+  margin-block: -0.25em;
+}

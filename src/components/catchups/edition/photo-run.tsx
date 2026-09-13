@@ -78,7 +78,7 @@ function FootLine({ shot }: { shot: Shot }) {
       <FlushAvatar person={shot.by} size={22} />
       <Link
         href={`/profile/${shot.by.id}`}
-        className="min-w-0 shrink truncate rounded-sm text-[13px] font-medium leading-none text-foreground transition-opacity duration-150 hover:underline active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="descender-room min-w-0 shrink truncate rounded-sm text-[13px] font-medium leading-none text-foreground transition-opacity duration-150 hover:underline active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         {shot.by.name}
       </Link>
