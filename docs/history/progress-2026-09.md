@@ -6504,3 +6504,21 @@ Checked signed in at 1440 and 390 on the real feed without publishing (that woul
 database): posts start 24px under the header, open puts the composer at the top with focus in it and
 the posts 198px lower, Escape and a click away close it, no console errors. Posting was proven in the
 lab room.
+
+## 2026-09-14 (search) — the search glass gets its circle back, and opens as a pill
+
+"I don't like the fact that everything else is in a circle and this is just hanging. this is too
+different particularly sometimes on a textured icons. can you create it the same way but make it in a
+circle and just as smooth" (owner, 2026-09-14), on the header search. Then, mid-build: "make the
+expansion 20% slower and the compression the same as expnasion".
+
+`SearchPill` rests as the bell's exact 40px paper circle (card fill, border, the 1px shadow; measured
+identical at 1440) and opens by widening that paper leftward into a pill. The motion is the hairline
+version's, not the 2026-08-30 spring's: one property, one decelerating curve, the glass fixed (0px of
+travel measured at 1440 and 390), words fading in behind the edge. 0.6s both ways, up from 0.5s open
+and 0.26s close. The opaque fill is what the textured headers needed. Because it now has a border,
+it wears `FIELD_FOCUS_WITHIN` and left the focus test's borderless list.
+
+Checked signed in as Jerry on /directory and /feed at 1440, /directory and /collection at 390: the
+pill reaches 300px on desktop and the column's left edge (20px) on a phone. Visual suite 25/25 with no
+baseline moved.
