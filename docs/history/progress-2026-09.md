@@ -6343,3 +6343,26 @@ else is untouched: the 16px mark, the row height, the 9px gap, the 1px nudge, an
 it says 15px now. Checked on the owner's own profile at 1440 and 390: the digits still sit level
 with the peaks, no console errors. `npm run check` clean, 119/119. Profile is not in the visual suite.
 
+
+## 2026-09-13 (latest) — the bird in the button
+
+"I'm thinking of ditching the shrunk composer above the posts since it serves the same function as
+new post. but I kinda like showing ones own bird on the feed. and i'd like the new post cta to be
+there because it's more space efficient ... and I want the posts to start right at the top instead
+of this dead space. also will have to work out beautiful animation for the composer appearing now
+that it's not exactly appearing from anything" (owner, 2026-09-13).
+
+A lab room at `/lab/new-post`, nothing shipped to `/feed` yet. The pill row goes (44px plus the 20px
+gap), and the owner's own bird moves into the New post button, in a 30px card-coloured disc where
+the plus was. Opening the composer, the bird flies out of the button on a shared `layoutId` and
+lands in the composer's avatar slot, leaving a dimmed nest behind. Two faces on the bench: In place
+(the card opens at the top of the feed, posts slide down on `layout="position"`, posting dissolves
+the card into the first post) and Sheet (the phone convention; the bird waits for the sheet to
+settle before flying, because a sliding target makes the flight wobble). Morphing the whole card out
+of the pill was considered and not taken: it stretches every word inside on the way.
+
+The page reads the session so the bird is the owner's own. PostCard runs in `demo`; nothing posts.
+The pill is spelled out rather than `buttonVariants`, whose descendant-svg rule would force the bird
+glyph to 16px. Driven signed in at 1440 and 390: the bird measured mid-flight, the card and the
+landed post sharing one top at 60ms, Escape and outside click close an empty card and return focus
+to the button, no console errors.
