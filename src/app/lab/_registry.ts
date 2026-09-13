@@ -173,6 +173,13 @@ export const REGISTRY: LabEntry[] = [
     note: "Every shape somebody can post, twice: the photograph as it arrived with the part we remove shaded out, and the post as it actually renders. Plus two, three and four together. Throwaway: delete it, public/lab/crop/ and this row once the rules are settled.",
   },
   {
+    href: "/lab/new-post",
+    title: "The bird in the button",
+    group: "Delight",
+    status: "active",
+    note: "The pill above the feed is gone and your own bird sits in the New post button instead. Press it: two ways the composer opens, in place at the top of the feed or as a sheet, with the bird flying out to meet it and the post landing where you wrote it.",
+  },
+  {
     href: "/lab/collection",
     title: "An archive with something in it",
     group: "Delight",
