@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-13 (later again) — pressing the oldest year from another order lands it at the top; and the rail's journey test stops reading the half it just left
 - 2026-09-13 (latest) — the bird in the button: a lab room where the pill above the feed is gone, your bird rides in New post, and the composer opens two ways
 - 2026-09-13 (later) — the admission number on a profile drops from 16px to 15px
 - 2026-09-13 — the year is the handle: the phone's scrubber ships as a chip that stays put, and the track moves down to stop it reading as a second button

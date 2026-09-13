@@ -6366,3 +6366,40 @@ The pill is spelled out rather than `buttonVariants`, whose descendant-svg rule 
 glyph to 16px. Driven signed in at 1440 and 390: the bird measured mid-flight, the card and the
 landed post sharing one top at 60ms, Escape and outside click close an empty card and return focus
 to the button, no console errors.
+
+## 2026-09-13 (later again) — pressing the oldest year from another order lands it at the top
+
+Found by running the full e2e suite after the scrubber shipped. `collection-journeys.spec.ts`
+"every year the rail offers lands on that year, lit" was red on desktop, and its failure was hiding
+a real one underneath.
+
+**The test was reading the wrong half.** It switches to whichever of Valley and Class holds more
+years, and every swap in the file waited for "a photograph is visible". Measured through a swap at
+1440: the title turns over at once, but the old half's photographs and the old half's rail stay up
+for about 840ms while the other half is fetched, so the page never flashes empty. The wait was true
+throughout and waited for nothing. It read the Valley's years, 2014 among them, off a rail about to
+become the Class's, then pressed 2014 on a rail that runs 2015 to 2026. Two other tests carried the
+same wait, one with a comment calling the title "the readiness signal". They passed only because
+their assertions hold on either half. All three swaps now go through `switchHalf`, which waits until
+no photograph on the page was on it before. A photograph belongs to one half and a swap arrives
+whole, so that is exactly "the other half is here".
+
+**With the swap fixed, the test reached 2015 and found the product bug.** Pressed from Newest, the
+oldest year rested 396px down the screen with the page at its foot. The same press from
+Chronological landed at 24. A press from another order is carried out in a postponed effect, once
+the boxes exist, and that effect still called `window.scrollTo`. The oldest year's box ends the
+document, so the browser clamped: asked for 104590, it stopped at 104218, 372px short, and the blank
+after the river was never grown. The 2026-09-10 fix for this exact symptom put `landAt` into
+`seekTo` and not here. It is `landAt` here too now.
+
+**Then it went red at random, on a different test each run.** Every failure was one wait, "Timeout
+5000ms exceeded", choosing an order and waiting for year headings to appear or go. Timed on the dev
+server with nothing else running, an order change took 0.5 to 1.2s on the Valley and 0.7 to 2.0s on
+the Class. Duplicates and headings each failed inside a full run and passed every time alone. The
+year test, twenty river reloads on its own, hit it in two of three solo runs. The two waits that sit
+through a river reload now allow 15s, local to those helpers the way the neighbouring specs set
+theirs, not a global expect timeout.
+
+Measured after: the journeys spec twice on both viewports, 8 passed and 1 skipped each time (the
+year test is desktop-only), the year test walking all ten Class years including 2015. `npm run
+check` clean, 119/119; `npm run visual` 25/25.

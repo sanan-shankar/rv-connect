@@ -1175,7 +1175,15 @@ export function CollectionClient({
     const want = topOfBand(landOn.current);
     if (want == null) return;
     landOn.current = "";
-    window.scrollTo({ top: want });
+    /* `landAt`, for the reason `seekTo` gives: the OLDEST year's box ends the
+       document, so no scroll position puts its heading at the top until the
+       blank after the river grows. The 2026-09-10 fix went into `seekTo` and
+       not here, and here is the route every press from ANOTHER order takes.
+       Measured 2026-09-13, 2015 pressed from Newest: `scrollTo` asked for
+       104590, the browser clamped at 104218, and the heading rested 396px
+       down with the blank never grown. The same press from Chronological, on
+       `landAt`, grew it 364px and landed at 24. */
+    landAt(want, tail.current);
     syncScrollWatch();
   }, [boxes, topOfBand, syncScrollWatch]);
 

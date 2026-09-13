@@ -41,6 +41,22 @@ import { test, expect, type Page } from "@playwright/test";
 const rail = (page: Page) => page.locator('nav[aria-label^="Jump to when"]');
 const orderButton = (page: Page) => page.getByRole("button", { name: /^Order:/ }).first();
 
+/** How long a river gets to arrive after an order change or a swap.
+ *
+ *  Measured 2026-09-13 on the dev server at 1440 with nothing else running:
+ *  an order change showed up in 0.5 to 1.2s on the Valley and 0.7 to 2.0s on
+ *  the Class, whose river is 105,000px of reserved years. Playwright's 5s
+ *  default is two and a half times that worst case and was still crossed on
+ *  load: the duplicates and headings tests each went red in a full run of
+ *  this file and passed every time alone, and the year test -- twenty river
+ *  reloads on its own -- hit it in two of three runs by itself. Every failure
+ *  was this one wait, "Timeout 5000ms exceeded while waiting on the
+ *  predicate", on whichever test happened to meet a slow reload.
+ *
+ *  15s is seven times the unloaded worst case, and a river that never comes
+ *  still fails well inside the 90s test timeout. */
+const RIVER_ARRIVES = 15_000;
+
 /** Every photograph currently drawn in the river, by thumbnail URL. The one
  *  measurement all of these turn on: a duplicate here is a duplicate React key
  *  upstream, and an id that vanished is a section React lost track of. */
@@ -58,6 +74,44 @@ async function drawn(page: Page) {
   });
 }
 
+/** Press Switch and wait for the OTHER half's photographs to actually be on
+ *  the page.
+ *
+ *  Not for a photograph to be visible, which is what every swap in this file
+ *  used to wait for, and not for the title, which one of them called "the
+ *  readiness signal". Measured through a swap on 2026-09-13: the title turns
+ *  over at once, but the old half's photographs AND the old half's rail stay
+ *  on screen for about 840ms while the new half is fetched -- deliberately,
+ *  so the page never flashes empty. "A photograph is visible" is true for the
+ *  whole of that second, because the old ones never left, so it waited for
+ *  nothing; anything read straight after it was read off the half being left.
+ *
+ *  That is how "every year the rail offers" went red: it read the Valley's
+ *  years (2014 among them) off a rail about to become the Class's (2015 on),
+ *  then pressed 2014 on a rail that no longer had it.
+ *
+ *  A photograph belongs to one half, and a swap arrives whole rather than
+ *  filling in, so "nothing on the page was on it before" is exactly "the
+ *  other half is here" -- and it does not depend on the two halves having
+ *  different years, titles or counts. */
+async function switchHalf(page: Page) {
+  const thumbs = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll("main section img")].map((i) => (i as HTMLImageElement).src)
+    );
+  const before = new Set(await thumbs());
+  await page.locator('h1 button[aria-label^="Switch"]').click();
+  await expect
+    .poll(
+      async () => {
+        const now = await thumbs();
+        return now.length > 0 && now.every((src) => !before.has(src));
+      },
+      { message: "the other half's photographs never arrived", timeout: RIVER_ARRIVES }
+    )
+    .toBe(true);
+}
+
 /** Pick an order from the menu and wait for the river to be the one that
  *  order asked for -- not merely for the label to change, which happens a
  *  second earlier and is exactly the window the duplicate-key bug lived in. */
@@ -68,7 +122,10 @@ async function chooseOrder(page: Page, label: string) {
   // Chronological draws headings; nothing else does. Either way, waiting on
   // the river's own shape is waiting on the page that actually arrived.
   await expect
-    .poll(async () => (await drawn(page)).bands.length > 0)
+    .poll(async () => (await drawn(page)).bands.length > 0, {
+      message: `choosing ${label} never produced a river ${label === "Chronological" ? "with" : "without"} year headings`,
+      timeout: RIVER_ARRIVES,
+    })
     .toBe(label === "Chronological");
 }
 
@@ -118,11 +175,7 @@ test.describe("the Collection survives being used", () => {
 
     if (canSwap) {
       for (let i = 0; i < 4; i += 1) {
-        await swap.click();
-        await expect(page.locator("main section img").first()).toBeVisible();
-        // The title is the readiness signal: it is the one thing that changes
-        // synchronously with the half, so a river read after it is this half's.
-        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+        await switchHalf(page);
         const river = await drawn(page);
         expect(river.total, `swap ${i + 1}: a photograph is drawn more than once`).toBe(
           river.unique
@@ -177,14 +230,10 @@ test.describe("the Collection survives being used", () => {
     if (await swap.count()) {
       await chooseOrder(page, "Chronological");
       const here = (await offeredYears(page)).length;
-      await swap.click();
-      await expect(page.locator("main section img").first()).toBeVisible();
+      await switchHalf(page);
       await chooseOrder(page, "Chronological");
       // Back if the other half turned out to be the shallower one.
-      if ((await offeredYears(page)).length < here) {
-        await swap.click();
-        await expect(page.locator("main section img").first()).toBeVisible();
-      }
+      if ((await offeredYears(page)).length < here) await switchHalf(page);
     }
 
     await chooseOrder(page, "Chronological");
@@ -260,15 +309,13 @@ test.describe("the Collection survives being used", () => {
     const title = page.getByRole("heading", { level: 1 });
     const before = { name: await title.innerText(), river: await drawn(page) };
 
-    await swap.click();
+    await switchHalf(page);
     await expect(title).not.toHaveText(before.name);
-    await expect(page.locator("main section img").first()).toBeVisible();
     const other = await drawn(page);
     expect(other.total, "the other half is drawing a photograph twice").toBe(other.unique);
 
-    await swap.click();
+    await switchHalf(page);
     await expect(title).toHaveText(before.name);
-    await expect(page.locator("main section img").first()).toBeVisible();
     const back = await drawn(page);
     expect(back.total, "coming back left the river a different size").toBe(before.river.total);
     expect(back.sections, "coming back left sections behind").toBe(before.river.sections);
