@@ -6466,3 +6466,16 @@ than Chrome-tuned: a `descender-room` utility in tailwind-theme.css pads the cli
 and hands it back with an equal negative margin, so no row moves. Applied to IdentityRow's name and
 meta rows, the rail link, the sidebar wordmark and two catch-up name lines. After: ink sits 2.8 to
 3.4px inside every clip box. WebKit was not measured (not installed).
+
+## 2026-09-14 — the white ring goes
+
+"when the green plus is the bigger circle when ou hover there's a white ring around it. don't show
+hover status like that. show it like it's shown for any CTA like we do now. and is there any reason you
+did it that way?" (owner, 2026-09-14), on `/lab/new-post`.
+
+No reason; it was a mistake. The page-coloured 2px halo that lets the badge sit on a green bird was a
+box-shadow on the disc itself, so it stayed on the unfolded circle (doubled to 4px by the scale) and
+sat under the hover's brightness filter, which lifted it lighter than the page. The halo is now its own
+element behind the badge, present only while a bird is under it and fading as the bird leaves, and out
+of the filter's reach. The circle's hover and press are the canopy CTA's from `button.tsx`: 1.08
+brightness, a 0.97 sink and the canopy drop shadow.
