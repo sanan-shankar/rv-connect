@@ -6330,3 +6330,16 @@ It swaps to whichever half is deeper, then reads the rail before it has caught u
 scope, so it collects the valley's years (which include 2014) and clicks them against the class rail
 (2015-2026, no 2014). Live-data dependent, desktop-only, and nothing to do with the scrubber, which
 is `display: none` at that width and skipped on mobile. Its own commit.
+
+## 2026-09-13 (later) — the admission number on a profile drops from 16px to 15px
+
+"can you make that 16 px into 15px. keep all else same" (owner, 2026-09-13), after asking the size
+of the admission number and the batch number on a profile.
+
+Both copies of the number in `letterhead-profile.tsx` moved together, the one you read and the one
+you type into with the pen out, so the lockup does not change size when editing starts. Everything
+else is untouched: the 16px mark, the row height, the 9px gap, the 1px nudge, and the Batch fact
+(11px label, 15px year). The editable lockup's comment had said "13px caps" since an earlier resize;
+it says 15px now. Checked on the owner's own profile at 1440 and 390: the digits still sit level
+with the peaks, no console errors. `npm run check` clean, 119/119. Profile is not in the visual suite.
+
