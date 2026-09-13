@@ -933,7 +933,7 @@ export function LetterheadProfile({
                          asking for one. */
                       /* Byte-for-byte the read-only lockup below, with the
                          number swapped for a field: same row height, same
-                         gap, same 13px caps, same paint-only nudge. */
+                         gap, same 15px caps, same paint-only nudge. */
                       <span className="flex h-[var(--lh-colophon)] w-fit items-center gap-[9px] text-cinnamon">
                         <button
                           type="button"
@@ -944,7 +944,7 @@ export function LetterheadProfile({
                           <PeaksMark size={COLOPHON.markSize} />
                         </button>
                         <span
-                          className="text-[16px] font-bold uppercase leading-none tracking-[0.14em]"
+                          className="text-[15px] font-bold uppercase leading-none tracking-[0.14em]"
                           style={{ transform: `translateY(${COLOPHON.numberNudge}px)` }}
                         >
                           <PenValue
@@ -971,7 +971,7 @@ export function LetterheadProfile({
                       >
                         <PeaksMark size={COLOPHON.markSize} />
                         <span
-                          className="text-[16px] font-bold uppercase leading-none tracking-[0.14em]"
+                          className="text-[15px] font-bold uppercase leading-none tracking-[0.14em]"
                           style={{ transform: `translateY(${COLOPHON.numberNudge}px)` }}
                         >
                           {admissionNumber}
