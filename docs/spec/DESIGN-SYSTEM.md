@@ -233,7 +233,9 @@ small-label use — a good default rotation whenever a short label needs a colou
 - **Nesting rule:** a box inside another box is **never the same radius** as its container — the inner one
   is slightly smaller (e.g. 16px container → 12px inner). This keeps nested corners from looking wrong.
 - **Text fields / inputs: 12px** (slightly less round than cards — a quiet signal that it's an input).
-  **Exception:** the feed composer's inline post box stays a **full pill**.
+  (The feed composer's resting pill used to be the exception here. It is gone since 2026-09-14:
+  the composer opens from the New post badge, the member's own bird with a canopy plus, in the feed
+  header. `src/components/feed/new-post-cta.tsx`.)
   **Second input material (calm forms, 2026-08-14):** the signup flow's fields are 56px,
   **mist-filled and borderless**, with the label floating inside the box (`FloatField`,
   `src/components/common/float-field.tsx`; owner reference: Revolut's one-text-per-box form).
@@ -253,7 +255,7 @@ One ladder, three rungs down from the card, everything derived from `--radius: 1
 | Container | `--radius` (`rounded-lg`) | 16px | Cards, tiles, the composer shell |
 | Nested | `--radius-md` | 12px | Photos inside a card, the letter-preview outline, inner panels; also every input (`--radius-input`, same 12px) and menu panels |
 | Thumbnail | `--radius-sm` | 8.8px | Small media (80px previews), the viewer photo, third-level boxes |
-| Control | `rounded-full` | pill | Buttons, chips, tags, the composer trigger |
+| Control | `rounded-full` | pill | Buttons, chips, tags, the New post badge |
 
 **The rules:**
 

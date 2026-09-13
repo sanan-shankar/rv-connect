@@ -6479,3 +6479,28 @@ sat under the hover's brightness filter, which lifted it lighter than the page. 
 element behind the badge, present only while a bird is under it and fading as the bird leaves, and out
 of the filter's reach. The circle's hover and press are the canopy CTA's from `button.tsx`: 1.08
 brightness, a 0.97 sink and the canopy drop shadow.
+
+## 2026-09-14 (later) — the bird is the button
+
+"ship it" (owner, 2026-09-14), on Badge in `/lab/new-post`.
+
+On `/feed` the pill row above the posts is gone and the header's New post pill with it. In their place
+is `NewPostCTA`: the member's own 40px bird with a 20px canopy plus at its corner. Pressing it opens the
+composer at the top of the feed (In place, the room's default; Sheet was not chosen). The bird flies
+into the composer's avatar slot on a shared `layoutId`, and the badge unfolds into a full 40px canopy
+circle where the bird was. `NewPostDock` is the state the header and the column share, replacing a DOM
+query that clicked the old pill.
+
+`CreatePostForm`'s feed path lost its pill, its measured-height animation and its local open state:
+FeedColumn mounts the card when the dock opens and owns the motion (the card fades and settles from its
+top right; the feed below is one `layout="position"` block, so the posts slide as a translate). Escape
+and a click away close an empty card and return focus to the badge; pressing the badge while open only
+focuses the editor. A published post keeps the card on "Posting..." until the feed has reloaded with
+it, then the card dissolves into it. `PostFeed` now re-arms its skeleton only for a new search, so that
+reload no longer flashes three skeletons over the feed. The loading skeleton lost its composer block,
+and DESIGN-SYSTEM no longer lists the composer pill as the one pill-shaped input.
+
+Checked signed in at 1440 and 390 on the real feed without publishing (that would post to the live
+database): posts start 24px under the header, open puts the composer at the top with focus in it and
+the posts 198px lower, Escape and a click away close it, no console errors. Posting was proven in the
+lab room.

@@ -14,10 +14,15 @@ import { appendUnseen } from "@/lib/append-page";
 
 export function PostFeed({
   reloadKey = 0,
+  onReloaded,
   initialSearch,
   lastSeenAt,
 }: {
   reloadKey?: number;
+  /** Called once the first page has come back, after every load or reload,
+   *  failed or not. FeedColumn waits on it to close the composer into the
+   *  feed only when the post just published is actually on screen. */
+  onReloaded?: () => void;
   /** Seeds the search query. The feed's own search is the header pill's `?q=`;
    *  this component draws no search box of its own. */
   initialSearch?: string;
@@ -87,13 +92,27 @@ export function PostFeed({
     [search]
   );
 
+  /* The search the list on screen belongs to. A different one re-arms the
+     skeleton; the same one does not (see below). */
+  const shownSearchRef = useRef<string | null>(null);
+  /* Read at fire time, so a parent handing a fresh callback every render does
+     not re-run the fetch effect below. */
+  const onReloadedRef = useRef(onReloaded);
+  useEffect(() => {
+    onReloadedRef.current = onReloaded;
+  });
+
   // First page whenever the search or an external reload trigger changes.
   useEffect(() => {
     let cancelled = false;
     listGeneration.current += 1;
-    // Re-arms the skeleton whenever the search or the reload trigger changes,
-    // so a new query never leaves the old posts on screen.
-    setLoading(true);
+    /* Re-arms the skeleton for a NEW SEARCH, so a new query never leaves the
+       old posts on screen. A reload of the same feed -- the one publishing a
+       post triggers -- keeps the posts where they are until the fresh page
+       arrives: three skeletons flashing over the feed somebody just posted
+       into is the opposite of their post landing where they wrote it
+       (owner, 2026-09-13). The new post then slides in at the top. */
+    if (shownSearchRef.current !== search) setLoading(true);
     (async () => {
       // callAction, not a bare .then: a rejected fetch (deploy skew, dropped
       // network, expired session) used to leave `loading` true forever and
@@ -103,12 +122,15 @@ export function PostFeed({
       if ("error" in data) {
         toast.error(data.error);
         setLoading(false);
+        onReloadedRef.current?.();
         return;
       }
       setPosts(data.posts);
       setCursor(data.nextCursor);
       setHasMore(data.hasMore);
       setLoading(false);
+      shownSearchRef.current = search;
+      onReloadedRef.current?.();
       /* Stamp the newest post we just showed as the marker for next visit.
        * On the ACCOUNT, not this browser, so the divider is not re-announced
        * on every other device the member is signed in on. Fire-and-forget:

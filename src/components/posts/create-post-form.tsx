@@ -27,8 +27,8 @@ import {
 } from "@/lib/rich-text-editing";
 
 /* ------------------------------------------------------------------ *
- *  The composer itself stays static -- its collapsed pill is the first
- *  thing on /feed and deferring it would delay the page's own content.
+ *  The composer itself stays static -- New post opens it, and deferring
+ *  it would put a chunk fetch between the press and the first keystroke.
  *  These three are different: none of them can appear until you press
  *  something. The poll builder waits on "Add a poll", the mention list
  *  on typing "@", the photo dialog on the image button.
@@ -67,11 +67,6 @@ const AttachImageDialog = dynamic(
  *  storage/rendering/search never change. Mentions stay a literal
  *  "@[Name](id) " text insertion.
  * ------------------------------------------------------------------ */
-// Height of the resting pill (h-11). The expand animation grows the box DOWN from
-// exactly this height, and collapse contracts back to it, so nothing ever shrinks
-// up first or starts stretched.
-const COLLAPSED_H = 44;
-
 // Past this length a post is nudged toward Letters instead of being capped or
 // counted down. No red numbers, no limits messaging: just a hint.
 const LETTER_NUDGE_LEN = 600;
@@ -87,6 +82,8 @@ export function CreatePostForm({
   currentUser,
   userPlaces,
   onPosted,
+  onDismiss,
+  avatarSlot,
   immersive = false,
   postId,
   initialTitle,
@@ -103,6 +100,14 @@ export function CreatePostForm({
    *  control below; omitted or empty means the control simply doesn't render. */
   userPlaces?: string[];
   onPosted?: () => void;
+  /** The feed composer asks to be closed (an empty composer, clicked away from
+   *  or Escaped). It has no resting state of its own: FeedColumn mounts it when
+   *  the header's New post badge opens it and unmounts it here. */
+  onDismiss?: (opts?: { refocus?: boolean }) => void;
+  /** What stands where the author's bird goes. The feed passes the member's
+   *  own bird carrying the shared layoutId, so it can fly in from the badge;
+   *  the letters desk, which has no badge, leaves this out. */
+  avatarSlot?: React.ReactNode;
   /** The /letters/new and /letters/[id]/edit surfaces: no card shell (the page
    *  provides the paper sheet), and the body composes at READING fidelity
    *  (Libre Baskerville 16px/1.8) so what you type is what publishes. */
@@ -170,7 +175,6 @@ export function CreatePostForm({
      so the second call in the same frame sees it. Covers Save-as-draft too --
      they write the same row and must not overlap either. */
   const submittingRef = useRef(false);
-  const [expanded, setExpanded] = useState(defaultLetter);
   const [pollOptions, setPollOptions] = useState<string[] | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   /* True from the first press of the photo button onward. The dialog has to
@@ -184,14 +188,8 @@ export function CreatePostForm({
   // membership already scoped who read it; there are no group posts now.)
   const [audienceCity, setAudienceCity] = useState<string | null>(initialCityScope ?? null);
   const audienceOptions = userPlaces ?? [];
-  // Explicit, measured height for the one clean downward growth / contraction.
-  const [colHeight, setColHeight] = useState<number>(COLLAPSED_H);
-  // True only once the grow animation has fully settled; gates overflow so the
-  // "More" popover can escape the box, while the unfurl/contraction stays clipped.
-  const [settled, setSettled] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<HTMLDivElement>(null);
   const richRef = useRef<HTMLDivElement>(null);
   const mentionRangeRef = useRef<Range | null>(null);
 
@@ -209,12 +207,14 @@ export function CreatePostForm({
       : collapsedPlaceholder;
   const hasContent = content.trim().length > 0;
 
-  function expand(startKind?: "post" | "letter") {
-    if (startKind) setKind(startKind);
-    setSettled(false);
-    setExpanded(true);
-    setTimeout(() => richRef.current?.focus({ preventScroll: true }), 0);
-  }
+  /* The feed composer is only ever mounted by a press of New post, so
+     arriving IS the moment to take the caret. preventScroll: opening must
+     never move the page out from under the member. */
+  useEffect(() => {
+    if (defaultLetter) return;
+    const t = setTimeout(() => richRef.current?.focus({ preventScroll: true }), 0);
+    return () => clearTimeout(t);
+  }, [defaultLetter]);
 
   /* Resumed-draft hydration: the contentEditable is uncontrolled, so its DOM
      must be written directly, once, on mount. renderRichText is the same
@@ -263,50 +263,34 @@ export function CreatePostForm({
       onRestore: applyRestoredDraft,
     });
 
-  // Collapse back to the resting pill, closing any open popovers. Letters
-  // default to expanded, so they never retract to a pill. Only ever called
-  // while empty (see the outside-click/Escape handler below), but the DOM is
-  // cleared defensively too: a contentEditable can be left holding a stray
-  // empty <div><br></div> even once its text content is gone.
-  const collapse = useCallback(() => {
-    setMore(false);
-    setSettled(false);
-    if (!defaultLetter) setExpanded(false);
-    if (richRef.current) richRef.current.innerHTML = "";
-    setContent("");
-  }, [defaultLetter]);
-
-  // Measure the editor's natural height and animate the box to it. A
-  // ResizeObserver keeps the box exactly the content's size, so adding an image
-  // or a poll grows it cleanly (no fixed height, no clipping) while the
-  // expand/collapse spring stays a single deliberate downward/upward m.
-  useEffect(() => {
-    if (!expanded) {
-      setColHeight(COLLAPSED_H);
-      return;
-    }
-    const el = editorRef.current;
-    if (!el) return;
-    const update = () => setColHeight(el.offsetHeight);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [expanded]);
+  // Close an empty composer, and any open popover with it. On the feed that
+  // hands the composer back to FeedColumn to unmount; the letters desk never
+  // closes, it only clears. Only ever called while empty (see the outside-click
+  // /Escape handler below), but the DOM is cleared defensively too: a
+  // contentEditable can be left holding a stray empty <div><br></div> even
+  // once its text content is gone.
+  const collapse = useCallback(
+    (opts?: { refocus?: boolean }) => {
+      setMore(false);
+      if (richRef.current) richRef.current.innerHTML = "";
+      setContent("");
+      if (!defaultLetter) onDismiss?.(opts);
+    },
+    [defaultLetter, onDismiss]
+  );
 
   /* Once the composer is open, all three deferred pieces are one press away,
      so they are fetched now rather than on the press itself -- off the feed's
-     critical path, but long before anyone can ask for them. A collapsed pill,
-     which is what /feed loads with, still fetches none of them. */
+     critical path, but long before anyone can ask for them. /feed loads with
+     no composer mounted at all, so it still fetches none of them. */
   useEffect(() => {
-    if (!expanded) return;
     void import("./poll-creator");
     void import("./mention-dropdown");
     void import("@/components/common/attach-image-dialog");
-  }, [expanded]);
+  }, []);
 
   // Outside-click + Escape. Empty + outside click (or Escape with nothing open)
-  // retracts to the pill; if the user has typed, an outside click only closes a
+  // closes the composer; if the user has typed, an outside click only closes a
   // popover so a draft is never lost to a stray click.
   //
   // Guarded on `attachOpen`: the attach-photo dialog renders through THE
@@ -326,10 +310,13 @@ export function CreatePostForm({
   // material and carries `role="dialog"`, so this asks the question once
   // rather than keeping a list of them.
   useEffect(() => {
-    if (!expanded || attachOpen) return;
+    if (attachOpen) return;
     function onDown(e: MouseEvent) {
       const target = e.target as Element | null;
       if (target?.closest?.('[role="dialog"], [role="alertdialog"]')) return;
+      // The New post badge: pressing it while open focuses the editor, so it
+      // must not also count as a click away that closes it.
+      if (target?.closest?.("[data-new-post]")) return;
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
         if (!hasContent) collapse();
         else setMore(false);
@@ -338,7 +325,7 @@ export function CreatePostForm({
     function onKey(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
       if (more) setMore(false);
-      else if (!hasContent) collapse();
+      else if (!hasContent) collapse({ refocus: true });
     }
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
@@ -346,7 +333,7 @@ export function CreatePostForm({
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [expanded, hasContent, more, collapse, attachOpen]);
+  }, [hasContent, more, collapse, attachOpen]);
 
   // Re-derive the markdown mirror + mention query from the live DOM. Called after
   // every keystroke, paste, and formatting toggle so `content` (used for the Post
@@ -418,6 +405,11 @@ export function CreatePostForm({
     if (autosaveRunRef.current) await autosaveRunRef.current;
     if (saveAsDraft) setSavingDraft(true);
     else setSubmitting(true);
+    /* Set when a published feed post is handed to FeedColumn. The composer is
+       about to be closed into the feed, so it keeps its words and stays on
+       "Posting..." until the new post is on screen, instead of blanking for
+       the length of the reload and then vanishing. */
+    let handedOff = false;
 
     // The whole body runs inside try/finally, and every action call goes
     // through callAction: previously a REJECTING action (not just one that
@@ -502,21 +494,23 @@ export function CreatePostForm({
         // The words are on the server now; the device copy would only come
         // back as a ghost letter on the next visit to the desk.
         clearLocalDraft();
-        // The editor is uncontrolled contentEditable, so clearing `content` alone
-        // does not clear what's on screen: clear the DOM explicitly too.
-        if (richRef.current) richRef.current.innerHTML = "";
-        setContent("");
-        setTitle("");
-        setKind(defaultLetter ? "letter" : "post");
-        // Drops the list and releases the blob urls this composer minted
-        // (audit C-183); see the hook.
-        resetImages();
-        setToCollection(false);
-        setPollOptions(null);
-        setMore(false);
-        setAudienceCity(null);
-        setSettled(false);
-        setExpanded(defaultLetter);
+        if (onDismiss && !defaultLetter && !saveAsDraft) {
+          handedOff = true;
+        } else {
+          // The editor is uncontrolled contentEditable, so clearing `content` alone
+          // does not clear what's on screen: clear the DOM explicitly too.
+          if (richRef.current) richRef.current.innerHTML = "";
+          setContent("");
+          setTitle("");
+          setKind(defaultLetter ? "letter" : "post");
+          // Drops the list and releases the blob urls this composer minted
+          // (audit C-183); see the hook.
+          resetImages();
+          setToCollection(false);
+          setPollOptions(null);
+          setMore(false);
+          setAudienceCity(null);
+        }
         toast.success(
           saveAsDraft
             ? "Draft saved"
@@ -534,9 +528,11 @@ export function CreatePostForm({
         onPosted?.();
       }
     } finally {
-      submittingRef.current = false;
-      if (saveAsDraft) setSavingDraft(false);
-      else setSubmitting(false);
+      if (!handedOff) {
+        submittingRef.current = false;
+        if (saveAsDraft) setSavingDraft(false);
+        else setSubmitting(false);
+      }
     }
   }
 
@@ -1169,103 +1165,26 @@ export function CreatePostForm({
     );
   }
 
-  // Feed / group composer. ONE clean downward growth on expand, ONE clean
-  // contraction on collapse: the box's explicit height springs between the pill
-  // height and the measured editor height (no FLIP scale, nothing shrinking up or
-  // starting stretched). The pill sits in flow as the collapsed baseline; the
-  // editor is an overlay that fades over it while the box grows / shrinks beneath.
+  // The feed composer. It has no resting state of its own any more: there was
+  // a pill here that grew into this card, and it did the same job as the
+  // header's New post button (owner, 2026-09-13). FeedColumn now mounts this
+  // card when the New post badge opens it, owns the motion in and out, and
+  // passes the member's own bird in as `avatarSlot` so it can fly across from
+  // the badge. overflow-visible so the "+" menu can escape the card.
   return (
-    /* COLLAPSED, there is no tile: just the bird and the pill sitting on the
-       page (owner, 2026-08-04, "get rid of the tile ... save some space and
-       just have an icon and a pill"). The card materialises only once the
-       composer is open, which is the state the owner is happy with.
-
-       The padding rides the SAME spring as the box height below, so opening
-       is one gesture: the card inflates around the pill as the pill becomes
-       the editor, rather than a tile snapping in first and then growing.
-       Background and border fade on the global 120ms colour transition; the
-       shadow is simply present while expanded, which nothing can catch during
-       a 300ms spring. */
     <>
     {emailGate.dialog}
-    <m.div
+    <div
       ref={rootRef}
       data-composer
-      initial={false}
-      animate={{ padding: expanded ? 16 : 0 }}
-      transition={SPRINGS.gentle}
-      className={cn(
-        "overflow-visible rounded-[var(--radius)] border",
-        expanded ? "card-elevated border-border bg-card" : "border-transparent bg-transparent"
-      )}
+      className="card-elevated overflow-visible rounded-[var(--radius)] border border-border bg-card p-4"
     >
       <div className="flex items-start gap-3">
-        {currentUser && (
-          // Shown at every width now. It used to hide below sm because the
-          // tile's own padding left no room for it; without the tile there is
-          // room, and the icon is half of what this control now is.
-          <BirdAvatar user={currentUser} size="sm" className="mt-0.5 shrink-0" />
-        )}
-        <m.div
-          className="relative min-w-0 flex-1"
-          initial={false}
-          animate={{ height: colHeight }}
-          transition={SPRINGS.gentle}
-          onAnimationComplete={() => setSettled(expanded)}
-          style={{ overflow: settled ? "visible" : "hidden" }}
-        >
-          {/* The pill's own opacity now runs on the SAME spring as the box height
-              (SPRINGS.gentle) instead of snapping instantly, so on collapse it
-              cross-fades in underneath the editor as the tile shrinks: one clock,
-              no children popping into place. `ring-inset` keeps the focus ring
-              fully inside the pill's bounds so its rounded caps are never cut off
-              by this wrapper's overflow-hidden clipping during expand/collapse.
-
-              Resting colour is `bg-card` (owner, 2026-08-04: the pill should
-              rest at the tile's own background colour). The pill used to be
-              --secondary specifically to hold contrast AGAINST the card it sat
-              inside; collapsed, there is no card any more, so the thing it now
-              has to read against is the page (#E4E1D5), and #F5F2EA is the
-              lighter rung above that. It also means the pill is already wearing
-              the tile's colour when the tile inflates around it on expand,
-              rather than changing shade mid-gesture.
-
-              `state-layer` composites a translucent ink tint on hover, so hover
-              always darkens from wherever the pill rests and can never invert
-              (the old `bg-accent` hover crossed THROUGH the resting colour, so
-              mid-hover the pill briefly matched its own container).
-              rounded-full stays: the composer's inline post box is the app's
-              one sanctioned pill-shaped input. */}
-          <m.button
-            type="button"
-            onClick={() => expand("post")}
-            aria-hidden={expanded}
-            tabIndex={expanded ? -1 : 0}
-            animate={{ opacity: expanded ? 0 : 1 }}
-            transition={SPRINGS.gentle}
-            style={{ pointerEvents: expanded ? "none" : undefined }}
-            className="state-layer flex h-11 w-full min-w-0 items-center rounded-full bg-card px-4 text-left text-[14px] text-muted-foreground hover:text-foreground active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-inset"
-          >
-            <span className="truncate">{collapsedPlaceholder}</span>
-          </m.button>
-
-          <AnimatePresence>
-            {expanded && (
-              <m.div
-                key="editor"
-                ref={editorRef}
-                className="absolute inset-x-0 top-0"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1, transition: { duration: 0.18 } }}
-                exit={{ opacity: 0, transition: SPRINGS.gentle }}
-              >
-                {editorBody}
-              </m.div>
-            )}
-          </AnimatePresence>
-        </m.div>
+        {avatarSlot ??
+          (currentUser && <BirdAvatar user={currentUser} size="sm" className="mt-0.5 shrink-0" />)}
+        <div className="min-w-0 flex-1">{editorBody}</div>
       </div>
-    </m.div>
+    </div>
     </>
   );
 }
