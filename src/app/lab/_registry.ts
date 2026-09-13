@@ -177,7 +177,7 @@ export const REGISTRY: LabEntry[] = [
     title: "The bird in the button",
     group: "Delight",
     status: "active",
-    note: "The pill above the feed is gone and your own bird, at its usual 40px, becomes part of New post: the green wraps round it (Overlap) or it wears a plus (Badge). Press it: two ways the composer opens, in place at the top of the feed or as a sheet, with the bird flying out to meet it and the post landing where you wrote it.",
+    note: "The pill above the feed is gone and your own bird, at its usual 40px, becomes part of New post: it fills the round end of the pill (Chip) or wears a plus (Badge). A Green bird switch shows the worst case. Press it: two ways the composer opens, in place at the top of the feed or as a sheet, with the bird flying out to meet it and the post landing where you wrote it.",
   },
   {
     href: "/lab/collection",
