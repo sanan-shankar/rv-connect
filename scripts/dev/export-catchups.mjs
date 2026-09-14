@@ -229,6 +229,9 @@ const out = {
         answersCloseAt: iso(r.answersCloseAt),
         publishedAt: iso(r.publishedAt),
         remindersSent: r.remindersSent,
+        timeCapsule: r.timeCapsule ?? false,
+        sealedAt: iso(r.sealedAt),
+        publishAt: iso(r.publishAt),
         createdAt: iso(r.createdAt),
         questions: (promptsByEdition.get(r.id) ?? []).map((p) => ({
           id: p.id,

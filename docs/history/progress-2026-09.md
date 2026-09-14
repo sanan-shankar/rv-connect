@@ -6769,3 +6769,31 @@ tie, forty on one, long choices, one voter). None prints a count.
 Measured: no horizontal overflow at 390 or 1440 in 48 states. Round one found a pile growing to
 610px at forty (fixed to a set width) and a wrapped dotted choices line stranding a dot (now a
 list). Handover board, session log and paste block moved to phase 14.
+
+
+## 2026-09-14 (catch-ups, phase 14 plumbing) — a time capsule can be marked, sealed for a year and opened underneath; nothing marks one yet
+
+Phase 14's plumbing, per his answer 31a, with no surface calling it until he picks a look. His
+answers: *"33 time capsule is just for one edition. 34b."* and *"35 yes an edition can."*
+
+**A status, not a date.** A capsule closes onto `sealed`, between answering and published. Every
+reader already asks for `published`, so a sealed Edition is refused everywhere without a reader
+changing, and one written next year that forgets cannot leak it (34b: nothing readable, your own
+answer included). `loadPublishedEditionView` now asks for `published` in its own `where` as well.
+
+**Schema**: `CatchupEdition.timeCapsule`, `sealedAt`, and `publishAt` back in `schema.prisma` (the
+column phase 11 kept). The CHECK `CatchupEdition_sealed_is_a_capsule` refuses a sealed row without
+the flag or either date. Export re-run first; applied to production twice (idempotent) and the demo;
+the CHECK proved live in a block that always raises.
+
+**The clock**: the same date next year in IST at 07:00 (29 February opens on the 28th); the
+too-few extension first; `nextOpensAt` stamped at the seal so the rhythm continues; the seal and the
+opening each tell everyone from their own transaction; the compare-and-swap requires the flag. A
+capsule opens on its date even if its Catch-up is held or ended. A Keeper's early close seals it.
+
+**Marking**: `setEditionTimeCapsule`, collecting only, Keepers on a people Catch-up and anyone on a
+batch, let in by name rather than past the batch refusal. The admin reading room and the home never
+query a sealed capsule's questions or answers (write-path-reviewer's one Medium, fixed: the admin
+room had fetched them and hidden them). The account export keeps a member's own answer, the owner's
+to overturn. `time-capsule-rule.test.mjs` pins the date, the clock, the gate, every reader path and
+a tripwire on new answer readers.

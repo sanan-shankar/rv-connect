@@ -78,6 +78,9 @@ import {
   mayChangeCatchupPicture,
   newInviteToken,
   publishPatch,
+  sealPatch,
+  mayMarkTimeCapsule,
+  decideTimeCapsuleMark,
   QUESTION_WINDOW_DAYS,
   deadlineIn,
   REMINDER_QUESTIONS_EXTENDED,
@@ -96,6 +99,7 @@ import {
   notifyPublished,
   notifyQuestionsOpen,
   notifyReminder,
+  notifySealed,
 } from "@/lib/catchups-notify";
 import { PROMPT_CATEGORIES } from "@/lib/catchups-types";
 import type {
@@ -249,6 +253,9 @@ type EditionContext = {
   answersCloseAt: Date | null;
   publishedAt: Date | null;
   remindersSent: number;
+  timeCapsule: boolean;
+  sealedAt: Date | null;
+  publishAt: Date | null;
   catchup: {
     createdById: string | null;
     cadence: Cadence;
@@ -271,6 +278,11 @@ const EDITION_COLUMNS = {
   answersCloseAt: true,
   publishedAt: true,
   remindersSent: true,
+  // Build phase 14: the flag decides whether the close publishes or seals,
+  // and `advanceEdition` below plans from it, so it is read every time.
+  timeCapsule: true,
+  sealedAt: true,
+  publishAt: true,
 } as const;
 
 /**
@@ -722,12 +734,17 @@ export async function updateCatchupCadence(catchupId: string, cadence: Cadence) 
      *
      * A Catch-up that has never published has no origin and no rhythm yet, so
      * there is nothing to move. */
-    const lastPublished = await prisma.catchupEdition.findFirst({
-      where: { catchupId, status: "published", publishedAt: { not: null } },
-      orderBy: { publishedAt: "desc" },
-      select: { publishedAt: true },
+    /* The origin is when the newest Edition CLOSED. For an ordinary Edition
+       that is `publishedAt`. A time capsule (build phase 14) closed at
+       `sealedAt` and has no `publishedAt` for a year, and once it opens its
+       `publishedAt` is a year after the rhythm started counting from it. So:
+       the newest by number, sealed or published, its seal before its publish. */
+    const lastClosed = await prisma.catchupEdition.findFirst({
+      where: { catchupId, status: { in: ["published", "sealed"] } },
+      orderBy: { number: "desc" },
+      select: { publishedAt: true, sealedAt: true },
     });
-    const origin = lastPublished?.publishedAt ?? null;
+    const origin = lastClosed?.sealedAt ?? lastClosed?.publishedAt ?? null;
     const shouldReschedule = next !== wasCadence && catchup.nextOpensAt !== null && origin !== null;
     const now = new Date();
     const rescheduled = shouldReschedule
@@ -898,7 +915,9 @@ export async function resumeCatchup(catchupId: string) {
       });
       if (!latest) return;
 
-      if (latest.status === "published") {
+      // A sealed time capsule is closed too, and its rhythm was booked when it
+      // sealed (build phase 14); what it waits on is its date, not the clock.
+      if (latest.status === "published" || latest.status === "sealed") {
         // Nothing live to un-freeze, so the thing to restore is the rhythm.
         //
         // Re-arm it when it is missing. An Edition that published while the
@@ -1330,16 +1349,56 @@ export async function closeAndPublish(editionId: string) {
       };
     }
 
+    /* A TIME CAPSULE CLOSES INTO `sealed` (build phase 14): the Keeper's early
+       close is the clock's close, so it seals exactly as the deadline would,
+       with the rhythm booked and everyone told the day it opens. The flag was
+       read fresh by loadFreshEdition and is required again by the write. */
+    if (edition.timeCapsule) {
+      const sealed = sealPatch(now);
+      const opensAt = sealed.publishAt as Date;
+      const didSeal = await prisma.$transaction(async (tx) => {
+        const cas = await tx.catchupEdition.updateMany({
+          where: { id: editionId, status: "answering", timeCapsule: true },
+          data: sealed,
+        });
+        if (cas.count === 0) return false;
+        if (edition.catchup.status === "active") {
+          await tx.catchup.update({
+            where: { id: edition.catchupId },
+            data: { nextOpensAt: addCadenceGap(now, edition.catchup.cadence) },
+          });
+        }
+        await notifySealed(tx, {
+          catchupId: edition.catchupId,
+          editionId,
+          groupId: edition.catchup.group.id,
+          groupName: edition.catchup.group.name,
+          opensAt,
+          excludeUserId: session.user.id,
+        });
+        return true;
+      });
+      if (!didSeal) return { error: "This Edition already moved on." };
+
+      revalidatePath(`/catchups/${edition.catchupId}`);
+      revalidatePath("/catchups");
+      return { success: true, extended: false, sealed: true };
+    }
+
     /* The publish and the bell in one transaction, and `nextOpensAt` stamped
        alongside, exactly as the clock's own `applyEditionAction` does it. An
        Edition published without `notifyPublished` is an Edition that, for its
        members, simply never happened -- which is why the migration that
        drained `preparing` published those rows through this path rather than
-       in SQL. */
+       in SQL.
+
+       `timeCapsule: false` on the compare-and-swap: if the flag the check above
+       read were ever wrong, Postgres refuses to publish a capsule rather than
+       trusting it (his 34b). */
     const patch = publishPatch(now);
     const applied = await prisma.$transaction(async (tx) => {
       const cas = await tx.catchupEdition.updateMany({
-        where: { id: editionId, status: "answering" },
+        where: { id: editionId, status: "answering", timeCapsule: false },
         data: patch,
       });
       if (cas.count === 0) return false;
@@ -1424,7 +1483,9 @@ export async function startNextEditionNow(catchupId: string) {
       select: { id: true, number: true, status: true },
     });
     if (!newest) return { error: "This Catch-up has no Edition yet." };
-    if (newest.status !== "published") {
+    // A sealed time capsule has closed: the next one may start while it waits
+    // out its year (build phase 14, his 33).
+    if (newest.status !== "published" && newest.status !== "sealed") {
       return { error: "There is already an Edition running. This one has to come out first." };
     }
 
@@ -1517,6 +1578,86 @@ export async function extendDeadline(editionId: string, days: number) {
       days: parsedDays.data,
       phase: edition.status === "collecting" ? ("questions" as const) : ("answers" as const),
     };
+  });
+}
+
+/**
+ * Make this Edition a time capsule, or take it back (build phase 14, spec 3.12).
+ *
+ * His, 2026-09-09: "Maybe something in settings. Say make this a time
+ * capsule." And 2026-09-14: "33 time capsule is just for one edition. 34b.
+ * 35 yes an edition can."
+ *
+ * It flips one flag and nothing else. The clock does the rest: when answering
+ * closes the Edition goes `sealed` instead of `published`, and a year later it
+ * opens and everyone is told (`planNextAction`).
+ *
+ * THE GATE, in the order it runs:
+ *  - A verified member. It decides what happens to everybody's writing for a
+ *    year, which is the tier every group-reaching write here sits at.
+ *  - In this Catch-up, via `loadMemberEdition`, which also brings the clock
+ *    current first, so "still collecting" means now and not when the page was
+ *    drawn.
+ *  - Not paused or ended (`refuseIfFrozen`).
+ *  - WHO: `mayMarkTimeCapsule`. The Keepers of a people Catch-up, anyone in a
+ *    batch. Deliberately NOT `loadKeeperEdition`, which turns a batch away
+ *    before asking anything else, because it guards transitions nobody can
+ *    undo (his N30). This is a setting, reversible until answering opens, and
+ *    his 35 is that a batch Edition can be a capsule. So the batch is let in
+ *    here, by name, rather than by slipping past that refusal.
+ *  - WHEN: `decideTimeCapsuleMark`, collecting only, and again inside the write
+ *    as the compare-and-swap, so a Keeper opening answering (or the clock)
+ *    between the check and the write cannot change it under people already
+ *    writing.
+ *
+ * No notification: the answering card is where a writer learns it, and that
+ * is waiting on the owner's pick in /lab/catchups/capsule. Allowed on the
+ * demo, which writes `CatchupEdition` already: it seals nothing until answering
+ * closes, and the nightly reset takes it.
+ *
+ * NOTHING CALLS THIS YET.
+ */
+export async function setEditionTimeCapsule(editionId: string, timeCapsule: boolean) {
+  return runAction(async () => {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+    if (typeof editionId !== "string" || !editionId) return { error: "Invalid request." };
+    if (typeof timeCapsule !== "boolean") return { error: "Invalid request." };
+
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
+
+    const scope = await loadMemberEdition(editionId, session.user.id);
+    if ("error" in scope) return scope;
+    const { edition, membership } = scope;
+
+    const frozen = refuseIfFrozen(edition.catchup.status, "Resume it to pick the Edition back up.");
+    if (frozen) return frozen;
+
+    if (
+      !mayMarkTimeCapsule({
+        viewerId: session.user.id,
+        createdById: edition.catchup.createdById,
+        groupRole: membership.role,
+        batchYear: edition.catchup.group.batchYear,
+      })
+    ) {
+      return { error: "Only a Keeper can make this Edition a time capsule." };
+    }
+
+    const when = decideTimeCapsuleMark(edition.status);
+    if (!when.ok) return { error: when.error };
+
+    const cas = await prisma.catchupEdition.updateMany({
+      where: { id: editionId, status: "collecting" },
+      data: { timeCapsule },
+    });
+    if (cas.count === 0) {
+      return { error: "Questions have just closed on this Edition, so this can no longer change." };
+    }
+
+    revalidatePath(`/catchups/${edition.catchupId}`);
+    return { success: true as const, timeCapsule };
   });
 }
 
@@ -2131,6 +2272,7 @@ const CATCHUP_NOTIFICATION_TYPES = [
   "catchup_answers_open",
   "catchup_reminder",
   "catchup_published",
+  "catchup_sealed",
   "catchup_love",
   "catchup_comment",
 ] as const;

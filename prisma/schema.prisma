@@ -1119,10 +1119,25 @@ model CatchupEdition {
   catchupId        String
   number           Int
   theme            String?
-  status           String    @default("collecting") // draft|collecting|answering|published
+  status           String    @default("collecting") // draft|collecting|answering|sealed|published
   questionsCloseAt DateTime?
   answersCloseAt   DateTime?
   publishedAt      DateTime?
+  // A time capsule (build phase 14, catchups-rework spec 3.12;
+  // prisma/migrations-manual/2026-09-14-time-capsule.sql). His 33: one Edition,
+  // not a whole Catch-up. Marked only while collecting (`setEditionTimeCapsule`).
+  // At the close the Edition goes `sealed` instead of `published`, and opens on
+  // `publishAt`, the same date a year on at 07:00 IST (`capsuleOpensAt`).
+  timeCapsule      Boolean   @default(false)
+  // When answering closed and it sealed. The rhythm and the opening day are both
+  // counted from here, and it stays set after the capsule opens.
+  sealedAt         DateTime?
+  // When a SEALED Edition opens. The column is older than the capsule: it held
+  // the deleted `preparing` hold's publish time, and three published rows still
+  // carry one, which is why it was kept rather than dropped in phase 11. Read
+  // only on a sealed row. A CHECK in the migration refuses a sealed row without
+  // both dates and the flag, which Prisma cannot express.
+  publishAt        DateTime?
   // Packed reminder bookkeeping, see `dailyBucket`/`withDailyBucket` in
   // src/lib/catchups.ts. Low byte = flags (4 = auto-extended once; 1 and 2 are
   // the retired two-days/last-day bits, inert on old rows). High bits = the

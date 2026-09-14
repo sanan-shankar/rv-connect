@@ -33,6 +33,7 @@ import {
   nextEditionStatus,
   planNextAction,
   QUESTION_WINDOW_DAYS,
+  TICK_GRACE_MS,
   deadlineIn,
   type EditionAction,
 } from "./catchups-core";
@@ -79,6 +80,8 @@ export const EDITION_TIMING_SELECT = {
   answersCloseAt: true,
   publishedAt: true,
   remindersSent: true,
+  timeCapsule: true,
+  publishAt: true,
 } as const;
 
 function toTiming(row: {
@@ -87,6 +90,8 @@ function toTiming(row: {
   answersCloseAt: Date | string | null;
   publishedAt: Date | string | null;
   remindersSent: number;
+  timeCapsule: boolean;
+  publishAt: Date | string | null;
 }): EditionTiming {
   return {
     status: row.status as EditionStatus,
@@ -94,6 +99,8 @@ function toTiming(row: {
     answersCloseAt: row.answersCloseAt,
     publishedAt: row.publishedAt,
     remindersSent: row.remindersSent,
+    timeCapsule: row.timeCapsule,
+    publishAt: row.publishAt,
   };
 }
 
@@ -146,8 +153,11 @@ async function applyEditionAction(
 
   return prisma.$transaction(async (tx) => {
     if (action.kind === "transition") {
+      /* `requires` rides on the compare-and-swap (build phase 14): an
+         answering Edition publishes only if it is NOT a capsule and seals
+         only if it IS, read by Postgres at the moment of the write. */
       const cas = await tx.catchupEdition.updateMany({
-        where: { id: editionId, status: action.from },
+        where: { id: editionId, status: action.from, ...(action.requires ?? {}) },
         data: action.patch,
       });
       if (cas.count === 0) return false;
@@ -161,7 +171,9 @@ async function applyEditionAction(
       if (action.notify === "catchup_answers_open") {
         await notify.notifyAnswersOpen(tx, { ...meta, editionId });
       } else if (action.notify === "catchup_published") {
-        await notify.notifyPublished(tx, { ...meta, editionId });
+        await notify.notifyPublished(tx, { ...meta, editionId, capsule: action.from === "sealed" });
+      } else if (action.notify === "catchup_sealed" && action.patch.publishAt) {
+        await notify.notifySealed(tx, { ...meta, editionId, opensAt: action.patch.publishAt });
       }
       return true;
     }
@@ -245,7 +257,13 @@ export async function advanceEdition(
     // member submissions, which write the edition directly -- is frozen by
     // `refuseIfFrozen` in the actions. Both halves are needed; neither is
     // reachable from the other.
-    if (meta.catchupStatus !== "active") return;
+    /* ONE EXCEPTION: a sealed time capsule opens on its date whatever the
+       Catch-up is doing (build phase 14). Holding a Catch-up holds its NEXT
+       Edition, and ending one ends its rhythm; neither was ever a promise to
+       keep last year's letters shut for longer than a year. Nothing else
+       moves: the plan for a sealed Edition has one step, and it books no
+       next Edition. */
+    if (meta.catchupStatus !== "active" && edition.status !== "sealed") return;
 
     let ed: EditionTiming = toTiming(edition);
     let entryCount: number | null = null;
@@ -254,10 +272,13 @@ export async function advanceEdition(
     for (let i = 0; i < 12; i += 1) {
       // Each count is loaded only for the decision that needs it, and only when
       // that decision is actually on the table.
+      const closing = nextEditionStatus(ed, now);
       if (
         entryCount === null &&
         ed.status === "answering" &&
-        nextEditionStatus(ed, now) === "published"
+        // A capsule closes onto `sealed`, and needs the same count: without it
+        // every capsule would look empty and take the too-few extension.
+        (closing === "published" || closing === "sealed")
       ) {
         entryCount = await prisma.catchupEntry.count({ where: { editionId: edition.id } });
       }
@@ -390,8 +411,10 @@ async function openNextEditionIfDue(
   if (!opensAt || now.getTime() < opensAt.getTime()) return;
 
   const latest = catchup.editions[0];
-  // Only open a fresh Edition when the previous one has actually published.
-  if (!latest || latest.status !== "published") return;
+  // Only open a fresh Edition when the previous one has actually closed:
+  // published, or sealed as a time capsule, whose rhythm carries on while it
+  // waits out its year (his 33: a capsule is one Edition, not the Catch-up).
+  if (!latest || (latest.status !== "published" && latest.status !== "sealed")) return;
 
   await openNextEdition(catchup, latest, opensAt, now);
 }
@@ -442,11 +465,25 @@ export async function advanceDueCatchups(userId?: string): Promise<void> {
        `nextOpensAt` it was handed, so a value that moved under it is a no-op
        rather than a double open. */
     const STALE = ["collecting", "answering"];
+    /* A time capsule due to open, in ANY Catch-up the scope reaches, active or
+       not (see advanceEdition). Inside the same read rather than a second
+       query, because this runs on every authenticated page and a round trip
+       to Mumbai for a table that is almost always empty of these is not free.
+       The grace is the clock's own, so the query and computeStatus agree. */
+    const sealedDue = {
+      status: "sealed",
+      publishAt: { lte: new Date(now.getTime() + TICK_GRACE_MS) },
+    };
     const catchups = await prisma.catchup.findMany({
       where: {
-        status: "active",
         ...scope,
-        OR: [{ nextOpensAt: { lte: now } }, { editions: { some: { status: { in: STALE } } } }],
+        OR: [
+          {
+            status: "active",
+            OR: [{ nextOpensAt: { lte: now } }, { editions: { some: { status: { in: STALE } } } }],
+          },
+          { editions: { some: sealedDue } },
+        ],
       },
       include: {
         group: { select: { id: true, name: true } },
@@ -464,7 +501,7 @@ export async function advanceDueCatchups(userId?: string): Promise<void> {
 
     for (const c of catchups) {
       for (const ed of c.editions) {
-        if (!STALE.includes(ed.status)) continue;
+        if (!STALE.includes(ed.status) && ed.status !== "sealed") continue;
         await advanceEdition(
           {
             ...ed,

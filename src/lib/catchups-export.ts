@@ -151,6 +151,11 @@ export type ExportedEdition = {
   answersCloseAt: string | null;
   publishedAt: string | null;
   remindersSent: number;
+  /** Build phase 14. Optional so files taken before it still read. */
+  timeCapsule?: boolean;
+  sealedAt?: string | null;
+  /** When a sealed capsule opens; on any other status, history. */
+  publishAt?: string | null;
   createdAt: string;
   questions: ExportedQuestion[];
 };

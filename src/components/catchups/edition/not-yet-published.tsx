@@ -18,20 +18,27 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { describeEditionStatus } from "@/lib/catchups-core";
 import type { EditionStatus } from "@/lib/catchups-types";
+import { formatDisplayDateLong } from "@/lib/utils";
 
 export function NotYetPublished({
   catchupId,
   title,
   status,
+  opensAt = null,
 }: {
   catchupId: string;
   title: string;
   status: EditionStatus;
+  /** A sealed time capsule's opening day (build phase 14). A stand-in line
+   *  until the owner picks the sealed Edition's look in the lab. */
+  opensAt?: Date | null;
 }) {
   const statusLine =
     status === "draft"
       ? "Questions have not opened yet."
-      : `${describeEditionStatus({ status })}.`;
+      : status === "sealed" && opensAt
+        ? `It opens on ${formatDisplayDateLong(opensAt)}.`
+        : `${describeEditionStatus({ status })}.`;
 
   return (
     <div className="mx-auto max-w-xl py-10 text-center">
