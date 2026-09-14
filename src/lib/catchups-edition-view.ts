@@ -21,11 +21,15 @@
  *  SECRECY, and the reason this is a loader and not a component: answer
  *  bodies must never be pulled into a server render of an Edition that has
  *  not revealed yet, Keeper included (spec 2.5, threat T-catchups-04).
- *  Both callers confirm a FRESH `published` status before they call this,
- *  and this function does not check it for them — it is the heavy read
- *  itself, so anything that calls it has already decided the Edition is
- *  public. A future surface that wants Edition contents must make the same
- *  decision first; there is no other gate below this line.
+ *  Both callers confirm a FRESH `published` status before they call this.
+ *
+ *  AND IT CHECKS AGAIN ITSELF, since build phase 14. A time capsule sits
+ *  `sealed` for a year and his 34b is that nothing in it is readable until
+ *  it opens, the writer's own answer included. A year is long enough for a
+ *  new surface to be written that forgets to ask, so the status is part of
+ *  the heavy read's own `where`: an Edition that is not published returns
+ *  null here, and no caller can get a word of it however it was reached.
+ *  `time-capsule-rule.test.mjs` fails if the clause comes out.
  * ------------------------------------------------------------------ */
 
 import { prisma } from "@/lib/prisma";
@@ -82,15 +86,16 @@ const toPersonRef = (u: {
 
 /**
  * Every question and answer in a published Edition, with this viewer's hearts
- * resolved. Null when the Edition row is gone: the home renders nothing, the
- * permalink calls `notFound()`.
+ * resolved. Null when the Edition row is gone OR IS NOT PUBLISHED (a sealed
+ * time capsule included): the home renders nothing, the permalink calls
+ * `notFound()`.
  */
 export async function loadPublishedEditionView(
   editionId: string,
   viewerId: string
 ): Promise<PublishedEditionView | null> {
-  const edition = await prisma.catchupEdition.findUnique({
-    where: { id: editionId },
+  const edition = await prisma.catchupEdition.findFirst({
+    where: { id: editionId, status: "published" },
     select: {
       number: true,
       publishedAt: true,

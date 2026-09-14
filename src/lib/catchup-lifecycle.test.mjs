@@ -17,9 +17,13 @@ import { read, decomment, balancedBody } from "./test-kit.mjs";
 test("B-061: the clock stops for a Catch-up that is not active", () => {
   const src = decomment(read("src/lib/catchups.ts"));
   // The one gate, inside advanceEdition, which every caller comes through.
+  /* With one exception since build phase 14: a sealed time capsule opens on
+     its date whatever the Catch-up is doing, and nothing else gets through.
+     time-capsule-rule.test.mjs pins why the plan for a sealed Edition has one
+     step and books nothing. */
   assert.match(
     src,
-    /meta\.catchupStatus !== "active"\)\s*return;/,
+    /meta\.catchupStatus !== "active" && edition\.status !== "sealed"\)\s*return;/,
     "advanceEdition no longer refuses to advance a paused or ended Catch-up"
   );
   /* And the sweep does not even load them. Pinned on the property rather than

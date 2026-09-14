@@ -82,7 +82,16 @@ export default async function AdminCatchupReadingRoom({
           questionsCloseAt: true,
           answersCloseAt: true,
           publishedAt: true,
+          publishAt: true,
           prompts: {
+            /* A SEALED TIME CAPSULE IS SEALED HERE TOO (build phase 14). His 34b
+               is that nothing in one is readable until it opens, and he is the
+               admin: this room is the one place the app could spoil his own
+               capsule. So its questions and answers are never QUERIED, not
+               fetched and hidden (write-path review, phase 14), and the room
+               says when it opens. Reversing that for moderation is his call,
+               and it is this one clause. */
+            where: { edition: { status: { not: "sealed" } } },
             select: {
               id: true,
               text: true,
@@ -170,7 +179,9 @@ export default async function AdminCatchupReadingRoom({
               ? edition.questionsCloseAt
               : edition.status === "answering"
                 ? edition.answersCloseAt
-                : null;
+                : edition.status === "sealed"
+                  ? edition.publishAt
+                  : null;
           // Answers live under prompts, so the Edition's own total is a sum
           // rather than a stored number that could disagree with the list.
           const answers = edition.prompts.reduce((n, p) => n + p.entries.length, 0);
@@ -188,7 +199,9 @@ export default async function AdminCatchupReadingRoom({
                 <p className="text-[12.5px] text-muted-foreground">
                   {metaLine(
                     edition.theme,
-                    `${answers} ${answers === 1 ? "answer" : "answers"} from ${wroteIn} ${wroteIn === 1 ? "person" : "people"}`,
+                    edition.status === "sealed"
+                      ? null
+                      : `${answers} ${answers === 1 ? "answer" : "answers"} from ${wroteIn} ${wroteIn === 1 ? "person" : "people"}`,
                     edition.publishedAt
                       ? `Sent ${formatDisplayDate(edition.publishedAt)}`
                       : due
@@ -198,7 +211,9 @@ export default async function AdminCatchupReadingRoom({
                 </p>
               </div>
 
-              {edition.prompts.length === 0 ? (
+              {edition.status === "sealed" ? (
+                <AdminEmpty>A time capsule. Nothing in it can be read until it opens, here included.</AdminEmpty>
+              ) : edition.prompts.length === 0 ? (
                 <AdminEmpty>Nobody has asked anything in this Edition yet.</AdminEmpty>
               ) : (
                 <div className="flex flex-col gap-2">

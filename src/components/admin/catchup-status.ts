@@ -21,5 +21,7 @@ export const EDITION_STATUS: Record<string, { label: string; tone: ChipTone }> =
   draft: { label: "Not opened yet", tone: "idle" },
   collecting: { label: "Taking questions", tone: "info" },
   answering: { label: "Taking answers", tone: "info" },
+  // A time capsule waiting out its year (build phase 14).
+  sealed: { label: "Sealed", tone: "idle" },
   published: { label: "Sent out", tone: "good" },
 };

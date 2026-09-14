@@ -92,6 +92,7 @@ turned away from every `/catchups` route by `catchups/layout.tsx`.
 
 ```
 draft -> collecting -> answering -> published
+                                \-> sealed -> published     (a time capsule, a year later)
 ```
 
 Forward only. `preparing` and its 24-hour hold were deleted on 2026-09-08: answers closing and the
@@ -102,12 +103,14 @@ path opens straight into `collecting`.
 |---|---|---|
 | `collecting` | the ask box and the questions so far | remove or reorder a question, open answering, give everyone longer |
 | `answering` | the questions to answer, on the home | give everyone longer, nudge, close and publish now |
+| `sealed` | a time capsule waiting out its year: nothing in it, their own answer included (built, not yet drawn; §16) | start the next Edition now (server side) |
 | `published` | the Edition, readable forever by every member, whether they wrote or not | start the next Edition now |
 
 **Nothing in an Edition is readable before it is published**, Keeper included, and that includes
 another member's answers. Only your own answers come back to you while answering. The owner closed
 this on 2026-09-09 (spec §3.13, reading (a)). The heavy read, `loadPublishedEditionView`, is only
-called after a fresh `published` status has been confirmed.
+called after a fresh `published` status has been confirmed, and since phase 14 it also asks for
+`published` in its own `where`, so a sealed time capsule returns nothing however it is reached.
 
 ### 3.2 Deadlines
 
@@ -121,7 +124,9 @@ All in `src/lib/catchups-core.ts`.
 - **`TICK_GRACE_MS` = 5 minutes**: a deadline counts as passed five minutes early, so scheduler
   jitter cannot push a phase back a whole day.
 - **`publishedAt` is the real instant**, not the snapped deadline, because it is the Edition's name.
-- **The next Edition opens** at `nextOpensAt = publishedAt + gap`: 14 days (`biweekly`), one calendar
+- **A time capsule opens** on `capsuleOpensAt(sealedAt)`: the same calendar date next year in IST,
+  at 07:00 IST. 29 February opens on 28 February. It is stored in `publishAt`.
+- **The next Edition opens** at `nextOpensAt = publishedAt + gap` (from `sealedAt` for a capsule): 14 days (`biweekly`), one calendar
   month (`monthly`, the default), or three (`quarterly`). Months clamp to the end of a short month.
   It only opens once the latest Edition is published.
 
@@ -138,7 +143,12 @@ nothing twice.
 - **Collecting closes with questions**: answering opens, everyone is told.
 - **Answering closes with no answers at all**: extended 3 days, once (`REMINDER_EXTENDED`), and the
   non-answerers are told again. After that it publishes whatever is there.
-- **Answering closes with answers**: published, everyone told, `nextOpensAt` stamped.
+- **Answering closes with answers**: published, everyone told, `nextOpensAt` stamped. A time
+  capsule goes `sealed` instead, with `sealedAt` and `publishAt` written together, everyone told the
+  day it opens (`catchup_sealed`), and `nextOpensAt` stamped, so the rhythm carries on. The write
+  requires the flag, so a stale read can never publish a capsule.
+- **A sealed Edition reaches `publishAt`**: published, everyone told, nothing booked. This one step
+  runs even when the Catch-up is held or ended.
 - **While answering**: one reminder a day to non-answerers (§11), guarded by a days-left bucket in the
   high bits of `remindersSent`, so a hundred page views produce one.
 
@@ -184,7 +194,8 @@ Every action is in `src/app/(main)/catchups/actions.ts`. "Verified" means `requi
 | `extendDeadline` | Keeper, collecting or answering | refused | frozen |
 | `nudgeGroup` | Keeper, while answering | refused | frozen, rate-limited, off on the demo |
 | `closeAndPublish` | Keeper, while answering (zero answers extends instead) | refused | frozen |
-| `startNextEditionNow` | Keeper, when the latest is published and the Catch-up active | refused | verified |
+| `startNextEditionNow` | Keeper, when the latest is published or sealed and the Catch-up active | refused | verified |
+| `setEditionTimeCapsule` | Keeper, while collecting | **any member**, while collecting | verified, frozen; nothing calls it yet |
 | `submitEntry` (answer) | any member, while answering | same | verified, frozen |
 | `toggleEntryLove`, comments | any member, published only | same | verified; comments rate-limited |
 | `renameCatchup`, `updateCatchupCadence` | Keeper | refused | |
@@ -429,7 +440,8 @@ Written by `src/lib/catchups-notify.ts` into `Notification`; `type` is a free st
 | `catchup_questions_open` | an Edition opens (creation, the clock, a Keeper, a batch reaching ten), or an empty question window is extended | every member but whoever did it | `/catchups/<id>` |
 | `catchup_answers_open` | answering opens; re-sent on the no-answers extension | every member but the Keeper who opened it; on the extension, non-answerers only | `/catchups/<id>` |
 | `catchup_reminder` | once a day while answering; or a Keeper's nudge | non-answerers by preference: Daily every day, On the last day on the last day, Never not at all. A nudge ignores Never. Today's replaces yesterday's | `/catchups/<id>` |
-| `catchup_published` | published, by the clock or a Keeper | every member but the Keeper who closed it | `/catchups/edition/<editionId>` |
+| `catchup_published` | published, by the clock or a Keeper; or a time capsule opening | every member but the Keeper who closed it | `/catchups/edition/<editionId>` |
+| `catchup_sealed` | a time capsule closes, saying the day it opens | every member but the Keeper who closed it | `/catchups/<id>` |
 | `catchup_love` | a heart on your answer | the answer's author, if still a member; at most one unread per author per Edition | `/catchups/edition/<editionId>` |
 | `catchup_comment` | a comment under your answer, or a reply to your comment | the answer's author and whoever was replied to, if still members; one unread per recipient, per writer, per answer | `/catchups/edition/<editionId>#entry-<entryId>` |
 
@@ -458,8 +470,8 @@ analytics counter, has no foreign key on `targetId`, and is written for unpublis
    batch year into their batch group (a signup whose best-effort join failed), then
    **`healBatchCatchups`** creates the Catch-up and its first Edition for any batch group at or over
    ten that has none. Both are idempotent, scan whole tables, and never run on a page view.
-2. The advance: every stale Edition in an active Catch-up, then every Catch-up whose `nextOpensAt`
-   has passed.
+2. The advance: every stale Edition in an active Catch-up, every sealed Edition whose `publishAt`
+   has come (in any Catch-up), then every Catch-up whose `nextOpensAt` has passed.
 
 ---
 
@@ -472,7 +484,11 @@ analytics counter, has no foreign key on `targetId`, and is written for unpublis
 - **The admin room**, `/admin/catchups` and `/admin/catchups/[catchupId]`, is oversight, not a second
   control panel. It runs the unscoped advance before reading, lists every Catch-up and any stuck
   Edition, and keeps Edition numbers, by the owner's decision.
-- **The account export** includes a member's questions, answers and comments in Catch-ups.
+- **The account export** includes a member's questions, answers and comments in Catch-ups, their
+  own answers in a sealed time capsule included, marked with its status and opening day (a decision
+  the owner may overturn; spec §3.12).
+- **The admin reading room** shows a sealed time capsule's status and opening day and never queries
+  its questions or answers. A capsule past its day that has not opened shows as stuck.
 - **The account purge** removes a member's answers and their photographs, sets their questions'
   `authorId` to NULL (a question belongs to everyone who answered it), and restores a pool picture
   where theirs was uploaded.
@@ -493,8 +509,9 @@ Each of these was checked in the code on 2026-09-14.
   title and other surfaces. `spec.md` §6 lists the suffix as deleted (brief ¶25).
 - **Rhythm has three cadences**; the drawn settings room offered four. Adding the other two is a
   column value, and it is the owner's call.
-- **`spec.md` §3.12 puts time capsule on `Catchup.timeCapsule`.** The owner corrected it on 2026-09-14:
-  a time capsule is one Edition, so it becomes a flag on `CatchupEdition`. Nothing is built.
+- **`spec.md` §3.12 put time capsule on `Catchup.timeCapsule`.** The owner corrected it on 2026-09-14:
+  a time capsule is one Edition. Corrected there, and built as a flag and a `sealed` status on
+  `CatchupEdition`.
 - **`spec.md` §3.10 said a voice answer caps at 90 seconds.** The owner said two minutes; corrected there
   2026-09-14, and the code's constant is 120.
 - **`spec.md` §3.5 and §9 row 11 deleted the orphaned "Batch of 2024" snapshot group** in the
@@ -506,8 +523,9 @@ Each of these was checked in the code on 2026-09-14.
   present.** They are not.
 - **`song-attachment.tsx`'s TODO proposes a `CatchupEntry.songs` column.** Link previews made song
   links cards in any answer, and the `song*` columns are going instead.
-- **`CatchupEdition.publishAt` is in the database but not in `schema.prisma`.** It stays: a time
-  capsule is a scheduled publish date.
+- **`CatchupEdition.publishAt` was in the database but not in `schema.prisma`.** Back in the schema
+  since phase 14, as a time capsule's opening day. Three published rows keep old values from the
+  deleted hold; nothing reads it on a published row.
 - **The Catch-ups guide chapter (`components/guide/chapters/catchups.tsx`) still tells members about
   the deleted hold** ("The day is there so that publishing is an event") and says "nobody is added
   without being asked first", when a starter or a Keeper enrols people directly. Member-facing copy,
@@ -542,7 +560,12 @@ Each of these was checked in the code on 2026-09-14.
   demo allows the table. The rules are `src/lib/vote-question-rule.ts`. **No surface asks, casts or
   shows a vote yet**: the drawings are `/lab/catchups/vote`, waiting for the owner's pick.
 - **Phase 14, time capsule**: one Edition, sealed until it opens, with nothing readable before then,
-  your own answer included; a batch Catch-up's Edition can be one.
+  your own answer included; a batch Catch-up's Edition can be one. **Underneath is built**
+  (2026-09-14): `CatchupEdition.timeCapsule`, `sealedAt`, `publishAt`, the `sealed` status and its
+  CHECK; the clock (§3.3); `setEditionTimeCapsule` (§4); `catchup_sealed`; the read gate in
+  `loadPublishedEditionView`; both exports. The rules are pinned by `time-capsule-rule.test.mjs`.
+  **No surface marks, shows or opens one yet**: the drawings are `/lab/catchups/capsule`, waiting
+  for the owner's pick.
 - **The longer question library**: drafted in `docs/planning/catchups-rework/library-draft.md` for the
   owner to cut. `CATCHUP_PROMPT_SETS` is unchanged until he does.
 - **M1, the magazine and its PDF**, last.

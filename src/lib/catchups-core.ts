@@ -178,6 +178,22 @@ export function daysLeftUntil(closeAt: Date | string | null | undefined, now: Da
  */
 const STATUS_ORDER: EditionStatus[] = ["draft", "collecting", "answering", "published"];
 
+/**
+ * A time capsule's path (build phase 14, spec 3.12): the same, with `sealed`
+ * between answering and published. His: "release the addition only one year
+ * later". It is the ordinary close, landing on a status nothing reads, and the
+ * same publish a year afterwards -- so the clock gains a step rather than a
+ * second mechanism.
+ *
+ * A row already `sealed` walks this path even if its flag somehow read false,
+ * because the only way forward from sealed is opening on its date.
+ */
+const CAPSULE_ORDER: EditionStatus[] = ["draft", "collecting", "answering", "sealed", "published"];
+
+function orderFor(ed: { status: EditionStatus; timeCapsule?: boolean }): EditionStatus[] {
+  return ed.timeCapsule || ed.status === "sealed" ? CAPSULE_ORDER : STATUS_ORDER;
+}
+
 export const CADENCE_LABELS: Record<Cadence, string> = {
   biweekly: "Biweekly",
   monthly: "Monthly",
@@ -340,6 +356,38 @@ export function snapToDeadlineHour(at: Date): Date {
 /** `addDays`, landed on the civil hour. Every phase deadline is minted here. */
 export function deadlineIn(from: Date, days: number): Date {
   return snapToDeadlineHour(addDays(from, days));
+}
+
+/** India's one fixed offset, the same fact DEADLINE_HOUR_UTC_MS leans on. */
+const IST_OFFSET_MS = 330 * 60 * 1000;
+
+/**
+ * The morning a time capsule opens: the same date next year, at 07:00 IST
+ * (build phase 14, spec 3.12).
+ *
+ * THE SAME CALENDAR DATE, AS THE VALLEY COUNTS IT. The date is read in IST
+ * rather than UTC, because an Edition closed at 01:00 IST on 15 September is
+ * the 14th in UTC, and "sealed 15 September, opens 14 September" is the one
+ * mistake a member would notice. Then the civil hour every deadline lands on,
+ * so it opens with the morning cron rather than whenever somebody visits.
+ *
+ * NOT `snapToDeadlineHour(addMonths(sealedAt, 12))`: snapping rounds FORWARD,
+ * so a capsule sealed by the 07:30 cron would open on the 15th, a day late,
+ * every year. This lands on the date itself: sealed at 05:30 IST it opens an
+ * hour and a half over a year, sealed at 23:59 IST seventeen hours short, and
+ * never a whole day either way.
+ *
+ * 29 February has no anniversary three years in four, so it opens on 28
+ * February: the last day of the month it was sealed in, the rule
+ * `addMonths` already applies to a monthly rhythm anchored on the 31st.
+ */
+export function capsuleOpensAt(sealedAt: Date): Date {
+  const valley = new Date(sealedAt.getTime() + IST_OFFSET_MS);
+  const year = valley.getUTCFullYear() + 1;
+  const month = valley.getUTCMonth();
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const day = Math.min(valley.getUTCDate(), daysInMonth);
+  return new Date(Date.UTC(year, month, day) + DEADLINE_HOUR_UTC_MS);
 }
 
 /** nextOpensAt = publishedAt + cadenceGap: 14d biweekly, ~1 month monthly, ~3 months quarterly. */
@@ -509,6 +557,56 @@ export function mayChangeCatchupPicture(opts: {
   return isEffectiveKeeper(opts);
 }
 
+/**
+ * Who may make an Edition a time capsule, or take it back (build phase 14).
+ *
+ * Whoever runs the Edition. On a people Catch-up that is its Keepers. On a
+ * BATCH Catch-up it is anyone in the batch -- his answer 35, "yes an edition
+ * can" -- because nobody keeps a batch, so "only the Keeper" would mean a
+ * batch could never have one.
+ *
+ * WHY THIS IS NOT ONE OF THE KEEPER CONTROLS, which all refuse a batch
+ * outright (`BATCH_CATCHUP_REFUSAL`). That refusal is for TRANSITIONS: his N30
+ * was about somebody in forty opening or closing answering by accident, a
+ * thing nobody can undo. Marking a capsule moves nothing. It is allowed only
+ * while the Edition is still taking questions, it is undone by pressing it
+ * again, and until answering opens nobody has written a word it could seal.
+ * That is the picture's footing (`mayChangeCatchupPicture`, his 18), not the
+ * transitions', and the rule is the same shape for the same reason.
+ *
+ * Membership is established by the caller, as there.
+ */
+export function mayMarkTimeCapsule(opts: {
+  viewerId: string | null | undefined;
+  createdById: string | null | undefined;
+  groupRole: string | null | undefined;
+  batchYear: number | null | undefined;
+}): boolean {
+  return mayChangeCatchupPicture(opts);
+}
+
+/**
+ * WHEN an Edition may be marked a time capsule: only while it is collecting
+ * questions.
+ *
+ * So everyone writing it knows it is sealed before they write -- his 34b means
+ * they will not see their own answer again for a year, and that is not a thing
+ * to learn afterwards. Once answering opens the mark is frozen, both ways:
+ * taking it off mid-week would publish words people wrote for a year from now.
+ */
+export function decideTimeCapsuleMark(
+  editionStatus: string
+): { ok: true } | { ok: false; error: string } {
+  if (editionStatus === "collecting") return { ok: true };
+  return {
+    ok: false,
+    error:
+      editionStatus === "draft"
+        ? "This Edition has not opened yet."
+        : "An Edition can only become a time capsule while it is taking questions.",
+  };
+}
+
 // ─── Pure state machine ──────────────────────────────────────────────────────
 
 function ms(t: Date | string | null | undefined): number | null {
@@ -568,6 +666,14 @@ export function computeStatus(ed: EditionTiming, now: Date): EditionStatus {
     // Edition with the morning rather than at whatever minute the phase
     // happened to open at.
     if (!passed(ed.answersCloseAt)) return "answering";
+    s = ed.timeCapsule ? "sealed" : "published";
+  }
+  if (s === "sealed") {
+    /* A time capsule opens on `publishAt`, which the seal itself writes. A
+       sealed row with no date stays sealed: failing closed is the whole of
+       his 34b, and the CHECK in 2026-09-14-time-capsule.sql makes that row
+       impossible anyway. */
+    if (!passed(ed.publishAt)) return "sealed";
     s = "published";
   }
   return s;
@@ -576,10 +682,11 @@ export function computeStatus(ed: EditionTiming, now: Date): EditionStatus {
 /** The single next forward step the clock justifies, or null when the Edition is settled. */
 export function nextEditionStatus(ed: EditionTiming, now: Date): EditionStatus | null {
   const target = computeStatus(ed, now);
-  const ci = STATUS_ORDER.indexOf(ed.status);
-  const ti = STATUS_ORDER.indexOf(target);
+  const order = orderFor(ed);
+  const ci = order.indexOf(ed.status);
+  const ti = order.indexOf(target);
   if (ti <= ci) return null;
-  return STATUS_ORDER[ci + 1];
+  return order[ci + 1];
 }
 
 /**
@@ -629,6 +736,9 @@ export type EditionPatch = {
   answersCloseAt?: Date;
   publishedAt?: Date;
   remindersSent?: number;
+  /** Written together, once, by `sealPatch`. */
+  sealedAt?: Date;
+  publishAt?: Date;
 };
 
 /**
@@ -692,6 +802,19 @@ export function extendPhasePatch(ed: EditionTiming, days: number, now: Date): Ed
  */
 export function publishPatch(now: Date): EditionPatch {
   return { status: "published", publishedAt: now };
+}
+
+/**
+ * answering -> sealed, for a time capsule (build phase 14). The ordinary close
+ * with the opening a year out, by the clock or by a Keeper closing early.
+ *
+ * `publishedAt` stays null until it opens, because it is the Edition's NAME
+ * (see publishPatch) and an Edition nobody can read has not come out.
+ * `sealedAt` is when answering actually closed, which is what the rhythm and
+ * the opening date are both measured from.
+ */
+export function sealPatch(now: Date): EditionPatch {
+  return { status: "sealed", sealedAt: now, publishAt: capsuleOpensAt(now) };
 }
 
 /**
@@ -788,6 +911,13 @@ export type EditionAction =
       patch: EditionPatch;
       notify: CatchupNotifyKind | null;
       setsNextOpensAt: boolean;
+      /**
+       * What the row's flag must say for the write to land, or null. The
+       * compare-and-swap carries it, so a caller holding a stale or missing
+       * `timeCapsule` can never publish a capsule: the update matches nothing,
+       * the loop re-reads the row, and plans again from the truth.
+       */
+      requires: { timeCapsule: boolean } | null;
     }
   | { kind: "extend"; patch: EditionPatch; notify: "catchup_answers_open" }
   | { kind: "extend-questions"; patch: EditionPatch; notify: "catchup_questions_open" }
@@ -825,9 +955,24 @@ export function planNextAction(ed: EditionTiming, counts: EditionCounts, now: Da
       }
       return { kind: "none" }; // dormant; revived by the first question
     }
-    if (ed.status === "answering" && next === "published") {
+    if (ed.status === "answering" && (next === "published" || next === "sealed")) {
       if (shouldExtendForTooFew(ed, counts.entries)) {
         return { kind: "extend", patch: extendPatch(ed, now), notify: "catchup_answers_open" };
+      }
+      if (next === "sealed") {
+        /* A time capsule closes the same way and lands sealed. The rhythm
+           carries on from here (the capsule is one Edition, his 33), so
+           `nextOpensAt` is stamped now, not in a year; and the group is told
+           the day it opens, so a week of writing does not just vanish. */
+        return {
+          kind: "transition",
+          from: "answering",
+          to: "sealed",
+          patch: sealPatch(now),
+          notify: "catchup_sealed",
+          setsNextOpensAt: true,
+          requires: { timeCapsule: true },
+        };
       }
       // Straight out. This step used to be answering -> preparing, silent, with
       // the notification a day later on preparing -> published; now the close
@@ -840,6 +985,21 @@ export function planNextAction(ed: EditionTiming, counts: EditionCounts, now: Da
         patch: publishPatch(now),
         notify: "catchup_published",
         setsNextOpensAt: true,
+        requires: { timeCapsule: false },
+      };
+    }
+    if (ed.status === "sealed" && next === "published") {
+      /* A year later: the same publish, the same bell. It books nothing,
+         because the rhythm was booked when it sealed and has been running
+         since. */
+      return {
+        kind: "transition",
+        from: "sealed",
+        to: "published",
+        patch: publishPatch(now),
+        notify: "catchup_published",
+        setsNextOpensAt: false,
+        requires: { timeCapsule: true },
       };
     }
     if (next === "answering") {
@@ -850,6 +1010,7 @@ export function planNextAction(ed: EditionTiming, counts: EditionCounts, now: Da
         patch: answeringPatch(ed, now),
         notify: "catchup_answers_open",
         setsNextOpensAt: false,
+        requires: null,
       };
     }
     // Any other single step (e.g. a staged draft opening) carries no clock side effects.
@@ -860,6 +1021,7 @@ export function planNextAction(ed: EditionTiming, counts: EditionCounts, now: Da
       patch: { status: next },
       notify: null,
       setsNextOpensAt: false,
+      requires: null,
     };
   }
 
@@ -986,6 +1148,8 @@ export function describeEditionStatus(
       const left = editionCountdownLabel(ed, now);
       return left ? `Answering now, ${left}` : "Answering now";
     }
+    case "sealed":
+      return "Sealed";
     case "published":
       return "Published";
     default:
@@ -1054,7 +1218,9 @@ export function homeStateLine(
   if (edition.status === "answering") {
     return edition.answersCloseAt ? `Answers close ${fmt.dayAndDate(edition.answersCloseAt)}` : null;
   }
-  if (edition.status === "published") {
+  /* A sealed Edition is the latest only until the rhythm opens the next one,
+     and the rhythm was booked when it sealed, so the line is the same. */
+  if (edition.status === "published" || edition.status === "sealed") {
     return nextOpensAt ? `The next one opens ${fmt.longDate(nextOpensAt)}` : null;
   }
   return null;
@@ -1066,6 +1232,7 @@ export function catchupStageLine(
     status: EditionStatus;
     answersCloseAt?: Date | string | null;
     publishedAt?: Date | string | null;
+    publishAt?: Date | string | null;
   } | null,
   /** Injected so this stays pure and testable, and so the app has one date
    *  voice: `formatDayAndDate` and `formatDisplayDateLong` from lib/utils,
@@ -1087,6 +1254,10 @@ export function catchupStageLine(
         : "Open for answers";
     case "published":
       return edition.publishedAt ? `Out ${fmt.longDate(edition.publishedAt)}` : "Out now";
+    /* A stand-in line until the owner picks how a sealed Edition looks
+       (/lab/catchups/capsule); nothing can seal one before then. */
+    case "sealed":
+      return edition.publishAt ? `Sealed until ${fmt.longDate(edition.publishAt)}` : "Sealed";
     // A `draft` Edition is one that exists and has not opened. Nothing creates
     // one today -- every creation path opens straight into collecting, and the
     // live database holds none -- but the status is still in the union, and

@@ -68,6 +68,7 @@ const STATUS_PRIORITY: Partial<Record<EditionStatus, number>> = {
   collecting: 1,
   draft: 2,
   published: 3,
+  sealed: 3,
 };
 
 /** The two real date voices, handed to the pure copy helper so the app spells
@@ -117,6 +118,8 @@ async function loadIndexData(userId: string) {
                   status: true,
                   answersCloseAt: true,
                   publishedAt: true,
+                  // A sealed time capsule's opening day, for its stage line.
+                  publishAt: true,
                 },
               },
             },

@@ -89,6 +89,8 @@ const NOTIFICATION_ICON_META: Record<string, { icon: typeof Bell; heart?: boolea
   catchup_answers_open: { icon: PenLine, label: "Answers open" },
   catchup_reminder: { icon: Clock, label: "Reminder" },
   catchup_published: { icon: BookOpen, label: "Edition published" },
+  // A time capsule closed and opens in a year (build phase 14).
+  catchup_sealed: { icon: Clock, label: "Time capsule sealed" },
   catchup_love: { icon: Heart, heart: true, label: "Loved your answer" },
   // Somebody wrote under your answer, or answered you (build phase 9). The
   // feed's own comment rows use Reply/MessageCircle; this one is a Catch-up

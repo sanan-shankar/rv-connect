@@ -17,8 +17,19 @@ import type { StoredPhoto } from "@/lib/photo-layout";
 
 // ─── String-literal unions (mirror the free-string columns in schema) ────────
 
-/** CatchupEdition.status — forward-only: draft -> collecting -> answering -> published. */
-export type EditionStatus = "draft" | "collecting" | "answering" | "published";
+/**
+ * CatchupEdition.status — forward-only: draft -> collecting -> answering -> published.
+ *
+ * A time capsule (build phase 14, spec 3.12) takes one more step between the
+ * last two: answering -> sealed -> published, opening on `publishAt`, a year
+ * after it sealed. `sealed` is a status of its own rather than a published row
+ * with a future date, because every reader in the app already asks
+ * `status === "published"` before it shows a word. A sealed Edition is refused
+ * by all of them without any of them changing, and a reader written next year
+ * that forgets the date cannot leak one (his answer 34b: nothing in it is
+ * readable until it opens, your own answer included).
+ */
+export type EditionStatus = "draft" | "collecting" | "answering" | "sealed" | "published";
 
 /** Catchup.status. */
 export type CatchupStatus = "active" | "paused" | "ended";
@@ -89,6 +100,8 @@ export type CatchupNotifyKind =
   | "catchup_answers_open"
   | "catchup_reminder"
   | "catchup_published"
+  /* A time capsule closed and will open in a year (build phase 14). */
+  | "catchup_sealed"
   | "catchup_love"
   | "catchup_comment";
 
@@ -105,6 +118,13 @@ export type EditionTiming = {
   answersCloseAt: Date | string | null;
   publishedAt: Date | string | null;
   remindersSent: number;
+  /** Marked while collecting: this Edition seals instead of publishing
+   *  (build phase 14). Required, not optional, so a caller that forgets to
+   *  select it fails to compile rather than quietly publishing a capsule. */
+  timeCapsule: boolean;
+  /** When a SEALED Edition opens. Meaningless on any other status: three
+   *  published rows still carry a value from the deleted `preparing` hold. */
+  publishAt: Date | string | null;
 };
 
 // ─── View models (what the screens render) ───────────────────────────────────
@@ -263,7 +283,14 @@ export type NotifyReminderFn = (
 
 export type NotifyPublishedFn = (
   db: CatchupDb,
-  ctx: NotifyBaseCtx & { excludeUserId?: string }
+  /** `capsule`: this is a time capsule opening a year after it sealed. */
+  ctx: NotifyBaseCtx & { excludeUserId?: string; capsule?: boolean }
+) => Promise<void>;
+
+/** A time capsule closed, and everyone is told the day it opens (phase 14). */
+export type NotifySealedFn = (
+  db: CatchupDb,
+  ctx: NotifyBaseCtx & { opensAt: Date; excludeUserId?: string }
 ) => Promise<void>;
 
 /**

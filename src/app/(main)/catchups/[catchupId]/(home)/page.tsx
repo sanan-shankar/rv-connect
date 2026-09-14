@@ -88,6 +88,8 @@ const loadCatchup = cache(async function loadCatchup(catchupId: string) {
           answersCloseAt: true,
           publishedAt: true,
           remindersSent: true,
+          timeCapsule: true,
+          publishAt: true,
           createdAt: true,
         },
       },
@@ -138,6 +140,8 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       answersCloseAt: latestRaw.answersCloseAt,
       publishedAt: latestRaw.publishedAt,
       remindersSent: latestRaw.remindersSent,
+      timeCapsule: latestRaw.timeCapsule,
+      publishAt: latestRaw.publishAt,
       catchup: {
         cadence: catchup.cadence,
         status: catchup.status,
@@ -152,6 +156,10 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
         where: { id: latestRaw.id },
         include: {
           prompts: {
+            /* Not for a sealed time capsule (build phase 14, his 34b): its
+               questions are part of what is sealed, and only collecting and
+               answering ever use these rows, so they are not queried at all. */
+            where: { edition: { status: { not: "sealed" } } },
             include: { author: { select: IDENTITY_SELECT } },
           },
         },

@@ -227,6 +227,14 @@ export async function GET() {
             // A vote is theirs too, and the choice's words say more than its
             // id would (build phase 13).
             pollOption: { select: { text: true } },
+            /* Whether it is sitting in a sealed time capsule, and until when
+               (build phase 14). The answer itself IS included, and that is a
+               decision, not an oversight: his 34b seals a capsule against
+               READING it in the app, and this is a member's copy of their own
+               data, the right of access the privacy page promises. It is out
+               of band, asked for on purpose, and carries only their own words.
+               Overturning it is the owner's call; it is one filter here. */
+            edition: { select: { status: true, publishAt: true } },
             createdAt: true,
           },
           ...keyset({ authorId: userId }, after),

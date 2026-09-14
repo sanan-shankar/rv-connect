@@ -703,32 +703,68 @@ results are drawn at `/lab/catchups/vote` and wait for him.
 > questions are more relevant, maybe something's a little bit more personal, maybe some things what
 > would you hope your life looks like in a year later or something like that."*
 
-**What a member sees.** The Catch-up's settings carry a switch. Everyone writes as normal; the
-deadline passes; and instead of the Edition coming out, it is sealed. The home says what it is
-sealed until. A year later it opens, everybody is told, and they read what they wrote when they had
-forgotten writing it.
+**CORRECTED 2026-09-14 by his answers, and built underneath (phase 14, his 31a).** Verbatim:
+*"33 time capsule is just for one edition. 34b."* and *"35 yes an edition can."* The sketch that
+stood here put a switch on the whole Catch-up (`Catchup.timeCapsule`) and let you read your own
+answer while sealed. Both were wrong, and neither is built.
 
-```prisma
-// on Catchup
-timeCapsule Boolean @default(false)
-```
+**What a member sees.** While an Edition is still taking questions, whoever runs it can mark it a
+time capsule in settings. Everyone writes as normal; the deadline passes; and instead of the Edition
+coming out, it is sealed. Everyone is told the day it opens. **Nothing in it can be read until
+then, your own answer included** (34b). The rhythm carries on: the next Edition opens on schedule,
+because a capsule is one Edition and not the Catch-up (33). A year later it opens, everybody is
+told, and it reads like any published Edition, open to every member including anyone who joined
+while it was sealed.
 
-**And the publish date is `CatchupEdition.publishAt`, the column phase 11 was about to drop.** See
-the correction in §9. A time capsule is exactly a scheduled publish, the column already exists, and
-dropping it now to add it back in November is two migrations against a live database for nothing.
+**The publish date is still `CatchupEdition.publishAt`**, the column phase 11 kept. See the
+correction in §9.
 
-**The clock does not need a new mechanism.** Phase 2 made answering → published one transition on
-the nightly tick at 07:00 IST. A sealed Edition is the same transition with `publishAt` a year out,
-so the tick already does it and `notifyPublished` already fires from the same place.
+**What is built, and why each shape**, argued in full where it lives:
 
-**Two decisions that are the design and not the data**, and they want drawing before building:
+- **A status, `sealed`, between answering and published**, not a published row with a future date.
+  This spec leaned toward reusing `published`; that would have made every reader in the app
+  responsible for also checking a date, and any reader written in the year a capsule sits sealed
+  that forgot would leak it. Every reader already asks `status === "published"`, so a sealed Edition
+  is refused by all of them without any of them changing. Fail closed.
+- **`CatchupEdition.timeCapsule`** (Boolean, default false), **`sealedAt`** (when answering closed)
+  and **`publishAt`** (when it opens, now back in `schema.prisma`; three published rows still carry
+  old values from the deleted hold, which nothing reads). A CHECK,
+  `CatchupEdition_sealed_is_a_capsule`, refuses a sealed row without the flag or either date, proved
+  live in a rolled-back block. `2026-09-14-time-capsule.sql`, applied to both projects.
+- **The opening day** is `capsuleOpensAt`: the same calendar date next year **as the valley counts
+  it (IST)**, at 07:00 IST, so the morning cron opens it within half an hour. Not a snap forward
+  from a year later, which would open every capsule sealed by the 07:30 cron a day late. 29 February
+  opens on 28 February.
+- **The clock**: `planNextAction` closes a capsule onto `sealed` (the too-few extension still runs
+  first, so a capsule nobody wrote in seals empty), stamps `nextOpensAt` from the seal, and fires
+  `catchup_sealed` to the home. On its date, `sealed -> published` fires `notifyPublished` from the
+  same transaction and books nothing. The transition's compare-and-swap requires the flag
+  (`requires`), so a stale or missing flag can never publish a capsule. **A capsule opens on its
+  date even if its Catch-up is held or ended**: holding holds the next Edition, and ending ends the
+  rhythm; neither promised to keep last year's words shut longer. A Keeper's early close seals a
+  capsule the same way.
+- **Marking** is `setEditionTimeCapsule`: verified, a member, not frozen, **only while collecting**
+  (re-read by the write), and **whoever runs that Edition**: its Keepers, or on a batch anyone in
+  the batch (35). It is not one of the Keeper controls that refuse a batch, because those guard
+  transitions nobody can undo (N30); a mark moves nothing and is undone by pressing it again until
+  answering opens. Nothing calls it yet.
+- **The read gate** is in `loadPublishedEditionView`'s own `where`, not only in its callers, and
+  `time-capsule-rule.test.mjs` walks every reader: the reader and its tab title, the home (covers,
+  and your own answers, which come back only while answering), the list's spare slots, hearts,
+  comments, `voteResult`, the read mark, link previews (resolved on read only inside that loader),
+  the notifications, and the admin reading room, which does not query a sealed Edition's questions
+  or answers at all (the owner is the admin; reversing that for moderation is his call). A tripwire
+  fails on any new file that reads answer rows.
+- **The account export carries a member's own answers in a sealed capsule**, marked with its status
+  and opening day. That is a decision: 34b seals a capsule against reading in the app, and the
+  export is a member's copy of their own data. **His to overturn**; it is one filter.
 
-- **What a sealed Edition looks like for a year.** It is not an empty state and it must not read as
-  a Catch-up that has gone quiet. It is the one surface in this feature whose whole content is
-  anticipation.
-- **Whether you can read your own answer while it is sealed.** Yes, is the recommendation: it is
-  your writing, and a capsule you cannot check you contributed to is a worry rather than a promise.
-  Nobody else's, obviously.
+**What a sealed Edition looks like for a year** is the design half. It is not an empty state and it
+must not read as a Catch-up that has gone quiet. It is the one surface in this feature whose whole
+content is anticipation.
+
+**Still to draw, and his to pick** (`/lab/catchups/capsule`): how a sealed Edition sits on the
+home, the list and a deep link; the morning it opens; and the mark in settings.
 
 **The library tweak is half the feature, not a detail.** A sealed Edition wants questions worth
 opening a year later — what you hope is different, what you are afraid of, where you think you will
@@ -1032,7 +1068,7 @@ in it.
 | **11** | **Cleanup** — **PARTIAL 2026-09-14**: the three throwaways are deleted (`2026-09-14-delete-test-catchups.sql`, production; the demo had none). **The snapshot group was NOT deleted**: his answer to 28 authorised the test Catch-ups only, so it waits on him. The drops below wait on his release | the dead columns dropped **after phases 2, 5 and 10 have deployed**; the three throwaway Catch-ups and the orphaned snapshot group removed; `docs/spec/catchups.md` rewritten to describe what shipped. **CORRECTED 2026-09-09: `CatchupEdition.publishAt` is NOT dropped.** It was on the list because the `preparing` hold it served died in phase 2 — but a time capsule (§3.12) is exactly a scheduled publish date and it is the same column. Dropping it now to add it back is two migrations against a live database for nothing. Keep it, and say so in the file. `CatchupPref.deletedAt` still goes | the drop file |
 | **12** | **A question you answer out loud** — **PARTIAL 2026-09-14: plumbed, drawn, OWNER-GATED on his pick** (`/lab/catchups/voice`) | §3.10. **Cap is 120 seconds** (his 32). `audioUrl`, `audioSeconds`, `audioIsAuto` on `CatchupEntry`; the recorder in the composer; the player in the reader; the browser's own speech recognition writing the body, editable afterwards. **Draw the no-transcript case first**, because Firefox has none | the three columns |
 | **13** | **A question the group votes on** — **PARTIAL 2026-09-14: plumbed, drawn, OWNER-GATED on his pick** (`/lab/catchups/vote`) | §3.11. `CatchupPromptOption`, `CatchupEntry.pollOptionId`; options written where the question is written; the published result drawn as who chose what, with their birds, and never as a percentage | one table, one column |
-| **14** | **Time capsule** | §3.12. `Catchup.timeCapsule`; the switch in the settings surface; `publishAt` a year out and the tick already publishing it; **the sealed-Edition surface, which is a drawing job and the real content of this phase**; the library's own capsule set | one column |
+| **14** | **Time capsule**, drawn and plumbed 2026-09-14, **OWNER-GATED on his pick** | §3.12. **CORRECTED (his 33): `CatchupEdition.timeCapsule`, one Edition, and a `sealed` status**; the mark in settings, while collecting; `publishAt` a year out and the tick already publishing it; **the sealed-Edition surface, which is a drawing job and the real content of this phase**; the library's own capsule set (drafted in `library-draft.md`, waiting on his cut) | `2026-09-14-time-capsule.sql` |
 
 **Two sessions run beside these, not inside them.**
 

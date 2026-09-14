@@ -22,6 +22,7 @@
  * ------------------------------------------------------------------ */
 
 import { answerReminderMessage } from "@/lib/catchups-core";
+import { formatDisplayDateLong } from "@/lib/utils";
 import type {
   CatchupDb,
   NotifyAnswersOpenFn,
@@ -30,6 +31,7 @@ import type {
   NotifyPublishedFn,
   NotifyQuestionsOpenFn,
   NotifyReminderFn,
+  NotifySealedFn,
   ReminderMode,
 } from "@/lib/catchups-types";
 
@@ -212,8 +214,33 @@ export const notifyPublished: NotifyPublishedFn = async (db, ctx) => {
     db,
     members,
     "catchup_published",
-    `Your ${ctx.groupName} Catch-up is ready to read.`,
+    ctx.capsule
+      ? `The ${ctx.groupName} time capsule is open.`
+      : `Your ${ctx.groupName} Catch-up is ready to read.`,
     `/catchups/edition/${ctx.editionId}`
+  );
+};
+
+/**
+ * A time capsule closed (build phase 14): everyone is told the day it opens.
+ *
+ * To the HOME, not the Edition. There is nothing at the Edition's own address
+ * to read for a year (his 34b), and a bell whose only destination is a page
+ * saying so is a dead end. Everyone in the group, writers or not, because the
+ * rhythm moves on without them either way.
+ *
+ * Copy is a stand-in until the owner picks the sealed Edition's look.
+ */
+export const notifySealed: NotifySealedFn = async (db, ctx) => {
+  const members = (await groupMemberIds(db, ctx.groupId)).filter(
+    (id) => id !== ctx.excludeUserId
+  );
+  await createMany(
+    db,
+    members,
+    "catchup_sealed",
+    `${ctx.groupName}'s Catch-up is sealed until ${formatDisplayDateLong(ctx.opensAt)}.`,
+    `/catchups/${ctx.catchupId}`
   );
 };
 

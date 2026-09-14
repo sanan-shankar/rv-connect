@@ -227,6 +227,9 @@ export function overdueEditionWhere(now: Date) {
     OR: [
       { status: "collecting", questionsCloseAt: { lt: now } },
       { status: "answering", answersCloseAt: { lt: now } },
+      // A time capsule past its opening day that has not opened is the one
+      // failure nobody else would notice for a year (build phase 14).
+      { status: "sealed", publishAt: { lt: now } },
     ],
   };
 }

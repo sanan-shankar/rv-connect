@@ -66,6 +66,7 @@ export default async function AdminCatchupsPage() {
             questionsCloseAt: true,
             answersCloseAt: true,
             publishedAt: true,
+            publishAt: true,
             _count: { select: { prompts: true, entries: true } },
           },
           orderBy: { number: "desc" },
@@ -97,7 +98,9 @@ export default async function AdminCatchupsPage() {
         ? edition.questionsCloseAt
         : edition?.status === "answering"
           ? edition.answersCloseAt
-          : null;
+          : edition?.status === "sealed"
+            ? edition.publishAt
+            : null;
 
     return (
       <div

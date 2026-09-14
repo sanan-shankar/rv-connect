@@ -49,6 +49,8 @@ const LIGHT_EDITION_SELECT = {
   answersCloseAt: true,
   publishedAt: true,
   remindersSent: true,
+  timeCapsule: true,
+  publishAt: true,
   catchup: {
     select: {
       id: true,
@@ -170,15 +172,18 @@ export default async function EditionPage({
   const status = edition.status as EditionStatus;
   const title = catchupSurfaceTitle(edition.catchup.title, edition.catchup.group.name);
 
-  // draft / collecting / answering: nothing to read yet. There is no fourth
-  // case any more: `preparing` is deleted, so an Edition whose answers have
-  // closed is already published and falls through to the reader below.
+  // draft / collecting / answering / sealed: nothing to read yet. `sealed` is
+  // a time capsule waiting out its year (build phase 14), and a deep link to
+  // one is told the day it opens and nothing else, the writer included (34b).
+  // `preparing` is deleted, so an ordinary Edition whose answers have closed is
+  // already published and falls through to the reader below.
   if (status !== "published") {
     return (
       <NotYetPublished
         catchupId={edition.catchupId}
         title={title}
         status={status}
+        opensAt={status === "sealed" ? edition.publishAt : null}
       />
     );
   }
