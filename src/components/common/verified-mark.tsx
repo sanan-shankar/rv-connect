@@ -1,8 +1,8 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { Tooltip } from "@base-ui/react/tooltip";
 import { Leaf } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 /**
  * A quiet verified marker: a small leaf next to the name, no label until hover
@@ -12,6 +12,15 @@ import { cn } from "@/lib/utils";
  * The label sits to the RIGHT of the leaf (owner: below covered other elements
  * like the meta line on the profile header). If there is not enough room to the
  * right, it flips to the left instead.
+ *
+ * PORTALLED, and that is the fix for "the verified tag gets cut off in feed"
+ * (owner, 2026-09-15). The label used to be an absolute child of the leaf, so
+ * it lived inside every box around the name: IdentityRow's `overflow-x-clip`
+ * (kept for the ellipsis) and the post card's `overflow-hidden` (kept for its
+ * radius). Its own flip only measured the viewport, so it could decide there
+ * was room and still be sliced by a card edge it could not see. Rendered into
+ * the body, no ancestor can clip it, and the positioner flips it against the
+ * viewport alone -- it shows wherever there is space.
  *
  * SIZES: exactly two are sanctioned (owner, 2026-07-30: one pill, used the
  * same way everywhere). The default 13 beside body-size names (feed rows,
@@ -47,64 +56,59 @@ function VerifiedMarkInner({
   isTeacher: boolean;
   size: number;
 }) {
+  // Controlled so a TAP opens it too: a touch screen has no hover, and Base
+  // UI's tooltip only listens for hover and keyboard focus. The tabIndex makes
+  // the leaf focusable, so a tap focuses it and focus opens the label. Base UI
+  // also closes a tooltip when its trigger is pressed, which on a phone shut
+  // the label in the same tap that opened it; that one close is ignored, and
+  // tapping anywhere else blurs the leaf and closes it.
   const [open, setOpen] = useState(false);
-  const [side, setSide] = useState<"right" | "left">("right");
-  const wrapRef = useRef<HTMLSpanElement>(null);
-  const tipRef = useRef<HTMLSpanElement>(null);
-
-  // When the label shows, keep it to the right unless it would run off the
-  // viewport, in which case flip it to the left. Measured after layout so the
-  // tip's real width is known; the opacity fade hides the one-frame correction.
-  useLayoutEffect(() => {
-    if (!open) return;
-    const wrap = wrapRef.current;
-    const tip = tipRef.current;
-    if (!wrap || !tip) return;
-    const wrapRect = wrap.getBoundingClientRect();
-    const margin = 8;
-    const wouldOverflowRight =
-      wrapRect.right + 6 + tip.offsetWidth > window.innerWidth - margin;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Measures the tooltip against the viewport and flips it to the other side if it would overflow. Pure measure-then-position; the opacity fade hides the one-frame correction.
-    setSide(wouldOverflowRight ? "left" : "right");
-  }, [open]);
 
   return (
-    <span
-      ref={wrapRef}
-      className="relative inline-flex shrink-0 cursor-default rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-      tabIndex={0}
-      role="img"
-      aria-label={label}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)}
-      onBlur={() => setOpen(false)}
+    <Tooltip.Root
+      open={open}
+      onOpenChange={(next, details) => {
+        if (!next && details.reason === "trigger-press") return;
+        setOpen(next);
+      }}
     >
-      <Leaf
-        style={{ width: size, height: size }}
-        className={isTeacher ? "text-sky" : "text-leaf"}
-        aria-hidden
-        strokeWidth={2.2}
-      />
-      <span
-        ref={tipRef}
-        className={cn(
-          /* This sits inside everything from a 14.5px directory h3 to a 40px
-             profile h1, so it must own every type metric. Inheriting the
-             parent's unitless line-height made the same pill 22.38px tall in
-             the directory and 20.06px on a profile. The calibrated nudge below
-             optically centres Libre Baskerville's ink inside its line box. */
-          "pointer-events-none absolute top-1/2 z-30 inline-flex items-center -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-[var(--space-m)] py-[var(--space-xs)] font-heading text-[0.6875rem] leading-[1.25] font-normal tracking-[0.02em] text-background transition-opacity duration-150",
-          side === "right" ? "left-full ml-2" : "right-full mr-2",
-          open ? "opacity-100" : "opacity-0"
-        )}
-        style={{
-          boxShadow:
-            "0 1px 2px rgba(35,36,30,0.24), 0 8px 20px -12px rgba(35,36,30,0.65)",
-        }}
+      <Tooltip.Trigger
+        delay={0}
+        closeDelay={0}
+        render={<span />}
+        className="inline-flex shrink-0 cursor-default rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        tabIndex={0}
+        role="img"
+        aria-label={label}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
       >
-        <span className="translate-y-px">{label}</span>
-      </span>
-    </span>
+        <Leaf
+          style={{ width: size, height: size }}
+          className={isTeacher ? "text-sky" : "text-leaf"}
+          aria-hidden
+          strokeWidth={2.2}
+        />
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        {/* 8px from the leaf and 8px from the viewport edge: the same two
+            numbers the hand-rolled flip used (ml-2, margin 8). */}
+        <Tooltip.Positioner side="right" sideOffset={8} collisionPadding={8} className="isolate z-50">
+          <Tooltip.Popup
+            /* This sits beside everything from a 14.5px directory h3 to a 40px
+               profile h1, so it owns every type metric rather than inheriting.
+               The calibrated nudge below optically centres Libre Baskerville's
+               ink inside its line box. Opacity only, per the motion rule. */
+            className="pointer-events-none inline-flex items-center whitespace-nowrap rounded-md bg-foreground px-[var(--space-m)] py-[var(--space-xs)] font-heading text-[0.6875rem] leading-[1.25] font-normal tracking-[0.02em] text-background transition-opacity duration-150 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0"
+            style={{
+              boxShadow:
+                "0 1px 2px rgba(35,36,30,0.24), 0 8px 20px -12px rgba(35,36,30,0.65)",
+            }}
+          >
+            <span className="translate-y-px">{label}</span>
+          </Tooltip.Popup>
+        </Tooltip.Positioner>
+      </Tooltip.Portal>
+    </Tooltip.Root>
   );
 }
