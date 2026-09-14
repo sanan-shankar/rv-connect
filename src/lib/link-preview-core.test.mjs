@@ -217,6 +217,10 @@ test("a failed or titleless row is no card; a failure is retried after a day, no
   assert.equal(cardOf({ ...ok, title: null }), null);
   assert.equal(cardOf({ ...ok, kind: "bandcamp" }), null);
   assert.equal(cardOf(undefined), null);
+  /* A site name that only repeats the title is dropped, so the card shows the address instead. */
+  const page = { ...ok, kind: "link", title: "RISHI VALLEY EDUCATION CENTRE", subtitle: "Rishi  Valley Education Centre " };
+  assert.equal(cardOf(page)?.subtitle, null);
+  assert.equal(cardOf({ ...page, subtitle: "rishivalley.org" })?.subtitle, "rishivalley.org");
 
   const now = new Date("2026-09-14T12:00:00Z");
   assert.equal(needsResolve(undefined, now), true);
