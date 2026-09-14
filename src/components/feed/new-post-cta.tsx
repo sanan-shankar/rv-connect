@@ -18,8 +18,8 @@ import { OWN_BIRD_LAYOUT_ID, useNewPostDock } from "./new-post-dock";
  * of all of them is /lab/new-post.
  *
  * Pressing it opens the composer at the top of the feed: the bird flies into
- * the composer's avatar slot, and the badge unfolds into a full 40px canopy
- * circle in the place the bird left, so the button is still a button while
+ * the composer's avatar slot, and the badge unfolds into a canopy circle
+ * in the place the bird left, so the button is still a button while
  * the bird is out. Pressing it again while the composer is open only focuses
  * the editor -- it never closes a draft.
  */
@@ -69,10 +69,14 @@ export function NewPostCTA({ user }: { user: AvatarUser }) {
       />
 
       {/* The badge is the button's green, folded small. When the bird leaves
-          it unfolds into the 40px circle the bird left. Geometry: the 20px
-          badge sits 4px past the slot's corner, so its centre is at (34, 34)
-          and the slot's at (20, 20); -14 on each axis and scale 2 lands it
-          exactly on the bird's circle. Transform only, on `snappy`, so it has
+          it unfolds into a circle on the spot the bird left. Geometry: the
+          20px badge sits 4px past the slot's corner, so its centre is at
+          (34, 34) and the slot's at (20, 20); -14 on each axis centres it.
+          Scale 1.8 (36px), not 2 (40px): at the bell's exact size the solid
+          canopy disc read bigger than the paper circle beside it (owner,
+          2026-09-14), because a filled shape with a shadow looks larger than
+          one drawn with a hairline border. Ten per cent under is the optical
+          match. Transform only, on `snappy`, so it has
           settled before the bird, flying home on `gentle`, arrives.
           Hover and press are the canopy CTA's own from button.tsx: the 1.08
           brightness lift, the 0.97 sink and the canopy drop shadow. */}
@@ -80,13 +84,13 @@ export function NewPostCTA({ user }: { user: AvatarUser }) {
         aria-hidden
         className="absolute -right-1 -bottom-1 size-5 rounded-full bg-canopy shadow-[0_5px_13px_-12px_var(--color-canopy)] group-hover/np:brightness-[1.08] group-active/np:scale-[0.97]"
         initial={false}
-        animate={out ? { x: -14, y: -14, scale: 2 } : { x: 0, y: 0, scale: 1 }}
+        animate={out ? { x: -14, y: -14, scale: 1.8 } : { x: 0, y: 0, scale: 1 }}
         transition={SPRINGS.snappy}
       />
 
       {/* Two pluses rather than one scaled with the disc: doubled, the
           badge's 12px plus with its 3px stroke would be 6px thick. The small
-          one rides the disc to the centre and fades; the ordinary 17px plus
+          one rides the disc to the centre and fades; the ordinary 16px plus
           fades in from where the badge was. */}
       <m.span
         aria-hidden
@@ -104,7 +108,9 @@ export function NewPostCTA({ user }: { user: AvatarUser }) {
         animate={out ? { opacity: 1, x: 0, y: 0, scale: 1 } : { opacity: 0, x: 14, y: 14, scale: 0.7 }}
         transition={SPRINGS.snappy}
       >
-        <Plus className="h-[17px] w-[17px]" />
+        {/* 16px on the 36px disc: white on canopy spreads, so the header's
+            17-18px outline glyphs on paper would read a size heavier here. */}
+        <Plus className="size-4" />
       </m.span>
     </button>
   );

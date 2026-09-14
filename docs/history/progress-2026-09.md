@@ -6522,3 +6522,21 @@ it wears `FIELD_FOCUS_WITHIN` and left the focus test's borderless list.
 Checked signed in as Jerry on /directory and /feed at 1440, /directory and /collection at 390: the
 pill reaches 300px on desktop and the column's left edge (20px) on a phone. Visual suite 25/25 with no
 baseline moved.
+
+## 2026-09-14 (header) — header controls centre on the title's capitals, and the unfolded plus is 36px
+
+"the search notification and new post icons seem lower than the Feed text ... make sure it's visually
+balanced and it appears on the same horizontal line ... also the green plus icon when expanded seems
+bigger than the notification icon" (owner, 2026-09-14).
+
+Why: measured signed in as Jerry on every header route at 1440 and 390. The cap of the title runs from
+44.9 to its baseline at 68 (centre 56.5), and every 40px control centred at 61, 4.5px low. `mt-px` had
+aligned the TOPS while the title was `leading-none`. `leading-[1.2]` later dropped the letters 3px
+and left the controls where they were. `PageHeader`'s row is now `-mt-[3.5px]`, centre 56.5 (92.5
+on a phone, the first line of a wrapped title). One change, every surface.
+
+The unfolded badge was exactly the bell's 40px, but a solid canopy disc with a shadow reads larger
+than a paper circle with a hairline border. It now unfolds to scale 1.8 (36px) on the same centre,
+and its plus is 16px instead of 17.
+
+Visual suite: 12 header baselines moved, diffs read first (controls and the header pills only).

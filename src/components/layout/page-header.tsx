@@ -142,11 +142,17 @@ export function PageHeader({
         )}
       </div>
       {hasRight && (
-        /* mt-px: the cap of a Libre Baskerville capital starts one pixel below
-           its own line box at 30px/leading-none (measured off the rendered
-           pixels, not the metrics), so a pill flush with the box top reads one
-           pixel high against the letter beside it. */
-        <div className="mt-px flex flex-nowrap items-center justify-end gap-2.5 shrink-0">
+        /* -mt-[3.5px]: the controls CENTRE on the title's capitals (owner,
+           2026-09-14: "the search notification and new post icons seem lower
+           than the Feed text ... make sure it appears on the same horizontal
+           line"). Measured at 1440 and 390 on every header route: the cap of
+           "Feed" runs 44.9 to its baseline at 68, centre 56.5, and the 40px
+           row centred at 61 -- 4.5px low everywhere. The old mt-px aligned
+           TOPS back when the title was leading-none; leading-[1.2] above
+           dropped the letters 3px and left the controls behind. Centring on
+           the cap rather than aligning tops is what reads as one line once
+           the things beside the word are circles, not text-height pills. */
+        <div className="-mt-[3.5px] flex flex-nowrap items-center justify-end gap-2.5 shrink-0">
           {search && <div className="hidden sm:block">{search}</div>}
           {unreadCount !== undefined && (
             // This is the preferred notifications entry point at every width,
