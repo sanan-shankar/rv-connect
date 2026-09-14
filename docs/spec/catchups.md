@@ -494,7 +494,8 @@ Each of these was checked in the code on 2026-09-14.
   column value, and it is the owner's call.
 - **`spec.md` §3.12 puts time capsule on `Catchup.timeCapsule`.** The owner corrected it on 2026-09-14:
   a time capsule is one Edition, so it becomes a flag on `CatchupEdition`. Nothing is built.
-- **`spec.md` §3.10 says a voice answer caps at 90 seconds.** The owner said two minutes.
+- **`spec.md` §3.10 said a voice answer caps at 90 seconds.** The owner said two minutes; corrected there
+  2026-09-14, and the code's constant is 120.
 - **`spec.md` §3.5 and §9 row 11 deleted the orphaned "Batch of 2024" snapshot group** in the
   cleanup. It still exists (`cmt5ru8bb000004lausdv5vvl`, 11 members, all also in the real 2024 group):
   the owner authorised deleting the test Catch-ups, not it.
@@ -526,7 +527,11 @@ Each of these was checked in the code on 2026-09-14.
   owner's, because one database serves production and local dev. `CatchupEdition.publishAt` is
   never dropped.
 - **Phase 12, a question you answer out loud**: audio up to two minutes, played back, with the
-  browser's own transcript in the body.
+  browser's own transcript in the body. **Underneath is built** (2026-09-14): `CatchupEntry.audioUrl`,
+  `audioSeconds`, `audioIsAuto`; the upload path `/api/upload/audio` then `/finalize`, staged under
+  `staging/<id>/` and kept under `audio/<id>/`; `submitEntry`'s optional `audio`, owner-checked;
+  the purge and both exports. The rules are `src/lib/voice-answer-rule.ts`. **No surface records or
+  plays yet**: the drawings are `/lab/catchups/voice`, waiting for the owner's pick.
 - **Phase 13, a question the group votes on**: fixed choices, the result drawn as who chose what.
 - **Phase 14, time capsule**: one Edition, sealed until it opens, with nothing readable before then,
   your own answer included; a batch Catch-up's Edition can be one.

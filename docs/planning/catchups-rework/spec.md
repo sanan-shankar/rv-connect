@@ -604,7 +604,26 @@ surface say so.
   Audio needs its own path through the same R2 bucket, and the purge needs to learn about
   `audioUrl` the way it learned about `pictureSrc` in phase 3.
 
-**A cap of 90 seconds.** A minute is short for a story and three is a podcast. It is one constant.
+**A cap of two minutes, 120 seconds.** CORRECTED 2026-09-14 by his answer to 32: *"32 is 2 minutes."*
+This line said 90. It is one constant, `VOICE_MAX_SECONDS` in `src/lib/voice-answer-rule.ts`.
+
+**What is built underneath, 2026-09-14 (phase 12, his 31a: draw it, build what does not depend on
+the look, stop for his pick).** The three columns above, applied to both projects, with one CHECK
+that a url and a length arrive together. A recording uploads straight to the bucket through
+`/api/upload/audio` (presign, staged under `staging/<id>/`) and `/api/upload/audio/finalize` (the
+real size against the claimed length at a 320 kbps ceiling, the first bytes against the container,
+then a copy to `audio/<id>/`). `submitEntry` takes an optional `audio` and refuses one that is not
+under the caller's own `audio/<id>/` prefix, and deletes a recording the save replaced. The purge,
+the account export and the rework export all know about `audioUrl`. The site's Permissions-Policy
+had the microphone blocked outright (`microphone=()`); it is `(self)` now, and the CSP has a
+`media-src`. **Nothing calls any of it**: the recorder and the player are drawn at
+`/lab/catchups/voice` and wait for him.
+
+**Two corrections to this section, found building it.** Chrome's `SpeechRecognition` is not on the
+device: it sends the audio to Google's servers to transcribe, and Safari's goes to Apple unless the
+phone does it locally. No key and no bill is still true; "no bytes go anywhere" is not. And a
+browser may not hand the microphone to the recorder and the recogniser at once (Chrome on Android
+is the known case), so the transcript is a best effort on a phone until it is tried on his.
 
 ### 3.11 LOCKED — a question the group votes on
 
@@ -979,7 +998,7 @@ in it.
 | **9** | **Comments** — **DONE 2026-09-10** | the widened `Comment` (`postId` nullable, `entryId` beside it, `Comment_one_target` CHECK); the thread moved to `lib/comment-thread.ts` so both owners share one implementation and each keeps only its gate and its bell; `comments-section.tsx` takes its five actions as a prop; the replies control beside the heart; `catchup_comment` per person per answer (3.7, corrected). `npm run visual` 25/25, no baseline moved | `2026-09-10-comments-on-answers.sql`, additive, **applied to both** before the deploy, which is safe |
 | **10** | **Link previews** — **DONE 2026-09-14** | `LinkPreview`, resolution on any pasted link after the response (on save and lazily on read), Spotify and YouTube song cards, **and a link card for any other page** (his, 2026-09-14), the SSRF-guarded fetcher, images re-hosted rather than hotlinked, unresolved links printed as real links, the fail-soft rule. §3.8 says what shipped | `2026-09-14-link-previews.sql`, additive, **applied to both** (0 rows, RLS on) |
 | **11** | **Cleanup** — **PARTIAL 2026-09-14**: the three throwaways are deleted (`2026-09-14-delete-test-catchups.sql`, production; the demo had none). **The snapshot group was NOT deleted**: his answer to 28 authorised the test Catch-ups only, so it waits on him. The drops below wait on his release | the dead columns dropped **after phases 2, 5 and 10 have deployed**; the three throwaway Catch-ups and the orphaned snapshot group removed; `docs/spec/catchups.md` rewritten to describe what shipped. **CORRECTED 2026-09-09: `CatchupEdition.publishAt` is NOT dropped.** It was on the list because the `preparing` hold it served died in phase 2 — but a time capsule (§3.12) is exactly a scheduled publish date and it is the same column. Dropping it now to add it back is two migrations against a live database for nothing. Keep it, and say so in the file. `CatchupPref.deletedAt` still goes | the drop file |
-| **12** | **A question you answer out loud** | §3.10. `audioUrl`, `audioSeconds`, `audioIsAuto` on `CatchupEntry`; the recorder in the composer; the player in the reader; the browser's own speech recognition writing the body, editable afterwards. **Draw the no-transcript case first**, because Firefox has none | the three columns |
+| **12** | **A question you answer out loud** — **PARTIAL 2026-09-14: plumbed, drawn, OWNER-GATED on his pick** (`/lab/catchups/voice`) | §3.10. **Cap is 120 seconds** (his 32). `audioUrl`, `audioSeconds`, `audioIsAuto` on `CatchupEntry`; the recorder in the composer; the player in the reader; the browser's own speech recognition writing the body, editable afterwards. **Draw the no-transcript case first**, because Firefox has none | the three columns |
 | **13** | **A question the group votes on** | §3.11. `CatchupPromptOption`, `CatchupEntry.pollOptionId`; options written where the question is written; the published result drawn as who chose what, with their birds, and never as a percentage | one table, one column |
 | **14** | **Time capsule** | §3.12. `Catchup.timeCapsule`; the switch in the settings surface; `publishAt` a year out and the tick already publishing it; **the sealed-Edition surface, which is a drawing job and the real content of this phase**; the library's own capsule set | one column |
 

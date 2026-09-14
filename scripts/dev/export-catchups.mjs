@@ -37,6 +37,7 @@
  *      catchups.json          the whole thing, shape = src/lib/catchups-export.ts
  *      photos/<answerId>-N.<ext>   every answer photograph
  *      avatars/<userId>.<ext>      every uploaded member photo
+ *      audio/<answerId>.<ext>      every recorded answer (build phase 12)
  *  Beside the script, not above it: the repo root is closed, and
  *  `scripts/dev/.*` is already gitignored. This folder holds members'
  *  private words and MUST NOT be committed.
@@ -250,6 +251,16 @@ const out = {
               songUrl: e.songUrl,
               songTitle: e.songTitle,
               songArt: e.songArt,
+              /* A recording is copied like a photograph, because a url is
+                 only regenerable while the bucket keeps the key (phase 12). */
+              audio: e.audioUrl
+                ? {
+                    url: e.audioUrl,
+                    seconds: e.audioSeconds ?? null,
+                    transcribed: Boolean(e.audioIsAuto),
+                    file: NO_PHOTOS ? null : wantPhoto(e.audioUrl, "audio", e.id),
+                  }
+                : null,
               hearts: (heartsByEntry.get(e.id) ?? []).map((h) => h.userId),
               createdAt: iso(e.createdAt),
               updatedAt: iso(e.updatedAt),

@@ -1206,6 +1206,17 @@ model CatchupEntry {
   songUrl   String?
   songTitle String?
   songArt   String?
+  // A question answered out loud (build phase 12, catchups-rework spec 3.10;
+  // prisma/migrations-manual/2026-09-14-voice-answers.sql). An ordinary answer
+  // with a recording attached, so every read path keeps working with no branch.
+  // `body` holds the browser's transcript, editable, or nothing at all where
+  // the browser has no speech recognition (Firefox): audio alone is a whole
+  // answer. The url is `audio/<authorId>/...`, proven the author's own at write
+  // time (voice-answer-rule.ts). The database pins that url and length arrive
+  // together (`CatchupEntry_audio_pair`); the two-minute cap is the code's.
+  audioUrl     String?
+  audioSeconds Int? // for the player's rail, so it draws before the file loads
+  audioIsAuto  Boolean  @default(false) // the body was transcribed, not typed
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

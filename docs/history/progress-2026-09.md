@@ -6683,3 +6683,33 @@ a link press (`instrumentation-client.ts`) leaves a dead entry that back steps o
 Driven in a real browser at 390 and 1440: viewer, drawer, drawer link then back, guide, map, Report
 dialog; one back per visible thing, then the previous page; no console errors.
 `back-closes-rule.test.mjs` pins it. Check green, visual 25/25 unchanged.
+
+
+## 2026-09-14 (catch-ups, phase 12 plumbing) — a recorded answer can be stored, checked and deleted; nothing records one yet
+
+His answer 31 was (a): build what does not depend on the look, draw the rest, stop for his pick. This
+is the half that does not depend on the look. `CatchupEntry` gains `audioUrl`, `audioSeconds` and
+`audioIsAuto` (`2026-09-14-voice-answers.sql`, export re-run first, applied to production and the
+demo, re-run once to prove it idempotent), with a CHECK that a url and a length arrive together.
+
+A recording goes browser -> bucket through `/api/upload/audio`, staged under `staging/<id>/`, and
+`/api/upload/audio/finalize` checks it before copying it to `audio/<id>/`: the real size against
+the claimed length at a 320 kbps ceiling, and the first bytes against the container. `submitEntry`
+takes an optional `audio`, refuses a url outside the caller's own `audio/<id>/`, refuses the demo,
+and deletes a recording a save replaced. `audio` joined `KNOWN_ROOTS` with the argument written
+beside it (owner-scoped, unlike `link-previews`); without it the purge would report a voice deleted
+and leave it public. The purge, the account export and the rework export all carry the recording.
+
+**Two things that would have stopped the feature cold**: the Permissions-Policy said
+`microphone=()`, which blocks the site's own pages, and the CSP had no `media-src`, so a stored
+recording could never have played. Both fixed. His cap is two minutes, and spec 3.10's 90 is
+corrected, with two more corrections there: Chrome's speech recognition is server-side, and a phone
+may not share the microphone between the recorder and the recogniser.
+
+**Driven live as Jerry** against the dev server and the real bucket: presign, PUT and finalize
+stored a 40 KB WebM as `audio/webm`, cached immutable. Refused: a text file named `.webm`, a file
+bigger than its length allows, another member's key, a replayed key, WAV, 0 and 121 seconds,
+signed out (401), cross-site (403). The test object was deleted afterwards. `voice-answer-rule.test.mjs`
+pins the caps, the formats, the sniff, both key shapes and ownership, and the purge, fence, action,
+route and header shapes. write-path-reviewer: no blocking findings; its two low ones (encode the
+copy source; a race only reachable if one url sits on two answers) are handled and written down.

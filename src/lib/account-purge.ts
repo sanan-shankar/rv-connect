@@ -110,7 +110,9 @@ async function collectImageUrls(db: Db, userId: string): Promise<string[]> {
       where: { uploaderId: userId },
       select: { thumbUrl: true, url: true },
     }),
-    db.catchupEntry.findMany({ where: { authorId: userId }, select: { images: true } }),
+    // `audioUrl`: a recorded answer (phase 12). Bytes in the same bucket that
+    // no cascade reaches, collected here the way `pictureSrc` is below.
+    db.catchupEntry.findMany({ where: { authorId: userId }, select: { images: true, audioUrl: true } }),
     // A Catch-up's own picture, when this member uploaded it. Not keyed by a
     // column -- ownership is the `uploads/<their id>/` prefix the server wrote
     // into the key, which no request can forge, and which a pool path can
@@ -140,6 +142,7 @@ async function collectImageUrls(db: Db, userId: string): Promise<string[]> {
     if (m.imageUrl) urls.push(m.imageUrl);
   }
   for (const c of catchupPictures) urls.push(c.pictureSrc);
+  for (const e of entries) if (e.audioUrl) urls.push(e.audioUrl);
   // Post and Catch-up images are JSON-encoded string arrays; a malformed
   // column is skipped rather than failing the whole purge.
   for (const row of [...posts, ...entries]) {

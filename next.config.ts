@@ -129,6 +129,14 @@ const csp: Record<string, string[]> = {
        a plain <img>, the way the Spotify card beside it already is. */
     "https://i.ytimg.com",
   ],
+  /* A recorded answer (Catch-ups rework phase 12). Without this directive an
+     <audio> element falls back to default-src 'self', so every stored
+     recording on the image host is refused with nothing but a console line,
+     which is exactly how img-src once failed (docs/TRAPS.md, "Moving the
+     public image host is FIVE changes"). Recordings live in the same bucket
+     under `audio/`, so the same named hosts, never a wildcard. `blob:` is the
+     recorder playing back what you just said before it has uploaded. */
+  "media-src": ["'self'", "blob:", ...imageHosts.map((h) => `https://${h}`)],
   "font-src": ["'self'", "data:"],
   "connect-src": [
     "'self'",
@@ -188,9 +196,15 @@ const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   // Powerful features nothing here uses. Camera is left available: the avatar
   // and Collection flows may let a phone take a photo.
+  //
+  // The microphone is `(self)` since 2026-09-14, for a question you answer out
+  // loud (Catch-ups rework phase 12). `()` blocked it for this site too, so
+  // getUserMedia failed as if the member had said no, and a recorder could
+  // never have started. `(self)` lets this origin ask, and the browser still
+  // asks the member; an embedded frame from anywhere else still cannot.
   {
     key: "Permissions-Policy",
-    value: "geolocation=(), microphone=(), payment=(), usb=(), interest-cohort=()",
+    value: "geolocation=(), microphone=(self), payment=(), usb=(), interest-cohort=()",
   },
   // Vercel sets HSTS by default; stated explicitly so it does not depend on the
   // platform default and survives a move off Vercel. Two years, subdomains.

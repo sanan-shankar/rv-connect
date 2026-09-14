@@ -53,6 +53,8 @@ import { pickCatchupPicture } from "@/lib/catchup-picture-pick";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { ownedUploadUrls } from "@/lib/upload-ownership";
+import { ownedVoiceRecording } from "@/lib/voice-answer";
+import { purgeImageUrls } from "@/lib/image-purge";
 import { revalidatePath } from "next/cache";
 import {
   addCadenceGap,
@@ -176,6 +178,16 @@ const submitEntrySchema = z.object({
   body: z.string().trim().max(6000, "Keep it under 6000 characters.").optional(),
   images: z.array(z.url()).max(3, "Up to 3 photos.").optional(),
   songUrl: z.string().trim().max(2000).optional(),
+  /* A recording (build phase 12, spec 3.10). `null` takes it off the answer
+     and leaves the words; absent leaves the column alone, like every field
+     here. `transcribed` says the body came from the browser's speech
+     recognition. Shape only: whose recording it is, and whether its length is
+     inside the cap, is `ownedVoiceRecording` below. NOTHING SENDS THIS YET --
+     the recorder is in the lab until the owner picks. */
+  audio: z
+    .object({ url: z.string().max(2000), seconds: z.number(), transcribed: z.boolean() })
+    .nullable()
+    .optional(),
   /* The row version this surface last saw (audit C-125). Optional, so a
      caller that holds none keeps the unconditional upsert it always had. */
   baseUpdatedAt: z.string().optional(),
@@ -1527,6 +1539,28 @@ export async function submitEntry(input: {
         : null
       : undefined;
 
+    /* A recording must be one this member made, under their own
+       `audio/<id>/` prefix, inside the two-minute cap. The C2 rule for sound:
+       without it an answer could point at somebody else's recording, and the
+       purge of a replaced one below would delete their bytes. */
+    const hasAudio = parsed.data.audio !== undefined;
+    let audioPatch: { audioUrl: string | null; audioSeconds: number | null; audioIsAuto: boolean } | undefined;
+    if (hasAudio) {
+      const audio = parsed.data.audio;
+      if (audio) {
+        // The demo takes no uploads, so it has no recording to attach; said at
+        // the door rather than left to the ownership check's generic refusal.
+        if (IS_DEMO) return { error: "The demo doesn't take recordings." };
+        const verdict = ownedVoiceRecording(audio, session.user.id);
+        if (!verdict.ok) return { error: verdict.error };
+        audioPatch = { audioUrl: audio.url, audioSeconds: audio.seconds, audioIsAuto: audio.transcribed };
+      } else {
+        // Taking the recording off keeps the words. They are no longer "from
+        // the recording" once there is no recording to be from.
+        audioPatch = { audioUrl: null, audioSeconds: null, audioIsAuto: false };
+      }
+    }
+
     let songPatch: { songUrl: string | null; songTitle: string | null; songArt: string | null } | undefined;
     let songWarning: string | undefined;
     if (hasSong) {
@@ -1566,12 +1600,14 @@ export async function submitEntry(input: {
       ...(hasBody ? { body: bodyValue } : {}),
       ...(hasImages ? { images: imagesValue } : {}),
       ...(songPatch ? songPatch : {}),
+      ...(audioPatch ? audioPatch : {}),
     };
     const columns = {
       id: true,
       body: true,
       images: true,
       songUrl: true,
+      audioUrl: true,
       updatedAt: true,
     } as const;
 
@@ -1592,15 +1628,24 @@ export async function submitEntry(input: {
       });
       if (open === 0) return "closed" as const;
 
+      /* The recording this write replaces, read in the same transaction as
+         the write, so the purge after it names exactly what the row stopped
+         pointing at. */
+      const before = hasAudio
+        ? await tx.catchupEntry.findUnique({ where: key, select: { audioUrl: true } })
+        : null;
+      const replacedAudio = before?.audioUrl ?? null;
+
       if (base) {
         const moved = await tx.catchupEntry.updateMany({
           where: { promptId, authorId: session.user.id, updatedAt: base },
           data: written,
         });
         if (moved.count === 0) return "stale" as const;
-        return tx.catchupEntry.findUniqueOrThrow({ where: key, select: columns });
+        const row = await tx.catchupEntry.findUniqueOrThrow({ where: key, select: columns });
+        return { ...row, replacedAudio };
       }
-      return tx.catchupEntry.upsert({
+      const row = await tx.catchupEntry.upsert({
         where: key,
         create: {
           editionId: prompt.editionId,
@@ -1611,10 +1656,14 @@ export async function submitEntry(input: {
           songUrl: songPatch?.songUrl ?? null,
           songTitle: songPatch?.songTitle ?? null,
           songArt: songPatch?.songArt ?? null,
+          audioUrl: audioPatch?.audioUrl ?? null,
+          audioSeconds: audioPatch?.audioSeconds ?? null,
+          audioIsAuto: audioPatch?.audioIsAuto ?? false,
         },
         update: written,
         select: columns,
       });
+      return { ...row, replacedAudio };
     });
 
     if (entry === "closed") {
@@ -1638,10 +1687,23 @@ export async function submitEntry(input: {
      * skipped the extension and published with nothing to read.
      *
      * Deleted rather than kept-and-filtered because there is nothing left in
-     * it: no body, no photograph, no song. Nothing is lost that the member has
+     * it: no body, no photograph, no song, no recording. Nothing is lost that the member has
      * not already removed, and a later answer simply creates the row again.
      * The `promptId_authorId` unique makes a second delete a no-op. */
-    if (!entry.body && !entry.images && !entry.songUrl) {
+    /* A recording this save took off the answer, or swapped for a new one
+       ("Record again"), is bytes no row names any more. It is the author's
+       own by construction (the ownership check put it there), and it goes
+       unless another of their answers still carries the same url. The count
+       is outside the write's transaction, which is only a race if one url ever
+       sits on two answers; finalize mints a fresh key per recording, so nothing
+       produces that today. A "use this recording again" feature would need a
+       lock here first. */
+    if (entry.replacedAudio && entry.replacedAudio !== entry.audioUrl) {
+      const stillUsed = await prisma.catchupEntry.count({ where: { audioUrl: entry.replacedAudio } });
+      if (stillUsed === 0) await purgeImageUrls([entry.replacedAudio], "replaced");
+    }
+
+    if (!entry.body && !entry.images && !entry.songUrl && !entry.audioUrl) {
       await prisma.catchupEntry.deleteMany({ where: { id: entry.id } });
       revalidatePath(`/catchups/${edition.catchupId}`);
       // No row, so no version: the next save creates one afresh.
