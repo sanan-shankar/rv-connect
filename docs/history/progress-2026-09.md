@@ -6819,3 +6819,27 @@ window instead of the frame (fixed), the year line read as an empty card at 364 
 months), the phone date wrapped to three lines beside its countdown (stacked), the bell arrived
 before the opening (delayed), and the night had lifted so far at one day left that the cover
 matched the Catch-up card beside it (given a floor).
+
+
+## 2026-09-14 (catch-ups, M1) — the magazine designed as rules: the engine, the corpus, the room, the spike
+
+Track M's design session, last of the campaign. Instead of a page, a layout engine:
+`src/lib/magazine/` turns a published Edition into A4 pages by classifying every answer (note,
+paragraph, essay, photo, card, voice, vote), composing each story under a few templates, and
+searching a beam of six partial magazines with four score terms (fill, image sharpness at placed
+size, variety, coherence) and a cost per page. Every rule answers to one of his sentences in the
+brief and every threshold is named. Twelve invented JSON Editions in
+`src/app/lab/catchups/_fixtures/magazine/` pin the failure families a three-round hunt found
+(243, 110 and 22 modes); `magazine.test.mjs` runs 178 checks over sixteen Editions, the live ones
+only where the export exists. Three designers laid the rules out on paper and a judge read the
+printed pages; fourteen rules changed, the pages did not. `/lab/catchups/magazine` draws any of
+them at true size, measured with the real fonts, with each page's score under it and each
+photograph's dpi on it; `scripts/dev/print-magazine.mjs` prints to PDF and reports.
+
+Measured: the live Edition prints 23 pages in 4.8 s + 2.5 s at 200 MB of Chrome with both faces
+embedded and breaks exactly where the engine put them; handed WebPs the file is 89.6 MB, handed
+JPEGs 7.4 MB, which is the pipeline's one hard requirement. `docs/planning/catchups-rework/magazine.md`
+has the page model, the grammar, type and image at print size (a 1920px photograph is sharp to a
+full page on screen and print-sharp at the text width; keep 1920), the failure list with a bypass
+each, the panel, the spike, M2 to M5 as phases, and owner questions 39 to 44.
+

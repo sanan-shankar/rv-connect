@@ -241,6 +241,13 @@ export const REGISTRY: LabEntry[] = [
     note: "A time capsule, for him to pick. The sealed Edition three ways (the year line, asleep, waiting for morning) on the home, the list and a shared link, against seven cases from 364 days left to opened; the morning it opens; and making one in settings. The seal, the date and the checks are built underneath and switched off.",
   },
   {
+    href: "/lab/catchups/magazine",
+    title: "Laid out by rules, not by hand",
+    group: "Delight",
+    status: "active",
+    note: "The Catch-up magazine: a real Edition and twelve invented ones turned into A4 pages by the grammar in src/lib/magazine, drawn at true size with every page's score beside it and every photograph's dpi on it. ?data=one-writer|forty-notes|all-portraits|wall-300|hostile|... picks a fixture; ?print=1 is what headless Chrome prints. scripts/dev/print-magazine.mjs makes the PDF.",
+  },
+  {
     href: "/lab/catchups/swipe",
     title: "The swipe that goes back two",
     group: "Delight",

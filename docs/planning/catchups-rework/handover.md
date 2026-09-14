@@ -192,8 +192,8 @@ too, which he allowed in ¶28.
 | Build phase 12, a question you answer out loud | **OWNER-GATED** | **2026-09-14, S19, his 31a.** Underneath is built and committed: `CatchupEntry.audioUrl/audioSeconds/audioIsAuto` (applied to BOTH, one CHECK pairing url and length), `/api/upload/audio` then `/finalize` (staged under `staging/<id>/`, real size against claimed length at a 320 kbps ceiling, magic bytes, copied to `audio/<id>/`), `submitEntry`'s optional `audio` (owner-checked, demo refused, replaced recording purged), `audio` in `KNOWN_ROOTS` with its argument, the purge and both exports. The Permissions-Policy had `microphone=()`, which blocks the site's own pages; it is `(self)`, and the CSP gained `media-src`. Cap is **120 seconds** (his 32; spec 3.10 corrected). **Drawn, waiting for his pick** at `/lab/catchups/voice`: the recorder two ways (**a mic in the box**, **say it instead**) with thirteen still states, and the player three ways (**the bird speaks**, **a line of voice**, **the tape**), the no-words Firefox answer first on each. Nothing reaches a member |
 | Build phase 13, a question the group votes on | **OWNER-GATED** | **2026-09-14, S20, his 31a and 37 (default: the asker writes two to six fixed choices).** Underneath is built and committed: category `"vote"` (`promptKind` answers `"vote"`), `CatchupPromptOption` (written only by `submitPrompt`, inside the question's own transaction, while collecting), `CatchupEntry.pollOptionId` with a **composite foreign key on `(pollOptionId, promptId)`** so Postgres refuses another question's choice, applied to BOTH and proved live in a block that always rolls back. `submitEntry` requires a pick on a vote (null takes it back with its line), refuses one elsewhere, and refuses photos, audio and a song beside it; `voteResult()` is null for anything unpublished. `submitPrompt` now re-reads the question window inside its transaction. **Drawn, waiting for his pick** at `/lab/catchups/vote`: asking (a list mark beside the eye), casting (the choices are the control), and the result three ways (**flocks**, **piles**, **roll call**) against eight votes. Nothing reaches a member |
 | Build phase 14, a time capsule | **OWNER-GATED** | **2026-09-14, S21, his 31a, 33, 34b and 35.** Underneath is built and committed: a new status **`sealed`** between answering and published (every reader already asks for `published`, so a sealed Edition is refused everywhere unchanged), `CatchupEdition.timeCapsule` and `sealedAt`, `publishAt` back in the schema, a CHECK refusing a sealed row without the flag or both dates (applied to BOTH, proved live in a block that always raises). `capsuleOpensAt`: the same IST date next year at 07:00, 29 February opens on the 28th. The clock seals at the close (too-few extension first), books the rhythm from the seal, tells everyone the day it opens (`catchup_sealed`), and opens it a year later with `notifyPublished`, **even if the Catch-up is held or ended**; the compare-and-swap requires the flag. `setEditionTimeCapsule`: collecting only, Keepers on a people Catch-up and anyone on a batch. `loadPublishedEditionView` asks for `published` itself; the admin room and the home never query a sealed capsule's contents. **Drawn, waiting for his pick** at `/lab/catchups/capsule`: the sealed Edition three ways (**the year line**, **asleep**, **waiting for morning**) on the home, the sidebar, the list and a shared link against seven cases; the morning it opens; and the Time capsule row in settings. **His calls**: whether Asleep may show who wrote in, and whether a member's own data download keeps their sealed answer (it does today). Nothing reaches a member |
-| M1 Magazine design | OPEN | unblocked. D27 is answered in `recon.md` section 6: photographs are boxed to 1920px, which is 164 dpi at A4 full-bleed |
-| M2+ Magazine build | OPEN | blocked on M1 |
+| M1 Magazine design | **DONE** | **2026-09-14, S22.** [`magazine.md`](magazine.md): A4 portrait, a 12-column grid on a 5.3 mm baseline, and a grammar written as code (`src/lib/magazine/`, pure, 20 ms an Edition): answers classified, stories composed under templates, a beam of six over the stories, four score terms and a page cost. **The hunt**: three rounds, 243 + 110 + 22 failure modes, about 40 duplicates, every distinct one with a bypass in magazine.md §5; twelve JSON fixtures in `src/app/lab/catchups/_fixtures/magazine/` plus the pressure corpus; `magazine.test.mjs` runs 178 checks over 16 Editions (the live ones only on a machine holding the export, which is never committed, D33). **The panel**: three designers on paper, one judge on the printed pages; fourteen rule changes, magazine.md §6. **The spike**: the real Chrome prints the live Edition (23 pages) in 4.8 s + 2.5 s at 200 MB, page breaks exact, both faces embedded; handed WebPs the PDF is **89.6 MB**, handed JPEGs **7.4 MB**, which decides the pipeline: a local script first, then a Vercel function on publish serving JPEGs to a private R2 key (§7). The room is `/lab/catchups/magazine`, at true size, measured with the real fonts; `scripts/dev/print-magazine.mjs` prints any key. Owner questions 39 to 44 in magazine.md §9. Pages he should open first: the live Edition's 5, 7 and 18 |
+| M2+ Magazine build | OPEN | planned as four phases in magazine.md §8: M2 the magazine in the app built by hand (gate: he opens the live Edition's file), M3 the look with him, M4 on its own (a function on publish), M5 sending it, only if email is un-parked |
 | X Fast fixes | **PARTIAL** | **2026-09-08/09, four commits.** F18 the phone overflow: a pasted Spotify link's 54-character run is 369px with no break opportunity against a 316px column, so the DOCUMENT laid out 414px wide in a 390px window and the sticky green bar stayed 390 -- his half-centimetre of white space, measured. `break-words` on every element that prints a member's typing, the feed and letters included, pinned by `src/lib/rich-text-wrapping.test.mjs`. **The recon's "does not reproduce on this machine" was a viewport flag**: without `isMobile` Chrome will not shrink the layout viewport, and with it the fault is plain. F23 the heart: the two `revalidatePath` lines deleted, measured four taps each way on the owner's own answer so no bell moved -- **223 KB and 1,333 to 1,809 ms a tap becomes 1 KB and 514 to 781 ms**, the rest being the trip to Mumbai; the optimistic flip was always 30 to 56 ms. Pinned across all four love toggles by `heart-revalidate-rule.test.mjs`. D38 the caption clamp, two lines to four: measured on the longest live caption, 90px of 180px at 390 with More, and **whole with no fold at 1440**. V1 the size snap: reproduced on the three photographs he was looking at (1200x1600, 1200x1600, 1288x966 -> 390x520, 390x520, 390x293) and fixed -- both frames now dissolve inside one box that tweens between the fitted sizes on the step's own 220ms curve, sizes LEARNED from the pre-decode rather than plumbed through four callers. **V2 and V3 are OPEN and are not guessed at**: six attempts (real touch swipe, arrow keys, trackpad wheel fling, two swipes 150ms apart, at 390 and 1440) could not reproduce them, `step` clamps at both ends, one gesture calls it exactly once, and the carousel's snap CSS is all correctly applied. **He confirmed 2026-09-09 that it happens on phone AND laptop**, so the "needs a real iPhone" note is withdrawn. `/lab/catchups/swipe` is the instrument: the real photographs, the real shared viewer, and a trace of every finger and every change of picture, for him to run on his own device |
 | Old spec rewritten to describe what shipped | **DONE** | 2026-09-14, S18. `docs/spec/catchups.md` rewritten from the code and the schema: nouns, the clock, who may do what, leaving, the picture, every surface, settings, hearts and comments, links and the wall, notifications, the read mark, the tick. Its §15 lists twelve places the code and the plans disagree, one a live fault (below); §16 is what is still to come |
 
@@ -2443,6 +2443,44 @@ puppeteer probe beside `scripts/qa/_dev-login.mjs`, deleted in the same command.
 
 ## Session log, continued
 
+### 2026-09-14, S22, M1: the magazine design (Fable, one hand; fourteen helpers for the hunt and the panel; run by `/campaign`)
+
+**What was built, in the order the section asked.** The page model, the grammar and the score as
+a pure engine in `src/lib/magazine/` rather than as prose alone, because "rules testable without
+a browser" is a test, and `magazine.test.mjs` is it: 178 checks over sixteen Editions (order kept,
+two runs agree, nothing a member wrote left out, no photograph under 150 dpi at its printed size,
+no page but the last under 40%, the quote ration, a capsule quotes nobody). The corpus is twelve
+invented JSON Editions written in the export's shape, each pinning one family of the hunt's
+failures, plus the pressure corpus, plus the live export when the machine holds one (never
+committed; D33 as S1 narrowed it). The export now records every photograph's pixel size, since
+the image rules cannot run without it; `ExportedImage` gained two optional fields.
+
+**The hunt** ran three rounds of finders (six, three, one) from seven angles, each reading his
+paragraphs from disk: 243, then 110 new (the scoring engine itself, the people and the quotes,
+the file's life after it exists), then 22. Convergence was not reached to zero and the fourth
+round was not run; the helper budget was fourteen and the panel needed four. Every bypass in
+magazine.md §5 is mine.
+
+**Three rounds of looking**, on the printed pages of the live Edition, each a rule change: the
+right column empty behind a run of one answer, a tall photograph beside half a page of air, the
+contents as a page of air, the cover photograph reprinted, a joke lifted as a deck; then a
+gallery squeezing a tall photograph to 24 mm and breaking its caption; then Siya's surf shot
+still alone because the story's other portraits belonged to a long answer. The panel's three
+designers reached the same faults independently from the rules as first written, plus four
+more (words weighing a lone photograph, a deck naming an anonymous asker, decks from a playlist,
+the 70% notes cliff), all folded in; the judge read the printed pages after that.
+
+**The spike's numbers** are in magazine.md §7 and `scripts/dev/.magazine/report.json`. The one
+that decides the pipeline: WebP in, 89.6 MB out; JPEG in, 7.4 MB out, same pages. **The judge**
+(one, on the printed pages, after the designers) ranked three fixes; the first is done and took
+the live Edition from 25 pages to 23; the other two are M3's brief, in magazine.md §6.
+
+**Not done, said plainly.** A split essay's cut still comes from characters per line, not from
+where Chrome broke the line (one row over on the live Edition; M2). Emoji and Devanagari fall
+to system faces on this Mac and would be tofu on a server (M4 ships fonts). The live Edition is
+23 pages; a quarterly would do it in about twenty, and the judge's second and third fixes are
+where the rest is (M3). The room at 390 wide scrolls sideways, by F34.
+
 ### 2026-09-14, S21, build phase 14: a time capsule (Opus 5, one hand, run by `/campaign`)
 
 **His 31a, 33, 34b and 35, done as asked.** Everything that does not depend on the look is built and
@@ -3765,10 +3803,32 @@ wrote in; and whether a member's own data download keeps their answer in a seale
 
 **Phases 12, 13 and 14 are drawn and plumbed and OWNER-GATED** (S19, S20, S21): his pick of a
 recorder and a player at `/lab/catchups/voice`, a result at `/lab/catchups/vote`, and a sealed
-Edition at `/lab/catchups/capsule`, then the transplants. **Next up, and last, is M1, the magazine
-design** (his 38: M1 runs last). The transplants wait on his picks and are not M1's.
+Edition at `/lab/catchups/capsule`, then the transplants. **M1, the magazine design, is DONE**
+(S22): `magazine.md`, the engine, the corpus, the room at `/lab/catchups/magazine`, the printer.
+**What he should open first**: `scripts/dev/print-magazine.mjs --data live --jpeg` and the PNGs
+it writes beside the PDF, pages 5, 7 and 18; then the room. His questions 39 to 44 are in
+magazine.md §9. **Next is M2**, and it starts only after he has looked (¶21: "if we can do an
+amazing job for this").
 
-### Paste this into a fresh Opus max session
+### Paste this into a fresh Opus max session, after he has looked at the live Edition's PDF
+
+```
+@docs/planning/catchups-rework/handover.md
+
+M2: the magazine in the app, built by hand.
+Read magazine.md in full first: the page model, the grammar (which is
+code in src/lib/magazine, do not rewrite it as prose), section 5's
+failure list (every M2 bypass is yours), section 7's pipeline
+recommendation and section 8's M2 phase, which is your scope. Then the
+board and his answers to questions 39 to 44. His notes on the printed
+pages, if he gave any, are DECISIONS.
+
+How to work: one hand; take numbers from the app; npm run check before
+every commit, npm run visual after UI work, never both at once; stage by
+pathspec; update the board and the log in the same commit; do not push.
+```
+
+### The earlier M1 prompt, kept for the record
 
 ```
 @docs/planning/catchups-rework/handover.md

@@ -51,6 +51,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import pg from "pg";
+import sharp from "sharp";
 import { databaseUrl } from "./_env.mjs";
 import { argv, bytesFor } from "./_cli.mjs";
 
@@ -269,6 +270,8 @@ const out = {
                 url: u,
                 file: NO_PHOTOS ? null : wantPhoto(u, "photos", `${e.id}-${i}`),
                 bytes: null,
+                width: null,
+                height: null,
               })),
               songUrl: e.songUrl,
               songTitle: e.songTitle,
@@ -341,11 +344,24 @@ if (wanted.length > 0) {
 let copied = 0;
 const failed = [];
 const sizes = new Map();
+/* Pixel size per copied photograph, read off the bytes just fetched. The
+   magazine's image rules (src/lib/magazine/image.ts) size every frame from
+   it, so an export that does not carry it is a corpus that cannot be laid
+   out. A file sharp cannot read is recorded with no size, not dropped. */
+const dims = new Map();
 for (const { url: u, file } of wanted) {
   try {
     const bytes = await bytesFor(u);
     await writeFile(path.join(OUT, file), bytes);
     sizes.set(file, bytes.length);
+    if (file.startsWith("photos")) {
+      try {
+        const meta = await sharp(bytes).metadata();
+        if (meta.width && meta.height) dims.set(file, { width: meta.width, height: meta.height });
+      } catch {
+        /* not an image sharp can read; the size stays null */
+      }
+    }
     copied += 1;
     if (copied % 25 === 0) console.log(`  copied ${copied}/${wanted.length}`);
   } catch (err) {
@@ -362,8 +378,14 @@ for (const c of out.catchups) {
     for (const q2 of r.questions)
       for (const a of q2.answers)
         for (const img of a.images) {
-          if (img.file && sizes.has(img.file)) img.bytes = sizes.get(img.file);
-          else img.file = null;
+          if (img.file && sizes.has(img.file)) {
+            img.bytes = sizes.get(img.file);
+            const d = dims.get(img.file);
+            if (d) {
+              img.width = d.width;
+              img.height = d.height;
+            }
+          } else img.file = null;
         }
 }
 

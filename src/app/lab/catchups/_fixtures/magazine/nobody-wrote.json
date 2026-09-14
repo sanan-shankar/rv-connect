@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "takenAt": "2026-09-14T00:00:00.000Z",
+  "source": "fixture",
+  "note": "Invented, for the magazine. Two questions, zero answers, published: the live 'test' Catch-up's Edition (A7, D12, E25). No real member's words. See magazine.md.",
+  "catchups": [
+    {
+      "id": "mx-catchup-nobody-wrote",
+      "groupId": "mx-group-nobody-wrote",
+      "groupName": "test",
+      "batchYear": null,
+      "title": null,
+      "intro": null,
+      "cadence": "monthly",
+      "status": "active",
+      "createdById": "mx-ravi-menon-2010",
+      "nextOpensAt": null,
+      "pausedAt": null,
+      "createdAt": "2026-07-01T04:30:00.000Z",
+      "updatedAt": "2026-08-15T04:30:00.000Z",
+      "members": [],
+      "prefs": [],
+      "editions": [
+        {
+          "id": "mx-edition-nobody-wrote",
+          "number": 1,
+          "theme": null,
+          "status": "published",
+          "questionsCloseAt": "2026-08-08T04:30:00.000Z",
+          "answersCloseAt": "2026-08-15T04:30:00.000Z",
+          "publishedAt": "2026-08-15T01:33:00.000Z",
+          "remindersSent": 0,
+          "timeCapsule": false,
+          "sealedAt": null,
+          "publishAt": null,
+          "createdAt": "2026-08-01T04:30:00.000Z",
+          "questions": [
+            {
+              "id": "q-017",
+              "author": {
+                "id": "mx-ravi-menon-2010",
+                "name": "Ravi Menon",
+                "batchYear": 2010,
+                "photoUrl": null,
+                "birdOverride": "spotted-owlet"
+              },
+              "text": "What is a fun thing you did this summer?",
+              "category": null,
+              "kind": "text",
+              "source": "keeper",
+              "choices": [],
+              "showAsker": true,
+              "accepted": true,
+              "position": 0,
+              "createdAt": "2026-08-01T09:00:00.000Z",
+              "answers": []
+            },
+            {
+              "id": "q-018",
+              "author": {
+                "id": "mx-ravi-menon-2010",
+                "name": "Ravi Menon",
+                "batchYear": 2010,
+                "photoUrl": null,
+                "birdOverride": "spotted-owlet"
+              },
+              "text": "What are you working on these days, at work or otherwise?",
+              "category": null,
+              "kind": "text",
+              "source": "keeper",
+              "choices": [],
+              "showAsker": true,
+              "accepted": true,
+              "position": 1,
+              "createdAt": "2026-08-01T09:00:00.000Z",
+              "answers": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

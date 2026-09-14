@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "takenAt": "2026-09-14T00:00:00.000Z",
+  "source": "fixture",
+  "note": "Invented, for the magazine. A 9,000-character answer from before the cap, in one paragraph, beside a five-word one (A2, D2, E29, G20). No real member's words. See magazine.md.",
+  "catchups": [
+    {
+      "id": "mx-catchup-one-essay",
+      "groupId": "mx-group-one-essay",
+      "groupName": "Batch of 1988",
+      "batchYear": null,
+      "title": null,
+      "intro": null,
+      "cadence": "monthly",
+      "status": "active",
+      "createdById": "mx-ravi-menon-2010",
+      "nextOpensAt": null,
+      "pausedAt": null,
+      "createdAt": "2026-07-01T04:30:00.000Z",
+      "updatedAt": "2026-08-15T04:30:00.000Z",
+      "members": [
+        {
+          "id": "mx-ravi-menon-1975",
+          "name": "Ravi Menon",
+          "batchYear": 1975,
+          "photoUrl": null,
+          "birdOverride": "spotted-owlet",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-meera-iyer-1976",
+          "name": "Meera Iyer",
+          "batchYear": 1976,
+          "photoUrl": null,
+          "birdOverride": "spotted-owlet",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-arjun-rao-1977",
+          "name": "Arjun Rao",
+          "batchYear": 1977,
+          "photoUrl": null,
+          "birdOverride": "verditer-flycatcher",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        }
+      ],
+      "prefs": [],
+      "editions": [
+        {
+          "id": "mx-edition-one-essay",
+          "number": 1,
+          "theme": null,
+          "status": "published",
+          "questionsCloseAt": "2026-08-08T04:30:00.000Z",
+          "answersCloseAt": "2026-08-15T04:30:00.000Z",
+          "publishedAt": "2026-08-15T01:33:00.000Z",
+          "remindersSent": 0,
+          "timeCapsule": false,
+          "sealedAt": null,
+          "publishAt": null,
+          "createdAt": "2026-08-01T04:30:00.000Z",
+          "questions": [
+            {
+              "id": "q-065",
+              "author": {
+                "id": "mx-ravi-menon-2010",
+                "name": "Ravi Menon",
+                "batchYear": 2010,
+                "photoUrl": null,
+                "birdOverride": "spotted-owlet"
+              },
+              "text": "How has the year been, really?",
+              "category": null,
+              "kind": "text",
+              "source": "member",
+              "choices": [],
+              "showAsker": true,
+              "accepted": true,
+              "position": 0,
+              "createdAt": "2026-08-01T09:00:00.000Z",
+              "answers": [
+                {
+                  "id": "ans-062",
+                  "author": {
+                    "id": "mx-ravi-menon-1975",
+                    "name": "Ravi Menon",
+                    "batchYear": 1975,
+                    "photoUrl": null,
+                    "birdOverride": "spotted-owlet"
+                  },
+                  "body": "I went back in April for the first time since I left, and the thing that undid me was not the buildings at all. It was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again. I stood by the tamarind for a while feeling ridiculous about it. Nobody warned me that the dining hall would smell exactly the same. We drove up from Bangalore and got lost twice, which felt right. The new dorm block is fine but the old one had better light. I still cannot eat curd rice without thinking of Tuesday lunch. Someone had kept the noticeboard from 1998, pinned notes and all. My daughter asked why everyone was hugging and I did not have a short answer. The hill looked smaller, which everyone says and which is still true. There is a new gate and the old watchman is still there, which is the whole school in one sentence. We sat on the boulders until it was properly dark and nobody wanted to be the first to leave. I went back in April for the first time since I left, and the thing that undid me was not the buildings at all. It was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again. I stood by the tamarind for a while feeling ridiculous about it. Nobody warned me that the dining hall would smell exactly the same. We drove up from Bangalore and got lost twice, which felt right. The new dorm block is fine but the old one had better light. I still cannot eat curd rice without thinking of Tuesday lunch. Someone had kept the noticeboard from 1998, pinned notes and all. My daughter asked why everyone was hugging and I did not have a short answer. The hill looked smaller, which everyone says and which is still true. There is a new gate and the old watchman is still there, which is the whole school in one sentence. We sat on the boulders until it was properly dark and nobody wanted to be the first to leave. I went back in April for the first time since I left, and the thing that undid me was not the buildings at all. It was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again. I stood by the tamarind for a while feeling ridiculous about it. Nobody warned me that the dining hall would smell exactly the same. We drove up from Bangalore and got lost twice, which felt right. The new dorm block is fine but the old one had better light. I still cannot eat curd rice without thinking of Tuesday lunch. Someone had kept the noticeboard from 1998, pinned notes and all. My daughter asked why everyone was hugging and I did not have a short answer. The hill looked smaller, which everyone says and which is still true. There is a new gate and the old watchman is still there, which is the whole school in one sentence. We sat on the boulders until it was properly dark and nobody wanted to be the first to leave. I went back in April for the first time since I left, and the thing that undid me was not the buildings at all. It was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again. I stood by the tamarind for a while feeling ridiculous about it. Nobody warned me that the dining hall would smell exactly the same. We drove up from Bangalore and got lost twice, which felt right. The new dorm block is fine but the old one had better light. I still cannot eat curd rice without thinking of Tuesday lunch. Someone had kept the noticeboard from 1998, pinned notes and all. My daughter asked why everyone was hugging and I did not have a short answer. The hill looked smaller, which everyone says and which is still true. There is a new gate and the old watchman is still there, which is the whole school in one sentence. We sat on the boulders until it was properly dark and nobody wanted to be the first to leave. I went back in April for the first time since I left, and the thing that undid me was not the buildings at all. It was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again. I stood by the tamarind for a while feeling ridiculous about it. Nobody warned me that the dining hall would smell exactly the same. We drove up from Bangalore and got lost twice, which felt right. The new dorm block is fine but the old one had better light. I still cannot eat curd rice without thinking of Tuesday lunch. Someone had kept the noticeboard from 1998, pinned notes and all. My daughter asked why everyone was hugging and I did not have a short answer. The hill looked smaller, which everyone says and which is still true. There is a new gate and the old watchman is still there, which is the whole school in one sentence. We sat on the boulders until it was properly dark and nobody wanted to be the first to leave. I went back in April for the first time since I left, and the thing that undid me was not the buildings at all. It was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again. I stood by the tamarind for a while feeling ridiculous about it. Nobody warned me that the dining hall would smell exactly the same. We drove up from Bangalore and got lost twice, which felt right. The new dorm block is fine but the old one had better light. I still cannot eat curd rice without thinking of Tuesday lunch. Someone had kept the noticeboard from 1998, pinned notes and all. My daughter asked why everyone was hugging and I did not have a short answer. The hill looked smaller, which everyone says and which is still true. There is a new gate and the old watchman is still there, which is the whole school in one sentence. We sat on the boulders until it was properly dark and nobody wanted to be the first to leave. I went back in April for the first time since I left, and the thing that undid me was not the buildings at all. It was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again. I stood by the tamarind for a while feeling ridiculous about it. Nobody warned me that the dining hall would smell exactly the same. We drove up from Bangalore and got lost twice, which felt right. The new dorm block is fine but the old one had better light. I still cannot eat curd rice without thinking of Tuesday lunch. Someone had kept the noticeboard from 1998, pinned notes and all. My daughter asked why everyone was hugging and I did not have a short answer. The hill looked smaller, which everyone says and which is still true. There is a new gate and the old watchman is still there, which is the whole school in one sentence. We sat on the boulders until it was properly dark and nobody wanted to be the first to leave. I went back in April for the first time since I left, and the thing that undid me was not the buildings at all. It was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again. I stood by the tamarind for a while feeling ridiculous about it. Nobody warned me that the dining hall would smell exactly the same. We drove up from Bangalore and got lost twice, which felt right. The new dorm block is fine but the old one had better light. I still cannot eat curd rice without thinking of Tuesday lunch. Someone had kept the noticeboard from 1998, pinned notes and all. My daughter asked why everyone was hugging and I did not have a short answer. The hill looked smaller, which everyone says and which is still true. There is a new gate and the old watchman is still there, which is the whole school in one sentence. We sat on the boulders until it was properly dark and nobody wanted to be the first to leave. I went back in April for the first time since I left, and the thing that undid me was not the buildings at all. It was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again. I stood by the tamarind for a while feeling ridiculous about it. Nobody warned me that the dining hall would smell exactly the same. We drove up from Bangalore and got lost twice, which felt right. The new dorm block is fine but the old one had better light. I still cannot eat curd rice without thinking of Tuesday lunch. Someone had kept the noticeboard from 1998, pinned notes and all. My daughter asked why everyone was hugging and I did not have a short answer. The hill looked smaller, which everyone says and which is still true. There is a new gate and the old watchman is still there, which is the whole school in one sentence. We sat on the boulders until it was properly dark and nobody wanted to be the first to leave. I went back in April for the first time since I left, and the thing that undid me was not the buildings at all. It was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again. I stood by the tamarind for a while feeling ridiculous about it. Nobody warned me that the dining hall would smell exactly the same. We drove up from Bangalore and got",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0",
+                    "h1",
+                    "h2",
+                    "h3"
+                  ],
+                  "createdAt": "2026-08-10T06:00:00.000Z",
+                  "updatedAt": "2026-08-10T06:00:00.000Z"
+                },
+                {
+                  "id": "ans-063",
+                  "author": {
+                    "id": "mx-meera-iyer-1976",
+                    "name": "Meera Iyer",
+                    "batchYear": 1976,
+                    "photoUrl": null,
+                    "birdOverride": "spotted-owlet"
+                  },
+                  "body": "Fine, thanks for asking.",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-11T07:07:00.000Z",
+                  "updatedAt": "2026-08-11T07:07:00.000Z"
+                },
+                {
+                  "id": "ans-064",
+                  "author": {
+                    "id": "mx-arjun-rao-1977",
+                    "name": "Arjun Rao",
+                    "batchYear": 1977,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": "Nobody warned me that the dining hall would smell exactly the same.\n\nWe drove up from Bangalore and got lost twice, which felt right.\n\nThe new dorm block is fine but the old one had better light.\n\nI still cannot eat curd rice without thinking of Tuesday lunch.\n\nSomeone had kept the noticeboard from 1998, pinned notes and all.\n\nMy daughter asked why everyone was hugging and I did not have a short answer.\n\nThe hill looked smaller, which everyone says and which is still true.\n\nThere is a new gate and the old watchman is still there, which is the whole school in one sentence.\n\nWe sat on the boulders until it was properly dark and nobody wanted to be the first to leave.\n\nI went back in April for the first time since I left, and the thing that undid me was not the buildings at all.\n\nIt was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again.\n\nI stood by the tamarind for a while feeling ridiculous about it.\n\nNobody warned me that the dining hall would smell exactly the same.\n\nWe drove up from Bangalore and got lost twice, which felt right.\n\nThe new dorm block is fine but the old one had better light.\n\nI still cannot eat curd rice without thinking of Tuesday lunch.\n\nSomeone had kept the noticeboard from 1998, pinned notes and all.\n\nMy daughter asked why everyone was hugging and I did not have a short answer.\n\nThe hill looked smaller, which everyone says and which is still true.\n\nThere is a new gate and the old watchman is still there, which is the whole school in one sentence.\n\nWe sat on the boulders until it was properly dark and nobody wanted to be the first to leave.\n\nI went back in April for the first time since I left, and the thing that undid me was not the buildings at all.\n\nIt was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again.\n\nI stood by the tamarind for a while feeling ridiculous about it.\n\nNobody warned me that the dining hall would smell exactly the same.\n\nWe drove up from Bangalore and got lost twice, which felt right.\n\nThe new dorm block is fine but the old one had better light.\n\nI still cannot eat curd rice without thinking of Tuesday lunch.\n\nSomeone had kept the noticeboard from 1998, pinned notes and all.\n\nMy daughter asked why everyone was hugging and I did not have a short answer.\n\nThe hill looked smaller, which everyone says and which is still true.\n\nThere is a new gate and the old watchman is still there, which is the whole school in one sentence.\n\nWe sat on the boulders until it was properly dark and nobody wanted to be the first to leave.\n\nI went back in April for the first time since I left, and the thing that undid me was not the buildings at all.\n\nIt was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again.\n\nI stood by the tamarind for a while feeling ridiculous about it.\n\nNobody warned me that the dining hall would smell exactly the same.\n\nWe drove up from Bangalore and got lost twice, which felt right.\n\nThe new dorm block is fine but the old one had better light.\n\nI still cannot eat curd rice without thinking of Tuesday lunch.\n\nSomeone had kept the noticeboard from 1998, pinned notes and all.\n\nMy daughter asked why everyone was hugging and I did not have a short answer.\n\nThe hill looked smaller, which everyone says and which is still true.\n\nThere is a new gate and the old watchman is still there, which is the whole school in one sentence.\n\nWe sat on the boulders until it was properly dark and nobody wanted to be the first to leave.\n\nI went back in April for the first time since I left, and the thing that undid me was not the buildings at all.\n\nIt was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again.\n\nI stood by the tamarind for a while feeling ridiculous about it.\n\nNobody warned me that the dining hall would smell exactly the same.\n\nWe drove up from Bangalore and got lost twice, which felt right.\n\nThe new dorm block is fine but the old one had better light.\n\nI still cannot eat curd rice without thinking of Tuesday lunch.\n\nSomeone had kept the noticeboard from 1998, pinned notes and all.\n\nMy daughter asked why everyone was hugging and I did not have a short answer.\n\nThe hill looked smaller, which everyone says and which is still true.\n\nThere is a new gate and the old watchman is still there, which is the whole school in one sentence.\n\nWe sat on the boulders until it was properly dark and nobody wanted to be the first to leave.\n\nI went back in April for the first time since I left, and the thing that undid me was not the buildings at all.\n\nIt was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again.\n\nI stood by the tamarind for a while feeling ridiculous about it.\n\nNobody warned me that the dining hall would smell exactly the same.\n\nWe drove up from Bangalore and got lost twice, which felt right.\n\nThe new dorm block is fine but the old one had better light.\n\nI still cannot eat curd rice without thinking of Tuesday lunch.\n\nSomeone had kept the noticeboard from 1998, pinned notes and all.\n\nMy daughter asked why everyone was hugging and I did not have a short answer.\n\nThe hill looked smaller, which everyone says and which is still true.\n\nThere is a new gate and the old watchman is still there, which is the whole school in one sentence.\n\nWe sat on the boulders until it was properly dark and nobody wanted to be the first to leave.\n\nI went back in April for the first time since I left, and the thing that undid me was not the buildings at all.\n\nIt was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again.\n\nI stood by the tamarind for a while feeling ridiculous about it.\n\nNobody warned me that the dining hall would smell exactly the same.\n\nWe drove up from Bangalore and got lost twice, which felt right.\n\nThe new dorm block is fine but the old one had better light.\n\nI still cannot eat curd rice without thinking of Tuesday lunch.",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-12T08:14:00.000Z",
+                  "updatedAt": "2026-08-12T08:14:00.000Z"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

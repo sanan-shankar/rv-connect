@@ -58,8 +58,11 @@ const SIZES: Record<string, { width: number; height: number }> = {
   "/images/collection/v3.webp": { width: 900, height: 1300 },
 };
 
-function photoOf(url: string): StoredPhoto | null {
-  const size = SIZES[url];
+function photoOf(img: { url: string; width?: number | null; height?: number | null }): StoredPhoto | null {
+  /* A file that carries its own pixel size (the exporter writes it since
+     the magazine work) wins over the table above, which only knows the
+     five public stills. */
+  const size = img.width && img.height ? { width: img.width, height: img.height } : SIZES[img.url];
   if (!size) return null;
   return { ...size, focalX: 0.5, focalY: 0.5, blurDataUrl: null };
 }
@@ -95,7 +98,7 @@ async function entryOf(
     author: person(a.author, a.author.id === keeperId),
     body: a.body,
     images: a.images.map((i) => i.url),
-    photos: a.images.map((i) => photoOf(i.url)),
+    photos: a.images.map((i) => photoOf(i)),
     song: a.songUrl
       ? { url: a.songUrl, title: a.songTitle ?? a.songUrl, art: a.songArt }
       : null,

@@ -69,9 +69,12 @@ function inventedCommentCount(id: string): number {
 
 export async function loadSketchEdition(
   viewerId: string,
+  /** A particular published Edition, for a room that wants more than the
+   *  most-answered one (the magazine draws two). */
+  opts: { editionId?: string } = {},
 ): Promise<SketchEdition | null> {
   const edition = await prisma.catchupEdition.findFirst({
-    where: { status: "published" },
+    where: { status: "published", ...(opts.editionId ? { id: opts.editionId } : {}) },
     orderBy: [{ entries: { _count: "desc" } }, { publishedAt: "desc" }],
     select: {
       id: true,
