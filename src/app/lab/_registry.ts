@@ -227,6 +227,13 @@ export const REGISTRY: LabEntry[] = [
     note: "A question answered out loud, for him to pick. The recorder in the answering box two ways (a mic in the box, or say it instead) with every state it can land in, and the player in the reader three ways (the bird speaks, a line of voice, the tape). The recorder is real: record something and it plays in all three. The upload and its checks are built underneath and switched off.",
   },
   {
+    href: "/lab/catchups/vote",
+    title: "Who picked what",
+    group: "Delight",
+    status: "active",
+    note: "A question the group votes on, for him to pick. Asking one in the home's ask box, casting one while answering, and the result in the Edition three ways (flocks, piles, a roll call) against eight votes: two choices, six, one nobody picked, a landslide, a tie, forty on one, long choices and a single voter. The choices, the pick and their checks are built underneath and switched off.",
+  },
+  {
     href: "/lab/catchups/swipe",
     title: "The swipe that goes back two",
     group: "Delight",
