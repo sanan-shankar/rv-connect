@@ -90,6 +90,7 @@ import {
 } from "@/components/ui/dialog";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { callAction } from "@/lib/call-action";
+import { useBackCloses } from "@/lib/back-closes";
 import { cn, formatDayMonth } from "@/lib/utils";
 import type { Cadence, ReminderMode } from "@/lib/catchups-types";
 import {
@@ -655,6 +656,7 @@ export function SettingsSheet({
 }) {
   const body = useRef<HTMLDivElement>(null);
   const y = useMotionValue(0);
+  useBackCloses(open, onClose);
 
   useEffect(() => {
     if (!open) return;

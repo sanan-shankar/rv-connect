@@ -4,11 +4,32 @@ import * as React from "react"
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 
 import { cn } from "@/lib/utils"
+import { useBackCloses } from "@/lib/back-closes"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
 
-function Dialog({ ...props }: DialogPrimitive.Root.Props) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />
+/** Root props with the back gesture wired in: while open, back closes it
+ *  through Base UI's own close, so the caller's `onOpenChange` still decides
+ *  (a dialog that refuses to close mid-save keeps refusing). Shared with
+ *  ui/sheet, which is the same primitive. See src/lib/back-closes.ts. */
+export function useBackClosableRoot(props: DialogPrimitive.Root.Props): DialogPrimitive.Root.Props {
+  const { open, defaultOpen, onOpenChange, actionsRef } = props
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen ?? false)
+  const ownActions = React.useRef<DialogPrimitive.Root.Actions>(null)
+  const actions = actionsRef ?? ownActions
+  useBackCloses(open ?? uncontrolledOpen, () => actions.current?.close())
+  return {
+    ...props,
+    actionsRef: actions,
+    onOpenChange: (next, details) => {
+      onOpenChange?.(next, details)
+      if (!details.isCanceled) setUncontrolledOpen(next)
+    },
+  }
+}
+
+function Dialog(props: DialogPrimitive.Root.Props) {
+  return <DialogPrimitive.Root data-slot="dialog" {...useBackClosableRoot(props)} />
 }
 
 function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {

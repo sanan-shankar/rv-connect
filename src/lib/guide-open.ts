@@ -20,14 +20,10 @@
  *  to "the overlay, over the feed", which nobody asked for and which
  *  cost every bit of the smoothness that was asked for.
  *
- *  One history entry IS pushed, with the same URL, so the back button
- *  and the Android back gesture close the chapter instead of leaving
- *  the page. Same URL means Next sees no route change and stays out of
- *  it entirely.
+ *  Back still closes the chapter rather than leaving the page. That used
+ *  to be a history entry pushed from here; it is now the Sheet's own, the
+ *  same one every dialog and sheet takes (src/lib/back-closes.ts).
  * ------------------------------------------------------------------ */
-
-/** Marks our history entry so popstate can tell it apart from anyone else's. */
-const GUIDE_MARK = "__rvGuideOpen";
 
 type Listener = () => void;
 
@@ -53,31 +49,11 @@ export function currentGuide(): string | null {
 export function openGuide(area: string): void {
   if (current === area) return;
   current = area;
-  /* Same URL, so Next's router sees nothing and does nothing. The entry
-     exists only so that back closes the chapter rather than leaving the page,
-     which is what a phone's back gesture expects of anything covering the
-     screen. */
-  window.history.pushState({ [GUIDE_MARK]: true }, "", window.location.href);
   emit();
 }
 
-/** Close. Rewinds our own history entry so no trail is left behind. */
+/** Close: the sheet finished leaving, or Next navigated somewhere else underneath it. */
 export function closeGuide(): void {
-  if (current === null) return;
-  current = null;
-  emit();
-  if (window.history.state?.[GUIDE_MARK]) window.history.back();
-}
-
-/** popstate: the member pressed back, or a gesture did it for them. */
-export function syncGuideFromHistory(): void {
-  if (current === null) return;
-  current = null;
-  emit();
-}
-
-/** Next navigated somewhere else underneath an open chapter. */
-export function resetGuide(): void {
   if (current === null) return;
   current = null;
   emit();
