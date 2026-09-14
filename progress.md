@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-14 (catch-ups, phase 11) — the three test Catch-ups are deleted
 - 2026-09-14 (catch-ups, library) — a drafted question library of 64 and a time capsule set of 10, for him to cut
 - 2026-09-14 (catch-ups, card) — a link card stops printing its title twice
 - 2026-09-14 (catch-ups) — a pasted link becomes a card: songs, videos, and any other page

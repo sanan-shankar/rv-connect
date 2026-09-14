@@ -6624,3 +6624,19 @@ written to both of his rulings: the July review ("we don't need too many questio
 every question answerable in a sentence or two, nothing about what the Valley taught you or what you
 miss) and September's longer library, which nobody meets the length of because a Keeper sees six at
 a time. Nothing reaches members; the code is unchanged.
+
+
+## 2026-09-14 (catch-ups, phase 11) — the three test Catch-ups are deleted
+
+His answer to 28: "I'm happy for you to simply delete test catch ups." `[Recon] the happy path`,
+`Test` and `testest` are gone from production with their groups, through
+`prisma/migrations-manual/2026-09-14-delete-test-catchups.sql`: id-pinned, and it refuses if anyone
+but the owner or Jerry holds a row under them. The cascade took Editions, questions, answers,
+hearts, comments, reads and preferences; the file also removes the 10 bell notifications and 2
+view rows that no foreign key reaches. Export re-run first, proved in a rolled-back transaction
+(same counts as the real run), guard proved refusing a real member. Groups 20 -> 17, Catch-ups
+7 -> 4, Editions 9 -> 5, answers 143 -> 141. The demo holds no Catch-ups: a no-op there.
+
+`test` (lowercase) stays, as spec 3.2 says. The orphaned Batch of 2024 snapshot group stays too:
+it was not in his answer. No photographs, so nothing left in R2. Nothing in code named the three.
+`npm run visual` 25/25, no baseline moved.
