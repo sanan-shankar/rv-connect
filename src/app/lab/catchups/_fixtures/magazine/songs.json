@@ -1,0 +1,1145 @@
+{
+  "version": 1,
+  "takenAt": "2026-09-14T00:00:00.000Z",
+  "source": "fixture",
+  "note": "Invented, for the magazine. Thirty url-only song answers (twenty Spotify, eight YouTube, two dead hosts), one answer with two links, one song given as a name (A25, F33, F36, E17). No real member's words. See magazine.md.",
+  "catchups": [
+    {
+      "id": "mx-catchup-songs",
+      "groupId": "mx-group-songs",
+      "groupName": "Batch of 2011",
+      "batchYear": null,
+      "title": null,
+      "intro": null,
+      "cadence": "monthly",
+      "status": "active",
+      "createdById": "mx-ravi-menon-2010",
+      "nextOpensAt": null,
+      "pausedAt": null,
+      "createdAt": "2026-07-01T04:30:00.000Z",
+      "updatedAt": "2026-08-15T04:30:00.000Z",
+      "members": [
+        {
+          "id": "mx-ravi-menon-1975",
+          "name": "Ravi Menon",
+          "batchYear": 1975,
+          "photoUrl": null,
+          "birdOverride": "spotted-owlet",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-meera-iyer-1976",
+          "name": "Meera Iyer",
+          "batchYear": 1976,
+          "photoUrl": null,
+          "birdOverride": "spotted-owlet",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-arjun-rao-1977",
+          "name": "Arjun Rao",
+          "batchYear": 1977,
+          "photoUrl": null,
+          "birdOverride": "verditer-flycatcher",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-tanvi-bhat-1978",
+          "name": "Tanvi Bhat",
+          "batchYear": 1978,
+          "photoUrl": null,
+          "birdOverride": "spotted-owlet",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-kabir-sen-1979",
+          "name": "Kabir Sen",
+          "batchYear": 1979,
+          "photoUrl": null,
+          "birdOverride": "verditer-flycatcher",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-ananya-nair-1980",
+          "name": "Ananya Nair",
+          "batchYear": 1980,
+          "photoUrl": null,
+          "birdOverride": "peregrine-falcon",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-dev-kulkarni-1981",
+          "name": "Dev Kulkarni",
+          "batchYear": 1981,
+          "photoUrl": null,
+          "birdOverride": "hoopoe",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-sanjana-pillai-1982",
+          "name": "Sanjana Pillai",
+          "batchYear": 1982,
+          "photoUrl": null,
+          "birdOverride": "common-kingfisher",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-rohan-das-1983",
+          "name": "Rohan Das",
+          "batchYear": 1983,
+          "photoUrl": null,
+          "birdOverride": "verditer-flycatcher",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-nikhil-verma-1984",
+          "name": "Nikhil Verma",
+          "batchYear": 1984,
+          "photoUrl": null,
+          "birdOverride": "hoopoe",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-priya-raman-1985",
+          "name": "Priya Raman",
+          "batchYear": 1985,
+          "photoUrl": null,
+          "birdOverride": "peregrine-falcon",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-ishaan-joshi-1986",
+          "name": "Ishaan Joshi",
+          "batchYear": 1986,
+          "photoUrl": null,
+          "birdOverride": "hoopoe",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-aditi-ghosh-1987",
+          "name": "Aditi Ghosh",
+          "batchYear": 1987,
+          "photoUrl": null,
+          "birdOverride": "peregrine-falcon",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-varun-reddy-1988",
+          "name": "Varun Reddy",
+          "batchYear": 1988,
+          "photoUrl": null,
+          "birdOverride": "peregrine-falcon",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-shreya-mehta-1989",
+          "name": "Shreya Mehta",
+          "batchYear": 1989,
+          "photoUrl": null,
+          "birdOverride": "hoopoe",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-kiran-kumar-1990",
+          "name": "Kiran Kumar",
+          "batchYear": 1990,
+          "photoUrl": null,
+          "birdOverride": "peregrine-falcon",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-lakshmi-suresh-1991",
+          "name": "Lakshmi Suresh",
+          "batchYear": 1991,
+          "photoUrl": null,
+          "birdOverride": "common-kingfisher",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-aarav-shah-1992",
+          "name": "Aarav Shah",
+          "batchYear": 1992,
+          "photoUrl": null,
+          "birdOverride": "spotted-owlet",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-zoya-khan-1993",
+          "name": "Zoya Khan",
+          "batchYear": 1993,
+          "photoUrl": null,
+          "birdOverride": "verditer-flycatcher",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-mihir-desai-1994",
+          "name": "Mihir Desai",
+          "batchYear": 1994,
+          "photoUrl": null,
+          "birdOverride": "peregrine-falcon",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-ravi-menon-2-1995",
+          "name": "Ravi Menon 2",
+          "batchYear": 1995,
+          "photoUrl": null,
+          "birdOverride": "hoopoe",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-meera-iyer-2-1996",
+          "name": "Meera Iyer 2",
+          "batchYear": 1996,
+          "photoUrl": null,
+          "birdOverride": "hoopoe",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-arjun-rao-2-1997",
+          "name": "Arjun Rao 2",
+          "batchYear": 1997,
+          "photoUrl": null,
+          "birdOverride": "peregrine-falcon",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-tanvi-bhat-2-1998",
+          "name": "Tanvi Bhat 2",
+          "batchYear": 1998,
+          "photoUrl": null,
+          "birdOverride": "hoopoe",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-kabir-sen-2-1999",
+          "name": "Kabir Sen 2",
+          "batchYear": 1999,
+          "photoUrl": null,
+          "birdOverride": "peregrine-falcon",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-ananya-nair-2-2000",
+          "name": "Ananya Nair 2",
+          "batchYear": 2000,
+          "photoUrl": null,
+          "birdOverride": null,
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-dev-kulkarni-2-2001",
+          "name": "Dev Kulkarni 2",
+          "batchYear": 2001,
+          "photoUrl": null,
+          "birdOverride": "common-kingfisher",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-sanjana-pillai-2-2002",
+          "name": "Sanjana Pillai 2",
+          "batchYear": 2002,
+          "photoUrl": null,
+          "birdOverride": "verditer-flycatcher",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-rohan-das-2-2003",
+          "name": "Rohan Das 2",
+          "batchYear": 2003,
+          "photoUrl": null,
+          "birdOverride": "peregrine-falcon",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-nikhil-verma-2-2004",
+          "name": "Nikhil Verma 2",
+          "batchYear": 2004,
+          "photoUrl": null,
+          "birdOverride": "common-kingfisher",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-priya-raman-2-2005",
+          "name": "Priya Raman 2",
+          "batchYear": 2005,
+          "photoUrl": null,
+          "birdOverride": null,
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-kabir-sen-2009",
+          "name": "Kabir Sen",
+          "batchYear": 2009,
+          "photoUrl": null,
+          "birdOverride": "verditer-flycatcher",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        }
+      ],
+      "prefs": [],
+      "editions": [
+        {
+          "id": "mx-edition-songs",
+          "number": 1,
+          "theme": null,
+          "status": "published",
+          "questionsCloseAt": "2026-08-08T04:30:00.000Z",
+          "answersCloseAt": "2026-08-15T04:30:00.000Z",
+          "publishedAt": "2026-08-15T01:33:00.000Z",
+          "remindersSent": 0,
+          "timeCapsule": false,
+          "sealedAt": null,
+          "publishAt": null,
+          "createdAt": "2026-08-01T04:30:00.000Z",
+          "questions": [
+            {
+              "id": "q-375",
+              "author": {
+                "id": "mx-ravi-menon-2010",
+                "name": "Ravi Menon",
+                "batchYear": 2010,
+                "photoUrl": null,
+                "birdOverride": "spotted-owlet"
+              },
+              "text": "Songs you've had on repeat lately",
+              "category": "songs",
+              "kind": "songs",
+              "source": "keeper",
+              "choices": [],
+              "showAsker": true,
+              "accepted": true,
+              "position": 0,
+              "createdAt": "2026-08-01T09:00:00.000Z",
+              "answers": [
+                {
+                  "id": "ans-343",
+                  "author": {
+                    "id": "mx-ravi-menon-1975",
+                    "name": "Ravi Menon",
+                    "batchYear": 1975,
+                    "photoUrl": null,
+                    "birdOverride": "spotted-owlet"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQA?si=abc0",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-10T06:00:00.000Z",
+                  "updatedAt": "2026-08-10T06:00:00.000Z"
+                },
+                {
+                  "id": "ans-344",
+                  "author": {
+                    "id": "mx-meera-iyer-1976",
+                    "name": "Meera Iyer",
+                    "batchYear": 1976,
+                    "photoUrl": null,
+                    "birdOverride": "spotted-owlet"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQB?si=abc1",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0"
+                  ],
+                  "createdAt": "2026-08-11T07:07:00.000Z",
+                  "updatedAt": "2026-08-11T07:07:00.000Z"
+                },
+                {
+                  "id": "ans-345",
+                  "author": {
+                    "id": "mx-arjun-rao-1977",
+                    "name": "Arjun Rao",
+                    "batchYear": 1977,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC?si=abc2",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0",
+                    "h1"
+                  ],
+                  "createdAt": "2026-08-12T08:14:00.000Z",
+                  "updatedAt": "2026-08-12T08:14:00.000Z"
+                },
+                {
+                  "id": "ans-346",
+                  "author": {
+                    "id": "mx-tanvi-bhat-1978",
+                    "name": "Tanvi Bhat",
+                    "batchYear": 1978,
+                    "photoUrl": null,
+                    "birdOverride": "spotted-owlet"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQD?si=abc3",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-13T09:21:00.000Z",
+                  "updatedAt": "2026-08-13T09:21:00.000Z"
+                },
+                {
+                  "id": "ans-347",
+                  "author": {
+                    "id": "mx-kabir-sen-1979",
+                    "name": "Kabir Sen",
+                    "batchYear": 1979,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQE?si=abc4",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0"
+                  ],
+                  "createdAt": "2026-08-14T10:28:00.000Z",
+                  "updatedAt": "2026-08-14T10:28:00.000Z"
+                },
+                {
+                  "id": "ans-348",
+                  "author": {
+                    "id": "mx-ananya-nair-1980",
+                    "name": "Ananya Nair",
+                    "batchYear": 1980,
+                    "photoUrl": null,
+                    "birdOverride": "peregrine-falcon"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQF?si=abc5",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0",
+                    "h1"
+                  ],
+                  "createdAt": "2026-08-10T11:35:00.000Z",
+                  "updatedAt": "2026-08-10T11:35:00.000Z"
+                },
+                {
+                  "id": "ans-349",
+                  "author": {
+                    "id": "mx-dev-kulkarni-1981",
+                    "name": "Dev Kulkarni",
+                    "batchYear": 1981,
+                    "photoUrl": null,
+                    "birdOverride": "hoopoe"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQG?si=abc6",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-11T12:42:00.000Z",
+                  "updatedAt": "2026-08-11T12:42:00.000Z"
+                },
+                {
+                  "id": "ans-350",
+                  "author": {
+                    "id": "mx-sanjana-pillai-1982",
+                    "name": "Sanjana Pillai",
+                    "batchYear": 1982,
+                    "photoUrl": null,
+                    "birdOverride": "common-kingfisher"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQH?si=abc7",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0"
+                  ],
+                  "createdAt": "2026-08-12T13:49:00.000Z",
+                  "updatedAt": "2026-08-12T13:49:00.000Z"
+                },
+                {
+                  "id": "ans-351",
+                  "author": {
+                    "id": "mx-rohan-das-1983",
+                    "name": "Rohan Das",
+                    "batchYear": 1983,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQI?si=abc8",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0",
+                    "h1"
+                  ],
+                  "createdAt": "2026-08-13T14:56:00.000Z",
+                  "updatedAt": "2026-08-13T14:56:00.000Z"
+                },
+                {
+                  "id": "ans-352",
+                  "author": {
+                    "id": "mx-nikhil-verma-1984",
+                    "name": "Nikhil Verma",
+                    "batchYear": 1984,
+                    "photoUrl": null,
+                    "birdOverride": "hoopoe"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQJ?si=abc9",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-14T15:03:00.000Z",
+                  "updatedAt": "2026-08-14T15:03:00.000Z"
+                },
+                {
+                  "id": "ans-353",
+                  "author": {
+                    "id": "mx-priya-raman-1985",
+                    "name": "Priya Raman",
+                    "batchYear": 1985,
+                    "photoUrl": null,
+                    "birdOverride": "peregrine-falcon"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQK?si=abc10",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0"
+                  ],
+                  "createdAt": "2026-08-10T16:10:00.000Z",
+                  "updatedAt": "2026-08-10T16:10:00.000Z"
+                },
+                {
+                  "id": "ans-354",
+                  "author": {
+                    "id": "mx-ishaan-joshi-1986",
+                    "name": "Ishaan Joshi",
+                    "batchYear": 1986,
+                    "photoUrl": null,
+                    "birdOverride": "hoopoe"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQL?si=abc11",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0",
+                    "h1"
+                  ],
+                  "createdAt": "2026-08-11T17:17:00.000Z",
+                  "updatedAt": "2026-08-11T17:17:00.000Z"
+                },
+                {
+                  "id": "ans-355",
+                  "author": {
+                    "id": "mx-aditi-ghosh-1987",
+                    "name": "Aditi Ghosh",
+                    "batchYear": 1987,
+                    "photoUrl": null,
+                    "birdOverride": "peregrine-falcon"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQM?si=abc12",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-12T06:24:00.000Z",
+                  "updatedAt": "2026-08-12T06:24:00.000Z"
+                },
+                {
+                  "id": "ans-356",
+                  "author": {
+                    "id": "mx-varun-reddy-1988",
+                    "name": "Varun Reddy",
+                    "batchYear": 1988,
+                    "photoUrl": null,
+                    "birdOverride": "peregrine-falcon"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQN?si=abc13",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0"
+                  ],
+                  "createdAt": "2026-08-13T07:31:00.000Z",
+                  "updatedAt": "2026-08-13T07:31:00.000Z"
+                },
+                {
+                  "id": "ans-357",
+                  "author": {
+                    "id": "mx-shreya-mehta-1989",
+                    "name": "Shreya Mehta",
+                    "batchYear": 1989,
+                    "photoUrl": null,
+                    "birdOverride": "hoopoe"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQO?si=abc14",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0",
+                    "h1"
+                  ],
+                  "createdAt": "2026-08-14T08:38:00.000Z",
+                  "updatedAt": "2026-08-14T08:38:00.000Z"
+                },
+                {
+                  "id": "ans-358",
+                  "author": {
+                    "id": "mx-kiran-kumar-1990",
+                    "name": "Kiran Kumar",
+                    "batchYear": 1990,
+                    "photoUrl": null,
+                    "birdOverride": "peregrine-falcon"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQP?si=abc15",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-10T09:45:00.000Z",
+                  "updatedAt": "2026-08-10T09:45:00.000Z"
+                },
+                {
+                  "id": "ans-359",
+                  "author": {
+                    "id": "mx-lakshmi-suresh-1991",
+                    "name": "Lakshmi Suresh",
+                    "batchYear": 1991,
+                    "photoUrl": null,
+                    "birdOverride": "common-kingfisher"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQQ?si=abc16",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0"
+                  ],
+                  "createdAt": "2026-08-11T10:52:00.000Z",
+                  "updatedAt": "2026-08-11T10:52:00.000Z"
+                },
+                {
+                  "id": "ans-360",
+                  "author": {
+                    "id": "mx-aarav-shah-1992",
+                    "name": "Aarav Shah",
+                    "batchYear": 1992,
+                    "photoUrl": null,
+                    "birdOverride": "spotted-owlet"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQR?si=abc17",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0",
+                    "h1"
+                  ],
+                  "createdAt": "2026-08-12T11:59:00.000Z",
+                  "updatedAt": "2026-08-12T11:59:00.000Z"
+                },
+                {
+                  "id": "ans-361",
+                  "author": {
+                    "id": "mx-zoya-khan-1993",
+                    "name": "Zoya Khan",
+                    "batchYear": 1993,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQS?si=abc18",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-13T12:06:00.000Z",
+                  "updatedAt": "2026-08-13T12:06:00.000Z"
+                },
+                {
+                  "id": "ans-362",
+                  "author": {
+                    "id": "mx-mihir-desai-1994",
+                    "name": "Mihir Desai",
+                    "batchYear": 1994,
+                    "photoUrl": null,
+                    "birdOverride": "peregrine-falcon"
+                  },
+                  "body": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQT?si=abc19",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0"
+                  ],
+                  "createdAt": "2026-08-14T13:13:00.000Z",
+                  "updatedAt": "2026-08-14T13:13:00.000Z"
+                },
+                {
+                  "id": "ans-363",
+                  "author": {
+                    "id": "mx-ravi-menon-2-1995",
+                    "name": "Ravi Menon 2",
+                    "batchYear": 1995,
+                    "photoUrl": null,
+                    "birdOverride": "hoopoe"
+                  },
+                  "body": "https://www.youtube.com/watch?v=dQw4w9WgXcA",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-10T14:20:00.000Z",
+                  "updatedAt": "2026-08-10T14:20:00.000Z"
+                },
+                {
+                  "id": "ans-364",
+                  "author": {
+                    "id": "mx-meera-iyer-2-1996",
+                    "name": "Meera Iyer 2",
+                    "batchYear": 1996,
+                    "photoUrl": null,
+                    "birdOverride": "hoopoe"
+                  },
+                  "body": "https://www.youtube.com/watch?v=dQw4w9WgXcB",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-11T15:27:00.000Z",
+                  "updatedAt": "2026-08-11T15:27:00.000Z"
+                },
+                {
+                  "id": "ans-365",
+                  "author": {
+                    "id": "mx-arjun-rao-2-1997",
+                    "name": "Arjun Rao 2",
+                    "batchYear": 1997,
+                    "photoUrl": null,
+                    "birdOverride": "peregrine-falcon"
+                  },
+                  "body": "https://www.youtube.com/watch?v=dQw4w9WgXcC",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-12T16:34:00.000Z",
+                  "updatedAt": "2026-08-12T16:34:00.000Z"
+                },
+                {
+                  "id": "ans-366",
+                  "author": {
+                    "id": "mx-tanvi-bhat-2-1998",
+                    "name": "Tanvi Bhat 2",
+                    "batchYear": 1998,
+                    "photoUrl": null,
+                    "birdOverride": "hoopoe"
+                  },
+                  "body": "https://www.youtube.com/watch?v=dQw4w9WgXcD",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-13T17:41:00.000Z",
+                  "updatedAt": "2026-08-13T17:41:00.000Z"
+                },
+                {
+                  "id": "ans-367",
+                  "author": {
+                    "id": "mx-kabir-sen-2-1999",
+                    "name": "Kabir Sen 2",
+                    "batchYear": 1999,
+                    "photoUrl": null,
+                    "birdOverride": "peregrine-falcon"
+                  },
+                  "body": "https://www.youtube.com/watch?v=dQw4w9WgXcE",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-14T06:48:00.000Z",
+                  "updatedAt": "2026-08-14T06:48:00.000Z"
+                },
+                {
+                  "id": "ans-368",
+                  "author": {
+                    "id": "mx-ananya-nair-2-2000",
+                    "name": "Ananya Nair 2",
+                    "batchYear": 2000,
+                    "photoUrl": null,
+                    "birdOverride": null
+                  },
+                  "body": "https://www.youtube.com/watch?v=dQw4w9WgXcF",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-10T07:55:00.000Z",
+                  "updatedAt": "2026-08-10T07:55:00.000Z"
+                },
+                {
+                  "id": "ans-369",
+                  "author": {
+                    "id": "mx-dev-kulkarni-2-2001",
+                    "name": "Dev Kulkarni 2",
+                    "batchYear": 2001,
+                    "photoUrl": null,
+                    "birdOverride": "common-kingfisher"
+                  },
+                  "body": "https://www.youtube.com/watch?v=dQw4w9WgXcG",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-11T08:02:00.000Z",
+                  "updatedAt": "2026-08-11T08:02:00.000Z"
+                },
+                {
+                  "id": "ans-370",
+                  "author": {
+                    "id": "mx-sanjana-pillai-2-2002",
+                    "name": "Sanjana Pillai 2",
+                    "batchYear": 2002,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": "https://www.youtube.com/watch?v=dQw4w9WgXcH",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-12T09:09:00.000Z",
+                  "updatedAt": "2026-08-12T09:09:00.000Z"
+                },
+                {
+                  "id": "ans-371",
+                  "author": {
+                    "id": "mx-rohan-das-2-2003",
+                    "name": "Rohan Das 2",
+                    "batchYear": 2003,
+                    "photoUrl": null,
+                    "birdOverride": "peregrine-falcon"
+                  },
+                  "body": "https://bandcamp.example/album/a-record-nobody-indexed",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-14T11:23:00.000Z",
+                  "updatedAt": "2026-08-14T11:23:00.000Z"
+                },
+                {
+                  "id": "ans-372",
+                  "author": {
+                    "id": "mx-nikhil-verma-2-2004",
+                    "name": "Nikhil Verma 2",
+                    "batchYear": 2004,
+                    "photoUrl": null,
+                    "birdOverride": "common-kingfisher"
+                  },
+                  "body": "https://dead.example/x",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-10T12:30:00.000Z",
+                  "updatedAt": "2026-08-10T12:30:00.000Z"
+                },
+                {
+                  "id": "ans-373",
+                  "author": {
+                    "id": "mx-priya-raman-2-2005",
+                    "name": "Priya Raman 2",
+                    "batchYear": 2005,
+                    "photoUrl": null,
+                    "birdOverride": null
+                  },
+                  "body": "Both of these, honestly: https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQV?si=abc99 and https://www.youtube.com/watch?v=dQw4w9WgXcV",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-11T13:37:00.000Z",
+                  "updatedAt": "2026-08-11T13:37:00.000Z"
+                },
+                {
+                  "id": "ans-374",
+                  "author": {
+                    "id": "mx-kabir-sen-2009",
+                    "name": "Kabir Sen",
+                    "batchYear": 2009,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": "Some song whose name somebody typed instead of pasting a link",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-12T14:44:00.000Z",
+                  "updatedAt": "2026-08-12T14:44:00.000Z"
+                }
+              ]
+            },
+            {
+              "id": "q-379",
+              "author": {
+                "id": "mx-ravi-menon-2010",
+                "name": "Ravi Menon",
+                "batchYear": 2010,
+                "photoUrl": null,
+                "birdOverride": "spotted-owlet"
+              },
+              "text": "And why that one?",
+              "category": null,
+              "kind": "text",
+              "source": "member",
+              "choices": [],
+              "showAsker": true,
+              "accepted": true,
+              "position": 1,
+              "createdAt": "2026-08-01T09:00:00.000Z",
+              "answers": [
+                {
+                  "id": "ans-376",
+                  "author": {
+                    "id": "mx-ravi-menon-1975",
+                    "name": "Ravi Menon",
+                    "batchYear": 1975,
+                    "photoUrl": null,
+                    "birdOverride": "spotted-owlet"
+                  },
+                  "body": "It was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again. I stood by the tamarind for a while feeling ridiculous about it. Nobody warned me that the dining hall.",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-10T10:40:00.000Z",
+                  "updatedAt": "2026-08-10T10:40:00.000Z"
+                },
+                {
+                  "id": "ans-377",
+                  "author": {
+                    "id": "mx-meera-iyer-1976",
+                    "name": "Meera Iyer",
+                    "batchYear": 1976,
+                    "photoUrl": null,
+                    "birdOverride": "spotted-owlet"
+                  },
+                  "body": "We drove up from Bangalore and got lost twice, which felt right. The new dorm block is fine but the old one had better light. I still cannot eat curd rice without thinking of Tuesday lunch. Someone had kept the noticeboard from 1998, pinned notes and all. My daughter asked why everyone was hugging and I did not have a short answer. The hill looked smaller, which everyone says and which is still true. There is a new gate and the old watchman is still there, which is the whole school in one sentence. We sat on the boulders until it was properly dark and nobody wanted to be the first to leave. I went back in April for the.",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0",
+                    "h1",
+                    "h2",
+                    "h3",
+                    "h4",
+                    "h5"
+                  ],
+                  "createdAt": "2026-08-11T11:47:00.000Z",
+                  "updatedAt": "2026-08-11T11:47:00.000Z"
+                },
+                {
+                  "id": "ans-378",
+                  "author": {
+                    "id": "mx-arjun-rao-1977",
+                    "name": "Arjun Rao",
+                    "batchYear": 1977,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": "I stood by the tamarind for a while feeling ridiculous about it. Nobody warned me that the dining hall would. https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQF?si=abc5",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-12T12:54:00.000Z",
+                  "updatedAt": "2026-08-12T12:54:00.000Z"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

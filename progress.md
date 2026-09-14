@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-14 (catch-ups, M1) — the magazine designed as rules: the engine, the corpus, the room, the spike
 - 2026-09-14 (catch-ups, phase 14 drawn) — a sealed Edition three ways, the morning it opens, and making one, at /lab/catchups/capsule
 - 2026-09-14 (catch-ups, phase 14 plumbing) — a time capsule can be marked, sealed for a year and opened underneath; nothing marks one yet
 - 2026-09-14 (catch-ups, phase 13 drawn) — asking a vote, casting one, and the result three ways, at /lab/catchups/vote

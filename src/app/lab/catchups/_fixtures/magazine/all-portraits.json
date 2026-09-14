@@ -1,0 +1,639 @@
+{
+  "version": 1,
+  "takenAt": "2026-09-14T00:00:00.000Z",
+  "source": "fixture",
+  "note": "Invented, for the magazine. Twelve answers, each one sentence and one 900x1600 portrait: the cookie-cutter trap (B17, A21, D15). No real member's words. See magazine.md.",
+  "catchups": [
+    {
+      "id": "mx-catchup-all-portraits",
+      "groupId": "mx-group-all-portraits",
+      "groupName": "in the loop",
+      "batchYear": null,
+      "title": null,
+      "intro": null,
+      "cadence": "monthly",
+      "status": "active",
+      "createdById": "mx-ravi-menon-2010",
+      "nextOpensAt": null,
+      "pausedAt": null,
+      "createdAt": "2026-07-01T04:30:00.000Z",
+      "updatedAt": "2026-08-15T04:30:00.000Z",
+      "members": [
+        {
+          "id": "mx-ravi-menon-1975",
+          "name": "Ravi Menon",
+          "batchYear": 1975,
+          "photoUrl": null,
+          "birdOverride": "spotted-owlet",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-meera-iyer-1976",
+          "name": "Meera Iyer",
+          "batchYear": 1976,
+          "photoUrl": null,
+          "birdOverride": "spotted-owlet",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-arjun-rao-1977",
+          "name": "Arjun Rao",
+          "batchYear": 1977,
+          "photoUrl": null,
+          "birdOverride": "verditer-flycatcher",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-tanvi-bhat-1978",
+          "name": "Tanvi Bhat",
+          "batchYear": 1978,
+          "photoUrl": null,
+          "birdOverride": "spotted-owlet",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-kabir-sen-1979",
+          "name": "Kabir Sen",
+          "batchYear": 1979,
+          "photoUrl": null,
+          "birdOverride": "verditer-flycatcher",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-ananya-nair-1980",
+          "name": "Ananya Nair",
+          "batchYear": 1980,
+          "photoUrl": null,
+          "birdOverride": "peregrine-falcon",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-dev-kulkarni-1981",
+          "name": "Dev Kulkarni",
+          "batchYear": 1981,
+          "photoUrl": null,
+          "birdOverride": "hoopoe",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-sanjana-pillai-1982",
+          "name": "Sanjana Pillai",
+          "batchYear": 1982,
+          "photoUrl": null,
+          "birdOverride": "common-kingfisher",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-rohan-das-1983",
+          "name": "Rohan Das",
+          "batchYear": 1983,
+          "photoUrl": null,
+          "birdOverride": "verditer-flycatcher",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-nikhil-verma-1984",
+          "name": "Nikhil Verma",
+          "batchYear": 1984,
+          "photoUrl": null,
+          "birdOverride": "hoopoe",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-priya-raman-1985",
+          "name": "Priya Raman",
+          "batchYear": 1985,
+          "photoUrl": null,
+          "birdOverride": "peregrine-falcon",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        },
+        {
+          "id": "mx-ishaan-joshi-1986",
+          "name": "Ishaan Joshi",
+          "batchYear": 1986,
+          "photoUrl": null,
+          "birdOverride": "hoopoe",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        }
+      ],
+      "prefs": [],
+      "editions": [
+        {
+          "id": "mx-edition-all-portraits",
+          "number": 1,
+          "theme": null,
+          "status": "published",
+          "questionsCloseAt": "2026-08-08T04:30:00.000Z",
+          "answersCloseAt": "2026-08-15T04:30:00.000Z",
+          "publishedAt": "2026-08-15T01:33:00.000Z",
+          "remindersSent": 0,
+          "timeCapsule": false,
+          "sealedAt": null,
+          "publishAt": null,
+          "createdAt": "2026-08-01T04:30:00.000Z",
+          "questions": [
+            {
+              "id": "q-078",
+              "author": {
+                "id": "mx-ravi-menon-2010",
+                "name": "Ravi Menon",
+                "batchYear": 2010,
+                "photoUrl": null,
+                "birdOverride": "spotted-owlet"
+              },
+              "text": "Show us where you are.",
+              "category": null,
+              "kind": "text",
+              "source": "member",
+              "choices": [],
+              "showAsker": true,
+              "accepted": true,
+              "position": 0,
+              "createdAt": "2026-08-01T09:00:00.000Z",
+              "answers": [
+                {
+                  "id": "ans-066",
+                  "author": {
+                    "id": "mx-ravi-menon-1975",
+                    "name": "Ravi Menon",
+                    "batchYear": 1975,
+                    "photoUrl": null,
+                    "birdOverride": "spotted-owlet"
+                  },
+                  "body": "I went back in April for the first time since I left, and the thing that undid me was not the buildings at all.",
+                  "images": [
+                    {
+                      "url": "/images/collection/v3.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1329,
+                      "height": 1920
+                    }
+                  ],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-10T06:00:00.000Z",
+                  "updatedAt": "2026-08-10T06:00:00.000Z"
+                },
+                {
+                  "id": "ans-067",
+                  "author": {
+                    "id": "mx-meera-iyer-1976",
+                    "name": "Meera Iyer",
+                    "batchYear": 1976,
+                    "photoUrl": null,
+                    "birdOverride": "spotted-owlet"
+                  },
+                  "body": "It was the sound, that particular quiet the valley has at four in the afternoon before the birds start up again.",
+                  "images": [
+                    {
+                      "url": "/images/collection/v3.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1108,
+                      "height": 1600
+                    }
+                  ],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0"
+                  ],
+                  "createdAt": "2026-08-11T07:07:00.000Z",
+                  "updatedAt": "2026-08-11T07:07:00.000Z"
+                },
+                {
+                  "id": "ans-068",
+                  "author": {
+                    "id": "mx-arjun-rao-1977",
+                    "name": "Arjun Rao",
+                    "batchYear": 1977,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": "I stood by the tamarind for a while feeling ridiculous about it.",
+                  "images": [
+                    {
+                      "url": "/images/collection/demo-assembly-wide.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1280,
+                      "height": 1920
+                    }
+                  ],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0",
+                    "h1"
+                  ],
+                  "createdAt": "2026-08-12T08:14:00.000Z",
+                  "updatedAt": "2026-08-12T08:14:00.000Z"
+                },
+                {
+                  "id": "ans-069",
+                  "author": {
+                    "id": "mx-tanvi-bhat-1978",
+                    "name": "Tanvi Bhat",
+                    "batchYear": 1978,
+                    "photoUrl": null,
+                    "birdOverride": "spotted-owlet"
+                  },
+                  "body": "Nobody warned me that the dining hall would smell exactly the same.",
+                  "images": [
+                    {
+                      "url": "/images/collection/v3.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1329,
+                      "height": 1920
+                    }
+                  ],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0",
+                    "h1",
+                    "h2"
+                  ],
+                  "createdAt": "2026-08-13T09:21:00.000Z",
+                  "updatedAt": "2026-08-13T09:21:00.000Z"
+                },
+                {
+                  "id": "ans-070",
+                  "author": {
+                    "id": "mx-kabir-sen-1979",
+                    "name": "Kabir Sen",
+                    "batchYear": 1979,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": "We drove up from Bangalore and got lost twice, which felt right.",
+                  "images": [
+                    {
+                      "url": "/images/collection/v3.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1108,
+                      "height": 1600
+                    }
+                  ],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-14T10:28:00.000Z",
+                  "updatedAt": "2026-08-14T10:28:00.000Z"
+                },
+                {
+                  "id": "ans-071",
+                  "author": {
+                    "id": "mx-ananya-nair-1980",
+                    "name": "Ananya Nair",
+                    "batchYear": 1980,
+                    "photoUrl": null,
+                    "birdOverride": "peregrine-falcon"
+                  },
+                  "body": "The new dorm block is fine but the old one had better light.",
+                  "images": [
+                    {
+                      "url": "/images/collection/demo-assembly-wide.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1280,
+                      "height": 1920
+                    }
+                  ],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0"
+                  ],
+                  "createdAt": "2026-08-10T11:35:00.000Z",
+                  "updatedAt": "2026-08-10T11:35:00.000Z"
+                },
+                {
+                  "id": "ans-072",
+                  "author": {
+                    "id": "mx-dev-kulkarni-1981",
+                    "name": "Dev Kulkarni",
+                    "batchYear": 1981,
+                    "photoUrl": null,
+                    "birdOverride": "hoopoe"
+                  },
+                  "body": "I still cannot eat curd rice without thinking of Tuesday lunch.",
+                  "images": [
+                    {
+                      "url": "/images/collection/v3.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1329,
+                      "height": 1920
+                    }
+                  ],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0",
+                    "h1"
+                  ],
+                  "createdAt": "2026-08-11T12:42:00.000Z",
+                  "updatedAt": "2026-08-11T12:42:00.000Z"
+                },
+                {
+                  "id": "ans-073",
+                  "author": {
+                    "id": "mx-sanjana-pillai-1982",
+                    "name": "Sanjana Pillai",
+                    "batchYear": 1982,
+                    "photoUrl": null,
+                    "birdOverride": "common-kingfisher"
+                  },
+                  "body": "Someone had kept the noticeboard from 1998, pinned notes and all.",
+                  "images": [
+                    {
+                      "url": "/images/collection/v3.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1108,
+                      "height": 1600
+                    }
+                  ],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0",
+                    "h1",
+                    "h2"
+                  ],
+                  "createdAt": "2026-08-12T13:49:00.000Z",
+                  "updatedAt": "2026-08-12T13:49:00.000Z"
+                },
+                {
+                  "id": "ans-074",
+                  "author": {
+                    "id": "mx-rohan-das-1983",
+                    "name": "Rohan Das",
+                    "batchYear": 1983,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": "My daughter asked why everyone was hugging and I did not have a short answer.",
+                  "images": [
+                    {
+                      "url": "/images/collection/demo-assembly-wide.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1280,
+                      "height": 1920
+                    }
+                  ],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-13T14:56:00.000Z",
+                  "updatedAt": "2026-08-13T14:56:00.000Z"
+                },
+                {
+                  "id": "ans-075",
+                  "author": {
+                    "id": "mx-nikhil-verma-1984",
+                    "name": "Nikhil Verma",
+                    "batchYear": 1984,
+                    "photoUrl": null,
+                    "birdOverride": "hoopoe"
+                  },
+                  "body": "The hill looked smaller, which everyone says and which is still true.",
+                  "images": [
+                    {
+                      "url": "/images/collection/v3.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1329,
+                      "height": 1920
+                    }
+                  ],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0"
+                  ],
+                  "createdAt": "2026-08-14T15:03:00.000Z",
+                  "updatedAt": "2026-08-14T15:03:00.000Z"
+                },
+                {
+                  "id": "ans-076",
+                  "author": {
+                    "id": "mx-priya-raman-1985",
+                    "name": "Priya Raman",
+                    "batchYear": 1985,
+                    "photoUrl": null,
+                    "birdOverride": "peregrine-falcon"
+                  },
+                  "body": "There is a new gate and the old watchman is still there, which is the whole school in one sentence.",
+                  "images": [
+                    {
+                      "url": "/images/collection/v3.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1108,
+                      "height": 1600
+                    }
+                  ],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0",
+                    "h1"
+                  ],
+                  "createdAt": "2026-08-10T16:10:00.000Z",
+                  "updatedAt": "2026-08-10T16:10:00.000Z"
+                },
+                {
+                  "id": "ans-077",
+                  "author": {
+                    "id": "mx-ishaan-joshi-1986",
+                    "name": "Ishaan Joshi",
+                    "batchYear": 1986,
+                    "photoUrl": null,
+                    "birdOverride": "hoopoe"
+                  },
+                  "body": "We sat on the boulders until it was properly dark and nobody wanted to be the first to leave.",
+                  "images": [
+                    {
+                      "url": "/images/collection/demo-assembly-wide.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1280,
+                      "height": 1920
+                    }
+                  ],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0",
+                    "h1",
+                    "h2"
+                  ],
+                  "createdAt": "2026-08-11T17:17:00.000Z",
+                  "updatedAt": "2026-08-11T17:17:00.000Z"
+                }
+              ]
+            },
+            {
+              "id": "q-081",
+              "author": {
+                "id": "mx-ravi-menon-2010",
+                "name": "Ravi Menon",
+                "batchYear": 2010,
+                "photoUrl": null,
+                "birdOverride": "spotted-owlet"
+              },
+              "text": "Three tall ones from one person.",
+              "category": null,
+              "kind": "text",
+              "source": "member",
+              "choices": [],
+              "showAsker": true,
+              "accepted": true,
+              "position": 1,
+              "createdAt": "2026-08-01T09:00:00.000Z",
+              "answers": [
+                {
+                  "id": "ans-079",
+                  "author": {
+                    "id": "mx-ravi-menon-1975",
+                    "name": "Ravi Menon",
+                    "batchYear": 1975,
+                    "photoUrl": null,
+                    "birdOverride": "spotted-owlet"
+                  },
+                  "body": "Three tall ones.",
+                  "images": [
+                    {
+                      "url": "/images/collection/v3.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1329,
+                      "height": 1920
+                    },
+                    {
+                      "url": "/images/collection/demo-assembly-wide.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1280,
+                      "height": 1920
+                    },
+                    {
+                      "url": "/images/collection/v3.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1108,
+                      "height": 1600
+                    }
+                  ],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-10T14:20:00.000Z",
+                  "updatedAt": "2026-08-10T14:20:00.000Z"
+                },
+                {
+                  "id": "ans-080",
+                  "author": {
+                    "id": "mx-meera-iyer-1976",
+                    "name": "Meera Iyer",
+                    "batchYear": 1976,
+                    "photoUrl": null,
+                    "birdOverride": "spotted-owlet"
+                  },
+                  "body": "I stood by the tamarind for a while feeling ridiculous about it. Nobody warned me that the dining hall would smell exactly the same. We drove up from Bangalore and got lost twice, which felt right. The new dorm block is fine but the old one had better light. I still cannot eat curd rice without thinking of Tuesday lunch..",
+                  "images": [
+                    {
+                      "url": "/images/collection/v3.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1329,
+                      "height": 1920
+                    }
+                  ],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-11T15:27:00.000Z",
+                  "updatedAt": "2026-08-11T15:27:00.000Z"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

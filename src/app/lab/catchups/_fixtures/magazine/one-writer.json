@@ -1,0 +1,400 @@
+{
+  "version": 1,
+  "takenAt": "2026-09-14T00:00:00.000Z",
+  "source": "fixture",
+  "note": "Invented, for the magazine. Eight questions, eight answers, one writer, 38 words, two photographs: the live Batch of 2024 shape (A9, D10, E26). No real member's words. See magazine.md.",
+  "catchups": [
+    {
+      "id": "mx-catchup-one-writer",
+      "groupId": "mx-group-one-writer",
+      "groupName": "Batch of 2024",
+      "batchYear": null,
+      "title": null,
+      "intro": null,
+      "cadence": "monthly",
+      "status": "active",
+      "createdById": "mx-ravi-menon-2010",
+      "nextOpensAt": null,
+      "pausedAt": null,
+      "createdAt": "2026-07-01T04:30:00.000Z",
+      "updatedAt": "2026-08-15T04:30:00.000Z",
+      "members": [
+        {
+          "id": "mx-maya-iyer-2024",
+          "name": "Maya Iyer",
+          "batchYear": 2024,
+          "photoUrl": null,
+          "birdOverride": "verditer-flycatcher",
+          "role": "member",
+          "joinedAt": "2026-07-01T04:30:00.000Z",
+          "isKeeper": false
+        }
+      ],
+      "prefs": [],
+      "editions": [
+        {
+          "id": "mx-edition-one-writer",
+          "number": 1,
+          "theme": null,
+          "status": "published",
+          "questionsCloseAt": "2026-08-08T04:30:00.000Z",
+          "answersCloseAt": "2026-08-15T04:30:00.000Z",
+          "publishedAt": "2026-08-15T01:33:00.000Z",
+          "remindersSent": 0,
+          "timeCapsule": false,
+          "sealedAt": null,
+          "publishAt": null,
+          "createdAt": "2026-08-01T04:30:00.000Z",
+          "questions": [
+            {
+              "id": "q-002",
+              "author": {
+                "id": "mx-kim-park-2024",
+                "name": "Kim Park",
+                "batchYear": 2024,
+                "photoUrl": null,
+                "birdOverride": "indian-peafowl"
+              },
+              "text": "What is the best thing you have eaten in the last month?",
+              "category": null,
+              "kind": "text",
+              "source": "library",
+              "choices": [],
+              "showAsker": false,
+              "accepted": true,
+              "position": 0,
+              "createdAt": "2026-08-01T09:00:00.000Z",
+              "answers": [
+                {
+                  "id": "ans-001",
+                  "author": {
+                    "id": "mx-maya-iyer-2024",
+                    "name": "Maya Iyer",
+                    "batchYear": 2024,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": "A dosa at a place near the station that I will not name because it will get crowded.",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-10T06:00:00.000Z",
+                  "updatedAt": "2026-08-10T06:00:00.000Z"
+                }
+              ]
+            },
+            {
+              "id": "q-004",
+              "author": {
+                "id": "mx-ravi-menon-2010",
+                "name": "Ravi Menon",
+                "batchYear": 2010,
+                "photoUrl": null,
+                "birdOverride": "spotted-owlet"
+              },
+              "text": "Add a photo from where you are right now.",
+              "category": "photo-wall",
+              "kind": "photo",
+              "source": "keeper",
+              "choices": [],
+              "showAsker": true,
+              "accepted": true,
+              "position": 1,
+              "createdAt": "2026-08-01T09:00:00.000Z",
+              "answers": [
+                {
+                  "id": "ans-003",
+                  "author": {
+                    "id": "mx-maya-iyer-2024",
+                    "name": "Maya Iyer",
+                    "batchYear": 2024,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": null,
+                  "images": [
+                    {
+                      "url": "/images/collection/demo-banyan-canopy.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1920,
+                      "height": 1140
+                    }
+                  ],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-11T07:07:00.000Z",
+                  "updatedAt": "2026-08-11T07:07:00.000Z"
+                }
+              ]
+            },
+            {
+              "id": "q-006",
+              "author": {
+                "id": "mx-ravi-menon-2010",
+                "name": "Ravi Menon",
+                "batchYear": 2010,
+                "photoUrl": null,
+                "birdOverride": "spotted-owlet"
+              },
+              "text": "did you have a bath today?",
+              "category": null,
+              "kind": "text",
+              "source": "member",
+              "choices": [],
+              "showAsker": true,
+              "accepted": true,
+              "position": 2,
+              "createdAt": "2026-08-01T09:00:00.000Z",
+              "answers": [
+                {
+                  "id": "ans-005",
+                  "author": {
+                    "id": "mx-maya-iyer-2024",
+                    "name": "Maya Iyer",
+                    "batchYear": 2024,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": "yes, twice, it is very hot here",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-12T08:14:00.000Z",
+                  "updatedAt": "2026-08-12T08:14:00.000Z"
+                }
+              ]
+            },
+            {
+              "id": "q-008",
+              "author": {
+                "id": "mx-ravi-menon-2010",
+                "name": "Ravi Menon",
+                "batchYear": 2010,
+                "photoUrl": null,
+                "birdOverride": "spotted-owlet"
+              },
+              "text": "Add a song you would put on for a long drive.",
+              "category": "songs",
+              "kind": "songs",
+              "source": "library",
+              "choices": [],
+              "showAsker": true,
+              "accepted": true,
+              "position": 3,
+              "createdAt": "2026-08-01T09:00:00.000Z",
+              "answers": [
+                {
+                  "id": "ans-007",
+                  "author": {
+                    "id": "mx-maya-iyer-2024",
+                    "name": "Maya Iyer",
+                    "batchYear": 2024,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": "Anything by the Cocteau Twins",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-13T09:21:00.000Z",
+                  "updatedAt": "2026-08-13T09:21:00.000Z"
+                }
+              ]
+            },
+            {
+              "id": "q-010",
+              "author": {
+                "id": "mx-ravi-menon-2010",
+                "name": "Ravi Menon",
+                "batchYear": 2010,
+                "photoUrl": null,
+                "birdOverride": "spotted-owlet"
+              },
+              "text": "Yoo how's it going",
+              "category": null,
+              "kind": "text",
+              "source": "member",
+              "choices": [],
+              "showAsker": true,
+              "accepted": true,
+              "position": 4,
+              "createdAt": "2026-08-01T09:00:00.000Z",
+              "answers": [
+                {
+                  "id": "ans-009",
+                  "author": {
+                    "id": "mx-maya-iyer-2024",
+                    "name": "Maya Iyer",
+                    "batchYear": 2024,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": "going alright, exams done, sleeping a lot",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-14T10:28:00.000Z",
+                  "updatedAt": "2026-08-14T10:28:00.000Z"
+                }
+              ]
+            },
+            {
+              "id": "q-012",
+              "author": {
+                "id": "mx-ravi-menon-2010",
+                "name": "Ravi Menon",
+                "batchYear": 2010,
+                "photoUrl": null,
+                "birdOverride": "spotted-owlet"
+              },
+              "text": "Add a photo from somewhere you went recently.",
+              "category": "photo-wall",
+              "kind": "photo",
+              "source": "library",
+              "choices": [],
+              "showAsker": true,
+              "accepted": true,
+              "position": 5,
+              "createdAt": "2026-08-01T09:00:00.000Z",
+              "answers": [
+                {
+                  "id": "ans-011",
+                  "author": {
+                    "id": "mx-maya-iyer-2024",
+                    "name": "Maya Iyer",
+                    "batchYear": 2024,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": null,
+                  "images": [
+                    {
+                      "url": "/images/collection/demo-banyan-canopy.webp",
+                      "file": null,
+                      "bytes": null,
+                      "width": 1920,
+                      "height": 1140
+                    }
+                  ],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-10T11:35:00.000Z",
+                  "updatedAt": "2026-08-10T11:35:00.000Z"
+                }
+              ]
+            },
+            {
+              "id": "q-014",
+              "author": {
+                "id": "mx-ravi-menon-2010",
+                "name": "Ravi Menon",
+                "batchYear": 2010,
+                "photoUrl": null,
+                "birdOverride": "spotted-owlet"
+              },
+              "text": "The anonymous person is katyaini?",
+              "category": null,
+              "kind": "text",
+              "source": "keeper",
+              "choices": [],
+              "showAsker": true,
+              "accepted": true,
+              "position": 6,
+              "createdAt": "2026-08-01T09:00:00.000Z",
+              "answers": [
+                {
+                  "id": "ans-013",
+                  "author": {
+                    "id": "mx-maya-iyer-2024",
+                    "name": "Maya Iyer",
+                    "batchYear": 2024,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": "no comment",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [
+                    "h0"
+                  ],
+                  "createdAt": "2026-08-11T12:42:00.000Z",
+                  "updatedAt": "2026-08-11T12:42:00.000Z"
+                }
+              ]
+            },
+            {
+              "id": "q-016",
+              "author": {
+                "id": "mx-ravi-menon-2010",
+                "name": "Ravi Menon",
+                "batchYear": 2010,
+                "photoUrl": null,
+                "birdOverride": "spotted-owlet"
+              },
+              "text": "What keeps you going when times get tough?",
+              "category": null,
+              "kind": "text",
+              "source": "member",
+              "choices": [],
+              "showAsker": true,
+              "accepted": true,
+              "position": 7,
+              "createdAt": "2026-08-01T09:00:00.000Z",
+              "answers": [
+                {
+                  "id": "ans-015",
+                  "author": {
+                    "id": "mx-maya-iyer-2024",
+                    "name": "Maya Iyer",
+                    "batchYear": 2024,
+                    "photoUrl": null,
+                    "birdOverride": "verditer-flycatcher"
+                  },
+                  "body": "Coffee.",
+                  "images": [],
+                  "songUrl": null,
+                  "songTitle": null,
+                  "songArt": null,
+                  "audio": null,
+                  "pollOptionId": null,
+                  "hearts": [],
+                  "createdAt": "2026-08-12T13:49:00.000Z",
+                  "updatedAt": "2026-08-12T13:49:00.000Z"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

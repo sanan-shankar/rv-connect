@@ -93,6 +93,13 @@ export type ExportedPref = {
 export type ExportedImage = {
   /** The url as the database holds it. */
   url: string;
+  /** Pixels, read off the copied bytes by the exporter (and written by hand
+   *  in a fixture). Optional and additive, so files taken before it still
+   *  read; null when the bytes did not arrive. The magazine's image rules
+   *  need them: a photograph's pixel count sets the largest frame it may
+   *  take (docs/planning/catchups-rework/magazine.md). */
+  width?: number | null;
+  height?: number | null;
   /** Relative path of the bytes inside the export folder, or null when the
    *  copy failed or was skipped. Null is recorded rather than dropped, so a
    *  restore can tell "no photograph" from "photograph we could not fetch". */
