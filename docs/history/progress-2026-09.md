@@ -6665,3 +6665,21 @@ two weeks, and `extendDaysSchema` in `catchups/actions.ts` stayed at 1, 2, 4 and
 three choices came back "Pick 1, 2, 4 days or a week." The server now accepts exactly 3, 7 and 14.
 `extend-days-rule.test.mjs` reads both files and fails if they drift apart again. The surface itself
 is unchanged (another session has it open).
+
+
+## 2026-09-14 (back gesture) — back closes a photograph, dialog, sheet or drawer instead of leaving the page
+
+Owner, on Android: swiping back from a Collection photograph "takes me to feed". Nothing that
+covered the screen owned a history entry. `src/lib/back-closes.ts` gives each overlay one entry at
+the same address while it is open: back pops it and the overlay closes, and closing it any other
+way rewinds it. Wired into `ui/dialog` and `ui/sheet` (every dialog, every sheet, the mobile menu
+drawer, the guide, which drops its own copy), the photo viewer, the Catch-up settings sheet, the
+directory's full-screen map and the reader's question list. Dropdown menus are not included.
+
+Three Next behaviours shaped it, now in TRAPS.md: the patched `pushState`, the commit that wipes
+custom history state, and a popstate restore that cancels a pending navigation. A close caused by
+a link press (`instrumentation-client.ts`) leaves a dead entry that back steps over.
+
+Driven in a real browser at 390 and 1440: viewer, drawer, drawer link then back, guide, map, Report
+dialog; one back per visible thing, then the previous page; no console errors.
+`back-closes-rule.test.mjs` pins it. Check green, visual 25/25 unchanged.

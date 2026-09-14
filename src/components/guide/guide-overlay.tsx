@@ -52,9 +52,9 @@ export function GuideOverlay({
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  /* Close, then put the address back. The browser's own back button needs no
-     special case: it fires popstate, the store syncs, and this unmounts. Same
-     end state by a different road. */
+  /* Close, then clear the store once the sheet has left. The back gesture
+     needs no special case: the Sheet owns a history entry while open, so back
+     arrives here through onOpenChange, the same road as the button. */
   const close = useCallback(() => {
     setOpen(false);
     // The address goes back only once the sheet has finished leaving, so the

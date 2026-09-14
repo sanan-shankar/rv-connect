@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-14 (back gesture) — back closes a photograph, dialog, sheet or drawer instead of leaving the page
 - 2026-09-14 (catch-ups, longer) — Give everyone longer stops refusing three days and two weeks
 - 2026-09-14 (catch-ups, spec) — the Catch-ups spec describes what shipped
 - 2026-09-14 (catch-ups, phase 11) — the three test Catch-ups are deleted

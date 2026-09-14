@@ -76,6 +76,7 @@ import Link from "next/link";
 import { AnimatePresence, m } from "motion/react";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
+import { useBackCloses } from "@/lib/back-closes";
 import { AppBarTitle } from "@/components/layout/app-bar-title";
 import { BAR, EditionMeta, QuestionList, Strip, UnfoldedPanel } from "./navigator";
 import { PhotoRun } from "./photo-run";
@@ -439,6 +440,9 @@ export function EditionReader({ edition }: { edition: ReaderEdition }) {
      docks, because nothing floats. */
   const dock = railFits ? 0 : (phone ? BAR : STRIP_TOP_LAPTOP) + STRIP_REST;
   const spy = useSpy(root, sections, headings, landing, dock);
+
+  /* The open list dims the page, so back puts it away rather than leaving the Edition. */
+  useBackCloses(open, () => setOpen(false));
 
   /* Scrolling puts the list away, so a pick can close it first and move. */
   useEffect(() => {

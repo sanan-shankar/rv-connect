@@ -14,7 +14,7 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { findGuideArea } from "@/lib/guide-areas";
-import { subscribeGuide, syncGuideFromHistory, resetGuide, currentGuide } from "@/lib/guide-open";
+import { subscribeGuide, closeGuide, currentGuide } from "@/lib/guide-open";
 
 /* The overlay and the six chapters are ~14 KB raw, and this component is
    mounted in the (main) layout on all 39 member routes. It already rendered
@@ -41,12 +41,6 @@ export function GuideLayer() {
   const pathname = usePathname();
   const firstPath = useRef(pathname);
 
-  useEffect(() => {
-    const onPop = () => syncGuideFromHistory();
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, []);
-
   /* Next navigating elsewhere underneath an open chapter means the member went
      somewhere else, so the chapter goes with the page it belonged to. Opening
      a chapter no longer changes the address at all, so this only ever fires on
@@ -54,7 +48,7 @@ export function GuideLayer() {
   useEffect(() => {
     if (pathname === firstPath.current) return;
     firstPath.current = pathname;
-    resetGuide();
+    closeGuide();
   }, [pathname]);
 
   const found = area ? findGuideArea(area) : undefined;

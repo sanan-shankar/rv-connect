@@ -91,6 +91,7 @@ import { ShareButton } from "@/components/common/share-button";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { usePinchZoom } from "@/components/common/pinch-zoom";
 import { cn } from "@/lib/utils";
+import { useBackCloses } from "@/lib/back-closes";
 import { photoSaveName } from "@/lib/photo-save-name";
 
 export interface ViewerImage {
@@ -375,6 +376,10 @@ export function ImageViewer({
       zoom.reset();
     }
   }
+
+  /* Back closes the photograph, not the page under it (owner, 2026-09-14:
+     swiping back from a Collection photograph "takes me to feed"). */
+  useBackCloses(open, onClose);
 
   /* Scroll lock + focus containment while open.
 

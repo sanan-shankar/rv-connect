@@ -191,6 +191,16 @@ change a chunking option, the gate is `performance.getEntriesByType("resource")`
 production server, never the JSON. (Audit 2 B9, 2026-09-05; the flag is not set and the experiment
 is written up in that audit's ledger.)
 
+**Three things the App Router does to `window.history` that break a hand-rolled overlay entry**
+(read in `node_modules/next/dist/client/components/`, 2026-09-14, fixing back from a Collection
+photograph leaving the page). 1. It patches `pushState`; given a URL it dispatches a router restore,
+so an entry meant to be inert must be pushed with NO url. 2. Every router commit (refresh, server
+action, search-param replace) `replaceState`s the current entry from `{}`
+(`preserveCustomHistoryState: false`), wiping any custom field mid-save. 3. It answers every
+popstate with a restore, and a restore DISCARDS a pending navigation, so a `history.back()` fired as
+a link press closes a drawer can cancel the link. `src/lib/back-closes.ts` handles all three, and
+`back-closes-rule.test.mjs` fails the gate if anything else touches history.
+
 ## Serving images
 
 **The Collection does NOT downscale, and `toDisplayWebp` will tell you it does.** Two sessions have

@@ -11,6 +11,7 @@ import { feature } from "topojson-client";
 import type { Feature, Geometry } from "geojson";
 import { IdentityRow } from "@/components/common/identity-row";
 import { batchLine, cn, metaLine } from "@/lib/utils";
+import { useBackCloses } from "@/lib/back-closes";
 import {
   buildGroups,
   maxUsefulZoom,
@@ -282,6 +283,8 @@ export function AlumniMap({
     { title: string; count: number | null; people: PinPerson[]; href?: string } | null
   >(null);
   const [fullscreen, setFullscreen] = useState(false);
+  // Full screen covers the page, so back leaves full screen rather than the directory.
+  useBackCloses(fullscreen, () => setFullscreen(false));
 
   useEffect(() => {
     let live = true;
