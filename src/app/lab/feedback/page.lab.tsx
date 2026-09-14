@@ -82,7 +82,7 @@ function LikeDemo() {
     <DemoCard title="Heart pop, leaf flecks, odometer" note="Heart snaps red and pops, a couple of leaf flecks drift up, the count rolls one digit.">
       <div className="dlf-likecard v2-card">
         <div className="dlf-postline">
-          <BirdAvatar user={{ id: "meera", name: "Meera Iyer" }} size={32} />
+          <BirdAvatar user={{ photoUrl: null, id: "meera", name: "Meera Iyer" }} size={32} />
           <div>
             <b>Meera Iyer</b>
             <span>posted in The Valley Collection</span>
@@ -526,7 +526,7 @@ function ShareCommentDemo() {
     <DemoCard title="Share, comment bump, comments open" note="Share nudges then shows a check, a comment like bumps, and the thread grows open." span={2}>
       <div className="dlf-sc v2-card">
         <div className="dlf-postline">
-          <BirdAvatar user={{ id: "arun", name: "Arun Rao" }} size={32} />
+          <BirdAvatar user={{ photoUrl: null, id: "arun", name: "Arun Rao" }} size={32} />
           <div>
             <b>Arun Rao</b>
             <span>shared a Letter, On leaving the valley</span>
@@ -579,11 +579,11 @@ function ShareCommentDemo() {
           style={{ overflow: "hidden" }}
         >
           <div className="dlf-comment">
-            <BirdAvatar user={{ id: "lila", name: "Lila Sen" }} size={24} />
+            <BirdAvatar user={{ photoUrl: null, id: "lila", name: "Lila Sen" }} size={24} />
             <p><b>Lila Sen</b> The banyan misses you too. Come for the reunion.</p>
           </div>
           <div className="dlf-comment">
-            <BirdAvatar user={{ id: "dev", name: "Dev Menon" }} size={24} />
+            <BirdAvatar user={{ photoUrl: null, id: "dev", name: "Dev Menon" }} size={24} />
             <p><b>Dev Menon</b> Read this twice. Thank you for writing it.</p>
           </div>
         </motion.div>
@@ -643,7 +643,7 @@ function SpeciesHoverDemo() {
                   animate={{ scale: on ? 1.06 : 1 }}
                   transition={SPRINGS.snappy}
                 >
-                  <BirdAvatar user={{ id: p.id, name: p.name }} size={52} />
+                  <BirdAvatar user={{ photoUrl: null, id: p.id, name: p.name }} size={52} />
                 </motion.span>
                 <span className="dlf-species-name">{p.name.split(" ")[0]}</span>
               </div>
@@ -670,7 +670,7 @@ function ComposerDemo() {
     <DemoCard title="Composer unfurl" note="A slim pill springs open into a full card, chips stagger in, the textarea blooms a soft ring." span={3}>
       <div className="dlf-composer">
         <div className="dlf-comp-head">
-          <BirdAvatar user={{ id: "you", name: "You" }} size={36} />
+          <BirdAvatar user={{ photoUrl: null, id: "you", name: "You" }} size={36} />
           {!open ? (
             <SpringPress
               as="div"
@@ -781,7 +781,7 @@ function ToastBirdDemo() {
               transition={{ type: "spring", stiffness: 460, damping: 17, mass: 0.7 }}
               style={{ display: "inline-block" }}
             >
-              <BirdAvatar user={{ id: "hoopoe-resident", name: "Hoopoe" }} size={48} />
+              <BirdAvatar user={{ photoUrl: null, id: "hoopoe-resident", name: "Hoopoe" }} size={48} />
             </motion.span>
             {chirp > 0 && (
               <span className="dlf-chirp-arcs" aria-hidden>

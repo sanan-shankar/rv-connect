@@ -78,7 +78,7 @@ test("C-014: the one surface that writes letter drafts actually supplies an id",
      2026-08-27, not by reading it, which is what a shape test cannot do.
      So this pins the WIRE, not the template. */
   const desk = read("src/components/letters/letter-desk.tsx");
-  assert.match(desk, /currentUser=\{\{ id: writerId \}\}/, "the desk composes anonymously again");
+  assert.match(desk, /currentUser=\{\{ id: writerId\b/, "the desk composes anonymously again");
   for (const page of [
     "src/app/(main)/letters/new/page.tsx",
     "src/app/(main)/letters/[id]/edit/page.tsx",

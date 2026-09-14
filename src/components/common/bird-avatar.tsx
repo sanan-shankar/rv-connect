@@ -26,7 +26,7 @@ import { BirdGlyphV2, BG_MODE, isMirrored, resolveBirdOverride } from "@/compone
 export interface AvatarUser {
   id?: string | null;
   name?: string | null;
-  photoUrl?: string | null;
+  photoUrl: string | null;
   /** @deprecated unused in the real precedence chain — kept for older preview-mock callers. Use `birdOverride`. */
   avatarSpecies?: number | null;
   /** Manual per-user species override (DB column `User.birdOverride`), a slug like "peregrine-falcon". */

@@ -198,7 +198,7 @@ export default function SupportRoom() {
                   style={{ opacity: n === DONORS.length - 1 ? 0.35 : 1 }}
                   className="shrink-0"
                 >
-                  <BirdAvatar user={{ id: `sl-bird-${n}`, name }} size={52} />
+                  <BirdAvatar user={{ photoUrl: null, id: `sl-bird-${n}`, name }} size={52} />
                 </span>
               ))}
               <span className="text-[13px] font-semibold text-muted-foreground">+42 more</span>

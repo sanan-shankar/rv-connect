@@ -6523,6 +6523,23 @@ Checked signed in as Jerry on /directory and /feed at 1440, /directory and /coll
 pill reaches 300px on desktop and the column's left edge (20px) on a phone. Visual suite 25/25 with no
 baseline moved.
 
+
+## 2026-09-14 (avatars) — a member's photograph can no longer fall back to their bird
+
+"in the image viewer why does veenkatesh br show as a verditer when he's uploaded a profile picture.
+make sure that never happens anywhere" (owner, 2026-09-14).
+
+Why: the Collection's photo query selected the uploader as `{ id, name }` only, and the viewer's byline
+drew from that. With no `photoUrl`, `BirdAvatar` did its job and drew his hashed bird. The admin
+analytics list "Members nobody has responded to" had the same hole in its raw SQL.
+
+The fix is the type, not the two queries. `AvatarUser.photoUrl` was optional, so a select that forgot
+it compiled. It is now `string | null`, required, and so is every person type that feeds an avatar
+(Catch-up refs, post authors, the sidebar, mentions, the map, admin rows). `tsc` then named every
+caller that had no photo to give. The real ones now carry it (the Collection uses `IDENTITY_SELECT`);
+the invented ones (guide, landing, eggs, lab fixtures) say `photoUrl: null` out loud.
+
+
 ## 2026-09-14 (header) — header controls centre on the title's capitals, and the unfolded plus is 36px
 
 "the search notification and new post icons seem lower than the Feed text ... make sure it's visually

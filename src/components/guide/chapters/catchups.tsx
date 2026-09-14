@@ -55,7 +55,7 @@ export function CatchupsChapter() {
             },
             {
               key: "answer",
-              mark: <BirdAvatar user={{ id: "guide-catchups-answer", name: "A member" }} size={34} />,
+              mark: <BirdAvatar user={{ photoUrl: null, id: "guide-catchups-answer", name: "A member" }} size={34} />,
               label: "An answer you write",
               note: "Always your name. There is no anonymous answer.",
             },

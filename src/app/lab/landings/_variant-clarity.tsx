@@ -118,7 +118,7 @@ function PerchedBird() {
       style={{ filter: "drop-shadow(0 8px 10px rgba(35,28,20,0.28))" }}
     >
       <span className="block rounded-full ring-4 ring-card">
-        <BirdAvatar user={{ id: "clarity-hero-perch", name: "Rishi Valley" }} size="sm" />
+        <BirdAvatar user={{ photoUrl: null, id: "clarity-hero-perch", name: "Rishi Valley" }} size="sm" />
       </span>
     </motion.div>
   );
@@ -340,9 +340,9 @@ function ScrollNav() {
  * ------------------------------------------------------------------ */
 function RegisterCard() {
   const rows = [
-    { id: "clarity-reg-a", name: "Ananya" },
-    { id: "clarity-reg-b", name: "Rohan" },
-    { id: "clarity-reg-c", name: "Meera" },
+    { id: "clarity-reg-a", name: "Ananya", photoUrl: null },
+    { id: "clarity-reg-b", name: "Rohan", photoUrl: null },
+    { id: "clarity-reg-c", name: "Meera", photoUrl: null },
   ];
   return (
     <div
@@ -357,7 +357,7 @@ function RegisterCard() {
         {rows.map((r) => (
           <li key={r.id} className="flex items-center gap-2.5">
             <span className="rounded-full ring-2 ring-card">
-              <BirdAvatar user={{ id: r.id, name: r.name }} size="xs" />
+              <BirdAvatar user={{ photoUrl: null, id: r.id, name: r.name }} size="xs" />
             </span>
             <span className="text-[13.5px] font-semibold text-foreground">{r.name}</span>
             <Check className="ml-auto h-3.5 w-3.5 text-leaf" strokeWidth={2.75} aria-hidden />
@@ -598,11 +598,11 @@ function HowItWorks() {
  *  left-aligned on the same ruled paper as the rest of the register.
  * ------------------------------------------------------------------ */
 const VOUCHED = [
-  { id: "trust-a", name: "Ananya Krishnan" },
-  { id: "trust-b", name: "Rohan Mehta" },
-  { id: "trust-c", name: "Meera Iyer" },
-  { id: "trust-d", name: "Arjun Reddy" },
-  { id: "trust-e", name: "Fatima Sheikh" },
+  { id: "trust-a", name: "Ananya Krishnan", photoUrl: null },
+  { id: "trust-b", name: "Rohan Mehta", photoUrl: null },
+  { id: "trust-c", name: "Meera Iyer", photoUrl: null },
+  { id: "trust-d", name: "Arjun Reddy", photoUrl: null },
+  { id: "trust-e", name: "Fatima Sheikh", photoUrl: null },
 ];
 
 function Trust() {

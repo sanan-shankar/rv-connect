@@ -126,7 +126,7 @@ function AvatarVisits() {
               exit={{ opacity: 0, y: perch * ROW_H }}
               transition={{ y: SPRINGS.gentle, scale: { duration: 0.46, ease: [0.34, 1.56, 0.64, 1] }, opacity: { duration: 0.2 } }}
             >
-              <BirdAvatar user={{ id: "visitor" }} size={30} />
+              <BirdAvatar user={{ photoUrl: null, id: "visitor" }} size={30} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -146,7 +146,7 @@ function AvatarVisits() {
           <Stagger className="dll-loadedrows" gap={0.08}>
             {HOP_ROWS.map((i) => (
               <motion.div className="dll-lrow" key={i} variants={staggerChild}>
-                <BirdAvatar user={{ id: `hop-${i}` }} size={34} />
+                <BirdAvatar user={{ photoUrl: null, id: `hop-${i}` }} size={34} />
                 <div className="dll-lmeta">
                   <strong>{["Asha", "Devi", "Rahul"][i]}</strong>
                   <span>{["planted a sapling", "shared a Letter", "posted to the Valley"][i]}</span>
@@ -214,7 +214,7 @@ function ForagingBird() {
             }
             transition={{ x: SPRINGS.snappy, y: SPRINGS.gentle, scale: { duration: 0.4 } }}
           >
-            <BirdAvatar user={{ id: "forager" }} size={30} />
+            <BirdAvatar user={{ photoUrl: null, id: "forager" }} size={30} />
           </motion.div>
         )}
       </div>
@@ -392,7 +392,7 @@ function CrossSettle() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ ...SPRINGS.settle, delay: i * 0.07 }}
               >
-                <BirdAvatar user={{ id: `cross-${i}` }} size={32} />
+                <BirdAvatar user={{ photoUrl: null, id: `cross-${i}` }} size={32} />
                 <div className="dll-lmeta">
                   <strong>{["Old Boys cricket", "Banyan reading", "Hilltop walk"][i]}</strong>
                   <span>{["Sat 4pm", "Sun morning", "Daily at dawn"][i]}</span>

@@ -245,7 +245,7 @@ function ChirpBird({ profile }: { profile: MockProfile }) {
         className="block"
       >
         <BirdAvatar
-          user={{ id: profile.id, name: profile.name, avatarSpecies: profile.avatarSpecies }}
+          user={{ photoUrl: null, id: profile.id, name: profile.name, avatarSpecies: profile.avatarSpecies }}
         />
       </motion.span>
 

@@ -48,7 +48,7 @@ export function toViewerImage(p: PhotoData, isAdmin: boolean): ViewerImage {
     src: p.url,
     alt: p.caption ?? undefined,
     caption: p.caption,
-    author: { id: p.uploader.id, name: p.uploader.name },
+    author: p.uploader,
     date: p.takenLabel,
     tags: p.subject.map(bucketLabel),
     href: `/collection/${p.id}`,

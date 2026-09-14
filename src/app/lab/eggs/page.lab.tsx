@@ -208,7 +208,7 @@ function KonamiDemo() {
                 }}
                 aria-hidden
               >
-                <BirdAvatar user={{ id, name: "Flush" }} size={28} />
+                <BirdAvatar user={{ photoUrl: null, id, name: "Flush" }} size={28} />
               </motion.span>
             ))}
           </>

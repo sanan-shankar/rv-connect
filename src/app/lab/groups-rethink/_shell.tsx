@@ -139,7 +139,7 @@ function Sidebar({ nav }: { nav: NavItem[] }) {
         </nav>
       </div>
       <div className="flex items-center gap-2.5 rounded-2xl bg-[#1F5140] px-2.5 py-2">
-        <BirdAvatar user={{ id: "sanan-preview", name: "Sanan Shankar" }} size={36} />
+        <BirdAvatar user={{ photoUrl: null, id: "sanan-preview", name: "Sanan Shankar" }} size={36} />
         <div className="min-w-0 leading-tight">
           <div className="truncate text-[13px] font-semibold text-[#F3F7F1]">Sanan Shankar</div>
           <div className="truncate text-[11px] text-[#B9CFC2]">Batch of 2004</div>
@@ -332,7 +332,7 @@ export function AvatarStack({
             className="rounded-full ring-2 ring-card"
             style={{ width: size, height: size }}
           >
-            <BirdAvatar user={{ id: p.id, name: p.name }} size={size} />
+            <BirdAvatar user={{ photoUrl: null, id: p.id, name: p.name }} size={size} />
           </span>
         ))}
       </div>

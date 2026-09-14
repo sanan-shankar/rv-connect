@@ -151,7 +151,7 @@ export const LAB_ARCHIVE: PhotoData[] = Array.from({ length: 240 }, (_, n) => {
     loveCount: Math.floor(spin(n, 47) * 40),
     loved: spin(n, 53) > 0.86,
     isOwn: n % 17 === 0,
-    uploader: { id: `lab-${name}`, name },
+    uploader: { id: `lab-${name}`, name, photoUrl: null },
     createdAt: added.toISOString(),
   } satisfies PhotoData;
 });

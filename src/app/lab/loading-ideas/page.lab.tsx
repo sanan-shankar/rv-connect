@@ -381,7 +381,7 @@ function ReusableRelay() {
                 y: { duration: 0.9, delay: f * 0.18, ease: "easeInOut" as const },
               }}
             >
-              <BirdAvatar user={{ id: `relay-${f}` }} size={22} />
+              <BirdAvatar user={{ photoUrl: null, id: `relay-${f}` }} size={22} />
             </motion.div>
           );
         })}
@@ -485,7 +485,7 @@ function SleepingBirds() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ ...SPRINGS.settle, delay: 0.12 + b * 0.07 }}
               >
-                <BirdAvatar user={{ id: `sleep-${b}` }} size={30} />
+                <BirdAvatar user={{ photoUrl: null, id: `sleep-${b}` }} size={30} />
                 <div className="dli-lmeta">
                   <strong>{["Meera", "Arun", "Lata"][b]}</strong>
                   <span>{["posted a sighting", "shared a Roundup", "added to the Collection"][b]}</span>

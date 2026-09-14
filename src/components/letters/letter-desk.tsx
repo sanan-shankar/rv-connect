@@ -105,7 +105,7 @@ export function LetterDesk({
           /* Only the id: this shell draws no avatar (see the `!immersive`
              guard in CreatePostForm), and the composer wants the identity for
              the draft key, not for a bird. */
-          currentUser={{ id: writerId }}
+          currentUser={{ id: writerId, photoUrl: null }}
           userPlaces={userPlaces}
           postId={postId}
           initialTitle={initialTitle}

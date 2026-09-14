@@ -135,7 +135,7 @@ export default function LetterheadVariant({ profile }: ProfileVariantProps) {
           transition={{ duration: 4.4, repeat: Infinity, ease: EASE_SPRING }}
         >
           <BirdAvatar
-            user={{ id: profile.id, name: profile.name, avatarSpecies: profile.avatarSpecies }}
+            user={{ photoUrl: null, id: profile.id, name: profile.name, avatarSpecies: profile.avatarSpecies }}
             size={80}
           />
           <span

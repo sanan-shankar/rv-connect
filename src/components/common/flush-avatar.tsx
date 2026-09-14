@@ -42,7 +42,7 @@ export function FlushAvatar({
   person,
   size,
 }: {
-  person: { id: string; name: string; photoUrl?: string | null; birdOverride?: string | null };
+  person: { id: string; name: string; photoUrl: string | null; birdOverride?: string | null };
   size: number;
 }) {
   /* Measured in the ref callback and written straight to the node. No state

@@ -61,7 +61,7 @@ export interface AdminPerson {
   id: string;
   name: string;
   email: string;
-  photoUrl?: string | null;
+  photoUrl: string | null;
   birdOverride?: string | null;
   accountType?: string | null;
   batchType?: string | null;

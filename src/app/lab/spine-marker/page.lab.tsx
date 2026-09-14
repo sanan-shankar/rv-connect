@@ -366,7 +366,7 @@ function DemoSidebar({
         {/* decorative footer chip, so the rail reads as a real full sidebar
             rather than nav-then-void; also shows the batch-meta fix in situ */}
         <div className="mt-auto flex items-center gap-2.5 rounded-2xl bg-white/[0.07] px-2.5 py-2 mx-4">
-          <BirdAvatar user={{ id: `${ns}-demo-user`, name: "Sanan Shankar" }} size={34} />
+          <BirdAvatar user={{ photoUrl: null, id: `${ns}-demo-user`, name: "Sanan Shankar" }} size={34} />
           <div className="min-w-0 flex-1">
             <div className="truncate text-[13px] font-semibold leading-none text-sidebar-foreground">
               Sanan Shankar

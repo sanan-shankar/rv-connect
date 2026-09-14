@@ -248,7 +248,7 @@ function Replies({ entry }: { entry: SketchEntry }) {
     <div className="space-y-3 pt-3">
       {rows.map((r) => (
         <div key={r.id} className="flex gap-2.5">
-          <BirdAvatar user={{ id: r.id, name: r.name }} size={34} />
+          <BirdAvatar user={{ photoUrl: null, id: r.id, name: r.name }} size={34} />
           <div className="min-w-0 flex-1">
             <p className="text-[14px] leading-relaxed text-foreground [overflow-wrap:anywhere]">
               <span className="mr-1.5 font-semibold">{r.name}</span>

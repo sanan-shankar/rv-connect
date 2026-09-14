@@ -106,7 +106,7 @@ export type EditionTiming = {
 export type CatchupPersonRef = {
   id: string;
   name: string;
-  photoUrl?: string | null;
+  photoUrl: string | null;
   avatarSpecies?: number | null;
   birdOverride?: string | null;
 };
