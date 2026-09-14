@@ -6729,3 +6729,28 @@ Measured: no horizontal overflow at 390 in 31 states; the bird and the tape play
 moved their rails. **Not measured: a real recording.** `getUserMedia` never resolves in headless
 Chrome on this machine, so the live recorder is untested until he presses it. Handover board,
 session log and paste block moved to phase 13.
+
+
+## 2026-09-14 (catch-ups, phase 13 plumbing) — a vote question can be asked, cast and taken back underneath; nothing asks one yet
+
+His answer 31 was (a), and 37 was the default: the asker writes two to six fixed choices, members
+pick one. This is the half that does not depend on the look. `CatchupPromptOption` and
+`CatchupEntry.pollOptionId` (`2026-09-14-vote-questions.sql`, export re-run first, applied to
+production and the demo, re-run to prove it idempotent, RLS on). A vote is category `"vote"`, so
+`promptKind` answers `"vote"` with no column.
+
+**The guard is in Postgres as well as the action**: the pick is a composite foreign key on
+`(pollOptionId, promptId)` onto the choice's `(id, promptId)`. Proved live on production inside a
+DO block that always raises, so nothing persisted: a vote naming another question's choice was
+refused, a second vote by one member was refused by the old unique, deleting a choice took its vote
+and deleting a question took its choices. Cascade over SET NULL, argued in the file.
+
+`submitPrompt` takes `choices` and writes them in the question's own transaction, the only writer,
+so they are frozen once answering opens. `submitEntry` takes `pollOptionId`: always on a vote (null
+takes it back with its line, and the empty row goes), never on anything else, counted against this
+question inside the write, with no photographs, recording or song beside it. A line is allowed.
+`voteResult()` answers null for anything unpublished. Both exports carry choices and picks; the
+demo allows the table. `vote-question-rule.test.mjs` pins the caps, the rules, the schema and
+migration, the single writer, and a tripwire on any new Catch-ups file reading a pick.
+write-path-reviewer: no blocking findings; its one Low (`submitPrompt` did not re-read the question
+window inside its transaction, which choices now ride on) is fixed, the same guard `submitEntry` has.

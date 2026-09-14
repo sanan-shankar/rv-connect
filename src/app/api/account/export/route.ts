@@ -224,6 +224,9 @@ export async function GET() {
             audioUrl: true,
             audioSeconds: true,
             audioIsAuto: true,
+            // A vote is theirs too, and the choice's words say more than its
+            // id would (build phase 13).
+            pollOption: { select: { text: true } },
             createdAt: true,
           },
           ...keyset({ authorId: userId }, after),
@@ -245,6 +248,8 @@ export async function GET() {
             text: true,
             category: true,
             showAsker: true,
+            // The choices on a vote they asked are words they wrote (phase 13).
+            options: { orderBy: { position: "asc" }, select: { text: true, position: true } },
             createdAt: true,
           },
           ...keyset({ authorId: userId }, after),

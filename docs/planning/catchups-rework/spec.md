@@ -661,6 +661,38 @@ belong to the question because the question is where they are written.
 with percentages — the app's standing objection is to useless information (R32). Who chose what,
 with their birds, is the interesting part in a group of seventy people who know each other.
 
+**Who writes the choices: the asker, two to six, fixed.** His answer 37, 2026-09-14, the default:
+members pick one and cannot add their own.
+
+**What is built underneath, 2026-09-14 (phase 13, his 31a: draw it, build what does not depend on
+the look, stop for his pick).** CORRECTED against the sketch above in four places, each argued in
+`2026-09-14-vote-questions.sql` and `src/lib/vote-question-rule.ts`:
+
+- **A vote is a category, `"vote"`**, in `PROMPT_CATEGORIES`, and `promptKind()` returns `"vote"`.
+  The photo-wall and songs mechanism, so no column says what kind a question is.
+- **The pick is keyed on `(pollOptionId, promptId)`**, a composite foreign key onto
+  `@@unique([id, promptId])` on the choices, so a vote naming another question's choice is refused
+  by Postgres as well as by the action. `@@unique([promptId, position])` replaces the sketch's
+  `@@index([promptId])` and does its job. **Cascade, not SET NULL**: a vote whose choice is gone is
+  a vote for nothing, and nulling it would leave the empty row audit Low 36 deleted.
+- **Choices are written with the question, in `submitPrompt`'s one transaction, and nowhere else.**
+  There is no edit path, so they are frozen once answering opens by construction; a test fails on
+  any second writer. Caps: two to six, 80 characters each, blanks dropped, no duplicate ignoring
+  case. A question that is not a vote may carry none.
+- **A vote carries a pick and optionally a line.** `submitEntry` takes `pollOptionId`: always sent
+  on a vote (a choice, or `null` to take it back, which takes the line too and deletes the row),
+  never on anything else; photographs, a recording and a song are refused on a vote. The line is
+  allowed because the evidence is eleven people who typed 46 characters each: a pick with a remark
+  is what they were doing. It keeps the ordinary 6,000 cap (*"We don't have to enforce them in the
+  answers"*).
+
+`voteResult()` is the only thing that turns rows into who-chose-what, and it answers `null` for
+any Edition that is not published, so a count cannot leak during answering (§3.13). Applied to
+both projects. The account export and the rework export carry the choices and the picks; the purge
+needs no line (a purged asker's question keeps its choices, a purged voter's votes cascade). The
+demo allows `CatchupPromptOption`. **Nothing calls any of it**: the asking box, the ballot and three
+results are drawn at `/lab/catchups/vote` and wait for him.
+
 ### 3.12 LOCKED that it exists, RECOMMENDED how — time capsule mode
 
 **His own idea**, 2026-09-09, and the best thing to come out of S-features:
@@ -999,7 +1031,7 @@ in it.
 | **10** | **Link previews** — **DONE 2026-09-14** | `LinkPreview`, resolution on any pasted link after the response (on save and lazily on read), Spotify and YouTube song cards, **and a link card for any other page** (his, 2026-09-14), the SSRF-guarded fetcher, images re-hosted rather than hotlinked, unresolved links printed as real links, the fail-soft rule. §3.8 says what shipped | `2026-09-14-link-previews.sql`, additive, **applied to both** (0 rows, RLS on) |
 | **11** | **Cleanup** — **PARTIAL 2026-09-14**: the three throwaways are deleted (`2026-09-14-delete-test-catchups.sql`, production; the demo had none). **The snapshot group was NOT deleted**: his answer to 28 authorised the test Catch-ups only, so it waits on him. The drops below wait on his release | the dead columns dropped **after phases 2, 5 and 10 have deployed**; the three throwaway Catch-ups and the orphaned snapshot group removed; `docs/spec/catchups.md` rewritten to describe what shipped. **CORRECTED 2026-09-09: `CatchupEdition.publishAt` is NOT dropped.** It was on the list because the `preparing` hold it served died in phase 2 — but a time capsule (§3.12) is exactly a scheduled publish date and it is the same column. Dropping it now to add it back is two migrations against a live database for nothing. Keep it, and say so in the file. `CatchupPref.deletedAt` still goes | the drop file |
 | **12** | **A question you answer out loud** — **PARTIAL 2026-09-14: plumbed, drawn, OWNER-GATED on his pick** (`/lab/catchups/voice`) | §3.10. **Cap is 120 seconds** (his 32). `audioUrl`, `audioSeconds`, `audioIsAuto` on `CatchupEntry`; the recorder in the composer; the player in the reader; the browser's own speech recognition writing the body, editable afterwards. **Draw the no-transcript case first**, because Firefox has none | the three columns |
-| **13** | **A question the group votes on** | §3.11. `CatchupPromptOption`, `CatchupEntry.pollOptionId`; options written where the question is written; the published result drawn as who chose what, with their birds, and never as a percentage | one table, one column |
+| **13** | **A question the group votes on** — **PARTIAL 2026-09-14: plumbed, drawn, OWNER-GATED on his pick** (`/lab/catchups/vote`) | §3.11. `CatchupPromptOption`, `CatchupEntry.pollOptionId`; options written where the question is written; the published result drawn as who chose what, with their birds, and never as a percentage | one table, one column |
 | **14** | **Time capsule** | §3.12. `Catchup.timeCapsule`; the switch in the settings surface; `publishAt` a year out and the tick already publishing it; **the sealed-Edition surface, which is a drawing job and the real content of this phase**; the library's own capsule set | one column |
 
 **Two sessions run beside these, not inside them.**

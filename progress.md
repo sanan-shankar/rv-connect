@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-14 (catch-ups, phase 13 plumbing) — a vote question can be asked, cast and taken back underneath; nothing asks one yet
 - 2026-09-14 (catch-ups, phase 12 drawn) — the recorder two ways and the player three ways, at /lab/catchups/voice
 - 2026-09-14 (catch-ups, phase 12 plumbing) — a recorded answer can be stored, checked and deleted; nothing records one yet
 - 2026-09-14 (back gesture) — back closes a photograph, dialog, sheet or drawer instead of leaving the page

@@ -54,6 +54,12 @@ import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { ownedUploadUrls } from "@/lib/upload-ownership";
 import { ownedVoiceRecording } from "@/lib/voice-answer";
+import {
+  decideVoteAnswer,
+  decideVoteChoices,
+  VOTE_CATEGORY,
+  VOTE_MAX_CHOICES,
+} from "@/lib/vote-question-rule";
 import { purgeImageUrls } from "@/lib/image-purge";
 import { revalidatePath } from "next/cache";
 import {
@@ -160,6 +166,14 @@ const submitPromptSchema = z.object({
   text: z.string().trim().min(1, "Ask something for the group.").max(300, "Keep it under 300 characters."),
   category: promptCategorySchema.optional(),
   showAsker: z.boolean().default(true),
+  /* A vote's choices (build phase 13, spec 3.11). Shape only, and loose on
+     purpose: counting, trimming, the 80-character cap and duplicates are
+     `decideVoteChoices`, so the refusal is a sentence rather than a raw Zod
+     issue. The two bounds here only stop an absurd payload. */
+  choices: z
+    .array(z.string().max(1000, "Keep each choice under 80 characters."))
+    .max(VOTE_MAX_CHOICES * 2, "A vote can have up to six choices.")
+    .optional(),
 });
 
 const curateRemoveSchema = z.object({
@@ -188,6 +202,11 @@ const submitEntrySchema = z.object({
     .object({ url: z.string().max(2000), seconds: z.number(), transcribed: z.boolean() })
     .nullable()
     .optional(),
+  /* A vote (build phase 13, spec 3.11): a choice's id, or `null` to take the
+     vote back. Whether it may be sent at all, and whether the choice is this
+     question's, is `decideVoteAnswer` and the count in the transaction below.
+     NOTHING SENDS THIS YET -- the ballot is in the lab until the owner picks. */
+  pollOptionId: z.string().max(64).nullable().optional(),
   /* The row version this surface last saw (audit C-125). Optional, so a
      caller that holds none keeps the unconditional upsert it always had. */
   baseUpdatedAt: z.string().optional(),
@@ -966,6 +985,8 @@ export async function submitPrompt(input: {
   text: string;
   category?: PromptCategory | null;
   showAsker?: boolean;
+  /** Two to six, and only when `category` is "vote" (spec 3.11). */
+  choices?: string[];
 }) {
   return runAction(async () => {
     const session = await auth();
@@ -979,6 +1000,15 @@ export async function submitPrompt(input: {
     const parsed = submitPromptSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0].message };
     const { editionId, text, category, showAsker } = parsed.data;
+
+    /* A vote is written WITH its choices or not at all (his answer 37: the
+       asker writes two to six, members cannot add their own). Decided before
+       anything is read, because it needs nothing but the input; and there is
+       no other path that writes a choice, so once answering opens -- which
+       this action refuses below -- the choices cannot change under a vote
+       already cast. */
+    const vote = decideVoteChoices(category ?? null, parsed.data.choices);
+    if (!vote.ok) return { error: vote.error };
 
     const scope = await loadMemberEdition(editionId, session.user.id);
     if ("error" in scope) return scope;
@@ -1020,6 +1050,15 @@ export async function submitPrompt(input: {
        are excluded, exactly as the reorder branch excludes them, so they cannot
        push live questions out of sequence.) */
     const created = await prisma.$transaction(async (tx) => {
+      /* The window, re-read at write time (write-path review, phase 13). The
+         status check above is a read before this transaction, and a Keeper's
+         "Open answering" or the clock can land in between; a question, and
+         now a vote's choices, arriving after answering opened would change
+         the Edition under people already answering it. `submitEntry` makes
+         the same check for the same reason (audit C-027). */
+      const open = await tx.catchupEdition.count({ where: { id: editionId, status: "collecting" } });
+      if (open === 0) return "closed" as const;
+
       const { _max, _count } = await tx.catchupPrompt.aggregate({
         where: { editionId, accepted: true },
         _max: { position: true },
@@ -1033,19 +1072,32 @@ export async function submitPrompt(input: {
           authorId: session.user.id,
           text,
           category: category ?? null,
-          source: keeper ? "keeper" : category ? "library" : "member",
+          /* "vote" is a KIND, not a library set, so a vote a member wrote
+             is still a member's question. */
+          source: keeper ? "keeper" : category && category !== VOTE_CATEGORY ? "library" : "member",
           showAsker,
           accepted: true,
           position: (_max.position ?? -1) + 1,
         },
         select: { id: true },
       });
+      /* The choices in the SAME transaction as the question, so a vote can
+         never exist with none, and a refused choice takes the question with
+         it rather than leaving a vote nobody can cast. */
+      if (vote.choices.length > 0) {
+        await tx.catchupPromptOption.createMany({
+          data: vote.choices.map((choice, position) => ({ promptId: row.id, text: choice, position })),
+        });
+      }
       // Read inside the transaction too: whether this was the FIRST question
       // decides the dormant-Edition revival below, and a count taken outside
       // could be a different moment's answer.
       return { row, wasFirst: _count === 0 };
     });
 
+    if (created === "closed") {
+      return { error: "The question window for this Edition is closed." };
+    }
     if (!created) {
       return { error: "This Edition has as many questions as it can hold. Remove one to add another." };
     }
@@ -1484,6 +1536,8 @@ export async function submitEntry(input: {
   body?: string;
   images?: string[];
   songUrl?: string;
+  /** A vote's pick, or null to take it back (build phase 13). */
+  pollOptionId?: string | null;
   baseUpdatedAt?: string;
 }) {
   return runAction(async () => {
@@ -1502,7 +1556,7 @@ export async function submitEntry(input: {
 
     const prompt = await prisma.catchupPrompt.findUnique({
       where: { id: promptId },
-      select: { id: true, editionId: true, accepted: true },
+      select: { id: true, editionId: true, accepted: true, category: true },
     });
     if (!prompt || !prompt.accepted) return { error: "This question is not part of the Edition." };
 
@@ -1521,6 +1575,27 @@ export async function submitEntry(input: {
     const hasBody = parsed.data.body !== undefined;
     const hasImages = parsed.data.images !== undefined;
     const hasSong = parsed.data.songUrl !== undefined;
+
+    /* A vote (build phase 13, spec 3.11). A vote question always takes a
+       pick, a text question never does, and a vote carries a line at most.
+       `pick` is a choice's id, `null` to take the vote back, or undefined on
+       a question that is not a vote. */
+    const vote = decideVoteAnswer({
+      isVote: prompt.category === VOTE_CATEGORY,
+      pollOptionId: parsed.data.pollOptionId,
+      sendsImages: (parsed.data.images?.length ?? 0) > 0,
+      sendsRecording: Boolean(parsed.data.audio),
+      sendsSong: Boolean(parsed.data.songUrl?.trim()),
+    });
+    if (!vote.ok) return { error: vote.error };
+    /* Taking a vote back takes its line too, and then the row is empty and
+       is deleted below like any cleared answer: withdrawn from the Edition. */
+    const pickPatch =
+      vote.pick === undefined
+        ? undefined
+        : vote.pick === null
+          ? { pollOptionId: null, body: null }
+          : { pollOptionId: vote.pick };
 
     // An answer's images must be this member's own uploads, not arbitrary
     // external URLs (M10) or another member's objects (C2). `z.url()` above
@@ -1601,6 +1676,8 @@ export async function submitEntry(input: {
       ...(hasImages ? { images: imagesValue } : {}),
       ...(songPatch ? songPatch : {}),
       ...(audioPatch ? audioPatch : {}),
+      // Last, so a withdrawn vote's `body: null` wins over a line sent with it.
+      ...(pickPatch ? pickPatch : {}),
     };
     const columns = {
       id: true,
@@ -1608,6 +1685,7 @@ export async function submitEntry(input: {
       images: true,
       songUrl: true,
       audioUrl: true,
+      pollOptionId: true,
       updatedAt: true,
     } as const;
 
@@ -1627,6 +1705,16 @@ export async function submitEntry(input: {
         where: { id: prompt.editionId, status: "answering" },
       });
       if (open === 0) return "closed" as const;
+
+      /* The choice must be one of THIS question's. Counted here, in the
+         write's own transaction, for the sentence; the composite foreign key
+         on (pollOptionId, promptId) refuses the same row underneath if this
+         line is ever deleted. Choices cannot change after collecting, so
+         nothing can move between this count and the write. */
+      if (typeof vote.pick === "string") {
+        const choice = await tx.catchupPromptOption.count({ where: { id: vote.pick, promptId } });
+        if (choice === 0) return "no-choice" as const;
+      }
 
       /* The recording this write replaces, read in the same transaction as
          the write, so the purge after it names exactly what the row stopped
@@ -1651,7 +1739,7 @@ export async function submitEntry(input: {
           editionId: prompt.editionId,
           promptId,
           authorId: session.user.id,
-          body: bodyValue ?? null,
+          body: vote.pick === null ? null : (bodyValue ?? null),
           images: imagesValue ?? null,
           songUrl: songPatch?.songUrl ?? null,
           songTitle: songPatch?.songTitle ?? null,
@@ -1659,6 +1747,7 @@ export async function submitEntry(input: {
           audioUrl: audioPatch?.audioUrl ?? null,
           audioSeconds: audioPatch?.audioSeconds ?? null,
           audioIsAuto: audioPatch?.audioIsAuto ?? false,
+          pollOptionId: vote.pick ?? null,
         },
         update: written,
         select: columns,
@@ -1666,6 +1755,9 @@ export async function submitEntry(input: {
       return { ...row, replacedAudio };
     });
 
+    if (entry === "no-choice") {
+      return { error: "That choice isn't part of this question." };
+    }
     if (entry === "closed") {
       return { error: "Answering has closed for this Edition. Your answer was not saved." };
     }
@@ -1703,7 +1795,7 @@ export async function submitEntry(input: {
       if (stillUsed === 0) await purgeImageUrls([entry.replacedAudio], "replaced");
     }
 
-    if (!entry.body && !entry.images && !entry.songUrl && !entry.audioUrl) {
+    if (!entry.body && !entry.images && !entry.songUrl && !entry.audioUrl && !entry.pollOptionId) {
       await prisma.catchupEntry.deleteMany({ where: { id: entry.id } });
       revalidatePath(`/catchups/${edition.catchupId}`);
       // No row, so no version: the next save creates one afresh.
