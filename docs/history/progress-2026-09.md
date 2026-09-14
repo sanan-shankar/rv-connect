@@ -6855,3 +6855,22 @@ his pick; M1 designed the magazine. The closing report and questions 39 to 55 ar
 Two things the verification caught that the workers had not: a link card printing a site's title
 twice, fixed; and a handover prompt that claimed his answer authorised deleting the leftover
 "Batch of 2024" group when it did not, corrected before anything ran and asked as question 45.
+
+
+## 2026-09-15 (feed, fix) — the verified leaf's label is portalled, so no card or name row can cut it off
+
+Owner: "the verified tag gets cut off in feed ... hovering over leaf is cut off ... just show if
+there's space". The label was an absolute child of the leaf, so it lived inside IdentityRow's
+`overflow-x-clip` (kept for the ellipsis) and the post card's `overflow-hidden` (kept for its
+radius). Its hand-rolled flip measured only the viewport, so it could find room and still be sliced
+by an edge it could not see. It now renders through Base UI's Tooltip portal and flips against the
+viewport alone; one change covers the feed, directory cards and profile headers.
+
+A tap on a phone opened and closed it in the same press (Base UI closes a tooltip on
+`trigger-press`); that one reason is ignored and a blur closes it. Measured signed in as Jerry:
+feed at 1440 the label sits 451 to 520, clear of the card; at 390 it sits 183 to 252 with all four
+corners hit-testing to itself. `verified-mark.test.mjs` pins the portal.
+
+Swept for the same shape elsewhere (absolute labels anchored `*-full` outside their parent, and
+hover-revealed labels): the signup info bubble has no clipping ancestor and the carousel's
+`top-full` is decorative dots, so neither was cut.
