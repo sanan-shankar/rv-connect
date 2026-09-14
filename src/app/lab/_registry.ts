@@ -220,6 +220,13 @@ export const REGISTRY: LabEntry[] = [
     note: "The photo-wall question, which has existed since Catch-ups was built and has never been drawn. Three shapes to flick between: a run that moves sideways, a drift down the column with each person in the margin, and a stack you move through one at a time. Change the wall under them: one photograph, three, twenty-four, all portrait, two hundred.",
   },
   {
+    href: "/lab/catchups/voice",
+    title: "An answer you can hear",
+    group: "Delight",
+    status: "active",
+    note: "A question answered out loud, for him to pick. The recorder in the answering box two ways (a mic in the box, or say it instead) with every state it can land in, and the player in the reader three ways (the bird speaks, a line of voice, the tape). The recorder is real: record something and it plays in all three. The upload and its checks are built underneath and switched off.",
+  },
+  {
     href: "/lab/catchups/swipe",
     title: "The swipe that goes back two",
     group: "Delight",

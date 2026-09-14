@@ -6713,3 +6713,19 @@ signed out (401), cross-site (403). The test object was deleted afterwards. `voi
 pins the caps, the formats, the sniff, both key shapes and ownership, and the purge, fence, action,
 route and header shapes. write-path-reviewer: no blocking findings; its two low ones (encode the
 copy source; a race only reachable if one url sits on two answers) are handled and written down.
+
+
+## 2026-09-14 (catch-ups, phase 12 drawn) — the recorder two ways and the player three ways, at /lab/catchups/voice
+
+His 31a: draw it and stop for his pick. The room holds the answering composer with the recorder
+drawn as **a mic in the box** (the reader's cinnamon reading line runs along the box as the two-minute
+clock) and **say it instead** (one canopy button whose halo swells with your real microphone level),
+with thirteen still states from a blocked microphone to a call cutting in. Under it, the reader's own
+tiles with the player drawn as **the bird speaks**, **a line of voice** and **the tape**, the answer
+with no words (Firefox) first on each. The recorder is real and saves nowhere; what you record plays
+in all three. Stand-in voices are synthesised hums, and the room says so.
+
+Measured: no horizontal overflow at 390 in 31 states; the bird and the tape played a stand-in and
+moved their rails. **Not measured: a real recording.** `getUserMedia` never resolves in headless
+Chrome on this machine, so the live recorder is untested until he presses it. Handover board,
+session log and paste block moved to phase 13.
