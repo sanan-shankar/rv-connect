@@ -1876,6 +1876,166 @@ your phone) — reply only if you disagree. One reply covers all of these: *"def
 - **If you don't reply I'll do:** (a). (rows: M1)
 
 
+---
+
+**Asked 2026-09-14 at the close of the `/campaign` run that took phases 10 to 14 and M1.** Questions
+39 to 44 are the magazine session's, copied from `magazine.md` §9. 45 onward are this run's. One
+reply covers all of them: *"defaults, except ..."*. Question 55 is the one that has no default: it
+is your pick in three lab rooms, and nothing reaches members until you make it.
+
+**39. Should a member be able to keep an answer off the magazine?**
+- **What I'd change:** a switch on the answering box, "keep this off the printed Edition"; the
+  answer stays on the site, and the magazine shows the writer's name with "kept off the page".
+- **What you'd notice:** one more control while answering, off by default.
+- **If I guess wrong:** without it, a candid answer written for thirteen classmates can be
+  forwarded to anyone as a file; with it, a page can have a name and no words.
+- **Options:** (a) no switch, the magazine prints every answer (b) the switch (c) no switch, but
+  the Keeper can leave an answer out before sending.
+- **If you don't reply I'll do:** (a), and revisit before M5.
+
+**40. Should a magazine of an Edition nobody wrote in exist at all?**
+- **What I'd change:** today it is a cover and a back page that says nobody wrote in, and a
+  flag that stops it being sent.
+- **What you'd notice:** an empty Edition's page would still offer a two-page file.
+- **If I guess wrong:** a two-page file that says nobody wrote in is a small embarrassment; no
+  file at all means the door on that Edition does nothing.
+- **Options:** (a) the two-page file, never sent (b) no file for an empty Edition.
+- **If you don't reply I'll do:** (b).
+
+**41. May a Keeper see the magazine before the Edition publishes?**
+- **What I'd change:** nothing until you say: today nothing in an Edition is readable before it
+  is out, Keeper included (your 2026-09-09 ruling), and a preview would break that.
+- **What you'd notice:** with a preview, a Keeper would see everyone's answers a day early; without
+  one, the first magazine anyone sees is the one everyone sees.
+- **If I guess wrong:** a preview lets a Keeper catch a bad page; it also lets them read
+  early, which you closed.
+- **Options:** (a) no preview, the magazine is made when the Edition is out (b) a preview for
+  Keepers on the last day (c) a preview of the layout with the words blurred.
+- **If you don't reply I'll do:** (a).
+
+**42. Should the magazine say when it was made?**
+- **What I'd change:** one small line on the back page: "Printed 16 August 2026".
+- **What you'd notice:** that line. It is what tells two people holding different copies
+  which is newer, after an answer was edited.
+- **If I guess wrong:** without it, two copies of one Edition can disagree and nobody can tell.
+- **Options:** (a) the line (b) no line.
+- **If you don't reply I'll do:** (a).
+
+**44. Which questions go on the cover?**
+- **What I'd change:** nothing; today the three cover lines are the questions most people
+  answered, ties by hearts. On "in the loop" that is the summer question, the something-new
+  question and the life-since-school one; on the Batch of 2024's it would be "did you have a
+  bath today?", because that is the one with the most hearts.
+- **What you'd notice:** the three lines under the name on the cover.
+- **If I guess wrong:** by hearts, a joke question can head the cover; by order, the first three
+  asked head it whatever they are; by the Keeper, one more thing to do before an Edition is out.
+- **Options:** (a) most answered, ties by hearts (b) the first three asked (c) the Keeper picks.
+- **If you don't reply I'll do:** (a).
+
+**43. Should a photograph's original be kept for the magazine?**
+- **What I'd change:** nothing now. A Catch-up photograph is stored at 1920 pixels and the
+  original is thrown away; the Collection keeps originals. At 1920 a photograph is sharp across
+  a whole page on any screen and print-sharp at the text width; only a printed full-bleed cover
+  would want more.
+- **What you'd notice:** nothing on screen. On a printed cover, a little softness.
+- **If I guess wrong:** keeping originals costs storage for every answer photograph and a change
+  to the upload path; not keeping them means a printed cover is 164 dpi.
+- **Options:** (a) keep 1920 (b) keep originals from now on.
+- **If you don't reply I'll do:** (a).
+
+**45. The leftover "Batch of 2024" group.**
+- **What I'd change:** delete it. When someone made the 2024 Catch-up by hand in August, the app
+  made a second group for it. The Catch-up now runs on the real batch group, and the old one holds
+  11 people who are all also in the real one. Nothing else uses it.
+- **What you'd notice:** nothing.
+- **If I guess wrong:** nothing is lost either way; it is a duplicate list of names.
+- **Options:** (a) delete it  (b) leave it.
+- **If you don't reply I'll do:** (a). (rows: spec 3.5, group `cmt5ru8bb000004lausdv5vvl`)
+
+**46. Removing the old song storage from the database.**
+- **What is true:** your last release carried the song-link cards, so the old song fields nothing
+  reads any more can go. Two steps: I remove the last bits of code that still touch them, you
+  release that, and then I take the fields out of the database.
+- **What you'd notice:** nothing.
+- **If I guess wrong:** taking them out before the code change is live breaks saving an answer, so
+  the order is the whole point.
+- **Options:** (a) do the code step now and remove the fields after your next release  (b) leave them.
+- **If you don't reply I'll do:** (a). (rows: phase 11, `CatchupEntry.song*`, `CatchupPref.deletedAt`; never `publishAt`)
+
+**47. The words under a spoken answer come from Google or Apple.**
+- **What is true:** the plan said the browser writes the words down on the phone itself. It does
+  not: Chrome sends the sound to Google to get the words back, and Safari may send it to Apple.
+  The recording itself only ever goes to our own storage.
+- **What I'd change:** keep the words, and say it in one plain line on the answering screen before
+  anyone speaks.
+- **What you'd notice:** that line, while answering out loud.
+- **If I guess wrong:** a member who would not have spoken knowing Google hears it.
+- **Options:** (a) words, with the line  (b) no words at all, the recording alone (already drawn as
+  a complete answer)  (c) words only on devices that can do it without sending the sound away.
+- **If you don't reply I'll do:** (a). (rows: phase 12, spec 3.10)
+
+**48. Does a time capsule still open if its Catch-up is paused or ended?**
+- **What I'd change:** yes. It opens on its date whatever happened to the Catch-up since.
+- **What you'd notice:** a year later, a sealed Edition from a paused Catch-up still arrives.
+- **If I guess wrong:** you read "hold the next Edition" as holding the capsule too.
+- **Options:** (a) it opens anyway  (b) it waits until the Catch-up is running again.
+- **If you don't reply I'll do:** (a). (rows: phase 14)
+
+**49. On a batch Catch-up, anyone can make an Edition a time capsule until answering opens.**
+- **What I'd change:** as built, and everyone in the batch gets one bell when it is switched on or
+  off, so nobody finds out by surprise after writing.
+- **What you'd notice:** a bell saying this Edition will be sealed for a year.
+- **If I guess wrong:** without the bell, one person can flip it the night before forty people write.
+- **Options:** (a) as built, with the bell  (b) as built, no bell  (c) no capsules on a batch after all.
+- **If you don't reply I'll do:** (a). (rows: phase 14, your 35)
+
+**50. Does a member's own data download include what they wrote in a sealed capsule?**
+- **What I'd change:** yes, marked as sealed with its opening date. It is their own writing.
+- **What you'd notice:** nothing, unless someone downloads their data.
+- **If I guess wrong:** it is the one way to read a sealed answer early, which your 34b closed.
+- **Options:** (a) include it  (b) leave it out until the capsule opens.
+- **If you don't reply I'll do:** (a). (rows: phase 14, account export)
+
+**51. May a sealed capsule show who wrote in?**
+- **What I'd change:** no. One of the three drawings ("Asleep") shows the birds of whoever wrote.
+  Your 34b was "nothing at all until it opens", so I would not use it as it stands.
+- **What you'd notice:** only if you pick "Asleep".
+- **If I guess wrong:** "Asleep" is the one you like best and it loses its point.
+- **Options:** (a) no, nothing shows  (b) yes, who wrote in, but never what.
+- **If you don't reply I'll do:** (a). (rows: phase 14, `/lab/catchups/capsule`)
+
+**52. Should the admin page hide a sealed capsule's answers from you too?**
+- **What I'd change:** yes, as built. Undoing it for moderation is one line.
+- **What you'd notice:** a sealed Edition's answers are not readable in admin either.
+- **If I guess wrong:** you cannot check a reported answer in a capsule for a year.
+- **Options:** (a) hidden from admin too  (b) visible to admin.
+- **If you don't reply I'll do:** (a). (rows: phase 14)
+
+**53. May a voter add a line beside their vote?**
+- **What I'd change:** yes, optional, as built. Your own "who believes Sanan made this" drew eleven
+  typed answers of about 46 characters, which is a vote with a line.
+- **What you'd notice:** a short line under some voters' names in the result.
+- **If I guess wrong:** the result gets busier than a vote should be.
+- **Options:** (a) optional line  (b) the pick only.
+- **If you don't reply I'll do:** (a). (rows: phase 13)
+
+**54. Can a vote's choices be edited after the question is asked?**
+- **What I'd change:** no, as built, the same as a question's own wording today. A typo stays.
+- **What you'd notice:** nothing, until someone makes a typo.
+- **If I guess wrong:** a misspelled choice sits in the Edition for good.
+- **Options:** (a) no editing  (b) editable while questions are still being collected.
+- **If you don't reply I'll do:** (a). (rows: phase 13)
+
+**55. Your picks in three lab rooms.** (no default)
+- **What I need:** one choice in each.
+  - `/lab/catchups/voice`: a recorder (**A mic in the box** or **Say it instead**) and a player
+    (**The bird speaks**, **A line of voice** or **The tape**).
+  - `/lab/catchups/vote`: the result (**Flocks**, **Piles** or **Roll call**).
+  - `/lab/catchups/capsule`: the sealed Edition (**The year line**, **Asleep** or **Waiting for morning**).
+- **What you'd notice:** once picked, the next run puts that one into the real Catch-ups.
+- **If you don't reply I'll do:** nothing; all three features stay off for members.
+
+
 ## Owner answers
 
 **2026-09-05, typed, verbatim (also ¶51 of the brief):**
@@ -3783,6 +3943,50 @@ one edit because it is one constant. And the toast's action button is the word i
 than Sonner's inverted black pill (*"sometimes they come with this black thing which is
 jarring"*) -- app-wide, and it needed a fourth selector to beat a stylesheet the library injects
 at runtime.
+
+---
+
+## Closing report, 2026-09-14 (the `/campaign` run that took phases 10 to 14 and M1)
+
+**What shipped**, each verified by the orchestrator: its own `npm run check`, `npm run visual`, the
+diff, and screenshots read.
+
+| Unit | Commits | Measured | State |
+|---|---|---|---|
+| Phase 10, link previews | `286820f7`, `f0a02e73` | 7 live links became cards on first view; a dead link stays a link with its sentence intact; no overflow at 390 or 1440 | **DONE, and live** (in your release) |
+| Phase 11, the safe half | `1855a6a1`, `45a804f6` | 3 test Catch-ups, their groups and 10 bell links deleted on production, counted before and after; demo held none; `docs/spec/catchups.md` rewritten from the code | **PARTIAL, live**: the storage removal is question 46 |
+| A live fault the rewrite found | `531cb1cc` | "Give everyone longer" refused three days and two weeks; the server now takes exactly what the screen offers, pinned by a test | **DONE, and live** |
+| The question library draft | `5f774f4b` | 64 everyday questions, 10 for a capsule | **OWNER-GATED**: yours to cut |
+| Phase 12, answering out loud | `a8f4ea6f`, `eba6eca5` | storage, upload checks and deletion built; a live probe refused 9 bad uploads; lab room drawn | **OWNER-GATED** on 47 and 55; not pushed |
+| Phase 13, votes | `6e663ba5`, `7f36fea9` | the database itself refuses a vote for another question's choice, proved in a rolled-back block; three results drawn at 8 cases | **OWNER-GATED** on 53, 54, 55; not pushed |
+| Phase 14, time capsule | `76aac5ac`, `5c1492d3` | a new `sealed` status every reader already refuses; the list, a home and a reader loaded with 0 errors after it; three sealed drawings | **OWNER-GATED** on 48 to 52 and 55; not pushed |
+| M1, the magazine design | `35b75868` | a layout engine, 20 ms an Edition; the live Edition prints as 23 A4 pages; JPEG photographs make a 7.4 MB file where WebP made 89.6 MB; 14 helpers | **DONE**; M2 is next, questions 39 to 44 |
+
+**Nothing reaches a member from phases 12 to 14** until question 55. The seven commits not yet
+released are all of that kind, plus the magazine's lab page, so a release is safe and changes
+nothing a member sees. Every database addition was applied to production and the demo.
+
+**What was parked, with the reason**
+- **The real recorder has never recorded.** Headless Chrome here cannot open a microphone; it needs
+  one press from you in `/lab/catchups/voice`.
+- **The vote actions have never been called by a screen**, because no screen calls them yet; unit
+  tests only.
+- **The swipe fault in the photo viewer** (V2, V3) waits on your phone (your 24).
+- **The magazine's two known faults**, both for M3: on page 5 of the live Edition a writer's name
+  and bird sit alone in the right column while their words run in the left, and the page's bottom
+  fifth is empty.
+- **Three small leftovers the spec rewrite listed** (`docs/spec/catchups.md` §15): the tab title
+  still says "In the loop catch-up", and the Catch-ups guide chapter still describes the deleted
+  24-hour hold and says nobody is added without being asked.
+
+**What to look at first**
+1. `/lab/catchups/magazine`, the live Edition. Open pages 5, 7 and 18, then press Print view.
+2. The three rooms in question 55, on your phone.
+3. `library-draft.md`, with a pen.
+
+**To restart it, reply with one line**, for example:
+
+> defaults, except 47b. voice: mic in the box + the tape. vote: piles. capsule: the year line.
 
 ---
 
