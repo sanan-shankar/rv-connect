@@ -6754,3 +6754,18 @@ demo allows the table. `vote-question-rule.test.mjs` pins the caps, the rules, t
 migration, the single writer, and a tripwire on any new Catch-ups file reading a pick.
 write-path-reviewer: no blocking findings; its one Low (`submitPrompt` did not re-read the question
 window inside its transaction, which choices now ride on) is fixed, the same guard `submitEntry` has.
+
+
+## 2026-09-14 (catch-ups, phase 13 drawn) — asking a vote, casting one, and the result three ways, at /lab/catchups/vote
+
+Phase 13's look, per his answer 31a: drawn in the lab and not wired into the app. Asking is the
+home's ask box with a list mark beside the eye, which opens two choice boxes (up to six) checked by
+the server's own `decideVoteChoices`; the questions so far show a vote's choices under it. Casting
+is the answering card with the choices as the control, a canopy selection, an optional line and
+"Take my vote back". The result is drawn three ways in the reader's tile beside an ordinary answer:
+flocks, piles and a roll call, against eight votes (two, six, one nobody picked, a landslide, a
+tie, forty on one, long choices, one voter). None prints a count.
+
+Measured: no horizontal overflow at 390 or 1440 in 48 states. Round one found a pile growing to
+610px at forty (fixed to a set width) and a wrapped dotted choices line stranding a dot (now a
+list). Handover board, session log and paste block moved to phase 14.
