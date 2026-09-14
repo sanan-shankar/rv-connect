@@ -219,6 +219,11 @@ export async function GET() {
             images: true,
             songUrl: true,
             songTitle: true,
+            // A recorded answer is the member's own voice; it goes in their
+            // copy of their data like everything else they wrote (phase 12).
+            audioUrl: true,
+            audioSeconds: true,
+            audioIsAuto: true,
             createdAt: true,
           },
           ...keyset({ authorId: userId }, after),

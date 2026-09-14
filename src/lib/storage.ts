@@ -4,6 +4,7 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
   HeadObjectCommand,
+  CopyObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { writeFile, mkdir, unlink, readFile } from "fs/promises";
@@ -61,7 +62,25 @@ function buildKey(subdir: string, filename: string): string {
  * deletion can never be aimed at an arbitrary path even if a raw URL reached it
  * (audit C2 — "stop keyForUrl accepting caller URLs").
  */
-const KNOWN_ROOTS = ["uploads", "collection", "avatars", "staging"] as const;
+/*
+ * `audio` joined on 2026-09-14 (Catch-ups rework phase 12: a question you
+ * answer out loud), and it is argued here because this list is the fence and
+ * an earlier root was rightly backed out of it.
+ *
+ * `link-previews/` stays OUT. A preview image is shared by every answer that
+ * pastes the same link and belongs to nobody, so a delete path trusting a
+ * stored URL could take an image other members' answers still show.
+ *
+ * `audio/` is the other case, and the same shape as `uploads/`. Every key
+ * under it is `audio/<uploader's id>/...`, written by the finalize route with
+ * the session's id and no caller input (see `ownerPrefix`). Nothing reaches a
+ * row without `ownedVoiceRecording` proving that id is the caller's, so a
+ * stored recording URL can only ever name its own author's bytes. And it has
+ * to be here: without it `keyForUrl` answers null, `delImage` reads that as
+ * "not ours" and returns true, and the account purge would report a member's
+ * voice deleted while it stayed publicly fetchable.
+ */
+const KNOWN_ROOTS = ["uploads", "collection", "avatars", "staging", "audio"] as const;
 export type UploadPurpose = (typeof KNOWN_ROOTS)[number];
 
 /**
@@ -167,6 +186,72 @@ export async function presignImagePut(
     { expiresIn: 600 }
   );
   return { key, signedUrl, publicUrl: `${R2_PUBLIC_BASE_URL}/${key}` };
+}
+
+/**
+ * Move a checked object to where it will live, under a date-partitioned key,
+ * and return its public URL. The object is COPIED (the caller deletes the
+ * source), with its type and cache headers set afresh rather than inherited
+ * from whatever the browser's PUT said.
+ *
+ * Used by the recording path, which stores the browser's bytes untouched: there
+ * is nothing to re-encode, so a GET and a PUT back through a function would only
+ * spend memory. R2 implements CopyObject with `MetadataDirective: REPLACE`.
+ */
+export async function copyObject(
+  fromKey: string,
+  subdir: string,
+  filename: string,
+  contentType: string
+): Promise<string> {
+  const key = buildKey(subdir, filename);
+  if (useR2) {
+    await r2().send(
+      new CopyObjectCommand({
+        Bucket: R2_BUCKET,
+        // Encoded per segment, as CopyObject requires. Today's keys are cuids
+        // and a fixed extension, so this changes nothing until a key does.
+        CopySource: `${R2_BUCKET}/${fromKey.split("/").map(encodeURIComponent).join("/")}`,
+        Key: key,
+        MetadataDirective: "REPLACE",
+        ContentType: contentType,
+        CacheControl: "public, max-age=31536000, immutable",
+      })
+    );
+    return `${R2_PUBLIC_BASE_URL}/${key}`;
+  }
+  const { copyFile } = await import("fs/promises");
+  await mkdir(path.join(process.cwd(), "public", path.dirname(key)), { recursive: true });
+  await copyFile(path.join(process.cwd(), "public", fromKey), path.join(process.cwd(), "public", key));
+  return `/${key}`;
+}
+
+/**
+ * The first `count` bytes of an object (a ranged GET), for reading a file's
+ * magic number without pulling the whole thing into memory. Null when the
+ * object cannot be read.
+ */
+export async function readObjectHead(key: string, count: number): Promise<Uint8Array | null> {
+  try {
+    if (useR2) {
+      const res = await r2().send(
+        new GetObjectCommand({ Bucket: R2_BUCKET, Key: key, Range: `bytes=0-${count - 1}` })
+      );
+      const bytes = await res.Body?.transformToByteArray();
+      return bytes ? bytes.subarray(0, count) : null;
+    }
+    const { open } = await import("fs/promises");
+    const handle = await open(path.join(process.cwd(), "public", key), "r");
+    try {
+      const buffer = Buffer.alloc(count);
+      const { bytesRead } = await handle.read(buffer, 0, count, 0);
+      return new Uint8Array(buffer.subarray(0, bytesRead));
+    } finally {
+      await handle.close();
+    }
+  } catch {
+    return null;
+  }
 }
 
 /** The public URL a raw object key serves from. */
