@@ -439,14 +439,21 @@ export function needsResolve(row: Pick<PreviewRow, "failedAt"> | undefined, now:
 
 const KINDS: ReadonlySet<string> = new Set(["spotify", "youtube", "link"]);
 
-/** A row becomes a card only if it resolved AND has a title to print. */
+const same = (a: string, b: string) =>
+  a.replace(/\s+/g, " ").trim().toLowerCase() === b.replace(/\s+/g, " ").trim().toLowerCase();
+
+/** A row becomes a card only if it resolved AND has a title to print. A
+ *  subtitle that only repeats the title is dropped: a school site whose
+ *  og:site_name and og:title are both "RISHI VALLEY EDUCATION CENTRE" printed
+ *  it twice, and the card's second line then falls back to the address,
+ *  which is the thing that line is for. */
 export function cardOf(row: PreviewRow | undefined): LinkCardView | null {
   if (!row || row.failedAt || !row.title || !KINDS.has(row.kind)) return null;
   return {
     kind: row.kind as LinkKind,
     url: row.url,
     title: row.title,
-    subtitle: row.subtitle,
+    subtitle: row.subtitle && !same(row.subtitle, row.title) ? row.subtitle : null,
     thumbUrl: row.thumbUrl,
   };
 }

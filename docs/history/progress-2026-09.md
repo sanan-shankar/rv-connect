@@ -6606,3 +6606,10 @@ failing `progress-log.test.mjs` at HEAD.
 
 Visual suite: feed and directory at mobile moved, diffs read first (bell box and the count row only).
 
+
+## 2026-09-14 (catch-ups, card) — a link card stops printing its title twice
+
+Found verifying phase 10 at 1440: rishivalley.org gives the same words as its `og:site_name` and its
+`og:title`, so its card read "RISHI VALLEY EDUCATION CENTRE" on both lines. `cardOf` now drops a
+subtitle that only repeats the title (spacing and case ignored), and the card's second line falls
+back to the address, which is what that line is for. Pinned in `link-preview-core.test.mjs`.
