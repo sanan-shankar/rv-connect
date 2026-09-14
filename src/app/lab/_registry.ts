@@ -234,6 +234,13 @@ export const REGISTRY: LabEntry[] = [
     note: "A question the group votes on, for him to pick. Asking one in the home's ask box, casting one while answering, and the result in the Edition three ways (flocks, piles, a roll call) against eight votes: two choices, six, one nobody picked, a landslide, a tie, forty on one, long choices and a single voter. The choices, the pick and their checks are built underneath and switched off.",
   },
   {
+    href: "/lab/catchups/capsule",
+    title: "Sealed for a year",
+    group: "Delight",
+    status: "active",
+    note: "A time capsule, for him to pick. The sealed Edition three ways (the year line, asleep, waiting for morning) on the home, the list and a shared link, against seven cases from 364 days left to opened; the morning it opens; and making one in settings. The seal, the date and the checks are built underneath and switched off.",
+  },
+  {
     href: "/lab/catchups/swipe",
     title: "The swipe that goes back two",
     group: "Delight",

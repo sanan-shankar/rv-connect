@@ -191,6 +191,7 @@ too, which he allowed in ¶28.
 | Build phase 11, the cleanup | **PARTIAL** | **Done 2026-09-14**: the three test Catch-ups are deleted from production (`2026-09-14-delete-test-catchups.sql`, id-pinned, refuses if anyone but the owner or Jerry holds a row; export re-run and a rolled-back proof first; a no-op on the demo, which holds no Catch-ups). Groups 20 -> 17, Catch-ups 7 -> 4, Editions 9 -> 5, answers 143 -> 141, 10 bell links and 2 view rows gone. `test` (lowercase, ended) STAYS: spec 3.2 calls it his. **Not done, not authorised**: the orphaned "Batch of 2024" snapshot group (`cmt5ru8bb000004lausdv5vvl`, 11 members, every one also in the real 2024 group, only `GroupMember` points at it); his answer to 28 covered the test Catch-ups only, so it is a question for him. `docs/spec/catchups.md` rewritten to describe what shipped (DONE, its own row). **Waits on a release that is his**: the column drops (`CatchupEntry.songUrl/songTitle/songArt`, `CatchupPref.deletedAt`) and the code that goes with them (`submitEntry`'s songUrl input, `resolveSpotify`, the account export's songUrl select). `CatchupEdition.publishAt` is never dropped |
 | Build phase 12, a question you answer out loud | **OWNER-GATED** | **2026-09-14, S19, his 31a.** Underneath is built and committed: `CatchupEntry.audioUrl/audioSeconds/audioIsAuto` (applied to BOTH, one CHECK pairing url and length), `/api/upload/audio` then `/finalize` (staged under `staging/<id>/`, real size against claimed length at a 320 kbps ceiling, magic bytes, copied to `audio/<id>/`), `submitEntry`'s optional `audio` (owner-checked, demo refused, replaced recording purged), `audio` in `KNOWN_ROOTS` with its argument, the purge and both exports. The Permissions-Policy had `microphone=()`, which blocks the site's own pages; it is `(self)`, and the CSP gained `media-src`. Cap is **120 seconds** (his 32; spec 3.10 corrected). **Drawn, waiting for his pick** at `/lab/catchups/voice`: the recorder two ways (**a mic in the box**, **say it instead**) with thirteen still states, and the player three ways (**the bird speaks**, **a line of voice**, **the tape**), the no-words Firefox answer first on each. Nothing reaches a member |
 | Build phase 13, a question the group votes on | **OWNER-GATED** | **2026-09-14, S20, his 31a and 37 (default: the asker writes two to six fixed choices).** Underneath is built and committed: category `"vote"` (`promptKind` answers `"vote"`), `CatchupPromptOption` (written only by `submitPrompt`, inside the question's own transaction, while collecting), `CatchupEntry.pollOptionId` with a **composite foreign key on `(pollOptionId, promptId)`** so Postgres refuses another question's choice, applied to BOTH and proved live in a block that always rolls back. `submitEntry` requires a pick on a vote (null takes it back with its line), refuses one elsewhere, and refuses photos, audio and a song beside it; `voteResult()` is null for anything unpublished. `submitPrompt` now re-reads the question window inside its transaction. **Drawn, waiting for his pick** at `/lab/catchups/vote`: asking (a list mark beside the eye), casting (the choices are the control), and the result three ways (**flocks**, **piles**, **roll call**) against eight votes. Nothing reaches a member |
+| Build phase 14, a time capsule | **OWNER-GATED** | **2026-09-14, S21, his 31a, 33, 34b and 35.** Underneath is built and committed: a new status **`sealed`** between answering and published (every reader already asks for `published`, so a sealed Edition is refused everywhere unchanged), `CatchupEdition.timeCapsule` and `sealedAt`, `publishAt` back in the schema, a CHECK refusing a sealed row without the flag or both dates (applied to BOTH, proved live in a block that always raises). `capsuleOpensAt`: the same IST date next year at 07:00, 29 February opens on the 28th. The clock seals at the close (too-few extension first), books the rhythm from the seal, tells everyone the day it opens (`catchup_sealed`), and opens it a year later with `notifyPublished`, **even if the Catch-up is held or ended**; the compare-and-swap requires the flag. `setEditionTimeCapsule`: collecting only, Keepers on a people Catch-up and anyone on a batch. `loadPublishedEditionView` asks for `published` itself; the admin room and the home never query a sealed capsule's contents. **Drawn, waiting for his pick** at `/lab/catchups/capsule`: the sealed Edition three ways (**the year line**, **asleep**, **waiting for morning**) on the home, the sidebar, the list and a shared link against seven cases; the morning it opens; and the Time capsule row in settings. **His calls**: whether Asleep may show who wrote in, and whether a member's own data download keeps their sealed answer (it does today). Nothing reaches a member |
 | M1 Magazine design | OPEN | unblocked. D27 is answered in `recon.md` section 6: photographs are boxed to 1920px, which is 164 dpi at A4 full-bleed |
 | M2+ Magazine build | OPEN | blocked on M1 |
 | X Fast fixes | **PARTIAL** | **2026-09-08/09, four commits.** F18 the phone overflow: a pasted Spotify link's 54-character run is 369px with no break opportunity against a 316px column, so the DOCUMENT laid out 414px wide in a 390px window and the sticky green bar stayed 390 -- his half-centimetre of white space, measured. `break-words` on every element that prints a member's typing, the feed and letters included, pinned by `src/lib/rich-text-wrapping.test.mjs`. **The recon's "does not reproduce on this machine" was a viewport flag**: without `isMobile` Chrome will not shrink the layout viewport, and with it the fault is plain. F23 the heart: the two `revalidatePath` lines deleted, measured four taps each way on the owner's own answer so no bell moved -- **223 KB and 1,333 to 1,809 ms a tap becomes 1 KB and 514 to 781 ms**, the rest being the trip to Mumbai; the optimistic flip was always 30 to 56 ms. Pinned across all four love toggles by `heart-revalidate-rule.test.mjs`. D38 the caption clamp, two lines to four: measured on the longest live caption, 90px of 180px at 390 with More, and **whole with no fold at 1440**. V1 the size snap: reproduced on the three photographs he was looking at (1200x1600, 1200x1600, 1288x966 -> 390x520, 390x520, 390x293) and fixed -- both frames now dissolve inside one box that tweens between the fitted sizes on the step's own 220ms curve, sizes LEARNED from the pre-decode rather than plumbed through four callers. **V2 and V3 are OPEN and are not guessed at**: six attempts (real touch swipe, arrow keys, trackpad wheel fling, two swipes 150ms apart, at 390 and 1440) could not reproduce them, `step` clamps at both ends, one gesture calls it exactly once, and the carousel's snap CSS is all correctly applied. **He confirmed 2026-09-09 that it happens on phone AND laptop**, so the "needs a real iPhone" note is withdrawn. `/lab/catchups/swipe` is the instrument: the real photographs, the real shared viewer, and a trace of every finger and every change of picture, for him to run on his own device |
@@ -2442,6 +2443,46 @@ puppeteer probe beside `scripts/qa/_dev-login.mjs`, deleted in the same command.
 
 ## Session log, continued
 
+### 2026-09-14, S21, build phase 14: a time capsule (Opus 5, one hand, run by `/campaign`)
+
+**His 31a, 33, 34b and 35, done as asked.** Everything that does not depend on the look is built and
+committed; the sealed Edition, the morning it opens and making one are drawn at
+`/lab/catchups/capsule`, and nothing is wired into `(main)`.
+
+**The decision that shapes the rest: a status, not a date.** The spec leaned toward reusing
+`published` with `publishAt` a year out. That makes every reader responsible for also checking a
+date, and one written during the year that forgot would leak. A new `sealed` status sits between
+answering and published, and every reader that already asks for `published` refuses it unchanged.
+`loadPublishedEditionView` also asks in its own `where`. `time-capsule-rule.test.mjs` walks every
+reader path and carries a tripwire on any new file that reads answer rows.
+
+**The mark is not a Keeper control.** Both Keeper preambles refuse a batch because they guard
+transitions nobody can undo (N30). Marking moves nothing, is reversible until answering opens, and
+his 35 says a batch Edition can be a capsule, so `setEditionTimeCapsule` lets a batch in by name
+through `mayMarkTimeCapsule` (the picture's rule) and never through those preambles.
+
+**Proved**: the migration on production twice and the demo; the CHECK refusing a sealed row without
+its date and without its flag, inside a block that always raises; the widened sweep, the admin
+filter and the published gate as real queries against the regenerated client. write-path-reviewer:
+no blockers; its Medium (the admin room fetched a sealed capsule's answers and hid them) is fixed so
+they are never queried, and the home's question rows the same.
+
+**Two calls that are his**: Asleep shows who wrote in, which is not a word they wrote but is more
+than nothing (34b); and the account export keeps a member's own answer in a sealed capsule, as a
+right of access, with a status marker. Both are one line to reverse.
+
+**The drawings**, three rounds at 390 and 1440, full-page shots sliced: the year line (the opening
+date, and the reader's cinnamon line stretched to a year with a tick per month), asleep (writers'
+birds breathing, waking at the opening), waiting for morning (the Catch-up's photograph at night,
+lifting as the year goes, opening at seven into the day). Faults found by looking and fixed: the
+home grid keyed off the window rather than the frame, the year line reading as an empty card, a
+phone date wrapped onto three lines, the bell arriving before the opening, and the night at one day
+left lifting until the cover matched the Catch-up card beside it.
+
+**Not done**: the library's capsule set stays in `library-draft.md` until he cuts it (his 36). A
+dev server that was not this session's was running and was not restarted, so the app itself was not
+driven with the new columns; the queries were proved directly instead.
+
 ### 2026-09-14, S20, build phase 13: a question the group votes on (Opus 5, one hand, run by `/campaign`)
 
 **His 31a and 37, done as asked.** Everything that does not depend on the look is built and
@@ -3719,49 +3760,38 @@ for the count), and a push is his.
 **Still his**: the push that lets phase 11's column drops run; the orphaned "Batch of 2024"
 snapshot group (delete it or not; not covered by his answer to 28); cutting
 [`library-draft.md`](library-draft.md) (his 36: I draft, he cuts); the twenty photographs; and the
-swipe fault, V2 and V3 (his 24: *"will do it later"*).
+swipe fault, V2 and V3 (his 24: *"will do it later"*); whether the capsule drawing Asleep may show who
+wrote in; and whether a member's own data download keeps their answer in a sealed capsule (it does).
 
-**Phases 12 and 13 are drawn and plumbed and OWNER-GATED** (S19, S20): his pick of a recorder and a
-player at `/lab/catchups/voice`, and of a result at `/lab/catchups/vote`, then the transplants.
-**Next up is phase 14, time capsule**, drawn in the lab with the parts underneath that do not depend
-on the look (his 31a). Stop for his pick before anything is transplanted.
+**Phases 12, 13 and 14 are drawn and plumbed and OWNER-GATED** (S19, S20, S21): his pick of a
+recorder and a player at `/lab/catchups/voice`, a result at `/lab/catchups/vote`, and a sealed
+Edition at `/lab/catchups/capsule`, then the transplants. **Next up, and last, is M1, the magazine
+design** (his 38: M1 runs last). The transplants wait on his picks and are not M1's.
 
 ### Paste this into a fresh Opus max session
 
 ```
 @docs/planning/catchups-rework/handover.md
 
-Phase 14: time capsule.
+M1: magazine design.
 Read the board first: phases 1 to 10 are DONE, phase 11 is PARTIAL
-(test Catch-ups deleted; column drops wait for his push), phases 12 and
-13 are OWNER-GATED on his picks at /lab/catchups/voice and
-/lab/catchups/vote, nothing has been pushed. Phases 12 and 13 are the
-shape to copy: plumbing commit, then lab room commit.
+(column drops wait for his push), phases 12, 13 and 14 are OWNER-GATED
+on his picks at /lab/catchups/voice, /lab/catchups/vote and
+/lab/catchups/capsule, and nothing has been pushed. Do not transplant
+any of those; they wait on him.
 
-His answer 31 was (a): draw each in the lab, build what does not depend
-on the look, and stop for his pick. His words on the rest, 2026-09-14,
-verbatim:
-
-  "32 is 2 minutes. 33 time capsule is just for one edition. 34b."
-  "35 yes an edition can."
-  "rest defaults"
-
-Read "Owner answers" for what each number asked. In short: a voice
-answer caps at 120 seconds (spec 3.10 says 90; correct it). A time
-capsule is a flag on ONE CatchupEdition, not Catchup.timeCapsule (spec
-3.12 is wrong). 34b: nothing in a sealed Edition is readable until it
-opens, your own answer included. 35: a batch Catch-up's Edition can be
-a time capsule. 36: the library is drafted in library-draft.md and he
-cuts it. 37: a vote question has fixed choices. 38: M1, the magazine,
-runs last.
-
-Never drop CatchupEdition.publishAt: the time capsule is that column.
+Your session's whole brief is the section "M1: Magazine design" in this
+file, which names the paragraphs of brief.md to read first (21, 30, 31,
+51) and the parts of prior-art.md. His 38 was the default: M1 runs last.
+Since that section was written, Rounds are Editions, a published Edition
+may hold a vote, a recorded answer and a link card, and a time capsule
+opens as an ordinary published Edition, so the corpus needs those.
 
 How to work:
-  - One hand. No fan-out for drawing.
+  - Ultracode for the failure-mode hunt and the grammar panel only, as
+    the section says; everything else one hand.
   - Take numbers from the app, never from taste.
   - A note he has given is a DECISION, not a proposal.
-  - Additive schema goes to both projects (his 29a); nothing is dropped.
   - npm run check before every commit, npm run visual after UI work, never
     both at once. Stage by pathspec: other sessions are live in this tree.
   - Update this file's board and session log inside the same commit.
@@ -3770,6 +3800,13 @@ How to work:
 
 ### What that session must know, and would otherwise learn the hard way
 
+- **Phase 14's lessons.** A new Edition status is safer than a new date on an old one: every
+  reader already asks for `published`, so failing closed costs no reader a line. A lab room that
+  draws a phone inside a laptop window must size by its own phone/laptop flag, not by viewport
+  breakpoints (the rail grid drew laptop columns in the phone frame). `_shoot.mjs` takes `full`, and
+  a tall full-page PNG sliced with `sharp` is readable where one screen is not. Reading `.env` is
+  refused to this campaign's workers, so an authed MCP session is not available to them; the
+  shot scripts sign in by themselves.
 - **Phase 13's lessons for 14.** A kind is a category (`promptKind`), and a new one widens
   `PromptKind`, which the lab sketch's own type (`sketches/_types.ts`) mirrors. A new table needs
   its model in `ALLOWED_WRITE_MODELS` in `src/lib/demo.ts` or the demo's transaction fails with
