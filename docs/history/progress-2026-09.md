@@ -6640,3 +6640,18 @@ view rows that no foreign key reaches. Export re-run first, proved in a rolled-b
 `test` (lowercase) stays, as spec 3.2 says. The orphaned Batch of 2024 snapshot group stays too:
 it was not in his answer. No photographs, so nothing left in R2. Nothing in code named the three.
 `npm run visual` 25/25, no baseline moved.
+
+
+## 2026-09-14 (catch-ups, spec) — the Catch-ups spec describes what shipped
+
+"Those are heavily outdated" (brief 48). `docs/spec/catchups.md` was the July build spec: Rounds,
+`preparing`, a 24-hour hold, Spotify on every question. Rewritten from the code and the schema after
+phases 1 to 10: the nouns, batch and people Catch-ups and the floor of ten, the clock at 07:00 IST,
+a who-may-do-what table, leaving and archiving, the picture, the list, home, reader, answering and
+invite link, the settings surface, hearts and comments, link previews and the photo wall run,
+notifications, the read mark and the nightly self-heals. Reasoning stays in
+`docs/planning/catchups-rework/`.
+
+Reading the code found one live fault, recorded rather than fixed: "Give everyone longer" offers
+3, 7 and 14 days, and `extendDeadline` accepts only 1, 2, 4 or 7. Section 15 lists it with eleven
+smaller disagreements, among them the guide chapter still describing the deleted 24-hour hold.

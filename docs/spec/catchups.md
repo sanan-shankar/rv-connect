@@ -1,907 +1,535 @@
 # Catch-ups
 
-> **REWORK IN PROGRESS, opened 2026-09-05.** This document describes what is shipped today
-> and is **guidance, not law**, for anything new. The owner, in
-> `docs/planning/catchups-rework/brief.md` ¶48: *"Those are heavily outdated, and you have
-> much more knowledge from my prompt than those guys do."* Take the object model, the Round
-> state machine and the permissions from here as the vocabulary of what exists. Take no
-> design, no copy and no scope fence from it. Any session touching Catch-ups starts at
-> `docs/planning/catchups-rework/handover.md`. The section 8 fences the brief reverses
-> (comments, PDF export, the photo wall as a real feature, song previews on any pasted link)
-> are void.
+What shipped, as of 2026-09-14: build phases 1 to 10 of the Catch-ups rework and the safe half of
+phase 11. Every fact here was read off the code and the schema, not the planning documents. Where
+the two disagree, the code is what this file describes, and §15 lists every place they part.
 
-> **COPY AND LAYOUT rules from the owner's 2026-07-25 review are LAW.** The review brief
-> that carried them (`docs/planning/catchups-fixes-brief.md`) was fully executed by the
-> Catch-ups rebuild and deleted on 2026-08-26; recover it with
-> `git log --follow -- docs/planning/catchups-fixes-brief.md` if the full text is ever
-> needed. The two standing rules and the owner's words below remain current.
->
-> The owner reviewed the shipped feature end to end and rejected most of the copy in this
-> document, in these words: "what the hell is a gentle group newsletter", "tell me what the
-> fuck is a gentle round of questions, how can a round of questions be gentle", and of the
-> whole module, "such slop". Two rules came out of that review and they override every copy
-> example below:
->
-> 1. **No subtitle under a heading unless it says something the heading does not.** Nearly
->    every subtitle in this spec restates its heading in softer words. Those are deleted.
-> 2. **The words "gentle", "quiet", "small", "warm" and the phrase "a round of" are banned**
->    from Catch-ups copy. That includes the section 1 explainer below, which is where this
->    voice originally came from.
->
-> Also changed by that review, against what this document says:
-> - Questions are NOT picked at creation time (section 3.2's seed-prompt step is gone). A new
->   Catch-up opens with an empty `collecting` Round.
-> - The create flow's live preview card is deleted.
-> - The ~12-accepted-prompts cap is no longer surfaced anywhere and the ceiling is now 40.
-> - The question library in section 4 is replaced wholesale; see `src/lib/catchups.ts`. Two of
->   the five sets are non-text kinds (`photo-wall`, `songs`) resolved via `promptKind()`.
-> - The per-question Spotify link field is removed; music is its own question kind.
-> - The answering sheet's ruled lines are removed.
-> - The published Round's full-bleed masthead is removed (it ran flush against the sidebar).
-> - Groups are being retired as a user-facing feature; a Catch-up is created from a set of
->   PEOPLE and the Group row survives only as the hidden membership container.
->
-> **What in this document is still binding:** the object model, the Round state machine
-> (2.2), the timing rules (2.3), the no-cron lazy advance (2.4), the preparing ritual (2.5),
-> the too-few-answers rule (2.6), the Prisma models and their `@@map`s (6), visibility and
-> Keeper rules (7), and the scope fences in section 8.
+The reasoning (the owner's brief, his reviews, the options weighed and not taken) lives in
+`docs/planning/catchups-rework/`: `brief.md` for what he asked, `architecture.md` for the shape,
+`spec.md` for the build plan, and `handover.md` for where the campaign stands. This file does not
+repeat any of it. The version this replaces (the July build spec, with Rounds, `preparing` and a
+24-hour hold) is in `git log --follow -- docs/spec/catchups.md`.
 
-The recurring group newsletter for Rishi Valley. Modelled on Letterloop (see
-`docs/planning/letterloop-research.md`) and tuned for a small, invite-only community where everyone
-already has an account, a profile, and a bird avatar. This spec supersedes the earlier build, which
-was reverted in full. Builders follow this literally. No em dashes anywhere. User-facing copy says
-"Rishi Valley", never "Alumni". The feature is **Catch-ups**; a single edition is a **Round**
-(Round 1, Round 2, ...). "Roundup" is dead everywhere.
+Copy rules that still bind every Catch-ups surface: "Rishi Valley", never "RV Connect"; no em dashes;
+no subtitle that restates its heading; the words "gentle", "quiet", "small", "warm" and the phrase "a
+round of" are banned (owner review 2026-07-25); no counts unless the number is the finding; no
+Edition numbers anywhere a member reads.
 
 ---
 
-## 1. Concept in two sentences (the newcomer explainer)
+## 1. What it is
 
-Use this almost verbatim in the UI, wherever a first-timer meets the feature:
-
-> A Catch-up is a gentle group newsletter on a rhythm. Everyone in the group answers the same few
-> questions during an open window, and once it closes their replies are gathered into one warm issue
-> the whole group reads together.
-
-A shorter one-liner for tight spaces (cards, tooltips):
-
-> Everyone answers a few questions. Their replies become one issue the whole group reads.
-
-There will be a proper tutorial later, so nothing here should get wordy. One explainer band on the
-index and one line on the create flow is the whole budget.
+A Catch-up is a newsletter a group writes to itself on a rhythm. The group asks questions for a few
+days, everybody answers for a week, and the answers come out together as one **Edition** that the
+whole group reads. Then the next one opens.
 
 ---
 
-## 2. Objects and lifecycle
+## 2. The nouns
 
-### 2.1 The objects
+| Word | Table | What it is |
+|---|---|---|
+| **Catch-up** | `CatchupSeries` (model `Catchup`) | One per `Group` (`groupId` is unique). Its rhythm, its state, its picture, who keeps it |
+| **Edition** | `CatchupEdition` | One cycle. Its status, its two deadlines, when it came out |
+| **Question** | `CatchupPrompt` | One thing asked in an Edition. Always stores its asker; `showAsker` false hides them |
+| **Answer** | `CatchupEntry` | One member's answer to one question. Unique on `(promptId, authorId)`. Never anonymous |
+| **Heart** | `CatchupEntryLove` | One member's heart on one answer |
+| **Comment** | `Comment` with `entryId` set | The feed's own comment table, widened (§9) |
+| **Read mark** | `CatchupEditionRead` | Who has opened which published Edition (§12) |
+| **Preference** | `CatchupReminderPref` (model `CatchupPref`) | One member's reminder setting and archive stamp for one Catch-up |
+| **Link preview** | `LinkPreview` | A resolved card for a pasted url, shared by every answer that pastes it (§10) |
 
-- **Catchup** (one per Group). The standing newsletter for a group: its cadence, its status
-  (active / paused / ended), and who tends it (the Keeper). `groupId` is unique, so a group has at
-  most one Catch-up.
-- **Round** (`CatchupEdition`). One cycle. Carries the window timestamps, its lifecycle status, and
-  a monotonic `number` within its Catchup.
-- **Prompt** (`CatchupPrompt`). A question inside a Round. Submitted from the library, by a member,
-  or by the Keeper. Carries the submitter (always stored) and a `showAsker` flag (named vs
-  anonymous) and an `accepted` flag (curated into the Round).
-- **Entry** (`CatchupEntry`). One member's answer to one prompt. Text, photos, and one Spotify
-  track. Always attributed to its author with their bird avatar. Answers are never anonymous.
-- **Entry love** (`CatchupEntryLove`). A heart on a single answer. Reuses the shared `LoveButton`.
-- **Pref** (`CatchupPref`). A member's reminder setting for one Catchup (all / last only / off).
+The two `@@map`s exist because an earlier, reverted build left tables called `Catchup` and
+`CatchupPref` behind with different columns. **Those legacy tables are gone from the live database**
+(checked 2026-09-14); the maps stay because renaming a live table is not free.
 
-### 2.2 The Round state machine
+**An Edition is named by its date.** `CatchupEdition.number` exists only so
+`@@unique([catchupId, number])` can enforce one Edition at a time; nothing a member reads prints it.
+`roundLabel()` is deleted. The one exception is the admin room (§14), where the number is the row's
+key and an unpublished Edition has no date.
 
-`CatchupEdition.status` moves forward only, one direction:
+### 2.1 Two kinds of Catch-up
+
+**A people Catch-up** is started by a member from `/catchups/new`: a name (1 to 80 characters), up to
+`MAX_CATCHUP_PEOPLE` = 100 people, and a rhythm. `createCatchupWithPeople` creates a private `Group`
+silently as the membership container, the `Catchup` with an invite token and a picture, and Edition
+1 in `collecting` with no questions. The starter is `createdById` and holds the group role `admin`.
+Teachers, blocked accounts and anyone inside their deletion window are dropped from the roster.
+
+**A batch Catch-up** belongs to a batch group (`Group.batchYear` set). `isBatchCatchup(batchYear)`
+is the whole test. One exists for every batch group at or over **`BATCH_CATCHUP_FLOOR` = 10**
+members; under ten there is none. On the live database that is Batch of 2023 and Batch of 2024. Its
+`createdById` and `inviteToken` are NULL: nobody keeps it and there is nobody to invite, because the
+membership is the batch. Everyone who signs up with that batch year is added (`joinBatchGroup` in
+`src/lib/batch-catchups.ts`), and a late joiner reads every earlier Edition.
+
+Three places make a batch Catch-up exist: `joinBatchGroup` at signup (so the tenth signup of a
+batch is the moment one appears, and the batch is told questions are open), and the two nightly
+self-heals (§13). The original backfill was `prisma/migrations-manual/2026-09-08-batch-catchups.sql`.
+
+### 2.2 Keepers
+
+`isEffectiveKeeper` is true for the creator (`createdById`), or for a member whose `GroupMember.role`
+is `keeper` or `admin`. `setCatchupKeeper` only ever writes `keeper`, because `admin` is also the
+group's moderation role; revoking touches only `keeper` rows. The creator is always a Keeper and
+cannot be demoted or removed. A batch Catch-up has no Keeper, and the refusal is checked **before**
+the Keeper question in both preambles (`loadKeeperScope`, `loadKeeperEdition`), so no data accident
+can give one a Keeper.
+
+### 2.3 Sidebar
+
+The Catch-ups row appears on the sidebar only for a member in at least one Catch-up: `(main)/layout.tsx`
+asks `prisma.catchup.findFirst` and passes `hasCatchup`, which defaults to true when a caller forgets.
+Hiding the row is not access control: `/catchups` still renders for anyone signed in. Teachers are
+turned away from every `/catchups` route by `catchups/layout.tsx`.
+
+---
+
+## 3. The Edition's clock
+
+### 3.1 States
 
 ```
-draft -> collecting -> answering -> preparing -> published
+draft -> collecting -> answering -> published
 ```
 
-| Status | Meaning | Member sees | Keeper sees |
+Forward only. `preparing` and its 24-hour hold were deleted on 2026-09-08: answers closing and the
+Edition coming out are one transition. `draft` is still in the type, but nothing creates one; every
+path opens straight into `collecting`.
+
+| Status | Members see | Keepers can also |
+|---|---|---|
+| `collecting` | the ask box and the questions so far | remove or reorder a question, open answering, give everyone longer |
+| `answering` | the questions to answer, on the home | give everyone longer, nudge, close and publish now |
+| `published` | the Edition, readable forever by every member, whether they wrote or not | start the next Edition now |
+
+**Nothing in an Edition is readable before it is published**, Keeper included, and that includes
+another member's answers. Only your own answers come back to you while answering. The owner closed
+this on 2026-09-09 (spec §3.13, reading (a)). The heavy read, `loadPublishedEditionView`, is only
+called after a fresh `published` status has been confirmed.
+
+### 3.2 Deadlines
+
+All in `src/lib/catchups-core.ts`.
+
+- **Question window: 3 days** (`QUESTION_WINDOW_DAYS`). **Answer window: 7 days.**
+- **Every deadline lands on 07:00 IST** (`snapToDeadlineHour`, 01:30 UTC). It rounds forward, never
+  back, so a window is never shorter than promised. The cron runs at 02:00 UTC (07:30 IST,
+  `vercel.json`), so a deadline is picked up within half an hour. A test reads `vercel.json` to keep
+  the two in step.
+- **`TICK_GRACE_MS` = 5 minutes**: a deadline counts as passed five minutes early, so scheduler
+  jitter cannot push a phase back a whole day.
+- **`publishedAt` is the real instant**, not the snapped deadline, because it is the Edition's name.
+- **The next Edition opens** at `nextOpensAt = publishedAt + gap`: 14 days (`biweekly`), one calendar
+  month (`monthly`, the default), or three (`quarterly`). Months clamp to the end of a short month.
+  It only opens once the latest Edition is published.
+
+### 3.3 What the clock does on its own
+
+`planNextAction` is the whole decision, pure and unit-tested; `advanceEdition` applies one step per
+transaction with a compare-and-swap on status (or on `remindersSent`), so a second visitor does
+nothing twice.
+
+- **Collecting closes with no questions**: the question window is extended 3 days, once
+  (`REMINDER_QUESTIONS_EXTENDED`), and the group is told again. If it closes empty a second time the
+  Edition goes **dormant** and stays in `collecting`; the first question anyone submits revives it
+  with a fresh 3-day window.
+- **Collecting closes with questions**: answering opens, everyone is told.
+- **Answering closes with no answers at all**: extended 3 days, once (`REMINDER_EXTENDED`), and the
+  non-answerers are told again. After that it publishes whatever is there.
+- **Answering closes with answers**: published, everyone told, `nextOpensAt` stamped.
+- **While answering**: one reminder a day to non-answerers (§11), guarded by a days-left bucket in the
+  high bits of `remindersSent`, so a hundred page views produce one.
+
+### 3.4 Three ways the clock is driven
+
+1. **Every authenticated page**: `(main)/layout.tsx` calls `advanceDueCatchups(userId)`, scoped to the
+   viewer's own Catch-ups.
+2. **The page itself**: the home and the reader each advance their own Edition before rendering, after
+   checking membership (a non-member cannot trigger a write by opening a url).
+3. **The nightly cron**: `GET /api/catchups/tick`, bearer `CRON_SECRET` required, calls
+   `advanceDueCatchups()` unscoped. Only this path runs the batch self-heals (§13).
+
+All three swallow their own errors and report them through `reportSwallowed`; none can break a page.
+
+### 3.5 Hold, resume, end
+
+- **Hold** (`pauseCatchup`, the settings row "Hold the next Edition"): status `paused`, `pausedAt`
+  stamped. The clock stops (`advanceEdition` returns early), and every hand-driven write into the
+  Edition is refused by `refuseIfFrozen`.
+- **Resume** ("Start it again"): every deadline still ahead of `pausedAt` moves forward by exactly the
+  time the hold lasted, **not** snapped to 07:00, so two days left stays two days left. If the latest
+  Edition was already published, `nextOpensAt` is re-armed or shifted the same way.
+- **End** (`endCatchup`): status `ended`, `nextOpensAt` and `pausedAt` cleared. One-way. Published
+  Editions stay readable and still take hearts and comments. Nothing records when it ended, so the
+  list and the home say "Ended" with no date.
+- **Changing the rhythm** re-computes a booked `nextOpensAt` from the last publish date under the new
+  gap (or now, if that has passed).
+
+---
+
+## 4. Who may do what
+
+Every action is in `src/app/(main)/catchups/actions.ts`. "Verified" means `requireVerifiedMember`
+(a confirmed email address). "Frozen" means refused while the Catch-up is paused or ended.
+
+| Action | People Catch-up | Batch Catch-up | Gates |
 |---|---|---|---|
-| `draft` | created but not opened (used only if the Keeper stages a Round early; the normal create flow opens straight into `collecting`) | nothing yet | edit + "Open now" |
-| `collecting` | question window is open | "add a question everyone will answer" | curate list, "Open answering now" |
-| `answering` | questions frozen, everyone answers | "answer these questions" | live progress, "Close and prepare now" |
-| `preparing` | window closed, the issue is being put together | "putting your Catch-up together" | same, plus "Publish now" |
-| `published` | the Round is live and readable forever | the newsletter | the newsletter + archive |
+| `createCatchupWithPeople` | any alumnus | n/a | verified, rate-limited (`catchups`) |
+| `joinCatchupByToken` | anyone with the link, not a teacher; refuses an ended one | no link exists | verified |
+| `submitPrompt` (ask) | any member, while collecting | same | verified, frozen, 300 chars, 40 per Edition |
+| `curatePrompt` (remove, reorder) | Keeper, while collecting | refused | |
+| `openAnswering` | Keeper; refuses an Edition with no questions | refused | frozen |
+| `extendDeadline` | Keeper, collecting or answering | refused | frozen |
+| `nudgeGroup` | Keeper, while answering | refused | frozen, rate-limited, off on the demo |
+| `closeAndPublish` | Keeper, while answering (zero answers extends instead) | refused | frozen |
+| `startNextEditionNow` | Keeper, when the latest is published and the Catch-up active | refused | verified |
+| `submitEntry` (answer) | any member, while answering | same | verified, frozen |
+| `toggleEntryLove`, comments | any member, published only | same | verified; comments rate-limited |
+| `renameCatchup`, `updateCatchupCadence` | Keeper | refused | |
+| `pauseCatchup`, `resumeCatchup`, `endCatchup` | Keeper | refused | end is off on the demo |
+| `setCatchupPicture` | Keeper | **any member** | pool or own upload only |
+| `addCatchupMembers` | Keeper, not ended, up to 100 at a time | refused | verified |
+| `removeCatchupMember` | Keeper; not yourself, not the creator | refused | |
+| `setCatchupKeeper` | Keeper; not on the creator | refused | |
+| `leaveCatchup` | any member but the creator | refused | off on the demo |
+| `setCatchupArchived` | any member | same (the only exit) | off on the demo |
+| `setReminderPref` | any member | same | |
 
-### 2.3 Timing rules (defaults, all overridable by the Keeper before the window opens)
-
-- Question window: **3 days** (`questionsCloseAt = collectingOpenedAt + 3d`).
-- Answer window: **7 days** (`answersCloseAt = answeringOpenedAt + 7d`).
-- Preparing hold: **24 hours** (`publishAt = answersCloseAt + 24h`). This is the ritual beat; see 2.5.
-- Next round opens (recurring only): `nextOpensAt = publishedAt + cadenceGap`, where cadenceGap is
-  14 days (biweekly), ~1 calendar month (monthly, the default), or ~3 calendar months (quarterly).
-
-### 2.4 Advancing states without a cron (lazy, read-time advance)
-
-Vercel hobby has no background jobs, so **no transition depends on a scheduler.** The correct state
-is a pure function of the Round's timestamps and the clock; visits make it real.
-
-- `computeStatus(edition, now)` is a **pure function** returning the status the Round *should* be in
-  given its timestamps. It never writes.
-- `advanceEdition(edition)` compares `computeStatus` to the stored `status`, and if they differ,
-  persists the new status **and fires that transition's one-time side effects** (notifications, set
-  `nextOpensAt`, seed the next Round). Side effects are guarded so they run exactly once per
-  transition: the `status` column itself guards the big transitions, and the `remindersSent` bitmask
-  guards the mid-window nudges (bit 1 = two-days-left, bit 2 = last-day, bit 4 = auto-extended once).
-  Everything runs inside one Prisma transaction so a double visit cannot double-fire.
-- `advanceDueCatchups(userId)` finds every Round in the viewer's groups whose stored status is stale
-  (or whose `nextOpensAt` has passed) and advances each. It is called **opportunistically on any
-  member visit**: on load of the Catch-ups index, on load of any Catch-up home, and, crucially,
-  piggy-backed on the **app-shell notification-count query** that already runs on essentially every
-  authenticated page view. In an active community that fires transitions within minutes of their due
-  time, with no cron. Transitions are therefore eventually-consistent, bounded by "next time any
-  member touches the app". This is acceptable and documented.
-- `/api/catchups/tick` EXISTS (audit M27) and is exactly that thin wrapper: `advanceDueCatchups()`
-  with no viewer scope, guarded by `CRON_SECRET`, on `vercel.json`'s 02:00 UTC schedule. This
-  paragraph called it "a future" endpoint and "not required for MVP" long after it shipped. Since
-  build phase 4 it also runs the two batch self-heal passes, which is why it is the only unscoped
-  caller besides the admin room.
-
-### 2.5 Making "preparing" feel like a ritual
-
-When `answersCloseAt` passes, the Round enters `preparing` and stays there until `publishAt`
-(24h later). During this window **no answers are readable by anyone**, Keeper included. The home and
-any deep link show a warm holding scene: the `skeleton-warm` shimmer under a settled hoopoe and copy
-like "Putting your Catch-up together." (Keeper reuse of the mascot rig, motion always on.) The
-payoff is that publication is a genuine reveal a full day later, and the `catchup_published`
-notification lands as a moment ("Your Catch-up is ready to read") rather than a silent state flip.
-The Keeper may shortcut the hold with "Publish now".
-
-### 2.6 The too-few-answers rule
-
-Evaluated at the `answering -> preparing` boundary:
-
-- If **zero** members submitted any Entry, auto-extend the answer window **once** by 3 days, set the
-  extended bit (4), and re-fire `catchup_answers_open` to non-answerers. A first Round should never
-  publish empty.
-- If **one or more** members answered, proceed to `preparing` normally. A sparse Round is allowed;
-  the masthead copy softens automatically for a thin Round (see 3.6).
-- After a Round has already been extended once, it always proceeds regardless of count.
+A batch refusal says one sentence, `BATCH_CATCHUP_REFUSAL`; leaving a batch says
+`BATCH_LEAVE_REFUSAL`, which points at archiving.
 
 ---
 
-## 3. Screens and flows
+## 5. Leaving, removing, archiving
 
-Global layout rule from the owner: **never a single centered column with big empty margins.** Every
-screen below specifies a richer shape. On mobile everything collapses to a single sticky-header
-stack, which is the one place a single column is correct.
+**Leaving** (`leaveCatchup`) is the only way out of a people Catch-up, and it happens at once: the
+`GroupMember` row goes, the member's preference row goes, and their Catch-up notifications are
+cleared (`clearCatchupNotifications`, matched by prefix on `/catchups/<id>` and
+`/catchups/edition/<editionId>`, `#entry-` anchors included). **What they published stays** in the
+Editions other people have read. If they were the last holder of Keeper powers,
+`promoteGroupSuccessor` hands the hat on first. The creator cannot leave; they are told to end it or
+make someone else a Keeper. A batch member cannot leave, because the nightly heal would put them
+straight back.
 
-Routes:
+The thirty-day "Recently deleted" bin, `setCatchupDeleted`, its nightly sweep and
+`restoreOwnCatchupCopy` were all deleted in build phase 5. `CatchupReminderPref.deletedAt` is unread
+and waits for its drop (§16).
 
-- `/catchups`, the hub / index
-- `/catchups/new?group=<groupId>`, the create flow (group preselected)
-- `/catchups/[catchupId]`, the Catch-up home (live cycle + Keeper controls + archive)
-- `/catchups/[catchupId]/answer`, the answering experience
-- `/catchups/round/[editionId]`, a published Round (the reader)
-- Group integration: a Catch-up card on `/groups/[id]`
-- Nav: `/catchups` is already in the sidebar (`MessagesSquare` icon)
+**Removing** someone (`removeCatchupMember`) does the same to them, by a Keeper.
 
-Every route ships a `loading.tsx` using `skeleton-warm` (never a grey pulse).
-
-### 3.1 The index (`/catchups`)
-
-**Layout shape:** a full-width **explainer band** across the top (the two-sentence concept plus a
-single "How it works" three-beat strip: Ask -> Answer -> Read), then an **asymmetric two-column
-body**: a wider left column of "Your Catch-ups" cards (one per group the viewer belongs to), and a
-right rail "Fresh off the press" reading list of the most recently published Rounds across the
-viewer's groups. Not a centered stack.
-
-- Each "Your Catch-ups" card shows: group name, bird-avatar cluster of members, current status
-  ("Questions open, 2 days left" / "Answering now" / "Preparing" / "Round 4 published"), and the
-  right primary CTA for that state (Add a question / Answer now / Read the Round).
-- For a group the viewer is in that has **no Catch-up yet**: the card shows "No Catch-up here yet"
-  with a "Start one" CTA -> `/catchups/new?group=<groupId>` (only if the viewer is a group member;
-  any member may start it).
-
-**Empty / edge states:**
-
-- Viewer is in **no groups**: the whole body is the group-first guidance. One card: "A Catch-up
-  lives inside a group. Create or join a group first, then start a Catch-up from it." Primary CTA
-  "Find a group" -> `/groups`; secondary "Create a group" -> `/groups/new`. Do not offer a
-  standalone Catch-up anywhere.
-- Viewer is in groups but **none has a Catch-up**: show the group cards each with "Start one", and
-  keep the explainer band prominent.
-
-### 3.2 The create flow (`/catchups/new`)
-
-Always reached with a group in mind. **A Catch-up can only be created from a group.**
-
-- **No `group` param and viewer has groups:** step 0 is a group picker (only groups where the viewer
-  is a member and no Catch-up exists yet).
-- **No `group` param and viewer has no groups:** short-circuit to the group-first guidance (same copy
-  as 3.1) with the create CTA pointing at `/groups/new`. After they make a group, the group page's
-  Catch-up card brings them back here with the group preselected.
-
-**Layout shape:** a two-column setup sheet. Left = the form steps; right = a live preview card of the
-first Round (group name, chosen cadence, the seeded starter questions) so the setup never feels like
-an empty form in a void.
-
-Steps (one screen, progressive, not a wizard slog):
-
-1. **Confirm the group** (shown as a read-only chip once chosen).
-2. **Choose the rhythm.** Canopy pill segmented control: Biweekly / **Monthly** (default) /
-   Quarterly. One line under it: "You can change this anytime." (Research: monthly fits alumni;
-   weekly kills these loops, so it is not offered.)
-3. **Seed the first questions.** Auto-suggest **2** questions from the library (one warm valley-days
-   prompt, one right-now prompt), each removable, with "Add from the library" and "Write your own".
-   Copy makes clear members will also add their own during the question window.
-4. **Start it.** Primary canopy pill "Start the first Round". On submit: create the `Catchup`, create
-   Round 1 in `collecting`, attach the seeded prompts as `accepted`, and fire
-   `catchup_questions_open` to all group members. Redirect to `/catchups/[catchupId]`.
-
-The creator becomes the **Keeper** of this Catch-up.
-
-### 3.3 The Catch-up home (`/catchups/[catchupId]`)
-
-The command surface for the live cycle plus the archive.
-
-**Layout shape:** asymmetric two-column. **Left (wide) = the live cycle console**; **right rail =
-Keeper controls + settings (Keeper only) and the archive of past Rounds (everyone).** Not centered.
-
-The left console changes with the Round status:
-
-- **collecting:** a warm "status console" card at top (Round number, a soft progress ring counting
-  down `questionsCloseAt`, member avatar strip). Below it, the **question-submission** panel (3.3.1)
-  and the growing list of submitted questions.
-- **answering:** the console shows "Answering now, N of M have shared" with a progress ring on
-  `answersCloseAt`. Primary CTA is a big canopy pill "Answer now" -> `/answer`. Below, a read-only
-  list of the frozen questions and a live "who has answered" avatar strip (avatars fill in as people
-  finish; no answer content shown yet).
-- **preparing:** the ritual holding scene (2.5).
-- **published:** the console becomes a "Round N is out" banner with a "Read the Round" CTA ->
-  `/catchups/round/[editionId]`.
-
-**Keeper controls (right rail, Keeper or group admin only):**
-
-- Curate questions (accept / remove / reorder submitted prompts; add from library) during
-  `collecting`.
-- "Open answering now" (collecting -> answering), "Close and prepare now" (answering -> preparing),
-  "Publish now" (preparing -> published).
-- "Nudge the group" (fires a manual `catchup_reminder` to non-answerers, bypassing per-member off).
-- Settings: change cadence, Pause / Resume, End.
-
-**Empty / edge states:** no questions yet in `collecting` -> the submission panel is the hero with a
-"Be the first to ask something" prompt and the library shortcut. Paused Catchup -> a calm banner
-"This Catch-up is paused" and, for the Keeper, "Resume". Ended -> archive only.
-
-#### 3.3.1 Question submission (named / anonymous)
-
-A single warm input card: a text field ("Ask everyone something..."), a "from the library" shortcut
-that opens the prompt sets (section 4), and a **named / anonymous toggle** rendered as a small pill
-pair: "Ask as [Your name]" / "Ask anonymously". This sets `showAsker`. The author is always stored;
-`showAsker=false` only hides the asker in the UI. Cap ~3 open submissions per member per Round and
-~12 accepted prompts per Round (soft caps, surfaced as gentle helper text, enforced in the action).
-
-Submitted-but-not-yet-accepted questions show to their author as "waiting for the Keeper"; the Keeper
-sees all and accepts the ones that go in. Auto-accept the creator's seeded and the Keeper's own
-additions.
-
-### 3.4 The answering experience (`/catchups/[catchupId]/answer`)
-
-The owner's headline requirement: **beautiful and intimate**, "you want to read and participate and
-it just makes you feel happy", 100% on-theme. This is the most important screen to get right after
-the reader.
-
-**Layout shape (desktop):** a **two-pane** view, not a lone column. A **sticky left progress rail**
-lists every prompt as a row with a check state and a small progress ring at top ("4 of 7 shared").
-The **main pane** shows **one prompt at a time** as a large, calm, ruled-sheet answer card, with a
-quiet filmstrip of upcoming prompts beneath it. Advancing a prompt slides the next one in
-(transform/opacity only, `EASE_SPRING`). **Mobile:** the rail becomes a slim sticky bar of one
-numbered, tappable dot per prompt (filled = shared, ring = where you are) with a compact "n/m"
-count; prompts stack one per screen with "Next" / "Back". The dots ARE the navigation — a
-read-only fill left mobile unable to move between questions (owner, 2026-08-13).
-
-**Advance order:** "Next" is linear. Leaving the LAST prompt (its button reads "Share") sweeps
-back to the first prompt still unanswered rather than the completion card, because people answer
-out of order; the completion moment shows only when nothing is left unanswered.
-
-Each answer card contains, in this order:
-
-- The prompt text as an editorial heading, and, if `showAsker`, a soft "asked by {name}" line with
-  the asker's bird avatar.
-- A generous text area (autosaving on blur; every question is **optional**).
-- **Add a photo** (reuses `POST /api/upload`, up to 3, WebP via Sharp, stored as a JSON array on the
-  Entry). Thumbnails show inline as small framed plates.
-- **Add a song** (Spotify). A single URL field ("paste a Spotify link"); on submit the server
-  resolves it (section 3.4.1) and the card shows the resolved album-art card inline.
-- Autosave indicator ("Saved") and a per-card "Skip for now".
-
-**Intimacy details (all on-theme, none cringe):** warm Paper surface, ruled-sheet lines behind the
-text area, a gentle "you have shared with N others so far" line, the member's own bird perched in the
-corner of the card, and a soft completion moment when the last prompt is answered ("That is you in
-this Round. See you when it is out."). No streaks, no gamified badges, no "favourite tree".
-
-**Edge states:** entering `/answer` when the Round is not in `answering` redirects to the home with a
-toast. A non-member (or non-group) hitting the URL gets the group's normal not-available surface.
-Editing is allowed for the whole `answering` window; entries lock at close.
-
-#### 3.4.1 Song of the moment (keyless Spotify)
-
-`GET https://open.spotify.com/oembed?url=<track|album|playlist url>` returns JSON with `title` and
-`thumbnail_url` (300x300 album art) and no API key. Resolve **server-side inside `submitEntry`**:
-
-1. Validate the host is exactly `open.spotify.com` (accept `/track`, `/album`, `/playlist`); reject
-   anything else with a friendly error.
-2. Fetch the oembed with a 3s timeout. On success store `songUrl` (normalized), `songTitle`
-   (`title`), `songArt` (`thumbnail_url`). On timeout or failure, store `songUrl` + a fallback
-   `songTitle` of the URL and leave `songArt` null (fail soft, never block the answer).
-
-Render the album art with a plain `<img>` (the app already uses `<img>`; no `next.config` change) as
-an **album-art card**: cover thumbnail, track/album title, and a "Open in Spotify" affordance linking
-out. **Do not** embed the oembed iframe (CSP and theme reasons); the card is on-theme and lighter.
-
-### 3.5 The preparing state
-
-Covered in 2.5. It is a state of the home (3.3) and of any deep link to the Round while
-`status = preparing`, not a separate route. Holding scene + shimmer + settled hoopoe + "Putting your
-Catch-up together." Keeper sees an extra "Publish now".
-
-### 3.6 The published Round (`/catchups/round/[editionId]`): the crown jewel
-
-A communal newsletter organized **by question**, styled like the Letter reading view but warmer and
-plural. This is where the money is; it must feel like a keepsake.
-
-**Layout shape:** a **magazine layout**, explicitly not a centered column.
-
-- **Masthead (full-bleed band):** "Round N", the group name, the publish date, and a **who-answered
-  avatar strip** (bird avatars of everyone who contributed, "12 of the group wrote in"). For a thin
-  Round the count copy softens ("A quiet Round. {name} and {name} wrote in.").
-- **Body:** one **section per question**. The question is an editorial section header (Libre
-  Baskerville, tight tracking), offset toward the outer margin rather than dead-center. Under it, the
-  answers are a **staggered stack of answer cards** with gentle alternating alignment / varied widths
-  (a ruled-sheet card kit), so the page has rhythm rather than a monotonous column. If a question
-  shows its asker, the header carries a small "asked by {name}".
-- **Right-hand floating table of contents (desktop):** a sticky question nav (jump to each question);
-  collapses into a top "jump to" chip row on mobile.
-- **Each answer card:** the author's **bird avatar** + name + batch line (reuse `IdentityRow`), the
-  answer text, inline framed photos, the Spotify album-art card, and the shared **`LoveButton`** (the
-  one red heart `#E03A33`) with a live count. Hearts are per-answer.
-- A quiet footer: "Next Round opens {date}" for recurring cadences, plus a "back to {group}
-  Catch-ups" link.
-
-**Reactions:** hearts on individual answers via the shared `LoveButton` and `toggleEntryLove`. No
-emoji picker in v1 (the one red heart is the app's reaction language).
-
-**Comments:** the card **leaves room** for a future comment affordance (a quiet "reply" slot in the
-card footer) but comments are **not built in v1** (see scope fences). Design the card so adding them
-later is a drop-in, not a redesign.
-
-**Empty / edge states:** a question that nobody answered still gets its section, with a soft "No one
-took this one" line rather than being hidden (mirrors the "everyone is still here" ethos). A member
-who answered nothing still appears in the who-answered strip as "read but did not write" only if they
-visited; otherwise they are simply absent (do not shame non-answerers).
-
-### 3.7 The archive
-
-Every published Round is browsable forever, inside the Catch-up home right rail and as a dedicated
-section. **Layout shape:** a "vellum spines on a shelf" list, one row per Round (Round number, date,
-a one-line teaser pulled from the most-loved answer, contributor count), warm Paper cards, opening to
-`/catchups/round/[editionId]`. Not a grid of identical squares. The archive is a top-cited reason
-people stay, so it is first-class, not a dropdown.
+**Archiving** (`setCatchupArchived`) is personal filing: `CatchupPref.archivedAt` on your own row.
+You stay a member and still get every notification (muting is the Reminders setting). An archived
+Catch-up leaves your list and sits in a closed "Archived" row at its foot, with Put back inside.
+Being re-added by a Keeper clears your archive stamp; being re-listed while already a member does
+not.
 
 ---
 
-## 4. Built-in question library
+## 6. The picture
 
-Ships as data in `src/lib/catchups.ts` as `CATCHUP_PROMPT_SETS`: an array of 5 sets, each
-`{ id, label, prompts: string[] }`. Categories used on `CatchupPrompt.category`: `valley-days`,
-`right-now`, `most-likely-to`, `on-the-horizon`, `small-things`. Auto-suggest on Round 1 picks one
-`valley-days` and one `right-now`. All prompts are warm, specific, alumni-school register, and free
-of AI-tell phrasing. None are cringe.
+Every Catch-up has a photograph, always. `Catchup.pictureSrc` is NOT NULL, with `pictureFocus` (an
+`object-position`) beside it.
 
-**Valley days** (`valley-days`)
-1. Which corner of campus could you find your way to with your eyes closed?
-2. Who was the teacher whose class you never wanted to miss, and why?
-3. What is a sound from the Valley you can still hear if you shut your eyes?
-4. Tell us about a rule you were happy to break.
-5. What did you always order, trade for, or sneak from the dining hall?
-6. Which friendship from those years surprised you by lasting?
-
-**Right now** (`right-now`)
-7. Where in the world are you reading this from?
-8. What does an ordinary Tuesday look like for you these days?
-9. What have you been making, fixing, or growing lately?
-10. Who or what has been keeping you company this season?
-11. What is something you have changed your mind about recently?
-12. What is a small win from the last few weeks worth mentioning?
-
-**Most likely to** (`most-likely-to`)
-13. Who from our years ended up exactly where you always pictured them?
-14. Who could always be counted on to have a book you had never heard of?
-15. Who would you call first if you were stuck somewhere at two in the morning?
-16. Who seems to be ageing in reverse, going by the group photos?
-17. Who gave the best advice back then, whether or not you took it?
-18. Who should have been running the whole place all along?
-
-**On the horizon** (`on-the-horizon`)
-19. What are you quietly working toward this year?
-20. Where do you hope to be standing this time next year?
-21. What is a trip you keep meaning to take?
-22. What is something you want to learn before you run out of excuses?
-23. If the group met up somewhere next year, where should it be?
-24. What would make this next chapter a good one for you?
-
-**Small things** (`small-things`)
-25. What is on repeat for you right now? Drop the song.
-26. Share a photo from your week, no explanation needed.
-27. What is the best thing you have eaten lately?
-28. What are you reading, watching, or listening to that the rest of us should too?
-29. What is a small ritual that quietly makes your day better?
-30. Send a photo of the view from wherever you are sitting.
+- **The pool** is `CATCHUP_PICTURES` in `src/lib/catchup-pictures.ts`: three photographs today. Adding
+  one is a file in `public/images/catchups/` and an entry at the end of the array, no migration.
+  Retiring one is a migration, because rows point at it. The first entry is the column's default,
+  pinned by `catchup-pictures.test.mjs`.
+- **At creation**, `pickCatchupPicture` chooses the pool photograph the new Catch-up's people already
+  see least on their other Catch-ups, seeded off the group id so a retry lands on the same one.
+- **Changing it** (`setCatchupPicture`): a pool path, or an image under the caller's own
+  `uploads/<id>/` prefix. Nothing else passes, because every member's browser loads that url. The
+  focus is pattern-matched before it reaches a style attribute. The demo allows the pool and refuses
+  uploads.
+- **Crops.** Every surface draws it `object-fit: cover`. The home's head is a fixed 240px height on a
+  laptop and 172px on a phone, so its ratio slides from 4.63:1 to 6.33:1; the list card is 5:2 on a
+  laptop and 16:9 below 500px. `handover.md` has the measured table.
+- **The account purge** (`src/lib/account-purge.ts`) puts a pool picture back on any Catch-up whose
+  uploaded picture belonged to the member being purged.
 
 ---
 
-## 5. Notifications
+## 7. The surfaces
 
-Reuse the existing `Notification` model. `type` is a free string, so **no migration** is needed for
-new types. Every send respects `CatchupPref.reminderMode` per the rules below, except a manual Keeper
-nudge which bypasses `off`. All copy below is placeholder; **the owner will rewrite copy later.**
+### 7.1 The list, `/catchups`
 
-| Trigger | `type` | Recipients | `link` | Message template [copy: owner to rewrite] |
-|---|---|---|---|---|
-| Round enters `collecting` | `catchup_questions_open` | all group members | `/catchups/[catchupId]` | "{group} is starting a Catch-up. Add a question you want everyone to answer." |
-| Round enters `answering` | `catchup_answers_open` | all group members | `/catchups/[catchupId]/answer` | "Answers are open for {group}'s Catch-up. Share yours." |
-| 2 days before `answersCloseAt` | `catchup_reminder` | members with no Entry, `reminderMode = all` | `/catchups/[catchupId]/answer` | "Two days left to answer {group}'s Catch-up." |
-| Last day before `answersCloseAt` | `catchup_reminder` | members with no Entry, `reminderMode` in (all, last) | `/catchups/[catchupId]/answer` | "Last day to answer {group}'s Catch-up." |
-| Keeper "Nudge the group" | `catchup_reminder` | members with no Entry (bypasses `off`) | `/catchups/[catchupId]/answer` | "{keeper} is waiting on you for {group}'s Catch-up." |
-| Round enters `published` | `catchup_published` | all group members | `/catchups/round/[editionId]` | "Your {group} Catch-up is ready to read." |
-| Someone hearts your answer (optional, see below) | `catchup_love` | the answer's author | `/catchups/round/[editionId]` | "{name} loved your answer in {group}'s Catch-up." |
+`(index)/page.tsx`. A shelf of cards, 1096px wide at most, two up from 1180px. **A card is the
+photograph**, with the Catch-up's name (two lines at most) and one state line written on it over a
+scrim. No birds, counts, Edition numbers or buttons; the whole card is the door. The state line is
+`catchupStageLine`: Paused, Ended, Open for questions, "Answers close Thursday 20 August", "Out 15
+August 2026".
 
-Rules:
+Order: answering first, then collecting, then published, then by name.
 
-- The two dated reminders go **only to members who have submitted no Entry**, and are guarded by the
-  `remindersSent` bitmask (bit 1, bit 2) so the lazy advance cannot re-send them.
-- `catchup_love` is an **optional** post-publish stickiness nudge; if built, coalesce it (at most one
-  per author per Round per liker session) so it cannot spam. Ship the core five first.
-- The notification bell needs a small type -> icon/label mapping addition for the `catchup_*` types
-  (owned by the notifications work package). Fall back to the generic bell icon if unmapped.
+**Spare slots**: the grid holds four things. With one Catch-up, the three latest published Editions
+fill the rest; with two, two; with three, one; with four or more, none (`editionSlots`). An Edition
+cover has a foot with its date on the card's own paper, its first three photographs (or its
+Catch-up's picture when it has none), a 2px read mark beside the date (cinnamon unread, hairline
+read), and the Catch-up's name only when you are in more than one.
 
----
+**Archiving from the list**: swipe left on a phone (with an undo toast), or a control in the card's
+top right on a fine pointer, visible on hover or Tab. The Archived row sits at the foot, closed.
 
-## 6. Data model
+The header carries **Start a Catch-up**, and for an admin a link to the admin room.
 
-Six new Prisma models. Table names are **chosen to not collide** with the dead tables left by the
-reverted build. `CatchupEdition` (not `CatchupIssue`) and `CatchupPrompt` (not `CatchupQuestion`) are
-genuinely fresh names for genuinely absent tables. `CatchupEntry` and `CatchupEntryLove` are also
-fresh/absent.
+### 7.2 Starting one, `/catchups/new`
 
-> **Live DB introspection (2026-07-05) found two of the "fresh" names are not fresh.** The reverted
-> build ALSO left physical `Catchup` and `CatchupPref` tables behind, and their columns do not match
-> this spec: legacy `Catchup` has `creatorId` (this spec's model needs `createdById`) and legacy
-> `CatchupPref` has `optedOut boolean` (this spec's model needs `reminderMode TEXT`). Left alone, the
-> `Catchup` and `CatchupPref` Prisma models below would point at those legacy tables and silently read
-> or write the wrong columns instead of raising the intended "table does not exist" (P2021) signal
-> pre-migration — and the section 6.3 SQL for those two tables would be a no-op forever (`CREATE TABLE
-> IF NOT EXISTS` sees the legacy table and does nothing), so the bug survives the migration too. The
-> fix: the `Catchup` and `CatchupPref` **models keep their names** (so `prisma.catchup.*` /
-> `prisma.catchupPref.*` in app code never changes) but are mapped via `@@map(...)` to fresh physical
-> table names, `CatchupSeries` and `CatchupReminderPref`, that do not collide with anything. The 6.1
-> models and 6.3 SQL below already reflect this; do not rename them back to bare `"Catchup"` /
-> `"CatchupPref"` in the SQL.
+One form: name, people, rhythm. The viewer's batch year seeds a suggested name and an "everyone
+from my batch" shortcut. Questions are not picked here.
 
-> Deploy risk, read before running anything: `prisma db push` compares the schema to the DB and will
-> try to **drop** the orphan `CatchupIssue` / `CatchupQuestion` tables (they are not in the schema).
-> If we lack the privilege to drop them, `db push` will error. **Primary path:** apply the idempotent
-> SQL in 6.3 directly (Supabase SQL / `execute_sql`), then run `prisma generate` only (not
-> `db push`). This creates the new tables and regenerates the client without touching the orphans.
-> Keep the Prisma models below as the source of truth for the generated client.
+### 7.3 The home, `/catchups/[catchupId]`
 
-### 6.1 Models (paste into `prisma/schema.prisma`)
+`[catchupId]/(home)/page.tsx`, drawn by `components/catchups/home/`.
 
-```prisma
-model Catchup {
-  id          String    @id @default(cuid())
-  groupId     String    @unique
-  createdById String?                       // the Keeper; nullable so the Catch-up survives if they leave
-  title       String?                       // optional custom name; UI falls back to "{group} Catch-ups"
-  intro       String?                       // one-line description on the home
-  cadence     String    @default("monthly") // "biweekly" | "monthly" | "quarterly"
-  status      String    @default("active")  // "active" | "paused" | "ended"
-  nextOpensAt DateTime?                      // when the next Round auto-opens (recurring cadences)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+- **The head** is the picture with the name on it, and two doors on the picture: **People** (a dialog
+  on a laptop, a sheet on a phone; every row a link to that person; add, remove and make-a-Keeper on
+  a person's row, for Keepers of a people Catch-up) and **Settings** (§8).
+- **The Edition region** draws one thing per state. Collecting: the ask box (the question, a library
+  button, and an eye in the box's corner that makes it anonymous), then the questions so far.
+  Answering: the answering surface itself, on the page (§7.5). Published: the latest Edition's cover.
+  Paused: an on-hold card. Ended: no region.
+- **The state line** under it: "Answers close Thursday 20 August" while answering, "The next one
+  opens 15 September 2026" once published, "Ended" when ended, nothing otherwise (`homeStateLine`).
+- **The sidebar** holds the earlier Editions as the same cover cards the list draws. When the
+  Catch-up is paused or ended, every published Edition is there, the latest included.
 
-  group     Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  createdBy User?            @relation("CatchupsKept", fields: [createdById], references: [id], onDelete: SetNull)
-  editions  CatchupEdition[]
-  prefs     CatchupPref[]
+A non-member gets `NotAvailableCard`. `/catchups/[catchupId]/answer` is a permanent redirect to the
+home (answering moved there in phase 7).
 
-  @@index([status, nextOpensAt])
-  @@map("CatchupSeries") // legacy "Catchup" table exists with incompatible columns (creatorId, no createdById); see callout above
-}
+### 7.4 The reader, `/catchups/edition/[editionId]`
 
-model CatchupEdition {
-  id               String    @id @default(cuid())
-  catchupId        String
-  number           Int
-  theme            String?
-  status           String    @default("collecting") // draft|collecting|answering|preparing|published
-  questionsCloseAt DateTime?
-  answersCloseAt   DateTime?
-  publishAt        DateTime?                          // = answersCloseAt + 24h (the preparing ritual)
-  publishedAt      DateTime?
-  remindersSent    Int       @default(0)              // bitmask: 1=two-days, 2=last-day, 4=extended-once
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+`edition/[editionId]/page.tsx` and `components/catchups/edition/`. Non-members get a 404. An Edition
+that is not published yet gets `NotYetPublished`, which says where it is. `/catchups/round/[id]` is a
+permanent redirect here.
 
-  catchup Catchup         @relation(fields: [catchupId], references: [id], onDelete: Cascade)
-  prompts CatchupPrompt[]
-  entries CatchupEntry[]
+- **No masthead.** On a phone the app's green bar carries the Catch-up's name (`app-bar-title.tsx`),
+  and under it sits **the strip**: the Edition's date at rest, the question you are in once its
+  heading has scrolled under the bar. A thin cinnamon line along its top edge grows as you read.
+- **The strip opens** into the list of questions in place (navigator A, the only one), with the same
+  line running down its left edge and stopping at the question you are in. A docked question clamps
+  to two lines; a row in the list to three.
+- **A question**: a short cinnamon mark, the heading, "Asked by" and the asker when they were named.
+- **An answer** is a paper tile: the member's bird at 40px and name at 17px medium, the body through
+  `renderRichText`, photographs edge to edge, the heart and the replies control. No timestamps, no
+  batch line. An answer with nothing in it is not drawn.
+- **Photo wall questions** draw as a run (§10.2).
+- The layout is chosen in CSS rather than JavaScript, so the server's one render is right at every
+  width; `reader-geometry.test.mjs` pins the classes to their constants.
 
-  @@unique([catchupId, number])
-  @@index([status, publishAt])
-}
+Opening any Edition a member may see writes a `ContentView` row (the admin analytics counter);
+opening a published one also writes the read mark. Both run after the response.
 
-model CatchupPrompt {
-  id        String   @id @default(cuid())
-  editionId String
-  authorId  String                          // always stored, even when shown anonymously
-  text      String
-  category  String?                          // library set id (e.g. "valley-days") or null for custom
-  source    String   @default("member")     // "library" | "member" | "keeper"
-  showAsker Boolean  @default(true)          // false = submitted anonymously
-  accepted  Boolean  @default(false)         // curated into the Round by the Keeper
-  position  Int      @default(0)
-  createdAt DateTime @default(now())
+### 7.5 Answering
 
-  edition CatchupEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
-  author  User           @relation("CatchupPromptsAuthored", fields: [authorId], references: [id], onDelete: Cascade)
-  entries CatchupEntry[]
+`components/catchups/answer/`. On the home, one question at a time, with the drawn marks as buttons
+to jump between questions and Back beside Next. There is no "Skip for now".
 
-  @@index([editionId, position])
-}
+- **Three kinds**, from the question's library category (`promptKind`): `photo-wall` takes
+  photographs, `songs` takes a typed song name, everything else is text. A song name is stored in
+  `body`; the `song*` columns are unread.
+- **Caps**: body 6,000 characters, 3 photographs per answer, on every kind.
+- **Autosave on blur** through `submitEntry`, which re-checks the Edition is still answering inside
+  the write's own transaction, and refuses a save whose `baseUpdatedAt` is stale, so a second device
+  cannot silently replace what the first wrote.
+- **Clearing every field deletes the answer**, which withdraws you from the Edition.
+- Photographs must be the caller's own uploads (`ownedUploadUrls`).
 
-model CatchupEntry {
-  id        String   @id @default(cuid())
-  editionId String                          // denormalized for fast whole-Round reads
-  promptId  String
-  authorId  String
-  body      String?
-  images    String?                          // JSON array of R2 urls (reuse /api/upload)
-  songUrl   String?
-  songTitle String?
-  songArt   String?                          // Spotify oembed thumbnail_url
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+### 7.6 The invite link, `/catchups/join/[token]`
 
-  edition CatchupEdition    @relation(fields: [editionId], references: [id], onDelete: Cascade)
-  prompt  CatchupPrompt     @relation(fields: [promptId], references: [id], onDelete: Cascade)
-  author  User              @relation("CatchupEntriesAuthored", fields: [authorId], references: [id], onDelete: Cascade)
-  loves   CatchupEntryLove[]
+Outside `(main)` and public in `src/proxy.ts`, because the person following it may have no account.
+Signed in and not a member: an invitation with Join. Already a member: straight in. Signed out: the
+same invitation with sign in and sign up, both carrying `?next=` back to the link. A stranger sees the
+name, who keeps it and how many are in it; nothing anyone wrote.
 
-  @@unique([promptId, authorId])
-  @@index([editionId])
-}
+### 7.7 Holding screens
 
-model CatchupEntryLove {
-  id      String @id @default(cuid())
-  userId  String
-  entryId String
-
-  user  User         @relation("CatchupLoves", fields: [userId], references: [id], onDelete: Cascade)
-  entry CatchupEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, entryId])
-}
-
-model CatchupPref {
-  id           String @id @default(cuid())
-  catchupId    String
-  userId       String
-  reminderMode String @default("all")       // "all" | "last" | "off"
-
-  catchup Catchup @relation(fields: [catchupId], references: [id], onDelete: Cascade)
-  user    User    @relation("CatchupPrefs", fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([catchupId, userId])
-  @@map("CatchupReminderPref") // legacy "CatchupPref" table exists with `optedOut boolean`, not `reminderMode`; see callout above
-}
-```
-
-### 6.2 Back-relations to add on existing models
-
-On `model Group`, add:
-
-```prisma
-  catchup Catchup?
-```
-
-On `model User`, add:
-
-```prisma
-  catchupsKept    Catchup[]          @relation("CatchupsKept")
-  catchupPrompts  CatchupPrompt[]    @relation("CatchupPromptsAuthored")
-  catchupEntries  CatchupEntry[]     @relation("CatchupEntriesAuthored")
-  catchupLoves    CatchupEntryLove[] @relation("CatchupLoves")
-  catchupPrefs    CatchupPref[]      @relation("CatchupPrefs")
-```
-
-### 6.3 Idempotent SQL migration (equivalent to the models above)
-
-Safe to run repeatedly. Creates only the new tables, indexes, and FKs. Postgres. Run this via
-Supabase SQL / `execute_sql`, then `prisma generate`.
-
-```sql
--- Tables ---------------------------------------------------------------------
--- "Catchup" is deliberately NOT the table name here: a legacy table with that
--- exact name already exists (from the reverted build) with an incompatible
--- column (`creatorId`, not `createdById`). Using "CatchupSeries" as the
--- physical table avoids the collision; the Prisma model is still named
--- `Catchup` via `@@map("CatchupSeries")` in 6.1, so `prisma.catchup.*` in app
--- code is unaffected. See the callout at the top of section 6.
-CREATE TABLE IF NOT EXISTS "CatchupSeries" (
-  "id"          TEXT PRIMARY KEY,
-  "groupId"     TEXT NOT NULL,
-  "createdById" TEXT,
-  "title"       TEXT,
-  "intro"       TEXT,
-  "cadence"     TEXT NOT NULL DEFAULT 'monthly',
-  "status"      TEXT NOT NULL DEFAULT 'active',
-  "nextOpensAt" TIMESTAMP(3),
-  "createdAt"   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt"   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS "CatchupEdition" (
-  "id"               TEXT PRIMARY KEY,
-  "catchupId"        TEXT NOT NULL,
-  "number"           INTEGER NOT NULL,
-  "theme"            TEXT,
-  "status"           TEXT NOT NULL DEFAULT 'collecting',
-  "questionsCloseAt" TIMESTAMP(3),
-  "answersCloseAt"   TIMESTAMP(3),
-  "publishAt"        TIMESTAMP(3),
-  "publishedAt"      TIMESTAMP(3),
-  "remindersSent"    INTEGER NOT NULL DEFAULT 0,
-  "createdAt"        TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt"        TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS "CatchupPrompt" (
-  "id"        TEXT PRIMARY KEY,
-  "editionId" TEXT NOT NULL,
-  "authorId"  TEXT NOT NULL,
-  "text"      TEXT NOT NULL,
-  "category"  TEXT,
-  "source"    TEXT NOT NULL DEFAULT 'member',
-  "showAsker" BOOLEAN NOT NULL DEFAULT true,
-  "accepted"  BOOLEAN NOT NULL DEFAULT false,
-  "position"  INTEGER NOT NULL DEFAULT 0,
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS "CatchupEntry" (
-  "id"        TEXT PRIMARY KEY,
-  "editionId" TEXT NOT NULL,
-  "promptId"  TEXT NOT NULL,
-  "authorId"  TEXT NOT NULL,
-  "body"      TEXT,
-  "images"    TEXT,
-  "songUrl"   TEXT,
-  "songTitle" TEXT,
-  "songArt"   TEXT,
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS "CatchupEntryLove" (
-  "id"      TEXT PRIMARY KEY,
-  "userId"  TEXT NOT NULL,
-  "entryId" TEXT NOT NULL
-);
-
--- "CatchupPref" is likewise deliberately NOT the table name here: a legacy
--- table with that exact name already exists with an incompatible column
--- (`optedOut boolean`, not `reminderMode`). "CatchupReminderPref" is the
--- physical table; the Prisma model stays named `CatchupPref` via
--- `@@map("CatchupReminderPref")` in 6.1.
-CREATE TABLE IF NOT EXISTS "CatchupReminderPref" (
-  "id"           TEXT PRIMARY KEY,
-  "catchupId"    TEXT NOT NULL,
-  "userId"       TEXT NOT NULL,
-  "reminderMode" TEXT NOT NULL DEFAULT 'all'
-);
-
--- Unique + secondary indexes -------------------------------------------------
-CREATE UNIQUE INDEX IF NOT EXISTS "CatchupSeries_groupId_key"           ON "CatchupSeries" ("groupId");
-CREATE INDEX        IF NOT EXISTS "CatchupSeries_status_nextOpensAt_idx" ON "CatchupSeries" ("status", "nextOpensAt");
-CREATE UNIQUE INDEX IF NOT EXISTS "CatchupEdition_catchupId_number_key" ON "CatchupEdition" ("catchupId", "number");
-CREATE INDEX        IF NOT EXISTS "CatchupEdition_status_publishAt_idx" ON "CatchupEdition" ("status", "publishAt");
-CREATE INDEX        IF NOT EXISTS "CatchupPrompt_editionId_position_idx" ON "CatchupPrompt" ("editionId", "position");
-CREATE UNIQUE INDEX IF NOT EXISTS "CatchupEntry_promptId_authorId_key"  ON "CatchupEntry" ("promptId", "authorId");
-CREATE INDEX        IF NOT EXISTS "CatchupEntry_editionId_idx"          ON "CatchupEntry" ("editionId");
-CREATE UNIQUE INDEX IF NOT EXISTS "CatchupEntryLove_userId_entryId_key" ON "CatchupEntryLove" ("userId", "entryId");
-CREATE UNIQUE INDEX IF NOT EXISTS "CatchupReminderPref_catchupId_userId_key" ON "CatchupReminderPref" ("catchupId", "userId");
-
--- Foreign keys (idempotent via duplicate_object guard) -----------------------
-DO $$ BEGIN
-  ALTER TABLE "CatchupSeries" ADD CONSTRAINT "CatchupSeries_groupId_fkey"
-    FOREIGN KEY ("groupId") REFERENCES "Group"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  ALTER TABLE "CatchupSeries" ADD CONSTRAINT "CatchupSeries_createdById_fkey"
-    FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  ALTER TABLE "CatchupEdition" ADD CONSTRAINT "CatchupEdition_catchupId_fkey"
-    FOREIGN KEY ("catchupId") REFERENCES "CatchupSeries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  ALTER TABLE "CatchupPrompt" ADD CONSTRAINT "CatchupPrompt_editionId_fkey"
-    FOREIGN KEY ("editionId") REFERENCES "CatchupEdition"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  ALTER TABLE "CatchupPrompt" ADD CONSTRAINT "CatchupPrompt_authorId_fkey"
-    FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  ALTER TABLE "CatchupEntry" ADD CONSTRAINT "CatchupEntry_editionId_fkey"
-    FOREIGN KEY ("editionId") REFERENCES "CatchupEdition"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  ALTER TABLE "CatchupEntry" ADD CONSTRAINT "CatchupEntry_promptId_fkey"
-    FOREIGN KEY ("promptId") REFERENCES "CatchupPrompt"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  ALTER TABLE "CatchupEntry" ADD CONSTRAINT "CatchupEntry_authorId_fkey"
-    FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  ALTER TABLE "CatchupEntryLove" ADD CONSTRAINT "CatchupEntryLove_userId_fkey"
-    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  ALTER TABLE "CatchupEntryLove" ADD CONSTRAINT "CatchupEntryLove_entryId_fkey"
-    FOREIGN KEY ("entryId") REFERENCES "CatchupEntry"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  ALTER TABLE "CatchupReminderPref" ADD CONSTRAINT "CatchupReminderPref_catchupId_fkey"
-    FOREIGN KEY ("catchupId") REFERENCES "CatchupSeries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  ALTER TABLE "CatchupReminderPref" ADD CONSTRAINT "CatchupReminderPref_userId_fkey"
-    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-```
-
-### 6.4 OPTIONAL cleanup (owner runs this manually, only if privileges allow)
-
-Separate and optional. Drops the dead tables from the reverted build. Do **not** fold this into the
-migration above; the owner runs it deliberately once they confirm nothing else references them.
-
-Live introspection (2026-07-05) found the reverted build left **six** orphan tables, not two:
-`Catchup` (3 leftover rows), `CatchupAnswer` (22 rows), `CatchupAnswerLove` (0 rows), `CatchupIssue`
-(4 rows), `CatchupPref` (0 rows), `CatchupQuestion` (10 rows). None of these are read by this build
-(6.1/6.3 use `CatchupSeries`/`CatchupEdition`/`CatchupPrompt`/`CatchupEntry`/`CatchupEntryLove`/
-`CatchupReminderPref` instead), so leaving them in place is harmless and does not block anything in
-this spec. Dropping them is pure hygiene; check for leftover content worth preserving first.
-
-```sql
--- OPTIONAL: remove the dead tables left by the reverted Catch-ups build.
--- Run only after confirming no other object depends on them and that any
--- leftover rows (see counts above) are not worth preserving.
-DROP TABLE IF EXISTS "CatchupQuestion" CASCADE;
-DROP TABLE IF EXISTS "CatchupIssue" CASCADE;
-DROP TABLE IF EXISTS "CatchupAnswerLove" CASCADE;
-DROP TABLE IF EXISTS "CatchupAnswer" CASCADE;
-DROP TABLE IF EXISTS "CatchupPref" CASCADE;
-DROP TABLE IF EXISTS "Catchup" CASCADE;
-```
+`AlmostReady` renders on any Catch-ups route when Prisma reports a missing table (P2021), and on
+nothing else. `runAction` turns the same error into a sentence for every action.
 
 ---
 
-## 7. Permissions
+## 8. The settings surface
 
-- **Visibility and participation are inherited from the Group.** Only group members can view or
-  participate in that group's Catch-up. Private groups are already gated; the Catch-up rides on the
-  same membership check (`GroupMember`). There is no separate Catch-up invite, member list, or cap.
-- **Keeper = the member who created the Catch-up** (`Catchup.createdById`). If no Catch-up exists for
-  a group, **any group member may create one** (`groupId @unique` guarantees only one wins). If the
-  Keeper leaves and `createdById` goes null, any remaining member may act as Keeper / re-adopt it.
-- **Effective Keeper powers** are held by the Catch-up's `createdBy` **or** any group admin
-  (`GroupMember.role = "admin"`, the group "Keeper"). Those powers: set/change cadence; curate
-  questions (accept, remove, reorder; add from library); open answering early; close and prepare
-  early; publish early; nudge the group; pause / resume / end.
-- **Every member** may: submit questions (named or anonymous); answer (all questions optional); heart
-  answers; set their own `CatchupPref`; read published Rounds and the archive.
-- **Moderation** reuses the app's existing report-on-user flow. Reporting an individual answer is out
-  of v1; a site admin (`User.role = "admin"`) retains blanket moderation via existing tools.
+`components/catchups/settings/settings-surface.tsx`, one implementation behind the home's Settings
+door, signed off by the owner 2026-09-09. Three groups, and who you are decides which rows press, not
+which rows exist.
 
----
+| Group | Rows | Shown to |
+|---|---|---|
+| **This Edition** | collecting: Open answering, Give everyone longer. answering: Give everyone longer, Nudge everyone, Close and send it out. published: Start the next Edition now | Keepers of an active people Catch-up only |
+| **This Catch-up** | Name, Picture, Rhythm, for everyone; then Hold the next Edition (or Start it again) and End this Catch-up | the first three to all, pressable by whoever may change them; the last two to Keepers, not once ended |
+| **You** | Reminders; Leave, or on a batch Catch-up Put it away | everyone |
 
-## 8. Scope fences (explicitly OUT of v1)
-
-Do not build these. They are named so builders do not gold-plate.
-
-- **Comments on answers.** Design the answer card *for* them (a quiet reply slot) but do not wire
-  them. Hearts are the only reaction in v1.
-- **Emoji reactions.** The single red heart is the reaction language.
-- **PDF / keepsake export.** Fast-follow.
-- **Email delivery.** In-app notifications only. Resend stays unused.
-- **Birthdays / milestone auto-prompts.** Later.
-- **Mementos / shareable highlight cards.** Fast-follow.
-- **Interactive poll / "Most likely to" vote types.** The "most likely to" prompts ship as ordinary
-  text questions, not a voting widget. No poll question type.
-- **Themes / multiple cover presets.** One warm on-theme look, matching the app.
-- **Timezone machinery.** Single community timezone; windows are in server time.
-- **Standalone Catch-ups, invites, member cap.** A Catch-up always belongs to a group.
-- **Anonymity of answers.** Only *question submission* can be anonymous; answers are always
-  attributed.
-- **Cron.** MVP relies on the lazy read-time advance (2.4). The `/api/catchups/tick` endpoint is an
-  optional later hardening, not v1.
+Three dialog shapes only: a confirmation, a chooser that unfolds in the row, an editor. The words
+"Cannot be undone" in cinnamon mark a one-way row (Open answering, Nudge, Close and send it out, Start
+the next Edition now, End, Leave). Rhythm offers the three cadences the column holds: every two
+weeks, every month, every three months. Reminders: Daily, On the last day, Never.
 
 ---
 
-## 9. Build plan (parallelizable work packages)
+## 9. Hearts and comments
 
-Seven packages. **File ownership is exclusive** unless flagged as a coordinated insert. WP1 must land
-and be generated before the rest start (they need the Prisma client + lib helpers + types). WP2 must
-land before the screen packages can wire actions, but the screen packages can build UI against typed
-stubs in parallel and swap to the real actions when WP2 merges.
+**Hearts** (`toggleEntryLove`) open once an Edition is published, for any member. Delete-first, then
+create, so two taps cannot throw. No `revalidatePath`: the button flips itself.
 
-**WP1 - Data + lib foundation.** *Owns:* `prisma/schema.prisma` (the only owner of this file), the
-idempotent SQL from 6.3, `src/lib/catchups.ts` (prompt library `CATCHUP_PROMPT_SETS`, timing
-constants, cadence gaps, `computeStatus`, `advanceEdition`, `advanceDueCatchups`, the Spotify oembed
-resolver `resolveSpotify(url)`), and `src/lib/catchups-types.ts` (shared TS types for the screens).
-Runs `prisma generate`. *Deliverable:* schema + client + pure helpers with unit-testable
-`computeStatus`. Everything depends on this.
+**Comments** use the feed's `Comment` table: `postId` became nullable, `entryId` sits beside it, and
+the CHECK `Comment_one_target` requires exactly one (`comment-target-rule.test.mjs`). The thread
+(paging, stubs for deleted comments with replies, the double-submit guard, one level of replies,
+serialising) is `src/lib/comment-thread.ts`, shared with the feed; each owner keeps only its gate and
+its notification. `comments-section.tsx` takes its five actions as a prop.
 
-**WP2 - Server actions.** *Owns:* `src/app/(main)/catchups/actions.ts`. Actions: `createCatchup`,
-`updateCatchupCadence`, `pauseCatchup` / `resumeCatchup` / `endCatchup`, `submitPrompt`
-(named/anonymous), `curatePrompt` (accept / remove / reorder), `openAnswering`, `submitEntry` (image
-urls + `resolveSpotify`), `toggleEntryLove`, `closeAndPrepare`, `publishNow`, `setReminderPref`,
-`nudgeGroup`. Enforces the 7 permission rules and calls WP1 helpers. Depends on WP1.
-
-**WP3 - Index + create flow.** *Owns:* `src/app/(main)/catchups/(index)/page.tsx` + `.../(index)/loading.tsx`
-(the route group keeps the index's skeleton off /catchups/new and the Catch-up home; see
-`e2e/loading-fallbacks.spec.ts`),
-`src/app/(main)/catchups/new/page.tsx` + `.../new/loading.tsx`, and
-`src/components/catchups/create/*` (group picker, cadence control, seed-questions picker, preview
-card) + `src/components/catchups/index/*` (explainer band, your-catchups card, fresh-off-the-press
-rail). Group-first guidance lives here. Depends on WP1 (types) + WP2 (`createCatchup`).
-
-**WP4 - Catch-up home + cycle screens.** *Owns:* `src/app/(main)/catchups/[catchupId]/page.tsx` +
-`loading.tsx`, and `src/components/catchups/home/*` (status console + progress ring, Keeper controls
-rail, the question-submission panel with the named/anonymous toggle, the preparing holding scene,
-the archive shelf). Depends on WP1 + WP2.
-
-**WP5 - Answering experience.** *Owns:* `src/app/(main)/catchups/[catchupId]/answer/page.tsx` +
-`loading.tsx` and `src/components/catchups/answer/*` (two-pane progress rail + one-prompt-at-a-time
-card, photo attach reusing `/api/upload`, the Spotify field + resolved album-art card, autosave,
-completion moment). Reuses `IdentityRow`, `BirdAvatar`, motion tokens. Depends on WP1 + WP2.
-
-**WP6 - Published Round reader + archive detail.** *Owns:*
-`src/app/(main)/catchups/round/[editionId]/page.tsx` + `loading.tsx` and
-`src/components/catchups/round/*` (magazine masthead, who-answered strip, by-question sections,
-staggered answer-card kit, sticky question TOC, Spotify album-art card render, `LoveButton` wiring
-via `toggleEntryLove`, the future-comment slot left dormant). Depends on WP1 + WP2. This is the
-crown-jewel package; give it the most polish budget.
-
-**WP7 - Notifications + group integration + nav.** (The group integration half of this package is
-dead: Groups was removed from the product, so `/groups/[id]` and `group-catchup-card.tsx` no longer
-exist. The notification and nav half shipped and is live.) *Owns:* `src/lib/catchups-notify.ts`
-(builds the `Notification` rows for the six triggers, respecting `CatchupPref`), the
-notification-bell type -> icon/label mapping addition, and the wiring of
-`advanceDueCatchups` into the app-shell notification-count query. *Coordinated insert (not exclusive):*
-one import + one JSX block into `src/app/(main)/groups/[id]/page.tsx` to mount the group Catch-up card
-(WP7 makes exactly this one edit, at the top of the members-only branch, so it never collides with the
-groups owner). Depends on WP1 + WP2; the notify builder is consumed by WP2's actions and WP1's
-`advanceEdition`, so agree the `catchups-notify.ts` signature with WP1/WP2 up front.
+- The gate is the heart's: a member, and a published Edition. An ended Catch-up still takes comments.
+- 1,000 characters, rate-limited under `comments`.
+- The replies control sits beside the heart at the feed's size.
+- A comment's like rings no bell.
 
 ---
 
-_Last rewritten 2026-07-05. Supersedes the reverted build. Source research:
-`docs/planning/letterloop-research.md`. Canonical design language: `docs/spec/DESIGN-SYSTEM.md`._
+## 10. Links and the photo wall
+
+### 10.1 Link previews
+
+Any `http(s)` link in an answer's body becomes a card, through `LinkPreview` keyed by the normalised
+url (`src/lib/link-preview-core.ts` is the pure half, `src/lib/link-preview.ts` the network half).
+
+- **Three kinds**: a Spotify item and a YouTube video get the song card (keyless oembed); any other
+  page gets a link card from its own title, site name and preview image. A page that gives no title
+  stays an ordinary link, now a real `<a>`. A card whose subtitle only repeats its title shows the
+  address instead.
+- **When**: never inside a render. On save (`submitEntry` schedules it with `after()`), and lazily on
+  read for a link with no row or with a failure more than a day old; that view prints the plain link
+  and the next one has the card.
+- **Images are re-hosted** into our own bucket under `link-previews/`, boxed to 480px WebP, never
+  hotlinked. `link-previews/` is deliberately not in `KNOWN_ROOTS`.
+- **The guard** against server-side request forgery: http(s) on ports 80 and 443, no credentials;
+  every resolved address checked at connect time (any private, loopback, link-local or metadata
+  answer refuses the host), literal IPs and the connected socket checked too; at most three
+  redirects, each re-checked; five seconds in all; bytes counted after decompression (512 KB of page,
+  64 KB of oembed, 5 MB of image); only the expected content type read. **The demo never resolves.**
+
+### 10.2 The photo wall
+
+A `photo-wall` question's answers are drawn as a **run** (`edition/photo-run.tsx`,
+`src/lib/photo-wall.ts`): one band the width of the reading column, every photograph at its own
+width and never cropped to match, bleeding off the right edge. One person's photographs sit 3px apart
+under one name; groups sit 10px apart. No captions on the band (words live in the viewer) and no
+count line. The cap is the ordinary three per answer. Tapping one opens the shared viewer on that
+photograph. **No live Edition has ever used a photo-wall question**, so the grouping is pinned by
+`photo-wall.test.mjs` rather than by a screenshot.
+
+---
+
+## 11. Notifications
+
+Written by `src/lib/catchups-notify.ts` into `Notification`; `type` is a free string.
+
+| Type | When | Who | Link |
+|---|---|---|---|
+| `catchup_questions_open` | an Edition opens (creation, the clock, a Keeper, a batch reaching ten), or an empty question window is extended | every member but whoever did it | `/catchups/<id>` |
+| `catchup_answers_open` | answering opens; re-sent on the no-answers extension | every member but the Keeper who opened it; on the extension, non-answerers only | `/catchups/<id>` |
+| `catchup_reminder` | once a day while answering; or a Keeper's nudge | non-answerers by preference: Daily every day, On the last day on the last day, Never not at all. A nudge ignores Never. Today's replaces yesterday's | `/catchups/<id>` |
+| `catchup_published` | published, by the clock or a Keeper | every member but the Keeper who closed it | `/catchups/edition/<editionId>` |
+| `catchup_love` | a heart on your answer | the answer's author, if still a member; at most one unread per author per Edition | `/catchups/edition/<editionId>` |
+| `catchup_comment` | a comment under your answer, or a reply to your comment | the answer's author and whoever was replied to, if still members; one unread per recipient, per writer, per answer | `/catchups/edition/<editionId>#entry-<entryId>` |
+
+A reminder is matched on its exact link when it is replaced, which is why a route rename is a data
+migration as well as a file move (`2026-09-08-round-becomes-edition.sql`,
+`2026-09-09-answering-moves-to-the-home.sql`). Transition notifications share the transition's
+transaction, so an Edition cannot publish with nobody told.
+
+---
+
+## 12. The read mark
+
+`CatchupEditionRead`, one row per member per Edition, primary key `(userId, editionId)`. Written by
+`markEditionRead` after the reader has confirmed the Edition is published, never for one still
+collecting or answering. `readAt` keeps the first reading. `readEditionIds` answers one page's worth
+as a set, never a count. It is its own table rather than a read of `ContentView`, which is the admin
+analytics counter, has no foreign key on `targetId`, and is written for unpublished Editions too.
+
+---
+
+## 13. The nightly tick and its self-heals
+
+`/api/catchups/tick` (02:00 UTC, `maxDuration` 120s) runs, in order:
+
+1. `healBatchCatchupsAndMemberships()`: **`healBatchGroupMemberships`** puts every alumnus with a
+   batch year into their batch group (a signup whose best-effort join failed), then
+   **`healBatchCatchups`** creates the Catch-up and its first Edition for any batch group at or over
+   ten that has none. Both are idempotent, scan whole tables, and never run on a page view.
+2. The advance: every stale Edition in an active Catch-up, then every Catch-up whose `nextOpensAt`
+   has passed.
+
+---
+
+## 14. The demo, the admin room, and a member's data
+
+- **The demo** (`docs/spec/demo.md`) has its own database; its seed (`src/lib/demo-seed/seed.ts`)
+  writes one Catch-up, though the demo database held none when checked on 2026-09-14. Every visitor is
+  the same persona, so leave, archive, end and nudge are refused with a sentence, a picture upload is
+  refused (the pool works), and links never resolve.
+- **The admin room**, `/admin/catchups` and `/admin/catchups/[catchupId]`, is oversight, not a second
+  control panel. It runs the unscoped advance before reading, lists every Catch-up and any stuck
+  Edition, and keeps Edition numbers, by the owner's decision.
+- **The account export** includes a member's questions, answers and comments in Catch-ups.
+- **The account purge** removes a member's answers and their photographs, sets their questions'
+  `authorId` to NULL (a question belongs to everyone who answered it), and restores a pool picture
+  where theirs was uploaded.
+- **The rework's export**, `node scripts/dev/export-catchups.mjs --write`, copies every Catch-up with
+  its photograph bytes into `scripts/dev/.exports/catchups/<date>/` (gitignored, members' private
+  words). It is re-run before every Catch-ups migration.
+
+---
+
+## 15. Where the code and the plans disagree
+
+Each of these was checked in the code on 2026-09-14.
+
+- **"Give everyone longer" offers 3 days, a week and two weeks; `extendDeadline` accepts 1, 2, 4 or 7.**
+  So Three days and Two weeks are refused with "Pick 1, 2, 4 days or a week." and only A week works.
+  A live fault, not fixed in this pass.
+- **`catchupSurfaceTitle` still appends " catch-up"** ("In the loop catch-up") on the reader's tab
+  title and other surfaces. `spec.md` §6 lists the suffix as deleted (brief ¶25).
+- **Rhythm has three cadences**; the drawn settings room offered four. Adding the other two is a
+  column value, and it is the owner's call.
+- **`spec.md` §3.12 puts time capsule on `Catchup.timeCapsule`.** The owner corrected it on 2026-09-14:
+  a time capsule is one Edition, so it becomes a flag on `CatchupEdition`. Nothing is built.
+- **`spec.md` §3.10 says a voice answer caps at 90 seconds.** The owner said two minutes.
+- **`spec.md` §3.5 and §9 row 11 deleted the orphaned "Batch of 2024" snapshot group** in the
+  cleanup. It still exists (`cmt5ru8bb000004lausdv5vvl`, 11 members, all also in the real 2024 group):
+  the owner authorised deleting the test Catch-ups, not it.
+- **`catchups-notify.ts`'s header still describes excluding "anyone who has deleted their own copy"**
+  and six triggers. The bin is gone and the audience is simply the group.
+- **`schema.prisma`'s `@@map` comments describe the legacy `Catchup` and `CatchupPref` tables as
+  present.** They are not.
+- **`song-attachment.tsx`'s TODO proposes a `CatchupEntry.songs` column.** Link previews made song
+  links cards in any answer, and the `song*` columns are going instead.
+- **`CatchupEdition.publishAt` is in the database but not in `schema.prisma`.** It stays: a time
+  capsule is a scheduled publish date.
+- **The Catch-ups guide chapter (`components/guide/chapters/catchups.tsx`) still tells members about
+  the deleted hold** ("The day is there so that publishing is an event") and says "nobody is added
+  without being asked first", when a starter or a Keeper enrols people directly. Member-facing copy,
+  not changed here.
+- **Citations of this file by section or line number point at the July version**, which is in git
+  history: `catchups-core.ts` (`catchups.md:257`, `:825`), `catchups-notify.ts` (section 5),
+  `group-succession.ts` (§7), `components/guide/chapters/catchups.tsx` (sections 1 to 7), and
+  `CLAUDE.md` (`catchups.md:462`, the note that `prisma db push` would drop tables it thinks are
+  orphaned, which is still true).
+
+---
+
+## 16. Still to come
+
+- **Phase 11, the rest**: drop `CatchupEntry.songUrl`, `songTitle`, `songArt` (0 rows carry one) and
+  `CatchupReminderPref.deletedAt` (0 rows), together with `submitEntry`'s `songUrl` input,
+  `resolveSpotify` and the account export's `songUrl` select. It waits for a release that is the
+  owner's, because one database serves production and local dev. `CatchupEdition.publishAt` is
+  never dropped.
+- **Phase 12, a question you answer out loud**: audio up to two minutes, played back, with the
+  browser's own transcript in the body.
+- **Phase 13, a question the group votes on**: fixed choices, the result drawn as who chose what.
+- **Phase 14, time capsule**: one Edition, sealed until it opens, with nothing readable before then,
+  your own answer included; a batch Catch-up's Edition can be one.
+- **The longer question library**: drafted in `docs/planning/catchups-rework/library-draft.md` for the
+  owner to cut. `CATCHUP_PROMPT_SETS` is unchanged until he does.
+- **M1, the magazine and its PDF**, last.
