@@ -1189,8 +1189,35 @@ model CatchupPrompt {
   edition CatchupEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
   author  User?          @relation("CatchupPromptsAuthored", fields: [authorId], references: [id], onDelete: SetNull)
   entries CatchupEntry[]
+  // A vote's fixed choices (build phase 13, catchups-rework spec 3.11). Only a
+  // question whose category is "vote" has any, two to six of them, written in
+  // the same transaction as the question and never afterwards.
+  options CatchupPromptOption[]
 
   @@index([editionId, position])
+}
+
+// One fixed choice on a vote question (build phase 13, catchups-rework spec
+// 3.11; prisma/migrations-manual/2026-09-14-vote-questions.sql). His answer 37:
+// whoever writes the question writes two to six choices, and members pick one
+// and cannot add their own. The caps are the code's (vote-question-rule.ts),
+// not the database's, so there is one copy of each number.
+//
+// `@@unique([id, promptId])` is redundant as uniqueness -- `id` is already the
+// key -- and exists as the TARGET of CatchupEntry's composite foreign key,
+// which is what makes a vote for another question's choice impossible in the
+// database and not only in the action.
+model CatchupPromptOption {
+  id       String @id @default(cuid())
+  promptId String
+  text     String
+  position Int // 0-based, the order the asker wrote them in
+
+  prompt CatchupPrompt  @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  votes  CatchupEntry[]
+
+  @@unique([promptId, position])
+  @@unique([id, promptId])
 }
 
 model CatchupEntry {
@@ -1217,17 +1244,30 @@ model CatchupEntry {
   audioUrl     String?
   audioSeconds Int? // for the player's rail, so it draws before the file loads
   audioIsAuto  Boolean  @default(false) // the body was transcribed, not typed
+  // A vote (build phase 13, spec 3.11). A vote IS an answer: the unique on
+  // (promptId, authorId) below is one vote per member per question, a voter is
+  // in "who wrote in", and the heart works with no new code. `body` may carry a
+  // line beside the pick; photographs and a recording may not.
+  //
+  // The relation is on (pollOptionId, promptId), not pollOptionId alone, so the
+  // choice must belong to THIS answer's question or Postgres refuses the row.
+  // NULL pollOptionId is not checked (MATCH SIMPLE), which is every non-vote
+  // answer. Cascade, not SetNull: a vote whose choice is gone is a vote for
+  // nothing, and nulling it would leave the empty row audit Low 36 deleted.
+  pollOptionId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  edition CatchupEdition    @relation(fields: [editionId], references: [id], onDelete: Cascade)
-  prompt  CatchupPrompt     @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  edition    CatchupEdition       @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  prompt     CatchupPrompt        @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  pollOption CatchupPromptOption? @relation(fields: [pollOptionId, promptId], references: [id, promptId], onDelete: Cascade)
   author   User              @relation("CatchupEntriesAuthored", fields: [authorId], references: [id], onDelete: Cascade)
   loves    CatchupEntryLove[]
   comments Comment[]
 
   @@unique([promptId, authorId])
   @@index([editionId])
+  @@index([pollOptionId, promptId])
 }
 
 // A pasted link's preview, keyed by the link (build phase 10, catchups-rework

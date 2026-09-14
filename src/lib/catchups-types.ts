@@ -62,17 +62,24 @@ export const PROMPT_CATEGORIES = [
   "valley-days",
   "most-likely-to",
   "on-the-horizon",
+  /* Not a library set: the category that makes a question a VOTE (build phase
+     13, spec 3.11), with two to six fixed choices in CatchupPromptOption. The
+     same trick as photo-wall and songs, so a vote needs no column of its own.
+     `VOTE_CATEGORY` in vote-question-rule.ts is this string, and its test
+     fails if the two drift. */
+  "vote",
 ] as const;
 
 export type PromptCategory = (typeof PROMPT_CATEGORIES)[number];
 
 /** How a question is answered. Derived from the category, see PROMPT_KIND. */
-export type PromptKind = "text" | "photo" | "songs";
+export type PromptKind = "text" | "photo" | "songs" | "vote";
 
-/** Only these two sets change the answering control; everything else is text. */
+/** Only these three change the answering control; everything else is text. */
 export function promptKind(category: PromptCategory | null): PromptKind {
   if (category === "photo-wall") return "photo";
   if (category === "songs") return "songs";
+  if (category === "vote") return "vote";
   return "text";
 }
 

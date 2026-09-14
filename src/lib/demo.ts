@@ -93,6 +93,12 @@ const ALLOWED_WRITE_MODELS: ReadonlySet<string> = new Set([
      better than a list where nothing is ever marked. The nightly reset takes
      them with the Editions they point at. */
   "CatchupEditionRead",
+  /* A vote's choices (build phase 13). Words in Postgres and nothing else --
+     no bytes, no email -- written in the same transaction as the question
+     they belong to, so refusing them here would only make asking a vote on the
+     demo fail with "Something went wrong". The reset's `catchupPrompt`
+     deleteMany takes them by cascade. */
+  "CatchupPromptOption",
 ]);
 
 /** Prisma operations that change data. Everything else is a read. */

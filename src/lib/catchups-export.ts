@@ -112,6 +112,9 @@ export type ExportedAnswer = {
    *  body was transcribed, and the copied bytes like a photograph's. Null
    *  when the answer was written, which is every answer before phase 12. */
   audio?: { url: string; seconds: number | null; transcribed: boolean; file: string | null } | null;
+  /** A vote's pick, the id of one of its question's `choices` (build phase
+   *  13). Null on every answer that is not a vote. */
+  pollOptionId?: string | null;
   /** Who hearted it, by id. The count is `hearts.length`; it is not stored
    *  separately, so the two can never disagree. */
   hearts: string[];
@@ -129,6 +132,9 @@ export type ExportedQuestion = {
    *  directly without inventing a category id. */
   kind: PromptKind;
   source: PromptSource;
+  /** A vote's fixed choices in the asker's order (build phase 13). Empty on
+   *  every question that is not a vote. */
+  choices?: Array<{ id: string; text: string; position: number }>;
   showAsker: boolean;
   accepted: boolean;
   position: number;
