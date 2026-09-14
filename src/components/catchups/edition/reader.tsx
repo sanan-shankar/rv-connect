@@ -79,7 +79,7 @@ import { cn } from "@/lib/utils";
 import { AppBarTitle } from "@/components/layout/app-bar-title";
 import { BAR, EditionMeta, QuestionList, Strip, UnfoldedPanel } from "./navigator";
 import { PhotoRun } from "./photo-run";
-import { AskedBy, Body, Byline, Photographs, Reactions, SongCard, said } from "./reader-parts";
+import { AskedBy, Body, Byline, LinkCard, Photographs, Reactions, said } from "./reader-parts";
 import type { ReaderEdition, ReaderQuestion } from "./reader-types";
 import type { EditionEntry } from "@/lib/catchups-edition-view";
 
@@ -169,7 +169,15 @@ function Tile({ entry, viewerIsAdmin }: { entry: EditionEntry; viewerIsAdmin: bo
       {entry.images.length > 0 && (
         <Photographs entry={entry} className="mt-3 max-h-[460px] md:max-h-[560px]" />
       )}
-      {entry.song && <SongCard song={entry.song} className="mx-4 mt-3 md:mx-5" />}
+      {/* Under the words and the photographs, one card per pasted link that
+          resolved, 8px apart: the lab's approved Media stack. */}
+      {entry.links.length > 0 && (
+        <div className="mx-4 mt-3 space-y-2 md:mx-5">
+          {entry.links.map((link) => (
+            <LinkCard key={link.url} link={link} />
+          ))}
+        </div>
+      )}
       {/* Tighter by about a tenth, top and bottom, and it is his arithmetic:
           "there is definite padding above and below the heart icon and the
           comment icon ... let's decrease that padding by 10%. 10% on both the

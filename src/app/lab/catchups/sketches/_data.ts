@@ -189,8 +189,24 @@ export async function loadSketchEdition(
           body: e.body,
           images: e.images,
           photos: e.photos,
-          song: e.song,
-          media: mediaByEntry.get(e.id) ?? [],
+          /* The song columns are dead (build phase 10). A link the real loader
+             resolved is now taken OUT of `e.body`, so the room's own body
+             resolver would never see it: the loader's song cards are handed
+             over first, and the room's own finds fill in behind them. */
+          song: null,
+          media: [
+            /* Every card, a page's included: the loader has already taken
+               each of these links out of `e.body`, so dropping one here would
+               lose it from the room altogether (F38). */
+            ...e.links.map((l) => ({
+              platform: l.kind,
+              url: l.url,
+              title: l.title,
+              by: l.subtitle,
+              art: l.thumbUrl,
+            })),
+            ...(mediaByEntry.get(e.id) ?? []).filter((m) => !e.links.some((l) => l.url === m.url)),
+          ],
           text: stripLinks(e.body),
           loveCount: e.loveCount,
           lovedByViewer: e.lovedByViewer,

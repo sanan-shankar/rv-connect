@@ -73,18 +73,45 @@ const EMPHASIS_RULES: { pattern: RegExp; open: string; close: string }[] = [
  * serializes live formatting (native Cmd/Ctrl+B, the phone's own selection
  * bar) to exactly these markers, and hand-typed markdown lands here too.
  */
-export function renderRichText(text: string): string {
+export function renderRichText(
+  text: string,
+  options: {
+    /** Print pasted links as real links. OPT-IN, and only a Catch-up answer
+     *  opts in (build phase 10): a link that did not become a preview card
+     *  "prints as an ordinary link" (spec 3.8), and the feed is not widened
+     *  unasked. Handed the finder rather than importing it, so this module
+     *  keeps no relative value import (docs/TRAPS.md, "Testing") and the text
+     *  it links is exactly the text `link-preview-core.ts` strips. */
+    linkRanges?: (text: string) => Array<[number, number]>
+  } = {}
+): string {
+  // 0. Links are lifted out BEFORE anything else touches the text, and put
+  // back last as whole anchors. Escaping first would turn a quote after a url
+  // into `&#39;`, which is all url characters and would be swallowed into it;
+  // emphasis first would drop a `<u>` into the middle of a `/__init__/` path.
+  // A NUL cannot be typed into a textarea, and any that arrive are removed, so
+  // the placeholder can never be forged by a member.
+  const links: string[] = []
+  let source = text
+  if (options.linkRanges) {
+    source = source.replace(/\u0000/g, "")
+    let out = ""
+    let at = 0
+    for (const [start, end] of options.linkRanges(source)) {
+      if (start < at) continue
+      out += source.slice(at, start) + `\u0000${links.length}\u0000`
+      links.push(source.slice(start, end))
+      at = end
+    }
+    source = out + source.slice(at)
+  }
+
   // 1. Escape HTML entities. The single quote is escaped too, not just the
   // double: the mention href below is double-quoted today, but that is the
   // renderer's ONLY defence against attribute injection, and with CSP carrying
   // 'unsafe-inline' there is no second layer -- so leaving `'` raw means a
   // later change to single-quoted attributes would be instant stored XSS.
-  let result = text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;")
+  let result = escapeHtml(source)
 
   // 2. Emphasis: ***both***, **bold**, *italic*, __underline__, ~~struck~~.
   for (const { pattern, open, close } of EMPHASIS_RULES) {
@@ -108,5 +135,34 @@ export function renderRichText(text: string): string {
     '<a href="/profile/$2" class="font-semibold text-leaf hover:underline">@$1</a>'
   )
 
+  // 4. Links back in, as whole anchors. The url is escaped on its own, which is
+  // what an attribute wants (`&` becomes `&amp;`) and means a quote can never
+  // close the href. It must start http(s):// or it is printed as the escaped
+  // text it is: the finder is handed in, so this line does not trust it to
+  // have matched only web links, and `javascript:` never becomes an href.
+  if (links.length) {
+    result = result.replace(/\u0000(\d+)\u0000/g, (_match, i: string) => {
+      const raw = links[Number(i)] ?? ""
+      const safe = escapeHtml(raw)
+      if (!/^https?:\/\//i.test(raw)) return safe
+      return `<a href="${safe}" target="_blank" rel="noopener noreferrer nofollow" class="${LINK_CLASS}">${safe}</a>`
+    })
+  }
+
   return result
+}
+
+/** A pasted link left in an answer's text. Underlined, because in a paragraph
+ *  colour alone does not say "press me"; leaf, the same green as a mention;
+ *  and the three states every clickable thing carries. */
+const LINK_CLASS =
+  "rounded-sm text-leaf underline decoration-leaf/40 underline-offset-2 transition-colors duration-150 hover:decoration-leaf active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
 }

@@ -47,7 +47,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, m } from "motion/react";
-import { ChatCircle, MusicNotes, Play } from "@phosphor-icons/react";
+import { ChatCircle, LinkSimple, MusicNotes, Play } from "@phosphor-icons/react";
 import { SPRINGS } from "@/components/common/motion";
 import { FlushAvatar } from "@/components/common/flush-avatar";
 import { EntryLoveButton } from "@/components/catchups/edition/entry-love-button";
@@ -58,9 +58,10 @@ import {
   useImageViewer,
 } from "@/components/common/lazy-image-viewer";
 import { renderRichText } from "@/lib/rich-text";
+import { linkRanges } from "@/lib/link-preview-core";
 import { MAX_IMAGES } from "@/lib/upload-ownership-rule";
 import { cn } from "@/lib/utils";
-import type { CatchupPersonRef, CatchupSongView } from "@/lib/catchups-types";
+import type { CatchupLinkView, CatchupPersonRef } from "@/lib/catchups-types";
 import type { EditionEntry } from "@/lib/catchups-edition-view";
 import type { ReaderAsker } from "./reader-types";
 
@@ -169,7 +170,10 @@ export function Body({ text, className }: { text: string; className?: string }) 
           className,
         )}
         style={fold}
-        dangerouslySetInnerHTML={{ __html: renderRichText(text) }}
+        /* `linkRanges`: a link still in the text is one that did NOT become a
+           card, and it prints as an ordinary link rather than dead text (spec
+           3.8). The same finder the loader stripped with, so the two agree. */
+        dangerouslySetInnerHTML={{ __html: renderRichText(text, { linkRanges }) }}
       />
       {long && (folds || open) && (
         <button
@@ -383,45 +387,67 @@ function PhotoStrip({
   );
 }
 
-/* ── A song ────────────────────────────────────────────────────────── *
- *  The whole card is the button; the URL is never printed. The still is
- *  small, 52px, the height of an album cover; a video keeps 16:9 at that
- *  height so it still reads as a frame from a film, and wears a play badge,
- *  which is all the platform name a reader needs (R31, R6).
+/* ── A pasted link ─────────────────────────────────────────────────── *
+ *  Transplanted from the lab's `Media` card (sketches/_parts.tsx), the
+ *  shape he reviewed: the whole card is the button and the url is never
+ *  printed. "We can just have the title, and the person, and the
+ *  thumbnail. And small." (R6)
  *
- *  WHAT THIS DOES NOT DO YET. A link pasted into the BODY of an answer is
- *  still printed as text: resolving one is build phase 10 (spec 3.8), which
- *  adds the `LinkPreview` table and the two hosts. Today `entry.song` is
- *  only ever written by the old per-question Spotify field, and F29/F30
- *  measured it as null on every row in the database -- so in practice this
- *  card draws for nothing yet and is here because the shape is settled and
- *  phase 10 fills it rather than inventing it. */
-export function SongCard({
-  song,
-  className,
-}: {
-  song: CatchupSongView;
-  className?: string;
-}) {
-  const [broken, setBroken] = useState(false);
-  const linked = Boolean(song.url);
-  const isVideo = /youtube\.com|youtu\.be/.test(song.url);
+ *  Three kinds, one card, and the difference is only the picture and the
+ *  second line:
+ *
+ *    spotify  a 52px square, the height of an album cover. No second line:
+ *             Spotify's keyless oembed has no artist, and the platform's
+ *             name is not one (F33).
+ *    youtube  the same 52px height at 92 wide, so it reads as a frame from a
+ *             film, with a play badge; the channel under the title.
+ *    link     any other page (his, 2026-09-14: "can't you show preview for
+ *             any link even if they're not songs?"). Its preview image in
+ *             the video's frame, and the site's own name -- or its address,
+ *             when it gives none -- under the title, because with the url
+ *             hidden that line is the only way to know where the card goes.
+ *
+ *  With no picture, or one that fails to load, a 52px tile holds a glyph:
+ *  the music mark for a song, a link for a page. The images are ours
+ *  (link-preview.ts re-hosts them), so a plain <img> needs no CSP entry;
+ *  `next/image` is skipped because a 92px thumbnail gains nothing from the
+ *  optimizer. */
+function siteOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
 
-  const inner = (
-    <>
-      {song.art && !broken ? (
+export function LinkCard({ link, className }: { link: CatchupLinkView; className?: string }) {
+  const [broken, setBroken] = useState(false);
+  const square = link.kind === "spotify";
+  const second = link.kind === "link" ? (link.subtitle ?? siteOf(link.url)) : link.subtitle;
+
+  return (
+    <a
+      href={link.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(
+        "state-layer flex items-center gap-3 rounded-[10px] border border-border bg-card p-2 transition-[scale] duration-150 ease-out active:scale-[0.985] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        className,
+      )}
+    >
+      {link.thumbUrl && !broken ? (
         <span className="relative shrink-0">
-          {/* Plain <img>: these hosts are on the CSP img-src allowlist but
-              deliberately NOT on next/image's remotePatterns. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={song.art}
+            src={link.thumbUrl}
             alt=""
+            loading="lazy"
+            decoding="async"
             onError={() => setBroken(true)}
-            className="h-[52px] rounded-[6px] object-cover"
-            style={{ width: isVideo ? 92 : 52 }}
+            className="h-[52px] rounded-[6px] bg-muted object-cover"
+            style={{ width: square ? 52 : 92 }}
           />
-          {isVideo && (
+          {link.kind === "youtube" && (
             <span className="absolute left-1/2 top-1/2 grid h-6 w-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white">
               <Play size={11} weight="fill" />
             </span>
@@ -429,33 +455,24 @@ export function SongCard({
         </span>
       ) : (
         <span className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-[6px] bg-muted text-muted-foreground">
-          <MusicNotes size={22} weight="duotone" />
+          {link.kind === "link" ? (
+            <LinkSimple size={22} weight="duotone" />
+          ) : (
+            <MusicNotes size={22} weight="duotone" />
+          )}
         </span>
       )}
       <span className="min-w-0">
-        <span className="line-clamp-2 block text-[14.5px] font-semibold leading-tight text-foreground">
-          {song.title}
+        {/* A page's title is the site's typing, not ours, and can be one long
+            unbroken run; it breaks rather than widening the card past a
+            390px phone. */}
+        <span className="line-clamp-2 block break-words text-[14.5px] font-semibold leading-tight text-foreground [overflow-wrap:anywhere]">
+          {link.title}
         </span>
+        {second && (
+          <span className="mt-1 block truncate text-[12.5px] text-muted-foreground">{second}</span>
+        )}
       </span>
-    </>
-  );
-
-  const shell = cn(
-    "flex items-center gap-3 rounded-[10px] border border-border bg-card p-2",
-    className,
-  );
-  if (!linked) return <div className={shell}>{inner}</div>;
-  return (
-    <a
-      href={song.url}
-      target="_blank"
-      rel="noreferrer"
-      className={cn(
-        shell,
-        "state-layer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-      )}
-    >
-      {inner}
     </a>
   );
 }
@@ -558,6 +575,6 @@ export function Reactions({
  *  photograph is not empty: the photograph is the answer. */
 export function said(entries: EditionEntry[]): EditionEntry[] {
   return entries.filter(
-    (e) => Boolean(e.body?.trim()) || e.images.length > 0 || Boolean(e.song),
+    (e) => Boolean(e.body?.trim()) || e.images.length > 0 || e.links.length > 0,
   );
 }

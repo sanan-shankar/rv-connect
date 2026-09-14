@@ -111,10 +111,18 @@ export type CatchupPersonRef = {
   birdOverride?: string | null;
 };
 
-export type CatchupSongView = {
+/** A pasted link that resolved into a card (build phase 10, spec 3.8).
+ *  `spotify` and `youtube` draw as a song; `link` is any other web page, drawn
+ *  from its own title, site name and preview image. Mirrors `LinkCardView` in
+ *  link-preview-core.ts, which is what produces one. */
+export type CatchupLinkView = {
+  kind: "spotify" | "youtube" | "link";
   url: string;
   title: string;
-  art: string | null;
+  /** A YouTube channel or a page's site name. Never "Spotify" (F33). */
+  subtitle: string | null;
+  /** Re-hosted in our own bucket; null draws the glyph tile. */
+  thumbUrl: string | null;
 };
 
 /**
@@ -167,7 +175,10 @@ export type CatchupEntryView = {
   /** What each of those photographs looks like, in the same order, from the
    *  `Image` table. A null entry is one we have never measured. */
   photos: (StoredPhoto | null)[];
-  song: CatchupSongView | null;
+  /** The pasted links in `body` that became preview cards, in the order they
+   *  were pasted (build phase 10, spec 3.8). The body arrives with exactly
+   *  these links taken out of it and every other link left in. */
+  links: CatchupLinkView[];
   loveCount: number;
   lovedByViewer: boolean;
   /** How many replies this answer has, BEFORE the thread is opened (build

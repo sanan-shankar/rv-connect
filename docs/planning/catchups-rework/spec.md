@@ -489,31 +489,55 @@ It has never once worked (F29, F30): `songArt` is null on every row in the datab
 question has thirteen answers and `songUrl` null on all of them because four people pasted links
 into the body instead, and the CSP was blocking Spotify's rotating cover shards anyway (fixed).
 
-**RECOMMENDED — a `LinkPreview` table keyed by url**, the same trick the Collection's `Image`
-table uses and for the same reason: no migration of existing rows, no writes to `CatchupEntry`,
-and a row missing is not an error.
+**SHIPPED 2026-09-14, build phase 10, widened by him the same day**: *"can't you show preview for
+any link even if they're not songs?"* A `LinkPreview` table keyed by url, the same trick the
+Collection's `Image` table uses and for the same reason: no migration of existing rows, no writes
+to `CatchupEntry`, and a row missing is not an error.
 
 ```prisma
 model LinkPreview {
-  url       String   @id           // the url as pasted, normalised
-  kind      String                 // "spotify" | "youtube"
-  title     String?
-  subtitle  String?                // artist or channel, when the endpoint gives one
-  thumbUrl  String?
-  failedAt  DateTime?              // fail-soft: retried at most once a day
-  fetchedAt DateTime @default(now())
+  url       String    @id  // normalised: tracking stripped; Spotify and YouTube rebuilt from the id
+  kind      String         // "spotify" | "youtube" | "link"
+  title     String?        // null on a failed resolve
+  subtitle  String?        // a YouTube channel, or a page's og:site_name
+  thumbUrl  String?        // RE-HOSTED in our bucket
+  failedAt  DateTime?      // fail-soft: retried at most once a day
+  fetchedAt DateTime  @default(now())
 }
 ```
 
-**The hosts**: Spotify (keyless oembed; it returns no artist field, and "Spotify" is not one —
-F33) and YouTube (the still is derivable from the video id, no key). Anything else stays a plain
-link. **The fail-soft rule**: a link that will not resolve is printed as an ordinary link and
-never as an error, and the body text it came from is **not** stripped unless a card actually
-replaced it — that inversion is F38 and F39, where an answer whose whole body was a Bandcamp link
-came out empty and was dropped from the page.
+**The kinds.** Spotify (keyless oembed; no artist, and "Spotify" is not one, F33) and YouTube
+(watch, youtu.be, Shorts, live, embed, m. and YouTube Music; the still derived from the id, the
+channel from oembed) keep the song card. **Any other http(s) link** is read for its own Open Graph
+/ Twitter / `<title>` and draws a link card: the preview image in the video's 92x52 frame, the
+title, and the site name (or its address) under it. A page that yields no title stays an ordinary
+link. Scope is a Catch-up answer; the feed is not widened.
 
-`CatchupEntry.songUrl / songTitle / songArt` are retired in the cleanup phase. Nothing reads them
-and they are null everywhere.
+**The fail-soft rule**: a link that will not resolve prints as an ordinary link, now a real
+underlined `<a>` (opt-in `linkRanges` on `renderRichText`, answers only), never an error; and the
+body text is **not** stripped unless a card actually replaced it (F38, F39).
+`link-preview-core.test.mjs` pins it.
+
+**When it resolves, and never in a render.** After the response, through `after()`, on two
+triggers: `submitEntry` hands over the links in a saved body, and the reader's loader hands over
+any link with no row or a failure over a day old (that view prints the plain link; the next has
+the card). The demo never resolves.
+
+**Fetching member-typed urls** (`src/lib/link-preview.ts`): http(s) on 80/443 only, no credentials;
+the socket's own DNS lookup refuses a host if any address is private, loopback, link-local,
+metadata, CGNAT or an IPv6 spelling of one, so there is no rebinding window, and IP literals and
+the connected socket are checked too; three redirects by hand, each re-checked; five seconds in
+all; bytes counted after decompression (512 KB of HTML, 64 KB of JSON, 5 MB of image); only the
+content type asked for.
+
+**Images are re-hosted, not hotlinked.** The CSP's `img-src` names hosts and a regression test
+forbids wildcards (C-134), and an `<img>` pointed at a member-chosen host is a read receipt for
+every alumnus who opens the Edition. So the preview image is decoded through `sharpImage`, boxed to
+480px WebP and stored under `link-previews/` on `images.rishivalley.space`. Nothing in
+`next.config.ts` changed.
+
+`CatchupEntry.songUrl / songTitle / songArt` are no longer read by the reader and are retired in the
+cleanup phase. `submitEntry`'s `songUrl` input and `resolveSpotify` are dead with them.
 
 ### 3.9 RECOMMENDED — the read mark
 
@@ -953,7 +977,7 @@ in it.
 | **7** | **The home** | `/catchups/[id]` rebuilt from `_home.tsx`: the head and its two doors, the Edition region per state, the state line, the sidebar of back numbers, the people dialog and sheet, the settings list. Answering moves onto the page; `/answer` deleted and redirected. **§3.13 is CLOSED as (a), 2026-09-09: there is no read-during-answering window and nothing here builds one** | none |
 | **8** | **The reader** | the front runner transplanted; navigator A; the rebuilt magnification; **the two clamps** (§4.3, which closes F41); **N11, the title, decided**; **the photo wall's reading surface, which is a RUN** (§10.1, picked by him 2026-09-09 off `/lab/catchups/wall`): transplant `Run` from `src/app/lab/catchups/wall/_shapes.tsx`, keyed off `promptKind(category) === "photo"`, with no captions and no count line, and `_corpus.ts` staying behind. **Carries §3.13, now CLOSED as (a): a PUBLISHED Edition is open to every member whether they wrote or not, which is already true and must stay true. Nothing is readable before publication** | none |
 | **9** | **Comments** — **DONE 2026-09-10** | the widened `Comment` (`postId` nullable, `entryId` beside it, `Comment_one_target` CHECK); the thread moved to `lib/comment-thread.ts` so both owners share one implementation and each keeps only its gate and its bell; `comments-section.tsx` takes its five actions as a prop; the replies control beside the heart; `catchup_comment` per person per answer (3.7, corrected). `npm run visual` 25/25, no baseline moved | `2026-09-10-comments-on-answers.sql`, additive, **applied to both** before the deploy, which is safe |
-| **10** | **Link previews** | `LinkPreview`, resolution on any pasted link, Spotify and YouTube cards, the fail-soft rule | the `LinkPreview` table |
+| **10** | **Link previews** — **DONE 2026-09-14** | `LinkPreview`, resolution on any pasted link after the response (on save and lazily on read), Spotify and YouTube song cards, **and a link card for any other page** (his, 2026-09-14), the SSRF-guarded fetcher, images re-hosted rather than hotlinked, unresolved links printed as real links, the fail-soft rule. §3.8 says what shipped | `2026-09-14-link-previews.sql`, additive, **applied to both** (0 rows, RLS on) |
 | **11** | **Cleanup** | the dead columns dropped **after phases 2, 5 and 10 have deployed**; the three throwaway Catch-ups and the orphaned snapshot group removed; `docs/spec/catchups.md` rewritten to describe what shipped. **CORRECTED 2026-09-09: `CatchupEdition.publishAt` is NOT dropped.** It was on the list because the `preparing` hold it served died in phase 2 — but a time capsule (§3.12) is exactly a scheduled publish date and it is the same column. Dropping it now to add it back is two migrations against a live database for nothing. Keep it, and say so in the file. `CatchupPref.deletedAt` still goes | the drop file |
 | **12** | **A question you answer out loud** | §3.10. `audioUrl`, `audioSeconds`, `audioIsAuto` on `CatchupEntry`; the recorder in the composer; the player in the reader; the browser's own speech recognition writing the body, editable afterwards. **Draw the no-transcript case first**, because Firefox has none | the three columns |
 | **13** | **A question the group votes on** | §3.11. `CatchupPromptOption`, `CatchupEntry.pollOptionId`; options written where the question is written; the published result drawn as who chose what, with their birds, and never as a percentage | one table, one column |

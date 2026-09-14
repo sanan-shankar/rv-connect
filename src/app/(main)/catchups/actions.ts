@@ -79,6 +79,8 @@ import {
   shouldExtendForTooFew,
   type AdvanceEditionInput,
 } from "@/lib/catchups";
+import { scheduleLinkPreviews } from "@/lib/link-preview";
+import { findLinks } from "@/lib/link-preview-core";
 import {
   notifyAnswersOpen,
   notifyComment,
@@ -1641,6 +1643,12 @@ export async function submitEntry(input: {
       // No row, so no version: the next save creates one afresh.
       return { success: true, entryId: null, updatedAt: null, songWarning };
     }
+
+    /* A link pasted into the answer starts resolving now, after the response
+       (build phase 10, spec 3.8), so its card is ready by the morning the
+       Edition publishes rather than on the second page view after. Never
+       awaited: the save must not wait on somebody else's website. */
+    if (bodyValue) scheduleLinkPreviews(findLinks(bodyValue).map((f) => f.raw));
 
     revalidatePath(`/catchups/${edition.catchupId}`);
     /* The new version, so the surface that just saved can hold it and keep
