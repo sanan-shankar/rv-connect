@@ -128,6 +128,10 @@ already explored the area. Import the shared primitives (`Button`, `BirdAvatar`,
 rebuild what exists. Check `components.json` before adding a shadcn component. Reuse `cn()` from
 `src/lib/utils.ts` and the Prisma client from `src/lib/prisma.ts`.
 
+**Editing**: pick the tool per edit, not by habit. Edit for a few surgical changes; a Python/bash
+heredoc (asserting its anchors) for repeated, multi-file or large-block edits. Choose whichever
+spends fewer tokens and round trips.
+
 **After**: run `npm run check` (below). Every clickable element has hover, focus-visible and active.
 CTAs are Canopy `#235C49` pills. Only `transform` and `opacity` animate. Any new async route ships a
 `loading.tsx` using the warm shimmer, not a grey pulse. Screenshot desktop and mobile, minimum two
