@@ -65,8 +65,15 @@ export function SentenceLine({
   onOpenPanel,
   max = 3,
   right,
+  show = "all",
   className,
 }: {
+  /**
+   * Which half renders. "all" is the one line; "count" and "tokens" let a
+   * narrow layout put the count beside its toggle and the filters under it
+   * (the directory below sm, owner 2026-09-14).
+   */
+  show?: "all" | "count" | "tokens";
   count: number;
   singular?: string;
   plural?: string;
@@ -82,17 +89,22 @@ export function SentenceLine({
 }) {
   const shown = tokens.slice(0, max);
   const hidden = tokens.length - shown.length;
+  if (show === "tokens" && tokens.length === 0) return null;
+  const withCount = show !== "tokens";
+  const withTokens = show !== "count" && tokens.length > 0;
 
   return (
     <div className={cn("flex min-h-[36px] items-center justify-between gap-3", className)}>
       <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-2 overflow-hidden">
-        <span className="shrink-0 whitespace-nowrap text-[13.5px] text-muted-foreground">
-          <b className="font-semibold tabular-nums text-foreground">
-            {count.toLocaleString("en-IN")}
-          </b>{" "}
-          {count === 1 ? singular : plural}
-        </span>
-        {tokens.length > 0 && (
+        {withCount && (
+          <span className="shrink-0 whitespace-nowrap text-[13.5px] text-muted-foreground">
+            <b className="font-semibold tabular-nums text-foreground">
+              {count.toLocaleString("en-IN")}
+            </b>{" "}
+            {count === 1 ? singular : plural}
+          </span>
+        )}
+        {withCount && withTokens && (
           // The one separator between the count and the filters that narrowed
           // it. `dotsep` is the app's shared middle dot (globals.css), so this
           // line punctuates like every byline in the product.
@@ -100,10 +112,10 @@ export function SentenceLine({
             ·
           </span>
         )}
-        {shown.map((t) => (
+        {withTokens && shown.map((t) => (
           <Token key={t.key} label={t.label} onClear={t.onClear} />
         ))}
-        {hidden > 0 && (
+        {withTokens && hidden > 0 && (
           <button
             type="button"
             onClick={onOpenPanel}
@@ -112,7 +124,7 @@ export function SentenceLine({
             +{hidden} more
           </button>
         )}
-        {tokens.length > 0 && (
+        {withTokens && (
           <button
             type="button"
             onClick={onClearAll}

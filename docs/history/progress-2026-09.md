@@ -6557,3 +6557,24 @@ than a paper circle with a hairline border. It now unfolds to scale 1.8 (36px) o
 and its plus is 16px instead of 17.
 
 Visual suite: 12 header baselines moved, diffs read first (controls and the header pills only).
+
+
+## 2026-09-14 (mobile header) — the directory's headcount stays beside its toggle on a phone, and the feed's bell moves up to the top bar like every other page
+
+"on mobile the number of people is below the batch map people thing. it can be on the right on the same
+vertical ... the filters can still be below it" and "the notification bell is on the page in feed but up
+top everywhere else. make it up top even in feed why be different there" (owner, 2026-09-14).
+
+Directory: `SentenceLine` takes `show` ("all" | "count" | "tokens"). Below sm the count rides the
+toggle row on the right, as from sm up; only the filter tokens and "Clear all" take the line under
+it, and that line is not rendered when nothing is filtered, so the map rises 46px on an unfiltered
+phone. 218px of toggle and "82 people" fit 358px with room to spare.
+
+Feed: `PageHeader`'s bell is `hidden md:block`, and the sidebar no longer skips its top-bar bell on
+/feed. Below md the bell is in the same place on every route; from md up the feed header keeps it.
+
+Also fixed the index line of the (header) entry above, which did not match its heading and was
+failing `progress-log.test.mjs` at HEAD.
+
+Visual suite: feed and directory at mobile moved, diffs read first (bell box and the count row only).
+

@@ -520,12 +520,13 @@ export function DirectoryClient({
      every applied filter as a removable token, so a filter costs ZERO vertical
      pixels (owner, 2026-08-03: "use sentence for filter"; Concept B in
      /lab/directory). From sm up it rides INSIDE the control row, in the gap
-     between the browse toggle and Filters that used to be empty; below sm it
-     drops under the row, because a count, two tokens and "Clear all" cannot
-     share 390px with a three-way toggle. It is a line of text either way, not
+     between the browse toggle and Filters that used to be empty; below sm the
+     count stays in the row and only the tokens drop under it, because two
+     tokens and "Clear all" cannot share 390px with a three-way toggle. It is a line of text either way, not
      a second row of controls. */
-  const sentence = (
+  const sentence = (show: "all" | "count" | "tokens") => (
     <SentenceLine
+      show={show}
       count={resultCount}
       singular={hasFilter ? "result" : "person"}
       plural={hasFilter ? "results" : "people"}
@@ -624,13 +625,14 @@ export function DirectoryClient({
             onChange={setBrowseView}
             className="min-w-0 bg-card"
           />
-          <div className="ml-auto hidden min-w-0 sm:block">{sentence}</div>
+          <div className="ml-auto hidden min-w-0 sm:block">{sentence("all")}</div>
+          {/* Below sm the COUNT still fits opposite the toggle (owner,
+              2026-09-14: "number can be on the right like it is for desktop");
+              only the filter tokens and "Clear all" need the line under it. */}
+          <div className="ml-auto shrink-0 sm:hidden">{sentence("count")}</div>
         </div>
 
-        {/* Below sm the sentence cannot share the row with a three-way toggle,
-            so it takes the line under it. It is a line of text, not a second
-            row of controls. */}
-        <div className="sm:hidden">{sentence}</div>
+        <div className="empty:hidden sm:hidden">{sentence("tokens")}</div>
       </div>
 
       <FilterSheet
