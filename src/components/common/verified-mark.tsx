@@ -23,8 +23,8 @@ import { Leaf } from "lucide-react";
  * viewport alone -- it shows wherever there is space.
  *
  * SIZES: exactly two are sanctioned (owner, 2026-07-30: one pill, used the
- * same way everywhere). The default 13 beside body-size names (feed rows,
- * directory cards); 16 beside a page-title name (profile headers). Never a
+ * same way everywhere). The default 13 beside body-size names (directory
+ * cards); 16 beside a page-title name (profile headers). Never a
  * third value; the hover label is identical at both.
  */
 export function VerifiedMark({
