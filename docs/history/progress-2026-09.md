@@ -6797,3 +6797,25 @@ query a sealed capsule's questions or answers (write-path-reviewer's one Medium,
 room had fetched them and hidden them). The account export keeps a member's own answer, the owner's
 to overturn. `time-capsule-rule.test.mjs` pins the date, the clock, the gate, every reader path and
 a tripwire on new answer readers.
+
+
+## 2026-09-14 (catch-ups, phase 14 drawn) — a sealed Edition three ways, the morning it opens, and making one, at /lab/catchups/capsule
+
+Phase 14's look, per his answer 31a: drawn in the lab and not wired into the app. The sealed Edition
+is drawn three ways, each on the home just sealed, the home a month on (in the sidebar), the list
+and a shared link, against seven cases: 364 days left, 1 day left, opens this morning, opened, nobody
+wrote in, a batch, joined after. **The year line**: the opening date large on paper, and the
+reader's cinnamon reading line stretched to a year with a tick per month and a dot on today.
+**Asleep**: the birds of whoever wrote in, breathing slowly, who wake when it opens; the only one
+that shows who is inside, flagged as his call. **Waiting for morning**: the Catch-up's own
+photograph at night, lifting a little as the year goes, opening into the day at seven. Padlocks,
+hourglasses and wax seals were not drawn, and blurring the Edition's own photographs was ruled out
+as reading them. The opening plays on a button, with the bell line arriving after it. Making one is
+a Time capsule row under This Edition, three ways: a Keeper while collecting, anyone in a batch,
+and fixed once answering opened; beside it the answering card saying nobody reads it until the date.
+
+Measured in three rounds of full-page shots at 390 and 1440: the home's rail grid keyed off the
+window instead of the frame (fixed), the year line read as an empty card at 364 days (now a year of
+months), the phone date wrapped to three lines beside its countdown (stacked), the bell arrived
+before the opening (delayed), and the night had lifted so far at one day left that the cover
+matched the Catch-up card beside it (given a floor).
