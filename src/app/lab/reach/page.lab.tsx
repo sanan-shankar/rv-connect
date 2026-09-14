@@ -196,6 +196,7 @@ function SaveCta() {
 const PERSON = {
   id: "lab",
   name: "Sanan Shankar",
+  photoUrl: null,
   birdOverride: "white-throated-kingfisher",
 };
 

@@ -30,7 +30,7 @@ import {
 export type PinPerson = {
   id: string;
   name: string;
-  photoUrl?: string | null;
+  photoUrl: string | null;
   birdOverride?: string | null;
   accountType?: string | null;
   verifyState?: string | null;

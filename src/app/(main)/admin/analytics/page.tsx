@@ -533,7 +533,7 @@ async function FacesView() {
             <ul className="flex flex-col divide-y divide-border/70">
               {faces.isolated.map((m) => (
                 <li key={m.id} className="flex items-center gap-2.5 py-2">
-                  <BirdAvatar user={{ id: m.id, name: m.name }} size="xs" />
+                  <BirdAvatar user={m} size="xs" />
                   <span className="min-w-0 flex-1 truncate text-[13px] text-foreground">
                     {m.name}
                   </span>

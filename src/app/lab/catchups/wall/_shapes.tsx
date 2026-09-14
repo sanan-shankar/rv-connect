@@ -37,7 +37,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, m } from "motion/react";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
-import { BirdAvatar } from "@/components/common/bird-avatar";
+import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { LoveButton } from "@/components/common/love-button";
 import {
   LazyImageViewer,
@@ -72,7 +72,7 @@ function FlushBird({
   person,
   size,
 }: {
-  person: { id: string; name: string };
+  person: AvatarUser;
   size: number;
 }) {
   const measure = useCallback(
@@ -168,7 +168,7 @@ function viewerShots(shots: WallShot[]) {
     src: s.src,
     alt: "",
     caption: s.caption,
-    author: { id: s.by.id, name: s.by.name },
+    author: s.by,
     date: null,
   }));
 }

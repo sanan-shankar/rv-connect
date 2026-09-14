@@ -161,7 +161,7 @@ export function SidebarSpecimen({
       <div className="relative mt-auto">
         <div className="flex items-center gap-1.5 rounded-2xl bg-white/[0.07] p-1.5">
           <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-1.5 py-1">
-            <BirdAvatar user={{ id: "sanan-second-look", name: "Sanan Shankar" }} size={34} />
+            <BirdAvatar user={{ photoUrl: null, id: "sanan-second-look", name: "Sanan Shankar" }} size={34} />
             <div className="min-w-0 flex-1">
               <div className="truncate text-[13px] font-semibold leading-none text-[#EBF3EE]">
                 Sanan Shankar

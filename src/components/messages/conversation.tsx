@@ -75,7 +75,7 @@ function MessageRow({
           user={{
             id: message.author?.id,
             name: message.author?.name,
-            photoUrl: message.author?.photoUrl,
+            photoUrl: message.author?.photoUrl ?? null,
             birdOverride: message.author?.birdOverride,
           }}
           size={36}

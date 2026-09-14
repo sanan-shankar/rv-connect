@@ -13,6 +13,8 @@
 
 import { bucketsOf, takenLabel, takenShort } from "@/lib/collection";
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
+import type { AvatarUser } from "@/components/common/bird-avatar";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 export type PhotoData = {
   id: string;
@@ -50,7 +52,7 @@ export type PhotoData = {
   loveCount: number;
   loved: boolean;
   isOwn: boolean;
-  uploader: { id: string; name: string };
+  uploader: AvatarUser & { id: string; name: string };
   createdAt: string;
 };
 
@@ -60,7 +62,7 @@ export function shape(
     caption: string | null; subject: string; era: string;
     approved: boolean; scope: string; uploaderId: string; createdAt: Date;
     photoYear: number | null; photoMonth: number | null; datePrecision: string | null;
-    uploader: { id: string; name: string };
+    uploader: AvatarUser & { id: string; name: string };
     _count: { loves: number }; loves: { id: string }[];
   },
   userId: string
@@ -98,7 +100,7 @@ export function shape(
 }
 
 export const includeFor = (userId: string) => ({
-  uploader: { select: { id: true, name: true } },
+  uploader: { select: IDENTITY_SELECT },
   _count: { select: { loves: true } },
   loves: { where: { userId }, select: { id: true } },
 });

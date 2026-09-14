@@ -257,7 +257,7 @@ function PhotoMount({ profile }: { profile: MockProfile }) {
         style={{ boxShadow: "0 1px 2px rgba(35,36,30,0.06), 0 16px 30px -22px rgba(35,36,30,0.45)" }}
       >
         <BirdAvatar
-          user={{ id: profile.id, name: profile.name, avatarSpecies: profile.avatarSpecies }}
+          user={{ photoUrl: null, id: profile.id, name: profile.name, avatarSpecies: profile.avatarSpecies }}
           size="lg"
           ring
         />

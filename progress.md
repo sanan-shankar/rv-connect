@@ -16,6 +16,7 @@ if the month is new), and add one line here, at the top of that month's list.
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
 - 2026-09-14 (header) — header controls centre on the title's capitals (were 4.5px low everywhere), and the unfolded plus drops to 36px
+- 2026-09-14 (avatars) — a member's photograph can no longer fall back to their bird: `photoUrl` is required on every avatar
 - 2026-09-14 (search) — the search glass gets its circle back, and opens as a pill at 0.6s both ways
 - 2026-09-14 (later) — the bird is the button: New post ships as the member's own bird with a plus, and the composer pill above the feed is gone
 - 2026-09-14 — the white ring goes: the unfolded circle hovers like every canopy CTA

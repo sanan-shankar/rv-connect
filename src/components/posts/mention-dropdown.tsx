@@ -7,7 +7,7 @@ import { batchLine } from "@/lib/utils";
 interface MentionUser {
   id: string;
   name: string;
-  photoUrl?: string | null;
+  photoUrl: string | null;
   birdOverride?: string | null;
   /* Nullable, because the COLUMN is. Typing it `number` did not make it one:
      it just stopped TypeScript from noticing that the line below fed `null`

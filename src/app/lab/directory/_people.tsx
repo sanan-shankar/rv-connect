@@ -40,7 +40,7 @@ function cityLine(m: Member) {
 export function ShippedCard({ m }: { m: Member }) {
   return (
     <div className="card-elevated flex h-full flex-col items-center rounded-[var(--radius)] border border-border bg-card p-5 text-center">
-      <BirdAvatar user={{ id: m.id, name: m.name }} size="md" />
+      <BirdAvatar user={{ photoUrl: null, id: m.id, name: m.name }} size="md" />
       <h3 className="mt-3 font-semibold tracking-tight text-foreground">{m.name}</h3>
       <p className="mt-0.5 text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">
         {memberLine(m)}
@@ -68,7 +68,7 @@ export function ShippedCard({ m }: { m: Member }) {
 export function PersonRow({ m, showCity = true }: { m: Member; showCity?: boolean }) {
   return (
     <div className="state-layer flex items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2">
-      <BirdAvatar user={{ id: m.id, name: m.name }} size="sm" />
+      <BirdAvatar user={{ photoUrl: null, id: m.id, name: m.name }} size="sm" />
       <div className="min-w-0 flex-1">
         <div className="truncate text-[14.5px] font-semibold leading-tight text-foreground">
           {m.name}
@@ -94,7 +94,7 @@ export function PersonRow({ m, showCity = true }: { m: Member; showCity?: boolea
 export function CompactCard({ m }: { m: Member }) {
   return (
     <div className="card-elevated state-layer flex items-center gap-3 rounded-[var(--radius)] border border-border bg-card p-3.5 pt-2.5">
-      <BirdAvatar user={{ id: m.id, name: m.name }} size="sm" />
+      <BirdAvatar user={{ photoUrl: null, id: m.id, name: m.name }} size="sm" />
       <div className="min-w-0 flex-1">
         <div className="truncate text-[14.5px] font-semibold leading-tight text-foreground">
           {m.name}
@@ -119,7 +119,7 @@ export function CompactCard({ m }: { m: Member }) {
 export function RuledRow({ m }: { m: Member }) {
   return (
     <div className="state-layer flex items-center gap-3 border-b border-border/60 px-2 py-2.5 last:border-0">
-      <BirdAvatar user={{ id: m.id, name: m.name }} size="sm" />
+      <BirdAvatar user={{ photoUrl: null, id: m.id, name: m.name }} size="sm" />
       <div className="min-w-0 flex-1">
         <div className="truncate text-[14.5px] font-semibold leading-tight text-foreground">
           {m.name}

@@ -400,7 +400,7 @@ function NextQuestion({ phone }: { phone: boolean }) {
           >
             <div className={phone ? "px-4 pt-4" : "px-5 pt-5"}>
               <div className="flex min-w-0 items-center gap-3">
-                <BirdAvatar user={{ id: a.id, name: a.name }} size={40} />
+                <BirdAvatar user={{ photoUrl: null, id: a.id, name: a.name }} size={40} />
                 <span className="min-w-0 truncate text-[17px] font-medium leading-none text-foreground">
                   {a.name}
                 </span>

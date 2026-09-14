@@ -39,6 +39,7 @@
 export type WallPerson = {
   id: string;
   name: string;
+  photoUrl: string | null;
   batchYear: number;
 };
 
@@ -144,6 +145,7 @@ function personAt(i: number): WallPerson {
   return {
     id: `wall-person-${i}`,
     name,
+    photoUrl: null,
     batchYear: 1971 + ((i * 7) % 52),
   };
 }

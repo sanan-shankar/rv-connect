@@ -26,7 +26,7 @@ import type { ViewerImage } from "@/components/common/image-viewer";
    of the viewer, which is what its SSR portal guard existed for. */
 import { LazyImageViewer as ImageViewer } from "@/components/common/lazy-image-viewer";
 
-const AUTHOR = { id: "preview-uploader", name: "Sanan Shankar" };
+const AUTHOR = { id: "preview-uploader", name: "Sanan Shankar", photoUrl: null };
 
 /* One photograph as the Collection hands it over: the caption runs past two
    lines, it knows where it was taken and what it is filed under, and the

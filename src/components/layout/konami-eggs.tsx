@@ -118,7 +118,7 @@ export function KonamiEggs() {
             delay: i * 0.16,
           }}
         >
-          <BirdAvatar user={{ id, name: "Flush" }} size={30} />
+          <BirdAvatar user={{ photoUrl: null, id, name: "Flush" }} size={30} />
         </m.span>
       ))}
     </div>

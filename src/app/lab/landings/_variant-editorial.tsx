@@ -73,11 +73,11 @@ const ACCENT_RING: Record<Accent, string> = {
 };
 
 const VOUCHED = [
-  { id: "trust-a", name: "Ananya Krishnan" },
-  { id: "trust-b", name: "Rohan Mehta" },
-  { id: "trust-c", name: "Meera Iyer" },
-  { id: "trust-d", name: "Arjun Reddy" },
-  { id: "trust-e", name: "Fatima Sheikh" },
+  { id: "trust-a", name: "Ananya Krishnan", photoUrl: null },
+  { id: "trust-b", name: "Rohan Mehta", photoUrl: null },
+  { id: "trust-c", name: "Meera Iyer", photoUrl: null },
+  { id: "trust-d", name: "Arjun Reddy", photoUrl: null },
+  { id: "trust-e", name: "Fatima Sheikh", photoUrl: null },
 ];
 
 function jumpTo(id: string) {

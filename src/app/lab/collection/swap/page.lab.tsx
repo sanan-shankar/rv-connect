@@ -477,7 +477,7 @@ function Holding({ mark }: { mark: Mark }) {
     <div className="flex h-[132px] items-center" role="status" aria-label="Loading">
       {mark === "bird" && (
         <span className="swap-hop">
-          <BirdAvatar user={{ id: "swap-hoopoe" }} size={32} />
+          <BirdAvatar user={{ photoUrl: null, id: "swap-hoopoe" }} size={32} />
         </span>
       )}
       {mark === "peaks" && (

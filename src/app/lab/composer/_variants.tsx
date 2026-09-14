@@ -46,7 +46,7 @@ import {
 import { SpringPress, SPRINGS, motion, BirdAvatar } from "../_kit";
 import { AnimatePresence } from "motion/react";
 
-const ME = { id: "you", name: "You" };
+const ME = { id: "you", name: "You", photoUrl: null };
 // Resting pill height; the box springs down from exactly this on expand.
 const COLLAPSED_H = 44;
 

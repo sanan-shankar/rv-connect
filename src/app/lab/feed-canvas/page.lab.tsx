@@ -89,7 +89,7 @@ function MemberRow({
 }) {
   return (
     <div className="fc-row">
-      <BirdAvatar user={{ id: seed, name, avatarSpecies: species }} size={size} />
+      <BirdAvatar user={{ photoUrl: null, id: seed, name, avatarSpecies: species }} size={size} />
       <div className="fc-row-txt">
         <span className="fc-row-name">{name}</span>
         <span className="fc-row-meta">{meta}</span>
@@ -225,7 +225,7 @@ function ModBatchActivity() {
       <div className="fc-facepile">
         {["ba1", "ba2", "ba3", "ba4"].map((s, i) => (
           <span key={s} className="fc-face" style={{ zIndex: 4 - i }}>
-            <BirdAvatar user={{ id: s, name: s, avatarSpecies: (i * 7 + 3) % 50 }} size={26} ring />
+            <BirdAvatar user={{ photoUrl: null, id: s, name: s, avatarSpecies: (i * 7 + 3) % 50 }} size={26} ring />
           </span>
         ))}
         <span className="fc-face-more">+5</span>
@@ -239,7 +239,7 @@ function ModBirdOfWeek() {
     <RailCard label="Bird of the week">
       <div className="fc-bow">
         <div className="fc-bow-disc">
-          <BirdAvatar user={{ id: "bow-roller-9214", name: "Indian roller", avatarSpecies: 3 }} size={72} />
+          <BirdAvatar user={{ photoUrl: null, id: "bow-roller-9214", name: "Indian roller", avatarSpecies: 3 }} size={72} />
         </div>
         <div className="fc-bow-txt">
           <p className="fc-bow-name">Indian roller</p>
@@ -378,7 +378,7 @@ function TopStrip({ children, action = "post", cluster = true }: { children: Rea
           </div>
         </div>
         <div className="fc-strip-composer">
-          <BirdAvatar user={{ id: "me-sanan", name: "Sanan" }} size={34} />
+          <BirdAvatar user={{ photoUrl: null, id: "me-sanan", name: "Sanan" }} size={34} />
           <span className="fc-strip-composer-ph">Share a memory, a sighting, or a note for the valley</span>
         </div>
       </div>

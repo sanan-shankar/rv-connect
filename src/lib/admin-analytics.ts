@@ -683,8 +683,8 @@ export async function loadFaces() {
        * commented on, and who have never been messaged. Nobody has responded to
        * them. These are the people who quietly leave, and the owner can go and
        * say hello. */
-      prisma.$queryRaw<{ id: string; name: string; batchYear: number | null }[]>`
-        SELECT u.id, u."name", u."batchYear"
+      prisma.$queryRaw<{ id: string; name: string; photoUrl: string | null; birdOverride: string | null; batchYear: number | null }[]>`
+        SELECT u.id, u."name", u."photoUrl", u."birdOverride", u."batchYear"
         FROM "User" u
         WHERE u."isBlocked" = false
           AND NOT EXISTS (
