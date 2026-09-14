@@ -485,9 +485,9 @@ analytics counter, has no foreign key on `targetId`, and is written for unpublis
 
 Each of these was checked in the code on 2026-09-14.
 
-- **"Give everyone longer" offers 3 days, a week and two weeks; `extendDeadline` accepts 1, 2, 4 or 7.**
-  So Three days and Two weeks are refused with "Pick 1, 2, 4 days or a week." and only A week works.
-  A live fault, not fixed in this pass.
+- **"Give everyone longer" offered 3 days, a week and two weeks; `extendDeadline` accepted 1, 2, 4 or 7.**
+  So Three days and Two weeks were refused and only A week worked. **Fixed 2026-09-14**: the server
+  accepts exactly 3, 7 and 14, pinned against the surface by `extend-days-rule.test.mjs`.
 - **`catchupSurfaceTitle` still appends " catch-up"** ("In the loop catch-up") on the reader's tab
   title and other surfaces. `spec.md` §6 lists the suffix as deleted (brief ¶25).
 - **Rhythm has three cadences**; the drawn settings room offered four. Adding the other two is a

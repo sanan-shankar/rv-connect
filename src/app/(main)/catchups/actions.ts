@@ -125,8 +125,12 @@ const cadenceSchema = z.enum(CADENCE_VALUES);
  */
 const promptCategorySchema = z.enum(PROMPT_CATEGORIES).nullable();
 const reminderModeSchema = z.enum(REMINDER_MODE_VALUES);
-/** How far a Keeper may push a deadline in one go (owner, 2026-08-05). */
-const extendDaysSchema = z.union([z.literal(1), z.literal(2), z.literal(4), z.literal(7)]);
+/** How far a Keeper may push a deadline in one go. The three the settings
+ *  surface offers, and only those: his "why are we only giving a week more
+ *  instead of more options?" moved the choices to three days, a week and two
+ *  weeks, and this list stayed at 1, 2, 4 and 7, so two of the three buttons
+ *  were refused. extend-days-rule.test.mjs keeps the two in step. */
+const extendDaysSchema = z.union([z.literal(3), z.literal(7), z.literal(14)]);
 
 /** People-first creation: no pre-existing group needed, see createCatchupWithPeople. */
 const createCatchupWithPeopleSchema = z.object({
@@ -1404,7 +1408,7 @@ export async function extendDeadline(editionId: string, days: number) {
     if (!session?.user?.id) return { error: "Not authenticated" };
     if (typeof editionId !== "string" || !editionId) return { error: "Invalid request." };
     const parsedDays = extendDaysSchema.safeParse(days);
-    if (!parsedDays.success) return { error: "Pick 1, 2, 4 days or a week." };
+    if (!parsedDays.success) return { error: "Pick three days, a week or two weeks." };
 
     const scope = await loadKeeperEdition(editionId, session.user.id, {
       notKeeper: "Only a Keeper can extend the deadline.",

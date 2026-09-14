@@ -3635,7 +3635,7 @@ inside phase 8; the settings surface, comments and link previews are live in cod
 Catch-ups are gone from production (S18). **Nothing has been pushed** (`git log origin/main..HEAD`
 for the count), and a push is his.
 
-**A live fault to fix first, before phase 12**: the extend chooser offers 3/7/14 days and `extendDeadline` accepts 1/2/4/7 (`docs/spec/catchups.md` §15).
+**FIXED 2026-09-14, before phase 12**: the extend chooser offered 3/7/14 days and `extendDeadline` accepted 1/2/4/7, so two of the three were refused. The server now accepts exactly 3/7/14, and `extend-days-rule.test.mjs` fails if the surface and the server drift apart again.
 
 **Still his**: the push that lets phase 11's column drops run; the orphaned "Batch of 2024"
 snapshot group (delete it or not; not covered by his answer to 28); cutting
