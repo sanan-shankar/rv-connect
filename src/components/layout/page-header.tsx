@@ -155,11 +155,12 @@ export function PageHeader({
         <div className="-mt-[3.5px] flex flex-nowrap items-center justify-end gap-2.5 shrink-0">
           {search && <div className="hidden sm:block">{search}</div>}
           {unreadCount !== undefined && (
-            // This is the preferred notifications entry point at every width,
-            // including mobile. Sidebar suppresses its own mobile top-bar
-            // bell on the routes that render this one (see sidebar.tsx) so
-            // there is never a duplicate.
-            <NotificationBell initialUnreadCount={unreadCount} variant="header" />
+            // From md up only. Below md the bell is the top bar's, on every
+            // route including this one (owner, 2026-09-14: "make it up top
+            // even in feed why be different there").
+            <div className="hidden md:block">
+              <NotificationBell initialUnreadCount={unreadCount} variant="header" />
+            </div>
           )}
           {actions}
           {children}

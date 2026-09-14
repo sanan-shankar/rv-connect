@@ -795,19 +795,17 @@ export function Sidebar({
         ) : (
           <Brand className="min-w-0 flex-1" />
         )}
-        {/* /feed renders its own PageHeader bell at every width (the
-            preferred entry point), so skip this one there to avoid a
-            duplicate. Every other route has no header bell of its own, so
-            this stays the sole mobile notifications entry point for them. */}
-        {!isActive(pathname, "/feed") && (
-          // Idle ink, not full-strength: the bell and the hamburger are the two
-          // icon controls flanking the wordmark and they should rest at the same
-          // weight. The bell lifts to --sidebar-foreground on hover (see
-          // notification-bell.tsx), exactly as the hamburger does.
-          <div className="flex shrink-0 items-center text-sidebar-foreground-idle">
-            <NotificationBell initialUnreadCount={unreadCount} />
-          </div>
-        )}
+        {/* The one mobile notifications entry point, on every route. The
+            feed's PageHeader bell used to stand in for it there; it is now
+            md-up only (owner, 2026-09-14), so a phone finds the bell in the
+            same place wherever it is.
+            Idle ink, not full-strength: the bell and the hamburger are the two
+            icon controls flanking the wordmark and they should rest at the same
+            weight. The bell lifts to --sidebar-foreground on hover (see
+            notification-bell.tsx), exactly as the hamburger does. */}
+        <div className="flex shrink-0 items-center text-sidebar-foreground-idle">
+          <NotificationBell initialUnreadCount={unreadCount} />
+        </div>
       </header>
     </>
   );
