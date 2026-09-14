@@ -6874,3 +6874,10 @@ corners hit-testing to itself. `verified-mark.test.mjs` pins the portal.
 Swept for the same shape elsewhere (absolute labels anchored `*-full` outside their parent, and
 hover-revealed labels): the signup info bubble has no clipping ancestor and the carousel's
 `top-full` is decorative dots, so neither was cut.
+
+
+## 2026-09-15 (feed) — the verified leaf is gone from feed posts; the directory and profiles keep it
+
+Owner, straight after the clipping fix: "honestly ditch the verification leaves on feed". The post
+card's byline is the name alone now. `VerifiedMark` is untouched and still stands beside names in
+directory cards and profile headers, where the portalled label from the entry above still applies.

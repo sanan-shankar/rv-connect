@@ -35,7 +35,6 @@ import {
 } from "@/components/common/lazy-image-viewer";
 import { PhotoOpener } from "@/components/common/photo-opener";
 import { PersonName } from "@/components/common/person-name";
-import { VerifiedMark } from "@/components/common/verified-mark";
 import { LoveButton } from "@/components/common/love-button";
 import { BookmarkButton } from "@/components/common/bookmark-button";
 import { ShareButton } from "@/components/common/share-button";
@@ -392,12 +391,9 @@ export function PostCard({
             user={post.author}
             avatarHref={`/profile/${post.author.id}`}
             avatarLabel={post.author.name}
-            name={
-              <>
-                <PersonName user={post.author} className="text-sm leading-none" />
-                <VerifiedMark user={post.author} />
-              </>
-            }
+            /* No verified leaf on a post (owner, 2026-09-15: "ditch the
+               verification leaves on feed"). The directory and profiles keep it. */
+            name={<PersonName user={post.author} className="text-sm leading-none" />}
             nameClassName="flex items-center gap-1"
             meta={
               /* MetaDots drops the dot when a segment is empty (the Anonymous
