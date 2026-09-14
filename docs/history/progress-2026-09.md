@@ -6843,3 +6843,15 @@ has the page model, the grammar, type and image at print size (a 1920px photogra
 full page on screen and print-sharp at the text width; keep 1920), the failure list with a bypass
 each, the panel, the spike, M2 to M5 as phases, and owner questions 39 to 44.
 
+
+## 2026-09-14 (catch-ups, close) — the campaign run that took phases 10 to 14 and M1 closes, with 17 questions for him
+
+One `/campaign` run, one worker a unit, each verified by the orchestrator rather than taken on
+report: its own check and visual run, the diff of the riskiest part, the screenshots read, and the
+database counted where rows moved. Phases 10 and 11's safe half and the extend fix went out in his
+release the same afternoon. Phases 12 to 14 are built underneath and drawn in the lab and stop for
+his pick; M1 designed the magazine. The closing report and questions 39 to 55 are in the handover.
+
+Two things the verification caught that the workers had not: a link card printing a site's title
+twice, fixed; and a handover prompt that claimed his answer authorised deleting the leftover
+"Batch of 2024" group when it did not, corrected before anything ran and asked as question 45.
