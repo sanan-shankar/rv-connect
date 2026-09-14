@@ -41,6 +41,15 @@ import type {
 import { batchLine, parseJsonArray } from "@/lib/utils";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 import { VISIBLE_COMMENT } from "@/lib/posts";
+import {
+  cardOf,
+  findLinks,
+  needsResolve,
+  stripReplacedLinks,
+  type LinkCardView,
+  type PreviewRow,
+} from "@/lib/link-preview-core";
+import { scheduleLinkPreviews } from "@/lib/link-preview";
 
 /**
  * One member's answer, as both readers receive it: the stored row plus the
@@ -108,9 +117,8 @@ export async function loadPublishedEditionView(
               promptId: true,
               body: true,
               images: true,
-              songUrl: true,
-              songTitle: true,
-              songArt: true,
+              /* No song columns: they are null on every row and die in phase
+                 11. A song is a link pasted into `body` now. */
               createdAt: true,
               author: {
                 /* No `verifyState`, deliberately, and the same omission the
@@ -144,9 +152,37 @@ export async function loadPublishedEditionView(
      answer: shape, focal point, and the smear that holds its place. Without
      these a single Catch-up photograph was letterboxed to 21:9 and a portrait
      of a group of friends came out as a row of shoulders. */
-  const photos = await photoFactsFor(
-    edition.prompts.flatMap((p) => p.entries.flatMap((e) => parseJsonArray(e.images)))
-  );
+  /* PASTED LINKS (build phase 10, spec 3.8), read in the same round trip as
+     the photographs. Only READ here: a link with no preview row, or one whose
+     failed resolve is more than a day old, is handed to `after()` and prints
+     as an ordinary link on this view. A render never waits on somebody else's
+     website -- link-preview.ts says why, and when the other trigger fires. */
+  const pasted = [
+    ...new Set(
+      edition.prompts.flatMap((p) =>
+        p.entries.flatMap((e) => findLinks(e.body).flatMap((f) => (f.url ? [f.url] : [])))
+      )
+    ),
+  ];
+  const [photos, previewRows] = await Promise.all([
+    photoFactsFor(edition.prompts.flatMap((p) => p.entries.flatMap((e) => parseJsonArray(e.images)))),
+    pasted.length
+      ? prisma.linkPreview.findMany({
+          where: { url: { in: pasted } },
+          select: { url: true, kind: true, title: true, subtitle: true, thumbUrl: true, failedAt: true },
+        })
+      : Promise.resolve([] as PreviewRow[]),
+  ]);
+  const previews = new Map<string, PreviewRow>(previewRows.map((r) => [r.url, r]));
+  const now = new Date();
+  scheduleLinkPreviews(pasted.filter((url) => needsResolve(previews.get(url), now)));
+  /* Every link in the Edition that has a card, decided once. */
+  const cards = new Map<string, LinkCardView>();
+  for (const row of previewRows) {
+    const card = cardOf(row);
+    if (card) cards.set(row.url, card);
+  }
+  const carded = new Set(cards.keys());
 
   const sections = edition.prompts.map((p) => {
     /* Not `p.showAsker || keeper`, which is what the permalink said until
@@ -187,28 +223,20 @@ export async function loadPublishedEditionView(
             : { kind: "anonymous" },
     };
     const entries: EditionEntry[] = p.entries.map((e) => {
-      // The songUrl/songTitle/songArt trio is Spotify-shaped: `songTitle` is
-      // only ever written by the oembed resolver, so it carries rows from the
-      // old per-question "paste a Spotify link" field. A song is worth
-      // printing as soon as we have a name for it, hence the fall back to the
-      // raw URL when resolution failed soft. `url: ""` is the signal to
-      // SpotifyCard to render an unlinked row.
-      //
-      // The NEW `songs` prompt kind does not write here at all: it saves the
-      // typed song name in `body` (see the TODO in answer/song-attachment.tsx
-      // naming the `CatchupEntry.songs Json?` column that would lift it to
-      // five). AnswerCard reads `kind` and prints that body as a song row.
-      const songTitle = e.songTitle?.trim() || e.songUrl?.trim() || null;
+      /* THE FAIL-SOFT RULE (F38, F39): a link leaves the body only when a card
+         took its place. Every other link stays in the text, and an answer
+         that is nothing but an unresolved link keeps all of itself. */
+      const stripped = stripReplacedLinks(e.body, carded);
       const images = parseJsonArray(e.images);
       return {
         id: e.id,
         promptId: e.promptId,
         author: toPersonRef(e.author),
         authorMeta: batchLine(e.author),
-        body: e.body,
+        body: stripped.cards.length ? stripped.body || null : e.body,
         images,
         photos: images.map((url) => photos.get(url) ?? null),
-        song: songTitle ? { url: e.songUrl ?? "", title: songTitle, art: e.songArt } : null,
+        links: stripped.cards.map((url) => cards.get(url)!),
         loveCount: e._count.loves,
         lovedByViewer: e.loves.length > 0,
         commentCount: e._count.comments,

@@ -1,3 +1,31 @@
+## 2026-09-14 (catch-ups) — a pasted link becomes a card: songs, videos, and any other page
+
+Build phase 10 of the Catch-ups rework (spec 3.8), widened by the owner the same morning: *"can't
+you show preview for any link even if they're not songs?"*
+
+**What shipped.** A `LinkPreview` table keyed by the normalised url (additive migration
+`2026-09-14-link-previews.sql`, applied to production and the demo: 0 rows, RLS on, export re-run
+first). Any http(s) link in a Catch-up answer's body is found and filed: Spotify and YouTube keep
+the song card (Spotify with no invented artist, YouTube with its channel), and any other page gets a
+link card from its own Open Graph / Twitter / `<title>` tags. The body loses a link only when a card
+replaced it; everything else prints as a real underlined link (`renderRichText`'s opt-in
+`linkRanges`, answers only, the feed untouched).
+
+**Two decisions argued in code.** Resolution never happens inside a render: `after()` on save
+(`submitEntry`) and lazily on read for links with no row or a day-old failure. And preview images are
+RE-HOSTED to `images.rishivalley.space/link-previews/`, not hotlinked: img-src names hosts by test
+(C-134), and a hotlinked image is a read receipt to a member-chosen host. `next.config.ts` unchanged.
+The fetcher (`link-preview.ts`) refuses private/loopback/link-local/metadata addresses at the
+socket's own DNS lookup, follows three redirects by hand, caps five seconds and decompressed bytes,
+and never runs on the demo.
+
+**Measured.** All seven live links (5 Spotify, 2 YouTube) resolved on the first page view, every one
+with an image; the Recon answer's link is a card. A generic page (rishivalley.org) resolved with
+title, site name and image; a dead `.invalid` host was recorded failed and stayed a plain link with
+its sentence intact (a temporary edit to the owner's Recon answer, restored byte for byte). No
+horizontal overflow at 390 or 1440 on either Edition; cards 316px wide at 390, 742 at 1440.
+`npm run check` green (122 tests), `npm run visual` 25/25, no baseline moved.
+
 ## 2026-09-12 (later) — a year of the Collection stops going blank when a photograph joins or leaves it
 
 The owner: "when I add or remove photos, the photos from that year disappear until I reload the

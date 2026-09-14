@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-14 (catch-ups) — a pasted link becomes a card: songs, videos, and any other page
 - 2026-09-14 (mobile header) — the directory's headcount stays beside its toggle on a phone, and the feed's bell moves up to the top bar like every other page
 - 2026-09-14 (header) — header controls centre on the title's capitals, and the unfolded plus is 36px
 - 2026-09-14 (avatars) — a member's photograph can no longer fall back to their bird: `photoUrl` is required on every avatar

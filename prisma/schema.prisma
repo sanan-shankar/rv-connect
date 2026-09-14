@@ -1200,9 +1200,12 @@ model CatchupEntry {
   authorId  String
   body      String?
   images    String?                          // JSON array of R2 urls (reuse /api/upload)
+  // DEAD since build phase 10: null on every row, and nothing reads them. A
+  // pasted link in `body` becomes a card through `LinkPreview` instead. Dropped
+  // in phase 11, after the build that stopped reading them has deployed.
   songUrl   String?
   songTitle String?
-  songArt   String?                          // Spotify oembed thumbnail_url
+  songArt   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1214,6 +1217,21 @@ model CatchupEntry {
 
   @@unique([promptId, authorId])
   @@index([editionId])
+}
+
+// A pasted link's preview, keyed by the link (build phase 10, catchups-rework
+// spec 3.8; prisma/migrations-manual/2026-09-14-link-previews.sql). No user
+// column and no relation: it describes a public web page, is shared by every
+// answer that pastes the same link, and a missing row is not an error -- the
+// link prints as an ordinary link. Written only by src/lib/link-preview.ts.
+model LinkPreview {
+  url       String    @id // normalised by link-preview-core.ts
+  kind      String // "spotify" | "youtube" | "link"
+  title     String? // null on a failed resolve
+  subtitle  String? // a YouTube channel or a page's site name; Spotify gives no artist (F33)
+  thumbUrl  String? // re-hosted in our own bucket where possible
+  failedAt  DateTime? // fail-soft: retried at most once a day
+  fetchedAt DateTime  @default(now())
 }
 
 model CatchupEntryLove {

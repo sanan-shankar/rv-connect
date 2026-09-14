@@ -42,7 +42,9 @@
  * ------------------------------------------------------------------ */
 
 export type SketchMedia = {
-  platform: "spotify" | "youtube";
+  /* "link" arrives only from the real loader (build phase 10): any other page
+     it resolved. The room's own finder below still knows the two hosts. */
+  platform: "spotify" | "youtube" | "link";
   url: string;
   title: string;
   by: string | null;
