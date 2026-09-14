@@ -6655,3 +6655,13 @@ notifications, the read mark and the nightly self-heals. Reasoning stays in
 Reading the code found one live fault, recorded rather than fixed: "Give everyone longer" offers
 3, 7 and 14 days, and `extendDeadline` accepts only 1, 2, 4 or 7. Section 15 lists it with eleven
 smaller disagreements, among them the guide chapter still describing the deleted 24-hour hold.
+
+
+## 2026-09-14 (catch-ups, longer) — Give everyone longer stops refusing three days and two weeks
+
+Found by the phase 11 spec rewrite, which read every action against its caller. His "why are we
+only giving a week more instead of more options?" gave the settings surface three days, a week and
+two weeks, and `extendDaysSchema` in `catchups/actions.ts` stayed at 1, 2, 4 and 7, so two of the
+three choices came back "Pick 1, 2, 4 days or a week." The server now accepts exactly 3, 7 and 14.
+`extend-days-rule.test.mjs` reads both files and fails if they drift apart again. The surface itself
+is unchanged (another session has it open).
