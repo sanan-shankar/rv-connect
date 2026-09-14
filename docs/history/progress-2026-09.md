@@ -6613,3 +6613,14 @@ Found verifying phase 10 at 1440: rishivalley.org gives the same words as its `o
 `og:title`, so its card read "RISHI VALLEY EDUCATION CENTRE" on both lines. `cardOf` now drops a
 subtitle that only repeats the title (spacing and case ignored), and the card's second line falls
 back to the address, which is what that line is for. Pinned in `link-preview-core.test.mjs`.
+
+
+## 2026-09-14 (catch-ups, library) — a drafted question library of 64 and a time capsule set of 10, for him to cut
+
+His answer to question 36 was the default: "I draft, you cut." `docs/planning/catchups-rework/library-draft.md`
+holds 64 everyday questions (16 already in `CATCHUP_PROMPT_SETS`, 6 more from his live Edition, 42
+new) in the mix `features.md` §2 took from his own hearts, plus 10 for a sealed Edition. It is
+written to both of his rulings: the July review ("we don't need too many questions in the library",
+every question answerable in a sentence or two, nothing about what the Valley taught you or what you
+miss) and September's longer library, which nobody meets the length of because a Keeper sees six at
+a time. Nothing reaches members; the code is unchanged.
