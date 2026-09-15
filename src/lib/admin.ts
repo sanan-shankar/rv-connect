@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
+import { overdueEditionWhere } from "@/lib/catchups-core";
 
 /* ------------------------------------------------------------------ *
  *  Server-side furniture shared by every admin route.
@@ -219,19 +220,6 @@ interface WorklistCounts {
   /** Not a queue -- the headcount the rail prints beside them. It rides here
    *  because it comes off `User`, which the two verify queues already scan. */
   people: number;
-}
-
-/** Anything still overdue after the lazy advance has had its chance. */
-export function overdueEditionWhere(now: Date) {
-  return {
-    OR: [
-      { status: "collecting", questionsCloseAt: { lt: now } },
-      { status: "answering", answersCloseAt: { lt: now } },
-      // A time capsule past its opening day that has not opened is the one
-      // failure nobody else would notice for a year (build phase 14).
-      { status: "sealed", publishAt: { lt: now } },
-    ],
-  };
 }
 
 /**

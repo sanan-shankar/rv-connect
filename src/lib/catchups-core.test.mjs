@@ -38,6 +38,7 @@ import {
   deadlineIn,
   snapToDeadlineHour,
   catchupDisplayName,
+  overdueEditionWhere,
   catchupSurfaceTitle,
   isEffectiveKeeper,
   mayChangeCatchupPicture,
@@ -1012,4 +1013,21 @@ test("C-182: a photo removed mid-upload is not resurrected when the upload lands
     /imagesRef\.current = images;/,
     "nothing keeps the ref in step with the prop"
   );
+});
+
+test("the admin's past-its-date list leaves out a paused Catch-up and a dormant Edition", () => {
+  /* Owner, 2026-09-15, about a paused Catch-up on his worklist: "it's paused.
+     let it be paused wtf should I do". A frozen clock and an Edition nobody
+     asked anything in are both working as designed, and neither has a fix. */
+  const now = new Date("2026-09-15T12:00:00Z");
+  const [collecting, answering, sealed] = overdueEditionWhere(now).OR;
+  assert.deepEqual(collecting.catchup, { status: "active" });
+  assert.deepEqual(collecting.prompts, { some: {} });
+  assert.deepEqual(answering.catchup, { status: "active" });
+  // A time capsule opens on its date whatever the Catch-up is doing.
+  assert.equal(sealed.catchup, undefined);
+  for (const clause of [collecting, answering, sealed]) {
+    const deadline = clause.questionsCloseAt ?? clause.answersCloseAt ?? clause.publishAt;
+    assert.equal(deadline.lt, now);
+  }
 });

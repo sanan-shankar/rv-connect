@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-15 (catchups) — a paused Catch-up or a dormant Edition no longer shows as past its date
 - 2026-09-15 (collection) — a photograph's own date is offered the moment it lands, and only when the file can be trusted
 - 2026-09-15 (sheets) — every panel that rises from the bottom is one sheet: title left, round X right, no lines, swipe down closes it
 - 2026-09-15 (feed) — the verified leaf is gone from feed posts; the directory and profiles keep it

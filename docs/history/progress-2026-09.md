@@ -6932,3 +6932,23 @@ read February 2016 and February 2012 as the carousel moved, Use it filled year a
 strip holds 48px before and after the press (it had dropped 12px). `taken-date.test.mjs` pins 17
 cases; two `exif-date` tests now pin that a scan or save date alone is kept in the file but not
 offered.
+
+
+## 2026-09-15 (catchups) — a paused Catch-up or a dormant Edition no longer shows as past its date
+
+Owner, about his admin worklist: "it shows something pending from me in a catch up in admin. wtf is
+even required of me. it's paused. let it be paused". And the same thing earlier with the 2024
+Catch-up "when no one had answered".
+
+Two states tripped the "past its date" rule and neither had a fix. A paused or ended Catch-up's
+clock is frozen by `advanceEdition`, so its deadline stays behind it for as long as it is held:
+"in the loop" was paused on 5 September with a question deadline of 8 September. And an Edition
+whose question window closes empty twice goes dormant until somebody asks something: Batch of
+2023 is one extension in with no questions and would have joined the list tonight.
+
+`overdueEditionWhere` moved from lib/admin.ts into catchups-core.ts, where a test can reach it, and
+now asks for an active Catch-up and at least one question before calling collecting or answering
+overdue. A sealed time capsule still shows whatever the Catch-up is doing. Checked in the admin
+room: "Past its date" is empty and "in the loop" sits under Everything else with its Paused chip;
+the Overview no longer lists it.
+
