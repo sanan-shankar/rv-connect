@@ -315,7 +315,7 @@ function WhenField({
                 meta.month ? "font-medium text-foreground" : "text-muted-foreground"
               )}
             >
-              {meta.month || "Month"}
+              {meta.month || "Choose"}
               <CaretDown size={11} weight="bold" aria-hidden />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="max-h-64 w-auto min-w-36 overflow-y-auto">
@@ -341,6 +341,26 @@ function WhenField({
         </div>
       </div>
 
+      {/* TWO LINES, TWO COLUMNS. The month used to sit alone on the year's
+          line under a label that was only the year's, so it read as low
+          (owner, 2026-09-15: "it looks weirdly low"); centring it on the whole
+          row lined it up with nothing ("now the month isn't aligned with any
+          other content"). So it gets its own label on the label's line and
+          its value on the year's line, and every piece of the box shares one
+          of the two. Same float pose as the year's label, mirrored to the
+          right edge; it comes and goes with the month. aria-hidden, because
+          the trigger already names itself. */}
+      <span
+        aria-hidden
+        className={cn(
+          FLOAT_LABEL_BASE,
+          FLOAT_LABEL_UP,
+          "left-auto right-4 origin-right transition-[opacity,visibility,transform]",
+          exact ? "visible opacity-100" : "invisible opacity-0"
+        )}
+      >
+        Month
+      </span>
       <label
         htmlFor={id}
         className={cn(FLOAT_LABEL_BASE, active ? FLOAT_LABEL_UP : FLOAT_LABEL_REST)}
