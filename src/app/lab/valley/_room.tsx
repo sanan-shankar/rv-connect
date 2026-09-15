@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { DelightShell } from "../_kit";
+import { Hills, HILLS_CSS } from "./_hills";
 import { MarkLit } from "./_mark-light";
 import { Seal, SEAL_CSS } from "./_seal";
 import { Terminator, TERMINATOR_CSS, type CityDot } from "./_terminator";
@@ -95,6 +96,16 @@ export function ValleyRoom({ weather, phrase, cities, serverNow, me }: { weather
         <Terminator cities={cities} now={now} />
       </section>
 
+      <section className="vr-block">
+        <h2>The hills, as they are</h2>
+        <p className="vr-copy">
+          The ground itself, from public elevation data: a contour map that stands up into relief, lit by this minute’s sun. Drag it. The full room has the hour dial and the view from the campus.
+        </p>
+        <div className="vr-hills">
+          <Hills weather={weather} serverNow={serverNow} compact />
+        </div>
+      </section>
+
       <section className="vr-doors">
         <Link href="/lab/valley/hills" className="vr-door">
           <h3>The hills, as they are</h3>
@@ -129,6 +140,8 @@ export function ValleyRoom({ weather, phrase, cities, serverNow, me }: { weather
 const CSS = `
 ${TERMINATOR_CSS}
 ${SEAL_CSS}
+${HILLS_CSS}
+.vr-hills { height:min(62vh, 560px); min-height:380px; }
 .vr-now { display:grid; gap:6px; margin:6px 0 30px; }
 .vr-clock { display:flex; align-items:baseline; gap:10px; }
 .vr-clock b { font-family:var(--font-display),Georgia,serif; font-size:44px; line-height:1; letter-spacing:-.015em; }

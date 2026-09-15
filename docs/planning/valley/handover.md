@@ -158,10 +158,12 @@ assembling from dots on every feed open, *"i'd get sick of it after three times"
 | Screenshots, both viewports, two rounds | DONE | twelve shots read, two bugs found and fixed |
 | `npm run check` green | DONE | 129 tests |
 | Progress entry and commit | DONE | 2026-09-16 |
-| Round two: the archive wall | TODO | needs the R2 atlas script; see "Considered and not taken" |
+| Round two, same night | DONE | the live hills embedded on the overview (compact: no dial, no wheel capture so the page keeps scrolling), the sun drawn as a disc in the sky under the canvas so a ridge can stand in front of it, a north needle while orbiting |
+| Round three: the archive wall | TODO | needs the R2 atlas script; see "Considered and not taken" |
 
 ## Log
 
+- 2026-09-16, 00:50. Round two: the overview opens on the live hills, the sun is in the sky, north is marked. Shot again at both viewports. The throwaway shot runner used all night is `/tmp/rv-valley-shots.mjs` (not in the repo; `node /tmp/rv-valley-shots.mjs <name-regex>`).
 - 2026-09-16, 00:40. All four pieces built and shot; two bugs found by the shots (unplaced late labels, the dead context after React's double mount) and one of mine (a duplicate `press`) that took the dev server down for three minutes. Committed.
 - 2026-09-16, 00:20, the opening session (Fable). Read obys (`CLAUDE.md`, `TASTE.md`, the
   verbatim reviews, the particle, zoom, plant and anneal rooms), this repo's design system,
