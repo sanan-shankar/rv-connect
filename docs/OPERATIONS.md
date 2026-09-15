@@ -333,8 +333,11 @@ email, city or phone. Enough to answer "which batch uses the map", nothing more.
 session replay, and PostHog's error tracking — Sentry does that better and running both
 means every error files twice.
 
-**Own traffic:** the admin is tagged `isOwner: true` rather than opted out. Hide it project-
-wide from Settings → Project → *Filter out internal users* if the numbers start looking odd.
+**Own traffic:** admins are tagged `isOwner: true`. The owner's own account and the Jerry
+Maguire test account are opted out of capture entirely (`src/lib/stats-exclusion.ts`), and the
+same two accounts are left out of every activity number in `/admin/analytics`. The database
+side records visits, searches and views only on the production deployment; `PRESENCE_IN_DEV=1`
+turns that back on locally when the recording itself needs proving.
 
 **Verifying a change locally:** `NEXT_PUBLIC_POSTHOG_DEV=1`, otherwise dev opts out so
 localhost clicking cannot pollute the funnels.

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { IDENTITY_SELECT } from "@/lib/people-select";
+import { statsFilter } from "@/lib/stats-exclusion";
 
 /* ------------------------------------------------------------------ *
  *  Everything /admin/analytics reads.
@@ -336,10 +337,11 @@ export type Presence = {
 export async function loadPresence() {
   const now = Date.now();
   const online = new Date(now - ONLINE_MIN * 60_000);
+  const counted = await statsFilter();
 
   const [live, recent, sessionAgg, breakdowns, returning] = await Promise.all([
     prisma.visit.findMany({
-      where: { endedAt: { gte: online } },
+      where: { endedAt: { gte: online }, ...counted.visit },
       orderBy: { endedAt: "desc" },
       take: 40,
       include: {
@@ -349,7 +351,7 @@ export async function loadPresence() {
       },
     }),
     prisma.visit.findMany({
-      where: { endedAt: { gte: new Date(now - 24 * 3600_000), lt: online } },
+      where: { endedAt: { gte: new Date(now - 24 * 3600_000), lt: online }, ...counted.visit },
       orderBy: { endedAt: "desc" },
       take: 25,
       include: {
@@ -367,7 +369,7 @@ export async function loadPresence() {
              avg("views")                                                AS avg_views,
              count(DISTINCT "userId")::bigint                            AS people
       FROM "Visit"
-      WHERE "startedAt" >= now() - interval '30 days'
+      WHERE "startedAt" >= now() - interval '30 days' AND ${counted.user('"userId"')}
     `,
     loadUsageBreakdowns(),
     /* How many people came back on more than one day. The single best signal
@@ -375,7 +377,7 @@ export async function loadPresence() {
     prisma.$queryRaw<{ n: bigint }[]>`
       SELECT count(*)::bigint AS n FROM (
         SELECT "userId" FROM "Visit"
-        WHERE "startedAt" >= now() - interval '30 days'
+        WHERE "startedAt" >= now() - interval '30 days' AND ${counted.user('"userId"')}
         -- The valley's day, not UTC's; see the loyalty query below (Low 46).
         GROUP BY "userId" HAVING count(DISTINCT date_trunc('day', ("startedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata')) > 1
       ) t
@@ -426,24 +428,25 @@ export async function loadPresence() {
  */
 export async function loadUsageBreakdowns() {
   const since = new Date(Date.now() - 30 * 86_400_000);
+  const counted = await statsFilter();
 
   const [byDevice, byOs, byPath] = await Promise.all([
     prisma.visit.groupBy({
       by: ["device"],
       _count: { _all: true },
-      where: { startedAt: { gte: since } },
+      where: { ...counted.visit, startedAt: { gte: since } },
       orderBy: { _count: { device: "desc" } },
     }),
     prisma.visit.groupBy({
       by: ["os"],
       _count: { _all: true },
-      where: { startedAt: { gte: since }, os: { not: null } },
+      where: { ...counted.visit, startedAt: { gte: since }, os: { not: null } },
       orderBy: { _count: { os: "desc" } },
     }),
     prisma.visit.groupBy({
       by: ["lastPath"],
       _count: { _all: true },
-      where: { startedAt: { gte: since }, lastPath: { not: null } },
+      where: { ...counted.visit, startedAt: { gte: since }, lastPath: { not: null } },
       orderBy: { _count: { lastPath: "desc" } },
       take: 10,
     }),
@@ -462,19 +465,20 @@ export async function loadUsageBreakdowns() {
 
 export async function loadSearches() {
   const since = new Date(Date.now() - 90 * 86_400_000);
+  const counted = await statsFilter();
 
   const [top, byScope, empty, total] = await Promise.all([
     prisma.searchLog.groupBy({
       by: ["query"],
       _count: { _all: true },
-      where: { createdAt: { gte: since } },
+      where: { ...counted.search, createdAt: { gte: since } },
       orderBy: { _count: { query: "desc" } },
       take: 12,
     }),
     prisma.searchLog.groupBy({
       by: ["scope"],
       _count: { _all: true },
-      where: { createdAt: { gte: since } },
+      where: { ...counted.search, createdAt: { gte: since } },
       orderBy: { _count: { scope: "desc" } },
     }),
     /* The list worth acting on: searches that found NOTHING. Each one is a
@@ -482,11 +486,11 @@ export async function loadSearches() {
     prisma.searchLog.groupBy({
       by: ["query"],
       _count: { _all: true },
-      where: { createdAt: { gte: since }, results: 0 },
+      where: { ...counted.search, createdAt: { gte: since }, results: 0 },
       orderBy: { _count: { query: "desc" } },
       take: 10,
     }),
-    prisma.searchLog.count({ where: { createdAt: { gte: since } } }),
+    prisma.searchLog.count({ where: { ...counted.search, createdAt: { gte: since } } }),
   ]);
 
   return {
@@ -500,33 +504,34 @@ export async function loadSearches() {
 /** Where visits begin, and what sent people here. */
 export async function loadArrivals() {
   const since = new Date(Date.now() - 30 * 86_400_000);
+  const counted = await statsFilter();
 
   const [entry, referrer, language, region] = await Promise.all([
     prisma.visit.groupBy({
       by: ["entryPath"],
       _count: { _all: true },
-      where: { startedAt: { gte: since }, entryPath: { not: null } },
+      where: { ...counted.visit, startedAt: { gte: since }, entryPath: { not: null } },
       orderBy: { _count: { entryPath: "desc" } },
       take: 10,
     }),
     prisma.visit.groupBy({
       by: ["referrer"],
       _count: { _all: true },
-      where: { startedAt: { gte: since }, referrer: { not: null } },
+      where: { ...counted.visit, startedAt: { gte: since }, referrer: { not: null } },
       orderBy: { _count: { referrer: "desc" } },
       take: 8,
     }),
     prisma.visit.groupBy({
       by: ["language"],
       _count: { _all: true },
-      where: { startedAt: { gte: since }, language: { not: null } },
+      where: { ...counted.visit, startedAt: { gte: since }, language: { not: null } },
       orderBy: { _count: { language: "desc" } },
       take: 8,
     }),
     prisma.visit.groupBy({
       by: ["region"],
       _count: { _all: true },
-      where: { startedAt: { gte: since }, region: { not: null } },
+      where: { ...counted.visit, startedAt: { gte: since }, region: { not: null } },
       orderBy: { _count: { region: "desc" } },
       take: 10,
     }),
@@ -546,6 +551,7 @@ export async function loadArrivals() {
 
 /** hour 0-23 x weekday 0-6 (Sunday first), counted from visits. */
 export async function loadRhythm() {
+  const counted = await statsFilter();
   /* IST, not UTC. "When is the community awake" is a question about people,
    * and almost all of them are in India; a UTC heatmap would put the evening
    * rush at 2pm and make the whole thing meaningless.
@@ -568,7 +574,7 @@ export async function loadRhythm() {
            EXTRACT(HOUR FROM ("endedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata')::int AS hour,
            count(*)::bigint AS n
     FROM "Visit"
-    WHERE "endedAt" >= now() - interval '90 days'
+    WHERE "endedAt" >= now() - interval '90 days' AND ${counted.user('"userId"')}
     GROUP BY 1, 2
   `;
 
@@ -616,6 +622,7 @@ function personList(rows: PersonRow[], value: (r: PersonRow) => number = (r) => 
 }
 
 export async function loadFaces() {
+  const counted = await statsFilter();
   const [heartsGiven, heartsGot, loyal, longest, deepest, mostViewed, watchers, lurkers, isolated] =
     await Promise.all([
       prisma.$queryRaw<PersonRow[]>`
@@ -641,17 +648,20 @@ export async function loadFaces() {
         SELECT u.id, u."name", u."batchYear",
                count(DISTINCT date_trunc('day', (v."startedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata'))::bigint AS n
         FROM "Visit" v JOIN "User" u ON u.id = v."userId"
+        WHERE ${counted.user('v."userId"')}
         GROUP BY u.id, u."name", u."batchYear" ORDER BY n DESC LIMIT 8
       `,
       prisma.$queryRaw<PersonRow[]>`
         SELECT u.id, u."name", u."batchYear",
                max(EXTRACT(EPOCH FROM (v."endedAt" - v."startedAt")))::bigint AS n
         FROM "Visit" v JOIN "User" u ON u.id = v."userId"
+        WHERE ${counted.user('v."userId"')}
         GROUP BY u.id, u."name", u."batchYear" ORDER BY n DESC LIMIT 8
       `,
       prisma.$queryRaw<PersonRow[]>`
         SELECT u.id, u."name", u."batchYear", max(v."views")::bigint AS n
         FROM "Visit" v JOIN "User" u ON u.id = v."userId"
+        WHERE ${counted.user('v."userId"')}
         GROUP BY u.id, u."name", u."batchYear" ORDER BY n DESC LIMIT 8
       `,
       /* Whose profile gets looked at most. Self-views are never recorded, so
@@ -659,7 +669,7 @@ export async function loadFaces() {
       prisma.$queryRaw<PersonRow[]>`
         SELECT u.id, u."name", u."batchYear", sum(cv."count")::bigint AS n
         FROM "ContentView" cv JOIN "User" u ON u.id = cv."targetId"
-        WHERE cv.kind = 'profile'
+        WHERE cv.kind = 'profile' AND ${counted.user('cv."viewerId"')}
         GROUP BY u.id, u."name", u."batchYear" ORDER BY n DESC LIMIT 8
       `,
       /* And who does the looking. The pair of these two lists is the closest
@@ -667,7 +677,7 @@ export async function loadFaces() {
       prisma.$queryRaw<PersonRow[]>`
         SELECT u.id, u."name", u."batchYear", sum(cv."count")::bigint AS n
         FROM "ContentView" cv JOIN "User" u ON u.id = cv."viewerId"
-        WHERE cv.kind = 'profile'
+        WHERE cv.kind = 'profile' AND ${counted.user('cv."viewerId"')}
         GROUP BY u.id, u."name", u."batchYear" ORDER BY n DESC LIMIT 8
       `,
       /* Present but silent: visits recorded, nothing ever written. Not a
@@ -697,6 +707,7 @@ export async function loadFaces() {
           )
           AND NOT EXISTS (
             SELECT 1 FROM "ContentView" cv WHERE cv.kind = 'profile' AND cv."targetId" = u.id
+              AND ${counted.user('cv."viewerId"')}
           )
         ORDER BY u."createdAt" DESC
         LIMIT 30
@@ -877,6 +888,7 @@ export async function loadInteractions() {
 
 /** What actually gets opened: reads against reactions, per letter. */
 export async function loadReading() {
+  const counted = await statsFilter();
   const [letters, photos, editions] = await Promise.all([
     prisma.$queryRaw<{ title: string | null; reads: bigint; readers: bigint; hearts: bigint }[]>`
       SELECT p."title",
@@ -885,16 +897,17 @@ export async function loadReading() {
              (SELECT count(*) FROM "Like" l WHERE l."postId" = p.id)::bigint AS hearts
       FROM "Post" p
       LEFT JOIN "ContentView" cv ON cv.kind = 'letter' AND cv."targetId" = p.id
+        AND ${counted.user('cv."viewerId"')}
       WHERE p.kind = 'letter' AND p.status = 'published'
       GROUP BY p.id, p."title"
       ORDER BY reads DESC, hearts DESC
       LIMIT 10
     `,
     prisma.$queryRaw<{ n: bigint }[]>`
-      SELECT coalesce(sum("count"), 0)::bigint AS n FROM "ContentView" WHERE kind = 'photo'
+      SELECT coalesce(sum("count"), 0)::bigint AS n FROM "ContentView" WHERE kind = 'photo' AND ${counted.user('"viewerId"')}
     `,
     prisma.$queryRaw<{ n: bigint }[]>`
-      SELECT coalesce(sum("count"), 0)::bigint AS n FROM "ContentView" WHERE kind = 'edition'
+      SELECT coalesce(sum("count"), 0)::bigint AS n FROM "ContentView" WHERE kind = 'edition' AND ${counted.user('"viewerId"')}
     `,
   ]);
 
@@ -958,6 +971,7 @@ export type MemberRow = {
 const PROFILE_FIELDS = 9;
 
 export async function loadMemberMetrics(): Promise<MemberRow[]> {
+  const counted = await statsFilter();
   const rows = await prisma.$queryRaw<Record<string, unknown>[]>`
     WITH
       likes_given AS (SELECT "userId" id, count(*) n FROM "Like" GROUP BY 1),
@@ -978,17 +992,17 @@ export async function loadMemberMetrics(): Promise<MemberRow[]> {
                -- The valley's day, not UTC's (audit Low 46).
                count(DISTINCT date_trunc('day', ("startedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata')) days,
                mode() WITHIN GROUP (ORDER BY "device") dev
-        FROM "Visit" GROUP BY 1
+        FROM "Visit" WHERE ${counted.user('"userId"')} GROUP BY 1
       ),
       opens_got AS (
         SELECT "targetId" id, sum("count") n FROM "ContentView"
-        WHERE kind = 'profile' GROUP BY 1
+        WHERE kind = 'profile' AND ${counted.user('"viewerId"')} GROUP BY 1
       ),
       opens_gave AS (
         SELECT "viewerId" id, sum("count") n FROM "ContentView"
-        WHERE kind = 'profile' GROUP BY 1
+        WHERE kind = 'profile' AND ${counted.user('"viewerId"')} GROUP BY 1
       ),
-      srch AS (SELECT "userId" id, count(*) n FROM "SearchLog" WHERE "userId" IS NOT NULL GROUP BY 1),
+      srch AS (SELECT "userId" id, count(*) n FROM "SearchLog" WHERE "userId" IS NOT NULL AND ${counted.user('"userId"')} GROUP BY 1),
       place AS (
         SELECT up."userId" id, min(p."country") c
         FROM "UserPlace" up JOIN "Place" p ON p.id = up."placeId" GROUP BY 1
@@ -1038,7 +1052,7 @@ export async function loadMemberMetrics(): Promise<MemberRow[]> {
     LEFT JOIN opens_gave  ON opens_gave.id  = u.id
     LEFT JOIN srch        ON srch.id        = u.id
     LEFT JOIN place       ON place.id       = u.id
-    WHERE u."isBlocked" = false
+    WHERE u."isBlocked" = false AND ${counted.user("u.id")}
   `;
 
   const num = (v: unknown) => Number(v ?? 0);

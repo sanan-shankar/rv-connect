@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { isUniqueViolation } from "@/lib/prisma-errors";
+import { statsWritesEnabled } from "@/lib/stats-exclusion";
 
 /* ------------------------------------------------------------------ *
  *  Presence: who is here, where, on what, and for how long.
@@ -252,7 +253,9 @@ export async function touchLastSeen(
     const now = new Date();
     const { path, visitId, ...facts } = req;
     await Promise.all([
-      visitId ? recordVisit(visitId, userId, now, path, facts) : Promise.resolve(),
+      /* Production only (stats-exclusion.ts). lastSeenAt below is not gated:
+         it is app state the rest of the site reads, not a statistic. */
+      visitId && statsWritesEnabled() ? recordVisit(visitId, userId, now, path, facts) : Promise.resolve(),
 
       /* Still worth keeping alongside Visit: it is one indexed column on User,
          so "active in the last 30 days" is a count rather than a join, and it

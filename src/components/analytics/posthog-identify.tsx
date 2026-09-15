@@ -12,21 +12,25 @@ import { whenPostHog } from "./posthog-client";
  * anyone is to answer "which batch uses the map view"; it only needs to be
  * able to tell one person from another, and an opaque cuid does that.
  *
- * `isOwner` is set rather than opting the admin out of capture entirely. With
- * 49 members, discarding the most active user's data costs more than it saves,
- * and PostHog can hide internal users project-wide from
- * Settings > Project > Filter out internal users -- a dashboard decision that
- * stays reversible, unlike data never collected. */
+ * `isOwner` tags every admin, so PostHog's Filter out internal users can hide
+ * them from a chart. The owner's own account and the test account go further
+ * and are opted out of capture entirely (owner, 2026-09-15: his own machine
+ * had skewed the OS and platform numbers). See src/lib/stats-exclusion.ts.
+ * The opt-out is stored in this browser and outlives signing out, which is
+ * right for the owner's own devices and wrong only if a member later signs
+ * in on one of them. */
 export function PostHogIdentify({
   userId,
   accountType,
   batchYear,
   isOwner,
+  excluded,
 }: {
   userId: string;
   accountType: string | null;
   batchYear: number | null;
   isOwner: boolean;
+  excluded: boolean;
 }) {
   useEffect(() => {
     /* This used to read `posthog.__loaded` and bail if init had not run,
@@ -44,8 +48,11 @@ export function PostHogIdentify({
      * And no reset() on the way out: the layout unmounts on navigation and
      * resetting there would break every cross-page funnel. Sign-out is the
      * only place an identity should end, and that is a full page load. */
-    whenPostHog((ph) => ph.identify(userId, { accountType, batchYear, isOwner }));
-  }, [userId, accountType, batchYear, isOwner]);
+    whenPostHog((ph) => {
+      if (excluded) ph.opt_out_capturing();
+      else ph.identify(userId, { accountType, batchYear, isOwner });
+    });
+  }, [userId, accountType, batchYear, isOwner, excluded]);
 
   return null;
 }

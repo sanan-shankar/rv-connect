@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { statsWritesEnabled } from "@/lib/stats-exclusion";
 
 /* ------------------------------------------------------------------ *
  *  Who looked at what.
@@ -23,6 +24,9 @@ export async function recordView(
   targetId: string,
 ): Promise<void> {
   if (!viewerId || !targetId) return;
+  /* Production only (stats-exclusion.ts). Nothing but the analytics room reads
+     this table, so a dev session loses nothing by not writing it. */
+  if (!statsWritesEnabled()) return;
   if (kind === "profile" && viewerId === targetId) return;
 
   try {

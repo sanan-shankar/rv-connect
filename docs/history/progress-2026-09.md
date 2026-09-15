@@ -7028,3 +7028,18 @@ Owner, after the blue, orange, green order landed: "actually do green orange blu
 on canopy (#235C49, the sidebar green), Photos stays cinnamon, Domain takes sky. Segment order is
 unchanged and the chip dots follow. Checked at 1440 and 390. The support visual run passed
 without a rewrite: the bar is too few pixels to cross its threshold, so it does not catch a colour swap.
+
+
+## 2026-09-15 (analytics) — development and the owner's own use no longer count in the stats
+
+Owner: "I think the OS and platform stats are wrong and imbalanced because of my machine. can we
+make sure it doesn't affect that", then "will it be possible to retroactively correct stuff".
+
+He was right: of ~1,440 visits in the month, admin accounts opened ~1,100, mostly one Mac, because
+dev, every QA script and Playwright sign in against the one production database. Two layers in
+`src/lib/stats-exclusion.ts`. Writes: `Visit`, `SearchLog` and `ContentView` record only when
+`VERCEL_ENV=production` (`PRESENCE_IN_DEV=1` to prove the writer locally). Reads: every activity
+query in `admin-analytics.ts` leaves out the owner's id and the Jerry account, which corrects the
+existing history without deleting a row. PostHog opts the same two accounts out. A rule test fails an
+unfiltered read or an ungated writer. Not filtered: `lastSeenAt` people counts (out by two at most),
+and PostHog's past events.
