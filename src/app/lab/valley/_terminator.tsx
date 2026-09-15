@@ -42,14 +42,16 @@ export function Terminator({ cities, now }: { cities: CityDot[]; now: number }) 
   const sun = useMemo(() => sunPosition(new Date(now)), [now]);
   const anti: [number, number] = [sun.subsolar.lon + 180, -sun.subsolar.lat];
   const ring = (r: number) => pathGen(geoCircle().center(anti).radius(r)()) ?? "";
-  const sunXY = projection([sun.subsolar.lon, sun.subsolar.lat]) ?? [0, 0];
-  const valleyXY = projection([VALLEY.lon, VALLEY.lat]) ?? [0, 0];
+  const r2 = (v: [number, number]): [number, number] => [Math.round(v[0] * 100) / 100, Math.round(v[1] * 100) / 100];
+  const sunXY = r2(projection([sun.subsolar.lon, sun.subsolar.lat]) ?? [0, 0]);
+  const valleyXY = r2(projection([VALLEY.lon, VALLEY.lat]) ?? [0, 0]);
   const dots = useMemo(
     () =>
       cities.map((c) => {
         const p = projection([c.lng, c.lat]) ?? [0, 0];
         const el = sunPosition(new Date(now), c.lat, c.lng).elevation;
-        return { ...c, x: p[0], y: p[1], lit: el > 0, dusk: el <= 0 && el > -6 };
+        /* rounded so the server's and the browser's last float digit cannot differ */
+        return { ...c, x: Math.round(p[0] * 100) / 100, y: Math.round(p[1] * 100) / 100, lit: el > 0, dusk: el <= 0 && el > -6 };
       }),
     [cities, now]
   );
