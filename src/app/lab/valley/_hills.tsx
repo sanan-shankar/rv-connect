@@ -391,11 +391,13 @@ function eyeAndTarget(c: Cam, groundAtSchool: number): { eye: number[]; target: 
 
 export type Peak = { x: number; z: number; y: number; metres: number; label: string };
 
-export function Hills({ weather, serverNow }: { weather: ValleyWeather | null; serverNow: number }) {
+export function Hills({ weather, serverNow, compact = false }: { weather: ValleyWeather | null; serverNow: number; compact?: boolean }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const rain = useRef<HTMLCanvasElement>(null);
   const labels = useRef<HTMLDivElement>(null);
+  const sunDisc = useRef<HTMLDivElement>(null);
+  const compassRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const [view, setView] = useState<keyof typeof VIEWS>("east");
@@ -424,6 +426,9 @@ export function Hills({ weather, serverNow }: { weather: ValleyWeather | null; s
     raining: false,
     wanted: null as null | keyof typeof VIEWS,
     still: false,
+    sunV: [0, 1, 0] as number[],
+    sunEl: 0,
+    eye: [0, 0, 0] as number[],
   });
 
   const cloud = weather ? Math.max(weather.cloud, weather.precipitationMm > 0 ? 0.85 : 0) : 0;
@@ -606,11 +611,13 @@ export function Hills({ weather, serverNow }: { weather: ValleyWeather | null; s
       const sky = skyFor(sunP.elevation, s.live ? s.cloud : 0);
       s.sky = sky;
       const sunV = sunVector(sunP);
+      s.sunV = sunV; s.sunEl = sunP.elevation;
       /* below the horizon the moon lights the hills faintly from high up */
       const lightV = sunP.elevation > 0 ? sunV : [0.3, 0.8, -0.5];
 
       const { w, h } = s.size;
       const { eye, target } = eyeAndTarget(s.cam, s.ground);
+      s.eye = eye;
       const proj = perspective(s.cam.mode === "stand" ? 52 : 44, w / h, 0.02, 120);
       const viewM = lookAt(eye, target, [0, 1, 0]);
       const vp = mul(proj, viewM);
@@ -657,6 +664,18 @@ export function Hills({ weather, serverNow }: { weather: ValleyWeather | null; s
     const placeLabels = () => {
       const root = labels.current; if (!root || !s.vp) return;
       const { w, h } = s.size;
+      /* the sun, far off along its own direction, drawn under the canvas so a
+         ridge can stand in front of it */
+      const sd = sunDisc.current;
+      if (sd) {
+        const v = s.sunV, e = s.eye;
+        const q = project(s.vp, [e[0] + v[0] * 60, e[1] + v[1] * 60, e[2] + v[2] * 60]);
+        const on = s.sunEl > -1 && q.w > 0 && q.x > -1.2 && q.x < 1.2 && q.y > -1.2 && q.y < 1.2;
+        sd.style.opacity = on ? String(Math.min(1, (s.sunEl + 1) / 4)) : "0";
+        if (on) sd.style.transform = `translate(${((q.x + 1) / 2) * w}px, ${((1 - q.y) / 2) * h}px) translate(-50%, -50%)`;
+      }
+      const cp = compassRef.current;
+      if (cp) cp.style.transform = `rotate(${s.cam.mode === "stand" ? -s.cam.yaw : s.cam.yaw}deg)`;
       for (const node of Array.from(root.children) as HTMLElement[]) {
         const p = [Number(node.dataset.x), Number(node.dataset.y), Number(node.dataset.z)];
         const q = project(s.vp, p);
@@ -776,7 +795,7 @@ export function Hills({ weather, serverNow }: { weather: ValleyWeather | null; s
     cv.addEventListener("pointermove", onMove);
     cv.addEventListener("pointerup", onUp);
     cv.addEventListener("pointercancel", onUp);
-    cv.addEventListener("wheel", onWheel, { passive: false });
+    if (!compact) cv.addEventListener("wheel", onWheel, { passive: false });
 
     return () => {
       disposed = true;
@@ -786,7 +805,7 @@ export function Hills({ weather, serverNow }: { weather: ValleyWeather | null; s
       cv.removeEventListener("pointermove", onMove);
       cv.removeEventListener("pointerup", onUp);
       cv.removeEventListener("pointercancel", onUp);
-      cv.removeEventListener("wheel", onWheel);
+      if (!compact) cv.removeEventListener("wheel", onWheel);
       /* Free the GPU objects by hand rather than losing the context: a canvas
          hands back the SAME context object on the next getContext(), so under
          React's development double-mount a lost context came back dead and
@@ -819,6 +838,7 @@ export function Hills({ weather, serverNow }: { weather: ValleyWeather | null; s
     <div className="vh" ref={wrap} data-mode={st.current.cam.mode}>
       <div className="vh-sky" aria-hidden />
       <div className="vh-stars" aria-hidden style={{ opacity: `var(--night)` }} />
+      <div ref={sunDisc} className="vh-sundisc" aria-hidden />
       <canvas ref={canvas} className="vh-gl" aria-label="The hills around Rishi Valley School, drawn from real elevation data" />
       <canvas ref={rain} className="vh-rain" aria-hidden />
       <div className="vh-labels" ref={labels} aria-hidden>
@@ -837,7 +857,9 @@ export function Hills({ weather, serverNow }: { weather: ValleyWeather | null; s
       {!ready && !failed && <div className="vh-wait">Reading the ground…</div>}
       {failed && <div className="vh-wait">{failed}</div>}
 
-      <div className="vh-hud">
+      <div className="vh-compass" aria-hidden><i ref={compassRef} className="vh-needle" /><span>N</span></div>
+      {compact && <div className="vh-mini"><b>{clock}</b><span>at the valley</span></div>}
+      {!compact && <div className="vh-hud">
         <div className="vh-clock">
           <b>{clock}</b>
           <span>at the valley</span>
@@ -877,7 +899,7 @@ export function Hills({ weather, serverNow }: { weather: ValleyWeather | null; s
             </button>
           ))}
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
@@ -896,6 +918,13 @@ export const HILLS_CSS = `
   radial-gradient(1px 1px at 84% 17%, #fff 60%, transparent 62%), radial-gradient(1px 1px at 17% 27%, #fff 60%, transparent 62%),
   radial-gradient(1px 1px at 36% 16%, #fff 60%, transparent 62%), radial-gradient(1px 1px at 60% 20%, #fff 60%, transparent 62%);
   background-size:100% 100%; mix-blend-mode:screen; pointer-events:none; }
+.vh-sundisc { position:absolute; top:0; left:0; width:26px; height:26px; border-radius:50%; background:#FFE9B8; box-shadow:0 0 34px 14px rgba(255,214,140,.45), 0 0 90px 40px rgba(255,200,120,.18); opacity:0; pointer-events:none; will-change:transform; }
+.vh-compass { position:absolute; top:14px; right:14px; width:38px; height:38px; border-radius:50%; background:rgba(245,242,234,.74); backdrop-filter:blur(6px); pointer-events:none; }
+.vh-compass span { position:absolute; left:0; right:0; bottom:3px; text-align:center; font-family:var(--font-display),Georgia,serif; font-size:10px; font-weight:700; color:#235C49; }
+.vh-needle { position:absolute; left:50%; top:50%; width:0; height:0; margin:-13px 0 0 -4px; border-left:4px solid transparent; border-right:4px solid transparent; border-bottom:12px solid #C2622F; transform-origin:4px 13px; will-change:transform; }
+.vh-mini { position:absolute; left:14px; bottom:12px; display:flex; align-items:baseline; gap:8px; pointer-events:none; }
+.vh-mini b { font-family:var(--font-display),Georgia,serif; font-size:24px; line-height:1; color:var(--hud-ink); }
+.vh-mini span { font-size:12px; color:var(--hud-soft); }
 .vh-gl { position:absolute; inset:0; display:block; cursor:grab; }
 .vh-gl:active { cursor:grabbing; }
 .vh-rain { position:absolute; inset:0; pointer-events:none; }

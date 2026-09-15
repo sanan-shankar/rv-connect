@@ -71,7 +71,7 @@ export function Terminator({ cities, now }: { cities: CityDot[]; now: number }) 
         <circle cx={sunXY[0]} cy={sunXY[1]} r={5} fill="#FFC64F" stroke="#F5F2EA" strokeWidth={1.5} />
         {dots.map((d, i) => (
           <circle key={i} cx={d.x} cy={d.y} r={2.6} fill={d.lit ? "#C2622F" : d.dusk ? "#8E6E5C" : "#5F6359"} opacity={d.lit ? 0.95 : 0.7} stroke={d.lit ? "#F5F2EA" : "none"} strokeWidth={0.8}>
-            <title>{d.city}: {d.lit ? "daylight" : d.dusk ? "twilight" : "night"}</title>
+            <title>{`${d.city}: ${d.lit ? "daylight" : d.dusk ? "twilight" : "night"}`}</title>
           </circle>
         ))}
         <circle cx={valleyXY[0]} cy={valleyXY[1]} r={5} fill="#235C49" stroke="#F5F2EA" strokeWidth={2} />
