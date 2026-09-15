@@ -7009,3 +7009,14 @@ It was genuinely 8px low: FIELD_PAD centres the value band at 36px of a 56px row
 year read as one block at 28px. Centring on the row aligned it with nothing. Now the box is two lines
 and two columns: a floated "Month" label mirrored to the right edge on the label's line, the month on
 the year's line, and an empty month reads "Choose". Not verified in a browser.
+
+
+## 2026-09-15 (support) — the monthly bill's bar runs blue, orange, green: Hosting is sky
+
+Owner: "make the colour bar in support from green blue orange to blue orange green", then "so hosting
+would become blue".
+
+The segments keep their order; only the colours move in `SEGMENTS` (costs-card.tsx): Hosting sky,
+Photos cinnamon, Domain canopy. The chip dots read the same colour, so they follow. Checked at
+1440 and 390; the support visual baseline is rewritten after reading its diff, which was the bar
+and dots only.
