@@ -55,8 +55,10 @@ export function Seal({ seed, species, size = 240, now, interactive = true }: { s
   const sun = sunPosition(new Date(now));
   const sunAz = svgAzimuthFromBearing(sun.azimuth);
   const sunEl = sun.elevation > 0 ? Math.max(14, Math.min(62, sun.elevation)) : 28;
-  const az = light ? light.az : sunAz;
-  const el = light ? light.el : sunEl;
+  /* rounded, because the server and the browser disagree on the last digit
+     of a trig result and React reads that as a hydration mismatch */
+  const az = Math.round((light ? light.az : sunAz) * 100) / 100;
+  const el = Math.round((light ? light.el : sunEl) * 100) / 100;
 
   const tween = (to: number, ms: number, done?: () => void) => {
     if (anim.current) cancelAnimationFrame(anim.current.raf);
