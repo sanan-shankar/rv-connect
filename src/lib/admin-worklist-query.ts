@@ -19,6 +19,7 @@
 import { prisma } from "@/lib/prisma";
 import { overdueEditionWhere } from "@/lib/catchups-core";
 import { threadTitle } from "@/lib/admin-threads";
+import { AWAITING_REVIEW } from "@/lib/admin-review";
 
 /** One thing waiting for you, whatever kind of thing it is. */
 export interface WorkItem {
@@ -112,7 +113,7 @@ export async function loadWorklist(): Promise<WorkItem[]> {
       take: PER_QUEUE,
     }),
     prisma.photo.findMany({
-      where: { approved: false, isHidden: false },
+      where: AWAITING_REVIEW,
       select: {
         id: true,
         caption: true,

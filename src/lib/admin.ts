@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import { overdueEditionWhere } from "@/lib/catchups-core";
+import { AWAITING_REVIEW } from "@/lib/admin-review";
 
 /* ------------------------------------------------------------------ *
  *  Server-side furniture shared by every admin route.
@@ -248,7 +249,7 @@ async function worklistCounts(): Promise<WorklistCounts> {
     await Promise.all([
       prisma.adminThread.count({ where: { adminUnread: true } }),
       prisma.report.count({ where: { status: "pending" } }),
-      prisma.photo.count({ where: { approved: false, isHidden: false } }),
+      prisma.photo.count({ where: AWAITING_REVIEW }),
       prisma.$queryRaw<{ flagged: number; pendingVerify: number; people: number }[]>`
         SELECT count(*) FILTER (WHERE "isBlocked" = false AND "verifyState" = 'flagged')::int AS flagged,
                count(*) FILTER (WHERE "isBlocked" = false AND "verifyState" = 'pending')::int AS "pendingVerify",

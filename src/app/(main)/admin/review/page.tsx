@@ -32,7 +32,7 @@ export default async function AdminReviewPage({
   await requireAdminPage();
 
   const sp = await searchParams;
-  const mode: ReviewMode = sp.pile === "undated" ? "undated" : "waiting";
+  const mode: ReviewMode = sp.pile === "undated" || sp.pile === "aside" ? sp.pile : "waiting";
 
   const [photos, counts] = await Promise.all([loadReview(mode), reviewCounts()]);
 
