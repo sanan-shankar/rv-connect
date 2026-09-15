@@ -6987,3 +6987,14 @@ cancel flag was reset on every change of `photos.length`, so adding or removing 
 left up to three stuck half-faded; only unmount cancels now.
 
 Not verified in a browser: signing the MCP browser in was declined. `npm run check` green.
+
+
+## 2026-09-15 (collection) — the file's date suggestion goes once it is used, and loses its fill
+
+Owner: "remove the use it date then when it's used. basically when the date and month is what that
+says make it disappear", then "I don't really like the brown background it has".
+
+`FileSays` returns nothing once the answers hold its year and month, pressed or typed, and comes back
+if the date is changed away. `fileSaysUsed` is exported so the contribute pop-up animates it out
+through its Grow wrapper; the review room loses it without the animation (that file was another
+session's at the time). The `bg-mist` fill and radius are gone. Not verified in a browser.

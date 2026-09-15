@@ -89,7 +89,7 @@ import {
   PhotoQuestions,
   type PhotoAnswers,
 } from "./photo-questions";
-import { FileSays } from "./file-says";
+import { FileSays, fileSaysUsed } from "./file-says";
 import { cn } from "@/lib/utils";
 
 /** How many files climb to the bucket at once. Three, because a browser gives
@@ -869,11 +869,11 @@ export function ContributeRoom({
             <PhotoQuestions idPrefix="contribute" value={shown} onAnswer={answer} />
 
             {/* WHAT THE FILE SAYS, straight under the questions' card and not
-                inside it: the card is one grouped form, and a filled strip
+                inside it: the card is one grouped form, and an offer
                 among its rows would be a second material in it. The review
                 room draws the same strip higher in its own panel. */}
             <AnimatePresence initial={false}>
-              {viewing?.taken && (
+              {viewing?.taken && !fileSaysUsed(viewing.taken, shown) && (
                 <Grow key="file-says">
                   <FileSays date={viewing.taken} answers={shown} onAnswer={answer} className="mt-3" />
                 </Grow>
