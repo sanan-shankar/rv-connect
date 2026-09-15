@@ -372,7 +372,13 @@ others you find and organise them all nicely").
 **The worklist** is one list of everything waiting, newest first, mixed across kinds: an unanswered
 message, a flagged member, a pending report, a photo awaiting review, a failed send, a Catch-up past
 its date. Each row carries the one action it needs inline and links through to its section for
-anything more. When it is empty it says so in one line and the health strip becomes the page.
+anything more.
+
+**Only something the admin can act on is listed.** A Catch-up that is paused or ended is frozen by
+design, and an Edition whose question window closed empty twice is dormant until somebody asks
+something; neither is "past its date" (`overdueEditionWhere` in `src/lib/catchups-core.ts`). Both
+used to sit on the list with no way to clear them. Owner, 2026-09-15: *"it's paused. let it be
+paused wtf should I do."* A sealed time capsule past its day still shows, paused or not. When it is empty it says so in one line and the health strip becomes the page.
 
 **The health strip** is the facts that are not jobs: members, new this week, mail sent today against
 the cap, money in this month. Each one links to the section that owns it, which is what the current

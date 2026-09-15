@@ -706,6 +706,44 @@ function dueReminder(ed: EditionTiming, now: Date): { daysLeft: number } | null 
   return { daysLeft };
 }
 
+/**
+ * The admin's "past its date" list: an Edition that should have moved on and
+ * did not. A Prisma `where`, kept here rather than in lib/admin.ts so the rule
+ * can be tested without a database.
+ *
+ * TWO STATES LOOK OVERDUE AND ARE NOT, and both put a false alarm on the
+ * owner's worklist that no action of his could clear (2026-09-15: "it's
+ * paused. let it be paused wtf should I do").
+ *
+ *   PAUSED OR ENDED. `advanceEdition` freezes the clock of a Catch-up that is
+ *   not active, so its deadline stays in the past for as long as it is held.
+ *   That is the pause working, not a stuck Edition.
+ *
+ *   DORMANT. A question window that closed empty, twice, parks the Edition
+ *   until somebody asks something (`planNextAction`). Zero questions past the
+ *   date is that state or the one extension about to be granted; either way
+ *   there is nothing for an admin to do.
+ *
+ * A sealed time capsule stays on the list whatever the Catch-up is doing,
+ * because it opens on its date regardless (build phase 14).
+ */
+export function overdueEditionWhere(now: Date) {
+  return {
+    OR: [
+      {
+        status: "collecting",
+        questionsCloseAt: { lt: now },
+        catchup: { status: "active" },
+        prompts: { some: {} },
+      },
+      { status: "answering", answersCloseAt: { lt: now }, catchup: { status: "active" } },
+      // A time capsule past its opening day that has not opened is the one
+      // failure nobody else would notice for a year (build phase 14).
+      { status: "sealed", publishAt: { lt: now } },
+    ],
+  };
+}
+
 /** Too-few-answers: extend once when the answer window closes with zero entries. */
 export function shouldExtendForTooFew(ed: EditionTiming, entryCount: number): boolean {
   return entryCount === 0 && (ed.remindersSent & REMINDER_EXTENDED) === 0;

@@ -17,7 +17,7 @@
  * ------------------------------------------------------------------ */
 
 import { prisma } from "@/lib/prisma";
-import { overdueEditionWhere } from "@/lib/admin";
+import { overdueEditionWhere } from "@/lib/catchups-core";
 import { threadTitle } from "@/lib/admin-threads";
 
 /** One thing waiting for you, whatever kind of thing it is. */
