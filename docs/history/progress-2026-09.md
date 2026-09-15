@@ -7020,3 +7020,11 @@ The segments keep their order; only the colours move in `SEGMENTS` (costs-card.t
 Photos cinnamon, Domain canopy. The chip dots read the same colour, so they follow. Checked at
 1440 and 390; the support visual baseline is rewritten after reading its diff, which was the bar
 and dots only.
+
+
+## 2026-09-15 (support) — the bar runs green, orange, blue instead: Hosting canopy, Domain sky
+
+Owner, after the blue, orange, green order landed: "actually do green orange blue". Hosting is back
+on canopy (#235C49, the sidebar green), Photos stays cinnamon, Domain takes sky. Segment order is
+unchanged and the chip dots follow. Checked at 1440 and 390. The support visual run passed
+without a rewrite: the bar is too few pixels to cross its threshold, so it does not catch a colour swap.
