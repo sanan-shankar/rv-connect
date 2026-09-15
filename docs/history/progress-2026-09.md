@@ -6998,3 +6998,14 @@ says make it disappear", then "I don't really like the brown background it has".
 if the date is changed away. `fileSaysUsed` is exported so the contribute pop-up animates it out
 through its Grow wrapper; the review room loses it without the animation (that file was another
 session's at the time). The `bg-mist` fill and radius are gone. Not verified in a browser.
+
+
+## 2026-09-15 (collection) — the month in the date box has its own label column
+
+Owner: "the Month placeholder and then the month when it's filled seems lower than the content on
+the left", then, after it was centred on the row, "now the month isn't aligned with any other content".
+
+It was genuinely 8px low: FIELD_PAD centres the value band at 36px of a 56px row while the label and
+year read as one block at 28px. Centring on the row aligned it with nothing. Now the box is two lines
+and two columns: a floated "Month" label mirrored to the right edge on the label's line, the month on
+the year's line, and an empty month reads "Choose". Not verified in a browser.
