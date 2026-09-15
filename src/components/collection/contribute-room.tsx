@@ -55,6 +55,8 @@ import { m, AnimatePresence } from "motion/react";
 import { Images } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { useLeaveGuard } from "@/components/common/use-leave-guard";
 import {
   Dialog,
   DialogContent,
@@ -177,10 +179,20 @@ export function ContributeDialog({
   scope?: PhotoScope;
 }) {
   const [wall, setWall] = useState(0);
+  const [leaving, setLeaving] = useState(false);
   return (
+    <>
     <Dialog
       open={open}
       onOpenChange={(v) => {
+        /* ASK FIRST. The room lives inside the pop-up and goes with it, so a
+           close on photographs not yet added throws them away, climbing or
+           not, with no word said. `wall` is exactly that count: it drops to
+           zero the moment a contribution is filed. */
+        if (!v && wall > 0) {
+          setLeaving(true);
+          return;
+        }
         onOpenChange(v);
         // So a room reopened after a contribution starts small again.
         if (!v) setWall(0);
@@ -254,6 +266,18 @@ export function ContributeDialog({
         </div>
       </DialogContent>
     </Dialog>
+    <ConfirmDialog
+      open={leaving}
+      onClose={() => setLeaving(false)}
+      title={wall === 1 ? "Discard this photograph?" : `Discard ${wall} photographs?`}
+      description="They have not been added to the Collection yet."
+      actionLabel="Discard"
+      onConfirm={async () => {
+        onOpenChange(false);
+        setWall(0);
+      }}
+    />
+    </>
   );
 }
 
@@ -294,9 +318,14 @@ export function ContributeRoom({
   const [meta, setMeta] = useState<Record<string, PhotoAnswers>>({});
   const [reading, setReading] = useState(0);
   const [adding, setAdding] = useState(false);
+  /** How far the filing has got, once every photograph has landed. */
+  const [filing, setFiling] = useState<{ done: number; total: number } | null>(null);
   const [added, setAdded] = useState<number | null>(null);
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  /* Anything on the wall is only in this tab until it is added. */
+  useLeaveGuard(photos.length > 0);
 
   /* Told, not read: the pop-up around this owns its own width and this is
      the only thing it needs from the room. */
@@ -485,12 +514,27 @@ export function ContributeRoom({
      thing that cancels now is the room being left. */
   const wall = useRef(photos);
   wall.current = photos;
+  const answers = useRef(meta);
+  answers.current = meta;
+  /* ONLY LEAVING THE ROOM CANCELS, and that is now literally true. This used
+     to be a `gone` flag set by the pump effect's own cleanup -- which runs on
+     every change of `photos.length`, not just on unmount. So adding more
+     photographs, or taking one out, while three were climbing threw away
+     those three results: they sat half-faded for good, and Add sent each one
+     a second time through the server, shrunk. A flag owned by the mount is
+     the only thing that means "the room has gone". */
+  const left = useRef(false);
+  useEffect(() => {
+    left.current = false;
+    return () => {
+      left.current = true;
+    };
+  }, []);
   useEffect(() => {
     if (added !== null) return;
-    let gone = false;
 
     const pump = async () => {
-      if (gone || lifting.current >= LANES) return;
+      if (left.current || lifting.current >= LANES) return;
       /* Claimed in a ref, not in state, and that is the whole reason `claimed`
          exists. Three lanes start in the same tick; `setPhotos` has not
          committed by the time the second one reads the wall, so all three
@@ -505,7 +549,7 @@ export function ContributeRoom({
         const staged = await directUploadPut(next.file, "collection", {
           signal: AbortSignal.timeout(putDeadline(next.file.size)),
         });
-        if (!gone) {
+        if (!left.current) {
           setPhotos((prev) =>
             prev.map((p) =>
               p.id === next.id
@@ -520,7 +564,7 @@ export function ContributeRoom({
       } catch {
         // A definitive verdict about the file (bad format, over the limit).
         // The photograph stays on the wall, marked, so it can be removed.
-        if (!gone) {
+        if (!left.current) {
           setPhotos((prev) => prev.map((p) => (p.id === next.id ? { ...p, state: "failed" } : p)));
         }
       } finally {
@@ -529,9 +573,6 @@ export function ContributeRoom({
       }
     };
     for (let lane = 0; lane < LANES; lane++) void pump();
-    return () => {
-      gone = true;
-    };
   }, [photos.length, added]);
 
   /* ---------------- what the questions are answering ---------------- */
@@ -539,6 +580,9 @@ export function ContributeRoom({
   /** The photograph in view. Clamped rather than trusted: a removal shortens
    *  the drop before the stage's scroll handler has said so. */
   const viewing = photos.length ? photos[Math.min(at, photos.length - 1)] : undefined;
+
+  /** Photographs whose climb is over, landed or refused. */
+  const landed = photos.filter((p) => p.state === "here" || p.state === "failed").length;
 
   /** The value the questions show. One photograph, so there is nothing to
    *  reconcile -- the old room had to work out what a multi-selection agreed
@@ -597,8 +641,7 @@ export function ContributeRoom({
    *  file, because forty toasts is not telling somebody something. */
   const notices = useRef<Set<string>>(new Set());
 
-  async function fileOne(p: Staged): Promise<boolean> {
-    const m0 = meta[p.id] ?? EMPTY_ANSWERS;
+  async function fileOne(p: Staged, m0: PhotoAnswers = EMPTY_ANSWERS): Promise<boolean> {
 
     /* REFUSE RATHER THAN DROP IT. `photoDate` is total: it files anything it
        cannot read as "unknown", which is right for an empty box and silently
@@ -651,25 +694,51 @@ export function ContributeRoom({
   async function fileAll() {
     if (!photos.length || adding) return;
     setAdding(true);
+
+    /* WAIT FOR THE CLIMB FIRST. Add used to file the wall as it stood at the
+       press, so every photograph still on its way up had no key yet and was
+       shrunk and sent AGAIN through the server while its full-resolution copy
+       was still climbing -- twice the waiting, for a worse file. Every PUT
+       carries its own deadline (`putDeadline`), so this always settles. The
+       progress bar says how far it has got meanwhile. */
+    await new Promise<void>((resolve) => {
+      const settled = () =>
+        left.current || !wall.current.some((p) => p.state === "waiting" || p.state === "lifting");
+      if (settled()) return resolve();
+      const t = setInterval(() => {
+        if (!settled()) return;
+        clearInterval(t);
+        resolve();
+      }, 200);
+    });
+    if (left.current) return;
+
+    const batch = wall.current;
+    const asked = answers.current;
     let done = 0;
     const failures: string[] = [];
+    setFiling({ done: 0, total: batch.length });
 
     /* One at a time, deliberately. Each of these is a re-encode and two
        objects written, and the per-account rate limiter counts them; racing
        twenty of them at the server buys nothing the reader can see and is how
        a batch half-lands. */
-    for (const p of photos) {
+    for (const p of batch) {
+      // Discarded mid-way: stop, rather than go on filing what was thrown out.
+      if (left.current) return;
       try {
-        await fileOne(p);
+        await fileOne(p, asked[p.id]);
         done += 1;
       } catch (err) {
         const message = err instanceof Error ? err.message : "That one did not go through.";
         if (emailGate.handled(message)) break;
         failures.push(message);
       }
+      setFiling({ done: done + failures.length, total: batch.length });
     }
 
     setAdding(false);
+    setFiling(null);
     if (notices.current.size) {
       toast.info(
         notices.current.size === 1
@@ -817,6 +886,25 @@ export function ContributeRoom({
               onApply={applyToAll}
             />
 
+            {/* HOW FAR IT HAS GOT. The photograph in view develops as it lands,
+                but that is one photograph of a hundred, and "Adding..." on a
+                button for three minutes reads as hung (owner, 2026-09-15:
+                "don't know if it's working or it's hung or how long"). One
+                count and one bar for the whole drop, through both halves of
+                the wait, and the one thing not to do said beside it. Gone
+                again the moment there is nothing left to wait for. */}
+            <AnimatePresence initial={false}>
+              {(adding || landed < photos.length) && (
+                <Grow key="climb">
+                  <Climb
+                    verb={filing ? "Adding" : "Uploading"}
+                    done={filing ? filing.done : landed}
+                    total={filing ? filing.total : photos.length}
+                  />
+                </Grow>
+              )}
+            </AnimatePresence>
+
             {/* ONE FOOTER ROW, and "Add more" lives in it now. It used to be
                 the third item in a meta line above the wall -- which is what
                 put a gap between the title and it, and the owner asked for
@@ -930,6 +1018,48 @@ function ApplyToAll({
         </Grow>
       )}
     </AnimatePresence>
+  );
+}
+
+/** The drop's progress: a count, the one instruction, and a bar.
+ *
+ *  A count and not a percentage, because photographs are the unit somebody
+ *  dropped. The bar is a `scaleX` on a full-width fill, so only a transform
+ *  animates. Not a live region: a hundred announcements is not telling
+ *  anybody anything, so it is a progressbar that is read when asked. */
+function Climb({
+  verb,
+  done,
+  total,
+}: {
+  verb: "Uploading" | "Adding";
+  done: number;
+  total: number;
+}) {
+  return (
+    <div className="pt-4">
+      <div className="flex items-baseline justify-between gap-3 text-[13px]">
+        <span className="font-semibold tabular-nums text-foreground">
+          {verb} {done} of {total}
+        </span>
+        <span className="text-muted-foreground">Keep this tab open</span>
+      </div>
+      <div
+        role="progressbar"
+        aria-label={`${verb} photographs`}
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={done}
+        className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
+      >
+        <m.div
+          className="h-full origin-left bg-canopy"
+          initial={false}
+          animate={{ scaleX: total ? done / total : 0 }}
+          transition={{ duration: 0.4, ease: EASE_OUT_SMOOTH }}
+        />
+      </div>
+    </div>
   );
 }
 
