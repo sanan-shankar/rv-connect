@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-15 (collection) — a drop says how far it has got, and nothing is lost by closing
 - 2026-09-15 (admin) — photographs can be set aside in the review room, off every waiting count
 - 2026-09-15 (catchups) — a paused Catch-up or a dormant Edition no longer shows as past its date
 - 2026-09-15 (collection) — a photograph's own date is offered the moment it lands, and only when the file can be trusted

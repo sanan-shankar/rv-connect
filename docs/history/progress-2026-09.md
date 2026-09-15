@@ -6968,3 +6968,22 @@ Approving clears `heldAt`; parking refuses a photograph another admin already ap
 
 Screenshotted at 1440 and 390 with one photograph waiting. Pressing it against the live row was
 not done: the only unapproved photograph belongs to a member, and the write was refused.
+
+
+## 2026-09-15 (collection) — a drop says how far it has got, and nothing is lost by closing
+
+Owner: "sometimes while uploading many photos ... it seems like nothing is happening. don't know if
+it's working or it's hung or how long ... should probably also say uploading don't close the tab".
+
+The contribute pop-up now shows one count and bar above Add, "Uploading 34 of 100" then "Adding 12
+of 100", with "Keep this tab open", gone once nothing is left to wait for. Closing the pop-up on
+photographs not yet added asks "Discard 12 photographs?" (Base UI unmounts the room on close, so it
+used to throw them away silently). `use-leave-guard.ts` raises the browser's prompt on tab close,
+here and in the post composer while a photo climbs.
+
+Two bugs behind the silence: Add filed the wall as it stood at the press, so a photograph still
+climbing was shrunk and sent again through the server; Add now waits for every climb. And the pump's
+cancel flag was reset on every change of `photos.length`, so adding or removing a photo mid-climb
+left up to three stuck half-faded; only unmount cancels now.
+
+Not verified in a browser: signing the MCP browser in was declined. `npm run check` green.

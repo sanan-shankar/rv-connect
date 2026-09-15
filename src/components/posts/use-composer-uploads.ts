@@ -10,6 +10,7 @@ import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
 import { MAX_IMAGES } from "@/lib/upload-ownership-rule";
 import type { PhotoFacts } from "@/lib/photo-layout";
 import { myImageFacts } from "@/app/(main)/image-aim";
+import { useLeaveGuard } from "@/components/common/use-leave-guard";
 
 /* ------------------------------------------------------------------ *
  *  The composer's photograph pipeline, lifted out of create-post-form
@@ -88,6 +89,8 @@ export function useComposerUploads({
      in step for ever. */
   const [facts, setFacts] = useState<Record<string, PhotoFacts>>({});
   const uploading = shots.some((s) => !s.url);
+  // A photograph still climbing is only in this tab; closing it loses it.
+  useLeaveGuard(uploading);
   // Determinate-feeling progress for the "Photo" button label while a batch
   // uploads one file at a time (no byte-level progress events on a plain
   // fetch, but "uploading 2 of 3" reads as real progress).

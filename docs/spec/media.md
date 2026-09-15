@@ -88,6 +88,13 @@ they inherit its auth gate:
 **There is no `/collection/contribute` and there never was.** Contributing is a pop-up, opened from
 the archive itself (`src/components/collection/contribute-room.tsx`).
 
+**A drop says how far it has got.** Photographs climb to the bucket three at a time from the moment
+they land; one count and bar ("Uploading 34 of 100", then "Adding 12 of 100") sits above the Add
+button with "Keep this tab open", and goes once nothing is left to wait for. Add waits for every
+climb to finish before filing, so nothing is sent twice. Closing the pop-up on photographs not yet
+added asks first ("Discard 12 photographs?"), and closing the tab raises the browser's own prompt
+(`src/components/common/use-leave-guard.ts`, which the post composer uses too).
+
 **The admin queue is its own route**, `/admin/review` — not a tab inside `/admin`, which is what
 this spec proposed. It was split out on 2026-08-30; `docs/spec/admin.md` §9.5b says why.
 
