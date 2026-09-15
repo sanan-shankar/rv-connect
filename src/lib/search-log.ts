@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { isSameSearch } from "@/lib/search-continuation";
+import { statsWritesEnabled } from "@/lib/stats-exclusion";
 
 /* ------------------------------------------------------------------ *
  *  What people look for.
@@ -51,6 +52,7 @@ export async function logSearch(input: {
   userId?: string | null;
   results?: number;
 }): Promise<void> {
+  if (!statsWritesEnabled()) return;
   try {
     const query = input.query.trim().slice(0, MAX_QUERY);
     /* A single character is a keystroke, not a search. */

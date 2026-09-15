@@ -6,6 +6,7 @@ import { unreadNotificationCount } from "@/lib/notification-count";
 import { AppShell } from "@/components/layout/app-shell";
 import { advanceDueCatchups } from "@/lib/catchups";
 import { readPresence, touchLastSeen } from "@/lib/last-seen";
+import { isStatsExcluded } from "@/lib/stats-exclusion";
 import { headers } from "next/headers";
 import { drainMailQueue, verificationMailState } from "@/lib/email-queue";
 import { maskEmail } from "@/lib/mask-email";
@@ -150,6 +151,7 @@ export default async function MainLayout({
         accountType={session.user.accountType ?? null}
         batchYear={session.user.batchYear ?? null}
         isOwner={session.user.role === "admin"}
+        excluded={isStatsExcluded(session.user)}
       />
       <AppShell
         user={{

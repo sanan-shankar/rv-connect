@@ -617,6 +617,14 @@ of what it was meant to draw on, which is still the argument for each number it 
 - page views from PostHog, which is the only analytics tool here: `@vercel/analytics` was
   removed on 2026-08-26 rather than run a second one for the same number
 
+**Development and the owner's own use are kept out of the numbers** (2026-09-15, after the OS and
+platform charts turned out to be mostly one Mac). `Visit`, `SearchLog` and `ContentView` are
+written only when `VERCEL_ENV` is `production`, so localhost, QA scripts and previews record
+nothing; and every read of those three tables in `admin-analytics.ts` leaves out the owner's
+account and the test account, which also corrects the history already skewed. Both halves live in
+`src/lib/stats-exclusion.ts` and are pinned by `stats-exclusion-rule.test.mjs`. People counts off
+`User.lastSeenAt` are not filtered: they are out by two at most.
+
 **The one schema gap this section raised has been closed.** `lastSeenAt` on `User` was planned in
 the roadmap's Phase 5 delta list and never added, so "who is actually still using this" was the one
 question the database could not answer. The column exists now, stamped every fifteen minutes from
