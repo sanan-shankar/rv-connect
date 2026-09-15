@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { unreadNotificationCount } from "@/lib/notification-count";
 import { AppShell } from "@/components/layout/app-shell";
 import { advanceDueCatchups } from "@/lib/catchups";
-import { readPresence, touchLastSeen } from "@/lib/last-seen";
+import { touchLastSeen } from "@/lib/last-seen";
 import { isStatsExcluded } from "@/lib/stats-exclusion";
 import { headers } from "next/headers";
 import { drainMailQueue, verificationMailState } from "@/lib/email-queue";
@@ -13,6 +13,7 @@ import { maskEmail } from "@/lib/mask-email";
 import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
 import { PostHogIdentify } from "@/components/analytics/posthog-identify";
 import { InstallPromptCapture } from "@/components/pwa/install-prompt";
+import { PresenceBeacon } from "@/components/analytics/presence-beacon";
 import { IS_DEMO } from "@/lib/demo";
 import { DemoBar } from "@/components/demo/demo-bar";
 import { GuideLayer } from "@/components/guide/guide-layer";
@@ -35,12 +36,6 @@ export default async function MainLayout({
     const path = await currentTarget();
     redirect(path ? `/login?next=${encodeURIComponent(path)}` : "/login");
   }
-
-  /* Read here, written behind the response by the after() below. `headers()`
-     is a request-time API a Server Component may not call inside `after()`, so
-     the facts have to be collected during render even though the write does
-     not belong there. */
-  const presence = await readPresence();
 
   /* Lazy, read-time Catch-up advance (spec 2.4), piggy-backed alongside the
      notification count so it fires on essentially every authenticated page
@@ -129,11 +124,11 @@ export default async function MainLayout({
   /* Records that this member was here. Behind the response, unlike the
      Catch-up advance above: the advance is what makes the page you are about
      to read correct, and this is bookkeeping nobody on this request will
-     read. It used to ride in the Promise.all, where the layout -- which
-     renders above every loading.tsx in the app -- waited on two writes to
-     Mumbai before it would render anything. It swallows its own errors, so
-     there is nothing to catch here. */
-  after(() => touchLastSeen(session.user.id, presence, session.user.lastSeenAt));
+     read. It swallows its own errors, so there is nothing to catch here.
+     Only lastSeenAt: the Visit (which page, how long) is <PresenceBeacon>'s,
+     because this layout also renders for link prefetches and never while
+     somebody reads. */
+  after(() => touchLastSeen(session.user.id, session.user.lastSeenAt));
 
   return (
     <>
@@ -146,6 +141,10 @@ export default async function MainLayout({
           hard page load and thirty seconds in, long before anybody has
           navigated to their own profile and pressed Edit. See the component. */}
       <InstallPromptCapture />
+      {/* Renders nothing. Reports real navigations and active minutes to the
+          visit statistics; see the component. Not on the demo, where every
+          visitor is the same persona. */}
+      {!IS_DEMO && <PresenceBeacon />}
       <PostHogIdentify
         userId={session.user.id}
         accountType={session.user.accountType ?? null}
@@ -197,8 +196,7 @@ export default async function MainLayout({
 
 /* The page WITH its query string, which is what a sign-in detour has to carry
    back: /directory?batch=2011 is a different destination from /directory.
-   Separate from the plain path readPresence takes, because touchLastSeen wants
-   the page, not the search. Both headers come from src/proxy.ts. */
+   Both headers come from src/proxy.ts. */
 async function currentTarget(): Promise<string | undefined> {
   const h = await headers();
   const path = h.get("x-pathname");

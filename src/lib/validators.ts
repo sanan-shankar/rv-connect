@@ -308,3 +308,14 @@ export const adminMessageSchema = z.object({
   kind: z.enum(["bug", "idea", "message"]).optional(),
   imageUrl: z.string().max(500).optional(),
 });
+
+/** One ping from the presence beacon (src/components/analytics/presence-beacon.tsx).
+ *  A pathname and nothing else: no query string, which would carry search terms.
+ *  The character class is what a route in this app can contain. */
+export const presencePingSchema = z.object({
+  kind: z.enum(["view", "beat"]),
+  path: z
+    .string()
+    .max(200)
+    .regex(/^\/[A-Za-z0-9\-._~/%]*$/),
+});

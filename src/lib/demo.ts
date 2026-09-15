@@ -121,7 +121,9 @@ const WRITE_OPS: ReadonlySet<string> = new Set([
  * `queryRaw` is allowed because the directory map genuinely needs it: the
  * gazetteer lookup in src/lib/geocode.ts is a hand-written SELECT, and
  * without it every pin outside the small offline coordinate table vanishes.
- * `executeRaw` is refused outright, and nothing in this codebase calls it.
+ * `executeRaw` is refused outright. Its one caller is the Visit trail write in
+ * src/lib/last-seen.ts, which the demo never reaches (/api/presence answers
+ * 204 there before writing), so the refusal costs the demo nothing.
  *
  * Both are matched with and without the leading `$`, because which form
  * Prisma hands to an extension has changed between versions and this is not

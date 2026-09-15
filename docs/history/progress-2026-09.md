@@ -7043,3 +7043,25 @@ query in `admin-analytics.ts` leaves out the owner's id and the Jerry account, w
 existing history without deleting a row. PostHog opts the same two accounts out. A rule test fails an
 unfiltered read or an ungated writer. Not filtered: `lastSeenAt` people counts (out by two at most),
 and PostHog's past events.
+
+
+## 2026-09-15 (analytics) — visits are counted from the browser, with the pages each one went through
+
+Owner: "like 80% of the readings on on the site long and earlier today are 0s ... it shows only one
+thing like feed or something even if they go through multiple so I dont really get actionable insights".
+
+Measured first: of 309 visits in the week, 145 were one view and 0s, and views rose 16 in 7 seconds.
+The (main) layout wrote `Visit`, and it renders for link prefetches and never while somebody reads, so
+the "last page" was whichever sidebar link was prefetched last and a letter read for ten minutes lasted
+0s. Now `<PresenceBeacon>` posts to `/api/presence` on a real pathname change and once a minute while
+the tab is visible and touched in the last five minutes; the layout only stamps `lastSeenAt`. Each
+visit keeps its trail in the new `Visit.paths` (capped at 40, repeats folded; migration
+`2026-09-15-visit-paths.sql`, applied to both databases). The Live view shows each person's trail, a
+median visit length, the share who left after one page, and three journey panels: pages opened, the
+common next step, and where visits end. Page, length and depth reads use tracked rows only, so the old
+prefetch rows age out rather than being deleted; device, OS, days and people still read every visit.
+Built on the parallel stats-exclusion work.
+Verified: tsc, `npm run check` green, the trail UPDATE in a rolled-back transaction, the journey SQL
+on synthetic trails, the Live view at 390 (200, no console errors). Not verified: the beacon firing in
+a browser (the dev-login secret could not be read this session), and any real tracked data, which
+only exists once this deploys.

@@ -23,6 +23,7 @@ import {
   loadRhythm,
   loadSearches,
   loadTrends,
+  TRACKED_SINCE,
 } from "@/lib/admin-analytics";
 import type { LoginReason } from "@/lib/login-attempt";
 import { AnalyticsTabs, isViewKey, VIEWS, type ViewKey } from "@/components/admin/analytics/tabs";
@@ -107,6 +108,9 @@ function Row({ children, cols = 3 }: { children: React.ReactNode; cols?: 2 | 3 |
 
 async function LiveView() {
   const p = await loadPresence();
+  /* Until a visit has been tracked, a 0.0 here reads as a broken number, which
+     is the exact complaint these tiles were rebuilt for. Say it is waiting. */
+  const waiting = `No visits tracked yet. These count from ${TRACKED_SINCE}, once the new tracker is live.`;
   return (
     <div className="flex flex-col gap-3">
       <StatGrid
@@ -114,20 +118,24 @@ async function LiveView() {
           {
             label: "On the site now",
             value: p.online.length,
-            hint: "Members who loaded a page in the last 15 minutes.",
+            hint: "Members active in the last 15 minutes.",
             tone: p.online.length > 0 ? "good" : undefined,
           },
           {
-            label: "Average visit length",
-            value: p.avgSessionSec / 60,
+            label: "Typical visit, minutes",
+            value: p.medianSessionSec / 60,
             kind: "ratio",
-            hint: "Minutes from a member's first page to their last, averaged over 30 days.",
+            hint:
+              p.visits30d === 0
+                ? waiting
+                : `Half of visits last longer than this. ${p.visits30d} visits by ${p.people30d} people in 30 days, ${p.avgViews.toFixed(1)} pages each on average.`,
           },
           {
-            label: "Pages per visit",
-            value: p.avgViews,
-            kind: "ratio",
-            hint: `${p.visits30d} visits by ${p.people30d} people. Counts layout renders, so prefetches inflate it slightly.`,
+            label: "Left after one page",
+            value: p.onePageShare,
+            kind: "percent",
+            hint: p.visits30d === 0 ? waiting : "Visits that never went past the page they arrived on.",
+            tone: p.visits30d > 0 && p.onePageShare > 0.5 ? "warn" : undefined,
           },
           {
             label: "Returned another day",
@@ -138,7 +146,7 @@ async function LiveView() {
         ]}
       />
       <Row cols={2}>
-        <Panel title="On the site now" note="Each row: who, the page they are on, where they are, and how long they have been here.">
+        <Panel title="On the site now" note="Who, the pages they have been through this visit, where they are, and for how long.">
           <PresenceList rows={p.online} live empty="Nobody in the last 15 minutes." />
         </Panel>
         <Panel title="Earlier today" note="Members who were here in the last 24 hours but have since left.">
@@ -146,14 +154,22 @@ async function LiveView() {
         </Panel>
       </Row>
       <Row cols={3}>
+        <Panel title="Pages people open" note="How many visits went to each page at least once, over 30 days.">
+          <BarList items={p.pages} total={p.visits30d} empty={`Nothing yet. Pages are counted from ${TRACKED_SINCE}.`} />
+        </Panel>
+        <Panel title="Where they go next" note="The most common steps from one page to another. A step you expected and do not see is a link people are not finding.">
+          <BarList items={p.moves} empty="No visit has gone past one page yet." />
+        </Panel>
+        <Panel title="Where visits end" note="The last page before leaving. High on this list means people give up there, or have simply done what they came for.">
+          <BarList items={p.exits} empty="No visits yet." />
+        </Panel>
+      </Row>
+      <Row cols={2}>
         <Panel title="Phone, tablet or computer" note="How many visits came from each, over 30 days.">
           <BarList items={p.byDevice} empty="No visits yet." />
         </Panel>
         <Panel title="Operating system" note="iOS, Android, Windows, macOS.">
           <BarList items={p.byOs} empty="No visits yet." />
-        </Panel>
-        <Panel title="The last page people saw" note="Where each visit ended. A page high on this list is where members give up or run out of things to do.">
-          <BarList items={p.byPath} empty="No visits yet." />
         </Panel>
       </Row>
     </div>
@@ -477,8 +493,8 @@ async function RhythmsView() {
         <Panel title="Operating system">
           <BarList items={usage.byOs} empty="No visits yet." />
         </Panel>
-        <Panel title="The last page people saw" note="Where each visit ended.">
-          <BarList items={usage.byPath} empty="No visits yet." />
+        <Panel title="Where visits end" note="The last page before leaving.">
+          <BarList items={usage.exits} empty="No visits yet." />
         </Panel>
       </Row>
     </div>

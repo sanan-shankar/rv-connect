@@ -625,6 +625,14 @@ account and the test account, which also corrects the history already skewed. Bo
 `src/lib/stats-exclusion.ts` and are pinned by `stats-exclusion-rule.test.mjs`. People counts off
 `User.lastSeenAt` are not filtered: they are out by two at most.
 
+**A visit is reported by the browser, not by a layout render** (2026-09-15). The `(main)` layout
+renders for link prefetches and never while somebody reads, so when it wrote `Visit` most visits
+read one page and 0s. `<PresenceBeacon>` (`src/components/analytics/presence-beacon.tsx`) posts a
+"view" to `/api/presence` on each real navigation and a "beat" each minute while the member is active,
+and `Visit.paths` keeps the pages in order. The Live view reads length, depth and journeys only from
+visits with a trail (`TRACKED_SINCE` in `admin-analytics.ts`); device, OS, days and people read every
+visit. Pinned by `presence-rule.test.mjs`.
+
 **The one schema gap this section raised has been closed.** `lastSeenAt` on `User` was planned in
 the roadmap's Phase 5 delta list and never added, so "who is actually still using this" was the one
 question the database could not answer. The column exists now, stamped every fifteen minutes from

@@ -32,12 +32,40 @@ test("a visit is only ever written against the member it belongs to", () => {
     "the visit write is an upsert again: an upsert can only be keyed on the id, " +
       "and the id comes from the caller's own cookie, so a replayed one writes into somebody else's row (C-163)"
   );
-  const update = src.slice(src.indexOf("visit.updateMany"), src.indexOf("visit.updateMany") + 200);
+  // Raw SQL since 2026-09-15 (the trail needs a cap Prisma's push cannot
+  // say), so the scope is pinned on the statement's own WHERE.
+  const at = src.indexOf('UPDATE "Visit"');
+  assert.notEqual(at, -1, "the visit update is gone");
+  const update = src.slice(at, src.indexOf("`", at));
   assert.match(
     update,
-    /where:\s*\{\s*id:\s*visitId,\s*userId\s*\}/,
+    /WHERE\s+"id"\s*=\s*\$\{visitId\}\s+AND\s+"userId"\s*=\s*\$\{userId\}/,
     "the visit update is no longer scoped to the member as well as the id"
   );
+});
+
+test("a page view comes from the browser, never from a layout render", () => {
+  /* The (main) layout renders for link prefetches and never while somebody
+     reads, so when it wrote Visit most visits read one page and 0s, and the
+     page recorded was whichever sidebar link was prefetched last (2026-09-15).
+     The beacon reports real navigations; the route is the only writer. */
+  const layout = decomment(read("src/app/(main)/layout.tsx"));
+  assert.ok(
+    !/recordPageView|readPresence/.test(layout),
+    "the layout writes visits again: prefetches will count as pages and reading will count as 0s"
+  );
+  assert.match(layout, /<PresenceBeacon\b/, "the presence beacon is no longer mounted");
+
+  const beacon = decomment(read("src/components/analytics/presence-beacon.tsx"));
+  assert.match(beacon, /usePathname\(\)/, "the beacon no longer follows real navigations");
+  assert.match(beacon, /IDLE_MS/, "the heartbeat no longer stops when the member goes idle; an open tab would count all night");
+
+  const route = decomment(read("src/app/api/presence/route.ts"));
+  const authAt = route.search(/await auth\(\)/);
+  const writeAt = route.search(/recordPageView\(/);
+  assert.ok(authAt !== -1 && writeAt !== -1 && authAt < writeAt, "the presence route writes before it authenticates");
+  assert.match(route, /presencePingSchema\.safeParse/, "the presence route no longer validates what the browser sends");
+  assert.match(route, /IS_DEMO/, "the presence route no longer skips the demo");
 });
 
 test("a rotating cookie cannot mint rows for ever", () => {

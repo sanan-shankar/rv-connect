@@ -329,8 +329,10 @@ export function proxy(request: NextRequest) {
      A layout has no usePathname and Next exposes no reliable equivalent, and
      the alternative -- a client component reporting its own location back over
      fetch -- would be a second round trip on every navigation to learn
-     something this process already knows. Consumed by touchLastSeen
-     (src/lib/last-seen.ts) to record which page a member is actually on. */
+     something this process already knows. Consumed by the (main) layout's
+     sign-in redirect. NOT by the visit statistics any more: those come from
+     the browser (src/app/api/presence), because a layout render also fires
+     for link prefetches. */
   const withPath = new Headers(request.headers);
   withPath.set("x-pathname", pathname);
   /* And the query string, separately, for the (main) layout's own sign-in
@@ -338,8 +340,8 @@ export function proxy(request: NextRequest) {
      through on presence alone -- a revoked session after a password reset --
      and without the search string a filtered directory link or a Catch-up
      invitation comes back stripped. Kept apart from x-pathname rather than
-     appended to it because touchLastSeen records that header as the page
-     somebody was on, and a search term is not part of the page's name. */
+     appended to it, so anything reading x-pathname as a page's name never
+     sees a search term in it. */
   withPath.set("x-search", search);
 
   /* THE VISIT ID, held in a rolling 30-minute cookie.
