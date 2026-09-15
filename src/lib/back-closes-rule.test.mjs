@@ -36,7 +36,6 @@ test("only ui/dialog and ui/sheet build on Base UI's dialog, and both wire the b
 test("every hand-drawn overlay calls useBackCloses", () => {
   const overlays = [
     "src/components/common/image-viewer.tsx",
-    "src/components/catchups/settings/settings-surface.tsx",
     "src/components/directory/alumni-map.tsx",
     "src/components/catchups/edition/reader.tsx",
   ];

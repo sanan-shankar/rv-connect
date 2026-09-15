@@ -58,7 +58,7 @@
  *  for him and a one-column change, not something to invent here.
  * ------------------------------------------------------------------ */
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Archive,
   Bell,
@@ -73,11 +73,10 @@ import {
   Repeat,
   Send,
   Type,
-  X,
   type LucideIcon,
 } from "lucide-react";
 import { CaretDown, CaretRight } from "@phosphor-icons/react";
-import { AnimatePresence, animate, m, useMotionValue } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,11 +85,9 @@ import {
   DialogContent,
   DialogDescription,
   DialogTitle,
-  MODAL_SCRIM,
 } from "@/components/ui/dialog";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { callAction } from "@/lib/call-action";
-import { useBackCloses } from "@/lib/back-closes";
 import { cn, formatDayMonth } from "@/lib/utils";
 import type { Cadence, ReminderMode } from "@/lib/catchups-types";
 import {
@@ -602,186 +599,6 @@ function SettingsPanel({
         </section>
       ))}
     </div>
-  );
-}
-
-/* ── the sheet ─────────────────────────────────────────────────────── *
- *  Every one of these is his, 2026-09-09:
- *
- *    "Anytime we have this dialogue that pops up from the bottom, I don't
- *     want it to be controlled by that pill on that very thin pill on
- *     top. I want it to be controlled by an x. And it doesn't say
- *     settings. Also, I'd like it to say Settings on the top left and
- *     then have the x on the top right."
- *
- *    "And also I'd like you to be able to bring it down by swiping down
- *     on it if you were at the top. So if you're at the top and you have
- *     no more scrolling to do, then when you swipe down, it should just
- *     bring the dialogue down."
- *
- *  THE SECOND ONE IS WHY THIS DOES NOT USE `ui/sheet.tsx` OR framer's
- *  `drag`. The sheet's body IS the scroller, so an unconditional drag
- *  eats every upward flick and the list cannot be read. Framer's own
- *  escape hatch, `dragListener={false}` plus `dragControls.start()` from
- *  a pointermove, was built and driven and does not work here either: the
- *  moment a finger moves on a scrollable box Chrome takes the gesture for
- *  scrolling and fires `pointercancel`, so the pointermove that would
- *  have started the drag never arrives. Measured -- a real touch sequence
- *  down the sheet left it exactly where it was.
- *
- *  So the gesture is read from the touch events directly, non-passively,
- *  and the sheet's y is a motion value this moves by hand:
- *
- *    the body is at scrollTop 0 AND the finger has travelled 6px DOWN
- *      -> preventDefault, and the sheet follows the finger
- *    anything else
- *      -> not our gesture; the list scrolls and the sheet never moves
- *
- *  6px because below that a tap's own jitter starts the drag and the
- *  sheet twitches under a press. 90px or a fast flick lets go of it.
- *
- *  The enter and exit slide live on the OUTER element and the gesture on
- *  the inner one, because a motion value in `style.y` and an `animate` on
- *  the same axis fight over one transform. */
-export function SettingsSheet({
-  open,
-  onClose,
-  title,
-  children,
-}: {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  children: ReactNode;
-}) {
-  const body = useRef<HTMLDivElement>(null);
-  const y = useMotionValue(0);
-  useBackCloses(open, onClose);
-
-  useEffect(() => {
-    if (!open) return;
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", esc);
-    return () => window.removeEventListener("keydown", esc);
-  }, [open, onClose]);
-
-  useEffect(() => {
-    const el = body.current;
-    if (!open || !el) return;
-    y.set(0);
-
-    let from = 0;
-    let armed = false;
-    let dragging = false;
-    let last = 0;
-    let lastAt = 0;
-    let speed = 0;
-
-    /* A mouse never gets its gesture stolen by the scroller, so it can go
-       through the same handlers. */
-    const at = (e: TouchEvent | MouseEvent) =>
-      "touches" in e ? (e.touches[0]?.clientY ?? last) : e.clientY;
-
-    const down = (e: TouchEvent | MouseEvent) => {
-      from = at(e);
-      last = from;
-      lastAt = performance.now();
-      speed = 0;
-      armed = el.scrollTop <= 0;
-      dragging = false;
-    };
-
-    const move = (e: TouchEvent | MouseEvent) => {
-      if (!armed) return;
-      const now = at(e);
-      const dy = now - from;
-      if (!dragging) {
-        if (dy < 6) return;
-        dragging = true;
-      }
-      e.preventDefault();
-      const t = performance.now();
-      if (t > lastAt) speed = ((now - last) / (t - lastAt)) * 1000;
-      last = now;
-      lastAt = t;
-      y.set(Math.max(0, dy));
-    };
-
-    const up = () => {
-      armed = false;
-      if (!dragging) return;
-      dragging = false;
-      if (y.get() > 90 || speed > 600) onClose();
-      else animate(y, 0, { duration: 0.24, ease: EASE_OUT_SMOOTH });
-    };
-
-    el.addEventListener("touchstart", down, { passive: true });
-    el.addEventListener("touchmove", move, { passive: false });
-    el.addEventListener("touchend", up);
-    el.addEventListener("touchcancel", up);
-    el.addEventListener("mousedown", down);
-    window.addEventListener("mousemove", move);
-    window.addEventListener("mouseup", up);
-    return () => {
-      el.removeEventListener("touchstart", down);
-      el.removeEventListener("touchmove", move);
-      el.removeEventListener("touchend", up);
-      el.removeEventListener("touchcancel", up);
-      el.removeEventListener("mousedown", down);
-      window.removeEventListener("mousemove", move);
-      window.removeEventListener("mouseup", up);
-    };
-  }, [open, onClose, y]);
-
-  return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <m.button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: EASE_OUT_SMOOTH }}
-            className={cn("fixed inset-0 z-40", MODAL_SCRIM)}
-          />
-          <m.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ duration: 0.3, ease: EASE_OUT_SMOOTH }}
-            className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-[430px]"
-          >
-            <m.div
-              style={{ y, paddingBottom: "max(20px, env(safe-area-inset-bottom))" }}
-              className="flex max-h-[80dvh] w-full flex-col rounded-t-[20px] border-t border-border bg-card"
-            >
-              {/* The name of the surface at the leading edge, the way out at
-                  the trailing one, on one line -- the same anatomy the dialog
-                  material draws on a laptop, so a phone and a laptop are not
-                  two designs. 16px medium heading face, which is the
-                  material's own DialogTitle rather than a per-surface size. */}
-              <div className="flex items-center justify-between gap-2 py-2 pl-4 pr-2">
-                <h2 className="font-heading text-base leading-none font-medium">{title}</h2>
-                <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Close">
-                  <X />
-                </Button>
-              </div>
-              {/* `overscroll-contain` so a flick that runs out of list does
-                  not hand the scroll to the page behind the sheet. */}
-              <div
-                ref={body}
-                className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-1"
-              >
-                {children}
-              </div>
-            </m.div>
-          </m.div>
-        </>
-      )}
-    </AnimatePresence>
   );
 }
 

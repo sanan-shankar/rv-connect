@@ -65,9 +65,9 @@ import { AnswerExperience } from "@/components/catchups/answer/answer-experience
 import {
   SettingsDialogs,
   SettingsPanel,
-  SettingsSheet,
   useSettings,
 } from "@/components/catchups/settings/settings-surface";
+import { BottomSheet } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useWideViewport } from "@/components/common/use-wide-viewport";
 import { HomeHead } from "./home-head";
@@ -301,9 +301,9 @@ export function CatchupHome({ data }: { data: CatchupHomeData }) {
           component the /lab/catchups/settings room draws -- so the room he
           signed off and the shipped surface cannot drift. */}
       {phone ? (
-        <SettingsSheet open={settings} onClose={() => setSettings(false)} title="Settings">
+        <BottomSheet open={settings} onOpenChange={setSettings} title="Settings">
           <SettingsPanel {...s.panel} className="pb-3" />
-        </SettingsSheet>
+        </BottomSheet>
       ) : (
         <Dialog open={settings} onOpenChange={setSettings}>
           {/* `initialFocus` ON THE PANEL, and it is load-bearing. Base UI
