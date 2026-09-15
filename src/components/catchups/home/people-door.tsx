@@ -49,7 +49,7 @@ import { useUserSearch } from "@/components/common/use-user-search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { SettingsSheet } from "@/components/catchups/settings/settings-surface";
+import { BottomSheet } from "@/components/ui/sheet";
 import { callAction } from "@/lib/call-action";
 import {
   addCatchupMembers,
@@ -322,9 +322,9 @@ export function PeoplePanel({
 
   if (phone) {
     return (
-      <SettingsSheet open={open} onClose={onClose} title="People">
+      <BottomSheet open={open} onOpenChange={(o) => !o && onClose()} title="People">
         <div className="pb-3">{body}</div>
-      </SettingsSheet>
+      </BottomSheet>
     );
   }
 

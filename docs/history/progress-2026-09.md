@@ -6881,3 +6881,26 @@ hover-revealed labels): the signup info bubble has no clipping ancestor and the 
 Owner, straight after the clipping fix: "honestly ditch the verification leaves on feed". The post
 card's byline is the name alone now. `VerifiedMark` is untouched and still stands beside names in
 directory cards and profile headers, where the portalled label from the entry above still applies.
+
+## 2026-09-15 (sheets) — every panel that rises from the bottom is one sheet: title left, round X right, no lines, swipe down closes it
+
+Owner: standardise the bottom pop-ups (title not too big or small, an X on the right, no
+horizontal line, iOS/Revolut consistency), kill the "weird brown thing" behind the bottom
+button, and let a swipe down close them from the top of their content.
+
+- **One component.** `BottomSheet` in `ui/sheet.tsx` now draws all seven: Directory filters,
+  admin People and Content filters, the guide, the profile house picker, a Catch-up's Settings
+  and People. Before: three title sizes (15, 16, 20px), a hairline under two, three radii, and
+  two engines (Base UI for five, a hand-driven motion panel for the Catch-up two).
+- **The brown thing** was `FilterSheet`'s footer tray: `bg-background` (#E4E1D5) plus a
+  `border-t`. The footer now sits on the sheet's own surface.
+- **Swipe down** is the Catch-up sheet's touch-event gesture (2026-09-09), lifted into the
+  shared sheet: arms only when nothing under the finger is scrolled, gives way to an upward
+  scroll, 90px or a 600px/s flick closes. The drag writes `transform`, Base UI's enter/exit
+  rides `translate`, so a dismissed sheet falls on from the finger.
+- **Desktop.** Dialogs take the same `MODAL_TITLE` (18px regular; "16px medium" had always
+  rendered at 400) and `MODAL_CLOSE` (32px filled circle, 44px target). Contribute keeps its
+  own larger title and Get in touch its centred one, both argued for in place.
+- Probed signed in as Jerry at 390x844: title and X centred on one line in every sheet, no row
+  borders or tints, swipe from title and from body both close, a swipe after scrolling does
+  not, a 40px drag springs back, the X closes. The lab settings room keeps its hand-drawn copy.

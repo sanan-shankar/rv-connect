@@ -322,8 +322,10 @@ register IS the template, and it lives in exactly one file - `src/components/ui/
 - **Panel:** Float `#FFFFFF` (the one sanctioned pure-white surface), 20.8px floating-modal
   radius, hairline border, layered ink shadow, `max-w-sm`, 16px padding. It enters a beat
   (80ms) after the backdrop - rise 12px + scale from 0.94 on the spring curve - and exits
-  immediately (no delay), so closing never lags. X close button top-right, always.
-- **Anatomy:** `DialogTitle` (heading face, 16px medium) + `DialogDescription` (14px muted) +
+  immediately (no delay), so closing never lags. X close button top-right, always, and it is
+  `MODAL_CLOSE`: a 32px filled circle with a bold glyph (the iOS sheet close), 44px to a thumb.
+- **Anatomy:** `DialogTitle` (`MODAL_TITLE`: heading face, 18px regular; the face ships 400 and
+  700 only, so the old "16px medium" was 400 all along) + `DialogDescription` (14px muted) +
   content + ONE footer shape: a right-aligned Cancel-then-action row. No recessed footer
   trays, no full-width buttons, no per-dialog title sizes. Inner boxes step down the radius
   ladder (12px inputs/tiles inside the 20.8px panel). Button *variants* carry the semantics
@@ -363,6 +365,14 @@ register IS the template, and it lives in exactly one file - `src/components/ui/
   a corporate app. but use it smartly").
 - **Short interactions only.** A dialog is for something done in seconds (report, flag,
   contact, a quick edit). Anything immersive (writing a letter) gets a page, not a dialog.
+- **Bottom sheets are the same material (2026-09-15).** Anything that rises from the foot of
+  the screen is `BottomSheet` in `ui/sheet.tsx`, never a hand-rolled panel and never a
+  per-surface header: the title (`MODAL_TITLE`) at the leading edge, `MODAL_CLOSE` at the
+  trailing one, no hairline under the title, a footer on the sheet's own surface (the old tan
+  tray read as a brown smear behind the button), the dialog's 20.8px radius on the top edge.
+  It closes four ways: the X, the scrim, back, and a swipe down that starts anywhere nothing
+  under the finger is scrolled (owner, 2026-09-09 and 2026-09-15). Filters on the Directory
+  and the admin lists, the guide, the house picker, a Catch-up's Settings and People all use it.
 - **Enforcement:** every modal imports from `ui/dialog`. `aria-modal` appearing anywhere
   else is an audit violation (the full-screen image viewer is the one exception - it is an
   experience, not a dialog).

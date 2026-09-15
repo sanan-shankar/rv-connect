@@ -1,15 +1,15 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { BottomSheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
 /**
  * FilterSheet — the mobile bottom sheet that carries the full labelled facet
- * stack, with a sticky `Clear all` / `Show N` footer (filters-rework.md
- * sec. 5.2 / 6.2). Same shell for the Directory and the admin lists; the
- * facets themselves are passed as children. The Collection left this kit in
- * 8a0ba37 and owns its own river controls.
+ * stack, with a `Clear all` / `Show N` footer (filters-rework.md sec. 5.2 /
+ * 6.2). Same shell for the Directory and the admin lists; the facets
+ * themselves are passed as children. The Collection left this kit in 8a0ba37
+ * and owns its own river controls.
  */
 export function FilterSheet({
   open,
@@ -29,24 +29,13 @@ export function FilterSheet({
   showLabel: string;
 }) {
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[85vh] rounded-t-[var(--radius)] p-0">
-        <SheetHeader className="border-b border-border">
-          <SheetTitle className="font-heading text-xl tracking-tight">{title}</SheetTitle>
-        </SheetHeader>
-        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">{children}</div>
-        {/* This is the one sheet in the app with a persistent CTA sitting
-            flush against the screen's own bottom edge -- the house-chain
-            editor's and guide-overlay's bottom sheets are either short of full height or
-            already generously padded, but this footer's plain `p-4` put
-            "Show N" right up against a home indicator with nothing but 16px
-            between them (viewport-fit=cover in the root layout means that
-            area is real, not decoration -- see layout.tsx). Same
-            max(16px, env(...)) pattern image-viewer.tsx already uses. */}
-        <div
-          className="flex items-center gap-3 border-t border-border bg-background px-4 pt-4"
-          style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
-        >
+    <BottomSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={title}
+      bodyClassName="space-y-3 pt-2"
+      footer={
+        <>
           {hasActive && (
             <button
               type="button"
@@ -70,8 +59,10 @@ export function FilterSheet({
           >
             {showLabel}
           </Button>
-        </div>
-      </SheetContent>
-    </Sheet>
+        </>
+      }
+    >
+      {children}
+    </BottomSheet>
   );
 }

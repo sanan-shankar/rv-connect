@@ -40,7 +40,7 @@ import {
   PopoverPortal,
   PopoverPositioner,
 } from "@/components/ui/popover";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { BottomSheet } from "@/components/ui/sheet";
 import { academicSpanLabel, parseHouseSpans } from "@/lib/house-spans";
 import { HOUSES, normalizeHouse, type HouseYearEntry } from "@/lib/houses";
 import { cn } from "@/lib/utils";
@@ -299,17 +299,17 @@ export function HouseChainEditor({
           </PopoverPortal>
         </Popover>
       ) : (
-        <Sheet open={Boolean(target)} onOpenChange={(o) => !o && setTarget(null)}>
-          <SheetContent side="bottom" className="max-h-[64vh] rounded-t-[var(--radius)] p-0">
-            <SheetHeader className="border-b border-border pb-3">
-              <SheetTitle className="font-heading text-[15px] font-semibold tracking-tight">
-                Which house in{" "}
-                <span className={cn("tabular-nums", scopeInk)}>{scopeLabel}</span>?
-              </SheetTitle>
-            </SheetHeader>
-            <div className="flex-1 overflow-y-auto px-4 pb-4">{panel}</div>
-          </SheetContent>
-        </Sheet>
+        <BottomSheet
+          open={Boolean(target)}
+          onOpenChange={(o) => !o && setTarget(null)}
+          title={
+            <>
+              Which house in <span className={cn("tabular-nums", scopeInk)}>{scopeLabel}</span>?
+            </>
+          }
+        >
+          {panel}
+        </BottomSheet>
       )}
     </div>
   );

@@ -218,6 +218,7 @@ const XL_ALLOW = new Map([
   ["src/components/tour/tour-panel.tsx", "floating tour sheet, standalone overlay"],
   ["src/components/tour/tour-offer.tsx", "floating offer sheet, standalone overlay"],
   ["src/components/ui/dialog.tsx", "THE floating-modal radius: the dialog material is a standalone overlay, not a nested card"],
+  ["src/components/ui/sheet.tsx", "the bottom sheet is the same floating-modal material pinned to the foot of the screen, so it rounds its top edge with the dialog's radius"],
   ["src/components/onboarding/steps/houses-step.tsx", "TEMP: Wave-2 houses rebuild owns this file"],
   ["src/components/layout/sidebar.tsx", "nav rows on the canopy panel, not nested in a card; radius revisit deferred"],
   ["src/components/layout/notification-bell.tsx", "sidebar bell row, same panel as above"],

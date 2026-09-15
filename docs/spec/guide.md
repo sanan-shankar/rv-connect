@@ -250,8 +250,10 @@ true. A chapter written from a guess is worse than a missing one.
 
 - `/about` still says "indefinitely procrastinated", and the sidebar still points at it.
   It needs something to say, or it needs deleting.
-- Nothing else outstanding on the overlay. It is built on `ui/sheet` (`side="bottom"`),
-  which is the sanctioned edge-anchored variant of the one dialog material. The first
+- Nothing else outstanding on the overlay. It is built on `BottomSheet` in `ui/sheet`
+  (since 2026-09-15; it was `SheetContent side="bottom"`), the one bottom sheet every panel
+  rising from the foot of the screen uses, so it wears the shared "Guide" title row, X and
+  swipe-down. The first
   version hand-rolled it and the protocol audit was right to fail: the primitive already
   owns the warm-ink scrim, the focus trap, escape, the aria wiring and the scroll lock, and
   it also sizes to its content, which fixed the empty page under the shortest chapter.
