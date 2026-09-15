@@ -25,7 +25,8 @@ function since(d: Date): string {
   return `${Math.floor(m / 60)}h ago`;
 }
 
-/** A visit's length. Zero is honest: they opened one page and left. */
+/** A visit's length, measured to the minute by the beacon's heartbeat. Under a
+ *  minute means they opened a page and left before the first beat. */
 function lasted(a: Date, b: Date): string {
   const s = Math.floor((b.getTime() - a.getTime()) / 1000);
   if (s < 60) return `${s}s`;
@@ -34,29 +35,9 @@ function lasted(a: Date, b: Date): string {
   return `${Math.floor(m / 60)}h ${m % 60}m`;
 }
 
-/** "/profile/clx123..." reads as noise; "a profile" reads as a fact. */
-function readablePath(path: string | null): string {
-  if (!path) return "somewhere";
-  const named: Record<string, string> = {
-    "/feed": "the feed",
-    "/directory": "the directory",
-    "/letters": "letters",
-    "/collection": "the collection",
-    "/catchups": "catch-ups",
-    "/support": "support",
-    "/birds": "the birds",
-    "/about": "about",
-    "/messages": "messages",
-    "/settings": "settings",
-  };
-  if (named[path]) return named[path];
-  if (path.startsWith("/profile/")) return "a profile";
-  if (path.startsWith("/letters/")) return "reading a letter";
-  if (path.startsWith("/catchups/")) return "a catch-up";
-  if (path.startsWith("/collection/")) return "a photo";
-  if (path.startsWith("/admin")) return "the admin panel";
-  return path;
-}
+/* The last few stops fit one line on a phone; the whole trail is in the
+   row's title for anyone who hovers. */
+const TRAIL_SHOWN = 4;
 
 export function PresenceList({
   rows,
@@ -100,10 +81,16 @@ export function PresenceList({
                   </span>
                 )}
               </div>
+              {/* Where they went, not only where they are: "the feed → a
+                  profile → messages" is the finding, and the last stop alone
+                  hid it. */}
+              <span className="truncate text-[12px] text-foreground/80" title={r.trail.join(" → ")}>
+                {r.trail.length > TRAIL_SHOWN && "… → "}
+                {r.trail.slice(-TRAIL_SHOWN).join(" → ")}
+              </span>
               <span className="truncate text-[11.5px] text-muted-foreground">
-                {readablePath(r.path)}
-                {place && ` · ${place}`}
-                {` · ${r.views} ${r.views === 1 ? "page" : "pages"}`}
+                {place && `${place} · `}
+                {`${r.views} ${r.views === 1 ? "page" : "pages"}`}
                 {` · ${lasted(r.startedAt, r.endedAt)}`}
               </span>
             </div>

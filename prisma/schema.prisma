@@ -1501,6 +1501,13 @@ model Visit {
   // The FIRST page of the visit. The pair (entryPath, lastPath) is the cheap
   // version of a journey: where people come in and where they stop.
   entryPath String?
+  // Every page the visit went through, in order: capped at 40 and with
+  // back-to-back repeats folded, by src/lib/last-seen.ts. Written from the
+  // browser on real navigations (src/app/api/presence), never from a layout
+  // render, which also fires for link prefetches. Non-empty is also how the
+  // analytics room tells these rows from the prefetch-inflated ones before
+  // 2026-09-15.
+  paths     String[] @default([])
   // Where they came from, host only. The full URL would carry query strings
   // (search terms, tracking ids) belonging to somebody else's site.
   referrer String?

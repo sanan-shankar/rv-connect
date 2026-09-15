@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 import { statsFilter } from "@/lib/stats-exclusion";
+import { pageLabel, trailLabels } from "@/lib/page-label";
 
 /* ------------------------------------------------------------------ *
  *  Everything /admin/analytics reads.
@@ -312,6 +313,15 @@ export async function loadMail() {
  * ---------------------------------------------------------------- */
 
 /** A visit is "live" if it saw a page view in the last 15 minutes. */
+
+/* Every Visit read below that speaks about pages, length or depth is limited
+   to rows with a trail. Before 2026-09-15 views were counted from layout
+   renders, which fire for link prefetches and never while somebody reads, so
+   those rows say "one page, 0s" or "/support three times in seven seconds".
+   A non-empty `paths` is the mark of a visit the browser actually reported
+   (see <PresenceBeacon>), and the old rows age out of the windows on their
+   own. Counts of days and people still read every row: those were right. */
+export const TRACKED_SINCE = "15 Sep 2026";
 const ONLINE_MIN = 15;
 
 export type Presence = {
@@ -323,7 +333,8 @@ export type Presence = {
   photoUrl: string | null;
   birdOverride: string | null;
   batchYear: number | null;
-  path: string | null;
+  /* The visit's pages in words, oldest first, repeats folded. */
+  trail: string[];
   device: string | null;
   os: string | null;
   browser: string | null;
@@ -341,7 +352,7 @@ export async function loadPresence() {
 
   const [live, recent, sessionAgg, breakdowns, returning] = await Promise.all([
     prisma.visit.findMany({
-      where: { endedAt: { gte: online }, ...counted.visit },
+      where: { endedAt: { gte: online }, paths: { isEmpty: false }, ...counted.visit },
       orderBy: { endedAt: "desc" },
       take: 40,
       include: {
@@ -351,7 +362,7 @@ export async function loadPresence() {
       },
     }),
     prisma.visit.findMany({
-      where: { endedAt: { gte: new Date(now - 24 * 3600_000), lt: online }, ...counted.visit },
+      where: { endedAt: { gte: new Date(now - 24 * 3600_000), lt: online }, paths: { isEmpty: false }, ...counted.visit },
       orderBy: { endedAt: "desc" },
       take: 25,
       include: {
@@ -360,16 +371,21 @@ export async function loadPresence() {
         },
       },
     }),
-    /* Average length and depth over the last 30 days. Computed in SQL because
-     * a duration is a subtraction Postgres does far better than JavaScript
-     * does over a few thousand rows pulled across the wire. */
-    prisma.$queryRaw<{ visits: bigint; avg_sec: number | null; avg_views: number | null; people: bigint }[]>`
-      SELECT count(*)::bigint                                            AS visits,
-             avg(EXTRACT(EPOCH FROM ("endedAt" - "startedAt")))          AS avg_sec,
-             avg("views")                                                AS avg_views,
-             count(DISTINCT "userId")::bigint                            AS people
+    /* Length and depth over the last 30 days, of tracked visits. The MEDIAN
+     * length, not the mean: one tab read for an hour drags the mean of a dozen
+     * two-minute visits past seven minutes, and "typical" is the question.
+     * "One page" is one distinct stop, so a reload does not rescue a visit
+     * from it. */
+    prisma.$queryRaw<{ visits: bigint; median_sec: number | null; avg_views: number | null; one_page: bigint; people: bigint }[]>`
+      SELECT count(*)::bigint                                                   AS visits,
+             percentile_cont(0.5) WITHIN GROUP (
+               ORDER BY EXTRACT(EPOCH FROM ("endedAt" - "startedAt")))           AS median_sec,
+             avg("views")::float8                                               AS avg_views,
+             count(*) FILTER (WHERE cardinality("paths") = 1)::bigint           AS one_page,
+             count(DISTINCT "userId")::bigint                                   AS people
       FROM "Visit"
-      WHERE "startedAt" >= now() - interval '30 days' AND ${counted.user('"userId"')}
+      WHERE "startedAt" >= now() - interval '30 days' AND cardinality("paths") > 0
+        AND ${counted.user('"userId"')}
     `,
     loadUsageBreakdowns(),
     /* How many people came back on more than one day. The single best signal
@@ -390,7 +406,7 @@ export async function loadPresence() {
     photoUrl: v.user.photoUrl,
     birdOverride: v.user.birdOverride,
     batchYear: v.user.batchYear,
-    path: v.lastPath,
+    trail: trailLabels(v.paths),
     device: v.device,
     os: v.os,
     browser: v.browser,
@@ -408,29 +424,29 @@ export async function loadPresence() {
     recent: recent.map(shape),
     visits30d: Number(agg?.visits ?? 0),
     people30d: Number(agg?.people ?? 0),
-    /* Zero is honest for a single-page visit: they arrived and left. It is not
-     * a missing number, and padding it would make the average a fiction. */
-    avgSessionSec: Math.round(agg?.avg_sec ?? 0),
+    medianSessionSec: Math.round(agg?.median_sec ?? 0),
     avgViews: agg?.avg_views ?? 0,
+    onePageShare: Number(agg?.visits ?? 0) > 0 ? Number(agg?.one_page ?? 0) / Number(agg?.visits) : 0,
     returning: Number(returning[0]?.n ?? 0),
     ...breakdowns,
   };
 }
 
 /**
- * What people browse on, and where they land, over 30 days.
+ * What people browse on, and how they move through the site, over 30 days.
  *
- * Split out of `loadPresence` because RhythmsView renders these three lists
- * and nothing else, and loadPresence's other four queries are the heaviest in
- * the loader: two findMany with a user join, and two raw aggregates over
- * Visit. Opening Rhythms was paying for a live-visitor list nobody was going
- * to see. loadPresence still calls this, so there is one definition.
+ * Split out of `loadPresence` because RhythmsView renders only these, and
+ * loadPresence's other queries are the heaviest in the loader. loadPresence
+ * still calls this, so there is one definition.
  */
 export async function loadUsageBreakdowns() {
   const since = new Date(Date.now() - 30 * 86_400_000);
   const counted = await statsFilter();
+  /* Device and OS read every visit, not only tracked ones: a visit's device
+     was always recorded right, and the skew it had was the owner's own
+     machine, which `counted` already removes. */
 
-  const [byDevice, byOs, byPath] = await Promise.all([
+  const [byDevice, byOs, steps] = await Promise.all([
     prisma.visit.groupBy({
       by: ["device"],
       _count: { _all: true },
@@ -443,19 +459,59 @@ export async function loadUsageBreakdowns() {
       where: { ...counted.visit, startedAt: { gte: since }, os: { not: null } },
       orderBy: { _count: { os: "desc" } },
     }),
-    prisma.visit.groupBy({
-      by: ["lastPath"],
-      _count: { _all: true },
-      where: { ...counted.visit, startedAt: { gte: since }, lastPath: { not: null } },
-      orderBy: { _count: { lastPath: "desc" } },
-      take: 10,
-    }),
+    /* The three journey questions in one round trip, off one unnest of the
+     * trails: which pages a visit includes, which page it ends on, and which
+     * page follows which. Ids collapse to ":id" first (the same rule as
+     * ID_SEGMENT in page-label.ts), or every profile would be its own row and
+     * none would ever reach the top ten. */
+    prisma.$queryRaw<{ kind: string; a: string; b: string | null; n: bigint }[]>`
+      WITH steps AS (
+        SELECT v.id, s.ord, cardinality(v."paths") AS len,
+               regexp_replace(s.p, '/[a-z0-9]{20,}(?=/|$)', '/:id', 'g') AS page
+        FROM "Visit" v, unnest(v."paths") WITH ORDINALITY AS s(p, ord)
+        WHERE v."startedAt" >= ${since} AND ${counted.user('v."userId"')}
+      ),
+      pages AS (
+        SELECT 'page'::text AS kind, page AS a, NULL::text AS b, count(DISTINCT id)::bigint AS n
+        FROM steps GROUP BY page ORDER BY n DESC LIMIT 12
+      ),
+      exits AS (
+        SELECT 'exit'::text AS kind, page AS a, NULL::text AS b, count(*)::bigint AS n
+        FROM steps WHERE ord = len GROUP BY page ORDER BY n DESC LIMIT 10
+      ),
+      moves AS (
+        SELECT 'move'::text AS kind, x.page AS a, y.page AS b, count(*)::bigint AS n
+        FROM steps x JOIN steps y ON y.id = x.id AND y.ord = x.ord + 1
+        WHERE x.page <> y.page
+        GROUP BY x.page, y.page ORDER BY n DESC LIMIT 10
+      )
+      SELECT * FROM pages UNION ALL SELECT * FROM exits UNION ALL SELECT * FROM moves
+    `,
   ]);
+
+  /* Summed by LABEL, because two collapsed paths can share a name ("/guide"
+     and "/guide/:id" are both the guide), and a step from a page to another
+     page with the same name is not a step anyone took. */
+  const tally = (kind: string, name: (r: (typeof steps)[number]) => string | null) => {
+    const m = new Map<string, number>();
+    for (const r of steps) {
+      if (r.kind !== kind) continue;
+      const label = name(r);
+      if (label) m.set(label, (m.get(label) ?? 0) + Number(r.n));
+    }
+    return [...m].map(([label, value]) => ({ label, value })).sort((x, y) => y.value - x.value);
+  };
 
   return {
     byDevice: byDevice.map((d) => ({ label: d.device ?? "unknown", value: d._count._all })),
     byOs: byOs.map((d) => ({ label: d.os ?? "unknown", value: d._count._all })),
-    byPath: byPath.map((p) => ({ label: p.lastPath ?? "unknown", value: p._count._all })),
+    pages: tally("page", (r) => pageLabel(r.a)),
+    exits: tally("exit", (r) => pageLabel(r.a)),
+    moves: tally("move", (r) => {
+      const from = pageLabel(r.a);
+      const to = pageLabel(r.b);
+      return from === to ? null : `${from} → ${to}`;
+    }),
   };
 }
 
@@ -655,13 +711,13 @@ export async function loadFaces() {
         SELECT u.id, u."name", u."batchYear",
                max(EXTRACT(EPOCH FROM (v."endedAt" - v."startedAt")))::bigint AS n
         FROM "Visit" v JOIN "User" u ON u.id = v."userId"
-        WHERE ${counted.user('v."userId"')}
+        WHERE ${counted.user('v."userId"')} AND cardinality(v."paths") > 0  -- tracked only (TRACKED_SINCE)
         GROUP BY u.id, u."name", u."batchYear" ORDER BY n DESC LIMIT 8
       `,
       prisma.$queryRaw<PersonRow[]>`
         SELECT u.id, u."name", u."batchYear", max(v."views")::bigint AS n
         FROM "Visit" v JOIN "User" u ON u.id = v."userId"
-        WHERE ${counted.user('v."userId"')}
+        WHERE ${counted.user('v."userId"')} AND cardinality(v."paths") > 0  -- prefetches inflated the old counts
         GROUP BY u.id, u."name", u."batchYear" ORDER BY n DESC LIMIT 8
       `,
       /* Whose profile gets looked at most. Self-views are never recorded, so
@@ -987,8 +1043,10 @@ export async function loadMemberMetrics(): Promise<MemberRow[]> {
       vis AS (
         SELECT "userId" id,
                count(*) n,
-               sum(EXTRACT(EPOCH FROM ("endedAt" - "startedAt"))) / 60 mins,
-               sum("views") views,
+               -- Minutes and pages from tracked visits only (TRACKED_SINCE).
+               sum(EXTRACT(EPOCH FROM ("endedAt" - "startedAt")))
+                 FILTER (WHERE cardinality("paths") > 0) / 60 mins,
+               sum("views") FILTER (WHERE cardinality("paths") > 0) views,
                -- The valley's day, not UTC's (audit Low 46).
                count(DISTINCT date_trunc('day', ("startedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata')) days,
                mode() WITHIN GROUP (ORDER BY "device") dev

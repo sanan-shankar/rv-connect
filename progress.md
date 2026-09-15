@@ -26,6 +26,7 @@ if the month is new), and add one line here, at the top of that month's list.
 - 2026-09-15 (feed, fix) — the verified leaf's label is portalled, so no card or name row can cut it off
 - 2026-09-15 (support) — the monthly bill's bar runs blue, orange, green: Hosting is sky
 - 2026-09-15 (support) — the bar runs green, orange, blue instead: Hosting canopy, Domain sky
+- 2026-09-15 (analytics) — visits are counted from the browser, with the pages each one went through
 - 2026-09-15 (analytics) — development and the owner's own use no longer count in the stats
 - 2026-09-14 (catch-ups, close) — the campaign run that took phases 10 to 14 and M1 closes, with 17 questions for him
 - 2026-09-14 (catch-ups, M1) — the magazine designed as rules: the engine, the corpus, the room, the spike

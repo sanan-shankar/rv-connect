@@ -6,8 +6,15 @@ import { statsWritesEnabled } from "@/lib/stats-exclusion";
 /* ------------------------------------------------------------------ *
  *  Presence: who is here, where, on what, and for how long.
  *
- *  Called from the (main) layout, which renders on EVERY authenticated
- *  page, so everything here has to be cheap and nothing here may throw.
+ *  Two writers, deliberately apart. `touchLastSeen` runs from the (main)
+ *  layout on every authenticated render and only stamps User.lastSeenAt.
+ *  `recordPageView` runs from /api/presence, which the browser calls on a
+ *  real navigation and once a minute while the member is active, and it
+ *  alone writes Visit. The layout used to write Visit too, and it renders
+ *  for link prefetches and never while somebody reads, which is how most
+ *  visits came to read as one page and 0s (2026-09-15).
+ *
+ *  Nothing here may throw at a member.
  * ------------------------------------------------------------------ */
 
 /* A visit ends when 30 minutes pass with no page view. The standard
@@ -20,10 +27,19 @@ export const SESSION_GAP_MIN = 30;
 
 /* User.lastSeenAt is throttled because it only ever answers "roughly when",
  * and a write per page view to record that is waste. Visit is NOT throttled:
- * it counts views and follows the path, which is the whole point. One UPDATE
- * per page view at this size is nothing -- 2,000 members at 30 views a day is
- * 60k writes, which Postgres does not notice. */
+ * it counts views and follows the path, which is the whole point. */
 const LAST_SEEN_STALE_MS = 15 * 60 * 1000;
+
+/* The longest trail one visit keeps. Forty distinct stops is a long sitting;
+   past it the visit still counts views and time, it just stops listing. */
+const TRAIL_MAX = 40;
+
+/* And the most views one visit may count. The path now arrives from the
+   browser, so a scripted account could otherwise post views for ever and drag
+   the room's "pages per visit" with it; its own row is all it can reach, and
+   this keeps that row inside what a person could do. Four hundred pages in a
+   sitting that never goes idle for thirty minutes is far past any real one. */
+const VIEWS_MAX = 400;
 
 /** Everything about the visit that is not its identity. */
 type VisitFacts = {
@@ -38,52 +54,70 @@ type VisitFacts = {
 };
 
 /**
- * One page view, recorded against this member's own visit.
+ * One ping, recorded against this member's own visit.
+ *
+ * A "view" counts a page and appends it to the trail; a "beat" only moves
+ * endedAt, which is what lets a visit spent reading one letter have a length.
  *
  * Update-then-create rather than an upsert, and the update is scoped to
- * `{ id, userId }` -- not to the id alone. The id arrives in a request header
+ * `id AND userId` -- not to the id alone. The id arrives in a request header
  * the proxy fills from the caller's own cookie, so an upsert keyed on it let a
  * replayed id write into ANOTHER member's row: their view count, their
  * endedAt, their device and their city (bug-report-2 C-163). Scoped, a foreign
  * id matches nothing, the create then loses to the primary key, and the
  * request records nothing at all -- which is the right outcome for a visit
  * that is not yours.
+ *
+ * Raw SQL for the update because the trail needs two things Prisma's
+ * `push` cannot say: stop at TRAIL_MAX, and skip a page that is already the
+ * last one (a reload is a view, not a new stop).
  */
 async function recordVisit(
   visitId: string,
   userId: string,
   now: Date,
-  path: string | null | undefined,
+  path: string,
+  kind: "view" | "beat",
   facts: VisitFacts
 ): Promise<void> {
   const { referrer, device, os, browser, language, country, cityName, region } = facts;
+  const isView = kind === "view";
 
-  const touched = await prisma.visit.updateMany({
-    where: { id: visitId, userId },
-    data: {
-      endedAt: now,
-      views: { increment: 1 },
-      lastPath: path ?? undefined,
-      /* Refreshed: someone moving from wifi to mobile data mid-visit is more
-         usefully described by where they are now. entryPath and referrer are
-         NOT here on purpose -- they describe how the visit began, and
-         overwriting them would turn "where people arrive" into "where they
-         are now". */
-      device,
-      os,
-      browser,
-      language: language ?? undefined,
-      country: country ?? undefined,
-      city: cityName ?? undefined,
-      region: region ?? undefined,
-    },
-  });
-  if (touched.count > 0) return;
+  /* Device and place are refreshed: someone moving from wifi to mobile data
+     mid-visit is more usefully described by where they are now. entryPath
+     and referrer are NOT here on purpose -- they describe how the visit
+     began, and overwriting them would turn "where people arrive" into "where
+     they are now". */
+  const touched = await prisma.$executeRaw`
+    UPDATE "Visit" SET
+      "endedAt"  = ${now},
+      "views"    = LEAST("views" + ${isView ? 1 : 0}, ${VIEWS_MAX}),
+      "lastPath" = ${path},
+      "paths"    = CASE
+                     WHEN ${isView}
+                      AND cardinality("paths") < ${TRAIL_MAX}
+                      AND "paths"[cardinality("paths")] IS DISTINCT FROM ${path}::text
+                     THEN array_append("paths", ${path}::text)
+                     ELSE "paths"
+                   END,
+      "device"   = ${device},
+      "os"       = ${os},
+      "browser"  = ${browser},
+      "language" = coalesce(${language}, "language"),
+      "country"  = coalesce(${country}, "country"),
+      "city"     = coalesce(${cityName}, "city"),
+      "region"   = coalesce(${region}, "region")
+    WHERE "id" = ${visitId} AND "userId" = ${userId}
+  `;
+  if (touched > 0) return;
 
   /* A new visit, so check the day's ceiling before opening one. Only reached
      when the id is one we have not seen -- once per sitting for a real
      browser, and every request for the rotating-cookie case this bounds.
-     Counted on endedAt, which the (userId, endedAt) index already serves. */
+     Counted on endedAt, which the (userId, endedAt) index already serves.
+     A beat can land here too, when a member comes back to a tab after the
+     30-minute window: that is the first page of a new visit, and is opened
+     as one. */
   const today = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const opened = await prisma.visit.count({ where: { userId, endedAt: { gte: today } } });
   if (opened >= MAX_VISITS_PER_DAY) return;
@@ -96,8 +130,9 @@ async function recordVisit(
         startedAt: now,
         endedAt: now,
         views: 1,
-        lastPath: path ?? null,
-        entryPath: path ?? null,
+        lastPath: path,
+        entryPath: path,
+        paths: [path],
         referrer,
         device,
         os,
@@ -126,8 +161,8 @@ async function recordVisit(
  * ever, with nothing anywhere to stop them: about 660,000 rows fills the
  * database's whole free-tier disk and takes the site read-only for everybody
  * (bug-report-2 C-163). Presence telemetry is not worth that, so past this
- * line the Visit is simply not opened. `lastSeenAt` below still records that
- * the member was here, which is what the rest of the app actually reads. */
+ * line the Visit is simply not opened. `lastSeenAt` still records that the
+ * member was here, which is what the rest of the app actually reads. */
 const MAX_VISITS_PER_DAY = 40;
 
 /**
@@ -176,32 +211,22 @@ function parseAgent(ua: string) {
   return { device, os, browser };
 }
 
-/** Everything the presence write needs from the request, read during render. */
+/** Everything the visit write needs from the request, read during it. */
 export type PresenceRequest = VisitFacts & {
-  /* The page, from the header src/proxy.ts sets. Null rather than a guess when
-     the header is absent, so a missing value is visibly missing in the admin
-     room rather than quietly wrong. */
-  path: string | null;
-  /* The browser's own visit id, minted and rolled by src/proxy.ts. With it the
-     visit write is a single upsert on a known primary key: no read-then-write,
-     so nothing to race over. Without it (a request that somehow skipped the
-     proxy) there is no safe way to attribute the view, so the Visit is skipped
-     rather than guessed at -- lastSeenAt still records that the member was
-     here. */
+  /* The browser's own visit id, minted and rolled by src/proxy.ts. Without it
+     (a request that somehow skipped the proxy) there is no safe way to
+     attribute the view, so the Visit is skipped rather than guessed at. */
   visitId: string | null;
 };
 
 /**
  * Read the request's presence facts. Separate from the write below, and it has
  * to be: the write belongs behind the response, and `headers()` is one of the
- * request-time APIs a Server Component may NOT call inside `after()` -- it
- * throws there (`after.md`: "Calling cookies() or headers() inside the after
- * callback in a Server Component will throw a runtime error"). Since
- * `touchLastSeen` swallows everything it catches, doing it the obvious way
- * would have killed presence telemetry in production and said nothing.
- *
- * So the reading happens during render, where headers exist, and only the
- * writing is deferred.
+ * request-time APIs that may NOT be called inside `after()` -- it throws there
+ * (`after.md`: "Calling cookies() or headers() inside the after callback in a
+ * Server Component will throw a runtime error"). Since the write swallows
+ * everything it catches, doing it the obvious way would have killed presence
+ * telemetry in production and said nothing.
  */
 export async function readPresence(): Promise<PresenceRequest> {
   const h = await headers();
@@ -229,65 +254,70 @@ export async function readPresence(): Promise<PresenceRequest> {
 
   return {
     referrer, device, os, browser, language, country, cityName, region,
-    path: h.get("x-pathname"),
     visitId: h.get("x-visit-id"),
   };
 }
 
 /**
- * Record a page view: stamp lastSeenAt, and extend or open a Visit.
- *
- * Fire-and-forget and deliberately silent. This is bookkeeping, and no member
- * may ever see an error page because a statistics row would not write --
- * the same contract advanceDueCatchups holds in the same layout.
- *
- * Takes its request facts rather than reading them, so the caller can run this
- * behind the response. See readPresence above for why that split exists.
+ * Record one ping from the presence beacon. Fire-and-forget and deliberately
+ * silent: no member may ever see an error because a statistics row would not
+ * write. Takes its request facts rather than reading them, so the caller can
+ * run it behind the response.
  */
-export async function touchLastSeen(
+export async function recordPageView(
   userId: string,
   req: PresenceRequest,
-  lastSeenAt?: string | null,
+  path: string,
+  kind: "view" | "beat",
 ): Promise<void> {
+  /* Production only (stats-exclusion.ts). */
+  if (!statsWritesEnabled()) return;
   try {
-    const now = new Date();
-    const { path, visitId, ...facts } = req;
-    await Promise.all([
-      /* Production only (stats-exclusion.ts). lastSeenAt below is not gated:
-         it is app state the rest of the site reads, not a statistic. */
-      visitId && statsWritesEnabled() ? recordVisit(visitId, userId, now, path, facts) : Promise.resolve(),
-
-      /* Still worth keeping alongside Visit: it is one indexed column on User,
-         so "active in the last 30 days" is a count rather than a join, and it
-         survives any future pruning of visit history.
-         
-         Skipped entirely when the caller can already say the column is fresh.
-         The WHERE below makes this a no-op UPDATE for fourteen minutes in
-         every fifteen -- it writes nothing, but it is still a round trip and a
-         row-lock attempt on User on every page view by every member. The
-         caller is the layout, and the session callback has already read this
-         member's row in this same request, so the answer is free there and
-         costs a query here. The WHERE stays regardless: it is what keeps two
-         concurrent requests from both deciding to write. */
-      fresh(lastSeenAt, now)
-        ? Promise.resolve()
-        : prisma.user.updateMany({
-            where: {
-              id: userId,
-              OR: [{ lastSeenAt: null }, { lastSeenAt: { lt: new Date(now.getTime() - LAST_SEEN_STALE_MS) } }],
-            },
-            data: { lastSeenAt: now },
-          }),
-    ]);
+    const { visitId, ...facts } = req;
+    if (visitId) await recordVisit(visitId, userId, new Date(), path, kind, facts);
   } catch (err) {
-    /* Swallowed in production on purpose: no member sees an error page because
-       a statistics row would not write. LOUD in development, because the first
-       time this failed it failed silently and the only symptom was an empty
-       table with no clue why. A guard that hides its own breakage is worse
-       than no guard. */
-    if (process.env.NODE_ENV !== "production") {
-      console.error("[presence] touchLastSeen failed:", err);
-    }
+    reportInDev(err);
+  }
+}
+
+/**
+ * Stamp User.lastSeenAt. Not gated by statsWritesEnabled: it is app state the
+ * rest of the site reads, not a statistic. One indexed column on User, so
+ * "active in the last 30 days" is a count rather than a join, and it survives
+ * any pruning of visit history. From the layout, so it does not depend on the
+ * browser running JavaScript.
+ *
+ * Skipped entirely when the caller can already say the column is fresh. The
+ * WHERE below makes this a no-op UPDATE for fourteen minutes in every fifteen
+ * -- it writes nothing, but it is still a round trip and a row-lock attempt
+ * on User on every page view by every member. The layout's session callback
+ * has already read this member's row, so the answer is free there. The WHERE
+ * stays regardless: it is what keeps two concurrent requests from both
+ * deciding to write.
+ */
+export async function touchLastSeen(userId: string, lastSeenAt?: string | null): Promise<void> {
+  const now = new Date();
+  if (fresh(lastSeenAt, now)) return;
+  try {
+    await prisma.user.updateMany({
+      where: {
+        id: userId,
+        OR: [{ lastSeenAt: null }, { lastSeenAt: { lt: new Date(now.getTime() - LAST_SEEN_STALE_MS) } }],
+      },
+      data: { lastSeenAt: now },
+    });
+  } catch (err) {
+    reportInDev(err);
+  }
+}
+
+/* Swallowed in production on purpose: no member sees an error page because a
+   statistics row would not write. LOUD in development, because the first time
+   this failed it failed silently and the only symptom was an empty table with
+   no clue why. A guard that hides its own breakage is worse than no guard. */
+function reportInDev(err: unknown) {
+  if (process.env.NODE_ENV !== "production") {
+    console.error("[presence] write failed:", err);
   }
 }
 
