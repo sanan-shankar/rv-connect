@@ -49,7 +49,7 @@
  *  cream -- "I don't like the yellowing when it's not selecting."
  * ------------------------------------------------------------------ */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { m, AnimatePresence } from "motion/react";
 import { Images } from "@phosphor-icons/react";
@@ -70,6 +70,8 @@ import { contributePhoto, contributePhotoDirect } from "@/app/(main)/collection/
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import { directUploadPut } from "@/lib/upload-client";
 import { shrinkForUpload } from "@/lib/image-downscale";
+import { takenDateOfFile } from "@/lib/file-taken-date";
+import type { ExifDate } from "@/lib/taken-date";
 import {
   MAX_PHOTOS_PER_DROP,
   MAX_UPLOAD_BYTES,
@@ -85,6 +87,7 @@ import {
   PhotoQuestions,
   type PhotoAnswers,
 } from "./photo-questions";
+import { FileSays } from "./file-says";
 import { cn } from "@/lib/utils";
 
 /** How many files climb to the bucket at once. Three, because a browser gives
@@ -110,6 +113,10 @@ type Staged = {
   state: "waiting" | "lifting" | "here" | "failed";
   /** The staged key from the presigned PUT, when that path was available. */
   key?: string;
+  /** When the file says it was taken, judged in the browser before a byte
+   *  leaves (src/lib/taken-date.ts). Offered beside the date question, never
+   *  written into it. */
+  taken: ExifDate | null;
 };
 
 /** Read a file's own shape, which is what the justified rows are solved from.
@@ -363,7 +370,15 @@ export function ContributeRoom({
          real shapes, so a wall that rendered each photograph as its dimensions
          arrived would relayout under the reader once per file -- which is the
          page-jump this whole campaign exists to end. */
-      const measured = await Promise.all(taking.map(measure));
+      const measured = await Promise.all(
+        taking.map(async (file) => {
+          /* The date is read alongside the shape, so a photograph arrives
+             already knowing it and the suggestion never pops in under
+             somebody who has started answering. It reads a few kilobytes. */
+          const [shape, taken] = await Promise.all([measure(file), takenDateOfFile(file)]);
+          return shape && { ...shape, taken };
+        })
+      );
       const fresh: Staged[] = [];
       measured.forEach((m0, i) => {
         if (!m0) return;
@@ -374,6 +389,7 @@ export function ContributeRoom({
           preview: m0.preview,
           width: m0.width,
           height: m0.height,
+          taken: m0.taken,
           state: "waiting",
         });
       });
@@ -783,6 +799,18 @@ export function ContributeRoom({
           <aside className="w-full lg:w-[360px] lg:shrink-0">
             <PhotoQuestions idPrefix="contribute" value={shown} onAnswer={answer} />
 
+            {/* WHAT THE FILE SAYS, straight under the questions' card and not
+                inside it: the card is one grouped form, and a filled strip
+                among its rows would be a second material in it. The review
+                room draws the same strip higher in its own panel. */}
+            <AnimatePresence initial={false}>
+              {viewing?.taken && (
+                <Grow key="file-says">
+                  <FileSays date={viewing.taken} answers={shown} onAnswer={answer} className="mt-3" />
+                </Grow>
+              )}
+            </AnimatePresence>
+
             <ApplyToAll
               count={photos.length}
               ready={photos.length > 1 && answered}
@@ -878,18 +906,7 @@ function ApplyToAll({
   return (
     <AnimatePresence initial={false}>
       {ready && (
-        <m.div
-          key="all"
-          /* Height, for the same reason WhenAsked's finer row uses it: the
-             block genuinely takes up space it did not before, and sliding it
-             in would put it over the button underneath instead of making
-             room. One 40px block, animated on a press. */
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: "auto", opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.24, ease: EASE_OUT_SMOOTH }}
-          className="overflow-hidden"
-        >
+        <Grow key="all">
           <div className="pt-4">
             <m.button
               type="button"
@@ -910,9 +927,30 @@ function ApplyToAll({
               {done ? `Applied to all ${count}` : `Use these answers for all ${count}`}
             </m.button>
           </div>
-        </m.div>
+        </Grow>
       )}
     </AnimatePresence>
+  );
+}
+
+/** A block that grows into the column rather than sliding over it.
+ *
+ *  Height, not transform, and on purpose: the two things that use it -- the
+ *  file's date strip and "Use these answers for all" -- genuinely take up
+ *  room they did not have, and sliding one in would lay it over the buttons
+ *  underneath instead of making space. Both come and go as the carousel
+ *  moves, so they share one curve. */
+function Grow({ children }: { children: ReactNode }) {
+  return (
+    <m.div
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: "auto", opacity: 1 }}
+      exit={{ height: 0, opacity: 0 }}
+      transition={{ duration: 0.24, ease: EASE_OUT_SMOOTH }}
+      className="overflow-hidden"
+    >
+      {children}
+    </m.div>
   );
 }
 

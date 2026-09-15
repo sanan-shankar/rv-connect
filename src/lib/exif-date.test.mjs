@@ -32,16 +32,22 @@ test("the shutter time is preferred to everything else", async () => {
   assert.deepEqual(exifDate(exif, THIS_YEAR), { year: 1998, month: 3 });
 });
 
-test("digitisation is the second choice", async () => {
+/* On a camera Digitized equals Original, so alone it is a scanner's scan date.
+   The write-back still keeps it (it preserves what the file said); the
+   suggestion does not offer it (owner, 2026-09-15: "we don't want to suggest
+   something wrong"). taken-date.test.mjs pins the full judgement. */
+test("digitisation alone is kept in the file but not offered", async () => {
   const exif = await exifBlock({ IFD2: { DateTimeDigitized: "2019:07:01 11:00:00" } });
-  assert.deepEqual(exifDate(exif, THIS_YEAR), { year: 2019, month: 7 });
+  assert.equal(exifStamp(exif, THIS_YEAR), "2019:07:01 11:00:00");
+  assert.equal(exifDate(exif, THIS_YEAR), null);
 });
 
-/* Last, and only last. Anything that re-saves a file rewrites IFD0's DateTime,
-   so a photograph someone rotated last week claims last week. */
-test("the file's own timestamp is the last resort", async () => {
+/* Anything that re-saves a file rewrites IFD0's DateTime, so a photograph
+   someone rotated last week claims last week. */
+test("the file's own timestamp alone is kept in the file but not offered", async () => {
   const exif = await exifBlock({ IFD0: { DateTime: "2020:11:02 08:00:00" } });
-  assert.deepEqual(exifDate(exif, THIS_YEAR), { year: 2020, month: 11 });
+  assert.equal(exifStamp(exif, THIS_YEAR), "2020:11:02 08:00:00");
+  assert.equal(exifDate(exif, THIS_YEAR), null);
 });
 
 test("a photograph with no EXIF at all claims nothing", async () => {

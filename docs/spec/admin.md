@@ -503,6 +503,32 @@ is deliberately ignorant of every tag but the four date ones, so there is no loc
 (audit M12). No backfill is possible: the originals of existing rows were purged at contribution
 time. The Undated pile is the rescue for those.
 
+**The contribute pop-up offers it too, and both rooms judge it the same way (2026-09-15).** The
+owner dropped photographs into the pop-up and got nothing: the date was only ever read after Add.
+Now the browser reads it the moment a photograph lands (`src/lib/file-taken-date.ts`, a few
+kilobytes, nothing sent) and the same strip appears under the date card
+(`components/collection/file-says.tsx`, shared with this room). Because a one-press suggestion
+gets pressed, he set the bar: *"we don't want to suggest something wrong and then people might be
+inclined to just click that instead of think actually when it was."* So the date is **judged**
+before it is offered (`src/lib/taken-date.ts`, which the server's `exifDate` also calls), and the
+bias is silence:
+
+| Offered | Refused |
+|---|---|
+| DateTimeOriginal | the file's modified date: it is the COPY date, and his school-photographer folder had 180 photographs from 2011-2018 all saying 2020 there |
+| a camera's own full date in the file name (`IMG_20181210_090756`), when EXIF is gone or agrees within two days | DateTimeDigitized or IFD0 DateTime alone (a scan date, a save date) |
+| exactly 1 January 00:00:00 as the **year only**, since that is what a person writes when the month is unknown | anything a scanner or scanning software wrote; a clock epoch (January 1970 or 1980); a file name and a shutter time that disagree; WhatsApp, screenshot and scan file names |
+
+Checked against that folder: 178 of 178 camera-dated photographs offered their exact year and month,
+and the one with a hand-set 1 January offered its year alone.
+
+Considered and not taken: **filling the box automatically**, because the scan-date problem is
+still invisible to a phone photographing a print, and a filled box reads as an answer somebody
+gave; **a bare year in a file name** ("..._ISC_2009.jpg" is a student's exam year); **checking a
+batch for one camera's odd clock**, which is real but rare and would need a model of the batch this
+room does not have. The stored copy's write-back (`exifStamp`) still keeps its older, wider order
+(Original, then Digitized, then DateTime); that governs what a download carries, not what is offered.
+
 **Captions** are tidied mechanically on the way into the panel — whitespace, sentence capitals, a
 lonely `i` (`src/lib/caption-tidy.ts`). Shape only, never words. It runs **in front of somebody**,
 in an editable box, and is deliberately not wired into the contribute path: rewriting what a member
