@@ -6952,3 +6952,19 @@ overdue. A sealed time capsule still shows whatever the Catch-up is doing. Check
 room: "Past its date" is empty and "in the loop" sits under Everything else with its Paused chip;
 the Overview no longer lists it.
 
+
+## 2026-09-15 (admin) — photographs can be set aside in the review room, off every waiting count
+
+Owner: "in the review section I'd like to be able to keep certain photos aside. not approve not
+decline and I don't want it to show as pending. just keep it for later maybe I need for info for
+it".
+
+New `Photo.heldAt` (migration `2026-09-15-photo-set-aside.sql`, applied to production and the
+demo). The review room has a third pile, Set aside, with Approve, Decline and Put back in Waiting;
+the Waiting pile gains a quiet full-width "Set aside for later" under its two answers, and `S`.
+`AWAITING_REVIEW` in lib/admin-review.ts is now the one predicate behind the pile, the rail count,
+the Overview row and the Content page's link, so a set-aside photograph leaves all four together.
+Approving clears `heldAt`; parking refuses a photograph another admin already approved.
+
+Screenshotted at 1440 and 390 with one photograph waiting. Pressing it against the live row was
+not done: the only unapproved photograph belongs to a member, and the write was refused.

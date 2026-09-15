@@ -491,8 +491,18 @@ Everything that was repeated per row is said once in the header.
 
 | Pile | Predicate | Actions | Order |
 |---|---|---|---|
-| Waiting | `approved: false, isHidden: false` | Approve, Decline | oldest first, so nothing sits behind fresher arrivals |
+| Waiting | `AWAITING_REVIEW`: unapproved, not hidden, not set aside | Approve, Decline, Set aside | oldest first, so nothing sits behind fresher arrivals |
+| Set aside | unapproved, not hidden, `heldAt` set | Approve, Decline, Put back in Waiting | most recently set aside first |
 | Undated | `approved: true`, no `photoYear` and no era | Save, Skip | the ones whose *file* offered a date first — each of those is one press |
+
+**Set aside is a decision put off, not a third verdict (2026-09-15).** The owner: *"keep certain
+photos aside. not approve not decline and I don't want it to show as pending. just keep it for
+later maybe I need for info for it."* So a set-aside photograph stays unapproved and invisible to
+members, and leaves every waiting count at once: the pile, the rail and the Overview all read
+`AWAITING_REVIEW` in `src/lib/admin-review.ts`. The contributor still sees it as awaiting review,
+which it is. Setting aside saves any corrections typed first. It is a quiet full-width button under
+the two answers, and `S` on a keyboard, because it is pressed rarely and a third big target would
+crowd the two that are pressed hundreds of times.
 
 **The date never gates the decision.** Asked whether an undated photograph should be stopped at the
 door, the owner drew the line himself: *"approval is not just for year, it's also for suitability of

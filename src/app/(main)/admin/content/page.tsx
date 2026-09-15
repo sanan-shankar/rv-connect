@@ -1,3 +1,4 @@
+import { AWAITING_REVIEW } from "@/lib/admin-review";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireAdminPage } from "@/lib/admin";
@@ -39,7 +40,7 @@ export default async function AdminContentPage({
 
   const [items, pending, author] = await Promise.all([
     loadContent(filters),
-    prisma.photo.count({ where: { approved: false, isHidden: false } }),
+    prisma.photo.count({ where: AWAITING_REVIEW }),
     filters.authorId
       ? prisma.user.findUnique({
           where: { id: filters.authorId },

@@ -9,6 +9,12 @@
  *              because a queue that serves the newest first can leave a
  *              contribution sitting for ever behind fresher ones.
  *
+ *    SET ASIDE photographs an admin has not decided about and does not
+ *              want counted as waiting either: "keep it for later maybe
+ *              I need for info for it" (owner, 2026-09-15). Still
+ *              unapproved, still invisible to members; newest set aside
+ *              first. Approve and Decline work here exactly as in Waiting.
+ *
  *    UNDATED   photographs already in the Collection with no date at
  *              all. Nothing is being decided here -- they are in, and
  *              they stay in -- so this pile has no Approve and no
@@ -38,7 +44,22 @@ import { bucketsOf } from "@/lib/collection";
  *  loaded. 60 is roughly a sitting; the room says so when there are more. */
 export const REVIEW_BATCH = 60;
 
-export type ReviewMode = "waiting" | "undated";
+export type ReviewMode = "waiting" | "aside" | "undated";
+
+/** Waiting on an admin: every "waiting" count in the panel reads this, so a
+ *  photograph set aside leaves the pile, the rail and the Overview together.
+ *  A count that disagrees with the list it points at is worse than no count. */
+export const AWAITING_REVIEW = {
+  approved: false,
+  isHidden: false,
+  heldAt: null,
+} satisfies Prisma.PhotoWhereInput;
+
+const SET_ASIDE = {
+  approved: false,
+  isHidden: false,
+  heldAt: { not: null },
+} satisfies Prisma.PhotoWhereInput;
 
 /** One photograph, with everything the room needs and nothing it does not.
  *  The full-size `url` rather than the thumbnail: the entire complaint that
@@ -113,6 +134,7 @@ const UNDATED = {
  * One pile, loaded.
  *
  * `waiting` is the review queue: everything not yet decided, oldest first.
+ * `aside` is what an admin parked, the most recently parked first.
  *
  * `undated` is the rescue pile, and its ordering is the one piece of
  * cleverness in this file. Photographs whose FILE offered a date come first,
@@ -125,12 +147,16 @@ function rows(mode: ReviewMode) {
   return prisma.photo.findMany({
     where:
       mode === "waiting"
-        ? { approved: false, isHidden: false }
-        : { approved: true, isHidden: false, ...UNDATED },
+        ? AWAITING_REVIEW
+        : mode === "aside"
+          ? SET_ASIDE
+          : { approved: true, isHidden: false, ...UNDATED },
     orderBy:
       mode === "waiting"
         ? [{ createdAt: "asc" }, { id: "asc" }]
-        : [{ exifYear: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }, { id: "desc" }],
+        : mode === "aside"
+          ? [{ heldAt: "desc" }, { id: "desc" }]
+          : [{ exifYear: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }, { id: "desc" }],
     take: REVIEW_BATCH,
     select: {
       id: true,
@@ -162,10 +188,13 @@ export async function loadReview(mode: ReviewMode): Promise<ReviewPhoto[]> {
  *  `loadReview` because the count is the honest total and the load is capped
  *  at REVIEW_BATCH -- conflating them is how a list quietly claims to be
  *  everything. */
-export async function reviewCounts(): Promise<{ waiting: number; undated: number }> {
-  const [waiting, undated] = await Promise.all([
-    prisma.photo.count({ where: { approved: false, isHidden: false } }),
+export type ReviewCounts = { waiting: number; aside: number; undated: number };
+
+export async function reviewCounts(): Promise<ReviewCounts> {
+  const [waiting, aside, undated] = await Promise.all([
+    prisma.photo.count({ where: AWAITING_REVIEW }),
+    prisma.photo.count({ where: SET_ASIDE }),
     prisma.photo.count({ where: { approved: true, isHidden: false, ...UNDATED } }),
   ]);
-  return { waiting, undated };
+  return { waiting, aside, undated };
 }

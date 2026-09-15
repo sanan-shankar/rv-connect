@@ -40,17 +40,20 @@ export type ReviewAnswers = {
 };
 
 /**
- * Save what the admin corrected, and let the photograph in.
+ * Save what the admin corrected, and do one thing with the photograph.
  *
- * `approve: false` is the backlog pile: the photograph is already in the
- * Collection and this only writes the corrections. Same validation, same
- * write, minus the three approval columns -- which is why it is one function
- * and not two that will drift.
+ *   approve  let it in.
+ *   aside    park it: unapproved, off the Waiting pile and every count.
+ *   back     un-park it, onto the Waiting pile again.
+ *   save     the Undated pile: already in, only the corrections are written.
+ *
+ * One function and not four, because all four validate and write the same
+ * answers and differ only in two columns -- four copies would drift.
  */
 export async function saveReview(input: {
   id: string;
   answers: ReviewAnswers;
-  approve: boolean;
+  action: "approve" | "aside" | "back" | "save";
 }) {
   const actor = await requireAdminActor();
   if (!actor.ok) return { error: actor.error };
@@ -87,8 +90,11 @@ export async function saveReview(input: {
      The `approved: false` in the WHERE is what makes the approving half
      idempotent: a photograph another admin let in a second ago is counted out
      and answered, not approved twice with a second approver's name on it. */
+  /* Parking is only for a photograph still undecided: one another admin
+     approved a second ago must not be dragged back out of the Collection. */
+  const deciding = input.action !== "save";
   const changed = await prisma.photo.updateMany({
-    where: input.approve ? { id: input.id, approved: false } : { id: input.id },
+    where: deciding ? { id: input.id, approved: false } : { id: input.id },
     data: {
       caption: meta.caption,
       subject: meta.buckets,
@@ -96,14 +102,18 @@ export async function saveReview(input: {
       photoYear: meta.photoYear,
       photoMonth: meta.photoMonth,
       datePrecision: meta.datePrecision,
-      ...(input.approve
-        ? { approved: true, approvedAt: new Date(), approvedById: actor.actorId }
-        : {}),
+      ...(input.action === "approve"
+        ? { approved: true, approvedAt: new Date(), approvedById: actor.actorId, heldAt: null }
+        : input.action === "aside"
+          ? { heldAt: new Date() }
+          : input.action === "back"
+            ? { heldAt: null }
+            : {}),
     },
   });
   if (changed.count === 0) {
     return {
-      error: input.approve
+      error: deciding
         ? "Somebody else has already dealt with that one."
         : "That photo is no longer here.",
     };

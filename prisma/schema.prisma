@@ -433,6 +433,16 @@ model Photo {
   approvedAt   DateTime?
   approvedById String?
 
+  /// When an admin SET IT ASIDE in the review room: not approved, not
+  /// declined, and off the Waiting pile and every "waiting on you" count until
+  /// somebody takes it up again. Owner, 2026-09-15: "keep certain photos
+  /// aside. not approve not decline and I don't want it to show as pending.
+  /// just keep it for later maybe I need for info for it". Null on every
+  /// photograph nobody has set aside. Means nothing once `approved` is true;
+  /// approving clears it anyway. `AWAITING_REVIEW` in lib/admin-review.ts is
+  /// the one predicate that reads it.
+  heldAt       DateTime?
+
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 

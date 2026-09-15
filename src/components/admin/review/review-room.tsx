@@ -28,6 +28,9 @@
  *  TWO PILES, AND THEY ARE NOT THE SAME JOB.
  *    Waiting  -> Approve or Decline. A judgement about whether a
  *                photograph belongs in the Collection.
+ *    Set aside -> the same decision, put off. "not approve not decline
+ *                and I don't want it to show as pending. just keep it for
+ *                later" (owner, 2026-09-15). Off every waiting count.
  *    Undated  -> Save. Clerical work on photographs that are already in
  *                it, because 18 of the first 21 have no date at all.
  *  The owner drew that line himself: "approval is not just for year,
@@ -66,7 +69,7 @@ import { callAction } from "@/lib/call-action";
 import { tidyCaption } from "@/lib/caption-tidy";
 import { photoDate, yearUnreadable } from "@/lib/collection";
 import { cn, formatTimeAgo, valleyYear } from "@/lib/utils";
-import type { ReviewMode, ReviewPhoto } from "@/lib/admin-review";
+import type { ReviewCounts, ReviewMode, ReviewPhoto } from "@/lib/admin-review";
 import { declineReview, saveReview } from "@/app/(main)/admin/review/actions";
 
 /** The stage's ground. The same warm ink the Collection's own viewer uses
@@ -99,12 +102,14 @@ export function ReviewRoom({
 }: {
   mode: ReviewMode;
   photos: ReviewPhoto[];
-  counts: { waiting: number; undated: number };
+  counts: ReviewCounts;
   /** True when the pile is longer than what was loaded, so the room can say so
    *  rather than looking finished when it is not. */
   capped: boolean;
 }) {
   const router = useRouter();
+  /** Waiting and Set aside both end in Approve or Decline; Undated only saves. */
+  const deciding = mode !== "undated";
 
   /* The pile is LOCAL and shrinks as decisions are made. A router.refresh()
      per decision would refetch sixty rows and re-render the whole room between
@@ -178,7 +183,7 @@ export function ReviewRoom({
   }, [pile, at]);
 
   const decide = useCallback(
-    async (kind: "approve" | "save" | "decline") => {
+    async (kind: "approve" | "save" | "decline" | "aside" | "back") => {
       if (!showing || busy) return;
       setBusy(true);
       const id = showing.id;
@@ -204,7 +209,7 @@ export function ReviewRoom({
         const res = await callAction(() =>
           saveReview({
             id,
-            approve: kind === "approve",
+            action: kind,
             answers: {
               caption: answers.caption.trim(),
               buckets: answers.buckets,
@@ -219,7 +224,7 @@ export function ReviewRoom({
           return;
         }
         drop(id);
-        toast.success(kind === "approve" ? "In the Collection." : "Saved.");
+        toast.success(TOAST[kind]);
       } finally {
         setBusy(false);
       }
@@ -292,16 +297,20 @@ export function ReviewRoom({
 
       if (e.key === "Enter" || e.key.toLowerCase() === "a") {
         e.preventDefault();
-        void decide(mode === "waiting" ? "approve" : "save");
+        void decide(deciding ? "approve" : "save");
       }
-      if (e.key.toLowerCase() === "d" && mode === "waiting") {
+      if (e.key.toLowerCase() === "d" && deciding) {
         e.preventDefault();
         declinePressed();
+      }
+      if (e.key.toLowerCase() === "s" && mode === "waiting") {
+        e.preventDefault();
+        void decide("aside");
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [at, go, decide, declinePressed, mode, armed]);
+  }, [at, go, decide, declinePressed, mode, deciding, armed]);
 
   /* The drag, and the two tints it drives. `x` is read by the overlays rather
      than by state, so leaning on a photograph costs no re-render of a panel
@@ -310,7 +319,7 @@ export function ReviewRoom({
   const approveTint = useTransform(x, [0, SWIPE_PX], [0, 0.85]);
   const declineTint = useTransform(x, [-SWIPE_PX, 0], [0.85, 0]);
 
-  const primaryLabel = mode === "waiting" ? "Approve" : "Save";
+  const primaryLabel = deciding ? "Approve" : "Save";
   const dirty = Boolean(showing && edits[showing.id]);
 
   return (
@@ -361,8 +370,8 @@ export function ReviewRoom({
                    declines: a swipe that erased a photograph and its bytes
                    with no second thought is the one gesture this room must not
                    have. The button beside it is already asking. */
-                if (right) void decide(mode === "waiting" ? "approve" : "save");
-                else if (left && mode === "waiting") setArmed(true);
+                if (right) void decide(deciding ? "approve" : "save");
+                else if (left && deciding) setArmed(true);
               }}
             >
               <AnimatePresence mode="wait" initial={false}>
@@ -399,7 +408,7 @@ export function ReviewRoom({
             {/* What the thumb is about to do, drawn while it is still
                 deciding. Opacity only, driven straight off the drag. */}
             <Verdict side="right" opacity={approveTint} label="Approve" tone="canopy" />
-            {mode === "waiting" && (
+            {deciding && (
               <Verdict side="left" opacity={declineTint} label="Decline" tone="heart" />
             )}
           </div>
@@ -455,9 +464,10 @@ export function ReviewRoom({
                   armed={armed}
                   dirty={dirty}
                   primaryLabel={primaryLabel}
-                  onPrimary={() => decide(mode === "waiting" ? "approve" : "save")}
+                  onPrimary={() => decide(deciding ? "approve" : "save")}
                   onDecline={declinePressed}
                   onSkip={() => go(at + 1)}
+                  onPark={() => decide(mode === "waiting" ? "aside" : "back")}
                 />
               </div>
             </div>
@@ -481,7 +491,7 @@ function Header({
   onGo,
 }: {
   mode: ReviewMode;
-  counts: { waiting: number; undated: number };
+  counts: ReviewCounts;
   at: number;
   total: number;
   capped: boolean;
@@ -493,6 +503,7 @@ function Header({
       <SegmentedPills
         segments={[
           { key: "waiting", label: "Waiting", count: counts.waiting },
+          { key: "aside", label: "Set aside", count: counts.aside },
           { key: "undated", label: "Undated", count: counts.undated },
         ]}
         value={mode}
@@ -542,11 +553,16 @@ function Header({
               <Key>←</Key> <Key>→</Key> to move
             </>,
             <>
-              <Key>A</Key> {mode === "waiting" ? "approve" : "save"}
+              <Key>A</Key> {mode === "undated" ? "save" : "approve"}
             </>,
-            mode === "waiting" && (
+            mode !== "undated" && (
               <>
                 <Key>D</Key> decline
+              </>
+            ),
+            mode === "waiting" && (
+              <>
+                <Key>S</Key> set aside
               </>
             ),
           ]}
@@ -637,6 +653,7 @@ function Decide({
   onPrimary,
   onDecline,
   onSkip,
+  onPark,
 }: {
   mode: ReviewMode;
   busy: boolean;
@@ -646,69 +663,83 @@ function Decide({
   onPrimary: () => void;
   onDecline: () => void;
   onSkip: () => void;
+  onPark: () => void;
 }) {
   return (
-    <div className="flex shrink-0 items-center gap-2.5">
-      <Button
-        variant="primary"
-        disabled={busy || (mode === "undated" && !dirty)}
-        onClick={onPrimary}
-        className="h-12 flex-1 text-[15px]"
-      >
-        <Check className="size-4" strokeWidth={2.5} />
-        {primaryLabel}
-      </Button>
-
-      {mode === "waiting" ? (
+    <div className="flex shrink-0 flex-col gap-1.5">
+      <div className="flex items-center gap-2.5">
         <Button
-          variant={armed ? "destructive" : "outline"}
-          disabled={busy}
-          onClick={onDecline}
-          /* The armed state is announced, not only drawn: a screen reader
-             hears the button change its mind the same way the eye does. */
-          aria-label={armed ? "Press again to decline for good" : "Decline"}
-          className={cn("h-12 flex-1 text-[15px]", armed && "font-semibold")}
+          variant="primary"
+          disabled={busy || (mode === "undated" && !dirty)}
+          onClick={onPrimary}
+          className="h-12 flex-1 text-[15px]"
         >
-          {armed ? (
-            "Really decline?"
-          ) : (
-            <>
-              <X className="size-4" strokeWidth={2.5} />
-              Decline
-            </>
-          )}
+          <Check className="size-4" strokeWidth={2.5} />
+          {primaryLabel}
         </Button>
-      ) : (
-        <Button variant="outline" disabled={busy} onClick={onSkip} className="h-12 flex-1 text-[15px]">
-          Skip
+
+        {mode !== "undated" ? (
+          <Button
+            variant={armed ? "destructive" : "outline"}
+            disabled={busy}
+            onClick={onDecline}
+            /* The armed state is announced, not only drawn: a screen reader
+               hears the button change its mind the same way the eye does. */
+            aria-label={armed ? "Press again to decline for good" : "Decline"}
+            className={cn("h-12 flex-1 text-[15px]", armed && "font-semibold")}
+          >
+            {armed ? (
+              "Really decline?"
+            ) : (
+              <>
+                <X className="size-4" strokeWidth={2.5} />
+                Decline
+              </>
+            )}
+          </Button>
+        ) : (
+          <Button variant="outline" disabled={busy} onClick={onSkip} className="h-12 flex-1 text-[15px]">
+            Skip
+          </Button>
+        )}
+      </div>
+      {/* PUTTING IT OFF IS QUIETER THAN DECIDING. A ghost, full width, under
+          the two answers: it is pressed a handful of times a month, not
+          hundreds, and a third h-12 target in a 380px row would crowd the two
+          that are. */}
+      {mode !== "undated" && (
+        <Button variant="ghost" disabled={busy} onClick={onPark} className="h-10 w-full text-[13.5px]">
+          {mode === "waiting" ? "Set aside for later" : "Put back in Waiting"}
         </Button>
       )}
     </div>
   );
 }
 
-/** The pile is empty. Says so, and points at the other one if it is not.
+const TOAST = {
+  approve: "In the Collection.",
+  save: "Saved.",
+  aside: "Set aside. It is off the Waiting pile.",
+  back: "Back in Waiting.",
+} as const;
+
+/** The pile is empty. Says so, and points at the next pile if it is not.
  *
  *  No celebration and no mascot: this is a room somebody works in, and the
  *  fifth time you clear a queue a party is an obstacle between you and the
- *  next thing. */
-function Done({ mode, counts }: { mode: ReviewMode; counts: { waiting: number; undated: number } }) {
-  const other = mode === "waiting" ? counts.undated : counts.waiting;
+ *  next thing. Set aside and Undated both point at Waiting; Waiting points at
+ *  Undated, the backlog that is always there. */
+function Done({ mode, counts }: { mode: ReviewMode; counts: ReviewCounts }) {
+  const next: ReviewMode = mode === "waiting" ? "undated" : "waiting";
+  const other = counts[next];
   return (
     <div className="grid flex-1 place-items-center rounded-[var(--radius-lg)] border border-border bg-card p-10">
       <div className="flex max-w-sm flex-col items-center gap-3 text-center">
         <ImageOff className="size-6 text-muted-foreground" strokeWidth={1.5} aria-hidden />
-        <p className="text-[15px] font-medium text-foreground">
-          {mode === "waiting" ? "Nothing is waiting." : "Everything in the Collection has a date."}
-        </p>
+        <p className="text-[15px] font-medium text-foreground">{DONE[mode]}</p>
         {other > 0 && (
-          <Button
-            variant="outline"
-            render={
-              <Link href={`/admin/review?pile=${mode === "waiting" ? "undated" : "waiting"}`} />
-            }
-          >
-            {mode === "waiting"
+          <Button variant="outline" render={<Link href={`/admin/review?pile=${next}`} />}>
+            {next === "undated"
               ? `${other} in the Collection have no date`
               : `${other} waiting to be reviewed`}
           </Button>
@@ -717,3 +748,9 @@ function Done({ mode, counts }: { mode: ReviewMode; counts: { waiting: number; u
     </div>
   );
 }
+
+const DONE: Record<ReviewMode, string> = {
+  waiting: "Nothing is waiting.",
+  aside: "Nothing is set aside.",
+  undated: "Everything in the Collection has a date.",
+};
