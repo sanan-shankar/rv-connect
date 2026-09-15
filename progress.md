@@ -25,6 +25,7 @@ if the month is new), and add one line here, at the top of that month's list.
 - 2026-09-15 (feed) — the verified leaf is gone from feed posts; the directory and profiles keep it
 - 2026-09-15 (feed, fix) — the verified leaf's label is portalled, so no card or name row can cut it off
 - 2026-09-15 (support) — the monthly bill's bar runs blue, orange, green: Hosting is sky
+- 2026-09-15 (support) — the bar runs green, orange, blue instead: Hosting canopy, Domain sky
 - 2026-09-14 (catch-ups, close) — the campaign run that took phases 10 to 14 and M1 closes, with 17 questions for him
 - 2026-09-14 (catch-ups, M1) — the magazine designed as rules: the engine, the corpus, the room, the spike
 - 2026-09-14 (catch-ups, phase 14 drawn) — a sealed Edition three ways, the morning it opens, and making one, at /lab/catchups/capsule

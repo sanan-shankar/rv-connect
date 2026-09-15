@@ -25,9 +25,9 @@ import { IndianRupee } from "lucide-react";
 import { SPRINGS, useMotionGovernor } from "@/components/common/motion";
 
 const SEGMENTS = [
-  { label: "Hosting", value: 1950, color: "var(--color-sky)" },
+  { label: "Hosting", value: 1950, color: "var(--color-canopy)" },
   { label: "Photos", value: 90, color: "var(--color-cinnamon)" },
-  { label: "Domain", value: 250, color: "var(--color-canopy)" },
+  { label: "Domain", value: 250, color: "var(--color-sky)" },
 ];
 const MONTHLY_TOTAL = SEGMENTS.reduce((sum, s) => sum + s.value, 0);
 
