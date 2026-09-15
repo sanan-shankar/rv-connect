@@ -1,0 +1,17 @@
+{
+  "source": "Mapzen terrarium tiles (AWS Open Data), SRTM-class elevation, zoom 14",
+  "school": {
+    "lat": 13.634,
+    "lon": 78.454
+  },
+  "size": 512,
+  "km": 16.008014878354377,
+  "metresPerPx": 31.265654059285893,
+  "min": 625,
+  "max": 1367,
+  "schoolPx": {
+    "x": 256.1039575148901,
+    "y": 255.91375918703676
+  },
+  "schoolHeight": 712
+}

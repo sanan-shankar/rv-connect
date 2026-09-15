@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-16 (lab) — the site knows where it is: the real hills, the sun on the mark, the night on the map, a bird in wax
 - 2026-09-15 (collection) — the month in the date box has its own label column
 - 2026-09-15 (collection) — the file's date suggestion goes once it is used, and loses its fill
 - 2026-09-15 (collection) — a drop says how far it has got, and nothing is lost by closing

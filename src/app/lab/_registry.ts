@@ -269,6 +269,26 @@ export const REGISTRY: LabEntry[] = [
     note: "The rebuilt viewer, live. Edge to edge, chrome that leaves when you stop moving, and a caption you press open where the separate photo page used to be. Archive photographs with buckets, a heart and a delete; a post's three with its counter.",
   },
 
+  {
+    href: "/lab/valley",
+    title: "The site knows where it is",
+    group: "Delight",
+    status: "active",
+    note: "Four things that follow the valley's real sun and hills, none of them on the feed: the sidebar mark lit by this minute's sun, the directory's map with the night where it is and members' cities lit or dark, the real hills round the school as a contour map that stands up into relief under today's sky, and your own bird pressed into wax for the time capsule. The readout at the top is what feeds them.",
+    children: [
+      {
+        href: "/lab/valley/hills",
+        title: "The hills, as they are",
+        note: "Real elevation for 32 km round the school, contours that stand up into relief, cast shadows from the sun where it is over the valley now. Drag to turn, drag the hour, pinch to come closer, stand on the campus and look west at the three peaks in the mark.",
+      },
+      {
+        href: "/lab/valley/seal",
+        title: "Your bird, pressed into wax",
+        note: "Press and hold to seal. The bird's outline is the height map for an SVG lighting filter, lit from the valley's sun; every one of the fifty birds works at any size.",
+      },
+    ],
+  },
+
   /* ---------------------------------------------------------------- *
    *  Second look, the "this already looked fine" audit
    * ---------------------------------------------------------------- */

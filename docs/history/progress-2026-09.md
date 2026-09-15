@@ -1,3 +1,51 @@
+## 2026-09-16 (lab) — the site knows where it is: the real hills, the sun on the mark, the night on the map, a bird in wax
+
+The owner, 2026-09-15: *"take that one concept of insanely sick web dev tricks and visuals
+that are hyper relevant to content and try to incorporate a few into this website ... done in
+a place that is relevant for it"*, and, the same night: *"if for example every time I open
+feed the text assembled itself from tiny dots, i'd get sick of it after three times."* The
+whole brief, verbatim, is `docs/planning/valley/brief.md`; the campaign board is
+`docs/planning/valley/handover.md`.
+
+**What shipped, at /lab/valley.** One family, one idea: the app knows where it is. One file,
+`_sun.ts`, computes the sun's position over the school (NOAA, refraction included, pinned by
+`_sun.test.mjs`: sunrise 06:06, sunset 18:17 on the 16th), the valley's clock, the moon's
+phase and the sky's colour; four surfaces read it.
+
+- **The hills** (`/lab/valley/hills`): real elevation fetched by `scripts/dev/valley-terrain.mjs`
+  from the public terrain tiles, two crops (16 km at 31 m/px, 64 km at 125 m/px) on one mesh
+  whose vertices pack toward the school so there is no seam. Raw WebGL2, no library: contours
+  every 20 m drawn one pixel wide at any zoom, cast shadows by ray-marching the heightmap,
+  a sky and stars behind a transparent canvas, the campus lamp at night, rain when Open-Meteo
+  says it is raining. Drag to orbit, pinch to zoom, an hour dial, three views. "From the
+  school" is the western skyline the mark is drawn from: Bodikonda, Middle Peak, Rishikonda
+  left to right (his names, 2026-09-16; the room labels heights only, since OpenStreetMap
+  carries none). Entrance: the contour map draws itself up the hills, then tilts into relief.
+- **The mark, lit**: the sidebar's peaks mark takes its fill from the real sun. On the rail it
+  stays one colour and only warms at dusk and dims to moonlit at night; at 64px the three
+  planes show the mechanism, with the moon's real phase after dark.
+- **The world at this hour**: the directory's projection with the night where it is, the
+  subsolar point marked, and the 44 cities members live in lit or dark. "It is daylight in
+  10 of the 44 cities members live in", read at 00:19 IST.
+- **The seal** (`/lab/valley/seal`): the member's own bird pressed into wax by an SVG lighting
+  filter whose height map is the glyph's luminance, lit from the valley's sun or the pointer.
+  Press and hold; let go early and it springs back. Holds at 40px.
+
+**Where each would live** (his ¶3 is the spine): the mark and the map are always on and
+sub-threshold; the hills are pulled by the member on About or the 404; the seal is once a
+year, on the Catch-ups time capsule. Nothing on the feed.
+
+**Measured.** Both viewports, twelve scripted authed shots (`e2e/.shots/valley-*.png`), read:
+the ridge lit at 17:54 with its shadow across the campus, the greens at 07:24, the night
+skyline from the school, the seal sealed and unsealed. No console errors. Two bugs found by
+the shots and fixed: labels that arrived after the last frame were never placed, and losing
+the GL context on cleanup handed React's second mount a dead context. `npm run check` green,
+129 tests. `npm run visual` not run: no product file changed except the lab registry.
+
+**Not built, written up** in the handover's "considered and not taken": the archive wall (pinch
+out to all 1,749 photographs), which needs a thumbnail atlas in R2 and is the strongest
+candidate for round two.
+
 ## 2026-09-14 (catch-ups) — a pasted link becomes a card: songs, videos, and any other page
 
 Build phase 10 of the Catch-ups rework (spec 3.8), widened by the owner the same morning: *"can't
