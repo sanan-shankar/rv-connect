@@ -49,7 +49,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { m, AnimatePresence, useMotionValue, useTransform, type MotionValue } from "motion/react";
-import { ArrowLeft, ArrowRight, Check, ImageOff, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ImageOff, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { MetaDots } from "@/components/common/meta-dots";
@@ -61,9 +61,10 @@ import {
   PhotoQuestions,
   type PhotoAnswers,
 } from "@/components/collection/photo-questions";
+import { FileSays } from "@/components/collection/file-says";
 import { callAction } from "@/lib/call-action";
 import { tidyCaption } from "@/lib/caption-tidy";
-import { MONTHS, photoDate, yearUnreadable } from "@/lib/collection";
+import { photoDate, yearUnreadable } from "@/lib/collection";
 import { cn, formatTimeAgo, valleyYear } from "@/lib/utils";
 import type { ReviewMode, ReviewPhoto } from "@/lib/admin-review";
 import { declineReview, saveReview } from "@/app/(main)/admin/review/actions";
@@ -420,7 +421,12 @@ export function ReviewRoom({
                   thumb. */}
               <div className="min-h-0 flex-1 p-4 lg:overflow-y-auto">
                 <Provenance photo={showing} />
-                <FileSays photo={showing} answers={answers} onAnswer={answer} />
+                <FileSays
+                  date={showing.exifYear ? { year: showing.exifYear, month: showing.exifMonth } : null}
+                  answers={answers}
+                  onAnswer={answer}
+                  className="mt-3"
+                />
                 <div className="mt-4">
                   <PhotoQuestions
                     idPrefix={`review-${showing.id}`}
@@ -574,62 +580,6 @@ function Provenance({ photo }: { photo: ReviewPhoto }) {
         </span>
       )}
     </p>
-  );
-}
-
-/* ------------------------------------------------------------------ *
- *  WHAT THE FILE SAYS.
- *
- *  The whole reason the EXIF date is captured at all. The owner: "if
- *  they haven't put a year, i want to see the year that the metadata
- *  says so i can either pick it or leave it as undated... we have to
- *  use the metadata like google photos does."
- *
- *  "The file says" and not "Taken in", and the difference is the whole
- *  honesty of the feature: on a scanned print this is the date it was
- *  SCANNED. A 1978 photograph scanned in 2019 says 2019, correctly,
- *  about the file and wrongly about the picture -- and the only thing
- *  in the world that can tell those apart is a person looking at the
- *  photograph, which is exactly who is standing here. So it is offered,
- *  never applied, and the offer names its source out loud.
- *
- *  It keeps offering after a year has been typed, because the second
- *  most useful moment for it is when the year on the row is WRONG. It
- *  stands down only when the box already holds what it would put there.
- * ------------------------------------------------------------------ */
-function FileSays({
-  photo,
-  answers,
-  onAnswer,
-}: {
-  photo: ReviewPhoto;
-  answers: PhotoAnswers;
-  onAnswer: (patch: Partial<PhotoAnswers>) => void;
-}) {
-  if (!photo.exifYear) return null;
-
-  const month = photo.exifMonth ? MONTHS[photo.exifMonth - 1] : "";
-  const said = month ? `${month} ${photo.exifYear}` : String(photo.exifYear);
-  const already = answers.year === String(photo.exifYear) && answers.month === month;
-
-  return (
-    <div className="mt-3 flex items-center gap-2 rounded-[var(--radius-md)] bg-mist px-3 py-2">
-      <Sparkles className="size-3.5 shrink-0 text-cinnamon" strokeWidth={2} aria-hidden />
-      <p className="min-w-0 flex-1 text-[12.5px] text-muted-foreground">
-        The file says <span className="font-medium text-foreground">{said}</span>
-      </p>
-      {already ? (
-        <span className="text-[12px] text-muted-foreground">Used</span>
-      ) : (
-        <Button
-          size="xs"
-          variant="outline"
-          onClick={() => onAnswer({ year: String(photo.exifYear), month })}
-        >
-          Use it
-        </Button>
-      )}
-    </div>
   );
 }
 

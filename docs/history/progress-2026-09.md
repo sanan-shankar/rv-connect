@@ -6904,3 +6904,31 @@ button, and let a swipe down close them from the top of their content.
 - Probed signed in as Jerry at 390x844: title and X centred on one line in every sheet, no row
   borders or tints, swipe from title and from body both close, a swipe after scrolling does
   not, a 40px drag springs back, the X closes. The lab settings room keeps its hand-drawn copy.
+
+
+## 2026-09-15 (collection) — a photograph's own date is offered the moment it lands, and only when the file can be trusted
+
+Owner, after dropping his school-photographer folder into the contribute pop-up: "I never got the
+suggestion for the month and year even though that metadata is there. I thought it's supposed to
+suggest?!" It never had: the date was read on the server after Add, and offered only in the admin
+review room. Then the bar: "make sure you get the right date in the suggested one because we don't
+want to suggest something wrong and then people might be inclined to just click that".
+
+The browser now reads the EXIF block itself as each photograph lands (`src/lib/file-taken-date.ts`:
+JPEG, WebP, PNG, a few kilobytes via `Blob.slice`, nothing sent) and "The file says February 2016 ·
+Use it" sits under the date card. The strip moved out of the review room into
+`components/collection/file-says.tsx`, so both rooms draw one component at 14px.
+
+What is offered is judged first, in `src/lib/taken-date.ts`, which the server's `exifDate` calls as
+well, so the two rooms cannot disagree. Offered: DateTimeOriginal, or a camera's full date in the
+file name. Refused: the copy date (his folder said 2020 for photographs from 2011 to 2018),
+Digitized or DateTime alone, anything a scanner wrote, a 1970/1980 clock epoch, a name and shutter
+time more than two days apart, WhatsApp/screenshot/scan names. 1 January 00:00:00 is offered as a
+year alone. The rules and the three considered-and-not-taken are in admin.md.
+
+Measured: 178 of 178 camera-dated photographs in that folder offered their exact year and month;
+the hand-set 1 January 2009 offered "2009". In the pop-up, signed in as Jerry: two photographs
+read February 2016 and February 2012 as the carousel moved, Use it filled year and month, and the
+strip holds 48px before and after the press (it had dropped 12px). `taken-date.test.mjs` pins 17
+cases; two `exif-date` tests now pin that a scan or save date alone is kept in the file but not
+offered.
