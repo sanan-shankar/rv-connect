@@ -170,10 +170,11 @@ next session starts from `next-session.md`.
 | Progress entry and commit | DONE | 2026-09-16 |
 | Round two, same night | DONE | the live hills embedded on the overview (compact: no dial, no wheel capture so the page keeps scrolling), the sun drawn as a disc in the sky under the canvas so a ridge can stand in front of it, a north needle while orbiting |
 | His review of round one | DONE | 2026-09-16 morning, ¶9: none taken as it stands; verdicts recorded above and in `next-session.md` |
-| Round two, fresh ideas | IN PROGRESS | 2026-09-16, a fresh Fable session: sixteen candidates judged in `ideas-round-two.md`; building three rooms under `/lab/years` (the wall, then, the weave) |
+| Round two, fresh ideas | IN PROGRESS | 2026-09-16, a fresh Fable session: sixteen candidates judged in `ideas-round-two.md`; three rooms under `/lab/years`. The wall DONE (commit 6302bae2), then DONE, the weave next |
 
 ## Log
 
+- 2026-09-16, afternoon. The wall committed (6302bae2): three levels, both viewports, pinch and drag through CDP, the three-tap cycle. Then built and shot: three pairs, five moments each, both viewports; the rest state moved onto the photograph quads with a per-pixel fade after the first round showed the grains posterizing it.
 - 2026-09-16, late morning. Round two opened. Read everything `next-session.md` named, measured the database (1,719 of 1,815 photographs are the Class of 2023's; 96 valley photographs captioned by place; 83 members, 57 with a house per year), queried OpenStreetMap for the campus (109 paths, named places, no building outlines). Wrote `ideas-round-two.md`: sixteen candidates, three to build. Building order: the wall, then, the weave.
 
 - 2026-09-16, morning. He reviewed all four (¶9): none taken. Wrote `next-session.md`, the handover for a fresh session, and this section.

@@ -301,6 +301,11 @@ export const REGISTRY: LabEntry[] = [
         title: "Every photograph, at once",
         note: "One world, one camera. Scroll or pinch to go from one photograph to the whole archive laid out by year, and back. Needs the atlas: node scripts/dev/wall-atlas.mjs.",
       },
+      {
+        href: "/lab/years/then",
+        title: "The same bench, years apart",
+        note: "Three real pairs from the valley's captioned photographs: the SBT benches 2009 and 2022, the games field 2021 and 2023, the Big Banyan 2014 and 2017. The earlier one lifts off as ninety thousand grains and settles as the later one. Drag the year and hold it anywhere between; press to play. ?pair=field&t=0.5 holds a moment.",
+      },
     ],
   },
 
