@@ -7339,3 +7339,51 @@ speed to judge the choreography, stress-tested against a fast typist (no card st
 style left behind), pixel-diffed the card with and without `content-visibility` to prove the shadow
 survives (69 differing subpixels of 109,440, max delta 7 — antialiasing). `npm run check` green,
 `npm run visual` 25/25.
+
+## 2026-09-16 (feed, fix) — closing the comments no longer jerks up before it closes
+
+His report: "when I close the comments at first, it removes that horizontal line and jerks up. And
+then it closes gradually. I need it to be gradual all the way." And: "Even when there's no comments,
+I open it, it opens smoothly. When I close it, it, like, jerks up and then closes smoothly."
+
+**It was never the animation.** Signed in on the real feed, sampled frame by frame through the
+close:
+
+```
+OPEN:   action row margin-bottom 0px,  panel top 231
+t=23ms  action row margin-bottom -9px, panel top 222   <- one frame, 9px
+t=23 -> 573ms   panel height 105 -> 0                   <- smooth, ~580ms
+```
+
+`post-card.tsx` put the action row's -9px bottom pull behind `!showComments`. That negative margin
+exists so the heart and share glyphs' ink sits flush with the card's bottom inset when the row is
+the card's last child; with the thread open, CommentsSection takes over the bottom edge and the
+pull was dropped. So React removed 9px of negative margin on the *same render* that started the
+panel's exit, and the whole panel — divider included — leapt up 9px in one frame before the tween
+had drawn anything. No easing can smooth over a layout change happening beside it, which is why
+five earlier passes at the close timing (it is already a deliberate 550ms, slower than the open,
+from his earlier "abrupt snap" note) never touched this.
+
+**The fix removes the toggle rather than timing around it.** The -9px is now unconditional, and
+CommentsSection pays it back as 9px of extra top padding on its own content — `pt-[21px]` on the
+accordion, `pt-3` on a letter, which has no such row. Measured after: the divider lands at 243,
+exactly where it did before, and the panel's top holds at 222 for every frame of the close. Nothing
+at rest moved: `npm run visual` is 25/25 with no baseline touched.
+
+The reason for compensating rather than deferring the class to `onExitComplete` is that a deferred
+class is still a class that toggles; it just toggles later. With the margin constant there is no
+frame in which layout can change at all, on open or on close.
+
+**Pinned by `e2e/comments-close.spec.ts`**, which asserts the invariant (nothing above the panel
+moves while it collapses) rather than the easing, so it survives a retiming. Worth recording how it
+was written: the first draft sampled only *after* the click, went green against the bug, and had to
+be caught by deliberately reverting the fix. The jump lives between the last open frame and the
+first closing one, so frame zero is read before `click()` — an in-page rAF loop, not `expect.poll`,
+because a poll from the test process cannot see the first frame. Verified red on the old code and
+green on the new, desktop and mobile.
+
+Still open from the same conversation: he asked to explore the comment section looking different —
+the full-bleed hairline under the post, and the empty state. DESIGN-SYSTEM.md:333 already says
+sections are separated by space and never a hairline, and the letters byline hairline went for that
+reason earlier the same day. He chose to see both a subtract-only version and a mist-well version
+in a lab room before anything ships to the feed.
