@@ -339,6 +339,13 @@ export const REGISTRY: LabEntry[] = [
     note: "A progress bar drawn near-flat against its own card, animated with a count-up that counts to zero, above a caption saying it does not matter if it never fills.",
   },
   {
+    href: "/lab/comments",
+    title: "Is the line under a post a necessity?",
+    group: "Delight",
+    status: "active",
+    note: "The owner's question on 2026-09-16, answered three ways on two of his own posts: today's full-bleed hairline, the line dropped for a wider gap, and the thread sunk into a mist tray. Real PostCard, real CommentsSection, real comments; the room only hands them a `look`. The `look`/`commentsLook`/`defaultCommentsOpen` props exist for this room alone and go when he picks.",
+  },
+  {
     href: "/lab/focus",
     title: "Eleven rings, and the five worth choosing between",
     group: "Delight",

@@ -7434,3 +7434,49 @@ the full-bleed hairline under the post, and the empty state. DESIGN-SYSTEM.md:33
 sections are separated by space and never a hairline, and the letters byline hairline went for that
 reason earlier the same day. He chose to see both a subtract-only version and a mist-well version
 in a lab room before anything ships to the feed.
+
+## 2026-09-16 (lab) — the line under a post, three ways, at /lab/comments
+
+The second half of his comment-section note: "do we have to have that horizontal line under the
+content and then no comments first ... I just wondered whether it's a necessity. It might be, and
+maybe we can keep it. But I'd like to explore it showing a bit differently." He asked to see the
+options before any of them reached the feed.
+
+**The room is the real thing, not a drawing of it.** Two of his own posts, one with a thread in it
+and one with nothing, rendered by the shipped PostCard and the shipped CommentsSection. The room's
+only job is to hand them a `look`. Flip the segment and the same two posts change in place. The
+hearts and the composer are live, because a dead thread is not a fair test of one.
+
+- **Today.** A hairline runs the full width of the card, then the thread. With nothing posted, a
+  second sentence says so. First comment sits 36px under the action glyphs, with the line at 19.
+- **Space.** No line. One golden step of gap does the separating, 42px (`--space-xl`), and an empty
+  thread is just the box you type in. That box already says "Write a comment...", and the button
+  that opened the thread says 0, so the sentence was a third way of saying the same thing. The
+  empty panel goes from 114px to 84px.
+- **Well.** The thread sits in a mist tray cut into the card, 12px radius, one rung down the ladder
+  from the card's 16. The surface change separates it, so no line and a smaller gap above. Empty
+  panel 99px.
+
+**The design system already has a view**, and it is worth saying because it means Space is not a
+taste call. DESIGN-SYSTEM.md:333, written 2026-09-08 for dialogs: sections are separated by space
+and never a hairline, and the reason given there is iOS — a line goes between rows inside one
+grouped box, and whole groups are told apart by whitespace. A post and its thread are two groups.
+The letters byline hairline went for exactly this reason earlier the same day (8f1a3bc1).
+
+What the Well costs, stated in the room: mist is reserved for one recessed region per card and
+never two adjacent (globals.css:124). A post with a photograph is still fine, but the thread has
+then spent the card's one well.
+
+`look` on CommentsSection and `commentsLook` / `defaultCommentsOpen` on PostCard are TEMPORARY and
+exist for this room alone. The default is today's look, so the feed is untouched until he picks;
+the winner ships by deleting the branches he did not. They live in the components rather than as
+CSS overrides in the room on purpose — a lab pick is the spec, so what he judges has to be the
+component itself.
+
+Two things the first cut got wrong and the screenshots caught. It keyed the PostCard on the look,
+so every switch remounted the card and reloaded the thread, and the panel was photographed
+mid-measure with its tray clipped. And it picked the LONGEST thread to demonstrate on, which made
+comparing three looks a matter of scrolling past the same thirteen comments three times; it now
+picks the shortest thread over two. Verified at 1440x900 and 390x844 in all three looks.
+`npm run check` green, `npm run visual` 25/25 with nothing moved, and the close-jerk spec still
+passes on both viewports.
