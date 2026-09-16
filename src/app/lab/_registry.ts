@@ -309,7 +309,7 @@ export const REGISTRY: LabEntry[] = [
       {
         href: "/lab/years/weave",
         title: "Everyone who was here, as thread",
-        note: "The school's years as hand-loom cloth, drawn by one fragment shader. Every member is a weft thread across the years they were here, dyed each year by the house they were in; teachers in the school's green. Drag along the years for who was here; pinch in for names and houses; tap a thread. ?z=me opens on your own.",
+        note: "The school's years as hand-loom cloth, drawn by one fragment shader. Every member is a weft thread across the years they were here, dyed each year by the house they were in; teachers in the school's green. Opens on your own thread with your name on the cloth; pinch out for everyone, drag along the years for who was here, tap a thread. ?z=all opens on the whole cloth.",
       },
     ],
   },
