@@ -82,6 +82,40 @@ export function CommentsRoom({ busy, empty }: { busy: PostData | null; empty: Po
               to&rdquo; chip goes with it: the box is under the comment, so there is
               nothing left for the chip to tell you. Escape backs out.
             </p>
+            <p>
+              <b>The thread unrolls.</b> It used to be one flat fade of the whole
+              list, which is a strange thing to spend on the most pressed control
+              in the product. Each comment now rises into place a beat after the
+              one above it, on the same spring the panel opens with. A reply rises
+              with the comment it hangs off, because that is what it is.
+            </p>
+            <p>
+              <b>The one you just wrote is yours for a moment.</b> A wash of the
+              app&rsquo;s own warm ink behind the row, receding; your bird arrives
+              rather than appears; the arrow flies up out of the send button and a
+              fresh one rises into its place. Post one and watch.
+            </p>
+            <p>
+              <b>A comment answers the pointer.</b> Hovering a row did nothing
+              before, so the Reply and the heart floated between two comments
+              rather than belonging to either. Same warm ink, bled past the edges
+              so it reads as light rather than a box.
+            </p>
+            <p>
+              <b>A reply&rsquo;s bird is a rung smaller</b>, 28 against 34, so the
+              shape of a conversation is legible without reading a word of it. An
+              indent and a 1px line were carrying that alone.
+            </p>
+            <p>
+              <b>The close matches the open.</b> It was 550ms against an open that
+              settles in about 300, which is backwards from how anything times a
+              dismissal. It was slowed on purpose, to answer your note that the
+              close read as an abrupt snap &mdash; but that close also began with
+              a 9px jump on its first frame, and a movement that starts with a
+              discontinuity reads as abrupt however long it takes. The duration
+              was compensating for a bug. 380ms here; flip to Today to feel the
+              old one.
+            </p>
             <p className="cm-keep">
               The reply spine stays. That vertical hairline is doing work the
               horizontal one was not: it says which comment these belong to.
@@ -114,6 +148,12 @@ export function CommentsRoom({ busy, empty }: { busy: PostData | null; empty: Po
         <p>
           <b>Closing the thread is gradual all the way.</b> The 9px jump was a
           class toggling on the same render that started the collapse.
+        </p>
+        <p>
+          <b>A date stops saying the year when it is this year.</b> Eighteen rows
+          each ending &ldquo;2026&rdquo; told you nothing, because every one of
+          them said it. The archive runs back decades, so the year is printed
+          whenever it differs. App-wide, not just here.
         </p>
 
         <h3>Why the box moves instead of the page</h3>

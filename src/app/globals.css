@@ -506,6 +506,90 @@
 }
 
 
+/* ---- The comment you just wrote -------------------------------------------
+   Three one-shot animations for the beat after a comment of yours lands, and
+   they are CSS rather than Motion for a reason worth writing down: a comment
+   row sits inside the thread's variant tree (the list staggers "hidden" ->
+   "visible" down its children, and Motion propagates that label through every
+   motion component below it). A child with its own target object gets captured
+   by that tree and never runs its own clock -- traced over 1.5s, both the glow
+   and the bird sat at their end value for every single frame, so the feature
+   looked like it had not been built. `inherit={false}` did not save it either.
+   A one-shot decay that nothing else needs to coordinate with is a CSS
+   animation's whole job, and `.deeplink-flash` above is the same idea already
+   shipping: point at a thing for a moment, then stop.
+
+   The palette gains nothing new. The wash is `--state-press`, the same warm
+   ink the whole app presses with, so "this one is yours" is said in a colour
+   the surface already speaks. `--state-hover` was the first choice and it was
+   too quiet to be worth building: 6% warm ink on warm paper, photographed and
+   squinted at. Press is 11%, which is still a wash rather than a highlight,
+   and it is the heavier of the two on purpose -- this is the one moment in the
+   surface that is unambiguously the reader's own. */
+@keyframes comment-landed {
+  0%, 25% { opacity: 1; }
+  100% { opacity: 0; }
+}
+/* z-index 0 makes the row its own stacking context, so the -1 below lands
+   between the card's paper and the comment's own text rather than behind the
+   card entirely. */
+.comment-landed { position: relative; z-index: 0; }
+.comment-landed::after {
+  content: "";
+  position: absolute;
+  inset: -8px -12px;
+  border-radius: 12px;
+  background: var(--state-press);
+  opacity: 0;
+  z-index: -1;
+  pointer-events: none;
+  animation: comment-landed 1.8s ease-out forwards;
+}
+
+/* A comment answers the pointer. Hovering a row did nothing before: the thread
+   was eighteen paragraphs with no sense that any one of them was a thing you
+   could act on, and the Reply and the heart floated in the gap between two
+   comments rather than belonging to either. This is the app's one hover ink,
+   bled past the row's edges so it reads as light on the paper instead of a box
+   drawn round the comment -- a box would have to earn its border, and this has
+   nothing to say that the light does not.
+   ::before, because the landing glow above owns ::after on the same element
+   and a comment can be both hovered and newly yours. */
+.comment-row { position: relative; z-index: 0; }
+.comment-row::before {
+  content: "";
+  position: absolute;
+  inset: -8px -12px;
+  border-radius: 12px;
+  background: var(--state-hover);
+  opacity: 0;
+  z-index: -1;
+  pointer-events: none;
+  transition: opacity 140ms ease-out;
+}
+@media (hover: hover) and (pointer: fine) {
+  .comment-row:hover::before { opacity: 1; }
+}
+
+/* The bird arrives rather than appears. 1.06 rather than a bigger overshoot:
+   it is a 34px glyph two inches from the reader's eye, and the 50 RV birds are
+   the best thing this site owns -- they do not need to be thrown at anyone. */
+@keyframes comment-bird-land {
+  0% { transform: scale(0.42); }
+  62% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+.comment-bird-land { animation: comment-bird-land 0.52s ease-out forwards; }
+
+/* And the send arrow flies up out of the button, with a fresh one rising into
+   its place, so posting has a beat of its own. The button never moves, so a
+   thumb still resting on it has nothing shift underneath. */
+@keyframes comment-sent-arrow {
+  0% { transform: translateY(13px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.comment-sent-arrow { animation: comment-sent-arrow 0.3s ease-out forwards; }
+
 /* Notification bell wobble: pivots from the top so it reads as a shake, not a
    spin. Its one consumer is the header bell's hover rule below; the shake on a
    rising unread count ships as a Motion keyframe animation in
