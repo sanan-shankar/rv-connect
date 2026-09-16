@@ -7187,3 +7187,27 @@ Verified: tsc, `npm run check` green, the trail UPDATE in a rolled-back transact
 on synthetic trails, the Live view at 390 (200, no console errors). Not verified: the beacon firing in
 a browser (the dev-login secret could not be read this session), and any real tracked data, which
 only exists once this deploys.
+
+## 2026-09-16 (letters) — the byline stops drawing a line nobody could see
+
+Owner: "we have this horizontal line under the bird in the name ... I just wanna ditch that
+horizontal line. It's doing nothing and it's barely even visible and just make sure the gap from
+the bird to the starting of the text is not too big because right now it's just way too big and
+the horizontal line being invisible makes that even worse".
+
+Both halves were true and they compounded. The hairline was `border-b border-border` on the byline
+row, holding `pb-6` above it, and the body added `mt-7` below: 24 + 1 + 28 = 53px between the 64px
+bird and the first word, of which the only thing earning its keep was the gap. DESIGN-SYSTEM.md
+already decided this in the general case (2026-09-08, the dialog rule): sections are separated by
+space, never a hairline, widen the gap instead. A reading page is the purest instance of it, since
+there is exactly one section break on the whole surface and the line therefore had nothing to
+disambiguate. Both went; the remaining gap is the body's own 28px line rhythm.
+
+`loading.tsx` drew the same band and had to lose it in the same change, or the skeleton paints a
+rule the letter then removes on arrival. Its header comment named the rule as a thing it was
+deliberately copying, so that was rewritten rather than left to rot.
+
+Verified: `npm run check` green; the reading page shot at 1440x900 and 390x844. `npm run visual` is
+24/25 with `/letters` (index only, masked past the header) unaffected; the reading page is not
+baselined, so no `visual:update`. The one red, `support` on desktop, is the known whole-page
+spurious diff and passes on its own re-run.

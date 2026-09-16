@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-16 (letters) — the byline stops drawing a line nobody could see
 - 2026-09-16 (lab) — round two of the valley campaign: sixteen ideas judged and three rooms built at /lab/years
 - 2026-09-16 (lab, review) — the four valley pieces reviewed: none taken, a handover for fresh ideas
 - 2026-09-16 (lab) — the site knows where it is: the real hills, the sun on the mark, the night on the map, a bird in wax
