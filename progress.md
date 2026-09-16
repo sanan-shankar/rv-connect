@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-16 (feed, fix) — the carousel stops resizing under your thumb, and the swipe stops overshooting
 - 2026-09-16 (feed, fix) — closing the comments no longer jerks up before it closes
 - 2026-09-16 (directory) — the people grid stops lurching and re-forms as one wave
 - 2026-09-16 (letters, content) — ten letters under the Anonymous account, in an order built to be read straight through

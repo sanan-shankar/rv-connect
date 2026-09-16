@@ -32,15 +32,15 @@
  *     rather than jumping when a slide finally settles. That is the
  *     detail that makes a carousel feel attached to the gesture.
  *
- *  4. THE FRAME FOLLOWS THE PHOTOGRAPH. Every photograph is drawn at
- *     exactly the size it would have been posted on its own, and the
- *     frame is whatever height that photograph needs -- interpolated as
- *     you swipe, so it breathes with the gesture rather than jumping
- *     when a slide lands. Nothing is ever shrunk to fit a shared shape
- *     and nothing is ever bedded to fill one. See `carouselWidth` for
- *     the two shared-shape rules this replaced and why both were wrong.
+ *  4. THE FRAME NEVER MOVES. One box for the set, decided before you
+ *     touch it and never touched again -- which is what every other
+ *     carousel does, and what the three rules before this one each
+ *     failed at differently. It is CSS, not a measured pixel, so it is
+ *     right on the server and right at every width. The arithmetic and
+ *     the three failures are in `CAROUSEL_BOX_CAP`.
  *
- *  Everything animated is a transform. The frame's shape is known before
+ *  Everything animated is a transform, and nothing at all is written to
+ *  the layout while a finger is down. The frame's shape is known before
  *  any photograph loads, so nothing jumps.
  * ------------------------------------------------------------------ */
 
@@ -49,8 +49,8 @@ import { CarouselArrow } from "@/components/common/carousel-arrow";
 import { PhotoBed } from "@/components/common/photo-frame";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import {
+  carouselHeightCss,
   carouselWidth,
-  drawnSize,
   framePhoto,
   photoSizes,
   type PhotoFacts,
@@ -136,72 +136,34 @@ export function PhotoCarousel({
      whatever height the others settle on. */
   const frames = photos.map((p) => framePhoto(p.photo ?? NEUTRAL));
   const frameWidth = carouselWidth(frames);
+  /* The set's one height, as an expression the browser resolves against its
+     own width. Nothing here measures anything. */
+  const frameHeight = carouselHeightCss(frames);
 
-  const frame = useRef<HTMLDivElement>(null);
   const track = useRef<HTMLDivElement>(null);
   const rail = useRef<HTMLSpanElement>(null);
   const tween = useRef(0);
   const [at, setAt] = useState(0);
   const last = photos.length - 1;
 
-  /* ---------------------------------------------------------------- *
-   *  The frame's height, which is the current photograph's height.
-   *
-   *  Two shared-shape rules came before this one and each was wrong in
-   *  the other's direction. Measured on one real post -- a 9:20, a 20:9
-   *  and a 16:9 -- in a 314px phone slide, where the three photographs
-   *  want 419, 141 and 177px of height:
-   *
-   *    shared SHAPE (the median)  the portrait is drawn 296 x 177,
-   *                               a third of the picture it should be.
-   *                               This is what the owner found in his
-   *                               own feed on 2026-08-28.
-   *    shared HEIGHT (the tallest) every photograph is full size, but the
-   *                               16:9 sits in a 421px frame with 122px
-   *                               of blurred bed above AND below it --
-   *                               "yucky blur bars", his words, twice.
-   *
-   *  There is no third fixed height that avoids both, because 419 and
-   *  141 are three to one. So the frame is not fixed. It is the height
-   *  of whichever photograph you are looking at, interpolated across the
-   *  swipe so the card breathes with your thumb instead of jumping when
-   *  a slide lands.
-   *
-   *  The heights are ARITHMETIC, not measurement: `drawnSize` is the same
-   *  pure function the layout tests assert against, given the one number
-   *  a browser has to tell us -- how wide a slide is. Before that number
-   *  exists (server render, first paint) the ghost below holds the first
-   *  photograph's box open in plain CSS, so nothing jumps into place.
-   * ---------------------------------------------------------------- */
-  const heights = useRef<number[]>([]);
-  const slideWidth = useRef(0);
-
-  /** The frame's height at a fractional position along the track. */
-  const heightAt = useCallback((where: number) => {
-    const hs = heights.current;
-    if (!hs.length) return null;
-    const i = Math.max(0, Math.min(hs.length - 1, Math.floor(where)));
-    const j = Math.min(hs.length - 1, i + 1);
-    const t = Math.max(0, Math.min(1, where - i));
-    return hs[i] + (hs[j] - hs[i]) * t;
-  }, []);
-
   /* One read of the scroll offset, turned into two things: which photograph
      is showing (for the arrows and the labels) and where the indicator sits
      (a fraction, so it moves continuously rather than in steps). Written
      straight to the element's transform rather than to state -- this fires on
      every scroll frame, and a re-render per frame is how a carousel starts
-     dropping them. */
+     dropping them.
+
+     What it deliberately does NOT do any more is touch the layout. It used to
+     write an interpolated height to the frame here, which is both why the card
+     changed size mid-swipe and, on iOS, why the swipe itself broke: rewriting
+     a scroll-snap container's height during a gesture makes the engine re-run
+     snap selection mid-flight, and the flick runs on to the last photograph.
+     A transform on the indicator is all that is left. */
   const readScroll = useCallback(() => {
     const el = track.current;
     if (!el) return;
     const span = el.scrollWidth - el.clientWidth;
     const progress = span > 0 ? el.scrollLeft / span : 0;
-    /* Where the track actually is, in slides. Written straight to the frame
-       rather than through state, for the same reason the indicator is: this
-       fires on every scroll frame. */
-    const h = heightAt(el.clientWidth > 0 ? el.scrollLeft / el.clientWidth : 0);
-    if (h !== null && frame.current) frame.current.style.height = `${h}px`;
     if (rail.current) {
       const travel = progress * last * (DOT + DOT_GAP);
       rail.current.style.transform = `translate3d(${travel.toFixed(2)}px, 0, 0)`;
@@ -210,7 +172,7 @@ export function PhotoCarousel({
       const now = Math.round(progress * last);
       return now === was ? was : now;
     });
-  }, [last, heightAt]);
+  }, [last]);
 
   const go = useCallback(
     (index: number) => {
@@ -240,30 +202,6 @@ export function PhotoCarousel({
     [last]
   );
 
-  /* One measurement, and it is the slide's width -- the single thing about a
-     column the arithmetic cannot know. Everything else follows from the
-     stored dimensions. Re-run on resize, because the column changes with the
-     window and the sidebar appears at a breakpoint. */
-  useEffect(() => {
-    const el = track.current;
-    if (!el) return;
-    const measure = () => {
-      const w = el.clientWidth;
-      if (!w || w === slideWidth.current) return;
-      slideWidth.current = w;
-      heights.current = frames.map((f) => drawnSize(f, w).height);
-      readScroll();
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-    /* `frames` is rebuilt every render from props that do not change for the
-       life of a card, so the shapes are keyed on the one thing that can:
-       which photographs these are. */
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [photos, readScroll]);
-
   useEffect(() => () => cancelAnimationFrame(tween.current), []);
 
   return (
@@ -272,29 +210,19 @@ export function PhotoCarousel({
       /* The frame is as wide as the widest photograph in it may be drawn, and
          no wider -- so a set of three landscapes reaches the same edges a
          single landscape would, and a set of three portraits stays as narrow
-         as a single portrait. Capped at the same 900px everything else is. */
-      style={{ maxWidth: `min(100%, ${frameWidth}px)` }}
+         as a single portrait. Capped at the same 900px everything else is.
+
+         And it is the CONTAINER, which is what lets the height below be CSS:
+         `100cqw` inside here is exactly this width, so the box resolves
+         itself at every column without anyone measuring a slide. */
+      style={{ maxWidth: `min(100%, ${frameWidth}px)`, containerType: "inline-size" }}
     >
-    <div ref={frame} className="relative">
-      {/* The ghost. It holds the FIRST photograph's box open in plain CSS --
-          a max-width, an aspect-ratio and the ceiling, exactly what
-          <PhotoFrame> puts on a photograph posted alone -- so the card has
-          its right height on the server, before hydration and before any
-          slide has been measured. From the first scroll frame onward the
-          height above is explicit and this is inert. Same trick as
-          <PhotoStream>'s trailing cell: a box that is only its own shape. */}
-      <div
-        aria-hidden
-        className="pointer-events-none w-full"
-        style={{
-          maxWidth: frames[0]?.maxWidth,
-          aspectRatio: frames[0]?.aspectRatio,
-          maxHeight: frames[0]?.maxHeight,
-        }}
-      />
       <div
         ref={track}
         onScroll={readScroll}
+        /* The set's one height, fixed for the life of the card. Nothing may
+           change it while a finger is down -- that is the whole rule. */
+        style={{ height: frameHeight }}
         role="group"
         aria-roledescription="carousel"
         aria-label={`${photos.length} photographs`}
@@ -310,13 +238,9 @@ export function PhotoCarousel({
         }}
         tabIndex={0}
         className={cn(
-          /* NO height of its own, and that is the mechanism. A flex line is as
-             tall as the tallest item on it, and each slide is as tall as the
-             photograph inside it wants to be, so the frame settles on the
-             tallest photograph in the set with nothing computed and nothing
-             measured. `items-stretch` then gives every other slide that same
-             height to bed its photograph into. */
-          "absolute inset-0 flex snap-x snap-mandatory items-stretch overflow-x-auto",
+          /* `items-stretch` gives every slide the box's full height, which is
+             what each photograph is then bedded into or trimmed by. */
+          "flex snap-x snap-mandatory items-stretch overflow-x-auto",
           bleed ? "rounded-none" : "rounded-[var(--radius-md)]",
           /* The track scrolls sideways inside a page that scrolls down, so a
              horizontal overscroll must stop here rather than becoming the
@@ -372,7 +296,6 @@ export function PhotoCarousel({
           );
         })}
       </div>
-    </div>
 
       {/* Arrows. Desktop only -- a touch screen has the gesture, and a control
           you cannot hover has no reason to be dimmed. They sit over the
