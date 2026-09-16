@@ -183,6 +183,8 @@ export function Wall({ photos, startId }: { photos: WallPhoto[]; startId?: strin
   const [failed, setFailed] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "noatlas">("loading");
   const [hint, setHint] = useState(true);
+  /* the hint goes on the first gesture, or on its own after a while */
+  useEffect(() => { const id = window.setTimeout(() => setHint(false), 6000); return () => window.clearTimeout(id); }, []);
   const [years, setYears] = useState<Block[]>([]);
   const [isTouch, setIsTouch] = useState(false);
   /* the labels are placed by the render loop, so a label that React renders

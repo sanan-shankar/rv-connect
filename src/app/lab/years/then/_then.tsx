@@ -176,6 +176,8 @@ export function Then({ pair, autoplay = true }: { pair: ThenPair; autoplay?: boo
   const [failed, setFailed] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [hint, setHint] = useState(true);
+  /* the hint goes on the first gesture, or on its own after a while */
+  useEffect(() => { const id = window.setTimeout(() => setHint(false), 6000); return () => window.clearTimeout(id); }, []);
 
   useEffect(() => {
     const cv = canvas.current!;

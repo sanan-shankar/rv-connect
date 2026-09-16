@@ -1,4 +1,4 @@
-## 2026-09-16 (lab) — round two of the valley campaign: sixteen ideas judged, every photograph at once, the same bench years apart
+## 2026-09-16 (lab) — round two of the valley campaign: sixteen ideas judged and three rooms built at /lab/years
 
 The fresh session `next-session.md` asked for. Spent the first stretch on ideas before any code,
 as ¶9 of `docs/planning/valley/brief.md` asked (*"i'm so happy if an hour goes in brainstorming
@@ -46,8 +46,18 @@ resting picture drawn by 3px grains (posterized) and bright grains clipping to w
 found the wave landing everything by 0.75. Shot at both viewports at five moments per pair, the play
 and a drag; no console errors.
 
-**Not built yet:** the third room (everyone who was here as thread), planned in the ideas file and
-listed on `/lab/years` as not built.
+**Built: the weave, `/lab/years/weave`.** Every member in directory standing as a weft thread across
+the years they were at the school, over and under a warp of years from 1926 to now, dyed each year
+by the house they were in (junior, middle and senior school by the canonical list's order; teachers
+in the school's green; an unfilled year undyed). One full-screen fragment shader: each pixel finds its
+warp column and weft row, reads the dye from a data texture, decides over or under from the weave's
+parity, and shades a lit cylinder with fibre twist and a crossing shadow, the light following the
+pointer. The pointer's year is a shuttle line with who was here; names and houses are HTML placed
+from the camera past a zoom where they fit; your own thread is lifted over the warp; a tap comes in on
+a thread and out again. 81 threads today, the oldest from 1965; the cloth is bare to the left, and the
+room says so. Two rounds: the first found the warp reading as beads (the twist too coarse), the
+unwoven warp as loud as the cloth, and names under the readout; shot at both viewports at three
+levels, the shuttle on hover and a wheel zoom. No console errors.
 
 ## 2026-09-16 (lab, review) — the four valley pieces reviewed: none taken, a handover for fresh ideas
 

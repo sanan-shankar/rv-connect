@@ -98,19 +98,16 @@ next session starts from `next-session.md`.
 
 ## Considered and not taken (so nobody re-treads it)
 
-- **The archive wall**: pinch out from one Collection photograph to all 1,749 filed by
-  decade, GPU-drawn, the zoom-is-scale idea he called golden with an honest axis. Not built
-  this round because the far-out view needs a sprite atlas of every thumbnail, and building
-  one means either 1,749 optimizer calls per view (a quota risk), a public atlas of real
-  photographs in `public/` (would ship to the demo domain), or a hand-run script writing an
-  atlas to R2 (real infrastructure for a prototype). `Photo.blurhash` exists but nothing
-  writes it (0 readers, no writer found). The right build is the R2 atlas; it is a session
-  of its own. Strongest candidate for round two.
+- **The archive wall**: BUILT in round two as `/lab/years/wall` (2026-09-16). The atlas
+  question was answered with a gitignored folder under `public/lab/wall/` packed by
+  `scripts/dev/wall-atlas.mjs`, so the dev server serves real thumbnails and nothing reaches
+  a deploy; the production shape is the same script writing to R2, not built.
 - **A flock coming home**: every member's bird on the directory's globe flying back to the
   valley along great circles. Relevant, but birds again (¶2), and the directory already has
   its map. Parked.
-- **Same place, different decade** in the Collection: needs pairs of photographs of one spot,
-  which the data does not tag. Parked.
+- **Same place, different decade**: BUILT in round two as `/lab/years/then` (2026-09-16).
+  The valley's 96 captioned photographs name places, and three pairs are real (the SBT
+  benches, the games field, the Big Banyan); the room pins them by id.
 - **The banyan grown from members**: a tree-of-members is a known metaphor even if the
   banyan's aerial roots make it apt. Parked.
 - **Dappled light under the banyan on the feed**: pretty, decorative, on the daily surface.
@@ -170,10 +167,11 @@ next session starts from `next-session.md`.
 | Progress entry and commit | DONE | 2026-09-16 |
 | Round two, same night | DONE | the live hills embedded on the overview (compact: no dial, no wheel capture so the page keeps scrolling), the sun drawn as a disc in the sky under the canvas so a ridge can stand in front of it, a north needle while orbiting |
 | His review of round one | DONE | 2026-09-16 morning, ¶9: none taken as it stands; verdicts recorded above and in `next-session.md` |
-| Round two, fresh ideas | IN PROGRESS | 2026-09-16, a fresh Fable session: sixteen candidates judged in `ideas-round-two.md`; three rooms under `/lab/years`. The wall DONE (commit 6302bae2), then DONE, the weave next |
+| Round two, fresh ideas | IN PROGRESS | 2026-09-16, a fresh Fable session: sixteen candidates judged in `ideas-round-two.md`; three rooms under `/lab/years`. The wall DONE (6302bae2), then DONE (0114517a), the weave DONE; polish rounds continue |
 
 ## Log
 
+- 2026-09-16, later. The weave built and shot at both viewports, three levels plus hover and zoom; the fibre twist, the bare warp's weight and the names under the readout fixed in round two. All three rooms live under `/lab/years`.
 - 2026-09-16, afternoon. The wall committed (6302bae2): three levels, both viewports, pinch and drag through CDP, the three-tap cycle. Then built and shot: three pairs, five moments each, both viewports; the rest state moved onto the photograph quads with a per-pixel fade after the first round showed the grains posterizing it.
 - 2026-09-16, late morning. Round two opened. Read everything `next-session.md` named, measured the database (1,719 of 1,815 photographs are the Class of 2023's; 96 valley photographs captioned by place; 83 members, 57 with a house per year), queried OpenStreetMap for the campus (109 paths, named places, no building outlines). Wrote `ideas-round-two.md`: sixteen candidates, three to build. Building order: the wall, then, the weave.
 
