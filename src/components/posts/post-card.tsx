@@ -660,12 +660,18 @@ export function PostCard({
             sides ("bottom padding must match the sides", 2026-08). At -9 it lands at 15, so it
             is now a pixel INSIDE the side inset rather than a pixel outside. The later word
             wins; if the older one is the one he meant, this is the line to change back. */}
-        <div
-          className={cn(
-            "mt-1.5 -mx-2.5 flex items-center gap-1 text-muted-foreground",
-            !showComments && "-mb-[9px]"
-          )}
-        >
+        {/* The -9px is UNCONDITIONAL, and that is the fix for the close jerk (2026-09-16).
+            It used to be `!showComments && "-mb-[9px]"`, so React removed 9px of negative
+            margin on the same render that started the panel's exit: measured frame by frame,
+            the panel's top went 231 -> 222 in ONE frame and only then collapsed smoothly over
+            580ms. That single frame is the jump the owner saw ("it jerks up and then closes
+            gradually"), and it fired even on a post with no comments.
+            Nothing about the open state moves: CommentsSection pays the 9px back as extra top
+            padding on its own content (see `pt-[21px]` there), so the divider and everything
+            under it land on exactly the pixel they did before. The point is that no class
+            toggles across the transition at all, which is the only way a frame-one jump
+            cannot come back. */}
+        <div className="mt-1.5 -mx-2.5 -mb-[9px] flex items-center gap-1 text-muted-foreground">
           <LoveButton liked={liked} count={likeCount} onToggle={handleLike} label="Like this post" />
 
           <m.button

@@ -17,7 +17,7 @@ import { LoveButton } from "@/components/common/love-button";
 import { ModerationDialog } from "@/components/admin/moderation-dialog";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import Link from "next/link";
-import { formatTimeAgo } from "@/lib/utils";
+import { cn, formatTimeAgo } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
@@ -352,7 +352,19 @@ export function CommentsSection({
         comment list belongs inside the thing being measured. The dialog renders
         nothing inline anyway, since it portals to the body when open. */}
     {emailGate.dialog}
-    <div ref={contentRef} className="flex flex-col gap-4 px-0.5 pb-1 pt-3">
+    {/* pt-[21px] on the accordion, pt-3 on a letter, and the 9px between them is not a
+        design choice -- it is the other half of the close-jerk fix in post-card.tsx. That
+        card's action row now carries its -9px pull at ALL times instead of only when the
+        thread is shut, so the panel starts 9px higher than it used to; 12 + 9 = 21 puts the
+        content back where it was. A letter has no such row (alwaysOpen, no accordion), so it
+        keeps the plain 12. Change one of these two numbers and you must change the other. */}
+    <div
+      ref={contentRef}
+      className={cn(
+        "flex flex-col gap-4 px-0.5 pb-1",
+        alwaysOpen ? "pt-3" : "pt-[21px]"
+      )}
+    >
       <div className="border-t border-border/70" />
 
       {loading && skeletonRows > 0 ? (
