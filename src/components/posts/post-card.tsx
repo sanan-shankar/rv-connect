@@ -195,7 +195,7 @@ export function PostCard({
    * rather than on a look-alike copy, which is what `demo` above exists for
    * too. See the `look` prop on CommentsSection; all three go when he picks.
    */
-  commentsLook?: "rule" | "space" | "well";
+  commentsLook?: "rule" | "space";
   defaultCommentsOpen?: boolean;
 }) {
   const [liked, setLiked] = useState(post.liked);
