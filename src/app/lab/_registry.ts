@@ -294,7 +294,7 @@ export const REGISTRY: LabEntry[] = [
     title: "Time, drawn",
     group: "Delight",
     status: "active",
-    note: "Round two of the valley campaign, on the one axis this site honestly has. Three rooms planned, built one at a time: every photograph at once by year (pinch out of one and it takes its place among all 1,815), the same bench years apart (one photograph lifts as grains and settles as the same place in another year), and everyone who was here as thread (the school's hundred years as cloth, each member a thread dyed by house). Each is pulled by a gesture that does a job or is rare by nature; none plays on the feed. docs/planning/valley/ideas-round-two.md says why these three.",
+    note: "Round two of the valley campaign, on the one axis this site honestly has. Three rooms: every photograph at once by year (pinch out of one and it takes its place among all 1,815), the same bench years apart (one photograph lifts as grains and settles as the same place in another year), and everyone who was here as thread (the school's hundred years as cloth, each member a thread dyed by house). Each is pulled by a gesture that does a job or is rare by nature; none plays on the feed. docs/planning/valley/ideas-round-two.md says why these three.",
     children: [
       {
         href: "/lab/years/wall",
@@ -305,6 +305,11 @@ export const REGISTRY: LabEntry[] = [
         href: "/lab/years/then",
         title: "The same bench, years apart",
         note: "Three real pairs from the valley's captioned photographs: the SBT benches 2009 and 2022, the games field 2021 and 2023, the Big Banyan 2014 and 2017. The earlier one lifts off as ninety thousand grains and settles as the later one. Drag the year and hold it anywhere between; press to play. ?pair=field&t=0.5 holds a moment.",
+      },
+      {
+        href: "/lab/years/weave",
+        title: "Everyone who was here, as thread",
+        note: "The school's years as hand-loom cloth, drawn by one fragment shader. Every member is a weft thread across the years they were here, dyed each year by the house they were in; teachers in the school's green. Drag along the years for who was here; pinch in for names and houses; tap a thread. ?z=me opens on your own.",
       },
     ],
   },
