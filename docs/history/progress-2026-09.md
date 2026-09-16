@@ -7480,3 +7480,70 @@ comparing three looks a matter of scrolling past the same thirteen comments thre
 picks the shortest thread over two. Verified at 1440x900 and 390x844 in all three looks.
 `npm run check` green, `npm run visual` 25/25 with nothing moved, and the close-jerk spec still
 passes on both viewports.
+
+## 2026-09-16 (feed, lab) — the comment section gone over: four repairs shipped, the rest at /lab/comments
+
+His brief after seeing the first room: the 42px gap where the line used to be is "weirdly big", the
+mist well is out ("the unnecessary darkening in well isn't a good improvement"), and then the real
+ask — "it's reached the point where I can't fault it but there might be problems that I can't see
+... I just want it to be so freaking amazing the best it can be."
+
+**The gap was wrong and his reason was the right one.** 42px came from --space-xl on the theory that
+losing a line means widening the gap. What that missed is what the line was doing: with a rule
+drawn, no single gap on the card is bigger than about 19px, because the rule breaks 36 into two
+halves and the eye never sees one void. Take it away and the whole 42 is one gap, more than twice
+anything else on the card. It is 26px now (--space-l), half again the 16px between two comments.
+
+**Four things the audit found, measured on his own feed, all now fixed and live in both looks**
+because they are repairs rather than choices:
+
+- **The admin shield was painted on every comment.** 14x14, opacity 1, permanently: five comments
+  meant five shield glyphs down the right edge. The "..." beside it has hidden until hover since
+  2026-08-13; this never learned to. He is an admin on every thread in the product and nobody else
+  can see it, which is exactly why it survived. Same opacity contract as the menu trigger now.
+- **Reply did nothing you could see.** It set `replyTo`, which drew a chip above the composer. On a
+  real thread that chip was 337px BELOW the Reply just pressed, off the bottom of a 900px window,
+  with nothing focused and nothing scrolled.
+- **Reply and the heart were not hittable.** 29x16 and 26x18, on a phone as well as a laptop, under
+  WCAG 2.2's 24px floor on one axis each and nowhere near Apple's 44. Now 41x32 and 26x30, with
+  MENU_TRIGGER_HIT carrying both to 44 on touch. Hit area only: the glyphs did not move, the meta
+  row is still 20px, and the heart's SIZE still lives in love-button.tsx as a named variant per the
+  standing rule there.
+- The close-jerk fix from earlier today.
+
+**Then the finding that changed the design.** The obvious repair for Reply is to scroll the page
+down to the composer. It cannot be made to work, and the trace says why: scrolling drags the
+infinite-scroll sentinel through the viewport, which fetches the next page, which grows the thread
+under the box being scrolled to. Frame by frame — the field was down to 570px and still closing,
+then the panel went 472px to 943px in three frames and the field was flung back to 937 in a 900px
+window. Two attempts to chase it both stalled at 903px, because every page that lands moves the
+target again. It is a treadmill, not a race.
+
+So the box goes to the reader. In the proposed look the composer renders **under the comment being
+replied to**, focused, and nothing scrolls at all. It also answers the original complaint better
+than a scroll would: you can see which comment you are answering, because the box is under it. The
+"Replying to <name>" chip goes with it, having nothing left to say; Escape backs out.
+
+**Also in the proposal: a box that grows with what you type.** The field took 1000 characters and
+showed about 60 — a 36px single line, no wrap, your own sentence scrolling off to the left. On a
+site where people write down what they remember (half the comments in any real thread here run to
+two or three lines) that is the wrong shape. It starts at exactly the old 36px so a one-line comment
+is pixel-identical to what shipped, stops at five lines, and is `rounded-[18px]` rather than
+`rounded-full` — the same shape at 36px tall, and the only one of the two that stays sane at 120.
+Enter sends, Shift+Enter breaks the line, and `isComposing` is respected so an IME keyboard is not
+interrupted mid-character.
+
+**Left for him to decide, in the room:** your own comment waits on the server before it appears
+(~1.2s measured, and that is a dev build, so the number is soft). Making it instant needs the
+viewer's own name and bird on the client, and this app has no client session anywhere — so it is
+plumbing, not a tweak. The same plumbing would put his bird beside the box he types in. Worth doing
+as one change or not at all.
+
+The reply spine stays, and the room says why: that vertical hairline carries information the
+horizontal one did not. It says which comment these belong to. iOS draws lines inside a group and
+space between groups, which is exactly the distinction.
+
+One thing to own: a probe of this session's posted a test comment to the live database while
+measuring the submit round trip. It and the notification it fired were deleted the same minute.
+Nothing else wrote. Verified at 1440x900 and 390x844, `npm run check` green, `npm run visual` 25/25
+with no baseline moved, close-jerk spec green on both viewports.

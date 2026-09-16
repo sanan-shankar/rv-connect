@@ -142,12 +142,14 @@ export function CommentsSection({
    * winner ships by deleting the two branches he did not pick.
    *
    *   "rule"  today: a full-bleed hairline, then "No comments yet. Be the first."
-   *   "space" the line and the empty line both go; a wider gap separates instead
-   *   "well"  as "space", plus the thread sits in a recessed mist tray
+   *   "space" the line and the empty line both go; a gap separates instead
+   *
+   * A third, "well", sank the thread into a recessed mist tray. He saw it and
+   * said no: "the unnecessary darkening in well isn't a good improvement".
    *
    * /lab/comments is the only caller that passes anything but the default.
    */
-  look?: "rule" | "space" | "well";
+  look?: "rule" | "space";
 }) {
   const [comments, setComments] = useState<CommentData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -174,6 +176,71 @@ export function CommentsSection({
   // Mandatory on a list that adds and removes rows: pages appending, a
   // deleted comment leaving, all close their gaps on the same animation.
   const [listRef] = useAutoAnimate();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  /** Whichever field this look renders, so Reply can take you to it. */
+  const composerRef = () => inputRef.current ?? textareaRef.current;
+
+  /* The grow. Height is reset to auto before it is read, because scrollHeight
+     of an element that is already tall reports the tall value and the box can
+     then only ever get bigger -- deleting a line would leave the hole behind.
+     Run as a layout effect so the browser never paints the intermediate
+     height. */
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [newComment]);
+
+  /**
+   * Pressing Reply used to do one thing: set `replyTo`, which drew a chip
+   * above the composer. Measured on a real thread, that chip was 337px BELOW
+   * the Reply the reader had just pressed, off the bottom of a 900px window,
+   * and nothing focused or scrolled. So the control looked dead: you pressed
+   * it, the page did not move, no cursor appeared, and the only feedback was
+   * somewhere you could not see. On a phone it is worse, because the thread is
+   * taller than the screen by more.
+   *
+   * Now the box comes to you: it renders under the comment you pressed Reply
+   * on, and takes focus. Nothing scrolls, because nothing needs to.
+   */
+  const wantsComposer = useRef(false);
+
+  function startReply(target: { id: string; name: string }) {
+    wantsComposer.current = true;
+    setReplyTo(target);
+  }
+
+  /* The move itself runs in an effect rather than in the handler, and that is
+     not tidiness. Setting `replyTo` renders the "Replying to ..." chip ABOVE
+     the composer, so a scroll measured in the handler is measured against a
+     box that is about to be pushed down by the chip's 36px. Measured: it
+     landed the field at 937px in a 900px window, which is to say just off the
+     bottom of the screen, having scrolled 3829px to get there. By the effect,
+     the chip is committed and the number is true.
+
+     The scroll is skipped when the composer is already in view, so replying to
+     the last comment in a short thread does not lurch the page for nothing. */
+  /* Focus after the commit, never in the handler: setting `replyTo` is what
+     MOVES the composer, so a handler holding the old element would focus a
+     node React is about to throw away.
+
+     There is no scroll here, and that is the finding rather than an omission.
+     The obvious fix for a dead-looking Reply is to scroll the page down to the
+     composer, and it cannot be made to work: the scroll drags the
+     infinite-scroll sentinel through the viewport, which fetches the next
+     page, which grows the thread under the box you were heading for. Traced
+     frame by frame on a real thread -- the field was down to 570px and still
+     closing, then the panel went 472px to 943px in three frames and it was
+     flung back to 937 in a 900px window. Chasing it does not help either,
+     because every page that lands moves the target again. It is a treadmill,
+     not a race. So the box comes to the reader instead; see `composer`. */
+  useEffect(() => {
+    if (!wantsComposer.current || !replyTo) return;
+    wantsComposer.current = false;
+    composerRef()?.focus({ preventScroll: true });
+  }, [replyTo]);
 
   // The panel animates to (and then tracks) the real height of its content. A single
   // ResizeObserver is the ONE clock: the initial open, the comments arriving from the
@@ -357,12 +424,150 @@ export function CommentsSection({
   }
   for (const list of repliesMap.values()) list.sort(byAge);
 
+  /* The comment the box should sit under, or null for "leave it at the foot".
+     Null in today's look, and null whenever the target is not on screen anyway
+     (a reply to something that has since been deleted, or that lives on a page
+     the reader has not scrolled to), because a composer that vanishes is worse
+     than one that did not move. */
+  const inlineReplyId =
+    look !== "rule" && replyTo && comments.some((c) => c.id === replyTo.id)
+      ? replyTo.id
+      : null;
+
   // The loading rows mirror what is actually coming: none for a post the card
   // already knows has no comments, one for one, two for anything more.
   const skeletonRows = Math.min(expectedCount ?? 2, 2);
 
   // The measured content: divider, the thread, and the composer. List sits on top, the
   // input always sits on the bottom, so the reveal order is the same every single time.
+  /**
+   * THE BOX YOU TYPE IN, lifted out of the tree so it can be rendered in two
+   * places. At rest it sits at the foot of the thread, where it always has.
+   * While a reply is pending in the proposed look it is rendered UNDER THE
+   * COMMENT BEING REPLIED TO instead, and nothing scrolls.
+   *
+   * That is not a flourish, it is the only version of this that works. The
+   * obvious fix -- scroll the page down to the composer -- drags the
+   * infinite-scroll sentinel through the viewport on the way, which fetches
+   * the next page, which grows the thread under the box you were heading for.
+   * Traced on a real thread: the panel went 472px to 943px mid-scroll and the
+   * field was flung from 570px back to 937 in a 900px window. Chasing it does
+   * not help, because every page that lands moves the target again; it is a
+   * treadmill, not a race. Moving the box to the reader has no such problem,
+   * and it also answers the original complaint better: you can see which
+   * comment you are replying to, because the box is under it.
+   */
+  const composer = (
+    <form onSubmit={handleSubmit}>
+      {/* "Replying to <name>" exists to tell you which comment the box at the
+          foot of the thread belongs to. With the box sitting under that very
+          comment there is nothing left for it to say, so the proposed look
+          drops it and keeps the cancel on the row below instead. */}
+      {replyTo && !inlineReplyId && (
+        <m.div
+          className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground"
+          initial={{ opacity: 0, y: 6, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={SPRINGS.snappy}
+        >
+          <Reply className="h-3 w-3 text-leaf" />
+          <span>
+            Replying to{" "}
+            <span className="font-semibold text-foreground">
+              {replyTo.name}
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setReplyTo(null)}
+            aria-label="Cancel reply"
+            /* state-layer, not the hand-rolled foreground/10 this used to
+               carry: same idea, one class, and it brings a press tint with it.
+               The size-4 target is small, so hover:text-foreground stays as the
+               louder half of the signal. */
+            className="state-layer -mr-0.5 ml-0.5 inline-grid size-4 place-items-center rounded-full text-muted-foreground hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </m.div>
+      )}
+      <div className={cn("flex gap-2", look === "rule" ? "items-center" : "items-end")}>
+        {/* Inset focus ring (inline, so the panel's overflow-hidden during the open/close
+            animation can never clip it into a stray shape). */}
+        {look === "rule" ? (
+          <input
+            ref={inputRef}
+            type="text"
+            className={`h-9 flex-1 rounded-full border border-border bg-card px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground ${FIELD_FOCUS}`}
+            placeholder={
+              replyTo ? `Reply to ${replyTo.name}...` : "Write a comment..."
+            }
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            maxLength={1000}
+          />
+        ) : (
+          /* A BOX THAT GROWS WITH WHAT YOU TYPE.
+             The field accepts 1000 characters and showed about 60 of them: a
+             36px single line, no wrap, the beginning of your own sentence
+             scrolling away to the left as you write. On a site where people
+             are writing down what they remember, that is the wrong shape --
+             look at any real thread here and half the comments run to two or
+             three lines.
+             It starts at exactly the old height, so a one-line comment looks
+             identical to what shipped, and it stops growing at five lines and
+             scrolls after that, so one long comment cannot push the composer
+             off the screen. The radius is 18px rather than `rounded-full`:
+             at 36px tall those are the same shape to the pixel, and only the
+             fixed one stays sane once the box is 90px tall. */
+          <textarea
+            ref={textareaRef}
+            rows={1}
+            className={`max-h-[7.5rem] min-h-9 flex-1 resize-none rounded-[18px] border border-border bg-card px-4 py-[0.4375rem] text-sm leading-[1.375] text-foreground outline-none placeholder:text-muted-foreground ${FIELD_FOCUS}`}
+            placeholder={
+              replyTo ? `Reply to ${replyTo.name}...` : "Write a comment..."
+            }
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            onKeyDown={(e) => {
+              /* Enter sends, Shift+Enter breaks the line. That is the order
+                 every messaging surface uses, and it keeps the one-line case
+                 behaving exactly as the input did. IME composition is left
+                 alone: `isComposing` is true while a Japanese or Chinese
+                 keyboard is still choosing a character, and Enter there is
+                 picking the word, not sending the comment. */
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                e.currentTarget.form?.requestSubmit();
+              }
+              /* Escape backs out of a reply rather than out of the thread.
+                 Only while one is pending, so it never swallows the key from
+                 whatever is listening above it. */
+              if (e.key === "Escape" && replyTo) {
+                e.preventDefault();
+                setReplyTo(null);
+              }
+            }}
+            maxLength={1000}
+          />
+        )}
+        <SpringPress
+          // Same 1.08 as CANOPY_FILL in ui/button.tsx. Hand-rolled rather than a
+          // <Button>, and it had no hover at all before: SpringPress only
+          // contributes a tap scale.
+          className="inline-grid size-9 shrink-0 place-items-center rounded-full bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-[filter] duration-150 hover:brightness-[1.08] disabled:opacity-40 disabled:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
+          {...({
+            type: "submit",
+            "aria-label": "Post comment",
+            disabled: !newComment.trim() || submitting,
+          } as object)}
+        >
+          <ArrowUp className="h-4 w-4" strokeWidth={2.6} />
+        </SpringPress>
+      </div>
+    </form>
+  );
+
   const body = (
     <>
     {/* Outside `contentRef` on purpose: that element's height is the accordion's
@@ -380,32 +585,23 @@ export function CommentsSection({
       ref={contentRef}
       className={cn(
         "px-0.5 pb-1",
-        /* The gap that separates the thread from the post it hangs off. With a
-           rule drawn it is small, because the line is doing the separating; in
-           the other two looks the space IS the separation, so it opens up to
-           one golden step (--space-xl, 42px at the card's 16px body) measured
-           from the action glyphs' ink. The +9 is the close-jerk compensation
-           explained above, and every number here carries it. */
-        alwaysOpen
-          ? "pt-3"
-          : look === "rule"
-            ? "pt-[21px]"
-            : look === "space"
-              ? "pt-[44px]"
-              : "pt-[27px]"
+        /* The gap that separates the thread from the post it hangs off, and the
+           number is the owner's correction: the first cut opened it to 42px
+           (--space-xl) on the theory that removing a line means widening the
+           gap, and he read it as "weirdly big". He was right, and the reason is
+           what the line was doing. With a rule drawn, no single gap on the card
+           is larger than about 19px -- the rule breaks 36px into two halves, so
+           the eye never sees one big void. Take the rule away and the whole 42
+           becomes one gap, more than twice anything else on the card.
+           --space-l, 26px at the card's 16px body, is the step that works: half
+           again the 16px between two comments, so the thread still reads as its
+           own section, and nothing like a hole. The +2 is the close-jerk
+           compensation explained above; every number here carries it. */
+        alwaysOpen ? "pt-3" : look === "rule" ? "pt-[21px]" : "pt-[28px]"
       )}
     >
       {look === "rule" && <div className="mb-4 border-t border-border/70" />}
-      <div
-        className={cn(
-          "flex flex-col gap-4",
-          /* The well: a region cut into the card, which is exactly what
-             globals.css reserves mist for. The separation comes from the
-             surface change, so it needs no line and a smaller gap above it.
-             Radius 12px is one rung down the ladder from the card's 16. */
-          look === "well" && "rounded-md bg-mist p-4"
-        )}
-      >
+      <div className="flex flex-col gap-4">
 
       {loading && skeletonRows > 0 ? (
         <div className="flex flex-col gap-4" aria-hidden>
@@ -450,13 +646,16 @@ export function CommentsSection({
                     comment={comment}
                     toggleLike={actions.toggleLike}
                     onReply={() =>
-                      setReplyTo({ id: comment.id, name: comment.author!.name })
+                      startReply({ id: comment.id, name: comment.author!.name })
                     }
                     onLikeToggle={handleLikeToggle}
                     viewerIsAdmin={viewerIsAdmin}
                     onModerate={() => setModeratingId(comment.id)}
                     onDelete={() => setDeletingId(comment.id)}
                   />
+                )}
+                {inlineReplyId === comment.id && (
+                  <div className="mt-4 [margin-left:13px] pl-4">{composer}</div>
                 )}
                 {replies && replies.length > 0 && (
                   <ul className="mt-4 flex flex-col gap-4 border-l border-border/70 pl-4 [margin-left:13px]">
@@ -466,7 +665,7 @@ export function CommentsSection({
                           comment={reply}
                           toggleLike={actions.toggleLike}
                           onReply={() =>
-                            setReplyTo({
+                            startReply({
                               /* The TAPPED reply, always. The server reparents
                                  to the root for storage, so the thread shape is
                                  the same either way -- but it also notifies
@@ -485,6 +684,9 @@ export function CommentsSection({
                           onModerate={() => setModeratingId(reply.id)}
                           onDelete={() => setDeletingId(reply.id)}
                         />
+                        {inlineReplyId === reply.id && (
+                          <div className="mt-4">{composer}</div>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -511,64 +713,9 @@ export function CommentsSection({
         </div>
       )}
 
-      {/* Composer. Always mounted at the bottom, so it appears together with the thread. */}
-      <form onSubmit={handleSubmit}>
-        {replyTo && (
-          <m.div
-            className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground"
-            initial={{ opacity: 0, y: 6, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={SPRINGS.snappy}
-          >
-            <Reply className="h-3 w-3 text-leaf" />
-            <span>
-              Replying to{" "}
-              <span className="font-semibold text-foreground">
-                {replyTo.name}
-              </span>
-            </span>
-            <button
-              type="button"
-              onClick={() => setReplyTo(null)}
-              aria-label="Cancel reply"
-              /* state-layer, not the hand-rolled foreground/10 this used to
-                 carry: same idea, one class, and it brings a press tint with it.
-                 The size-4 target is small, so hover:text-foreground stays as the
-                 louder half of the signal. */
-              className="state-layer -mr-0.5 ml-0.5 inline-grid size-4 place-items-center rounded-full text-muted-foreground hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </m.div>
-        )}
-        <div className="flex items-center gap-2">
-          {/* Inset focus ring (inline, so the panel's overflow-hidden during the open/close
-              animation can never clip it into a stray shape). */}
-          <input
-            type="text"
-            className={`h-9 flex-1 rounded-full border border-border bg-card px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground ${FIELD_FOCUS}`}
-            placeholder={
-              replyTo ? `Reply to ${replyTo.name}...` : "Write a comment..."
-            }
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            maxLength={1000}
-          />
-          <SpringPress
-            // Same 1.08 as CANOPY_FILL in ui/button.tsx. Hand-rolled rather than a
-            // <Button>, and it had no hover at all before: SpringPress only
-            // contributes a tap scale.
-            className="inline-grid size-9 shrink-0 place-items-center rounded-full bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-[filter] duration-150 hover:brightness-[1.08] disabled:opacity-40 disabled:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
-            {...({
-              type: "submit",
-              "aria-label": "Post comment",
-              disabled: !newComment.trim() || submitting,
-            } as object)}
-          >
-            <ArrowUp className="h-4 w-4" strokeWidth={2.6} />
-          </SpringPress>
-        </div>
-      </form>
+      {/* At the foot of the thread, unless a pending reply has moved it up
+          beside the comment it answers (proposed look only). */}
+      {!inlineReplyId && composer}
 
       {viewerIsAdmin && (
         <ModerationDialog
@@ -738,9 +885,15 @@ function CommentItem({
             [&>span] override below) so the row never needs to fight or clip its child. */}
         <div className="-mt-0.5 flex h-5 items-center gap-3 text-xs text-muted-foreground">
           <span>{formatTimeAgo(new Date(comment.createdAt))}</span>
+          {/* The padding is negative-margined back out, so this grows the TARGET
+              without moving the word or reflowing the meta row: measured 29x16
+              before, which is under WCAG 2.2's 24px floor for a fine pointer
+              and nowhere near Apple's 44 for a thumb. MENU_TRIGGER_HIT (the
+              same ::after the "..." trigger below uses) carries it to 44 on
+              touch. The row keeps its h-5, so nothing about the layout moved. */}
           <button
             onClick={onReply}
-            className="rounded-sm font-medium transition-opacity duration-150 hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className={`${MENU_TRIGGER_HIT} -my-2 -mx-1.5 rounded-sm px-1.5 py-2 font-medium transition-opacity duration-150 hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
           >
             Reply
           </button>
@@ -756,7 +909,14 @@ function CommentItem({
                while the icon span sizes to the 14px glyph. Pinning both direct
                children to a 14px line box keeps the button the same height in
                both states, so a first like can never grow the row. */
-            className="-ml-1 font-medium [&>span]:leading-[14px]"
+            /* MENU_TRIGGER_HIT and the vertical padding are hit area, not size:
+               the glyph and the row's h-5 are untouched, the padding is pulled
+               back out by the matching negative margin, and the ::after only
+               exists on a coarse pointer. Measured 26x18 before, which is under
+               WCAG 2.2's 24px floor on both axes. The heart's SIZE still lives
+               in love-button.tsx as a named variant, per the standing rule
+               there that a caller never sizes it from a className. */
+            className={`${MENU_TRIGGER_HIT} -my-2 -ml-1 py-2 font-medium [&>span]:leading-[14px]`}
           />
           {comment.isOwn && (
             <DropdownMenu>
@@ -782,11 +942,21 @@ function CommentItem({
             </DropdownMenu>
           )}
           {viewerIsAdmin && !comment.isOwn && (
+            /* HIDDEN UNTIL THE POINTER IS ON THE ROW, exactly like the "..."
+               above it, and for the same reason. This is the one control on a
+               comment that was always painted: measured on a real thread, five
+               comments meant five shield glyphs down the right edge, at full
+               opacity, permanently. The owner is an admin on every thread in
+               the product, so the moderation tool was decorating every
+               conversation he has ever looked at. Nobody else ever saw it,
+               which is exactly why it survived this long.
+               Same opacity contract as the menu trigger: hover, focus, and
+               always-on for touch, where there is no hover to reveal it. */
             <button
               onClick={onModerate}
               aria-label="Remove comment (admin)"
               title="Remove comment (admin)"
-              className="ml-auto rounded-sm font-medium text-muted-foreground/70 transition-opacity duration-150 hover:text-destructive active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className={`${MENU_TRIGGER_HIT} state-layer ml-auto rounded-md p-1.5 font-medium text-muted-foreground/70 opacity-0 transition-opacity duration-150 hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100 active:opacity-70 [@media(pointer:coarse)]:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
             >
               <ShieldAlert className="h-3.5 w-3.5" />
             </button>
