@@ -167,8 +167,6 @@ export function PostCard({
   column = "wide",
   demo = false,
   onBookmarkChange,
-  commentsLook = "rule",
-  defaultCommentsOpen = false,
 }: {
   post: PostData;
   variant?: "card" | "sheet";
@@ -189,19 +187,11 @@ export function PostCard({
   demo?: boolean;
   /** Fired after a confirmed bookmark toggle. The Saved view uses this to drop a card once un-saved. */
   onBookmarkChange?: (bookmarked: boolean) => void;
-  /**
-   * TEMPORARY, both of these, and /lab/comments is their only caller. They let
-   * that room show the three candidate comment looks on the owner's own posts
-   * rather than on a look-alike copy, which is what `demo` above exists for
-   * too. See the `look` prop on CommentsSection; all three go when he picks.
-   */
-  commentsLook?: "rule" | "space";
-  defaultCommentsOpen?: boolean;
 }) {
   const [liked, setLiked] = useState(post.liked);
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [bookmarked, setBookmarked] = useState(post.bookmarked ?? false);
-  const [showComments, setShowComments] = useState(defaultCommentsOpen);
+  const [showComments, setShowComments] = useState(false);
   const [commentCount, setCommentCount] = useState(post.commentCount);
   const [expanded, setExpanded] = useState(false);
   const [showReport, setShowReport] = useState(false);
@@ -722,7 +712,6 @@ export function PostCard({
               onCommentRemoved={() => setCommentCount((c) => Math.max(0, c - 1))}
               viewerIsAdmin={post.viewerIsAdmin}
               expectedCount={commentCount}
-              look={commentsLook}
             />
           )}
         </AnimatePresence>

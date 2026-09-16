@@ -7612,3 +7612,38 @@ that writes should clean up by matching what it wrote, and measuring a write pat
 database is a bad trade when the owner can press the button himself.
 
 `npm run check` green, `npm run visual` 25/25 with no baseline moved, close-jerk spec green on both.
+
+## 2026-09-16 (feed) — the comment section ships; the two looks become one
+
+He picked. "Ship it (Recommended)", and separately "Not now" on the instant comment. So the
+`look` prop on CommentsSection and the `commentsLook` / `defaultCommentsOpen` pair on PostCard are
+deleted along with every "rule" branch behind them, and what was the proposal is simply what the
+comment section is. `/lab/comments` keeps the live thing and the reasons and loses the switch,
+because there is nothing left to compare against; the note in `_registry.ts` says so.
+
+Gone from the code, not just from the default: the full-bleed hairline, the "No comments yet. Be the
+first." line, and the single-line `<input>`. Letters (`alwaysOpen`) lose the hairline with
+everything else, which is the same call the byline hairline got this morning.
+
+**The close was corrected twice more, and the second one is the interesting one.** 380ms on
+EASE_OUT_SMOOTH read as "too fast" to him, and he was right for a reason that is not the number:
+EASE_OUT_SMOOTH starts at full speed by its own definition in motion.tsx, so its quickest frames are
+its first. He then asked to "just make it like the open", and the honest way to do that is to use
+the open -- `PANEL_MOTION` is now one object that the `transition` and the `exit.transition` both
+point at, so the close is literally the open played backwards and no second number can drift.
+Measured at ~415ms of travel, against 380 before, and it reads slower still because the spring's
+tail is long.
+
+He then asked whether both should ease IN as well, and left the call here. **They do not, and the
+rule was already written down.** This panel answers a click that has already happened; an ease-in
+spends its first hundred milliseconds barely moving, which reads as lag rather than grace.
+motion.tsx says it in as many words -- EASE_OUT_SMOOTH exists because starting at full speed "is
+right for a small panel answering a click", and EASE_IN_OUT_SCENE is explicitly scoped to
+viewport-sized travel over ~0.9s, where the eye needs time to follow something away. `SPRINGS.gentle`
+does start from rest, so it is not a hard cut; it ramps, carries, and settles with a long tail.
+
+Verified on the real feed at 1440x900 and 390x844: no rule, 28px pad, a textarea, the hover class on
+every row, a 32px Reply target, the shield at opacity 0, and "15 Mar" without its year. Dark checked
+separately -- the hover ink flips to white at 5.5% and reads correctly on the dark card.
+`npm run check` green, `npm run visual` 25/25 with no baseline moved, close-jerk spec green on both
+viewports.

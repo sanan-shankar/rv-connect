@@ -340,10 +340,10 @@ export const REGISTRY: LabEntry[] = [
   },
   {
     href: "/lab/comments",
-    title: "Is the line under a post a necessity?",
+    title: "The comment section, gone over",
     group: "Delight",
     status: "active",
-    note: "The owner's question on 2026-09-16, answered three ways on two of his own posts: today's full-bleed hairline, the line dropped for a wider gap, and the thread sunk into a mist tray. Real PostCard, real CommentsSection, real comments; the room only hands them a `look`. The `look`/`commentsLook`/`defaultCommentsOpen` props exist for this room alone and go when he picks.",
+    note: "The record of the 2026-09-16 pass, with the live thing in it. Started as a switch between today's look and a proposal (the full-bleed hairline, a mist well, and the line dropped for a gap); he picked, it shipped, and the switch and its three temporary props are gone. What remains is the shipped PostCard and CommentsSection with no props this room invented, plus why each change was made -- the Reply-scroll treadmill, the 9px close jerk, the 26px gap, the Motion variant tree that killed three animations. Open a thread, press Reply, post a long one.",
   },
   {
     href: "/lab/focus",
