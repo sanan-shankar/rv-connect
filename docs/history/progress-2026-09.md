@@ -7647,3 +7647,39 @@ every row, a 32px Reply target, the shield at opacity 0, and "15 Mar" without it
 separately -- the hover ink flips to white at 5.5% and reads correctly on the dark card.
 `npm run check` green, `npm run visual` 25/25 with no baseline moved, close-jerk spec green on both
 viewports.
+
+## 2026-09-16 (feed) — the hover tint comes back out, and a reply you did not mean lets go
+
+Two corrections from him, hours after the comment section shipped.
+
+**The row hover is gone.** "I don't like that tight rectangle hover over that comments as it darkens.
+actually that whole darkening is just not needed." It had shipped that morning on the argument that
+it made Reply and the heart belong to a row rather than float between two, and he is right that the
+argument does not survive contact: a thread of eighteen paragraphs does not want eighteen
+rectangles waiting inside it, and the controls were legible without one. The reveal of the admin
+shield on hover is untouched; it never needed the tint to work, which is the tell that the tint was
+decoration. `.comment-row` and its keyframe-neighbour rule are deleted rather than defaulted off.
+
+Left in place, and flagged to him rather than decided here: the LANDING glow on a comment you just
+wrote is the same rectangle at nearly twice the strength (`--state-press`, 11%). It is a 1.8s moment
+rather than a state, and he asked for that moment specifically, so it stays until he says
+otherwise. If "that whole darkening" included it, the landing still has the bird's overshoot and the
+send arrow's flight and loses very little.
+
+**A reply you did not mean now lets go.** Pressing Reply moves the composer under the comment it
+answers, and the only ways out were Escape or closing the whole thread, so a mis-tap pointed the box
+at the wrong person for the rest of the visit ("the only way to make it go away is by closing
+comments"). Clicking anywhere outside the box now puts it back at the foot.
+
+**Only when the box is empty**, which was the other half of his instruction and the important half:
+"make it go away only if it's empty not if they're in the middle of writing". Someone who has typed
+half a sentence and clicked away to re-read the comment above has to come back to their own words,
+still aimed at the same person.
+
+`pointerdown` rather than `click`, and that is load-bearing: pressing ANOTHER comment's Reply has to
+MOVE the box, not cancel it. pointerdown fires first, so the old target clears a beat before that
+button's click sets the new one; on click the two race the other way and the box vanishes instead of
+moving. Verified all four paths on the real feed -- no tint, Reply moves the box, clicking away
+empty returns it to the foot with the placeholder reset, clicking away mid-sentence leaves it under
+the same comment with the text intact. `npm run check` green, `npm run visual` 25/25, close-jerk
+spec green on both viewports.
