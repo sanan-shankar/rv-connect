@@ -5,8 +5,11 @@
  *
  * Excludes "A Creative Artist" (the Sivarajan portrait) entirely per the owner's final-review
  * call; see docs/content/whatsapp-curation/overflow.md ("Cut at Final Review") for the note.
- * Seeds the other 11 picks. "Gerry Balcombe" is seeded with its fragmented tail trimmed (see
- * trimGerryBalcombe below). "The Big Banyan Tree Mural" attaches the 3 best of 4 candidate
+ * Seeds the other 16 picks: the original 11, plus the five added on 2026-09-16 to bring the
+ * letters to ten (see PIECES for the running order, which is the point of them). "Gerry
+ * Balcombe" is seeded as a POST carrying only its opening memory, its twelve replies seeded
+ * as comments beneath it (see gerryOpeningOnly below); "The Banyan Tree" drops the line that
+ * repeated its own title. "The Big Banyan Tree Mural" attaches the 3 best of 4 candidate
  * photos (verified by eye, see MURAL_IMAGES below); the 4th (a cluttered workshop/fabrication
  * shot, not the finished Dining Hall install) is skipped.
  *
@@ -81,24 +84,54 @@ function findPick(opts: { title?: string; bodyStartsWith?: string }): Pick {
 }
 
 /**
- * Orchestrator decision #2: trim "Gerry Balcombe"'s fragmented ending. Removes the
- * "Ya... In 2016." aside, "Does anyone have a pic of him?", and the bare "Gerry Balcombe"
- * line; ends on Ansuman Nayak's stamps-and-pic line followed by wanderer's closing note.
+ * "Gerry Balcombe" is not a story with replies attached, it IS a pasted WhatsApp
+ * thread: one opening memory and twelve answers, each signed with a name. Seeded
+ * as a feed POST carrying the opening memory, with the twelve replies seeded as
+ * comments under it (owner, 2026-09-16: "let the text be the post and then the
+ * replies which will also be anonymous can just be comment ... this is the type
+ * of content that we'd want to be showing as a post instead of a letter").
+ *
+ * The signatures go with them. Every other piece here is published unsigned under
+ * the Anonymous account, and a signed line under an anonymous byline reads as a
+ * contradiction rather than as attribution.
  */
-function trimGerryBalcombe(body: string): string {
-  let out = body;
-  out = out.replace(
-    "- Sidharth Tiwari\n\nYa... In 2016.\n- Abyisheik\n\nHaha,",
-    "- Sidharth Tiwari\n\nHaha,"
-  );
-  out = out.replace(
-    "Still have many stamps and coins he gave me, and also the pic he made of me!\n- Ansuman Nayak\n\nDoes anyone have a pic of him?\n- Abyisheik\n\nGerry Balcombe 💖\n\nGerry died Nov 2014.\n- wanderer",
-    "Still have many stamps and coins he gave me, and also the pic he made of me!\n- Ansuman Nayak\n\nGerry died Nov 2014.\n- wanderer"
-  );
-  if (out === body) {
-    throw new Error("trimGerryBalcombe: expected substrings not found — source text may have changed.");
+function gerryOpeningOnly(body: string): string {
+  const END = "It was fun.";
+  const at = body.indexOf(END);
+  if (at < 0) {
+    throw new Error("gerryOpeningOnly: opening memory not found; source text may have changed.");
   }
-  return out;
+  // The "Btw..." opener referred to a message above it in a chat that is not here.
+  return body.slice(0, at + END.length).replace(/^Btw\.\.\.\s*/, "");
+}
+
+/** The twelve replies, in thread order, verbatim but for their stripped signatures. */
+const GERRY_REPLIES: string[] = [
+  "Jerry and Maureen Balcombe! He was an amazing artist! His watercolors are still up in the staff room.",
+  "I never saw him painting... He was already in his 60s when I met him the first time in 1999.",
+  "But he was so athletic... we were shocked.",
+  "Really? We all used to get our portraits done every time he came!",
+  "Ohhh ya... He used to draw our faces in cartoon shapes... It was so funny... He used to sign underneath it.",
+  "Thanks for that... Memories which I forgot are coming back to me.",
+  "And he used to make us sing songs during junior school assemblies...\n\nBluenose, the ocean knows her name\nSailors know how proud a ship was she\nBluenose, leading in the wind\nRacing ev'ry way on the sea",
+  "Gerry passed a few years ago I believe. He was awesome.",
+  "From Canada. A lovely painter, story teller, guitarist cum singer, and footballer. He visited junior houses on a turn basis, generally just before or after dinner.",
+  "Haha, I used to also write to him so I could collect UK stamps. I think I still have those letters somewhere at my parents' place. I was recently in the village of Balcombe in the UK and was thinking about him. \u{1F60A}",
+  "Still have many stamps and coins he gave me, and also the pic he made of me!",
+  "Gerry died Nov 2014.",
+];
+
+/**
+ * "The Banyan Tree" opened by repeating its own title, which the reading page
+ * already prints above it in 40px (owner, 2026-09-16: "that's in the title
+ * anyway so we don't have to say that").
+ */
+function dropBanyanTitleLine(body: string): string {
+  const PREFIX = "The Banyan Tree\n\n";
+  if (!body.startsWith(PREFIX)) {
+    throw new Error("dropBanyanTitleLine: body no longer opens with its title.");
+  }
+  return body.slice(PREFIX.length);
 }
 
 /** Noon IST as a JS Date (IST = UTC+5:30, no DST), so the calendar date reads the same
@@ -131,60 +164,38 @@ type SeedPiece = {
   pick: Pick;
   bodyOverride?: (body: string) => string;
   attachMuralImages?: boolean;
+  /** Seeded as comments under the piece, by the same Anonymous account. */
+  comments?: string[];
 };
 
+/* ─── The running order ──────────────────────────────────────────────────────
+ * Both surfaces that show these sort newest-first, so `createdAt` IS the reading
+ * order: the letters index lists them in it, the feed interleaves the posts
+ * through it. The owner asked (2026-09-16) that the order be designed for
+ * somebody who sits down and reads all ten in one go, so these dates are chosen
+ * rather than inherited from when each was posted to WhatsApp.
+ *
+ * Read top to bottom, the ten letters run:
+ *
+ *    1  Nicobar                        short, surprising, cheap to start on
+ *    2  Plucked Out of Coorg           the big funny one, now that they are in
+ *    3  After the Flash Flood          breather
+ *    4  That Beautiful Walk            deepens: friendship, bittersweet
+ *    5  The Banyan Tree                pivots from people to place
+ *    6  My Own Self-Created Mt Kailash the second epic, same writer as 4
+ *    7  School Sick                    tiny gut-punch after the long comic one
+ *    8  The Last Event of the Day      big again, different energy: spectacle
+ *    9  Best of Five                   echoes 8's sport, resolves into friendship
+ *   10  What a Small World             the closer; it says why any of this matters
+ *
+ * Two rules held while placing them: never two 5k+ pieces adjacent, and the four
+ * short ones land at 1, 3, 7 and 9 as breathers. The six posts are dated into the
+ * gaps so the feed is not ten letter cards in a row, and the mural post keeps the
+ * top of the anonymous pile (owner: "let the mural post on feed not be pushed
+ * down"). Nothing here is dated later than the real members' posts of Aug 2026.
+ * ─────────────────────────────────────────────────────────────────────────── */
 const PIECES: SeedPiece[] = [
-  {
-    id: "seed-wa-what-a-small-world",
-    kind: "letter",
-    createdAt: noonIST(2025, 9, 13),
-    pick: findPick({ title: "What a Small World" }),
-  },
-  {
-    id: "seed-wa-a-story-about-rv-and-nicobar",
-    kind: "letter",
-    createdAt: noonIST(2025, 10, 9),
-    pick: findPick({ title: "A story about RV. And Nicobar." }),
-  },
-  {
-    id: "seed-wa-my-own-self-created-mt-kailash",
-    kind: "letter",
-    createdAt: noonIST(2025, 12, 26),
-    pick: findPick({ title: "My Own Self-Created Mt Kailash" }),
-  },
-  {
-    id: "seed-wa-that-beautiful-walk-in-the-darkness",
-    kind: "letter",
-    createdAt: noonIST(2026, 5, 29),
-    pick: findPick({ title: "That Beautiful Walk in the Darkness" }),
-  },
-  {
-    // json title is "" (format: post); picks.md calls this "June 12, 1966".
-    id: "seed-wa-june-12-1966",
-    kind: "post",
-    createdAt: noonIST(2026, 6, 12),
-    pick: findPick({ bodyStartsWith: "Today, June 12th, happens to be the exact date" }),
-  },
-  {
-    // json title is "" (format: post); picks.md calls this "The Hippy Rebellion".
-    id: "seed-wa-the-hippy-rebellion",
-    kind: "post",
-    createdAt: noonIST(2025, 11, 29),
-    pick: findPick({ bodyStartsWith: 'One more "Chinna Katha" to post from my memory bank' }),
-  },
-  {
-    // json has no title key (format: post); picks.md calls this "The Dispensary Window & the Cobra".
-    id: "seed-wa-the-dispensary-window-and-the-cobra",
-    kind: "post",
-    createdAt: noonIST(2025, 11, 29),
-    pick: findPick({ bodyStartsWith: "Mine is this: a friend (who shall remain nameless)" }),
-  },
-  {
-    id: "seed-wa-the-banyan-tree",
-    kind: "letter",
-    createdAt: noonIST(2025, 11, 22),
-    pick: findPick({ title: "The Banyan Tree" }),
-  },
+  // The mural keeps the top of the pile.
   {
     // json has no title key (format: post); picks.md calls this "The Big Banyan Tree Mural".
     // sourceNote spans 07/07/2026-08/07/2026; createdAt uses the first (start) date.
@@ -194,19 +205,115 @@ const PIECES: SeedPiece[] = [
     pick: findPick({ bodyStartsWith: "There is a mind-boggling 3D mural" }),
     attachMuralImages: true,
   },
+
+  // 1
   {
-    // json title is "" (format: post); picks.md calls this "Going to Rishi Valley".
-    id: "seed-wa-going-to-rishi-valley",
+    id: "seed-wa-a-story-about-rv-and-nicobar",
+    kind: "letter",
+    createdAt: noonIST(2026, 6, 28),
+    pick: findPick({ title: "A story about RV. And Nicobar." }),
+  },
+  // 2
+  {
+    id: "seed-wa-plucked-out-of-coorg",
+    kind: "letter",
+    createdAt: noonIST(2026, 6, 14),
+    pick: findPick({ title: "Plucked Out of Coorg" }),
+  },
+  {
+    // json title is "" (format: post); picks.md calls this "June 12, 1966".
+    // Left on its own anniversary: the piece is about this exact date.
+    id: "seed-wa-june-12-1966",
     kind: "post",
-    createdAt: noonIST(2025, 5, 24),
-    pick: findPick({ bodyStartsWith: "Going to Rishi Valley is like going home." }),
+    createdAt: noonIST(2026, 6, 12),
+    pick: findPick({ bodyStartsWith: "Today, June 12th, happens to be the exact date" }),
+  },
+  // 3
+  {
+    id: "seed-wa-after-the-flash-flood",
+    kind: "letter",
+    createdAt: noonIST(2026, 5, 30),
+    pick: findPick({ title: "After the Flash Flood" }),
+  },
+  // 4
+  {
+    id: "seed-wa-that-beautiful-walk-in-the-darkness",
+    kind: "letter",
+    createdAt: noonIST(2026, 5, 11),
+    pick: findPick({ title: "That Beautiful Walk in the Darkness" }),
+  },
+  // 5
+  {
+    id: "seed-wa-the-banyan-tree",
+    kind: "letter",
+    createdAt: noonIST(2026, 4, 19),
+    pick: findPick({ title: "The Banyan Tree" }),
+    bodyOverride: dropBanyanTitleLine,
+  },
+  {
+    // json has no title key (format: post); picks.md calls this "The Dispensary Window & the Cobra".
+    id: "seed-wa-the-dispensary-window-and-the-cobra",
+    kind: "post",
+    createdAt: noonIST(2026, 4, 5),
+    pick: findPick({ bodyStartsWith: "Mine is this: a friend (who shall remain nameless)" }),
+  },
+  // 6
+  {
+    id: "seed-wa-my-own-self-created-mt-kailash",
+    kind: "letter",
+    createdAt: noonIST(2026, 3, 28),
+    pick: findPick({ title: "My Own Self-Created Mt Kailash" }),
   },
   {
     id: "seed-wa-gerry-balcombe",
-    kind: "letter",
-    createdAt: noonIST(2025, 5, 23),
+    kind: "post",
+    createdAt: noonIST(2026, 3, 15),
     pick: findPick({ title: "Gerry Balcombe" }),
-    bodyOverride: trimGerryBalcombe,
+    bodyOverride: gerryOpeningOnly,
+    comments: GERRY_REPLIES,
+  },
+  // 7
+  {
+    id: "seed-wa-school-sick",
+    kind: "letter",
+    createdAt: noonIST(2026, 3, 7),
+    pick: findPick({ title: "School Sick" }),
+  },
+  // 8
+  {
+    id: "seed-wa-the-last-event-of-the-day",
+    kind: "letter",
+    createdAt: noonIST(2026, 2, 15),
+    pick: findPick({ title: "The Last Event of the Day" }),
+  },
+  // 9
+  {
+    id: "seed-wa-best-of-five",
+    kind: "letter",
+    createdAt: noonIST(2026, 1, 24),
+    pick: findPick({ title: "Best of Five" }),
+  },
+  {
+    // json title is "" (format: post); picks.md calls this "The Hippy Rebellion".
+    id: "seed-wa-the-hippy-rebellion",
+    kind: "post",
+    createdAt: noonIST(2026, 1, 10),
+    pick: findPick({ bodyStartsWith: 'One more "Chinna Katha" to post from my memory bank' }),
+  },
+  // 10
+  {
+    id: "seed-wa-what-a-small-world",
+    kind: "letter",
+    createdAt: noonIST(2025, 12, 20),
+    pick: findPick({ title: "What a Small World" }),
+  },
+  {
+    // json title is "" (format: post); picks.md calls this "Going to Rishi Valley".
+    // The quiet tail of the whole pile.
+    id: "seed-wa-going-to-rishi-valley",
+    kind: "post",
+    createdAt: noonIST(2025, 11, 30),
+    pick: findPick({ bodyStartsWith: "Going to Rishi Valley is like going home." }),
   },
 ];
 // Deliberately excluded: "A Creative Artist" (Harshad Parekh's Sivarajan portrait) — cut at
@@ -305,6 +412,19 @@ async function main() {
         isHidden: false,
         createdAt: piece.createdAt,
         updatedAt: piece.createdAt,
+        ...(piece.comments?.length
+          ? {
+              comments: {
+                create: piece.comments.map((content, i) => ({
+                  id: `${piece.id}-c${String(i + 1).padStart(2, "0")}`,
+                  content,
+                  authorId: "anonymous",
+                  // Six minutes apart, the cadence a thread like this actually had.
+                  createdAt: new Date(piece.createdAt.getTime() + (i + 1) * 6 * 60_000),
+                })),
+              },
+            }
+          : {}),
       },
       select: { id: true, title: true, kind: true, createdAt: true },
     });

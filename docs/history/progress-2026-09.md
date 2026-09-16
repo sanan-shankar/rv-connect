@@ -7211,3 +7211,65 @@ Verified: `npm run check` green; the reading page shot at 1440x900 and 390x844. 
 24/25 with `/letters` (index only, masked past the header) unaffected; the reading page is not
 baselined, so no `visual:update`. The one red, `support` on desktop, is the known whole-page
 spurious diff and passes on its own re-run.
+
+## 2026-09-16 (letters, content) — ten letters under the Anonymous account, in an order built to be read straight through
+
+Owner: "comb through all the anonymous content and make sure we only have the actual story or
+letter or whatever. some of them have reactions and comments taken from the whatsapp group",
+then: "make sure that there's 10 ... The steaks are high for these stories because ... when people
+join and no one has posted stuff yet they are just going to read the anonymous stuff that's
+there", then: "assume that people read all of them in order in one go ... how would you best
+order it to give the best experience to the viewer".
+
+**What the comb actually found.** Very little. All eleven bodies were scanned in SQL for title
+duplication, lone newlines, triple newlines, double spaces, trailing whitespace and carriage
+returns: exactly one title duplication ("The Banyan Tree" opened by repeating its own title, the
+owner's own example) and one lone-newline case (the Bluenose song in the Gerry thread, which is
+deliberate). No stray whitespace anywhere. The grammar is not broken either, it is spoken: mixed
+idiom, capitals for emphasis, run-on sentences. Left alone, per "don't rewrite anything the
+language should still be there". Answering fewer and saying so is the rule.
+
+The WhatsApp residue was concentrated in one piece. "Gerry Balcombe" was not a story with
+reactions attached, it WAS a pasted thread: one opening memory and twelve replies each signed with
+a name. On the owner's call it became a feed POST carrying the opening memory, with the twelve
+replies seeded as anonymous comments beneath it, which is what they always were. Aniket Ullal's
+real comment was already on that row and rode along under his own name. Signatures went: every
+other piece is unsigned under the Anonymous account, and a signed line under an anonymous byline
+reads as a contradiction. A leftover "QA round-6 temp comment (to be deleted)" from July was
+deleted too.
+
+**Five more letters**, taking the count from five to ten, chosen by reading the runners-up in
+`docs/content/whatsapp-curation/overflow.md` and then the full text of each in the raw exports:
+Plucked Out of Coorg, The Last Event of the Day, Best of Five, School Sick, After the Flash Flood.
+Two near-misses recorded because they were close: Anita Reddy's Padma Shri story (lovely, but
+inherently identifying under an anonymous byline) and "Arrow in the Dark" (superb, but a hazing
+story ending in a permanent injury, and a third letter in the same voice).
+
+**The running order is the point.** Both surfaces sort newest-first, so `createdAt` IS the reading
+order; the dates are therefore chosen, not inherited from when each was posted to WhatsApp. The
+sequence and its two rules (never two 5k+ pieces adjacent; the four short ones at positions 1, 3,
+7 and 9 as breathers) are written out in `PIECES` in `seed-curated-content.ts`, which is the
+source of truth. The six posts are dated into the gaps so the feed is not ten letter cards in a
+row, the mural post keeps the top of the anonymous pile, and nothing is dated past the real
+members' August posts.
+
+Two copy fixes, both "keep the words, change the punctuation": the Nicobar letter's single quotes,
+spaced hyphens and one numeral, and the four ellipses in "Going to Rishi Valley" that the owner
+said made it "look religious".
+
+**How it was written back.** Not a third hand-run pass in the sense of `docs/spec/hand-run-passes.md`
+(it fills no column, it runs once, it gets no skill), but it borrowed that file's three guarantees,
+which exist because one database serves production and local dev: dry by default, re-read every row
+at apply time and refuse if it has drifted, and leave an undo holding the prior value of everything
+touched. The scripts and their undo files are in the gitignored `scripts/dev/.anon-cleanup/`.
+Timestamps are written as literal strings, never JS Dates: `Post.createdAt` is `timestamp without
+time zone` and node-postgres serialises a Date in the machine's local zone, which is the 5h30 skew
+in bugs.md #6.
+
+`seed-curated-content.ts` is create-and-skip by design, so it never touched the eleven existing
+rows; it was still brought into line with the new dates, kinds and bodies so a fresh database
+reproduces this exactly, and it now seeds a piece's comments alongside it.
+
+Verified: `npm run check` green; 10 letters and 6 posts read back in the intended order; the Gerry
+post carries 13 comments (12 seeded plus the real one). Not verified: how the ten actually read end
+to end on a phone, which only the owner can judge.
