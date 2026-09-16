@@ -30,27 +30,38 @@ import type { ExifDate } from "@/lib/taken-date";
 import { cn } from "@/lib/utils";
 import type { PhotoAnswers } from "./photo-questions";
 
+/** The answers the file's date would write, in the questions' own shape. */
+export function fileSaysAnswer(date: ExifDate): Pick<PhotoAnswers, "year" | "month"> {
+  return { year: String(date.year), month: date.month ? MONTHS[date.month - 1] : "" };
+}
+
 /** Whether the answers already hold the file's date, so there is nothing
  *  to offer. Exported so a caller can animate the strip out, not just lose it. */
 export function fileSaysUsed(date: ExifDate, answers: PhotoAnswers): boolean {
-  const month = date.month ? MONTHS[date.month - 1] : "";
-  return answers.year === String(date.year) && answers.month === month;
+  const said = fileSaysAnswer(date);
+  return answers.year === said.year && answers.month === said.month;
 }
 
 export function FileSays({
   date,
   answers,
   onAnswer,
+  all,
   className,
 }: {
   date: ExifDate | null | undefined;
   answers: PhotoAnswers;
   onAnswer: (patch: Partial<PhotoAnswers>) => void;
+  /** A drop of many: how many photographs still have a file date on offer,
+   *  this one included, and the press that takes every one of them. EACH
+   *  photograph gets its OWN file's date, never this one's -- the same as
+   *  pressing "Use it" on every slide, without the walk. */
+  all?: { count: number; onUse: () => void };
   className?: string;
 }) {
   if (!date || fileSaysUsed(date, answers)) return null;
 
-  const month = date.month ? MONTHS[date.month - 1] : "";
+  const { month } = fileSaysAnswer(date);
   const said = month ? `${month} ${date.year}` : String(date.year);
 
   return (
@@ -65,15 +76,28 @@ export function FileSays({
           call ("we have to make sure we don't use fonts that are too small
           on mobile"). */}
       <p className="min-w-0 flex-1 text-[14px] text-muted-foreground">
-        The file says <span className="font-medium text-foreground">{said}</span>
+        The file says{" "}
+        {/* Never broken inside the date: beside two buttons on a phone the
+            sentence wraps, and "December" over "2011" reads as two facts. */}
+        <span className="font-medium whitespace-nowrap text-foreground">{said}</span>
       </p>
       <Button
         size="xs"
         variant="outline"
-        onClick={() => onAnswer({ year: String(date.year), month })}
+        onClick={() => onAnswer(fileSaysAnswer(date))}
       >
         Use it
       </Button>
+      {all && all.count > 1 && (
+        <Button
+          size="xs"
+          variant="outline"
+          onClick={all.onUse}
+          aria-label={`Use each file's own date on all ${all.count} photographs`}
+        >
+          Use all {all.count}
+        </Button>
+      )}
     </div>
   );
 }

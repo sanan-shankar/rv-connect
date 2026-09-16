@@ -7683,3 +7683,30 @@ moving. Verified all four paths on the real feed -- no tint, Reply moves the box
 empty returns it to the foot with the placeholder reset, clicking away mid-sentence leaves it under
 the same comment with the text intact. `npm run check` green, `npm run visual` 25/25, close-jerk
 spec green on both viewports.
+
+
+## 2026-09-17 (collection) — every file's own date, in one press
+
+The owner: "add a way for me to use the detected photo date for all the photos at once instead of
+each individually like a use for all or something clean button". In a drop of many, "The file says"
+now carries a second button beside "Use it": **Use all N**, where N counts the photographs whose file
+still has a date on offer. It shows only when N is more than one.
+
+**Each photograph gets its OWN file's date, never the one in view's.** That is the difference from
+"Use these answers for all", which copies one photograph's answers across. A photograph whose file
+says nothing keeps what it had. It does overwrite a year already typed, exactly as pressing "Use it"
+on each slide would, so "use these answers for all" and then "Use all" gives every photograph the
+shared tags and its own date. The strip leaves the moment it is pressed, so a toast ("Dated 3
+photographs from their files.") is the only word that it worked. The aria-label spells out "each
+file's own date" for anyone who cannot see the toast.
+
+The date inside the sentence is now `whitespace-nowrap`: with two buttons beside it on a 390px
+phone, "December" had wrapped above "2011". The review room uses the same strip and is unchanged: it
+dates one photograph at a time and passes no `all`.
+
+Pressing "Use these answers for all" AFTER "Use all" still copies the photograph in view's date
+onto every one, as before. Flagged to the owner rather than changed.
+
+Verified in a signed-in browser (Jerry) at 1440x900 and 390x844 with four files, three named with
+camera dates and one without: 2011-12, blank, 2015-03 and 2018-07 on the four slides after one press.
+`npm run check` green.
