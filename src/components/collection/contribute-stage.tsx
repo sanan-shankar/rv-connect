@@ -27,10 +27,11 @@
  *  1. THE STAGE IS ONE HEIGHT FOR THE WHOLE DROP, and the photograph is
  *     contained in it. Every other option was tried in <PhotoCarousel> and
  *     each was wrong somewhere (see its notes on shared shape and shared
- *     height). Here the answer is different from the feed's because the
- *     JOB is different: this is a filing surface, and a panel that changed
- *     height under the questions every time you swiped would move the
- *     controls you are reaching for. The owner asked for exactly this --
+ *     height). This was the first surface to land on a still panel, and
+ *     the reason given here in 2026-09 is the reason the FEED came round
+ *     to the same answer on 2026-09-16: a panel that changed height every
+ *     time you swiped moves what you are reaching for. The owner asked
+ *     for exactly this --
  *     "we have to make sure we manage the different sizing of the panel
  *     smoothly" -- and a still panel is what smooth means when your
  *     thumb is already on its way to a bucket tile. Contained, so a

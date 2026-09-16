@@ -4,6 +4,9 @@ import {
   AIM_Y,
   AIM_WIDE_Y,
   CROP_BUDGET,
+  CAROUSEL_BOX_CAP,
+  carouselHeight,
+  carouselHeightCss,
   carouselWidth,
   drawnRatio,
   drawnRows,
@@ -450,32 +453,128 @@ test("every photograph in a carousel is drawn exactly as it would be posted alon
   }
 });
 
-test("a carousel is as tall as its tallest photograph and no photograph overflows it", () => {
+test("a carousel's box is one height for the set, and it is never over the ceiling", () => {
   for (const combo of combinations(3)) {
     const frames = combo.map(frameOf);
     const frameWidth = carouselWidth(frames);
     for (const column of COLUMNS) {
       const inside = Math.min(column, frameWidth);
       const heights = frames.map((f) => drawnSize(f, inside).height);
-      /* What the flex line will settle on, which is the card's height. Nothing
-         may exceed it (that would clip) and one photograph must reach it
-         (otherwise the card is taller than anything in it). */
-      const frameHeight = Math.max(...heights);
-      assert.ok(frameHeight <= PHOTO_MAX_HEIGHT + 0.01, `${frameHeight}px is over the ceiling`);
-      assert.ok(
-        heights.some((h) => Math.abs(h - frameHeight) < 0.01),
-        "no photograph reaches the frame's height"
-      );
+      const box = carouselHeight(frames, inside);
+      const names = combo.map((c) => c.name).join(" + ");
+
+      assert.ok(box <= PHOTO_MAX_HEIGHT + 0.01, `${box}px is over the ceiling (${names})`);
+      /* Between the shortest and the tallest: never taller than the tallest
+         photograph (that would bed every one of them) and never shorter than
+         the shortest (that would cut something that already fits). */
+      assert.ok(box <= Math.max(...heights) + 0.01, `box exceeds the tallest (${names})`);
+      assert.ok(box >= Math.min(...heights) - 0.01, `box is under the shortest (${names})`);
+
       for (const [i, shape] of combo.entries()) {
-        assert.ok(
-          heights[i] <= frameHeight + 0.01,
-          `${shape.name} overflows a ${frameHeight}px frame`
-        );
         assert.ok(
           drawnSize(frames[i], inside).width <= frameWidth + 0.01,
           `${shape.name} overflows a ${frameWidth}px frame`
         );
+        /* The bound the whole rule exists for. Anything shorter than the box
+           is bedded, and the bed may never be more than the photograph. */
+        if (heights[i] < box) {
+          assert.ok(
+            box <= heights[i] * CAROUSEL_BOX_CAP + 0.01,
+            `${shape.name} sits in ${(box / heights[i]).toFixed(2)}x its own height (${names})`
+          );
+        }
       }
+    }
+  }
+});
+
+test("one orientation costs nothing: the cap never binds on a set that agrees", () => {
+  /* The common case, and the reason the rule starts from the tallest. Three
+     phone portraits, three phone landscapes, three of anything alike: every
+     height is the same, so the box is that height and not a pixel of anyone's
+     picture is bedded or trimmed. */
+  for (const shape of SHAPES) {
+    const frames = [shape, shape, shape].map(frameOf);
+    for (const column of COLUMNS) {
+      const inside = Math.min(column, carouselWidth(frames));
+      const alone = drawnSize(frames[0], inside).height;
+      assert.equal(
+        carouselHeight(frames, inside),
+        alone,
+        `${shape.name} x3 was not drawn at its own height in a ${column}px column`
+      );
+    }
+  }
+});
+
+test("the box the owner is looking at: 16:9, 20:9 and a 9:20 in a phone card", () => {
+  /* His one real three-photograph post, 2026-09-16, and the numbers he was
+     shown before choosing this rule. Under the rule this replaced the card was
+     196px, then 157px, then 464px -- it nearly tripled between two slides,
+     under his thumb. */
+  const frames = [
+    { w: 1600, h: 900 },
+    { w: 1600, h: 720 },
+    { w: 185, h: 412 },
+  ].map(frameOf);
+  const box = carouselHeight(frames, Math.min(348, carouselWidth(frames)));
+  assert.equal(Math.round(box), 313);
+
+  const heights = frames.map((f) => drawnSize(f, 348).height);
+  // The two wide ones are bedded, and by less than a quarter of the frame each side.
+  assert.equal(Math.round((box - heights[0]) / 2), 59);
+  assert.equal(Math.round((box - heights[1]) / 2), 78);
+  // The portrait is trimmed rather than given a 464px frame to sit in.
+  assert.equal(Math.round((box / heights[2]) * 100), 68);
+});
+
+test("the CSS box and the arithmetic box are the same number", () => {
+  /* `carouselHeightCss` is what ships and `carouselHeight` is what these tests
+     assert on, so the two drifting apart would make every assertion above
+     worthless. They are one expression over two algebras (`boxHeight`); this
+     evaluates the CSS one to prove it. */
+  /** Split on a separator that is not inside a nested call. */
+  const splitTop = (text, separator) => {
+    const parts = [];
+    let depth = 0;
+    let start = 0;
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] === "(") depth++;
+      else if (text[i] === ")") depth--;
+      else if (text[i] === separator && depth === 0) {
+        parts.push(text.slice(start, i));
+        start = i + 1;
+      }
+    }
+    parts.push(text.slice(start));
+    return parts.map((part) => part.trim());
+  };
+
+  const evaluate = (css, cqw) => {
+    const text = css.trim();
+    const call = /^(min|max|calc)\((.*)\)$/s.exec(text);
+    if (!call) {
+      const [, n, unit] = /^([\d.]+)(px|cqw)?$/.exec(text) ?? [];
+      assert.ok(n !== undefined, `cannot read CSS term ${text}`);
+      return unit === "cqw" ? (Number(n) / 100) * cqw : Number(n);
+    }
+    const values = splitTop(call[2], ",").map((argument) => {
+      // A term is one expression, optionally multiplied by plain numbers.
+      const [head, ...factors] = splitTop(argument, "*");
+      return factors.reduce((product, f) => product * Number(f), evaluate(head, cqw));
+    });
+    if (call[1] === "calc") return values[0];
+    return call[1] === "min" ? Math.min(...values) : Math.max(...values);
+  };
+
+  for (const combo of combinations(3)) {
+    const frames = combo.map(frameOf);
+    for (const column of COLUMNS) {
+      const inside = Math.min(column, carouselWidth(frames));
+      assert.ok(
+        Math.abs(evaluate(carouselHeightCss(frames), inside) - carouselHeight(frames, inside)) < 0.01,
+        `CSS and arithmetic disagree for ${combo.map((c) => c.name).join(" + ")} at ${column}px`
+      );
     }
   }
 });

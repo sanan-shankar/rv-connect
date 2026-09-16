@@ -1,3 +1,50 @@
+## 2026-09-16 (feed, fix) — the carousel stops resizing under your thumb, and the swipe stops overshooting
+
+Two complaints, one cause. *"I don't like the size of the post changing as I scroll through the
+pictures. it doesn't seem like that should happen how do other websites do it?"* and *"on mobile
+physically swiping is super broken... just scrolls all the way to the last photo and just fully
+keeps overshooting."* He named the connection himself: *"combined with the changing card size it
+leads to a very janky overall experience."*
+
+**Measured before touching anything.** His one real three-photograph post (a 16:9, a 20:9 and a
+9:20) in a 348px phone card: the card was 196px on the first slide, 157px on the second and 464px
+on the third. It nearly TRIPLED between two slides, and the page under it moved 307px. A puppeteer
+touch probe caught 24 distinct heights written during a single flick — `readScroll` was writing an
+interpolated height to the frame on every scroll event.
+
+**Nobody else does this.** Instagram, Facebook, Apple Photos and Google Photos all fix the box
+before you swipe and never touch it again. Not one animates it. The answer to his question was
+that he was right and the app was the odd one out.
+
+**The rule he chose, from three costed options: a clamped box.** Start from the tallest photograph
+— which costs nothing at all for a set of one orientation, the common case, because then every
+height is the same — and cap it so NO PHOTOGRAPH SITS IN A FRAME MORE THAN TWICE ITS OWN HEIGHT.
+Past that the frame stops growing and the tall one is trimmed instead, aimed and clamped. On his
+set the box is 313px, fixed: the two wide ones get 59px and 78px of bed, the portrait keeps 68%.
+This is the third rule the carousel has had; `CAROUSEL_BOX_CAP` records all three failures and
+what each cost, so the fourth session does not re-run the second.
+
+**It is CSS, not a measured pixel, and that is the load-bearing half.** `carouselHeightCss` emits
+the box in container-query units (`min(max(...), calc(min(...) * 2))` over `100cqw`), so the
+browser resolves it itself: right on the server, right on first paint, right at every width, and
+— the point — it cannot change while you swipe, because nothing is watching the scroll. That let
+the ResizeObserver, the height table, the interpolator, the ghost div and the absolutely
+positioned track all go. `carouselHeight` is the same expression over numbers for the tests;
+`boxHeight` is the one expression both evaluate, so they cannot drift, and a small CSS evaluator
+in the test proves they agree across every 3-photograph combination at all three column widths.
+
+**Why this was also the swipe bug.** Rewriting a scroll-snap container's height during a gesture
+makes the engine re-run snap selection mid-flight. Chrome shows it even without momentum: before
+the fix a 90px drag — 26% of a slide — landed on the next photograph, which it should never do;
+after, the same drag snaps back and a 200px drag advances, which is correct. On iOS, where a real
+flick carries momentum, the same perturbation reads as a swipe that ignores `scroll-snap-stop` and
+runs to the end. Stated as strongly suspected rather than proved: headless Chrome and Playwright
+cannot synthesize an iOS touch fling, so the last word is his phone.
+
+**Verified.** Card height 313px and page height 5828px on every slide at 390x844, 500px and
+constant at 1440x900; four scripted touch gestures, all snapping correctly; `npm run check` green
+(129 tests); `npm run visual` 25/25 with no baseline moved.
+
 ## 2026-09-16 (lab) — round two of the valley campaign: sixteen ideas judged and three rooms built at /lab/years
 
 The fresh session `next-session.md` asked for. Spent the first stretch on ideas before any code,

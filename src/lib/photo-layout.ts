@@ -310,31 +310,149 @@ export function framePhoto(facts: PhotoFacts): PhotoFrame {
  * that aspect ratio... that photo can take up much more space but we're not
  * letting it??" At its own shape it is 833 x 500, five times the area.
  *
- * What has to be stable is the CARD's height -- nothing may change size under
- * a reader's thumb mid-swipe. A shared aspect ratio delivers that and charges
- * every photograph that is not that shape for it.
+ * So the set agrees on a WIDTH here and on a height in `CAROUSEL_BOX_CAP`,
+ * and this half is the easy one: the frame is as wide as the widest of them
+ * may be drawn, so nobody is narrowed to spare anybody else a bed.
  *
- * Sharing the HEIGHT gives the stable card for free and costs nothing:
- *
- *    every photograph in a carousel is drawn EXACTLY as it would have been
- *    had it been posted on its own,
- *
- * which is the same sentence <PhotoRows> already lives by for a photograph
- * alone on a row. The frame's height is then whichever of them is tallest,
- * and the browser works that out on its own -- a flex line's height is the
- * tallest thing on it, so there is nothing here to compute and nothing to
- * measure. All this function decides is how wide the frame may be, which is
- * the widest any one of them may be drawn.
- *
- * What it costs, honestly: a portrait beside a landscape now has a blurred bed
- * at its sides on a wide screen, where under the median rule the frame was
- * narrow and the portrait filled it. That is the same bed the same portrait
- * gets when posted alone in the same column, and it buys the landscape beside
- * it five times the picture.
+ * What it costs, honestly: a portrait beside a landscape has a blurred bed at
+ * its sides on a wide screen, where under the median rule the frame was narrow
+ * and the portrait filled it. That is the same bed the same portrait gets when
+ * posted alone in the same column, and it buys the landscape beside it five
+ * times the picture.
  */
 export function carouselWidth(frames: PhotoFrame[]): number {
   if (!frames.length) return PHOTO_MAX_WIDTH;
   return Math.min(PHOTO_MAX_WIDTH, Math.max(...frames.map((f) => f.maxWidth)));
+}
+
+/**
+ * How many times its own height a photograph may be asked to sit in.
+ *
+ * This is the whole of the carousel's height rule, and it is the third one.
+ * The first two each failed in the other's direction and the third failed in
+ * a way neither predicted:
+ *
+ *   shared SHAPE (the median)    a 9:20 portrait drawn 296 x 177, a third of
+ *                                the picture it should be. His feed, 2026-08-28.
+ *   shared HEIGHT (the tallest)  every photograph full size, but a 16:9 sitting
+ *                                in a 421px frame with 122px of blurred bed
+ *                                above AND below -- "yucky blur bars", twice.
+ *   PER-PHOTOGRAPH, interpolated  no bed and no shrinking, but the card changed
+ *                                size under your thumb. Measured on his one real
+ *                                three-photograph post: 196px, then 157px, then
+ *                                464px -- the card nearly TRIPLED between two
+ *                                slides, and the page under it moved 307px.
+ *                                Owner, 2026-09-16: "I don't like the size of
+ *                                the post changing as I scroll through the
+ *                                pictures. it doesn't seem like that should
+ *                                happen."
+ *
+ * He is right, and every other carousel agrees with him: Instagram, Facebook,
+ * Apple Photos and Google Photos all fix the box before you swipe and never
+ * touch it again. Not one of them animates it. They differ only in what they
+ * do to a photograph that does not fit.
+ *
+ * So the box is fixed, and this number is what it is fixed AT. Start from the
+ * tallest photograph, which is version two and costs nothing when the set is
+ * one orientation -- three phone portraits, three phone landscapes, the common
+ * case -- because then every height is the same and the cap never binds. Then
+ * bound how much bed that may buy: NO PHOTOGRAPH SITS IN A FRAME MORE THAN
+ * TWICE ITS OWN HEIGHT, so the bed is never more than a quarter of the frame
+ * on either side. Past that the frame stops growing and the tall photograph is
+ * trimmed top and bottom instead, aimed and clamped like any other cut.
+ *
+ * Two, and not three, because the bound has to be visible as a bound. At 3x a
+ * photograph is a third of its own frame, which is the "yucky blur bars"
+ * picture again with a different arithmetic behind it.
+ *
+ * What it costs, stated rather than hidden. A tall photograph is already
+ * brought to 3:4, so the tallest a frame ever wants to be is 1.333 x the
+ * column; the shortest a 21:9 panorama ever is, is 0.43 x the column. A set
+ * holding both gets a box of 0.86 and the portrait keeps 64% of itself --
+ * more than the 20% CROP_BUDGET allows a single photograph, and deliberately
+ * so, because the alternative in a SET is a frame with two thirds of it empty.
+ * Anything wider than 21:9 in the same set as a portrait does worse, and that
+ * is the one case this rule is honestly bad at.
+ *
+ * On his own set (16:9, 20:9, 9:20) in a 348px phone card: the box is 314px,
+ * fixed. The two wide ones get 59px and 78px of bed, the portrait keeps 68%,
+ * and nothing moves while you swipe.
+ */
+export const CAROUSEL_BOX_CAP = 2;
+
+/**
+ * The box height, as one expression evaluated two ways.
+ *
+ * The browser needs it as CSS -- see `carouselHeightCss` for why it must be
+ * CSS and not a measured pixel -- and the tests need it as a number. Writing
+ * it twice is how the two quietly stop agreeing, so it is written once, over
+ * whatever can do min, max and multiply.
+ */
+type HeightAlgebra<T> = {
+  /** One photograph's drawn height. */
+  of: (frame: PhotoFrame) => T;
+  min: (...terms: T[]) => T;
+  max: (...terms: T[]) => T;
+  times: (term: T, by: number) => T;
+};
+
+function boxHeight<T>(frames: PhotoFrame[], a: HeightAlgebra<T>): T {
+  const heights = frames.map(a.of);
+  /* The tallest photograph, unless that would seat the shortest one in more
+     than CAROUSEL_BOX_CAP times its own height. */
+  return a.min(a.max(...heights), a.times(a.min(...heights), CAROUSEL_BOX_CAP));
+}
+
+/**
+ * The one height every photograph in a carousel shares, given a column width.
+ *
+ * The number behind `carouselHeightCss`, and what the tests assert on.
+ */
+export function carouselHeight(frames: PhotoFrame[], columnWidth: number): number {
+  if (!frames.length) return PHOTO_MAX_HEIGHT;
+  return boxHeight(frames, {
+    of: (f) => drawnSize(f, columnWidth).height,
+    min: Math.min,
+    max: Math.max,
+    times: (v, by) => v * by,
+  });
+}
+
+/**
+ * The same height as CSS, in container-query units, so nothing measures it.
+ *
+ * This is the load-bearing half, and the reason is the bug it replaces rather
+ * than tidiness. The old carousel MEASURED its slide, built a table of
+ * heights, and wrote an interpolated one to the frame on every scroll frame --
+ * 24 distinct heights during a single flick, measured. Two things came of
+ * that. The card changed size under a thumb, which is the complaint. And the
+ * height of a scroll-snap container was being rewritten DURING the gesture,
+ * which makes the engine re-run snap selection mid-flight; on iOS that reads
+ * as a swipe that ignores `scroll-snap-stop` and runs to the last photograph.
+ *
+ * A number that only JavaScript knows can only be applied after layout. A
+ * number the browser resolves itself is right on the server, right on the
+ * first paint, right at every width, and -- the point -- CANNOT CHANGE WHILE
+ * YOU SWIPE, because nothing is watching the scroll. There is no rule to
+ * follow here, only an expression to resolve.
+ *
+ * `cqw` is 1% of the carousel's own inline size, so the caller must be the
+ * container (`container-type: inline-size`). That is the one thing this
+ * function cannot state for itself.
+ */
+export function carouselHeightCss(frames: PhotoFrame[]): string {
+  if (!frames.length) return `${PHOTO_MAX_HEIGHT}px`;
+  return boxHeight(frames, {
+    /* `drawnSize`, transliterated: the column or this photograph's own cap,
+       whichever is smaller, at its aspect ratio, under the 500px ceiling. */
+    of: (f) => {
+      const [w, h] = f.aspectRatio.split("/").map((n) => Number(n.trim()));
+      return `min(min(100cqw, ${f.maxWidth}px) * ${(h / w).toFixed(6)}, ${f.maxHeight}px)`;
+    },
+    min: (...t) => (t.length === 1 ? t[0] : `min(${t.join(", ")})`),
+    max: (...t) => (t.length === 1 ? t[0] : `max(${t.join(", ")})`),
+    times: (t, by) => `calc(${t} * ${by})`,
+  });
 }
 
 /**
