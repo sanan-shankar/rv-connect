@@ -25,7 +25,7 @@ import { appendUnseen } from "@/lib/append-page";
 import { useHeartToggle } from "./use-engagement";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { m } from "motion/react";
-import { SPRINGS, SpringPress, EASE_OUT_SMOOTH } from "@/components/common/motion";
+import { SPRINGS, SpringPress } from "@/components/common/motion";
 
 interface CommentAuthor {
   id: string;
@@ -93,6 +93,36 @@ export type CommentActions = {
   ) => Promise<{ error?: string; success?: boolean }>;
 };
 
+/* THE PANEL'S ONE TIMING, used by the open and the close alike, so there are
+ * no second numbers to drift apart. The close is literally the open played
+ * backwards.
+ *
+ * WHY IT DOES NOT EASE IN, since the owner asked and left the call here. This
+ * panel answers a click that has already happened, and an ease-in spends its
+ * first hundred milliseconds barely moving -- which reads as lag on a control
+ * you just pressed, not as grace. The rule is already written down in
+ * motion.tsx: EASE_OUT_SMOOTH exists because starting at full speed "is right
+ * for a small panel answering a click", and EASE_IN_OUT_SCENE is explicitly
+ * scoped to viewport-sized travel over ~0.9s, where the eye needs to be given
+ * time to follow something away. A comment thread is the first case.
+ *
+ * `gentle` does start from rest, so it is not a hard cut; it ramps, carries and
+ * settles with a long tail, which is what makes it read unhurried at ~300ms
+ * where a 380ms ease-out read as brisk. That difference is the curve, not the
+ * number -- an ease-out's quickest frames are its first.
+ *
+ * The history, because two of these numbers were the owner's corrections: 550ms
+ * on a tween was "an abrupt snap" (it was, but because the close began with a
+ * 9px layout jump on its first frame, not because of the duration -- fixed
+ * 2026-09-16), and 380ms on EASE_OUT_SMOOTH was "too fast".
+ */
+const PANEL_MOTION = {
+  height: SPRINGS.gentle,
+  /* Shorter than the height on purpose: content should be legible before the
+     panel has finished making room for it, and gone before the gap shuts. */
+  opacity: { duration: 0.22, ease: "easeOut" },
+} as const;
+
 /* The thread loads in pages of top-level comments: a short first page so the
    panel opens light, then bigger pages as the reader actually scrolls (the
    sentinel below the list triggers the next fetch just before they reach the
@@ -111,7 +141,6 @@ export function CommentsSection({
   alwaysOpen = false,
   viewerIsAdmin = false,
   expectedCount,
-  look = "rule",
 }: {
   /** The post, or the Catch-up answer, this thread hangs off. */
   targetId: string;
@@ -131,25 +160,6 @@ export function CommentsSection({
    * yet" was the panel's overshoot bug), and one renders one skeleton row.
    */
   expectedCount?: number;
-  /**
-   * TEMPORARY, and it should not outlive the decision it exists for.
-   *
-   * The owner asked on 2026-09-16 whether the full-bleed line under a post is
-   * a necessity ("I just wondered whether it's a necessity"), and chose to see
-   * the alternatives on real posts before any of them reached the feed. The
-   * three looks live here rather than as CSS overrides in the lab room so that
-   * what he judges IS this component with his own comments in it, and the
-   * winner ships by deleting the two branches he did not pick.
-   *
-   *   "rule"  today: a full-bleed hairline, then "No comments yet. Be the first."
-   *   "space" the line and the empty line both go; a gap separates instead
-   *
-   * A third, "well", sank the thread into a recessed mist tray. He saw it and
-   * said no: "the unnecessary darkening in well isn't a good improvement".
-   *
-   * /lab/comments is the only caller that passes anything but the default.
-   */
-  look?: "rule" | "space";
 }) {
   const [comments, setComments] = useState<CommentData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -187,10 +197,7 @@ export function CommentsSection({
      and a boolean that is already true cannot. It is only ever the `key` on
      the glyph, so incrementing it remounts one 16px icon. */
   const [sent, setSent] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  /** Whichever field this look renders, so Reply can take you to it. */
-  const composerRef = () => inputRef.current ?? textareaRef.current;
 
   /* The grow. Height is reset to auto before it is read, because scrollHeight
      of an element that is already tall reports the tall value and the box can
@@ -260,7 +267,7 @@ export function CommentsSection({
   useEffect(() => {
     if (!wantsComposer.current || !replyTo) return;
     wantsComposer.current = false;
-    composerRef()?.focus({ preventScroll: true });
+    textareaRef.current?.focus({ preventScroll: true });
   }, [replyTo]);
 
   // The panel animates to (and then tracks) the real height of its content. A single
@@ -453,14 +460,12 @@ export function CommentsSection({
   for (const list of repliesMap.values()) list.sort(byAge);
 
   /* The comment the box should sit under, or null for "leave it at the foot".
-     Null in today's look, and null whenever the target is not on screen anyway
+     Null whenever the target is not on screen anyway
      (a reply to something that has since been deleted, or that lives on a page
      the reader has not scrolled to), because a composer that vanishes is worse
      than one that did not move. */
   const inlineReplyId =
-    look !== "rule" && replyTo && comments.some((c) => c.id === replyTo.id)
-      ? replyTo.id
-      : null;
+    replyTo && comments.some((c) => c.id === replyTo.id) ? replyTo.id : null;
 
   // The loading rows mirror what is actually coming: none for a post the card
   // already knows has no comments, one for one, two for anything more.
@@ -471,8 +476,8 @@ export function CommentsSection({
   /**
    * THE BOX YOU TYPE IN, lifted out of the tree so it can be rendered in two
    * places. At rest it sits at the foot of the thread, where it always has.
-   * While a reply is pending in the proposed look it is rendered UNDER THE
-   * COMMENT BEING REPLIED TO instead, and nothing scrolls.
+   * While a reply is pending it is rendered UNDER THE COMMENT BEING REPLIED
+   * TO instead, and nothing scrolls.
    *
    * That is not a flourish, it is the only version of this that works. The
    * obvious fix -- scroll the page down to the composer -- drags the
@@ -489,8 +494,7 @@ export function CommentsSection({
     <form onSubmit={handleSubmit}>
       {/* "Replying to <name>" exists to tell you which comment the box at the
           foot of the thread belongs to. With the box sitting under that very
-          comment there is nothing left for it to say, so the proposed look
-          drops it and keeps the cancel on the row below instead. */}
+          comment there is nothing left for it to say. Escape backs out. */}
       {replyTo && !inlineReplyId && (
         <m.div
           className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground"
@@ -519,22 +523,12 @@ export function CommentsSection({
           </button>
         </m.div>
       )}
-      <div className={cn("flex gap-2", look === "rule" ? "items-center" : "items-end")}>
+      {/* items-end, not items-center: the send button stays level with the LAST
+          line of a box that has grown, rather than drifting to the middle of it. */}
+      <div className="flex items-end gap-2">
         {/* Inset focus ring (inline, so the panel's overflow-hidden during the open/close
             animation can never clip it into a stray shape). */}
-        {look === "rule" ? (
-          <input
-            ref={inputRef}
-            type="text"
-            className={`h-9 flex-1 rounded-full border border-border bg-card px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground ${FIELD_FOCUS}`}
-            placeholder={
-              replyTo ? `Reply to ${replyTo.name}...` : "Write a comment..."
-            }
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            maxLength={1000}
-          />
-        ) : (
+        {
           /* A BOX THAT GROWS WITH WHAT YOU TYPE.
              The field accepts 1000 characters and showed about 60 of them: a
              36px single line, no wrap, the beginning of your own sentence
@@ -578,7 +572,7 @@ export function CommentsSection({
             }}
             maxLength={1000}
           />
-        )}
+        }
         <SpringPress
           // Same 1.08 as CANOPY_FILL in ui/button.tsx. Hand-rolled rather than a
           // <Button>, and it had no hover at all before: SpringPress only
@@ -646,10 +640,9 @@ export function CommentsSection({
            again the 16px between two comments, so the thread still reads as its
            own section, and nothing like a hole. The +2 is the close-jerk
            compensation explained above; every number here carries it. */
-        alwaysOpen ? "pt-3" : look === "rule" ? "pt-[21px]" : "pt-[28px]"
+        alwaysOpen ? "pt-3" : "pt-[28px]"
       )}
     >
-      {look === "rule" && <div className="mb-4 border-t border-border/70" />}
       <div className="flex flex-col gap-4">
 
       {loading && skeletonRows > 0 ? (
@@ -668,14 +661,11 @@ export function CommentsSection({
           ))}
         </div>
       ) : comments.length === 0 ? (
-        /* Nothing to say in the other two looks. The composer under it already
-           reads "Write a comment...", and the button that opened the thread
-           says 0, so the line is a third way of saying the same thing. */
-        look === "rule" ? (
-          <p className="px-1 text-sm text-muted-foreground">
-            No comments yet. Be the first.
-          </p>
-        ) : null
+        /* Nothing at all. The box under this already reads "Write a comment..."
+           and the button that opened the thread says 0, so the "No comments yet.
+           Be the first." that used to sit here was a third way of saying the
+           same thing, and 30px of panel to say it. */
+        null
       ) : (
         /* THE THREAD UNROLLS. It used to be one flat opacity fade of the whole
            list, which is a strange thing to spend on the single most-pressed
@@ -692,8 +682,8 @@ export function CommentsSection({
         <m.ul
           ref={listRef}
           className="flex flex-col gap-4"
-          initial={look === "rule" ? { opacity: 0 } : "hidden"}
-          animate={look === "rule" ? { opacity: 1 } : "visible"}
+          initial="hidden"
+          animate="visible"
           variants={{
             hidden: {},
             visible: {
@@ -707,21 +697,16 @@ export function CommentsSection({
               },
             },
           }}
-          transition={look === "rule" ? { duration: 0.25, ease: "easeOut" } : undefined}
         >
           {topLevel.map((comment) => {
             const replies = repliesMap.get(comment.id);
             return (
               <m.li
                 key={comment.id}
-                variants={
-                  look === "rule"
-                    ? undefined
-                    : {
-                        hidden: { opacity: 0, y: 8 },
-                        visible: { opacity: 1, y: 0, transition: SPRINGS.gentle },
-                      }
-                }
+                variants={{
+                  hidden: { opacity: 0, y: 8 },
+                  visible: { opacity: 1, y: 0, transition: SPRINGS.gentle },
+                }}
               >
                 {comment.deleted ? (
                   <DeletedComment />
@@ -736,7 +721,7 @@ export function CommentsSection({
                     viewerIsAdmin={viewerIsAdmin}
                     onModerate={() => setModeratingId(comment.id)}
                     onDelete={() => setDeletingId(comment.id)}
-                    landed={look !== "rule" && justPosted === comment.id}
+                    landed={justPosted === comment.id}
                   />
                 )}
                 {inlineReplyId === comment.id && (
@@ -754,14 +739,10 @@ export function CommentsSection({
                          what they are. */
                       <m.li
                         key={reply.id}
-                        variants={
-                          look === "rule"
-                            ? undefined
-                            : {
-                                hidden: { opacity: 0, y: 8 },
-                                visible: { opacity: 1, y: 0, transition: SPRINGS.gentle },
-                              }
-                        }
+                        variants={{
+                          hidden: { opacity: 0, y: 8 },
+                          visible: { opacity: 1, y: 0, transition: SPRINGS.gentle },
+                        }}
                       >
                         <CommentItem
                           comment={reply}
@@ -785,8 +766,8 @@ export function CommentsSection({
                           viewerIsAdmin={viewerIsAdmin}
                           onModerate={() => setModeratingId(reply.id)}
                           onDelete={() => setDeletingId(reply.id)}
-                          landed={look !== "rule" && justPosted === reply.id}
-                          nested={look !== "rule"}
+                          landed={justPosted === reply.id}
+                          nested
                         />
                         {inlineReplyId === reply.id && (
                           <div className="mt-4">{composer}</div>
@@ -818,7 +799,7 @@ export function CommentsSection({
       )}
 
       {/* At the foot of the thread, unless a pending reply has moved it up
-          beside the comment it answers (proposed look only). */}
+          beside the comment it answers. */}
       {!inlineReplyId && composer}
 
       {viewerIsAdmin && (
@@ -863,36 +844,9 @@ export function CommentsSection({
       exit={{
         height: 0,
         opacity: 0,
-        /* WHY THE CLOSE IS SLOWER THAN THE OPEN, and why the proposed look
-           stops being.
-           The 550ms was set deliberately: the owner read the close as "an
-           abrupt snap" and it was slowed to answer that. What nobody knew at
-           the time is that the close ALSO began with a 9px layout jump on its
-           first frame (fixed 2026-09-16), and a movement that starts with a
-           discontinuity reads as abrupt however long it then takes. So the
-           duration was compensating for a bug rather than for a timing
-           problem, and at 550ms against an open that settles in about 300 it
-           is now nearly twice as long -- which is backwards from how every
-           system times a dismissal, the user having already decided.
-           The proposed look closes in 380ms on EASE_OUT_SMOOTH: a touch longer
-           than the open, because a collapse has content vanishing inside it
-           and wants the extra beat, but nothing like double. Today's look
-           keeps the old number so the two can be felt side by side. */
-        transition:
-          look === "rule"
-            ? {
-                height: { duration: 0.55, ease: "easeInOut" },
-                opacity: { duration: 0.32, ease: "easeOut" },
-              }
-            : {
-                height: { duration: 0.38, ease: EASE_OUT_SMOOTH },
-                opacity: { duration: 0.26, ease: "easeOut" },
-              },
+        transition: PANEL_MOTION,
       }}
-      transition={{
-        height: SPRINGS.gentle,
-        opacity: { duration: 0.22, ease: "easeOut" },
-      }}
+      transition={PANEL_MOTION}
       style={{ overflow: "hidden" }}
     >
       {body}
