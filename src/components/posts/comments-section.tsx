@@ -111,6 +111,7 @@ export function CommentsSection({
   alwaysOpen = false,
   viewerIsAdmin = false,
   expectedCount,
+  look = "rule",
 }: {
   /** The post, or the Catch-up answer, this thread hangs off. */
   targetId: string;
@@ -130,6 +131,23 @@ export function CommentsSection({
    * yet" was the panel's overshoot bug), and one renders one skeleton row.
    */
   expectedCount?: number;
+  /**
+   * TEMPORARY, and it should not outlive the decision it exists for.
+   *
+   * The owner asked on 2026-09-16 whether the full-bleed line under a post is
+   * a necessity ("I just wondered whether it's a necessity"), and chose to see
+   * the alternatives on real posts before any of them reached the feed. The
+   * three looks live here rather than as CSS overrides in the lab room so that
+   * what he judges IS this component with his own comments in it, and the
+   * winner ships by deleting the two branches he did not pick.
+   *
+   *   "rule"  today: a full-bleed hairline, then "No comments yet. Be the first."
+   *   "space" the line and the empty line both go; a wider gap separates instead
+   *   "well"  as "space", plus the thread sits in a recessed mist tray
+   *
+   * /lab/comments is the only caller that passes anything but the default.
+   */
+  look?: "rule" | "space" | "well";
 }) {
   const [comments, setComments] = useState<CommentData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -361,11 +379,33 @@ export function CommentsSection({
     <div
       ref={contentRef}
       className={cn(
-        "flex flex-col gap-4 px-0.5 pb-1",
-        alwaysOpen ? "pt-3" : "pt-[21px]"
+        "px-0.5 pb-1",
+        /* The gap that separates the thread from the post it hangs off. With a
+           rule drawn it is small, because the line is doing the separating; in
+           the other two looks the space IS the separation, so it opens up to
+           one golden step (--space-xl, 42px at the card's 16px body) measured
+           from the action glyphs' ink. The +9 is the close-jerk compensation
+           explained above, and every number here carries it. */
+        alwaysOpen
+          ? "pt-3"
+          : look === "rule"
+            ? "pt-[21px]"
+            : look === "space"
+              ? "pt-[44px]"
+              : "pt-[27px]"
       )}
     >
-      <div className="border-t border-border/70" />
+      {look === "rule" && <div className="mb-4 border-t border-border/70" />}
+      <div
+        className={cn(
+          "flex flex-col gap-4",
+          /* The well: a region cut into the card, which is exactly what
+             globals.css reserves mist for. The separation comes from the
+             surface change, so it needs no line and a smaller gap above it.
+             Radius 12px is one rung down the ladder from the card's 16. */
+          look === "well" && "rounded-md bg-mist p-4"
+        )}
+      >
 
       {loading && skeletonRows > 0 ? (
         <div className="flex flex-col gap-4" aria-hidden>
@@ -383,9 +423,14 @@ export function CommentsSection({
           ))}
         </div>
       ) : comments.length === 0 ? (
-        <p className="px-1 text-sm text-muted-foreground">
-          No comments yet. Be the first.
-        </p>
+        /* Nothing to say in the other two looks. The composer under it already
+           reads "Write a comment...", and the button that opened the thread
+           says 0, so the line is a third way of saying the same thing. */
+        look === "rule" ? (
+          <p className="px-1 text-sm text-muted-foreground">
+            No comments yet. Be the first.
+          </p>
+        ) : null
       ) : (
         <m.ul
           ref={listRef}
@@ -542,6 +587,7 @@ export function CommentsSection({
         actionLabel="Delete"
         onConfirm={() => handleDelete(deletingId!)}
       />
+      </div>
     </div>
     </>
   );
