@@ -483,13 +483,16 @@ export function Weave({ threads, firstYear, lastYear, meId }: { threads: Thread[
     const f = fitAll();
     zMin = f.z * 0.9;
     zMax = Math.max(160, size.h / (ROW_RATIO * 6));
-    /* ?z=me opens on the viewer's thread, ?z=in on a close view, for a scripted shot */
+    /* It opens on your own thread, with your name on the cloth and the
+       people around you: that is the frame worth seeing first, and it is
+       where the profile would open it. Pinch out for everyone. ?z=all opens
+       on the whole cloth and ?z=in on a close view, for a scripted shot. */
     const want = new URLSearchParams(window.location.search).get("z");
     Object.assign(cam, f);
-    if (want === "in" || (want === "me" && meRow >= 0)) {
-      const r = want === "me" ? meRow : Math.floor(rows * 0.7);
-      const t = threads[r];
-      if (t) { const span = t.to - t.from + 3; cam.z = Math.min(zMax, Math.max(60, (size.w - 40) / span)); cam.x = t.from - firstYear + span / 2 - 1; cam.y = r + 0.5; }
+    const startRow = want === "in" ? Math.floor(rows * 0.7) : want === "all" ? -1 : meRow;
+    if (startRow >= 0) {
+      const t = threads[startRow];
+      if (t) { const span = t.to - t.from + 3; cam.z = Math.min(zMax, Math.max(60, (size.w - 40) / span)); cam.x = t.from - firstYear + span / 2 - 1; cam.y = startRow + 0.5; }
     }
     clampCam(cam);
     Object.assign(target, cam);
@@ -542,7 +545,7 @@ export function Weave({ threads, firstYear, lastYear, meId }: { threads: Thread[
           <i className="j" />junior <i className="m" />middle <i className="s" />senior <i className="t" />taught <i className="u" />not filled in
         </div>
       </div>
-      {hint && ready && <div className="wv-hint" aria-hidden>Drag along the years</div>}
+      {hint && ready && <div className="wv-hint" aria-hidden>{meRow >= 0 ? "Pinch out for everyone" : "Drag along the years"}</div>}
       {failed && <div className="wv-msg">{failed}</div>}
     </div>
   );

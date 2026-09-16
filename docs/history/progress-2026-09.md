@@ -53,8 +53,8 @@ in the school's green; an unfilled year undyed). One full-screen fragment shader
 warp column and weft row, reads the dye from a data texture, decides over or under from the weave's
 parity, and shades a lit cylinder with fibre twist and a crossing shadow, the light following the
 pointer. The pointer's year is a shuttle line with who was here; names and houses are HTML placed
-from the camera past a zoom where they fit; your own thread is lifted over the warp; a tap comes in on
-a thread and out again. 81 threads today, the oldest from 1965; the cloth is bare to the left, and the
+from the camera past a zoom where they fit; it opens on your own thread, lifted over the warp with
+your name on it, and pinches out to everyone; a tap comes in on a thread and out again. 81 threads today, the oldest from 1965; the cloth is bare to the left, and the
 room says so. Two rounds: the first found the warp reading as beads (the twist too coarse), the
 unwoven warp as loud as the cloth, and names under the readout; shot at both viewports at three
 levels, the shuttle on hover and a wheel zoom. No console errors.
