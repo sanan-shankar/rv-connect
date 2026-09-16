@@ -7767,8 +7767,9 @@ all valley, no audience, `school-life`, approved, month precision; one full-size
 His words: "make the arrows in image viewer more visible. maybe like how they are in the carousel so we
 get that uniform". The viewer's step arrows were a white/10 wash with a white chevron, which all but
 vanished over a bright photograph. They are now `<CarouselArrow>` itself: the paper glass disc with its
-shadow, a Phosphor caret, colour on hover and a sink on press. They are a size up (44px disc, 20px
-caret, against the carousel's 36 and 16) for a stage that fills the screen. The component gained a
+shadow, a Phosphor caret, colour on hover and a sink on press. A first pass drew them a size up (44px
+disc, 20px caret) for the full-screen stage; he found that "a bit too big", so they are the carousel's
+own 36 and 16. The component gained a
 pass-through for `data-*` hooks so the arrows keep `data-viewer-chrome`, which stops the idle fade
 withdrawing an arrow from under a resting cursor. The chrome test now checks for that mark on the arrow
 instead of counting five mentions, since both sides come from one map.
@@ -7780,5 +7781,7 @@ order.
 
 Checked in `/lab/viewer` at 1440 (light, dark, hover) and 390: both arrows show as 44px discs 16px from
 the edges, Next steps to the last photograph and then goes away, and at 390 both are `display: none`.
-In dark mode the disc is the dark paper and the canopy caret on hover is faint. The feed carousel has
-the same dark hover, so it was left matching. `npm run check` green.
+In dark mode the canopy caret on hover was under 2:1 on the dark paper disc, in the feed carousel too.
+Asked whether to fix it, he said yes: `<CarouselArrow>` hovers leaf in dark (the app's existing
+`text-canopy dark:text-leaf` pairing), measured `rgb(63, 209, 106)` on the viewer's Next arrow, and the
+contribute room's plain tone takes the same swap for its ring and wash. `npm run check` green.

@@ -23,7 +23,9 @@
  *  Colour, not fill: these sit ON a photograph, so the glass goes opaque
  *  and the caret turns canopy. A canopy FILL would be wrong -- green is
  *  the app's one selection state (DESIGN-SYSTEM sec. 2 rule 4), and
- *  nothing about hovering an arrow is a selection.
+ *  nothing about hovering an arrow is a selection. In dark the caret
+ *  turns leaf instead, the app's `text-canopy dark:text-leaf` pairing:
+ *  canopy on the dark paper disc is under 2:1 and all but vanished.
  * ------------------------------------------------------------------ */
 
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
@@ -40,11 +42,12 @@ import { cn } from "@/lib/utils";
 const TONES = {
   glass: [
     "bg-paper/85 text-foreground shadow-[0_1px_6px_rgba(0,0,0,0.18)] backdrop-blur-sm",
-    "hover:bg-paper hover:text-canopy",
+    "hover:bg-paper hover:text-canopy dark:hover:text-leaf",
   ].join(" "),
   plain: [
     "border border-border text-foreground",
     "hover:border-canopy hover:bg-canopy/[0.07] hover:text-canopy",
+    "dark:hover:border-leaf dark:hover:bg-leaf/[0.07] dark:hover:text-leaf",
     "disabled:opacity-30",
   ].join(" "),
 };

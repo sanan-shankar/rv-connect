@@ -760,8 +760,8 @@ export function ImageViewer({
             </m.div>
 
             {/* Desktop step arrows; mobile navigates by dragging the photo.
-                The feed carousel's own arrow, a size up for a whole-screen
-                stage, so a photograph steps the same way wherever it is. */}
+                The feed carousel's own arrow at its own size, so a
+                photograph steps the same way wherever it is. */}
             {([-1, 1] as const).map((dir) => {
               const forward = dir === 1;
               if (forward ? at >= count - 1 : at <= 0) return null;
@@ -771,14 +771,13 @@ export function ImageViewer({
                   forward={forward}
                   onPress={() => step(dir)}
                   label={forward ? "Next photo" : "Previous photo"}
-                  size={20}
                   data-viewer-chrome
                   className={cn(
                     /* Important, because it has to beat the arrow's own
                        `grid` whatever order the sheets land in: a second
                        Tailwind chunk (the lab's) re-emits `.grid` and
                        `.hidden` after the root sheet's breakpoint rules. */
-                    "absolute top-1/2 h-11 w-11 -translate-y-1/2 max-sm:!hidden",
+                    "absolute top-1/2 -translate-y-1/2 max-sm:!hidden",
                     forward ? "right-4" : "left-4",
                     hidden && "pointer-events-none opacity-0"
                   )}
