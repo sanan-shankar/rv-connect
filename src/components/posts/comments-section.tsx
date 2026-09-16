@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { FIELD_FOCUS } from "@/components/ui/field-focus";
-import { Reply, ArrowUp, X, ShieldAlert, Feather, MoreHorizontal, Trash2 } from "lucide-react";
+import { ArrowUp, ShieldAlert, Feather, MoreHorizontal, Trash2 } from "lucide-react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import {
   DropdownMenu,
@@ -24,7 +24,7 @@ import { callAction } from "@/lib/call-action";
 import { appendUnseen } from "@/lib/append-page";
 import { useHeartToggle } from "./use-engagement";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
-import { m } from "motion/react";
+import { m, AnimatePresence } from "motion/react";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
 
 interface CommentAuthor {
@@ -167,6 +167,18 @@ export function CommentsSection({
   const [hasMore, setHasMore] = useState(false);
   const loadingMoreRef = useRef(false);
   const [newComment, setNewComment] = useState("");
+  /* THE REPLY HAS ITS OWN DRAFT, and its own box.
+     Until now one composer moved: it lived at the foot of the thread and
+     relocated under whichever comment you pressed Reply on. That move is what
+     made the transition impossible to animate cleanly, because one end of it
+     always had to pop -- the box can only be in one place, so whichever slot
+     it left had nothing to collapse and whichever it entered had nothing to
+     grow from. It also quietly destroyed work: a half-written comment at the
+     foot became the opening of a reply the moment you tapped Reply.
+     Two boxes, two drafts, neither of which ever moves. Each one opens and
+     closes where it stands, which animates cleanly wherever the comment is --
+     first, last, or a reply three levels down. */
+  const [replyDraft, setReplyDraft] = useState("");
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(
     null
   );
@@ -198,6 +210,7 @@ export function CommentsSection({
      the glyph, so incrementing it remounts one 16px icon. */
   const [sent, setSent] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const replyRef = useRef<HTMLTextAreaElement>(null);
 
   /* The grow. Height is reset to auto before it is read, because scrollHeight
      of an element that is already tall reports the tall value and the box can
@@ -205,11 +218,16 @@ export function CommentsSection({
      Run as a layout effect so the browser never paints the intermediate
      height. */
   useEffect(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [newComment]);
+    for (const [el, value] of [
+      [textareaRef.current, newComment],
+      [replyRef.current, replyDraft],
+    ] as const) {
+      if (!el) continue;
+      void value; // the dependency, not the source of truth; the DOM holds that
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    }
+  }, [newComment, replyDraft]);
 
   /**
    * Pressing Reply used to do one thing: set `replyTo`, which drew a chip
@@ -264,14 +282,14 @@ export function CommentsSection({
   useEffect(() => {
     if (!replyTo) return;
     const onDown = (e: PointerEvent) => {
-      if (newComment.trim()) return;
-      const form = textareaRef.current?.closest("form");
+      if (replyDraft.trim()) return;
+      const form = replyRef.current?.closest("form");
       if (form && e.target instanceof Node && form.contains(e.target)) return;
       setReplyTo(null);
     };
     document.addEventListener("pointerdown", onDown);
     return () => document.removeEventListener("pointerdown", onDown);
-  }, [replyTo, newComment]);
+  }, [replyTo, replyDraft]);
 
   /* The glow is a moment, not a state: it recedes on its own and the row goes
      back to being an ordinary comment. 1.8s is long enough to find it if you
@@ -300,7 +318,7 @@ export function CommentsSection({
   useEffect(() => {
     if (!wantsComposer.current || !replyTo) return;
     wantsComposer.current = false;
-    textareaRef.current?.focus({ preventScroll: true });
+    replyRef.current?.focus({ preventScroll: true });
   }, [replyTo]);
 
   // The panel animates to (and then tracks) the real height of its content. A single
@@ -389,16 +407,18 @@ export function CommentsSection({
     return () => io.disconnect();
   }, [hasMore, loading, nextCursor, targetId, actions, mergeComments]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  /** `inline` is the reply box under a comment; otherwise the one at the foot. */
+  async function handleSubmit(e: React.FormEvent, inline = false) {
     e.preventDefault();
-    if (!newComment.trim()) return;
+    const text = inline ? replyDraft : newComment;
+    if (!text.trim()) return;
     if (submittingRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
 
     try {
       const result = await callAction(() =>
-        actions.create(targetId, newComment, replyTo?.id ?? null)
+        actions.create(targetId, text, inline ? replyTo?.id ?? null : null)
       );
       if (result.error) {
         // An unconfirmed address gets the dialog, which explains and offers to
@@ -412,8 +432,12 @@ export function CommentsSection({
           mergeComments([result.comment]);
           setJustPosted(result.comment.id);
         }
-        setNewComment("");
-        setReplyTo(null);
+        if (inline) {
+          setReplyDraft("");
+          setReplyTo(null);
+        } else {
+          setNewComment("");
+        }
         onCommentAdded();
         /* The arrow leaves the send button. Cleared on a timer rather than on
            the animation ending, because the button may well have unmounted by
@@ -523,125 +547,146 @@ export function CommentsSection({
    * and it also answers the original complaint better: you can see which
    * comment you are replying to, because the box is under it.
    */
-  const composer = (
-    <form onSubmit={handleSubmit}>
-      {/* "Replying to <name>" exists to tell you which comment the box at the
-          foot of the thread belongs to. With the box sitting under that very
-          comment there is nothing left for it to say. Escape backs out. */}
-      {replyTo && !inlineReplyId && (
-        <m.div
-          className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground"
-          initial={{ opacity: 0, y: 6, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={SPRINGS.snappy}
-        >
-          <Reply className="h-3 w-3 text-leaf" />
-          <span>
-            Replying to{" "}
-            <span className="font-semibold text-foreground">
-              {replyTo.name}
-            </span>
-          </span>
-          <button
-            type="button"
-            onClick={() => setReplyTo(null)}
-            aria-label="Cancel reply"
-            /* state-layer, not the hand-rolled foreground/10 this used to
-               carry: same idea, one class, and it brings a press tint with it.
-               The size-4 target is small, so hover:text-foreground stays as the
-               louder half of the signal. */
-            className="state-layer -mr-0.5 ml-0.5 inline-grid size-4 place-items-center rounded-full text-muted-foreground hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </m.div>
-      )}
-      {/* items-end, not items-center: the send button stays level with the LAST
-          line of a box that has grown, rather than drifting to the middle of it. */}
-      <div className="flex items-end gap-2">
-        {/* Inset focus ring (inline, so the panel's overflow-hidden during the open/close
-            animation can never clip it into a stray shape). */}
-        {
-          /* A BOX THAT GROWS WITH WHAT YOU TYPE.
-             The field accepts 1000 characters and showed about 60 of them: a
-             36px single line, no wrap, the beginning of your own sentence
-             scrolling away to the left as you write. On a site where people
-             are writing down what they remember, that is the wrong shape --
-             look at any real thread here and half the comments run to two or
-             three lines.
-             It starts at exactly the old height, so a one-line comment looks
-             identical to what shipped, and it stops growing at five lines and
-             scrolls after that, so one long comment cannot push the composer
-             off the screen. The radius is 18px rather than `rounded-full`:
-             at 36px tall those are the same shape to the pixel, and only the
-             fixed one stays sane once the box is 90px tall. */
+  /**
+   * ONE DEFINITION, TWO BOXES. The foot of the thread gets `inline: false` and
+   * writes a new comment on the post; a reply gets `inline: true` and opens
+   * under the comment it answers. They keep separate drafts (see `replyDraft`)
+   * so neither can eat the other's half-written sentence, and because neither
+   * ever MOVES, each can open and close where it stands -- which is the only
+   * way this animates cleanly whether the comment is the first in the thread,
+   * the last, or a reply inside one.
+   */
+  const renderComposer = (inline: boolean) => {
+    const value = inline ? replyDraft : newComment;
+    const setValue = inline ? setReplyDraft : setNewComment;
+    return (
+      <form onSubmit={(e) => handleSubmit(e, inline)}>
+        {/* items-end, not items-center: the send button stays level with the
+            LAST line of a box that has grown, rather than drifting to the
+            middle of it. */}
+        <div className="flex items-end gap-2">
+          {/* A BOX THAT GROWS WITH WHAT YOU TYPE.
+              The field accepts 1000 characters and showed about 60 of them: a
+              36px single line, no wrap, the beginning of your own sentence
+              scrolling away to the left as you write. On a site where people
+              are writing down what they remember that is the wrong shape --
+              half the comments in any real thread here run to two or three
+              lines.
+              It starts at exactly the old height, so a one-line comment is
+              pixel-identical to what shipped; it stops at five lines and
+              scrolls, so one long comment cannot push the box off the screen.
+              The radius is 18px rather than `rounded-full`: at 36px tall those
+              are the same shape, and only the fixed one stays sane at 120.
+              The focus ring is inline (FIELD_FOCUS) so the panel's
+              overflow-hidden during the open/close can never clip it into a
+              stray shape. */}
           <textarea
-            ref={textareaRef}
+            ref={inline ? replyRef : textareaRef}
             rows={1}
             className={`max-h-[7.5rem] min-h-9 flex-1 resize-none rounded-[18px] border border-border bg-card px-4 py-[0.4375rem] text-sm leading-[1.375] text-foreground outline-none placeholder:text-muted-foreground ${FIELD_FOCUS}`}
             placeholder={
-              replyTo ? `Reply to ${replyTo.name}...` : "Write a comment..."
+              inline && replyTo ? `Reply to ${replyTo.name}...` : "Write a comment..."
             }
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
             onKeyDown={(e) => {
-              /* Enter sends, Shift+Enter breaks the line. That is the order
-                 every messaging surface uses, and it keeps the one-line case
-                 behaving exactly as the input did. IME composition is left
-                 alone: `isComposing` is true while a Japanese or Chinese
-                 keyboard is still choosing a character, and Enter there is
-                 picking the word, not sending the comment. */
+              /* Enter sends, Shift+Enter breaks the line -- the order every
+                 messaging surface uses, and it leaves the one-line case
+                 behaving exactly as the old single-line input did. IME
+                 composition is left alone: `isComposing` is true while a
+                 Japanese or Chinese keyboard is still choosing a character,
+                 and Enter there is picking the word, not sending. */
               if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault();
                 e.currentTarget.form?.requestSubmit();
               }
-              /* Escape backs out of a reply rather than out of the thread.
-                 Only while one is pending, so it never swallows the key from
-                 whatever is listening above it. */
-              if (e.key === "Escape" && replyTo) {
+              /* Escape backs out of the reply, from the reply box only, so it
+                 never swallows the key from whatever is listening above. */
+              if (e.key === "Escape" && inline && replyTo) {
                 e.preventDefault();
                 setReplyTo(null);
               }
             }}
             maxLength={1000}
           />
-        }
-        <SpringPress
-          // Same 1.08 as CANOPY_FILL in ui/button.tsx. Hand-rolled rather than a
-          // <Button>, and it had no hover at all before: SpringPress only
-          // contributes a tap scale.
-          className="inline-grid size-9 shrink-0 place-items-center rounded-full bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-[filter] duration-150 hover:brightness-[1.08] disabled:opacity-40 disabled:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
-          {...({
-            type: "submit",
-            "aria-label": "Post comment",
-            disabled: !newComment.trim() || submitting,
-          } as object)}
-        >
-          {/* THE ARROW LEAVES. On a successful post the glyph flies up out of the
-              button and a fresh one rises into its place, which is the smallest
-              possible way of saying the thing went somewhere. The button itself
-              never moves, so the row cannot shift under a thumb still resting
-              on it. Keyed on `sent` so React remounts the span and the enter
-              replays; without the key the second comment in a row would post in
-              silence. The 16px window clips it, so nothing escapes the circle. */}
-          {/* Keyed on `sent` so React remounts the span and the CSS animation
-              replays; without the key the second comment in a row would post in
-              silence. The 16px window clips the flight, so nothing escapes the
-              circle, and the button itself never moves. */}
-          <span className="relative block h-4 w-4 overflow-hidden">
-            <span
-              key={sent}
-              className={cn(
-                "absolute inset-0 grid place-items-center",
-                sent > 0 && "comment-sent-arrow"
-              )}
-            >
-              <ArrowUp className="h-4 w-4" strokeWidth={2.6} />
+          <SpringPress
+            // Same 1.08 as CANOPY_FILL in ui/button.tsx. Hand-rolled rather
+            // than a <Button>, and it had no hover at all before: SpringPress
+            // only contributes a tap scale.
+            className="inline-grid size-9 shrink-0 place-items-center rounded-full bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-[filter] duration-150 hover:brightness-[1.08] disabled:opacity-40 disabled:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
+            {...({
+              type: "submit",
+              "aria-label": inline ? "Post reply" : "Post comment",
+              disabled: !value.trim() || submitting,
+            } as object)}
+          >
+            {/* THE ARROW LEAVES. On a successful post the glyph flies up out of
+                the button and a fresh one rises into its place, which is the
+                smallest way of saying the thing went somewhere. The button
+                never moves, so nothing shifts under a thumb still on it. Keyed
+                on `sent` so React remounts the span and the CSS animation
+                replays; without the key the second comment in a row would post
+                in silence. The 16px window clips the flight. */}
+            <span className="relative block h-4 w-4 overflow-hidden">
+              <span
+                key={sent}
+                className={cn(
+                  "absolute inset-0 grid place-items-center",
+                  sent > 0 && "comment-sent-arrow"
+                )}
+              >
+                <ArrowUp className="h-4 w-4" strokeWidth={2.6} />
+              </span>
             </span>
-          </span>
-        </SpringPress>
-      </div>
-    </form>
+          </SpringPress>
+        </div>
+      </form>
+    );
+  };
+
+  /**
+   * The space the reply box takes, opening and closing rather than appearing.
+   *
+   * Pressing Reply used to move the composer in one commit: everything below
+   * the comment jumped down ~52px and a box materialised in the gap, and
+   * clicking away did it in reverse. The panel's own height was already
+   * smooth (the ResizeObserver springs it), so what read as abrupt was the
+   * reflow INSIDE it, which nothing was animating.
+   *
+   * AnimatePresence rather than a CSS transition, because a height that has to
+   * end at `auto` is the one case CSS still cannot do portably, and because the
+   * box has to stay mounted while it collapses -- unmount it and the content
+   * vanishes first and the gap shuts after, which looks worse than the jump did.
+   *
+   * `inherit={false}` and no variants: this sits inside the thread's stagger
+   * tree, and a child with its own target gets captured by that tree and holds
+   * its initial forever (the landing glow lost an hour to exactly this before
+   * becoming a CSS keyframe). Verified animating, not assumed.
+   */
+  const replySlot = (id: string, indented: boolean) => (
+    <AnimatePresence initial={false}>
+      {inlineReplyId === id && (
+        <m.div
+          key="reply-slot"
+          inherit={false}
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          /* The panel's own timing, so a reply box opening inside the thread
+             and the thread opening inside the card are the same motion at two
+             scales. EASE_OUT_SMOOTH was the first choice and it read as a snap
+             for the reason the owner already caught on the panel close: it
+             starts at full speed, so it was 92% of the way there in 83ms of a
+             260ms animation. `gentle` ramps, carries and settles. */
+          transition={PANEL_MOTION}
+          style={{ overflow: "hidden" }}
+        >
+          <div className={cn("pt-4", indented && "pl-4 [margin-left:13px]")}>
+            {renderComposer(true)}
+          </div>
+        </m.div>
+      )}
+    </AnimatePresence>
   );
 
   const body = (
@@ -757,9 +802,7 @@ export function CommentsSection({
                     landed={justPosted === comment.id}
                   />
                 )}
-                {inlineReplyId === comment.id && (
-                  <div className="mt-4 [margin-left:13px] pl-4">{composer}</div>
-                )}
+                {replySlot(comment.id, true)}
                 {replies && replies.length > 0 && (
                   <ul className="mt-4 flex flex-col gap-4 border-l border-border/70 pl-4 [margin-left:13px]">
                     {replies.map((reply) => (
@@ -802,9 +845,7 @@ export function CommentsSection({
                           landed={justPosted === reply.id}
                           nested
                         />
-                        {inlineReplyId === reply.id && (
-                          <div className="mt-4">{composer}</div>
-                        )}
+                        {replySlot(reply.id, false)}
                       </m.li>
                     ))}
                   </ul>
@@ -831,9 +872,11 @@ export function CommentsSection({
         </div>
       )}
 
-      {/* At the foot of the thread, unless a pending reply has moved it up
-          beside the comment it answers. */}
-      {!inlineReplyId && composer}
+      {/* The foot of the thread, and it STAYS there. It used to disappear
+          whenever a reply was pending, because it was the same box being moved
+          up beside the comment; now the reply has its own, so this one simply
+          never goes anywhere -- which is why nothing here has to animate. */}
+      {renderComposer(false)}
 
       {viewerIsAdmin && (
         <ModerationDialog

@@ -7710,3 +7710,30 @@ onto every one, as before. Flagged to the owner rather than changed.
 Verified in a signed-in browser (Jerry) at 1440x900 and 390x844 with four files, three named with
 camera dates and one without: 2011-12, blank, 2015-03 and 2018-07 on the four slides after one press.
 `npm run check` green.
+
+## 2026-09-17 (feed) — the reply box opens and closes smoothly, wherever the comment is
+
+His report: the reply box "doesn't appear and disappear smoothly", then "make sure irrespective of
+where the reply or comment is it appears and disappears and animates cleanly".
+
+The cause was structural. There was one composer, and Reply MOVED it from the foot of the thread to
+under the comment. A box that can only be in one place cannot animate cleanly at both ends: the slot
+it leaves has nothing to collapse and the slot it enters has nothing to grow from. The move also ate
+work, because a half-written comment at the foot became the start of the reply the moment you tapped
+Reply.
+
+Now there are two boxes with two drafts (`newComment`, `replyDraft`) and one `renderComposer(inline)`
+definition. The foot box never moves. The reply box opens under its comment inside AnimatePresence,
+height 0 to auto, on the same `PANEL_MOTION` as the thread panel. EASE_OUT_SMOOTH was tried first and
+read as a snap: it was 92% of the way open 83ms into a 260ms animation. The "Replying to" chip and
+its imports are gone, since the box under the comment already says who.
+
+Checked on the real feed, desktop and mobile, opening and closing on the first comment, a middle one,
+a reply and the last: 17 to 20 distinct heights each way, 0 to 52px and back. Both drafts keep their
+own text at once. `npm run check` green, `npm run visual` 25/25.
+
+On speed, since he called it out ("such a simple addition has taken 2 hours"): most of the time went
+on puppeteer probes that cold-loaded the feed for every check, a dev server restart for every
+globals.css edit, and three tries at animating the moving box before fixing why it moved. Next time
+use the already-running chrome-devtools MCP page for checks, and look for the structural cause before
+the second animation attempt.
