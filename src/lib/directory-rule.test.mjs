@@ -326,3 +326,112 @@ test("the Profession control hides only when it has nothing to offer", () => {
   );
 });
 
+
+/* ---- how one result set becomes another (2026-09-16) ------------ *
+ *
+ *  Owner: "it appears halfway and then appears fully ... it's like at
+ *  one frame per second, it's just going in this very rough way."
+ *
+ *  Both halves of that were real and both were measurable, so both are
+ *  pinned here. The numbers behind each rule are in the header of
+ *  `src/components/directory/directory-grid.tsx`; what these tests
+ *  guard is that a later session cannot put any of them back without
+ *  the build saying so, because every one of them is invisible in a
+ *  screenshot and only shows up in a frame trace.
+ * ------------------------------------------------------------------ */
+
+/* Decommented, both of them: the whole argument for these rules is
+   written into the files they govern, so a header explaining why
+   auto-animate was removed would otherwise read as auto-animate still
+   being there. */
+const GRID = decomment(read("src/components/directory/directory-grid.tsx"));
+const CARD = read("src/components/directory/profile-card.tsx");
+
+test("a filter change never navigates outside a transition", () => {
+  /* This route has a loading.tsx, so a bare router.push unmounts the page
+     and paints the skeleton on every keystroke. The comment in
+     directory-client.tsx has claimed since 2026-08-28 that this file
+     pinned it; until now it did not. */
+  /* Decommented: the note explaining WHY this rule exists quotes a
+     router.push, and a comment must not count as a call site. */
+  const pushes = [...decomment(CLIENT).matchAll(/router\.push\(/g)];
+  assert.equal(pushes.length, 1, `router.push appears ${pushes.length} times; only navigate() may call it`);
+  assert.match(
+    CLIENT,
+    /startTransition\(\(\) => router\.push\(url\)\)/,
+    "the one router.push is no longer wrapped in startTransition; the loading skeleton is back on every filter"
+  );
+});
+
+test("nothing fades the people grid except the people grid", () => {
+  /* Three things used to fade the same pixels for one event: this
+     wrapper dimming to 0.55, the view crossfade bringing it back to 1,
+     and auto-animate fading in every card underneath both. That IS the
+     "halfway, then fully" -- not a timing bug, an arithmetic one. */
+  assert.match(
+    CLIENT,
+    /showPending && browseView !== "people" && "opacity-55"/,
+    "the pending dim applies to the people view again, on top of the grid's own choreography"
+  );
+  assert.match(
+    CLIENT,
+    /opacity: browseView === "people" \? 1 : 0/,
+    "the view crossfade fades the people grid in again, over the top of its own card entrances"
+  );
+  assert.doesNotMatch(
+    GRID,
+    /useAutoAnimate/,
+    "auto-animate is back on the people grid: it measures every child one rect at a time and animates width and height"
+  );
+});
+
+test("the grid animates transform and opacity, and nothing else", () => {
+  /* Design system sec. 7, and the reason the re-form is free: both are
+     compositor properties, so the main thread is idle for all of it. */
+  /* Captured up to the "}," that is followed by the options object, not
+     to the first "}": the keyframes carry `${SINK_PX}` template holes,
+     and a lazier regex stops inside one and then tests a fragment. */
+  const calls = [...GRID.matchAll(/animate\(\s*node,\s*\{([\s\S]*?)\},\s*\{/g)].map((m) => m[1]);
+  assert.ok(calls.length >= 2, `only found ${calls.length} animate() calls; the sweep has gone blind`);
+  for (const keyframes of calls) {
+    const props = [...keyframes.matchAll(/(\w+):/g)].map((m) => m[1]);
+    assert.deepEqual(
+      [...new Set(props)].sort(),
+      ["opacity", "transform"],
+      `an animate() call drives ${props.join(", ")}; only transform and opacity may animate`
+    );
+    /* BOTH ends, always. Given one value motion asks the element where
+       it is starting from -- a getComputedStyle per card, which is a
+       forced style recalculation in the busiest frame on the page. It
+       cost 131ms of a 3.8s profile at 4x throttle. */
+    assert.ok(
+      /opacity:\s*\[/.test(keyframes) && /transform:\s*\[/.test(keyframes),
+      `an animate() call gives only a destination (${keyframes.trim()}); write both keyframes so motion never reads the DOM`
+    );
+  }
+});
+
+test("the card is memoised, and its comparator cannot rot", () => {
+  /* The server hands down fresh objects for people who did not change,
+     so without this every survivor of a filter re-renders its bird. */
+  assert.match(CARD, /export const ProfileCard = memo\(Card,/, "ProfileCard is no longer memoised");
+  assert.match(
+    CARD,
+    /for \(const key in a\)/,
+    "the comparator names the fields it checks instead of walking them; it will rot the first time a column is added"
+  );
+});
+
+test("the grid animates a window's worth of cards, not a school's", () => {
+  assert.match(GRID, /window\.innerHeight \* BAND/, "the viewport band is gone; every card animates however long the list is");
+  assert.match(
+    CARD,
+    /\[content-visibility:auto\]/,
+    "content-visibility is gone from the card; the browser lays out and paints all 60 again"
+  );
+  assert.match(
+    CARD,
+    /contain-intrinsic-size/,
+    "content-visibility without a size hint: the scrollbar and every off-screen row collapse to nothing"
+  );
+});
