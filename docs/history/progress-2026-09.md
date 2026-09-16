@@ -7761,3 +7761,24 @@ and a bad bucket. The captions live beside the photographs in `Sports.captions.t
 Imported 62, failed 0; the ledger in `scripts/dev/.album-import/` undoes it. The database shows 62 rows,
 all valley, no audience, `school-life`, approved, month precision; one full-size WebP fetched 200.
 `npm run check` green.
+
+## 2026-09-17 (viewer) — the photo viewer's arrows are the feed carousel's arrows
+
+His words: "make the arrows in image viewer more visible. maybe like how they are in the carousel so we
+get that uniform". The viewer's step arrows were a white/10 wash with a white chevron, which all but
+vanished over a bright photograph. They are now `<CarouselArrow>` itself: the paper glass disc with its
+shadow, a Phosphor caret, colour on hover and a sink on press. They are a size up (44px disc, 20px
+caret, against the carousel's 36 and 16) for a stage that fills the screen. The component gained a
+pass-through for `data-*` hooks so the arrows keep `data-viewer-chrome`, which stops the idle fade
+withdrawing an arrow from under a resting cursor. The chrome test now checks for that mark on the arrow
+instead of counting five mentions, since both sides come from one map.
+
+Trap met on the way: `hidden sm:grid` rendered `display: none` at 1440 in `/lab/viewer`. The lab loads
+a second Tailwind chunk that re-emits `.hidden` and `.grid` after the root sheet's breakpoint rules, so
+two display utilities settled by sheet order. The arrows use `max-sm:!hidden`, which wins whatever the
+order.
+
+Checked in `/lab/viewer` at 1440 (light, dark, hover) and 390: both arrows show as 44px discs 16px from
+the edges, Next steps to the last photograph and then goes away, and at 390 both are `display: none`.
+In dark mode the disc is the dark paper and the canopy caret on hover is faint. The feed carousel has
+the same dark hover, so it was left matching. `npm run check` green.

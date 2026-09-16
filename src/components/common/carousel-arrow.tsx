@@ -61,6 +61,7 @@ export function CarouselArrow({
    *  always there. */
   label,
   decorative = false,
+  ...marks
 }: {
   forward: boolean;
   onPress: () => void;
@@ -72,12 +73,14 @@ export function CarouselArrow({
   /** True where the track itself is already keyboard-reachable and named,
    *  so these are a mouse convenience rather than a second tab stop. */
   decorative?: boolean;
-}) {
+  /** A caller's own `data-*` hooks, e.g. the viewer's `data-viewer-chrome`. */
+} & { [mark: `data-${string}`]: string | boolean | undefined }) {
   return (
     <button
       type="button"
       onClick={onPress}
       disabled={disabled}
+      {...marks}
       {...(decorative ? { tabIndex: -1, "aria-hidden": true } : { "aria-label": label })}
       className={cn(
         "grid h-9 w-9 place-items-center rounded-full",

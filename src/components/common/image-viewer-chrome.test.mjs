@@ -84,10 +84,10 @@ test("the chrome never withdraws from under a cursor that is resting on it", () 
   );
   const marks = src.match(/data-viewer-chrome/g) ?? [];
   assert.ok(
-    marks.length >= 5,
-    `only ${marks.length} references to data-viewer-chrome; the two step arrows ` +
-      "and the two chrome blocks all have to carry it, or the hover check silently " +
-      "protects nothing"
+    marks.length >= 4 && /<CarouselArrow(?:(?!\/>)[\s\S])*\bdata-viewer-chrome\b/.test(src),
+    `only ${marks.length} references to data-viewer-chrome, or the step arrow lost ` +
+      "its own; the arrows (one map, both sides) and the two chrome blocks all have " +
+      "to carry it, or the hover check silently protects nothing"
   );
   assert.ok(
     /addEventListener\("wheel",\s*nudge/.test(src),
