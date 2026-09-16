@@ -25,7 +25,7 @@ import { appendUnseen } from "@/lib/append-page";
 import { useHeartToggle } from "./use-engagement";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { m } from "motion/react";
-import { SPRINGS, SpringPress } from "@/components/common/motion";
+import { SPRINGS, SpringPress, EASE_OUT_SMOOTH } from "@/components/common/motion";
 
 interface CommentAuthor {
   id: string;
@@ -176,6 +176,17 @@ export function CommentsSection({
   // Mandatory on a list that adds and removes rows: pages appending, a
   // deleted comment leaving, all close their gaps on the same animation.
   const [listRef] = useAutoAnimate();
+
+  /* The comment you just wrote, for about as long as it takes to notice it.
+     Posting used to be silent: your words were merged into the thread and
+     that was that, indistinguishable from a row that had been there for a
+     year. This is the one moment in the surface that is unambiguously YOURS,
+     and it was the only one with nothing on it. */
+  const [justPosted, setJustPosted] = useState<string | null>(null);
+  /* A counter, not a boolean: two comments in a row have to replay the arrow,
+     and a boolean that is already true cannot. It is only ever the `key` on
+     the glyph, so incrementing it remounts one 16px icon. */
+  const [sent, setSent] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   /** Whichever field this look renders, so Reply can take you to it. */
@@ -222,6 +233,16 @@ export function CommentsSection({
 
      The scroll is skipped when the composer is already in view, so replying to
      the last comment in a short thread does not lurch the page for nothing. */
+  /* The glow is a moment, not a state: it recedes on its own and the row goes
+     back to being an ordinary comment. 1.8s is long enough to find it if you
+     were looking at the button rather than the thread, short enough that it
+     is gone before it becomes decoration. */
+  useEffect(() => {
+    if (!justPosted) return;
+    const t = setTimeout(() => setJustPosted(null), 1800);
+    return () => clearTimeout(t);
+  }, [justPosted]);
+
   /* Focus after the commit, never in the handler: setting `replyTo` is what
      MOVES the composer, so a handler holding the old element would focus a
      node React is about to throw away.
@@ -347,10 +368,17 @@ export function CommentsSection({
         // The action returns the finished comment, so it slots straight into
         // the loaded thread. No refetch: with the thread paginated, a refetch
         // would throw away every page the reader has scrolled in.
-        if (result.comment) mergeComments([result.comment]);
+        if (result.comment) {
+          mergeComments([result.comment]);
+          setJustPosted(result.comment.id);
+        }
         setNewComment("");
         setReplyTo(null);
         onCommentAdded();
+        /* The arrow leaves the send button. Cleared on a timer rather than on
+           the animation ending, because the button may well have unmounted by
+           then (posting a reply moves the composer back to the foot). */
+        setSent((n) => n + 1);
       }
     } finally {
       // finally, not a trailing statement: a rejected call used to leave the
@@ -562,7 +590,28 @@ export function CommentsSection({
             disabled: !newComment.trim() || submitting,
           } as object)}
         >
-          <ArrowUp className="h-4 w-4" strokeWidth={2.6} />
+          {/* THE ARROW LEAVES. On a successful post the glyph flies up out of the
+              button and a fresh one rises into its place, which is the smallest
+              possible way of saying the thing went somewhere. The button itself
+              never moves, so the row cannot shift under a thumb still resting
+              on it. Keyed on `sent` so React remounts the span and the enter
+              replays; without the key the second comment in a row would post in
+              silence. The 16px window clips it, so nothing escapes the circle. */}
+          {/* Keyed on `sent` so React remounts the span and the CSS animation
+              replays; without the key the second comment in a row would post in
+              silence. The 16px window clips the flight, so nothing escapes the
+              circle, and the button itself never moves. */}
+          <span className="relative block h-4 w-4 overflow-hidden">
+            <span
+              key={sent}
+              className={cn(
+                "absolute inset-0 grid place-items-center",
+                sent > 0 && "comment-sent-arrow"
+              )}
+            >
+              <ArrowUp className="h-4 w-4" strokeWidth={2.6} />
+            </span>
+          </span>
         </SpringPress>
       </div>
     </form>
@@ -628,17 +677,52 @@ export function CommentsSection({
           </p>
         ) : null
       ) : (
+        /* THE THREAD UNROLLS. It used to be one flat opacity fade of the whole
+           list, which is a strange thing to spend on the single most-pressed
+           control in the product: you open a conversation and it simply
+           materialises. Now each comment rises 8px into place a beat after the
+           one above it, so the thread lays itself down from the top while the
+           panel is still opening. The two read as one gesture because they are
+           on the same clock -- the panel's height spring is `gentle` and so is
+           each row.
+           `staggerChildren` rather than a delay computed per index, so a row
+           added later (a page landing, or your own comment) inherits `visible`
+           and arrives on the same rise with no delay at all, instead of
+           waiting behind a queue of rows that are already on screen. */
         <m.ul
           ref={listRef}
           className="flex flex-col gap-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
+          initial={look === "rule" ? { opacity: 0 } : "hidden"}
+          animate={look === "rule" ? { opacity: 1 } : "visible"}
+          variants={{
+            hidden: {},
+            visible: {
+              transition: {
+                /* 45ms is the beat where the eye reads a sequence rather than
+                   a ripple; below ~30 they arrive together, above ~70 the
+                   last row feels late. Capped by delayChildren staying 0 and
+                   the first page being five rows, so the whole thread is laid
+                   down inside 225ms and a long one never crawls. */
+                staggerChildren: 0.045,
+              },
+            },
+          }}
+          transition={look === "rule" ? { duration: 0.25, ease: "easeOut" } : undefined}
         >
           {topLevel.map((comment) => {
             const replies = repliesMap.get(comment.id);
             return (
-              <li key={comment.id}>
+              <m.li
+                key={comment.id}
+                variants={
+                  look === "rule"
+                    ? undefined
+                    : {
+                        hidden: { opacity: 0, y: 8 },
+                        visible: { opacity: 1, y: 0, transition: SPRINGS.gentle },
+                      }
+                }
+              >
                 {comment.deleted ? (
                   <DeletedComment />
                 ) : (
@@ -652,6 +736,7 @@ export function CommentsSection({
                     viewerIsAdmin={viewerIsAdmin}
                     onModerate={() => setModeratingId(comment.id)}
                     onDelete={() => setDeletingId(comment.id)}
+                    landed={look !== "rule" && justPosted === comment.id}
                   />
                 )}
                 {inlineReplyId === comment.id && (
@@ -660,7 +745,24 @@ export function CommentsSection({
                 {replies && replies.length > 0 && (
                   <ul className="mt-4 flex flex-col gap-4 border-l border-border/70 pl-4 [margin-left:13px]">
                     {replies.map((reply) => (
-                      <li key={reply.id}>
+                      /* A reply carries the same variants as its parent row, so
+                         it rises with the comment it hangs off rather than
+                         being the one thing in the thread that simply appears.
+                         Motion propagates `visible` down through the plain <ul>
+                         between them, so no second stagger is declared here:
+                         a comment and its replies arrive as one group, which is
+                         what they are. */
+                      <m.li
+                        key={reply.id}
+                        variants={
+                          look === "rule"
+                            ? undefined
+                            : {
+                                hidden: { opacity: 0, y: 8 },
+                                visible: { opacity: 1, y: 0, transition: SPRINGS.gentle },
+                              }
+                        }
+                      >
                         <CommentItem
                           comment={reply}
                           toggleLike={actions.toggleLike}
@@ -683,15 +785,17 @@ export function CommentsSection({
                           viewerIsAdmin={viewerIsAdmin}
                           onModerate={() => setModeratingId(reply.id)}
                           onDelete={() => setDeletingId(reply.id)}
+                          landed={look !== "rule" && justPosted === reply.id}
+                          nested={look !== "rule"}
                         />
                         {inlineReplyId === reply.id && (
                           <div className="mt-4">{composer}</div>
                         )}
-                      </li>
+                      </m.li>
                     ))}
                   </ul>
                 )}
-              </li>
+              </m.li>
             );
           })}
         </m.ul>
@@ -759,12 +863,31 @@ export function CommentsSection({
       exit={{
         height: 0,
         opacity: 0,
-        transition: {
-          // Noticeably slower than the open (owner feedback: close read as an abrupt snap).
-          // Open timing (SPRINGS.gentle below) is untouched.
-          height: { duration: 0.55, ease: "easeInOut" },
-          opacity: { duration: 0.32, ease: "easeOut" },
-        },
+        /* WHY THE CLOSE IS SLOWER THAN THE OPEN, and why the proposed look
+           stops being.
+           The 550ms was set deliberately: the owner read the close as "an
+           abrupt snap" and it was slowed to answer that. What nobody knew at
+           the time is that the close ALSO began with a 9px layout jump on its
+           first frame (fixed 2026-09-16), and a movement that starts with a
+           discontinuity reads as abrupt however long it then takes. So the
+           duration was compensating for a bug rather than for a timing
+           problem, and at 550ms against an open that settles in about 300 it
+           is now nearly twice as long -- which is backwards from how every
+           system times a dismissal, the user having already decided.
+           The proposed look closes in 380ms on EASE_OUT_SMOOTH: a touch longer
+           than the open, because a collapse has content vanishing inside it
+           and wants the extra beat, but nothing like double. Today's look
+           keeps the old number so the two can be felt side by side. */
+        transition:
+          look === "rule"
+            ? {
+                height: { duration: 0.55, ease: "easeInOut" },
+                opacity: { duration: 0.32, ease: "easeOut" },
+              }
+            : {
+                height: { duration: 0.38, ease: EASE_OUT_SMOOTH },
+                opacity: { duration: 0.26, ease: "easeOut" },
+              },
       }}
       transition={{
         height: SPRINGS.gentle,
@@ -811,6 +934,8 @@ function CommentItem({
   viewerIsAdmin = false,
   onModerate,
   onDelete,
+  landed = false,
+  nested = false,
 }: {
   comment: CommentData;
   /** `actions.toggleLike`, handed down so this row does not import an owner. */
@@ -822,6 +947,18 @@ function CommentItem({
   onModerate?: () => void;
   /** Own comments only: the author deleting their own words. */
   onDelete?: () => void;
+  /** You wrote this one, seconds ago. True for about 1.8s, then never again. */
+  landed?: boolean;
+  /**
+   * A reply, rather than a comment on the post. Its bird is drawn a rung
+   * smaller (28 against 34) so the shape of a conversation is legible without
+   * reading a word of it: today a reply and a top-level comment are identical
+   * except for an indent and a hairline, which is a lot of work for a 1px line
+   * to do. The line and the indent stay; this just stops them carrying it
+   * alone. 28 is where an RV bird is still plainly a bird -- it is the same
+   * glyph set the directory draws at 24.
+   */
+  nested?: boolean;
 }) {
   const author = comment.author!;
 
@@ -836,7 +973,13 @@ function CommentItem({
   }
 
   return (
-    <div className="group flex items-start gap-2.5">
+    /* THE ONE THAT IS YOURS. A wash of the app's own warm hover ink, bled past
+       the row's edges so it reads as light falling on the paper rather than as
+       a box drawn round the comment, receding over the beat after it lands.
+       Drawn by a class rather than inline, because a comment row lives inside
+       the thread's Motion variant tree and anything animated from in here gets
+       captured by it -- see the note on @keyframes comment-landed. */
+    <div className={cn("group comment-row flex items-start gap-2.5", landed && "comment-landed")}>
       {/* No top margin: the avatar (34px) pairs visually with the name line right beside it,
           the same way it always has. Widening the meta line's gap below (see -mt-0.5 below)
           grew the two-line cluster to ~41px measured top-of-name to bottom-of-meta, a few px
@@ -848,15 +991,21 @@ function CommentItem({
         aria-label={author.name}
         className="shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
-        <BirdAvatar
-          user={{
-            id: author.id,
-            name: author.name,
-            photoUrl: author.photoUrl,
-            birdOverride: author.birdOverride,
-          }}
-          size={34}
-        />
+        {/* On a comment you just wrote, the bird arrives rather than appears:
+            one press of the app's own `snappy` spring, the same one every pill
+            and avatar in the product uses. It is the best thing this site owns
+            and it had never once been given a moment of its own. */}
+        <span className={cn("block", landed && "comment-bird-land")}>
+          <BirdAvatar
+            user={{
+              id: author.id,
+              name: author.name,
+              photoUrl: author.photoUrl,
+              birdOverride: author.birdOverride,
+            }}
+            size={nested ? 28 : 34}
+          />
+        </span>
       </Link>
       <div className="min-w-0 flex-1">
         {/* Clean inline comment (derived from the delight demo): the author's name sits bold and

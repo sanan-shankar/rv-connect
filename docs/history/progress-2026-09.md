@@ -7547,3 +7547,68 @@ One thing to own: a probe of this session's posted a test comment to the live da
 measuring the submit round trip. It and the notification it fired were deleted the same minute.
 Nothing else wrote. Verified at 1440x900 and 390x844, `npm run check` green, `npm run visual` 25/25
 with no baseline moved, close-jerk spec green on both viewports.
+
+## 2026-09-16 (feed, lab) — the comment section gets its moments, and the row gets gone over
+
+His ask after the functional pass: "any possible improvement in aesthetics and basically dopamine
+hits when they see the comments UI", and then, on the row itself: "it was something horrible before
+and I didn't think anything bad of it. then a lab accidentally redid it and I thought damn that's
+much better ... I'm wondering whether another improvement is possible or is this the best it can be."
+
+**The moments** (proposed look only, so the feed is unchanged until he picks):
+
+- **The thread unrolls.** It was one flat opacity fade of the whole list, which is a strange thing
+  to spend on the most-pressed control in the product: you open a conversation and it materialises.
+  Each comment now rises 8px into place 45ms after the one above it, on the same `gentle` spring the
+  panel opens with. A reply carries its parent's variants, so it rises WITH the comment it hangs off
+  rather than being the one thing in the thread that appears.
+- **The comment you just wrote is yours for a beat.** A wash of `--state-press` behind the row,
+  holding for 450ms and receding over 1.2s; the bird arrives on a 0.42 -> 1.06 -> 1 overshoot rather
+  than simply being there; the send arrow flies up out of the button while a fresh one rises into its
+  place. Nothing moves that is not `transform` or `opacity`, and the button itself never moves, so a
+  thumb resting on it has nothing shift underneath.
+- **The close matches the open**, 380ms on EASE_OUT_SMOOTH against 550. Answering his question
+  directly: the 550 was deliberate, set because he had read the close as "an abrupt snap" — but that
+  close also began with a 9px layout jump on its first frame (fixed this morning), and a movement
+  that starts with a discontinuity reads as abrupt however long it then takes. The duration was
+  compensating for a bug. Today's look keeps 550 so the two can be felt side by side.
+
+**A trap worth the ink, because it cost an hour.** All three of those were built with Motion first
+and every one of them was dead: traced frame by frame over 1.5s, the glow sat at opacity 0 and the
+bird at scale 1 for every single frame. The cause is that a comment row lives inside the thread's
+VARIANT TREE — the list animates "hidden" -> "visible" and Motion propagates that label down through
+every motion component beneath it, so a child with its own target object gets captured and holds its
+`initial` forever. `inherit={false}` did not save it either. They are CSS `@keyframes` now, which is
+what a one-shot decay that coordinates with nothing should have been from the start, and which
+`.deeplink-flash` was already doing three rules above them in the same file.
+
+**The row itself**, which is what he asked about last:
+
+- **It answers the pointer.** Hovering a comment did nothing, so eighteen paragraphs sat there with
+  no sense that any one of them was a thing, and the Reply and the heart floated between two rows
+  rather than belonging to either. The app's own hover ink, bled past the edges so it reads as light
+  on the paper rather than a box drawn round the comment. It also reveals the admin tool on the same
+  beat, which is one gesture instead of two.
+- **A reply's bird is a rung smaller**, 28 against 34. A reply and a top-level comment were identical
+  except for an indent and a hairline, which is a lot of work for a 1px line; the line and the indent
+  stay, they just stop carrying it alone. 28 is still plainly a bird — the directory draws the same
+  glyphs at 24.
+- **A date stops saying the year when it is this year.** Eighteen rows each ending "2026" carried no
+  information, because every one of them said it. The archive genuinely runs back decades, so the
+  year is printed whenever it differs and is silent when it does not, which is how a person says a
+  date out loud. This one is in `formatTimeAgo`, so it is app-wide; pinned by a new case in
+  `valley-day.test.mjs` that builds its years off the clock rather than hard-coding one, so it does
+  not start failing on 1 January. The options object had to stay spelled out at the
+  `toLocaleDateString` call: `valley-day.test.mjs` greps this file for a call whose arguments do not
+  literally mention a time zone, and hoisting them into a variable is invisible to that guard.
+
+**A correction to something this session said earlier.** Four comments on the Gerry Balcombe post
+("hi?", "hey!!", "hi hi", "asdfasd") were read as probe leftovers and are in fact HIS, posted from
+`sanan.v.shankar@gmail.com` while he tested the UI at 04:33 and 04:47. The comments themselves were
+never touched. The notifications they generated were, by a delete keyed on a timestamp window rather
+than on content — all of them addressed to the seeded Anonymous account, so nothing a real member
+would ever have seen, but broader than it should have been. The lesson is the obvious one: a probe
+that writes should clean up by matching what it wrote, and measuring a write path against the live
+database is a bad trade when the owner can press the button himself.
+
+`npm run check` green, `npm run visual` 25/25 with no baseline moved, close-jerk spec green on both.

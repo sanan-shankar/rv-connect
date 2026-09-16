@@ -54,6 +54,29 @@ test("formatTimeAgo: the older-than-four-weeks fallback is an IST date too", () 
   assert.ok(typeof out === "string" && out.length > 0);
 });
 
+test("formatTimeAgo: the year is printed only when it is not this one", () => {
+  /* On a thread of eighteen comments the repeated current year said nothing,
+     while the archive runs back decades and genuinely needs it. So: silent on
+     a date in this year, printed on any other. Built from the clock rather
+     than hard-coded, because a hard-coded year makes this test start failing
+     on 1 January. */
+  const thisYear = new Date().getFullYear();
+  /* Mid-year and mid-day, so neither the IST offset nor a month boundary can
+     push either date into a neighbouring year. */
+  const inThisYear = new Date(`${thisYear}-06-15T06:00:00Z`);
+  const longAgo = new Date(`${thisYear - 6}-06-15T06:00:00Z`);
+
+  assert.equal(formatTimeAgo(longAgo), `15 Jun ${thisYear - 6}`);
+
+  /* The in-year date only reaches the fallback when it is over four weeks old,
+     which for 15 June is true for roughly half the year. Assert the rule where
+     it applies and skip it where "3w ago" is the correct answer. */
+  const fourWeeks = 28 * 24 * 60 * 60 * 1000;
+  if (Date.now() - inThisYear.getTime() > fourWeeks) {
+    assert.equal(formatTimeAgo(inThisYear), "15 Jun");
+  }
+});
+
 test("valleyDayKey / valleyMidnight: the day boundary sits at 18:30 UTC", () => {
   assert.equal(valleyDayKey(new Date("2026-06-14T18:29:59Z")), "2026-06-14");
   assert.equal(valleyDayKey(new Date("2026-06-14T18:30:00Z")), "2026-06-15");

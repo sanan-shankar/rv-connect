@@ -83,11 +83,28 @@ export function formatTimeAgo(date: Date): string {
   if (days < 7) return `${days}d ago`
   const weeks = Math.floor(days / 7)
   if (weeks < 4) return `${weeks}w ago`
+  /* The year is printed only when it is not this one. On a thread of eighteen
+     comments the repeated "2026" carried no information at all -- every row
+     said it, so no row said anything by saying it -- while the archive really
+     does run back decades, so the year cannot simply be dropped. Printed when
+     it differs, silent when it does not, which is how a person would write
+     the date out loud. */
+  const yearOf = new Intl.DateTimeFormat("en-IN", {
+    timeZone: VALLEY_TIME_ZONE,
+    year: "numeric",
+  })
+  const otherYear = yearOf.format(date) !== yearOf.format(now)
+  /* The options object is spelled out AT the call rather than built above it,
+     because valley-day.test.mjs greps this file for a toLocaleDateString whose
+     arguments do not literally mention a time zone. Hoisting it into a
+     variable is invisible to that guard, which is the whole point of the
+     guard: B-100 was fifteen date surfaces silently rendering in the server's
+     zone. Keep the literal here. */
   return date.toLocaleDateString("en-IN", {
     timeZone: VALLEY_TIME_ZONE,
     day: "numeric",
     month: "short",
-    year: "numeric",
+    ...(otherYear ? { year: "numeric" as const } : {}),
   })
 }
 
