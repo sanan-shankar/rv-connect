@@ -274,7 +274,7 @@ export const REGISTRY: LabEntry[] = [
     title: "The site knows where it is",
     group: "Delight",
     status: "active",
-    note: "Four things that follow the valley's real sun and hills, none of them on the feed: the sidebar mark lit by this minute's sun, the directory's map with the night where it is and members' cities lit or dark, the real hills round the school as a contour map that stands up into relief under today's sky, and your own bird pressed into wax for the time capsule. The readout at the top is what feeds them.",
+    note: "Four things that follow the valley's real sun and hills, none of them on the feed: the sidebar mark lit by this minute's sun, the directory's map with the night where it is and members' cities lit or dark, the real hills round the school as a contour map that stands up into relief under today's sky, and your own bird pressed into wax for the time capsule. The readout at the top is what feeds them. REVIEWED 2026-09-16: none of the four is taken as it stands (his verdicts are in docs/planning/valley/next-session.md); the rooms stay as the record.",
     children: [
       {
         href: "/lab/valley/hills",
