@@ -7737,3 +7737,27 @@ on puppeteer probes that cold-loaded the feed for every check, a dev server rest
 globals.css edit, and three tries at animating the moving box before fixing why it moved. Next time
 use the already-running chrome-devtools MCP page for checks, and look for the structural cause before
 the second animation attempt.
+
+## 2026-09-17 (collection, content) — the Sports photographs from Nattu go into the Valley Collection, captioned by voice
+
+His request, spoken while going through `sanan's stuff/Content/Pics from Nattu/Sports` in Finder sorted
+by Kind: a caption for each of the 62 photographs, "first letter capitalized, after that all small",
+the date the file carries, tag School life, into the Valley Collection.
+
+The order was fixed by his four markers (first `_VAB0986`, sixth `DSC02021`, sixth from last
+`IMG_6496`, last `SportsDay14-061`), and every stretch he named by count was checked against contact
+sheets of the photographs themselves. That settled what the transcript garbled: "gills" is the drill
+(DSC03709, boys mid-routine), and "sports daydays" is a girls' race (DSC03783), filed "Sports day race".
+He counted three cricket photographs before naming DSC07097 and there are four; DSC07004 is plainly the
+same match and is filed "Cricket external". His shortened "boys external" is filed with its sport,
+football or basketball, as the photographs show. "Coco doniment" is "Kho-kho tournament".
+
+`import-album.mjs` only filed into a member's Class Collection with no caption and no bucket. It now
+takes `--scope valley` (admin only, since the rows land approved), `--folder`, `--buckets` and
+`--captions <tsv>`. The caption file has to cover the folder exactly, so a misspelt name stops the run
+before anything is encoded instead of shifting captions onto neighbours. Checked with a planted typo
+and a bad bucket. The captions live beside the photographs in `Sports.captions.tsv`.
+
+Imported 62, failed 0; the ledger in `scripts/dev/.album-import/` undoes it. The database shows 62 rows,
+all valley, no audience, `school-life`, approved, month precision; one full-size WebP fetched 200.
+`npm run check` green.
