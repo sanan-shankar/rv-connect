@@ -16,6 +16,7 @@ if the month is new), and add one line here, at the top of that month's list.
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
 - 2026-09-16 (feed, fix) — the carousel stops resizing under your thumb, and the swipe stops overshooting
+- 2026-09-16 (feed) — the hover tint comes back out, and a reply you did not mean lets go
 - 2026-09-16 (feed) — the comment section ships; the two looks become one
 - 2026-09-16 (feed, lab) — the comment section gets its moments, and the row gets gone over
 - 2026-09-16 (feed, lab) — the comment section gone over: four repairs shipped, the rest at /lab/comments

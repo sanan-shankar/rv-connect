@@ -546,31 +546,6 @@
   animation: comment-landed 1.8s ease-out forwards;
 }
 
-/* A comment answers the pointer. Hovering a row did nothing before: the thread
-   was eighteen paragraphs with no sense that any one of them was a thing you
-   could act on, and the Reply and the heart floated in the gap between two
-   comments rather than belonging to either. This is the app's one hover ink,
-   bled past the row's edges so it reads as light on the paper instead of a box
-   drawn round the comment -- a box would have to earn its border, and this has
-   nothing to say that the light does not.
-   ::before, because the landing glow above owns ::after on the same element
-   and a comment can be both hovered and newly yours. */
-.comment-row { position: relative; z-index: 0; }
-.comment-row::before {
-  content: "";
-  position: absolute;
-  inset: -8px -12px;
-  border-radius: 12px;
-  background: var(--state-hover);
-  opacity: 0;
-  z-index: -1;
-  pointer-events: none;
-  transition: opacity 140ms ease-out;
-}
-@media (hover: hover) and (pointer: fine) {
-  .comment-row:hover::before { opacity: 1; }
-}
-
 /* The bird arrives rather than appears. 1.06 rather than a bigger overshoot:
    it is a 34px glyph two inches from the reader's eye, and the 50 RV birds are
    the best thing this site owns -- they do not need to be thrown at anyone. */

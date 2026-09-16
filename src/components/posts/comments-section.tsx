@@ -240,6 +240,39 @@ export function CommentsSection({
 
      The scroll is skipped when the composer is already in view, so replying to
      the last comment in a short thread does not lurch the page for nothing. */
+  /* CLICKING AWAY PUTS THE BOX BACK.
+   *
+   * Pressing Reply moves the composer under the comment it answers, and until
+   * now the only ways out were Escape or closing the whole thread -- so a
+   * reply you started by accident sat there pointing at the wrong comment for
+   * the rest of the visit (owner, 2026-09-16: "the only way to make it go away
+   * is by closing comments").
+   *
+   * ONLY WHEN THE BOX IS EMPTY, which was his other instruction and is the
+   * important half: "maybe make it go away only if it's empty not if they're
+   * in the middle of writing". Someone who has typed half a sentence and
+   * clicked away to re-read the comment above must come back to their own
+   * words, still aimed at the same person. So half-written replies stay put
+   * and only Escape or sending clears them.
+   *
+   * `pointerdown`, not `click`: pressing another comment's Reply has to MOVE
+   * the box rather than cancel it, and pointerdown fires first, so this clears
+   * the old target a beat before that button's click sets the new one. On
+   * `click` the two would race in the other order and the box would vanish
+   * instead of moving.
+   */
+  useEffect(() => {
+    if (!replyTo) return;
+    const onDown = (e: PointerEvent) => {
+      if (newComment.trim()) return;
+      const form = textareaRef.current?.closest("form");
+      if (form && e.target instanceof Node && form.contains(e.target)) return;
+      setReplyTo(null);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [replyTo, newComment]);
+
   /* The glow is a moment, not a state: it recedes on its own and the row goes
      back to being an ordinary comment. 1.8s is long enough to find it if you
      were looking at the button rather than the thread, short enough that it
@@ -927,13 +960,22 @@ function CommentItem({
   }
 
   return (
-    /* THE ONE THAT IS YOURS. A wash of the app's own warm hover ink, bled past
-       the row's edges so it reads as light falling on the paper rather than as
-       a box drawn round the comment, receding over the beat after it lands.
+    /* THE ONE THAT IS YOURS. A wash of the app's own warm ink, bled past the
+       row's edges so it reads as light falling on the paper rather than as a
+       box drawn round the comment, receding over the beat after it lands.
        Drawn by a class rather than inline, because a comment row lives inside
        the thread's Motion variant tree and anything animated from in here gets
-       captured by it -- see the note on @keyframes comment-landed. */
-    <div className={cn("group comment-row flex items-start gap-2.5", landed && "comment-landed")}>
+       captured by it -- see the note on @keyframes comment-landed.
+
+       There was a matching HOVER tint on every row for a few hours on
+       2026-09-16, on the argument that it made Reply and the heart belong to a
+       row rather than float between two. The owner killed it: "I don't like
+       that tight rectangle hover over that comments as it darkens. actually
+       that whole darkening is just not needed." He is right that a thread of
+       eighteen paragraphs does not want eighteen rectangles waiting in it, and
+       the controls were already legible without one. The reveal of the admin
+       tool on hover is untouched -- that never needed the tint to work. */
+    <div className={cn("group flex items-start gap-2.5", landed && "comment-landed")}>
       {/* No top margin: the avatar (34px) pairs visually with the name line right beside it,
           the same way it always has. Widening the meta line's gap below (see -mt-0.5 below)
           grew the two-line cluster to ~41px measured top-of-name to bottom-of-meta, a few px
