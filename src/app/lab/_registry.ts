@@ -289,6 +289,21 @@ export const REGISTRY: LabEntry[] = [
     ],
   },
 
+  {
+    href: "/lab/years",
+    title: "Time, drawn",
+    group: "Delight",
+    status: "active",
+    note: "Round two of the valley campaign, on the one axis this site honestly has. Three rooms planned, built one at a time: every photograph at once by year (pinch out of one and it takes its place among all 1,815), the same bench years apart (one photograph lifts as grains and settles as the same place in another year), and everyone who was here as thread (the school's hundred years as cloth, each member a thread dyed by house). Each is pulled by a gesture that does a job or is rare by nature; none plays on the feed. docs/planning/valley/ideas-round-two.md says why these three.",
+    children: [
+      {
+        href: "/lab/years/wall",
+        title: "Every photograph, at once",
+        note: "One world, one camera. Scroll or pinch to go from one photograph to the whole archive laid out by year, and back. Needs the atlas: node scripts/dev/wall-atlas.mjs.",
+      },
+    ],
+  },
+
   /* ---------------------------------------------------------------- *
    *  Second look, the "this already looked fine" audit
    * ---------------------------------------------------------------- */
