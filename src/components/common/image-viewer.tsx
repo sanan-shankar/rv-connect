@@ -82,10 +82,11 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, Download, Loader2, Pencil, X } from "lucide-react";
+import { Download, Loader2, Pencil, X } from "lucide-react";
 import Link from "next/link";
 import { AnimatePresence, m } from "motion/react";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
+import { CarouselArrow } from "@/components/common/carousel-arrow";
 import { LoveButton } from "@/components/common/love-button";
 import { ShareButton } from "@/components/common/share-button";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
@@ -219,10 +220,6 @@ const ICON_BUTTON =
  * stops the two sites drifting.
  */
 const CAPTION_CLAMP = "line-clamp-4";
-
-/** The two step arrows, which differ only in which edge they sit against. */
-const ARROW_BUTTON =
-  "absolute top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/85 transition-[background-color,opacity] duration-200 hover:bg-white/20 hover:text-white active:scale-95 sm:flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
 
 /** The converter every save goes through. See its own file for why. */
 function downloadUrl(src: string): string {
@@ -762,37 +759,32 @@ export function ImageViewer({
               </m.div>
             </m.div>
 
-            {/* Desktop step arrows; mobile navigates by dragging the photo. */}
-            {at > 0 && (
-              <button
-                type="button"
-                onClick={() => step(-1)}
-                aria-label="Previous photo"
-                data-viewer-chrome
-                className={cn(
-                  ARROW_BUTTON,
-                  "left-4",
-                  hidden && "pointer-events-none opacity-0"
-                )}
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-            )}
-            {at < count - 1 && (
-              <button
-                type="button"
-                onClick={() => step(1)}
-                aria-label="Next photo"
-                data-viewer-chrome
-                className={cn(
-                  ARROW_BUTTON,
-                  "right-4",
-                  hidden && "pointer-events-none opacity-0"
-                )}
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            )}
+            {/* Desktop step arrows; mobile navigates by dragging the photo.
+                The feed carousel's own arrow, a size up for a whole-screen
+                stage, so a photograph steps the same way wherever it is. */}
+            {([-1, 1] as const).map((dir) => {
+              const forward = dir === 1;
+              if (forward ? at >= count - 1 : at <= 0) return null;
+              return (
+                <CarouselArrow
+                  key={dir}
+                  forward={forward}
+                  onPress={() => step(dir)}
+                  label={forward ? "Next photo" : "Previous photo"}
+                  size={20}
+                  data-viewer-chrome
+                  className={cn(
+                    /* Important, because it has to beat the arrow's own
+                       `grid` whatever order the sheets land in: a second
+                       Tailwind chunk (the lab's) re-emits `.grid` and
+                       `.hidden` after the root sheet's breakpoint rules. */
+                    "absolute top-1/2 h-11 w-11 -translate-y-1/2 max-sm:!hidden",
+                    forward ? "right-4" : "left-4",
+                    hidden && "pointer-events-none opacity-0"
+                  )}
+                />
+              );
+            })}
           </div>
 
           {/* TOP: the counter, and the things you do to the file. */}
