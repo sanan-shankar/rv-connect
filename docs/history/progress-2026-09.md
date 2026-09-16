@@ -1,4 +1,4 @@
-## 2026-09-16 (lab) — round two of the valley campaign: sixteen ideas judged, and every photograph at once
+## 2026-09-16 (lab) — round two of the valley campaign: sixteen ideas judged, every photograph at once, the same bench years apart
 
 The fresh session `next-session.md` asked for. Spent the first stretch on ideas before any code,
 as ¶9 of `docs/planning/valley/brief.md` asked (*"i'm so happy if an hour goes in brainstorming
@@ -34,8 +34,20 @@ placed once React rendered them, and the whole-wall fit narrower than the stage;
 the readout over the last row and the phone's labels sitting on the photographs. No console errors
 in any run. `npm run check` green.
 
-**Not built yet:** the second and third rooms (the same bench years apart; everyone who was here as
-thread), planned in the ideas file and listed on `/lab/years` as not built.
+**Built: then, `/lab/years/then`.** Three real pairs by id: the SBT benches 2009 and 2022, the games
+field 2021 and 2023, the Big Banyan 2014 and 2017. Ninety thousand grains on the frame's own grid,
+each reading its colour from both photographs in the vertex shader and riding a curl field while it
+is airborne, with a per-grain depth so the cloud has near and far; the ground leaves first and lands
+first, so the later picture prints in from the bottom. The photographs themselves are drawn under the
+grains and fade out per pixel along the same wave, so both ends are pixel-sharp and nothing is ever a
+crossfade. Drag sets the year and holds it; release settles to the nearer end leaning the way the
+finger went; a press plays it through; the pointer tilts the cloud. Two rounds: the first found the
+resting picture drawn by 3px grains (posterized) and bright grains clipping to white; the second
+found the wave landing everything by 0.75. Shot at both viewports at five moments per pair, the play
+and a drag; no console errors.
+
+**Not built yet:** the third room (everyone who was here as thread), planned in the ideas file and
+listed on `/lab/years` as not built.
 
 ## 2026-09-16 (lab, review) — the four valley pieces reviewed: none taken, a handover for fresh ideas
 

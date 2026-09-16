@@ -12,13 +12,14 @@ const ROOMS = [
     body: "Pinch out of one photograph and it takes its place among all of them, laid out by year. Pinch in on any one and it comes back up. Nothing moves but the camera.",
     where: "the Collection's viewer",
   },
-];
-const PLANNED = [
   {
+    href: "/lab/years/then",
     title: "The same bench, years apart",
     body: "The benches under the SBT in 2009 lift off as grains of their own colour and settle as the same benches in 2022. Drag the year and hold it anywhere between.",
     where: "a photograph that has a sibling",
   },
+];
+const PLANNED = [
   {
     title: "Everyone who was here, as thread",
     body: "The school's hundred years as a length of cloth. Every member is a thread across the years they were here, dyed by the house they were in. Drag the shuttle to a year and see who was there.",
