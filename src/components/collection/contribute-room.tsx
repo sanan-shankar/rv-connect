@@ -89,7 +89,7 @@ import {
   PhotoQuestions,
   type PhotoAnswers,
 } from "./photo-questions";
-import { FileSays, fileSaysUsed } from "./file-says";
+import { FileSays, fileSaysAnswer, fileSaysUsed } from "./file-says";
 import { cn } from "@/lib/utils";
 
 /** How many files climb to the bucket at once. Three, because a browser gives
@@ -618,6 +618,27 @@ export function ContributeRoom({
     });
   }, [viewing, photos]);
 
+  /** Photographs whose file still has a date on offer, this one included. */
+  const fileDated = photos.filter(
+    (p) => p.taken && !fileSaysUsed(p.taken, meta[p.id] ?? EMPTY_ANSWERS)
+  );
+
+  /** Put every file's own date into its own photograph. Unlike `applyToAll`
+   *  nothing is copied across: a photograph whose file says nothing keeps
+   *  what it had. It does overwrite a typed year, exactly as "Use it" would,
+   *  so "use these answers for all" followed by this gives each photograph
+   *  the shared tags and its own date. */
+  const useEveryFileDate = useCallback(() => {
+    const dating = photos.filter((p) => p.taken);
+    setMeta((prev) => {
+      const next = { ...prev };
+      for (const p of dating) next[p.id] = { ...(prev[p.id] ?? EMPTY_ANSWERS), ...fileSaysAnswer(p.taken!) };
+      return next;
+    });
+    // The strip leaves with the press, so this is the only word that it worked.
+    toast.success(`Dated ${dating.length} photographs from their files.`);
+  }, [photos]);
+
   /** Whether there is anything worth copying. The apply-to-all does not
    *  appear over six blank answers, so it cannot be pressed before it means
    *  anything. */
@@ -875,7 +896,13 @@ export function ContributeRoom({
             <AnimatePresence initial={false}>
               {viewing?.taken && !fileSaysUsed(viewing.taken, shown) && (
                 <Grow key="file-says">
-                  <FileSays date={viewing.taken} answers={shown} onAnswer={answer} className="mt-3" />
+                  <FileSays
+                    date={viewing.taken}
+                    answers={shown}
+                    onAnswer={answer}
+                    all={{ count: fileDated.length, onUse: useEveryFileDate }}
+                    className="mt-3"
+                  />
                 </Grow>
               )}
             </AnimatePresence>
