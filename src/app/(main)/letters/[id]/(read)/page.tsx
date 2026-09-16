@@ -186,9 +186,19 @@ export default async function LetterPage({
           card's header does: the "..." is chrome that belongs to the piece,
           so it sits beside the person who wrote it rather than joining the
           hearts and the share glyph at the foot. Centred in the band rather
-          than top-aligned like the card's, because this avatar is a size up
-          and the band closes on its own hairline. */}
-      <div className="mt-5 flex items-center justify-between gap-3 border-b border-border pb-6">
+          than top-aligned like the card's, because this avatar is a size up.
+
+          No hairline under the band, and no padding holding one up (owner,
+          2026-09-16: "it's doing nothing and it's barely even visible").
+          DESIGN-SYSTEM.md's dialog rule is the general case -- sections are
+          separated by space, never a hairline, widen the gap instead -- and a
+          reading page is the purest instance of it: there is exactly one
+          section break on the whole surface, so the line had nothing to
+          disambiguate. It was also buying its invisibility expensively, at
+          24px of pad above and 28px of margin below, which put 53px between
+          the bird and the first word. The gap below is now the only thing
+          marking the break, and it is one line of the body's own rhythm. */}
+      <div className="mt-5 flex items-center justify-between gap-3">
         <IdentityRow
           user={{ id: letter.author.id, name: letter.author.name, photoUrl: letter.author.photoUrl, birdOverride: letter.author.birdOverride }}
           avatarSize="md"

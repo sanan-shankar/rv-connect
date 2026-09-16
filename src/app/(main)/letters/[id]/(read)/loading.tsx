@@ -2,8 +2,10 @@
    view record before it can paint. Without this the member sat on the letters
    index staring at nothing while all four happened (audit M06). Shaped like
    the letter itself, so the wait reads as the page arriving rather than as a
-   different screen: the measure, the 40px title with its cinnamon rule, the
-   64px bird on the byline and the rule under it, all off page.tsx. */
+   different screen: the measure, the 40px title with its cinnamon rule and
+   the 64px bird on the byline, all off page.tsx. The hairline that used to
+   close the byline band went on 2026-09-16; it goes from both files or the
+   skeleton draws a line the letter then removes on arrival. */
 export default function LetterLoading() {
   return (
     /* The article's own reading measure (page.tsx: 680px inside the 768px
@@ -15,7 +17,7 @@ export default function LetterLoading() {
         <div className="skeleton-warm h-3 w-32 rounded-md" />
         <div className="skeleton-warm mt-2 h-10 w-4/5 rounded-md" />
         <div className="skeleton-warm mt-2 h-[2px] w-24 rounded-sm" />
-        <div className="mt-5 flex items-center gap-3 border-b border-border pb-6">
+        <div className="mt-5 flex items-center gap-3">
           <div className="skeleton-warm h-16 w-16 rounded-full" />
           <div className="space-y-2">
             <div className="skeleton-warm h-3.5 w-32 rounded-md" />
