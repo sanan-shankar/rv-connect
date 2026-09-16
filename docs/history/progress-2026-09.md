@@ -1,3 +1,16 @@
+## 2026-09-16 (lab, review) — the four valley pieces reviewed: none taken, a handover for fresh ideas
+
+His review of `/lab/valley`, verbatim as ¶9 of `docs/planning/valley/brief.md`: the lit mark
+is not an exciting way to reference time in school, the day/night line complicates a
+directory map that already has its own thing, the seal is a brown spot below a large size and
+a member's bird is not a symbol people know, and the hills, the coolest of the four, are
+nowhere near detailed enough because the school is a dot in them. The idea of time in school
+survives in principle. `docs/planning/valley/next-session.md` is the handover for a fresh
+Fable session: his words quoted per piece, the previous session's reading beneath them, the
+frequency budget locked, the process recommended (an hour or more of ideas as one hand,
+three built, hours of finishing), the seeds and the rejected paths listed with reasons. The
+rooms stay as the record; the registry note says so.
+
 ## 2026-09-16 (lab) — the site knows where it is: the real hills, the sun on the mark, the night on the map, a bird in wax
 
 The owner, 2026-09-15: *"take that one concept of insanely sick web dev tricks and visuals

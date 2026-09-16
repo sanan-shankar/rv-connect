@@ -58,6 +58,16 @@ reviews themselves, 160KB) are the source. What transfers, in his words there:
 What does NOT transfer (¶3): scroll theatre on a daily surface. His own example: text
 assembling from dots on every feed open, *"i'd get sick of it after three times"*.
 
+## His review of round one (2026-09-16, ¶9 in `brief.md`)
+
+None of the four is taken as it stands. His words, per piece, are in `next-session.md`
+alongside the previous session's reading of them; the short form: the lit mark is *"not an
+exciting way to do it"*, the day/night map *"complicates the directory"*, the seal *"just
+looks like a brown spot"* below a large size and the bird is not a recognisable symbol, and
+the hills, *"obviously the coolest"*, are *"no where detailed enough to be cool ... our
+school is just a dot."* The idea of referencing time in school survives in principle. The
+next session starts from `next-session.md`.
+
 ## Decisions
 
 - **LOCKED (¶3, ¶1).** The frequency budget. Always-on things are sub-threshold and change
@@ -159,10 +169,12 @@ assembling from dots on every feed open, *"i'd get sick of it after three times"
 | `npm run check` green | DONE | 129 tests |
 | Progress entry and commit | DONE | 2026-09-16 |
 | Round two, same night | DONE | the live hills embedded on the overview (compact: no dial, no wheel capture so the page keeps scrolling), the sun drawn as a disc in the sky under the canvas so a ridge can stand in front of it, a north needle while orbiting |
-| Round three: the archive wall | TODO | needs the R2 atlas script; see "Considered and not taken" |
+| His review of round one | DONE | 2026-09-16 morning, ¶9: none taken as it stands; verdicts recorded above and in `next-session.md` |
+| Round two, fresh ideas | TODO | a fresh Fable session, started from `next-session.md`; the archive wall is still unjudged and still a candidate |
 
 ## Log
 
+- 2026-09-16, morning. He reviewed all four (¶9): none taken. Wrote `next-session.md`, the handover for a fresh session, and this section.
 - 2026-09-16, 00:50. Round two: the overview opens on the live hills, the sun is in the sky, north is marked. Shot again at both viewports. The throwaway shot runner used all night is `/tmp/rv-valley-shots.mjs` (not in the repo; `node /tmp/rv-valley-shots.mjs <name-regex>`).
 - 2026-09-16, 00:40. All four pieces built and shot; two bugs found by the shots (unplaced late labels, the dead context after React's double mount) and one of mine (a duplicate `press`) that took the dev server down for three minutes. Committed.
 - 2026-09-16, 00:20, the opening session (Fable). Read obys (`CLAUDE.md`, `TASTE.md`, the
