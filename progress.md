@@ -17,6 +17,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 - 2026-09-17 (collection) — every file's own date, in one press
 - 2026-09-16 (feed, fix) — the carousel stops resizing under your thumb, and the swipe stops overshooting
+- 2026-09-17 (feed) — the reply box opens and closes smoothly, wherever the comment is
 - 2026-09-16 (feed) — the hover tint comes back out, and a reply you did not mean lets go
 - 2026-09-16 (feed) — the comment section ships; the two looks become one
 - 2026-09-16 (feed, lab) — the comment section gets its moments, and the row gets gone over
