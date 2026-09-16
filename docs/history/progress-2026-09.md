@@ -7273,3 +7273,69 @@ reproduces this exactly, and it now seeds a piece's comments alongside it.
 Verified: `npm run check` green; 10 letters and 6 posts read back in the intended order; the Gerry
 post carries 13 comments (12 seeded plus the real one). Not verified: how the ten actually read end
 to end on a phone, which only the owner can judge.
+
+## 2026-09-16 (directory) — the people grid stops lurching and re-forms as one wave
+
+Owner: *"when it enters it doesn't even appear ... it appears halfway and then appears fully ...
+it's like at one frame per second, it's just going in this very rough way ... I think it's trying
+to move the cards around and that is a good idea but if the cause of the bad animation is us
+trying to do that then let's just ditch that."*
+
+**Measured before touching anything**, at 4x CPU throttle, 84 members, two letters typed into the
+search box: long tasks of 510, 466, 394 and 370ms; worst frames of 517, 483, 400 and 367ms;
+entering People from Map produced a single **967ms frame**. Four separate causes, and the owner's
+two complaints turned out to be different ones.
+
+*"Halfway, then fully"* was arithmetic, not timing. Three things faded the same pixels for one
+event: the content wrapper dimmed to `opacity-55` while the navigation was in flight, the view
+crossfade brought it back to 1, and auto-animate faded in every card underneath both. The grid
+genuinely did arrive at 55% and then finish.
+
+*"One frame per second"* was `useAutoAnimate` on the grid. It measures every child from a
+MutationObserver, one `getBoundingClientRect` at a time, interleaved with the style writes it makes
+as it goes — 60 cards is 60 forced layouts — and it animates width and height, which re-lays out
+the page on every frame of its own animation. It also animated all 60 when nine were on screen.
+Underneath that, the server hands down a fresh array of fresh objects on every filter change, so
+all 46 survivors of a narrowing re-rendered their bird glyphs in the same frame.
+
+**Considered and not taken: gliding the survivors.** The obvious repair is to do auto-animate's job
+properly — keep the cards keyed by person, read every rect in one pass, FLIP the survivors from
+where they were to where they now are, so you can watch who stayed. It was built and it ran at
+60fps. Filmed at 8% speed it was wrong: 46 cards each drifting a different short vector at once
+reads as jelly. The fault is in the premise — this server sorts by relevance, so a search does not
+narrow the order, it replaces it, and a motion promising "follow this person across the change"
+cannot be kept.
+
+**What shipped instead**, in `src/components/directory/directory-grid.tsx`: the grid is a board of
+SLOTS, and only the slots whose occupant changed animate. Nothing moves horizontally, nothing
+changes position at all. A changed slot dims and sinks 4px, the list commits underneath, the new
+occupant rises 9px into the same place, stepped **per row** so it reads as one band travelling down
+the page rather than a diagonal. A slot holding the same person before and after does not move —
+which is what FLIP was reaching for, and it is legible here because stillness is easier to read than
+travel. Because no position changes there is no layout animation, so the whole re-form is
+`transform` and `opacity` handed to `motion/mini` (a thin Web Animations wrapper), both keyframe
+ends written out so it never reads the DOM back.
+
+Three things keep it free as the school grows: only slots within half a screen animate;
+`ProfileCard` is memoised on a comparator that walks every key rather than naming fields (the
+select is ten flat scalars, so it cannot rot); and the card carries `content-visibility: auto` with
+a measured size hint, which is the only way the browser's own layout and paint of a 1624px grid in
+a 900px window comes down. That property rides on the lockup rather than the Link on purpose — it
+brings paint containment, which would clip a descendant's box-shadow, i.e. the card's lift.
+
+**After**, same conditions. At 1x: a search drops 2 frames, worst frame 33ms, one 60ms long task;
+entering People one 103ms long task; scrolling perfectly clean. At 4x: 510/466/394/370 became
+270/65, and the 967ms frame became 400ms. Honest caveat given to the owner: this is a dev build,
+where React double-renders under Strict Mode and `jsxDEV` alone was 976ms of the first 5.7s
+profile. The remaining hitch is React creating 1652 DOM nodes (60 cards x 23, of which 15 are the
+bird's SVG); closing it needs either windowing or a sprite-based avatar, neither of which belongs
+in this change.
+
+Also: the no-results card arrives on `FadeRise` instead of snapping in, which was the last hard cut
+left on the page and landed on the commonest dead end there is. Five rules pinned in
+`directory-rule.test.mjs`, including the `startTransition` one whose comment had claimed since
+2026-08-28 that it was pinned and was not. Verified at 1440x900 and 390x844, filmed at 6% and 8%
+speed to judge the choreography, stress-tested against a fast typist (no card stranded, no inline
+style left behind), pixel-diffed the card with and without `content-visibility` to prove the shadow
+survives (69 differing subpixels of 109,440, max delta 7 — antialiasing). `npm run check` green,
+`npm run visual` 25/25.

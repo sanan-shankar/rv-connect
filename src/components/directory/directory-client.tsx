@@ -2,9 +2,8 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useCallback, useRef, useEffect, useMemo, useTransition } from "react";
-import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { AnimatePresence, m } from "motion/react";
-import { EASE_OUT_SMOOTH } from "@/components/common/motion";
+import { EASE_OUT_SMOOTH, FadeRise } from "@/components/common/motion";
 import { SegmentedPills } from "@/components/common/segmented-pills";
 import { PageHeader } from "@/components/layout/page-header";
 import { SearchPill } from "@/components/layout/search-pill";
@@ -19,7 +18,7 @@ import type { FacetOption } from "@/components/common/filters/types";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
-import { ProfileCard } from "./profile-card";
+import { DirectoryGrid } from "./directory-grid";
 import type { CityPin, PinPerson } from "./alumni-map";
 import { loadDirectoryPage } from "@/app/(main)/directory/actions";
 /* The person type is DERIVED from `PERSON_SELECT` and named here rather than
@@ -188,7 +187,6 @@ export function DirectoryClient({
   const [results, setResults] = useState<DirectoryPerson[]>(users);
   const [cursor, setCursor] = useState<string | null>(nextCursor);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [gridRef] = useAutoAnimate();
 
   /* Which list the rows on screen belong to. Bumped every time the server
      hands down a new first page, and captured by any "Load more" in flight:
@@ -651,22 +649,33 @@ export function DirectoryClient({
           out, 180ms in, and the incoming view waits for the outgoing one so
           the two are never both on screen fighting for the same space.
 
-          The wrapper dims while a navigation is in flight, and only once
-          showPending has waited out its 150ms -- see the note on that state.
-          Opacity only, per the motion rule. */}
+          NEITHER OPACITY HERE APPLIES TO PEOPLE ANY MORE, and that is the fix
+          for what the owner was watching on 2026-09-16: "it appears halfway
+          and then appears fully". It was not a timing bug. Three things faded
+          the same pixels for the same event -- this wrapper dimming to 0.55
+          while the navigation ran, this crossfade bringing the view back to 1,
+          and auto-animate fading in every card underneath both -- so the grid
+          genuinely did arrive at 55% and then finish. DirectoryGrid now
+          choreographs its own change, card by card, which is a better report
+          of the same event than a dim over the top of it; a second one is
+          noise. Map and Batches keep both, because neither animates its own
+          content and a filter landing on them has nothing else to say so. */}
       <div
         aria-busy={showPending || undefined}
         className={cn(
           "flex min-h-0 flex-1 flex-col transition-opacity duration-200 ease-out",
-          showPending && "opacity-55"
+          showPending && browseView !== "people" && "opacity-55"
         )}
       >
         <AnimatePresence mode="wait" initial={false}>
           <m.div
             key={browseView}
             className="flex min-h-0 flex-1 flex-col"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1, transition: { duration: 0.18, ease: EASE_OUT_SMOOTH } }}
+            initial={{ opacity: browseView === "people" ? 1 : 0 }}
+            animate={{
+              opacity: 1,
+              transition: { duration: browseView === "people" ? 0 : 0.18, ease: EASE_OUT_SMOOTH },
+            }}
             exit={{ opacity: 0, transition: { duration: 0.12, ease: "easeOut" } }}
           >
         {browseView === "people" ? (
@@ -688,7 +697,14 @@ export function DirectoryClient({
                 </p>
               </div>
             ) : results.length === 0 ? (
-              <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
+              /* The one moment the grid cannot choreograph, because it is
+                 not there: a search that matches nobody unmounts
+                 DirectoryGrid and puts this in its place. Snapping in was
+                 the last hard cut left on the page, and it landed on the
+                 most common dead end there is -- a name typed that nobody
+                 has. FadeRise is the app's own arrival, so the card comes
+                 in the same way the cards it replaced did. */
+              <FadeRise className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
                 <div className="mb-3 flex justify-center">
                   <NoResultsHoopoe size={76} />
                 </div>
@@ -715,21 +731,12 @@ export function DirectoryClient({
                     Clear all
                   </Button>
                 )}
-              </div>
+              </FadeRise>
             ) : (
               <>
-                {/* No gap below sm: there the cards are borderless rows, and a
-                    16px gutter between rows in a plain series reads as things
-                    drifting apart. From sm up they are boxed cards in a grid and
-                    need the gutter back. */}
-                <div
-                  ref={gridRef}
-                  className="grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3"
-                >
-                  {results.map((user) => (
-                    <ProfileCard key={user.id} user={user} />
-                  ))}
-                </div>
+                {/* Every question about how one result set becomes another is
+                    answered in here, and nowhere else on this page. */}
+                <DirectoryGrid people={results} />
                 {cursor && (
                   <div className="flex justify-center pt-6">
                     <Button
