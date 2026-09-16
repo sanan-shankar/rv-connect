@@ -55,9 +55,24 @@
  *      with no readable stamp at all is REFUSED, not filed undated,
  *      because a silently undated photograph is invisible to the rail.
  *
+ *  THE VALLEY HALF, WITH CAPTIONS. `--scope valley` files into the
+ *  school's shared Collection instead, which every member sees; it is
+ *  refused for anyone but an admin, because these rows land approved and
+ *  only an admin's contribution skips review in the app. `--captions`
+ *  names a TSV of `file<TAB>caption`, and it must cover the folder
+ *  exactly: a name in it with no file, or a file with no line, stops the
+ *  run before anything is encoded, since a typo there otherwise files a
+ *  photograph under its neighbour's caption. `--buckets school-life` puts
+ *  every row in the same buckets. `--folder` takes one folder of the
+ *  album rather than all of them. Built for the owner's spoken pass over
+ *  "Pics from Nattu" (2026-09-17), one folder at a time.
+ *
  *  Run: node scripts/dev/import-album.mjs [--apply] [--quality 90]
  *                                         [--album <dir>] [--as <email>]
  *                                         [--limit N] [--env .env]
+ *                                         [--scope class|valley]
+ *                                         [--folder <name>] [--captions <tsv>]
+ *                                         [--buckets a,b]
  *       node scripts/dev/import-album.mjs --undo scripts/dev/.album-import/….jsonl --apply
  * ------------------------------------------------------------------ */
 
@@ -75,7 +90,7 @@ import { exifStamp, parseExifStamp } from "../../src/lib/exif-date.ts";
    script can have them; the copies that used to be here drifted from the
    app the moment either changed. */
 import { exifBlockOf, gridThumb } from "../../src/lib/collection-image.ts";
-import { eraFromYear } from "../../src/lib/collection.ts";
+import { BUCKET_VALUES, eraFromYear } from "../../src/lib/collection.ts";
 import { COLLECTION_WEBP_QUALITY } from "../../src/lib/upload-shared.ts";
 
 const { flag, value } = argv();
@@ -91,6 +106,10 @@ const AS = value("--as", "sanan.v.shankar@gmail.com");
 const ALBUM = value("--album", "sanan's stuff/album");
 const PROVENANCE = value("--provenance", "sanan's stuff/album-date-provenance.txt");
 const envFile = value("--env", ".env");
+const SCOPE = value("--scope", "class");
+const FOLDER = value("--folder", null);
+const CAPTIONS = value("--captions", null);
+const BUCKETS = [...new Set(value("--buckets", "").split(",").map((b) => b.trim()).filter(Boolean))];
 
 /* Beside the script, never in the root: it holds a ledger naming real
    photographs, and the owner keeps the root short. `.gitignore` already
@@ -105,6 +124,15 @@ for (const k of ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R
     console.error(`No ${k} in ${envFile}: refusing to run against the local filesystem fallback.`);
     process.exit(1);
   }
+}
+if (SCOPE !== "class" && SCOPE !== "valley") {
+  console.error(`--scope must be class or valley, got ${SCOPE}`);
+  process.exit(1);
+}
+const unknownBucket = BUCKETS.find((b) => !BUCKET_VALUES.includes(b));
+if (unknownBucket) {
+  console.error(`--buckets: ${unknownBucket} is not one of ${BUCKET_VALUES.join(", ")}`);
+  process.exit(1);
 }
 if (!Number.isInteger(QUALITY) || QUALITY < 1 || QUALITY > 100) {
   console.error(`--quality must be 1-100, got ${QUALITY}`);
@@ -146,8 +174,11 @@ const who = (
 ).rows[0];
 if (!who) fail(`No account for ${AS}`);
 const classYear = /^\d{4}$/.test(String(who.batchYear)) ? String(who.batchYear) : null;
-if (who.verifyState !== "verified" || !classYear) {
+if (SCOPE === "class" && (who.verifyState !== "verified" || !classYear)) {
   fail(`${AS} is ${who.verifyState} with batchYear ${who.batchYear}: cannot contribute to a Class Collection.`);
+}
+if (SCOPE === "valley" && who.role !== "admin") {
+  fail(`${AS} is ${who.role}: only an admin's valley photographs skip review, and these rows land approved.`);
 }
 
 function fail(message) {
@@ -215,10 +246,29 @@ async function yearOnlySet() {
  * ------------------------------------------------------------------ */
 const yearOnly = await yearOnlySet();
 
-const folders = (await readdir(ALBUM, { withFileTypes: true }))
-  .filter((d) => d.isDirectory())
-  .map((d) => d.name)
-  .sort();
+const folders = FOLDER
+  ? [FOLDER]
+  : (await readdir(ALBUM, { withFileTypes: true }))
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name)
+      .sort();
+
+/* file name -> caption, or null when no `--captions` was given. */
+async function captionMap() {
+  if (!CAPTIONS) return null;
+  const map = new Map();
+  for (const line of (await readFile(CAPTIONS, "utf8")).split("\n")) {
+    if (!line.trim()) continue;
+    const [name, caption = ""] = line.split("\t");
+    // 300 is `photoSchema`'s ceiling in src/lib/validators.ts, which a bare
+    // node cannot import (it resolves its siblings without extensions).
+    if (!caption.trim() || caption.trim().length > 300) fail(`${CAPTIONS}: bad caption for ${name}`);
+    if (map.has(name)) fail(`${CAPTIONS}: ${name} is listed twice`);
+    map.set(name, caption.trim());
+  }
+  return map;
+}
+const captions = await captionMap();
 
 const planned = [];
 const refused = [];
@@ -249,6 +299,7 @@ for (const folder of folders) {
     planned.push({
       rel,
       file,
+      caption: captions?.get(name) ?? null,
       /* Null when the file had no stamp to keep: the stored copy then carries
          no date rather than one this script made up. */
       stamp,
@@ -262,6 +313,15 @@ for (const folder of folders) {
       datePrecision: yearsOnly || date.month === null ? "year" : "month",
       era: eraFromYear(year),
     });
+  }
+}
+
+if (captions) {
+  const named = new Set(planned.map((p) => path.basename(p.rel)).concat(refused.map((r) => path.basename(r))));
+  const noFile = [...captions.keys()].filter((n) => !named.has(n));
+  const noCaption = planned.filter((p) => p.caption === null).map((p) => p.rel);
+  if (noFile.length || noCaption.length) {
+    fail(`${CAPTIONS} does not match the folder.\n  no such file: ${noFile.join(", ") || "none"}\n  no caption: ${noCaption.join(", ") || "none"}`);
   }
 }
 
@@ -283,6 +343,7 @@ for (const p of todo) byYear.set(p.photoYear, (byYear.get(p.photoYear) ?? 0) + 1
 
 console.log(`album      ${ALBUM}`);
 console.log(`uploader   ${who.name} <${AS}>, class of ${classYear}, ${who.role}`);
+console.log(`into       ${SCOPE === "valley" ? "the Valley Collection" : `the Class Collection of ${classYear}`}, buckets: ${BUCKETS.join(",") || "none"}`);
 console.log(`quality    WebP q${QUALITY}, full resolution (storedResizeBox)`);
 console.log(`planned    ${todo.length} photographs${LIMIT ? ` (--limit ${LIMIT} of ${fresh.length})` : ""}`);
 if (already.size) console.log(`already in ${already.size} skipped without re-encoding`);
@@ -297,6 +358,12 @@ if (refused.length) {
   console.log(`REFUSED (no readable date, so nothing to file them under): ${refused.length}`);
   for (const r of refused.slice(0, 20)) console.log(`  ${r}`);
   if (refused.length > 20) console.log(`  ... and ${refused.length - 20} more`);
+}
+
+if (captions) {
+  for (const p of todo) {
+    console.log(`  ${String(p.photoYear)}-${String(p.photoMonth ?? "--").padStart(2, "0")}  ${path.basename(p.rel).padEnd(24)} ${p.caption}`);
+  }
 }
 
 if (!APPLY) {
@@ -376,9 +443,9 @@ async function importOne(p) {
        "exifYear","exifMonth","scope","classYears","approved","isHidden",
        "approvedAt","approvedById","createdAt","updatedAt"
      ) VALUES (
-       $1,$2,$3,$4,$5,$6,NULL,$7,
-       '',$8,$9,$10,$11,
-       $12,$13,'class',$14,true,false,
+       $1,$2,$3,$4,$5,$6,$15,$7,
+       $16,$8,$9,$10,$11,
+       $12,$13,$17,$14,true,false,
        now(),$2,now(),now()
      ) ON CONFLICT ("sourceKey") DO NOTHING
      RETURNING "id"`,
@@ -387,7 +454,9 @@ async function importOne(p) {
       `album:${p.rel}`,
       p.era, p.photoYear, p.photoMonth, p.datePrecision,
       p.photoYear, p.photoMonth,
-      classYear,
+      // Never an audience on a valley row, as photoRowData has it.
+      SCOPE === "class" ? classYear : null,
+      p.caption, BUCKETS.join(","), SCOPE,
     ]
   );
 
