@@ -1,3 +1,42 @@
+## 2026-09-16 (lab) — round two of the valley campaign: sixteen ideas judged, and every photograph at once
+
+The fresh session `next-session.md` asked for. Spent the first stretch on ideas before any code,
+as ¶9 of `docs/planning/valley/brief.md` asked (*"i'm so happy if an hour goes in brainstorming
+and planning and ideating"*), and wrote them down: `docs/planning/valley/ideas-round-two.md`,
+sixteen candidates judged against his bar (relevance times craft, the opacity test, clarity at
+every stage, the frequency budget of ¶3, symbols people recognise, *"we'd want to see our
+school"*), three to build under `/lab/years`, one idea: time, drawn.
+
+**Measured first, because the handover's numbers were rounder than the database.** 1,719 of the
+1,815 approved photographs are the Class of 2023's own collection; the valley's 96 are every one
+captioned with a place and a year, and the captions pair up (the SBT benches in 2009, 2010 and
+2022; the games field bare in 2021 and green in 2023; the banyan whole in 2014 and what was left
+of it in 2017). 83 members, 57 with a house for every year. OpenStreetMap has the campus at
+footpath level (109 paths, the pitches, the Big Banyan Tree, four houses by name) and almost no
+building outlines, so the campus-as-itself idea is parked until somebody traces them. Two valley
+thumbnails answer 404 on the image host; the rows are there, the objects are not.
+
+**Built: the wall, `/lab/years/wall`.** Every photograph the viewer may see (the Collection's own
+scope rule, both halves), on one wall in justified rows by year, newest first, each year as tall
+as it was full. One world, one camera: scroll or pinch out of a photograph and it takes its place
+among its neighbours, then among all 1,815 with the years down the left; pinch in on any one and
+it comes back up. A tap steps photograph, neighbours, whole wall. Raw WebGL2: one instanced draw
+from an atlas of 64px tiles that `scripts/dev/wall-atlas.mjs` packs from the real thumbnails into
+`public/lab/wall/` (gitignored: real photographs, served by the dev server, never deployed); a
+photograph past 90 screen pixels is promoted to its 480px thumbnail and past 640 to the full
+picture, fading in so the hand-off never pops. The wall's width is solved twice so the whole thing
+has the viewport's shape; a gutter holds the year labels and a band the readout.
+
+**Verified.** Shot at 1440 and 390 at all three levels, plus six wheel steps, a two-finger pinch and
+a one-finger drag driven through CDP on the phone viewport, and the three-tap cycle. Three rounds:
+the first found the zoom ceiling capping the start photograph at 240px, the year labels never
+placed once React rendered them, and the whole-wall fit narrower than the stage; the second found
+the readout over the last row and the phone's labels sitting on the photographs. No console errors
+in any run. `npm run check` green.
+
+**Not built yet:** the second and third rooms (the same bench years apart; everyone who was here as
+thread), planned in the ideas file and listed on `/lab/years` as not built.
+
 ## 2026-09-16 (lab, review) — the four valley pieces reviewed: none taken, a handover for fresh ideas
 
 His review of `/lab/valley`, verbatim as ¶9 of `docs/planning/valley/brief.md`: the lit mark
