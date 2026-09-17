@@ -19,8 +19,8 @@ test("the ceiling depends on the kind, and an unknown kind is a plain post", () 
 
 test("a plain post's ceiling is lower than a letter's", () => {
   // If these ever became equal the conditional cap would be pointless, and if
-  // they inverted the composer's "this would make a lovely Letter" nudge would
-  // be pointing at the shorter option.
+  // they inverted the composer's "make it a letter" offer would be pointing at
+  // the shorter option.
   assert.ok(POST_CONTENT_MAX.post < POST_CONTENT_MAX.letter);
 });
 

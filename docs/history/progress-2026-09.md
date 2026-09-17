@@ -7808,3 +7808,44 @@ of mind, stale page, refusal, the cap, only the last tap's promise reporting. In
 300ms apart flipped five times, sent three requests, and a reload showed the database matching. The
 save latency itself is not touched here. Check green apart from ESLint on another session's uncommitted
 hoopoe files.
+
+## 2026-09-17 (letters) — 300 words is the line between a post and a letter
+
+His words: "anything less than 300 should be a post. anything more should be a letter", because the
+short letters were "confusing the point of a letter which is for longer pieces". The line is
+`LETTER_MIN_WORDS` in `src/lib/utils.ts`, beside a shared `countWords` that `readMinutes` now uses too.
+
+The data: the Anonymous account had five letters under 300 words (After the Flash Flood 82, School
+Sick 108, Nicobar 184, Best of Five 252, The Banyan Tree 264) and one post over (The Hippy Rebellion,
+468). The five became posts, their titles cleared, since a post prints none and all five open as
+first-person memories that stand without one. The Hippy Rebellion became a letter titled from
+`picks.md`. Dry run first, then one `DO` block that raised unless exactly 5 and 1 rows changed. Now 10
+posts all under, 6 letters all over. Dates, likes and comments untouched; notification links derive
+from `kind` at read time. Undo:
+
+    UPDATE "Post" SET kind='letter', title=CASE id
+      WHEN 'seed-wa-a-story-about-rv-and-nicobar' THEN 'A story about RV. And Nicobar.'
+      WHEN 'seed-wa-after-the-flash-flood' THEN 'After the Flash Flood'
+      WHEN 'seed-wa-best-of-five' THEN 'Best of Five'
+      WHEN 'seed-wa-school-sick' THEN 'School Sick'
+      WHEN 'seed-wa-the-banyan-tree' THEN 'The Banyan Tree' END
+    WHERE id IN ('seed-wa-a-story-about-rv-and-nicobar','seed-wa-after-the-flash-flood',
+      'seed-wa-best-of-five','seed-wa-school-sick','seed-wa-the-banyan-tree');
+    UPDATE "Post" SET kind='post', title=NULL WHERE id='seed-wa-the-hippy-rebellion';
+
+Left alone, as he scoped it to the anonymous pieces: one real member's letter under 300 words. The
+seeder's kinds and running-order note follow the move. The dates were not re-chosen, so Mt Kailash and
+The Last Event of the Day now sit side by side, two 5k+ pieces the original order kept apart.
+
+The composer: past 300 words a post shows "This is turning into a longer piece. Make it a letter?" with
+Keep as a post and Make it a letter. Inline between the field and the Post row rather than a dialog,
+so nobody loses the keyboard mid-sentence. Taking it switches the same composer in place, words kept,
+caret in the new title field. Answered once, either way, including through the + menu. It replaces the
+600-character "This might make a lovely Letter" hint, whose link went to /letters and dropped the post.
+Not shown on a poll. Letters under 300 words are not refused anywhere.
+
+Driven in a browser as Jerry at 1440 and 390, light and dark: nothing at 300 words, the offer at 301,
+301 words kept after converting, title focused, no console errors, no draft left behind. Icon centred on
+the first line and the phone's buttons flush with the sentence, both measured. `composer-rule.test.mjs`
+pins the line, the in-place switch and the missing link. Check green apart from ESLint on another
+session's uncommitted hoopoe files; visual 25/25.

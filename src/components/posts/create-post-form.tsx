@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FIELD_FOCUS } from "@/components/ui/field-focus";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { ImagePlus, X, BarChart3, Feather, Plus, MapPin, Check, Images } from "lucide-react";
 import { m, AnimatePresence } from "motion/react";
 import { buttonVariants } from "@/components/ui/button";
@@ -14,7 +13,7 @@ import { createPost, editPost, publishDraft } from "@/app/(main)/feed/actions";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
 import { PhotoAimButton } from "@/components/common/photo-aim";
-import { cn } from "@/lib/utils";
+import { cn, countWords, LETTER_MIN_WORDS } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
 import { useComposerUploads } from "./use-composer-uploads";
 import { MAX_IMAGES } from "@/lib/upload-ownership-rule";
@@ -67,10 +66,6 @@ const AttachImageDialog = dynamic(
  *  storage/rendering/search never change. Mentions stay a literal
  *  "@[Name](id) " text insertion.
  * ------------------------------------------------------------------ */
-// Past this length a post is nudged toward Letters instead of being capped or
-// counted down. No red numbers, no limits messaging: just a hint.
-const LETTER_NUDGE_LEN = 600;
-
 // Owner's wording, 2026-08-04: no "sighting", and the community rather than
 // the valley. Two things offered instead of three reads as an invitation
 // rather than a menu.
@@ -140,6 +135,12 @@ export function CreatePostForm({
   const [content, setContent] = useState(initialContent ?? "");
   const [kind, setKind] = useState<"post" | "letter">(defaultLetter ? "letter" : "post");
   const [title, setTitle] = useState(initialTitle ?? "");
+  /* The offer to make a long post a letter is answered once. "Keep as a post"
+     closes it, and so does taking it: someone who switched and then chose
+     "Back to a post" from the menu has already said no, and being asked again
+     at the next keystroke would be nagging. */
+  const [letterOfferAnswered, setLetterOfferAnswered] = useState(false);
+  const titleRef = useRef<HTMLInputElement>(null);
   /* "Add to the Collection", the one item the "+" menu grows once a photo is
      attached. Off by default and never remembered between posts: it is an
      offer, and an offer that quietly stays on would put photographs in the
@@ -206,6 +207,20 @@ export function CreatePostForm({
       ? "Ask your question"
       : collapsedPlaceholder;
   const hasContent = content.trim().length > 0;
+  // Never on the letters desk, and never over a poll: a poll is a question,
+  // however long its preamble runs.
+  const offerLetter =
+    !isLetter && !defaultLetter && !hasPoll && !letterOfferAnswered &&
+    countWords(content) > LETTER_MIN_WORDS;
+
+  function makeItALetter() {
+    setKind("letter");
+    setLetterOfferAnswered(true);
+    // The press has already taken focus out of the editor, so it goes to the
+    // title that has just appeared, which is the one thing a letter asks for
+    // that a post did not. Preventing scroll keeps the words where they were.
+    requestAnimationFrame(() => titleRef.current?.focus({ preventScroll: true }));
+  }
 
   /* The feed composer is only ever mounted by a press of New post, so
      arriving IS the moment to take the caret. preventScroll: opening must
@@ -503,6 +518,7 @@ export function CreatePostForm({
           setContent("");
           setTitle("");
           setKind(defaultLetter ? "letter" : "post");
+          setLetterOfferAnswered(false);
           // Drops the list and releases the blob urls this composer minted
           // (audit C-183); see the hook.
           resetImages();
@@ -564,6 +580,7 @@ export function CreatePostForm({
     <>
       {isLetter && (
         <input
+          ref={titleRef}
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -631,29 +648,61 @@ export function CreatePostForm({
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0, transition: { ...SPRINGS.settle, delay: 0.16 } }}
       >
-        {/* Gentle, non-blocking nudge once a post runs long: no red numbers, no
-            limits messaging, just a hint that Letters might suit it better.
-            Only opacity animates (mounts fresh each time, so the surrounding
-            layout reflows once instead of the row height itself animating). */}
+        {/* Past LETTER_MIN_WORDS a post is offered the letter it is turning
+            into (owner, 2026-09-17). An offer in the flow, not a dialog: a
+            modal arriving mid-sentence takes the keyboard away from someone
+            who is writing, and nothing here is urgent enough to do that.
+            It rises in between the field and the Post row, so the words being
+            typed never move, only the controls under them. Taking it switches
+            this same composer in place; the words stay exactly as typed. The
+            old hint here linked to /letters and dropped the post on the way. */}
         <AnimatePresence>
-          {!isLetter && content.length > LETTER_NUDGE_LEN && (
-            <m.p
-              key="letter-nudge"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+          {offerLetter && (
+            <m.div
+              key="letter-offer"
+              role="status"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4, transition: { duration: 0.14, ease: "easeOut" } }}
               transition={SPRINGS.gentle}
-              className="text-[13px] leading-snug text-muted-foreground"
+              className="flex items-start gap-2.5 rounded-[var(--radius-input)] border border-cinnamon/30 bg-cinnamon/[0.07] px-3 py-2"
             >
-              This might make a lovely{" "}
-              <Link
-                href="/letters"
-                className="font-medium text-cinnamon hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-              >
-                Letter
-              </Link>
-              .
-            </m.p>
+              {/* mt-1 centres the 16px glyph on the first 24px line, whether
+                  the buttons share that line (desktop) or wrap under it. */}
+              <Feather aria-hidden className="mt-1 h-4 w-4 shrink-0 text-cinnamon" />
+              <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                <p className="text-[13px] leading-6 text-foreground">
+                  This is turning into a longer piece. Make it a letter?
+                </p>
+                {/* -my-1: the 32px buttons may not make the line taller than
+                    the 24px text they sit beside. -ml-3 on a phone, where they
+                    wrap: the ghost button's padding would otherwise indent its
+                    label from the sentence above it. */}
+                <div className="-my-1 -ml-3 flex items-center gap-1.5 sm:ml-0">
+                  <button
+                    type="button"
+                    onClick={() => setLetterOfferAnswered(true)}
+                    className={buttonVariants({ variant: "ghost", size: "xs" })}
+                  >
+                    Keep as a post
+                  </button>
+                  {/* The outline variant's hairline disappears on the cinnamon
+                      tint, which left two labels and no button. A paper fill
+                      and a cinnamon edge make the offer the thing to press
+                      without bringing a second canopy pill next to Post. */}
+                  <button
+                    type="button"
+                    onClick={makeItALetter}
+                    className={cn(
+                      buttonVariants({ variant: "outline", size: "xs" }),
+                      "border-cinnamon/40 bg-card text-foreground"
+                    )}
+                  >
+                    Make it a letter
+                  </button>
+                </div>
+              </div>
+            </m.div>
           )}
         </AnimatePresence>
 
@@ -918,6 +967,7 @@ export function CreatePostForm({
                           role="menuitem"
                           onClick={() => {
                             setKind(isLetter ? "post" : "letter");
+                            setLetterOfferAnswered(true);
                             if (!isLetter) setPollOptions(null);
                             setMore(false);
                           }}
