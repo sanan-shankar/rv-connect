@@ -5,11 +5,12 @@
  *
  *  A heart or a bookmark flips the instant it is touched and the server
  *  action follows. Getting that right takes four things, and three
- *  components each wrote out all four: a ref (not state) so a double tap
- *  is refused in the SAME tick that `disabled` would only catch on the
- *  next render (C-010/C-178), the optimistic flip, a rollback with a
- *  toast when the action refuses, and adopting what the row actually
- *  says rather than what the tap assumed (C-133).
+ *  components each wrote out all four: one request per subject in the air
+ *  at a time, so two toggles never race (C-010/C-178), the optimistic
+ *  flip, a rollback with a toast when the action refuses, and adopting
+ *  what the row actually says rather than what the tap assumed (C-133).
+ *  How taps made during a flight are honoured rather than refused is
+ *  `lib/toggle-queue.ts`.
  *
  *  `settledHeart` in lib/heart.ts already owned the last of those. What
  *  was still written three times is everything around it -- the feed
@@ -23,95 +24,47 @@
  *  all three.
  * ------------------------------------------------------------------ */
 
-import { useRef } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { settledHeart } from "@/lib/heart";
+import { createToggleQueue, type ToggleResult } from "@/lib/toggle-queue";
 
-/** What the toggle actions answer with. All three fields undefined means the
- *  action did not say -- an older shape, or a demo stub -- and the optimistic
- *  flip stands.
- *
- *  `liked` and `loved` are the same fact under two names: posts and comments
- *  are liked, Catch-up answers and Collection photos are loved. The hook takes
- *  either rather than making five server actions agree on a word. */
-type ToggleResult = {
-  error?: string;
-  liked?: boolean;
-  loved?: boolean;
-  bookmarked?: boolean;
-};
+/* `liked` and `loved` in ToggleResult are the same fact under two names:
+   posts and comments are liked, Catch-up answers and Collection photos are
+   loved. The hook takes either rather than making five server actions agree
+   on a word.
 
-type Options = {
-  /** Flip on screen but write nothing. The demo's posts are read-only, and a
-   *  heart that refuses to move reads as broken rather than as a demo. */
-  skipAction?: boolean;
-  /** WHICH thing this tap is about -- a post id, a photograph id. The
-   *  in-flight guard is kept per subject, and the action is handed this back,
-   *  so one hook can serve a whole list of hearts.
-   *
-   *  Four of the five hearts are drawn by a component that IS one subject (a
-   *  card, a comment row, a letter), so their hook instance is one subject's
-   *  too and they leave this alone. The Collection is the exception and always
-   *  was: its viewer draws one heart for whichever of hundreds of photographs
-   *  is on screen, so a single hook instance serves the lot. */
-  subject?: string;
-};
+   `subject` in the fire options says WHICH thing a tap is about. Four of the
+   five hearts are drawn by a component that IS one subject (a card, a comment
+   row, a letter) and leave it alone. The Collection's viewer draws one heart
+   for whichever of hundreds of photographs is on screen, so a single hook
+   instance serves the lot, and the queue is kept per subject: hearting one
+   photograph and swiping on to heart the next must not wait on the first
+   (owner, 2026-09-08, on an S23). */
 
 function useOptimistic<T>(
   action: (subject: string) => Promise<ToggleResult>,
   flip: (before: T) => T,
-  settle: (before: T, result: ToggleResult) => T
+  settle: (before: T, result: ToggleResult) => T,
+  same: (a: T, b: T) => boolean
 ) {
-  /* A ref, not state: `disabled={busy}` binds on the NEXT render, so a
-     double tap gets through it, and re-rendering merely to record that a
-     request is in the air would be a render nobody asked for.
-
-     A SET of subjects, not one boolean, and that is a fix rather than a
-     generalisation. The guard is meant to refuse a second tap on the heart
-     that is already mid-flight; as one boolean it refused a tap on any OTHER
-     heart the same hook instance drew. The Collection has exactly one such
-     instance for the whole archive, so hearting a photograph and then swiping
-     to the next and hearting that one -- a second apart on a phone, well
-     inside one round trip -- silently dropped the second tap. The celebration
-     had already played (the button animates on press, not on the answer), so
-     the flecks flew and the heart stayed empty: "I get the celebration with
-     the heart, the heart didn't fill in" (owner, 2026-09-08, on an S23).
-
-     Held per subject it does what it always said it did. Callers that pass no
-     subject share the key "", which is the old behaviour exactly -- correct
-     for them, because their hook instance already only ever draws one. */
-  const busy = useRef(new Set<string>());
-
-  /** Resolves with the state that STUCK, or undefined if nothing did -- the
-   *  tap was refused as a double, or the action was and the flip rolled back.
-   *  Callers with a neighbour to tell (the Saved tab, which drops a card when
-   *  its bookmark goes) wait on that rather than on the optimistic flip. */
-  return async function fire(
-    before: T,
-    commit: (next: T) => void,
-    opts?: Options
-  ): Promise<T | undefined> {
-    const subject = opts?.subject ?? "";
-    if (busy.current.has(subject)) return undefined;
-    const optimistic = flip(before);
-    commit(optimistic);
-    if (opts?.skipAction) return optimistic;
-    busy.current.add(subject);
-    try {
-      const result = await callAction(() => action(subject));
-      if (result.error) {
-        commit(before);
-        toast.error(result.error);
-        return undefined;
-      }
-      const next = settle(before, result);
-      commit(next);
-      return next;
-    } finally {
-      busy.current.delete(subject);
-    }
-  };
+  /* Created once, because the queue holds what is in the air: a re-render
+     that made a new one would forget a flight mid-way and let a second
+     request race it. So it keeps the FIRST render's action, which is sound
+     because every caller's action is fixed for the component's life: the
+     card, row, letter and answer are keyed by the id their closure names,
+     and the Collection's takes the id from the tap. */
+  const [fire] = useState(() =>
+    createToggleQueue<T>({
+      action: (subject) => callAction(() => action(subject)),
+      flip,
+      settle,
+      same,
+      onError: (message) => toast.error(message),
+    })
+  );
+  return fire;
 }
 
 /** A heart, with its count. The count is put back where it BEGAN on a
@@ -124,7 +77,8 @@ export function useHeartToggle(action: (subject: string) => Promise<ToggleResult
       liked: !before.liked,
       count: before.liked ? before.count - 1 : before.count + 1,
     }),
-    (before, result) => settledHeart(before, result.liked ?? result.loved)
+    (before, result) => settledHeart(before, result.liked ?? result.loved),
+    (a, b) => a.liked === b.liked
   );
 }
 
@@ -133,6 +87,7 @@ export function useBookmarkToggle(action: (subject: string) => Promise<ToggleRes
   return useOptimistic<boolean>(
     action,
     (before) => !before,
-    (before, result) => result.bookmarked ?? !before
+    (before, result) => result.bookmarked ?? !before,
+    (a, b) => a === b
   );
 }
