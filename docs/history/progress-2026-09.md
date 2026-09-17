@@ -7901,3 +7901,29 @@ still in the dock's LayoutGroup, so opening the composer slides the first post 1
 it slides back, sampled per frame. Flecks now peak at 0.95 opacity at 1440 and at 390 with touch
 (screenshot mid-flight). Other mount animations inside the feed that were frozen now play as written:
 poll result bars, and the photo viewer opened from a post. `npm run check` green, `npm run visual` 25/25.
+
+## 2026-09-17 (letters) — a short letter is asked whether it would rather be a post
+
+His words: "if someone writes a letter that's less than 300 that's fine. I just didn't want the seed
+content to be. but maybe when they hit publish on something less than 300 you get a thing that says
+this ... might better as post ... that they can agree to or publish still." The member letter under
+300 words that the last entry left alone is a draft; there are no published member letters under it.
+
+Publishing a letter under `LETTER_MIN_WORDS` opens a dialog: "This might work better as a post", Post
+it instead (primary) or Publish as a letter; closing it goes back to writing. A dialog here, where the
+writing offer is inline, because pressing Publish is the moment a confirmation belongs. Posting instead
+keeps the title as a bold opening line (`withTitleAsOpeningLine` in utils). A fresh letter goes through
+`createPost` as a post; a saved draft is saved as the letter first, then `publishDraft(id, { asPost })`
+converts the same row, so a refusal leaves the draft as it was and no orphan draft is left behind. The
+desk now goes to /feed after a post, since /letters/<id> 404s for one. The server does not enforce the
+line on purpose: it is advice.
+
+His copy for the writing offer, too: "This is turning into a longer piece. It might make a lovely
+letter." No question mark; the two buttons ask it.
+
+Driven as Jerry at 1440 and 390 with every server action intercepted and aborted, so nothing reached
+the live database: the dialog appears for a 40-word letter; Post it instead sends kind post, the
+folded title and no title field; Publish as a letter sends the letter unchanged. The offer still fits
+one line at 1440. Write-path review clean (it noted the line is client-only, which is intended).
+`composer-rule.test.mjs` pins the ask, both answers, the title fold on both paths and the desk's route.
+Check green, visual 25/25. Spec: letters.md §2.2.

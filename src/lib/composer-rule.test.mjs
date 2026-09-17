@@ -300,3 +300,24 @@ test("a long post is offered a letter without leaving the composer", () => {
     "the composer links away to /letters again, which drops the post being written"
   );
 });
+
+/* And the other side of the line: publishing a letter under it asks whether
+   it would sit better as a post, and never refuses (owner, 2026-09-17). */
+test("a short letter is asked, not refused, and posting it keeps its title", () => {
+  assert.match(
+    composer,
+    /isLetter && countWords\(content\) < LETTER_MIN_WORDS\s*\?\s*setAskShortLetter\(true\)\s*:\s*handleSubmit\(false\)/,
+    "Publish no longer asks about a letter under the line"
+  );
+  assert.match(composer, /handleSubmit\(false\);/, "the dialog lost its way to publish the letter anyway");
+  assert.match(composer, /handleSubmit\(false, true\)/, "the dialog lost its way to post it instead");
+  assert.match(
+    composer,
+    /formData\.set\("content", withTitleAsOpeningLine\(title, content\)\)/,
+    "a fresh short letter posted instead drops its title"
+  );
+  const publish = balancedBody(feedActions, "export async function publishDraft(");
+  assert.match(publish, /withTitleAsOpeningLine\(post\.title, post\.content\)/, "a draft posted instead drops its title");
+  assert.match(publish, /postContentMax\("post"\)/, "a draft posted instead skips the post's length ceiling");
+  assert.match(desk, /kind === "post"\) router\.push\("\/feed"\)/, "the desk opens /letters/<id> for a row that is now a post");
+});

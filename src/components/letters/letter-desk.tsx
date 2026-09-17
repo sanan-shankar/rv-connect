@@ -120,8 +120,10 @@ export function LetterDesk({
             // desk, not this same letter twice.
             router.replace(`/letters/${id}/edit`);
           }}
-          onPosted={() => {
-            router.push(postId ? `/letters/${postId}` : "/letters");
+          onPosted={({ kind }) => {
+            // A short letter published as a post has no letter page to open.
+            if (kind === "post") router.push("/feed");
+            else router.push(postId ? `/letters/${postId}` : "/letters");
           }}
         />
       </div>

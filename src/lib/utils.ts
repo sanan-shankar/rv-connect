@@ -527,6 +527,13 @@ export function countWords(content: string): number {
  */
 export const LETTER_MIN_WORDS = 300
 
+/** A letter's body as a post: a post prints no title, so a title the writer
+ *  gave is kept as a bold opening line rather than quietly thrown away. */
+export function withTitleAsOpeningLine(title: string | null | undefined, content: string): string {
+  const t = title?.trim()
+  return t ? `**${t}**\n\n${content}` : content
+}
+
 /**
  * How many valley calendar days from `now` to `at`. 0 is today, 1 tomorrow.
  *

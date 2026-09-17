@@ -55,6 +55,14 @@ Concretely, a Letter can be written anywhere the shared composer appears: the **
 | Feed rendering | full content (with the seven-line "Read more" fold already in `post-card.tsx`) | **collapsed preview card** in the feed: title + first ~2 lines + "Read this letter" → opens a dedicated reading view. It must NOT dominate the feed. |
 | Reading view | n/a (read in place) | a focused `/letters/[id]` route with serif body, generous measure, the author header, and comments/likes reused |
 
+**The line between the two is 300 words** (owner, 2026-09-17; `LETTER_MIN_WORDS` in
+`src/lib/utils.ts`). It is advice, never a rule the server enforces. Past it, the feed composer shows
+"This is turning into a longer piece. It might make a lovely letter." with Keep as a post / Make it a
+letter, which switches the same composer in place. Publishing a letter under it opens a dialog, Post it
+instead / Publish as a letter; posting it instead keeps the title as a bold opening line
+(`withTitleAsOpeningLine`, and `publishDraft(id, { asPost: true })` for a saved draft). Seeded content
+follows the line strictly: that was the point of it.
+
 ### 2.3 How it renders without dominating the feed (decision)
 
 The owner's stated fear: at 600 posts/month the feed gets cluttered, and a long essay inline would swamp everything around it. Decision:
