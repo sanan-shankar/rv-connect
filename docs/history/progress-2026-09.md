@@ -7785,3 +7785,26 @@ In dark mode the canopy caret on hover was under 2:1 on the dark paper disc, in 
 Asked whether to fix it, he said yes: `<CarouselArrow>` hovers leaf in dark (the app's existing
 `text-canopy dark:text-leaf` pairing), measured `rgb(63, 209, 106)` on the viewer's Next arrow, and the
 contribute room's plain tone takes the same swap for its ring and wash. `npm run check` green.
+
+## 2026-09-17 (hearts, fix) — every tap on a heart counts, however slow the save
+
+His words: "sometimes it just doesn't react for even 5 taps even though it compresses", and on a
+Catch-up, "the celebration shows ... but the heart doesn't colour in". On the Collection too, so it was
+the shared toggle, not a surface.
+
+Cause: `useHeartToggle` refused every tap on a subject while its request was in the air (the C-010
+guard). The button squeezes and, for a like, throws its flecks on press, so a refused like looked
+exactly like his report. Measured locally at 390 with touch: a like took 0.5 to 2.7s, and five taps
+inside one 2.7s flight changed nothing. Not caused by the comment-section work.
+
+Fix: `src/lib/toggle-queue.ts`. Every tap flips the screen. One request per subject is still in the air
+at a time, so C-010 holds; when it lands, if the server is not where the last tap wants it, one more
+toggle goes. A stale page (C-133) now ends where the member asked instead of the opposite, which is his
+"doesn't colour in, tap again and it does". Refusals roll back with the toast; four round trips cap a
+server that never agrees. Bookmarks share it.
+
+`heart.test.mjs` drove a fake slow server instead of reading the guard's lines: taps mid-flight, a change
+of mind, stale page, refusal, the cap, only the last tap's promise reporting. In the browser: five taps
+300ms apart flipped five times, sent three requests, and a reload showed the database matching. The
+save latency itself is not touched here. Check green apart from ESLint on another session's uncommitted
+hoopoe files.
