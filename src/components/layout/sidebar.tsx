@@ -793,7 +793,9 @@ export function Sidebar({
             {barTitle.title}
           </Link>
         ) : (
-          <Brand className="min-w-0 flex-1" />
+          <LogoEasterEgg className="min-w-0 flex-1">
+            <Brand className="min-w-0" />
+          </LogoEasterEgg>
         )}
         {/* The one mobile notifications entry point, on every route. The
             feed's PageHeader bell used to stand in for it there; it is now

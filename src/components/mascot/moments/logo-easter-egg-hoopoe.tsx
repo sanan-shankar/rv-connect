@@ -1,99 +1,59 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  Logo easter egg — mascot-moments idea #10 ("Sidebar logo easter
- *  egg"), owner's tweak on the trigger: "maybe you click it three
- *  times, and then the Easter egg delivers" (the board's original
- *  draft said five clicks; three is the approved number here).
+ *  Logo easter egg — three fast clicks on the sidebar's logo.
+ *
+ *  On a phone the same three taps work on the top bar's logo, where the
+ *  peek fills the width of the screen as it was first imagined.
  *
  *  Wraps the sidebar's PeaksMark logo (Brand) without reaching inside
- *  it: a capture-phase click counter on an outer `relative` div.
- *  Capture-phase means it only ever OBSERVES the click, same as every
- *  ordinary click on the logo today — Brand's `<Link href="/feed">`
- *  navigation is completely untouched, single clicks (and even the
- *  first two of an accidental triple) behave exactly as before.
+ *  it: a capture-phase click counter on an outer `relative` div, so it
+ *  only ever OBSERVES the click. Brand's `<Link href="/feed">` still
+ *  navigates on every click, the first two of a triple included; this
+ *  component lives in the sidebar, which survives that navigation, so
+ *  the egg plays on regardless.
  *
- *  Three clicks inside a short window (a real rapid triple-click, not
- *  three clicks spread across a whole visit) pop a small hoopoe up from
- *  behind the logo for a full `celebrate(3)` (the rig's existing
- *  leaf/heart particle burst, no new asset needed) with the crest
- *  fanned wide, then it tucks back out of sight.
+ *  What it plays changed on 2026-09-17. It used to pop a 40px rig up
+ *  from behind the logo for a celebration. Now it is <LogoPeek>: the app
+ *  icon's hoopoe, screen-sized, rising slowly over the bottom edge and
+ *  ducking back down. See logo-peek.tsx.
  *
- *  One-hoopoe rule: checked the instant the third click lands, the same
- *  check-then-mount pattern celebration-detector.tsx uses before ever
- *  showing celebration-hoopoe.tsx — by the time this component's own
- *  rig could report ready, its own `.hoopoe-mascot` node is already in
- *  the DOM, so a self-check from inside the moment would always see
- *  itself and never fire. `celebrate()` already carries its own
- *  internal spam cooldown (hoopoe.tsx), so no extra frequency cap is
- *  layered on here beyond "you have to go looking and land the
- *  gesture": it fires every time three clicks land clean, blocked only
- *  when another hoopoe already owns the stage.
+ *  One-hoopoe rule: checked the instant the third click lands, before
+ *  anything mounts, the same check-then-mount pattern the celebration
+ *  detector uses.
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
-import { m } from "motion/react";
-import type { HoopoeProps } from "@/components/mascot/hoopoe";
-import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { anotherHoopoeOnScreen } from "./one-hoopoe-guard";
-import { SPRINGS } from "@/components/common/motion";
 
-/* Deferred for the same reason sidebar-hoopoe.tsx is: this wraps the sidebar
-   wordmark on every authenticated page, and the 28 KB puppet behind it is for
-   a bird that only exists if somebody triple-clicks a logo. `onReady` was
-   already how the controller is filled, which is what next/dynamic requires
-   (its wrapper does not forward refs).
-
-   The FIRST click warms it, not the third. Three clicks have to land inside
-   650 ms, so fetching the chunk when the count starts means it is there by the
-   time the egg fires and the burst is as immediate as it was. */
-const Hoopoe = dynamic<HoopoeProps>(
-  () => import("@/components/mascot/hoopoe").then((m) => m.Hoopoe),
-  { ssr: false }
-);
+/* Deferred: this wraps the sidebar wordmark on every authenticated page, and
+   the peek (its geometry and the edge-light filter) is for a bird that only
+   exists if somebody triple-clicks a logo. The FIRST click warms the chunk,
+   not the third, so it is there by the time the egg fires. */
+const loadPeek = () => import("./logo-peek").then((m) => m.LogoPeek);
+const LogoPeek = dynamic(loadPeek, { ssr: false });
 
 const CLICKS_NEEDED = 3;
 // A real rapid triple-click, not three clicks scattered across a whole
 // session -- each click resets this window, so it only fires on a burst.
 const CLICK_WINDOW_MS = 650;
-const RIG_SIZE = 40;
 
-// A real awaitable pause (NOT hoopoe-kit's `wait()`, which builds a `{wait}`
-// Step for `sequence()` and resolves instantly if awaited directly outside
-// one). Same helper hoopoe.tsx and mascot-flight-layer.tsx use.
-const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-
-export function LogoEasterEgg({ children }: { children: ReactNode }) {
-  const [playing, setPlaying] = useState(false);
-  const [revealed, setRevealed] = useState(false);
+export function LogoEasterEgg({ children, className = "" }: { children: ReactNode; className?: string }) {
+  const [playing, setPlaying] = useState<{ x: number; y: number } | null>(null);
   const clickCountRef = useRef(0);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const readyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const busyRef = useRef(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     return () => {
       if (resetTimerRef.current !== null) clearTimeout(resetTimerRef.current);
-      if (readyTimerRef.current !== null) clearTimeout(readyTimerRef.current);
     };
   }, []);
 
-  async function playEgg(api: HoopoeApi) {
-    setRevealed(true);
-    await sleep(320); // let the pop-up spring mostly settle before the burst
-    await api.celebrate(3);
-    await api.crest(true);
-    await sleep(280);
-    setRevealed(false);
-    await sleep(320); // let the tuck-away spring finish before unmounting
-    setPlaying(false);
-    busyRef.current = false;
-  }
-
   function handleClickCapture() {
-    if (busyRef.current) return; // already mid-egg; ignore clicks until it settles
-    if (clickCountRef.current === 0) void import("@/components/mascot/hoopoe"); // see the dynamic() note above
+    if (playing) return; // already up; ignore clicks until it has ducked
+    if (clickCountRef.current === 0) void loadPeek();
     clickCountRef.current += 1;
     if (resetTimerRef.current !== null) {
       clearTimeout(resetTimerRef.current);
@@ -102,8 +62,8 @@ export function LogoEasterEgg({ children }: { children: ReactNode }) {
     if (clickCountRef.current >= CLICKS_NEEDED) {
       clickCountRef.current = 0;
       if (anotherHoopoeOnScreen()) return; // stage owned elsewhere; stay quiet this time
-      busyRef.current = true;
-      setPlaying(true);
+      const r = wrapRef.current?.getBoundingClientRect();
+      setPlaying(r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : { x: 0, y: 0 });
       return;
     }
     resetTimerRef.current = setTimeout(() => {
@@ -113,37 +73,9 @@ export function LogoEasterEgg({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="relative" onClickCapture={handleClickCapture}>
+    <div ref={wrapRef} className={`relative ${className}`} onClickCapture={handleClickCapture}>
       {children}
-      {playing && (
-        <m.div
-          aria-hidden
-          className="pointer-events-none absolute -left-1 top-0 z-40"
-          initial={{ opacity: 0, y: 10, scale: 0.5 }}
-          animate={
-            revealed
-              ? { opacity: 1, y: -8, scale: 1 }
-              : { opacity: 0, y: 10, scale: 0.5 }
-          }
-          transition={SPRINGS.gentle}
-        >
-          <Hoopoe
-            size={RIG_SIZE}
-            idle={false}
-            pokeable={false}
-            onReady={(api) => {
-              // Deferred one tick past mount, same defensive pattern as
-              // sidebar-hoopoe.tsx's onReady: React Strict Mode's dev-only
-              // mount -> cleanup -> remount dance runs synchronously, and a
-              // verb chain kicked off from directly inside onReady can race
-              // it (the simulated cleanup can `.stop()` an animation that
-              // just started). A `setTimeout(fn, 0)` lets that dance settle
-              // first.
-              readyTimerRef.current = setTimeout(() => void playEgg(api), 0);
-            }}
-          />
-        </m.div>
-      )}
+      {playing && <LogoPeek lookFirstAt={playing} onDone={() => setPlaying(null)} />}
     </div>
   );
 }

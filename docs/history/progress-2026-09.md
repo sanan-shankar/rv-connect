@@ -7927,3 +7927,25 @@ folded title and no title field; Publish as a letter sends the letter unchanged.
 one line at 1440. Write-path review clean (it noted the line is client-only, which is intended).
 `composer-rule.test.mjs` pins the ask, both answers, the title fold on both paths and the desk's route.
 Check green, visual 25/25. Spec: letters.md §2.2.
+
+## 2026-09-17 (mascot) — three clicks on the logo raise the app icon's hoopoe over the bottom of the screen
+
+His words: "have the hoopoe slowly rise from fully hidden under to that peeking height slowly maybe in 6
+seconds and have it basically fill the width of the screen and then maybe a quick crest flick or
+something then it goes down ... trying to keep the edge lighting if you can". It replaces the 40px rig
+that popped up behind the logo.
+
+Built from the icon, not the rig: `peekParts()` splits the icon's geometry into crest, head and eyes,
+and `build-app-icon.mjs` still writes the icon byte-identical. The edge light is the icon's filter with
+the shadow off. Added on top of his brief: it rises with the crest half folded so the snap open at the
+top is an event, it blinks when it arrives, looks at the logo and then follows the pointer, ducks ten
+times faster than it rose, and ducks early on any click or key. The phone top bar's logo triggers it too.
+
+Sizing is the one departure: filling a laptop's width would stand the peek taller than the screen and cut
+the crest off the top, so it fills the width until the peek reaches 78% of the screen height. On a phone
+that is the full width; at 1440x900 the crest spans about 700px.
+
+Verified in headless Chrome as Jerry (MCP down again): desktop rise at 2s and 4s, the top, the flick, the
+pointer gaze, gone at 9.5s with the overlay unmounted; 60fps held with the filter on while the eyes
+tracked; the phone's triple tap, full width, the top bar unchanged. No console errors.
+
