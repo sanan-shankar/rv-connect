@@ -26,7 +26,7 @@
  *  column rather than leaving a hollow left half.
  * ------------------------------------------------------------------ */
 
-import { Hoopoe } from "@/components/mascot/hoopoe";
+import { ResidentHoopoe } from "@/components/mascot/resident-hoopoe";
 import { useSoloHoopoe } from "@/components/mascot/moments/one-hoopoe-guard";
 import { FadeRise } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
@@ -81,7 +81,7 @@ export function AlmostReady({
                     "radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--color-leaf) 16%, transparent), transparent 68%)",
                 }}
               />
-              <Hoopoe size={132} />
+              <ResidentHoopoe size={132} />
             </div>
           )}
 

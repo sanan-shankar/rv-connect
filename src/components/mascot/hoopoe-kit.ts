@@ -180,6 +180,11 @@ export interface HoopoeApi {
   // then resumes the idle loop. Both are no-ops if already in that state.
   sleep(): Promise<void>;
   wake(): Promise<void>;
+  // A tap on the bird. Fire-and-forget, and it escalates with how fast the
+  // taps come: one gets a giggle, a few get a bounce, five in a row fluster it
+  // into a short huff before it forgives you. Never touches the wings, so a
+  // bird covering its eyes keeps them covered. Dropped while asleep or mid-huff.
+  poke(): void;
   sequence(...steps: Step[]): Promise<void>;
   react(event: SemanticEvent): Promise<void>;
   stop(): void;

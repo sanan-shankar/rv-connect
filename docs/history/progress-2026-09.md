@@ -7849,3 +7849,37 @@ Driven in a browser as Jerry at 1440 and 390, light and dark: nothing at 300 wor
 the first line and the phone's buttons flush with the sentence, both measured. `composer-rule.test.mjs`
 pins the line, the in-place switch and the missing link. Check green apart from ESLint on another
 session's uncommitted hoopoe files; visual 25/25.
+
+## 2026-09-17 (mascot) — the hoopoe answers a tap, keeps living, and the upload thank-you is about the photographs
+
+His words: "after uploading photos it just sits there. isn't that a great opportunity to do something
+fun!" Asked first for every place the bird appears (22, now a table in `docs/spec/mascot.md`), the
+pattern was the same almost everywhere: one move of one to three seconds, then a statue. He picked
+three fixes.
+
+**Tap it.** `poke()` in the controller, wired to a click on the rig, on by default. One tap giggles,
+two to four jump, five in a streak fluster it into a huff before it forgives you with two hearts.
+Hover makes the eyes look up at you. Built without the wings so the sign-in birds' covered eyes
+survive a tap, and it restores whatever chord the face was wearing. Off on the 404, the playground,
+the sidebar sleeper, the logo egg, and the flyer, warm-up and hero loader.
+
+**Resting birds live.** `useHoopoeLife` fires one small beat every 7-12s after a moment ends. In
+`MomentStage` (no results, no saved, empty messages) and the new `ResidentHoopoe` on the three
+Catch-ups birds, which never moved at all.
+
+**The upload thank-you.** Up to five of the photographs just added drop onto a pile at the bird's
+foot while it watches each land, then it celebrates, hops over, pecks the pile (the top print jolts)
+and rests glancing at the pile and the buttons. "See them in the Collection" hides it and a
+`FlyAwayHoopoe` hosted outside the dialog flies it up and off as the pop-up closes. The pile draws
+120px copies made as filing finishes (a 498 KB test photo became 4 KB), so no full-size original stays
+decoded behind a 60px print. Found on the way: its unmount cleanup only ever released the
+first batch's object URLs, because each landed batch replaced the array it had captured. Fixed.
+
+Verified in headless Chrome, not the MCP (it failed to connect this session), against
+`/lab/hoopoe-lives`, a new room playing the real screen with sample photographs, since a real upload
+writes to the live Collection. Desktop and 390px: pile, celebration, peck, huff, forgive, hover gaze,
+fly-away frames all looked at; tap to happy eyes measured at 8-23ms over eight tries; no console
+errors. First fly-away had its ground shadow riding up with it and a sideways lurch; the shadow now
+fades and the drift is a plain easeOut. Not seen: the real pop-up closing over the Collection while
+it flies, which needs a real upload.
+

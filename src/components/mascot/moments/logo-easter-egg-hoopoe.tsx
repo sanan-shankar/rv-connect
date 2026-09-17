@@ -130,6 +130,7 @@ export function LogoEasterEgg({ children }: { children: ReactNode }) {
           <Hoopoe
             size={RIG_SIZE}
             idle={false}
+            pokeable={false}
             onReady={(api) => {
               // Deferred one tick past mount, same defensive pattern as
               // sidebar-hoopoe.tsx's onReady: React Strict Mode's dev-only

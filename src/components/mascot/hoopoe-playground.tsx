@@ -234,7 +234,7 @@ function Playground() {
               style={{ bottom: `calc(50% - ${(birdSize * RIG_ASPECT) / 2}px)` }}
             />
 
-            <Hoopoe ref={birdRef} size={birdSize} />
+            <Hoopoe ref={birdRef} size={birdSize} pokeable={false} />
 
             {mark && (
               <m.span

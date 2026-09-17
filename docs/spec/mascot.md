@@ -51,6 +51,7 @@ defaults.
 - Gesture: `point(target | "left" | "right", { label, hold })`, `wave(times)`, `nod(times)`, `shake(times)`, `crest(open)`, `crestFlick()`, `preen()`, `peck()`.
 - Expression: `express(name, { hold })`, `celebrate(level 1 | 2 | 3)`, `blinkOnce(double)`, `sleep()`, `wake()`.
 - Continuous (not queued): `gaze(number | target)`, `coverEyes()`, `peek()`.
+- Toy: `poke()`, fired by a tap on the bird itself (see "Every bird answers a tap" below).
 - Composition + control: `sequence(...steps)`, `react(event)`, `stop()`, `cancel()`, `rest()`, `isBusy()`.
 
 `Step` is a verb tuple (`["walk", 4, "right"]`), a thunk, or `wait(ms)`.
@@ -150,6 +151,75 @@ does); reach for `flyIn` when the bird just needs to swoop onto a spot within on
   with zero visible difference while in view.
 - SSR safe: the rest pose is static markup with no animated inline transforms; gaze motion values seed at 0
   so the first client frame equals the server frame; idle and intro start only in `useEffect`.
+
+## Where it lives (2026-09-17)
+
+The list below this table grew one moment at a time and stopped being complete; this table is the
+whole of it. "Rests" means `useHoopoeLife` keeps it doing small things after its moment.
+
+| Place | What it does |
+|---|---|
+| Landing, slow hero photo | Hops in place until the photo decodes (`landing-hero.tsx`) |
+| Landing "Sign in" / "Join", desktop | Flies from the button to the auth page's bird (`mascot-flight-layer.tsx`) |
+| Landing footer | Hops between three perches, preens, pecks, looks around (`footer-hoopoe.tsx`) |
+| Sign in, sign up, reset password | Covers its eyes while the password is hidden, eyes follow the typing, reacts to errors and success |
+| Sign-up trivia, forgot password, verify email | Thinks, shakes its head at a wrong answer, celebrates or nods on success |
+| 404 | Emotes in a corner, flies to wherever you click (`not-found-stage.tsx`) |
+| `/hoopoe` | The public playground |
+| Welcome, feed | The earned one-shots: post-signup welcome, first Letter, proud moment |
+| Desktop sidebar | Falls asleep on your profile after 90-120s idle, flies off when you move |
+| Sidebar logo x3 | Pops up behind the logo and celebrates |
+| Feed and directory search, no results | Looks left and right, small head shake. Rests |
+| Saved posts, empty | Looks at the bookmark, sleepy blink. Rests |
+| Messages, empty | Waves once. Rests |
+| Collection, after adding photographs | The pile, the peck, the fly-away (below). Rests |
+| Catch-ups: finished answering, nothing here, almost ready | `ResidentHoopoe`: no moment of its own, rests from the start |
+| Settings, dark-mode trial | Covers its eyes while you hold, celebrates if you hold on |
+
+## Every bird answers a tap
+
+`<Hoopoe pokeable>` is on by default, so a new bird anywhere answers a tap without anyone asking.
+One tap is a giggle (happy eyes, crest pop, small bounce). Two to four fast taps are a jump with the
+feet kicking. The fifth in a streak (taps under `POKE_STREAK_MS` apart) flusters it: a startle, a
+huff with its face turned away and its crest folded, a peek back, then it forgives you with a hop
+and two hearts. Hovering the bird makes it look up at you; that is its hover state, since it cannot
+change colour. It stays `aria-hidden` and unfocusable: a toy, not a control.
+
+Three rules keep it from breaking the birds that do other things:
+
+- **It never touches the wings.** The sign-in birds hold their wings over their eyes, and a tap must
+  not uncover them. The startle is `applyChord`, not `express()`, because `express()` levels the wings.
+- **It hands the face back as it found it.** The controller remembers the last chord applied
+  (`chordNow`), so a curious bird goes back to curious, not to `content`.
+- **Off where a click already means something:** the 404 (fly to the click), the playground scene,
+  the sidebar sleeper (a click wakes it), the logo egg, and the birds nobody can reach (in flight,
+  the warm-up, the hero loader).
+
+A tap that lands while the bird is mid-beat waits for that beat; one reaction is queued at a time
+and later taps only raise the count.
+
+## Resting birds keep living
+
+`useHoopoeLife(h, running, lookAt?)` (`use-hoopoe-life.ts`) fires one small beat every 7-12s once a
+moment is done: a look around, a glance at something on the page, a preen, a peck, a blink and crest
+flick, rarely a hop. It never awaits a beat, so a `stop()` elsewhere cannot hang it; a busy bird just
+skips that round. `MomentStage` starts it when `play` resolves. `ResidentHoopoe` runs it from mount.
+
+## The contribute thank-you
+
+`contributed-hoopoe.tsx`. The first `PILE_MAX` (5) photographs just filed drop onto a pile at the
+bird's left foot, one every 240ms, the bird's eyes going up and down for each. Then `celebrate(3)`,
+a hop over to the pile and a peck that jolts the top print, proud, content, and it rests glancing at
+the pile and the two buttons. Hovering a button makes it look at that button.
+
+"See them in the Collection" makes it fly off. The pop-up's bird cannot do that itself (the scroll
+box clips it and the dialog unmounts it 200ms later), so it hides and `ContributeDialog`, which
+outlives the glass, mounts `FlyAwayHoopoe` at its rect. The shadow fades as it lifts; the drift and
+the climb run on different curves so the path bends up and away.
+
+The room makes 120px copies of those five as the filing finishes (`pilePrint`), releases every
+full-size preview as before, and releases the copies on "Add more" or unmount. `/lab/hoopoe-lives` plays the real screen with sample
+photographs, since the only other way to see it is a real upload.
 
 ## Wired in
 

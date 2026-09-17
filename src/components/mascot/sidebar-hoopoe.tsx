@@ -240,7 +240,7 @@ export function SidebarHoopoe() {
       aria-hidden
       className="pointer-events-none absolute -top-[62px] left-0 z-10"
     >
-      <Hoopoe size={RIG_SIZE} onReady={handleReady} />
+      <Hoopoe size={RIG_SIZE} pokeable={false} onReady={handleReady} />
     </div>
   );
 }

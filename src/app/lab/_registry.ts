@@ -159,6 +159,13 @@ export const REGISTRY: LabEntry[] = [
     note: "Five full-page directions for the public landing redesign (Postcard, Notice Board, Prospectus, Living Valley, Clarity), all pulling the same approved copy; append ?v=<key> to deep-link a concept.",
   },
   {
+    href: "/lab/hoopoe-lives",
+    title: "The thank-you after an upload",
+    group: "Delight",
+    status: "active",
+    note: "The real screen you get after adding photographs, played with sample ones: they drop into a pile, the bird cheers, pecks at them and keeps pottering. Tap the bird, hover the buttons, press the green one to watch it fly off.",
+  },
+  {
     href: "/lab/hoopoe",
     title: "The hoopoe mascot control room",
     group: "Delight",
