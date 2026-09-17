@@ -7949,3 +7949,10 @@ Verified in headless Chrome as Jerry (MCP down again): desktop rise at 2s and 4s
 pointer gaze, gone at 9.5s with the overlay unmounted; 60fps held with the filter on while the eyes
 tracked; the phone's triple tap, full width, the top bar unchanged. No console errors.
 
+## 2026-09-17 (mascot) — the logo peek rises with its crest open, and without the edge light
+
+His words, on seeing it: "I don't like the half folded crest remove that. and remove the edge light as
+well". The peek now rises with the fan fully open and the flick at the top only tilts and lifts it; the
+bird is drawn flat. Both are noted in `docs/spec/mascot.md` as tried and taken out, so nobody adds them
+back as an improvement.
+

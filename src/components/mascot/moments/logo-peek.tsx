@@ -17,10 +17,9 @@
  *  something then it goes down."
  *
  *  THE ARTWORK IS THE ICON'S, not the rig. `peekParts()` is the geometry the
- *  icon is built from, split into crest, head and eyes so each can move, and
- *  Apple's edge light (`edgeLightFilter`) is the same filter the Android icon
- *  bakes in. The rig would have been a different bird: nine feathers, not
- *  eleven, and a body.
+ *  icon is built from, split into crest, head and eyes so each can move. The
+ *  rig would have been a different bird: nine feathers, not eleven, and a
+ *  body. Flat, with no edge light: tried and taken out (owner, 2026-09-17).
  *
  *  The parts move by writing SVG `transform` ATTRIBUTES with explicit pivots
  *  (`rotate(a 60 37)`), not CSS transforms. A CSS transform-origin on an SVG
@@ -33,7 +32,6 @@ import { createPortal } from "react-dom";
 import { animate, useAnimate, useMotionValue, useSpring } from "motion/react";
 import { SPRINGS, EASE_POP } from "@/components/common/motion";
 import { PEEK_VIEW, PEEK_VIEW_BOX, peekParts, primsToSvg } from "@/lib/hoopoe-geometry";
-import { edgeLightFilter } from "@/lib/edge-light";
 
 // The owner's number. Long enough that the first second or two is only
 // feather tips, which is where the "what is that" comes from.
@@ -60,11 +58,6 @@ const MAX_HEIGHT_SHARE = 0.78;
 // The eye is 7.7 across; more than a unit and a half and the dark of the eye
 // slides off its own highlight.
 const GAZE_UNITS = 1.5;
-
-// One unit of the 78-unit window at the weight /lab/glass-edges chose for the
-// icon. Shadow off: there is no tile under this bird to cast onto.
-const EDGE_ID = "logo-peek-edge";
-const EDGE = edgeLightFilter({ id: EDGE_ID, u: 0.85, shadow: 0 });
 
 const PARTS = peekParts();
 const CREST = primsToSvg(PARTS.crest);
@@ -159,9 +152,6 @@ export function LogoPeek({
       window.addEventListener("pointerdown", duckEarly);
       window.addEventListener("keydown", duckEarly);
 
-      // Comes up with the crest half folded, so the fan opening at the top
-      // is an event and not just the end of the rise.
-      crest.setAttribute("transform", "translate(60 37) scale(0.72 1) translate(-60 -37)");
       await animateBox(box, { y: [hidden, 0] }, { duration: RISE_S, ease: "easeInOut" });
       if (ducking || cancelled) return;
 
@@ -170,18 +160,19 @@ export function LogoPeek({
       await animate(0.06, 1, { duration: 0.12, ease: "easeOut", onUpdate: setBlink });
       if (ducking || cancelled) return;
 
-      // The crest snaps open past full and flicks back, then looks at the logo.
+      // A quick crest flick, then it looks at the logo. The fan stays fully
+      // open the whole time: rising half folded and snapping open was tried
+      // and taken out (owner, 2026-09-17).
       if (lookFirstAt) lookAt(lookFirstAt.x, lookFirstAt.y);
       await animate(0, 1, {
         duration: 0.55,
         ease: EASE_POP,
         onUpdate: (t) => {
-          const spread = 0.72 + 0.28 * t;
           const tilt = Math.sin(t * Math.PI * 2) * -5 * (1 - t * 0.6);
           const lift = 1 + Math.sin(t * Math.PI) * 0.08;
           crest.setAttribute(
             "transform",
-            `translate(60 37) rotate(${tilt}) scale(${spread} ${lift}) translate(-60 -37)`
+            `translate(60 37) rotate(${tilt}) scale(1 ${lift}) translate(-60 -37)`
           );
         },
       });
@@ -218,12 +209,9 @@ export function LogoPeek({
         {/* `hoopoe-mascot` so the one-hoopoe guard sees it: nothing else should
             glide in (the sidebar sleeper) while the whole screen is this bird. */}
         <svg ref={svgRef} viewBox={PEEK_VIEW_BOX} width={px} height={px} className="hoopoe-mascot block">
-          <defs dangerouslySetInnerHTML={{ __html: EDGE }} />
-          <g filter={`url(#${EDGE_ID})`}>
-            <g ref={crestRef} dangerouslySetInnerHTML={{ __html: CREST }} />
-            <g dangerouslySetInnerHTML={{ __html: HEAD }} />
-            <g ref={eyesRef} dangerouslySetInnerHTML={{ __html: EYES }} />
-          </g>
+          <g ref={crestRef} dangerouslySetInnerHTML={{ __html: CREST }} />
+          <g dangerouslySetInnerHTML={{ __html: HEAD }} />
+          <g ref={eyesRef} dangerouslySetInnerHTML={{ __html: EYES }} />
         </svg>
       </div>
     </div>,
