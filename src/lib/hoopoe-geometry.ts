@@ -330,12 +330,26 @@ export const PEEK_VIEW_BOX = `${PEEK_VIEW.x} ${PEEK_VIEW.y} ${PEEK_VIEW.size} ${
     so it survives 26px, and its tip rounded so the fan reads soft. */
 export const PEEK_CREST = { tipOut: 0.105, blunt: 0.11 };
 
+/** The app icon's artwork in the three pieces that move on their own: the
+    crest (it flicks), the head and bill, and the eyes (they blink and look).
+    Split here rather than by the caller slicing an array, so the sidebar
+    logo's giant peek and the icon cannot drift apart. */
+export function peekParts(): { crest: Prim[]; head: Prim[]; eyes: Prim[] } {
+  const eyeS = 1.12;
+  return {
+    crest: crestPrims({ n: 11, spread: 68, len: 1.18, taper: 0.08, ...PEEK_CREST }),
+    head: [
+      { k: "ellipse", cx: 60, cy: 56, rx: 30, ry: 27, fill: H.head },
+      ...billPrims({ cx: 60, top: 62.5, len: 0.9 }),
+    ],
+    eyes: [...eyePrims({ cx: 51, cy: 61, s: eyeS }), ...eyePrims({ cx: 69, cy: 61, s: eyeS })],
+  };
+}
+
 /** The app icon's artwork: the hoopoe peeking over the bottom edge. */
 export function peekPrims(): Prim[] {
-  return [
-    ...crestPrims({ n: 11, spread: 68, len: 1.18, taper: 0.08, ...PEEK_CREST }),
-    ...facePrims({ eyeS: 1.12, billL: 0.9 }),
-  ];
+  const { crest, head, eyes } = peekParts();
+  return [...crest, ...head, ...eyes];
 }
 
 /* ---- rendering ------------------------------------------------------ */

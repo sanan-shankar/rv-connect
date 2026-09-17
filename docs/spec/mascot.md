@@ -168,7 +168,7 @@ whole of it. "Rests" means `useHoopoeLife` keeps it doing small things after its
 | `/hoopoe` | The public playground |
 | Welcome, feed | The earned one-shots: post-signup welcome, first Letter, proud moment |
 | Desktop sidebar | Falls asleep on your profile after 90-120s idle, flies off when you move |
-| Sidebar logo x3 | Pops up behind the logo and celebrates |
+| Logo x3 (sidebar or phone top bar) | The app icon's hoopoe rises over the bottom of the screen, snaps its crest, ducks |
 | Feed and directory search, no results | Looks left and right, small head shake. Rests |
 | Saved posts, empty | Looks at the bookmark, sleepy blink. Rests |
 | Messages, empty | Waves once. Rests |
@@ -252,13 +252,17 @@ photographs, since the only other way to see it is a real upload.
   `sidebar-hoopoe.tsx` and `logo-easter-egg-hoopoe.tsx` are both structured this way for this reason.
   The full postmortem is in git history at 87c054d^.
 
-- **Logo easter egg** (`moments/logo-easter-egg-hoopoe.tsx`, idea #10 off the board): three rapid clicks
-  (owner's tweak from the board's original five) on the desktop sidebar's peaks logo pop a small hoopoe up
-  from behind it for a `celebrate(3)` + `crest(true)`, then it tucks away. A capture-phase click counter on
-  a wrapper around `LogoFact` — it only observes, so the logo's own hover fact-card and its `Link`
-  navigation are untouched. Gated by the one-hoopoe rule at the moment the third click lands; otherwise
-  fires every time the gesture is landed clean (no daily cap — `celebrate()`'s own internal cooldown is the
-  only frequency limit).
+- **Logo easter egg** (`moments/logo-easter-egg-hoopoe.tsx` + `moments/logo-peek.tsx`): three rapid clicks
+  on the logo, the desktop sidebar's or the phone top bar's. Since 2026-09-17 it is the APP ICON's hoopoe,
+  screen-sized, not the rig: it rises over the bottom edge of the screen over six seconds, crest half
+  folded, blinks at the top, snaps the crest open, looks at the logo, follows the pointer for 1.8s, then
+  ducks in 0.5s. Any click or key ducks it early. Artwork is `peekParts()` in `src/lib/hoopoe-geometry.ts`
+  (the icon's own pieces, split so the crest and eyes can move; the icon rebuilds byte-identical) with the
+  icon's edge light (`edgeLightFilter`, shadow off). Parts move by SVG transform attributes with explicit
+  pivots, not CSS transforms, for the WebKit origin reason in RIG_CSS. It fills the screen's width until
+  the peek would stand taller than 78% of the screen, so on a laptop it stops short of the edges rather
+  than pushing the crest off the top. Portalled to `<body>` and carries `hoopoe-mascot` so the one-hoopoe
+  guard sees it. A capture-phase click counter, so the logo's `Link` still navigates.
 
 ## Open follow-ups
 
