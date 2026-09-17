@@ -281,3 +281,22 @@ test("a resumed draft's local copy is read back, not just written", () => {
       "have been written from another device and nothing here can rank the two"
   );
 });
+
+/* A post past the letter line is offered the switch, in place (owner,
+   2026-09-17). The hint that stood here before linked to /letters, and
+   following it dropped everything typed so far. */
+test("a long post is offered a letter without leaving the composer", () => {
+  const utils = read("src/lib/utils.ts");
+  assert.match(utils, /export const LETTER_MIN_WORDS = 300\b/, "the letter line moved off 300 words");
+  assert.match(
+    composer,
+    /countWords\(content\) > LETTER_MIN_WORDS/,
+    "the offer no longer counts words against the shared letter line"
+  );
+  const make = balancedBody(composer, "function makeItALetter()");
+  assert.match(make, /setKind\("letter"\)/, "taking the offer no longer switches this composer to a letter");
+  assert.ok(
+    !/href="\/letters"/.test(composer),
+    "the composer links away to /letters again, which drops the post being written"
+  );
+});

@@ -9,7 +9,9 @@
  * letters to ten (see PIECES for the running order, which is the point of them). "Gerry
  * Balcombe" is seeded as a POST carrying only its opening memory, its twelve replies seeded
  * as comments beneath it (see gerryOpeningOnly below); "The Banyan Tree" drops the line that
- * repeated its own title. "The Big Banyan Tree Mural" attaches the 3 best of 4 candidate
+ * repeated its own title. Kinds follow the 300-word line (LETTER_MIN_WORDS in src/lib/utils.ts,
+ * owner 2026-09-17): five pieces seeded as letters became posts and "The Hippy Rebellion"
+ * became a letter, moved in the database directly (docs/history/progress-2026-09.md). "The Big Banyan Tree Mural" attaches the 3 best of 4 candidate
  * photos (verified by eye, see MURAL_IMAGES below); the 4th (a cluttered workshop/fabrication
  * shot, not the finished Dining Hall install) is skipped.
  *
@@ -163,6 +165,8 @@ type SeedPiece = {
   createdAt: Date;
   pick: Pick;
   bodyOverride?: (body: string) => string;
+  /** A letter whose pick has no title of its own. */
+  title?: string;
   attachMuralImages?: boolean;
   /** Seeded as comments under the piece, by the same Anonymous account. */
   comments?: string[];
@@ -175,23 +179,20 @@ type SeedPiece = {
  * somebody who sits down and reads all ten in one go, so these dates are chosen
  * rather than inherited from when each was posted to WhatsApp.
  *
- * Read top to bottom, the ten letters run:
+ * That order was built for ten letters. On 2026-09-17 the owner drew the line
+ * between the two at 300 words, which took the four short letters and the
+ * Banyan Tree down to posts and brought the Hippy Rebellion up, so six remain:
  *
- *    1  Nicobar                        short, surprising, cheap to start on
- *    2  Plucked Out of Coorg           the big funny one, now that they are in
- *    3  After the Flash Flood          breather
- *    4  That Beautiful Walk            deepens: friendship, bittersweet
- *    5  The Banyan Tree                pivots from people to place
- *    6  My Own Self-Created Mt Kailash the second epic, same writer as 4
- *    7  School Sick                    tiny gut-punch after the long comic one
- *    8  The Last Event of the Day      big again, different energy: spectacle
- *    9  Best of Five                   echoes 8's sport, resolves into friendship
- *   10  What a Small World             the closer; it says why any of this matters
+ *    1  Plucked Out of Coorg
+ *    2  That Beautiful Walk in the Darkness
+ *    3  My Own Self-Created Mt Kailash
+ *    4  The Last Event of the Day
+ *    5  The Hippy Rebellion
+ *    6  What a Small World              still the closer
  *
- * Two rules held while placing them: never two 5k+ pieces adjacent, and the four
- * short ones land at 1, 3, 7 and 9 as breathers. The six posts are dated into the
- * gaps so the feed is not ten letter cards in a row, and the mural post keeps the
- * top of the anonymous pile (owner: "let the mural post on feed not be pushed
+ * The dates were left as they were, so 3 and 4 are now two 5k+ pieces side by
+ * side, which the original order had ruled out. The mural post keeps the top
+ * of the anonymous pile (owner: "let the mural post on feed not be pushed
  * down"). Nothing here is dated later than the real members' posts of Aug 2026.
  * ─────────────────────────────────────────────────────────────────────────── */
 const PIECES: SeedPiece[] = [
@@ -206,14 +207,12 @@ const PIECES: SeedPiece[] = [
     attachMuralImages: true,
   },
 
-  // 1
   {
     id: "seed-wa-a-story-about-rv-and-nicobar",
-    kind: "letter",
+    kind: "post",
     createdAt: noonIST(2026, 6, 28),
     pick: findPick({ title: "A story about RV. And Nicobar." }),
   },
-  // 2
   {
     id: "seed-wa-plucked-out-of-coorg",
     kind: "letter",
@@ -228,24 +227,21 @@ const PIECES: SeedPiece[] = [
     createdAt: noonIST(2026, 6, 12),
     pick: findPick({ bodyStartsWith: "Today, June 12th, happens to be the exact date" }),
   },
-  // 3
   {
     id: "seed-wa-after-the-flash-flood",
-    kind: "letter",
+    kind: "post",
     createdAt: noonIST(2026, 5, 30),
     pick: findPick({ title: "After the Flash Flood" }),
   },
-  // 4
   {
     id: "seed-wa-that-beautiful-walk-in-the-darkness",
     kind: "letter",
     createdAt: noonIST(2026, 5, 11),
     pick: findPick({ title: "That Beautiful Walk in the Darkness" }),
   },
-  // 5
   {
     id: "seed-wa-the-banyan-tree",
-    kind: "letter",
+    kind: "post",
     createdAt: noonIST(2026, 4, 19),
     pick: findPick({ title: "The Banyan Tree" }),
     bodyOverride: dropBanyanTitleLine,
@@ -257,7 +253,6 @@ const PIECES: SeedPiece[] = [
     createdAt: noonIST(2026, 4, 5),
     pick: findPick({ bodyStartsWith: "Mine is this: a friend (who shall remain nameless)" }),
   },
-  // 6
   {
     id: "seed-wa-my-own-self-created-mt-kailash",
     kind: "letter",
@@ -272,35 +267,32 @@ const PIECES: SeedPiece[] = [
     bodyOverride: gerryOpeningOnly,
     comments: GERRY_REPLIES,
   },
-  // 7
   {
     id: "seed-wa-school-sick",
-    kind: "letter",
+    kind: "post",
     createdAt: noonIST(2026, 3, 7),
     pick: findPick({ title: "School Sick" }),
   },
-  // 8
   {
     id: "seed-wa-the-last-event-of-the-day",
     kind: "letter",
     createdAt: noonIST(2026, 2, 15),
     pick: findPick({ title: "The Last Event of the Day" }),
   },
-  // 9
   {
     id: "seed-wa-best-of-five",
-    kind: "letter",
+    kind: "post",
     createdAt: noonIST(2026, 1, 24),
     pick: findPick({ title: "Best of Five" }),
   },
   {
     // json title is "" (format: post); picks.md calls this "The Hippy Rebellion".
     id: "seed-wa-the-hippy-rebellion",
-    kind: "post",
+    kind: "letter",
+    title: "The Hippy Rebellion",
     createdAt: noonIST(2026, 1, 10),
     pick: findPick({ bodyStartsWith: 'One more "Chinna Katha" to post from my memory bank' }),
   },
-  // 10
   {
     id: "seed-wa-what-a-small-world",
     kind: "letter",
@@ -399,7 +391,7 @@ async function main() {
       images = JSON.stringify(muralUrls);
     }
 
-    const title = piece.kind === "letter" ? piece.pick.title : null;
+    const title = piece.kind === "letter" ? (piece.title ?? piece.pick.title) : null;
 
     const created = await prisma.post.create({
       data: {

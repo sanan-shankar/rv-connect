@@ -509,9 +509,23 @@ export function plainExcerpt(content: string, maxLen = 160): string {
  * if the figure ever does.
  */
 export function readMinutes(content: string): number {
-  const words = content.trim().split(/\s+/).filter(Boolean).length
-  return Math.max(1, Math.round(words / 200))
+  return Math.max(1, Math.round(countWords(content) / 200))
 }
+
+/** Words in a body, split on whitespace. A mention or a markdown mark rides
+ *  along inside whichever word it touches, which is close enough for both
+ *  things that ask: the read time above and the letter line below. */
+export function countWords(content: string): number {
+  return content.trim().split(/\s+/).filter(Boolean).length
+}
+
+/**
+ * Where a post becomes a letter: 300 words (owner, 2026-09-17). Under it is a
+ * post, over it is a letter, because a letter is for the longer piece and a
+ * short one in the Letters index blurs what the index is for. The feed
+ * composer offers to switch at this line rather than refusing anything.
+ */
+export const LETTER_MIN_WORDS = 300
 
 /**
  * How many valley calendar days from `now` to `at`. 0 is today, 1 tomorrow.

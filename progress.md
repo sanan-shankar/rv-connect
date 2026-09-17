@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-17 (letters) — 300 words is the line between a post and a letter
 - 2026-09-17 (hearts, fix) — every tap on a heart counts, however slow the save
 - 2026-09-17 (viewer) — the photo viewer's arrows are the feed carousel's arrows
 - 2026-09-17 (collection, content) — the Sports photographs from Nattu go into the Valley Collection, captioned by voice
