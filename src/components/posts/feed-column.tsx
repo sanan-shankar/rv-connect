@@ -86,15 +86,25 @@ export function FeedColumn({
             />
           </m.div>
         )}
-        <m.div key="feed" layout="position" transition={SPRINGS.gentle}>
-          <PostFeed
-            reloadKey={reloadKey}
-            onReloaded={onReloaded}
-            initialSearch={initialSearch}
-            lastSeenAt={lastSeenAt}
-          />
-        </m.div>
       </AnimatePresence>
+      {/* OUTSIDE the AnimatePresence, and that is load-bearing. `initial={false}`
+          there is handed down through context to everything inside a child that
+          was present at first render, at any depth and for good: every Motion
+          element that mounted anywhere in the feed later -- a heart's flecks
+          above all -- skipped its `initial` and started at its end state. The
+          like's celebration had been invisible on the feed alone since this
+          column was built (owner, 2026-09-17: "still no celebration" on /feed
+          while Letters and the Collection threw theirs). The feed never leaves,
+          so it has no business in a presence list; as a sibling in the dock's
+          LayoutGroup it still slides when the composer opens and closes. */}
+      <m.div layout="position" transition={SPRINGS.gentle}>
+        <PostFeed
+          reloadKey={reloadKey}
+          onReloaded={onReloaded}
+          initialSearch={initialSearch}
+          lastSeenAt={lastSeenAt}
+        />
+      </m.div>
     </div>
   );
 }

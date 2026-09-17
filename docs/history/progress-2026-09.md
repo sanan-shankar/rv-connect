@@ -7883,3 +7883,21 @@ errors. First fly-away had its ground shadow riding up with it and a sideways lu
 fades and the drift is a plain easeOut. Not seen: the real pop-up closing over the Collection while
 it flies, which needs a real upload.
 
+
+## 2026-09-17 (feed, fix) — the like celebration plays on the feed again
+
+His words, after the tap fix: "it works on collection and catch ups and letters now but still not feed ...
+it gets red and reacts each click ... but still no celebration".
+
+Cause: d632b8f3 (2026-09-14, New post is the member's own bird) put the whole feed inside the composer's
+`<AnimatePresence initial={false}>`. That `initial={false}` reaches, through context, every Motion element
+inside a child present at first render, at any depth and for as long as it lives. The heart's flecks mount
+on each like, so they started at their end state: sampled per frame at 1440, opacity 0 and already at
+translate(-14px, -34px) from the first frame. The heart's own pop survived because it animates an
+element that was already mounted.
+
+Fix: the feed's `layout="position"` block is a sibling after the AnimatePresence, not a child of it. It is
+still in the dock's LayoutGroup, so opening the composer slides the first post 101 to 299px and closing
+it slides back, sampled per frame. Flecks now peak at 0.95 opacity at 1440 and at 390 with touch
+(screenshot mid-flight). Other mount animations inside the feed that were frozen now play as written:
+poll result bars, and the photo viewer opened from a post. `npm run check` green, `npm run visual` 25/25.
