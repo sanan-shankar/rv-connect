@@ -5,7 +5,15 @@ import { FIELD_FOCUS } from "@/components/ui/field-focus";
 import dynamic from "next/dynamic";
 import { ImagePlus, X, BarChart3, Feather, Plus, MapPin, Check, Images } from "lucide-react";
 import { m, AnimatePresence } from "motion/react";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
@@ -13,7 +21,7 @@ import { createPost, editPost, publishDraft } from "@/app/(main)/feed/actions";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
 import { PhotoAimButton } from "@/components/common/photo-aim";
-import { cn, countWords, LETTER_MIN_WORDS } from "@/lib/utils";
+import { cn, countWords, LETTER_MIN_WORDS, withTitleAsOpeningLine } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
 import { useComposerUploads } from "./use-composer-uploads";
 import { MAX_IMAGES } from "@/lib/upload-ownership-rule";
@@ -94,7 +102,9 @@ export function CreatePostForm({
   /** The poster's own cities (their UserPlace list). Drives the "Show to" audience
    *  control below; omitted or empty means the control simply doesn't render. */
   userPlaces?: string[];
-  onPosted?: () => void;
+  /** Told what was published, because a short letter may have gone out as a
+   *  post instead, and the letters desk must not then open /letters/<id>. */
+  onPosted?: (published: { kind: "post" | "letter" }) => void;
   /** The feed composer asks to be closed (an empty composer, clicked away from
    *  or Escaped). It has no resting state of its own: FeedColumn mounts it when
    *  the header's New post badge opens it and unmounts it here. */
@@ -141,6 +151,13 @@ export function CreatePostForm({
      at the next keystroke would be nagging. */
   const [letterOfferAnswered, setLetterOfferAnswered] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
+  /* Publishing a letter under LETTER_MIN_WORDS asks first whether it would sit
+     better as a post (owner, 2026-09-17). A question, never a refusal: a short
+     letter is allowed, the line is only there to keep the Letters index for
+     the longer piece. A dialog here and not an inline strip, because this is
+     the moment of pressing Publish, which is exactly when a confirmation
+     belongs; the offer while writing stays inline for the opposite reason. */
+  const [askShortLetter, setAskShortLetter] = useState(false);
   /* "Add to the Collection", the one item the "+" menu grows once a photo is
      attached. Off by default and never remembered between posts: it is an
      offer, and an offer that quietly stays on would put photographs in the
@@ -404,7 +421,7 @@ export function CreatePostForm({
     mentionRangeRef.current = null;
   }
 
-  async function handleSubmit(saveAsDraft = false) {
+  async function handleSubmit(saveAsDraft = false, asPost = false) {
     if (!content.trim()) return;
     if (submittingRef.current) return;
     submittingRef.current = true;
@@ -475,19 +492,26 @@ export function CreatePostForm({
           toast.success("Draft saved");
           onAutosaveState?.("saved");
         } else {
-          const pub = await callAction(() => publishDraft(postId));
+          // The draft is saved as the letter it was; publishDraft makes it
+          // a post, so a refusal there leaves that letter untouched.
+          const pub = await callAction(() => publishDraft(postId, { asPost }));
           if ("error" in pub && pub.error) {
             if (!emailGate.handled(pub.error)) toast.error(pub.error);
           } else {
             markSaved();
             clearLocalDraft();
-            toast.success("Your letter is published");
-            onPosted?.();
+            toast.success(asPost ? "Post shared!" : "Your letter is published");
+            onPosted?.({ kind: asPost ? "post" : "letter" });
           }
         }
         return;
       }
 
+      if (asPost) {
+        formData.set("kind", "post");
+        formData.set("content", withTitleAsOpeningLine(title, content));
+        formData.delete("title");
+      }
       const result = await callAction(() => createPost(formData));
       if (result.error) {
         if (!emailGate.handled(result.error)) toast.error(result.error);
@@ -530,7 +554,7 @@ export function CreatePostForm({
         toast.success(
           saveAsDraft
             ? "Draft saved"
-            : isLetter
+            : isLetter && !asPost
               ? "Your letter is published"
               : "Post shared!",
           // Said once, here, rather than as a line of help in the menu: a
@@ -541,7 +565,7 @@ export function CreatePostForm({
             ? { description: "The photo is with the Collection editors." }
             : undefined
         );
-        onPosted?.();
+        onPosted?.({ kind: asPost ? "post" : kind });
       }
     } finally {
       if (!handedOff) {
@@ -672,7 +696,7 @@ export function CreatePostForm({
               <Feather aria-hidden className="mt-1 h-4 w-4 shrink-0 text-cinnamon" />
               <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
                 <p className="text-[13px] leading-6 text-foreground">
-                  This is turning into a longer piece. Make it a letter?
+                  This is turning into a longer piece. It might make a lovely letter.
                 </p>
                 {/* -my-1: the 32px buttons may not make the line taller than
                     the 24px text they sit beside. -ml-3 on a phone, where they
@@ -1154,7 +1178,11 @@ export function CreatePostForm({
               // B-044). The photo control was already gated on `uploading`;
               // the two submit buttons were not. message-composer.tsx has
               // always had this right: `const busy = sending || uploading`.
-              onClick={() => handleSubmit(false)}
+              onClick={() =>
+                isLetter && countWords(content) < LETTER_MIN_WORDS
+                  ? setAskShortLetter(true)
+                  : handleSubmit(false)
+              }
               disabled={!content.trim() || submitting || savingDraft || uploading}
               className={cn(
                 buttonVariants({ variant: "primary", size: "default" }),
@@ -1180,6 +1208,44 @@ export function CreatePostForm({
     </>
   );
 
+  const shortLetterDialog = (
+    <Dialog open={askShortLetter} onOpenChange={setAskShortLetter}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>This might work better as a post</DialogTitle>
+          <DialogDescription>
+            Letters are for longer pieces, and this one is under {LETTER_MIN_WORDS} words. You
+            can still publish it as a letter.
+            {title.trim() && " As a post, its title becomes the opening line."}
+          </DialogDescription>
+        </DialogHeader>
+        {/* The suggestion is the primary, on the right (on a phone the
+            footer's column-reverse puts it on top). Closing the dialog is the
+            third answer, keep writing, so it needs no button of its own. */}
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setAskShortLetter(false);
+              void handleSubmit(false);
+            }}
+          >
+            Publish as a letter
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => {
+              setAskShortLetter(false);
+              void handleSubmit(false, true);
+            }}
+          >
+            Post it instead
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
   // Letters open straight into the editor and never retract, so they skip the
   // pill + height machinery: the surface is simply present (a gentle opacity
   // arrival), and its natural height flows on its own.
@@ -1187,6 +1253,7 @@ export function CreatePostForm({
     return (
       <>
       {emailGate.dialog}
+      {shortLetterDialog}
       <div
         ref={rootRef}
         data-composer
@@ -1224,6 +1291,7 @@ export function CreatePostForm({
   return (
     <>
     {emailGate.dialog}
+    {shortLetterDialog}
     <div
       ref={rootRef}
       data-composer

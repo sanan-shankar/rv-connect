@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { postSchema, commentSchema } from "@/lib/validators";
-import { postContentMax } from "@/lib/post-caps";
+import { postContentMax, POST_TOO_LONG } from "@/lib/post-caps";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { drainPendingImagePurges } from "@/lib/account-purge";
@@ -32,7 +32,7 @@ import {
   notifyMember,
   notifyMemberOnceUnread,
 } from "@/lib/post-notifications";
-import { parseJsonArray } from "@/lib/utils";
+import { parseJsonArray, withTitleAsOpeningLine } from "@/lib/utils";
 import type { Prisma } from "@/generated/prisma/client";
 import { DOUBLE_SUBMIT_MS, isPostTwin } from "@/lib/double-submit";
 import { decodeKeyset, encodeKeyset, keysetWhere } from "@/lib/keyset";
@@ -318,8 +318,14 @@ export async function createPost(formData: FormData) {
  * Flips a letter draft to published: only its own author may call this. The
  * draft's createdAt is bumped to now so it enters the feed/letters list at
  * the moment it is actually published, not whenever it was first drafted.
+ *
+ * `asPost` publishes it as a post instead: the desk offers that when a letter
+ * under LETTER_MIN_WORDS is published (owner, 2026-09-17). Same row, so the
+ * draft is not left behind, and the title becomes the opening line. Done here
+ * rather than by the editPost before it, so a refused publish leaves the
+ * draft exactly as the writer saved it.
  */
-export async function publishDraft(postId: string) {
+export async function publishDraft(postId: string, opts: { asPost?: boolean } = {}) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
@@ -331,7 +337,7 @@ export async function publishDraft(postId: string) {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { authorId: true, status: true, kind: true },
+    select: { authorId: true, status: true, kind: true, title: true, content: true },
   });
   if (!post) return { error: "Draft not found" };
   if (post.authorId !== session.user.id) return { error: "Not authorized" };
@@ -339,9 +345,17 @@ export async function publishDraft(postId: string) {
     return { error: "That letter isn't a draft" };
   }
 
+  let asPost = {};
+  // `?.`: a hand-made call can send null, which the default does not cover.
+  if (opts?.asPost === true) {
+    const content = withTitleAsOpeningLine(post.title, post.content);
+    if (content.length > postContentMax("post")) return { error: POST_TOO_LONG };
+    asPost = { kind: "post", title: null, content };
+  }
+
   await prisma.post.update({
     where: { id: postId },
-    data: { status: "published", createdAt: new Date() },
+    data: { status: "published", createdAt: new Date(), ...asPost },
   });
 
   revalidatePath("/feed");

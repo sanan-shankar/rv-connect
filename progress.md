@@ -16,6 +16,7 @@ if the month is new), and add one line here, at the top of that month's list.
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
 - 2026-09-17 (mascot) — the hoopoe answers a tap, keeps living, and the upload thank-you is about the photographs
+- 2026-09-17 (letters) — a short letter is asked whether it would rather be a post
 - 2026-09-17 (letters) — 300 words is the line between a post and a letter
 - 2026-09-17 (feed, fix) — the like celebration plays on the feed again
 - 2026-09-17 (hearts, fix) — every tap on a heart counts, however slow the save
