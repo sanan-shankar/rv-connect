@@ -65,7 +65,13 @@ import {
 } from "@/components/ui/dialog";
 import { EASE_OUT_SMOOTH, SPRINGS, SpringPress } from "@/components/common/motion";
 import { wellClass, WELL_PRESS, usePointerFine } from "@/components/common/attach-image-dialog";
-import { ContributedHoopoe } from "@/components/mascot/moments/contributed-hoopoe";
+import {
+  ContributedHoopoe,
+  PILE_MAX,
+  type ContributedHoopoeHandle,
+  type PilePhoto,
+} from "@/components/mascot/moments/contributed-hoopoe";
+import { FlyAwayHoopoe } from "@/components/mascot/moments/fly-away-hoopoe";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { HALVES, photoDate, yearUnreadable } from "@/lib/collection";
 import { contributePhoto, contributePhotoDirect } from "@/app/(main)/collection/actions";
@@ -137,6 +143,31 @@ function measure(file: File): Promise<{ preview: string; width: number; height: 
   });
 }
 
+/** A small copy of a filed photograph for the thank-you's pile. The long
+ *  edge is twice the print's 60px, for a 2x screen. Drawn into a canvas of
+ *  exactly that size whatever the bitmap comes back as, because a browser
+ *  that ignores the resize hint would otherwise hand back the original. If
+ *  none of it works, a full-size URL instead, released with the rest. */
+const PILE_PRINT_EDGE = 120;
+async function pilePrint(p: Staged): Promise<PilePhoto> {
+  const scale = PILE_PRINT_EDGE / Math.max(p.width, p.height, 1);
+  const w = Math.max(1, Math.round(p.width * scale));
+  const h = Math.max(1, Math.round(p.height * scale));
+  try {
+    const bitmap = await createImageBitmap(p.file, { resizeWidth: w, resizeHeight: h, resizeQuality: "medium" });
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/webp", 0.8));
+    if (!blob) throw new Error("no blob");
+    return { src: URL.createObjectURL(blob), width: p.width, height: p.height };
+  } catch {
+    return { src: URL.createObjectURL(p.file), width: p.width, height: p.height };
+  }
+}
+
 /* ------------------------------------------------------------------ *
  *  The pop-up. Most of the glass ONCE THERE IS SOMETHING TO SHOW: a wall
  *  of two hundred photographs needs room, and its own scroll so the Add
@@ -180,8 +211,15 @@ export function ContributeDialog({
 }) {
   const [wall, setWall] = useState(0);
   const [leaving, setLeaving] = useState(false);
+  /* The bird leaving ahead of you when "See them in the Collection" closes
+     the pop-up. Held HERE, outside <Dialog>, because the room and its bird
+     are unmounted with the glass and the flight has to outlive both. */
+  const [flight, setFlight] = useState<{ from: DOMRect; size: number } | null>(null);
   return (
     <>
+    {flight && (
+      <FlyAwayHoopoe from={flight.from} size={flight.size} onGone={() => setFlight(null)} />
+    )}
     <Dialog
       open={open}
       onOpenChange={(v) => {
@@ -262,6 +300,7 @@ export function ContributeDialog({
             active={open}
             onWall={setWall}
             onDone={() => onOpenChange(false)}
+            onFlyAway={(from, size) => setFlight({ from, size })}
           />
         </div>
       </DialogContent>
@@ -288,6 +327,7 @@ export function ContributeRoom({
   scope = "valley",
   onWall,
   onDone,
+  onFlyAway,
 }: {
   /** Which half this contribution is going into. See ContributeDialog. */
   scope?: PhotoScope;
@@ -297,6 +337,9 @@ export function ContributeRoom({
   /** Close the pop-up. Seeing what was just added IS closing it: the
    *  Collection is the page behind, and it refreshed as they landed. */
   onDone?: () => void;
+  /** Where the finished screen's bird hands itself off to fly out of the
+   *  pop-up as it closes. Absent in the lab room, where it simply stays. */
+  onFlyAway?: (from: DOMRect, size: number) => void;
   /** False while the pop-up is closed but still mounted, so the window-wide
    *  paste and drop listeners are not live under a page nobody is adding
    *  to -- pasting a screenshot into the composer must not open a wall of
@@ -321,6 +364,9 @@ export function ContributeRoom({
   /** How far the filing has got, once every photograph has landed. */
   const [filing, setFiling] = useState<{ done: number; total: number } | null>(null);
   const [added, setAdded] = useState<number | null>(null);
+  /** A few of the photographs just filed, for the finished screen's pile.
+   *  Their object URLs are the only ones NOT released when a batch lands. */
+  const [pile, setPile] = useState<PilePhoto[]>([]);
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -339,8 +385,12 @@ export function ContributeRoom({
      photograph is taken back out of the drop. */
   const live = useRef<string[]>([]);
   useEffect(() => {
-    const urls = live.current;
-    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+    /* The ref, not `live.current` captured at mount: every batch that lands
+       REPLACES the array, so the one captured here was always the first and
+       every URL made after a contribution outlived the room. That now
+       includes the pile's, which stay live on purpose until this unmounts. */
+    const urls = live;
+    return () => urls.current.forEach((u) => URL.revokeObjectURL(u));
   }, []);
 
   /* ---------------- taking the files in ---------------- */
@@ -737,6 +787,7 @@ export function ContributeRoom({
     const batch = wall.current;
     const asked = answers.current;
     let done = 0;
+    const kept: Staged[] = [];
     const failures: string[] = [];
     setFiling({ done: 0, total: batch.length });
 
@@ -750,6 +801,7 @@ export function ContributeRoom({
       try {
         await fileOne(p, asked[p.id]);
         done += 1;
+        if (kept.length < PILE_MAX) kept.push(p);
       } catch (err) {
         const message = err instanceof Error ? err.message : "That one did not go through.";
         if (emailGate.handled(message)) break;
@@ -779,8 +831,13 @@ export function ContributeRoom({
           : `${failures.length} photographs did not go through. ${failures[0]}`
       );
     }
+    /* The pile gets its own small copies, made before the full-size previews
+       go: a 60px print drawn from a twelve-megapixel original keeps the whole
+       decoded original in memory for as long as the thank-you is up. */
+    const prints = await Promise.all(kept.map(pilePrint));
     live.current.forEach((u) => URL.revokeObjectURL(u));
-    live.current = [];
+    live.current = prints.map((p) => p.src);
+    setPile(prints);
     setPhotos([]);
     setMeta({});
     setAt(0);
@@ -796,8 +853,13 @@ export function ContributeRoom({
       <Finish
         count={added}
         autoApproved={autoApproved}
+        pile={pile}
+        onFlyAway={onFlyAway}
         onDone={onDone}
         onAgain={() => {
+          live.current.forEach((u) => URL.revokeObjectURL(u));
+          live.current = [];
+          setPile([]);
           setAdded(null);
           claimed.current = new Set();
         }}
@@ -1191,18 +1253,32 @@ function Invitation({
 }
 
 /** After. A count in the house voice rather than a toast, and the one
- *  appearance of the bird this flow gets. */
-function Finish({
+ *  appearance of the bird this flow gets. Exported for /lab/hoopoe-lives,
+ *  which plays it with sample photographs instead of a real upload. */
+export function Finish({
   count,
   autoApproved,
+  pile,
+  onFlyAway,
   onAgain,
   onDone,
 }: {
   count: number;
   autoApproved: boolean;
+  pile: PilePhoto[];
+  onFlyAway?: (from: DOMRect, size: number) => void;
   onAgain: () => void;
   onDone?: () => void;
 }) {
+  const bird = useRef<ContributedHoopoeHandle>(null);
+  const seeThem = useRef<HTMLButtonElement>(null);
+  const addMore = useRef<HTMLButtonElement>(null);
+  /* The bird looks at the button under the pointer: the one it is about to
+     be asked to do. Pupils only, so hover still moves no control. */
+  const lookHere = {
+    onPointerEnter: (e: React.PointerEvent<HTMLElement>) => bird.current?.look(e.currentTarget),
+    onPointerLeave: () => bird.current?.look(null),
+  };
   const WORDS = [
     "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
     "Eleven", "Twelve",
@@ -1215,7 +1291,13 @@ function Finish({
           room to hop in, and a celebration that lands on the words it is
           celebrating reads as a collision (owner, 2026-08-29: "move the
           hoopoe slightly higher, it's sitting too close to the title"). */}
-      <ContributedHoopoe className="mb-6" />
+      <ContributedHoopoe
+        ref={bird}
+        className="mb-6"
+        photos={pile}
+        onFlyAway={onFlyAway}
+        lookAt={() => [seeThem.current, addMore.current]}
+      />
       {/* The thanks is the heading now. It used to be "Three photographs,
           added to the valley's memory" -- an accurate receipt, and a receipt
           is not what this screen is for. The count is still said, one line
@@ -1235,10 +1317,19 @@ function Finish({
       <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
         {/* Closing the pop-up IS seeing them: the Collection is the page
             behind it, and it already refreshed when they landed. */}
-        <Button variant="primary" className="rounded-full" onClick={onDone}>
+        <Button
+          ref={seeThem}
+          variant="primary"
+          className="rounded-full"
+          {...lookHere}
+          onClick={() => {
+            bird.current?.flyAway();
+            onDone?.();
+          }}
+        >
           See them in the Collection
         </Button>
-        <Button variant="outline" className="rounded-full" onClick={onAgain}>
+        <Button ref={addMore} variant="outline" className="rounded-full" {...lookHere} onClick={onAgain}>
           Add more
         </Button>
       </div>

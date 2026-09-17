@@ -23,14 +23,14 @@
  *  left the last Catch-up they were in.
  * ------------------------------------------------------------------ */
 
-import { Hoopoe } from "@/components/mascot/hoopoe";
+import { ResidentHoopoe } from "@/components/mascot/resident-hoopoe";
 import { useSoloHoopoe } from "@/components/mascot/moments/one-hoopoe-guard";
 
 export function NothingHere() {
   const solo = useSoloHoopoe();
   return (
     <div className="flex flex-col items-center gap-[var(--space-m)] py-[var(--space-l)] text-center">
-      {solo && <Hoopoe size={96} />}
+      {solo && <ResidentHoopoe size={96} />}
       <p className="font-heading text-xl tracking-tight text-foreground">
         You are not in a Catch-up yet
       </p>

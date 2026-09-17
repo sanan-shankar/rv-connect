@@ -465,5 +465,5 @@ function HeroLoader() {
       clearTimeout(t);
     };
   }, [hop]);
-  return <Hoopoe ref={ref} size={92} />;
+  return <Hoopoe ref={ref} size={92} pokeable={false} />;
 }

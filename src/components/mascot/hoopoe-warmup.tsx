@@ -93,7 +93,7 @@ export function HoopoeWarmup() {
   if (!warm) return null;
   return (
     <div aria-hidden className="pointer-events-none fixed -left-[9999px] -top-[9999px] opacity-0">
-      <Hoopoe size={96} idle={false} />
+      <Hoopoe size={96} idle={false} pokeable={false} />
     </div>
   );
 }

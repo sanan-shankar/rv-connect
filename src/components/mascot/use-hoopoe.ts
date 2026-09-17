@@ -76,6 +76,7 @@ export function useHoopoe(): UseHoopoe {
       peek: v("peek"),
       sleep: p("sleep"),
       wake: p("wake"),
+      poke: v("poke"),
       sequence: p("sequence") as HoopoeApi["sequence"],
       react: p("react"),
       stop: v("stop"),

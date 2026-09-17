@@ -14,10 +14,11 @@
  *  demo behaviour).
  * ------------------------------------------------------------------ */
 
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
+import { useHoopoeLife } from "@/components/mascot/use-hoopoe-life";
 import { useSoloHoopoe } from "./one-hoopoe-guard";
 
 /**
@@ -84,24 +85,32 @@ export function useMomentAutoplay(
  * all three began that way and it is not a thing to leave to each new moment
  * to remember: a moment that starts mid-verb from whatever the bird was doing
  * before is the bug this prevents.
+ *
+ * When `play` resolves, the bird does not stop: `useHoopoeLife` takes over
+ * and keeps it doing small things for as long as the moment is on screen.
  */
 export function MomentStage({
   size,
   className = "",
   play,
+  lookAt,
 }: {
   size: number;
   className?: string;
-  play: (h: HoopoeApi) => void;
+  play: (h: HoopoeApi) => Promise<void> | void;
+  /** What the resting bird glances at between beats. */
+  lookAt?: () => Array<HTMLElement | null | undefined>;
 }) {
   const { ref, ...h } = useHoopoe();
   const stageRef = useRef<HTMLDivElement>(null);
   const solo = useSoloHoopoe();
+  const [played, setPlayed] = useState(false);
 
   useMomentAutoplay(stageRef, () => {
     h.cancel();
-    play(h);
+    void Promise.resolve(play(h)).then(() => setPlayed(true));
   });
+  useHoopoeLife(h, solo && played, lookAt);
 
   if (!solo) return null;
 

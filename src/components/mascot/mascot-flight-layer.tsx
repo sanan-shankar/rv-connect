@@ -585,6 +585,7 @@ export function MascotFlightLayer() {
         key={active.id}
         size={size}
         idle={false}
+        pokeable={false}
         onReady={(api) => {
           queueFlight(api, active);
         }}

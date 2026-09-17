@@ -370,6 +370,7 @@ export default function NotFoundStage() {
           ref.current = api;
         }}
         size={rig}
+        pokeable={false}
       />
     </div>
   );

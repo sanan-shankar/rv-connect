@@ -10,7 +10,7 @@
  * ------------------------------------------------------------------ */
 
 import Link from "next/link";
-import { Hoopoe } from "@/components/mascot/hoopoe";
+import { ResidentHoopoe } from "@/components/mascot/resident-hoopoe";
 import { useSoloHoopoe } from "@/components/mascot/moments/one-hoopoe-guard";
 import { Button } from "@/components/ui/button";
 import { FadeRise } from "@/components/common/motion";
@@ -38,7 +38,7 @@ export function CompletionCard({
         }}
       />
       <div className="relative flex flex-col items-center">
-        {solo && <Hoopoe size={104} />}
+        {solo && <ResidentHoopoe size={104} />}
         <h2
           className={cn(
             "font-heading text-2xl font-bold tracking-[-0.02em] text-foreground",

@@ -205,6 +205,22 @@ function Brow({ side, cx, y }: { side: -1 | 1; cx: number; y: number }) {
 }
 
 /* ---- the controller hook: builds the queued, awaitable HoopoeApi ---- */
+/* ---- poke timing ---- */
+// Taps closer together than this are one streak. Somebody tapping on purpose
+// lands them 150 to 300ms apart; a tap a whole second after the last is a new
+// poke, not the old one continuing.
+const POKE_STREAK_MS = 1000;
+// The fifth tap in a streak flusters it. Two to four is play; five is somebody
+// seeing what happens, and the huff is the answer.
+const POKE_FLUSTER_AT = 5;
+// How long it keeps its face turned away. Long enough to read as a sulk,
+// short enough to be over before the joke is.
+const HUFF_HOLD_MS = 1100;
+// Where the eyes go while a pointer rests on the bird: straight up at you.
+// It is the hover state of the one clickable thing here that cannot change
+// colour, and it moves nothing but the pupils.
+const HOVER_GAZE_Y = -0.45;
+
 interface Ctx {
   animate: ReturnType<typeof useAnimate>[1];
   scopeEl: () => SVGSVGElement | null;
@@ -222,6 +238,14 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
   const rootX = useRef(0);
   const rootY = useRef(0);
   const celebrateAt = useRef(0);
+  // The chord the face is wearing, so a poke hands it back exactly as found:
+  // the forgot-password bird rests `curious`, and a giggle that ended on
+  // `content` would quietly change the mood of the screen it was tapped on.
+  const chordNow = useRef<Chord>(EXPRESSIONS.content);
+  const pokeCount = useRef(0);
+  const pokeAt = useRef(0);
+  const pokePending = useRef(false);
+  const huffing = useRef(false);
   // Abort token the queue races against. motion v12 `control.stop()` does NOT resolve `.finished`
   // (only natural completion or cancel does), so without this an interrupted verb would leave
   // `pump` awaiting forever and wedge every later enqueue. stop() flips + releases the token.
@@ -300,6 +324,7 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
   // through every expression, which reads more alive.
   function applyChord(c: Chord, opts?: { spring?: Record<string, unknown> }) {
     const sp = opts?.spring ?? SPRINGS.gentle;
+    chordNow.current = c;
     setEye(c.eye);
     return Promise.all([
       A(PARTS.crest, { scaleX: c.crest.sx, scaleY: c.crest.sy, rotate: c.crest.rot }, sp),
@@ -1042,6 +1067,124 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
   }
   const wakeVerb = () => enqueue(() => wakeRaw());
 
+  // ----- poke: somebody tapped the bird -----
+  // Built from the head, crest, eyes, bill, body and legs and NEVER the wings:
+  // the sign-in birds hold their wings over their eyes for as long as the
+  // password is hidden, and a tap must not be the thing that uncovers them.
+  // For the same reason the startle is applyChord, not express(), which
+  // levels the wings.
+  function poke() {
+    if (asleepRef.current || huffing.current) return;
+    const now = safeNow();
+    pokeCount.current = now - pokeAt.current < POKE_STREAK_MS ? pokeCount.current + 1 : 1;
+    pokeAt.current = now;
+    // One queued at a time. Taps that land while it is still reacting only
+    // raise the count, so the NEXT reaction is the bigger one.
+    if (pokePending.current) return;
+    pokePending.current = true;
+    void enqueue(pokeRaw);
+  }
+
+  async function pokeRaw() {
+    pokePending.current = false;
+    if (asleepRef.current) return;
+    const token = abortRef.current;
+    const count = pokeCount.current;
+    const before = chordNow.current;
+    const gx = gazeX.get();
+    const gy = gazeY.get();
+    damper.suspend();
+    try {
+      if (count >= POKE_FLUSTER_AT) {
+        pokeCount.current = 0;
+        huffing.current = true;
+        await flusterRaw(before, token);
+      } else if (count >= 2) {
+        await bounceRaw(before);
+      } else {
+        await giggleRaw(before);
+      }
+    } finally {
+      huffing.current = false;
+      if (!token.aborted) {
+        gazeX.set(gx);
+        gazeY.set(gy);
+      }
+      damper.resume();
+    }
+  }
+
+  // One tap: happy eyes, the crest pops, a small bounce on the spot.
+  async function giggleRaw(c: Chord) {
+    setEye("happy");
+    await Promise.all([
+      A(PARTS.root, { y: [rootY.current, rootY.current - 5, rootY.current] }, { duration: 0.34, ease: EASE_SPRING }).finished,
+      A(PARTS.crest, { scaleX: [null as never, c.crest.sx * 1.28, c.crest.sx], scaleY: [null as never, c.crest.sy * 1.1, c.crest.sy], rotate: [null as never, c.crest.rot - 6, c.crest.rot] }, { duration: 0.5, ease: EASE_SPRING }).finished,
+      A(PARTS.billLower, { rotate: [null as never, 7, c.bill] }, { duration: 0.34, ease: EASE_SOFT }).finished,
+    ]);
+    await sleep(120);
+    setEye(c.eye);
+  }
+
+  // Two to four quick taps: a crouch, a real jump with the feet kicking, and a
+  // blink on landing, the same beat the hop verb ends on.
+  async function bounceRaw(c: Chord) {
+    const times = [0, 0.22, 0.62, 1];
+    setEye("happy");
+    await Promise.all([
+      A(PARTS.body, { scaleY: [null as never, 0.9, 1.07, 1], y: [null as never, 3, -1, 0] }, { duration: 0.5, times }).finished,
+      A(PARTS.root, { y: [rootY.current, rootY.current, rootY.current - 16, rootY.current] }, { duration: 0.5, times, ease: "easeInOut" }).finished,
+      A(PARTS.shadow, { scaleX: [1, 1, 0.74, 1], opacity: [0.18, 0.18, 0.09, 0.18] }, { duration: 0.5, times }).finished,
+      A(PARTS.leftLeg, { rotate: [0, -10, 22, 0] }, { duration: 0.5, times }).finished,
+      A(PARTS.rightLeg, { rotate: [0, 10, -22, 0] }, { duration: 0.5, times }).finished,
+      A(PARTS.crest, { scaleX: [null as never, c.crest.sx * 1.36, c.crest.sx], scaleY: [null as never, c.crest.sy * 1.14, c.crest.sy] }, { duration: 0.56, ease: EASE_SPRING }).finished,
+    ]);
+    await A(PARTS.eyeBlink, { scaleY: [1, 0.06, 1] }, { duration: 0.16 }).finished;
+    setEye(c.eye);
+  }
+
+  // Five in a row: a startle, then it turns its face away with its chin up
+  // and its crest folded, peeks back to check you are still there, and
+  // forgives you with a little hop and a couple of hearts.
+  async function flusterRaw(c: Chord, token: { aborted: boolean }) {
+    const s = Math.random() < 0.5 ? -1 : 1;
+    await Promise.all([
+      applyChord(EXPRESSIONS.surprise, { spring: SPRINGS.snappy }),
+      A(PARTS.root, { y: [rootY.current, rootY.current - 7, rootY.current] }, { duration: 0.42, ease: EASE_SPRING }).finished,
+    ]);
+    await sleep(260);
+    if (token.aborted) return;
+
+    gazeX.set(s * 0.95);
+    gazeY.set(-0.15);
+    setEye("sleepy");
+    await Promise.all([
+      A(PARTS.head, { rotate: s * 12, y: -1.5 }, SPRINGS.gentle).finished,
+      A(PARTS.crest, { scaleX: 0.5, scaleY: 0.86, rotate: s * 8 }, SPRINGS.gentle).finished,
+      A(PARTS.brows, { opacity: 0 }, SPRINGS.gentle).finished,
+      A(PARTS.billLower, { rotate: 0 }, SPRINGS.gentle).finished,
+    ]);
+    await sleep(HUFF_HOLD_MS);
+    if (token.aborted) return;
+
+    gazeX.set(s * 0.35);
+    await sleep(320);
+    if (token.aborted) return;
+
+    gazeX.set(0);
+    gazeY.set(0);
+    setEye("happy");
+    await Promise.all([
+      A(PARTS.head, { rotate: 0, y: 0 }, SPRINGS.gentle).finished,
+      A(PARTS.crest, { scaleX: [null as never, 1.3, 1.1], scaleY: [null as never, 1.1, 1], rotate: 0 }, { duration: 0.55, ease: EASE_SPRING }).finished,
+      A(PARTS.root, { y: [rootY.current, rootY.current - 8, rootY.current] }, { duration: 0.4, ease: EASE_SPRING }).finished,
+      burstParticles(3),
+    ]);
+    await sleep(200);
+    if (token.aborted) return;
+    await applyChord(c);
+  }
+
   // ----- control -----
   function stop() {
     queue.length = 0;
@@ -1053,6 +1196,11 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
     abortRef.current.release(); // unblock pump's race so it exits cleanly
     arm();
     asleepRef.current = false; // an interrupted sleep no longer owns the damper hold below
+    // A poke abandoned mid-reaction never reaches its own finally, so its
+    // flags are dropped here or the bird would ignore every tap after.
+    pokePending.current = false;
+    huffing.current = false;
+    pokeCount.current = 0;
     while (damper.active) damper.resume();
   }
   function cancel() {
@@ -1144,7 +1292,7 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
       walk, hop, flyTo, land, takeOff, glide, legsDown, perch, turn, point, wave, nod, shake, crest, crestFlick,
       preen, peck, flyIn,
       express, celebrate, blinkOnce, gaze: gazeTo,
-      coverEyes, peek, sleep: sleepVerb, wake: wakeVerb, sequence, react, stop, cancel, rest, isBusy,
+      coverEyes, peek, sleep: sleepVerb, wake: wakeVerb, poke, sequence, react, stop, cancel, rest, isBusy,
     }),
     // verbs are stable by construction (see note above); intentionally build once
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1182,6 +1330,13 @@ export interface HoopoeProps {
   initialExpression?: Expression;
   onReady?: (api: HoopoeApi) => void;
   idle?: boolean;
+  /** Whether a tap on the bird pokes it (see `poke()`). On by default, so a
+   *  new bird anywhere in the app answers a tap without anyone remembering to
+   *  ask. Off where a click on or around the bird already means something
+   *  else (the 404's fly-to-the-click, the playground's scene, the sidebar
+   *  bird that a click wakes) and on birds nobody can reach (in flight, the
+   *  off-screen warm-up). */
+  pokeable?: boolean;
   tail?: boolean;
   // proportion knobs (defaults = the canonical baby hoopoe; the lab's Proportion Studio drives these)
   headScale?: number; // 0.86..1.0 typical; head shrinks upward, bottom stays attached to the body
@@ -1192,7 +1347,7 @@ export interface HoopoeProps {
 }
 
 export const Hoopoe = forwardRef<HoopoeApi, HoopoeProps>(function Hoopoe(
-  { size = 160, variant = "full", className = "", onReady, idle = true, tail = false, headScale = 1, eyeScale = 1, eyeY = 0, eyeSpread = 0, billLength = 1 },
+  { size = 160, variant = "full", className = "", onReady, idle = true, pokeable = true, tail = false, headScale = 1, eyeScale = 1, eyeY = 0, eyeSpread = 0, billLength = 1 },
   ref
 ) {
   // ---- geometry. Head center is pinned (60,56); a smaller headScale shrinks the cranium AROUND
@@ -1238,6 +1393,24 @@ export const Hoopoe = forwardRef<HoopoeApi, HoopoeProps>(function Hoopoe(
   });
 
   useImperativeHandle(ref, () => api, [api]);
+
+  // Hover: the eyes look up at whoever is pointing at it, and go back to
+  // wherever they were on the way out -- unless something else moved them in
+  // the meantime (a form's typing gaze, a moment's glance), which wins.
+  const gazeBeforeHover = useRef<{ x: number; y: number } | null>(null);
+  const onPointerEnter = () => {
+    gazeBeforeHover.current = { x: gazeX.get(), y: gazeY.get() };
+    gazeX.set(0);
+    gazeY.set(HOVER_GAZE_Y);
+  };
+  const onPointerLeave = () => {
+    const was = gazeBeforeHover.current;
+    gazeBeforeHover.current = null;
+    if (was && gazeX.get() === 0 && gazeY.get() === HOVER_GAZE_Y) {
+      gazeX.set(was.x);
+      gazeY.set(was.y);
+    }
+  };
 
   // expose to onReady once mounted
   const readyRef = useRef(false);
@@ -1353,10 +1526,25 @@ export const Hoopoe = forwardRef<HoopoeApi, HoopoeProps>(function Hoopoe(
       viewBox="0 -10 120 152"
       className={`hoopoe-mascot ${className}`}
       fill="none"
+      /* Still aria-hidden and never focusable, pokeable or not: a poke is a
+         toy, not a control, and a keyboard or screen-reader visitor misses
+         nothing the page needs by not reaching it. */
       aria-hidden
+      onClick={pokeable ? api.poke : undefined}
+      onPointerEnter={pokeable ? onPointerEnter : undefined}
+      onPointerLeave={pokeable ? onPointerLeave : undefined}
       style={{
         overflow: "visible",
         display: "block",
+        /* An explicit value, not inherit: several birds sit inside a
+           pointer-events-none wrapper so the empty box around them never
+           swallows a click, and the bird itself should still take its tap.
+           visiblePainted means only the drawn feathers catch it, never the
+           transparent corners of the view-box. `manipulation` lets five fast
+           taps be five taps on a phone rather than a double-tap zoom. */
+        ...(pokeable
+          ? { pointerEvents: "visiblePainted", cursor: "pointer", touchAction: "manipulation", userSelect: "none", WebkitTapHighlightColor: "transparent" }
+          : null),
         // feed the tunable eye/brow positions to the rig CSS so gaze/blink
         // pivots follow them. As PERCENTAGES of the view-box, same as every
         // fixed origin in RIG_CSS and for the same Safari-zoom reason (see the
