@@ -8142,3 +8142,22 @@ text-sm, so its 1em margin is 14px, and a placeholder without the size sat 2px l
 
 Verified with the first-flush probe as Jerry at 1440x900 and 390x844: every frame, chip and button at
 0px. The page renders unchanged (visual suite).
+
+## 2026-09-21 (loading) — Pick your bird, Dark mode and Welcome load as themselves
+
+Pick your bird drew a subtitle the page has never had and its columns at the wrong breakpoints; it
+now has the real title and the picker's own cells, the 96px bird and its 13px name in a button padded
+--space-s, two to five across at the gallery's breakpoints. Dark mode drew four bars and no buttons,
+so its block centred 30px off; it is now the intro step line for line, 213px, with "Go back" and
+"Start" as the real Buttons' boxes and each line of type as a bar exactly as wide as its words
+(`TextSkeleton`, new in common/skeleton.tsx). Placeholders rather than the words, because the step
+rises in on arrival and drawn words would vanish and rise again. Welcome is the flow's own frame: the
+step dots drawn as themselves, the card with its heading and three measured lines, and the button.
+
+Two em traps, both found by measuring: a name set at 13px takes a 5px --space-xs, not 6; and Tailwind
+v4's space-y puts its margin on the element above the gap, so the gap under Welcome's 28px heading is
+10.7px. Welcome answers too fast for the server to stream its frame, so it was checked by rendering
+the file in Node (jiti) into the real page's column.
+
+Verified at 1440x900 and 390x844: the picker's birds, the gauntlet's bars and buttons, and Welcome's
+dots, card, lines and button at 0px. Check green.
