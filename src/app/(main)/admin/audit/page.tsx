@@ -76,7 +76,7 @@ export default async function AdminAuditPage() {
         {events.length === 0 ? (
           <AdminEmpty>Nothing has happened yet that is worth keeping a record of.</AdminEmpty>
         ) : (
-          <ul className="flex flex-col divide-y divide-border/60 rounded-[var(--radius-card)] border border-border/60 bg-card">
+          <ul className="flex flex-col divide-y divide-border/60 rounded-[var(--radius)] border border-border/60 bg-card">
             {events.map((e) => {
               const actor = label(e.actorId);
               const target = label(e.targetId);
@@ -106,7 +106,7 @@ export default async function AdminAuditPage() {
         {failedLogins.length === 0 ? (
           <AdminEmpty>No failed sign-ins on record. A quiet door is a good sign.</AdminEmpty>
         ) : (
-          <ul className="flex flex-col divide-y divide-border/60 rounded-[var(--radius-card)] border border-border/60 bg-card">
+          <ul className="flex flex-col divide-y divide-border/60 rounded-[var(--radius)] border border-border/60 bg-card">
             {failedLogins.map((a) => (
               <li key={a.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 px-4 py-3">
                 <span className="text-sm text-foreground">{a.email}</span>

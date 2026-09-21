@@ -8181,3 +8181,11 @@ card), and the admin reply box carries no bird. The lab's skeleton follows its i
 Verified with the first-flush probe as the owner at 1440x900 and 390x844: titles, sections, strips,
 grids and first rows at 0-3px on every admin page; the lab's header and first cards at 0-1px.
 Check green.
+
+## 2026-09-21 (admin, fix) — the audit log's two lists get their card corners back
+
+Both lists on /admin/audit were drawn `rounded-[var(--radius-card)]`, a token that exists nowhere (it
+arrived with the Phase 7 audit-log work), so the browser dropped the radius and the two cards had
+square corners beside every other card in the wing. Now `--radius`, the 16px card radius the rest of
+the panel uses, on the page and its loading screen. Found while fitting that screen to the page.
+Verified at 1440x900.

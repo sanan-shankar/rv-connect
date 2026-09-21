@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-21 (admin, fix) — the audit log's two lists get their card corners back
 - 2026-09-21 (admin, lab, loading) — the admin wing's loading screens are its pages, and the lab's is its index
 - 2026-09-21 (loading) — Pick your bird, Dark mode and Welcome load as themselves
 - 2026-09-21 (support, loading) — Support's loading screen is the page, with three parts pending
