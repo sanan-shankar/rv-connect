@@ -8109,3 +8109,19 @@ line under the card as the words it always is.
 Verified with the first-flush probe at 1440x900 and 390x844 as Jerry and as the owner: every piece of
 "Reach out" at 0px; a conversation's card, first bird and first bubble at 0px, the rest following
 content. Check green.
+
+## 2026-09-21 (profile, loading) — the profile's loading screen is the letterhead with the ink drained
+
+The skeleton's sheet started 20px above the real one (it had no perch clearance), had no perched bird,
+drew a name bar where the name's clamp sets a 43.7px line, and a switcher and post cards in shapes the
+page does not use. It is now letterhead-profile.tsx's own sheet: its geometry and material moved to
+`profile/letterhead-sheet.tsx` (IDENTITY_VARS, the sheet and switcher shadows, and the paper grain and
+canopy glow as `SheetMaterial`) so the page and its skeleton share them rather than one copying the
+other. It draws what most members have, counted on the live database (194): the perched bird where it
+hangs (95% have no photograph), the real peaks mark, an occupation line (53%), three facts, a Houses
+row (65%), no About (2%), "Get in touch" beside the name from sm and at the foot on a phone, then the
+switcher's own box and PostCard's placeholder. The Writing tab's own wait draws `PostCardSkeleton` too.
+
+Verified with the first-flush probe at 1440x900 and 390x844, as Jerry on another member's profile and
+as the owner on his own: the bird, "Get in touch", the name's line, the facts and the first house pill
+at 0-1px; the sheet's height and everything under it follow the member's houses. Check green.
