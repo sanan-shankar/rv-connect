@@ -51,3 +51,20 @@ export function ButtonSkeleton({
     </Button>
   );
 }
+
+/**
+ * A run of known words before its page arrives: a bar exactly as wide as the
+ * words, centred on the line, because the words themselves are there,
+ * invisible, setting the width. For text that is fixed but must not be drawn
+ * yet -- a heading inside a step that rises in on arrival, where drawn words
+ * would vanish and rise in again. The bar is 0.6em, so it scales with
+ * whatever type the caller wraps it in.
+ */
+export function TextSkeleton({ children }: { children: string }) {
+  return (
+    <span className="relative inline-block">
+      <span className="invisible">{children}</span>
+      <span className="skeleton-warm absolute inset-x-0 top-1/2 h-[0.6em] -translate-y-1/2 rounded-md" />
+    </span>
+  );
+}

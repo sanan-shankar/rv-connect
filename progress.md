@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-21 (loading) — Pick your bird, Dark mode and Welcome load as themselves
 - 2026-09-21 (support, loading) — Support's loading screen is the page, with three parts pending
 - 2026-09-21 (profile, loading) — the profile's loading screen is the letterhead with the ink drained
 - 2026-09-21 (messages, loading) — "Reach out" and a conversation load as themselves
