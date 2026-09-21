@@ -8161,3 +8161,23 @@ the file in Node (jiti) into the real page's column.
 
 Verified at 1440x900 and 390x844: the picker's birds, the gauntlet's bars and buttons, and Welcome's
 dots, card, lines and button at 0px. Check green.
+
+## 2026-09-21 (admin, lab, loading) — the admin wing's loading screens are its pages, and the lab's is its index
+
+Thirteen admin sections shared one skeleton, a title bar over avatar cards at full width, and arrived
+as stat strips, two-up thread grids, a three-up people grid, a reading room, a two-column record.
+`admin-skeleton.tsx` is now a kit built from the same furniture the pages use (admin-chrome.tsx):
+`AdminPageSkeleton` (the real title through PageHeader, the 1024px measure where the page keeps it),
+`AdminSectionSkeleton` (the label drawn as its heading), `StatStripSkeleton` (the labels drawn, the
+figures pending), `AdminFilterBarSkeleton`, `AdminPersonRowSkeleton` and `ChipSkeleton`. Each page
+composes its own from them, with the grids imported (ADMIN_GRID, ADMIN_GRID_3). The overview and
+Reports draw their queues as the one empty line, which is those pages' usual state; the audit log's
+rows are the real row markup around invisible sample words, so they are 44.5px and wrap on a phone
+exactly where real rows do; the review room gained the real PageHeader and its pile switcher's box;
+the reading room, thread and record keep their headers exact. Two line-box traps found by measuring:
+an inline link in a plain block takes the block's 24px strut (the Catch-up cards were 5px short a
+card), and the admin reply box carries no bird. The lab's skeleton follows its index line for line.
+
+Verified with the first-flush probe as the owner at 1440x900 and 390x844: titles, sections, strips,
+grids and first rows at 0-3px on every admin page; the lab's header and first cards at 0-1px.
+Check green.

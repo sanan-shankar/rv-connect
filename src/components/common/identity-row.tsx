@@ -147,12 +147,16 @@ export function IdentityRow({
 export function IdentityRowSkeleton({
   avatarSize = "sm",
   nameSize = 14,
+  metaSize = 10.5,
   nameWidth = "w-28",
   metaWidth = "w-20",
   className,
 }: {
   avatarSize?: keyof typeof SIZE_TOKENS;
   nameSize?: number;
+  /** The byline's size, which is its line box for the same reason: 10.5px
+   *  by default, 12.5px where admin sets an email under the name. */
+  metaSize?: number;
   nameWidth?: string;
   metaWidth?: string;
   className?: string;
@@ -165,7 +169,7 @@ export function IdentityRowSkeleton({
         <div className="flex items-center" style={{ height: nameSize }}>
           <div className={cn("skeleton-warm h-2.5 max-w-full rounded-md", nameWidth)} />
         </div>
-        <div className="flex h-[10.5px] items-center">
+        <div className="flex items-center" style={{ height: metaSize }}>
           <div className={cn("skeleton-warm h-2 max-w-full rounded-md", metaWidth)} />
         </div>
       </div>
