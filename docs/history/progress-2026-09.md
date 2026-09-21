@@ -8056,3 +8056,21 @@ dark frames.
 
 Verified with the first-flush probe as Jerry at 1440x900 and 390x844: search, Contribute, the tiles
 and the rail labels at 0-1px; each word's bar sits on its word. Check green.
+
+## 2026-09-21 (letters, loading) — the four letters loading screens are the pages they stand in for
+
+The index's cards were 4px short and its title a bar, so the cards drifted as they went down; the
+reader drew its title as one line, which put the byline 37px above where it lands on a phone (nearly
+every title wraps at 30px in a 350px column); and the desk drew its buttons 5px off and one row where a
+phone wraps them into two. All four now sit on their pages' own measurements. The index keeps the real
+title and "Write a letter" as the real Button's box, and each card is the real card line for line,
+208px. The reader draws its title two lines on a phone and one from sm, and its body in the prose's own
+28.8px line boxes with a blank line between paragraphs. The desk wraps its control row where the real
+one wraps, and `/letters/new` draws its title and body bars exactly where the two placeholders land
+(measured: 204 and 236px for the title, 375px or 286 + 85 for the sentence), with Publish at the 0.97
+it rests at on a blank letter.
+
+Verified with the first-flush probe at 1440x900 and 390x844, as Jerry and as the owner (whose city
+brings the desk's "+" and wraps its buttons on a phone): the blank desk lands at 0px, sheet, icons and
+both buttons; the reader's byline and first line within 1px on both widths; the index's first card at
+0px. Check green.
