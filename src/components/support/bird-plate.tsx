@@ -77,7 +77,7 @@ export function BirdPlate() {
           if (e.pointerType === "touch") return;
           setOver(null);
         }}
-        className="mt-[var(--space-m)] grid grid-cols-4 gap-x-[var(--space-xs)] gap-y-[var(--space-s)] sm:grid-cols-6 sm:gap-x-[var(--space-s)] sm:gap-y-[var(--space-m)]"
+        className={PLATE_GRID}
       >
         {PLATE.map(({ name, index, seed }, i) => (
           <m.li
@@ -131,6 +131,33 @@ export function BirdPlate() {
           </m.span>
         )}
       </p>
+    </div>
+  );
+}
+
+/* The plate's grid, shared with its placeholder so the two cannot drift. */
+const PLATE_GRID =
+  "mt-[var(--space-m)] grid grid-cols-4 gap-x-[var(--space-xs)] gap-y-[var(--space-s)] sm:grid-cols-6 sm:gap-x-[var(--space-s)] sm:gap-y-[var(--space-m)]";
+
+/**
+ * The plate before the page arrives: twelve discs where the twelve birds
+ * land, in the plate's own grid, and the name line under them at its own
+ * height. The birds rise in on arrival, so they are not drawn here: a plate
+ * drawn now would vanish and rise in again.
+ */
+export function BirdPlateSkeleton() {
+  return (
+    <div>
+      <ul className={PLATE_GRID}>
+        {PLATE.map(({ index }) => (
+          <li key={index}>
+            <span className="skeleton-warm block aspect-square w-full rounded-full" />
+          </li>
+        ))}
+      </ul>
+      {/* text-sm, though it holds no words: --space-m is 1em, and the real
+          line's em is 14px, so without it the gap was 2px too wide. */}
+      <p className="mt-[var(--space-m)] h-5 text-sm leading-5" />
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Tree } from "@phosphor-icons/react/dist/ssr";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { CONTRIBUTION_SUM, netPaise } from "@/lib/contribution-state";
@@ -8,6 +7,7 @@ import { CostsCard } from "@/components/support/costs-card";
 import { BirdPlate } from "@/components/support/bird-plate";
 import { SupportContribute } from "@/components/support/support-contribute";
 import { Button } from "@/components/ui/button";
+import { SupportShell } from "@/components/support/support-shell";
 
 export const metadata: Metadata = {
   title: "Support",
@@ -56,111 +56,20 @@ export default async function SupportPage() {
     : null;
 
   return (
-    <div className="pb-[var(--space-xl)]">
-      {/* The bird field and the solid backdrop mount from the APP SHELL
-          (wood-mount.tsx), not here: the page transition template animates a
-          transform, which would trap an absolutely-positioned field inside
-          the reading column for the entrance and cause the rearrange-on-load
-          the owner reported. */}
-
-      {/* Hero: the shipped header, unchanged (owner: "let it look like how it
-          did in the shipped version"). The pledge below runs the full column
-          width; no max-w, so it never wraps at an arbitrary point. */}
-      <header className="mb-[var(--space-xl)]">
-        <style>{`
-          @keyframes support-sway {
-            0%, 100% { transform: rotate(-2deg); }
-            50% { transform: rotate(2deg); }
-          }
-        `}</style>
-        <div className="flex items-center gap-[var(--space-s)]">
-          <span
-            className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-lg)] bg-leaf/10 text-leaf"
-            aria-hidden
-          >
-            <span
-              className="inline-flex"
-              style={{ animation: "support-sway 6s ease-in-out infinite", transformOrigin: "50% 80%" }}
-            >
-              <Tree size={28} weight="duotone" />
-            </span>
-          </span>
-          <h1 className="font-heading text-[30px] leading-none tracking-[-0.02em] text-foreground">
-            Support
-          </h1>
-        </div>
-        <p className="mt-[var(--space-m)] text-base leading-relaxed text-foreground">
-          This site is not for profit and will always be free to use. Donations are much
-          appreciated and go towards running and improving it for everyone. Anything left over
-          goes to the school.
-        </p>
-      </header>
-
-      <section aria-labelledby="costs-heading" className="mb-[var(--space-xl)]">
-        <h2
-          id="costs-heading"
-          className="mb-[var(--space-s)] font-heading text-xl font-bold tracking-tight text-foreground"
-        >
-          Costs
-        </h2>
-        <div className="glass card-elevated rounded-[var(--radius-lg)] border border-border p-[var(--space-l)]">
-          <CostsCard recoveredPaise={recoveredPaise} />
-        </div>
-      </section>
-
-      <section aria-labelledby="perk-heading" className="mb-[var(--space-xl)]">
-        <div className="mb-[var(--space-s)] flex flex-wrap items-center justify-between gap-x-[var(--space-m)] gap-y-[var(--space-xs)]">
-          <h2
-            id="perk-heading"
-            className="font-heading text-xl font-bold tracking-tight text-foreground"
-          >
-            Pick your bird
-          </h2>
-          {/* A filled secondary pill at full control height: the outline
-              size=sm version disappeared against the glass ("barely a
-              button"). Secondary carries the state-layer hover and reads as
-              a control at a glance without competing with the canopy CTA
-              below it. */}
-          <Button variant="secondary" nativeButton={false} render={<Link href="/birds" />}>
-            See all 50
+    <SupportShell
+      costs={<CostsCard recoveredPaise={recoveredPaise} />}
+      plate={<BirdPlate />}
+      contribute={<SupportContribute admissionNumber={admissionNumber} />}
+      contributeAside={
+        /* The owner's test door: walks the exact page a contributor is
+           redirected to after paying, without paying. Admin eyes only;
+           /pick-bird and chooseBird both carry the matching exception. */
+        isAdmin && (
+          <Button variant="secondary" nativeButton={false} render={<Link href="/pick-bird" />}>
+            Change bird
           </Button>
-        </div>
-        <div className="glass card-elevated rounded-[var(--radius-lg)] border border-border p-[var(--space-l)]">
-          <p className="leading-relaxed text-foreground">
-            Anyone who contributes gets to pick their own bird!
-          </p>
-          <BirdPlate />
-          {/* No standing door to /pick-bird here, even for members who have
-              already contributed: the ONLY way in is the redirect after a
-              successful payment (owner). The page a supporter lands on after
-              paying stays reachable at its own URL; this page never links
-              it. */}
-        </div>
-      </section>
-
-      <section aria-labelledby="contribute-heading" className="mb-[var(--space-xl)]">
-        <div className="mb-[var(--space-s)] flex flex-wrap items-center justify-between gap-x-[var(--space-m)] gap-y-[var(--space-xs)]">
-          <h2
-            id="contribute-heading"
-            className="font-heading text-xl font-bold tracking-tight text-foreground"
-          >
-            Contribute
-          </h2>
-          {/* The owner's test door: walks the exact page a contributor is
-              redirected to after paying, without paying. Admin eyes only;
-              /pick-bird and chooseBird both carry the matching exception. */}
-          {isAdmin && (
-            <Button variant="secondary" nativeButton={false} render={<Link href="/pick-bird" />}>
-              Change bird
-            </Button>
-          )}
-        </div>
-        <div className="glass card-elevated rounded-[var(--radius-lg)] border border-border p-[var(--space-l)]">
-          <SupportContribute admissionNumber={admissionNumber} />
-        </div>
-      </section>
-
-      <p className="leading-relaxed text-foreground">Thank you for your support.</p>
-    </div>
+        )
+      }
+    />
   );
 }

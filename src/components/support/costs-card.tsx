@@ -135,20 +135,7 @@ export function CostsCard({ recoveredPaise }: { recoveredPaise: number }) {
         </m.div>
       </div>
 
-      <div className="mt-[var(--space-m)] flex flex-wrap gap-[var(--space-xs)]">
-        {SEGMENTS.map((s) => (
-          <span
-            key={s.label}
-            className="inline-flex items-center gap-[var(--space-xxs)] rounded-full border border-border bg-mist px-[var(--space-s)] py-[var(--space-xxs)] text-xs font-medium text-foreground"
-          >
-            <span className="inline-block h-2 w-2 rounded-full" style={{ background: s.color }} />
-            {s.label}
-            <span className="tabular-nums text-muted-foreground">
-              ₹{s.value.toLocaleString("en-IN")}
-            </span>
-          </span>
-        ))}
-      </div>
+      <SegmentChips />
 
       {/* The one-time build fund: the card's second section, a sibling of the
           monthly breakdown with the same heading register and the same left
@@ -181,6 +168,65 @@ export function CostsCard({ recoveredPaise }: { recoveredPaise: number }) {
             transition={SPRINGS.gentle}
           />
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* The three lines of the bill, in words. Fixed, so the card's placeholder
+   draws them as they are. */
+function SegmentChips() {
+  return (
+    <div className="mt-[var(--space-m)] flex flex-wrap gap-[var(--space-xs)]">
+      {SEGMENTS.map((s) => (
+        <span
+          key={s.label}
+          className="inline-flex items-center gap-[var(--space-xxs)] rounded-full border border-border bg-mist px-[var(--space-s)] py-[var(--space-xxs)] text-xs font-medium text-foreground"
+        >
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: s.color }} />
+          {s.label}
+          <span className="tabular-nums text-muted-foreground">
+            ₹{s.value.toLocaleString("en-IN")}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * The card before the page arrives: its words as they are, and a placeholder
+ * for each part that moves -- the total that counts up, and the two bars that
+ * grow and fade in. They play their entrances when the real card lands, so the
+ * placeholder must not play them first (a count that ran here would run a
+ * second time from zero on arrival). Same boxes, same gaps.
+ */
+export function CostsCardSkeleton() {
+  return (
+    <div>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-[var(--space-m)] gap-y-[var(--space-xxs)]">
+        <p className="font-heading text-base font-bold text-foreground">
+          Where the monthly bill goes
+        </p>
+        <p className="relative inline-flex items-center gap-0.5 text-lg font-semibold tabular-nums">
+          <span className="size-4" />
+          <span className="invisible">
+            {MONTHLY_TOTAL.toLocaleString("en-IN")}
+            <span className="ml-1 text-sm font-medium">/month</span>
+          </span>
+          <span className="skeleton-warm absolute inset-x-0 top-1/2 h-3.5 -translate-y-1/2 rounded-md" />
+        </p>
+      </div>
+
+      <div className="mt-[var(--space-m)] h-5 w-full rounded-full bg-mist" />
+
+      <SegmentChips />
+
+      <div className="mt-[var(--space-l)]">
+        <p className="font-heading text-base font-bold text-foreground">
+          Recovering what it cost to build
+        </p>
+        <div className="mt-[var(--space-m)] h-5 w-full rounded-full bg-mist" />
       </div>
     </div>
   );

@@ -418,12 +418,48 @@ export function SupportContribute({ admissionNumber }: { admissionNumber: number
         )}
       </button>
 
-      <p className="flex items-start gap-[var(--space-xs)] text-xs leading-relaxed text-muted-foreground">
-        <ShieldCheck className="mt-[0.15em] h-3.5 w-3.5 shrink-0" aria-hidden />
-        <span>
-          This process is fully secure and none of your sensitive information is visible to us.
-        </span>
-      </p>
+      <SecureNote />
+    </div>
+  );
+}
+
+function SecureNote() {
+  return (
+    <p className="flex items-start gap-[var(--space-xs)] text-xs leading-relaxed text-muted-foreground">
+      <ShieldCheck className="mt-[0.15em] h-3.5 w-3.5 shrink-0" aria-hidden />
+      <span>
+        This process is fully secure and none of your sensitive information is visible to us.
+      </span>
+    </p>
+  );
+}
+
+/**
+ * The form before the page arrives, as placeholders rather than as the form:
+ * a payment control live for the moment before the page lands could open the
+ * checkout from a component about to be replaced, and the payment's own
+ * callback would then answer to nothing. So the suggestion chips and the
+ * button are their own boxes with their words invisible (the member's own
+ * admission-number chip, when they have one, arrives with the page), and the
+ * note under them, which never changes, is drawn as it is.
+ */
+export function SupportContributeSkeleton() {
+  return (
+    <div className="flex flex-col gap-[var(--space-m)]">
+      <div className="flex flex-wrap gap-[var(--space-xs)]">
+        {[...BASE_SUGGESTIONS, OTHER].map((s) => (
+          <span
+            key={s.label}
+            className="skeleton-warm inline-flex items-center rounded-full border border-transparent px-[var(--space-m)] py-[var(--space-s)] text-sm font-semibold tabular-nums"
+          >
+            <span className="invisible">{s.label}</span>
+          </span>
+        ))}
+      </div>
+      <span className="skeleton-warm inline-flex h-12 w-full items-center justify-center gap-2 rounded-full px-[var(--space-l)] text-[15px] font-semibold sm:w-auto sm:self-start">
+        <span className="invisible">Contribute {inr(DEFAULT_AMOUNT)}</span>
+      </span>
+      <SecureNote />
     </div>
   );
 }
