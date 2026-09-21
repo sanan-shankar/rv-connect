@@ -554,6 +554,14 @@ typed without showing them is what this project refuses to do everywhere else.
 product. One click was survivable at one decision a minute; in a room built for a queue of two
 hundred with a thumb-swipe bound to it, it is not. The button arms for four seconds rather than
 opening a dialog — a modal per decline would cost the speed the room exists for.
+Arming also opens an optional reason box above the buttons; whatever is typed there goes to the
+contributor inside the decline note, and an empty box declines exactly as before (owner, 2026-09-21:
+"only if I want I don't want to click another button each time"). It is never focused for you, so
+`D` twice still declines, and the four-second timer waits while a reason is being written. Enter in
+the box is the second press; Escape clears it.
+
+**Resolution** sits on the stage, top left of the photograph, not in the panel: pixel size and
+megapixels, read while looking at the picture.
 
 **Gestures.** Swipe right approves; swipe left **arms** Decline rather than doing it. Keyboard:
 `←`/`→` move, `A` approves or saves, `D` arms and confirms Decline — all standing down while a text

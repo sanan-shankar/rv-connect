@@ -134,12 +134,14 @@ export async function saveReview(input: {
  * implementation of "decline" is a second chance to forget the note.
  *
  * Whatever the admin typed into the panel before pressing Decline is dropped,
- * on purpose: there is no row left to save it to.
+ * on purpose: there is no row left to save it to. The one exception is the
+ * optional reason typed beside the armed Decline, which goes to the
+ * contributor inside that note.
  */
-export async function declineReview(id: string) {
+export async function declineReview(id: string, reason?: string) {
   const actor = await requireAdminActor();
   if (!actor.ok) return { error: actor.error };
   const limited = await rateLimit("photoReview", actor.actorId);
   if (!limited.ok) return { error: limited.error };
-  return declinePhoto(id);
+  return declinePhoto(id, reason);
 }

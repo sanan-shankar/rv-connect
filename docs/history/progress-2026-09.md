@@ -7956,3 +7956,20 @@ well". The peek now rises with the fan fully open and the flick at the top only 
 bird is drawn flat. Both are noted in `docs/spec/mascot.md` as tried and taken out, so nobody adds them
 back as an improvement.
 
+## 2026-09-21 (admin) — the review room shows each photograph's resolution, and a decline can carry a reason
+
+His words: "add the photo resolution somewhere so I can see it preferably not on the left control
+panel. also give me an option to reject with a reason but only if I want I don't want to click another
+button each time".
+
+Resolution is a small dark label on the stage, top left of the photograph ("3130 × 2075 · 6.5 MP"),
+out of the panel and still while the photograph is dragged. The reason rides on Decline's existing
+second press: arming opens a box above the buttons, and an empty box declines exactly as before. It is
+never auto-focused, so `D` twice still works; the four-second disarm waits while a reason is written;
+Enter in the box confirms. `declinePhoto` takes the reason, trims and caps it at 300
+(`DECLINE_REASON_MAX`), and quotes it in the contributor's notification.
+
+Verified in headless Chrome at 1440x900 and 390x844 on the Set aside pile: the label, the box on arming,
+a typed reason holding past five seconds, Escape clearing it, an empty box disarming at four seconds.
+No real photograph was declined. Check green; the review room is not in the visual suite.
+

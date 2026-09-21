@@ -17,6 +17,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 - 2026-09-17 (mascot) — the logo peek rises with its crest open, and without the edge light
 - 2026-09-17 (mascot) — three clicks on the logo raise the app icon's hoopoe over the bottom of the screen
+- 2026-09-21 (admin) — the review room shows each photograph's resolution, and a decline can carry a reason
 - 2026-09-17 (mascot) — the hoopoe answers a tap, keeps living, and the upload thank-you is about the photographs
 - 2026-09-17 (letters) — a short letter is asked whether it would rather be a post
 - 2026-09-17 (letters) — 300 words is the line between a post and a letter

@@ -46,6 +46,13 @@
  *  place, on the button itself. No dialog: a modal per decline would
  *  cost the speed the room exists for, and a button that changes its
  *  own mind for four seconds is enough deliberation to stop a slip.
+ *
+ *  THE REASON RIDES ON THAT SECOND PRESS. Arming opens a box above the
+ *  buttons for a note to the contributor; leave it empty and the second
+ *  press declines exactly as before. The owner, 2026-09-21: "only if I
+ *  want I don't want to click another button each time". So the box
+ *  costs nothing when unused, and it is never focused for you -- "d"
+ *  twice must still decline, not type a "d" into it.
  * ------------------------------------------------------------------ */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -55,6 +62,7 @@ import { m, AnimatePresence, useMotionValue, useTransform, type MotionValue } fr
 import { ArrowLeft, ArrowRight, Check, ImageOff, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { MetaDots } from "@/components/common/meta-dots";
 import { SegmentedPills } from "@/components/common/segmented-pills";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
@@ -67,7 +75,7 @@ import {
 import { FileSays } from "@/components/collection/file-says";
 import { callAction } from "@/lib/call-action";
 import { tidyCaption } from "@/lib/caption-tidy";
-import { photoDate, yearUnreadable } from "@/lib/collection";
+import { DECLINE_REASON_MAX, photoDate, yearUnreadable } from "@/lib/collection";
 import { cn, formatTimeAgo, valleyYear } from "@/lib/utils";
 import type { ReviewCounts, ReviewMode, ReviewPhoto } from "@/lib/admin-review";
 import { declineReview, saveReview } from "@/app/(main)/admin/review/actions";
@@ -120,6 +128,10 @@ export function ReviewRoom({
   const [at, setAt] = useState(0);
   const [busy, setBusy] = useState(false);
   const [armed, setArmed] = useState(false);
+  /* The optional note that goes with a decline, and whether the admin is in
+     the box writing it -- the armed timer waits for a person who is typing. */
+  const [reason, setReason] = useState("");
+  const [writing, setWriting] = useState(false);
 
   /* Edits keyed by photograph, so walking back with the left arrow finds what
      you typed still there. Seeded lazily: a pile of sixty should not build
@@ -150,25 +162,31 @@ export function ReviewRoom({
     [showing, answers]
   );
 
+  /* Disarming forgets the reason too: it was written about THIS photograph. */
+  const disarm = useCallback(() => {
+    setArmed(false);
+    setReason("");
+  }, []);
+
   /* Any move at all disarms Decline. Arming is about THIS photograph; carrying
      it to the next one would be the exact accident it exists to prevent. */
   const go = useCallback(
     (next: number) => {
-      setArmed(false);
+      disarm();
       setAt(() => Math.min(Math.max(next, 0), Math.max(0, total - 1)));
     },
-    [total]
+    [total, disarm]
   );
 
   /** Take one out of the pile and land on whatever moved up into its place. */
   const drop = useCallback((id: string) => {
-    setArmed(false);
+    disarm();
     setPile((prev) => {
       const next = prev.filter((p) => p.id !== id);
       setAt((i) => Math.min(i, Math.max(0, next.length - 1)));
       return next;
     });
-  }, []);
+  }, [disarm]);
 
   /* The next photograph's bytes, fetched while this one is being looked at.
      These are full-size images, so the difference between a warmed cache and a
@@ -189,7 +207,7 @@ export function ReviewRoom({
       const id = showing.id;
       try {
         if (kind === "decline") {
-          const res = await callAction(() => declineReview(id));
+          const res = await callAction(() => declineReview(id, reason.trim() || undefined));
           if ("error" in res && res.error) {
             toast.error(res.error);
             return;
@@ -229,7 +247,7 @@ export function ReviewRoom({
         setBusy(false);
       }
     },
-    [showing, answers, busy, drop]
+    [showing, answers, busy, drop, reason]
   );
 
   /* Decline asks twice. The first press arms it and the button says so; the
@@ -242,11 +260,13 @@ export function ReviewRoom({
     setArmed(true);
   }, [armed, decide]);
 
+  /* The timer stands down while a reason is being written or has been: four
+     seconds is time to reach a second press, not to compose a sentence. */
   useEffect(() => {
-    if (!armed) return;
-    const t = setTimeout(() => setArmed(false), ARMED_MS);
+    if (!armed || writing || reason) return;
+    const t = setTimeout(disarm, ARMED_MS);
     return () => clearTimeout(t);
-  }, [armed, at]);
+  }, [armed, at, writing, reason, disarm]);
 
   /* THE KEYBOARD, which is half of what the owner asked for on a computer.
      Bound on the window rather than on a focused element, because the natural
@@ -272,7 +292,7 @@ export function ReviewRoom({
       /* Escape disarms from anywhere, because the armed Decline is the one
          state somebody might urgently want out of. */
       if (e.key === "Escape" && armed) {
-        setArmed(false);
+        disarm();
         return;
       }
       if (typing) return;
@@ -310,7 +330,7 @@ export function ReviewRoom({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [at, go, decide, declinePressed, mode, deciding, armed]);
+  }, [at, go, decide, declinePressed, mode, deciding, armed, disarm]);
 
   /* The drag, and the two tints it drives. `x` is read by the overlays rather
      than by state, so leaning on a photograph costs no re-render of a panel
@@ -411,6 +431,7 @@ export function ReviewRoom({
             {deciding && (
               <Verdict side="left" opacity={declineTint} label="Decline" tone="heart" />
             )}
+            <Resolution width={showing.width} height={showing.height} />
           </div>
 
           {/* THE PANEL. 380px, which is what the six bucket tiles were drawn
@@ -458,6 +479,34 @@ export function ReviewRoom({
                   Approve could not be reached without scrolling past the
                   thing being approved. */}
               <div className="sticky bottom-0 mt-auto rounded-b-[calc(var(--radius-lg)-1px)] border-t border-border bg-card p-3">
+                {/* Above the buttons, so opening it grows the footer upward and
+                    Decline stays exactly where the first press found it. */}
+                {armed && deciding && (
+                  <m.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.16, ease: EASE_OUT_SMOOTH }}
+                    className="mb-2.5"
+                  >
+                    <Input
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      onFocus={() => setWriting(true)}
+                      onBlur={() => setWriting(false)}
+                      onKeyDown={(e) => {
+                        /* Enter from the box is the second press. */
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void decide("decline");
+                        }
+                      }}
+                      maxLength={DECLINE_REASON_MAX}
+                      placeholder="Reason for them, if you want to give one"
+                      aria-label="Reason, sent to the contributor (optional)"
+                      disabled={busy}
+                    />
+                  </m.div>
+                )}
                 <Decide
                   mode={mode}
                   busy={busy}
@@ -596,6 +645,21 @@ function Provenance({ photo }: { photo: ReviewPhoto }) {
         </span>
       )}
     </p>
+  );
+}
+
+/** The photograph's pixel size, on the stage rather than in the panel: it is a
+ *  fact about the picture, read while looking at the picture. Still while the
+ *  photograph is dragged, and never in the way of the drag. Rows from before
+ *  dimensions were recorded carry 0 and say nothing. */
+function Resolution({ width, height }: { width: number; height: number }) {
+  if (!width || !height) return null;
+  const mp = (width * height) / 1_000_000;
+  return (
+    <span className="pointer-events-none absolute top-3 left-3 rounded-full bg-[rgba(24,25,20,0.72)] px-2.5 py-1 text-[11.5px] font-medium tabular-nums text-[rgba(250,248,242,0.88)] sm:top-5 sm:left-5">
+      {width} × {height}
+      <span className="text-[rgba(250,248,242,0.6)]"> · {mp < 10 ? mp.toFixed(1) : Math.round(mp)} MP</span>
+    </span>
   );
 }
 

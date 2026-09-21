@@ -178,6 +178,10 @@ const ERA_LABELS = Object.fromEntries(ERAS.map((e) => [e.value, e.label]));
 export const eraLabel = (v: string) => ERA_LABELS[v] ?? v;
 
 /** The oldest year the contribute form's year dropdown offers. */
+/** The longest reason an admin can give for declining a photograph. It is
+ *  read inside a notification, so it is a sentence or two, not a letter. */
+export const DECLINE_REASON_MAX = 300;
+
 export const PHOTO_YEAR_MIN = 1926;
 
 /* ------------------------------------------------------------------ *
