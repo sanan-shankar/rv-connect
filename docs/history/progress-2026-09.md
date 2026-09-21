@@ -8092,3 +8092,20 @@ Verified with the first-flush probe at 1440x900 and 390x844, as the owner and si
 invite (its token read in-process and never printed): the list, the home, the form and the invite card
 land at 0-1px; the reader's first question, tile and byline within 1px, the rest following content.
 Check green.
+
+## 2026-09-21 (messages, loading) — "Reach out" and a conversation load as themselves
+
+"Reach out" drew its composer without the bird, a guessed field and pill row, then a heading and
+three thread cards; most members have never written in, so what lands under the composer is an empty
+box, and the skeleton promised a list to nearly everybody. It now draws the real title and the
+composer only, at message-composer.tsx's measurements: the 36px bird (drawn on a phone too, as the real
+one is), the field at the height its placeholder sizes it to (64px, or 67.5 where a phone wraps the
+sentence), and the three kinds, Screenshot and Send as their own boxes, wrapping where the real row
+wraps. A conversation draws its canopy header as itself with the subject on two lines on a phone
+(26 characters fit; even "Notes from the admins" wraps), two messages with their bubbles shimmering
+whole (mist bars inside a mist bubble did not show), the reply composer under its hairline, and the
+line under the card as the words it always is.
+
+Verified with the first-flush probe at 1440x900 and 390x844 as Jerry and as the owner: every piece of
+"Reach out" at 0px; a conversation's card, first bird and first bubble at 0px, the rest following
+content. Check green.
