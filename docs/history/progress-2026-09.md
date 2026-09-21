@@ -8039,3 +8039,20 @@ stays the ocean colour the map paints first.
 
 Verified with the first-flush probe as Jerry at 1440x900 and 390x844: search, Filters, toggle and map
 card all land at 0px offset (IoU 1.00); the headcount bar sits centred on the real count. Check green.
+
+## 2026-09-21 (collection, loading) — the Collection's loading screen is the river without its photographs
+
+The skeleton was a title bar over eight rounded squares in a four-column grid with a 12px gap, the
+page before the river replaced the grid: no search or Contribute, no bucket line, no order, no year
+rail, tiles in a shape and spacing the archive does not use. It is now collection-client.tsx's own
+page with the photographs not yet in it: the real title through the real PageHeader, the bucket words
+and the order as their own boxes with the words invisible, the year rail's 92px column from xl up,
+and the river drawn by the real PhotoStream at its 4px gap with square tiles, fed ordinary photograph
+shapes so its rows break and justify the way a real river's do at every width. `ButtonSkeleton`
+(`common/skeleton.tsx`) is the real Button rendered as an inert div with its label invisible, so a
+button placeholder is the button's own box. `/collection/<id>` keeps this skeleton on purpose: the
+viewer is a lazy chunk that fades in over the page, so a dark stage would flash the river between two
+dark frames.
+
+Verified with the first-flush probe as Jerry at 1440x900 and 390x844: search, Contribute, the tiles
+and the rail labels at 0-1px; each word's bar sits on its word. Check green.
