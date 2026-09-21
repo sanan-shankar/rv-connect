@@ -31,6 +31,7 @@ import {
   bandKeyOf,
   bandSeekBoundary,
   bucketsOf,
+  DECLINE_REASON_MAX,
   takenLabel,
   takenShort,
 } from "@/lib/collection";
@@ -1059,9 +1060,15 @@ async function erasePhoto(
    loses its `error?: undefined` -- at which point the whole result is a weak
    type and every caller that reads `result.error` fails to compile. Same trap
    `AdminActionResult` was written for; here it is used. */
-export async function declinePhoto(photoId: string): Promise<AdminActionResult> {
+export async function declinePhoto(photoId: string, reason?: string): Promise<AdminActionResult> {
   const denied = await requireAdminAction();
   if (denied) return denied;
+
+  /* The reason is optional and most declines will not carry one: the owner
+     asked for it "only if I want", so an empty box is the ordinary case and
+     reads exactly as it always did. Trimmed and capped here, not trusted from
+     the client -- it is written verbatim into a member's notifications. */
+  const said = typeof reason === "string" ? reason.trim().slice(0, DECLINE_REASON_MAX) : "";
 
   const erased = await erasePhoto(photoId, "declined");
   if ("error" in erased) return erased;
@@ -1075,8 +1082,9 @@ export async function declinePhoto(photoId: string): Promise<AdminActionResult> 
          the old line refused a class photograph on grounds that stopped being
          true. There is no single reason a photograph is declined any more, so
          this does not invent one. */
-      message:
-        "A photo you shared was not added to the Collection. If you think that was a mistake, message the admins and we will take another look.",
+      message: said
+        ? `A photo you shared was not added to the Collection. The admins said: "${said}" If you think that was a mistake, message them and we will take another look.`
+        : "A photo you shared was not added to the Collection. If you think that was a mistake, message the admins and we will take another look.",
       link: "/collection",
     },
   });
