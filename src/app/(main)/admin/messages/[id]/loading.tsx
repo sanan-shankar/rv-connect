@@ -1,6 +1,7 @@
 import { ChipSkeleton } from "@/components/admin/admin-skeleton";
 import { IdentityRowSkeleton } from "@/components/common/identity-row";
 import { ButtonSkeleton } from "@/components/common/skeleton";
+import { MessageComposerSkeleton } from "@/components/messages/message-composer-skeleton";
 
 /* One conversation (thread-view.tsx): the back link; the kind's chip over
    the subject's 24px line; the member's row with "Their record" opposite;
@@ -30,14 +31,7 @@ export default function AdminThreadLoading() {
           <div className="skeleton-warm h-[68.6px] w-72 max-w-full rounded-[var(--radius)] sm:h-[46.3px]" />
         </div>
         <div className="mt-5 border-t border-border pt-4">
-          {/* The reply is written as the admins, so it carries no bird. */}
-          <div className="skeleton-warm h-16 rounded-[var(--radius-input)]" />
-          <div className="mt-3 flex items-center gap-2">
-            <div className="skeleton-warm h-[31px] w-[103px] rounded-full" />
-            <div className="ml-auto">
-              <ButtonSkeleton size="sm" icon label="Reply" />
-            </div>
-          </div>
+          <MessageComposerSkeleton mode="admin-reply" submitLabel="Reply" />
         </div>
       </div>
     </div>

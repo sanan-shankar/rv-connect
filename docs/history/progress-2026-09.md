@@ -8202,3 +8202,23 @@ screens were built to are written into DESIGN-SYSTEM.md section 7, and the three
 cost time on the way into TRAPS.md: em tokens resolve in the carrying element's type and v4's space-y
 puts the gap on the element above; an inline element sits on its block's strut; and a frame the
 server never streams can be rendered in Node with jiti and photographed in place.
+
+## 2026-09-21 (loading, simplify) — the loading screens share their controls' boxes instead of retyping them
+
+The /simplify pass over this session's loading work (four reviewers: reuse, simplification, efficiency,
+altitude) found the skeletons still retyping some real controls' geometry, so a change to the control
+would silently leave its placeholder behind. Those boxes now live in `common/control-geometry.ts`, read
+by both the control and its placeholder: SegmentedPills (the directory toggle, the profile switcher,
+the review piles, via `SegmentedPillsSkeleton`), FilterButton (`FilterButtonSkeleton`, for the directory
+and the admin lists) and the Collection's bucket words; the analytics view pill is exported from its
+own tabs file. `MessageComposerSkeleton` replaces three hand-drawn composers and takes the real
+component's modes; `LoveAndCommentsSkeleton` is shared by a post and a Catch-up answer; the new Catch-up
+form's rhythm labels come from `CADENCE_LABELS`; the words test parses each file once. Also from
+looking again: the admin overview's empty line wraps to two on a phone (everything under it sat 19px
+high), and the stat strips draw their tiles' real icons so the figure bars start where figures do.
+
+Skipped, with reasons: a shared admin card-shell constant (it would mean editing a dozen real admin
+components outside this work); rendering a disabled Input as the field placeholder (two classes of
+overlap); widening TextSkeleton for two sites whose layout it would not reproduce. Re-verified with the
+probe at 1440x900 and 390x844: every refactored control at 0px. Visual suite 23/25, the two reds the
+directory headcount's live width (194 became 195 today).

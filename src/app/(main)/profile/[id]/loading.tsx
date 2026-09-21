@@ -1,5 +1,5 @@
 import { PeaksMark } from "@/components/layout/peaks-mark";
-import { ButtonSkeleton } from "@/components/common/skeleton";
+import { ButtonSkeleton, SegmentedPillsSkeleton } from "@/components/common/skeleton";
 import { PostListSkeleton } from "@/components/posts/post-card-skeleton";
 import { IDENTITY_VARS, SHEET_SHADOW, SWITCHER_SHADOW, SheetMaterial } from "@/components/profile/letterhead-sheet";
 
@@ -113,22 +113,11 @@ export default function ProfileLoading() {
       </div>
 
       <div className="mt-[var(--space-l)] sm:mt-[var(--space-xl)]">
-        {/* The Writing switcher: SegmentedPills' own track and segments,
-            words and counts invisible. */}
-        <div
-          className="skeleton-warm inline-flex w-fit max-w-full items-center gap-1 rounded-full border border-transparent p-1"
+        {/* The Writing switcher, with its lift off the page. */}
+        <SegmentedPillsSkeleton
+          segments={["All", "Posts", "Letters", "Photos"].map((label) => ({ label, count: "0" }))}
           style={{ boxShadow: SWITCHER_SHADOW }}
-        >
-          {["All", "Posts", "Letters", "Photos"].map((label) => (
-            <span
-              key={label}
-              className="invisible inline-flex h-8 items-center gap-1.5 px-3.5 text-[13px] font-semibold sm:px-4"
-            >
-              {label}
-              <span className="text-[11.5px] tabular-nums">0</span>
-            </span>
-          ))}
-        </div>
+        />
 
         <div className="mt-[var(--space-m)]">
           <PostListSkeleton />

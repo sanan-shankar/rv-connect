@@ -2,6 +2,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PhotoStream } from "@/components/common/photo-rows";
 import { ButtonSkeleton } from "@/components/common/skeleton";
 import { BUCKETS, HALVES } from "@/lib/collection";
+import { BUCKET_WORD } from "@/components/common/control-geometry";
+import { cn } from "@/lib/utils";
 
 /**
  * The Collection before it arrives: collection-client.tsx's own page, with
@@ -77,13 +79,11 @@ export function CollectionSkeleton() {
   );
 }
 
-/* A bucket word's own box (BucketWord: 13.5px at leading-none, 4px over and
-   8px under), with the bar on the letters rather than on the whole box. */
+/* A bucket word's own box (BUCKET_WORD, shared with the real BucketWord), with
+   the bar on the letters rather than on the whole box. */
 function Word({ label, active }: { label: string; active: boolean }) {
   return (
-    <span
-      className={`relative shrink-0 whitespace-nowrap px-0.5 pb-2 pt-1 text-[13.5px] leading-none ${active ? "font-semibold" : "font-medium"}`}
-    >
+    <span className={cn(BUCKET_WORD, active ? "font-semibold" : "font-medium")}>
       <span className="invisible">{label}</span>
       <span className="skeleton-warm absolute inset-x-0.5 top-[6px] h-2.5 rounded-md" />
     </span>

@@ -33,6 +33,9 @@ export const VIEWS = [
 
 export type ViewKey = (typeof VIEWS)[number]["key"];
 
+/** A view's pill, its box only; shared with the loading screen's placeholder. */
+export const VIEW_PILL = "shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-medium";
+
 export function isViewKey(v: string | undefined): v is ViewKey {
   return !!v && VIEWS.some((x) => x.key === v);
 }
@@ -54,7 +57,8 @@ export function AnalyticsTabs({ active }: { active: ViewKey }) {
             aria-current={current ? "page" : undefined}
             title={v.blurb}
             className={cn(
-              "shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-medium transition-colors",
+              VIEW_PILL,
+              "transition-colors",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               current
                 ? "bg-canopy text-white"

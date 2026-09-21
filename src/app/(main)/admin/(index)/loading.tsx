@@ -1,3 +1,4 @@
+import { IndianRupee, Send, UserPlus, Users } from "lucide-react";
 import { ADMIN_NAV } from "@/components/admin/admin-nav";
 import {
   AdminPageSkeleton,
@@ -15,13 +16,28 @@ export default function AdminOverviewLoading() {
           and its good news (page.tsx); rows, when there are some, arrive
           under a heading that did not move. */}
       <AdminSectionSkeleton label="Waiting on you">
-        <div className="flex h-7 items-center px-0.5">
-          <div className="skeleton-warm h-2.5 w-96 max-w-full rounded-md" />
+        {/* AdminEmpty's line box (13px at 1.5, py-1): the sentence is one
+            line from sm and two on a phone, where it is 583px of words in a
+            350px column. */}
+        <div className="px-0.5 py-1">
+          <div className="flex h-[19.5px] items-center">
+            <div className="skeleton-warm h-2.5 w-full rounded-md sm:w-[583px] sm:max-w-full" />
+          </div>
+          <div className="flex h-[19.5px] items-center sm:hidden">
+            <div className="skeleton-warm h-2.5 w-2/5 rounded-md" />
+          </div>
         </div>
       </AdminSectionSkeleton>
 
       <AdminSectionSkeleton label="The place">
-        <StatStripSkeleton labels={["Members", "New this week", "Mail sent today", "Given this month"]} />
+        <StatStripSkeleton
+          tiles={[
+            { label: "Members", icon: Users },
+            { label: "New this week", icon: UserPlus },
+            { label: "Mail sent today", icon: Send },
+            { label: "Given this month", icon: IndianRupee },
+          ]}
+        />
       </AdminSectionSkeleton>
 
       <AdminSectionSkeleton label="Everything else" className="md:hidden">

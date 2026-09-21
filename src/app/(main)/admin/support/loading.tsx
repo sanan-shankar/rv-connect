@@ -1,3 +1,4 @@
+import { AlertTriangle, CalendarDays, CreditCard, IndianRupee, TrendingUp, Users } from "lucide-react";
 import {
   AdminPageSkeleton,
   AdminSectionSkeleton,
@@ -5,12 +6,26 @@ import {
 } from "@/components/admin/admin-skeleton";
 
 /* Support in the admin wing (page.tsx): the two stat strips with their
-   labels drawn and the note under them, then the ledger of gifts. */
+   icons and labels drawn and the note under them, then the ledger of gifts. */
 export default function AdminSupportLoading() {
   return (
     <AdminPageSkeleton title="Support">
-      <StatStripSkeleton labels={["Given, all time", "This month", "People who gave", "Did not go through"]} />
-      <StatStripSkeleton labels={["Finished paying", "Opened a payment", "Typical gift", "Most used"]} />
+      <StatStripSkeleton
+        tiles={[
+          { label: "Given, all time", icon: IndianRupee },
+          { label: "This month", icon: CalendarDays },
+          { label: "People who gave", icon: Users },
+          { label: "Did not go through", icon: AlertTriangle },
+        ]}
+      />
+      <StatStripSkeleton
+        tiles={[
+          { label: "Finished paying", icon: TrendingUp },
+          { label: "Opened a payment", icon: Users },
+          { label: "Typical gift", icon: IndianRupee },
+          { label: "Most used", icon: CreditCard },
+        ]}
+      />
       <div className="-mt-3 flex h-[18px] items-center">
         <div className="skeleton-warm h-2 w-96 max-w-full rounded-md" />
       </div>
