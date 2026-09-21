@@ -1,42 +1,64 @@
+import { IdentityRowSkeleton } from "@/components/common/identity-row";
+
 /* The reading page runs an auth check, a post fetch, an audience check and a
    view record before it can paint. Without this the member sat on the letters
    index staring at nothing while all four happened (audit M06). Shaped like
    the letter itself, so the wait reads as the page arriving rather than as a
-   different screen: the measure, the 40px title with its cinnamon rule and
-   the 64px bird on the byline, all off page.tsx. The hairline that used to
-   close the byline band went on 2026-09-16; it goes from both files or the
-   skeleton draws a line the letter then removes on arrival. */
+   different screen.
+
+   Line for line off page.tsx and letter-title.tsx, inside the article's own
+   680px reading measure (without it the lines were laid out 88px wider than
+   the prose that replaced them): the 20px back link and its 24px margin; the
+   kicker's 16px row; the title's line at leading-tight, 37.5px on a phone and
+   45px from sm; the byline 20px under it, a 64px bird with the name's 16px
+   line over the date's; and the body 28px under that, in the body's own 28.8px
+   line boxes (16px at leading 1.8), a blank line between paragraphs exactly as
+   the prose sets them.
+
+   The title is TWO lines on a phone and one from sm, which is the letter
+   rather than a guess at it: at 30px bold a 350px column holds about sixteen
+   characters, so nearly every title wraps there, and at 36px across 680 nearly
+   none do. Drawn as one line on a phone, the skeleton put the byline 37px above
+   where it lands. The cinnamon rule under the title is not drawn: it grows in
+   on arrival, and a stand-in for it would vanish and redraw. */
 export default function LetterLoading() {
   return (
-    /* The article's own reading measure (page.tsx: 680px inside the 768px
-       column). Without it the skeleton laid its lines out 88px wider than the
-       prose that replaced them, and every one of them moved on arrival. */
     <div className="mx-auto w-full max-w-[680px]">
-      <div className="skeleton-warm h-5 w-28 rounded-md" />
-      <header className="mt-6">
-        <div className="skeleton-warm h-3 w-32 rounded-md" />
-        <div className="skeleton-warm mt-2 h-10 w-4/5 rounded-md" />
-        <div className="skeleton-warm mt-2 h-[2px] w-24 rounded-sm" />
-        <div className="mt-5 flex items-center gap-3">
-          <div className="skeleton-warm h-16 w-16 rounded-full" />
-          <div className="space-y-2">
-            <div className="skeleton-warm h-3.5 w-32 rounded-md" />
-            <div className="skeleton-warm h-3 w-40 rounded-md" />
-          </div>
+      <div className="mb-6 flex h-5 items-center">
+        <div className="skeleton-warm h-3 w-[78px] rounded-md" />
+      </div>
+      <div className="flex h-4 items-center">
+        <div className="skeleton-warm h-2.5 w-36 rounded-md" />
+      </div>
+      <div className="mt-2">
+        <div className="flex h-[37.5px] items-center sm:h-[45px]">
+          <div className="skeleton-warm h-6 w-full rounded-md sm:h-7 sm:w-4/5" />
         </div>
-      </header>
-      {/* Uneven widths on the last line of each block: a stack of identical
-          full-width bars reads as a table, not as prose. The 28px rhythm is
-          the body's own (16px at leading 1.8). */}
-      <div className="mt-7 space-y-7">
-        {["w-full", "w-11/12", "w-full", "w-4/5"].map((tail, i) => (
-          <div key={i} className="space-y-3">
-            <div className="skeleton-warm h-4 w-full rounded-md" />
-            <div className="skeleton-warm h-4 w-full rounded-md" />
-            <div className={`skeleton-warm h-4 rounded-md ${tail}`} />
+        <div className="flex h-[37.5px] items-center sm:hidden">
+          <div className="skeleton-warm h-6 w-1/2 rounded-md" />
+        </div>
+      </div>
+      <IdentityRowSkeleton className="mt-5" avatarSize="md" nameSize={16} nameWidth="w-32" metaWidth="w-36" />
+      {/* Uneven widths on the last line of each paragraph: a stack of
+          identical full-width bars reads as a table, not as prose. */}
+      <div className="mt-7">
+        {PARAGRAPHS.map((tail, p) => (
+          <div key={p} className={p > 0 ? "mt-[28.8px]" : undefined}>
+            {Array.from({ length: tail.lines }, (_, i) => (
+              <div key={i} className="flex h-[28.8px] items-center">
+                <div className={`skeleton-warm h-3 rounded-md ${i === tail.lines - 1 ? tail.width : "w-full"}`} />
+              </div>
+            ))}
           </div>
         ))}
       </div>
     </div>
   );
 }
+
+const PARAGRAPHS = [
+  { lines: 2, width: "w-3/5" },
+  { lines: 4, width: "w-11/12" },
+  { lines: 5, width: "w-2/3" },
+  { lines: 3, width: "w-4/5" },
+];
