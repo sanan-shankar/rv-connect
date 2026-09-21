@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import Link from "next/link";
-import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
+import { BirdAvatar, SIZE_TOKENS, type AvatarUser } from "@/components/common/bird-avatar";
 import { cn } from "@/lib/utils";
 
 type AvatarSize = ComponentProps<typeof BirdAvatar>["size"];
@@ -129,6 +129,45 @@ export function IdentityRow({
             {meta}
           </div>
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * IdentityRow before its person arrives, for the skeletons that draw one.
+ *
+ * Here rather than in each skeleton so the two cannot drift: the same avatar
+ * size, the name's line box over the byline's 10.5px one, IDENTITY_STACK_GAP_PX
+ * apart and centred on the avatar, which is exactly the stack the real row
+ * builds. `nameSize` is the name's font size, because every caller sets the
+ * name at `leading-none` and its line box is therefore the size itself (14px
+ * on a post, 13.5px in the feed rail).
+ */
+export function IdentityRowSkeleton({
+  avatarSize = "sm",
+  nameSize = 14,
+  nameWidth = "w-28",
+  metaWidth = "w-20",
+  className,
+}: {
+  avatarSize?: keyof typeof SIZE_TOKENS;
+  nameSize?: number;
+  nameWidth?: string;
+  metaWidth?: string;
+  className?: string;
+}) {
+  const disc = SIZE_TOKENS[avatarSize];
+  return (
+    <div className={cn("flex min-w-0 items-center gap-3", className)}>
+      <div className="skeleton-warm shrink-0 rounded-full" style={{ width: disc, height: disc }} />
+      <div className="flex min-w-0 flex-1 flex-col" style={{ gap: IDENTITY_STACK_GAP_PX }}>
+        <div className="flex items-center" style={{ height: nameSize }}>
+          <div className={cn("skeleton-warm h-2.5 max-w-full rounded-md", nameWidth)} />
+        </div>
+        <div className="flex h-[10.5px] items-center">
+          <div className={cn("skeleton-warm h-2 max-w-full rounded-md", metaWidth)} />
+        </div>
       </div>
     </div>
   );

@@ -8005,3 +8005,23 @@ it above Nightfall, so pressing the switch clears it over the scene's own 0.5s f
 Verified in headless Chrome as Jerry at 1440x900 and 390x844: every step, a stir mid-drowse, sleep,
 the switch, Nightfall, and "Put it back" leaving the theme light. No console errors. Check green; visual
 23/25, the two reds are the directory headcount's live width, not this change.
+
+## 2026-09-21 (feed, loading) — the feed's loading screen draws the feed
+
+His words: "I feel like the loading states are a bit outdated soemtimes and just imperfect in general.
+make them perfect on all pages. like for feed it's totally wrong."
+
+The feed waits twice, and each wait drew its own card. `feed/loading.tsx` had three p-6 cards with a
+divider and nothing else, no title, no header controls and no rail, so the column began 62px above the
+posts that replaced it. Then PostFeed drew p-5 cards with no action row while it fetched. Both now draw
+`PostCardSkeleton` (`posts/post-card-skeleton.tsx`), built on PostCard's own numbers, so the page
+arriving around it moves nothing and only the posts change. The loading screen keeps the real "Feed"
+title through the real PageHeader, 40px placeholders for search, bell and New post at the header's own
+breakpoints, and the rail's two usual modules (`FeedRailSkeleton`). `IdentityRowSkeleton` lives beside
+IdentityRow so a placeholder byline shares its spacing constant.
+
+Verified with a first-flush probe (the streamed document cut where React's first resolved segment
+begins, scripts off, laid over the settled page at 50%) as Jerry at 1440x900 and 390x844: the first
+card, bird, name, byline and action row land within 1px, and the only difference left is how many
+lines each real post has. With post fetching held back, the mid-load frame is the same picture with the
+real header and rail. Dark mode checked. Check green.
