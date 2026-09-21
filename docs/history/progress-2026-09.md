@@ -8125,3 +8125,20 @@ switcher's own box and PostCard's placeholder. The Writing tab's own wait draws 
 Verified with the first-flush probe at 1440x900 and 390x844, as Jerry on another member's profile and
 as the owner on his own: the bird, "Get in touch", the name's line, the facts and the first house pill
 at 0-1px; the sheet's height and everything under it follow the member's houses. Check green.
+
+## 2026-09-21 (support, loading) — Support's loading screen is the page, with three parts pending
+
+The skeleton was a generic stack of bars: no icon, no pledge, no headings, nothing where the plate is.
+The page is nearly all words that never change around three live parts, so its markup moved into
+`SupportShell` (support-shell.tsx), which page.tsx renders with the real parts and loading.tsx with a
+placeholder for each, written beside its component so they share its grid and constants:
+`CostsCardSkeleton` keeps the card's headings and the three bill chips (now `SegmentChips`, shared)
+and leaves the counting total and both bars pending, since they play their entrances on arrival and a
+count run here would run again from zero; `BirdPlateSkeleton` is twelve discs in the plate's own grid
+(`PLATE_GRID`, shared); `SupportContributeSkeleton` draws the suggestion chips and the button as their
+own boxes rather than a live form, so no checkout can open from a component about to be replaced, and
+the secure note (now `SecureNote`, shared) as it is. One em trap on the way: the plate's name line is
+text-sm, so its 1em margin is 14px, and a placeholder without the size sat 2px low.
+
+Verified with the first-flush probe as Jerry at 1440x900 and 390x844: every frame, chip and button at
+0px. The page renders unchanged (visual suite).

@@ -1,24 +1,21 @@
+import { SupportShell } from "@/components/support/support-shell";
+import { CostsCardSkeleton } from "@/components/support/costs-card";
+import { BirdPlateSkeleton } from "@/components/support/bird-plate";
+import { SupportContributeSkeleton } from "@/components/support/support-contribute";
+
 /* /support reads the running contribution total before it can paint, and that
-   is an aggregate over the whole table (audit M06). The tiles keep their own
-   footprint so the recovery figure does not shove the page down when it
-   lands. */
+   is an aggregate over the whole table (audit M06). What it waits for is three
+   parts of a page that is otherwise words that never change, so this is the
+   page itself -- the same SupportShell page.tsx renders -- with each of the
+   three standing in: the costs card with its total and bars pending, the bird
+   plate as discs, and the form as its own boxes. Nothing here can drift from
+   the page it precedes, and nothing moves when it lands. */
 export default function SupportLoading() {
   return (
-    <div className="space-y-[var(--space-l)]">
-      <div className="space-y-2">
-        <div className="skeleton-warm h-8 w-48 rounded-md" />
-        <div className="skeleton-warm h-4 w-72 rounded-md" />
-      </div>
-      <div className="rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)]">
-        <div className="skeleton-warm h-3 w-24 rounded-md" />
-        <div className="skeleton-warm mt-3 h-10 w-40 rounded-md" />
-        <div className="skeleton-warm mt-4 h-2.5 w-full rounded-full" />
-      </div>
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="skeleton-warm h-4 w-full rounded-md" />
-        ))}
-      </div>
-    </div>
+    <SupportShell
+      costs={<CostsCardSkeleton />}
+      plate={<BirdPlateSkeleton />}
+      contribute={<SupportContributeSkeleton />}
+    />
   );
 }
