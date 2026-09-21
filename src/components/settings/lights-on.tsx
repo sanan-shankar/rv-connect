@@ -28,11 +28,11 @@ export function LightsOn() {
   return (
     <div className="mx-auto flex min-h-[60vh] max-w-[480px] flex-col items-center justify-center gap-5 text-center">
       <h1 className="font-heading text-[28px] leading-tight tracking-[-0.02em] text-foreground">
-        You live in the dark now.
+        Dark mode is on.
       </h1>
       <p className="max-w-[38ch] text-[14.5px] leading-relaxed text-muted-foreground">
-        Getting in took five questions, a word, and a bird&apos;s judgement.
-        Getting out takes one press. That is the deal.
+        Getting in took five questions, a Wordle and a sleeping bird.
+        Getting out is one button.
       </p>
       <Button variant="primary" onClick={turnOff}>
         <Sun className="h-4 w-4" />

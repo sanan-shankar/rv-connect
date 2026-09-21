@@ -7982,3 +7982,26 @@ jumps taller and the buttons stay put (measured: 0px). He also hit a Base UI con
 "Nothing is waiting" screen: its link button lacked `nativeButton={false}`, which every other link
 button in the app carries. Verified at 1440x900 and 390x844.
 
+
+## 2026-09-21 (dark mode) — the gauntlet's copy plays it straight, and the hold becomes keeping still while the hoopoe falls asleep
+
+His words: "the dark mode thing is a bit cringe right now ... the last one is not that nice like the
+clicking and holding thing especially because on phone that also select stuff ... we could do a cooler
+animation ... something that changes the screen a little bit more". The Nightfall sunset stays as it
+was: "The transition to dark mode itself is perfect".
+
+Copy: every step rewritten plainly, with at most one dry line each. The situation (five questions for a
+settings switch) is the joke, so the words don't have to try. The trap question's relief line now names
+the trap ("You pressed Stop, so we stopped."). The lights-on page and the profile tile follow ("Explore
+the dark" is now "Turn it on").
+
+The trial: the five second hold is gone. The hoopoe is a day bird and has to be asleep first. Keep still
+for seven seconds and a dark veil closes in on the whole screen, sidebar included, while the bird turns
+sleepy then sleeps. Any pointer movement over 24px, tap, key or scroll startles it ("It heard that.")
+and the veil snaps open. Asleep, the switch appears under it in the one pool of light left ("Try not to
+wake the bird."), so the separate toggle step is folded in. The veil is portalled to body, which stacks
+it above Nightfall, so pressing the switch clears it over the scene's own 0.5s fade-in.
+
+Verified in headless Chrome as Jerry at 1440x900 and 390x844: every step, a stir mid-drowse, sleep,
+the switch, Nightfall, and "Put it back" leaving the theme light. No console errors. Check green; visual
+23/25, the two reds are the directory headcount's live width, not this change.

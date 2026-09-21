@@ -1435,13 +1435,13 @@ export function LetterheadProfile({
                   </p>
                   <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
                     {deviceTheme === "dark"
-                      ? "You made it through the questions. Turning it off is one press."
-                      : "Experimental. Turning it on involves some questions."}
+                      ? "Turning it off is one press."
+                      : "Experimental. Turning it on takes a few questions."}
                   </p>
                 </div>
                 <Link href="/dark-mode" className="inline-flex rounded-full">
                   <Button variant="outline" size="sm">
-                    {deviceTheme === "dark" ? "Turn it off" : "Explore the dark"}
+                    {deviceTheme === "dark" ? "Turn it off" : "Turn it on"}
                   </Button>
                 </Link>
               </div>
