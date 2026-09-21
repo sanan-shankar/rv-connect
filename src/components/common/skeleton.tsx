@@ -21,7 +21,9 @@ import { cn } from "@/lib/utils";
  *
  * `variant={null}` drops the variant's colours (cva's own opt-out); the empty
  * svg is what Button reads as a leading icon, so the correction fires exactly
- * as it does for the real one. Disabled and aria-hidden, so the stand-in is
+ * as it does for the real one, and it carries no size of its own so the
+ * button's size sets it, 16px at the default and 14px at `sm`, as it does for
+ * the real icon. Disabled and aria-hidden, so the stand-in is
  * never a focus stop or something a screen reader announces.
  */
 export function ButtonSkeleton({
@@ -44,7 +46,7 @@ export function ButtonSkeleton({
       size={size}
       className={cn("skeleton-warm pointer-events-none", className)}
     >
-      {icon && <svg className="size-4" aria-hidden />}
+      {icon && <svg aria-hidden />}
       <span className="invisible">{label}</span>
     </Button>
   );

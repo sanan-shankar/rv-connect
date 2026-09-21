@@ -27,16 +27,20 @@ export default function JoinCatchupLoading() {
         <Wordmark />
       </Link>
       <div className="card-elevated w-full max-w-[420px] rounded-[var(--radius)] border border-border bg-card p-[var(--space-l)]">
-        {/* "<keeper> invited you to a Catch-up": 44px avatar, two 15px/snug
+        {/* "<keeper> invited you to a Catch-up": 44px avatar beside 15px/snug
             lines. Each bar sits inside its real LINE BOX rather than being
-            sized to the glyphs, so the block is the height the text will be. */}
+            sized to the glyphs, so the block is the height the text will be.
+            One line where the card is at its full 420px, two where it has
+            shrunk (the same 472px the paragraph below turns on): a keeper's
+            name and "invited you to a Catch-up" run to about 270px, which
+            the full card's 366 holds and a phone's 285 does not. */}
         <div className="mb-5 flex items-center gap-3">
           <div className="skeleton-warm h-11 w-11 shrink-0 rounded-full" />
           <div className="min-w-0 flex-1">
-            <div className="flex h-[21px] items-center">
-              <div className="skeleton-warm h-[13px] w-44 rounded-md" />
+            <div className="flex h-[20.625px] items-center">
+              <div className="skeleton-warm h-[13px] w-44 rounded-md min-[472px]:w-64" />
             </div>
-            <div className="flex h-[21px] items-center">
+            <div className="flex h-[20.625px] items-center min-[472px]:hidden">
               <div className="skeleton-warm h-[13px] w-24 rounded-md" />
             </div>
           </div>
@@ -46,24 +50,25 @@ export default function JoinCatchupLoading() {
           <div className="skeleton-warm h-[24px] w-3/5 rounded-md" />
         </div>
         {/* "A Catch-up is a letter this group writes together...", each line in
-            its real 15px/relaxed line box. It wraps to THREE at the card's full
+            its real 15px/relaxed line box, which is 24.375px, not 24: a round
+            24 left the card 2px short of the one it becomes. It wraps to THREE at the card's full
             420px and to five on a phone, and 472px is where the card stops
             shrinking and the wrap settles -- measured, not guessed. The two
             extra lines therefore go away at exactly that width. */}
         <div className="mt-2">
-          <div className="flex h-[24px] items-center">
+          <div className="flex h-[24.375px] items-center">
             <div className="skeleton-warm h-[13px] w-full rounded-md" />
           </div>
-          <div className="flex h-[24px] items-center">
+          <div className="flex h-[24.375px] items-center">
             <div className="skeleton-warm h-[13px] w-full rounded-md" />
           </div>
-          <div className="flex h-[24px] items-center min-[472px]:hidden">
+          <div className="flex h-[24.375px] items-center min-[472px]:hidden">
             <div className="skeleton-warm h-[13px] w-full rounded-md" />
           </div>
-          <div className="flex h-[24px] items-center min-[472px]:hidden">
+          <div className="flex h-[24.375px] items-center min-[472px]:hidden">
             <div className="skeleton-warm h-[13px] w-full rounded-md" />
           </div>
-          <div className="flex h-[24px] items-center">
+          <div className="flex h-[24.375px] items-center">
             <div className="skeleton-warm h-[13px] w-4/5 rounded-md" />
           </div>
         </div>

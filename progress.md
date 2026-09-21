@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-21 (catch-ups, loading) — the five Catch-ups loading screens are the pages they stand in for
 - 2026-09-21 (letters, loading) — the four letters loading screens are the pages they stand in for
 - 2026-09-21 (collection, loading) — the Collection's loading screen is the river without its photographs
 - 2026-09-21 (directory, loading) — the directory's loading screen is its controls to the pixel
