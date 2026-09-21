@@ -8074,3 +8074,21 @@ Verified with the first-flush probe at 1440x900 and 390x844, as Jerry and as the
 brings the desk's "+" and wraps its buttons on a phone): the blank desk lands at 0px, sheet, icons and
 both buttons; the reader's byline and first line within 1px on both widths; the index's first card at
 0px. Check green.
+
+## 2026-09-21 (catch-ups, loading) — the five Catch-ups loading screens are the pages they stand in for
+
+A Catch-up's home drew the page before the rework: a title bar with a countdown, form cards, a rail of
+labelled tiles. It is now catchup-home.tsx's own regions: the head at its 172px and 240px, the rail
+grid, the Edition drawn as the ask box every cycle opens on (the answering card is the same object),
+and one cover in CARD_FRAME. The list keeps the real title with "Start a Catch-up" as the real Button's
+box, and each card is PictureDoor's own bordered shell. The reader's phone questions are two lines, its
+answers carry the flush bird FlushAvatar draws (ink 32px, the name 12px from it), and its phone strip
+is the real 44px. The new form draws its three labels for real, in the elements the form uses: Name's
+is an inline label on a 24px line box and the other two sit on 16.5px ones, which is why three
+identical label bars had put one field 7.5px wrong. The invite page's paragraph lines are 24.375px
+(15px relaxed), not 24, and its "invited you" line is one line at the card's full width.
+
+Verified with the first-flush probe at 1440x900 and 390x844, as the owner and signed out for the
+invite (its token read in-process and never printed): the list, the home, the form and the invite card
+land at 0-1px; the reader's first question, tile and byline within 1px, the rest following content.
+Check green.
