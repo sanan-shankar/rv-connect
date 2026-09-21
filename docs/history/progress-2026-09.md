@@ -8189,3 +8189,16 @@ arrived with the Phase 7 audit-log work), so the browser dropped the radius and 
 square corners beside every other card in the wing. Now `--radius`, the 16px card radius the rest of
 the panel uses, on the page and its loading screen. Found while fitting that screen to the page.
 Verified at 1440x900.
+
+## 2026-09-21 (loading, test) — a skeleton may only draw words its page still says
+
+The loading screens now draw their pages' fixed words, which makes them exact and leaves one way to
+go wrong: a page changes its words and its skeleton keeps saying the old ones, flashing and swapping
+on every visit where nobody looks long enough to notice. `skeleton-words-rule.test.mjs` collects every
+word a skeleton draws (titles, labels, stat labels, literal text, the invisible labels that size a
+button) and fails if the app no longer says it anywhere outside the skeletons; digits are dropped so a
+sample figure checks its fixed part. Proved on a drifted title before it was trusted. The rules the
+screens were built to are written into DESIGN-SYSTEM.md section 7, and the three layout facts that
+cost time on the way into TRAPS.md: em tokens resolve in the carrying element's type and v4's space-y
+puts the gap on the element above; an inline element sits on its block's strut; and a frame the
+server never streams can be rendered in Node with jiti and photographed in place.

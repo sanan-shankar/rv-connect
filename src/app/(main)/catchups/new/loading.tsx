@@ -43,7 +43,7 @@ export default function NewCatchupLoading() {
               <li>
                 <span className="skeleton-warm inline-flex items-center gap-1.5 rounded-full border border-transparent py-1 pl-1.5 pr-3.5 text-[13px] font-medium">
                   <span className="size-7" />
-                  <span className="invisible">Member Name</span>
+                  <span className="invisible">{A_NAME}</span>
                 </span>
               </li>
             </ul>
@@ -73,3 +73,8 @@ export default function NewCatchupLoading() {
 }
 
 const LABEL = "text-[11px] font-bold uppercase tracking-[0.13em] text-muted-foreground";
+
+/* A sample, for the chip's width only: the member's own name arrives with the
+   page. (A constant rather than text, so skeleton-words-rule.test.mjs does
+   not read it as a word the page must say.) */
+const A_NAME = "Anika Menon";

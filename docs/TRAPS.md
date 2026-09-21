@@ -180,6 +180,12 @@ disabled so hydration cannot tear down the truncated tree, and the fallback hold
 screenshot. `e2e/loading-fallbacks.spec.ts` is the worked example; it asserts rather than
 photographs, because which skeleton shows is invisible in a diff.
 
+**A loading frame the server never streams can still be photographed.** A page that answers
+before the shell flushes (`/welcome` does) emits no fallback at all, so the first-flush trick
+above finds nothing to cut. Render the `loading.tsx` to HTML in Node instead -- `jiti` is in
+node_modules and resolves the `@/` alias and TSX -- and put the markup into the real page's
+content column in place of the page, where it sits in the real shell at the real width.
+
 **`route-bundle-stats.json` stops meaning what you think under
 `experimental.turbopackChunking.generateComponentChunks`.** That diagnostic is where
 `work/raw/route-js.mjs` and every bundle number in this project's audits come from. Turn the flag
@@ -331,6 +337,22 @@ form grew 12px and, being centred, every row slid 6px (measured 206px against 21
 `clip-path: inset(0 round <radius>)` when you only want the corners — it paints identically and
 does not touch layout. Nothing but `npm run visual` caught this; the page it broke was the one
 nobody was looking at, because the widget it belongs to is invisible.
+
+**An em spacing token is measured in the type of the element that carries it, and Tailwind v4's
+`space-y` puts it on the element ABOVE the gap.** The `--space-*` tokens are `em` (LiftKit), so
+`mt-[var(--space-xs)]` is 0.382 of the element's OWN font size: 6.1px on a 16px line, 5px on the
+13px bird name under a picker cell. And v4 compiles `space-y-*` to `margin-block-end` on every
+child but the last, not v3's `margin-top` on every sibling, so a `space-y-[var(--space-xs)]` gap
+under a 28px heading is 10.7px, the heading's em, where the 16px paragraph below would have given
+6.1. Both bit the loading screens on 2026-09-21, which set placeholders in the wrong type and came
+out 1-5px off. A placeholder for an em-spaced element has to be set in that element's type, even
+when it draws no words (`text-sm` on an empty line box).
+
+**An inline element in a plain block sits on the BLOCK's line box, not its own.** A 13.5px link in
+a bare `div` makes a 24px line (the div's 16px at 1.5 is the strut), not the link's own 20.25, so a
+card whose title is `<div className="min-w-0"><Link className="text-[13.5px]">` is 4px taller than
+its type suggests. The admin Catch-up cards measured 99px against a placeholder's 94. Measure the
+line, do not derive it from the text's class.
 
 ## Testing
 
