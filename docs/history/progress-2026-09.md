@@ -8025,3 +8025,17 @@ begins, scripts off, laid over the settled page at 50%) as Jerry at 1440x900 and
 card, bird, name, byline and action row land within 1px, and the only difference left is how many
 lines each real post has. With post fetching held back, the mid-load frame is the same picture with the
 real header and rail. Dark mode checked. Check green.
+
+## 2026-09-21 (directory, loading) — the directory's loading screen is its controls to the pixel
+
+His words: "the directory one is pretty good but the height and length of the navigation pill could be
+tweaked slightly". Measured: the toggle placeholder was 218x44 at y=108 against SegmentedPills' 220x42
+at y=100.5, so the map card under it started 13.5px low; the search and Filters placeholders sat 3.5px
+under the pair PageHeader places; and a phone was shown the laptop's 88px Filters pill where it gets
+the 48px icon one. Every placeholder is now its control's own box with the ink taken out: the real
+PageHeader around the real title, and the toggle and Filters built from their own classes with their
+labels set invisible, so each is exactly as wide as the real control at every breakpoint. The map slot
+stays the ocean colour the map paints first.
+
+Verified with the first-flush probe as Jerry at 1440x900 and 390x844: search, Filters, toggle and map
+card all land at 0px offset (IoU 1.00); the headcount bar sits centred on the real count. Check green.
