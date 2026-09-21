@@ -15,7 +15,7 @@ export default function AuditLoading() {
   return (
     <AdminPageSkeleton title="Audit log">
       <AdminSectionSkeleton label="Actions on the record">
-        <ul className="flex flex-col divide-y divide-border/60 rounded-[var(--radius-card)] border border-border/60 bg-card">
+        <ul className="flex flex-col divide-y divide-border/60 rounded-[var(--radius)] border border-border/60 bg-card">
           {ROWS.map(([who, detail], i) => (
             <li key={i} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 px-4 py-3">
               <span className="text-sm font-medium">
