@@ -45,12 +45,7 @@ export function PostCardSkeleton({ lines = 2 }: { lines?: number }) {
           land inside their buttons' own padding, not where the buttons
           start. */}
       <div className="mt-1.5 -mx-2.5 -mb-[9px] flex h-8 items-center gap-1">
-        <div className="px-2.5">
-          <div className="skeleton-warm h-[18px] w-[38px] rounded-full" />
-        </div>
-        <div className="px-2.5">
-          <div className="skeleton-warm h-[18px] w-[31px] rounded-full" />
-        </div>
+        <LoveAndCommentsSkeleton />
         <div className="ml-auto grid h-[30px] w-[33px] place-items-center">
           <div className="skeleton-warm size-[18px] rounded-full" />
         </div>
@@ -71,5 +66,21 @@ export function PostListSkeleton() {
       <PostCardSkeleton lines={1} />
       <PostCardSkeleton lines={3} />
     </div>
+  );
+}
+
+/** The heart and the comments, each an icon and its count, where the glyphs
+ *  land inside their 10px-padded buttons. A post and a Catch-up answer both
+ *  open their reactions row with these two. */
+export function LoveAndCommentsSkeleton() {
+  return (
+    <>
+      <div className="px-2.5">
+        <div className="skeleton-warm h-[18px] w-[38px] rounded-full" />
+      </div>
+      <div className="px-2.5">
+        <div className="skeleton-warm h-[18px] w-[31px] rounded-full" />
+      </div>
+    </>
   );
 }

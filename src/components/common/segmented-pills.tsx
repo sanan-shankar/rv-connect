@@ -44,6 +44,13 @@ import type { CSSProperties } from "react";
 import { m } from "motion/react";
 import { EASE_SEGMENT_GLIDE, SEGMENT_GLIDE_SECONDS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
+import {
+  SEGMENTED_COUNT,
+  SEGMENTED_SEGMENT,
+  SEGMENTED_TRACK,
+  SEGMENTED_TRACK_FILL,
+  SEGMENTED_TRACK_HUG,
+} from "./control-geometry";
 
 export interface SegmentedPillsSegment<T extends string> {
   key: T;
@@ -117,8 +124,8 @@ export function SegmentedPills<T extends string>({
           : style
       }
       className={cn(
-        "items-center rounded-full border border-border p-1",
-        fill ? "grid w-full gap-1.5" : "inline-flex w-fit max-w-full gap-1",
+        SEGMENTED_TRACK,
+        fill ? SEGMENTED_TRACK_FILL : SEGMENTED_TRACK_HUG,
         className
       )}
     >
@@ -134,7 +141,8 @@ export function SegmentedPills<T extends string>({
             onPointerEnter={segment.warm}
             onFocus={segment.warm}
             className={cn(
-              "relative inline-flex h-8 items-center justify-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold transition-colors duration-200 active:scale-[0.97] sm:px-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+              SEGMENTED_SEGMENT,
+              "transition-colors duration-200 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               !fill && "shrink-0",
               active ? "text-white" : "text-muted-foreground hover:text-foreground"
             )}
@@ -153,7 +161,7 @@ export function SegmentedPills<T extends string>({
             {segment.count !== undefined && (
               <span
                 className={cn(
-                  "relative text-[11.5px] font-semibold tabular-nums",
+                  SEGMENTED_COUNT,
                   active ? "text-white/70" : "text-muted-foreground/60"
                 )}
               >

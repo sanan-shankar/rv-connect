@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/layout/page-header";
+import { FilterButtonSkeleton, SegmentedPillsSkeleton } from "@/components/common/skeleton";
 
 /**
  * The directory's own shape, held for the few hundred milliseconds the query
@@ -20,12 +21,13 @@ import { PageHeader } from "@/components/layout/page-header";
  * was shown the laptop's 88px Filters pill where it gets a 48px one.
  *
  * So each placeholder is now its control's own box with the ink taken out:
- * the real PageHeader around the real title, and the toggle and the Filters
- * button built from their own classes with their labels set invisible, which
- * makes them exactly as wide as the real ones at every breakpoint and in
- * every font rather than approximately as wide at one. The map slot is not a
- * shimmer but the ocean colour the map itself paints first, so the swap is a
- * world appearing on water rather than a rectangle changing colour.
+ * the real PageHeader around the real title, the toggle and the Filters
+ * button as their controls' own placeholders, each with its labels set
+ * invisible, which makes them exactly as wide as the real
+ * ones at every breakpoint and in every font rather than approximately as
+ * wide at one. The map slot is not a shimmer but the ocean colour the map
+ * itself paints first, so the swap is a world appearing on water rather than
+ * a rectangle changing colour.
  */
 export default function DirectoryLoading() {
   return (
@@ -35,28 +37,15 @@ export default function DirectoryLoading() {
         actions={
           <>
             <div className="skeleton-warm size-10 rounded-full" />
-            {/* FilterButton (filter-popover.tsx): icon only below sm. */}
-            <div className="skeleton-warm inline-flex h-10 items-center gap-1.5 rounded-full border border-transparent px-4 text-[13px] font-medium">
-              <span className="size-3.5" />
-              <span className="invisible hidden sm:inline">Filters</span>
-            </div>
+            {/* Icon only below sm, as the directory's real one is. */}
+            <FilterButtonSkeleton compactBelowSm />
           </>
         }
       />
 
       {/* THE ROW: the view toggle, and the headcount opposite it. */}
       <div className="mb-4 flex items-center gap-3">
-        {/* SegmentedPills' track and segments (segmented-pills.tsx). */}
-        <div className="skeleton-warm inline-flex items-center gap-1 rounded-full border border-transparent p-1">
-          {["Map", "Batches", "People"].map((label) => (
-            <span
-              key={label}
-              className="invisible inline-flex h-8 items-center px-3.5 text-[13px] font-semibold sm:px-4"
-            >
-              {label}
-            </span>
-          ))}
-        </div>
+        <SegmentedPillsSkeleton segments={[{ label: "Map" }, { label: "Batches" }, { label: "People" }]} />
         {/* "194 people", at SentenceLine's 13.5px. */}
         <div className="skeleton-warm ml-auto h-2.5 w-[62px] rounded-md" />
       </div>

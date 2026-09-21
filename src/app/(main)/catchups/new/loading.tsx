@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { ButtonSkeleton } from "@/components/common/skeleton";
+import { CADENCE_LABELS } from "@/lib/catchups-core";
 
 /* Mirrors the real page (new/page.tsx + create-catchup-form.tsx): the real
    title through the real PageHeader, then ONE card at the centered column's
@@ -55,7 +56,7 @@ export default function NewCatchupLoading() {
           <p className={LABEL}>Rhythm</p>
           <div className="mt-[var(--space-xs)]">
             <div className="skeleton-warm inline-flex gap-1 rounded-full border border-transparent p-1">
-              {["Biweekly", "Monthly", "Quarterly"].map((label) => (
+              {Object.values(CADENCE_LABELS).map((label) => (
                 <span key={label} className="invisible px-4 py-1.5 text-[13px] font-semibold">
                   {label}
                 </span>

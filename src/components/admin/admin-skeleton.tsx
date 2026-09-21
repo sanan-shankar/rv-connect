@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { IdentityRowSkeleton } from "@/components/common/identity-row";
+import { FilterButtonSkeleton } from "@/components/common/skeleton";
 import { ADMIN_MEASURE } from "@/components/admin/admin-chrome";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +16,7 @@ import { cn } from "@/lib/utils";
  * else: a stat strip, a queue of thread cards two up, a people grid three up,
  * a reading room. Each page now composes its own skeleton from these pieces.
  * The words that never change are drawn as they are: the title, through the
- * real PageHeader; a section's label; a stat's label. What is fetched or
+ * real PageHeader; a section's label; a stat's icon and label. What is fetched or
  * pressed is a placeholder at its own size. The single-column pages keep the
  * 1024px reading measure (ADMIN_MEASURE) the pages keep.
  *
@@ -63,19 +65,21 @@ export function AdminSectionSkeleton({
   );
 }
 
-/** StatStrip, each tile's label drawn as it is and its figure pending. */
-export function StatStripSkeleton({ labels }: { labels: string[] }) {
+/** StatStrip, each tile's icon and label drawn as they are and its figure
+ *  pending. */
+export function StatStripSkeleton({ tiles }: { tiles: { label: string; icon: LucideIcon }[] }) {
   return (
     <div
       className={cn(
         "grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius)] border border-border bg-border",
-        labels.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-4"
+        tiles.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-4"
       )}
     >
-      {labels.map((label) => (
+      {tiles.map(({ label, icon: Icon }) => (
         <div key={label} className="bg-card px-3.5 py-3">
-          <div className="flex h-5 items-center">
-            <div className="skeleton-warm h-3.5 w-14 rounded-md" />
+          <div className="flex h-5 items-center gap-1.5">
+            <Icon className="size-3.5 shrink-0 text-leaf" strokeWidth={2} aria-hidden />
+            <div className="skeleton-warm h-3.5 w-10 rounded-md" />
           </div>
           <p className="mt-1.5 truncate text-[12px] font-medium text-muted-foreground">{label}</p>
         </div>
@@ -91,10 +95,7 @@ export function AdminFilterBarSkeleton() {
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <div className="skeleton-warm h-10 min-w-0 flex-1 rounded-[var(--radius-input)] sm:max-w-xs" />
-        <div className="skeleton-warm inline-flex h-10 items-center gap-1.5 rounded-full border border-transparent px-4 text-[13px] font-medium">
-          <span className="size-3.5" />
-          <span className="invisible">Filters</span>
-        </div>
+        <FilterButtonSkeleton />
       </div>
       <div className="flex min-h-[36px] items-center">
         <div className="skeleton-warm h-2.5 w-20 rounded-md" />

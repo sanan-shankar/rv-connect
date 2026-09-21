@@ -43,6 +43,7 @@ import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import { BUCKETS } from "@/lib/collection";
 import type { RiverOrder } from "@/app/(main)/collection/actions";
 import { cn } from "@/lib/utils";
+import { BUCKET_WORD } from "@/components/common/control-geometry";
 
 /** Every order the river can take. "A wander" is deleted -- the owner,
  *  verbatim: "can you please delete that a wander that's not great."
@@ -90,7 +91,8 @@ function BucketWord({
         // Hover is colour and nothing else (owner, 2026-07-25: hover never
         // moves a control). The press keeps its sink, because that is
         // feedback for something you did.
-        "relative shrink-0 whitespace-nowrap px-0.5 pb-2 pt-1 text-[13.5px] leading-none transition-colors duration-150",
+        BUCKET_WORD,
+        "transition-colors duration-150",
         "active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         active ? "font-semibold text-canopy" : "font-medium text-muted-foreground hover:text-foreground"
       )}

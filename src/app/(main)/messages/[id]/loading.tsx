@@ -1,4 +1,4 @@
-import { ButtonSkeleton } from "@/components/common/skeleton";
+import { MessageComposerSkeleton } from "@/components/messages/message-composer-skeleton";
 
 /* A conversation before it arrives, at page.tsx's, conversation.tsx's and
    message-composer.tsx's own measurements.
@@ -57,21 +57,7 @@ export default function ThreadLoading() {
           </div>
 
           <div className="mt-6 border-t border-border pt-5">
-            <div className="flex gap-3">
-              <div className="skeleton-warm mt-0.5 size-9 shrink-0 rounded-full" />
-              <div className="min-w-0 flex-1">
-                <div className="skeleton-warm h-16 rounded-[var(--radius-input)]" />
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="skeleton-warm inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-medium">
-                    <span className="size-3.5" />
-                    <span className="invisible">Screenshot</span>
-                  </span>
-                  <div className="ml-auto flex items-center gap-2.5">
-                    <ButtonSkeleton size="sm" icon label="Reply" />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <MessageComposerSkeleton mode="reply" submitLabel="Reply" />
           </div>
         </div>
       </div>

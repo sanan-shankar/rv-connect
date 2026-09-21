@@ -194,7 +194,6 @@ export interface ProfileDraft {
   };
 }
 
-
 /* ------------------------------------------------------------------ *
  *  THE COLOPHON: the mark and the admission number, as one lockup.
  *
@@ -273,7 +272,6 @@ const COLOPHON = {
    */
   numberNudge: 1,
 } as const;
-
 
 type TabKey = "all" | "posts" | "letters" | "photos" | "saved";
 

@@ -1,4 +1,4 @@
-import { VIEWS } from "@/components/admin/analytics/tabs";
+import { VIEW_PILL, VIEWS } from "@/components/admin/analytics/tabs";
 import { PageHeader } from "@/components/layout/page-header";
 
 /* Analytics before it arrives (page.tsx): the real title, the nine views as
@@ -12,7 +12,7 @@ export default function AdminAnalyticsLoading() {
       <PageHeader title="Analytics" />
       <div className="-mx-1 flex gap-1 overflow-hidden px-1 pb-0.5">
         {VIEWS.map((v) => (
-          <span key={v.key} className="skeleton-warm shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-medium">
+          <span key={v.key} className={`skeleton-warm ${VIEW_PILL}`}>
             <span className="invisible">{v.label}</span>
           </span>
         ))}

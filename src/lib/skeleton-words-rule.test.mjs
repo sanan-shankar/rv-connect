@@ -60,8 +60,11 @@ function drawnWords(src) {
   return [...words];
 }
 
+/* Each skeleton's words, read and parsed once for both tests below. */
+const DRAWN = SKELETONS.map((f) => ({ file: f, words: drawnWords(readFileSync(f, "utf8")) }));
+
 test("the sweep found the skeletons and the words they draw", () => {
-  const total = SKELETONS.reduce((n, f) => n + drawnWords(readFileSync(f, "utf8")).length, 0);
+  const total = DRAWN.reduce((n, d) => n + d.words.length, 0);
   assert.ok(
     SKELETONS.length >= 35 && total >= 40,
     `found ${SKELETONS.length} skeleton files drawing ${total} words; there were 40 and 60-odd. ` +
@@ -71,11 +74,11 @@ test("the sweep found the skeletons and the words they draw", () => {
 
 test("every word a skeleton draws is still said by the app", () => {
   const stale = [];
-  for (const f of SKELETONS) {
-    for (const word of drawnWords(readFileSync(f, "utf8"))) {
+  for (const { file, words } of DRAWN) {
+    for (const word of words) {
       const fixed = word.replace(/\d+/g, "").trim();
       if (fixed.length < 3) continue;
-      if (!HAYSTACK.includes(fixed)) stale.push(`${relative(ROOT, f)}: "${word}"`);
+      if (!HAYSTACK.includes(fixed)) stale.push(`${relative(ROOT, file)}: "${word}"`);
     }
   }
   assert.deepEqual(

@@ -1,3 +1,5 @@
+import { LoveAndCommentsSkeleton } from "@/components/posts/post-card-skeleton";
+
 /* ------------------------------------------------------------------ *
  *  The shape the reader arrives in.
  *
@@ -93,12 +95,7 @@ export default function EditionLoading() {
                       </div>
                       <div className="px-4 pb-1.5 pt-1 md:px-5 md:pb-2 md:pt-1.5">
                         <div className="-ml-2.5 flex h-8 items-center gap-1">
-                          <div className="px-2.5">
-                            <div className="skeleton-warm h-[18px] w-[34px] rounded-full" />
-                          </div>
-                          <div className="px-2.5">
-                            <div className="skeleton-warm h-[18px] w-[31px] rounded-full" />
-                          </div>
+                          <LoveAndCommentsSkeleton />
                         </div>
                       </div>
                     </div>

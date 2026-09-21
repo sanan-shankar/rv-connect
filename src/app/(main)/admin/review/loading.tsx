@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/layout/page-header";
+import { SegmentedPillsSkeleton } from "@/components/common/skeleton";
 
 /**
  * The review room's own skeleton, and not `AdminSkeleton`.
@@ -20,17 +21,9 @@ export default function AdminReviewLoading() {
           invisible, and the "1 of 12" stepper beside it. */}
       <div className="flex min-h-0 w-full flex-1 flex-col gap-4">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-3 lg:gap-x-4">
-          <div className="skeleton-warm inline-flex w-fit max-w-full items-center gap-1 rounded-full border border-transparent p-1">
-            {["Waiting", "Set aside", "Undated"].map((label) => (
-              <span
-                key={label}
-                className="invisible inline-flex h-8 items-center gap-1.5 px-3.5 text-[13px] font-semibold sm:px-4"
-              >
-                {label}
-                <span className="text-[11.5px] tabular-nums">00</span>
-              </span>
-            ))}
-          </div>
+          <SegmentedPillsSkeleton
+            segments={["Waiting", "Set aside", "Undated"].map((label) => ({ label, count: "0" }))}
+          />
           <div className="skeleton-warm h-8 w-28 rounded-full" />
         </div>
 

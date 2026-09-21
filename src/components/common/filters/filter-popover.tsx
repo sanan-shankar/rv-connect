@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FILTER_BUTTON } from "@/components/common/control-geometry";
 import {
   Popover,
   PopoverPortal,
@@ -59,7 +60,8 @@ export function FilterButton({
            chrome, and takes the page chrome's surface.
            The OPEN state stays canopy via aria-expanded: selection is the
            app's one green state, and hover must not borrow it (pill-shell). */
-        "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-4 text-[13px] font-medium text-foreground transition-transform duration-150 state-layer active:scale-[0.97] aria-expanded:border-canopy/35 aria-expanded:bg-canopy/[0.08] aria-expanded:text-canopy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        FILTER_BUTTON,
+        "border-border bg-card text-foreground transition-transform duration-150 state-layer active:scale-[0.97] aria-expanded:border-canopy/35 aria-expanded:bg-canopy/[0.08] aria-expanded:text-canopy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         className
       )}
     >

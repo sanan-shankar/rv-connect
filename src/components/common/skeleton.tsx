@@ -1,5 +1,13 @@
+import type { CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  FILTER_BUTTON,
+  SEGMENTED_COUNT,
+  SEGMENTED_SEGMENT,
+  SEGMENTED_TRACK,
+  SEGMENTED_TRACK_HUG,
+} from "./control-geometry";
 
 /**
  * Pieces the loading screens share, for the few shapes that recur across
@@ -66,5 +74,49 @@ export function TextSkeleton({ children }: { children: string }) {
       <span className="invisible">{children}</span>
       <span className="skeleton-warm absolute inset-x-0 top-1/2 h-[0.6em] -translate-y-1/2 rounded-md" />
     </span>
+  );
+}
+
+/**
+ * SegmentedPills before its page arrives: the control's own track and
+ * segments (control-geometry.ts), shimmering, with the labels and any
+ * counts set invisible so each segment is as wide as the real one. `count` is
+ * a sample of the figure the segment carries ("0", "12"), for its width only.
+ */
+export function SegmentedPillsSkeleton({
+  segments,
+  className,
+  style,
+}: {
+  segments: { label: string; count?: string }[];
+  className?: string;
+  style?: CSSProperties;
+}) {
+  return (
+    <div
+      className={cn("skeleton-warm border-transparent", SEGMENTED_TRACK, SEGMENTED_TRACK_HUG, className)}
+      style={style}
+    >
+      {segments.map(({ label, count }) => (
+        <span key={label} className={cn("invisible shrink-0", SEGMENTED_SEGMENT)}>
+          {label}
+          {count !== undefined && <span className={SEGMENTED_COUNT}>{count}</span>}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * FilterButton before its page arrives: its own box with the word invisible.
+ * `compactBelowSm` for the one caller whose phone gets the icon-only button
+ * (the directory); the admin lists keep the word at every width.
+ */
+export function FilterButtonSkeleton({ compactBelowSm = false }: { compactBelowSm?: boolean }) {
+  return (
+    <div className={cn("skeleton-warm border-transparent", FILTER_BUTTON)}>
+      <span className="size-3.5" />
+      <span className={cn("invisible", compactBelowSm && "hidden sm:inline")}>Filters</span>
+    </div>
   );
 }
