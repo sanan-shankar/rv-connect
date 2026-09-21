@@ -453,7 +453,25 @@ register IS the template, and it lives in exactly one file - `src/components/ui/
 - **One shared `<LoveButton>`** (the feed heart, the one that never flashes black) used **everywhere** —
   Catch-ups, groups, the Collection, comments. Today it only works in the feed; that is the exact
   modularity failure we are fixing. Extract it once, reuse it.
-- **Loading:** every async route ships a loading state, using the **warm shimmer** (not the grey pulse).
+- **Loading:** every async route ships a loading state, using the **warm shimmer** (not the grey pulse),
+  and it is the page it stands in for rather than a sketch of it (2026-09-21, owner: "make them perfect on
+  all pages"). The rules, each one measured against the real page at 1440 and 390:
+  - **Frames and fixed words are drawn as they are.** Cards, sheets and borders are real; so are the words
+    the page never changes: the title through the real `PageHeader`, section and form labels, a stat's
+    label. The title is what says where the click went, from the first frame.
+  - **What is fetched or pressed is a placeholder at its own box.** `ButtonSkeleton` is the real Button with
+    its label set invisible, so it is the button's exact width at every breakpoint; `TextSkeleton` is a bar
+    as wide as its words; a bar sits inside its text's real line box rather than standing in for it.
+  - **Words that rise in on arrival get placeholders**, even fixed ones (a gauntlet step, the lab index):
+    drawn now, they would vanish and rise again.
+  - **Draw what is always there, not what might be.** A queue that is usually empty draws its empty line;
+    a drafts strip nearly nobody has is not drawn.
+  - **Share the real parts rather than copy them.** The page's own constants and grids are imported
+    (`RAIL_GRID`, `CARD_FRAME`, `ADMIN_GRID_3`, the letterhead's sheet); a wait that happens twice draws one
+    component (`PostCardSkeleton` for the feed's two); a page that is nearly all fixed words renders its
+    own shell with the live parts swapped for placeholders (`SupportShell`).
+  - `skeleton-words-rule.test.mjs` fails if a skeleton draws a word no page says any more.
+
   The "sleeping birds waking" idea builds on top of the warm shimmer.
 - **The viewer step (named pattern, 2026-07-30):** moving between photos in the full-screen
   viewer is a film advance — incoming drifts 28px from the direction of travel on
