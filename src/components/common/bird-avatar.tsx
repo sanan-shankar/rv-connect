@@ -50,7 +50,9 @@ export function contactPhotoSrc(user: AvatarUser): string {
   return `/images/birds/${species}-${isMirrored(seed) ? 1 : 0}.png`;
 }
 
-const SIZE_TOKENS = { xs: 28, sm: 40, md: 64, lg: 104 } as const;
+/** Exported for the skeletons that stand in for an avatar before it loads
+ *  (IdentityRowSkeleton), so a placeholder disc is always the size it becomes. */
+export const SIZE_TOKENS = { xs: 28, sm: 40, md: 64, lg: 104 } as const;
 type SizeToken = keyof typeof SIZE_TOKENS;
 
 export function BirdAvatar({

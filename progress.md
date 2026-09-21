@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-21 (feed, loading) — the feed's loading screen draws the feed: header, posts and rail where they land
 - 2026-09-17 (mascot) — the logo peek rises with its crest open, and without the edge light
 - 2026-09-17 (mascot) — three clicks on the logo raise the app icon's hoopoe over the bottom of the screen
 - 2026-09-21 (dark mode) — the gauntlet's copy plays it straight, and the hold becomes keeping still while the hoopoe falls asleep

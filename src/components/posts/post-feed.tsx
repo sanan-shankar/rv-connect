@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { X } from "@phosphor-icons/react";
 import { PostCard, type PostData } from "./post-card";
+import { PostListSkeleton } from "./post-card-skeleton";
 import { loadPosts, markFeedSeen } from "@/app/(main)/feed/actions";
 import { Button } from "@/components/ui/button";
 import { NoResultsHoopoe } from "@/components/mascot/moments/no-results-hoopoe";
@@ -283,22 +284,10 @@ export function PostFeed({
         </div>
       )}
 
-      {/* Posts as a ruled sheet */}
+      {/* The same three cards feed/loading.tsx draws, so the page arriving
+          around them moves nothing and only the posts themselves change. */}
       {loading ? (
-        <div className="space-y-2.5">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="card-elevated rounded-[var(--radius)] border border-border bg-card p-5">
-              <div className="flex items-center gap-3">
-                <div className="skeleton-warm h-10 w-10 rounded-full" />
-                <div className="space-y-2">
-                  <div className="skeleton-warm h-4 w-32 rounded-md" />
-                  <div className="skeleton-warm h-3 w-20 rounded-md" />
-                </div>
-              </div>
-              <div className="skeleton-warm mt-4 h-14 w-full rounded-md" />
-            </div>
-          ))}
-        </div>
+        <PostListSkeleton />
       ) : posts.length === 0 ? (
         <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
           {search && (
