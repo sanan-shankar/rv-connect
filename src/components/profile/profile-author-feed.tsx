@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { appendUnseen } from "@/lib/append-page";
 import { PostCard, type PostData } from "@/components/posts/post-card";
+import { PostCardSkeleton } from "@/components/posts/post-card-skeleton";
 import { loadPosts } from "@/app/(main)/feed/actions";
 import { Button } from "@/components/ui/button";
 
@@ -134,21 +135,11 @@ export function ProfileAuthorFeed({
      the two must not drift, and the fetch may still overrule the count. */
   if (loading && expectedCount !== 0) {
     return (
+      /* PostCard's own placeholder, the one the feed and the profile's
+         loading screen draw, so the tab arriving moves nothing. */
       <div className="space-y-2.5">
         {Array.from({ length: Math.min(expectedCount ?? 3, 3) }, (_, i) => (
-          <div
-            key={i}
-            className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4"
-          >
-            <div className="flex items-center gap-3">
-              <div className="skeleton-warm h-10 w-10 rounded-full" />
-              <div className="space-y-2">
-                <div className="skeleton-warm h-4 w-32 rounded-md" />
-                <div className="skeleton-warm h-3 w-20 rounded-md" />
-              </div>
-            </div>
-            <div className="skeleton-warm mt-4 h-14 w-full rounded-md" />
-          </div>
+          <PostCardSkeleton key={i} lines={[2, 1, 3][i]} />
         ))}
       </div>
     );
