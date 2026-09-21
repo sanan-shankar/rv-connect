@@ -7973,3 +7973,12 @@ Verified in headless Chrome at 1440x900 and 390x844 on the Set aside pile: the l
 a typed reason holding past five seconds, Escape clearing it, an empty box disarming at four seconds.
 No real photograph was declined. Check green; the review room is not in the visual suite.
 
+## 2026-09-21 (admin) — the reason box rises in smoothly, the footer loses its line, and the empty pile's link stops warning
+
+His words: "remove that horizontal line above approve and decline and make the reason box appears
+cleanly not suddenly and have the placeholder text just say tell them why". The box is now absolutely
+placed above the buttons and arrives on opacity and a 10px rise over 0.22s, so the footer no longer
+jumps taller and the buttons stay put (measured: 0px). He also hit a Base UI console error on the
+"Nothing is waiting" screen: its link button lacked `nativeButton={false}`, which every other link
+button in the app carries. Verified at 1440x900 and 390x844.
+

@@ -478,35 +478,43 @@ export function ReviewRoom({
                   -- the page scrolls -- so the footer sat below the fold and
                   Approve could not be reached without scrolling past the
                   thing being approved. */}
-              <div className="sticky bottom-0 mt-auto rounded-b-[calc(var(--radius-lg)-1px)] border-t border-border bg-card p-3">
-                {/* Above the buttons, so opening it grows the footer upward and
-                    Decline stays exactly where the first press found it. */}
-                {armed && deciding && (
-                  <m.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.16, ease: EASE_OUT_SMOOTH }}
-                    className="mb-2.5"
-                  >
-                    <Input
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      onFocus={() => setWriting(true)}
-                      onBlur={() => setWriting(false)}
-                      onKeyDown={(e) => {
-                        /* Enter from the box is the second press. */
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          void decide("decline");
-                        }
-                      }}
-                      maxLength={DECLINE_REASON_MAX}
-                      placeholder="Reason for them, if you want to give one"
-                      aria-label="Reason, sent to the contributor (optional)"
-                      disabled={busy}
-                    />
-                  </m.div>
-                )}
+              <div className="sticky bottom-0 mt-auto rounded-b-[calc(var(--radius-lg)-1px)] bg-card p-3">
+                {/* The reason box rises out of the footer rather than being
+                    inserted into it: absolutely placed above the buttons, it
+                    moves nothing, so it can arrive on transform and opacity
+                    alone instead of the footer jumping taller in one frame.
+                    It covers the foot of the questions while it is open, which
+                    is fine -- you are turning the photograph away. */}
+                <AnimatePresence initial={false}>
+                  {armed && deciding && (
+                    <m.div
+                      key="reason"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      transition={{ duration: 0.22, ease: EASE_OUT_SMOOTH }}
+                      className="absolute inset-x-0 bottom-full bg-card px-3 pt-3"
+                    >
+                      <Input
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        onFocus={() => setWriting(true)}
+                        onBlur={() => setWriting(false)}
+                        onKeyDown={(e) => {
+                          /* Enter from the box is the second press. */
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            void decide("decline");
+                          }
+                        }}
+                        maxLength={DECLINE_REASON_MAX}
+                        placeholder="Tell them why"
+                        aria-label="Reason, sent to the contributor (optional)"
+                        disabled={busy}
+                      />
+                    </m.div>
+                  )}
+                </AnimatePresence>
                 <Decide
                   mode={mode}
                   busy={busy}
@@ -802,7 +810,7 @@ function Done({ mode, counts }: { mode: ReviewMode; counts: ReviewCounts }) {
         <ImageOff className="size-6 text-muted-foreground" strokeWidth={1.5} aria-hidden />
         <p className="text-[15px] font-medium text-foreground">{DONE[mode]}</p>
         {other > 0 && (
-          <Button variant="outline" render={<Link href={`/admin/review?pile=${next}`} />}>
+          <Button variant="outline" nativeButton={false} render={<Link href={`/admin/review?pile=${next}`} />}>
             {next === "undated"
               ? `${other} in the Collection have no date`
               : `${other} waiting to be reviewed`}
