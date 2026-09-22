@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
-import { CONTRIBUTION_SUM, netPaise } from "@/lib/contribution-state";
+import { CONTRIBUTION_SUM, COUNTED_GIVERS, netPaise } from "@/lib/contribution-state";
 import { requireAdminPage } from "@/lib/admin";
 import { mailHealth } from "@/lib/email-queue";
 import {
@@ -89,7 +89,7 @@ export default async function AdminOverviewPage() {
     mailHealth(),
     prisma.contribution.aggregate({
       _sum: CONTRIBUTION_SUM,
-      where: { status: "paid", livemode: true, paidAt: { gte: monthStart } },
+      where: { status: "paid", livemode: true, paidAt: { gte: monthStart }, ...COUNTED_GIVERS },
     }),
   ]);
 

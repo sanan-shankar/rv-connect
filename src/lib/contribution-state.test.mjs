@@ -6,6 +6,9 @@ import { ROOT, read, decomment } from "./test-kit.mjs";
 import {
   CONTRIBUTION_STATUSES,
   CONTRIBUTION_SUM,
+  COUNTED_GIVERS,
+  UNCOUNTED_GIVER_IDS,
+  isCountedGiver,
   PAYABLE_FROM,
   REVERSED_STATUSES,
   canBecomePaid,
@@ -236,4 +239,26 @@ test("the webhook acts on a won dispute, from disputed only, once", () => {
   assert.match(write, /NOT:\s*\{\s*reversalIds:\s*\{\s*has:/, "a re-delivered won event would apply twice");
   // A lost dispute is correctly un-counted and must stay that way.
   assert.ok(!/payment\.dispute\.lost/.test(src), "the webhook acts on a lost dispute, which is already correct as it stands");
+});
+
+/* Owner, 2026-09-22: the site's own people's payments stay out of the public
+ * bar and the admin tiles. The fragment must keep gifts from deleted accounts
+ * (userId NULL), which a bare `notIn` would silently drop, and every total
+ * must actually spread it. */
+test("uncounted givers: null userId still counts, the listed ids do not", () => {
+  assert.equal(isCountedGiver(null), true);
+  assert.equal(isCountedGiver("someone-else"), true);
+  for (const id of UNCOUNTED_GIVER_IDS) assert.equal(isCountedGiver(id), false);
+  assert.deepEqual(COUNTED_GIVERS.OR[0], { userId: null });
+});
+
+test("uncounted givers: every public or admin total filters them", () => {
+  for (const [file, n] of [
+    ["src/app/(main)/support/page.tsx", 1],
+    ["src/app/(main)/admin/(index)/page.tsx", 1],
+    ["src/app/(main)/admin/support/page.tsx", 4],
+  ]) {
+    const hits = decomment(read(file)).match(/\.\.\.COUNTED_GIVERS/g) ?? [];
+    assert.equal(hits.length, n, file);
+  }
 });

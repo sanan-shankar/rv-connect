@@ -8265,3 +8265,20 @@ in the update means only one of them starts it. Answering opening still tells ev
 `2026-09-22-batch-catchups-wait-for-questions.sql` moves the four batches already waiting (2021, 2022,
 2023, 2026, each on Edition 1 with no questions) onto the same rule. Their creation notifications went out
 already. NOT YET APPLIED: the permission guard refused a write to the live database, so it waits on him.
+
+## 2026-09-22 (support) — the site's own people's payments leave the public bar and the admin tiles
+
+His words: "exclude payments from sanan sanjula and karthik from the website in progress bar and admin
+stats". Karthik is Kartik Kalyanram, the only one of that name who has paid.
+
+`UNCOUNTED_GIVER_IDS` in `contribution-state.ts` lists the three by user id, and `COUNTED_GIVERS` is
+the `where` fragment every total spreads: the /support recovery bar, the admin home's month tile and the
+four whole-history tiles on /admin/support. The four tiles computed from recent rows (the funnel,
+typical gift, most used) filter in memory through `isCountedGiver`. The fragment spells out the NULL case
+because `NOT IN` is never true for a NULL userId, so a bare `notIn` would also have dropped every gift from
+a deleted account. The ledger, each person's admin page and the bird-pick perks still count their money.
+
+Measured on the dev server: the public bar went from ₹15,200 to ₹9,671 (3.8% to 2.4% of the build fund),
+this month on the admin home ₹4,491, typical gift ₹1,612. The nightly metric snapshot
+(`scripts/ops/snapshot.mjs`) still sums everyone.
+
