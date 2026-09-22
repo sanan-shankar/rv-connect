@@ -8222,3 +8222,28 @@ components outside this work); rendering a disabled Input as the field placehold
 overlap); widening TextSkeleton for two sites whose layout it would not reproduce. Re-verified with the
 probe at 1440x900 and 390x844: every refactored control at 0px. Visual suite 23/25, the two reds the
 directory headcount's live width (194 became 195 today).
+
+## 2026-09-22 (icons) — the Android icon is the peek again, not the whole bird
+
+His words: "The app icon on Android is messed up sometimes. It shows the whole bird with some tiny break
+and it just looks ugly. It shows a whole orange circle instead of the peeking thing".
+
+Android reads the manifest's maskable icon, and that one was composed on a wrong number. Chrome does not
+show the middle 2/3 of a maskable icon; it first pads it so the W3C's 4/5 safe circle lands on Android's
+66dp one (79px a side on 512, WebappsIconUtils.java), and Android draws the middle 2/3 of THAT, so a
+home screen shows the middle 446.7px of the file, y 32.7 to 479.3. The 2026-08-28 repair had shrunk the
+bird to fit 341px and centred its face, which left the whole head, chin and beak inside what Android
+shows: a floating orange circle with green under it, and the seam between the beak's two halves on show,
+most likely the "tiny break". Places that use the regular icon (Chrome's install sheet, the app switcher)
+showed the peek, which is probably the "sometimes".
+
+The maskable icon is now the approved tile itself, scaled to exactly those 446.7px, so its bottom edge
+lands on the launcher's and the head runs on past the cut; raised 8 units so a Pixel's circular mask,
+whose edge rises toward the sides, still shows the eyes' glints. Rendered with a 32-unit bleed, because
+the Android-only edge light was lighting the art's false edge at the canvas border (a bright line 6px up
+from the bottom, outside what Android shows, gone now). The other five icons are byte-identical.
+`app-icon-safe-zone.test.mjs` had the same 2/3 in it and passed the whole-bird icon; it now uses
+Chromium's arithmetic and checks the eyes show through a circle, the head reaches the bottom of the view
+(the old icon fails this on all 241 pixels), and the crest fits. Simulated at a circle, a squircle and a
+square against the tile, and at 144px. An installed app picks the new icon up within a day of being
+opened (closed, charging, on Wi-Fi), or at once if it is removed and added again.

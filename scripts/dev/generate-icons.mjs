@@ -20,9 +20,9 @@
  *     Ship them pre-rounded and the platform's mask eats into our corner
  *     radius, leaving four dark nubs where the two curves disagree.
  *
- * The maskable one is additionally re-composed against the ADAPTIVE SAFE ZONE,
- * which is only the middle 66.67% of this canvas -- see the long note above the
- * transform. Getting that wrong is what cost the hoopoe its eyes on Android.
+ * The maskable one is additionally fitted to what Chrome on Android actually
+ * shows of it, which is the middle 446px of this 512 -- see the long note above
+ * the transform. Getting that number wrong has broken the Android icon twice.
  *
  * Run: node scripts/dev/generate-icons.mjs
  */
@@ -75,48 +75,48 @@ function lit(svg) {
   return withFilter;
 }
 
-/* ---- the maskable transform, and the bird's missing eyes ---------------
+/* ---- the maskable icon: the tile, fitted to what Android shows ---------
  *
- * An adaptive launcher does NOT show all 512px. Android's icon is 108dp of
- * artwork of which only the middle 72dp is ever drawn -- 66.67%, so on this
- * canvas everything outside x/y 85.3..426.7 is thrown away before any mask
- * shape is even applied, and a circular mask then eats the corners of what
- * is left (safe radius 170.7 about the centre).
+ * Chrome on Android does not hand a maskable icon to the launcher as it is.
+ * It turns it into an adaptive icon, and it pads it first, because the two
+ * specs promise different safe zones: the W3C's is a circle 4/5 of the icon,
+ * Android's is 66dp of the 108dp layer. So Chrome pads each side by
+ * ((4/5) / (66/108) - 1) / 2 of the icon, 79px here, making a 670px layer
+ * (WebappsIconUtils.java: MASKABLE_SAFE_ZONE_RATIO, ADAPTIVE_SAFE_ZONE_RATIO,
+ * MASKABLE_ICON_PADDING_RATIO). Android then draws the middle 72dp of that
+ * 108dp layer -- 2/3 of it, 446.7px -- and the launcher cuts its own shape
+ * (Samsung's squircle, Pixel's circle) out of that. What reaches the home
+ * screen is therefore the middle 446.7px of this canvas, x/y 32.7 to 479.3.
  *
- * This used to scale 0.8 about the BOTTOM CENTRE, (256, 512), reasoning that
- * the bird peeks over the bottom edge of the tile so it must stay pinned to
- * that edge. That is right for the tile and exactly wrong for the mask: it
- * held the face against the one edge the launcher crops hardest. Measured on
- * the shipped file, the art ran from y=204 to y=511 and the eyes sat at
- * y~500-522, so the crop at 426.7 took the entire face and left the crest and
- * a bare orange forehead (owner, 2026-08-28, on a Samsung install: "the eyes
- * didn't show ... it's basically like the hoopoe has just been moved down").
- * iOS and macOS were fine throughout, which is why this survived: they mask
- * to a squircle that is essentially the whole square, so apple-icon and the
- * "any" icons above have always been safe full-bleed.
+ * It has been got wrong twice, in opposite directions. First the art was
+ * scaled 0.8 about the bottom centre, which put the eyes at y~500-522, below
+ * the cut: a Samsung install showed a crest and a bare forehead (owner,
+ * 2026-08-28: "the eyes didn't show"). The repair assumed Android shows only
+ * the middle 66.67% (the 72dp of a native adaptive icon, without Chrome's
+ * padding), shrank the bird to 0.65 and centred its face -- which put the
+ * whole head, chin and beak inside the 446px Android really shows, so the
+ * home screen got the entire bird floating in the tile, with the seam
+ * between the beak's two halves on show (owner, 2026-09-22: "It shows a whole
+ * orange circle instead of the peeking thing").
  *
- * So the maskable variant is composed against the SAFE ZONE rather than the
- * canvas: scale 0.65, and move the FACE's centre to the canvas centre rather
- * than leaving the art where the tile wanted it. That face centre is
- * (256, 355.5), 355.5 being the midpoint of the two things that must survive
- * -- the topmost crest tip (y=126) and the bottom of the eyes (y=585) -- hence
- * the asymmetric translate pair below, which is the whole trick. Scaling about
- * (256, 355.5) and stopping there leaves that point fixed and the face still
- * far too low; that was the first attempt and it changed nothing on Android.
- *
- * Measured on the output: art now runs x 122..388, y 108..461, and every eye
- * and glint pixel survives all three mask shapes -- square, Samsung squircle
- * and a full circle -- with zero clipped. A circular mask does shave ~500px of
- * the head's lower shoulders, below the eyes; that is the same cut the chin
- * already takes and it reads as the peek rather than as damage.
- *
- * The chin is deliberately left OUTSIDE: the head's lower edge scales to
- * y=460, past the crop, so the launcher's own mask makes the cut. That is
- * how the peek survives here. On the tile it is the bottom edge that clips
- * the head; under a mask it is the mask, and the read is the same either way
- * without a band of empty tile under a floating face. */
+ * So this is now the tile itself -- the peek the owner signed off, where the
+ * head rises over the bottom edge -- scaled to exactly that 446.7px, so the
+ * tile's own bottom edge lands on the launcher's. Under a square or a
+ * squircle it is the tile, and the head runs on past the cut, so the mask
+ * does the cropping and the chin never shows. It is raised 8 units (the -264
+ * below, against the centre's 256): a circular mask's edge rises towards the
+ * sides, which is where the eyes are,
+ * and without the lift a Pixel's circle took the eyes' glints. Measured with
+ * both masks against the tile, 8 is where both read like the tile; 12 showed
+ * noticeably more eye on a squircle. src/lib/app-icon-safe-zone.test.mjs
+ * pins all of this with the same arithmetic. */
+const CHROME_PAD = Math.round(((4 / 5 / (66 / 108) - 1) / 2) * 512); // 79
+const ANDROID_VIEW = ((512 + 2 * CHROME_PAD) * 2) / 3; // 446.67
 const maskable = lit(fullBleed)
-  .replace('<g id="lit"', '<g transform="translate(256 256) scale(0.65) translate(-256 -355.5)"><g id="lit"')
+  .replace(
+    '<g id="lit"',
+    `<g transform="translate(256 256) scale(${ANDROID_VIEW / 512}) translate(-256 -264)"><g id="lit"`,
+  )
   .replace("</svg>", "</g></svg>");
 /* The scale wrapper sits OUTSIDE the filtered group on purpose. An ancestor
    transform scales every length inside a filter along with the art it is
@@ -130,7 +130,13 @@ const targets = [
   { svg: fullBleed, size: 180, out: "src/app/apple-icon.png" },
   { svg: source, size: 192, out: "public/images/icons/icon-192.png" },
   { svg: source, size: 512, out: "public/images/icons/icon-512.png" },
-  { svg: maskable, size: 512, out: "public/images/icons/icon-maskable-512.png" },
+  /* Rendered with a bleed, because this is the one target whose art runs off
+     the canvas AND carries the edge light. A filter only sees the art the
+     renderer drew, which stops at the canvas, so the head's run past the
+     bottom edge read as an edge of its own and got lit: a bright line across
+     the head and eyes 6px up from the bottom. Drawn 32 units wider on every
+     side and cut back to 512, the false edge falls in the margin. */
+  { svg: maskable, size: 512, out: "public/images/icons/icon-maskable-512.png", bleed: 32 },
   /* The largest size anything actually asks for, and the reason it is here
      (owner, 2026-08-22, on a pixellated icon in his Mac dock: "I just want the
      max resolution possible that doesn't cause a problem").
@@ -149,15 +155,27 @@ const targets = [
   { svg: source, size: 1024, out: "public/images/icons/icon-1024.png" },
 ];
 
-for (const { svg, size, out } of targets) {
+for (const { svg, size, out, bleed = 0 } of targets) {
   /* 384 DPI rasterises the 512-unit SVG at 2730px, so every target here is
      SUPERSAMPLED and then reduced rather than drawn at its final size, which
      is what keeps the ridge's diagonals clean. The branch is for a future
      target big enough that 2730 would mean enlarging a smaller raster, which
      is the exact failure this whole file exists to avoid. */
   const density = size * 2 > 2730 ? Math.ceil((size * 2 * 72) / 512) : 384;
-  await sharp(Buffer.from(svg), { density })
-    .resize(size, size)
+  const span = 512 + 2 * bleed;
+  const drawn = bleed
+    ? svg
+        .replace('width="512" height="512"', `width="${span}" height="${span}"`)
+        .replace('viewBox="0 0 512 512"', `viewBox="${-bleed} ${-bleed} ${span} ${span}"`)
+    : svg;
+  if (bleed && !drawn.includes(`viewBox="${-bleed} ${-bleed} ${span} ${span}"`)) {
+    throw new Error("generate-icons: app-icon.svg's root width/height/viewBox changed; the bleed cannot find them.");
+  }
+  const full = Math.round((size * span) / 512);
+  const raster = await sharp(Buffer.from(drawn), { density }).resize(full, full).png().toBuffer();
+  const margin = (full - size) / 2;
+  await sharp(raster)
+    .extract({ left: margin, top: margin, width: size, height: size })
     .png({ compressionLevel: 9 })
     .toFile(out);
   console.log(`${out}  ${size}x${size}`);
