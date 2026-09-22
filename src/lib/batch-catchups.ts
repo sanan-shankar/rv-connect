@@ -42,16 +42,10 @@
  *  No em dashes. User-facing copy says "Rishi Valley", never "Alumni".
  * ------------------------------------------------------------------ */
 import { prisma } from "@/lib/prisma";
-import { notifyQuestionsOpen } from "@/lib/catchups-notify";
 import { reportSwallowed } from "@/lib/report-error";
 import { isUniqueViolation } from "@/lib/prisma-errors";
 import { pickCatchupPicture } from "@/lib/catchup-picture-pick";
-import {
-  BATCH_CATCHUP_FLOOR,
-  QUESTION_WINDOW_DAYS,
-  deadlineIn,
-  isMissingCatchupTable,
-} from "@/lib/catchups-core";
+import { BATCH_CATCHUP_FLOOR, isMissingCatchupTable } from "@/lib/catchups-core";
 
 /**
  * Find-or-create the "Batch of {year}" group, add the user to it, and make
@@ -115,12 +109,9 @@ export async function joinBatchGroup(userId: string, batchYear: number) {
     update: {},
   });
 
-  /* And the Catch-up, which is the phase-4 addition. The new member is
-     EXCLUDED from the notification: they are mid-signup, have not seen the app
-     yet, and telling somebody about a thing they were enrolled in one second
-     ago by the same click is noise. Everyone already in the batch is told,
-     because for them a Catch-up starting is real news. */
-  await ensureBatchCatchup(group.id, { excludeUserId: userId });
+  // And the Catch-up, which is the phase-4 addition. Nobody is told: see
+  // ensureBatchCatchup.
+  await ensureBatchCatchup(group.id);
 }
 
 /**
@@ -145,20 +136,18 @@ export async function joinBatchGroup(userId: string, batchYear: number) {
  *   - a picture, from the shipped pool, the one the batch sees least on the
  *     Catch-ups its members already have, exactly as `createCatchupWithPeople`
  *     picks (spec 3.4). Every Catch-up has one from the day it is made.
- *   - Edition 1, open and `collecting`, with a question deadline on the civil
- *     hour. A batch that has just reached ten starts collecting the same day,
- *     which is his own reading of the floor: "once there's ten it appears and
- *     the catch up would be created for that batch."
+ *   - Edition 1, open and `collecting`, with NO question deadline and NO
+ *     notification. It appears at ten ("once there's ten it appears and the
+ *     catch up would be created for that batch") but does not start: the
+ *     window stays open until the batch has asked `BATCH_QUESTIONS_TO_START`
+ *     questions, and the one that makes three starts the usual three days
+ *     (`submitPrompt`). Nobody had asked for it, so nobody is told.
  */
-export async function ensureBatchCatchup(
-  groupId: string,
-  opts?: { excludeUserId?: string }
-): Promise<string | null> {
+export async function ensureBatchCatchup(groupId: string): Promise<string | null> {
   const group = await prisma.group.findUnique({
     where: { id: groupId },
     select: {
       id: true,
-      name: true,
       batchYear: true,
       catchup: { select: { id: true } },
       _count: { select: { members: true } },
@@ -168,7 +157,6 @@ export async function ensureBatchCatchup(
   if (group.catchup) return null;
   if (group._count.members < BATCH_CATCHUP_FLOOR) return null;
 
-  const now = new Date();
   const picture = await pickCatchupPicture(prisma, group.id);
 
   try {
@@ -182,20 +170,13 @@ export async function ensureBatchCatchup(
           pictureFocus: picture.focus,
         },
       });
-      const edition = await tx.catchupEdition.create({
+      await tx.catchupEdition.create({
         data: {
           catchupId: catchup.id,
           number: 1,
           status: "collecting",
-          questionsCloseAt: deadlineIn(now, QUESTION_WINDOW_DAYS),
+          questionsCloseAt: null,
         },
-      });
-      await notifyQuestionsOpen(tx, {
-        catchupId: catchup.id,
-        editionId: edition.id,
-        groupId: group.id,
-        groupName: group.name,
-        excludeUserId: opts?.excludeUserId,
       });
       return catchup.id;
     });

@@ -8247,3 +8247,21 @@ Chromium's arithmetic and checks the eyes show through a circle, the head reache
 (the old icon fails this on all 241 pixels), and the crest fits. Simulated at a circle, a squircle and a
 square against the tile, and at 144px. An installed app picks the new icon up within a day of being
 opened (closed, charging, on Wi-Fi), or at once if it is removed and added again.
+
+
+## 2026-09-22 (catchups) — a batch Catch-up appears quietly and waits for three questions
+
+His words: "don't let it send notifications. just hav questions indefinitely open. when 3 questions have
+been asked, then start the 3 day window". Before this, the tenth signup from a batch created its Catch-up,
+told everyone questions were open and started a three-day window nobody had asked for.
+
+`ensureBatchCatchup` now creates Edition 1 with `questionsCloseAt` null and sends nothing. The clock
+already read a null deadline as "still collecting", and no page prints the question deadline, so nothing
+on screen changes. `submitPrompt` counts the accepted questions after each commit and the third starts the
+usual three days (`BATCH_QUESTIONS_TO_START`); counting after the commit rather than inside the
+transaction means two questions landing together still see each other, and the `questionsCloseAt: null`
+in the update means only one of them starts it. Answering opening still tells everyone, as before.
+
+`2026-09-22-batch-catchups-wait-for-questions.sql` moves the four batches already waiting (2021, 2022,
+2023, 2026, each on Edition 1 with no questions) onto the same rule. Their creation notifications went out
+already. NOT YET APPLIED: the permission guard refused a write to the live database, so it waits on him.

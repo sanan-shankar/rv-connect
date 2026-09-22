@@ -73,6 +73,7 @@ import {
   isEffectiveKeeper,
   isBatchCatchup,
   BATCH_CATCHUP_REFUSAL,
+  BATCH_QUESTIONS_TO_START,
   BATCH_LEAVE_REFUSAL,
   isMissingCatchupTable,
   mayChangeCatchupPicture,
@@ -1145,6 +1146,21 @@ export async function submitPrompt(input: {
         where: { id: editionId, status: "collecting", remindersSent: edition.remindersSent },
         data: { questionsCloseAt: deadlineIn(new Date(), QUESTION_WINDOW_DAYS) },
       });
+    }
+
+    // A batch's first Edition opens with no deadline and waits for the batch
+    // to ask BATCH_QUESTIONS_TO_START questions (ensureBatchCatchup). Counted
+    // after the commit rather than inside it, so two questions landing
+    // together still see each other; the null in the `where` means only one
+    // of them starts the clock.
+    if (edition.questionsCloseAt == null) {
+      const asked = await prisma.catchupPrompt.count({ where: { editionId, accepted: true } });
+      if (asked >= BATCH_QUESTIONS_TO_START) {
+        await prisma.catchupEdition.updateMany({
+          where: { id: editionId, status: "collecting", questionsCloseAt: null },
+          data: { questionsCloseAt: deadlineIn(new Date(), QUESTION_WINDOW_DAYS) },
+        });
+      }
     }
 
     revalidatePath(`/catchups/${edition.catchupId}`);

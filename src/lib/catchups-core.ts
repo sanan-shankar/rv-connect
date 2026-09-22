@@ -476,6 +476,17 @@ export function isEffectiveKeeper(opts: {
 export const BATCH_CATCHUP_FLOOR = 10;
 
 /**
+ * How many questions a batch's first Edition waits for before its question
+ * window starts. The owner, 2026-09-22: "don't let it send notifications. just
+ * have questions indefinitely open. when 3 questions have been asked, then
+ * start the 3 day window." A batch reaching ten is an accident of signups, not
+ * a decision to start anything, so the first Edition opens with no deadline
+ * (`questionsCloseAt` null, which `computeStatus` already reads as "still
+ * collecting") and tells nobody. The third question is the batch deciding.
+ */
+export const BATCH_QUESTIONS_TO_START = 3;
+
+/**
  * Is this a batch Catch-up?
  *
  * `Group.batchYear` is the whole test (F6): a batch is a Group with the year

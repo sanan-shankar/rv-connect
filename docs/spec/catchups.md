@@ -65,8 +65,15 @@ membership is the batch. Everyone who signs up with that batch year is added (`j
 `src/lib/batch-catchups.ts`), and a late joiner reads every earlier Edition.
 
 Three places make a batch Catch-up exist: `joinBatchGroup` at signup (so the tenth signup of a
-batch is the moment one appears, and the batch is told questions are open), and the two nightly
-self-heals (§13). The original backfill was `prisma/migrations-manual/2026-09-08-batch-catchups.sql`.
+batch is the moment one appears), and the two nightly self-heals (§13).
+
+**It appears at ten but does not start.** Edition 1 opens `collecting` with `questionsCloseAt` null
+and nobody is told. `computeStatus` reads a null deadline as "still collecting", so the window stays
+open until the batch has asked **`BATCH_QUESTIONS_TO_START` = 3** questions; `submitPrompt` counts
+after each one and the third starts the ordinary 3-day window (owner, 2026-09-22: "don't let it send
+notifications. just have questions indefinitely open. when 3 questions have been asked, then start
+the 3 day window"). From there the clock is the usual one: answering opens and everyone is told.
+Later Editions open on the rhythm as any Catch-up's do. The original backfill was `prisma/migrations-manual/2026-09-08-batch-catchups.sql`.
 
 ### 2.2 Keepers
 
@@ -437,7 +444,7 @@ Written by `src/lib/catchups-notify.ts` into `Notification`; `type` is a free st
 
 | Type | When | Who | Link |
 |---|---|---|---|
-| `catchup_questions_open` | an Edition opens (creation, the clock, a Keeper, a batch reaching ten), or an empty question window is extended | every member but whoever did it | `/catchups/<id>` |
+| `catchup_questions_open` | an Edition opens (creation of a people Catch-up, the clock, a Keeper; never a batch reaching ten), or an empty question window is extended | every member but whoever did it | `/catchups/<id>` |
 | `catchup_answers_open` | answering opens; re-sent on the no-answers extension | every member but the Keeper who opened it; on the extension, non-answerers only | `/catchups/<id>` |
 | `catchup_reminder` | once a day while answering; or a Keeper's nudge | non-answerers by preference: Daily every day, On the last day on the last day, Never not at all. A nudge ignores Never. Today's replaces yesterday's | `/catchups/<id>` |
 | `catchup_published` | published, by the clock or a Keeper; or a time capsule opening | every member but the Keeper who closed it | `/catchups/edition/<editionId>` |

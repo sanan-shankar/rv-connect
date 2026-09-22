@@ -26,6 +26,7 @@ import { resolve } from "node:path";
 
 import {
   BATCH_CATCHUP_FLOOR,
+  BATCH_QUESTIONS_TO_START,
   isBatchCatchup,
   mayChangeCatchupPicture,
 } from "./catchups-core.ts";
@@ -246,20 +247,39 @@ test("a batch Catch-up is created with no Keeper, no invite link and a picture",
     /_count\.members < BATCH_CATCHUP_FLOOR/,
     "ensureBatchCatchup no longer checks the floor"
   );
-  // Edition 1 opens the same day, which is his reading of the floor: "once
-  // there's ten it appears and the catch up would be created for that batch."
+  // Edition 1 appears at ten, open for questions, but does not start: no
+  // deadline and nobody told (owner, 2026-09-22: "don't let it send
+  // notifications. just have questions indefinitely open").
   assert.match(body, /status: "collecting"/, "a new batch Catch-up does not start collecting");
-  assert.match(body, /deadlineIn\(now, QUESTION_WINDOW_DAYS\)/, "the deadline is not the civil hour");
+  assert.match(body, /questionsCloseAt: null/, "a new batch Catch-up is starting its clock on its own");
+  assert.ok(!/notify/i.test(body), "a new batch Catch-up is telling people it exists");
+});
+
+test("the third question is what starts a batch's clock", () => {
+  // "when 3 questions have been asked, then start the 3 day window"
+  assert.equal(BATCH_QUESTIONS_TO_START, 3);
+  const submit = balancedBody(
+    decomment(read("src/app/(main)/catchups/actions.ts")),
+    "export async function submitPrompt"
+  );
+  assert.ok(submit, "submitPrompt is gone; this pin is reading nothing");
+  assert.match(submit, /asked >= BATCH_QUESTIONS_TO_START/, "the question count no longer starts the window");
+  // The null in the where is what makes two simultaneous third questions start
+  // it once, not twice.
+  assert.match(
+    submit,
+    /where: \{ id: editionId, status: "collecting", questionsCloseAt: null \}/,
+    "starting the window is no longer guarded against a second start"
+  );
 });
 
 test("all three creation paths exist, and the signup one is the moment a batch crosses ten", () => {
   const lib = decomment(read("src/lib/batch-catchups.ts"));
 
   // 1. Signup. The tenth person from a batch registering IS the crossing, and
-  //    this is the code that runs on it. The new member is excluded from the
-  //    notification: they were enrolled one second ago by their own click.
+  //    this is the code that runs on it.
   const join = balancedBody(lib, "export async function joinBatchGroup");
-  assert.match(join, /ensureBatchCatchup\(group\.id, \{ excludeUserId: userId \}\)/);
+  assert.match(join, /ensureBatchCatchup\(group\.id\)/);
   const signup = decomment(read("src/components/auth/actions.ts"));
   assert.match(
     signup,
