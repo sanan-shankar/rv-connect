@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-22 (icons) — the Android icon is the peek again, not the whole bird
 - 2026-09-21 (loading, simplify) — the loading screens share their controls' boxes instead of retyping them
 - 2026-09-21 (loading, test) — a skeleton may only draw words its page still says
 - 2026-09-21 (admin, fix) — the audit log's two lists get their card corners back

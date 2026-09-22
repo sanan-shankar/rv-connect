@@ -5,29 +5,32 @@ import sharp from "sharp";
 import { ROOT } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
- *  The hoopoe keeps its eyes on Android.
+ *  The Android app icon is the peek: eyes over the edge, no chin.
  *
- *  An adaptive launcher never draws all 512px of a maskable icon. The
- *  Android icon is 108dp of artwork of which only the middle 72dp is
- *  shown -- 66.67%, so everything outside x/y 85.3..426.7 here is gone
- *  before any mask shape applies, and a circular mask then keeps only
- *  what is within 170.67px of the centre.
+ *  Chrome on Android never shows all 512px of a maskable icon. It turns
+ *  it into an adaptive icon, padding it first so the W3C's safe circle
+ *  (4/5 of the icon) lands on Android's (66dp of the 108dp layer):
+ *  ((4/5) / (66/108) - 1) / 2 of the icon on every side, 79px here, a
+ *  670px layer (WebappsIconUtils.java). Android then draws the middle
+ *  2/3 of that layer, 446.7px, and the launcher cuts its own shape --
+ *  Samsung's squircle, a Pixel's circle -- out of that. So what reaches
+ *  a home screen is x/y 32.7 to 479.3 of this file, and at worst a
+ *  circle of radius 223.3 inside it.
  *
- *  generate-icons.mjs used to scale the art 0.8 about the BOTTOM CENTRE,
- *  on the reasoning that the bird peeks over the bottom edge of the tile
- *  and must stay pinned to it. That is right for the tile and exactly
- *  wrong for the mask: it held the face against the one edge a launcher
- *  crops hardest. The shipped icon put the eyes at y~500-522, so a
- *  Samsung install showed a crest and a bare orange forehead and nothing
- *  else (owner, 2026-08-28, from his home screen: "the eyes didn't show
- *  ... it's basically like the hoopoe has just been moved down").
+ *  This icon has broken twice, once each way, and this file guards
+ *  both. The eyes once sat below the cut, so a Samsung showed a crest
+ *  and a bare forehead (owner, 2026-08-28: "the eyes didn't show").
+ *  The repair believed Android shows only the middle 2/3 of the FILE
+ *  -- the 72dp of a native adaptive icon, without Chrome's padding --
+ *  and pulled the whole head inside that, which is well inside what
+ *  Android really shows: the home screen got the entire bird floating
+ *  in the tile, chin, beak seam and all (owner, 2026-09-22: "It shows a
+ *  whole orange circle instead of the peeking thing"). This test had
+ *  the same 2/3 in it and passed that icon.
  *
- *  Nothing caught it, and nothing could have: the file was regenerated,
- *  looked correct in every viewer, and was correct everywhere except
- *  under the one crop that never happens on this machine. iOS and macOS
- *  mask to a squircle that is essentially the whole square, which is why
- *  the same artwork was right on the owner's phone and in his dock the
- *  whole time. So the guard has to be the crop itself, not the picture.
+ *  Nothing looking at the file can catch either, because both icons
+ *  look fine as files; what differs is the crop. So the checks are the
+ *  crop itself, done with Chromium's own arithmetic.
  *
  *  Run: node --test src/lib/app-icon-safe-zone.test.mjs
  * ------------------------------------------------------------------ */
@@ -35,88 +38,91 @@ import { ROOT } from "./test-kit.mjs";
 const ICON = join(ROOT, "public/images/icons/icon-maskable-512.png");
 
 const SIZE = 512;
-/** The middle 66.67%: everything outside this is discarded before masking. */
-const VISIBLE = (SIZE * 2) / 3;
-const EDGE = (SIZE - VISIBLE) / 2; // 85.33
-/** The worst case a launcher can apply -- a full circle inside that band. */
-const SAFE_RADIUS = VISIBLE / 2; // 170.67
+/** Chrome's padding per side (WebappsIconUtils: MASKABLE_ICON_PADDING_RATIO). */
+const PAD = Math.round(((4 / 5 / (66 / 108) - 1) / 2) * SIZE); // 79
+/** What Android draws of the padded layer: its middle 72dp of 108dp. */
+const VIEW = ((SIZE + 2 * PAD) * 2) / 3; // 446.67
+const EDGE = (SIZE - VIEW) / 2; // 32.67
+/** The tightest shape a launcher cuts: a full circle inside that view. */
+const CIRCLE = VIEW / 2; // 223.33
 const CENTRE = SIZE / 2;
 
 /** The bird's eye ink, straight out of public/images/brand/app-icon.svg. */
 const EYE_INK = [0x2b, 0x27, 0x22];
-/** Below this the crest fan has ended, so dark pixels are eyes and beak.
- *  The eyes land at y 328..403 as generated; the fan stops well above. */
-const BELOW_THE_CREST = 300;
+/** Below the crest's dark tips, so dark ink here is the eyes: the crest's
+ *  lowest ink is at y 303 as generated, and the eyes start at 432. */
+const EYES_FROM = 320;
+/** Above this is crest only; the head's top is at y 300.6. */
+const CREST_ABOVE = 300;
 
-const distance = (x, y) => Math.hypot(x - CENTRE, y - CENTRE);
+const distance = (x, y) => Math.hypot(x + 0.5 - CENTRE, y + 0.5 - CENTRE);
 
 async function pixels() {
   const { data, info } = await sharp(ICON).raw().toBuffer({ resolveWithObject: true });
   assert.equal(info.width, SIZE, "the maskable icon is not 512px wide");
   assert.equal(info.height, SIZE, "the maskable icon is not 512px tall");
-  return { data, ch: info.channels };
+  const at = (x, y) => {
+    const i = (y * SIZE + x) * info.channels;
+    return [data[i], data[i + 1], data[i + 2]];
+  };
+  return at;
 }
 
 /** The canopy tile the art sits on; anything else is the bird. */
-const isTile = (r, g, b) =>
+const isTile = ([r, g, b]) =>
   Math.abs(r - 0x23) < 14 && Math.abs(g - 0x5c) < 14 && Math.abs(b - 0x49) < 14;
+const isEyeInk = (p) => EYE_INK.every((c, k) => Math.abs(p[k] - c) < 12);
 
-test("the eyes survive even a circular adaptive mask", async () => {
-  const { data, ch } = await pixels();
-  let eyeInk = 0;
-  let outside = 0;
-  for (let y = BELOW_THE_CREST; y < SIZE; y++) {
+test("the eyes show over the edge, even through a circular mask", async () => {
+  const at = await pixels();
+  let seen = 0;
+  for (let y = EYES_FROM; y < SIZE - EDGE; y++) {
     for (let x = 0; x < SIZE; x++) {
-      const i = (y * SIZE + x) * ch;
-      if (data[i + 3] < 250) continue;
-      const near = EYE_INK.every((c, k) => Math.abs(data[i + k] - c) < 12);
-      if (!near) continue;
-      eyeInk++;
-      if (distance(x, y) > SAFE_RADIUS) outside++;
+      if (isEyeInk(at(x, y)) && distance(x, y) <= CIRCLE) seen++;
     }
   }
-
-  /* Not "some ink exists somewhere": the broken icon had 3,909 eye pixels
-     too, and 82% of them fell outside this circle. The count guards against
-     the art vanishing entirely, the ratio against it sliding out of frame. */
+  /* Most of each eye is MEANT to be below the cut -- that is the peek. What
+     must never happen again is the first failure, where none of it was above:
+     that icon left ~0 eye pixels inside this circle, and this one leaves
+     3,764. */
   assert.ok(
-    eyeInk > 3000,
-    `expected the eyes below the crest to be several thousand pixels, found ${eyeInk}. ` +
-      "Either the bird moved or EYE_INK no longer matches app-icon.svg."
-  );
-  assert.equal(
-    outside,
-    0,
-    `${outside} of ${eyeInk} eye pixels fall outside the ${SAFE_RADIUS.toFixed(1)}px safe ` +
-      "radius, so a circular launcher mask would cut the hoopoe's face. Re-check the " +
-      "maskable transform in scripts/dev/generate-icons.mjs."
+    seen > 3000,
+    `only ${seen} pixels of the eyes fall inside Android's circular mask; the hoopoe's face ` +
+      "is being cropped away. Re-check the maskable transform in scripts/dev/generate-icons.mjs."
   );
 });
 
-test("the bird still peeks, rather than floating in the tile", async () => {
-  const { data, ch } = await pixels();
+test("the head runs out past the bottom of what Android shows, so it peeks", async () => {
+  const at = await pixels();
+  /* The last row Android draws, across the middle of the head. The whole-bird
+     icon had its chin at y=460 and tile under it, so all 241 of these were
+     tile; a peek has none. */
+  const lastRow = Math.floor(SIZE - EDGE) - 1;
+  let tile = 0;
+  for (let x = CENTRE - 120; x <= CENTRE + 120; x++) if (isTile(at(x, lastRow))) tile++;
+  assert.equal(
+    tile,
+    0,
+    `${tile} of the 241 pixels across the bottom of Android's view are tile, so the head ends ` +
+      "inside the icon and floats there instead of peeking over the mask's edge."
+  );
+});
+
+test("the crest fits inside the circle and below the top of the view", async () => {
+  const at = await pixels();
   let top = SIZE;
-  let bottom = -1;
-  for (let y = 0; y < SIZE; y++) {
+  let reach = 0;
+  for (let y = 0; y < CREST_ABOVE; y++) {
     for (let x = 0; x < SIZE; x++) {
-      const i = (y * SIZE + x) * ch;
-      if (data[i + 3] < 8 || isTile(data[i], data[i + 1], data[i + 2])) continue;
+      if (isTile(at(x, y))) continue;
       if (y < top) top = y;
-      if (y > bottom) bottom = y;
+      reach = Math.max(reach, distance(x, y));
     }
   }
-
+  assert.ok(top >= EDGE, `the crest starts at y=${top}, above Android's view at ${EDGE.toFixed(1)}`);
   assert.ok(
-    top >= EDGE,
-    `the artwork starts at y=${top}, above the visible band's ${EDGE.toFixed(1)}px edge, ` +
-      "so the crest would be clipped."
-  );
-  /* The chin is MEANT to run past the crop: that is what makes the mask do
-     the cutting and keeps the peek without a band of empty tile under a
-     floating face. A bird entirely inside the band is the other failure. */
-  assert.ok(
-    bottom > SIZE - EDGE,
-    `the artwork ends at y=${bottom}, inside the visible band, so the head hangs in the ` +
-      "middle of the tile instead of peeking over the mask's bottom edge."
+    reach <= CIRCLE,
+    `a crest tip sits ${reach.toFixed(1)}px from the centre, past a circular mask's ` +
+      `${CIRCLE.toFixed(1)}px, so a Pixel launcher would clip the fan.`
   );
 });

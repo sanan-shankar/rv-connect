@@ -7,8 +7,9 @@ import type { MetadataRoute } from "next";
  * fell back to drawing a letter tile.
  *
  * Two icon purposes, because they are cropped differently: "any" keeps our own
- * rounded square, "maskable" is full bleed with the ridge inside the safe zone
- * so an adaptive launcher can clip it to whatever shape it likes. Both come
+ * rounded square, "maskable" is full bleed, the same tile fitted to the middle
+ * 446px of it that Chrome on Android actually shows, so an adaptive launcher
+ * can clip it to whatever shape it likes and the hoopoe still peeks. Both come
  * out of scripts/dev/generate-icons.mjs; regenerate rather than hand-editing.
  */
 export default function manifest(): MetadataRoute.Manifest {
