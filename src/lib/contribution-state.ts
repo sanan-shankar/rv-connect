@@ -69,6 +69,35 @@ export function isReversed(status: string): boolean {
 /** The `_sum` selection every Contribution aggregate must make. */
 export const CONTRIBUTION_SUM = { amount: true, refundedAmount: true } as const;
 
+/* ---------------------------------------------------------------- *
+ *  Whose money the totals leave out
+ * ---------------------------------------------------------------- */
+
+/* Real payments that are not the alumni's giving: the owner's own, and two
+ * made by people close to the site (owner, 2026-09-22: "exclude payments from
+ * sanan sanjula and karthik from the website in progress bar and admin
+ * stats"). They stay paid, stay in the ledger and still earn their perks;
+ * they are only left out of the public recovery bar and the admin tiles.
+ * By id rather than email, so a changed address cannot quietly count them
+ * again. */
+export const UNCOUNTED_GIVER_IDS = [
+  "cmr1uahuj000004jx4dc4p8co", // Sanan Shankar
+  "cmsqe3d6i000004l43i1hemnx", // Sanjula Shankar
+  "cmsvuaide000004l1sabxvha6", // Kartik Kalyanram
+] as const;
+
+/* A `where` fragment for every total. Spelled with the null case because SQL's
+ * `NOT IN` is never true for a NULL userId, so a plain `notIn` would also drop
+ * every gift whose account was deleted (userId is SetNull). */
+export const COUNTED_GIVERS = {
+  OR: [{ userId: null }, { userId: { notIn: [...UNCOUNTED_GIVER_IDS] } }],
+};
+
+/** The in-memory twin of COUNTED_GIVERS, for totals computed from fetched rows. */
+export function isCountedGiver(userId: string | null | undefined): boolean {
+  return !userId || !(UNCOUNTED_GIVER_IDS as readonly string[]).includes(userId);
+}
+
 /** What a summed set of contributions is worth after refunds. */
 export function netPaise(sum: {
   amount?: number | null;

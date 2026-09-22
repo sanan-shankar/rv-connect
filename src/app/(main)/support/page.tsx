@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { CONTRIBUTION_SUM, netPaise } from "@/lib/contribution-state";
+import { CONTRIBUTION_SUM, COUNTED_GIVERS, netPaise } from "@/lib/contribution-state";
 import { CostsCard } from "@/components/support/costs-card";
 import { BirdPlate } from "@/components/support/bird-plate";
 import { SupportContribute } from "@/components/support/support-contribute";
@@ -35,11 +35,12 @@ export default async function SupportPage() {
   // inch the public bar forward. It is summed fresh on every view, which is
   // what makes the bar live: a successful payment refreshes this page and
   // the new row is already in the sum. A failed read falls back to the zero
-  // state rather than taking the page down.
+  // state rather than taking the page down. COUNTED_GIVERS leaves out the
+  // site's own people's payments (contribution-state.ts).
   const recoveredPaise = await prisma.contribution
     .aggregate({
       _sum: CONTRIBUTION_SUM,
-      where: { status: "paid", livemode: true },
+      where: { status: "paid", livemode: true, ...COUNTED_GIVERS },
     })
     .then((r) => netPaise(r._sum))
     .catch(() => 0);

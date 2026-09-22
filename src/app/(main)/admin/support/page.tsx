@@ -6,7 +6,9 @@ import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
 import {
   CONTRIBUTION_SUM,
+  COUNTED_GIVERS,
   REVERSED_STATUSES,
+  isCountedGiver,
   isReversed,
   netPaise,
 } from "@/lib/contribution-state";
@@ -75,15 +77,15 @@ export default async function AdminSupportPage() {
     prisma.contribution.aggregate({
       _sum: CONTRIBUTION_SUM,
       _count: true,
-      where: { status: "paid", livemode: true },
+      where: { status: "paid", livemode: true, ...COUNTED_GIVERS },
     }),
     prisma.contribution.aggregate({
       _sum: CONTRIBUTION_SUM,
-      where: { status: "paid", livemode: true, paidAt: { gte: monthStart } },
+      where: { status: "paid", livemode: true, paidAt: { gte: monthStart }, ...COUNTED_GIVERS },
     }),
     prisma.contribution
       .findMany({
-        where: { status: "paid", livemode: true, userId: { not: null } },
+        where: { status: "paid", livemode: true, userId: { not: null }, ...COUNTED_GIVERS },
         select: { userId: true },
         distinct: ["userId"],
       })
@@ -102,7 +104,7 @@ export default async function AdminSupportPage() {
        one label, which is the exact thing the comment at the reversed group
        was written to prevent. One list now decides both. */
     prisma.contribution.count({
-      where: { livemode: true, status: { notIn: ["paid", ...REVERSED_STATUSES] } },
+      where: { livemode: true, status: { notIn: ["paid", ...REVERSED_STATUSES] }, ...COUNTED_GIVERS },
     }),
     prisma.contribution.findMany({
       select: {
@@ -136,8 +138,9 @@ export default async function AdminSupportPage() {
      analytics"). They are facts about the money, and this is the money page;
      analytics is for exploring, not for the ledger's own arithmetic.
      livemode only, everywhere -- a developer's test order is indistinguishable
-     from a real one by its ids alone. */
-  const live = rows.filter((r) => r.livemode);
+     from a real one by its ids alone. The site's own people's payments are
+     left out of these tiles too, but not out of the ledger below. */
+  const live = rows.filter((r) => r.livemode && isCountedGiver(r.user?.id));
   const livePaid = live.filter((r) => r.status === "paid");
   const completion = live.length > 0 ? livePaid.length / live.length : 0;
   const byMethod = new Map<string, number>();
