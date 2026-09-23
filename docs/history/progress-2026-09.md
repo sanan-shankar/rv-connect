@@ -8322,3 +8322,13 @@ lab room with a temporary `original` (restored): a 1x screen keeps the copy unti
 screen swaps at rest; Download fetches the master. `check` green; visual 23/25, the two directory failures
 the member headcount's width, as before this. Noted, not changed: a first press also loads the
 Collection's edit-dialog chunks, which held the viewer 1.8s at 40KB/s.
+
+## 2026-09-23 (trivia) — the folk dancing question takes "folky" and "foky", and still turns away "folk"
+
+Owner asked for the folkie question to accept a y ending as well as ie. "folky" was left out on
+purpose before this: it is one edit away from "folk", which the question gives you, so the one-typo
+rule would have let "folk" through. Questions can now have a `never` list of guesses that are turned
+away even when they are one edit from an accepted answer. The folk question adds "folky" and "foky"
+("foky" has only four letters, so the one-typo rule doesn't cover it and it has to be listed exactly)
+and refuses "folk". Checked with a scratch run of the real `normalize`/`withinOneEdit`: folky, Foky,
+folkey and folki pass; folk, "Folk." and "the folk" are refused. `check` green.

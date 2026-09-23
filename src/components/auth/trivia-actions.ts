@@ -25,6 +25,11 @@ type Question = {
    * MENTIONS one of these, anywhere in it. Only the dinner question needs it.
    */
   contains?: string[];
+  /**
+   * Guesses turned away even when one edit from an accepted answer: the word
+   * the question itself hands over. Only the folk dancing question needs it.
+   */
+  never?: string[];
 };
 
 /**
@@ -151,9 +156,11 @@ const TRIVIA_QUESTIONS: Question[] = [
     id: "folkie",
     question: "What is folk dancing called here?",
     // "foki" and "fokee" are each one edit from "fokie", so they land on their
-    // own. "folky" is deliberately absent: it is one edit from "folk", the
-    // word the question itself hands over.
-    answers: ["folkie", "fokie"],
+    // own. "foky" is four characters, so it is listed rather than inferred.
+    // "folky" is one edit from "folk", the word the question itself hands
+    // over, which is why "folk" is turned away by name.
+    answers: ["folkie", "fokie", "folky", "foky"],
+    never: ["folk"],
   },
   {
     id: "asthachal",
@@ -279,7 +286,8 @@ export async function checkTrivia(
   }
 
   const guess = normalize(answer);
-  const named = q.answers.some((a) => {
+  const refused = q.never?.some((n) => normalize(n) === guess) ?? false;
+  const named = !refused && q.answers.some((a) => {
     const candidate = normalize(a);
     if (candidate === guess) return true;
     return candidate.length >= NEAR_MISS_MIN_LENGTH && withinOneEdit(candidate, guess);
