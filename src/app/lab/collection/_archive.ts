@@ -132,6 +132,9 @@ export const LAB_ARCHIVE: PhotoData[] = Array.from({ length: 240 }, (_, n) => {
     id: `lab-${n}`,
     thumbUrl: shape.src,
     url: shape.src,
+    // The specimens are small local files; the viewer opens `url` as it does
+    // for any row the screen-copy backfill has not reached.
+    screenUrl: null,
     width: shape.w,
     height: shape.h,
     caption: caption || null,

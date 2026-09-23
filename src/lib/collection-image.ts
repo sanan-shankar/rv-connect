@@ -23,6 +23,58 @@ import { valleyYear } from "./utils.ts";
 /** The 480px grid rendition every contribution ends up with. */
 export const THUMB_PX = 480;
 
+/* THE SCREEN COPY: what the viewer opens instead of the master.
+ *
+ * The owner, 2026-09-23: "Every time I open a photo in the image viewer it
+ * takes so long to open... it took 41 seconds to open. it's just totally
+ * unusable now". The viewer was fetching the stored master -- full resolution
+ * at q100, 7-11MB for a 24MP photograph -- to fill a screen. The master stays
+ * exactly as it is (COLLECTION_WEBP_QUALITY says why); it is fetched when a
+ * zoom asks for more than this holds, and when somebody downloads.
+ *
+ * 3200 is his screen, not a round number. A landscape filling a 14-inch
+ * MacBook Pro (1512x982 at 2x) wants 2,946 device pixels across, a 16-inch
+ * 3,351. At 2560 the 14-inch would be magnified 1.15x, and image-cdn.ts
+ * records a 1.35x magnification being called soft. A screen that wants more
+ * than this copy holds is handed the master instead (image-viewer.tsx).
+ *
+ * q82 because at or under 1:1 on a screen, the difference from q100 is not
+ * visible; it is what makes the copy a fifth of the master or less. Measured
+ * on eight real photographs: 0.3-1.8MB against 1.2-11.7MB. */
+export const SCREEN_PX = 3200;
+const SCREEN_QUALITY = 82;
+
+/** A copy is only worth storing if it saves at least this share of the
+ *  master's bytes. A master that is already screen-sized and light -- the
+ *  1600px fallback, a photograph copied from a post -- would come back about
+ *  the same size, and a second object that saves nothing is only a second
+ *  object to purge. */
+const SCREEN_MIN_SAVING = 0.25;
+
+/**
+ * The screen copy of a stored master.
+ *
+ * Auto-oriented, which is a no-op on every master the upload path writes (the
+ * re-encode bakes the rotation in and keeps no orientation tag) and is here
+ * for the backfill: a file stored some other way that still carries an EXIF
+ * rotation would otherwise come out sideways, because the copy keeps no
+ * metadata to tell a browser to turn it.
+ *
+ * Returns the copy whether or not it is worth keeping, because the upload
+ * path has a second use for it: it is the cheapest buffer to cut the 480px
+ * thumbnail from, a 3200px decode rather than a 24-megapixel one.
+ */
+export async function screenCopy(
+  master: Buffer
+): Promise<{ copy: Buffer; worthKeeping: boolean }> {
+  const copy = await sharpImage(master)
+    .rotate()
+    .resize(SCREEN_PX, SCREEN_PX, { fit: "inside", withoutEnlargement: true })
+    .webp({ quality: SCREEN_QUALITY })
+    .toBuffer();
+  return { copy, worthKeeping: copy.length <= master.length * (1 - SCREEN_MIN_SAVING) };
+}
+
 /**
  * The raw EXIF block of an uploaded file, however its container happens to
  * carry one.
@@ -84,7 +136,7 @@ export async function dateOnlyExif(
  * `alreadyUpright` is the one real difference between the callers, and it is
  * deliberate. Two paths hand in the raw original, which still needs its EXIF
  * orientation baked in. The direct path -- and the album importer -- hand in
- * the DISPLAY buffer they have just made, which has been through `.rotate()`
+ * the SCREEN COPY they have just made, which has been through `.rotate()`
  * already: rotating twice would be wrong, and decoding the original a second
  * time for a 480px output doubles the most expensive step.
  */

@@ -52,7 +52,9 @@ import {
   isPhotoAutoApproved,
   dateOnlyExif,
   gridThumb,
+  screenCopy,
   photoRowData,
+  photoStoredUrls,
   exifDateOf,
 } from "@/lib/collection-photo";
 import {
@@ -312,7 +314,7 @@ export async function contributePhoto(formData: FormData) {
  */
 async function createPhotoRow(
   args: Parameters<typeof prisma.photo.create>[0],
-  stored: string[]
+  stored: (string | null)[]
 ) {
   try {
     return await prisma.photo.create(args);
@@ -447,6 +449,8 @@ export async function contributePhotoDirect(input: {
 
   let url: string;
   let thumbUrl: string;
+  /** The viewer's copy, or null when it would not have been lighter. */
+  let screenUrl: string | null;
   let width: number;
   let height: number;
   let notice: string | undefined;
@@ -515,21 +519,29 @@ export async function contributePhotoDirect(input: {
     height = display.info.height;
     if (!width || !height) throw new Error("unsupported image format");
 
-    /* The thumbnail is derived from the DISPLAY buffer, not from the original.
-       Decoding the original a second time doubled the most expensive step of
-       this whole action for a 480px output. The display copy is already
-       upright, already within budget, and orders of magnitude smaller. It is a
-       second lossy pass (q90 then q72), which at 480px is not visible and is
-       the trade this path was already making everywhere else. */
-    const thumb = await gridThumb(display.data, { alreadyUpright: true });
+    /* What the viewer opens (SCREEN_PX, collection-image.ts): the master is
+       7-11MB for a 24MP photograph, and a screen shows about 3,000 pixels of
+       it. Cut from the stored master, which is already upright, and stored
+       only when it is meaningfully lighter than the master itself.
 
-    [url, thumbUrl] = await putAllOrNone(
+       The thumbnail is then cut from THIS copy, not from the original and not
+       from the master. Decoding the original a second time doubled the most
+       expensive step of this whole action for a 480px output, and a 3200px
+       decode is cheaper again than a 24-megapixel one. It is a third lossy
+       pass (q100, q82, q72), which at 480px is not visible. */
+    const screen = await screenCopy(display.data);
+    const thumb = await gridThumb(screen.copy, { alreadyUpright: true });
+
+    const stored = await putAllOrNone(
       [
         putImage(display.data, dir, `${createId()}.webp`),
         putImage(thumb, dir, `${createId()}-t.webp`),
+        ...(screen.worthKeeping ? [putImage(screen.copy, dir, `${createId()}-s.webp`)] : []),
       ],
       "abandoned"
     );
+    [url, thumbUrl] = stored;
+    screenUrl = stored[2] ?? null;
 
     // The raw original carried the EXIF; its re-encoded copy is now the
     // canonical image, so the original is deleted rather than left retrievable.
@@ -558,6 +570,7 @@ export async function contributePhotoDirect(input: {
         sourceKey: input.key,
         url,
         thumbUrl,
+        screenUrl,
         width,
         height,
         meta,
@@ -566,12 +579,12 @@ export async function contributePhotoDirect(input: {
         scope: destination.scope,
         classYears: destination.classYears,
       }),
-    }, [url, thumbUrl]);
+    }, [url, thumbUrl, screenUrl]);
   } catch (err) {
     /* Lost the race to `Photo_sourceKey_key`. The contribution the member
        meant to make exists, so this is their outcome, not an error --
-       `createPhotoRow` has already purged the pair of objects this attempt
-       stored, which is exactly what it is for. */
+       `createPhotoRow` has already purged the objects this attempt stored,
+       which is exactly what it is for. */
     if (!isUniqueViolation(err)) throw err;
     revalidatePath("/collection");
     return { success: true, autoApprove, notice };
@@ -1018,13 +1031,11 @@ async function erasePhoto(
 ): Promise<{ error: string } | { uploaderId: string }> {
   const photo = await prisma.photo.findUnique({
     where: { id: photoId },
-    select: { thumbUrl: true, url: true, uploaderId: true },
+    select: { thumbUrl: true, url: true, screenUrl: true, uploaderId: true },
   });
   if (!photo) return { error: "Photo not found" };
 
-  const urls = [photo.thumbUrl, photo.url].filter(
-    (u): u is string => typeof u === "string" && u.length > 0
-  );
+  const urls = photoStoredUrls(photo);
   try {
     await prisma.$transaction(async (tx) => {
       if (urls.length > 0) {
@@ -1145,7 +1156,7 @@ export async function adminRemovePhoto(photoId: string, note?: string): Promise<
 
   const photo = await prisma.photo.findUnique({
     where: { id: photoId },
-    select: { uploaderId: true, thumbUrl: true, url: true },
+    select: { uploaderId: true, thumbUrl: true, url: true, screenUrl: true },
   });
   if (!photo) return { error: "Photo not found" };
 
@@ -1154,7 +1165,7 @@ export async function adminRemovePhoto(photoId: string, note?: string): Promise<
   // The row survives (structure + note); the retrievable bytes do not. A
   // delete storage refuses is queued for the nightly drain rather than logged
   // and forgotten -- "removed by a moderator" has to mean it (audit C-069).
-  await purgeImageUrls([photo.thumbUrl, photo.url], "moderation");
+  await purgeImageUrls(photoStoredUrls(photo), "moderation");
 
   const trimmedNote = note?.trim();
   if (trimmedNote) await notifyAdminNote(photo.uploaderId, trimmedNote);

@@ -28,7 +28,7 @@ import { exifBlockOf } from "@/lib/collection-image";
    album importer had copied the 480px recipe and `exifBlockOf`, and
    `exif-date.test.mjs` was pinning the SHAPE of `dateOnlyExif` rather than
    the function, all three saying so in their own comments. */
-export { THUMB_PX, dateOnlyExif, exifBlockOf, gridThumb } from "@/lib/collection-image";
+export { THUMB_PX, dateOnlyExif, exifBlockOf, gridThumb, screenCopy } from "@/lib/collection-image";
 
 /**
  * The Collection's own facts about a photograph, resolved: whatever the
@@ -139,6 +139,24 @@ export async function exifDateOf(original: Buffer): Promise<ExifDate | null> {
 }
 
 /**
+ * Every object a Photo row keeps in the bucket, for anything that deletes them.
+ *
+ * One list, because four places take a photograph's bytes -- a decline, the
+ * uploader's own delete, a moderator's removal and an account purge -- and each
+ * hand-listed `url` and `thumbUrl` until the screen copy made three
+ * (2026-09-23). An object a delete forgets is unreachable for ever (audit
+ * C-063). The parameter type is the other half of the guarantee: a caller whose
+ * `select` left a column out does not compile.
+ */
+export function photoStoredUrls(p: {
+  url: string;
+  thumbUrl: string;
+  screenUrl: string | null;
+}): string[] {
+  return [p.url, p.thumbUrl, p.screenUrl].filter((u): u is string => !!u);
+}
+
+/**
  * The columns of a Photo row, wherever the contribution came from.
  *
  * `subject` holds the six buckets, comma-joined (src/lib/collection.ts). The
@@ -150,6 +168,9 @@ export function photoRowData(args: {
   uploaderId: string;
   url: string;
   thumbUrl: string;
+  /** The viewer's copy (SCREEN_PX), on the one path that makes one. Every
+   *  other path's master is already screen-sized, and null opens `url`. */
+  screenUrl?: string | null;
   width: number;
   height: number;
   meta: PhotoMeta;
@@ -174,7 +195,7 @@ export function photoRowData(args: {
   exif?: ExifDate | null;
 }) {
   const {
-    uploaderId, url, thumbUrl, width, height, meta, autoApprove, sourceKey,
+    uploaderId, url, thumbUrl, screenUrl = null, width, height, meta, autoApprove, sourceKey,
     scope = "valley", classYears = null, exif = null,
   } = args;
   return {
@@ -187,6 +208,7 @@ export function photoRowData(args: {
     ...(sourceKey ? { sourceKey } : {}),
     thumbUrl,
     url,
+    screenUrl,
     width,
     height,
     caption: meta.caption,

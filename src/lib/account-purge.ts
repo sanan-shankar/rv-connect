@@ -3,6 +3,7 @@ import { pickCatchupPicture } from "./catchup-picture-pick";
 import { forgetImages } from "./image-record";
 import { delImage } from "./storage";
 import { chooseGroupSuccessor } from "./group-succession";
+import { photoStoredUrls } from "./collection-photo";
 import type { Prisma } from "@/generated/prisma/client";
 
 /**
@@ -108,7 +109,7 @@ async function collectImageUrls(db: Db, userId: string): Promise<string[]> {
     db.post.findMany({ where: { authorId: userId }, select: { images: true } }),
     db.photo.findMany({
       where: { uploaderId: userId },
-      select: { thumbUrl: true, url: true },
+      select: { thumbUrl: true, url: true, screenUrl: true },
     }),
     // `audioUrl`: a recorded answer (phase 12). Bytes in the same bucket that
     // no cascade reaches, collected here the way `pictureSrc` is below.
@@ -135,9 +136,7 @@ async function collectImageUrls(db: Db, userId: string): Promise<string[]> {
 
   const urls: string[] = [];
   if (user?.photoUrl) urls.push(user.photoUrl);
-  for (const p of photos) {
-    urls.push(p.thumbUrl, p.url);
-  }
+  for (const p of photos) urls.push(...photoStoredUrls(p));
   for (const m of adminMessages) {
     if (m.imageUrl) urls.push(m.imageUrl);
   }
@@ -289,9 +288,9 @@ async function restoreCatchupPicturesUploadedBy(db: Db, userId: string): Promise
 async function clearCoversPointingAtThisMember(db: Db, userId: string): Promise<number> {
   const photos = await db.photo.findMany({
     where: { uploaderId: userId },
-    select: { url: true, thumbUrl: true },
+    select: { url: true, thumbUrl: true, screenUrl: true },
   });
-  const urls = [...new Set(photos.flatMap((p) => [p.url, p.thumbUrl]).filter(Boolean))];
+  const urls = [...new Set(photos.flatMap(photoStoredUrls))];
   if (urls.length === 0) return 0;
 
   const { count } = await db.user.updateMany({

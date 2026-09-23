@@ -8282,3 +8282,43 @@ Measured on the dev server: the public bar went from ₹15,200 to ₹9,671 (3.8%
 this month on the admin home ₹4,491, typical gift ₹1,612. The nightly metric snapshot
 (`scripts/ops/snapshot.mjs`) still sums everyone.
 
+
+## 2026-09-23 (collection, viewer) — a photograph opens as a screen copy, and the original comes only when you zoom
+
+His words: "Every time I open a photo in the image viewer it takes so long to open... sometimes nothing
+happens for 1-2 minutes... I picked a random image not even that high res and it took 41 seconds to open.
+it's just totally unusable now".
+
+**Two causes, multiplied.** The viewer opened each photograph's master (full resolution at q100: median
+~2MB, 7-11MB at 24MP) and both neighbours' masters with it. And `images.rishivalley.space` hands over a
+photograph Cloudflare has not cached at **7-40 KB/s** from London, where he is this week, against 5+ MB/s
+from the same bucket's S3 endpoint and `r2.dev`; the same 7.8MB file took 65s cold and 0.49s cached. The
+bucket is in APAC. My first guess blamed Smart Tiered Cache and his dashboard showed it OFF; a byte trace
+then showed the London edge pulling from Asia in pieces, one round trip each. He turned Smart Tiered Cache
+ON that evening, and uncached photographs went from 7-270KB/s to ~2MB/s: an 11.2MB master in 5.2s, a
+screen copy in 0.4-1.3s. TRAPS.md has the measurements and two measuring traps.
+
+**`Photo.screenUrl`**: the master boxed to 3200px at WebP q82 (`screenCopy`, `SCREEN_PX`), stored beside
+the thumbnail when it saves at least a quarter of the master's bytes, and the thumbnail is now cut from it.
+3200 because a landscape filling his 14-inch MacBook wants 2,946 pixels; 2560 would magnify 1.15x. The
+viewer opens it, fetches the master (`ViewerImage.original`) only when zoomed or on a screen that wants
+more than the copy holds, and swaps it in once decoded, so the photograph sharpens in place. Download
+saves the master. The photograph's true size shapes the box before a byte lands and sets the zoom ceiling.
+The pressed tile shows at once, blurred, in the photograph's own box, and a spinner fades in only past
+0.6s -- in its own AnimatePresence, because the frame's `initial={false}` was cancelling the delay
+(measured at full opacity at 250ms). The review room draws the copy too.
+
+Every delete takes it: `erasePhoto`, `adminRemovePhoto`, both account-purge reads, the importer's undo
+(read off the row, so ledgers from before today are complete) and the stranded sweep's second lock;
+`image-purge-rule.test.mjs` pins each, mutation-checked. The column is on both databases, empty.
+`scripts/dev/backfill-screen-copies.mjs` fills it, dry by default. Run the same evening on his word
+("the backfill is okay"): 1,940 copies made, 14 masters already light enough, 0 failed, and 6,230MB of
+masters now open as 988MB -- 3.2MB to 0.5MB a photograph. `--reconcile` runs once this build is live,
+because the one before it deletes a photograph without knowing its copy exists.
+
+Verified at 40KB/s, desktop and phone: the preview at 250ms in the exact box (1200x900 at x=120 for a
+4:3; 390x293 on the phone), the spinner at 0 until 600ms, the photograph landing in the same rect. In the
+lab room with a temporary `original` (restored): a 1x screen keeps the copy until `+`, then swaps; a 2x
+screen swaps at rest; Download fetches the master. `check` green; visual 23/25, the two directory failures
+the member headcount's width, as before this. Noted, not changed: a first press also loads the
+Collection's edit-dialog chunks, which held the viewer 1.8s at 40KB/s.
