@@ -20,6 +20,9 @@ export type PhotoData = {
   id: string;
   thumbUrl: string;
   url: string;
+  /** What the viewer opens: `url` boxed to SCREEN_PX, a fifth of its bytes
+   *  or less. Null means open `url` (see the column in schema.prisma). */
+  screenUrl: string | null;
   width: number;
   height: number;
   caption: string | null;
@@ -58,7 +61,7 @@ export type PhotoData = {
 
 export function shape(
   p: {
-    id: string; thumbUrl: string; url: string; width: number; height: number;
+    id: string; thumbUrl: string; url: string; screenUrl: string | null; width: number; height: number;
     caption: string | null; subject: string; era: string;
     approved: boolean; scope: string; uploaderId: string; createdAt: Date;
     photoYear: number | null; photoMonth: number | null; datePrecision: string | null;
@@ -71,6 +74,7 @@ export function shape(
     id: p.id,
     thumbUrl: p.thumbUrl,
     url: p.url,
+    screenUrl: p.screenUrl,
     width: p.width,
     height: p.height,
     caption: p.caption,

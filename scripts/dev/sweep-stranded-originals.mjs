@@ -25,8 +25,9 @@
  *  SAFETY: it only ever considers keys ending `-o.<ext>` under
  *  `collection/`, and it refuses any key that ANY row in the database
  *  points at, checked against Photo, Image, Post and CatchupEntry. A
- *  display image is `<cuid>.webp` and a thumbnail `<cuid>-t.webp`, so the
- *  archive's own photographs cannot match the pattern in the first place;
+ *  display image is `<cuid>.webp`, a thumbnail `<cuid>-t.webp` and a screen
+ *  copy `<cuid>-s.webp`, so the archive's own photographs cannot match the
+ *  pattern in the first place;
  *  the database check is the second lock, not the first.
  *
  *  RUN IT TWICE. Once now, and once more after the change that moves new
@@ -72,7 +73,8 @@ async function stranded() {
     );
     for (const o of r.Contents ?? []) {
       // The staged original, and nothing else. A display image is
-      // `<cuid>.webp` and a thumbnail `<cuid>-t.webp`; neither can match.
+      // `<cuid>.webp`, a thumbnail `<cuid>-t.webp`, a screen copy
+      // `<cuid>-s.webp`; none can match.
       if (/-o\.(jpg|jpeg|png|webp|gif)$/.test(o.Key)) out.push({ key: o.Key, size: o.Size, at: o.LastModified });
     }
     token = r.IsTruncated ? r.NextContinuationToken : undefined;
@@ -85,7 +87,7 @@ async function referenced() {
   const seen = new Set();
   const add = (v) => v && seen.add(v);
   for (const [table, cols] of [
-    ["Photo", ['"url"', '"thumbUrl"']],
+    ["Photo", ['"url"', '"thumbUrl"', '"screenUrl"']],
     ["Image", ['"url"']],
   ]) {
     for (const col of cols) {

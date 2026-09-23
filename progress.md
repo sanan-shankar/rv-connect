@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-23 (collection, viewer) — a photograph opens as a screen copy, and the original comes only when you zoom
 - 2026-09-22 (support) — the site's own people's payments leave the public bar and the admin tiles
 - 2026-09-22 (catchups) — a batch Catch-up appears quietly and waits for three questions
 - 2026-09-22 (icons) — the Android icon is the peek again, not the whole bird

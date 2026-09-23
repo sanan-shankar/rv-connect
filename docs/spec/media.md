@@ -13,8 +13,9 @@
 >
 > - **§4.2's variant table and §4.4's budget** — corrected 2026-09-05, having been blessed as
 >   "still true" here while teaching a three-variant pipeline that has never existed. Two variants
->   ship, not three, and the display one is encoded two different ways depending on which path the
->   upload took. Read those sections, not this line.
+>   shipped then, and the display one is encoded two different ways depending on which path the
+>   upload took. **Since 2026-09-23 a third is stored, the screen copy the viewer opens.** Read
+>   those sections, not this line.
 > - **§4.3's "blur placeholder"** and the whole question of how a photograph is sized are answered
 >   by `src/lib/photo-layout.ts` and `<PhotoFrame>`, which store real dimensions and reserve the
 >   space (campaign phases 1-3).
@@ -110,22 +111,25 @@ The existing pipeline (`src/app/api/upload/route.ts`) already does the right thi
 
 **Decision: Cloudflare R2 as the photo store.** R2 has zero egress fees, which matters a lot for a public gallery that people browse repeatedly (egress, not storage, is what kills photo-app bills). It is S3-compatible (`@aws-sdk/client-s3`) and reachable from any host, so it does not couple the photo store to Vercel. The abstraction is exactly the one-file shim this section originally recommended: `src/lib/storage.ts` exports `putImage(buffer, subdir, filename)` and `delImage(url)`; the upload route and `deletePost` call the shim rather than any storage SDK directly, so a future provider swap stays a one-file change.
 
-### 4.2 Variants: thumbnail and display
+### 4.2 Variants: thumbnail, master and screen copy
 
-> **Corrected 2026-09-05 against the code.** This section proposed three
-> variants and was quoted for months as if all three shipped. **Two ship**, and
-> the display one has two different encodes. What follows is what the tree
-> actually does; if it disagrees with the code, the code is right.
+> **Corrected 2026-09-05 against the code, and extended 2026-09-23.** This
+> section proposed three variants and was quoted for months as if all three
+> shipped. Two did, and the display one has two different encodes; the screen
+> copy is the third, added when the viewer was found opening the master. What
+> follows is what the tree actually does; if it disagrees with the code, the
+> code is right.
 
-**Two derivatives per contribution**, stored as two columns on `Photo`
-(`prisma/schema.prisma:269-270`). There is no `originalUrl` and there never
-has been.
+**Up to three objects per contribution**, stored as columns on `Photo`
+(`prisma/schema.prisma`, `thumbUrl`, `url`, `screenUrl`). There is no
+`originalUrl` and there never has been: `url` IS the master.
 
 | Variant | Long edge | sharp settings | Where |
 |---------|-----------|----------------|-------|
 | `thumbUrl` | 480px | `.resize(480,480,{fit:"inside",withoutEnlargement:true}).webp({quality:72})` | `src/lib/collection-image.ts:96-98` (`gridThumb`, re-exported by `collection-photo.ts`). The river; the only thing most page-views load. |
 | `url` (display), **direct path** | **full resolution**, bounded only by a 40-megapixel AREA cap | `storedResizeBox(...)` then `.webp({quality:100})` | `src/app/(main)/collection/actions.ts:600-603`, `COLLECTION_WEBP_QUALITY` in `upload-shared.ts:91`. This is what nearly every contribution takes. The cap exists to stop a decompression bomb (audit M16), not to make the picture smaller. |
 | `url` (display), **FormData fallback** | 1600px | `.resize(1600,1600,{fit:"inside",withoutEnlargement:true}).webp({quality:80})` | `src/app/(main)/collection/actions.ts:341-342`. The path taken when the direct-to-R2 upload is unavailable. |
+| `screenUrl` (**screen copy**, since 2026-09-23) | 3200px | `.rotate().resize(3200,3200,{fit:"inside",withoutEnlargement:true}).webp({quality:82})` | `screenCopy` in `src/lib/collection-image.ts` (`SCREEN_PX`). Made from the master on the direct path and by the album importer, and stored only when it saves at least a quarter of the master's bytes, so it is NULL on the fallback, on a photograph copied from a post, and on anything `scripts/dev/backfill-screen-copies.mjs` has not reached. The thumbnail is cut from it. |
 
 **The two display encodes do not match, and that is a live question, not a
 design.** A contributor who falls back gets a visibly smaller photograph than
@@ -133,7 +137,14 @@ one who does not, and is told nothing. It is §4 #20 of the 2026-09-03 refactor
 audit, awaiting the owner: match the direct path, or say "saved at reduced
 size" out loud.
 
-The river loads `thumbUrl`; the viewer loads `url`. **Do not** reach for
+The river loads `thumbUrl`. **The viewer loads `screenUrl ?? url`**, and the
+master only when something would show its extra pixels: a zoom, a screen that
+wants more than 3,200 pixels across, or Download (`original` on `ViewerImage`,
+`src/components/common/image-viewer.tsx`). Until 2026-09-23 it opened the master
+itself, 7-11MB for a 24MP photograph at q100, and the neighbours' masters with
+it; the owner met a photograph that took 41 seconds to open and called the
+Collection "totally unusable". Measured on five real ones: 20.5MB of masters
+against 3.8MB of screen copies. **Do not** reach for
 `toDisplayWebp` in `src/lib/image.ts` when working here: its docblock says
 "boxed to 1920, WebP at 80" and it is the **feed's** encode, called only by
 `/api/upload` and `/api/upload/finalize`. Two sessions have read it and
@@ -143,8 +154,8 @@ Implementation note: the current route hard-caps file input at `5 * 1024 * 1024`
 
 ### 4.2b The third rendition: what Download hands over
 
-**Added 2026-09-08.** Two derivatives are STORED; a third is made on demand and
-kept nowhere. The owner: *"when I download images from places it comes as webp.
+**Added 2026-09-08.** The stored objects are all WebP; the JPEG is made on
+demand and kept nowhere. The owner: *"when I download images from places it comes as webp.
 people can't really use that."* He is right — older Photoshop, Preview's print
 dialog and most print shops still refuse a `.webp`, so the Download button was
 handing an alumnus a file they could not open, named after its object key.
@@ -190,7 +201,8 @@ purpose and a download is the one moment that matters.
   display copy, and both were wrong** (corrected 2026-09-05). What ships is a
   ~35KB thumbnail plus a display copy that, on the direct path, is a
   full-resolution WebP at quality 100 -- so the per-photograph cost is set by
-  what people contribute, not by a box this spec chose. Budget from the real
+  what people contribute, not by a box this spec chose. The screen copy
+  (2026-09-23) adds 0.3-2MB where it is stored, a fifth of the master or less. Budget from the real
   numbers in R2 rather than from a figure in a document. R2 storage past the
   10GB free tier is a flat per-GB rate with no egress charge, so a public
   gallery that gets browsed heavily stays cheap regardless of traffic; that

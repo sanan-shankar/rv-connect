@@ -25,6 +25,17 @@ import { bucketLabel } from "@/lib/collection";
 import { collectionSaveName } from "@/lib/photo-save-name";
 
 /**
+ * The file to draw a Collection photograph from at the size of a screen: its
+ * screen copy when it has one, its master when it does not (the fallback, a
+ * photograph copied from a post, a row the backfill has not reached). The
+ * owner, 2026-09-23, after a photograph took 41 seconds to open: "it's just
+ * totally unusable now". The viewer and the review room both draw from this.
+ */
+export function screenSrc(p: { url: string; screenUrl: string | null }): string {
+  return p.screenUrl ?? p.url;
+}
+
+/**
  * Map a Collection photograph onto the shared viewer's shape.
  *
  * Everything /collection/[id] used to be a separate page for is in here now:
@@ -45,7 +56,14 @@ import { collectionSaveName } from "@/lib/photo-save-name";
  * split out to stop. The lab rooms say `false` out loud instead. */
 export function toViewerImage(p: PhotoData, isAdmin: boolean): ViewerImage {
   return {
-    src: p.url,
+    /* The master only when a zoom or a bigger screen asks for it
+       (image-viewer.tsx), and only when `src` is not already the master. */
+    src: screenSrc(p),
+    original: p.screenUrl ? p.url : null,
+    width: p.width,
+    height: p.height,
+    /* The tile that was pressed, already in the browser's cache. */
+    placeholder: p.thumbUrl,
     alt: p.caption ?? undefined,
     caption: p.caption,
     author: p.uploader,

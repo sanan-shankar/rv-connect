@@ -68,6 +68,11 @@ const SET_ASIDE = {
 export type ReviewPhoto = {
   id: string;
   url: string;
+  /** What the room actually draws when there is one: the viewer's 3200px
+   *  copy, sharper than the room's stage can show and a fifth of the master's
+   *  bytes or less. `width` and `height` stay the master's -- they are what
+   *  the room reports as the photograph's resolution. */
+  screenUrl: string | null;
   width: number;
   height: number;
   caption: string;
@@ -161,6 +166,7 @@ function rows(mode: ReviewMode) {
     select: {
       id: true,
       url: true,
+      screenUrl: true,
       width: true,
       height: true,
       caption: true,

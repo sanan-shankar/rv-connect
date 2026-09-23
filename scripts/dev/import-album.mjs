@@ -89,7 +89,7 @@ import { exifStamp, parseExifStamp } from "../../src/lib/exif-date.ts";
    copied. They live in collection-image.ts precisely so a bare `node`
    script can have them; the copies that used to be here drifted from the
    app the moment either changed. */
-import { exifBlockOf, gridThumb } from "../../src/lib/collection-image.ts";
+import { exifBlockOf, gridThumb, screenCopy } from "../../src/lib/collection-image.ts";
 import { BUCKET_VALUES, eraFromYear } from "../../src/lib/collection.ts";
 import { COLLECTION_WEBP_QUALITY } from "../../src/lib/upload-shared.ts";
 
@@ -198,8 +198,16 @@ if (UNDO) {
   } else {
     let gone = 0;
     for (const row of lines) {
-      await client.query(`DELETE FROM "Photo" WHERE "id" = $1`, [row.id]);
-      for (const key of [row.key, row.thumbKey]) {
+      /* The screen copy is read off the row as it goes, not only off the
+         ledger: an import from before 2026-09-23 has no `screenKey` line, but
+         the backfill has since given its photographs one, and a ledger that
+         cannot name those would strand them. */
+      const { rows: [was] } = await client.query(
+        `DELETE FROM "Photo" WHERE "id" = $1 RETURNING "screenUrl"`,
+        [row.id]
+      );
+      const screenKey = row.screenKey ?? (was?.screenUrl ? new URL(was.screenUrl).pathname.slice(1) : null);
+      for (const key of [row.key, row.thumbKey, screenKey].filter(Boolean)) {
         await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key })).catch((e) => {
           /* A missing object is the state we wanted; anything else is worth
              seeing, because bytes nothing names can never be found again. */
@@ -415,14 +423,33 @@ async function importOne(p) {
   const display = await (p.stamp ? encode.withExif({ IFD2: { DateTimeOriginal: p.stamp } }) : encode)
     .toBuffer({ resolveWithObject: true });
 
-  // `alreadyUpright`: the display buffer above has been through `.rotate()`.
-  const thumb = await gridThumb(display.data, { alreadyUpright: true });
+  /* The viewer's copy, and the thumbnail cut from it rather than from the
+     full-resolution buffer, exactly as contributePhotoDirect does.
+     `alreadyUpright`: the display buffer above has been through `.rotate()`. */
+  const screen = await screenCopy(display.data);
+  const thumb = await gridThumb(screen.copy, { alreadyUpright: true });
 
   const id = createId();
   const key = `${partition}/${id}.webp`;
   const thumbKey = `${partition}/${id}-t.webp`;
-  const url = await put(key, display.data);
-  const thumbUrl = await put(thumbKey, thumb);
+  const screenKey = screen.worthKeeping ? `${partition}/${id}-s.webp` : null;
+  /* All at once, since every buffer is made and each PUT is a round trip
+     across the Arabian Sea -- and all or none, the way putAllOrNone does it in
+     the app: whatever landed before one failed names no row, so it goes back
+     out rather than becoming an object nothing can find (audit C-063). */
+  const puts = await Promise.allSettled([
+    put(key, display.data),
+    put(thumbKey, thumb),
+    ...(screenKey ? [put(screenKey, screen.copy)] : []),
+  ]);
+  const refused = puts.find((r) => r.status === "rejected");
+  if (refused) {
+    for (const k of [key, thumbKey, screenKey].filter(Boolean)) {
+      await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: k })).catch(() => {});
+    }
+    throw refused.reason;
+  }
+  const [url, thumbUrl, screenUrl = null] = puts.map((r) => r.value);
 
   /* `takenKey` is GENERATED ALWAYS ... STORED and is deliberately absent from
      this insert: Postgres refuses a value for a generated column, which is the
@@ -441,12 +468,12 @@ async function importOne(p) {
        "id","uploaderId","thumbUrl","url","width","height","caption","sourceKey",
        "subject","era","photoYear","photoMonth","datePrecision",
        "exifYear","exifMonth","scope","classYears","approved","isHidden",
-       "approvedAt","approvedById","createdAt","updatedAt"
+       "approvedAt","approvedById","createdAt","updatedAt","screenUrl"
      ) VALUES (
        $1,$2,$3,$4,$5,$6,$15,$7,
        $16,$8,$9,$10,$11,
        $12,$13,$17,$14,true,false,
-       now(),$2,now(),now()
+       now(),$2,now(),now(),$18
      ) ON CONFLICT ("sourceKey") DO NOTHING
      RETURNING "id"`,
     [
@@ -456,7 +483,7 @@ async function importOne(p) {
       p.photoYear, p.photoMonth,
       // Never an audience on a valley row, as photoRowData has it.
       SCOPE === "class" ? classYear : null,
-      p.caption, BUCKETS.join(","), SCOPE,
+      p.caption, BUCKETS.join(","), SCOPE, screenUrl,
     ]
   );
 
@@ -464,7 +491,7 @@ async function importOne(p) {
     /* Already imported. The bytes this attempt just stored name no row, so
        they go straight back out rather than becoming orphans nothing can
        enumerate (audit C-063). */
-    for (const k of [key, thumbKey]) {
+    for (const k of [key, thumbKey, screenKey].filter(Boolean)) {
       await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: k })).catch(() => {});
     }
     skipped++;
@@ -473,12 +500,12 @@ async function importOne(p) {
 
   /* Flushed BEFORE the next photograph starts, so a crash leaves a ledger that
      names everything already written and `--undo` is complete. */
-  await appendFile(ledger, JSON.stringify({ id, key, thumbKey, rel: p.rel }) + "\n");
+  await appendFile(ledger, JSON.stringify({ id, key, thumbKey, screenKey, rel: p.rel }) + "\n");
   done++;
 }
 
-/* Four at a time. Each one is a full-resolution decode, two encodes and two
-   PUTs across the Arabian Sea; one at a time wastes the wait and twenty at a
+/* Four at a time. Each one is a full-resolution decode, three encodes and up
+   to three PUTs across the Arabian Sea; one at a time wastes the wait and twenty at a
    time is how a batch half-lands with the connection pool exhausted. */
 const CONCURRENCY = 4;
 const queue = [...todo];

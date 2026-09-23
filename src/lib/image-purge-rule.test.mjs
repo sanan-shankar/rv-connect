@@ -141,9 +141,42 @@ test("C-064: no Collection photo row is written outside the guard that cleans up
   assert.ok(guarded.includes("purgeImageUrls"));
   // Exactly one call site in the file: the one inside the guard.
   assert.equal([...raw.matchAll(/prisma\.photo\.create\(/g)].length, 1);
-  // ...and both contribution paths go through it, carrying what they stored.
+  // ...and both contribution paths go through it, carrying what they stored:
+  // the fallback its pair, the direct path its pair and its screen copy.
   assert.equal([...raw.matchAll(/await createPhotoRow\(/g)].length, 2);
-  assert.equal([...raw.matchAll(/\}, \[url, thumbUrl\]\);/g)].length, 2);
+  assert.equal([...raw.matchAll(/\}, \[url, thumbUrl\]\);/g)].length, 1);
+  assert.equal([...raw.matchAll(/\}, \[url, thumbUrl, screenUrl\]\);/g)].length, 1);
+});
+
+/* ---- The screen copy goes wherever the other two go -------------- */
+
+test("every place that deletes a Collection photo's bytes takes all of them", () => {
+  /* Three objects since the screen copy (2026-09-23), and every delete used to
+     hand-list the ones it knew. A forgotten one is left in a public bucket that
+     nothing can enumerate -- the exact orphan the rest of this file exists to
+     stop. So the list is one function, and each delete must call it; its
+     parameter type then refuses a caller whose select left a column out. */
+  const helper = bodyOf(decomment(read("src/lib/collection-photo.ts")), "photoStoredUrls");
+  for (const column of ["url", "thumbUrl", "screenUrl"]) {
+    assert.match(helper, new RegExp(`p\\.${column}\\b`), `photoStoredUrls forgets ${column}`);
+  }
+
+  const actions = decomment(read("src/app/(main)/collection/actions.ts"));
+  for (const fn of ["erasePhoto", "adminRemovePhoto"]) {
+    assert.match(bodyOf(actions, fn), /photoStoredUrls\(photo\)/, `${fn} lists the bytes by hand`);
+  }
+  // The account purge's two reads: the bytes to delete, and the covers other
+  // members are wearing.
+  const purge = decomment(read("src/lib/account-purge.ts"));
+  assert.equal([...purge.matchAll(/photoStoredUrls\b/g)].length, 3, "an import and two uses");
+  // And nobody has gone back to listing them.
+  for (const [name, src] of [["actions.ts", actions], ["account-purge.ts", purge]]) {
+    assert.doesNotMatch(src, /\bthumbUrl, (p|photo)\.url\b|\burl, (p|photo)\.thumbUrl\b/, `${name} hand-lists a photo's bytes`);
+  }
+
+  // The direct path stores the screen copy through the same all-or-none as the pair.
+  const stored = bodyOf(actions, "contributePhotoDirect");
+  assert.match(stored, /putAllOrNone\(\s*\[[\s\S]*?-s\.webp[\s\S]*?\],\s*"abandoned"/);
 });
 
 test("C-064: a half-stored pair is not left half-stored", () => {

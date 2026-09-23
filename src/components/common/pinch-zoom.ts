@@ -102,6 +102,7 @@ const SWIPE_RETURN = { duration: 0.24, ease: EASE_OUT_SMOOTH } as const;
 
 export function usePinchZoom({
   enabled,
+  size = null,
   canSwipe,
   onStep,
   onTapPhoto,
@@ -109,6 +110,11 @@ export function usePinchZoom({
 }: {
   /** The viewer is open. Nothing listens while it is not. */
   enabled: boolean;
+  /** The photograph's TRUE pixel size, when the caller knows it. The <img>
+   *  may be showing a lighter copy (the Collection's screen copy), and how
+   *  far in you can go is the photograph's limit, not the copy's: a 13,357px
+   *  panorama goes to 8x whether or not its original has arrived yet. */
+  size?: { w: number; h: number } | null;
   /** There is somewhere to swipe TO. A lone photograph must not follow the
    *  finger 14% of the way and spring back to nothing. */
   canSwipe: boolean;
@@ -136,6 +142,12 @@ export function usePinchZoom({
 
   const surfaceRef = useRef<HTMLDivElement | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  /* Read at gesture time, never during render, so a ref kept current by an
+     effect is enough -- and a new object each render costs nothing. */
+  const sizeRef = useRef(size);
+  useEffect(() => {
+    sizeRef.current = size;
+  });
   /* A callback ref that ignores null. The viewer cross-dissolves two frames,
      so during a step the OUTGOING <img> unmounts after the incoming one has
      mounted; taking its null would leave us measuring nothing. */
@@ -178,8 +190,8 @@ export function usePinchZoom({
    *  654.5px-wide photograph before this was arithmetic. */
   const fitted = useCallback(() => {
     const img = imgRef.current;
-    const nw = img?.naturalWidth ?? 0;
-    const nh = img?.naturalHeight ?? 0;
+    const nw = sizeRef.current?.w ?? img?.naturalWidth ?? 0;
+    const nh = sizeRef.current?.h ?? img?.naturalHeight ?? 0;
     if (!nw || !nh) return { w: img?.offsetWidth ?? 0, h: img?.offsetHeight ?? 0, fit: 1 };
     const fit = Math.min(1, window.innerWidth / nw, window.innerHeight / nh);
     return { w: nw * fit, h: nh * fit, fit };
@@ -202,7 +214,7 @@ export function usePinchZoom({
   const ceiling = useCallback(() => {
     const img = imgRef.current;
     const { fit } = fitted();
-    if (!img?.naturalWidth || !fit) return MIN_CEILING;
+    if (!(sizeRef.current?.w || img?.naturalWidth) || !fit) return MIN_CEILING;
     /* 1/fit is the scale at which the file's own pixels land 1:1 on the
        screen. A photograph already shown at its natural size has fit === 1
        and so no headroom at all, which is what the floor is for. */

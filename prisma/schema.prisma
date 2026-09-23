@@ -326,7 +326,17 @@ model Photo {
   // 40MP AREA cap against decompression bombs; only the FormData fallback
   // boxes to 1600 at q80. Both encodes are in collection/actions.ts, and
   // docs/spec/media.md §4.2 has the table.
-  url          String    // full resolution (direct) or 1600px (fallback) — viewer, reusable as a post/cover image
+  url          String    // full resolution (direct) or 1600px (fallback) — download, zoom, reusable as a post/cover image
+  /// What the viewer opens: `url` boxed to 3200px at WebP q82 (SCREEN_PX in
+  /// src/lib/collection-image.ts). Owner, 2026-09-23, after a photograph took
+  /// 41 seconds to open: "it's just totally unusable now". The viewer was
+  /// fetching the q100 master, 7-11MB for a 24MP photograph, for a screen that
+  /// shows about 3,000 pixels across; this is a fifth of that or less.
+  /// NULL when the copy would not be meaningfully lighter than `url` itself
+  /// (the 1600px fallback, a photograph copied from a post), and on every row
+  /// the backfill has not reached -- the viewer then opens `url`, as before.
+  /// Purged with the other two wherever they are.
+  screenUrl    String?
   width        Int
   height       Int
 

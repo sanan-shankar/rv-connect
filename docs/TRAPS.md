@@ -300,6 +300,42 @@ pipes sharp's output straight through (`Readable.toWeb`) and never calls `.toBuf
 handing back image bytes must do the same: buffering is the bug, and it only shows up on the files
 that matter most.
 
+**A photograph Cloudflare has not cached crawls out of `images.rishivalley.space`. R2 itself does
+not.** Measured from London on 2026-09-23 (the owner abroad: `cdn-cgi/trace` said `loc=GB`,
+`colo=LHR`), same bucket, same edge, minutes apart:
+
+| Path | Speed |
+|---|---|
+| the public host, cache miss | **7-40 KB/s** (672KB of a 7.4MB photograph in 60s; 22-50KB thumbnails 1.7-4.7s each) |
+| the bucket's S3 endpoint | 5.2 MB/s |
+| the bucket's `r2.dev` address | 5.6 MB/s |
+| the public host, cache hit | 16 MB/s |
+| the public host, cache miss, **Smart Tiered Cache on** | **~2 MB/s** (an 11.2MB master in 5.2s) |
+| Cloudflare's own speed test, same Mac | 20.8 MB/s |
+
+The bucket is in APAC (`GetBucketLocation`), and **Tiered Cache is OFF** on the zone (the owner's
+dashboard, the same day -- a first guess blamed it, and was wrong). So a London miss goes straight
+from the London edge to the bucket in Asia, and a byte trace shows how: the file arrives in bursts
+of ~270KB/s broken by pauses of 150-900ms, most of them ~170ms, one London-Asia round trip each. The
+edge is pulling the file across the distance a piece at a time. Cloudflare's own R2 guidance is to
+turn **Smart Tiered Cache ON**, which makes the fetch from a data center next to the bucket, and the
+owner did that evening (Caching > Tiered Cache): the next uncached files came at ~2MB/s, a 3200px
+screen copy in 0.4-1.3s. **It has to stay on.** If photographs crawl again, look there first. Two rules
+follow regardless. **Never make a member download megabytes they did not ask for**: the viewer
+opening 7-11MB q100 masters on this path is what made the Collection take 41 seconds to two
+minutes a photograph, and why the screen copy exists (media.md §4.2). **Anything that reads the
+bucket in bulk reads the S3 endpoint**, never the public URL -- `backfill-screen-copies.mjs` does.
+
+**Measuring that cache, `curl -I` lies and a HIT can still crawl.** A HEAD answered
+`cf-cache-status: DYNAMIC` for every photograph, which reads as "caching is off"; a GET for the same
+object answers `MISS` and then `HIT`, because a HEAD is simply not served from this cache. And the
+first GET after a miss can report `HIT` while streaming at the origin's pace -- 65 seconds for 7.8MB,
+`HIT` -- because it is riding the fill another request started. Only the request after the fill
+finishes measures the cache (the same file: 0.49s). Time a GET
+(`curl -s -o /dev/null -w "%{time_total} %{speed_download}"`), use a file nobody has opened, and
+read `cdn-cgi/trace` first: which edge answers depends on where the Mac is, and the owner is not
+always in India.
+
 ## Layout
 
 **A Turnstile site key only works on the hostnames listed in Cloudflare, and a Vercel deployment

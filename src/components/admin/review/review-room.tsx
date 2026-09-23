@@ -76,6 +76,7 @@ import { FileSays } from "@/components/collection/file-says";
 import { callAction } from "@/lib/call-action";
 import { tidyCaption } from "@/lib/caption-tidy";
 import { DECLINE_REASON_MAX, photoDate, yearUnreadable } from "@/lib/collection";
+import { screenSrc } from "@/lib/collection-viewer-image";
 import { cn, formatTimeAgo, valleyYear } from "@/lib/utils";
 import type { ReviewCounts, ReviewMode, ReviewPhoto } from "@/lib/admin-review";
 import { declineReview, saveReview } from "@/app/(main)/admin/review/actions";
@@ -189,15 +190,16 @@ export function ReviewRoom({
   }, [disarm]);
 
   /* The next photograph's bytes, fetched while this one is being looked at.
-     These are full-size images, so the difference between a warmed cache and a
+     These are large images, so the difference between a warmed cache and a
      cold one is the difference between the room feeling instant and feeling
-     like a slideshow on a bad connection. Only ONE ahead: sixty full-size
-     preloads would be worse than the problem. */
+     like a slideshow on a bad connection. Only ONE ahead: sixty preloads would
+     be worse than the problem. The screen copy where there is one, because
+     that is what the room draws. */
   useEffect(() => {
     const next = pile[at + 1];
     if (!next) return;
     const img = new window.Image();
-    img.src = next.url;
+    img.src = screenSrc(next);
   }, [pile, at]);
 
   const decide = useCallback(
@@ -397,7 +399,7 @@ export function ReviewRoom({
               <AnimatePresence mode="wait" initial={false}>
                 <m.img
                   key={showing.id}
-                  src={showing.url}
+                  src={screenSrc(showing)}
                   alt=""
                   draggable={false}
                   initial={{ opacity: 0 }}

@@ -96,7 +96,24 @@ import { useBackCloses } from "@/lib/back-closes";
 import { photoSaveName } from "@/lib/photo-save-name";
 
 export interface ViewerImage {
+  /** What the viewer opens. For a Collection photograph this is its screen
+   *  copy (SCREEN_PX in collection-image.ts), not the full-resolution file. */
   src: string;
+  /** The full-resolution file, when `src` is a lighter copy of it. Fetched only
+   *  when the photograph is drawn at more pixels than `src` holds -- a zoom,
+   *  or a screen bigger than the copy -- and it is what Download saves. Absent
+   *  when `src` is already the whole file. */
+  original?: string | null;
+  /** The photograph's own pixel size, when the caller knows it. The box takes
+   *  its shape from this before a byte has arrived, and the never-enlarge rule
+   *  and the zoom ceiling measure against it rather than against `src`. */
+  width?: number;
+  height?: number;
+  /** A small copy the browser already holds -- the tile that was pressed --
+   *  drawn at once under the photograph so a press is never answered with an
+   *  empty screen. The owner, 2026-09-23: "sometimes nothing happens for 1-2
+   *  minutes". */
+  placeholder?: string | null;
   alt?: string;
   /** The words under the photograph. Two lines at rest, all of it on a press. */
   caption?: string | null;
@@ -322,6 +339,11 @@ export function ImageViewer({
   const count = images.length;
   const at = Math.min(Math.max(index, 0), Math.max(count - 1, 0));
   const current = images[at];
+  /* The photograph's true size, when the caller gave it (see ViewerImage).
+     Two numbers rather than an object so the effects below can depend on
+     them without a fresh object every render. */
+  const knownW = current?.width ?? 0;
+  const knownH = current?.height ?? 0;
 
   /* Declared before the gesture layer, which calls it, and given a ref for
      the zoom reset so the two are not circular: the gesture layer needs
@@ -350,6 +372,7 @@ export function ImageViewer({
      See pinch-zoom.ts. */
   const zoom = usePinchZoom({
     enabled: open,
+    size: knownW && knownH ? { w: knownW, h: knownH } : null,
     canSwipe: count > 1,
     onStep: step,
     onTapPhoto: () => {
@@ -556,12 +579,71 @@ export function ImageViewer({
   const src = current?.src;
   useEffect(() => {
     if (!open || !src || !stage.w || !stage.h) return;
-    const nat = shapes.current.get(src);
+    /* The TRUE size when the caller knows it: `src` may be a lighter copy, and
+       "never enlarge" is a promise about the photograph, not about the copy.
+       It is also what gives the box its shape before a byte has landed, which
+       is what lets the placeholder below sit in the right place at once. */
+    const nat = knownW && knownH ? { w: knownW, h: knownH } : shapes.current.get(src);
     if (!nat) return;
     const k = Math.min(stage.w / nat.w, stage.h / nat.h, 1);
     setBox({ w: Math.round(nat.w * k), h: Math.round(nat.h * k) });
     hadBox.current = true;
-  }, [open, src, stage, learned]);
+  }, [open, src, knownW, knownH, stage, learned]);
+
+  /* ---------------------------------------------------------------- *
+   *  THE ORIGINAL, FETCHED ONLY WHEN IT WOULD SHOW.
+   *
+   *  The owner, 2026-09-23: "Every time I open a photo in the image
+   *  viewer it takes so long to open... it took 41 seconds to open.
+   *  it's just totally unusable now". A Collection photograph opened its
+   *  full-resolution master -- 7-11MB for a 24MP photograph, at the q100
+   *  the archive keeps -- and the two neighbours' masters with it, to
+   *  fill a screen that shows about 3,000 pixels across. `src` is now a
+   *  screen copy a fifth that size or less, and the master comes only
+   *  when something would actually show its extra pixels:
+   *
+   *    - a zoom, the moment it starts. By 1.1x on a 14-inch MacBook the
+   *      copy has run out, and the zoom exists for the face in the back
+   *      row of a 1970s print.
+   *    - a screen bigger than the copy, at rest: a 5K display wants 4,320
+   *      pixels across a landscape and the copy holds 3,200.
+   *
+   *  Either way the copy stays on screen until the master has DECODED,
+   *  and only then is it swapped in, so the photograph sharpens in place
+   *  rather than blinking out and back.
+   * ---------------------------------------------------------------- */
+  const original = current?.original || null;
+  /** How each file the <img> has held turned out: true when its bytes landed,
+   *  false when it failed. A copy that failed hands over to the original, so a
+   *  missing screen copy never leaves a photograph blurred for ever. */
+  const [outcome, setOutcome] = useState<ReadonlyMap<string, boolean>>(() => new Map());
+  const settle = (file: string, ok: boolean) =>
+    setOutcome((m) => (m.get(file) === ok ? m : new Map(m).set(file, ok)));
+  /** Originals decoded and ready to swap in without a blank frame. */
+  const [ready, setReady] = useState<ReadonlySet<string>>(() => new Set());
+  const asked = useRef(new Set<string>());
+  const held = src ? shapes.current.get(src) : undefined;
+  const restWantsMore = !!(box && held && box.w * window.devicePixelRatio > held.w * 1.02);
+  const wantsOriginal = !!original && (zoom.zoomed || restWantsMore);
+  useEffect(() => {
+    if (!open || !wantsOriginal || !original || asked.current.has(original)) return;
+    asked.current.add(original);
+    const img = new window.Image();
+    img.src = original;
+    img.decode().then(
+      () => setReady((s) => new Set(s).add(original)),
+      /* Forgotten, so the next zoom asks again. The copy is still showing. */
+      () => asked.current.delete(original)
+    );
+  }, [open, wantsOriginal, original]);
+  const shown =
+    original && (ready.has(original) || (src && outcome.get(src) === false)) ? original : src;
+  /** This photograph has landed in some form. The placeholder and the spinner
+   *  both go the moment it has -- and stay gone when the original swaps in
+   *  over a copy that was already showing. A file that failed with nothing
+   *  left to fall back to counts too: a spinner over a file that will never
+   *  come is a promise the screen cannot keep. */
+  const arrived = !!shown && (outcome.has(shown) || (!!src && outcome.get(src) === true));
 
   /* A fresh open starts from whatever this photograph is, with no tween. */
   useEffect(() => {
@@ -597,10 +679,12 @@ export function ImageViewer({
      re-encodes to JPEG, keeping the date the photograph was taken. */
   async function download() {
     if (!current || saving) return;
-    const name = photoSaveName(current.downloadName, current.src);
+    /* The whole file, never the screen copy the viewer happens to be showing. */
+    const file = current.original || current.src;
+    const name = photoSaveName(current.downloadName, file);
     setSaving(true);
     try {
-      const res = await fetch(downloadUrl(current.src));
+      const res = await fetch(downloadUrl(file));
       /* A 404 or a 5xx RESOLVES, so without this the XML or HTML of the error
          was saved to disk under the photograph's own name and the member was
          told nothing went wrong (audit C-157). Throwing puts it into the catch
@@ -617,7 +701,7 @@ export function ImageViewer({
     } catch {
       /* The stored WebP is a worse file than the one we meant to hand over,
          and it is still the photograph. Opening it beats a dead button. */
-      window.open(current.src, "_blank", "noopener,noreferrer");
+      window.open(file, "_blank", "noopener,noreferrer");
     } finally {
       setSaving(false);
     }
@@ -725,16 +809,43 @@ export function ImageViewer({
                   exit="exit"
                   className="absolute inset-0 flex items-center justify-center"
                 >
+                  {/* THE PLACEHOLDER: the tile that was pressed, which the
+                      browser already holds, filling the photograph's own box
+                      until its bytes land. Blurred on purpose: a 480px tile
+                      stretched across a laptop reads as a bad photograph when
+                      it is sharp and as one arriving when it is soft, and the
+                      owner has twice objected to the first. Scaled a touch and
+                      clipped, because a blur fades its own edges to nothing. */}
+                  {current.placeholder && !arrived && (
+                    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={current.placeholder}
+                        alt=""
+                        draggable={false}
+                        className="h-full w-full object-cover"
+                        style={{ filter: "blur(14px)", transform: "scale(1.06)" }}
+                      />
+                    </div>
+                  )}
                   <m.img
                     ref={zoom.setImage}
-                    src={current.src}
+                    src={shown}
                     alt={current.alt ?? caption}
                     draggable={false}
-                    /* The cursor belongs on the photograph, not on the
+                    /* Filling the box when the box is the photograph's own
+                       fitted size, so a copy and its original draw at exactly
+                       the same rect and the swap moves nothing. Until then it
+                       keeps its own box, which is what leaves the wash beside
+                       it a place a press closes the viewer. `relative` puts it
+                       above the placeholder, so it can paint in as it arrives.
+
+                       The cursor belongs on the photograph, not on the
                        surface: the surface also covers the wash beside it,
                        where a press closes the viewer rather than zooming. */
                     className={cn(
-                      "max-h-full max-w-full select-none object-contain",
+                      box ? "h-full w-full" : "max-h-full max-w-full",
+                      "relative select-none object-contain",
                       zoom.zoomed ? "cursor-grab active:cursor-grabbing" : "cursor-zoom-in"
                     )}
                     /* x/y/scale are the zoom, driven by motion values so a
@@ -751,9 +862,43 @@ export function ImageViewer({
                     }}
                     onLoad={(e) => {
                       const el = e.currentTarget;
-                      learn(el.currentSrc || el.src, el.naturalWidth, el.naturalHeight);
+                      /* The attribute, not `currentSrc`: that is the resolved
+                         absolute URL, and a caller's relative path (local dev,
+                         the demo's seeded files) would never match the key
+                         everything else here looks it up by. */
+                      const file = el.getAttribute("src") ?? el.src;
+                      learn(file, el.naturalWidth, el.naturalHeight);
+                      settle(file, true);
                     }}
+                    onError={(e) => settle(e.currentTarget.getAttribute("src") ?? "", false)}
                   />
+                  {/* Said only when it is true: a photograph that lands inside
+                      0.6s never shows this at all.
+
+                      Its OWN AnimatePresence, and that is load-bearing. The
+                      frame sits in one with `initial={false}` so that opening
+                      the viewer does not fade the first photograph in, and
+                      that setting reaches every motion component inside the
+                      first frame -- this one included, which then started at
+                      full opacity and never waited (measured: opacity 1 at
+                      250ms). A nearer presence restores its own `initial`. */}
+                  <AnimatePresence>
+                    {!arrived && (
+                      <m.span
+                        key="waiting"
+                        aria-hidden
+                        initial={{ opacity: 0 }}
+                        animate={{
+                          opacity: 1,
+                          transition: { delay: 0.6, duration: 0.2, ease: EASE_OUT_SMOOTH },
+                        }}
+                        exit={{ opacity: 0, transition: { duration: 0.15, ease: EASE_OUT_SMOOTH } }}
+                        className="pointer-events-none absolute inset-0 grid place-items-center"
+                      >
+                        <Loader2 className="h-6 w-6 animate-spin text-white/80" />
+                      </m.span>
+                    )}
+                  </AnimatePresence>
                 </m.div>
               </AnimatePresence>
               </m.div>
