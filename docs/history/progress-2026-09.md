@@ -8597,3 +8597,12 @@ went through it once [and] can't go through it again".
 `BottomSheet` gains an optional photograph pane and an overlay layer (everything under it inert);
 `StepDots` gains a tone for photographs. `guide-tour.test.mjs` pins the cover's place in the chain
 and the admin-only replay. `docs/spec/guide.md` sections 2.3, 5.2, 5.3 and 5.5 are rewritten.
+
+## 2026-09-27 (guide) — the guide's two protocol findings: the photographs' loading colours are allowlisted, the bubble's corners come down
+
+The shape and colour audit only reads tracked files, so the guide's new files were first read
+once they were committed. `guide-photos.ts` carries each photograph's own average colour, painted
+while it loads; that is data about a picture, not brand colour, so it joins the audit's raw-hex
+allowlist with that reason, beside the plumage and the sign-in photograph's overlay.
+`door-coach.tsx`'s bubble was `rounded-xl` (20.8px), past the 16px card that no box outside the
+landing hero may exceed; it is `rounded-lg` now.
