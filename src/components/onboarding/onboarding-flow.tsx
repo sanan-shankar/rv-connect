@@ -38,7 +38,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, m } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
-import { cn } from "@/lib/utils";
+import { StepDots } from "@/components/common/step-dots";
 import { hasFired, markFired } from "@/components/mascot/moments/one-shot";
 import { ONBOARDING_SEEN, type OnboardingStepId, type OnboardingUser } from "./types";
 import { WelcomeStep } from "./steps/welcome-step";
@@ -179,31 +179,12 @@ export function OnboardingFlow({
     <div className="mx-auto flex min-h-[65vh] w-full max-w-[460px] flex-col justify-center py-[var(--space-xl)]">
       {step !== "done" && (
         <div className="mb-[var(--space-l)] flex items-center justify-between gap-3">
-          <div
-            className="flex items-center gap-[var(--space-xs)]"
-            role="group"
-            aria-label={`Step ${index + 1} of ${dotSteps.length}`}
-          >
-            {dotSteps.map((id, i) => {
-              const state = i === index ? "current" : i < index ? "done" : "upcoming";
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  aria-label={`Go back to step ${i + 1}`}
-                  aria-current={state === "current" ? "step" : undefined}
-                  disabled={state === "upcoming"}
-                  onClick={() => state !== "upcoming" && setStep(id)}
-                  className={cn(
-                    "h-2 rounded-full transition-[width,background-color,opacity] duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                    state === "current" && "w-6 bg-canopy",
-                    state === "done" && "w-2 cursor-pointer bg-canopy/45 hover:bg-canopy/70",
-                    state === "upcoming" && "w-2 cursor-default bg-border"
-                  )}
-                />
-              );
-            })}
-          </div>
+          <StepDots
+            count={dotSteps.length}
+            current={index}
+            onPick={(i) => setStep(dotSteps[i])}
+            labelFor={(i) => `Go back to step ${i + 1}`}
+          />
           <button
             type="button"
             onClick={finishLater}

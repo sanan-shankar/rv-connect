@@ -14,6 +14,8 @@ import { NewPostCTA } from "@/components/feed/new-post-cta";
 import { NewPostDock } from "@/components/feed/new-post-dock";
 import { CelebrationSignals } from "@/components/mascot/moments/celebration-signals";
 import { batchTargetKey } from "@/lib/post-visibility-rule";
+import { IS_DEMO } from "@/lib/demo";
+import { GuideTourStart } from "@/components/guide/guide-tour-start";
 
 export const metadata: Metadata = {
   title: "Feed",
@@ -45,10 +47,12 @@ export default async function FeedPage({
     /* The "New since you were last here" marker. Read here rather than in the
        client so it is the ACCOUNT's marker, not this browser's -- it used to
        sit in localStorage, which announced the same posts as new again on
-       every device the member signed in on (owner, 2026-08-20). */
+       every device the member signed in on (owner, 2026-08-20). The guide's
+       tour marker rides on the same read for the same reason, and costs no
+       second round trip (docs/spec/guide.md 5.3). */
     prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { feedSeenAt: true },
+      select: { feedSeenAt: true, guideSeenAt: true },
     }),
   ]);
 
@@ -68,6 +72,14 @@ export default async function FeedPage({
           signup lands there first, before ever reaching this page) — this
           mount stays for the other two, which are unrelated to onboarding. */}
       <CelebrationSignals userId={session.user.id} />
+      {/* The guide's first-run tour, once per account, and never on the demo,
+          whose first frame is the product (docs/spec/guide.md 5.1). */}
+      {!IS_DEMO && marker && !marker.guideSeenAt && (
+        <GuideTourStart
+          userId={session.user.id}
+          isTeacher={session.user.accountType === "teacher" || session.user.accountType === "ex_teacher"}
+        />
+      )}
       {/* The New post badge in the header and the composer in the column are
           one control split across two grid rows; the dock is what they share. */}
       <NewPostDock>

@@ -27,7 +27,15 @@
 
 type Listener = () => void;
 
-let current: string | null = null;
+/** Which chapter is showing, and whether it is the first-run tour
+ *  (docs/spec/guide.md section 5) rather than a title pressed. A new object on
+ *  every change, so useSyncExternalStore sees the change by identity. */
+export interface GuideState {
+  area: string;
+  tour: boolean;
+}
+
+let current: GuideState | null = null;
 const listeners = new Set<Listener>();
 
 function emit() {
@@ -41,14 +49,22 @@ export function subscribeGuide(l: Listener): () => void {
   };
 }
 
-export function currentGuide(): string | null {
+export function currentGuide(): GuideState | null {
   return current;
 }
 
-/** Open a chapter. Synchronous: the sheet renders on this tick. */
+/** Open a chapter, or move to another one in the sheet that is already open
+ *  (Next), keeping whatever mode it is in. Synchronous: the sheet renders on
+ *  this tick. */
 export function openGuide(area: string): void {
-  if (current === area) return;
-  current = area;
+  if (current?.area === area) return;
+  current = { area, tour: current?.tour ?? false };
+  emit();
+}
+
+/** Start the first-run tour on its first chapter (or the one it was left on). */
+export function startTour(area: string): void {
+  current = { area, tour: true };
   emit();
 }
 

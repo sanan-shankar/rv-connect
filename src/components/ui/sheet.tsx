@@ -246,6 +246,7 @@ function BottomSheet({
   children,
   className,
   bodyClassName,
+  bodyRef,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -256,6 +257,9 @@ function BottomSheet({
   /** The panel: height and width only. The anatomy is not per-sheet. */
   className?: string
   bodyClassName?: string
+  /** The scrolling body, for a sheet that swaps what it shows and has to
+   *  start the new content at its top (the guide's Next). */
+  bodyRef?: React.Ref<HTMLDivElement>
 }) {
   /* A callback ref as state, because the popup mounts inside a portal a beat
      after `open` flips, and an effect reading a plain ref would find null. */
@@ -297,7 +301,7 @@ function BottomSheet({
           </div>
           {/* overscroll-contain so a flick that runs out of content does not
               hand the scroll to the page behind the sheet. */}
-          <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-1 pb-4", bodyClassName)}>
+          <div ref={bodyRef} className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-1 pb-4", bodyClassName)}>
             {children}
           </div>
           {footer && (

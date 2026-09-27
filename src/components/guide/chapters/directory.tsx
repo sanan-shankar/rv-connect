@@ -1,38 +1,60 @@
-import { Chapter, Section, P, Doorway } from "../guide-kit";
+import { Chapter, Section, P } from "../guide-kit";
+import { Tap } from "../tap";
+
+/* Read off the code on 2026-09-27 (docs/spec/guide.md section 7): a blue
+   circle is a cluster of cities and zooms in when pressed, a green one is
+   a single city and opens its people (alumni-map.tsx); wheel, pinch and
+   the +/- buttons zoom; search matches name, work and city (where.ts).
+   The privacy paragraph says only what the code enforces: sign-in
+   everywhere (proxy.ts), search engines kept out (robots.ts), contact
+   details only to verified viewers (profile/[id]/page.tsx). Nothing stops
+   a signed-in member paging through the directory, so it makes no promise
+   about scraping. */
 
 export function DirectoryChapter() {
   return (
-    <Chapter
-      title="The Directory"
-      lede="Everyone who has joined, and where they are now. This is the part of the site people came for."
-    >
-      <Section title="Two ways to look">
+    <Chapter title="The Directory">
+      <P>
+        The Directory is everyone who has joined, and where they live now. You can look through
+        it three ways: Map, Batches and People.
+      </P>
+
+      <Section title="The map">
         <P>
-          The people view searches by name, by city, or by what somebody does. The map view
-          shows where everyone is, with a headcount per city, and it fills in as people add
-          theirs. If the map looks empty for a country you know people live in, it means they
-          have not filled in a city yet, not that they are not here.
+          Each circle on the map is a group of members. A blue circle covers several cities:{" "}
+          <Tap /> it, or zoom in, and it splits apart. A green circle is a single city. <Tap cap />{" "}
+          it to see everyone who lives there, then <Tap /> a name to open that person&rsquo;s
+          profile.
+        </P>
+        <P>
+          To zoom, pinch on a phone or scroll on a computer. Members who have not added a city
+          are not on the map yet; the note in the corner says how many.
         </P>
       </Section>
 
-      <Section title="What other members can see about you">
+      <Section title="Batches and People">
         <P>
-          Your name, your batch, and whatever you have chosen to put on your profile. Your
-          email address is yours to show or hide, and it is hidden unless you say otherwise.
-          Change any of it from your own profile.
+          Batches groups everyone by the year their class finished school. <Tap cap /> a year to
+          see who is in it. People is everyone in one list: search it by name, city or work, or
+          use Filters to narrow it by city, batch, profession, or alumni and teachers.
         </P>
       </Section>
 
-      <Section title="What the directory is not">
+      <Section title="Your profile">
         <P>
-          It is not a mailing list. Contact details here were shared so that old friends
-          could get back in touch, and copying them into a list, passing them on, or using
-          them to sell something is the fastest way to make people take their details down.
-          That one is in the community guidelines too.
+          Everything on your profile can be seen by other members. Please fill in as much as you
+          are comfortable sharing: every detail makes the Directory more useful, and the city you
+          live in is what puts you on the map. To change anything, open your profile and{" "}
+          <Tap /> Edit profile.
+        </P>
+        <P>
+          None of it is public. The site is closed to search engines and to anyone without an
+          account, and your contact details (email, phone numbers and social accounts) are shown
+          only to members an admin has verified as having been at Rishi Valley. Please use other
+          people&rsquo;s details only to get in touch, never for a mailing list or to sell
+          something.
         </P>
       </Section>
-
-      <Doorway href="/directory">Go to the Directory</Doorway>
     </Chapter>
   );
 }

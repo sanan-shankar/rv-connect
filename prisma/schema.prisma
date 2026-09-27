@@ -183,6 +183,11 @@ model User {
   // device"). Only ever moves forward, so the older of two devices catching up
   // cannot rewind it. Null = never seen a feed; the divider stays hidden.
   feedSeenAt    DateTime?
+  // When this member finished or closed the guide's first-run tour, which runs
+  // once over the Feed (docs/spec/guide.md section 5). On the account for the
+  // same reason as feedSeenAt: "only once", not once per device. Null = not yet,
+  // which is every row that existed when the tour shipped.
+  guideSeenAt   DateTime?
   visits        Visit[]
   searches      SearchLog[]
   contentViews  ContentView[] @relation("ContentViewer")

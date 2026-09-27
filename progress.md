@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-27 (guide) — the guide is plain writing, and every member is taken through it once
 - 2026-09-27 (catchups, batches) — a batch Catch-up runs every three months
 - 2026-09-27 (ui) — the close button is a bare X on every dialog and sheet
 - 2026-09-27 (catchups, batches) — a changed batch year moves the member out of the old batch's Catch-up, not just into the new one

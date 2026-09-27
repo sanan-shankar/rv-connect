@@ -188,8 +188,9 @@ export default async function MainLayout({
         {children}
         {IS_DEMO && <DemoBar userId={session.user.id} />}
       </AppShell>
-      {/* Renders nothing until somebody presses a page title. */}
-      <GuideLayer />
+      {/* Renders nothing until somebody presses a page title or the Feed
+          starts the first-run tour. */}
+      <GuideLayer userId={session.user.id} isTeacher={isTeacher} />
     </>
   );
 }
