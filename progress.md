@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-27 (collection) — the drop box names all three ways in, and paste reads the clipboard the reliable way
 - 2026-09-27 (directory) — the city panel is its old width, "See all" opens People, and rows leave out the filtered city
 - 2026-09-27 (guide) — the guide is plain writing, and every member is taken through it once
 - 2026-09-27 (catchups, batches) — a batch Catch-up runs every three months

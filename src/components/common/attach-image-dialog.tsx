@@ -88,7 +88,7 @@ export function usePointerFine(): boolean {
    a `DataTransfer` too, so the same walk covers both a drop and a paste, and
    `.items` is the one of the two that paste has reliably populated across
    browsers. */
-function imagesFromDataTransfer(data: DataTransfer): File[] {
+export function imagesFromDataTransfer(data: DataTransfer): File[] {
   const files: File[] = [];
   for (const item of data.items) {
     if (item.kind === "file" && isImageFile(item)) {

@@ -64,7 +64,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { EASE_OUT_SMOOTH, SPRINGS, SpringPress } from "@/components/common/motion";
-import { wellClass, WELL_PRESS, usePointerFine } from "@/components/common/attach-image-dialog";
+import { imagesFromDataTransfer, wellClass, WELL_PRESS, usePointerFine } from "@/components/common/attach-image-dialog";
 import {
   ContributedHoopoe,
   PILE_MAX,
@@ -494,7 +494,10 @@ export function ContributeRoom({
   useEffect(() => {
     if (added !== null || !active) return;
     const onPaste = (e: ClipboardEvent) => {
-      const files = [...(e.clipboardData?.files ?? [])];
+      /* `.items`, through the composer's own reader, not `.files`: paste has
+         reliably filled only `.items` across browsers (attach-image-dialog),
+         and the drop box now tells people they can paste. */
+      const files = e.clipboardData ? imagesFromDataTransfer(e.clipboardData) : [];
       if (!files.length) return;
       // Only when the clipboard actually held a file: pasting text into the
       // caption must go on being pasting text into the caption.
@@ -1230,14 +1233,21 @@ function Invitation({
           <Images size={36} weight="duotone" />
         </m.span>
         <span className="text-sm font-medium">
-          {reading > 0
-            ? `Reading ${reading} photographs...`
-            : canDrag
-              ? "Drop photographs here, or click to browse"
-              : /* A phone has no cursor to drag with, so it is told the one
-                   thing a tap actually does. */
-                "Add your photographs"}
+          {reading > 0 ? `Reading ${reading} photographs...` : "Add your photographs"}
         </span>
+        {/* All three ways in, named, on a computer. The owner, 2026-09-27:
+            "we should say drag and drop, [...] paste or click to browse. I
+            think that directionality should be there. So that people know
+            [...] they have all three of those options. Because right now, I
+            just click on it." This reverses the 2026-08-29 trim that left
+            paste unsaid as a shortcut for people who already paste. A phone
+            has no cursor to drag with and no paste on a box, so it is told the
+            one thing a tap does. */}
+        {reading === 0 && (
+          <span className="text-[13px] text-muted-foreground">
+            {canDrag ? "Drag and drop, paste, or click to browse" : "Tap to choose from your photos"}
+          </span>
+        )}
       </SpringPress>
       {/* Only the half of this that is news. "Yours go straight into the
           Collection" told a trusted contributor the default, which is not
