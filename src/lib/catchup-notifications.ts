@@ -24,6 +24,7 @@ export const CATCHUP_NOTIFICATION_TYPES = [
   "catchup_sealed",
   "catchup_love",
   "catchup_comment",
+  "catchup_added",
 ] as const;
 
 /**

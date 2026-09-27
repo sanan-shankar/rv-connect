@@ -103,7 +103,12 @@ export type CatchupNotifyKind =
   /* A time capsule closed and will open in a year (build phase 14). */
   | "catchup_sealed"
   | "catchup_love"
-  | "catchup_comment";
+  | "catchup_comment"
+  /* A Keeper enrolled you in a Catch-up that already existed (bug fix,
+     2026-09-27). Not part of the Edition state machine above -- it fires from
+     `addCatchupMembers` the moment membership is written, whatever the live
+     Edition is doing. */
+  | "catchup_added";
 
 // ─── Pure state-machine input ────────────────────────────────────────────────
 
@@ -331,5 +336,24 @@ export type NotifyLoveFn = (
     authorId: string;
     likerId: string;
     likerName: string;
+  }
+) => Promise<void>;
+
+/**
+ * A Keeper adds someone to a Catch-up that already exists (bug fix,
+ * 2026-09-27: `addCatchupMembers` enrolled people and told nobody).
+ *
+ * Unlike every builder above, this one is not audience math over a groupId --
+ * the caller has already worked out exactly who is newly enrolled, so `userIds`
+ * IS the recipient list, taken as given. Never the person doing the adding;
+ * the caller leaves them out because they are never in their own `newlyAdded`.
+ */
+export type NotifyAddedFn = (
+  db: CatchupDb,
+  ctx: {
+    catchupId: string;
+    groupName: string;
+    addedByName: string;
+    userIds: string[];
   }
 ) => Promise<void>;
