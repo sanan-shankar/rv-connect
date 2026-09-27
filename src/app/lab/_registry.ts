@@ -277,11 +277,18 @@ export const REGISTRY: LabEntry[] = [
   },
 
   {
-    href: "/lab/valley/hills",
-    title: "The hills, as they are",
+    href: "/lab/valley",
+    title: "The valley, flown into",
     group: "Delight",
     status: "active",
-    note: "Real elevation for 32 km round the school, drawn as contours that stand up into relief, under the sun where it is now. The one survivor of the valley campaign (the lit mark, the day/night map, the seal and the three /lab/years rooms were deleted 2026-09-27 at his word); being rebuilt from satellite imagery as the landing page's opening.",
+    note: "The landing page's opening, rebuilt from the round-one hills: aerial photographs on real elevation under a real sky, a flight from high over the plateau, down the NH42 from Madanapalle and low over the campus, turning at the far side to the three hills, which become the mark. ?t=12 holds a moment, ?clean=1 hides the strip. Needs its ground once: node scripts/dev/valley-film.mjs.",
+    children: [
+      {
+        href: "/lab/valley/hills",
+        title: "Round one: the hills as contours",
+        note: "Kept for comparison until the film replaces it: SRTM contours standing up into relief, the sun where it is now.",
+      },
+    ],
   },
 
   /* ---------------------------------------------------------------- *

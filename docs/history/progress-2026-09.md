@@ -8702,3 +8702,15 @@ that Make everyone a keeper and have all of them paused by default."
 This reverses his N30 correction for the cycle ("Can anyone open answering? That shouldn't be
 allowed. Because many people would click it by accident. Especially on a batch thing."); it was
 raised with him. `batch-catchup-keeper-rule.test.mjs` pins the nine and the six.
+
+## 2026-09-28 (lab) — the valley, flown into: a film over the real valley that ends on the landing page
+
+Owner (¶11): make the 3D hills realistic, relatable and clearly placed, "like a storyboard",
+ending with the hills becoming the logo. `/lab/valley` is that film, built to play as the
+landing page's opening: down through the clouds over Madanapalle, along the NH42, low over
+the campus, at rest facing Bodikonda, Middle Peak and Rishikonda while their real ridge is
+traced into the mark, which peels off to the corner and leaves a hill-shaped window onto the
+landing's photograph that opens until we are through it. Aerial imagery (Esri, lab only,
+gitignored) on SRTM, 114k trees found in the imagery and stood up with shadows, volumetric
+cumulus, one afternoon sun. `docs/planning/valley/storyboard.md` says where it lives and
+what is his to decide (the imagery's licence first). Shot at both viewports; 42 to 60 fps.
