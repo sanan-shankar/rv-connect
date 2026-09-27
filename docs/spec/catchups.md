@@ -59,9 +59,13 @@ Teachers, blocked accounts and anyone inside their deletion window are dropped f
 
 **A batch Catch-up** belongs to a batch group (`Group.batchYear` set). `isBatchCatchup(batchYear)`
 is the whole test. One exists for every batch group at or over **`BATCH_CATCHUP_FLOOR` = 10**
-members; under ten there is none. On the live database that is Batch of 2023 and Batch of 2024. Its
-`createdById` and `inviteToken` are NULL: nobody keeps it and there is nobody to invite, because the
-membership is the batch. Everyone who signs up with that batch year is added (`joinBatchGroup` in
+members; under ten there is none. On the live database, 2026-09-27, that is nine batches: 1989, 2016,
+2018, 2019, 2021, 2022, 2023, 2024 and 2026. Its `createdById` and `inviteToken` are NULL: nobody
+keeps it and there is nobody to invite, because the membership is the batch. It runs **every three
+months** (`BATCH_CADENCE`, written on the row by `ensureBatchCatchup`; owner, 2026-09-27: "if it's
+monthly now, make it quarterly"). Until then it got the column default, monthly, by omission, and
+with no Keeper nobody could change it; `prisma/migrations-manual/2026-09-27-batch-catchups-quarterly.sql`
+moved the nine. Everyone who signs up with that batch year is added (`joinBatchGroup` in
 `src/lib/batch-catchups.ts`), and a late joiner reads every earlier Edition. A member whose batch
 year changes afterwards, by their own profile or the admin's People edit, is moved: `syncBatchGroup`
 takes them out of the old batch's group, pref row and Catch-up bells, the same as leaving, and into
@@ -137,7 +141,8 @@ All in `src/lib/catchups-core.ts`.
 - **A time capsule opens** on `capsuleOpensAt(sealedAt)`: the same calendar date next year in IST,
   at 07:00 IST. 29 February opens on 28 February. It is stored in `publishAt`.
 - **The next Edition opens** at `nextOpensAt = publishedAt + gap` (from `sealedAt` for a capsule): 14 days (`biweekly`), one calendar
-  month (`monthly`, the default), or three (`quarterly`). Months clamp to the end of a short month.
+  month (`monthly`, the default for a people Catch-up), or three (`quarterly`, every batch Catch-up).
+  Months clamp to the end of a short month.
   It only opens once the latest Edition is published.
 
 ### 3.3 What the clock does on its own
