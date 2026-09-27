@@ -1058,12 +1058,16 @@ export function CreatePostForm({
                               className={cn(
                                 // Selected stays a solid canopy fill (DESIGN-SYSTEM
                                 // rule 4: selection is the one green state, and it is
-                                // not hover). Unselected is a neutral chip, so its
-                                // hover is the shared state layer.
-                                "state-layer rounded-full px-2.5 py-1 text-xs font-medium active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                                // not hover). Unselected is an outline with no fill:
+                                // it was --muted, the tan on a white menu the owner
+                                // took off every control on 2026-09-27 ("I hate that
+                                // color. I don't like anywhere we use it"). Both
+                                // states carry the 1px border so choosing one does
+                                // not change its size. Hover is the shared layer.
+                                "state-layer rounded-full border px-2.5 py-1 text-xs font-medium active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                                 !audienceCity
-                                  ? "bg-canopy text-white"
-                                  : "bg-muted text-muted-foreground"
+                                  ? "border-canopy bg-canopy text-white"
+                                  : "border-border bg-transparent text-muted-foreground"
                               )}
                             >
                               Everyone
@@ -1076,10 +1080,10 @@ export function CreatePostForm({
                                 aria-checked={audienceCity === city}
                                 onClick={() => setAudienceCity(city)}
                                 className={cn(
-                                  "state-layer rounded-full px-2.5 py-1 text-xs font-medium active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                                  "state-layer rounded-full border px-2.5 py-1 text-xs font-medium active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                                   audienceCity === city
-                                    ? "bg-canopy text-white"
-                                    : "bg-muted text-muted-foreground"
+                                    ? "border-canopy bg-canopy text-white"
+                                    : "border-border bg-transparent text-muted-foreground"
                                 )}
                               >
                                 {city}
