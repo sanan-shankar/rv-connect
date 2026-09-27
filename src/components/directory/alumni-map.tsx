@@ -261,6 +261,8 @@ export function AlumniMap({
   unmapped,
   unmappedPeople = [],
   namesLocked = false,
+  cityHref,
+  onSeeAll,
 }: {
   pins: CityPin[];
   unmapped: number;
@@ -269,6 +271,16 @@ export function AlumniMap({
    *  no people, so the drilldown explains the gate instead of reading "no one
    *  to show here yet" about a city with a number on it. */
   namesLocked?: boolean;
+  /** The address that lists a pin's people. The directory passes one that
+   *  keeps whatever else is filtered, because the pin's count was counted
+   *  under those filters: "See all 45" has to open 45, not every member in
+   *  the city. Without it, the pin's cities alone (`pinHref`). */
+  cityHref?: (cities: string[]) => string;
+  /** "See all N" as a view change rather than a plain link. The directory
+   *  moves to People and navigates; left to the link, the page stayed on the
+   *  map with the city added as a filter (owner, 2026-09-27: "it just adds
+   *  Bengaluru as a filter but then it needs to go to the people section"). */
+  onSeeAll?: (href: string) => void;
 }) {
   const [transform, setTransform] = useState<ZoomTransform>(DEFAULT_VIEW);
   /* Empty until the atlas lands. Rendering no <path> is a frame the map has
@@ -595,7 +607,7 @@ export function AlumniMap({
                       title: pin.city,
                       count: pin.count,
                       people: pin.people,
-                      href: pinHref(pin),
+                      href: cityHref ? cityHref(pin.cities) : pinHref(pin),
                     });
                 }}
                 onKeyDown={(e) => {
@@ -605,7 +617,7 @@ export function AlumniMap({
                       title: pin.city,
                       count: pin.count,
                       people: pin.people,
-                      href: pinHref(pin),
+                      href: cityHref ? cityHref(pin.cities) : pinHref(pin),
                     });
                   }
                 }}
@@ -791,8 +803,18 @@ export function AlumniMap({
              borrowed control one: `--mist` is spoken for as recessed wells and
              `--secondary` as quiet filled controls, so neither should become a
              panel. The separation from the dimmed page behind is carried by the
-             hairline and the layered shadow, which is what they are for. */
-          className="w-full overflow-y-auto rounded-l-[var(--radius)] bg-background sm:max-w-md"
+             hairline and the layered shadow, which is what they are for.
+
+             No width here: the drawer's own is right, three quarters of a
+             phone and 384px from sm up. This used to add w-full and
+             sm:max-w-md, which did nothing while the primitive's data-side
+             width outranked them; the 2026-09-15 sheet refactor dropped that
+             width, the override took effect, and the panel filled the phone
+             with a block of empty space beside the names (owner,
+             2026-09-27: "now it takes up the full screen of a mobile. But we
+             don't need that [...] not too tight, but, again, this is too
+             wide"). */
+          className="overflow-y-auto rounded-l-[var(--radius)] bg-background"
         >
           {/* pb-1: the header's own p-4 plus the list's old mt-2 plus a row's
               py-2 stacked up to ~32px of structural air under the title, on top
@@ -867,7 +889,14 @@ export function AlumniMap({
             {!namesLocked && drill?.href && drill.count != null && drill.people.length < drill.count && (
               <Link
                 href={drill.href}
-                onClick={() => setDrill(null)}
+                onClick={(e) => {
+                  setDrill(null);
+                  /* A modified click is the browser's (a new tab opens the
+                     link as it stands); a plain one is the directory's. */
+                  if (!onSeeAll || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                  e.preventDefault();
+                  onSeeAll(drill.href!);
+                }}
                 className="group mt-1 block rounded-[var(--radius-md)] px-2 py-3 text-[15px] font-medium text-canopy state-layer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <span className="group-hover:underline">

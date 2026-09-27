@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { DirectoryClient } from "@/components/directory/directory-client";
-import { cityCoords, hasOwnPin, normalizeCity } from "@/lib/city-coords";
+import { cityCoords, cityFilterTargets, hasOwnPin, normalizeCity } from "@/lib/city-coords";
 import { TAG_FLOOR, TAG_VISIBLE_MAX, tagLabel } from "@/lib/profession-tags";
 import { resolvePlacesFromGazetteer } from "@/lib/geocode";
 import { buildDirectoryWhere, directoryOrderBy, parseDirectoryYears } from "./where";
@@ -415,6 +415,17 @@ export default async function DirectoryPage({
         hasFilter={hasFilter}
         nextCursor={nextCursor}
         namesLocked={namesLocked}
+        /* The cities being filtered by, as the card compares them: every
+           spelling the filter itself matches (Bangalore finds Bengaluru), folded
+           the same way. Worked out here because the variants come from the
+           gazetteer, which must not reach the browser. */
+        filteredCities={[
+          ...new Set(
+            (Array.isArray(params.city) ? params.city : params.city ? [params.city] : [])
+              .flatMap((c) => cityFilterTargets(c))
+              .map((c) => normalizeCity(c))
+          ),
+        ]}
       />
     </div>
   );

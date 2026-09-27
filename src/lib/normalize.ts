@@ -120,6 +120,29 @@ export function shortPlaceLabel(input: string): string {
 }
 
 /**
+ * Fold case, accents and whitespace, KEEPING any comma-qualified tail:
+ * "Gurgáon " and "gurgaon" meet at one key, and "Northfield, Minnesota"
+ * survives intact for lookups that can use the qualifier. NFKD splits each
+ * accented letter into base + combining marks; stripping the marks (\p{M})
+ * is what makes the fold spelling-insensitive without a lookup table.
+ */
+export function normalizePlaceString(raw: string): string {
+  return raw
+    .normalize("NFKD")
+    .replace(/\p{M}+/gu, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/\s*,\s*/g, ", ")
+    .trim();
+}
+
+/** Normalize a free-text city string to a short gazetteer key (the part
+ *  before any comma: "Bengaluru, Karnataka" -> "bengaluru"). */
+export function normalizeCity(raw: string): string {
+  return normalizePlaceString(raw).replace(/,.*$/, "").trim();
+}
+
+/**
  * Normalize a phone number to digits with an optional leading "+". No
  * validation of length or country code beyond that; callers that need real
  * validation should layer it on top.
