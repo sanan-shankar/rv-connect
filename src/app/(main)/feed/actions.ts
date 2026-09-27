@@ -32,6 +32,8 @@ import {
   notifyMember,
   notifyMemberOnceUnread,
 } from "@/lib/post-notifications";
+import { mentionedUserIds } from "@/lib/rich-text";
+import { notifyMentioned } from "@/lib/mention-notifications";
 import { parseJsonArray, withTitleAsOpeningLine } from "@/lib/utils";
 import type { Prisma } from "@/generated/prisma/client";
 import { DOUBLE_SUBMIT_MS, isPostTwin } from "@/lib/double-submit";
@@ -285,6 +287,32 @@ export async function createPost(formData: FormData) {
     },
   });
 
+  /* "And, also, yeah, obviously, notify the person who is tagged." (owner)
+   *
+   * Skipped for a draft: nobody but its author can see it yet --
+   * `decidePostVisibility` inside `notifyMentioned` would refuse every one
+   * of them anyway (status is not "published") -- so this is skipped rather
+   * than paid for. `publishDraft` below is what tells them once a letter
+   * saved this way actually goes out.
+   */
+  if (!isDraft) {
+    await notifyMentioned({
+      ids: mentionedUserIds(parsed.data.content),
+      actorId: session.user.id,
+      actorName: session.user.name,
+      scope: {
+        id: post.id,
+        authorId: post.authorId,
+        cityScope: post.cityScope,
+        targetBatches: post.targetBatches,
+        isHidden: false,
+        status: "published",
+        kind: post.kind,
+      },
+      source: post.kind === "letter" ? "letter" : "post",
+    });
+  }
+
   /* "Also add to the Collection". Scheduled with `after` so the composer gets
      its response the moment the post exists: copying a photograph costs a
      fetch of the original plus a sharp resize per image, and making someone
@@ -337,7 +365,16 @@ export async function publishDraft(postId: string, opts: { asPost?: boolean } = 
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { authorId: true, status: true, kind: true, title: true, content: true },
+    select: {
+      authorId: true,
+      status: true,
+      kind: true,
+      title: true,
+      content: true,
+      cityScope: true,
+      targetBatches: true,
+      isHidden: true,
+    },
   });
   if (!post) return { error: "Draft not found" };
   if (post.authorId !== session.user.id) return { error: "Not authorized" };
@@ -346,16 +383,42 @@ export async function publishDraft(postId: string, opts: { asPost?: boolean } = 
   }
 
   let asPost = {};
+  // A draft has never had an audience, so this is what it is published WITH,
+  // not what it was written with -- the text `notifyMentioned` below reads.
+  let finalContent = post.content;
+  let finalKind = post.kind;
   // `?.`: a hand-made call can send null, which the default does not cover.
   if (opts?.asPost === true) {
-    const content = withTitleAsOpeningLine(post.title, post.content);
-    if (content.length > postContentMax("post")) return { error: POST_TOO_LONG };
-    asPost = { kind: "post", title: null, content };
+    finalContent = withTitleAsOpeningLine(post.title, post.content);
+    if (finalContent.length > postContentMax("post")) return { error: POST_TOO_LONG };
+    finalKind = "post";
+    asPost = { kind: "post", title: null, content: finalContent };
   }
 
   await prisma.post.update({
     where: { id: postId },
     data: { status: "published", createdAt: new Date(), ...asPost },
+  });
+
+  /* A draft has no readers -- `decidePostVisibility` refuses every viewer but
+   * its author while status is "draft" -- so THIS is the letter's real
+   * "create" moment for anyone it @-mentions, not the original save. Every
+   * mention counts as new here; nobody could have seen an earlier one.
+   */
+  await notifyMentioned({
+    ids: mentionedUserIds(finalContent),
+    actorId: session.user.id,
+    actorName: session.user.name,
+    scope: {
+      id: postId,
+      authorId: post.authorId,
+      cityScope: post.cityScope,
+      targetBatches: post.targetBatches,
+      isHidden: post.isHidden,
+      status: "published",
+      kind: finalKind,
+    },
+    source: finalKind === "letter" ? "letter" : "post",
   });
 
   revalidatePath("/feed");
@@ -515,7 +578,16 @@ export async function editPost(postId: string, formData: FormData) {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { authorId: true, kind: true, status: true, images: true },
+    select: {
+      authorId: true,
+      kind: true,
+      status: true,
+      images: true,
+      content: true,
+      cityScope: true,
+      targetBatches: true,
+      isHidden: true,
+    },
   });
 
   if (!post) return { error: "Post not found" };
@@ -680,6 +752,33 @@ export async function editPost(postId: string, formData: FormData) {
   // must not hold a transaction open, and a failure is already recorded as
   // work the nightly sweep will redo.
   if (removedImages.length > 0) await drainPendingImagePurges(removedImages);
+
+  /* Only people NEWLY mentioned: diff this edit's ids against the ids the
+   * body already carried, so re-saving a post that still mentions the same
+   * person does not tell them again. Skipped for a draft the same way
+   * createPost skips it -- nobody but the author can see it, so there is
+   * nobody to diff for yet; publishDraft is where a drafted letter's
+   * mentions are told, all at once, the day it actually goes out.
+   */
+  if (post.status === "published") {
+    const oldIds = new Set(mentionedUserIds(post.content));
+    const newIds = mentionedUserIds(content).filter((id) => !oldIds.has(id));
+    await notifyMentioned({
+      ids: newIds,
+      actorId: session.user.id,
+      actorName: session.user.name,
+      scope: {
+        id: postId,
+        authorId: post.authorId,
+        cityScope: post.cityScope,
+        targetBatches: post.targetBatches,
+        isHidden: post.isHidden,
+        status: "published",
+        kind: post.kind,
+      },
+      source: isLetter ? "letter" : "post",
+    });
+  }
 
   /* /letters only. The letter index and the reading page are server-rendered
      and do show the new words; /feed's server tree renders no post, and
@@ -850,7 +949,14 @@ export async function createComment(formData: FormData) {
   // Notifications
   const post = await prisma.post.findUnique({
     where: { id: parsed.data.postId },
-    select: { authorId: true, kind: true },
+    select: {
+      authorId: true,
+      kind: true,
+      cityScope: true,
+      targetBatches: true,
+      isHidden: true,
+      status: true,
+    },
   });
   // A letter's comments live on the letter's own page, not in the feed, so the
   // notification has to say so and go there (audit B-046).
@@ -869,25 +975,55 @@ export async function createComment(formData: FormData) {
   }
 
   // Notify the author of the comment that was replied to
+  let repliedToAuthorId: string | null = null;
   if (!twin && repliedToId) {
     const parentComment = await prisma.comment.findUnique({
       where: { id: repliedToId },
       select: { authorId: true },
     });
+    repliedToAuthorId = parentComment?.authorId ?? null;
     /* `authorId` is nullable since audit M34: a comment whose author has been
        purged survives as an authorless stub, and there is nobody to tell. */
     if (
-      parentComment?.authorId &&
-      parentComment.authorId !== session.user.id &&
-      parentComment.authorId !== post?.authorId
+      repliedToAuthorId &&
+      repliedToAuthorId !== session.user.id &&
+      repliedToAuthorId !== post?.authorId
     ) {
       await notifyMember({
-        userId: parentComment.authorId,
+        userId: repliedToAuthorId,
         type: "reply",
         message: `${session.user.name} replied to your comment`,
         link: postLink,
       });
     }
+  }
+
+  // Mentions inside the comment text itself: the same "notify the tagged
+  // member" rule a post/letter body gets, scoped to the post the comment is
+  // on -- a comment is never more visible than its own thread. Whoever is
+  // already hearing about this exact comment through "commented on your
+  // post" or "replied to your comment" above is skipped, so a mention is
+  // never a second bell for the same event.
+  if (!twin && post) {
+    const alsoSkip = [post.authorId, repliedToAuthorId].filter(
+      (id): id is string => id !== null
+    );
+    await notifyMentioned({
+      ids: mentionedUserIds(parsed.data.content),
+      actorId: session.user.id,
+      actorName: session.user.name,
+      scope: {
+        id: parsed.data.postId,
+        authorId: post.authorId,
+        cityScope: post.cityScope,
+        targetBatches: post.targetBatches,
+        isHidden: post.isHidden,
+        status: post.status,
+        kind: post.kind,
+      },
+      source: "comment",
+      alsoSkip,
+    });
   }
 
   // No revalidatePath: see the note in toggleLike above.

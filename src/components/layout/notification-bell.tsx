@@ -15,6 +15,7 @@ import {
   Mail,
   Flag,
   HandHeart,
+  AtSign,
 } from "lucide-react";
 import { m } from "motion/react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
@@ -61,7 +62,8 @@ interface Notification {
 
 /**
  * Every `Notification.type` written anywhere in the app (feed/actions.ts,
- * admin-actions.ts, collection/actions.ts, catchups-notify.ts -- see `CatchupNotifyKind` in catchups-types.ts for the
+ * admin-actions.ts, collection/actions.ts, mention-notifications.ts,
+ * catchups-notify.ts -- see `CatchupNotifyKind` in catchups-types.ts for the
  * five Catch-up kinds) maps to one glyph here. Unknown/future types fall back
  * to the plain `Bell` so a new type never renders blank.
  *
@@ -74,6 +76,8 @@ const NOTIFICATION_ICON_META: Record<string, { icon: typeof Bell; heart?: boolea
   like: { icon: Heart, heart: true, label: "Liked" },
   comment: { icon: MessageCircle, label: "Comment" },
   reply: { icon: MessageCircle, label: "Reply" },
+  // Somebody @-tagged you in a post, letter or comment (mention-notifications.ts).
+  mention: { icon: AtSign, label: "Mentioned you" },
   // Admin/moderation notices.
   admin: { icon: ShieldCheck, label: "Rishi Valley" },
   // A note attached to a removed post/letter/comment/photo. Opens the
