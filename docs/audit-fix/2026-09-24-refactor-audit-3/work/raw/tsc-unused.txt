@@ -1,0 +1,3 @@
+scripts/dev/merge-cities.ts(22,7): error TS6133: 'CANONICAL_PLACE_ID' is declared but its value is never read.
+src/app/lab/catchups/wall/_shapes.tsx(255,48): error TS6133: 'g' is declared but its value is never read.
+EXIT=2

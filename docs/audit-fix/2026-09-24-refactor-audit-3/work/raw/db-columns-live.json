@@ -1,0 +1,170 @@
+{
+ "command": "SELECT",
+ "rowCount": 41,
+ "rows": [
+  {
+   "tbl": "AdminMessage",
+   "cols": "id:text, threadId:text, authorId:text, fromAdmin:boolean, body:text, imageUrl:text, createdAt:timestamp without time zone"
+  },
+  {
+   "tbl": "AdminThread",
+   "cols": "id:text, memberId:text, subject:text, kind:text, status:text, reportId:text, lastMessageAt:timestamp without time zone, memberUnread:boolean, adminUnread:boolean, createdAt:timestamp without time zone, updatedAt:timestamp without time zone"
+  },
+  {
+   "tbl": "AuditLog",
+   "cols": "id:text, actorId:text, action:text, targetType:text, targetId:text, ip:text, detail:text, createdAt:timestamp without time zone"
+  },
+  {
+   "tbl": "AuthToken",
+   "cols": "id:text, userId:text, kind:text, tokenHash:text, expiresAt:timestamp without time zone, usedAt:timestamp without time zone, sentTo:text, createdAt:timestamp without time zone"
+  },
+  {
+   "tbl": "Bookmark",
+   "cols": "id:text, userId:text, postId:text, createdAt:timestamp without time zone"
+  },
+  {
+   "tbl": "CatchupEdition",
+   "cols": "id:text, catchupId:text, number:integer, theme:text, status:text, questionsCloseAt:timestamp without time zone, answersCloseAt:timestamp without time zone, publishAt:timestamp without time zone, publishedAt:timestamp without time zone, remindersSent:integer, createdAt:timestamp without time zone, updatedAt:timestamp without time zone, timeCapsule:boolean, sealedAt:timestamp without time zone"
+  },
+  {
+   "tbl": "CatchupEditionRead",
+   "cols": "userId:text, editionId:text, readAt:timestamp without time zone"
+  },
+  {
+   "tbl": "CatchupEntry",
+   "cols": "id:text, editionId:text, promptId:text, authorId:text, body:text, images:text, songUrl:text, songTitle:text, songArt:text, createdAt:timestamp without time zone, updatedAt:timestamp without time zone, audioUrl:text, audioSeconds:integer, audioIsAuto:boolean, pollOptionId:text"
+  },
+  {
+   "tbl": "CatchupEntryLove",
+   "cols": "id:text, userId:text, entryId:text"
+  },
+  {
+   "tbl": "CatchupPrompt",
+   "cols": "id:text, editionId:text, authorId:text, text:text, category:text, source:text, showAsker:boolean, accepted:boolean, position:integer, createdAt:timestamp without time zone"
+  },
+  {
+   "tbl": "CatchupPromptOption",
+   "cols": "id:text, promptId:text, text:text, position:integer"
+  },
+  {
+   "tbl": "CatchupReminderPref",
+   "cols": "id:text, catchupId:text, userId:text, reminderMode:text, archivedAt:timestamp without time zone, deletedAt:timestamp without time zone"
+  },
+  {
+   "tbl": "CatchupSeries",
+   "cols": "id:text, groupId:text, createdById:text, title:text, intro:text, cadence:text, status:text, nextOpensAt:timestamp without time zone, createdAt:timestamp without time zone, updatedAt:timestamp without time zone, inviteToken:text, pausedAt:timestamp without time zone, pictureSrc:text, pictureFocus:text"
+  },
+  {
+   "tbl": "Comment",
+   "cols": "id:text, content:text, authorId:text, postId:text, parentId:text, createdAt:timestamp without time zone, isHidden:boolean, deletedAt:timestamp without time zone, entryId:text"
+  },
+  {
+   "tbl": "CommentLike",
+   "cols": "id:text, userId:text, commentId:text"
+  },
+  {
+   "tbl": "ContentView",
+   "cols": "id:text, viewerId:text, kind:text, targetId:text, count:integer, firstAt:timestamp without time zone, lastAt:timestamp without time zone"
+  },
+  {
+   "tbl": "Contribution",
+   "cols": "id:text, userId:text, amount:integer, currency:text, status:text, razorpayOrderId:text, razorpayPaymentId:text, method:text, failureReason:text, createdAt:timestamp without time zone, paidAt:timestamp without time zone, updatedAt:timestamp without time zone, livemode:boolean, refundedAmount:integer, reversalIds:ARRAY"
+  },
+  {
+   "tbl": "Group",
+   "cols": "id:text, name:text, creatorId:text, createdAt:timestamp without time zone, updatedAt:timestamp without time zone, batchYear:integer"
+  },
+  {
+   "tbl": "GroupMember",
+   "cols": "id:text, groupId:text, userId:text, role:text, joinedAt:timestamp without time zone"
+  },
+  {
+   "tbl": "Image",
+   "cols": "url:text, width:integer, height:integer, focalX:double precision, focalY:double precision, blurDataUrl:text, createdAt:timestamp without time zone, focalSet:boolean"
+  },
+  {
+   "tbl": "LabRoomState",
+   "cols": "href:text, archived:boolean, updatedAt:timestamp without time zone"
+  },
+  {
+   "tbl": "Like",
+   "cols": "id:text, userId:text, postId:text"
+  },
+  {
+   "tbl": "LinkPreview",
+   "cols": "url:text, kind:text, title:text, subtitle:text, thumbUrl:text, failedAt:timestamp without time zone, fetchedAt:timestamp without time zone"
+  },
+  {
+   "tbl": "LoginAttempt",
+   "cols": "id:text, email:text, userId:text, ok:boolean, reason:text, createdAt:timestamp without time zone, detail:text"
+  },
+  {
+   "tbl": "MetricSnapshot",
+   "cols": "id:text, day:date, source:text, metric:text, value:double precision, capturedAt:timestamp without time zone"
+  },
+  {
+   "tbl": "Notification",
+   "cols": "id:text, userId:text, type:text, message:text, link:text, read:boolean, createdAt:timestamp without time zone"
+  },
+  {
+   "tbl": "OutboundEmail",
+   "cols": "id:text, userId:text, to:text, kind:text, payload:text, priority:integer, status:text, attempts:integer, lastError:text, createdAt:timestamp without time zone, claimedAt:timestamp without time zone, sentAt:timestamp without time zone, providerId:text, deliveredAt:timestamp without time zone, bouncedAt:timestamp without time zone, complainedAt:timestamp without time zone, nextAttemptAt:timestamp without time zone, deferrals:integer"
+  },
+  {
+   "tbl": "PendingImagePurge",
+   "cols": "id:text, url:text, reason:text, attempts:integer, lastError:text, createdAt:timestamp without time zone"
+  },
+  {
+   "tbl": "Photo",
+   "cols": "id:text, uploaderId:text, thumbUrl:text, url:text, width:integer, height:integer, caption:text, subject:text, era:text, approved:boolean, isHidden:boolean, approvedAt:timestamp without time zone, approvedById:text, createdAt:timestamp without time zone, updatedAt:timestamp without time zone, photoYear:integer, photoMonth:integer, datePrecision:text, sourceKey:text, takenKey:integer, scope:text, classYears:text, exifYear:integer, exifMonth:integer, heldAt:timestamp without time zone, screenUrl:text"
+  },
+  {
+   "tbl": "PhotoLove",
+   "cols": "id:text, userId:text, photoId:text"
+  },
+  {
+   "tbl": "Place",
+   "cols": "id:integer, name:text, asciiName:text, altNames:text, lat:double precision, lng:double precision, country:text, admin1:text, population:integer"
+  },
+  {
+   "tbl": "PollOption",
+   "cols": "id:text, postId:text, text:text, position:integer"
+  },
+  {
+   "tbl": "PollVote",
+   "cols": "id:text, pollOptionId:text, userId:text, postId:text"
+  },
+  {
+   "tbl": "Post",
+   "cols": "id:text, authorId:text, kind:text, title:text, content:text, targetBatches:text, images:text, isHidden:boolean, createdAt:timestamp without time zone, updatedAt:timestamp without time zone, cityScope:text, status:text"
+  },
+  {
+   "tbl": "QueueLease",
+   "cols": "name:text, holder:text, expiresAt:timestamp without time zone"
+  },
+  {
+   "tbl": "Report",
+   "cols": "id:text, reason:text, reporterId:text, targetType:text, postId:text, reportedUserId:text, status:text, createdAt:timestamp without time zone"
+  },
+  {
+   "tbl": "RosterEntry",
+   "cols": "id:text, fullName:text, normalizedName:text, email:text, batchYear:integer, source:text, createdAt:timestamp without time zone"
+  },
+  {
+   "tbl": "SearchLog",
+   "cols": "id:text, userId:text, scope:text, query:text, results:integer, createdAt:timestamp without time zone"
+  },
+  {
+   "tbl": "User",
+   "cols": "id:text, name:text, email:text, password:text, emailVerified:timestamp without time zone, photoUrl:text, bio:text, about:text, currentCity:text, workplace:text, jobTitle:text, phone:text, instagram:text, linkedin:text, accountType:text, batchType:text, batchYear:integer, yearJoined:integer, yearLeft:integer, admissionNumber:integer, taughtFrom:integer, taughtUntil:integer, subjects:text, role:text, verifyState:text, verifiedAt:timestamp without time zone, verifyMethod:text, isBlocked:boolean, adminNote:text, createdAt:timestamp without time zone, updatedAt:timestamp without time zone, coverPhoto:text, photoTrusted:boolean, gradeJoined:integer, secondaryCity:text, houses:text, displayEmail:text, birdOverride:text, facebook:text, links:text, phones:text, theme:text, birdPickedAt:timestamp without time zone, lastSeenAt:timestamp without time zone, feedSeenAt:timestamp without time zone, credentialVersion:integer, deletionRequestedAt:timestamp without time zone, consentAt:timestamp without time zone, showEmail:boolean, verifyStateAt:timestamp without time zone, professionTags:ARRAY, professionTagSource:text"
+  },
+  {
+   "tbl": "UserPlace",
+   "cols": "id:text, userId:text, placeId:integer, label:text, city:text, lat:double precision, lng:double precision, position:integer, createdAt:timestamp without time zone"
+  },
+  {
+   "tbl": "Visit",
+   "cols": "id:text, userId:text, startedAt:timestamp without time zone, endedAt:timestamp without time zone, views:integer, lastPath:text, device:text, os:text, browser:text, country:text, city:text, entryPath:text, referrer:text, language:text, region:text, paths:ARRAY"
+  }
+ ]
+}

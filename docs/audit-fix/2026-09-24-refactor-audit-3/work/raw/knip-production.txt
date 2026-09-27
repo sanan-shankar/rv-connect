@@ -1,0 +1,24 @@
+Unused dependencies (22)
+@aws-sdk/client-s3             package.json:31:6
+@aws-sdk/s3-request-presigner  package.json:32:6
+@base-ui/react                 package.json:33:6
+@formkit/auto-animate          package.json:34:6
+@phosphor-icons/react          package.json:36:6
+@prisma/client                 package.json:38:6
+@upstash/ratelimit             package.json:40:6
+@upstash/redis                 package.json:41:6
+bcryptjs                       package.json:42:6
+class-variance-authority       package.json:43:6
+clsx                           package.json:44:6
+d3-geo                         package.json:45:6
+d3-selection                   package.json:46:6
+d3-zoom                        package.json:47:6
+posthog-js                     package.json:53:6
+prisma                         package.json:54:6
+resend                         package.json:57:6
+sharp                          package.json:58:6
+sonner                         package.json:59:6
+tailwind-merge                 package.json:60:6
+topojson-client                package.json:61:6
+zod                            package.json:62:6
+EXIT=1

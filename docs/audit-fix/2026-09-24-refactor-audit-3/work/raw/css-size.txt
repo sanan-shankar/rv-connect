@@ -1,0 +1,13 @@
+# Stylesheets in .next/static/chunks (HEAD 70570bcd, 2026-09-24). gz = gzip -6. Which routes load each: from page_client-reference-manifest.js.
+1vjuupxoge4ny.css  9453 B raw / 1090 B gz
+2n0wc4xou_xzc.css  5824 B raw / 1216 B gz
+2n2s4f1i5byh0.css  169614 B raw / 23087 B gz
+3b2mor7o303i_.css  171870 B raw / 26526 B gz
+3m6mr8e1jtg_9.css  23686 B raw / 3331 B gz
+
+3b2mor7o303i_.css = the member stylesheet (globals.css + tailwind-theme.css; source("../") + @source not "./lab"): on every route, 171,870 B raw / 26,544 B gz. Audit 2: 238,434 / 33,666 (one sheet, lab included).
+2n2s4f1i5byh0.css = the lab's own utilities sheet (src/app/lab/lab.css): loaded only under /lab, on top of the member sheet: 169,614 B raw / 23,105 B gz.
+1vjuupxoge4ny.css = the app's next/font CSS (Libre Baskerville 400/700 + Source Sans 3 400/500/600/700, latin): every route, 9,453 B / 1,108 B gz; two woff2 preloaded per page (62.6 KB).
+3m6mr8e1jtg_9.css = /lab/type's nine-family font CSS (23,686 B); 2n0wc4xou_xzc.css = /lab/craft's italic instantiation (5,824 B). Lab routes only.
+
+Member sheet attribution (2,242 leaf rules; class tokens vs src/ minus src/app/lab, whitespace/quote tokenizer): 2,025 rules / 136.0 KB reachable from shipped source; 146 class-less rules / 15.1 KB (preflight, @property, keyframes, base); 7 rules / 0.4 KB reachable only from *.test.mjs files under src/ (top-4, overflow-x-visible, overflow-y-clip, outline-solid, focus-visible:outline-destructive, focus-visible:outline-transparent, focus-visible:ring-inset); 0 rules reachable only from the lab; ~64 rules the parser could not split (attribute-selector variants such as aria-expanded:bg-muted[aria-expanded=true]), all shipped.

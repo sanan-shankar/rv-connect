@@ -1,0 +1,241 @@
+Unused files (7)
+src/components/catchups/answer/answer-redirect.tsx    
+src/components/catchups/home/picture-picker-dialog.tsx
+src/components/landing/feature-section.tsx            
+src/components/landing/footer-hoopoe.tsx              
+src/components/landing/landing-footer.tsx             
+src/components/landing/showcase.tsx                   
+src/components/landing/trust-section.tsx              
+Unused dependencies (1)
+@prisma/client  package.json:38:6
+Unlisted dependencies (3)
+server-only  src/app/lab/valley/_weather.ts:1:8
+server-only  src/lib/comment-thread.ts:24:8    
+server-only  src/lib/link-preview.ts:53:8      
+Unlisted binaries (3)
+pdffonts  scripts/dev/print-magazine.mjs
+pdfinfo   scripts/dev/print-magazine.mjs
+pdftoppm  scripts/dev/print-magazine.mjs
+Unused exports (187)
+setCatchupPicture            function  src/app/(main)/catchups/actions.ts:797:23                   
+setEditionTimeCapsule        function  src/app/(main)/catchups/actions.ts:1636:23                  
+BASE_CSS                               src/app/lab/_kit.tsx:234:14                                 
+liveCorpus                   function  src/app/lab/catchups/_fixtures/magazine/corpus.ts:51:17     
+REMINDERS                              src/app/lab/catchups/_settings.tsx:163:14                   
+RHYTHMS                                src/app/lab/catchups/_settings.tsx:164:14                   
+LONGER                                 src/app/lab/catchups/_settings.tsx:172:14                   
+CHOICES                                src/app/lab/catchups/_settings.tsx:174:14                   
+settingsGroups               function  src/app/lab/catchups/_settings.tsx:401:17                   
+Head                         function  src/app/lab/catchups/_settings.tsx:866:17                   
+EditBody                     function  src/app/lab/catchups/_settings.tsx:936:17                   
+isOpen                       function  src/app/lab/catchups/capsule/_cases.ts:105:17               
+PAGE_CSS                               src/app/lab/catchups/magazine/_pages.tsx:32:14              
+PageView                     function  src/app/lab/catchups/magazine/_pages.tsx:570:17             
+Own                          function  src/app/lab/catchups/sketches/_cover.tsx:105:17             
+Contents                     function  src/app/lab/catchups/sketches/_cover.tsx:120:17             
+Picture                      function  src/app/lab/catchups/sketches/_cover.tsx:287:17             
+HOME_RAIL                              src/app/lab/catchups/sketches/_home.tsx:104:14              
+HOME_GAP                               src/app/lab/catchups/sketches/_home.tsx:105:14              
+Panel                        function  src/app/lab/catchups/sketches/_list.tsx:93:17               
+findLinks                    function  src/app/lab/catchups/sketches/_media.ts:62:17               
+Person                       function  src/app/lab/catchups/sketches/_rail.tsx:53:17               
+RAIL                                   src/app/lab/catchups/sketches/_reader.tsx:73:14             
+RAIL_GAP                               src/app/lab/catchups/sketches/_reader.tsx:74:14             
+Tile                         function  src/app/lab/catchups/sketches/_reader.tsx:142:17            
+Section                      function  src/app/lab/catchups/sketches/_reader.tsx:198:17            
+PICTURES                               src/app/lab/catchups/sketches/_shelf.ts:126:14              
+paused                       function  src/app/lab/catchups/sketches/_shelf.ts:355:17              
+shelfOf                      function  src/app/lab/catchups/sketches/_shelf.ts:361:17              
+VIEWPORT_WIDTH                         src/app/lab/catchups/sketches/_types.ts:22:14               
+PHONE_HEIGHT                           src/app/lab/catchups/sketches/_types.ts:23:14               
+peaksOf                      function  src/app/lab/catchups/voice/_clip.ts:89:17                   
+WALL_CAP                               src/app/lab/catchups/wall/_corpus.ts:199:14                 
+FilterPanel                  function  src/app/lab/directory/_chrome.tsx:76:17                     
+describeFilters              function  src/app/lab/directory/_chrome.tsx:316:17                    
+SentenceLine                 function  src/app/lab/directory/_chrome.tsx:330:17                    
+PLACES                                 src/app/lab/directory/_data.ts:69:14                        
+makeMembers                  function  src/app/lab/directory/_data.ts:257:17                       
+WorldCanvas                  function  src/app/lab/directory/_maps.tsx:97:17                       
+usePoints                    function  src/app/lab/directory/_maps.tsx:934:17                      
+ShippedCard                  function  src/app/lab/directory/_people.tsx:40:17                     
+PersonRow                    function  src/app/lab/directory/_people.tsx:68:17                     
+CompactCard                  function  src/app/lab/directory/_people.tsx:94:17                     
+RuledRow                     function  src/app/lab/directory/_people.tsx:119:17                    
+LIVE_ROWS                              src/app/lab/directory/_profession.tsx:21:14                 
+LIVE_TOTAL                             src/app/lab/directory/_profession.tsx:36:14                 
+TAGGED                                 src/app/lab/directory/_profession.tsx:41:14                 
+FIELDS                                 src/app/lab/directory/_profession.tsx:65:14                 
+STAGES                                 src/app/lab/directory/_profession.tsx:71:14                 
+PEOPLE                                 src/app/lab/groups-rethink/_data.ts:6:14                    
+BirdAvatar                             src/app/lab/groups-rethink/_shell.tsx:32:10                 
+H                                      src/app/lab/hoopoe-marks/_parts.tsx:25:10                   
+Feather                      function  src/app/lab/hoopoe-marks/_parts.tsx:75:17                   
+Eye                          function  src/app/lab/hoopoe-marks/_parts.tsx:83:17                   
+Bill                         function  src/app/lab/hoopoe-marks/_parts.tsx:90:17                   
+yearRange                    function  src/app/lab/profiles/_chain-kit.tsx:101:17                  
+VIEWPORT                               src/app/lab/spine/_columns.tsx:19:14                        
+SIDEBAR                                src/app/lab/spine/_columns.tsx:20:14                        
+UNI_LEFT                               src/app/lab/spine/_columns.tsx:156:14                       
+PLEDGE                                 src/app/lab/support-ideas/_shared.tsx:39:14                 
+SEGMENTS                               src/app/lab/support-ideas/_shared.tsx:45:14                 
+MONTHLY                                src/app/lab/support-ideas/_shared.tsx:51:14                 
+BUILD_COST                             src/app/lab/support-ideas/_shared.tsx:53:14                 
+BUILD_RECOVERED                        src/app/lab/support-ideas/_shared.tsx:54:14                 
+BUILD_COST                             src/app/lab/support/_bars.tsx:15:14                         
+LETTERS                                src/app/lab/tiles/_specimens.tsx:344:14                     
+GATES                                  src/app/lab/tiles/_specimens.tsx:834:14                     
+SURFACES                               src/app/lab/tiles/_specimens.tsx:869:14                     
+verdictFor                   function  src/app/lab/tiles/_specimens.tsx:1010:17                    
+libre                                  src/app/lab/type/_fonts.ts:46:14                            
+sourceSans                             src/app/lab/type/_fonts.ts:52:14                            
+fraunces                               src/app/lab/type/_fonts.ts:60:14                            
+newsreader                             src/app/lab/type/_fonts.ts:68:14                            
+instrument                             src/app/lab/type/_fonts.ts:76:14                            
+literata                               src/app/lab/type/_fonts.ts:84:14                            
+publicSans                             src/app/lab/type/_fonts.ts:94:14                            
+inter                                  src/app/lab/type/_fonts.ts:105:14                           
+figtree                                src/app/lab/type/_fonts.ts:112:14                           
+SHIPPED_SET_WIDTH                      src/app/lab/type/_fonts.ts:170:14                           
+Sheared                      function  src/app/lab/type/_specimens.tsx:38:17                       
+markLight                    function  src/app/lab/valley/_mark-light.tsx:43:17                    
+RAIL_MIN_WINDOW                        src/components/catchups/edition/reader.tsx:114:14           
+HEAD_HEIGHT_PHONE                      src/components/catchups/home/home-head.tsx:40:14            
+HEAD_HEIGHT                            src/components/catchups/home/home-head.tsx:41:14            
+settingsGroups               function  src/components/catchups/settings/settings-surface.tsx:357:17
+confirmCopy                  function  src/components/catchups/settings/settings-surface.tsx:711:17
+RIVER_ORDERS                           src/components/collection/river-controls.tsx:64:14          
+orderLabel                             src/components/collection/river-controls.tsx:71:14          
+DialogTrigger                          src/components/ui/dialog.tsx:204:3                          
+BIRD_SPECIES_COUNT                     src/lib/avatar.ts:44:14                                     
+BIRD_POSE_COUNT                        src/lib/avatar.ts:47:14                                     
+ensureBatchCatchup           function  src/lib/batch-catchups.ts:146:23                            
+healBatchGroupMemberships    function  src/lib/batch-catchups.ts:218:23                            
+healBatchCatchups            function  src/lib/batch-catchups.ts:267:23                            
+PICTURE_FOCUS_PATTERN                  src/lib/catchup-pictures.ts:284:14                          
+CATCHUP_EXPORT_VERSION                 src/lib/catchups-export.ts:44:14                            
+everyAnswer                  function  src/lib/catchups-export.ts:210:17                           
+exportTotals                 function  src/lib/catchups-export.ts:217:17                           
+THUMB_PX                               src/lib/collection-image.ts:24:14                           
+SCREEN_PX                              src/lib/collection-image.ts:44:14                           
+THUMB_PX                               src/lib/collection-photo.ts:31:10                           
+exifBlockOf                            src/lib/collection-photo.ts:31:34                           
+dailyBudget                  function  src/lib/email-queue.ts:394:23                               
+SEND_TIMEOUT_MS                        src/lib/email.ts:79:14                                      
+H                                      src/lib/hoopoe-geometry.ts:32:14                            
+PEEK_CREST                             src/lib/hoopoe-geometry.ts:331:14                           
+SESSION_GAP_MIN                        src/lib/last-seen.ts:26:14                                  
+MAX_URL_LENGTH                         src/lib/link-preview-core.ts:41:14                          
+decodeEntities               function  src/lib/link-preview-core.ts:341:17                         
+ensureLinkPreviews           function  src/lib/link-preview.ts:364:23                              
+sourceFromExport             function  src/lib/magazine/from-export.ts:75:17                       
+NOTES_SHARE                            src/lib/magazine/grammar.ts:32:14                           
+PHOTO_SHARE                            src/lib/magazine/grammar.ts:35:14                           
+DECK_MIN_ANSWERS                       src/lib/magazine/grammar.ts:38:14                           
+BYLINE_ROWS                            src/lib/magazine/grammar.ts:40:14                           
+GAP_ROWS                               src/lib/magazine/grammar.ts:42:14                           
+OPENER_CHROME_ROWS                     src/lib/magazine/grammar.ts:44:14                           
+HEADLINE_PT                            src/lib/magazine/grammar.ts:47:14                           
+HEADLINE_SMALL_PT                      src/lib/magazine/grammar.ts:48:14                           
+HEADLINE_STEP_CHARS                    src/lib/magazine/grammar.ts:49:14                           
+WALL_ROW_MM                            src/lib/magazine/grammar.ts:52:14                           
+WALL_GAP_MM                            src/lib/magazine/grammar.ts:53:14                           
+CARDS_PER_ROW                          src/lib/magazine/grammar.ts:55:14                           
+CARD_ROWS                              src/lib/magazine/grammar.ts:56:14                           
+VOTE_BIRDS_PER_ROW                     src/lib/magazine/grammar.ts:58:14                           
+headlineRows                 function  src/lib/magazine/grammar.ts:92:17                           
+BRIEF_PT                               src/lib/magazine/grammar.ts:101:14                          
+briefRows                    function  src/lib/magazine/grammar.ts:102:17                          
+textBlock                    function  src/lib/magazine/grammar.ts:112:17                          
+photoBand                    function  src/lib/magazine/grammar.ts:150:17                          
+photoBeside                  function  src/lib/magazine/grammar.ts:208:17                          
+GALLERY_MIN_MM                         src/lib/magazine/grammar.ts:271:14                          
+BAND_FEW_ROWS                          src/lib/magazine/grammar.ts:274:14                          
+GALLERY_MAX_ROWS                       src/lib/magazine/grammar.ts:279:14                          
+GALLERY_ASIDE_MM                       src/lib/magazine/grammar.ts:281:14                          
+WALL_FROM_PHOTOS                       src/lib/magazine/grammar.ts:364:14                          
+BRIEF_WORDS                            src/lib/magazine/grammar.ts:368:14                          
+BRIEF_ANSWERS                          src/lib/magazine/grammar.ts:369:14                          
+isBrief                      function  src/lib/magazine/grammar.ts:371:17                          
+estimateLines                          src/lib/magazine/grammar.ts:696:10                          
+ratioOf                                src/lib/magazine/grammar.ts:696:25                          
+CROP_BUDGET                            src/lib/magazine/image.ts:30:14                             
+COVER_LINES                            src/lib/magazine/index.ts:30:14                             
+LEAD_SHARE                             src/lib/magazine/index.ts:32:14                             
+BEAM                                   src/lib/magazine/index.ts:40:14                             
+runChecks                    function  src/lib/magazine/index.ts:243:17                            
+A4                                     src/lib/magazine/index.ts:324:10                            
+textWidthMm                            src/lib/magazine/index.ts:324:14                            
+rowsPerPage                            src/lib/magazine/index.ts:324:27                            
+ADVANCE                                src/lib/magazine/measure.ts:27:14                           
+castOff                      function  src/lib/magazine/measure.ts:105:17                          
+QUOTE_FROM_WORDS                       src/lib/magazine/measure.ts:154:14                          
+QUOTES_PER_WRITER                      src/lib/magazine/measure.ts:156:14                          
+STORY_RUN_ON_ROWS                      src/lib/magazine/paginate.ts:25:14                          
+OPENER_KEEP_ROWS                       src/lib/magazine/paginate.ts:26:14                          
+ESSAY_MIN_SPLIT                        src/lib/magazine/paginate.ts:27:14                          
+QUOTE_FILL_ROWS                        src/lib/magazine/paginate.ts:28:14                          
+QUOTE_ROWS                             src/lib/magazine/paginate.ts:29:14                          
+BACK_PAGE_MIN_ROWS                     src/lib/magazine/paginate.ts:30:14                          
+WEIGHTS                                src/lib/magazine/score.ts:32:14                             
+FILL_TARGET                            src/lib/magazine/score.ts:33:14                             
+LAST_PAGE_FILL_TARGET                  src/lib/magazine/score.ts:34:14                             
+PAGE_COST                              src/lib/magazine/score.ts:35:14                             
+SAME_AS_LAST                           src/lib/magazine/score.ts:36:14                             
+SAME_AS_TWO_BACK                       src/lib/magazine/score.ts:37:14                             
+UNIFORM_PHOTOS                         src/lib/magazine/score.ts:38:14                             
+UNIFORM_FROM                           src/lib/magazine/score.ts:41:14                             
+THIN_OPENER                            src/lib/magazine/score.ts:42:14                             
+CONTINUATION                           src/lib/magazine/score.ts:43:14                             
+signatureOf                  function  src/lib/magazine/score.ts:48:17                             
+QUIET_PAGE_FILL_TARGET                 src/lib/magazine/score.ts:97:14                             
+scorePage                    function  src/lib/magazine/score.ts:107:17                            
+textHeightMm                 function  src/lib/magazine/types.ts:141:17                            
+columnUnitMm                 function  src/lib/magazine/types.ts:147:17                            
+TAP_MIN_PX                             src/lib/map-cluster.ts:66:14                                
+ID_SEGMENT                             src/lib/page-label.ts:14:14                                 
+PHOTO_SCOPES                           src/lib/photo-visibility-rule.ts:23:14                      
+FOLD_EARLIEST_BREAK                    src/lib/read-more-fold.ts:22:14                             
+FOLD_GRACE                             src/lib/read-more-fold.ts:26:14                             
+verifyTurnstile              function  src/lib/turnstile.ts:112:23                                 
+VOICE_MIN_SECONDS                      src/lib/voice-answer-rule.ts:21:14                          
+VOICE_CONTAINER_SLACK_BYTES            src/lib/voice-answer-rule.ts:38:14                          
+VOICE_FORMATS                          src/lib/voice-answer-rule.ts:69:14                          
+STAGED_VOICE_KEY                       src/lib/voice-answer-rule.ts:152:14                         
+STORED_VOICE_KEY                       src/lib/voice-answer-rule.ts:155:14                         
+isStoredVoiceUrl             function  src/lib/voice-answer.ts:15:17                               
+MAX_CHOICE_ID                          src/lib/vote-question-rule.ts:81:14                         
+Unused exported types (30)
+Person              type       src/app/lab/catchups/capsule/_cases.ts:17:13   
+CaseKey             type       src/app/lab/catchups/capsule/_cases.ts:38:13   
+Size                type       src/app/lab/catchups/capsule/_sealed.tsx:30:13 
+MagPhoto            type       src/app/lab/catchups/magazine/_pages.tsx:611:15
+EditionState        type       src/app/lab/catchups/sketches/_shelf.ts:25:13  
+Picture             type       src/app/lab/catchups/sketches/_shelf.ts:125:13 
+SketchSong          type       src/app/lab/catchups/sketches/_types.ts:37:13  
+Ended               type       src/app/lab/catchups/voice/_recorder.tsx:36:13 
+Person              type       src/app/lab/catchups/vote/_cases.ts:15:13      
+WallPerson          type       src/app/lab/catchups/wall/_corpus.ts:39:13     
+Place               type       src/app/lab/directory/_data.ts:59:13           
+ScaleKey            type       src/app/lab/directory/_data.ts:419:13          
+Person              type       src/app/lab/groups-rethink/_data.ts:4:13       
+Shot                type       src/app/lab/landings/_shared.ts:20:22          
+ChainMetrics        interface  src/app/lab/profiles/_chain-kit.tsx:186:18     
+MockLinkKind        type       src/app/lab/profiles/_data.ts:18:13            
+SurfaceScore        type       src/app/lab/tiles/_specimens.tsx:861:13        
+AdminCountKey       type       src/components/admin/admin-nav.ts:30:13        
+ExportedMembership  type       src/lib/catchups-export.ts:74:13               
+ExportedPref        type       src/lib/catchups-export.ts:87:13               
+ExportedImage       type       src/lib/catchups-export.ts:93:13               
+CatchupIndexCard    type       src/lib/catchups-types.ts:222:13               
+SerializedComment   type       src/lib/comment-thread.ts:93:13                
+LinkKind            type       src/lib/link-preview-core.ts:25:13             
+Page                type       src/lib/magazine/index.ts:325:41               
+Block               type       src/lib/magazine/index.ts:325:47               
+MagPhoto            type       src/lib/magazine/index.ts:325:54               
+TemplateName        type       src/lib/magazine/index.ts:325:64               
+FontSpec            type       src/lib/magazine/measure.ts:17:13              
+BotCheckFailure     type       src/lib/turnstile.ts:90:13                     
+Configuration hints (2)
+src/generated/**    …it-fix/2026-09-24-refactor-audit-3/work/raw/knip.repo-plus-lab.json  Remove from ignore            
+prisma.config.ts    …it-fix/2026-09-24-refactor-audit-3/work/raw/knip.repo-plus-lab.json  Remove redundant entry pattern
+EXIT=1

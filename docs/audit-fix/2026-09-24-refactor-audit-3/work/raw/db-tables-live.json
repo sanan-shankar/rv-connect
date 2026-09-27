@@ -1,0 +1,416 @@
+{
+ "command": "SELECT",
+ "rowCount": 41,
+ "rows": [
+  {
+   "tbl": "Place",
+   "n_live_tup": "234935",
+   "n_dead_tup": "0",
+   "seq_scan": "799",
+   "idx_scan": "251254",
+   "bytes": "101236736",
+   "last_autovacuum": "2026-07-17T19:06:36.211Z",
+   "last_autoanalyze": "2026-07-17T19:06:36.686Z"
+  },
+  {
+   "tbl": "Photo",
+   "n_live_tup": "1960",
+   "n_dead_tup": "329",
+   "seq_scan": "43717",
+   "idx_scan": "36910",
+   "bytes": "2678784",
+   "last_autovacuum": "2026-09-23T18:41:17.421Z",
+   "last_autoanalyze": "2026-09-23T19:09:17.902Z"
+  },
+  {
+   "tbl": "Visit",
+   "n_live_tup": "2056",
+   "n_dead_tup": "321",
+   "seq_scan": "3708",
+   "idx_scan": "70130",
+   "bytes": "1261568",
+   "last_autovacuum": "2026-09-23T17:58:16.551Z",
+   "last_autoanalyze": "2026-09-23T22:10:21.960Z"
+  },
+  {
+   "tbl": "RosterEntry",
+   "n_live_tup": "2134",
+   "n_dead_tup": "6",
+   "seq_scan": "72",
+   "idx_scan": "292",
+   "bytes": "704512",
+   "last_autovacuum": "2026-08-20T04:11:57.114Z",
+   "last_autoanalyze": "2026-08-20T04:11:57.134Z"
+  },
+  {
+   "tbl": "ContentView",
+   "n_live_tup": "1076",
+   "n_dead_tup": "32",
+   "seq_scan": "321",
+   "idx_scan": "3931",
+   "bytes": "565248",
+   "last_autovacuum": "2026-09-08T17:52:46.176Z",
+   "last_autoanalyze": "2026-09-23T16:56:15.372Z"
+  },
+  {
+   "tbl": "User",
+   "n_live_tup": "222",
+   "n_dead_tup": "45",
+   "seq_scan": "182139",
+   "idx_scan": "514817",
+   "bytes": "466944",
+   "last_autovacuum": "2026-09-23T17:05:15.551Z",
+   "last_autoanalyze": "2026-09-23T18:42:17.357Z"
+  },
+  {
+   "tbl": "MetricSnapshot",
+   "n_live_tup": "1155",
+   "n_dead_tup": "0",
+   "seq_scan": "429",
+   "idx_scan": "1313",
+   "bytes": "425984",
+   "last_autovacuum": null,
+   "last_autoanalyze": "2026-09-20T04:50:27.420Z"
+  },
+  {
+   "tbl": "Notification",
+   "n_live_tup": "430",
+   "n_dead_tup": "7",
+   "seq_scan": "8714",
+   "idx_scan": "95007",
+   "bytes": "360448",
+   "last_autovacuum": "2026-09-23T10:33:08.717Z",
+   "last_autoanalyze": "2026-09-22T23:06:53.575Z"
+  },
+  {
+   "tbl": "CatchupEntryLove",
+   "n_live_tup": "531",
+   "n_dead_tup": "55",
+   "seq_scan": "8707",
+   "idx_scan": "6226",
+   "bytes": "311296",
+   "last_autovacuum": null,
+   "last_autoanalyze": "2026-09-05T11:48:10.896Z"
+  },
+  {
+   "tbl": "OutboundEmail",
+   "n_live_tup": "231",
+   "n_dead_tup": "77",
+   "seq_scan": "27124",
+   "idx_scan": "55940",
+   "bytes": "270336",
+   "last_autovacuum": "2026-09-21T20:11:16.411Z",
+   "last_autoanalyze": "2026-09-23T16:05:15.694Z"
+  },
+  {
+   "tbl": "Post",
+   "n_live_tup": "25",
+   "n_dead_tup": "24",
+   "seq_scan": "74434",
+   "idx_scan": "133054",
+   "bytes": "253952",
+   "last_autovacuum": "2026-08-26T13:16:10.217Z",
+   "last_autoanalyze": "2026-09-23T15:13:14.619Z"
+  },
+  {
+   "tbl": "CatchupEntry",
+   "n_live_tup": "141",
+   "n_dead_tup": "7",
+   "seq_scan": "11234",
+   "idx_scan": "11829",
+   "bytes": "221184",
+   "last_autovacuum": "2026-08-22T05:17:05.522Z",
+   "last_autoanalyze": "2026-08-13T23:38:07.199Z"
+  },
+  {
+   "tbl": "GroupMember",
+   "n_live_tup": "257",
+   "n_dead_tup": "56",
+   "seq_scan": "39157",
+   "idx_scan": "384062",
+   "bytes": "221184",
+   "last_autovacuum": "2026-07-18T03:28:46.880Z",
+   "last_autoanalyze": "2026-09-20T22:02:49.141Z"
+  },
+  {
+   "tbl": "AuthToken",
+   "n_live_tup": "162",
+   "n_dead_tup": "44",
+   "seq_scan": "1139",
+   "idx_scan": "1311",
+   "bytes": "212992",
+   "last_autovacuum": "2026-08-28T18:24:38.142Z",
+   "last_autoanalyze": "2026-09-21T16:05:11.323Z"
+  },
+  {
+   "tbl": "SearchLog",
+   "n_live_tup": "359",
+   "n_dead_tup": "44",
+   "seq_scan": "1330",
+   "idx_scan": "2375",
+   "bytes": "204800",
+   "last_autovacuum": "2026-08-28T11:11:02.518Z",
+   "last_autoanalyze": "2026-09-23T15:19:14.709Z"
+  },
+  {
+   "tbl": "UserPlace",
+   "n_live_tup": "226",
+   "n_dead_tup": "84",
+   "seq_scan": "46242",
+   "idx_scan": "80481",
+   "bytes": "180224",
+   "last_autovacuum": "2026-08-24T18:23:20.112Z",
+   "last_autoanalyze": "2026-09-21T19:45:15.908Z"
+  },
+  {
+   "tbl": "LoginAttempt",
+   "n_live_tup": "324",
+   "n_dead_tup": "32",
+   "seq_scan": "228",
+   "idx_scan": "113",
+   "bytes": "163840",
+   "last_autovacuum": "2026-08-20T10:45:11.410Z",
+   "last_autoanalyze": "2026-09-21T08:01:01.389Z"
+  },
+  {
+   "tbl": "AuditLog",
+   "n_live_tup": "208",
+   "n_dead_tup": "14",
+   "seq_scan": "60",
+   "idx_scan": "141",
+   "bytes": "163840",
+   "last_autovacuum": null,
+   "last_autoanalyze": "2026-09-23T17:22:15.822Z"
+  },
+  {
+   "tbl": "Comment",
+   "n_live_tup": "28",
+   "n_dead_tup": "28",
+   "seq_scan": "21496",
+   "idx_scan": "1574",
+   "bytes": "131072",
+   "last_autovacuum": "2026-08-13T13:23:50.475Z",
+   "last_autoanalyze": "2026-09-16T10:12:34.581Z"
+  },
+  {
+   "tbl": "CatchupSeries",
+   "n_live_tup": "8",
+   "n_dead_tup": "31",
+   "seq_scan": "51350",
+   "idx_scan": "375098",
+   "bytes": "114688",
+   "last_autovacuum": "2026-08-25T03:50:32.139Z",
+   "last_autoanalyze": "2026-09-08T07:42:33.635Z"
+  },
+  {
+   "tbl": "Like",
+   "n_live_tup": "75",
+   "n_dead_tup": "16",
+   "seq_scan": "30802",
+   "idx_scan": "4653",
+   "bytes": "106496",
+   "last_autovacuum": "2026-09-17T20:43:17.708Z",
+   "last_autoanalyze": "2026-09-17T20:43:17.715Z"
+  },
+  {
+   "tbl": "CatchupEdition",
+   "n_live_tup": "9",
+   "n_dead_tup": "17",
+   "seq_scan": "82684",
+   "idx_scan": "136040",
+   "bytes": "98304",
+   "last_autovacuum": "2026-09-10T17:45:47.194Z",
+   "last_autoanalyze": "2026-09-12T02:54:29.779Z"
+  },
+  {
+   "tbl": "Bookmark",
+   "n_live_tup": "4",
+   "n_dead_tup": "25",
+   "seq_scan": "21036",
+   "idx_scan": "800",
+   "bytes": "98304",
+   "last_autovacuum": "2026-08-04T07:47:11.112Z",
+   "last_autoanalyze": "2026-08-04T16:43:21.803Z"
+  },
+  {
+   "tbl": "AdminThread",
+   "n_live_tup": "8",
+   "n_dead_tup": "51",
+   "seq_scan": "5552",
+   "idx_scan": "1520",
+   "bytes": "98304",
+   "last_autovacuum": null,
+   "last_autoanalyze": "2026-08-25T04:58:33.570Z"
+  },
+  {
+   "tbl": "Group",
+   "n_live_tup": "24",
+   "n_dead_tup": "52",
+   "seq_scan": "93926",
+   "idx_scan": "274648",
+   "bytes": "90112",
+   "last_autovacuum": "2026-08-21T06:55:36.805Z",
+   "last_autoanalyze": "2026-08-25T02:28:30.451Z"
+  },
+  {
+   "tbl": "Contribution",
+   "n_live_tup": "35",
+   "n_dead_tup": "38",
+   "seq_scan": "4104",
+   "idx_scan": "4560",
+   "bytes": "81920",
+   "last_autovacuum": null,
+   "last_autoanalyze": "2026-08-24T14:22:15.488Z"
+  },
+  {
+   "tbl": "CatchupReminderPref",
+   "n_live_tup": "18",
+   "n_dead_tup": "37",
+   "seq_scan": "8142",
+   "idx_scan": "1356",
+   "bytes": "81920",
+   "last_autovacuum": "2026-08-25T02:28:30.453Z",
+   "last_autoanalyze": "2026-09-08T12:35:40.089Z"
+  },
+  {
+   "tbl": "CatchupPrompt",
+   "n_live_tup": "22",
+   "n_dead_tup": "6",
+   "seq_scan": "10592",
+   "idx_scan": "2405",
+   "bytes": "81920",
+   "last_autovacuum": "2026-08-21T05:48:35.362Z",
+   "last_autoanalyze": "2026-08-06T05:01:01.591Z"
+  },
+  {
+   "tbl": "CommentLike",
+   "n_live_tup": "13",
+   "n_dead_tup": "40",
+   "seq_scan": "2411",
+   "idx_scan": "285",
+   "bytes": "81920",
+   "last_autovacuum": "2026-07-07T06:03:53.899Z",
+   "last_autoanalyze": "2026-08-13T17:46:55.469Z"
+  },
+  {
+   "tbl": "Image",
+   "n_live_tup": "60",
+   "n_dead_tup": "13",
+   "seq_scan": "4609",
+   "idx_scan": "2948",
+   "bytes": "73728",
+   "last_autovacuum": null,
+   "last_autoanalyze": "2026-08-28T07:59:58.533Z"
+  },
+  {
+   "tbl": "CatchupPromptOption",
+   "n_live_tup": "0",
+   "n_dead_tup": "4",
+   "seq_scan": "15",
+   "idx_scan": "6",
+   "bytes": "65536",
+   "last_autovacuum": null,
+   "last_autoanalyze": null
+  },
+  {
+   "tbl": "PollVote",
+   "n_live_tup": "0",
+   "n_dead_tup": "4",
+   "seq_scan": "123",
+   "idx_scan": "12602",
+   "bytes": "65536",
+   "last_autovacuum": null,
+   "last_autoanalyze": null
+  },
+  {
+   "tbl": "Report",
+   "n_live_tup": "4",
+   "n_dead_tup": "28",
+   "seq_scan": "7741",
+   "idx_scan": "7",
+   "bytes": "65536",
+   "last_autovacuum": null,
+   "last_autoanalyze": null
+  },
+  {
+   "tbl": "PhotoLove",
+   "n_live_tup": "14",
+   "n_dead_tup": "41",
+   "seq_scan": "26254",
+   "idx_scan": "958",
+   "bytes": "65536",
+   "last_autovacuum": null,
+   "last_autoanalyze": "2026-09-17T10:08:04.365Z"
+  },
+  {
+   "tbl": "PendingImagePurge",
+   "n_live_tup": "0",
+   "n_dead_tup": "36",
+   "seq_scan": "276",
+   "idx_scan": "52",
+   "bytes": "65536",
+   "last_autovacuum": "2026-09-14T17:31:43.511Z",
+   "last_autoanalyze": "2026-09-15T16:55:13.265Z"
+  },
+  {
+   "tbl": "QueueLease",
+   "n_live_tup": "1",
+   "n_dead_tup": "0",
+   "seq_scan": "6943",
+   "idx_scan": "71",
+   "bytes": "65536",
+   "last_autovacuum": "2026-09-24T00:11:24.569Z",
+   "last_autoanalyze": "2026-09-24T00:11:24.575Z"
+  },
+  {
+   "tbl": "AdminMessage",
+   "n_live_tup": "16",
+   "n_dead_tup": "20",
+   "seq_scan": "856",
+   "idx_scan": "1267",
+   "bytes": "49152",
+   "last_autovacuum": null,
+   "last_autoanalyze": "2026-09-14T12:22:02.527Z"
+  },
+  {
+   "tbl": "CatchupEditionRead",
+   "n_live_tup": "23",
+   "n_dead_tup": "2",
+   "seq_scan": "29",
+   "idx_scan": "1193",
+   "bytes": "49152",
+   "last_autovacuum": null,
+   "last_autoanalyze": null
+  },
+  {
+   "tbl": "LabRoomState",
+   "n_live_tup": "31",
+   "n_dead_tup": "0",
+   "seq_scan": "917",
+   "idx_scan": "31",
+   "bytes": "32768",
+   "last_autovacuum": null,
+   "last_autoanalyze": null
+  },
+  {
+   "tbl": "PollOption",
+   "n_live_tup": "0",
+   "n_dead_tup": "6",
+   "seq_scan": "12273",
+   "idx_scan": "5",
+   "bytes": "32768",
+   "last_autovacuum": null,
+   "last_autoanalyze": null
+  },
+  {
+   "tbl": "LinkPreview",
+   "n_live_tup": "7",
+   "n_dead_tup": "5",
+   "seq_scan": "29",
+   "idx_scan": "100",
+   "bytes": "32768",
+   "last_autovacuum": null,
+   "last_autoanalyze": null
+  }
+ ]
+}

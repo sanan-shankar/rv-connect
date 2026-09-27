@@ -1,0 +1,58 @@
+
+  warn no-orphans: src/instrumentation.ts
+    -
+
+  warn no-orphans: src/components/catchups/answer/answer-redirect.tsx
+    -
+
+  warn no-orphans: src/app/(main)/forbidden.tsx
+    -
+
+  warn no-orphans: scripts/ops/snapshot.mjs
+    -
+
+  warn no-orphans: scripts/ops/prune.mjs
+    -
+
+  warn no-orphans: e2e/visual.spec.ts
+    -
+
+  warn no-orphans: e2e/sidebar.spec.ts
+    -
+
+  warn no-orphans: e2e/loading-fallbacks.spec.ts
+    -
+
+  warn no-orphans: e2e/deeplink.spec.ts
+    -
+
+  warn no-orphans: e2e/comments-close.spec.ts
+    -
+
+  warn no-orphans: e2e/collection-seek.spec.ts
+    -
+
+  warn no-orphans: e2e/collection-permalink.spec.ts
+    -
+
+  warn no-orphans: e2e/collection-journeys.spec.ts
+    -
+
+  error not-to-unresolvable: src/lib/link-preview.ts → server-only
+    -
+
+  error not-to-unresolvable: src/lib/comment-thread.ts → server-only
+    -
+
+  error not-to-unresolvable: src/app/lab/valley/_weather.ts → server-only
+    -
+
+  error no-circular: src/app/(main)/collection/actions.ts → 
+      src/lib/river-geometry.ts →
+      src/app/(main)/collection/actions.ts
+    -
+
+
+x 17 dependency violations (4 errors, 13 warnings). 1028 modules, 3542 dependencies cruised.
+
+EXIT=4

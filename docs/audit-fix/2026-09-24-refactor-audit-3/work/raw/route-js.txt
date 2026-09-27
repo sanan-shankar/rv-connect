@@ -1,0 +1,161 @@
+# Per-route first-load client JavaScript, production build of HEAD 70570bcd (2026-09-24).
+# Source: .next/diagnostics/route-bundle-stats.json (written by next build 16.3.3); gzip = sum of gzip -6 of each chunk file.
+# Derived by the bundle-build lens; audit-2 comparisons in work/agents/bundle-build.md.
+routes: 118  lab: 66  shipped (non-lab, non-api): 52
+shipped median first-load: 985 KB raw / 315 KB gz; min 621 max 1240 KB raw
+shipped sum: 48.34 MB raw across 52 routes; lab sum 51.29 MB across 66
+floor (chunks on every shipped route): 14 chunks = 635585 B raw (621 KB) / 196655 B gz (192 KB)
+(main) shell tier (on all 39 member routes, not in floor): 13 chunks = 366738 B raw (358 KB) / 122984 B gz (120 KB)
+member-page floor = 979 KB raw / 312 KB gz before page content
+
+route                                  raw KB  gz KB  chunks  above-floor KB  private KB (above floor+shell; n/a = not a (main) route)
+/profile/[id]                            1240    402      37             619         261
+/feed                                    1188    383      35             567         209
+/directory                               1169    377      36             548         190
+/catchups/[catchupId]                    1148    370      34             527         169
+/catchups/edition/[editionId]            1104    355      32             483         125
+/catchups/new                            1089    350      33             469         111
+/dark-mode                               1085    348      31             464         106
+/messages                                1073    345      32             453          95
+/catchups                                1072    345      32             451          93
+/admin/content                           1068    343      32             448          90
+/admin/people                            1065    342      32             444          86
+/welcome                                 1062    341      31             441          83
+/collection                              1059    342      33             439          81
+/collection/[id]                         1059    342      33             439          81
+/admin/review                            1052    338      31             431          73
+/letters/[id]/edit                       1026    329      30             405          47
+/letters/new                             1026    329      30             405          47
+/admin/people/[id]                       1022    327      30             401          43
+/letters/[id]                            1006    322      29             386          27
+/admin/messages/[id]                     1002    321      29             382          24
+/letters                                 1002    321      30             381          23
+/support                                  994    317      28             374          16
+/messages/[id]                            994    318      28             373          15
+/admin/reports                            991    317      29             370          12
+/pick-bird                                987    316      29             366           8
+/admin/mail                               985    315      29             364           6
+/about                                    980    313      28             359           1
+/admin                                    980    313      28             359           1
+/admin/analytics                          980    313      28             359           1
+/admin/audit                              980    313      28             359           1
+/admin/catchups                           980    313      28             359           1
+/admin/catchups/[catchupId]               980    313      28             359           1
+/admin/messages                           980    313      28             359           1
+/admin/support                            980    313      28             359           1
+/birds                                    980    313      28             359           1
+/guide                                    980    313      28             359           1
+/catchups/[catchupId]/answer              979    312      27             358           0
+/catchups/round/[editionId]               979    312      27             358           0
+/guide/[area]                             979    312      27             358           0
+/signup                                   780    248      22             159         n/a
+/login                                    765    244      22             145         n/a
+/catchups/join/[token]                    764    242      19             144         n/a
+/                                         763    242      20             142         n/a
+/reset-password                           761    242      21             141         n/a
+/forgot-password                          758    241      21             137         n/a
+/verify-email                             745    236      19             124         n/a
+/hoopoe                                   732    230      18             111         n/a
+/guidelines                               629    196      15               9         n/a
+/privacy                                  629    196      15               9         n/a
+/terms                                    629    196      15               9         n/a
+/_not-found                               621    192      14               0         n/a
+/catchups/join                            621    192      14               0         n/a
+
+lab routes:
+/lab/catchups/sketches                   1380    430      25
+/lab/catchups/capsule                    1323    411      23
+/lab/profiles                            1318    412      31
+/lab/crop                                1102    353      26
+/lab/comments                            1098    351      26
+/lab/new-post                            1038    333      26
+/lab/hoopoe-lives                        1003    322      26
+/lab/collection/swap                      939    299      24
+/lab/landings                             925    281      20
+/lab/collection                           883    284      23
+/lab/valley                               874    277      20
+/lab/mascot-moments                       866    269      20
+/lab/directory                            865    268      20
+/lab/catchups/magazine                    863    271      20
+/lab/feed-canvas                          846    262      20
+/lab/feedback                             836    261      19
+/lab/composer                             836    260      19
+/lab/valley/hills                         835    264      20
+/lab/reach                                828    261      20
+/lab/transitions                          826    257      19
+/lab/loading-ideas                        826    257      19
+/lab/landing                              822    258      19
+/lab/years/weave                          820    258      19
+/lab/loading                              820    256      19
+/lab/years/wall                           819    258      19
+/lab/years/then                           816    257      19
+/lab/location-picker                      812    255      19
+/lab/valley/seal                          811    255      19
+/lab/catchups/settings                    811    259      20
+/lab/eggs                                 810    254      19
+/lab/focus                                805    252      19
+/lab/catchups/vote                        803    253      21
+/lab/years                                803    252      19
+/lab/spine-marker                         800    250      19
+/lab/catchups/voice                       793    248      20
+/lab/support-ideas                        793    246      18
+/lab/tiles                                760    234      18
+/lab/catchups/wall                        755    235      18
+/lab/craft                                733    227      17
+/lab/hoopoe                               729    227      17
+/lab/everything                           724    229      16
+/lab/groups-rethink/gatherings            718    223      17
+/lab/groups-rethink/dissolve              717    222      17
+/lab/support                              716    222      17
+/lab/groups-rethink/batches-interest      716    222      17
+/lab/groups-rethink/circles               715    222      17
+/lab/groups-rethink                       713    221      17
+/lab/type                                 693    215      16
+/lab/v2                                   670    206      15
+/lab/collection/scrub                     668    210      17
+/lab/chain-lines                          651    203      15
+/lab/spine                                649    201      15
+/lab/catchups/swipe                       640    199      15
+/lab                                      638    199      15
+/lab/viewer                               637    198      15
+/lab/[dir]                                621    192      14
+/lab/[dir]/auth                           621    192      14
+/lab/birds-bg                             621    192      14
+/lab/birds-rv                             621    192      14
+/lab/centroid                             621    192      14
+/lab/glass-edges                          621    192      14
+/lab/hoopoe-marks                         621    192      14
+/lab/icon-colours                         621    192      14
+/lab/icon-directions                      621    192      14
+/lab/logo                                 621    192      14
+/lab/logos                                621    192      14
+
+floor chunks:
+  0-iu46xm5i1m3.js 14873 B raw / 3874 B gz
+  1189-irgqgcbu.js 19861 B raw / 7582 B gz
+  2fcjgjaah3bgl.js 46683 B raw / 13974 B gz
+  00naoh6umscol.js 39546 B raw / 13389 B gz
+  0k5088p4zukar.js 14903 B raw / 5845 B gz
+  1s-ttxdj-2oje.js 29602 B raw / 9574 B gz
+  33hhr_cjn1_84.js 1577 B raw / 877 B gz
+  0yi2wu4snop5p.js 23089 B raw / 8829 B gz
+  43zrrkbqnb727.js 15040 B raw / 4489 B gz
+  2-urkx3cuhmdn.js 26811 B raw / 8474 B gz
+  0n3nl7s6okyju.js 231830 B raw / 72288 B gz
+  1wzeccabdjyp3.js 128934 B raw / 34675 B gz
+  3h-zc215tlut-.js 31856 B raw / 8463 B gz
+  turbopack-2l1oro0-z38k0.js 10980 B raw / 4322 B gz
+shell chunks:
+  3zf2v8luio9i-.js 353 B raw / 245 B gz
+  3ddml356c0_jz.js 24128 B raw / 8630 B gz
+  3626vq_9d9uvl.js 26559 B raw / 9530 B gz
+  3pzucchb2cy16.js 29103 B raw / 10219 B gz
+  29vabufhtu26_.js 21612 B raw / 7958 B gz
+  44_1bc_p4199q.js 32112 B raw / 10574 B gz
+  0mmkcfgfeodk3.js 35021 B raw / 12322 B gz
+  23x4_ynhpill3.js 47459 B raw / 13814 B gz
+  3tke5cge7pq4c.js 60687 B raw / 19888 B gz
+  01c64ezhe149a.js 47902 B raw / 16027 B gz
+  2698d3nx90_op.js 40426 B raw / 12911 B gz
+  2qidg9di5lejj.js 993 B raw / 566 B gz
+  26rz0vjjbjgec.js 383 B raw / 300 B gz

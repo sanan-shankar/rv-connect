@@ -1,0 +1,5 @@
+components/catchups/answer/answer-redirect.tsx
+components/catchups/home/picture-picker-dialog.tsx
+components/landing/showcase.tsx
+lib/photo-suggest.ts
+types/next-auth.d.ts

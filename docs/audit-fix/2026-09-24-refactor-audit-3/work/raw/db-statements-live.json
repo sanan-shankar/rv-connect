@@ -1,0 +1,846 @@
+{
+ "command": "SELECT",
+ "rowCount": 120,
+ "rows": [
+  {
+   "calls": "220174",
+   "total_ms": "496110.1",
+   "mean_ms": "2.25",
+   "rows": "440348",
+   "q": "with\nrole_setting as (\n  select r.rolname, unnest(r.rolconfig) as setting\n  from pg_auth_members m\n  join pg_roles r on r.oid = m.roleid\n  where member = current_user::regrole::oid\n),\nkv_settings AS (\n  SELECT\n    rolname,\n    substr(setting, $1, strpos(setting, $2) - $3) as key,\n    lower(substr(setting, strpos(setting, $4) + $5)) as value\n  FROM role_setting\n),\niso_setting AS (\n  SELECT rolname,"
+  },
+  {
+   "calls": "303",
+   "total_ms": "188113.1",
+   "mean_ms": "620.84",
+   "rows": "984",
+   "q": "SELECT id, name, admin1, country, lat, lng\n    FROM \"Place\"\n    WHERE lower(\"asciiName\") LIKE lower($1) ESCAPE $6\n       OR lower(\"name\") LIKE lower($2) ESCAPE $7\n       OR \"altNames\" ILIKE $3 ESCAPE $8\n    ORDER BY\n      (lower(\"name\") = $4 OR lower(\"asciiName\") = $5) DESC,\n      population DESC\n    LIMIT $9"
+  },
+  {
+   "calls": "340",
+   "total_ms": "125910.0",
+   "mean_ms": "370.32",
+   "rows": "2698",
+   "q": "SELECT id, name, admin1, country, lat, lng\n    FROM \"Place\"\n    WHERE lower(\"asciiName\") LIKE lower($1) ESCAPE $7\n       OR lower(\"name\") LIKE lower($2) ESCAPE $8\n       \n    ORDER BY\n      (lower(\"name\") = $3 OR lower(\"asciiName\") = $4) DESC,\n      -- A prefix hit on the place's own name outranks an altNames-contains\n      -- hit regardless of population: typing \"rishi\" must surface Rishi\n      -"
+  },
+  {
+   "calls": "38",
+   "total_ms": "108445.0",
+   "mean_ms": "2853.81",
+   "rows": "8927530",
+   "q": "COPY public.\"Place\" (id, name, \"asciiName\", \"altNames\", lat, lng, country, admin1, population) TO stdout"
+  },
+  {
+   "calls": "1432",
+   "total_ms": "75565.4",
+   "mean_ms": "52.77",
+   "rows": "315144",
+   "q": "SELECT t.oid, t.typname, t.typsend, t.typreceive, t.typoutput, t.typinput,\n       coalesce(d.typelem, t.typelem), coalesce(r.rngsubtype, $1), ARRAY (\n  SELECT a.atttypid\n  FROM pg_attribute AS a\n  WHERE a.attrelid = t.typrelid AND a.attnum > $2 AND NOT a.attisdropped\n  ORDER BY a.attnum\n)\n\nFROM pg_type AS t\nLEFT JOIN pg_type AS d ON t.typbasetype = d.oid\nLEFT JOIN pg_range AS r ON r.rngtypid = t.o"
+  },
+  {
+   "calls": "128247",
+   "total_ms": "60653.4",
+   "mean_ms": "0.47",
+   "rows": "128247",
+   "q": "SELECT * FROM pgbouncer.get_auth($1)"
+  },
+  {
+   "calls": "628",
+   "total_ms": "54367.5",
+   "mean_ms": "86.57",
+   "rows": "2644",
+   "q": "SELECT id, name, admin1, country, lat, lng\n    FROM \"Place\"\n    WHERE lower(\"asciiName\") LIKE lower($1) ESCAPE $8\n       OR lower(\"name\") LIKE lower($2) ESCAPE $9\n       OR \"altNames\" ILIKE $3 ESCAPE $10\n    ORDER BY\n      (lower(\"name\") = $4 OR lower(\"asciiName\") = $5) DESC,\n      -- A prefix hit on the place's own name outranks an altNames-contains\n      -- hit regardless of population: typing \""
+  },
+  {
+   "calls": "33211",
+   "total_ms": "31454.1",
+   "mean_ms": "0.95",
+   "rows": "1784",
+   "q": "UPDATE \"public\".\"User\" SET \"lastSeenAt\" = $1, \"updatedAt\" = $2 WHERE (\"public\".\"User\".\"id\" = $3 AND (\"public\".\"User\".\"lastSeenAt\" IS NULL OR \"public\".\"User\".\"lastSeenAt\" < $4))"
+  },
+  {
+   "calls": "122",
+   "total_ms": "30356.1",
+   "mean_ms": "248.82",
+   "rows": "968",
+   "q": "SELECT id, name, admin1, country, lat, lng\n    FROM \"Place\"\n    WHERE lower(\"asciiName\") LIKE lower($1) ESCAPE $5\n       OR lower(\"name\") LIKE lower($2) ESCAPE $6\n       \n    ORDER BY\n      (lower(\"name\") = $3 OR lower(\"asciiName\") = $4) DESC,\n      population DESC\n    LIMIT $7"
+  },
+  {
+   "calls": "220174",
+   "total_ms": "26915.2",
+   "mean_ms": "0.12",
+   "rows": "0",
+   "q": "WITH\nrole_setting AS (\n  SELECT setdatabase as database,\n         unnest(setconfig) as setting\n  FROM pg_catalog.pg_db_role_setting\n  WHERE setrole = CURRENT_USER::regrole::oid\n    AND setdatabase IN ($2, (SELECT oid FROM pg_catalog.pg_database WHERE datname = CURRENT_CATALOG))\n),\nkv_settings AS (\n  SELECT database,\n         substr(setting, $3, strpos(setting, $4) - $5) as k,\n         substr(setti"
+  },
+  {
+   "calls": "8071",
+   "total_ms": "18276.8",
+   "mean_ms": "2.26",
+   "rows": "16142",
+   "q": "with\nrole_setting as (\n  select r.rolname, unnest(r.rolconfig) as setting\n  from pg_auth_members m\n  join pg_roles r on r.oid = m.roleid\n  where member = quote_ident(current_user)::regrole::oid\n),\nkv_settings AS (\n  SELECT\n    rolname,\n    substr(setting, $1, strpos(setting, $2) - $3) as key,\n    substr(setting, strpos(setting, $4) + $5) as value\n  FROM role_setting\n),\niso_setting AS (\n  SELECT ro"
+  },
+  {
+   "calls": "1732",
+   "total_ms": "14940.6",
+   "mean_ms": "8.63",
+   "rows": "3176",
+   "q": "SELECT COUNT(*) AS \"_count$_all\", \"public\".\"Photo\".\"scope\" FROM \"public\".\"Photo\" WHERE ((\"public\".\"Photo\".\"scope\" = $1 OR (\"public\".\"Photo\".\"scope\" = $2 AND \"public\".\"Photo\".\"classYears\" = $3)) AND \"public\".\"Photo\".\"approved\" = $4 AND \"public\".\"Photo\".\"isHidden\" = $5) GROUP BY \"public\".\"Photo\".\"scope\" OFFSET $6"
+  },
+  {
+   "calls": "86",
+   "total_ms": "14444.5",
+   "mean_ms": "167.96",
+   "rows": "86",
+   "q": "SELECT case when pg_is_in_recovery() then $2 else (pg_walfile_name_offset(lsn)).file_name end, lsn::text, pg_is_in_recovery() FROM pg_backup_start($1, $3) lsn"
+  },
+  {
+   "calls": "4",
+   "total_ms": "13013.3",
+   "mean_ms": "3253.33",
+   "rows": "4",
+   "q": "SELECT pg_sleep($1)"
+  },
+  {
+   "calls": "1892",
+   "total_ms": "10369.4",
+   "mean_ms": "5.48",
+   "rows": "2717",
+   "q": "SELECT COUNT(*) AS \"_count$_all\", \"public\".\"Photo\".\"scope\" FROM \"public\".\"Photo\" WHERE \"public\".\"Photo\".\"uploaderId\" = $1 GROUP BY \"public\".\"Photo\".\"scope\" OFFSET $2"
+  },
+  {
+   "calls": "3691",
+   "total_ms": "10212.4",
+   "mean_ms": "2.77",
+   "rows": "3691",
+   "q": "INSERT INTO \"public\".\"ContentView\" (\"id\",\"viewerId\",\"kind\",\"targetId\",\"count\",\"firstAt\",\"lastAt\") VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (\"viewerId\",\"kind\",\"targetId\") DO UPDATE SET \"count\" = (\"public\".\"ContentView\".\"count\" + $8), \"lastAt\" = $9 WHERE ((\"public\".\"ContentView\".\"viewerId\" = $10 AND \"public\".\"ContentView\".\"kind\" = $11 AND \"public\".\"ContentView\".\"targetId\" = $12) AND $13=$14) RETURN"
+  },
+  {
+   "calls": "25",
+   "total_ms": "8915.6",
+   "mean_ms": "356.62",
+   "rows": "1950",
+   "q": "SELECT\n  e.name,\n  n.nspname AS schema,\n  e.default_version,\n  x.extversion AS installed_version,\n  e.comment,\n  ev.schema AS default_version_schema\nFROM\n  pg_available_extensions e\n  LEFT JOIN pg_extension x ON e.name = x.extname\n  LEFT JOIN pg_namespace n ON x.extnamespace = n.oid\n  LEFT JOIN pg_available_extension_versions ev\n    ON ev.name = e.name AND ev.version = e.default_version"
+  },
+  {
+   "calls": "228246",
+   "total_ms": "8356.2",
+   "mean_ms": "0.04",
+   "rows": "228246",
+   "q": "SELECT current_setting($1)::integer, current_setting($2), version()"
+  },
+  {
+   "calls": "8899",
+   "total_ms": "7675.3",
+   "mean_ms": "0.86",
+   "rows": "8289",
+   "q": "UPDATE \"Visit\" SET\n      \"endedAt\"  = $1,\n      \"views\"    = LEAST(\"views\" + $2, $3),\n      \"lastPath\" = $4,\n      \"paths\"    = CASE\n                     WHEN $5\n                      AND cardinality(\"paths\") < $6\n                      AND \"paths\"[cardinality(\"paths\")] IS DISTINCT FROM $7::text\n                     THEN array_append(\"paths\", $8::text)\n                     ELSE \"paths\"\n            "
+  },
+  {
+   "calls": "100670",
+   "total_ms": "7222.3",
+   "mean_ms": "0.07",
+   "rows": "100670",
+   "q": "SELECT COUNT(*) AS \"_count$_all\" FROM (SELECT \"public\".\"Notification\".\"id\" FROM \"public\".\"Notification\" WHERE (\"public\".\"Notification\".\"userId\" = $1 AND \"public\".\"Notification\".\"read\" = $2) OFFSET $3) AS \"sub\""
+  },
+  {
+   "calls": "1",
+   "total_ms": "6355.9",
+   "mean_ms": "6355.86",
+   "rows": "0",
+   "q": "CREATE INDEX IF NOT EXISTS \"Place_altNames_trgm_idx\"\n  ON \"Place\" USING gin (\"altNames\" extensions.gin_trgm_ops)"
+  },
+  {
+   "calls": "77364",
+   "total_ms": "6008.4",
+   "mean_ms": "0.08",
+   "rows": "77364",
+   "q": "SELECT \"public\".\"User\".\"id\", \"public\".\"User\".\"role\", \"public\".\"User\".\"accountType\", \"public\".\"User\".\"verifyState\", \"public\".\"User\".\"isBlocked\", \"public\".\"User\".\"credentialVersion\", \"public\".\"User\".\"emailVerified\", \"public\".\"User\".\"email\", \"public\".\"User\".\"batchType\", \"public\".\"User\".\"batchYear\", \"public\".\"User\".\"name\", \"public\".\"User\".\"photoUrl\", \"public\".\"User\".\"birdOverride\", \"public\".\"User\".\"la"
+  },
+  {
+   "calls": "353",
+   "total_ms": "5380.1",
+   "mean_ms": "15.24",
+   "rows": "15111",
+   "q": "SELECT \"public\".\"Photo\".\"id\", \"public\".\"Photo\".\"uploaderId\", \"public\".\"Photo\".\"thumbUrl\", \"public\".\"Photo\".\"url\", \"public\".\"Photo\".\"width\", \"public\".\"Photo\".\"height\", \"public\".\"Photo\".\"caption\", \"public\".\"Photo\".\"sourceKey\", \"public\".\"Photo\".\"subject\", \"public\".\"Photo\".\"era\", \"public\".\"Photo\".\"photoYear\", \"public\".\"Photo\".\"photoMonth\", \"public\".\"Photo\".\"datePrecision\", \"public\".\"Photo\".\"exifYear\","
+  },
+  {
+   "calls": "2314",
+   "total_ms": "4698.2",
+   "mean_ms": "2.03",
+   "rows": "294607",
+   "q": "SELECT \"public\".\"CatchupEntry\".\"id\", \"public\".\"CatchupEntry\".\"authorId\", \"public\".\"CatchupEntry\".\"body\", \"public\".\"CatchupEntry\".\"editionId\", COALESCE(\"aggr_selection_0_CatchupEntryLove\".\"_aggr_count_loves\", $4) AS \"_aggr_count_loves\" FROM \"public\".\"CatchupEntry\" LEFT JOIN (SELECT \"public\".\"CatchupEntryLove\".\"entryId\", COUNT(*) AS \"_aggr_count_loves\" FROM \"public\".\"CatchupEntryLove\" WHERE $5=$6 GR"
+  },
+  {
+   "calls": "20119",
+   "total_ms": "4593.1",
+   "mean_ms": "0.23",
+   "rows": "20119",
+   "q": "SELECT COUNT(*) AS \"_count$_all\" FROM (SELECT \"public\".\"Visit\".\"id\" FROM \"public\".\"Visit\" WHERE (\"public\".\"Visit\".\"userId\" = $1 AND \"public\".\"Visit\".\"endedAt\" >= $2) OFFSET $3) AS \"sub\""
+  },
+  {
+   "calls": "25177",
+   "total_ms": "4437.9",
+   "mean_ms": "0.18",
+   "rows": "7026",
+   "q": "UPDATE \"public\".\"Visit\" SET \"endedAt\" = $1, \"views\" = (\"public\".\"Visit\".\"views\" + $2), \"lastPath\" = $3, \"device\" = $4, \"os\" = $5, \"browser\" = $6, \"language\" = $7 WHERE (\"public\".\"Visit\".\"id\" = $8 AND \"public\".\"Visit\".\"userId\" = $9)"
+  },
+  {
+   "calls": "234",
+   "total_ms": "3973.1",
+   "mean_ms": "16.98",
+   "rows": "234000",
+   "q": "INSERT INTO \"Place\" (\"id\", \"name\", \"asciiName\", \"altNames\", \"lat\", \"lng\", \"country\", \"admin1\", \"population\")\n    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9), ($10, $11, $12, $13, $14, $15, $16, $17, $18), ($19, $20, $21, $22, $23, $24, $25, $26, $27), ($28, $29, $30, $31, $32, $33, $34, $35, $36), ($37, $38, $39, $40, $41, $42, $43, $44, $45), ($46, $47, $48, $49, $50, $51, $52, $53, $54), ($55, $"
+  },
+  {
+   "calls": "12578",
+   "total_ms": "3906.8",
+   "mean_ms": "0.31",
+   "rows": "75468",
+   "q": "SELECT \"public\".\"User\".\"id\", \"public\".\"User\".\"name\", \"public\".\"User\".\"photoUrl\", \"public\".\"User\".\"birdOverride\", \"public\".\"User\".\"accountType\", \"public\".\"User\".\"batchYear\", \"public\".\"User\".\"currentCity\" FROM \"public\".\"User\" WHERE (\"public\".\"User\".\"isBlocked\" = $1 AND \"public\".\"User\".\"deletionRequestedAt\" IS NULL AND \"public\".\"User\".\"id\" <> $2) ORDER BY \"public\".\"User\".\"createdAt\" DESC LIMIT $3 OFF"
+  },
+  {
+   "calls": "3923",
+   "total_ms": "3776.2",
+   "mean_ms": "0.96",
+   "rows": "86294",
+   "q": "SELECT \"public\".\"Photo\".\"id\", \"public\".\"Photo\".\"thumbUrl\", \"public\".\"Photo\".\"caption\", \"public\".\"Photo\".\"uploaderId\" FROM \"public\".\"Photo\" WHERE (\"public\".\"Photo\".\"scope\" = $1 AND \"public\".\"Photo\".\"approved\" = $2 AND \"public\".\"Photo\".\"isHidden\" = $3 AND \"public\".\"Photo\".\"width\" > \"public\".\"Photo\".\"height\") ORDER BY \"public\".\"Photo\".\"createdAt\" DESC LIMIT $4 OFFSET $5"
+  },
+  {
+   "calls": "32576",
+   "total_ms": "3465.0",
+   "mean_ms": "0.11",
+   "rows": "561",
+   "q": "SELECT \"public\".\"CatchupEdition\".\"id\", \"public\".\"CatchupEdition\".\"catchupId\", \"public\".\"CatchupEdition\".\"number\", \"public\".\"CatchupEdition\".\"theme\", \"public\".\"CatchupEdition\".\"status\", \"public\".\"CatchupEdition\".\"questionsCloseAt\", \"public\".\"CatchupEdition\".\"answersCloseAt\", \"public\".\"CatchupEdition\".\"publishAt\", \"public\".\"CatchupEdition\".\"publishedAt\", \"public\".\"CatchupEdition\".\"remindersSent\", \"p"
+  },
+  {
+   "calls": "86",
+   "total_ms": "3357.1",
+   "mean_ms": "39.04",
+   "rows": "86",
+   "q": "SELECT labelfile, spcmapfile, lsn FROM pg_backup_stop($1)"
+  },
+  {
+   "calls": "2305",
+   "total_ms": "3326.2",
+   "mean_ms": "1.44",
+   "rows": "22873",
+   "q": "SELECT COUNT(*) AS \"_count$_all\", \"public\".\"Photo\".\"photoYear\", \"public\".\"Photo\".\"era\" FROM \"public\".\"Photo\" WHERE (\"public\".\"Photo\".\"scope\" = $1 AND \"public\".\"Photo\".\"classYears\" = $2 AND \"public\".\"Photo\".\"approved\" = $3 AND \"public\".\"Photo\".\"isHidden\" = $4) GROUP BY \"public\".\"Photo\".\"photoYear\", \"public\".\"Photo\".\"era\" OFFSET $5"
+  },
+  {
+   "calls": "2949",
+   "total_ms": "3309.9",
+   "mean_ms": "1.12",
+   "rows": "392217",
+   "q": "SELECT \"public\".\"CatchupEntry\".\"id\", \"public\".\"CatchupEntry\".\"promptId\", \"public\".\"CatchupEntry\".\"body\", \"public\".\"CatchupEntry\".\"images\", \"public\".\"CatchupEntry\".\"songUrl\", \"public\".\"CatchupEntry\".\"songTitle\", \"public\".\"CatchupEntry\".\"songArt\", \"public\".\"CatchupEntry\".\"createdAt\", \"public\".\"CatchupEntry\".\"authorId\", COALESCE(\"aggr_selection_0_CatchupEntryLove\".\"_aggr_count_loves\", $13) AS \"_aggr_"
+  },
+  {
+   "calls": "159",
+   "total_ms": "3210.2",
+   "mean_ms": "20.19",
+   "rows": "159",
+   "q": "INSERT INTO \"public\".\"User\" (\"id\",\"name\",\"email\",\"password\",\"showEmail\",\"professionTags\",\"phone\",\"accountType\",\"batchType\",\"batchYear\",\"yearJoined\",\"yearLeft\",\"taughtFrom\",\"taughtUntil\",\"role\",\"verifyState\",\"verifyStateAt\",\"isBlocked\",\"credentialVersion\",\"consentAt\",\"createdAt\",\"updatedAt\",\"photoTrusted\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23) R"
+  },
+  {
+   "calls": "1779",
+   "total_ms": "3202.4",
+   "mean_ms": "1.80",
+   "rows": "29699",
+   "q": "SELECT \"public\".\"Post\".\"id\", \"public\".\"Post\".\"authorId\", \"public\".\"Post\".\"kind\", \"public\".\"Post\".\"title\", \"public\".\"Post\".\"content\", \"public\".\"Post\".\"targetBatches\", \"public\".\"Post\".\"images\", \"public\".\"Post\".\"cityScope\", \"public\".\"Post\".\"isHidden\", \"public\".\"Post\".\"status\", \"public\".\"Post\".\"createdAt\", \"public\".\"Post\".\"updatedAt\", COALESCE(\"aggr_selection_0_Comment\".\"_aggr_count_comments\", $11) AS"
+  },
+  {
+   "calls": "228240",
+   "total_ms": "3168.5",
+   "mean_ms": "0.01",
+   "rows": "0",
+   "q": "BEGIN ISOLATION LEVEL READ COMMITTED READ ONLY"
+  },
+  {
+   "calls": "38",
+   "total_ms": "2901.2",
+   "mean_ms": "76.35",
+   "rows": "5265",
+   "q": "SELECT p.tableoid, p.oid, p.proname, p.prolang, p.pronargs, p.proargtypes, p.prorettype, p.proacl, acldefault($1, p.proowner) AS acldefault, p.pronamespace, p.proowner FROM pg_proc p LEFT JOIN pg_init_privs pip ON (p.oid = pip.objoid AND pip.classoid = $2::regclass AND pip.objsubid = $3) WHERE p.prokind <> $4\n  AND NOT EXISTS (SELECT $5 FROM pg_depend WHERE classid = $6::regclass AND objid = p.oid"
+  },
+  {
+   "calls": "828",
+   "total_ms": "2895.9",
+   "mean_ms": "3.50",
+   "rows": "828",
+   "q": "INSERT INTO \"public\".\"Visit\" (\"id\",\"userId\",\"startedAt\",\"endedAt\",\"views\",\"lastPath\",\"entryPath\",\"referrer\",\"device\",\"os\",\"browser\",\"language\",\"country\",\"city\",\"region\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING \"public\".\"Visit\".\"id\", \"public\".\"Visit\".\"userId\", \"public\".\"Visit\".\"startedAt\", \"public\".\"Visit\".\"endedAt\", \"public\".\"Visit\".\"views\", \"public\".\"Visit\".\"lastPath"
+  },
+  {
+   "calls": "6768",
+   "total_ms": "2877.8",
+   "mean_ms": "0.43",
+   "rows": "6768",
+   "q": "INSERT INTO \"public\".\"Visit\" (\"id\",\"userId\",\"startedAt\",\"endedAt\",\"views\",\"lastPath\",\"entryPath\",\"referrer\",\"device\",\"os\",\"browser\",\"language\",\"country\",\"city\",\"region\",\"timezone\",\"lat\",\"lng\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) ON CONFLICT (\"id\") DO UPDATE SET \"endedAt\" = $19, \"views\" = (\"public\".\"Visit\".\"views\" + $20), \"lastPath\" = $21, \"device\" = $22, \"os\" = "
+  },
+  {
+   "calls": "2785",
+   "total_ms": "2681.9",
+   "mean_ms": "0.96",
+   "rows": "2785",
+   "q": "INSERT INTO \"public\".\"Visit\" (\"id\",\"userId\",\"startedAt\",\"endedAt\",\"views\",\"lastPath\",\"entryPath\",\"referrer\",\"device\",\"os\",\"browser\",\"language\",\"country\",\"city\",\"region\",\"timezone\",\"lat\",\"lng\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) ON CONFLICT (\"id\") DO UPDATE SET \"endedAt\" = $19, \"views\" = (\"public\".\"Visit\".\"views\" + $20), \"lastPath\" = $21, \"device\" = $22, \"os\" = "
+  },
+  {
+   "calls": "32721",
+   "total_ms": "2522.3",
+   "mean_ms": "0.08",
+   "rows": "39396",
+   "q": "SELECT \"public\".\"UserPlace\".\"id\", \"public\".\"UserPlace\".\"userId\", \"public\".\"UserPlace\".\"placeId\", \"public\".\"UserPlace\".\"label\", \"public\".\"UserPlace\".\"city\", \"public\".\"UserPlace\".\"lat\", \"public\".\"UserPlace\".\"lng\", \"public\".\"UserPlace\".\"position\", \"public\".\"UserPlace\".\"createdAt\" FROM \"public\".\"UserPlace\" WHERE \"public\".\"UserPlace\".\"userId\" = $1 ORDER BY \"public\".\"UserPlace\".\"position\" ASC OFFSET $2"
+  },
+  {
+   "calls": "228244",
+   "total_ms": "2439.3",
+   "mean_ms": "0.01",
+   "rows": "0",
+   "q": "SET client_encoding = 'UTF8'"
+  },
+  {
+   "calls": "17445",
+   "total_ms": "2418.6",
+   "mean_ms": "0.14",
+   "rows": "17445",
+   "q": "SELECT COUNT(*) AS \"_count$_all\" FROM (SELECT \"public\".\"Post\".\"id\" FROM \"public\".\"Post\" WHERE (\"public\".\"Post\".\"authorId\" = $1 AND \"public\".\"Post\".\"isHidden\" = $2 AND \"public\".\"Post\".\"status\" = $3) OFFSET $4) AS \"sub\""
+  },
+  {
+   "calls": "12",
+   "total_ms": "2411.0",
+   "mean_ms": "200.92",
+   "rows": "1176",
+   "q": "with f as (\n      \n-- CTE with sane arg_modes, arg_names, and arg_types.\n-- All three are always of the same length.\n-- All three include all args, including OUT and TABLE args.\nwith functions as (\n  select\n    *,\n    -- proargmodes is null when all arg modes are IN\n    coalesce(\n      p.proargmodes,\n      array_fill($1::text, array[cardinality(coalesce(p.proallargtypes, p.proargtypes))])\n    ) as"
+  },
+  {
+   "calls": "17444",
+   "total_ms": "2332.4",
+   "mean_ms": "0.13",
+   "rows": "17444",
+   "q": "SELECT COUNT(*) AS \"_count$_all\" FROM (SELECT \"public\".\"Post\".\"id\" FROM \"public\".\"Post\" WHERE (\"public\".\"Post\".\"authorId\" = $1 AND \"public\".\"Post\".\"kind\" = $2 AND \"public\".\"Post\".\"isHidden\" = $3 AND \"public\".\"Post\".\"status\" = $4) OFFSET $5) AS \"sub\""
+  },
+  {
+   "calls": "608",
+   "total_ms": "2327.5",
+   "mean_ms": "3.83",
+   "rows": "608",
+   "q": "INSERT INTO \"public\".\"Visit\" (\"id\",\"userId\",\"startedAt\",\"endedAt\",\"views\",\"lastPath\",\"entryPath\",\"paths\",\"referrer\",\"device\",\"os\",\"browser\",\"language\",\"country\",\"city\",\"region\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING \"public\".\"Visit\".\"id\", \"public\".\"Visit\".\"userId\", \"public\".\"Visit\".\"startedAt\", \"public\".\"Visit\".\"endedAt\", \"public\".\"Visit\".\"views\", \"public\".\"Visi"
+  },
+  {
+   "calls": "21786",
+   "total_ms": "2301.2",
+   "mean_ms": "0.11",
+   "rows": "34864",
+   "q": "SELECT \"public\".\"UserPlace\".\"id\", \"public\".\"UserPlace\".\"city\" FROM \"public\".\"UserPlace\" WHERE \"public\".\"UserPlace\".\"userId\" = $1 ORDER BY \"public\".\"UserPlace\".\"position\" ASC OFFSET $2"
+  },
+  {
+   "calls": "1694",
+   "total_ms": "2283.6",
+   "mean_ms": "1.35",
+   "rows": "28772",
+   "q": "SELECT \"public\".\"Post\".\"id\", \"public\".\"Post\".\"authorId\", \"public\".\"Post\".\"kind\", \"public\".\"Post\".\"title\", \"public\".\"Post\".\"content\", \"public\".\"Post\".\"targetBatches\", \"public\".\"Post\".\"images\", \"public\".\"Post\".\"groupId\", \"public\".\"Post\".\"cityScope\", \"public\".\"Post\".\"isHidden\", \"public\".\"Post\".\"status\", \"public\".\"Post\".\"createdAt\", \"public\".\"Post\".\"updatedAt\", COALESCE(\"aggr_selection_0_Comment\".\"_ag"
+  },
+  {
+   "calls": "45032",
+   "total_ms": "2165.8",
+   "mean_ms": "0.05",
+   "rows": "44904",
+   "q": "SELECT \"public\".\"User\".\"id\", \"public\".\"User\".\"role\", \"public\".\"User\".\"accountType\", \"public\".\"User\".\"verifyState\", \"public\".\"User\".\"isBlocked\", \"public\".\"User\".\"credentialVersion\", \"public\".\"User\".\"emailVerified\", \"public\".\"User\".\"email\", \"public\".\"User\".\"batchType\", \"public\".\"User\".\"batchYear\", \"public\".\"User\".\"name\", \"public\".\"User\".\"avatarColor\", \"public\".\"User\".\"photoUrl\", \"public\".\"User\".\"bir"
+  },
+  {
+   "calls": "43673",
+   "total_ms": "2154.0",
+   "mean_ms": "0.05",
+   "rows": "43673",
+   "q": "SELECT \"public\".\"User\".\"id\", \"public\".\"User\".\"role\", \"public\".\"User\".\"accountType\", \"public\".\"User\".\"verifyState\", \"public\".\"User\".\"isBlocked\", \"public\".\"User\".\"credentialVersion\", \"public\".\"User\".\"emailVerified\", \"public\".\"User\".\"email\", \"public\".\"User\".\"batchType\", \"public\".\"User\".\"batchYear\", \"public\".\"User\".\"name\", \"public\".\"User\".\"photoUrl\", \"public\".\"User\".\"birdOverride\" FROM \"public\".\"User\""
+  },
+  {
+   "calls": "38",
+   "total_ms": "2108.0",
+   "mean_ms": "55.47",
+   "rows": "38",
+   "q": "SELECT\n      (SELECT count(*) FROM \"User\")                                        AS members_total,\n      (SELECT count(*) FROM \"User\" WHERE \"emailVerified\" IS NOT NULL)      AS members_verified,\n      (SELECT count(*) FROM \"User\" WHERE \"isBlocked\")                      AS members_blocked,\n      (SELECT count(*) FROM \"User\" WHERE theme = $3)                   AS members_dark,\n      (SELECT count(*"
+  },
+  {
+   "calls": "2245",
+   "total_ms": "2097.1",
+   "mean_ms": "0.93",
+   "rows": "2245",
+   "q": "SELECT COUNT(*) AS \"_count$_all\" FROM (SELECT \"public\".\"Photo\".\"id\" FROM \"public\".\"Photo\" WHERE (\"public\".\"Photo\".\"uploaderId\" = $1 AND \"public\".\"Photo\".\"scope\" = $2) OFFSET $3) AS \"sub\""
+  },
+  {
+   "calls": "637",
+   "total_ms": "2040.4",
+   "mean_ms": "3.20",
+   "rows": "1077555",
+   "q": "SELECT \"public\".\"Photo\".\"id\", \"public\".\"Photo\".\"width\", \"public\".\"Photo\".\"height\", \"public\".\"Photo\".\"photoYear\", \"public\".\"Photo\".\"era\" FROM \"public\".\"Photo\" WHERE (\"public\".\"Photo\".\"scope\" = $1 AND \"public\".\"Photo\".\"classYears\" = $2 AND \"public\".\"Photo\".\"approved\" = $3 AND \"public\".\"Photo\".\"isHidden\" = $4) ORDER BY \"public\".\"Photo\".\"takenKey\" DESC, \"public\".\"Photo\".\"id\" DESC OFFSET $5"
+  },
+  {
+   "calls": "424",
+   "total_ms": "1903.1",
+   "mean_ms": "4.49",
+   "rows": "2192",
+   "q": "SELECT p.\"country\" AS country, count(*)::bigint AS n\n      FROM \"UserPlace\" up\n      JOIN \"Place\" p ON p.\"id\" = up.\"placeId\"\n      GROUP BY p.\"country\"\n      ORDER BY n DESC\n      LIMIT $1"
+  },
+  {
+   "calls": "4913",
+   "total_ms": "1885.0",
+   "mean_ms": "0.38",
+   "rows": "4071",
+   "q": "SELECT \"public\".\"CatchupSeries\".\"id\", \"public\".\"CatchupSeries\".\"groupId\", \"public\".\"CatchupSeries\".\"createdById\", \"public\".\"CatchupSeries\".\"title\", \"public\".\"CatchupSeries\".\"intro\", \"public\".\"CatchupSeries\".\"cadence\", \"public\".\"CatchupSeries\".\"status\", \"public\".\"CatchupSeries\".\"inviteToken\", \"public\".\"CatchupSeries\".\"nextOpensAt\", \"public\".\"CatchupSeries\".\"pausedAt\", \"public\".\"CatchupSeries\".\"pict"
+  },
+  {
+   "calls": "5410",
+   "total_ms": "1846.2",
+   "mean_ms": "0.34",
+   "rows": "238957",
+   "q": "SELECT COUNT(\"public\".\"UserPlace\".\"city\") AS \"_count$city\", \"public\".\"UserPlace\".\"city\" FROM \"public\".\"UserPlace\" LEFT JOIN \"public\".\"User\" AS \"j0\" ON (\"j0\".\"id\") = (\"public\".\"UserPlace\".\"userId\") WHERE (\"j0\".\"isBlocked\" = $1 AND \"j0\".\"deletionRequestedAt\" IS NULL AND (\"j0\".\"id\" IS NOT NULL)) GROUP BY \"public\".\"UserPlace\".\"city\" ORDER BY COUNT(\"public\".\"UserPlace\".\"city\") DESC, \"public\".\"UserPlace"
+  },
+  {
+   "calls": "1471",
+   "total_ms": "1829.7",
+   "mean_ms": "1.24",
+   "rows": "1471",
+   "q": "SELECT COUNT(*) AS \"_count$_all\" FROM (SELECT \"public\".\"Photo\".\"id\" FROM \"public\".\"Photo\" WHERE (\"public\".\"Photo\".\"scope\" = $1 AND \"public\".\"Photo\".\"classYears\" = $2 AND \"public\".\"Photo\".\"approved\" = $3 AND \"public\".\"Photo\".\"isHidden\" = $4) OFFSET $5) AS \"sub\""
+  },
+  {
+   "calls": "542",
+   "total_ms": "1751.4",
+   "mean_ms": "3.23",
+   "rows": "542",
+   "q": "INSERT INTO \"public\".\"Notification\" (\"id\",\"userId\",\"type\",\"message\",\"link\",\"read\",\"createdAt\") VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING \"public\".\"Notification\".\"id\", \"public\".\"Notification\".\"userId\", \"public\".\"Notification\".\"type\", \"public\".\"Notification\".\"message\", \"public\".\"Notification\".\"link\", \"public\".\"Notification\".\"read\", \"public\".\"Notification\".\"createdAt\""
+  },
+  {
+   "calls": "451",
+   "total_ms": "1741.2",
+   "mean_ms": "3.86",
+   "rows": "8032",
+   "q": "SELECT \"public\".\"Post\".\"id\", \"public\".\"Post\".\"authorId\", \"public\".\"Post\".\"kind\", \"public\".\"Post\".\"title\", \"public\".\"Post\".\"content\", \"public\".\"Post\".\"targetBatches\", \"public\".\"Post\".\"images\", \"public\".\"Post\".\"cityScope\", \"public\".\"Post\".\"isHidden\", \"public\".\"Post\".\"status\", \"public\".\"Post\".\"createdAt\", \"public\".\"Post\".\"updatedAt\", COALESCE(\"aggr_selection_0_Comment\".\"_aggr_count_comments\", $13) AS"
+  },
+  {
+   "calls": "19794",
+   "total_ms": "1630.5",
+   "mean_ms": "0.08",
+   "rows": "4173",
+   "q": "SELECT \"public\".\"CatchupEdition\".\"id\", \"public\".\"CatchupEdition\".\"catchupId\", \"public\".\"CatchupEdition\".\"number\", \"public\".\"CatchupEdition\".\"theme\", \"public\".\"CatchupEdition\".\"status\", \"public\".\"CatchupEdition\".\"questionsCloseAt\", \"public\".\"CatchupEdition\".\"answersCloseAt\", \"public\".\"CatchupEdition\".\"publishAt\", \"public\".\"CatchupEdition\".\"publishedAt\", \"public\".\"CatchupEdition\".\"remindersSent\", \"p"
+  },
+  {
+   "calls": "428",
+   "total_ms": "1629.1",
+   "mean_ms": "3.81",
+   "rows": "428",
+   "q": "SELECT count(*)::bigint                                            AS visits,\n             avg(EXTRACT($1 FROM (\"endedAt\" - \"startedAt\")))          AS avg_sec,\n             avg(\"views\")                                                AS avg_views,\n             count(DISTINCT \"userId\")::bigint                            AS people\n      FROM \"Visit\"\n      WHERE \"startedAt\" >= now() - interval $2"
+  },
+  {
+   "calls": "2561",
+   "total_ms": "1560.6",
+   "mean_ms": "0.61",
+   "rows": "1523",
+   "q": "UPDATE \"public\".\"Visit\" SET \"endedAt\" = $1, \"views\" = (\"public\".\"Visit\".\"views\" + $2), \"lastPath\" = $3, \"device\" = $4, \"os\" = $5, \"browser\" = $6, \"language\" = $7, \"country\" = $8, \"city\" = $9, \"region\" = $10 WHERE (\"public\".\"Visit\".\"id\" = $11 AND \"public\".\"Visit\".\"userId\" = $12)"
+  },
+  {
+   "calls": "304",
+   "total_ms": "1524.2",
+   "mean_ms": "5.01",
+   "rows": "304",
+   "q": "INSERT INTO \"public\".\"GroupMember\" (\"id\",\"groupId\",\"userId\",\"role\",\"joinedAt\") VALUES ($1,$2,$3,$4,$5) RETURNING \"public\".\"GroupMember\".\"id\""
+  },
+  {
+   "calls": "130",
+   "total_ms": "1517.8",
+   "mean_ms": "11.68",
+   "rows": "2029",
+   "q": "SELECT \"public\".\"Photo\".\"id\", \"public\".\"Photo\".\"caption\", \"public\".\"Photo\".\"thumbUrl\", \"public\".\"Photo\".\"approved\", \"public\".\"Photo\".\"isHidden\", \"public\".\"Photo\".\"createdAt\", \"public\".\"Photo\".\"uploaderId\" FROM \"public\".\"Photo\" WHERE \"public\".\"Photo\".\"isHidden\" = $1 ORDER BY \"public\".\"Photo\".\"createdAt\" DESC LIMIT $2 OFFSET $3"
+  },
+  {
+   "calls": "15",
+   "total_ms": "1484.0",
+   "mean_ms": "98.93",
+   "rows": "15",
+   "q": "SELECT \"link\" FROM \"Notification\" WHERE \"id\" = $1 FOR UPDATE"
+  },
+  {
+   "calls": "309",
+   "total_ms": "1431.1",
+   "mean_ms": "4.63",
+   "rows": "309",
+   "q": "INSERT INTO \"public\".\"AuthToken\" (\"id\",\"userId\",\"kind\",\"tokenHash\",\"expiresAt\",\"sentTo\",\"createdAt\") VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING \"public\".\"AuthToken\".\"id\", \"public\".\"AuthToken\".\"userId\", \"public\".\"AuthToken\".\"kind\", \"public\".\"AuthToken\".\"tokenHash\", \"public\".\"AuthToken\".\"expiresAt\", \"public\".\"AuthToken\".\"usedAt\", \"public\".\"AuthToken\".\"sentTo\", \"public\".\"AuthToken\".\"createdAt\""
+  },
+  {
+   "calls": "228244",
+   "total_ms": "1417.8",
+   "mean_ms": "0.01",
+   "rows": "0",
+   "q": "SET client_min_messages TO WARNING"
+  },
+  {
+   "calls": "317",
+   "total_ms": "1406.2",
+   "mean_ms": "4.44",
+   "rows": "317",
+   "q": "INSERT INTO \"public\".\"UserPlace\" (\"id\",\"userId\",\"placeId\",\"label\",\"city\",\"lat\",\"lng\",\"position\",\"createdAt\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING \"public\".\"UserPlace\".\"id\", \"public\".\"UserPlace\".\"userId\", \"public\".\"UserPlace\".\"placeId\", \"public\".\"UserPlace\".\"label\", \"public\".\"UserPlace\".\"city\", \"public\".\"UserPlace\".\"lat\", \"public\".\"UserPlace\".\"lng\", \"public\".\"UserPlace\".\"position\", \"public"
+  },
+  {
+   "calls": "228245",
+   "total_ms": "1405.9",
+   "mean_ms": "0.01",
+   "rows": "0",
+   "q": "set local schema ''"
+  },
+  {
+   "calls": "38",
+   "total_ms": "1386.6",
+   "mean_ms": "36.49",
+   "rows": "201701",
+   "q": "SELECT description, classoid, objoid, objsubid FROM pg_catalog.pg_description ORDER BY classoid, objoid, objsubid"
+  },
+  {
+   "calls": "2816",
+   "total_ms": "1379.7",
+   "mean_ms": "0.49",
+   "rows": "204960",
+   "q": "SELECT \"public\".\"User\".\"id\", \"public\".\"User\".\"name\", \"public\".\"User\".\"photoUrl\", \"public\".\"User\".\"birdOverride\", \"public\".\"User\".\"accountType\", \"public\".\"User\".\"verifyState\", \"public\".\"User\".\"batchType\", \"public\".\"User\".\"batchYear\", \"public\".\"User\".\"jobTitle\" FROM \"public\".\"User\" WHERE (\"public\".\"User\".\"isBlocked\" = $1 AND \"public\".\"User\".\"deletionRequestedAt\" IS NULL AND EXISTS(SELECT \"t0\".\"userI"
+  },
+  {
+   "calls": "24384",
+   "total_ms": "1360.4",
+   "mean_ms": "0.06",
+   "rows": "0",
+   "q": "SHOW transaction_read_only"
+  },
+  {
+   "calls": "138",
+   "total_ms": "1353.1",
+   "mean_ms": "9.81",
+   "rows": "1350",
+   "q": "SELECT \"public\".\"RosterEntry\".\"id\", \"public\".\"RosterEntry\".\"normalizedName\", \"public\".\"RosterEntry\".\"batchYear\" FROM \"public\".\"RosterEntry\" WHERE \"public\".\"RosterEntry\".\"batchYear\" IN ($1,$2) OFFSET $3"
+  },
+  {
+   "calls": "8021",
+   "total_ms": "1330.1",
+   "mean_ms": "0.17",
+   "rows": "7309",
+   "q": "SELECT \"public\".\"CatchupSeries\".\"id\" FROM \"public\".\"CatchupSeries\" LEFT JOIN \"public\".\"Group\" AS \"j0\" ON (\"j0\".\"id\") = (\"public\".\"CatchupSeries\".\"groupId\") WHERE (EXISTS(SELECT \"t1\".\"groupId\" FROM \"public\".\"GroupMember\" AS \"t1\" WHERE (\"t1\".\"userId\" = $1 AND (\"j0\".\"id\") = (\"t1\".\"groupId\") AND \"t1\".\"groupId\" IS NOT NULL)) AND (\"j0\".\"id\" IS NOT NULL)) LIMIT $2 OFFSET $3"
+  },
+  {
+   "calls": "38",
+   "total_ms": "1325.4",
+   "mean_ms": "34.88",
+   "rows": "11183",
+   "q": "SELECT c.tableoid, c.oid, c.relname, c.relnamespace, c.relkind, c.reltype, c.relowner, c.relchecks, c.relhasindex, c.relhasrules, c.relpages, c.relhastriggers, c.relpersistence, c.reloftype, c.relacl, acldefault(CASE WHEN c.relkind = $1 THEN $2::\"char\" ELSE $3::\"char\" END, c.relowner) AS acldefault, CASE WHEN c.relkind = $4 THEN (SELECT ftserver FROM pg_catalog.pg_foreign_table WHERE ftrelid = c.o"
+  },
+  {
+   "calls": "26409",
+   "total_ms": "1307.5",
+   "mean_ms": "0.05",
+   "rows": "26398",
+   "q": "SELECT \"public\".\"User\".\"id\", \"public\".\"User\".\"name\", \"public\".\"User\".\"email\", \"public\".\"User\".\"emailVerified\", \"public\".\"User\".\"photoUrl\", \"public\".\"User\".\"bio\", \"public\".\"User\".\"about\", \"public\".\"User\".\"currentCity\", \"public\".\"User\".\"secondaryCity\", \"public\".\"User\".\"houses\", \"public\".\"User\".\"displayEmail\", \"public\".\"User\".\"showEmail\", \"public\".\"User\".\"birdOverride\", \"public\".\"User\".\"birdPickedAt\""
+  },
+  {
+   "calls": "330",
+   "total_ms": "1300.6",
+   "mean_ms": "3.94",
+   "rows": "330",
+   "q": "INSERT INTO \"public\".\"Like\" (\"id\",\"userId\",\"postId\") VALUES ($1,$2,$3) RETURNING \"public\".\"Like\".\"id\", \"public\".\"Like\".\"userId\", \"public\".\"Like\".\"postId\""
+  },
+  {
+   "calls": "243",
+   "total_ms": "1286.6",
+   "mean_ms": "5.29",
+   "rows": "243",
+   "q": "INSERT INTO \"public\".\"LoginAttempt\" (\"id\",\"email\",\"userId\",\"ok\",\"reason\",\"detail\",\"createdAt\") VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING \"public\".\"LoginAttempt\".\"id\", \"public\".\"LoginAttempt\".\"email\", \"public\".\"LoginAttempt\".\"userId\", \"public\".\"LoginAttempt\".\"ok\", \"public\".\"LoginAttempt\".\"reason\", \"public\".\"LoginAttempt\".\"detail\", \"public\".\"LoginAttempt\".\"createdAt\""
+  },
+  {
+   "calls": "4631",
+   "total_ms": "1214.3",
+   "mean_ms": "0.26",
+   "rows": "57050",
+   "q": "SELECT COUNT(\"public\".\"User\".\"id\") AS \"_count$id\", \"public\".\"User\".\"batchYear\" FROM \"public\".\"User\" WHERE (\"public\".\"User\".\"isBlocked\" = $1 AND \"public\".\"User\".\"deletionRequestedAt\" IS NULL AND \"public\".\"User\".\"accountType\" NOT IN ($2,$3)) GROUP BY \"public\".\"User\".\"batchYear\" ORDER BY \"public\".\"User\".\"batchYear\"DESC NULLS LAST OFFSET $4"
+  },
+  {
+   "calls": "212",
+   "total_ms": "1204.1",
+   "mean_ms": "5.68",
+   "rows": "212",
+   "q": "INSERT INTO \"public\".\"OutboundEmail\" (\"id\",\"userId\",\"to\",\"kind\",\"payload\",\"priority\",\"status\",\"attempts\",\"createdAt\",\"deferrals\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING \"public\".\"OutboundEmail\".\"id\""
+  },
+  {
+   "calls": "67",
+   "total_ms": "1154.4",
+   "mean_ms": "17.23",
+   "rows": "1404",
+   "q": "SELECT \"public\".\"Photo\".\"id\", \"public\".\"Photo\".\"uploaderId\", \"public\".\"Photo\".\"thumbUrl\", \"public\".\"Photo\".\"url\", \"public\".\"Photo\".\"width\", \"public\".\"Photo\".\"height\", \"public\".\"Photo\".\"caption\", \"public\".\"Photo\".\"sourceKey\", \"public\".\"Photo\".\"subject\", \"public\".\"Photo\".\"era\", \"public\".\"Photo\".\"photoYear\", \"public\".\"Photo\".\"photoMonth\", \"public\".\"Photo\".\"datePrecision\", \"public\".\"Photo\".\"exifYear\","
+  },
+  {
+   "calls": "68",
+   "total_ms": "1105.9",
+   "mean_ms": "16.26",
+   "rows": "0",
+   "q": "do $$\n    declare\n        tbl record;\n        seq_name text;\n        new_seq_name text;\n        archive_table_name text;\n    begin\n        -- No tables should be owned by the extension.\n        -- We want them to be included in logical backups\n        for tbl in\n            select c.relname as table_name\n            from pg_class c\n              join pg_depend d\n                on c.oid = d.objid\n"
+  },
+  {
+   "calls": "1149",
+   "total_ms": "1101.0",
+   "mean_ms": "0.96",
+   "rows": "15364",
+   "q": "SELECT \"public\".\"Post\".\"id\", \"public\".\"Post\".\"authorId\", \"public\".\"Post\".\"kind\", \"public\".\"Post\".\"title\", \"public\".\"Post\".\"content\", \"public\".\"Post\".\"tag\", \"public\".\"Post\".\"targetBatches\", \"public\".\"Post\".\"images\", \"public\".\"Post\".\"groupId\", \"public\".\"Post\".\"cityScope\", \"public\".\"Post\".\"isHidden\", \"public\".\"Post\".\"status\", \"public\".\"Post\".\"createdAt\", \"public\".\"Post\".\"updatedAt\", COALESCE(\"aggr_se"
+  },
+  {
+   "calls": "8071",
+   "total_ms": "1074.3",
+   "mean_ms": "0.13",
+   "rows": "0",
+   "q": "WITH\nrole_setting AS (\n  SELECT setdatabase as database,\n         unnest(setconfig) as setting\n  FROM pg_catalog.pg_db_role_setting\n  WHERE setrole = quote_ident(CURRENT_USER)::regrole::oid\n    AND setdatabase IN ($2, (SELECT oid FROM pg_catalog.pg_database WHERE datname = CURRENT_CATALOG))\n),\nkv_settings AS (\n  SELECT database,\n         substr(setting, $3, strpos(setting, $4) - $5) as k,\n        "
+  },
+  {
+   "calls": "2263",
+   "total_ms": "1068.2",
+   "mean_ms": "0.47",
+   "rows": "2262",
+   "q": "SELECT \"public\".\"Post\".\"id\", \"public\".\"Post\".\"authorId\", \"public\".\"Post\".\"kind\", \"public\".\"Post\".\"title\", \"public\".\"Post\".\"content\", \"public\".\"Post\".\"targetBatches\", \"public\".\"Post\".\"images\", \"public\".\"Post\".\"cityScope\", \"public\".\"Post\".\"isHidden\", \"public\".\"Post\".\"status\", \"public\".\"Post\".\"createdAt\", \"public\".\"Post\".\"updatedAt\", COALESCE(\"aggr_selection_0_Comment\".\"_aggr_count_comments\", $6) AS "
+  },
+  {
+   "calls": "6024",
+   "total_ms": "1055.9",
+   "mean_ms": "0.18",
+   "rows": "6024",
+   "q": "SELECT COUNT(*) AS \"_count$_all\" FROM (SELECT \"public\".\"OutboundEmail\".\"id\" FROM \"public\".\"OutboundEmail\" WHERE (\"public\".\"OutboundEmail\".\"status\" = $1 OR (\"public\".\"OutboundEmail\".\"status\" = $2 AND \"public\".\"OutboundEmail\".\"claimedAt\" < $3)) OFFSET $4) AS \"sub\""
+  },
+  {
+   "calls": "507",
+   "total_ms": "1044.3",
+   "mean_ms": "2.06",
+   "rows": "507",
+   "q": "INSERT INTO \"public\".\"LoginAttempt\" (\"id\",\"email\",\"userId\",\"ok\",\"reason\",\"createdAt\") VALUES ($1,$2,$3,$4,$5,$6) RETURNING \"public\".\"LoginAttempt\".\"id\", \"public\".\"LoginAttempt\".\"email\", \"public\".\"LoginAttempt\".\"userId\", \"public\".\"LoginAttempt\".\"ok\", \"public\".\"LoginAttempt\".\"reason\", \"public\".\"LoginAttempt\".\"createdAt\""
+  },
+  {
+   "calls": "283",
+   "total_ms": "1004.1",
+   "mean_ms": "3.55",
+   "rows": "4941",
+   "q": "SELECT \"public\".\"Post\".\"id\", \"public\".\"Post\".\"authorId\", \"public\".\"Post\".\"kind\", \"public\".\"Post\".\"title\", \"public\".\"Post\".\"content\", \"public\".\"Post\".\"targetBatches\", \"public\".\"Post\".\"images\", \"public\".\"Post\".\"cityScope\", \"public\".\"Post\".\"isHidden\", \"public\".\"Post\".\"status\", \"public\".\"Post\".\"createdAt\", \"public\".\"Post\".\"updatedAt\", COALESCE(\"aggr_selection_0_Comment\".\"_aggr_count_comments\", $14) AS"
+  },
+  {
+   "calls": "38",
+   "total_ms": "998.1",
+   "mean_ms": "26.26",
+   "rows": "139",
+   "q": "DELETE FROM \"User\" WHERE id = ANY($1)"
+  },
+  {
+   "calls": "255",
+   "total_ms": "997.6",
+   "mean_ms": "3.91",
+   "rows": "47373",
+   "q": "select t.oid,\n\tcase when nsp.nspname in ($1, $2) then t.typname\n\t\telse nsp.nspname||$3||t.typname\n\tend\nfrom pg_type t\nleft join pg_type base_type on t.typelem=base_type.oid\nleft join pg_class base_cls ON base_type.typrelid = base_cls.oid\nleft join pg_namespace nsp on t.typnamespace=nsp.oid\nwhere (\n\t  t.typtype in($4, $5, $6, $7)\n\t  and (base_type.oid is null or base_type.typtype in($8, $9, $10))\n\t"
+  },
+  {
+   "calls": "3935",
+   "total_ms": "997.4",
+   "mean_ms": "0.25",
+   "rows": "9906",
+   "q": "SELECT \"public\".\"CatchupSeries\".\"id\", \"public\".\"CatchupSeries\".\"groupId\", \"public\".\"CatchupSeries\".\"createdById\", \"public\".\"CatchupSeries\".\"title\", \"public\".\"CatchupSeries\".\"intro\", \"public\".\"CatchupSeries\".\"cadence\", \"public\".\"CatchupSeries\".\"status\", \"public\".\"CatchupSeries\".\"inviteToken\", \"public\".\"CatchupSeries\".\"nextOpensAt\", \"public\".\"CatchupSeries\".\"pausedAt\", \"public\".\"CatchupSeries\".\"pict"
+  },
+  {
+   "calls": "14722",
+   "total_ms": "995.5",
+   "mean_ms": "0.07",
+   "rows": "13488",
+   "q": "SELECT \"public\".\"Photo\".\"id\", \"public\".\"Photo\".\"thumbUrl\", \"public\".\"Photo\".\"caption\", \"public\".\"Photo\".\"uploaderId\" FROM \"public\".\"Photo\" WHERE (\"public\".\"Photo\".\"approved\" = $1 AND \"public\".\"Photo\".\"isHidden\" = $2) ORDER BY \"public\".\"Photo\".\"createdAt\" DESC LIMIT $3 OFFSET $4"
+  },
+  {
+   "calls": "21422",
+   "total_ms": "985.2",
+   "mean_ms": "0.05",
+   "rows": "21413",
+   "q": "SELECT \"public\".\"User\".\"id\", \"public\".\"User\".\"role\", \"public\".\"User\".\"accountType\", \"public\".\"User\".\"verifyState\", \"public\".\"User\".\"batchType\", \"public\".\"User\".\"batchYear\", \"public\".\"User\".\"name\", \"public\".\"User\".\"avatarColor\", \"public\".\"User\".\"photoUrl\", \"public\".\"User\".\"birdOverride\" FROM \"public\".\"User\" WHERE (\"public\".\"User\".\"id\" = $1 AND $4=$5) LIMIT $2 OFFSET $3"
+  },
+  {
+   "calls": "38",
+   "total_ms": "985.1",
+   "mean_ms": "25.92",
+   "rows": "9371",
+   "q": "SELECT t.tableoid, t.oid, i.indrelid, t.relname AS indexname, pg_catalog.pg_get_indexdef(i.indexrelid) AS indexdef, i.indkey, i.indisclustered, c.contype, c.conname, c.condeferrable, c.condeferred, c.tableoid AS contableoid, c.oid AS conoid, pg_catalog.pg_get_constraintdef(c.oid, $1) AS condef, (SELECT spcname FROM pg_catalog.pg_tablespace s WHERE s.oid = t.reltablespace) AS tablespace, t.reloptio"
+  },
+  {
+   "calls": "23448",
+   "total_ms": "961.8",
+   "mean_ms": "0.04",
+   "rows": "23448",
+   "q": "SELECT COUNT(*) AS \"_count$_all\" FROM (SELECT \"public\".\"OutboundEmail\".\"id\" FROM \"public\".\"OutboundEmail\" WHERE \"public\".\"OutboundEmail\".\"status\" = $1 OFFSET $2) AS \"sub\""
+  },
+  {
+   "calls": "359",
+   "total_ms": "955.1",
+   "mean_ms": "2.66",
+   "rows": "359",
+   "q": "INSERT INTO \"public\".\"SearchLog\" (\"id\",\"userId\",\"scope\",\"query\",\"results\",\"createdAt\") VALUES ($1,$2,$3,$4,$5,$6) RETURNING \"public\".\"SearchLog\".\"id\", \"public\".\"SearchLog\".\"userId\", \"public\".\"SearchLog\".\"scope\", \"public\".\"SearchLog\".\"query\", \"public\".\"SearchLog\".\"results\", \"public\".\"SearchLog\".\"createdAt\""
+  },
+  {
+   "calls": "11004",
+   "total_ms": "949.7",
+   "mean_ms": "0.09",
+   "rows": "10907",
+   "q": "SELECT \"public\".\"User\".\"id\", \"public\".\"User\".\"role\", \"public\".\"User\".\"accountType\", \"public\".\"User\".\"verifyState\", \"public\".\"User\".\"emailVerified\", \"public\".\"User\".\"email\", \"public\".\"User\".\"batchType\", \"public\".\"User\".\"batchYear\", \"public\".\"User\".\"name\", \"public\".\"User\".\"avatarColor\", \"public\".\"User\".\"photoUrl\", \"public\".\"User\".\"birdOverride\" FROM \"public\".\"User\" WHERE (\"public\".\"User\".\"id\" = $1 A"
+  },
+  {
+   "calls": "576",
+   "total_ms": "944.1",
+   "mean_ms": "1.64",
+   "rows": "11828",
+   "q": "SELECT \"public\".\"CatchupEntry\".\"id\", \"public\".\"CatchupEntry\".\"editionId\", \"public\".\"CatchupEntry\".\"images\" FROM \"public\".\"CatchupEntry\" WHERE (\"public\".\"CatchupEntry\".\"editionId\" IN ($1) AND \"public\".\"CatchupEntry\".\"images\" IS NOT NULL) ORDER BY \"public\".\"CatchupEntry\".\"createdAt\" ASC OFFSET $2"
+  },
+  {
+   "calls": "222",
+   "total_ms": "939.2",
+   "mean_ms": "4.23",
+   "rows": "222",
+   "q": "INSERT INTO \"public\".\"AuditLog\" (\"id\",\"actorId\",\"action\",\"targetType\",\"targetId\",\"ip\",\"detail\",\"createdAt\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING \"public\".\"AuditLog\".\"id\", \"public\".\"AuditLog\".\"actorId\", \"public\".\"AuditLog\".\"action\", \"public\".\"AuditLog\".\"targetType\", \"public\".\"AuditLog\".\"targetId\", \"public\".\"AuditLog\".\"ip\", \"public\".\"AuditLog\".\"detail\", \"public\".\"AuditLog\".\"createdAt\""
+  },
+  {
+   "calls": "434",
+   "total_ms": "925.5",
+   "mean_ms": "2.13",
+   "rows": "665",
+   "q": "SELECT COUNT(*) AS \"_count$_all\", \"public\".\"Visit\".\"device\" FROM \"public\".\"Visit\" WHERE \"public\".\"Visit\".\"startedAt\" >= $1 GROUP BY \"public\".\"Visit\".\"device\" ORDER BY COUNT(\"public\".\"Visit\".\"device\") DESC OFFSET $2"
+  },
+  {
+   "calls": "8",
+   "total_ms": "901.5",
+   "mean_ms": "112.69",
+   "rows": "15482",
+   "q": "COPY public.\"Photo\" (id, \"uploaderId\", \"thumbUrl\", url, width, height, caption, subject, era, approved, \"isHidden\", \"approvedAt\", \"approvedById\", \"createdAt\", \"updatedAt\", \"photoYear\", \"photoMonth\", \"datePrecision\", \"sourceKey\", scope, \"classYears\", \"exifYear\", \"exifMonth\", \"heldAt\") TO stdout"
+  },
+  {
+   "calls": "239",
+   "total_ms": "896.3",
+   "mean_ms": "3.75",
+   "rows": "239",
+   "q": "INSERT INTO \"public\".\"CatchupEntry\" (\"id\",\"editionId\",\"promptId\",\"authorId\",\"body\",\"images\",\"songUrl\",\"songTitle\",\"songArt\",\"createdAt\",\"updatedAt\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT (\"promptId\",\"authorId\") DO UPDATE SET \"body\" = $12, \"updatedAt\" = $13 WHERE ((\"public\".\"CatchupEntry\".\"promptId\" = $14 AND \"public\".\"CatchupEntry\".\"authorId\" = $15) AND $16=$17) RETURNING \"public"
+  },
+  {
+   "calls": "160",
+   "total_ms": "892.6",
+   "mean_ms": "5.58",
+   "rows": "160",
+   "q": "SELECT COUNT(*) AS \"_count$_all\", \"public\".\"Photo\".\"scope\" FROM \"public\".\"Photo\" WHERE (\"public\".\"Photo\".\"scope\" = $1 AND \"public\".\"Photo\".\"approved\" = $2 AND \"public\".\"Photo\".\"isHidden\" = $3) GROUP BY \"public\".\"Photo\".\"scope\" OFFSET $4"
+  },
+  {
+   "calls": "1728",
+   "total_ms": "890.0",
+   "mean_ms": "0.52",
+   "rows": "1725",
+   "q": "INSERT INTO \"Photo\" (\n       \"id\",\"uploaderId\",\"thumbUrl\",\"url\",\"width\",\"height\",\"caption\",\"sourceKey\",\n       \"subject\",\"area\",\"era\",\"freeTags\",\"photoYear\",\"photoMonth\",\"datePrecision\",\n       \"exifYear\",\"exifMonth\",\"scope\",\"classYears\",\"approved\",\"isHidden\",\n       \"approvedAt\",\"approvedById\",\"createdAt\",\"updatedAt\"\n     ) VALUES (\n       $1,$2,$3,$4,$5,$6,$15,$7,\n       $16,$17,$8,$18,$9,$10,$1"
+  },
+  {
+   "calls": "48",
+   "total_ms": "889.8",
+   "mean_ms": "18.54",
+   "rows": "1244",
+   "q": "WITH steps AS (\n        SELECT v.id, s.ord, cardinality(v.\"paths\") AS len,\n               regexp_replace(s.p, $4, $5, $6) AS page\n        FROM \"Visit\" v, unnest(v.\"paths\") WITH ORDINALITY AS s(p, ord)\n        WHERE v.\"startedAt\" >= $1 AND v.\"userId\" NOT IN ($2,$3)\n      ),\n      pages AS (\n        SELECT $7::text AS kind, page AS a, $8::text AS b, count(DISTINCT id)::bigint AS n\n        FROM steps"
+  },
+  {
+   "calls": "38",
+   "total_ms": "867.0",
+   "mean_ms": "22.82",
+   "rows": "6858",
+   "q": "SELECT a.tableoid, a.oid, adrelid, adnum, pg_catalog.pg_get_expr(adbin, adrelid) AS adsrc\nFROM unnest($1::pg_catalog.oid[]) AS src(tbloid)\nJOIN pg_catalog.pg_attrdef a ON (src.tbloid = a.adrelid)\nORDER BY a.adrelid, a.adnum"
+  },
+  {
+   "calls": "2004",
+   "total_ms": "862.2",
+   "mean_ms": "0.43",
+   "rows": "6012",
+   "q": "SELECT \"public\".\"Image\".\"url\", \"public\".\"Image\".\"width\", \"public\".\"Image\".\"height\", \"public\".\"Image\".\"focalX\", \"public\".\"Image\".\"focalY\", \"public\".\"Image\".\"focalSet\", \"public\".\"Image\".\"blurDataUrl\" FROM \"public\".\"Image\" WHERE \"public\".\"Image\".\"url\" IN ($1,$2,$3) OFFSET $4"
+  },
+  {
+   "calls": "37",
+   "total_ms": "834.7",
+   "mean_ms": "22.56",
+   "rows": "1209",
+   "q": "INSERT INTO \"MetricSnapshot\" (\"id\",\"day\",\"source\",\"metric\",\"value\")\n     SELECT gen_random_uuid()::text, $1::date, s, m, v\n     FROM unnest($2::text[], $3::text[], $4::double precision[]) AS t(s, m, v)\n     ON CONFLICT (\"day\",\"source\",\"metric\")\n     DO UPDATE SET value = EXCLUDED.value, \"capturedAt\" = now()"
+  },
+  {
+   "calls": "572",
+   "total_ms": "811.9",
+   "mean_ms": "1.42",
+   "rows": "572",
+   "q": "INSERT INTO \"public\".\"CatchupEntryLove\" (\"id\",\"userId\",\"entryId\") VALUES ($1,$2,$3) RETURNING \"public\".\"CatchupEntryLove\".\"id\", \"public\".\"CatchupEntryLove\".\"userId\", \"public\".\"CatchupEntryLove\".\"entryId\""
+  },
+  {
+   "calls": "19894",
+   "total_ms": "809.3",
+   "mean_ms": "0.04",
+   "rows": "19868",
+   "q": "SELECT \"public\".\"User\".\"id\", \"public\".\"User\".\"name\", \"public\".\"User\".\"isBlocked\" FROM \"public\".\"User\" WHERE (\"public\".\"User\".\"id\" = $1 AND $4=$5) LIMIT $2 OFFSET $3"
+  },
+  {
+   "calls": "38",
+   "total_ms": "788.3",
+   "mean_ms": "20.75",
+   "rows": "0",
+   "q": "SELECT p.tableoid, p.oid, p.proname AS aggname, p.pronamespace AS aggnamespace, p.pronargs, p.proargtypes, p.proowner, p.proacl AS aggacl, acldefault($1, p.proowner) AS acldefault FROM pg_proc p LEFT JOIN pg_init_privs pip ON (p.oid = pip.objoid AND pip.classoid = $2::regclass AND pip.objsubid = $3) WHERE p.prokind = $4 AND (p.pronamespace != (SELECT oid FROM pg_namespace WHERE nspname = $5) OR p."
+  },
+  {
+   "calls": "2434",
+   "total_ms": "782.4",
+   "mean_ms": "0.32",
+   "rows": "0",
+   "q": "DISCARD ALL"
+  },
+  {
+   "calls": "121",
+   "total_ms": "781.3",
+   "mean_ms": "6.46",
+   "rows": "121",
+   "q": "SELECT count(*)::bigint AS n FROM (\n        SELECT \"userId\" FROM \"Visit\"\n        WHERE \"startedAt\" >= now() - interval $1\n        -- The valley's day, not UTC's; see the loyalty query below (Low 46).\n        GROUP BY \"userId\" HAVING count(DISTINCT date_trunc($2, (\"startedAt\" AT TIME ZONE $3) AT TIME ZONE $4)) > $5\n      ) t"
+  },
+  {
+   "calls": "5408",
+   "total_ms": "764.5",
+   "mean_ms": "0.14",
+   "rows": "5408",
+   "q": "SELECT MIN(\"batchYear\") AS \"_min$batchYear\", MAX(\"batchYear\") AS \"_max$batchYear\" FROM (SELECT \"public\".\"User\".\"batchYear\" FROM \"public\".\"User\" WHERE (\"public\".\"User\".\"isBlocked\" = $1 AND \"public\".\"User\".\"deletionRequestedAt\" IS NULL AND \"public\".\"User\".\"batchYear\" IS NOT NULL) OFFSET $2) AS \"sub\""
+  },
+  {
+   "calls": "2550",
+   "total_ms": "764.5",
+   "mean_ms": "0.30",
+   "rows": "2372",
+   "q": "SELECT \"public\".\"User\".\"id\", \"public\".\"User\".\"name\", \"public\".\"User\".\"email\", \"public\".\"User\".\"password\", \"public\".\"User\".\"emailVerified\", \"public\".\"User\".\"photoUrl\", \"public\".\"User\".\"bio\", \"public\".\"User\".\"about\", \"public\".\"User\".\"currentCity\", \"public\".\"User\".\"secondaryCity\", \"public\".\"User\".\"houses\", \"public\".\"User\".\"displayEmail\", \"public\".\"User\".\"showEmail\", \"public\".\"User\".\"birdOverride\", \"p"
+  },
+  {
+   "calls": "19724",
+   "total_ms": "723.4",
+   "mean_ms": "0.04",
+   "rows": "19635",
+   "q": "SELECT \"public\".\"User\".\"id\", \"public\".\"User\".\"createdAt\", \"public\".\"User\".\"bio\", \"public\".\"User\".\"currentCity\", \"public\".\"User\".\"workplace\", \"public\".\"User\".\"jobTitle\" FROM \"public\".\"User\" WHERE (\"public\".\"User\".\"id\" = $1 AND $4=$5) LIMIT $2 OFFSET $3"
+  },
+  {
+   "calls": "198",
+   "total_ms": "722.6",
+   "mean_ms": "3.65",
+   "rows": "3454",
+   "q": "SELECT \"public\".\"Post\".\"id\", \"public\".\"Post\".\"authorId\", \"public\".\"Post\".\"kind\", \"public\".\"Post\".\"title\", \"public\".\"Post\".\"content\", \"public\".\"Post\".\"targetBatches\", \"public\".\"Post\".\"images\", \"public\".\"Post\".\"cityScope\", \"public\".\"Post\".\"isHidden\", \"public\".\"Post\".\"status\", \"public\".\"Post\".\"createdAt\", \"public\".\"Post\".\"updatedAt\", COALESCE(\"aggr_selection_0_Comment\".\"_aggr_count_comments\", $12) AS"
+  },
+  {
+   "calls": "15",
+   "total_ms": "721.0",
+   "mean_ms": "48.07",
+   "rows": "15",
+   "q": "DELETE FROM \"public\".\"User\" WHERE (\"public\".\"User\".\"id\" = $1 AND $2=$3) RETURNING \"public\".\"User\".\"id\", \"public\".\"User\".\"name\", \"public\".\"User\".\"email\", \"public\".\"User\".\"password\", \"public\".\"User\".\"emailVerified\", \"public\".\"User\".\"avatarColor\", \"public\".\"User\".\"photoUrl\", \"public\".\"User\".\"bio\", \"public\".\"User\".\"about\", \"public\".\"User\".\"openTo\", \"public\".\"User\".\"currentCity\", \"public\".\"User\".\"secon"
+  },
+  {
+   "calls": "1666",
+   "total_ms": "713.7",
+   "mean_ms": "0.43",
+   "rows": "1666",
+   "q": "SELECT \"public\".\"CatchupEdition\".\"id\", \"public\".\"CatchupEdition\".\"number\", \"public\".\"CatchupEdition\".\"publishedAt\", \"public\".\"CatchupEdition\".\"catchupId\" FROM \"public\".\"CatchupEdition\" LEFT JOIN (SELECT \"public\".\"CatchupEntry\".\"editionId\", COUNT(*) AS \"orderby_aggregator\" FROM \"public\".\"CatchupEntry\" WHERE $5=$6 GROUP BY \"public\".\"CatchupEntry\".\"editionId\") AS \"orderby_1_CatchupEntry\" ON (\"public\""
+  },
+  {
+   "calls": "11430",
+   "total_ms": "699.7",
+   "mean_ms": "0.06",
+   "rows": "11430",
+   "q": "SELECT COUNT(*) AS \"_count$_all\" FROM (SELECT \"public\".\"Photo\".\"id\" FROM \"public\".\"Photo\" WHERE (\"public\".\"Photo\".\"approved\" = $1 AND \"public\".\"Photo\".\"isHidden\" = $2) OFFSET $3) AS \"sub\""
+  }
+ ]
+}
