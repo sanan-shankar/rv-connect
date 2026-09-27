@@ -140,5 +140,5 @@ The campaign's first gate asks them all at once.
 
 **The September session history was overwritten.** Commit `9ef7d821` (2026-09-27) replaced
 `docs/history/progress-2026-09.md` with its own entry, deleting 8,363 lines, and each commit since has done the same.
-The file is recoverable with `git show 9ef7d821^:docs/history/progress-2026-09.md`. The progress-log test did not
-catch it because it only checks the history-to-index direction. Details: `work/findings.md`, ORCH-01.
+**Fixed the same day at the owner's request:** the 287 entries are back, the seven written since are appended,
+and the progress-log test now checks both directions, so an overwrite fails `npm run check`. Details: `work/findings.md`, ORCH-01.

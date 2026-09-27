@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-27 (docs) — the September session history is restored, and the log test now checks both directions
 - 2026-09-27 (audit) — refactor audit 3 paused at fourteen of twenty-eight readings, compiled for a later session
 - 2026-09-27 (audit) — the third bug audit is paused with its findings compiled
 - 2026-09-27 (ui) — the decade presets and the post's audience chips lose the tan fill
