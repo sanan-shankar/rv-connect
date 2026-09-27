@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-27 (guide) — the guide's two protocol findings: the photographs' loading colours are allowlisted, the bubble's corners come down
 - 2026-09-27 (guide) — the guide gets a photograph per chapter, a floating window, a cover, and a bubble that points at the way back
 - 2026-09-27 (feed) — a mention rings once, however often the tag is taken out and put back
 - 2026-09-27 (feed) — the Collection card shows Cave Rock at blue hour until a newer photograph fits

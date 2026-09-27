@@ -70,7 +70,7 @@ export function DoorCoach({ onDone }: { onDone: () => void }) {
   return createPortal(
     <m.div
       role="status"
-      className="pointer-events-none fixed z-40 max-w-[calc(100vw-2rem)] rounded-xl bg-canopy px-3.5 py-2.5 text-sm font-medium leading-snug text-white shadow-lg"
+      className="pointer-events-none fixed z-40 max-w-[calc(100vw-2rem)] rounded-lg bg-canopy px-3.5 py-2.5 text-sm font-medium leading-snug text-white shadow-lg"
       style={at}
       initial={{ opacity: 0, y: -4 }}
       animate={

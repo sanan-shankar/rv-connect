@@ -135,6 +135,7 @@ const HEX_ALLOW = new Map([
   ["src/components/auth/auth-panel.tsx", "the same photo-overlay treatment as login/signup above; this is the shared shell the three email pages use instead of copying their flight wiring"],
   ["src/lib/email-templates.ts", "an inbox cannot read a CSS custom property: Gmail strips <style> blocks, Outlook renders through Word, and no client loads our webfonts. Every brand value has to ship as an inline hex, so these are transcribed from globals.css and kept in lockstep with it by hand (same reason as layout.tsx's themeColor and the Razorpay theme above)"],
   ["src/components/common/image-viewer.tsx", "the viewer's warm-ink backdrop + photo shadow"],
+  ["src/components/guide/guide-photos.ts", "each guide photograph's own average colour, measured from its file, painted only while it loads: data about a picture, not brand colour"],
   ["src/components/ui/sonner.tsx", "toast shadow, pending tokenised shadows"],
   ["src/app/layout.tsx", "themeColor meta must be a literal; kept in lockstep with --background by hand"],
   ["src/app/manifest.ts", "a web app manifest is JSON read by the OS installer before any stylesheet exists, so background_color/theme_color cannot be custom properties; both are --background, kept in lockstep by hand (same reason as layout.tsx above)"],
