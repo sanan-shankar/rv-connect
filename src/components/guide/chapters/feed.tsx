@@ -9,7 +9,11 @@ import { Tap } from "../tap";
    Add to the Collection sends the photographs to the review queue
    (collection-intake.ts); Saved is private (saved-posts-feed.tsx); a post
    is reported from its menu and a person flagged from their profile
-   (report-action.ts). Comments cannot be reported, so it does not say so. */
+   (report-action.ts). Comments cannot be reported, so it does not say so.
+   Tagging: "@" and a letter opens the people search; a typed first name that
+   belongs to a member is underlined and a tap tags it (lib/mention-editing.ts);
+   the tagged are told only if decidePostVisibility lets them see the post
+   (lib/mention-notifications.ts). */
 
 export function FeedChapter({ bare }: ChapterProps) {
   return (
@@ -41,6 +45,11 @@ export function FeedChapter({ bare }: ChapterProps) {
           If your photographs belong in the Valley Collection as well, choose Add to the
           Collection from the + menu before you post. They join the Collection once an admin has
           looked at them.
+        </P>
+        <P>
+          To tag someone, type @ and the first letters of their name, then choose them from the
+          list. A member&rsquo;s name you have already typed is underlined: <Tap /> it to tag
+          them. The people you tag are told, as long as the post is shown to them.
         </P>
       </Section>
 

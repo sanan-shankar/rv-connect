@@ -35,6 +35,15 @@ function serializeNode(node: ChildNode): string {
   if (node.nodeType !== Node.ELEMENT_NODE) return "";
   const el = node as HTMLElement;
   if (el.tagName === "BR") return "\n";
+  /* A tagged member (lib/mention-editing.ts): one token on screen, the
+     `@[Name](id)` renderRichText reads on the wire. The "@" a published
+     mention used to carry is dropped if it is there, and square brackets
+     cannot survive into the name, where they would end the markup early. */
+  const mentionId = el.dataset?.mentionId;
+  if (mentionId) {
+    const name = (el.textContent ?? "").replace(/^@/, "").replace(/[[\]]/g, "").trim();
+    return name ? `@[${name}](${mentionId})` : "";
+  }
   const isBlock = el.tagName === "DIV" || el.tagName === "P";
   const children = Array.from(el.childNodes);
   /* The browser's filler <br>, which is not a line break anyone typed.

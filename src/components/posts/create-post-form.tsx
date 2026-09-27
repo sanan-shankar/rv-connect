@@ -23,6 +23,15 @@ import { SPRINGS, SpringPress } from "@/components/common/motion";
 import { PhotoAimButton } from "@/components/common/photo-aim";
 import { cn, countWords, LETTER_MIN_WORDS, withTitleAsOpeningLine } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
+import {
+  candidateAtCaret,
+  findNameCandidates,
+  insertMentionToken,
+  markMentionTokens,
+  memberFirstNames,
+  paintNameCandidates,
+  waveMention,
+} from "@/lib/mention-editing";
 import { useComposerUploads } from "./use-composer-uploads";
 import { MAX_IMAGES } from "@/lib/upload-ownership-rule";
 import { useLetterPersistence } from "./use-letter-persistence";
@@ -210,6 +219,10 @@ export function CreatePostForm({
   const rootRef = useRef<HTMLDivElement>(null);
   const richRef = useRef<HTMLDivElement>(null);
   const mentionRangeRef = useRef<Range | null>(null);
+  /* Typed words that are a member's first name, underlined so they can be
+     tagged without going back to type "@" (lib/mention-editing.ts). */
+  const namesRef = useRef<Set<string> | null>(null);
+  const candidatesRef = useRef<Range[]>([]);
 
   const isLetter = kind === "letter";
   // With a poll attached, this field IS the poll's question: the feed prints
@@ -257,6 +270,7 @@ export function CreatePostForm({
     if (hydratedRef.current || !initialContent || !richRef.current) return;
     hydratedRef.current = true;
     richRef.current.innerHTML = renderRichText(initialContent);
+    markMentionTokens(richRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -267,7 +281,10 @@ export function CreatePostForm({
   const applyRestoredDraft = useCallback((local: { content: string; title?: string }) => {
     setContent(local.content);
     if (local.title) setTitle(local.title);
-    if (richRef.current) richRef.current.innerHTML = renderRichText(local.content);
+    if (richRef.current) {
+      richRef.current.innerHTML = renderRichText(local.content);
+      markMentionTokens(richRef.current);
+    }
     hydratedRef.current = true;
   }, []);
 
@@ -371,10 +388,45 @@ export function CreatePostForm({
   // every keystroke, paste, and formatting toggle so `content` (used for the Post
   // button's enabled state, the char counter, and the submit payload) never drifts
   // from what the editor visually shows.
+  const refreshNameCandidates = useCallback(() => {
+    const el = richRef.current;
+    if (!el || !namesRef.current) return;
+    candidatesRef.current = findNameCandidates(el, namesRef.current);
+    paintNameCandidates(el, candidatesRef.current);
+  }, []);
+
+  /* Clear this composer's underlines when it goes; the highlight is the
+     page's, not the element's, and would outlive it. */
+  useEffect(() => {
+    const el = richRef.current;
+    return () => {
+      if (el) paintNameCandidates(el, []);
+    };
+  }, []);
+
+  function handleEditorFocus() {
+    if (namesRef.current) return;
+    void memberFirstNames().then((names) => {
+      namesRef.current = names;
+      refreshNameCandidates();
+    });
+  }
+
+  /* A tap or click on an underlined name opens the people search on it, as
+     Messages offers the contact when its name is tapped. Typing anything
+     closes it again (handleRichInput finds no "@" run). */
+  function handleEditorClick() {
+    const hit = candidateAtCaret(candidatesRef.current);
+    if (!hit) return;
+    mentionRangeRef.current = hit.cloneRange();
+    setMentionQuery(hit.toString());
+  }
+
   const handleRichInput = useCallback(() => {
     const el = richRef.current;
     if (!el) return;
     setContent(serializeEditableToMarkdown(el));
+    refreshNameCandidates();
     const found = computeMentionRange();
     if (found) {
       setMentionQuery(found.query);
@@ -383,7 +435,7 @@ export function CreatePostForm({
       setMentionQuery(null);
       mentionRangeRef.current = null;
     }
-  }, []);
+  }, [refreshNameCandidates]);
 
   // Cmd/Ctrl + B / I / U. A contentEditable handles these natively in every
   // current browser, but we take them explicitly so the behaviour is the same
@@ -405,17 +457,11 @@ export function CreatePostForm({
     const range = mentionRangeRef.current;
     const el = richRef.current;
     if (range && el) {
-      range.deleteContents();
-      const mentionNode = document.createTextNode(`@[${user.name}](${user.id}) `);
-      range.insertNode(mentionNode);
-      const after = document.createRange();
-      after.setStartAfter(mentionNode);
-      after.collapse(true);
-      const sel = window.getSelection();
-      sel?.removeAllRanges();
-      sel?.addRange(after);
+      const token = insertMentionToken(range, user);
       el.focus();
+      waveMention(token);
       setContent(serializeEditableToMarkdown(el));
+      refreshNameCandidates();
     }
     setMentionQuery(null);
     mentionRangeRef.current = null;
@@ -640,6 +686,8 @@ export function CreatePostForm({
           onInput={handleRichInput}
           onKeyDown={handleEditorKeyDown}
           onPaste={handlePaste}
+          onFocus={handleEditorFocus}
+          onClick={handleEditorClick}
           style={{ minHeight: immersive ? "55vh" : isLetter ? 260 : 96 }}
           className={cn(
             "peer block w-full resize-none whitespace-pre-wrap break-words text-foreground outline-none",
