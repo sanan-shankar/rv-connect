@@ -8521,3 +8521,15 @@ way, in bursts from single sessions, which reads as flaky connections rather tha
   the full-size upload did not go through. To keep it at full size, add it again later."
 
 `docs/spec/media.md` closes the open question; `upload-fallback-rule.test.mjs` pins all three.
+
+## 2026-09-27 (catchups) — a photo or songs question picked from the library is asked as one again
+
+Owner: "Fix the library photo and song questions." Since `b94677ce` (2026-09-09) rebuilt the
+ask box, picking a photo-wall or songs question from the library only prefilled its words:
+the set it came from was dropped at the pick, `submitPrompt` saved `category: null`, and the
+question was answered in the plain text box and published as a plain tile. Every categorised
+question in the database predates the rebuild.
+
+The pick now carries the set id with the text, the ask box holds it and sends it. Editing the
+prefilled words keeps it, as the old picker did; clearing the box drops it, so a question typed
+fresh never inherits a stale kind. `catchup-library-pick-rule.test.mjs` pins the wire.
