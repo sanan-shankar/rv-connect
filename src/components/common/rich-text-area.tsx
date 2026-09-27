@@ -21,6 +21,7 @@
 import { useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
+import { markMentionTokens } from "@/lib/mention-editing";
 import {
   applyFormatShortcut,
   insertPlainTextPaste,
@@ -55,7 +56,11 @@ export function RichTextArea({
   const attach = useCallback(
     (el: HTMLDivElement | null) => {
       ref.current = el;
-      if (el && initialValue) el.innerHTML = renderRichText(initialValue);
+      if (el && initialValue) {
+        el.innerHTML = renderRichText(initialValue);
+        // A saved post's tags come back as tags, not as links to edit around.
+        markMentionTokens(el);
+      }
       if (el) el.dataset.empty = el.textContent?.trim() ? "false" : "true";
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- initial value only; later edits live in the DOM

@@ -565,6 +565,24 @@
 }
 .comment-sent-arrow { animation: comment-sent-arrow 0.3s ease-out forwards; }
 
+/* A member's name as it becomes a tag in the composer: each letter rises and
+   settles in turn, once (lib/mention-editing.ts; owner, 2026-09-27: "that,
+   like, iMessage style weave animation"). The ink is already the tag's green
+   and weight when it starts, because only transform animates here. */
+@keyframes mention-wave {
+  0%, 100% { transform: none; }
+  40% { transform: translateY(-0.2em) scale(1.1); }
+  70% { transform: translateY(0.02em); }
+}
+.mention-wave {
+  display: inline-block;
+  white-space: pre;
+  animation: mention-wave 420ms ease-out calc(var(--i) * 26ms) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mention-wave { animation: none; }
+}
+
 /* Notification bell wobble: pivots from the top so it reads as a shake, not a
    spin. Its one consumer is the header bell's hover rule below; the shake on a
    rising unread count ships as a Motion keyframe animation in

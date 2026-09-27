@@ -8606,3 +8606,28 @@ while it loads; that is data about a picture, not brand colour, so it joins the 
 allowlist with that reason, beside the plumage and the sign-in photograph's overlay.
 `door-coach.tsx`'s bubble was `rounded-xl` (20.8px), past the 16px card that no box outside the
 landing hero may exceed; it is `rounded-lg` now.
+
+## 2026-09-27 (feed, letters) — tagging someone in the composer works like Messages: a green tag, a wave, and typed names you can tap
+
+Owner, on picking a member after "@": "I get this like, very coding type of square brackets
+[...] that looks really ugly. [...] do it like iMessage [...] when you detect a name [...] it
+shows that it's clickable and then you tap on it and then you can select someone's name. And then
+it does that, like, iMessage style weave animation. And kind of makes it a little bit bolder."
+
+- **The tag** (`mention-editing.ts`): the chosen member's name in a published mention's weight and
+  green, one piece the caret steps over and Backspace removes whole, always on one line. The wire
+  format is unchanged: the serializer writes `@[Name](id)` back from the tag's `data-mention-id`.
+- **The wave**: each letter rises and settles in turn, once, as the tag lands (transform only,
+  none with reduced motion).
+- **Typed names**: a capitalised word that is a member's first name gets a dotted underline (the
+  CSS Custom Highlight API, so the text is never wrapped or moved); tapping it opens the people
+  search on that name. The names come from `/api/users/first-names`: first words only, behind the
+  search's own gate. The underline's rule is added at runtime because the build's CSS parser drops
+  `::highlight()`.
+- **Published mentions** read as the name alone, without the "@", so a post reads as it was
+  written, and carry their id, so a draft or an edited post comes back as tags (both editors).
+- The Feed chapter says how to tag and who is told.
+
+A bare "@" still waits for a letter, which he was content with. Verified as Jerry on desktop
+and at 390px: an "@Ar" pick, the wave mid-flight, and a tapped "Arjun" becoming a tag.
+`mention-editing.test.mjs` pins the joins; `rich-text.test.mjs` allows the one new attribute.

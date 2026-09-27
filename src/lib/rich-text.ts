@@ -165,7 +165,11 @@ export function renderRichText(
   // becoming a malformed link.
   result = result.replace(
     MENTION_PATTERN,
-    '<a href="/profile/$2" class="font-semibold text-leaf hover:underline">@$1</a>'
+    /* The name alone, no "@": what the composer shows once someone is tagged
+       (lib/mention-editing.ts, the owner's "like iMessage"), so a post reads
+       as it was written. `data-mention-id` lets a draft or an edit come back
+       into the composer as a tag rather than a link (serializeNode). */
+    '<a href="/profile/$2" data-mention-id="$2" class="font-semibold text-leaf hover:underline">$1</a>'
   )
 
   // 4. Links back in, as whole anchors. The url is escaped on its own, which is
