@@ -83,6 +83,8 @@ import type { ExifDate } from "@/lib/taken-date";
 import {
   MAX_PHOTOS_PER_DROP,
   MAX_UPLOAD_BYTES,
+  fallbackSizeBatchNotice,
+  fallbackSizeNotice,
   heicBatchRefusal,
   heicRefusal,
   isImageFile,
@@ -103,10 +105,12 @@ import { cn } from "@/lib/utils";
  *  own thumbnails while this runs. */
 const LANES = 3;
 
-/** How long one file may spend climbing before the lane gives up on the
- *  direct path and lets the proxied one have it at Add time. Generous and
- *  proportional, because a 20MB photograph on a hotel connection is slow
- *  rather than stuck: twenty seconds, and twenty more per megabyte. */
+/** How long ONE ATTEMPT may spend climbing before it gives up. The direct
+ *  path retries once with a fresh presign (`directUploadPut`,
+ *  upload-client.ts), so a photograph only reaches the proxied path at Add
+ *  time after failing this twice. Generous and proportional, because a 20MB
+ *  photograph on a hotel connection is slow rather than stuck: twenty
+ *  seconds, and twenty more per megabyte. */
 const putDeadline = (bytes: number) =>
   Math.min(240_000, 20_000 + (bytes / 1_000_000) * 20_000);
 
@@ -600,7 +604,7 @@ export function ContributeRoom({
       setPhotos((prev) => prev.map((p) => (p.id === next.id ? { ...p, state: "lifting" } : p)));
       try {
         const staged = await directUploadPut(next.file, "collection", {
-          signal: AbortSignal.timeout(putDeadline(next.file.size)),
+          deadlineMs: putDeadline(next.file.size),
         });
         if (!left.current) {
           setPhotos((prev) =>
@@ -715,6 +719,13 @@ export function ContributeRoom({
    *  file, because forty toasts is not telling somebody something. */
   const notices = useRef<Set<string>>(new Set());
 
+  /** How many photographs in this batch took the proxied fallback and were
+   *  saved smaller than what was sent (contributePhoto's `smaller`, actions.ts).
+   *  A plain count rather than a Set of message text like `notices` above: the
+   *  message names no file, so two of them would collide into one entry and
+   *  under-report exactly the thing this exists to say honestly. */
+  const smaller = useRef(0);
+
   async function fileOne(p: Staged, m0: PhotoAnswers = EMPTY_ANSWERS): Promise<boolean> {
 
     /* REFUSE RATHER THAN DROP IT. `photoDate` is total: it files anything it
@@ -762,6 +773,7 @@ export function ContributeRoom({
     const res = await contributePhoto(fd);
     if (res.error) throw new Error(res.error);
     if (res.notice) notices.current.add(res.notice);
+    if (res.smaller) smaller.current += 1;
     return true;
   }
 
@@ -822,6 +834,12 @@ export function ContributeRoom({
           : `${notices.current.size} animated photographs were saved as their first frame.`
       );
       notices.current = new Set();
+    }
+    if (smaller.current) {
+      toast.info(
+        smaller.current === 1 ? fallbackSizeNotice() : fallbackSizeBatchNotice(smaller.current)
+      );
+      smaller.current = 0;
     }
     if (done === 0) {
       toast.error(failures[0] ?? "Nothing could be added just now. Try again in a moment.");

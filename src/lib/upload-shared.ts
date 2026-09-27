@@ -221,6 +221,37 @@ export function heicBatchRefusal(count: number): string {
 }
 
 /**
+ * What to tell someone whose photograph took the Collection's PROXIED
+ * fallback: the direct-to-R2 PUT never reached storage (a flaky connection, a
+ * blocked origin), so the browser shrank the photograph to fit under Vercel's
+ * ~4.5MB server-action body cap (`shrinkForUpload`, image-downscale.ts)
+ * before it ever reached the server. `contributePhoto` (actions.ts) no longer
+ * shrinks it a second time, but the browser's own shrink already happened, so
+ * the stored photograph is smaller than the one the member sent.
+ *
+ * Named and shaped like `stillPictureNotice`/`heicRefusal` above: a message
+ * for one photograph, and a batch form below for several, rather than one
+ * sentence repeated per photo. Nine of 1,972 Collection photographs took this
+ * path in 2026, in bursts from single sessions, and none of them said so.
+ */
+export function fallbackSizeNotice(): string {
+  return (
+    "One photograph was saved smaller than you sent it, because the full-size " +
+    "upload did not go through. To keep it at full size, add it again later."
+  );
+}
+
+/** The same notice for several photographs in one drop, counted rather than
+ *  repeated: the message names no file, so nothing here can tell two of them
+ *  apart. */
+export function fallbackSizeBatchNotice(count: number): string {
+  return (
+    `${count} photographs were saved smaller than you sent them, because the ` +
+    "full-size upload did not go through. To keep them at full size, add them again later."
+  );
+}
+
+/**
  * Public hosts this bucket's objects have EVER been served from, other than
  * whatever `R2_PUBLIC_BASE_URL` says today.
  *
