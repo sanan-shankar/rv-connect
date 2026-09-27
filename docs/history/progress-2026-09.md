@@ -8714,3 +8714,6 @@ landing's photograph that opens until we are through it. Aerial imagery (Esri, l
 gitignored) on SRTM, 114k trees found in the imagery and stood up with shadows, volumetric
 cumulus, one afternoon sun. `docs/planning/valley/storyboard.md` says where it lives and
 what is his to decide (the imagery's licence first). Shot at both viewports; 42 to 60 fps.
+Then: `?record=1` renders it frame by frame for video (both cuts sent to him as MP4s), and
+the ground takes a few metres of relief from its own photographs' brightness plus a fine
+grain, which is most of what moved it from rendered to photographed.

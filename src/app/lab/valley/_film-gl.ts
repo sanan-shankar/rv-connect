@@ -41,6 +41,10 @@ export type Look = {
   ms: number;
   /** 1 draws the ground as plain grey, to see the light alone */
   debug?: number;
+  /** metres of relief the photographs' own brightness stands for */
+  bump?: number;
+  /** film grain, as a share of full scale */
+  grain?: number;
   power: number;
   sat: number;
 };
@@ -340,6 +344,7 @@ uniform float uDelight;
 uniform float uExposure;
 uniform float uVibrance;
 uniform float uDebug;
+uniform float uBump;
 out vec4 outColor;
 ${ATMOS}
 ${TREE_SHADOW}
@@ -357,6 +362,22 @@ void main() {
   vec4 b = bake(vWorld);
   vec3 n = vec3(b.r * 2.0 - 1.0, 0.0, b.g * 2.0 - 1.0);
   n.y = sqrt(max(1.0 - n.x * n.x - n.z * n.z, 0.0));
+  /* Relief from the photograph itself: its brightness read as a few
+     metres of height, so every boulder and gully the satellite saw
+     catches the film's sun, where 30 m elevation has only smooth slopes
+     (derivative bump mapping, Mikkelsen 2010). A mip coarser than the
+     one on screen, so it is the ground's shape and not its grain, and
+     only within a few kilometres, where a pixel still shows it. */
+  float dist = length(vRel);
+  float bumpK = uBump * (1.0 - smoothstep(1500.0, 9000.0, dist));
+  if (bumpK > 0.0) {
+    float hgt = dot(texture(uImg, vUv, 1.0).rgb, vec3(0.2126, 0.7152, 0.0722)) * bumpK;
+    vec3 dpx = dFdx(vRel), dpy = dFdy(vRel);
+    vec3 r1 = cross(dpy, n), r2 = cross(n, dpx);
+    float det = dot(dpx, r1);
+    vec3 surf = sign(det) * (dFdx(hgt) * r1 + dFdy(hgt) * r2);
+    n = normalize(abs(det) * n - surf);
+  }
   float shadow = b.b * treeShadow(vRel) * cloudShadow(vec3(vWorld.x, vRel.y + uEyeAlt, vWorld.y));
   float sky = b.a;
   /* The photographs carry the light of the day they were taken: a high
@@ -866,6 +887,8 @@ uniform sampler2D uBloom;
 uniform float uBloomK;
 uniform float uPower;
 uniform float uSat;
+uniform float uGrain;
+uniform float uSeed;
 out vec4 outColor;
 /* AgX, Troy Sobotka's display transform, in Benjamin Wrensch's minimal
    fit: it rolls a bright sky off to white without the hue shifts that
@@ -901,6 +924,11 @@ void main() {
   o *= 1.0 - 0.22 * dot(q, q) * 2.0;
   /* dither, so the sky's long gradients never band */
   o += (hash(gl_FragCoord.xy) - 0.5) / 255.0;
+  /* a fine grain, new every frame, strongest in the mid-tones, the way
+     a sensor's is; it is most of what makes a clean render read as
+     photographed */
+  float lum = dot(o, vec3(0.2126, 0.7152, 0.0722));
+  o += (hash(gl_FragCoord.xy + uSeed * 97.0) - 0.5) * uGrain * (1.0 - abs(lum * 2.0 - 1.0) * 0.6);
   outColor = vec4(clamp(o, 0.0, 1.0), 1.0);
 }
 `;
@@ -1563,6 +1591,7 @@ export class ValleyRenderer {
     gl.uniform1f(T.u("uDelight"), look.delight);
     gl.uniform1f(T.u("uVibrance"), look.vibrance);
     gl.uniform1f(T.u("uDebug"), look.debug ?? 0);
+    gl.uniform1f(T.u("uBump"), look.bump ?? 0);
     gl.uniform1f(T.u("uMs"), look.ms);
     /* the photographs' own sun: late morning, from the south-east */
     const capAz = (150 * Math.PI) / 180, capEl = (58 * Math.PI) / 180;
@@ -1740,6 +1769,8 @@ export class ValleyRenderer {
     gl.uniform1f(F.u("uBloomK"), 0.06);
     gl.uniform1f(F.u("uPower"), look.power);
     gl.uniform1f(F.u("uSat"), look.sat);
+    gl.uniform1f(F.u("uGrain"), look.grain ?? 0);
+    gl.uniform1f(F.u("uSeed"), this.frame % 61);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     return { tiles: drawn.length, loaded: this.tiles.size, inflight: this.inflight };
   }
