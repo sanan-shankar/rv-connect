@@ -52,6 +52,7 @@ import {
 import { callAction } from "@/lib/call-action";
 import { curatePrompt, submitPrompt } from "@/app/(main)/catchups/actions";
 import type { CatchupPromptSet } from "@/lib/catchups-core";
+import type { PromptCategory } from "@/lib/catchups-types";
 import { cn } from "@/lib/utils";
 import type { HomePromptView } from "./types";
 
@@ -71,9 +72,24 @@ export function AskBox({
   onAsked: () => void;
 }) {
   const [text, setText] = useState("");
+  const [category, setCategory] = useState<PromptCategory | null>(null);
   const [anon, setAnon] = useState(false);
   const [busy, setBusy] = useState(false);
   const [openLibrary, setOpenLibrary] = useState(false);
+
+  /* A picked prompt's set id rides along with its text, so `promptKind` can
+     switch a photo-wall or songs pick to its own answering control (the
+     wiring `submitPrompt` has always read, `category ?? null`, but nothing
+     here ever sent -- picking one of those two prefilled the words and
+     nothing else, and the question landed as ordinary text). Editing the
+     prefilled words keeps the category, same as before this fix: nothing
+     here ever watched keystrokes. But typing over all of it -- clearing the
+     box, even mid-edit -- must not leave a stale category on a question the
+     member wrote fresh, so blank text always drops it. */
+  function updateText(next: string) {
+    setText(next);
+    if (!next.trim()) setCategory(null);
+  }
 
   async function ask() {
     const body = text.trim();
@@ -81,13 +97,14 @@ export function AskBox({
     setBusy(true);
     try {
       const result = await callAction(() =>
-        submitPrompt({ editionId, text: body, showAsker: !anon })
+        submitPrompt({ editionId, text: body, category, showAsker: !anon })
       );
       if (result && "error" in result && result.error) {
         toast.error(result.error);
         return;
       }
       setText("");
+      setCategory(null);
       setAnon(false);
       onAsked();
     } finally {
@@ -143,7 +160,7 @@ export function AskBox({
       </AnimatePresence>
       <Textarea
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => updateText(e.target.value)}
         aria-label="Your question for the group"
         maxLength={QUESTION_MAX}
         className="mt-3 max-h-64 min-h-[5.5rem] bg-background/60 [overflow-wrap:anywhere]"
@@ -161,8 +178,9 @@ export function AskBox({
         open={openLibrary}
         onOpenChange={setOpenLibrary}
         library={library}
-        onPick={(t) => {
+        onPick={(t, c) => {
           setText(t);
+          setCategory(c);
           setOpenLibrary(false);
         }}
       />
@@ -198,7 +216,7 @@ function LibraryDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
   library: CatchupPromptSet[];
-  onPick: (text: string) => void;
+  onPick: (text: string, category: PromptCategory) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -218,7 +236,7 @@ function LibraryDialog({
                   <button
                     key={text}
                     type="button"
-                    onClick={() => onPick(text)}
+                    onClick={() => onPick(text, set.id)}
                     className="state-layer block w-full rounded-[10px] px-2.5 py-2.5 text-left font-heading text-[15.5px] leading-snug text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
                   >
                     {text}
