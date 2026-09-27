@@ -246,10 +246,24 @@ export async function contributePhoto(formData: FormData) {
        an allow-list of one, built fresh rather than filtered, so a camera tag
        nobody anticipated cannot ride along. */
     const keepDate = await dateOnlyExif(input);
+
+    /* THE SAME SAFETY CAP THE DIRECT PATH APPLIES (`storedResizeBox`,
+       image.ts) -- not a fixed 1600px box. A hard resize here used to shrink
+       this a SECOND time on top of the browser's own 2048px cap
+       (`shrinkForUpload`, image-downscale.ts), so a photograph that only took
+       this path because a presigned PUT failed once was punished again for a
+       reason that had nothing to do with the photograph -- and nobody was
+       told (9 of 1,972 Collection photographs, in bursts that read as flaky
+       connections). `storedResizeBox` only bites past 40 megapixels (audit
+       M16), which nothing this small reaches, so it keeps every pixel the
+       browser sent. The fallback IS still smaller than a direct upload -- the
+       browser's own 2048px shrink already happened before this ever ran --
+       which is what `smaller` on the return says out loud. */
+    const box = storedResizeBox(await sharpImage(input).rotate().metadata());
     const encode = sharpImage(input)
       .rotate()
-      .resize(1600, 1600, { fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 80 });
+      .resize(box.width, box.height, { fit: "inside", withoutEnlargement: true })
+      .webp({ quality: COLLECTION_WEBP_QUALITY });
 
     const display = await (keepDate ? encode.withExif(keepDate) : encode).toBuffer({
       resolveWithObject: true,
@@ -296,7 +310,14 @@ export async function contributePhoto(formData: FormData) {
   }, [url, thumbUrl]);
 
   revalidatePath("/collection");
-  return { success: true, autoApprove, notice };
+  /* `smaller: true`, unconditionally: this action IS the fallback, so
+     whatever arrived here had already been shrunk by the browser to fit
+     under Vercel's ~4.5MB body cap (`shrinkForUpload`) before this ran, and
+     is stored at that size rather than the Collection's usual full
+     resolution. Read by the contribute room to toast the member a plain
+     sentence (`fallbackSizeNotice`, upload-shared.ts) -- the thing that was
+     missing before, not the shrink itself, which the browser always did. */
+  return { success: true, autoApprove, notice, smaller: true };
 }
 
 // Only objects the collection presign step itself created may be recorded, AND

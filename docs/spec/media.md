@@ -128,14 +128,28 @@ The existing pipeline (`src/app/api/upload/route.ts`) already does the right thi
 |---------|-----------|----------------|-------|
 | `thumbUrl` | 480px | `.resize(480,480,{fit:"inside",withoutEnlargement:true}).webp({quality:72})` | `src/lib/collection-image.ts:96-98` (`gridThumb`, re-exported by `collection-photo.ts`). The river; the only thing most page-views load. |
 | `url` (display), **direct path** | **full resolution**, bounded only by a 40-megapixel AREA cap | `storedResizeBox(...)` then `.webp({quality:100})` | `src/app/(main)/collection/actions.ts:600-603`, `COLLECTION_WEBP_QUALITY` in `upload-shared.ts:91`. This is what nearly every contribution takes. The cap exists to stop a decompression bomb (audit M16), not to make the picture smaller. |
-| `url` (display), **FormData fallback** | 1600px | `.resize(1600,1600,{fit:"inside",withoutEnlargement:true}).webp({quality:80})` | `src/app/(main)/collection/actions.ts:341-342`. The path taken when the direct-to-R2 upload is unavailable. |
+| `url` (display), **FormData fallback** | **Fixed 2026-09-27** (was a hard 1600px): full resolution of whatever the browser sent, bounded by the same 40-megapixel AREA cap as the direct path | `storedResizeBox(...)` then `.webp({quality: COLLECTION_WEBP_QUALITY})` | `contributePhoto` in `src/app/(main)/collection/actions.ts`. The path taken when the direct-to-R2 upload is unavailable. Still smaller than a direct upload in practice, because the browser shrinks to 2048px first (`shrinkForUpload`) to fit Vercel's ~4.5MB body cap — but that shrink is now the only one, and the member is told (§4.2's open question, below). |
 | `screenUrl` (**screen copy**, since 2026-09-23) | 3200px | `.rotate().resize(3200,3200,{fit:"inside",withoutEnlargement:true}).webp({quality:82})` | `screenCopy` in `src/lib/collection-image.ts` (`SCREEN_PX`). Made from the master on the direct path and by the album importer, and stored only when it saves at least a quarter of the master's bytes, so it is NULL on the fallback, on a photograph copied from a post, and on anything `scripts/dev/backfill-screen-copies.mjs` has not reached. The thumbnail is cut from it. |
 
-**The two display encodes do not match, and that is a live question, not a
-design.** A contributor who falls back gets a visibly smaller photograph than
-one who does not, and is told nothing. It is §4 #20 of the 2026-09-03 refactor
-audit, awaiting the owner: match the direct path, or say "saved at reduced
-size" out loud.
+**Fixed 2026-09-27; §4 #20 of the 2026-09-03 refactor audit is closed.** The
+fallback used to hard-resize to 1600px at quality 80 on top of the browser's
+own 2048px shrink — a second, undisclosed cut for a photograph that had
+already lost the direct-to-R2 PUT for a reason that had nothing to do with
+its size (9 of 1,972 Collection photographs, in bursts that read as a flaky
+connection). `contributePhoto` now re-encodes at `COLLECTION_WEBP_QUALITY`
+under the same `storedResizeBox` safety cap the direct path applies, so it
+keeps every pixel the browser sent rather than shrinking a second time.
+
+What still makes a fallback contribution smaller than a direct one is the
+browser's own 2048px shrink, which cannot be lifted — a route handler's body
+is capped at Vercel's ~4.5MB regardless of what `shrinkForUpload` chooses.
+The owner's answer was the second half of #20, "say it out loud": `contributePhoto`
+now returns `smaller: true`, and the contribute room toasts a plain sentence
+("One photograph was saved smaller than you sent it...") naming the reason and
+the way out — add it again later for the full size. The direct path also gets
+one retry with a fresh presign before falling back at all
+(`directUploadPut`, upload-client.ts), so a flaky connection needs to fail
+twice in a row before a member sees this.
 
 The river loads `thumbUrl`. **The viewer loads `screenUrl ?? url`**, and the
 master only when something would show its extra pixels: a zoom, a screen that

@@ -8506,3 +8506,18 @@ script, its README row and ignore entry, and the round-two ideas file and handov
 are ¶10 to ¶12 of `docs/planning/valley/brief.md`; `handover.md` is rewritten for the one
 thing left: the real valley from satellite imagery, flown into on the landing page and
 ending on the three hills becoming the mark. The hills room stays until its rebuild lands.
+
+## 2026-09-27 (collection) — a photograph that misses the direct upload is retried, kept at the size it arrived, and the member is told
+
+Owner, of the fallback that stored 1600px silently: "I don't know what to do about the collection
+upload field. But I can that I leave up to you." 9 of 1,972 Collection photographs had gone that
+way, in bursts from single sessions, which reads as flaky connections rather than a broken path.
+
+- `directUploadPut` (upload-client.ts) tries once more with a fresh presign on a network error, a
+  timeout or a 5xx. A 4xx or storage that is not configured still falls back at once.
+- `contributePhoto` no longer shrinks to 1600px at q80 on top of the browser's own 2048px shrink:
+  it keeps what arrived, behind the same 40-megapixel cap and quality as the direct path.
+- The member is told, once per drop: "One photograph was saved smaller than you sent it, because
+  the full-size upload did not go through. To keep it at full size, add it again later."
+
+`docs/spec/media.md` closes the open question; `upload-fallback-rule.test.mjs` pins all three.
