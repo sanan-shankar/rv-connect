@@ -459,6 +459,7 @@ Written by `src/lib/catchups-notify.ts` into `Notification`; `type` is a free st
 | `catchup_sealed` | a time capsule closes, saying the day it opens | every member but the Keeper who closed it | `/catchups/<id>` |
 | `catchup_love` | a heart on your answer | the answer's author, if still a member; at most one unread per author per Edition | `/catchups/edition/<editionId>` |
 | `catchup_comment` | a comment under your answer, or a reply to your comment | the answer's author and whoever was replied to, if still members; one unread per recipient, per writer, per answer | `/catchups/edition/<editionId>#entry-<entryId>` |
+| `catchup_added` | a Keeper adds you to a Catch-up that already exists | just the people newly enrolled; never the Keeper who added them, and never someone re-listed who was already a member | `/catchups/<id>` |
 
 A reminder is matched on its exact link when it is replaced, which is why a route rename is a data
 migration as well as a file move (`2026-09-08-round-becomes-edition.sql`,

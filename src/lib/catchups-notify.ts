@@ -1,8 +1,8 @@
 /* ------------------------------------------------------------------ *
  *  Catch-ups: notification builders.
  *
- *  Writes rows into the existing `Notification` model for the six Catch-up
- *  triggers in catchups.md section 5. `Notification.type` is a free string,
+ *  Writes rows into the existing `Notification` model for the Catch-up
+ *  triggers in catchups.md section 11. `Notification.type` is a free string,
  *  so these new types need no migration.
  *
  *  Each builder accepts a `CatchupDb` (the shared client OR a transaction
@@ -10,21 +10,24 @@
  *  atomically with the status flip (exactly-once), or standalone from a
  *  server action.
  *
- *  Recipients follow section 5's rules:
+ *  Recipients follow section 11's rules:
  *   - questions-open / answers-open / published: all group members, minus
  *     anyone who has deleted their own copy (B-063; see `groupMemberIds`).
  *   - the two dated reminders: only members with no Entry yet, filtered by
  *     CatchupPref.reminderMode (default "all" when a member has no pref row).
  *   - the manual Keeper nudge: all non-answerers, bypassing "off".
  *   - love (optional): the answer's author, coalesced so it cannot spam.
+ *   - added (bug fix, 2026-09-27): not audience math at all -- exactly the
+ *     people `addCatchupMembers` just enrolled, never whoever added them.
  *
- *  All copy is placeholder. The owner rewrites it later (spec section 5).
+ *  All copy is placeholder. The owner rewrites it later (spec section 11).
  * ------------------------------------------------------------------ */
 
 import { answerReminderMessage } from "@/lib/catchups-core";
 import { formatDisplayDateLong } from "@/lib/utils";
 import type {
   CatchupDb,
+  NotifyAddedFn,
   NotifyAnswersOpenFn,
   NotifyCommentFn,
   NotifyLoveFn,
@@ -347,4 +350,25 @@ export const notifyComment: NotifyCommentFn = async (db, ctx) => {
   await db.notification.create({
     data: { userId: ctx.recipientId, type: "catchup_comment", message, link },
   });
+};
+
+/**
+ * A Keeper adds someone to a Catch-up that already has a live Edition (bug
+ * fix, 2026-09-27): `addCatchupMembers` enrolled people and told none of
+ * them. `createCatchupWithPeople` has always covered the FIRST enrollment,
+ * with `notifyQuestionsOpen`; this is the second one, for everyone added
+ * afterward.
+ *
+ * `ctx.userIds` is not queried here, unlike every builder above -- the
+ * caller already knows exactly who is newly in (`newlyAdded`), and asking
+ * `groupMemberIds` again would just notify the whole group a second time.
+ */
+export const notifyAdded: NotifyAddedFn = async (db, ctx) => {
+  await createMany(
+    db,
+    ctx.userIds,
+    "catchup_added",
+    `${ctx.addedByName} added you to ${ctx.groupName}'s Catch-up.`,
+    `/catchups/${ctx.catchupId}`
+  );
 };

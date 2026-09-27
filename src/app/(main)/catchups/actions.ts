@@ -94,6 +94,7 @@ import {
 import { scheduleLinkPreviews } from "@/lib/link-preview";
 import { findLinks } from "@/lib/link-preview-core";
 import {
+  notifyAdded,
   notifyAnswersOpen,
   notifyComment,
   notifyLove,
@@ -346,8 +347,10 @@ async function loadCatchupContext(catchupId: string, userId: string) {
       nextOpensAt: true,
       pausedAt: true,
       // See loadFreshEdition: the batch test, for the guard in loadKeeperScope
-      // and for the two exits that refuse a batch Catch-up by name.
-      group: { select: { batchYear: true } },
+      // and for the two exits that refuse a batch Catch-up by name. `name`
+      // is added for `addCatchupMembers`'s notification, the same field
+      // loadFreshEdition already carries for every notify call in this file.
+      group: { select: { name: true, batchYear: true } },
     },
   });
   if (!catchup) return null;
@@ -2460,6 +2463,18 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
       await prisma.catchupPref.updateMany({
         where: { catchupId, userId: { in: newlyAdded }, archivedAt: { not: null } },
         data: { archivedAt: null },
+      });
+      /* The bell this function's own docblock always claimed it rang. Only the
+         people actually enrolled just now, never re-listing an existing member
+         and never the Keeper who did the adding -- `newlyAdded` is already
+         exactly that set, with the actor excluded by construction (they are
+         never in their own invite list's "newly added" once they are already
+         a member of their own Catch-up). */
+      await notifyAdded(prisma, {
+        catchupId,
+        groupName: catchup.group.name,
+        addedByName: session.user.name,
+        userIds: newlyAdded,
       });
     }
 

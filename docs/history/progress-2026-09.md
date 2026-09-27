@@ -8631,3 +8631,14 @@ it does that, like, iMessage style weave animation. And kind of makes it a littl
 A bare "@" still waits for a letter, which he was content with. Verified as Jerry on desktop
 and at 390px: an "@Ar" pick, the wave mid-flight, and a tapped "Arjun" becoming a tag.
 `mention-editing.test.mjs` pins the joins; `rich-text.test.mjs` allows the one new attribute.
+
+## 2026-09-27 (catchups) — a member added to a Catch-up after it started is told
+
+Owner: "Fix the people adding to catch ups, get no notifications." `addCatchupMembers` said in
+its own comment that it "notifies each of them" and never did: it wrote the memberships, cleared
+the archive stamp and revalidated. It now calls a new `notifyAdded` (catchups-notify.ts), type
+`catchup_added`, "<Name> added you to <group>'s Catch-up.", linking to the Catch-up, for the
+people added just now only, never the Keeper who added them. The type joins
+`CATCHUP_NOTIFICATION_TYPES`, so leaving or being removed clears it like the rest, and the bell
+shows it with its own icon. Self-joins (an invite link, a batch) are left alone: the person
+already knows. `catchups.md` section 11 has the row; `catchup-added-notify-rule.test.mjs` pins it.

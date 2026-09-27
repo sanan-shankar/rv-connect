@@ -16,6 +16,7 @@ import {
   Flag,
   HandHeart,
   AtSign,
+  UserPlus,
 } from "lucide-react";
 import { m } from "motion/react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
@@ -64,7 +65,7 @@ interface Notification {
  * Every `Notification.type` written anywhere in the app (feed/actions.ts,
  * admin-actions.ts, collection/actions.ts, mention-notifications.ts,
  * catchups-notify.ts -- see `CatchupNotifyKind` in catchups-types.ts for the
- * five Catch-up kinds) maps to one glyph here. Unknown/future types fall back
+ * Catch-up kinds) maps to one glyph here. Unknown/future types fall back
  * to the plain `Bell` so a new type never renders blank.
  *
  * `heart: true` marks the two love/like kinds: the heart is ALWAYS
@@ -88,7 +89,7 @@ const NOTIFICATION_ICON_META: Record<string, { icon: typeof Bell; heart?: boolea
   // anything they reported. Both open the thread they belong to.
   admin_message: { icon: Mail, label: "From the admins" },
   report_update: { icon: Flag, label: "Something you reported" },
-  // Catch-ups (spec section 5).
+  // Catch-ups (spec section 11).
   catchup_questions_open: { icon: HelpCircle, label: "Questions open" },
   catchup_answers_open: { icon: PenLine, label: "Answers open" },
   catchup_reminder: { icon: Clock, label: "Reminder" },
@@ -101,6 +102,8 @@ const NOTIFICATION_ICON_META: Record<string, { icon: typeof Bell; heart?: boolea
   // and lands on the answer itself, so it takes the same glyph the reader's
   // replies control does rather than inventing a third.
   catchup_comment: { icon: MessageCircle, label: "Replies to your answer" },
+  // A Keeper enrolled you in a Catch-up that already existed.
+  catchup_added: { icon: UserPlus, label: "Added to a Catch-up" },
   // Written by the Razorpay webhook when IT, and not the payer's browser,
   // recorded the payment -- the tab-died case the webhook exists for. It is
   // the only way that supporter ever hears the money landed, and the only
