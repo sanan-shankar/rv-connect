@@ -61,6 +61,8 @@ function lookFromQuery(q: URLSearchParams): Look {
     power: num("pow", 1.15),
     sat: num("sat", 1.1),
     debug: num("debug", 0),
+    bump: num("bump", 5),
+    grain: num("grain", 0.03),
   };
 }
 
@@ -380,6 +382,28 @@ export function ValleyFilm() {
           if (timeEl.current) timeEl.current.textContent = `${c.t.toFixed(1)}s`;
           raf = requestAnimationFrame(loop);
         };
+        /* ?record=1: no clock at all. A script asks for each frame by time
+           and gets it back only when every tile in it has arrived, which is
+           how the film is rendered to video (see storyboard.md). */
+        if (q.get("record") === "1") {
+          (window as unknown as { filmFrame?: (tt: number) => Promise<void> }).filmFrame = async (tt: number) => {
+            c.t = tt;
+            c.playing = false;
+            const aspect = size();
+            const shot = cameraAt(FLIGHT, tt);
+            r.time = tt;
+            for (let i = 0; i < 900; i++) {
+              const info = r.render(shot, ahead(tt));
+              if (info.inflight === 0 && r.settled(shot, aspect)) break;
+              await new Promise((ok) => requestAnimationFrame(ok));
+            }
+            overlay(r, tt, shot);
+            await new Promise((ok) => requestAnimationFrame(ok));
+          };
+          document.documentElement.dataset.filmReady = "1";
+          setPhase("paused");
+          return;
+        }
         raf = requestAnimationFrame(settle);
       } catch (e) {
         if (disposed) return;
