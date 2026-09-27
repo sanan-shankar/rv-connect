@@ -8495,3 +8495,14 @@ only the latest entries while `progress.md` still indexed every session.
 its entry heading in that month's file, so an overwrite now fails `npm run check` instead of passing silently. An index line may run longer
 than its heading, as sixteen September lines do; it matches the entry whose heading it begins with. It was
 found as refactor audit 3's ORCH-01.
+
+## 2026-09-27 (lab) — the valley campaign is the hills alone, and everything else it built is deleted
+
+Owner, on round two: "I don't really like any of these ... much ado about nothing", then on
+the lot: "ditch all the other ideas. Like by ditch, I mean delete them. They're all bad. Um,
+let's just work on the 3D hills." Deleted the lit sidebar mark, the day/night directory map,
+the wax seal and the overview that held them, the three `/lab/years` rooms, the wall's atlas
+script, its README row and ignore entry, and the round-two ideas file and handover. His words
+are ¶10 to ¶12 of `docs/planning/valley/brief.md`; `handover.md` is rewritten for the one
+thing left: the real valley from satellite imagery, flown into on the landing page and
+ending on the three hills becoming the mark. The hills room stays until its rebuild lands.
