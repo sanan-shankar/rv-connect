@@ -277,48 +277,11 @@ export const REGISTRY: LabEntry[] = [
   },
 
   {
-    href: "/lab/valley",
-    title: "The site knows where it is",
+    href: "/lab/valley/hills",
+    title: "The hills, as they are",
     group: "Delight",
     status: "active",
-    note: "Four things that follow the valley's real sun and hills, none of them on the feed: the sidebar mark lit by this minute's sun, the directory's map with the night where it is and members' cities lit or dark, the real hills round the school as a contour map that stands up into relief under today's sky, and your own bird pressed into wax for the time capsule. The readout at the top is what feeds them. REVIEWED 2026-09-16: none of the four is taken as it stands (his verdicts are in docs/planning/valley/next-session.md); the rooms stay as the record.",
-    children: [
-      {
-        href: "/lab/valley/hills",
-        title: "The hills, as they are",
-        note: "Real elevation for 32 km round the school, contours that stand up into relief, cast shadows from the sun where it is over the valley now. Drag to turn, drag the hour, pinch to come closer, stand on the campus and look west at the three peaks in the mark.",
-      },
-      {
-        href: "/lab/valley/seal",
-        title: "Your bird, pressed into wax",
-        note: "Press and hold to seal. The bird's outline is the height map for an SVG lighting filter, lit from the valley's sun; every one of the fifty birds works at any size.",
-      },
-    ],
-  },
-
-  {
-    href: "/lab/years",
-    title: "Time, drawn",
-    group: "Delight",
-    status: "active",
-    note: "Round two of the valley campaign, on the one axis this site honestly has. Three rooms: every photograph at once by year (pinch out of one and it takes its place among all 1,815), the same bench years apart (one photograph lifts as grains and settles as the same place in another year), and everyone who was here as thread (the school's hundred years as cloth, each member a thread dyed by house). Each is pulled by a gesture that does a job or is rare by nature; none plays on the feed. docs/planning/valley/ideas-round-two.md says why these three.",
-    children: [
-      {
-        href: "/lab/years/wall",
-        title: "Every photograph, at once",
-        note: "One world, one camera. Scroll or pinch to go from one photograph to the whole archive laid out by year, and back. Needs the atlas: node scripts/dev/wall-atlas.mjs.",
-      },
-      {
-        href: "/lab/years/then",
-        title: "The same bench, years apart",
-        note: "Three real pairs from the valley's captioned photographs: the SBT benches 2009 and 2022, the games field 2021 and 2023, the Big Banyan 2014 and 2017. The earlier one lifts off as ninety thousand grains and settles as the later one. Drag the year and hold it anywhere between; press to play. ?pair=field&t=0.5 holds a moment.",
-      },
-      {
-        href: "/lab/years/weave",
-        title: "Everyone who was here, as thread",
-        note: "The school's years as hand-loom cloth, drawn by one fragment shader. Every member is a weft thread across the years they were here, dyed each year by the house they were in; teachers in the school's green. Opens on your own thread with your name on the cloth; pinch out for everyone, drag along the years for who was here, tap a thread. ?z=all opens on the whole cloth.",
-      },
-    ],
+    note: "Real elevation for 32 km round the school, drawn as contours that stand up into relief, under the sun where it is now. The one survivor of the valley campaign (the lit mark, the day/night map, the seal and the three /lab/years rooms were deleted 2026-09-27 at his word); being rebuilt from satellite imagery as the landing page's opening.",
   },
 
   /* ---------------------------------------------------------------- *
