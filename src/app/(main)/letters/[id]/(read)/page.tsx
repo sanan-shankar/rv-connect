@@ -13,9 +13,11 @@ import { LetterImages } from "@/components/letters/letter-images";
 import { LetterMenu } from "@/components/letters/letter-menu";
 import { photoFactsFor } from "@/lib/image-record";
 import { canViewPost } from "@/lib/post-visibility";
-import { VISIBLE_COMMENT } from "@/lib/posts";
+import { VISIBLE_COMMENT, withLinkCards } from "@/lib/posts";
 import { batchLine, formatDisplayDate, letterTitle, metaLine, parseJsonArray, readMinutes, VALLEY_TIME_ZONE } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
+import { linkRanges, stripReplacedLinks } from "@/lib/link-preview-core";
+import { LinkCard } from "@/components/common/link-card";
 import { recordView } from "@/lib/content-view";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 
@@ -130,6 +132,23 @@ export default async function LetterPage({
   const photos = await photoFactsFor(images);
   const minutes = readMinutes(letter.content);
 
+  /* The same on-read trigger a Catch-up Edition's loader uses
+     (catchups-edition-view.ts): a pasted link with no resolved preview yet,
+     or one whose failed resolve is more than a day old, is scheduled to
+     resolve after this response (never awaited) and prints as an ordinary
+     link on THIS read; the next one has the card. One query, whether the
+     letter carries one pasted link or none (withLinkCards, @/lib/posts).
+
+     Cut server-side here, unlike a feed post's: this page has no edit form
+     reading `letter.content` back out of it -- editing goes through its own
+     `/letters/[id]/edit` query -- so there is no risk in handing the reader
+     the already-cut body the way the Catch-up reader does. */
+  const [withLinks] = await withLinkCards([{ id: letter.id, content: letter.content }]);
+  const stripped = stripReplacedLinks(letter.content, new Set(withLinks.links.map((l) => l.url)));
+  const displayBody = stripped.cards.length ? stripped.body : letter.content;
+  const linksByUrl = new Map(withLinks.links.map((l) => [l.url, l] as const));
+  const displayLinks = stripped.cards.map((url) => linksByUrl.get(url)!);
+
   return (
     // A reading measure (line length), not a page width: the column itself is
     // the shell's. Centered inside it so the text sits under its own title.
@@ -240,10 +259,15 @@ export default async function LetterPage({
         />
       </div>
 
-      <div
-        className="mt-7 whitespace-pre-wrap break-words font-heading text-[16px] leading-[1.8] text-foreground [&_a]:font-sans [&_strong]:font-bold"
-        dangerouslySetInnerHTML={{ __html: renderRichText(letter.content) }}
-      />
+      {/* Skipped when the whole letter was one link that just became a card
+          (displayBody === ""), the same fail-soft rule a Catch-up answer's
+          tile follows. */}
+      {displayBody && (
+        <div
+          className="mt-7 whitespace-pre-wrap break-words font-heading text-[16px] leading-[1.8] text-foreground [&_a]:font-sans [&_strong]:font-bold"
+          dangerouslySetInnerHTML={{ __html: renderRichText(displayBody, { linkRanges }) }}
+        />
+      )}
 
       <LetterImages
         images={images}
@@ -256,6 +280,16 @@ export default async function LetterPage({
         }}
         date={formatDisplayDate(letter.createdAt)}
       />
+
+      {/* One card per pasted link that resolved, same shape as a Catch-up
+          answer's stack (edition/reader.tsx's Tile). */}
+      {displayLinks.length > 0 && (
+        <div className="mt-8 space-y-2">
+          {displayLinks.map((link) => (
+            <LinkCard key={link.url} link={link} />
+          ))}
+        </div>
+      )}
 
       {/* A draft hasn't been published yet, so there is nothing to like,
           comment on, bookmark, or share -- that all starts once it's out. */}

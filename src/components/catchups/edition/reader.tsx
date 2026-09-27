@@ -78,9 +78,10 @@ import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 import { useBackCloses } from "@/lib/back-closes";
 import { AppBarTitle } from "@/components/layout/app-bar-title";
+import { LinkCard } from "@/components/common/link-card";
 import { BAR, EditionMeta, QuestionList, Strip, UnfoldedPanel } from "./navigator";
 import { PhotoRun } from "./photo-run";
-import { AskedBy, Body, Byline, LinkCard, Photographs, Reactions, said } from "./reader-parts";
+import { AskedBy, Body, Byline, Photographs, Reactions, said } from "./reader-parts";
 import type { ReaderEdition, ReaderQuestion } from "./reader-types";
 import type { EditionEntry } from "@/lib/catchups-edition-view";
 

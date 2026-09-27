@@ -73,9 +73,14 @@ test("the card renders the post in ONE piece, so nothing can straddle a cut", ()
      or an emoji straddling the cut came apart, and `safeTruncateIndex`
      (src/lib/rich-truncate.ts, deleted) existed to cut somewhere safe. The
      fold is a clip now: the whole post is rendered and the paragraph is cut
-     short in CSS, so there is no second call to keep in step. */
+     short in CSS, so there is no second call to keep in step.
+
+     `displayBody`, not `content`, since the build that shows a pasted link's
+     card cuts that link out of the paragraph for DISPLAY only (post-card.tsx
+     keeps `content` itself raw, for the edit dialog) -- still one string,
+     still the whole thing, still one call. */
   const card = decomment(read("src/components/posts/post-card.tsx"));
-  assert.match(card, /renderRichText\(content\)/, "the card no longer renders the whole post");
+  assert.match(card, /renderRichText\(\s*displayBody\b/, "the card no longer renders the whole post");
   assert.equal(
     [...card.matchAll(/renderRichText\(/g)].length,
     1,
