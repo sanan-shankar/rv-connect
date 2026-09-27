@@ -1,59 +1,113 @@
 # The guide
 
-How the site explains itself. One chapter per area, opened from somewhere quiet enough
-that nobody who is not looking for it ever sees it.
+How the site explains itself: one chapter per area, opened from the page's own title, and, since
+2026-09-27, run once for every member as a first-run tour.
 
-Decided with the owner on 2026-08-26 and 2026-08-27. The container was picked by
-building all four (page, side panel, one long document, sheet over the app) in a lab
-room and looking at them side by side; the room was deleted on 2026-08-28 once the
-sheet shipped. What it settled is written down in 2.2, so nothing is lost with it.
+Decided with the owner on 2026-08-26 and 2026-08-27 (the container and the door) and rewritten on
+2026-09-27 (the chapters, the tour, the header). The 2026-08 version of this file is in
+`git log --follow -- docs/spec/guide.md`; everything it settled that still holds is restated here.
 
 ---
 
 ## 1. The problem, in his words
 
-> "In each page you should be able to click some button, and this button should be
-> extremely inconspicuous, but yet if you look for it you find it."
+The door (2026-08-26):
 
-And on what the chapters are for, which is the part that matters most:
+> "In each page you should be able to click some button, and this button should be extremely
+> inconspicuous, but yet if you look for it you find it."
 
-> "It's not only tech support stuff like this button is for this. We intend the feed to
-> be used for these types of posts. The photos we want in Collection, we don't want just
-> random photos of your class that you took while you were in school, we want things that
-> should be documented and saved in a more formal archive."
+The rewrite and the tour (2026-09-27, a voice memo, quoted as spoken):
 
-So this is not documentation. It is the house saying what it hopes for, with enough
-mechanics mixed in to stop anybody being stuck.
+> "We are going to redo the guide and we are going to push people into the guide upon signing in.
+> Mean, upon signing up, And make sure they go through [...] once people join, they will get the
+> guide for the feed read through it. And then click next, go to directory, click next, and go
+> cycle through of them. And then we have to make it clear on in the onboarding somehow. That they
+> can always go back to this by double tapping the the title of of any of any section to access the
+> guide."
 
-He also ruled things out. No persistent circle on every page, not even a small one with
-an eye in it: "even that is too intrusive, because we just have a circle on every single
-page that never goes away whether you need it or not." Not a long press, which he
-rejected himself while proposing it, because a long press selects text on a phone.
+> "For the people who've already joined, the next time they open the URL, we will have to run this
+> through them because there's a lot of people who don't know how everything works. Okay. But only
+> once, make sure that it doesn't happen again and again."
+
+On the voice:
+
+> "It should just be written as though I am talking to them. Okay? And not trying to sound all
+> fancy and, you know, overly conversational in this cringe way. Just be direct, almost like the
+> terms and conditions kind of tone."
+
+On what was there:
+
+> "We have a regular text font, then we have a subheading, then we have a different regular text
+> font. [...] Just keep this stuff normal. And I know previously for guide, we tried to include as
+> many elements of [...] visual elements that are not text like these graphics. That's just not
+> working."
+
+> "you have too many subsections? Like, you have, like, three lines per subsection. That's not how
+> it goes. You order it more meaningfully. This is just as many subsections as there are lines of
+> text."
+
+On the header and the close button:
+
+> "We've removed the left alignment of guide, and we've pushed it off to the side in the corner. I
+> don't like that. If you don't want guide to be the biggest text element, which is fair, Why are
+> you pushing it off to the left? Just do it differently. Either just move it above the feed, but to
+> the same left line or I don't know. But right now, it looks wrong."
+
+> "you know how the x button has this, like, darkened patch around it? I wanna remove that
+> everywhere. I hate it. I don't know why we do it just have a normal x."
+
+On the tour's own problem:
+
+> "after signing up to first, you see the feed. And then maybe after a second or two, or maybe
+> maybe it just immediately pops up. Because if it's a second or two, they might click or do
+> something in that time. [...] But then if we say, like, this is the feed and then the whole area
+> is covered with the guide, then this is not the feed. This is the guide. [...] I don't wanna make
+> it a small portion of the screen. Should probably be the whole screen. But then, yeah, they have
+> to know that they should cycle through all of those guides."
+
+> "the onboarding is extremely smooth, And there's no, like, glitchy, you know, effect of this and
+> that."
 
 ---
 
 ## 2. The decisions
 
-**2.1 The chapter is not a document.** The first build put it in the shell the policy
-pages use, because he had praised those pages. He rejected it: "this is so boring." The
-policy pages are plain because a legal document should be plain. A guide has the opposite
-job. Nobody is obliged to read it, so it has to earn the read. A chapter is built out of
-the product's own material with short lines beside it, not paragraphs under headings. See
-section 5.
+**2.1 A chapter is plain writing.** This reverses the 2026-08-26 call ("the chapter is not a
+document"), which built chapters out of the product's own material with short lines beside it. He
+has now read the result and asked for the opposite, in the policy pages' voice. So: a title, then
+paragraphs, grouped under two or three headings where the grouping means something. One body style
+for every paragraph (16px, 1.65), headings in the heading face, nothing else. No diagrams, no
+comparison boxes, no captions. `Scale`, `Compare` and `BlankMark` are deleted from the kit.
 
-**2.2 It opens as a page over the page.** Stage D of the four, the one he picked. The chapter is a real
-route with a real address, and when you open it from inside the app it appears over the
-page you were on, which stays where you left it. Next 16 does this with intercepting
-routes. Rejected: a side panel, because the chapter's diagrams stop being pictures at
-404px and because a panel can only ever be opened from the page it describes, so it has
-no answer to "what even is a Catch-up" asked from the Feed.
+**2.2 The voice** is his: second person, "we" for the people who run the site, declarative,
+specific, uncontracted like the terms and the guidelines. One line per chapter may carry some
+warmth (the warmth dial, 4.5 of 10). `docs/content/AI-WRITING-TELLS.md` applies in full. Every fact
+in a chapter was read off the code on 2026-09-27; section 7 lists the ones that corrected what he
+remembered.
 
-**2.3 One placement: the page title.** A two-door design shipped first, adding a sidebar
-row for discovery. He reverted it: the title is enough, and the guide not being browsable
-is acceptable. See section 4.
+**2.3 The header.** "Guide" is a small uppercase label, not a second serif title, and it stands on
+the same left line as the chapter's title and text. The sheet goes back to the bottom sheet's
+standard width (`max-w-xl`), which puts the label, the title and every paragraph on the sheet's own
+16px inset with no per-sheet anatomy, and brings a line of text to about 68 characters on a laptop
+(it was about 100 at `max-w-3xl`, which existed only to give the diagrams room).
 
-**2.4 It replaces the hoopoe tour.** Removed entirely on 2026-08-27, demo included, at
-his instruction. See section 7.
+**2.4 The close button is a bare X**, everywhere (`MODAL_CLOSE` in `ui/dialog.tsx`, which every
+dialog and bottom sheet wears). Muted ink at rest, full ink on hover, a press that sinks, the 44px
+target kept by the `::after`. This reverses the 2026-09-15 "32px filled circle, the iOS sheet
+close".
+
+**2.5 A chapter ends with the next one, not with the page it describes.** "Go to the Feed" is gone:
+he pointed out you are usually already on it, and the X or a swipe closes the sheet. Opened from a
+title, a chapter ends with an outline "Next: Directory" that swaps the chapter in place. The last
+chapter in the chain (Catch-ups) and Birds end with nothing.
+
+**2.6 The tour is the guide itself** (section 5): the same sheet, the five chapters in a row, run
+over the Feed the first time a member lands there. Once per account.
+
+**2.7 Verbs follow the device.** "Tap" where the pointer is coarse, "click" where it is fine,
+through one small component (`<Tap>`, and `<DoorHint>` for the door's whole instruction, in
+`src/components/guide/tap.tsx`). The door is where this matters most: on a phone the title needs
+two taps, with a mouse one click.
 
 ---
 
@@ -66,194 +120,198 @@ his instruction. See section 7.
 /guide/collection
 /guide/letters
 /guide/catchups
+/guide/birds
 ```
 
-Public or authed? Authed, under `(main)`, because every chapter describes a surface you
-need an account to see. The one exception worth considering later is `/guide` itself as a
-signed-out preview of what the place is for.
+Authed, under `(main)`. From inside the app a press opens the chapter as UI state over the page you
+were on, with no navigation (`src/lib/guide-open.ts` has the measurements that ruled out an
+intercepting route and `pushState`). A cold load or a mailed link renders the standalone page, which
+ends with a link to the next chapter's page.
 
-**The interception.** `@modal/(..)guide/[area]` beside the `(main)` layout, following
-`node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/intercepting-routes.md`.
-A soft navigation from inside the app renders the chapter over the current page; a cold
-load or a refresh renders the standalone page. Known-fiddly next to this app's route
-groups; budget a round of fighting it. If it proves impossible, fall back to the plain
-page (stage A), which is the same file and costs only the return-to-where-you-were.
-
-**Closing** returns you to the page underneath: escape, the close control, browser back,
-and a click on the scrim all do the same thing.
+Closing returns you to the page underneath: the X, escape, back, a click on the scrim, or a swipe
+down.
 
 ---
 
-## 4. Where the door is
+## 4. The door
 
-**One door: the page title.** Owner, 2026-08-27: "Don't replace about with guide. Revert
-it back to how it was. It's fine if it's not reachable like that. The page title thing is
-enough."
+**One door: the page title.** Every member surface routes its heading through
+`src/components/layout/page-header.tsx`; pass a `guide` slug and the `<h1>` becomes the control
+(`<GuideDoor>`). Nothing is added to any page. Nothing in the navigation links to `/guide` (owner,
+2026-08-27: "It's fine if it's not reachable like that. The page title thing is enough."). The tour
+is how members learn the door exists: page one says so and the last page says it again.
 
-This section previously specified two doors. The argument for the second one was that a
-lost member looks at the menu rather than at the page, so the guide needed a findable
-entry as well as an invisible one. He has heard that argument and decided otherwise, and
-the sidebar's `/about` row is back to pointing at `/about`.
+**On a phone it takes two taps.** The first arms, the second opens, so a tap that was really the
+start of a scroll costs nothing. The arming is invisible (the `?` mark was removed 2026-09-02) and
+expires on scroll, on a touch elsewhere, and after four seconds. A mouse and a keyboard open on the
+first press. Pointer type is read off the event, not a media query.
 
-**What that means, stated plainly so nobody rediscovers it as a bug.** Nothing in the
-navigation links to `/guide`. The index is reachable by typing the URL, by the "Guide"
-back-link at the top of a standalone chapter, and by any link mailed to somebody. A member
-who has not worked out that the heading is pressable will not find the guide by browsing
-for it. That is the intended trade: no clutter anywhere, at the cost of discovery.
+Three details: the target is padded to 44px and given the height straight back as negative margin,
+so the heading never moves; `-webkit-tap-highlight-color` is off; modified clicks (cmd, ctrl, shift,
+alt) belong to the browser.
 
-### The title is the door
-
-Every member surface routes its heading through `src/components/layout/page-header.tsx`.
-Feed, Directory, Collection, Letters, Catch-ups, Birds. Pass a `guide` slug and the `<h1>`
-becomes the control that opens that page's chapter.
-
-Zero pixels. Nothing is added to any page, because nothing is added: a word that is
-already there does a second job. And it is the right word. When somebody is lost, the
-first thing their eye lands on is the thing naming the page.
-
-**There is no mark at all.** A small muted `?` faded in after the title on hover, and on
-the first tap on a phone. It was the owner's pick from three on 2026-08-27 and he removed
-it on 2026-09-02: *"ditch the question marks when you click on page titles. on desktop I
-can say just click the title for the guide. and on phone let it work the same just remove
-the question mark."* Which is the honest reading of a shortcut. The door was always meant
-to be invisible; a glyph on every heading is a mark every reader carries so that a few can
-be told a thing that can be told in a sentence.
-
-**On a phone the two-step stays.** First tap arms, second tap opens. It is invisible now,
-which is what "let it work the same" asks for, and it is still worth having: a tap on a
-30px heading is as often a scroll that started badly, and without the two-step that costs
-a navigation.
-
-Pointer type is read off the event, not from a `hover:` media query, because a laptop with
-a touchscreen is both and the query has to guess. Mouse and keyboard skip the two-step: a
-click is aimed and a keypress is deliberate.
-
-**Three details, because these are what make a touch control feel wrong.**
-
-- The tap target is padded to 44px and given the height straight back as negative margin,
-  so the target grows and the heading stays 30px and does not move. Measured, not assumed.
-- `-webkit-tap-highlight-color` is off, so there is no grey flash.
-- An armed title disarms on scroll, on a touch anywhere else, and after four seconds. That
-  matters MORE now that nothing is drawn: with no mark on screen, a tap five minutes after
-  the last one must be a first tap again, not the second half of a forgotten pair.
-
-**Implementation note.** `PageHeader` is a server component. The title becomes
-`<GuideDoor area="...">`, a small client component, so the header itself does not have to
-become one.
-
-### Not doing
-
-- A floating button, an eye, a circle, or anything in a fixed screen position.
-- A row in the sidebar. Tried, reverted, see above.
-- A `?` keyboard shortcut as the primary door. A keystroke is not a placement.
-- Long press. His own rejection: it selects text on a phone.
-- The bottom of the page. The Feed has no bottom, and nobody looks down for help.
-
-## 5. What a chapter is made of
-
-Worked example: `src/components/guide/chapters/catchups.tsx`. The rule it
-follows is that the chapter shows the product's own things and writes short lines beside
-them.
-
-In that one chapter: a Round card with real bird avatars; the four windows of a Round
-drawn to their true lengths, so the eye learns in one glance that answering is the long
-stretch and the quiet day is a sliver; the holding state the quiet day really shows; one
-real answer with an avatar on it; and a closing line that hands you back with "Start a
-Catch-up".
-
-Rules that fall out of that:
-
-- **A diagram earns its place when the fact is a shape.** Three days, then seven, then
-  one is a shape. Most facts are not, and a diagram for those is decoration.
-- **Reuse the real components** where they will render without a data layer behind them.
-  `BirdAvatar` is server-renderable and takes a plain object; use it.
-- **End with a way back into the product.** A chapter that just stops is a dead end.
-- **No em dashes, and the voice is the app's.** `docs/content/AI-WRITING-TELLS.md` applies
-  here exactly as it applies to shipped copy.
-- **Every chapter must survive at 640px and at 390px.** Manual line breaks in a heading
-  are out; the same markup renders at both.
+**Not doing:** a floating button or circle; a sidebar row (tried and reverted 2026-08-27); a `?`
+key as the primary door; long press (it selects text on a phone); the foot of the page.
 
 ---
 
-## 6. The five chapters
+## 5. The tour
 
-Each has to answer two different questions, and the second one is the one he cares about.
+### 5.1 When
 
-| Chapter | The mechanics | What the place is for |
-|---|---|---|
-| Feed | What a post can hold, who sees it, what the rail is | The kind of post this is for, as against a group chat |
-| Directory | How to find someone, what a batch filter does, what you control about your own entry | That the entry is a real person's contact details and not a lead list |
-| Collection | How to contribute, what happens after you do | The archive standard. Not snapshots from school, things worth keeping |
-| Letters | That a letter goes to one person and is private | Why it exists next to a public feed |
-| Catch-ups | Written. See `chapters/catchups.tsx` | Written |
+The first time a member lands on the Feed after this ships, or after signing up (the setup wizard at
+`/welcome` finishes on the Feed). It opens at once, with no delay, because a delay is a window in
+which somebody presses something (his point). It opens only on the Feed:
 
-Catch-ups is done and is the reference for the other four.
+- **Not on any page.** A member arriving from an emailed Catch-up reminder, an invitation or a
+  notification came to do one thing. A guide over that page is an interruption at the worst moment.
+  The Feed is where `/` sends a signed-in member, so "the next time they open the URL" is the Feed.
+- **Not only at the end of `/welcome`.** That reaches new members and none of the ~270 who have
+  already joined.
+
+Not on the public demo (`IS_DEMO`): its first frame is the product, by the standing decision in
+`docs/spec/demo.md`.
+
+### 5.2 What it is
+
+The guide sheet, with three additions while the tour runs:
+
+- **Page one opens with two sentences** above the Feed chapter, in the chapters' own body style:
+  what this is (a short guide, one page per part of the site), that it opens by itself this once,
+  and how to bring any page of it back (the door, in the device's own verb). This is the answer to
+  "this is not the feed, this is the guide": the sheet says what it is before anything else.
+- **A footer** on the sheet's own surface: step dots on the left (the setup wizard's dots, one per
+  chapter, the current one drawn long; a visited one can be pressed to go back) and a canopy
+  "Next: Directory" on the right. On the last page it says "Done".
+- **The last page ends** with the door again and with Reach out, for anything the guide does not
+  answer.
+
+Next swaps the chapter inside the same sheet: the old one fades out, the body scrolls to its top,
+the new one rises in. The sheet never closes and reopens between chapters and the page underneath
+never navigates. Navigating the page underneath to each area was the literal reading of "go to
+directory", and it was not taken: it would load five routes under a sheet that hides them, each one
+a chance for a skeleton, a map load or a layout jump, for nothing the member can see.
+
+Teachers get four pages: Catch-ups is left out, because `/catchups` sends teachers to the Feed.
+
+### 5.3 Once
+
+`User.guideSeenAt`, stamped when the tour ends: Done, or closed any other way (the X, escape, back,
+the scrim, a swipe, or a link inside it that navigates away). It lives on the account, not the
+browser, which is his rule for the Feed's "New since you were last here" marker (2026-08-20: "should
+only appear once, not once on each device").
+
+Stamped at the end rather than on first show, so a phone that kills the tab in the middle does not
+lose the tour: the member comes back to it, on the page they had reached (a per-account
+`localStorage` note of the page reached, `src/lib/guide-tour.ts`). The write is `markGuideSeen()`,
+the same conditional `updateMany` shape as `markFeedSeen`, silent in production and refused on the
+demo by the client extension in `prisma.ts` (its rules are `demo.ts`'s). The client also keeps its own note that the tour ended,
+because the `(main)` layout and a prefetched Feed can outlive the write within one visit.
+
+The e2e sign-in (`e2e/auth.setup.ts`) writes that note for its own account, which is the owner's,
+so the visual suite photographs the Feed rather than the tour, and his own tour is not spent by a
+test run. For the same reason the Feed never re-sends the stamp on the strength of that note alone.
+`src/lib/guide-tour.test.mjs` pins the Feed's gate, the conditional stamp, both ways the tour ends
+and the e2e note.
+
+### 5.4 What waits for it
+
+The hoopoe's celebrations (`CelebrationDetector` on the Feed) hold while any guide chapter is open
+and play when it closes. The flight layer sits at `z-[70]`, above the sheet's `z-50`, so a
+post-signup welcome would otherwise fly across page one.
+
+### 5.5 Considered and not taken
+
+- **A separate onboarding route** with its own copy of the chapters: two texts to keep in step, and
+  the member never meets the object the title opens later.
+- **An intro page before the Feed chapter:** one more press before anything useful, and he asked for
+  the Feed chapter first. The two opening sentences do the same job without the press.
+- **Coach marks pointing at each nav item:** he wants the whole screen.
+- **A delay of a second or two:** his own objection, above.
+- **Stamping on first show:** the "once" is kept either way; stamping at the end also keeps the
+  member who was interrupted.
+- **A toast on early dismissal** telling them how to get back: page one already says it, and a
+  toast after a close is one more thing moving.
 
 ---
 
-## 7. The hoopoe tour is gone
+## 6. What a chapter is made of
 
-Removed on 2026-08-27, in full. His reason:
+`guide-kit.tsx`: `Chapter` (the title), `Section` (a heading), `P`, and `GuideLink` (an inline
+link in the chapters' ink); `tap.tsx`: `Tap` and `DoorHint`. The container adds what is not the chapter's: the Next control, and in
+the tour the opening sentences, the footer and the closing lines.
 
-> "I don't think I can get the hoopoe to be really great, and I don't think the effort is
-> worth it. If people need to reference it later they'd have to go through the door, which
-> is a bit weird."
+Rules:
 
-And on the demo, when told it was the only thing introducing that deployment: "nah we can
-kill the tour. remove it from demo."
+- A title, then paragraphs. A heading only where it groups two or more paragraphs that belong
+  together. No chapter has more than three.
+- Every paragraph is the same size and colour. No lede, no notes, no small print.
+- Say what the place is for, then how it works, then what you control.
+- Every chapter survives at 390px; no manual line breaks.
+- No em dashes, no "quiet", no triples by reflex.
 
-So `src/components/tour/`, `tour-local.ts`, `tour-auto-offer.ts` and the anchors in the
-composer, directory, collection and Catch-ups index are all gone, along with `isOwner`,
-whose only caller was the admin page's tour button.
+---
 
-**One consequence to keep in view.** The demo now has no opening move at all. Its bar
-still starts closed, because the argument for that (an interstitial between a hiring
-manager and the work is the worst possible first frame) never depended on the tour. If the
-demo turns out to need an introduction again, that default is where to reconsider, not a
-new interstitial.
+## 7. The five chapters
+
+What each covers, in his order. The chapters in `src/components/guide/chapters/` are the text.
+
+| Chapter | For | How it works | What you control |
+|---|---|---|---|
+| Feed | Things worth telling the whole community and worth keeping; what is better left to WhatsApp; the muted alumni groups | Photos (up to 3), polls, a post for one of your cities, sending photos on to the Collection | Like, save (Saved, on your profile, private), comment and reply, report a post or flag a person |
+| Directory | Who lives where | Map (blue circle: several cities, tap to zoom; green: one city, tap for its people), Batches, People (search, filters) | Everything on your profile is seen by members; fill in what you are comfortable with; who sees contact details |
+| Collection | The photograph you never had to show someone | Contribute, the year, review; the kinds along the top, sorts, the years down the side, search | Full-resolution download and asking the uploader; the Class Collection (unreviewed, your batch only, free) |
+| Letters | Writing longer or more considered than a post | Seen in the Feed and in Letters, likes and comments, up to 3 photos | Drafts, on any device |
+| Catch-ups | Keeping up with a whole group at once | Three days of questions (own or from the library, anonymous if you like), a week of answers (named, up to 3 photos), then the Edition, for its members only | Your batch's (every three months), your own (the Keeper sets the rhythm), picture, reminders, leaving |
+
+### 7.1 Where the code corrected the memo
+
+Written the way the code behaves, not the way it was remembered on 2026-09-27:
+
+- **A post cannot be narrowed by batch.** Only to one of the poster's own cities. The old chapter's
+  "Chosen batches only" was false.
+- **Collection search reads descriptions and contributors' names,** not the kinds (People, Birds and
+  the rest), which are the row of words along the top instead.
+- **The original file is not kept.** A photograph is re-encoded at full resolution (WebP, quality
+  100) and the download is a full-size JPEG of that. The chapter says "full resolution" and "the
+  full-size picture", never "original" or "uncompressed".
+- **Nothing stops the directory being scraped by a signed-in member** (no rate limit on paging or
+  profiles; one endpoint returns a whole batch). The chapter says only what is true: members only,
+  closed to search engines, contact details only to verified members.
+- **Names need a confirmed email; contact details need manual verification.** Not "both, for any
+  personal information".
+- **Batch Catch-ups ran monthly.** Made quarterly on 2026-09-27 at his word ("if it's monthly now,
+  make it quarterly"), code and live rows (`docs/spec/catchups.md` §2.1).
+- **A batch Catch-up exists once ten of the batch have joined,** cannot be left (it can be put
+  away), and has no Keeper, so nobody sets its rhythm or holds it.
+- **Holding a Catch-up is the Keeper's,** for the whole group; there is no personal pause.
+  Reminders cover answering only (Daily, On the last day, Never).
+- **The hidden day is gone** (2026-09-08), and he asked for it not to be mentioned anyway.
+
+### 7.2 Added from the code, beyond the memo
+
+He asked for "things I've forgotten to mention". Taken: sending a post's photos on to the Collection;
+that polls do not show who voted what; flagging a person from their profile (reports cover posts and
+people, not comments); that Saved is private; that a city on your profile is what puts you on the
+map; drafts on any device; up to three photos on an answer. Left out as detail nobody needs on day
+one: the post and letter character limits, the 300-word letter nudge, Keepers' early-close and
+extend controls, copy link, formatting shortcuts.
+
+---
 
 ## 8. Scope fences
 
 Out of this build:
 
-- Chapters for `/profile`, `/messages`, `/support`, `/notifications` and the admin rooms.
-- Search inside the guide.
-- Any per-user state: no "you have read this", no dismissal, no badge.
-- Translations.
+- Chapters for `/profile`, `/messages`, `/support`, `/notifications` and the admin rooms (he: "support
+  doesn't need an explanation. And about doesn't need an explanation").
+- Search inside the guide. Translations.
+- Per-user state beyond `guideSeenAt` and the tour's resume note: no per-chapter "read" marks.
 
 ---
 
-## 9. What is built, and what is not
+## 9. What is built
 
-Shipped 2026-08-27:
-
-- `/guide`, the index. Nothing in the navigation links to it, by his decision.
-- `/guide/[area]` as real pages.
-- The interception, so a press from inside the app opens the chapter over the page.
-- `GuideDoor` on the title of all six pages that have a chapter.
-- Six chapters: Feed, Directory, Collection, Letters, Catch-ups, Birds.
-
-Verified in a browser rather than claimed: the mark is at opacity 0 at rest and 1 on
-hover with the heading's rect unchanged to the pixel; a press opens the overlay with the
-address bar at `/guide/birds` and the page still mounted behind it; escape returns to the
-page at exactly the scroll position it was left at; a cold load of the same URL renders
-the standalone page with no overlay; and on touch the first tap arms the mark without
-navigating while the second one opens it.
-
-**Not built.** Four pages still have no chapter: Reach out, Profile, Notifications,
-Support. They were left rather than guessed at. Every chapter here describes behaviour
-that was read out of the code first, and the reason that matters is Letters: the working
-assumption going in was that a letter is private to one person, which is the opposite of
-true. A chapter written from a guess is worse than a missing one.
-
-**Also outstanding.**
-
-- `/about` still says "indefinitely procrastinated", and the sidebar still points at it.
-  It needs something to say, or it needs deleting.
-- Nothing else outstanding on the overlay. It is built on `BottomSheet` in `ui/sheet`
-  (since 2026-09-15; it was `SheetContent side="bottom"`), the one bottom sheet every panel
-  rising from the foot of the screen uses, so it wears the shared "Guide" title row, X and
-  swipe-down. The first
-  version hand-rolled it and the protocol audit was right to fail: the primitive already
-  owns the warm-ink scrim, the focus trap, escape, the aria wiring and the scroll lock, and
-  it also sizes to its content, which fixed the empty page under the shortest chapter.
+2026-08-27: `/guide`, `/guide/[area]`, `GuideDoor` on six titles, the chapters. 2026-09-02: the `?`
+mark removed. 2026-09-15: the sheet became `BottomSheet`. 2026-09-27: the plain-text chapters, the
+header label, the bare X, Next, `<Tap>`, and the tour with `User.guideSeenAt`.

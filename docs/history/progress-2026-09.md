@@ -1,20 +1,24 @@
 
 
 
-## 2026-09-27 (catchups, batches) — a batch Catch-up runs every three months
+## 2026-09-27 (guide) — the guide is plain writing, and every member is taken through it once
 
-In the guide memo the owner described a batch Catch-up as quarterly, then: "if it's monthly now,
-make it quarterly." They were monthly, and not by anyone's decision: `ensureBatchCatchup` wrote no
-cadence, so each row took the column default, and a batch has no Keeper, so nothing in the app could
-change it. `BATCH_CADENCE` in `catchups-core.ts` is now "quarterly" and `ensureBatchCatchup` writes
-it on every batch Catch-up it makes; `batch-catchups.test.mjs` pins both the value and the write.
+From the owner's voice memo. The five chapters (Feed, Directory, Collection, Letters, Catch-ups) are
+rewritten in his words and the terms' tone, every fact read off the code first; three agents checked
+Feed/Letters, Catch-ups and Collection/Directory. Corrected on the way: posts narrow by city, never
+batch; drafts live on the server; letters do appear in the Feed; the hidden day is gone; Collection
+search reads descriptions, not tags; photographs are kept at full resolution, not as originals;
+contact details need verification. Birds no longer promises every member a bird pick.
 
-The nine that exist moved with
-`prisma/migrations-manual/2026-09-27-batch-catchups-quarterly.sql`, applied to the main database
-(the demo's are seeded). Eight are still in Edition 1 waiting for three questions, with nothing
-booked, so only the word changed and the gap applies when each publishes. 2024 had published on 6
-September with its next Edition booked for 6 October; it is now 6 December at the same minute,
-re-anchored the way a Keeper's rhythm change re-anchors. Dry-run first (it matched the nine and
-computed that one date), applied (9 rows), re-run (0 rows). Safe before the deploy: the running
-build already knows "quarterly". `catchups.md` §2.1 also had the live batch list at two; it is nine.
-`check` green.
+One paragraph style (16px), no diagrams, "Guide" a small label on the text's left line, the sheet at
+max-w-xl. A chapter ends with "Next: Directory", not "Go to the Feed". Verbs follow the device
+(`<Tap>`, `<DoorHint>`).
+
+The tour: over the Feed, the first time, until `User.guideSeenAt` is stamped on Done or any close
+(column on both databases; all 271 accounts null). Footer dots plus Next; page one says what it is and
+how to reopen it, the last page adds Reach out. Resumes where a killed tab left it; teachers skip
+Catch-ups; never on the demo; hoopoe celebrations wait for it. The e2e sign-in writes the browser
+note so the visual suite sees the Feed without spending the owner's tour. Verified as Jerry at 1440
+and 390: tour, resume, early close, stamp, no repeat, title door afterwards. `guide-tour.test.mjs`
+pins it (mutation-checked). check green; visual 23/25, the two directory headcount diffs as before.
+Write-path and design audits: nothing found.

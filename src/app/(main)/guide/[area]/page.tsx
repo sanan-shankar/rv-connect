@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { findGuideArea } from "@/lib/guide-areas";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { auth } from "@/lib/auth";
+import { findGuideArea, guideChain, nextGuideArea } from "@/lib/guide-areas";
 import { CHAPTERS } from "@/components/guide/chapters";
+import { Button } from "@/components/ui/button";
 
-/* A plain page with no per-member state, by design (docs/spec/guide.md
-   section 8): no "you have read this", no dismissal, no badge. It is still
-   rendered per request, not prerendered -- `generateStaticParams` used to sit
-   here and could never do anything, because the root layout reads the theme
-   cookie in both `generateViewport` and its body and that opts every route in
-   the app into dynamic rendering. */
+/* The chapter as a page: what a mailed link, a refresh or the /guide index
+   opens. Pressing a title inside the app shows the same chapter in a sheet
+   instead (guide-open.ts). It ends the way the sheet does, with the next
+   chapter, here as a link to its page. Rendered per request, not prerendered
+   -- `generateStaticParams` used to sit here and could never do anything,
+   because the root layout reads the theme cookie in both `generateViewport`
+   and its body, which opts every route in the app into dynamic rendering. */
 
 export async function generateMetadata({
   params,
@@ -35,11 +38,16 @@ export default async function GuideChapterPage({
      loudly here rather than rendering an empty page. */
   if (!found || !Chapter) notFound();
 
+  const session = await auth();
+  const type = session?.user?.accountType;
+  const next = nextGuideArea(found.slug, guideChain(type === "teacher" || type === "ex_teacher"));
+
   /* No ContentColumn here: AppShell already puts every (main) child inside the
-     one spine (app-shell.tsx:74), and wrapping again would nest max-w-3xl in
-     max-w-3xl for nothing. */
+     one spine (app-shell.tsx:74). The chapter itself keeps the sheet's measure,
+     max-w-xl, so a line is ~68 characters here too rather than ~95 at the
+     spine's full width. */
   return (
-    <>
+    <div className="max-w-xl">
       <Link
         href="/guide"
         className="state-layer -ms-2 mb-6 inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[13px] text-muted-foreground outline-none hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
@@ -48,6 +56,14 @@ export default async function GuideChapterPage({
         Guide
       </Link>
       <Chapter />
-    </>
+      {next && (
+        <div className="mt-10">
+          <Button variant="outline" nativeButton={false} render={<Link href={`/guide/${next.slug}`} />}>
+            Next: {next.short}
+            <ArrowRight aria-hidden="true" />
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

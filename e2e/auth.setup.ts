@@ -36,5 +36,17 @@ setup("authenticate as admin", async ({ page, baseURL }) => {
   await page.goto("/feed");
   await expect(page).toHaveURL(/\/feed/);
 
+  /* The guide's first-run tour opens over the Feed for an account that has
+   * not seen it, and this is the owner's own account. Write the browser's
+   * "tour ended" note (src/lib/guide-tour.ts) into the saved state rather
+   * than closing the tour, which would stamp his real row and spend the one
+   * tour he has not seen yet. Every later check then photographs the Feed. */
+  await page.evaluate(async () => {
+    const session = await fetch("/api/auth/session").then((r) => r.json());
+    const id = session?.user?.id;
+    if (!id) throw new Error("signed in, but /api/auth/session has no user id");
+    localStorage.setItem(`rv:moment:guideTour:${id}`, "fired");
+  });
+
   await page.context().storageState({ path: AUTH_FILE });
 });

@@ -29,7 +29,7 @@ export default function GuideIndexPage() {
           <li key={area.slug}>
             <Link
               href={`/guide/${area.slug}`}
-              className="state-layer group flex items-center gap-4 rounded-2xl border border-border bg-card px-5 py-4 outline-none transition-transform duration-150 ease-out hover:-translate-y-px active:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
+              className="state-layer group flex items-center gap-4 rounded-2xl border border-border bg-card px-5 py-4 outline-none transition-transform duration-150 ease-out active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
             >
               <span className="min-w-0 flex-1">
                 <span className="block font-heading text-[1.05rem] font-bold tracking-[-0.015em] text-foreground">
@@ -40,7 +40,7 @@ export default function GuideIndexPage() {
                 </span>
               </span>
               <ArrowRight
-                className="size-4 shrink-0 text-muted-foreground transition-transform duration-150 ease-out group-hover:translate-x-0.5"
+                className="size-4 shrink-0 text-muted-foreground"
                 aria-hidden="true"
               />
             </Link>

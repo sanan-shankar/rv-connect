@@ -1,36 +1,31 @@
-import { Chapter, Section, P, Doorway } from "../guide-kit";
+import { Chapter, P } from "../guide-kit";
+
+/* Read off the code on 2026-09-27 (docs/spec/guide.md section 7): a letter
+   shows in the Feed as a card as well as on /letters (post-feed.tsx); up
+   to three photographs (feed/actions.ts); drafts live on the server and
+   are listed under "Your drafts" on /letters, so they follow the member
+   to any device (use-letter-persistence.ts, drafts-strip.tsx). The old
+   chapter said a letter stayed out of the Feed and that drafts lived on
+   the device; neither was true. */
 
 export function LettersChapter() {
   return (
-    <Chapter
-      title="Letters"
-      lede="A letter is a long piece of writing to the valley. It keeps its own index instead of going into the feed, so it is not sitting underneath a photograph from this morning."
-    >
-      <Section title="When to write one instead of a post">
-        <P>
-          When the thing takes paragraphs. An account of a year, what somebody was like,
-          what happened after school, a piece about a teacher. Anything you would want read
-          properly rather than scrolled past.
-        </P>
-      </Section>
-
-      <Section title="It waits for you">
-        <P>
-          The letters desk saves a draft as you write, on the device you are writing on, so
-          you can stop in the middle and come back. Nothing is published until you publish
-          it.
-        </P>
-      </Section>
-
-      <Section title="Who reads it">
-        <P>
-          Every member. Letters are not addressed to one person; they sit in the index for
-          anyone to find, and they stay there. People can leave a comment or a heart the same
-          way they would on a post.
-        </P>
-      </Section>
-
-      <Doorway href="/letters">Go to Letters</Doorway>
+    <Chapter title="Letters">
+      <P>
+        Letters are for writing that is longer or more considered than a post: essays, poems,
+        travelogues, an account of a year, a piece about a teacher. A post in the Feed lasts
+        longer than a message in a WhatsApp group, and a letter lasts longer still. Each one gets
+        a page of its own, set out to be read properly.
+      </P>
+      <P>
+        Letters appear in the Feed and on the Letters page, and every member can read them.
+        People can like and comment on a letter just as they would on a post, and you can add up
+        to three photographs to one.
+      </P>
+      <P>
+        You do not have to finish in one sitting. Save as draft keeps it for later, and you can
+        pick it up again from Your drafts on the Letters page, on any device.
+      </P>
     </Chapter>
   );
 }

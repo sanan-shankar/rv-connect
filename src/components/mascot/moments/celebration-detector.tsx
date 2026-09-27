@@ -16,7 +16,8 @@
  *  `hasFired` never re-evaluates its trigger again.
  * ------------------------------------------------------------------ */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { currentGuide, subscribeGuide } from "@/lib/guide-open";
 import { CelebrationHoopoe, type CelebrationKind } from "./celebration-hoopoe";
 import { anotherHoopoeOnScreen } from "./one-hoopoe-guard";
 import { hasFired, markFired, readProgress, writeProgress } from "./one-shot";
@@ -161,7 +162,13 @@ export function CelebrationDetector({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing?.id]);
 
-  if (!playing || !canRender) return null;
+  /* Held while a guide chapter is open, and played when it closes. The flight
+     layer sits at z-[70], above the sheet's z-50, so a post-signup welcome
+     arriving with the first-run tour would fly across its first page
+     (docs/spec/guide.md 5.4). */
+  const guideOpen = useSyncExternalStore(subscribeGuide, () => currentGuide() !== null, () => false);
+
+  if (!playing || !canRender || guideOpen) return null;
 
   return (
     <CelebrationHoopoe
