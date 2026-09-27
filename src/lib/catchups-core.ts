@@ -510,26 +510,30 @@ export function isBatchCatchup(batchYear: number | null | undefined): boolean {
 
 /**
  * What a batch Catch-up refuses, in one sentence, for every control that
- * refuses it.
+ * still refuses it.
  *
- * A batch Catch-up has NO MANUAL TRANSITIONS AT ALL and no member editing --
+ * REVERSED FROM ITS ORIGINAL SHAPE. It used to cover every manual control --
  * his own correction, N30, after asking "Can anyone open answering? That
  * shouldn't be allowed. Because many people would click it by accident.
- * Especially on a batch thing ... it seems like the kind of irreversible
- * thing." Nobody opens answering, nobody closes it, nobody publishes, nobody
- * renames it, nobody adds or removes anyone. It runs on its rhythm and the
- * only things anyone does on one are ask and answer. That is what makes
- * "nobody keeps it" survivable.
+ * Especially on a batch thing." His later word, 2026-09-27, overturns that
+ * worry rather than the reasoning behind it: "make everyone a keeper ... and
+ * have all of them paused by default." Everyone in the batch now runs the
+ * cycle together -- choosing questions, opening answering, extending,
+ * nudging, closing and publishing, starting the next Edition, pausing and
+ * resuming -- and the accident risk N30 named is answered by starting paused
+ * (`ensureBatchCatchup`) rather than by locking the controls to nobody.
  *
- * ONE sentence rather than a sentence per control, unlike the ten
- * "Only the Keeper can ..." refusals it sits beside, because the reason is
- * the same every time and has nothing to do with who is asking: there is no
- * Keeper to be. Nobody should ever read it -- every one of these controls is
- * absent from a batch Catch-up's screen -- so it is the backstop, not the
- * explanation.
+ * What is LEFT refusing this sentence is membership and identity: the batch
+ * IS the roster, so there is still nobody to add, remove, or hand a Keeper's
+ * hat to, and the name, the rhythm and ending it stay fixed the same way.
+ * `loadKeeperScope` and `loadKeeperEdition` each take an `allowBatch` opt-in
+ * per caller now; the cycle controls pass it, these six do not.
+ *
+ * Still ONE sentence rather than one per control, because the reason is the
+ * same every time and has nothing to do with who is asking.
  */
 export const BATCH_CATCHUP_REFUSAL =
-  "A batch Catch-up runs on its own. Everyone in the batch is in it, nobody keeps it, and there is nothing here to change.";
+  "A batch Catch-up's roster is the batch itself, so there is nobody to add, remove, or hand the Keeper's hat to. The name, the rhythm and ending it stay fixed the same way.";
 
 /**
  * And the exit, which refuses for a different reason and so says a different
@@ -558,8 +562,12 @@ export const BATCH_LEAVE_REFUSAL =
  * at all, for ever, on the Catch-ups most members are actually in.
  *
  * `isBatchCatchup` is the whole test, and since build phase 4 (2026-09-08)
- * this is the one control on a batch Catch-up that anybody holds: every other
- * Catch-up-level control refuses one outright (`BATCH_CATCHUP_REFUSAL`).
+ * this was the one control on a batch Catch-up that anybody held while every
+ * other Catch-up-level control refused one outright. His 2026-09-27 word
+ * opened most of the rest to the batch too (`BATCH_CATCHUP_REFUSAL` now
+ * covers only membership and identity); this rule does not change, because
+ * it was never keyed to "nobody keeps a batch" in the first place -- a
+ * picture is reversible and destroys nothing regardless of who may run it.
  *
  * Membership is NOT checked here -- every caller has already established it,
  * because you cannot act on a Catch-up you are not in. This answers the
@@ -585,9 +593,10 @@ export function mayChangeCatchupPicture(opts: {
  * can" -- because nobody keeps a batch, so "only the Keeper" would mean a
  * batch could never have one.
  *
- * WHY THIS IS NOT ONE OF THE KEEPER CONTROLS, which all refuse a batch
- * outright (`BATCH_CATCHUP_REFUSAL`). That refusal is for TRANSITIONS: his N30
- * was about somebody in forty opening or closing answering by accident, a
+ * WHY THIS IS NOT GATED THE SAME WAY THE TRANSITIONS ARE, which now let a
+ * batch member through too (`allowBatch` on `loadKeeperScope` /
+ * `loadKeeperEdition`). That gate is for ONE-WAY moves: his N30 was about
+ * somebody in forty opening or closing answering by accident, a
  * thing nobody can undo. Marking a capsule moves nothing. It is allowed only
  * while the Edition is still taking questions, it is undone by pressing it
  * again, and until answering opens nobody has written a word it could seal.

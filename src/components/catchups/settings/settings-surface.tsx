@@ -196,9 +196,10 @@ function labelOf(k: ChoiceKey, value: string | number | null): string {
 
 /* ── the rows, one table, three permission sets ────────────────────── */
 
-/** This Edition: the Keeper's controls over the clock. A batch Catch-up
- *  has no manual transitions at all, so this group is simply absent on
- *  one -- nobody keeps it, it runs on its rhythm. */
+/** This Edition: the cycle's controls over the clock. The Keeper's, on a
+ *  people Catch-up; any batch member's, on a batch one (owner, 2026-09-27:
+ *  "make everyone a keeper"). Absent only when `canRun` is false, paused,
+ *  ended, or there is no live Edition to run. */
 function editionGroup(c: SettingsCatchup, extended: number | null): Group | null {
   if (!c.canRun || c.paused || c.ended || !c.editionId) return null;
   const closes = c.answersCloseAt ? formatDayMonth(c.answersCloseAt) : "";
@@ -288,7 +289,10 @@ function catchupGroup(c: SettingsCatchup, cadence: Cadence): Group {
       choose: c.youKeep ? "rhythm" : undefined,
     },
   ];
-  if (c.youKeep && !c.ended) {
+  // Hold and resume are cycle verbs (owner, 2026-09-27), so every batch
+  // member holds them the same way they hold open-answering and the rest --
+  // `canRun`, not `youKeep`.
+  if (c.canRun && !c.ended) {
     rows.push(
       c.paused
         ? {
@@ -306,6 +310,11 @@ function catchupGroup(c: SettingsCatchup, cadence: Cadence): Group {
             opens: { shape: "confirm", key: "hold" },
           },
     );
+  }
+  // Ending is the roster's call, and on a batch Catch-up the roster is
+  // everyone and no one at once -- there is nobody to make that call for
+  // the rest, so it stays the narrower, Keeper-only permission.
+  if (c.youKeep && !c.ended) {
     rows.push({
       key: "end",
       label: "End this Catch-up",

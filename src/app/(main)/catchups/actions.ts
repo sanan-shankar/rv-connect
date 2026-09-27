@@ -421,20 +421,24 @@ async function loadMemberEdition(editionId: string, viewerId: string) {
 async function loadKeeperEdition(
   editionId: string,
   viewerId: string,
-  refusal: { notKeeper: string; pausedHint?: string }
+  refusal: {
+    notKeeper: string;
+    pausedHint?: string;
+    /** Opt in per caller, the `mayChangeCatchupPicture` shape: every batch
+     *  member now runs the cycle together (owner, 2026-09-27, "make everyone
+     *  a keeper"), but not every Edition-scoped control is part of the
+     *  cycle, so this is asked rather than assumed. Omitted means refused,
+     *  same as before that word. */
+    allowBatch?: boolean;
+  }
 ) {
   const scope = await loadMemberEdition(editionId, viewerId);
   if ("error" in scope) return scope;
   const { edition, membership } = scope;
-  /* A BATCH CATCH-UP HAS NO MANUAL TRANSITIONS AT ALL (architecture 6, his
-     correction N30), so it is refused before the Keeper question is even
-     asked. Nobody could pass that question anyway -- a batch group has no
-     `createdById` and every role in it is "member" -- but "nobody happens to
-     qualify" is an accident of the data, and this is the rule. */
   if (isBatchCatchup(edition.catchup.group.batchYear)) {
-    return { error: BATCH_CATCHUP_REFUSAL };
-  }
-  if (
+    if (!refusal.allowBatch) return { error: BATCH_CATCHUP_REFUSAL };
+    // Every member holds this one; nothing left to check but the freeze below.
+  } else if (
     !isEffectiveKeeper({
       viewerId,
       createdById: edition.catchup.createdById,
@@ -854,7 +858,8 @@ export async function setCatchupPicture(
   });
 }
 
-/** Keeper-only: pause a Catch-up (spec 3.3 settings / edge states). */
+/** Keeper-only on a people Catch-up; any member on a batch one (owner,
+ *  2026-09-27, spec 3.3 settings / edge states). */
 export async function pauseCatchup(catchupId: string) {
   return runAction(async () => {
     const session = await auth();
@@ -864,6 +869,8 @@ export async function pauseCatchup(catchupId: string) {
     const scope = await loadKeeperScope(catchupId, session.user.id, {
       notMember: "You are not a member of this group.",
       notKeeper: "Only the Keeper can pause this Catch-up.",
+      // Pausing and resuming are cycle verbs now (owner, 2026-09-27).
+      allowBatch: true,
     });
     if ("error" in scope) return scope;
     const { catchup } = scope;
@@ -884,7 +891,7 @@ export async function pauseCatchup(catchupId: string) {
   });
 }
 
-/** Keeper-only: resume a paused Catch-up. */
+/** Keeper-only on a people Catch-up; any member on a batch one. */
 export async function resumeCatchup(catchupId: string) {
   return runAction(async () => {
     const session = await auth();
@@ -894,6 +901,7 @@ export async function resumeCatchup(catchupId: string) {
     const scope = await loadKeeperScope(catchupId, session.user.id, {
       notMember: "You are not a member of this group.",
       notKeeper: "Only the Keeper can resume this Catch-up.",
+      allowBatch: true,
     });
     if ("error" in scope) return scope;
     const { catchup } = scope;
@@ -1042,10 +1050,15 @@ export async function submitPrompt(input: {
     }
     const frozen = refuseIfFrozen(
       edition.catchup.status,
-      "You can add a question again when the Keeper resumes it."
+      "You can add a question again once this Catch-up is resumed."
     );
     if (frozen) return frozen;
 
+    /* Deliberately NOT batch-aware, unlike the Edition-scoped controls below
+       this one in the file. This decides an ATTRIBUTION (`source`), not a
+       permission: it is what tells an anonymous asker's own byline from a
+       library pick, and every batch member being a Keeper for the cycle does
+       not make their own question one the Catch-up itself asked. */
     const keeper = isEffectiveKeeper({
       viewerId: session.user.id,
       createdById: edition.catchup.createdById,
@@ -1177,9 +1190,10 @@ export type CuratePromptInput =
   | { action: "reorder"; editionId: string; orderedPromptIds: string[] };
 
 /**
- * Keeper curation of an Edition's questions (spec 3.3): remove one, or persist a
- * new order. Both require effective Keeper power and only run while the Edition
- * is still `collecting`.
+ * Curation of an Edition's questions (spec 3.3): remove one, or persist a
+ * new order. Both require the cycle -- the Keeper on a people Catch-up, any
+ * member on a batch one (owner, 2026-09-27) -- and only run while the
+ * Edition is still `collecting`.
  *
  * There is no longer an "accept" action. Every question now goes straight into
  * the Edition (owner, 2026-08-05), so there is nothing to approve; removing and
@@ -1201,6 +1215,8 @@ export async function curatePrompt(input: CuratePromptInput) {
 
       const scope = await loadKeeperEdition(editionId, session.user.id, {
         notKeeper: "Only the Keeper can reorder questions.",
+        // Choosing questions is a cycle verb (owner, 2026-09-27).
+        allowBatch: true,
       });
       if ("error" in scope) return scope;
       const { edition } = scope;
@@ -1236,6 +1252,7 @@ export async function curatePrompt(input: CuratePromptInput) {
 
     const scope = await loadKeeperEdition(prompt.editionId, session.user.id, {
       notKeeper: "Only the Keeper can curate questions.",
+      allowBatch: true,
     });
     if ("error" in scope) return scope;
     const { edition } = scope;
@@ -1250,9 +1267,10 @@ export async function curatePrompt(input: CuratePromptInput) {
   });
 }
 
-// ─── Edition transitions (Keeper-only early triggers; the clock drives the rest) ─
+// ─── Edition transitions (the Keeper's early triggers, any batch member's; the clock drives the rest) ─
 
-/** Keeper-only: collecting -> answering, ahead of `questionsCloseAt`. */
+/** Keeper-only on a people Catch-up; any member on a batch one. Collecting
+ *  -> answering, ahead of `questionsCloseAt`. */
 export async function openAnswering(editionId: string) {
   return runAction(async () => {
     const session = await auth();
@@ -1262,6 +1280,7 @@ export async function openAnswering(editionId: string) {
     const scope = await loadKeeperEdition(editionId, session.user.id, {
       notKeeper: "Only the Keeper can open answering.",
       pausedHint: "Resume it to pick the Edition back up.",
+      allowBatch: true,
     });
     if ("error" in scope) return scope;
     const { edition } = scope;
@@ -1314,7 +1333,8 @@ export async function openAnswering(editionId: string) {
 }
 
 /**
- * Keeper-only: answering -> published, ahead of `answersCloseAt`. Evaluates
+ * Keeper-only on a people Catch-up; any member on a batch one. Answering ->
+ * published, ahead of `answersCloseAt`. Evaluates
  * the too-few-answers rule (spec 2.6) exactly like the natural close: zero
  * entries auto-extends the window once instead of proceeding.
  *
@@ -1332,6 +1352,7 @@ export async function closeAndPublish(editionId: string) {
     const scope = await loadKeeperEdition(editionId, session.user.id, {
       notKeeper: "Only the Keeper can close answers early.",
       pausedHint: "Resume it to pick the Edition back up.",
+      allowBatch: true,
     });
     if ("error" in scope) return scope;
     const { edition } = scope;
@@ -1447,7 +1468,8 @@ export async function closeAndPublish(editionId: string) {
 }
 
 /**
- * Keeper-only: start the next Edition NOW, without waiting for the rhythm.
+ * Keeper-only on a people Catch-up, any member on a batch one: start the
+ * next Edition NOW, without waiting for the rhythm.
  *
  * THE CONTROL NOBODY HAD, and he found it himself: *"literally after
  * publishing I can't start a new round?!?! I have to wait for two weeks
@@ -1461,9 +1483,11 @@ export async function closeAndPublish(editionId: string) {
  * control lives in the rail, wears a cinnamon dot and confirms, and is never
  * beside the primary action (architecture section 6, N30).
  *
- * The Keeper holds it, like every other one-way Edition control. A batch
- * Catch-up has no manual transitions at all and so has none of these; that
- * case arrives with the batch Catch-up itself, in phase 4.
+ * The Keeper holds it on a people Catch-up, like every other one-way Edition
+ * control; on a batch one, any member does (owner, 2026-09-27, `allowBatch`
+ * below) -- the accident worry that used to keep this Keeper-only on a batch
+ * too (N30) is answered by starting paused instead, not by locking the
+ * control to nobody.
  *
  * The opening itself is `openNextEdition`, the same function the clock uses,
  * so a hand-started Edition is indistinguishable from a scheduled one --
@@ -1484,6 +1508,8 @@ export async function startNextEditionNow(catchupId: string) {
     const scope = await loadKeeperScope(catchupId, session.user.id, {
       notMember: "You are not a member of this group.",
       notKeeper: "Only the Keeper can start the next Edition.",
+      // Starting the next Edition is a cycle verb too (owner, 2026-09-27).
+      allowBatch: true,
     });
     if ("error" in scope) return scope;
     const { catchup } = scope;
@@ -1533,7 +1559,8 @@ export async function startNextEditionNow(catchupId: string) {
 }
 
 /**
- * Keeper-only: push the current phase's deadline out by 1, 2, 4 or 7 days
+ * Keeper-only on a people Catch-up, any member on a batch one: push the
+ * current phase's deadline out by 1, 2, 4 or 7 days
  * (owner, 2026-08-05). Works on BOTH windows: `collecting` moves
  * `questionsCloseAt`, `answering` moves `answersCloseAt`. Which one is being
  * moved is read from the Edition's own fresh status, never from the caller, so a
@@ -1558,6 +1585,7 @@ export async function extendDeadline(editionId: string, days: number) {
     const scope = await loadKeeperEdition(editionId, session.user.id, {
       notKeeper: "Only a Keeper can extend the deadline.",
       pausedHint: "Resume it to pick the Edition back up.",
+      allowBatch: true,
     });
     if ("error" in scope) return scope;
     const { edition } = scope;
@@ -1729,7 +1757,7 @@ export async function submitEntry(input: {
     }
     const frozen = refuseIfFrozen(
       edition.catchup.status,
-      "Answering opens again when the Keeper resumes it."
+      "Answering opens again once this Catch-up is resumed."
     );
     if (frozen) return frozen;
 
@@ -2342,28 +2370,34 @@ const MEMBERSHIP_REFUSAL = {
 
 /**
  * The Catch-up a Keeper is acting on, or the reason they may not. Builds on
- * `loadCatchupContext` rather than re-reading the same two rows, so seven
+ * `loadCatchupContext` rather than re-reading the same two rows, so nine
  * actions share one Keeper gate instead of each restating it.
  *
  * Both refusals come from the caller. They are not interchangeable: the four
  * lifecycle controls say "a member of this group" and the three membership
  * controls say "a member of this Catch-up", and the ten Keeper sentences each
- * name their own verb. Passing them in is what let these seven collapse
+ * name their own verb. Passing them in is what let these nine collapse
  * without a word of owner-reviewed copy changing.
  */
 async function loadKeeperScope(
   catchupId: string,
   viewerId: string,
-  refusal: { notMember: string; notKeeper: string }
+  refusal: {
+    notMember: string;
+    notKeeper: string;
+    /** Opt in per caller, the `mayChangeCatchupPicture` shape: every batch
+     *  member now runs the cycle together (owner, 2026-09-27, "make everyone
+     *  a keeper"). Membership and identity -- add, remove, hand off the hat,
+     *  rename, the rhythm, end -- do not opt in and stay refused outright,
+     *  because the batch IS the roster. Omitted means refused. */
+    allowBatch?: boolean;
+  }
 ) {
   const ctx = await loadCatchupContext(catchupId, viewerId);
   if (!ctx) return { error: "Catch-up not found." as const };
   if (!ctx.membership) return { error: refusal.notMember };
-  // The same refusal loadKeeperEdition makes, and for the same reason: on a
-  // batch Catch-up there is no rhythm to change, nobody to add or remove, no
-  // hat to hand over and nothing to pause or end.
   if (isBatchCatchup(ctx.catchup.group.batchYear)) {
-    return { error: BATCH_CATCHUP_REFUSAL };
+    return refusal.allowBatch ? { catchup: ctx.catchup } : { error: BATCH_CATCHUP_REFUSAL };
   }
   if (
     !isEffectiveKeeper({
@@ -2745,7 +2779,8 @@ export async function setReminderPref(catchupId: string, reminderMode: ReminderM
   });
 }
 
-/** Keeper-only: manually nudge every non-answerer, bypassing their `off` pref. */
+/** Keeper-only on a people Catch-up; any member on a batch one. Manually
+ *  nudges every non-answerer, bypassing their `off` pref. */
 export async function nudgeGroup(editionId: string) {
   return runAction(async () => {
     const session = await auth();
@@ -2756,6 +2791,7 @@ export async function nudgeGroup(editionId: string) {
     const scope = await loadKeeperEdition(editionId, session.user.id, {
       notKeeper: "Only the Keeper can nudge the group.",
       pausedHint: "Resume it to pick the Edition back up.",
+      allowBatch: true,
     });
     if ("error" in scope) return scope;
     const { edition } = scope;
