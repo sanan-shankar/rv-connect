@@ -8550,3 +8550,13 @@ edit path read the `@[Name](id)` a mention is stored as.
 - The bell shows "Mentioned you" with an @ icon.
 
 `mention-notifications.test.mjs` pins the shared pattern, the cap and all four call sites.
+
+## 2026-09-27 (feed) — the Collection card shows Cave Rock at blue hour until a newer photograph fits
+
+Owner: "just until the next suitable photo, can you make the nighttime cave rock photo the from
+the collection photo instead of what it is now." `collection-module.tsx` gains `PINNED`: the
+blue-hour Cave Rock photograph holds the Feed rail's card until anything added after the pin is a
+photograph the card would pick on its own (valley, approved, visible, landscape, a caption that
+fits). Its own caption runs 130 characters, far past the card's one line and his no-ellipsis rule,
+so the card reads "Cave Rock at blue hour"; the member's caption is untouched. Valley only, like
+the rest of the card. Delete the constant once the card has moved on, or to end the pin early.
