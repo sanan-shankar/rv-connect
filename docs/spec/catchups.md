@@ -62,7 +62,10 @@ is the whole test. One exists for every batch group at or over **`BATCH_CATCHUP_
 members; under ten there is none. On the live database that is Batch of 2023 and Batch of 2024. Its
 `createdById` and `inviteToken` are NULL: nobody keeps it and there is nobody to invite, because the
 membership is the batch. Everyone who signs up with that batch year is added (`joinBatchGroup` in
-`src/lib/batch-catchups.ts`), and a late joiner reads every earlier Edition.
+`src/lib/batch-catchups.ts`), and a late joiner reads every earlier Edition. A member whose batch
+year changes afterwards, by their own profile or the admin's People edit, is moved: `syncBatchGroup`
+takes them out of the old batch's group, pref row and Catch-up bells, the same as leaving, and into
+the new one. Only alumni are in a batch. Their answers, if any, stay in the old batch's Editions.
 
 Three places make a batch Catch-up exist: `joinBatchGroup` at signup (so the tenth signup of a
 batch is the moment one appears), and the two nightly self-heals (§13).
@@ -474,7 +477,8 @@ analytics counter, has no foreign key on `targetId`, and is written for unpublis
 `/api/catchups/tick` (02:00 UTC, `maxDuration` 120s) runs, in order:
 
 1. `healBatchCatchupsAndMemberships()`: **`healBatchGroupMemberships`** puts every alumnus with a
-   batch year into their batch group (a signup whose best-effort join failed), then
+   batch year into their batch group (a signup whose best-effort join failed) and takes anyone out
+   of a batch group that is not theirs (a year changed by a path that skipped `syncBatchGroup`), then
    **`healBatchCatchups`** creates the Catch-up and its first Edition for any batch group at or over
    ten that has none. Both are idempotent, scan whole tables, and never run on a page view.
 2. The advance: every stale Edition in an active Catch-up, every sealed Edition whose `publishAt`

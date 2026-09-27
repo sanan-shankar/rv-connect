@@ -25,6 +25,7 @@ const SCHEMA = "prisma/schema.prisma";
 const MIGRATION = "prisma/migrations-manual/2026-09-10-comments-on-answers.sql";
 const THREAD = "src/lib/comment-thread.ts";
 const CATCHUP_ACTIONS = "src/app/(main)/catchups/actions.ts";
+const CATCHUP_NOTIFICATIONS = "src/lib/catchup-notifications.ts";
 const FEED_ACTIONS = "src/app/(main)/feed/actions.ts";
 const EDITION_VIEW = "src/lib/catchups-edition-view.ts";
 
@@ -112,7 +113,7 @@ test("leaving a Catch-up clears comment notifications too", () => {
      -- so the exact-match `link: { in: editionLinks }` this used to carry
      walked straight past every one of them and left a departed member with
      bells aimed at a door that no longer opens. Prefix, and the type listed. */
-  const src = decomment(read(CATCHUP_ACTIONS));
+  const src = decomment(read(CATCHUP_NOTIFICATIONS));
   const at = src.indexOf("async function clearCatchupNotifications");
   assert.ok(at > 0, "clearCatchupNotifications is gone");
   const fn = src.slice(at, src.indexOf("\n}", at));

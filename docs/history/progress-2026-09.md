@@ -8332,3 +8332,23 @@ away even when they are one edit from an accepted answer. The folk question adds
 ("foky" has only four letters, so the one-typo rule doesn't cover it and it has to be listed exactly)
 and refuses "folk". Checked with a scratch run of the real `normalize`/`withinOneEdit`: folky, Foky,
 folkey and folki pass; folk, "Folk." and "the folk" are refused. `check` green.
+
+
+## 2026-09-27 (catchups, batches) — a changed batch year moves the member out of the old batch's Catch-up, not just into the new one
+
+Owner asked to move Aditya Munamarty from the batch of 2026 into 2022. Done on the live row (year,
+and the swap from the Batch of 2026 group to 2022's), and it showed the fault: `joinBatchGroup` only
+ever added. Anyone whose year changed after signup got their new batch (the nightly heal saw to
+that) and kept the old one, so they could open the old batch's Catch-up. Seven real members were
+in that state, plus Jerry, who has no batch year and sat in 2023's. Owner: "obviously they
+shouldn't see the previous batch's catch up".
+
+`syncBatchGroup` in `batch-catchups.ts` puts a member in the batch their row names and takes them
+out of every other one, with the same cleanup as leaving: membership, pref row and Catch-up bells.
+Their answers stay (none of the eight had written any). Only alumni belong to a batch. The admin
+People edit and the member's own profile edit both call it, and `healBatchGroupMemberships` now
+finds misfiled members as well as missing ones. `clearCatchupNotifications` moved to
+`src/lib/catchup-notifications.ts` so both callers share it.
+
+The new heal query was dry-run first and matched exactly the eight, then the real function was run
+on live data: healed 8. Afterwards there were 0 misfiled and 0 stranded. `check` green.

@@ -24,6 +24,9 @@
  *       tick's two idempotent passes, which repair a signup whose
  *       best-effort block failed.
  *
+ *  And `syncBatchGroup`, for the member whose batch year CHANGES after
+ *  signup: it takes them out of the old batch as well as into the new one.
+ *
  *  WHICH OF THE TWO ACTUALLY RUNS, checked rather than assumed:
  *  `/api/catchups/tick` requires `CRON_SECRET`, that secret IS set (in
  *  .env, on Vercel and in GitHub), and the route answers 200 to a
@@ -46,6 +49,7 @@ import { reportSwallowed } from "@/lib/report-error";
 import { isUniqueViolation } from "@/lib/prisma-errors";
 import { pickCatchupPicture } from "@/lib/catchup-picture-pick";
 import { BATCH_CATCHUP_FLOOR, isMissingCatchupTable } from "@/lib/catchups-core";
+import { clearCatchupNotifications } from "@/lib/catchup-notifications";
 
 /**
  * Find-or-create the "Batch of {year}" group, add the user to it, and make
@@ -190,7 +194,66 @@ export async function ensureBatchCatchup(groupId: string): Promise<string | null
 }
 
 /**
- * Tick pass one: every alumnus with a batch year is in their batch group.
+ * Put a member in the batch group their row names, and take them out of
+ * every other one.
+ *
+ * `joinBatchGroup` only ever adds, which was right at signup and wrong the
+ * first time anyone fixed a typo'd year afterwards: the new batch's group
+ * gained them (the nightly heal saw to that) and the old one never lost
+ * them. Measured 2026-09-27: seven members sat in a batch that was not
+ * theirs, able to open that batch's Catch-up and read its history. His
+ * word on it: "obviously they shouldn't see the previous batch's catch up".
+ *
+ * Only alumni belong to a batch, which is the same rule the heal joins by;
+ * a teacher, or anyone whose year is cleared, is in none.
+ *
+ * Leaving is the same leaving `leaveCatchup` does: the membership, their
+ * own pref row, and any bell still pointing at the old Catch-up go; their
+ * words, if they wrote any, stay in the Editions other people have read.
+ * No Keeper succession, because a batch group has no Keeper to hand on.
+ */
+export async function syncBatchGroup(userId: string): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { batchYear: true, accountType: true },
+  });
+  if (!user) return;
+  const own = user.accountType === "alumnus" ? user.batchYear : null;
+
+  const memberships = await prisma.groupMember.findMany({
+    where: { userId, group: { batchYear: { not: null } } },
+    select: { groupId: true, group: { select: { batchYear: true, catchup: { select: { id: true } } } } },
+  });
+  for (const m of memberships) {
+    if (m.group.batchYear === own) continue;
+    await prisma.groupMember.deleteMany({ where: { groupId: m.groupId, userId } });
+    const catchupId = m.group.catchup?.id;
+    if (catchupId) {
+      await prisma.catchupPref.deleteMany({ where: { catchupId, userId } });
+      await clearCatchupNotifications(userId, catchupId);
+    }
+  }
+
+  if (own != null) await joinBatchGroup(userId, own);
+}
+
+/**
+ * `syncBatchGroup` for the two edit paths, which have already saved the year
+ * by the time it runs. Best-effort and reported, like the signup call: the
+ * saved year is the truth, and the nightly heal finishes the move if this
+ * half fails.
+ */
+export async function syncBatchGroupQuietly(userId: string): Promise<void> {
+  try {
+    await syncBatchGroup(userId);
+  } catch (err) {
+    if (isMissingCatchupTable(err)) return;
+    reportSwallowed("catchups", err, { step: "syncBatchGroup", userId });
+  }
+}
+
+/**
+ * Tick pass one: every member is in their own batch group, and no other.
  *
  * THIS FAILURE HAS ALREADY HAPPENED. `registerUser` calls `joinBatchGroup`
  * inside a best-effort try/catch, and the comment beside it said so in as many
@@ -200,6 +263,11 @@ export async function ensureBatchCatchup(groupId: string): Promise<string | null
  * Vercel log line." Measured on 2026-09-08: one member, Rukmini Rau, carries
  * `batchYear` 2024 and was not in the Batch of 2024 group. The one-time repair
  * is in the migration; this is what stops the next one lasting.
+ *
+ * Since 2026-09-27 it also finds the opposite fault: a member still in a batch
+ * group that is not theirs, whose year changed by some path that did not call
+ * `syncBatchGroup` (an admin merge, a hand-run fix, anything written later).
+ * Both kinds go through `syncBatchGroup`, which does the whole move.
  *
  * It creates the group when it is missing, for the same reason `joinBatchGroup`
  * does: the member most likely to need healing is the FIRST of their batch, and
@@ -221,22 +289,29 @@ export async function healBatchGroupMemberships(): Promise<number> {
      columns on two tables, and a relation filter can only compare against a
      literal. The alternative is reading every alumnus with their memberships
      and doing it in JavaScript, which is the whole User table on every tick. */
-  const stranded = await prisma.$queryRaw<{ id: string; batchYear: number }[]>`
-    SELECT u.id, u."batchYear"
+  const misfiled = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT u.id
       FROM "User" u
-     WHERE u."batchYear" IS NOT NULL
-       AND u."accountType" = 'alumnus'
-       AND NOT EXISTS (
+     WHERE (u."batchYear" IS NOT NULL
+            AND u."accountType" = 'alumnus'
+            AND NOT EXISTS (
+                  SELECT 1
+                    FROM "GroupMember" m
+                    JOIN "Group" g ON g.id = m."groupId"
+                   WHERE m."userId" = u.id AND g."batchYear" = u."batchYear"))
+        OR EXISTS (
              SELECT 1
                FROM "GroupMember" m
                JOIN "Group" g ON g.id = m."groupId"
-              WHERE m."userId" = u.id AND g."batchYear" = u."batchYear")
+              WHERE m."userId" = u.id
+                AND g."batchYear" IS NOT NULL
+                AND (u."accountType" <> 'alumnus' OR g."batchYear" IS DISTINCT FROM u."batchYear"))
   `;
 
   let healed = 0;
-  for (const user of stranded) {
+  for (const user of misfiled) {
     try {
-      await joinBatchGroup(user.id, user.batchYear);
+      await syncBatchGroup(user.id);
       healed += 1;
     } catch (err) {
       // One member's repair failing must not stop the other nine. Reported
@@ -245,7 +320,6 @@ export async function healBatchGroupMemberships(): Promise<number> {
       reportSwallowed("catchups", err, {
         step: "healBatchGroupMemberships",
         userId: user.id,
-        batchYear: user.batchYear,
       });
     }
   }
