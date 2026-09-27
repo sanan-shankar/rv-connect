@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { animate } from "motion/mini";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { ProfileCard } from "./profile-card";
+import { normalizeCity } from "@/lib/normalize";
 import type { DirectoryPerson } from "@/app/(main)/directory/select";
 
 /* ------------------------------------------------------------------ *
@@ -138,7 +139,15 @@ function rowRanks(tops: number[]): number[] {
   });
 }
 
-export function DirectoryGrid({ people }: { people: DirectoryPerson[] }) {
+export function DirectoryGrid({
+  people,
+  hideCities,
+}: {
+  people: DirectoryPerson[];
+  /** Folded city names a row leaves out of its meta line (the list's own
+   *  city filter). See ProfileCard's `hideCity`. */
+  hideCities: string[];
+}) {
   const gridRef = useRef<HTMLDivElement>(null);
   /* What is actually rendered. It lags `people` by the length of the
      out-wave, and only when a visible slot is changing: that pause IS
@@ -331,7 +340,11 @@ export function DirectoryGrid({ people }: { people: DirectoryPerson[] }) {
        gutter back. */
     <div ref={gridRef} className="grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
       {shown.map((user, i) => (
-        <ProfileCard key={i} user={user} />
+        <ProfileCard
+          key={i}
+          user={user}
+          hideCity={!!user.currentCity && hideCities.includes(normalizeCity(user.currentCity))}
+        />
       ))}
     </div>
   );

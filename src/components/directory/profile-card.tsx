@@ -46,9 +46,15 @@ import type { DirectoryPerson } from "@/app/(main)/directory/select";
 interface ProfileCardProps {
   /** Every column `PERSON_SELECT` fetches, and the card reads all of them. */
   user: DirectoryPerson;
+  /** The list is filtered to this person's city, so saying it again on every
+   *  row is noise (owner, 2026-09-27: "now I'm in people filtering with
+   *  Bengaluru [...] and then everyone says Bengaluru. But, like, obviously,
+   *  because I am filtering by that"). A row whose city is a DIFFERENT one,
+   *  someone who lists Bengaluru second, keeps it: that is news. */
+  hideCity?: boolean;
 }
 
-function Card({ user }: ProfileCardProps) {
+function Card({ user, hideCity = false }: ProfileCardProps) {
   /* One meta line, not two rows of icon+label. The MapPin and Briefcase
      glyphs were 3 of the card's ~12 words' worth of ink and said nothing the
      values did not: nobody reads "Chennai" and wonders whether it is a city.
@@ -57,7 +63,7 @@ function Card({ user }: ProfileCardProps) {
   const meta = metaLine(
     batchLine(user),
     user.jobTitle,
-    user.currentCity ? shortPlaceLabel(user.currentCity) : null
+    user.currentCity && !hideCity ? shortPlaceLabel(user.currentCity) : null
   );
 
   return (
@@ -141,8 +147,13 @@ function Card({ user }: ProfileCardProps) {
  *  the moment it is added. If one ever arrives that is an array or an
  *  object (`places`, say, as PIN_SELECT already has), this returns
  *  false every time and the card simply renders as it does today.
+ *
+ *  `hideCity` is the one prop that is not the person, and is compared
+ *  first: the same person moving in or out of a city filter has to
+ *  re-render, or their row keeps the city it was drawn with.
  * ------------------------------------------------------------------ */
 export const ProfileCard = memo(Card, (prev, next) => {
+  if (prev.hideCity !== next.hideCity) return false;
   const a = prev.user as Record<string, unknown>;
   const b = next.user as Record<string, unknown>;
   for (const key in a) if (a[key] !== b[key]) return false;

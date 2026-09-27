@@ -12,6 +12,8 @@
 // the layers that can. Misses after all three are console.warned in dev by
 // the map's buildPins, never silently dropped.
 
+import { normalizeCity, normalizePlaceString } from "./normalize.ts";
+
 export const CITY_COORDS: Record<string, [number, number]> = {
   // India
   bengaluru: [77.59, 12.97],
@@ -96,28 +98,11 @@ export const CITY_COORDS: Record<string, [number, number]> = {
   auckland: [174.76, -36.85],
 };
 
-/**
- * Fold case, accents and whitespace, KEEPING any comma-qualified tail:
- * "Gurgáon " and "gurgaon" meet at one key, and "Northfield, Minnesota"
- * survives intact for lookups that can use the qualifier. NFKD splits each
- * accented letter into base + combining marks; stripping the marks (\p{M})
- * is what makes the fold spelling-insensitive without a lookup table.
- */
-export function normalizePlaceString(raw: string): string {
-  return raw
-    .normalize("NFKD")
-    .replace(/\p{M}+/gu, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .replace(/\s*,\s*/g, ", ")
-    .trim();
-}
-
-/** Normalize a free-text city string to a short gazetteer key (the part
- *  before any comma: "Bengaluru, Karnataka" -> "bengaluru"). */
-export function normalizeCity(raw: string): string {
-  return normalizePlaceString(raw).replace(/,.*$/, "").trim();
-}
+/* The two string folds this table is keyed by live in normalize.ts, which
+   the directory's cards import in the browser: here they would drag this
+   whole gazetteer into the client bundle with them. Re-exported so every
+   existing import keeps working. */
+export { normalizePlaceString, normalizeCity };
 
 export function cityCoords(raw: string | null | undefined): [number, number] | null {
   if (!raw) return null;

@@ -97,6 +97,10 @@ interface DirectoryClientProps {
    *  matches". The rule itself lives server-side (directory/page.tsx and
    *  actions.ts); this only makes it legible. */
   namesLocked?: boolean;
+  /** Folded names of the cities the list is filtered by. A row in one of them
+   *  leaves its city out: every row would say it (owner, 2026-09-27: "if we
+   *  are filtering by city, then we shouldn't mention the [...] city"). */
+  filteredCities: string[];
 }
 
 /* The directory's one static option list. Neither City nor Profession is here:
@@ -132,6 +136,7 @@ export function DirectoryClient({
   hasFilter,
   nextCursor,
   namesLocked = false,
+  filteredCities,
 }: DirectoryClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -317,6 +322,27 @@ export function DirectoryClient({
     setQuery("");
     navigate("/directory");
   }
+
+  /* A map pin's "See all N": the pin's cities, on top of whatever else is
+     filtered (the N was counted under those filters), shown as People. A
+     drilldown like a batch tile, so it is the third place that moves the
+     view. */
+  const cityHref = useCallback(
+    (pinCities: string[]) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("city");
+      for (const c of pinCities) params.append("city", c);
+      return `/directory?${params.toString()}`;
+    },
+    [searchParams]
+  );
+  const seeCityPeople = useCallback(
+    (href: string) => {
+      setBrowseView("people");
+      navigate(href);
+    },
+    [navigate]
+  );
 
   const yearLabel =
     initialFilters.year === "faculty"
@@ -736,7 +762,7 @@ export function DirectoryClient({
               <>
                 {/* Every question about how one result set becomes another is
                     answered in here, and nowhere else on this page. */}
-                <DirectoryGrid people={results} />
+                <DirectoryGrid people={results} hideCities={filteredCities} />
                 {cursor && (
                   <div className="flex justify-center pt-6">
                     <Button
@@ -782,6 +808,8 @@ export function DirectoryClient({
               unmapped={unmappedCount}
               unmappedPeople={unmappedPeople}
               namesLocked={namesLocked}
+              cityHref={cityHref}
+              onSeeAll={seeCityPeople}
             />
           )
         ) : (
