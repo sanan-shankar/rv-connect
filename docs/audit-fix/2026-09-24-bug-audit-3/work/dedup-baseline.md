@@ -1,0 +1,194 @@
+# Dedup baseline for audit 3 (2026-09-24)
+
+Everything below is ALREADY KNOWN. Do not re-report it. If you find one of these is NOT fixed, or was fixed wrongly, that IS a finding: say so and cite the ledger row.
+
+## A. bugs.md open items (docs/planning/bugs.md, read it in full — 547 lines)
+- demo DB missing 4 of 11 hand indexes; #2 stale landing screenshot; #3 pill trims; #5 no desktop bell outside feed; #5b signed-out never sees custom 404; #6 raw-SQL timestamp trap (latent, IST); #9 landing hoopoe flight hero-only; #12/#12b owner decisions; #13 copy pass; #14/#15 Vercel env vars (owner); #17 hoopoe Safari zoom; #20 /login peek-a-boo never covers eyes; #21 /admin/review Done is not a button (Base UI error); guide contents page unreachable; profile draws HOUSES label for '[]'; two planning docs describe deleted approvePhotos; THE PUBLIC DEMO 500s ON EVERY DATA ROUTE (owner deferred until after launch: 'let it fail').
+- Owner decisions carried: C-032 absolute 90-day session (not rolling); C-012 admins read drafts; C-138 theme per device; C-135/165/166/186/112/167; visual suite live-data drift.
+- Settled/deliberate: statement_timeout absent; author exemption above hidden check; no keep-alive for private-repo workflows; setTheme re-render; Delhi/New Delhi alias; root layout dynamic (theme cookie); touchLastSeen only on layout render; two simultaneous forgot-password can mint two rows (partial unique not expressible).
+
+## B. docs/TRAPS.md (read it in full — 463 lines). Its headings are settled facts, not findings.
+
+## C. Bug audit 2 (2026-08-22): all 203 findings dispositioned (178 fixed, 19 not-a-bug, 6 owner). Titles:
+- C-019 — Home page's inline published Round reveals anonymous askers to Keepers (M10 fix incomplete)
+- C-102 — Admin 'Retry' on a deferral-exhausted row creates an unkillable queued zombie that blackholes all future resets for that member
+- C-122 — createPost skips the verified-member gate for any submission carrying saveAsDraft=true, so an unverified account can publish a plain post to the whole feed
+- C-002 — Hidden letters 404 for the admin and the author because letters/[id] checks isHidden before canViewPost, defeating both documented exemptions
+- C-004 — Profile page ignores targetBatches: tab counts disagree with the tab lists, and the Photos grid shows images from posts outside the viewer's batch audience
+- C-005 — Feed keyset pagination silently ends when the cursor post is deleted between pages
+- C-006 — @-mentions cannot find teachers: the shared people-search endpoint excludes them on a Catch-ups-only rationale, and its comment mis-states its consumers
+- C-020 — Rejoining via the invite link never clears the personal bin, so the 30-day sweep still removes the member
+- C-021 — openAnswering has no accepted-prompt guard: a zero-question Round can be opened for answering, resurrecting the B-062 spam loop
+- C-023 — A Catch-up can be left permanently Keeperless once createdById is null; the spec's re-adopt rule is implemented nowhere
+- C-040 — Pasting a full Instagram URL stores it verbatim and renders a double-prefixed dead link
+- C-043 — Signup accepts batchYear earlier than yearLeft — the impossible pair the profile editor refuses
+- C-044 — Demo: contact editing, admission number, and photo removal fail with a misleading 'check your connection' error
+- C-052 — Feed post notifications deep-link to /feed#<postId> but nothing implements the scroll; the module comment claims PostFeed does
+- C-054 — Deleting or hiding a letter (and legacy group notifications) leaves bell rows whose links 404; only Catch-ups clean up notifications
+- C-055 — A legacy unresolved admin_note can be permanently destroyed by mark-all-read plus the 100-row prune, losing the moderation note's only copy
+- C-063 — Staged direct-upload objects are never reclaimed: no sweeper, no lifecycle rule, and several refusal paths skip cleanup
+- C-064 — Processed uploads orphan whenever the referencing row is never written; no DB-to-R2 reconciliation exists
+- C-065 — Retention sweep deletes AdminMessage rows without purging their screenshot bytes
+- C-066 — Blank-MIME images (explicitly supported per audit Low 41) are hard-refused by the direct upload path instead of falling back
+- C-067 — contributePhotoDirect reads unrotated metadata (its comment lies): EXIF-portrait photos over 40MP are over-shrunk to roughly half the pixel budget
+- C-075 — Grace-period purge races sign-in cancellation: account erased after the member cancelled
+- C-084 — Duplicate/out-of-order payment.captured resurrects a refunded contribution to "paid" (and re-grants a bird pick)
+- C-085 — confirmContribution can be replayed after a refund to restore "paid" and mint a fresh bird pick
+- C-087 — A partial refund un-counts the entire contribution: refund.processed never reads the refund amount
+- C-091 — City facet filter and map 'See all' return zero results for any stored city whose string differs from its normalized form by more than case (accents, comma-qualified free-typed entries)
+- C-108 — DRAIN_LEASE_MS (45s) is shorter than a worst-case pass (8 sends x 10s timeout ≈ 80s+), so the one-pass-at-a-time guarantee lapses exactly during provider brownouts
+- C-124 — Feed infinite scroll dies silently when the keyset cursor post is deleted (or leaves the visible set); loadComments has the same hole — the M39 fallback was added to the directory only
+- C-133 — Back/forward navigation restores stale like/love state on letters/[id] and collection/[id], and one tap then silently inverts the member's real state
+- C-134 — Unauthenticated /_next/image plus the *.r2.dev wildcard remotePattern is an open image-optimization amplifier billed to the owner
+- C-135 — Permissions-Policy payment=() may block PaymentRequest-based methods (Google Pay / UPI intent) inside Razorpay checkout
+- C-141 — Catch-up 'days left' disagrees across surfaces: index/status/reminders count 24h blocks, answer page counts valley calendar days
+- C-149 — advanceEdition swallows engine failures with console.error only, bypassing the M09 Sentry reporter
+- C-161 — Launch-day verify-mail backlog: last confirmation sends ~3 days after signup at 300 signups, while the banner promises tomorrow's UTC midnight to everyone
+- C-162 — Feed load-more dies silently when the cursor post is deleted, hidden, or its author blocked (no M39-style recovery, unlike directory and admin people)
+- C-163 — Visit rows are minted from a client-controlled cookie with no throttle: an authed member can create one row per request forever, or write into another member's Visit row
+- C-164 — Visit table alone approaches the 500MB Supabase free-tier cap at the 2,000-user target (Place already spends 97MB of it)
+- C-175 — Letter autosave timer races an explicit Publish/Save: its in-flight guard reads stale closure state
+- C-176 — Autosave never persists an audience-only change and can save a stale cityScope: audienceCity is missing from the autosave effect's deps
+- C-177 — Letters desk loses everything typed since the last 2.5s idle pause on navigate/close: no flush on unmount, no beforeunload/pagehide, and resumed drafts have no local belt except on save failure
+- C-179 — Collection 'Load more' lacks the stale-response generation guard its two siblings have: a filter change mid-flight stitches two result sets together
+- C-187 — credentialVersion session-revocation comparison has no test anywhere
+- C-193 — C2 ownership-gate sweep pins 2 of the 3 write paths that accept image URLs; messages/actions.ts is unswept
+- C-194 — No test pins that interaction actions actually CALL the visibility guard (the H3 wiring)
+- C-198 — /ingest PostHog reverse proxy forwards members' live session cookies to a third party
+
+Low tier (tabulated in the report):
+- C-001 `report-action.ts:91`
+- C-003 `actions.ts:1092`
+- C-007 `report-action.ts:130`
+- C-008 `page.tsx:74`
+- C-009 `actions.ts:231`
+- C-010 `comments-section.tsx:581`
+- C-011 `post-card.tsx:131`
+- C-012 `post-visibility-rule.ts:180`
+- C-013 `report-dialog.tsx:44`
+- C-014 `create-post-form.tsx:239`
+- C-015 `actions.ts:1029`
+- C-016 `actions.ts:843`
+- C-017 `actions.ts:564`
+- C-018 `actions.ts:70`
+- C-024 `catchups.ts:1089`
+- C-025 `actions.ts:1947`
+- C-026 `actions.ts:1989`
+- C-027 `actions.ts:1398`
+- C-028 `catchups.ts:491`
+- C-029 `actions.ts:894`
+- C-030 `catchups-notify.ts:219`
+- C-031 `catchups.ts:186`
+- C-032 `auth.ts:256`
+- C-033 `email-actions.ts:258`
+- C-034 `reset-client.tsx:117`
+- C-035 `email-actions.ts:424`
+- C-037 `verify-email-banner.tsx:44`
+- C-041 `actions.ts:127`
+- C-042 `actions.ts:22`
+- C-045 `letterhead-profile.tsx:429`
+- C-046 `import-roster.mjs:200`
+- C-047 `profile-actions.ts:111`
+- C-048 `profile-actions.ts:28`
+- C-049 `actions.ts:209`
+- C-050 `actions.ts:249`
+- C-051 `photo-step.tsx:57`
+- C-053 `actions.ts:237`
+- C-056 `actions.ts:34`
+- C-057 `admin-threads-server.ts:29`
+- C-058 `page.tsx:31`
+- C-059 `admin-threads.ts:67`
+- C-060 `report-action.ts:114`
+- C-061 `page.tsx:83`
+- C-062 `retention.ts:111`
+- C-068 `storage.ts:266`
+- C-069 `actions.ts:669`
+- C-070 `actions.ts:378`
+- C-071 `collection-client.tsx:183`
+- C-072 `image.ts:24`
+- C-073 `actions.ts:180`
+- C-074 `actions.ts:591`
+- C-076 `account-purge.ts:83`
+- C-077 `retention.ts:201`
+- C-078 `route.ts:139`
+- C-079 `retention.ts:224`
+- C-080 `admin-analytics.ts:624`
+- C-081 `page.tsx:75`
+- C-083 `actions.ts:78`
+- C-086 `route.ts:141`
+- C-088 `actions.ts:183`
+- C-089 `page.tsx:92`
+- C-090 `route.ts:230`
+- C-092 `page.tsx:321`
+- C-093 `where.ts:95`
+- C-095 `where.ts:60`
+- C-096 `actions.ts:69`
+- C-097 `page.tsx:281`
+- C-098 `page.tsx:183`
+- C-099 `page.tsx:222`
+- C-101 `actions.ts:176`
+- C-103 `email-queue.ts:458`
+- C-104 `layout.tsx:81`
+- C-105 `email.ts:197`
+- C-106 `actions.ts:78`
+- C-107 `email-queue.ts:913`
+- C-111 `proxy.ts:203`
+- C-112 `rate-limit.ts:156`
+- C-113 `actions.ts:508`
+- C-115 `page.tsx:54`
+- C-116 `wordle.ts:36`
+- C-117 `layout.tsx:25`
+- C-118 `account-purge.ts:338`
+- C-119 `layout.tsx:51`
+- C-120 `posthog-provider.tsx:90`
+- C-125 `actions.ts:1398`
+- C-126 `actions.ts:894`
+- C-127 `actions.ts:1977`
+- C-128 `actions.ts:88`
+- C-129 `actions.ts:418`
+- C-130 `actions.ts:591`
+- C-136 `vercel.json:11`
+- C-138 `theme-actions.ts:56`
+- C-139 `page.tsx:44`
+- C-142 `catchups.ts:470`
+- C-143 `admin-analytics.ts:834`
+- C-144 `catchups.ts:310`
+- C-145 `verify-email-banner.tsx:38`
+- C-146 `actions.ts:339`
+- C-147 `backup.yml:32`
+- C-151 `route.ts:231`
+- C-153 `email-queue.ts:532`
+- C-154 `rate-limit.ts:163`
+- C-155 `page.tsx:36`
+- C-156 `actions.ts:178`
+- C-157 `image-viewer.tsx:184`
+- C-158 `upload-client.ts:55`
+- C-159 `collection-intake.ts:57`
+- C-165 `posthog-provider.tsx:74`
+- C-166 `instrumentation.ts:58`
+- C-167 `rate-limit.ts:99`
+- C-169 `validators.ts:238`
+- C-172 `profile-actions.ts:101`
+- C-174 `profile-actions.ts:80`
+- C-178 `comments-section.tsx:581`
+- C-180 `post-feed.tsx:170`
+- C-182 `photo-attachments.tsx:81`
+- C-183 `create-post-form.tsx:725`
+- C-186 `route.ts:27`
+- C-188 `composer-rule.test.mjs:128`
+- C-189 `gate-coverage.test.mjs:106`
+- C-190 `check.mjs:79`
+- C-191 `cascade-rule.test.mjs:83`
+- C-192 `index-coverage.test.mjs:41`
+- C-195 `check.mjs:54`
+- C-196 `avatar.test.mjs:28`
+- C-197 `email-normalization-rule.test.mjs:66`
+- C-199 `page.tsx:67`
+- C-200 `layout.tsx:25`
+- C-202 `proxy.ts:256`
+- C-203 `proxy.ts:322`
+- C-204 `proxy.ts:245`
+
+## D. Refactor audit 2 (2026-09-03): 369 simplification findings, fixes PARTIAL (board in docs/audit-fix/2026-09-03-refactor-audit-2/fix-prompt.md). Not bugs by charter, but these rows touched behaviour and are known:
+- A17 BirdAvatar ring prop silently no-op on bird path; C4 touchLastSeen in render-blocking Promise.all (after() cannot call headers()); D1 feed sort/time filters unreachable since 2026-06-28; D10 demo photograph pipeline never produced a photo; G10 collection head IntersectionObserver duplicates scroll listener; G4 data-slot read by hover-probe/theme-shots not under check.
+- CORRECTED 2026-09-24 02:15 BST (orchestrator, live information_schema + pg_indexes): ALL FIVE refactor-audit-2 drop files HAVE RUN on production — Photo.area/freeTags, Image.greyscale, OutboundEmail.bounceKind, Group.description/coverImage are GONE and the hand-made index list is NINE (Photo_caption_trgm_idx, Place_altNames_trgm_idx, Place_asciiName_idx, Place_name_idx, Report_open_post_per_reporter_key, UserPlace_city_idx, User_email_lower_key, User_lastSeenAt_idx, User_name_trgm_idx). The schema header ('ELEVEN'), TRAPS.md:41, media.md:219 and every 'still in both databases until the owner runs' comment are STALE (T4a-10). Still present and still pending their own drops: CatchupEntry.songUrl/songTitle/songArt and CatchupReminderPref.deletedAt (the Catch-ups rework's phase 11).

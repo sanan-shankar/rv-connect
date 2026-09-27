@@ -1,0 +1,2330 @@
+[
+ {
+  "id": "L5-01",
+  "agent": "L5",
+  "sev": "Critical",
+  "conf": "likely",
+  "title": "On the way to 2,000 members the Vercel Hobby plan runs out before the database does: the presence beacon plus a proxy that runs on every request put t",
+  "where": "- `src/components/analytics/presence-beacon.tsx:30` (`const BEAT_MS = 60_000;`), `:56-60` (`ping(\"view\", pathn"
+ },
+ {
+  "id": "L5-02",
+  "agent": "L5",
+  "sev": "Critical",
+  "conf": "certain",
+  "title": "A sign-in bot that the rate limiter \"stops\" still writes one database row per attempt and spends Upstash commands per attempt: a single machine can fi",
+  "where": "- `src/lib/auth.ts:104-110` \u2014 `const [ipOk, acctOk] = await Promise.all([hasBudget(\"login-ip\", ip), hasBudget("
+ },
+ {
+  "id": "L5-07",
+  "agent": "L5",
+  "sev": "Critical",
+  "conf": "likely",
+  "title": "The Supabase Free plan's 5 GB-a-month egress is counted on every query through the pooler, the nightly backup alone spends ~1.3 GB of it, and at 2,000",
+  "where": "- `.github/workflows/backup.yml:104-121` \u2014 `pg_dump \"$DIRECT_URL\" --format=custom ...` every night through the"
+ },
+ {
+  "id": "L11-01",
+  "agent": "L11",
+  "sev": "High",
+  "conf": "certain",
+  "title": "The photo archive's only backup has failed every night since 2026-08-29: the 111 largest full-resolution originals (109 of them the owner's class albu",
+  "where": "- `.github/workflows/backup.yml:188-231` (the `media:` job; the sync at `:230-231`: `aws s3 sync \"s3://rv-alum"
+ },
+ {
+  "id": "L3-08",
+  "agent": "L3",
+  "sev": "High",
+  "conf": "certain",
+  "title": "(outside the date lens, found on the seeded question's path) The photo archive's only undelete has failed on every one of its 27 runs since 2026-08-29",
+  "where": "`.github/workflows/backup.yml:188-231` (the `media:` job; `:230-231` `aws s3 sync \"s3://rv-alumni-media\" \"s3:/"
+ },
+ {
+  "id": "L5-08",
+  "agent": "L5",
+  "sev": "High",
+  "conf": "likely",
+  "title": "Nothing measures the database's size, and at 2,000 members it reaches the Free plan's 500 MB read-only line in roughly one to two years: a 97 MB gazet",
+  "where": "`src/lib/retention.ts:26-106` (the expiry list: admin messages 2y, reports 3y, contributions 10y, notification"
+ },
+ {
+  "id": "O-03",
+  "agent": "O",
+  "sev": "High",
+  "conf": "certain",
+  "title": "A five-second wait for a pooled connection during the session read signs the member out: NextAuth turns the throw into \"no session\" and the main layou",
+  "where": "`src/lib/auth.ts:368-393` (the session callback's `prisma.user.findUnique` with no try/catch); `node_modules/@"
+ },
+ {
+  "id": "O-07",
+  "agent": "O",
+  "sev": "High",
+  "conf": "certain",
+  "title": "The app's database connection is not encrypted: `pg` is given no `ssl` and the connection string asks for none, so every query and every row crosses t",
+  "where": "`src/lib/prisma.ts:45-51` (`new PrismaPg({ connectionString, max: 5, connectionTimeoutMillis: 5_000, query_tim"
+ },
+ {
+  "id": "T2a-01",
+  "agent": "T2a",
+  "sev": "High",
+  "conf": "certain",
+  "title": "Correcting a batch year leaves the member inside the wrong batch's Catch-up for ever, with no way out (7 live cases)",
+  "where": "- `src/lib/batch-catchups.ts:83-118` (`joinBatchGroup`: find-or-create the group, `upsert` the membership, `en"
+ },
+ {
+  "id": "T2a-02",
+  "agent": "T2a",
+  "sev": "High",
+  "conf": "certain",
+  "title": "Renaming a Catch-up never reaches its notifications: every bell keeps saying the original name",
+  "where": "- `src/app/(main)/catchups/actions.ts:690-693` (`renameCatchup` writes `prisma.catchup.update({ data: { title "
+ },
+ {
+  "id": "T2b-01",
+  "agent": "T2b",
+  "sev": "High",
+  "conf": "certain",
+  "title": "One pasted link to a hostile page makes the server spin for minutes in the background, on every save of that answer and every read of that Edition, fo",
+  "where": "- `src/lib/link-preview-core.ts:379` \u2014 the attribute regex `/([a-zA-Z_:.-]+)\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)'|([^\\"
+ },
+ {
+  "id": "T3-01",
+  "agent": "T3",
+  "sev": "High",
+  "conf": "certain",
+  "title": "The Settings \"Picture\" row opens nothing: the picture picker is never mounted, so no member or Keeper can change a Catch-up's photograph from the app",
+  "where": "- `src/components/catchups/settings/settings-surface.tsx:276-282` (the row: `opens: c.canChangePicture ? { sha"
+ },
+ {
+  "id": "T3-02",
+  "agent": "T3",
+  "sev": "High",
+  "conf": "certain",
+  "title": "A question picked from the library loses its kind: the ask box never sends `category`, so \"A photo from everyone\" and \"Songs from everyone\" are stored",
+  "where": "- `src/components/catchups/home/collecting.tsx:83-85` (`submitPrompt({ editionId, text: body, showAsker: !anon"
+ },
+ {
+  "id": "T3-03",
+  "agent": "T3",
+  "sev": "High",
+  "conf": "certain",
+  "title": "\"Start it again\" on the on-hold card does nothing but reload the page: the Catch-up stays on hold",
+  "where": "- `src/components/catchups/home/catchup-home.tsx:189-200` (the on-hold card: `<Button size=\"sm\" className=\"mt-"
+ },
+ {
+  "id": "T4a-01",
+  "agent": "T4a",
+  "sev": "High",
+  "conf": "certain",
+  "title": "The owner's \"Also add to the Collection\" tick on a post silently does nothing, because the composer path counts his 1,743 class photographs against a ",
+  "where": "`src/lib/collection-intake.ts:72` (`prisma.photo.count({ where: { uploaderId: userId } })`), `:86-87` (`const "
+ },
+ {
+  "id": "T4b-01",
+  "agent": "T4b",
+  "sev": "High",
+  "conf": "certain",
+  "title": "The viewer silently switches to a different photograph when the river changes under it, and one everyday edit makes that certain",
+  "where": "`src/components/common/image-viewer.tsx:267` (`const [index, setIndex] = useState(initialIndex);`), `:339-341`"
+ },
+ {
+  "id": "T4b-02",
+  "agent": "T4b",
+  "sev": "High",
+  "conf": "certain",
+  "title": "Decline \"Discard N photographs?\" and the next Back leaves the page, discarding the wall without asking",
+  "where": "`src/components/collection/contribute-room.tsx:225-237` (`onOpenChange={(v) => { if (!v && wall > 0) { setLeav"
+ },
+ {
+  "id": "T4b-03",
+  "agent": "T4b",
+  "sev": "High",
+  "conf": "certain",
+  "title": "A batch with any failure throws the failed photographs away with the successes, captions and all",
+  "where": "`src/components/collection/contribute-room.tsx:798-811` (the loop; `catch (err) { const message = err instance"
+ },
+ {
+  "id": "T4b-13",
+  "agent": "T4b",
+  "sev": "High",
+  "conf": "certain",
+  "title": "Typing in the edit dialog steers the photograph behind it: arrow keys step the viewer, `+`/`-`/`0` zoom it, and Tab is pulled out of the form into the",
+  "where": "`src/components/common/image-viewer.tsx:452-491` (`window.addEventListener(\"keydown\", onKey)`; `onKey` reads `"
+ },
+ {
+  "id": "T5-01",
+  "agent": "T5",
+  "sev": "High",
+  "conf": "certain",
+  "title": "A member who mistyped their email at signup is stuck read-only for ever: nothing in the app lets them or the admin change the login address, and every",
+  "where": "- `src/components/auth/actions.ts:155` \u2014 the ONE write of `User.email` in the application (`email: parsed.data"
+ },
+ {
+  "id": "T5-02",
+  "agent": "T5",
+  "sev": "High",
+  "conf": "likely",
+  "title": "A sign-in outage, a broken bot check or a missing mail key never reaches the owner: every alarm on the auth and mail path is a console line, `authoriz",
+  "where": "- `src/lib/auth.ts:311-315` \u2014 `catch (err) { if (err instanceof CredentialsSignin) throw err; console.error(\"["
+ },
+ {
+  "id": "T5-03",
+  "agent": "T5",
+  "sev": "High",
+  "conf": "likely",
+  "title": "When Upstash is unreachable the sign-in door does not fail open, it stalls: `hasBudget` bypasses the 3-second race and the Redis client retries five t",
+  "where": "- `src/lib/rate-limit.ts:15-20` \u2014 the contract: *\"Posture on failure: OPEN \u2026 A rate limiter that can take down"
+ },
+ {
+  "id": "T5-17",
+  "agent": "T5",
+  "sev": "High",
+  "conf": "certain",
+  "title": "(answer to orchestrator O-03) A five-second pool timeout during the session read is indistinguishable from \"not signed in\": the layout bounces the mem",
+  "where": "- `src/lib/auth.ts:368-433` \u2014 the `session` callback: `const dbUser = await prisma.user.findUnique(\u2026)` at `:37"
+ },
+ {
+  "id": "T6-02",
+  "agent": "T6",
+  "sev": "High",
+  "conf": "certain",
+  "title": "Correcting your own batch year on the profile adds you to the new batch's group and never takes you out of the old one (the writer half of T2a-01); th",
+  "where": "- `src/components/profile/profile-actions.ts:160-202` \u2014 the `default:` branch is the batch-year and leaving-ye"
+ },
+ {
+  "id": "T8a-03",
+  "agent": "T8a",
+  "sev": "High",
+  "conf": "possible",
+  "title": "`payment.dispute.closed` is treated as \"the money stayed\"; if Razorpay also emits it for a chargeback the owner lost or accepted, a lost gift is count",
+  "where": "`src/app/api/razorpay/webhook/route.ts:172-174` (both events `acted`), `:290-336` (both handled identically: `"
+ },
+ {
+  "id": "T8b-01",
+  "agent": "T8b",
+  "sev": "High",
+  "conf": "certain",
+  "title": "Press Back on a dialog that refuses to close (busy, unsaved) and the NEXT Back leaves the page, taking the dialog's work with it: the primitive spends",
+  "where": "`src/components/ui/dialog.tsx:15-29` (`useBackClosableRoot`: `useBackCloses(open ?? uncontrolledOpen, () => ac"
+ },
+ {
+  "id": "L1-01",
+  "agent": "L1",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "Two partial refunds on one gift delivered together lose one of them: the recovery bar and the member's ledger over-count",
+  "where": "`src/app/api/razorpay/webhook/route.ts:178-188` (the read), `:379-385` (`foldReversal` fed from that read), `:"
+ },
+ {
+  "id": "L10-01",
+  "agent": "L10",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "An unconfirmed or unvouched account gets inside Catch-ups three ways the trust model never checks: its claimed batch at signup, a Keeper's picker, and",
+  "where": "- The rule as the code states it: `src/app/(main)/catchups/actions.ts:611-614` (`joinCatchupByToken`: *\"Joinin"
+ },
+ {
+  "id": "L11-02",
+  "agent": "L11",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Every erasure the app performs is undone in the backups: the media mirror never deletes and the first-of-month database dumps are kept for ever, so a ",
+  "where": "- `src/app/(policies)/privacy/page.tsx:160-170` (\"After 60 days the account, your posts, comments, photographs"
+ },
+ {
+  "id": "L3-01",
+  "agent": "L3",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "On a day the mail budget is spent, every member queued two or more days out is told their link \"goes out tomorrow at 5:30 IST\" (C-161 was fixed in the",
+  "where": "`src/lib/email-queue.ts:891-902` (`verifySendingAt`: `return nextBudgetResetAt(Math.floor(ahead / VERIFY_PER_D"
+ },
+ {
+  "id": "L3-02",
+  "agent": "L3",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "The \"totally regeneratable\" Catch-ups export records every timestamp shifted by the laptop's own UTC offset: all four exports on disk are 5 h 30 m ear",
+  "where": "`scripts/dev/export-catchups.mjs:81` (`new pg.Client(...)` with no `pg.types.setTypeParser(1114, ...)`), `:85`"
+ },
+ {
+  "id": "L4-01",
+  "agent": "L4",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "A missing COLUMN on any Catch-up table is read as \"Catch-ups is not set up yet\": every Catch-up surface shows the holding scene, the engine stops, and",
+  "where": "- `src/lib/prisma-errors.ts:50-57` \u2014 `isMissingTable(err, table)`: `if (c === \"P2021\") return true; if (c === "
+ },
+ {
+  "id": "L4-02",
+  "agent": "L4",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Nine \"never throws\" writers are completely silent in production, and for the three statistics writers the \"loud in development\" witness can never fire",
+  "where": ""
+ },
+ {
+  "id": "L4-03",
+  "agent": "L4",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "A storage outage or a revoked R2 key has no alarm anywhere: every upload path maps the error to a friendly sentence (the Collection's two with no log ",
+  "where": "- Writes, each catching the storage error inside the same `try` as the image work and answering a mapped sente"
+ },
+ {
+  "id": "L4-04",
+  "agent": "L4",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "A Razorpay key that is wrong, rotated or suspended stops every contribution, and nothing records that anyone tried: the member reads \"could not reach ",
+  "where": "- `src/lib/razorpay.ts:98-104` \u2014 `if (!res.ok) { \u2026 console.error(\"[razorpay] order creation failed\", res.statu"
+ },
+ {
+  "id": "L4-06",
+  "agent": "L4",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "The limiter's alarm (C-154) fires only for a backend that THROWS; an Upstash that hangs turns every rate limit off, adds three seconds to every metere",
+  "where": "- `src/lib/rate-limit.ts:224-226` \u2014 `timeout: 3000`, *\"If Redis does not answer promptly, the request proceeds"
+ },
+ {
+  "id": "L4-08",
+  "agent": "L4",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "The class behind most of the above: \"reported, not just logged\" is enforced in one file, and everywhere else the codebase's own word for an alarm is `",
+  "where": "- the one enforcement: `src/lib/catchup-lifecycle.test.mjs:300-343` sweeps `src/lib/catchups.ts` alone \u2014 every"
+ },
+ {
+  "id": "L5-03",
+  "agent": "L5",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Every relation count on the hot pages aggregates its WHOLE table on every render: three more instances than T1-17/T2b-13 know about, and measured on t",
+  "where": ""
+ },
+ {
+  "id": "L5-04",
+  "agent": "L5",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "The pool is not attached to Vercel's suspend hook and closes idle connections only after 10 s, so under Fluid compute a suspended instance keeps Supav",
+  "where": "`src/lib/prisma.ts:45-51` (`new PrismaPg({ connectionString, max: 5, connectionTimeoutMillis: 5_000, query_tim"
+ },
+ {
+  "id": "L6-01",
+  "agent": "L6",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Editing a post, letter draft or answer that contains an @-mention silently turns every mention into plain text",
+  "where": "`src/lib/rich-text.ts:133-136` (a stored `@[Name](id)` becomes `<a href=\"/profile/id\">@Name</a>`); `src/lib/ri"
+ },
+ {
+  "id": "O-01",
+  "agent": "O",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "The letters index renders a draft's \"Edited <day> <month>\" without a time zone: a nightly hydration error, and a date one day off for drafts edited la",
+  "where": "`src/components/letters/drafts-strip.tsx:97-102` (`new Date(d.updatedAt).toLocaleDateString(\"en-GB\", { day: \"n"
+ },
+ {
+  "id": "O-05",
+  "agent": "O",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Mail queued on a developer's machine is sent for real by production: the local \"never mail real people\" guard only stops the local process, and produc",
+  "where": "`src/lib/email.ts:165-181` (the development guard: \"Development does not mail real people unless you ask it to"
+ },
+ {
+  "id": "T1-01",
+  "agent": "T1",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Bold or italic applied to a selection that includes a space publishes as literal asterisks",
+  "where": "`src/lib/rich-text-editing.ts:52-55` (the serializer wraps the run verbatim: `if (inner && isBoldNode(el)) inn"
+ },
+ {
+  "id": "T1-02",
+  "agent": "T1",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "\"Save as draft\" on a fresh letter, while the writer keeps typing, creates a SECOND draft on the way to the edit page (and the two name the same photog",
+  "where": "`src/components/posts/create-post-form.tsx:518-531` (`markSaved()` then `onDraftSaved(result.postId)`), `:570-"
+ },
+ {
+  "id": "T1-03",
+  "agent": "T1",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "Leaving the desk while an autosave is in flight fires a second save with the same version token, and the loser tells the writer the letter did not sav",
+  "where": "`src/components/posts/use-letter-persistence.ts:295-309` (`autosaveRunRef.current = runAutosave()`), `:387-442"
+ },
+ {
+  "id": "T1-04",
+  "agent": "T1",
+  "sev": "Medium",
+  "conf": "possible",
+  "title": "editPost reads the row version back in a second statement, so with two devices saving at once the returned base can be the OTHER device's and the next",
+  "where": "`src/app/(main)/feed/actions.ts:604-627` (`updateMany where { id, authorId, updatedAt: base }` \u2026 then `prisma."
+ },
+ {
+  "id": "T1-16",
+  "agent": "T1",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "Removing a photograph from one of two duplicate drafts deletes the bytes the other draft still shows",
+  "where": "`src/app/(main)/feed/actions.ts:550` (`let removedImages`), `:579` (`removedImages = droppedImages([...current"
+ },
+ {
+  "id": "T1-23",
+  "agent": "T1",
+  "sev": "Medium",
+  "conf": "possible",
+  "title": "Two tabs on one draft share one device-copy key, so the refused tab's \"Kept on this device\" is deleted by the other tab's next save",
+  "where": "`src/components/posts/use-letter-persistence.ts:44-45` (`localDraftKey = rv:letter-draft:<userId>:<postId>` \u2014 "
+ },
+ {
+  "id": "T2a-03",
+  "agent": "T2a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "A Keeper can enrol the whole community: the 100-person cap is per call, `addCatchupMembers` is unmetered, and nobody added is told",
+  "where": "- `src/app/(main)/catchups/actions.ts:2443-2449` (`addCatchupMembers`: `z.array(...).min(1).max(MAX_CATCHUP_PE"
+ },
+ {
+  "id": "T2a-04",
+  "agent": "T2a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Every Catch-up action failure is `console.error`'d and returned as \"Something went wrong\": the only file in the app that swallows into a log nobody re",
+  "where": "- `src/app/(main)/catchups/actions.ts:229-239` (`runAction`: `catch (err) { if (isMissingCatchupTable(err)) .."
+ },
+ {
+  "id": "T2a-05",
+  "agent": "T2a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "The next Edition's opening has no tick grace and no civil hour, so the cron misses it about half the time and a dormant group's rhythm slides a day pe",
+  "where": "- `src/lib/catchups.ts:166-170` (`applyEditionAction`: `nextOpensAt: addCadenceGap(now, meta.cadence)` \u2014 the r"
+ },
+ {
+  "id": "T2a-06",
+  "agent": "T2a",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "\"Hold the next Edition\" freezes the CURRENT one: nobody can answer, it never publishes, and the owner's own ruling was \"a Round in flight always finis",
+  "where": "- `src/lib/catchups.ts:250-266` (`advanceEdition`: `if (meta.catchupStatus !== \"active\" && edition.status !== "
+ },
+ {
+  "id": "T2a-07",
+  "agent": "T2a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Ending a Catch-up mid-answering strands every answer written that week, unreadable for ever, and the confirm copy does not say so",
+  "where": "- `src/app/(main)/catchups/actions.ts:963-985` (`endCatchup`: `status: \"ended\", nextOpensAt: null, pausedAt: n"
+ },
+ {
+  "id": "T2a-14",
+  "agent": "T2a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Nothing records that the nightly tick ran, so a dead cron (401 after a secret rotation, a disabled schedule) is invisible until a quiet group notices ",
+  "where": "`src/app/api/catchups/tick/route.ts:33-39` (`GET`: `requireCronSecret` \u2192 `await advanceDueCatchups()` \u2192 `NextR"
+ },
+ {
+  "id": "T2b-02",
+  "agent": "T2b",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Link previews are unbounded work and unbounded storage that a member can grow at will, and nothing ever deletes a row or a thumbnail",
+  "where": "- `src/app/(main)/catchups/actions.ts:1691-1978` \u2014 `submitEntry` has no rate limit at all (it is not in `LIMIT"
+ },
+ {
+  "id": "T2b-03",
+  "agent": "T2b",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "The Catch-ups export never creates its `audio/` folder, so every recorded answer fails to copy, and the JSON still says the file is there",
+  "where": "- `scripts/dev/export-catchups.mjs:281-288` \u2014 `audio: e.audioUrl ? { ..., file: NO_PHOTOS ? null : wantPhoto(e"
+ },
+ {
+  "id": "T2b-04",
+  "agent": "T2b",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "The two-minute recording cap is a byte cap in disguise: a low-bitrate client can attach twenty minutes of audio that passes every check",
+  "where": "- `src/lib/voice-answer-rule.ts:34` \u2014 `VOICE_CEILING_BITS_PER_SECOND = 320_000`; `:53-55` \u2014 `voiceByteCap(seco"
+ },
+ {
+  "id": "T2b-05",
+  "agent": "T2b",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "Reader shows a blocked member's answers, hearts and votes while hiding their comments on the same page, against the schema's promise that blocking hid",
+  "where": "- `prisma/schema.prisma:137-139` (the `isBlocked` docblock): \"AUTHOR_IN_GOOD_STANDING in lib/posts.ts, so no f"
+ },
+ {
+  "id": "T2b-13",
+  "agent": "T2b",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Every reader load aggregates every comment AND every heart in the database: both `_count`s in the Edition loader compile to uncorrelated whole-table `",
+  "where": "- `src/lib/catchups-edition-view.ts:146` \u2014 `_count: { select: { loves: true, comments: { where: VISIBLE_COMMEN"
+ },
+ {
+  "id": "T3-04",
+  "agent": "T3",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "A failed answer autosave cannot be retried the way its own message says: \"Click away and back to try again\" is a no-op with unchanged text",
+  "where": "- `src/components/catchups/answer/answer-card.tsx:55-65` (`savedRef.current = value; onBodyBlur(value);` \u2014 the"
+ },
+ {
+  "id": "T3-05",
+  "agent": "T3",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "The completion card's \"Back to the Catch-up\" links to the page it is already on, so it does nothing",
+  "where": "- `src/components/catchups/answer/completion-card.tsx:55-57` (`<Link href={`/catchups/${catchupId}`}>` \"Back t"
+ },
+ {
+  "id": "T3-06",
+  "agent": "T3",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "\"Give everyone longer\" adds a whole extension on every tap: a second tap on the same pill silently doubles the extension, and the row keeps saying \"A ",
+  "where": "- `src/components/catchups/settings/settings-surface.tsx:878-883` (`pick` for `extend`: `setExtended(days); aw"
+ },
+ {
+  "id": "T3-11",
+  "agent": "T3",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "Every scroll frame of a published Edition re-renders every answer tile and re-parses every answer's markdown",
+  "where": "- `src/components/catchups/edition/reader.tsx:315-365` (`useSpy`: on every scroll/resize/ResizeObserver tick i"
+ },
+ {
+  "id": "T3-17",
+  "agent": "T3",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "A Keeper can no longer invite anyone by link: the invite link lost its only surface in build phase 7, while the join page, its sign-up path and the ac",
+  "where": "- `src/app/(main)/catchups/[catchupId]/(home)/page.tsx:414` (`inviteToken: catchup.inviteToken`, shipped to th"
+ },
+ {
+  "id": "T3-18",
+  "agent": "T3",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "\"Share\" on the last question never finishes for a member who skipped one: it sweeps back to the skipped question every time, so the completion card is",
+  "where": "- `src/components/catchups/answer/answer-experience.tsx:95-106` (`advance`: on the last prompt, `firstUnanswer"
+ },
+ {
+  "id": "T3-19",
+  "agent": "T3",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "On a phone there is no visible way to take a photograph off an answer: the remove control only appears on hover",
+  "where": "- `src/components/catchups/answer/photo-attachments.tsx:123-130` (the remove button: `opacity-0 transition-opa"
+ },
+ {
+  "id": "T3-20",
+  "agent": "T3",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "The magazine layout never finishes, and runs the process out of memory, on an Edition with one list-shaped answer: `layColumns` loops for ever when an",
+  "where": "- `src/lib/magazine/paginate.ts:196-281` (`layColumns`): `:201` `while (queue.length > 0)`; `:203-212` a page "
+ },
+ {
+  "id": "T4a-02",
+  "agent": "T4a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "In Chronological order a year holding more than 600 photographs is silently cut to 600 in the river while the rail still counts all of them",
+  "where": "`src/app/(main)/collection/actions.ts:941-943` (docblock: \"`take` is a guard against the one year somebody upl"
+ },
+ {
+  "id": "T4a-03",
+  "agent": "T4a",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "Half of C-063 is still open: a climbed original that the member removes, discards, or whose session lapses is never deleted by anything in this repo, ",
+  "where": "`src/components/collection/contribute-room.tsx:698-705` (`remove(id)`: revokes the preview and filters the wal"
+ },
+ {
+  "id": "T4a-04",
+  "agent": "T4a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "A downloaded scan files itself under the year it was scanned, not the year it was taken: the stored copy's one kept EXIF tag is written from dates the",
+  "where": "`src/lib/exif-date.ts:140-148` (`exifStamp`: `for (const value of [tags.original, tags.digitized, tags.modifie"
+ },
+ {
+  "id": "T4a-05",
+  "agent": "T4a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "One transient PUT failure permanently downgrades a photograph to the 1,600px q80 fallback, with no retry of the direct path and nothing said",
+  "where": "`src/lib/upload-client.ts:86-92` (`if (!put.ok) { console.warn(...); return null; }` \u2014 any non-2xx, including "
+ },
+ {
+  "id": "T4a-06",
+  "agent": "T4a",
+  "sev": "Medium",
+  "conf": "possible-to-likely",
+  "title": "The screen-copy and album ledgers carry no database stamp, and both undo/reconcile modes delete bucket objects unconditionally, so a production ledger",
+  "where": "`scripts/dev/backfill-screen-copies.mjs:136-145` (undo: `UPDATE ... WHERE id=$1 AND screenUrl=$2`, then `:141-"
+ },
+ {
+  "id": "T4b-04",
+  "agent": "T4b",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "\"Add more\" and the remove button stay live while a batch is being added: photographs dropped then vanish, and a photograph removed is added anyway",
+  "where": "`contribute-room.tsx:1004-1010` (`Add more`, no `disabled={adding}`), `:942` (`onRemove={remove}` handed to th"
+ },
+ {
+  "id": "T4b-05",
+  "agent": "T4b",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "A `?scope=class` link opened by a member with no class shows an empty \"Class Collection\" with a working Contribute button and no way back",
+  "where": "`src/app/(main)/collection/collection-data.ts:70` (`const scope: PhotoScope = one(\"scope\") === \"class\" ? \"clas"
+ },
+ {
+  "id": "T4b-06",
+  "agent": "T4b",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "After swapping halves the contribute room promises the other half's quota, and on the class half it tells an untrusted member an admin will review pho",
+  "where": "`collection-client.tsx:288` (`const facts = scopeFacts?.[scope] ?? {...}` -- carries `roomLeft`), `:1738` (`ro"
+ },
+ {
+  "id": "T4b-07",
+  "agent": "T4b",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "A heart or an edit made in a shared link's viewer never reaches the same photograph in the river below; opened again from its tile it shows the old st",
+  "where": "`collection-client.tsx:1297-1313` (`setListFor`: writes ONE strip), `:1351-1356` (`patch(list, id, change)` \u2192 "
+ },
+ {
+  "id": "T4b-08",
+  "agent": "T4b",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "Every filter, order, search pause and year press renders the whole page a second time on the server, because the address-bar write is a Next navigatio",
+  "where": "`collection-client.tsx:397-419` (`window.history.replaceState(null, \"\", `/collection${qs ? `?${qs}` : \"\"}`)` o"
+ },
+ {
+  "id": "T5-04",
+  "agent": "T5",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "The `login-unverified` allowance is not atomic although its comment says a racing caller \"cannot outrun its own meter\": N simultaneous tokenless sign-",
+  "where": "`src/lib/auth.ts:173-180` \u2014 `const spare = await hasBudget(\"login-unverified\", ip); // Spent before the verdic"
+ },
+ {
+  "id": "T5-05",
+  "agent": "T5",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Take more than about half an hour on the signup form and it dead-ends: the trivia pass expires, every submit says \"Please answer the entry question be",
+  "where": "`src/components/auth/trivia-actions.ts:179` (`TOKEN_TTL_MS = 30 * 60 * 1000`), `:269-281` (`rv_trivia_id` set "
+ },
+ {
+  "id": "T5-06",
+  "agent": "T5",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "On the day the absolute 90-day session lapses, a member mid-form is told to \"check your connection\": the expired cookie turns every save into `ACTION_",
+  "where": "`src/lib/auth.ts:319-349` and `src/lib/session-revocation.ts:26-47` (ABSOLUTE ninety days; *\"one forced re-log"
+ },
+ {
+  "id": "T5-07",
+  "agent": "T5",
+  "sev": "Medium",
+  "conf": "possible",
+  "title": "Per-IP meters on the signup road are sized for one person per address, and the refusal promises \"a minute\" for windows of ten minutes to an hour: a re",
+  "where": "`src/lib/rate-limit.ts:84` (`trivia: 8 per 10 m per IP`), `:75` (`signup: 10 per 1 h per IP` \u2014 its comment arg"
+ },
+ {
+  "id": "T5-08",
+  "agent": "T5",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "With `RESEND_API_KEY` missing in production, every unconfirmed member's banner asserts \"A link has been sent to your email\" and hides the resend butto",
+  "where": "`src/lib/email-queue.ts:113-124` (`queueIsSendable()` false when the key is unset; alarm is `console.error` on"
+ },
+ {
+  "id": "T5-09",
+  "agent": "T5",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "`TURNSTILE_SITE_KEY` unset while `TURNSTILE_SECRET_KEY` is set locks the site's signup and password-reset doors and throttles sign-in to five an hour ",
+  "where": "`src/lib/turnstile.ts:65-67` \u2014 *\"Null means 'not configured' \u2026 and the widget simply is not rendered \u2014 the ser"
+ },
+ {
+  "id": "T5-10",
+  "agent": "T5",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "A limiter backend that is down for hours, or a mistyped Upstash credential, spends the whole month's Sentry quota, after which every real error is dro",
+  "where": "`src/lib/rate-limit.ts:249-258` \u2014 `REPORT_EVERY_MS = 60_000` per `${name}:${step}` key, in a per-INSTANCE `Map"
+ },
+ {
+  "id": "T6-01",
+  "agent": "T6",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "An admin's \"Unverify\" is undone by the member's next name, batch-year or leaving-year edit on their own profile (and by three other paths), because th",
+  "where": "- `src/components/profile/profile-actions.ts:242-248` \u2014 `if (field === \"name\" || field === \"batchYear\" || fiel"
+ },
+ {
+  "id": "T6-03",
+  "agent": "T6",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "The data export is not \"a copy of your data\": it omits five reaction tables, the derived profession tags, and every telemetry row about the member, an",
+  "where": "- `src/app/api/account/export/route.ts:8-20` \u2014 the promise: \"what the person gave the site or wrote on it \u2014 pr"
+ },
+ {
+  "id": "T6-04",
+  "agent": "T6",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "After a search, the browser's Back button leaves the search pill showing the old query over an unfiltered \"222 people\" list",
+  "where": "`src/components/directory/directory-client.tsx:138` `const [query, setQuery] = useState(initialFilters.q);` an"
+ },
+ {
+  "id": "T7a-01",
+  "agent": "T7a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Deleting a member (admin delete, the 60-day sweep, or a merge) silently destroys every report they ever FILED, pending ones included, while the privac",
+  "where": "`src/lib/account-purge.ts:354-362`; `prisma/schema.prisma:829` (`reporter User @relation(\"ReportsFiled\", field"
+ },
+ {
+  "id": "T7a-02",
+  "agent": "T7a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "When the author of a reported post deletes it, the report vanishes from the queue with no decision, and the reporter is never answered",
+  "where": "`prisma/schema.prisma:830` (`post Post? @relation(fields: [postId], references: [id], onDelete: Cascade)`); `s"
+ },
+ {
+  "id": "T7a-03",
+  "agent": "T7a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "No admin surface shows that a member has asked to delete their account, so an admin can verify, promote, or merge a duplicate INTO an account that the",
+  "where": "`src/app/(main)/admin/people/[id]/page.tsx:33-60` (the select has no `deletionRequestedAt`); `src/lib/admin-pe"
+ },
+ {
+  "id": "T7a-04",
+  "agent": "T7a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "After a purge, other members' bells still point at the erased member's letters (404) and posts, for up to 30 days; the explicit-delete path was fixed ",
+  "where": "`src/lib/account-purge.ts:344-397` (the transaction never touches `Notification`; the member's posts go by FK "
+ },
+ {
+  "id": "T7a-05",
+  "agent": "T7a",
+  "sev": "Medium",
+  "conf": "possible",
+  "title": "An admin's \"Delete for good\" runs a 30-second transaction plus up to 500 sequential R2 deletes inside a page-hosted server action with no `maxDuration",
+  "where": "`src/app/(main)/admin/people/actions.ts:532-548` (purge, THEN audit); `src/lib/account-purge.ts:411` (`drainPe"
+ },
+ {
+  "id": "T7a-06",
+  "agent": "T7a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "An admin's \"Remove verification\" undoes itself: the roster auto-verify re-verifies the member on their next password reset, profile edit, or \"Ask to b",
+  "where": "`src/app/(main)/admin/people/actions.ts:630-654` (`adminUnverifyUser` writes `verifyState: \"unverified\", verif"
+ },
+ {
+  "id": "T7a-07",
+  "agent": "T7a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "A merge, and the purge's own succession, hand a Catch-up's Keeper hat over as group role \"admin\", which the Keeper's revoke can never take back (route",
+  "where": "`src/app/(main)/admin/people/actions.ts:383-389` (merge: `data: { role: \"admin\" }`); `src/lib/account-purge.ts"
+ },
+ {
+  "id": "T7a-09",
+  "agent": "T7a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Purge failures reach only the console: the nightly job goes red with `purge:<id>` and nothing else, and the admin is told to \"check the server log\"",
+  "where": "`src/lib/account-purge.ts:400-409` (`console.error(\"purgeUserAccount failed:\", err); return { ok: false, error"
+ },
+ {
+  "id": "T7a-21",
+  "agent": "T7a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "The image drain stops at 500 objects per call, so a member with a big Collection contribution stays publicly fetchable for nights after \"Delete my acc",
+  "where": "`src/lib/account-purge.ts:428-437` (`limit = 500`, `take: limit`, one row at a time, sequential `await delImag"
+ },
+ {
+  "id": "T7b-01",
+  "agent": "T7b",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "The one metric the nightly snapshot calls irreplaceable (\"did last night's backup run\") has failed with HTTP 403 on every one of its ~35 runs, the job",
+  "where": "- `scripts/ops/snapshot.mjs:241-272` (`collectGithub`), `:245-254` the request, `:295-304` the catch that prin"
+ },
+ {
+  "id": "T7b-02",
+  "agent": "T7b",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "The bell's badge stays dark for a genuinely new notification whenever its count is a number this document has seen before \u2014 which, for a member whose ",
+  "where": "- `src/components/layout/unread-store.ts:107-116` (`seedVerdict`), `:123-129` (`seedUnread` \u2014 every prop is ad"
+ },
+ {
+  "id": "T7b-13",
+  "agent": "T7b",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Six headline tiles in the analytics room are computed from a top-N list instead of being counted. Four are already wrong today (\"Profile opens\" shows ",
+  "where": ""
+ },
+ {
+  "id": "T7b-15",
+  "agent": "T7b",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Every surface names a Catch-up's deadline as a DAY (\"Answers close Thursday 20 August\"; in the bell, \"Answers close tomorrow\"), but answers shut at 06",
+  "where": "- The instant: `src/lib/catchups-core.ts:343` (`DEADLINE_HOUR_UTC_MS = 90 * 60 * 1000; // 01:30 UTC = 07:00 IS"
+ },
+ {
+  "id": "T7b-22",
+  "agent": "T7b",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "PostHog autocapture sends the text and the link target of whatever a member clicks, and that includes other members' names and, from a profile's \"Get ",
+  "where": "- `src/components/analytics/posthog-client.ts:91` (`autocapture: true`), `:133` (`mask_all_element_attributes:"
+ },
+ {
+  "id": "T8a-11",
+  "agent": "T8a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Nearly every supporter now gets a \"Pick the bird you want to wear\" bell AFTER they have picked, and following it drops them on the page that asks them",
+  "where": "- `src/app/api/razorpay/webhook/route.ts:237-240` \u2014 the premise: \"Nothing moved because the browser callback g"
+ },
+ {
+  "id": "T8a-12",
+  "agent": "T8a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "A member whose session reads as \"nobody\" during checkout is told \"Not authenticated\" in red after the money has moved, with the Contribute button live",
+  "where": "`src/app/(main)/support/actions.ts:153-154` (`const session = await auth(); if (!session?.user?.id) return { e"
+ },
+ {
+  "id": "T8a-15",
+  "agent": "T8a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "M59's premise is refuted by Razorpay's own documentation: answering 2xx to a bad signature never protected the endpoint, and it turns a wrong webhook ",
+  "where": "`src/app/api/razorpay/webhook/route.ts:110-128` (mismatch or unsigned \u2192 `noteRejection` \u2192 `200 { received: tru"
+ },
+ {
+  "id": "T8a-16",
+  "agent": "T8a",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "A supporter with a profile photo spends their one pick on a bird nobody will see, including them: the picker promises \"This becomes your avatar everyw",
+  "where": "`src/components/common/bird-avatar.tsx:10-12` (\"Precedence: uploaded photo > birdOverride (manual per-user spe"
+ },
+ {
+  "id": "T8b-02",
+  "agent": "T8b",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "One five-second pool wait in the signed-in shell shows four different screens depending on which query lost, and none of them paints until the shell h",
+  "where": "`src/app/(main)/layout.tsx:26` (`await auth()`), `:83-103` (the four-way `Promise.all`), `:36-37` (`redirect(\""
+ },
+ {
+  "id": "T8b-03",
+  "agent": "T8b",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "An action POST whose cookie has lapsed is bounced to /login, replayed there by the browser, forwarded by Next back to its own page, bounced again, and",
+  "where": "`src/proxy.ts:304-326` (no cookie: `/api/*` gets a JSON 401 at `:315-317`, everything else `NextResponse.redir"
+ },
+ {
+  "id": "T8b-04",
+  "agent": "T8b",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "\"5m ago\" is computed at render inside client components the server also renders, so any feed with a fresh post or comment hydrates against a different",
+  "where": "`src/lib/utils.ts:73-109` (`formatTimeAgo(date)` reads `new Date()` at call time). Client-component callers re"
+ },
+ {
+  "id": "T8b-05",
+  "agent": "T8b",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "The (i) tooltip opens on hover and toggles on click, so a finger's tap opens it and closes it in the same gesture on Android; the note needs two taps,",
+  "where": "`src/components/common/info-tooltip.tsx:50-58` (`onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpe"
+ },
+ {
+  "id": "T8b-06",
+  "agent": "T8b",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "The privacy policy promises things the code does not keep, and is silent about the two telemetry tables it keeps longest",
+  "where": "`src/app/(policies)/privacy/page.tsx` \u2014 every line is quoted below; `src/lib/retention.ts:28-77` (`KEEP_DAYS`)"
+ },
+ {
+  "id": "T8b-14",
+  "agent": "T8b",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "Every server error sends the member's live session cookie, and their city, coordinates and postcode, to Sentry: `sendDefaultPii: false` no longer stri",
+  "where": "`src/instrumentation.ts:50-53` (the comment \"OFF. The default would attach IP addresses, cookies and"
+ },
+ {
+  "id": "T8b-15",
+  "agent": "T8b",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "\"Try again\" on every error screen shows the same failure again: all three boundaries call `reset`, which never goes back to the server, so a database ",
+  "where": "`src/app/error.tsx:5-6, 24-30`, `src/app/(main)/error.tsx:28-29, 44-46` and"
+ },
+ {
+  "id": "T8b-17",
+  "agent": "T8b",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "Editing a published letter opens a 384px-wide dialog taller than the screen: for the median letter the Save button sits about a thousand pixels below ",
+  "where": "`src/components/ui/dialog.tsx:101-127` (`DialogContent`'s popup, className at `:109`: `fixed top-1/2 left-1/2 "
+ },
+ {
+  "id": "T9-01",
+  "agent": "T9",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "The three empty-state birds never play their moment and never start their resting life",
+  "where": "`src/components/mascot/moments/moment-hoopoe.tsx:55-71` (the observer effect),"
+ },
+ {
+  "id": "T9-02",
+  "agent": "T9",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "bugs.md #20 found: the /login peek-a-boo is killed by React Strict Mode's dev-only remount, so it is broken on localhost (where it was filed) and beli",
+  "where": "`src/app/(auth)/login/login-client.tsx:57-85` (runIntro arms `introTimeoutRef` and is the"
+ },
+ {
+  "id": "T9-03",
+  "agent": "T9",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "Every bird can jam for good: the ambient blink and crest flick overwrite verbs that do not hold the idle damper, and the overwritten animation never s",
+  "where": "the ambient loop `src/components/mascot/hoopoe.tsx:1454-1463` (blink: `scaleY` on"
+ },
+ {
+  "id": "T9-04",
+  "agent": "T9",
+  "sev": "Medium",
+  "conf": "likely",
+  "title": "A failed lazy load of the bird replaces the whole signed-in page with \"Something went wrong\", and the sidebar sleeper triggers it on its own after a d",
+  "where": "`src/components/mascot/sidebar-hoopoe.tsx:55-58` (`dynamic(() => import(\"./hoopoe\")...,"
+ },
+ {
+  "id": "T9-05",
+  "agent": "T9",
+  "sev": "Medium",
+  "conf": "certain",
+  "title": "On the public /hoopoe playground, \"Settle down\" (or any interruption) during \"Surprise me\" leaves \"Surprise me\" disabled until a reload",
+  "where": "`src/components/mascot/hoopoe-playground.tsx:203-210` (`surprise()` sets `busy` and clears it"
+ },
+ {
+  "id": "L1-02",
+  "agent": "L1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A question removed as answering opens leaves an Edition with nothing to answer, which the C-021 guard cannot see",
+  "where": "`src/app/(main)/catchups/actions.ts:1223-1246` (remove: status read at :1233-1240, unconditional `delete` at :"
+ },
+ {
+  "id": "L1-03",
+  "agent": "L1",
+  "sev": "Low",
+  "conf": "possible",
+  "title": "The two last Keepers leaving in the same instant leave a Catch-up nobody can tend",
+  "where": "`src/app/(main)/catchups/actions.ts:2623-2637` (leaveCatchup's tx), `:2549-2555` (removeCatchupMember's tx); `"
+ },
+ {
+  "id": "L1-04",
+  "agent": "L1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The account purge runs RepeatableRead with no P2034 retry, so a heart on the member's post mid-purge fails the purge until tomorrow",
+  "where": "`src/lib/account-purge.ts:345-397` (the tx; options at :382-396 \u2014 `timeout: 30_000, isolationLevel: \"Repeatabl"
+ },
+ {
+  "id": "L1-05",
+  "agent": "L1",
+  "sev": "Low",
+  "conf": "possible",
+  "title": "Two quick taps on two poll options can leave the vote shown different from the vote stored",
+  "where": "`src/components/posts/poll-display.tsx:95-119` (optimistic set, no in-flight or sequence guard); `src/app/(mai"
+ },
+ {
+  "id": "L1-06",
+  "agent": "L1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "An admin's double-send posts the reply twice and rings the member's bell twice",
+  "where": "`src/app/(main)/messages/actions.ts:218-261` (`adminReplyToThread`: no twin lookup); compare `:101-119` (start"
+ },
+ {
+  "id": "L1-07",
+  "agent": "L1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`openNextEdition`'s compare-and-swap is not one when `nextOpensAt` is NULL, so two Keepers get \"Something went wrong\" instead of the friendly race mes",
+  "where": "`src/lib/catchups.ts:369-373` (the CAS), `src/app/(main)/catchups/actions.ts:1514-1523` (`startNextEditionNow`"
+ },
+ {
+  "id": "L10-02",
+  "agent": "L10",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "For sixty days after \"Delete my account\" everything the member wrote stays on the feed, the letters, the comments and the Catch-ups under a name that ",
+  "where": "- `src/lib/posts.ts:44-63`: the owner decision, *\"a blocked member's existing posts, letters and comments leav"
+ },
+ {
+  "id": "L10-03",
+  "agent": "L10",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "When Cloudflare's challenge service is down, nobody can sign up and nobody can reset a forgotten password, and each visitor is told their own browser ",
+  "where": "- `src/lib/turnstile.ts:156`: `if (!token) return { ok: false, why: \"no-token\", detail: null };`, BEFORE the `"
+ },
+ {
+  "id": "L10-04",
+  "agent": "L10",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Two tabs or two devices on one profile silently erase each other's work: the contact block, the cities and the houses are each written whole from the ",
+  "where": "`src/components/profile/letterhead-profile.tsx:462-476` (`commitPlaces(next)`: the tab's whole list), `:478-48"
+ },
+ {
+  "id": "L10-05",
+  "agent": "L10",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The designated test profile is an admin in production, so the member messages ring it and every automated screenshot, crawl and visual baseline has on",
+  "where": "live row `cmseq4ys6000t04jr8068e1qs` (Jerry Maguire, `role: admin`, verified, no batch). `scripts/qa/_dev-logi"
+ },
+ {
+  "id": "L10-06",
+  "agent": "L10",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The Class Collection's second mitigation, \"an AuditLog row on every `batchYear` change\", never shipped: a member moves between classes without a trace",
+  "where": "`docs/planning/class-collection/spec.md` \u00a72.4 (*\"Two mitigations ship: 1. `verifyState === \"verified\"` is requ"
+ },
+ {
+  "id": "L3-03",
+  "agent": "L3",
+  "sev": "Low",
+  "conf": "likely",
+  "title": "Every deadline morning the admin room calls a healthy Edition \"past its date\" for the 83 minutes between the 07:00 IST deadline and the cron, which fo",
+  "where": "`src/lib/catchups-core.ts:741-756` (`overdueEditionWhere(now)`: `answersCloseAt: { lt: now }` / `questionsClos"
+ },
+ {
+  "id": "L3-04",
+  "agent": "L3",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Two refusals promise a calendar day that no calendar enforces: the Keeper's nudge says \"You cannot send another today\" (it allows five an hour), and t",
+  "where": "`src/components/catchups/settings/settings-surface.tsx:722-727` (the nudge confirm: \"One reminder goes to whoe"
+ },
+ {
+  "id": "L3-05",
+  "agent": "L3",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The date gates see one shape each: the rendered-date sweep misses every date written inside JSX braces, a template literal or a ternary; the SQL sweep",
+  "where": "`src/lib/valley-day.test.mjs:108-130` (`for (const full of walk(resolve(ROOT, \"src\"), { skip: [...SKIP_DIRS, \""
+ },
+ {
+  "id": "L3-06",
+  "agent": "L3",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`npm run check` goes red for five and a half hours every New Year's Eve: a valley-day test compares the runner's LOCAL year with the valley's year",
+  "where": "`src/lib/valley-day.test.mjs:57-78` \u2014 `const thisYear = new Date().getFullYear();` (`:63`, the runner's local "
+ },
+ {
+  "id": "L3-07",
+  "agent": "L3",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The nightly database dump is named by the UTC date it happens to run on, and GitHub runs it up to eight hours late, so a late night and the next on-ti",
+  "where": "`.github/workflows/backup.yml:42` (`cron: '30 20 * * *'`, commented \"20:30 UTC == 02:00 IST: the middle of the"
+ },
+ {
+  "id": "L4-05",
+  "agent": "L4",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The Catch-up people pickers answer every refusal and failure of the people search with a false \"nobody\": \"No one found by that name\", \"Everyone from y",
+  "where": "- `src/components/common/use-user-search.ts:66-73` \u2014 `const data = await res.json(); \u2026 setResults(Array.isArra"
+ },
+ {
+  "id": "L4-07",
+  "agent": "L4",
+  "sev": "Low",
+  "conf": "possible",
+  "title": "`reportSwallowed` never flushes, so a report raised at the end of an invocation \u2014 the nightly tick, the sweep, the tail of an `after()` \u2014 may never le",
+  "where": "- `src/lib/report-error.ts:36-45` \u2014 `Sentry.captureException(err, \u2026)` and return; no flush, no `waitUntil`"
+ },
+ {
+  "id": "L5-05",
+  "agent": "L5",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Under pool pressure the interactive transactions fail at 2 s, not 5 s, and each one that gives up still borrows a connection later to open and roll ba",
+  "where": "every `prisma.$transaction(async (tx) => ...)` without options inherits `maxWait: 2000, timeout: 5000` (`getPr"
+ },
+ {
+  "id": "L5-06",
+  "agent": "L5",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "While any mail is waiting for tomorrow's quota (the whole launch: C-161), every hard page load and every revalidating action runs the full drain-lease",
+  "where": "`src/lib/email-queue.ts:727-737` \u2014 the pre-check the C-104 fix added counts `{ OR: [{ status: \"queued\" }, { st"
+ },
+ {
+  "id": "L5-09",
+  "agent": "L5",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`Comment.authorId` has no index, so the member's data export, the account purge and the admin person page scan every comment in the community",
+  "where": "`src/app/api/account/export/route.ts:178` (`keyset({ authorId: userId, deletedAt: null }, after)`, one scan pe"
+ },
+ {
+  "id": "L5-10",
+  "agent": "L5",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`CatchupEntry.authorId` is only the second column of `(promptId, authorId)`, so every per-member answer query (purge, export, admin merge) scans every",
+  "where": "`src/lib/account-purge.ts:116` (`catchupEntry.findMany({ where: { authorId: userId }, select: { images: true, "
+ },
+ {
+  "id": "L5-11",
+  "agent": "L5",
+  "sev": "Low",
+  "conf": "likely",
+  "title": "New avatars and Catch-up photographs stop rendering (the alt text shows instead) once a month's 5,000 Vercel image transformations are spent, and at 2",
+  "where": "`src/components/common/bird-avatar.tsx:115-122` (`<Image src={user.photoUrl} width={px} height={px} .../>` \u2014 a"
+ },
+ {
+  "id": "L5-12",
+  "agent": "L5",
+  "sev": "Low",
+  "conf": "likely",
+  "title": "Under Fluid compute the owner's analytics room shares the members' pool of five: at the 2,000-member data size one open of Live or Usage can hold ever",
+  "where": "`src/app/(main)/admin/analytics/page.tsx:110,182,320,478,507,601,661` (each view awaits a `Promise.all` of loa"
+ },
+ {
+  "id": "L6-02",
+  "agent": "L6",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A bidi override in a name, a Catch-up name or a message runs into the app's own sentence in other members' bells and admin inboxes (the whole-app exte",
+  "where": "the sinks where a member-supplied string is interpolated into an app-authored sentence that another person rea"
+ },
+ {
+  "id": "L6-03",
+  "agent": "L6",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A value made only of zero-width characters passes every \"not empty\" rule in the app, so a member can be nameless and a Catch-up, question, choice or c",
+  "where": "every free-text rule is `z.string().trim().min(1)` or `value.trim().length`, and JavaScript's `trim()` removes"
+ },
+ {
+  "id": "L6-04",
+  "agent": "L6",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A NUL character fails every text write in the app with the wrong sentence, and on two paths it fails after something irreversible already happened",
+  "where": ""
+ },
+ {
+  "id": "L6-05",
+  "agent": "L6",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Two text scans on the reading path are quadratic: a hostile 20,000-character letter costs ~0.3 s per render, and a hostile answer ~0.22 s per link sca",
+  "where": "(1) the mention pattern `/@\\[([^\\]]+)\\]\\(([A-Za-z0-9_-]+)\\)/g` (`src/lib/rich-text.ts:133-136`): every `@[` st"
+ },
+ {
+  "id": "L6-06",
+  "agent": "L6",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Twelve fields that a member can overfill from the page answer in Zod's raw English (\"Too big: expected string to have <=50 characters\")",
+  "where": "the action returns `parsed.error.issues[0].message` and the field has no custom message and no client `maxLeng"
+ },
+ {
+  "id": "L6-07",
+  "agent": "L6",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A link with a repeated query parameter crashes the public reset and confirm pages (live-proved) and the directory",
+  "where": "Next hands a repeated key to a page as an array; these pages type it as a string and call string-only function"
+ },
+ {
+  "id": "L6-08",
+  "agent": "L6",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Title-casing corrupts Turkish capitals and brand spellings in names and job titles, and can store a name longer than the cap that then refuses to save",
+  "where": "`src/lib/normalize.ts:80-109` (`titleCase`), `:37-56` (`capitalizeWord`); applied to names (`profile-actions.t"
+ },
+ {
+  "id": "L6-09",
+  "agent": "L6",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A message to the admins that is one long character cluster gets an empty subject and a \"...\" bell",
+  "where": "`src/lib/admin-threads.ts:78-86` (`cutTo` stops before the first grapheme that does not fit and returns what i"
+ },
+ {
+  "id": "O-04",
+  "agent": "O",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A server action whose POST fails to fetch (overloaded instance, dropped connection, expired cookie) is always \"Check your connection and try again\", w",
+  "where": "`src/lib/call-action.ts:23, 43-58`; `src/proxy.ts:296-326` (an action POST without a cookie is answered with a"
+ },
+ {
+  "id": "O-06",
+  "agent": "O",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A null byte in any search box makes the server throw, the member is told to \"check your connection\", and the page also claims \"No posts match your sea",
+  "where": "`src/lib/db-text.ts:49-55` (`escapeLike` clamps and escapes `%`, `_`, `\\` but passes U+0000 through); `src/app"
+ },
+ {
+  "id": "T1-05",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "likely",
+  "title": "Publishing a draft from the desk, or deleting a letter from its page, shows the 404 screen for a moment before the navigation lands",
+  "where": "`src/app/(main)/feed/actions.ts:356-358` (publishDraft: three `revalidatePath` calls), `:425` (deletePost), `:"
+ },
+ {
+  "id": "T1-06",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Every draft autosave re-renders the edit page AND the (main) layout on the server, for a surface nothing server-rendered shows",
+  "where": "`src/app/(main)/feed/actions.ts:636-640` (`if (isLetter) { revalidatePath(\"/letters\"); revalidatePath(\\`/lette"
+ },
+ {
+  "id": "T1-07",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The letters index pages by createdAt alone, so two letters published in the same millisecond repeat or vanish at a page boundary",
+  "where": "`src/app/(main)/letters/(index)/page.tsx:49-51` (`cursor = new Date(before)`), `:71` (`createdAt: { lt: olderT"
+ },
+ {
+  "id": "T1-08",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The \"Your drafts\" strip shows at most 20 drafts and never says so",
+  "where": "`src/app/(main)/letters/(index)/page.tsx:96-106` (`take: 20`, no `+1`, no indicator), `src/components/letters/"
+ },
+ {
+  "id": "T1-09",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "An expired session reads as an empty feed (\"No stories yet\") and an empty comment thread, not as a sign-in prompt",
+  "where": "`src/app/(main)/feed/actions.ts:1034-1036` (`if (!session?.user?.id) return empty;`), `:1240-1242` (`return EM"
+ },
+ {
+  "id": "T1-10",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Sharing a letter from its feed card copies the feed URL, not the letter's",
+  "where": "`src/components/posts/post-card.tsx:374` (`const shareHref = \\`/feed#${post.id}\\`` for every kind), `:700`; co"
+ },
+ {
+  "id": "T1-11",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Escape hides the reply box but keeps the draft, so the next Reply on somebody else opens with words meant for the first person",
+  "where": "`src/components/posts/comments-section.tsx:605-608` (`if (e.key === \"Escape\" && inline && replyTo) { setReplyT"
+ },
+ {
+  "id": "T1-12",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A heart tapped on a page restored from the back-cache ends on the right state but the count reads one high",
+  "where": "`src/lib/toggle-queue.ts:72-88` (two round trips settle a stale page), `src/lib/heart.ts:23-30` (`settledHeart"
+ },
+ {
+  "id": "T1-13",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Reporting a letter files it, announces it and opens the thread as \"a post by X\"",
+  "where": "`src/components/posts/report-action.ts:196-199` (selects only the author's name), `:219-220` (`subject = \\`A p"
+ },
+ {
+  "id": "T1-14",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The server accepts a poll on a letter; nothing renders it",
+  "where": "`src/lib/validators.ts:209-250` (no refine tying `pollOptions` to `kind`), `src/app/(main)/feed/actions.ts:196"
+ },
+ {
+  "id": "T1-15",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A post, a letter body or a letter title made only of whitespace is accepted",
+  "where": "`src/lib/validators.ts:211` (`content: z.string().min(1)` \u2014 no `.trim()`), `:213` (`title: z.string().max(160)"
+ },
+ {
+  "id": "T1-17",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Every feed page, letters index and letter page aggregates the WHOLE Comment table (joined to User) to count the comments on the twenty posts it shows",
+  "where": "`src/app/(main)/feed/actions.ts:984` (`_count: { select: { comments: { where: VISIBLE_COMMENT }, likes: true }"
+ },
+ {
+  "id": "T1-18",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The \"Also add to the Collection\" copy runs in `after()` under the /feed route's default function budget, and a cut-off leaves staged bytes unrecorded ",
+  "where": "`src/app/(main)/feed/actions.ts:299-307` (`after(async () => { await copyPostImagesToCollection(...); revalida"
+ },
+ {
+  "id": "T1-19",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A member whose name begins with an accented or Indic letter cannot be @-mentioned, and typing an email address opens the mention list",
+  "where": "`src/lib/rich-text-editing.ts:78` (`before.match(/@(\\w*)$/)` \u2014 `\\w` is ASCII `[A-Za-z0-9_]`), `src/components/"
+ },
+ {
+  "id": "T1-20",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`PollOption` has no index on `postId`, and every feed page fetches poll options for its twenty posts",
+  "where": "`prisma/schema.prisma:958-966` (`model PollOption` \u2014 no `@@index`), `src/app/(main)/feed/actions.ts:988-991` ("
+ },
+ {
+  "id": "T1-21",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`Notification` has no index on `link`, and every post deletion or moderation scans the whole table to clear its bell rows",
+  "where": "`src/lib/post-notifications.ts:83-92` (`deleteMany({ where: { link: postNotificationLink(post), \u2026 } })`), call"
+ },
+ {
+  "id": "T1-22",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`User` has no index on `createdAt`, and the feed rail's \"New in the directory\" sorts every member on every feed render",
+  "where": "`src/components/feed/rail/directory-module.tsx:30-40` (`orderBy: { createdAt: \"desc\" }, take: 6` over `isBlock"
+ },
+ {
+  "id": "T1-24",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Saved applies the city arm of the audience rule but not the batch arm, so a saved post can stay on the shelf after the direct link refuses it",
+  "where": "`src/app/(main)/feed/actions.ts:1153-1170` (`loadSavedPosts` where: `PUBLISHED_ONLY`, `AUTHOR_IN_GOOD_STANDING"
+ },
+ {
+  "id": "T1-25",
+  "agent": "T1",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A crafted keyset cursor past the Date range makes the feed, thread and bell loaders throw instead of serving page one",
+  "where": "`src/lib/keyset.ts:53-60` (`decodeKeyset`: `if (!Number.isSafeInteger(ms) || ms < 0) return null; return { cre"
+ },
+ {
+  "id": "T2a-08",
+  "agent": "T2a",
+  "sev": "Low",
+  "conf": "possible",
+  "title": "The double-submit guard on creating a Catch-up is a read before the write, so two requests in flight together still mint two Catch-ups and notify up t",
+  "where": "`src/app/(main)/catchups/actions.ts:523-535` (`twin = prisma.catchup.findFirst({ createdById, createdAt >= now"
+ },
+ {
+  "id": "T2a-09",
+  "agent": "T2a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Succession can hand the Keeper's hat to a blocked, deletion-pending or teacher account; the purge path writes \"admin\" where every other path writes \"k",
+  "where": "`src/lib/group-succession.ts:16-31` (`chooseGroupSuccessor`: the longest-standing `GroupMember` row, no look a"
+ },
+ {
+  "id": "T2a-10",
+  "agent": "T2a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A member removed by a Keeper keeps their pref row, so re-joining by the invite link lands the Catch-up in their Archived shelf (spec says removal \"doe",
+  "where": "`src/app/(main)/catchups/actions.ts:2549-2560` (`removeCatchupMember`: transaction deletes `GroupMember`, then"
+ },
+ {
+  "id": "T2a-11",
+  "agent": "T2a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Comment lies in the lifecycle files (the code drifted from its stated contract)",
+  "where": ""
+ },
+ {
+  "id": "T2a-12",
+  "agent": "T2a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A question submitted in the five-minute grace window of a dormant Edition does not revive it, so answering opens with one question and no window",
+  "where": "`src/app/(main)/catchups/actions.ts:1139-1151` (`wasDormant = firstQuestion && questionsCloseAt != null && que"
+ },
+ {
+  "id": "T2a-13",
+  "agent": "T2a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Blocked and deletion-pending accounts stay inside every Catch-up: counted toward the batch floor, listed in People, reminded daily, their answers show",
+  "where": "`src/lib/batch-catchups.ts:146-160` (`_count.members >= BATCH_CATCHUP_FLOOR`, no standing filter) and `:218-25"
+ },
+ {
+  "id": "T2b-06",
+  "agent": "T2b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The empty-answer withdrawal deletes by id after the transaction with no content precondition, and versionless first saves make the race reachable (rou",
+  "where": "- `src/app/(main)/catchups/actions.ts:1955-1956` \u2014 `if (!entry.body && !entry.images && !entry.songUrl && !ent"
+ },
+ {
+  "id": "T2b-07",
+  "agent": "T2b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A thumbnail that fails to re-host is never retried and never reported: the card stays imageless for ever, silently",
+  "where": "- `src/lib/link-preview.ts:286-300` \u2014 `rehost` returns null on any failure (`catch { return null; }`) and on a"
+ },
+ {
+  "id": "T2b-08",
+  "agent": "T2b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The export reads every photograph and recording through the public host with no timeout, the one thing TRAPS says a bulk reader must not do",
+  "where": "- `scripts/dev/_cli.mjs:37-42` \u2014 `bytesFor(u)`: `const res = await fetch(u)` (no `AbortSignal`, public URL)"
+ },
+ {
+  "id": "T2b-09",
+  "agent": "T2b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A Keeper whose Edition tolerated the 41st question can never reorder it again (\"Invalid request.\")",
+  "where": "- `src/app/(main)/catchups/actions.ts:124` \u2014 `MAX_ACCEPTED_PROMPTS_PER_EDITION = 40`"
+ },
+ {
+  "id": "T2b-10",
+  "agent": "T2b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`submitEntry`'s replaced-recording check is a sequential scan: `CatchupEntry.audioUrl` has no index",
+  "where": "`src/app/(main)/catchups/actions.ts:1951` \u2014 `prisma.catchupEntry.count({ where: { audioUrl: entry.replacedAudi"
+ },
+ {
+  "id": "T2b-11",
+  "agent": "T2b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`loadEntryComments` is the one comment action outside `runAction`, and a crafted `take` reaches Prisma as `NaN` and throws out of the action",
+  "where": "`src/app/(main)/catchups/actions.ts:2108-2128` \u2014 no `runAction`, `opts` passed through; `src/lib/comment-threa"
+ },
+ {
+  "id": "T2b-12",
+  "agent": "T2b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "One empty answer row from before the withdrawal rule sits in a published Edition, and nothing sweeps the class",
+  "where": "live row `CatchupEntry.id = cmsjvyuwj000004jwgespzdxs` (created 2026-08-08, updated 2026-08-14, Edition 1 of i"
+ },
+ {
+  "id": "T3-07",
+  "agent": "T3",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The home prints its state line from the Catch-up row it read BEFORE it advanced the Edition, so the first visitor after a publish sees no \"The next on",
+  "where": "- `src/app/(main)/catchups/[catchupId]/(home)/page.tsx:58-98` (`loadCatchup`, `cache()`d: `nextOpensAt`, `stat"
+ },
+ {
+  "id": "T3-08",
+  "agent": "T3",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The home runs an unbounded, in-memory `distinct` over every answer in an answering Edition to build a list nothing renders",
+  "where": "- `src/app/(main)/catchups/[catchupId]/(home)/page.tsx:201-209` (`prisma.catchupEntry.findMany({ where: { edit"
+ },
+ {
+  "id": "T3-09",
+  "agent": "T3",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The invitation page names the Catch-up by its group's original name, so a renamed Catch-up invites people to something called by a name it no longer h",
+  "where": "- `src/app/catchups/join/[token]/page.tsx:63-72` (the select: `group: { select: { name: true, _count: ... } }`"
+ },
+ {
+  "id": "T3-10",
+  "agent": "T3",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The photo viewer prints a Catch-up answer's formatting markers raw, while the tile beside it renders the same body as rich text",
+  "where": "- `src/components/catchups/edition/reader-parts.tsx:266-272` (`shots = images.map(... caption: entry.body ...)"
+ },
+ {
+  "id": "T3-12",
+  "agent": "T3",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A navigator \"glide\" keeps driving the window's scroll for up to 900 ms after the reader is gone, so a quick tap on the Catch-up's name lands the home ",
+  "where": "`src/components/catchups/edition/reader.tsx:394-406` (`glide`: a `requestAnimationFrame` loop calling `window."
+ },
+ {
+  "id": "T3-13",
+  "agent": "T3",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Five press, hover and slide responses in Catch-ups never animate: an explicit `transition-[\u2026]` list beside a Tailwind v4 `scale-*` or `translate-*` (t",
+  "where": "- `src/components/catchups/index/catchup-card.tsx:126` (the archive control: `transition-[opacity,transform] ."
+ },
+ {
+  "id": "T3-14",
+  "agent": "T3",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A member can add themselves to their own new Catch-up and see two chips for one person",
+  "where": "- `src/components/catchups/create/people-picker.tsx:142` (`unpicked = results.filter((r) => !value.some((p) =>"
+ },
+ {
+  "id": "T3-15",
+  "agent": "T3",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Taking the Keeper's hat from a group-admin row says \"no longer a Keeper\" and changes nothing",
+  "where": "- `src/app/(main)/catchups/actions.ts:2727-2748` (`setCatchupKeeper` revoke: `updateMany({ where: { ..., role:"
+ },
+ {
+  "id": "T3-16",
+  "agent": "T3",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The 2026-09-09 notification-link migration was never applied to the live database: 22 bells still point at `/catchups/<id>/answer`, 11 of them \"days l",
+  "where": "- `prisma/migrations-manual/2026-09-09-answering-moves-to-the-home.sql:46-56` (`UPDATE \"Notification\" SET link"
+ },
+ {
+  "id": "T3-21",
+  "agent": "T3",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A photo-wall answer takes one photograph, although the owner set the wall's cap at three",
+  "where": "- `src/components/catchups/answer/answer-card.tsx:131-133` (`prompt.kind === \"photo\"` \u2192 `<PhotoAttachments ..."
+ },
+ {
+  "id": "T3-22",
+  "agent": "T3",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The People door's \"Add someone\" offers people who are already in the Catch-up, and the Keeper, and answers \"X is in.\" when nothing changed",
+  "where": "- `src/components/catchups/home/people-door.tsx:186-200` (`AddSomeone({ catchupId, onChanged })` receives no r"
+ },
+ {
+  "id": "T3-23",
+  "agent": "T3",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Removing someone from a Catch-up is one tap with no confirmation and no undo, on a control a phone always shows 2px from the Keeper sprout",
+  "where": "- `src/components/catchups/home/people-door.tsx:127-136` (the Remove `RowButton`: `onClick={() => run(() => re"
+ },
+ {
+  "id": "T3-24",
+  "agent": "T3",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "On the Catch-ups list, Undo on an archive swallows its own failure: the card stays archived and nothing says so",
+  "where": "- `src/components/catchups/index/catchup-shelf-view.tsx:152-157` (the toast's Undo: `await callAction(() => se"
+ },
+ {
+  "id": "T4a-07",
+  "agent": "T4a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A member can love a photograph they are not allowed to see, and learn that it exists, because `togglePhotoLove` never asks the visibility rule its fee",
+  "where": "`src/app/(main)/collection/actions.ts:983-1010` (`togglePhotoLove`: auth, `requireVerifiedMember`, then straig"
+ },
+ {
+  "id": "T4a-08",
+  "agent": "T4a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "An admin's \"Remove\" on a photograph the uploader deleted a second earlier throws P2025 and shows \"Check your connection\", the wrong diagnosis C-074/C-",
+  "where": "`src/app/(main)/collection/actions.ts:1163` (`await prisma.photo.update({ where: { id: photoId }, data: { isHi"
+ },
+ {
+  "id": "T4a-09",
+  "agent": "T4a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "On the demo, deleting your own photograph dies in the third write layer with \"Check your connection\", because `deleteOwnPhoto` is the one Collection w",
+  "where": "`src/app/(main)/collection/actions.ts:1123-1147` (`deleteOwnPhoto`: auth, ownership, `erasePhoto` \u2014 no `IS_DEM"
+ },
+ {
+  "id": "T4a-10",
+  "agent": "T4a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Comments and documents describe a database that no longer exists: production has run three of the \"unrun\" drop files, so there are nine hand-made inde",
+  "where": "`prisma/schema.prisma:11-23` (\"ELEVEN INDEXES EXIST THAT THIS FILE CANNOT DESCRIBE ... Photo_area_trgm_idx ..."
+ },
+ {
+  "id": "T4a-11",
+  "agent": "T4a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`import-album.mjs` files a photograph under a date the app's own judgement would refuse: DateTimeDigitized or IFD0 DateTime stands in for the shutter ",
+  "where": "`scripts/dev/import-album.mjs:288-289` (`const stamp = exifStamp(await exifBlockOf(await readFile(file)), THIS"
+ },
+ {
+  "id": "T4a-12",
+  "agent": "T4a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A database hiccup at the moment the row is written loses the member's full-resolution upload entirely, because the staged original is deleted before t",
+  "where": "`src/app/(main)/collection/actions.ts:546-551` (`purgeImageKey(input.key, \"staged\")` inside the try, after the"
+ },
+ {
+  "id": "T4a-13",
+  "agent": "T4a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "On 1 January 2030 every photograph dated that year is filed under era \"unknown\"",
+  "where": "`src/lib/collection.ts:321-325` (`eraFromYear`: `const bucket = `${decade}s`; return ERA_VALUES.includes(bucke"
+ },
+ {
+  "id": "T4a-14",
+  "agent": "T4a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The FormData fallback has no `sourceKey`, so the one contribute path that can be double-submitted makes two photographs from one press",
+  "where": "`src/app/(main)/collection/actions.ts:162-296` (`contributePhoto`: `createPhotoRow` at `:283` with `photoRowDa"
+ },
+ {
+  "id": "T4b-09",
+  "agent": "T4b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A `?when=` link, and the `when` in the address bar, do not say where the reader is: a shared year link opens at the top of the archive",
+  "where": "`collection-client.tsx:980-994` (`seekTo` with geometry: `landAt(want, tail.current); return;` -- `seekBand` u"
+ },
+ {
+  "id": "T4b-10",
+  "agent": "T4b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A whole year's thumbnails are decoded at once, fire-and-forget, on every band arrival: up to 600 concurrent decodes on a phone",
+  "where": "`collection-client.tsx:514` (`void warmThumbs(data.photos, data.photos.length, 0);`), `:905` and `:1066` (same"
+ },
+ {
+  "id": "T4b-11",
+  "agent": "T4b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "OPERATIONS.md still describes the phone scrubber as \"a timer rather than a state\"; it has been a fixed chip since 2026-09-12",
+  "where": "`docs/OPERATIONS.md:36-40`; the truth: `e2e/visual.spec.ts:101-114`, `src/components/collection/photo-scrubber"
+ },
+ {
+  "id": "T4b-12",
+  "agent": "T4b",
+  "sev": "Low",
+  "conf": "possible",
+  "title": "The search box has no client-side length cap, so a long paste goes into the address bar and (through T4b-08) into a request URL",
+  "where": "`src/components/layout/search-pill.tsx:230-231` (`value={value}` / `onChange={(e) => setValue?.(e.target.value"
+ },
+ {
+  "id": "T5-11",
+  "agent": "T5",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A malformed `rv_human` cookie makes every sign-in from that browser report \"This is us, not your password\" for five minutes",
+  "where": "`src/lib/human-pass-rule.ts:86-96` \u2014 `return decodeURIComponent(part.slice(eq + 1).trim())` throws `URIError` "
+ },
+ {
+  "id": "T5-12",
+  "agent": "T5",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Any NextAuth refusal that is not one of the three known codes prints \"Invalid email or password.\" \u2014 a browser that blocks the CSRF cookie is sent into",
+  "where": "`src/app/(auth)/login/login-client.tsx:167-186` \u2014 `code === \"rate-limited\" ? \u2026 : code === \"bot-check\" ? \u2026 : co"
+ },
+ {
+  "id": "T5-13",
+  "agent": "T5",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`sendVerificationEmail` throws away the queue's answer, so a resend that was rate-limited reports \"Sent to \u2026\", and its failure copy sends members to a",
+  "where": "`src/lib/verification-mail.ts:29-36` \u2014 `await enqueueMail({...}); return { ok: true };` (the `{ queued: false,"
+ },
+ {
+  "id": "T5-14",
+  "agent": "T5",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A blocked member is told their password is wrong and that a reset link is \"on its way\" that will never come \u2014 a dead-end loop with no hint to write to",
+  "where": "`src/lib/auth.ts:249-256` (blocked \u2192 `return null` \u2192 generic \"Invalid email or password.\"); `src/components/au"
+ },
+ {
+  "id": "T5-15",
+  "agent": "T5",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A local dev-login stamps the signed-in member's `lastSeenAt` even though `stats-exclusion.ts` says localhost records nothing; the analytics \"seen in t",
+  "where": "`src/lib/stats-exclusion.ts:17-20` \u2014 *\"WRITE -- activity is recorded only by the production deployment. Localh"
+ },
+ {
+  "id": "T5-16",
+  "agent": "T5",
+  "sev": "Low",
+  "conf": "possible",
+  "title": "A Resend timeout that actually delivered, then a retry, leaves a reset mail in the inbox whose link says \"That link has been used\" \u2014 the member never ",
+  "where": "`src/lib/email.ts:202-224` (race, not abort: *\"the request may still land\"*), `:221-223` (`transient: true` \u2192 "
+ },
+ {
+  "id": "T6-05",
+  "agent": "T6",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The `anonymous` system account is a person in the directory: listed in the People view, counted in \"222 people\", found by name search and by the menti",
+  "where": "- `src/app/(main)/directory/where.ts:71` \u2014 `const where = { isBlocked: false, deletionRequestedAt: null }`; no"
+ },
+ {
+  "id": "T6-06",
+  "agent": "T6",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The contact editor's email row is seeded with the sign-in address and edits only the shown one; there is no signed-in way to change the password or th",
+  "where": "- `src/lib/contact-rows.ts:83-85` \u2014 `if (source.showEmail && (source.displayEmail || source.email)) rows.push("
+ },
+ {
+  "id": "T6-07",
+  "agent": "T6",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Clearing your batch year or leaving year on the profile leaves the derived board credential standing, where the admin editor clears it",
+  "where": "`src/components/profile/profile-actions.ts:165-168` `if (!value) { data[field] = null; break; }` then `:228-23"
+ },
+ {
+  "id": "T6-08",
+  "agent": "T6",
+  "sev": "Low",
+  "conf": "possible",
+  "title": "\"Delete my account\" can report a connection error after it has already ended every session, and signing back in \"to check\" cancels the deletion silent",
+  "where": "`src/components/settings/actions.ts:207-217` \u2014 the update writes `deletionRequestedAt` and `credentialVersion:"
+ },
+ {
+  "id": "T6-09",
+  "agent": "T6",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A phone number typed with India's trunk zero (\"09845033712\") is displayed and re-edited as \"+098 45033712\", and a \"+\" with no digits survives validati",
+  "where": "`src/lib/phone.ts:74-90` `formatPhoneDisplay`: `if (!hadPlus && digits.length <= MAX_BARE_NATIONAL_DIGITS) ret"
+ },
+ {
+  "id": "T6-10",
+  "agent": "T6",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Two survivors of the C-174 class: a crafted call still turns into a 500 instead of a refusal in `updateContactMethods` (a non-boolean `showEmail`) and",
+  "where": "`src/components/profile/profile-actions.ts:333` `showEmail: input.showEmail ?? true,` \u2014 a string \"no\" reaches "
+ },
+ {
+  "id": "T6-11",
+  "agent": "T6",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The onboarding register step speaks raw Zod to the member and lets an alumnus write teacher subjects",
+  "where": "`src/components/onboarding/actions.ts:51-54` `return { error: parsed.error.issues[0].message };` \u2014 the sentenc"
+ },
+ {
+  "id": "T6-12",
+  "agent": "T6",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The same columns are capped and ruled differently by their writers: the pen's occupation fields accept 120 characters the server refuses at 100; onboa",
+  "where": "- `src/components/profile/letterhead-profile.tsx:1106,1134` `maxLength={120}` on `jobTitle` and `workplace` vs"
+ },
+ {
+  "id": "T6-13",
+  "agent": "T6",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`/api/places/search`'s header says altNames has no index; it has a GIN trigram index the planner uses, and the route costs 7 to 450 ms per keystroke d",
+  "where": "`src/app/api/places/search/route.ts:22-26` \"altNames is a flat comma-joined string (no index), searched with a"
+ },
+ {
+  "id": "T6-14",
+  "agent": "T6",
+  "sev": "Low",
+  "conf": "possible",
+  "title": "The saved contact card has no `N` property, which vCard 3.0 requires, and its NOTE can be 4,000 characters on one unfolded line",
+  "where": "`src/app/(main)/profile/[id]/page.tsx:356-374` builds `BEGIN, VERSION:3.0, FN, EMAIL?, TEL*, TITLE?, ADR*, URL"
+ },
+ {
+  "id": "T6-15",
+  "agent": "T6",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Two hand-made directory URLs mislead: `?type=<anything>` draws a chip and lists the whole membership as \"results\", and `?cursor=<stale>` on the server",
+  "where": "`src/app/(main)/directory/page.tsx:192-201` `hasFilter` reads raw `params.type`; `where.ts:180-181` adds a cla"
+ },
+ {
+  "id": "T7a-08",
+  "agent": "T7a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The \"flagged\" member state is dead: nothing in the app can write it, yet a worklist queue, a rail count, a People filter arm, a chip, a Standing line ",
+  "where": "writers \u2014 none; `src/components/posts/report-action.ts:322-327` (\"This used to also write verifyState:flagged."
+ },
+ {
+  "id": "T7a-10",
+  "agent": "T7a",
+  "sev": "Low",
+  "conf": "likely",
+  "title": "The purge's cancel-race comment describes READ COMMITTED, but the transaction runs RepeatableRead: a member who signs in during the seconds of their o",
+  "where": "`src/lib/account-purge.ts:333-338` (\"A re-read at the top... this runs at READ COMMITTED... The condition ther"
+ },
+ {
+  "id": "T7a-11",
+  "agent": "T7a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Runtime validation is missing on every people action: an admin-typed name has no length cap (the member's own form caps at 100), `role`/`method`/`trus",
+  "where": "`src/app/(main)/admin/people/actions.ts:98-107` (name: `titleCase`, refuses empty, no max \u2014 `FULL_NAME_MAX = 1"
+ },
+ {
+  "id": "T7a-12",
+  "agent": "T7a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The merge dialog takes a pasted id with no preview of who the target is; a wrong-but-existing id is an irreversible merge into the wrong person, and a",
+  "where": "`src/components/admin/people/person-detail.tsx:403-444` (Input for the id, `confirmWord` is the DUPLICATE's na"
+ },
+ {
+  "id": "T7a-13",
+  "agent": "T7a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Post reports never count toward \"N reports in all\" or the person page's \"Reported\" tally, so the pattern the queue exists to show is invisible for the",
+  "where": "`src/app/(main)/admin/reports/page.tsx:82-89` (`groupBy reportedUserId`, which is NULL on every post report) a"
+ },
+ {
+  "id": "T7a-14",
+  "agent": "T7a",
+  "sev": "Low",
+  "conf": "likely",
+  "title": "Three admin read surfaces have no bound and will not survive two years of 2,000 members: the Catch-ups index loads every Catch-up; the reading room lo",
+  "where": "`src/app/(main)/admin/catchups/(index)/page.tsx:54-78` (no `take`; `_count` of members, prompts and entries pe"
+ },
+ {
+  "id": "T7a-15",
+  "agent": "T7a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Copy that lies on admin surfaces (five lines, one finding)",
+  "where": ""
+ },
+ {
+  "id": "T7a-16",
+  "agent": "T7a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Two different \"members\" numbers sit two inches apart: the rail's People count is every row including blocked, the Overview's Members tile excludes the",
+  "where": "`src/lib/admin.ts:256` (`count(*)::int AS people`) vs `src/app/(main)/admin/(index)/page.tsx:85` (`user.count("
+ },
+ {
+  "id": "T7a-17",
+  "agent": "T7a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`adminHidePost` throws on a post that vanished between render and press, and the composed \"Hide the post\" button then reports \"Another admin has alrea",
+  "where": "`src/app/(main)/admin/reports/actions.ts:26-30` (`prisma.post.update` with no precondition \u2014 P2025 surfaces th"
+ },
+ {
+  "id": "T7a-18",
+  "agent": "T7a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The roster import replaces the table outside a transaction, so a crash between the DELETE and the last chunk leaves a partial roster that vouches for ",
+  "where": "`scripts/dev/import-roster.mjs:178-201` (`DELETE FROM \"RosterEntry\" WHERE source <> 'phase3-probe'` then chunk"
+ },
+ {
+  "id": "T7a-19",
+  "agent": "T7a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The member is told their account is erased \"on <valley day D+60>\", but the sweep at 02:30 IST purges on the first sweep AFTER request+60d, i.e. the mo",
+  "where": "`src/components/settings/actions.ts:206` (`purgeAt = now + 60d`), `:234-245` (formatted as a valley date in th"
+ },
+ {
+  "id": "T7a-20",
+  "agent": "T7a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Content-list rows for photographs an admin took down draw a broken thumbnail: the bytes were purged, the row kept, and `<img src={thumbUrl}>` is uncon",
+  "where": "`src/app/(main)/collection/actions.ts:1153-1177` (`adminRemovePhoto` hides the row and `purgeImageUrls(photoSt"
+ },
+ {
+  "id": "T7a-22",
+  "agent": "T7a",
+  "sev": "Low",
+  "conf": "likely",
+  "title": "After a review session the rail's Review and Overview counts are stale until a hard reload: the review actions revalidate the page, not the layout tha",
+  "where": "`src/app/(main)/admin/review/actions.ts:124` (`revalidatePath(\"/admin\")`, page type) and `src/app/(main)/colle"
+ },
+ {
+  "id": "T7a-23",
+  "agent": "T7a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The `anonymous` system account is an ordinary verified alumnus to every admin control: it can be blocked (hiding the sixteen curated stories), deleted",
+  "where": "`src/lib/admin-people.ts:92-139` (no exclusion), `src/lib/admin-worklist-query.ts` (verified, so absent from t"
+ },
+ {
+  "id": "T7b-03",
+  "agent": "T7b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`2026-09-09-answering-moves-to-the-home.sql` never ran on production: 22 bell rows still point at `/catchups/<id>/answer`, nine of them unread reminde",
+  "where": "- `prisma/migrations-manual/2026-09-09-answering-moves-to-the-home.sql:44-58` \u2014 `UPDATE \"Notification\" SET lin"
+ },
+ {
+  "id": "T7b-04",
+  "agent": "T7b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`User.lastSeenAt` is stamped from localhost for whoever dev-login signs in as, against `stats-exclusion.ts`'s promise that development \"records nothin",
+  "where": "- `src/lib/stats-exclusion.ts:17-20` \u2014 \"WRITE -- activity is recorded only by the production deployment. Local"
+ },
+ {
+  "id": "T7b-05",
+  "agent": "T7b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The snapshot stamps \"yesterday\" on numbers captured 3.3\u20134.5 hours into today: GitHub's cron lag folds the Indian morning (05:30\u201310:10 IST) into the pr",
+  "where": "- `scripts/ops/snapshot.mjs:40-47` (\"The ordinary nightly run \u2026 runs ten minutes after that day ended, close e"
+ },
+ {
+  "id": "T7b-06",
+  "agent": "T7b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "\"Members nobody has responded to\" (the panel that tells the owner to go and say hello) lists accounts that never confirmed their e-mail, unverified si",
+  "where": "`src/lib/admin-analytics.ts:748-770` (`isolated`: `WHERE u.\"isBlocked\" = false` and three `NOT EXISTS`, nothin"
+ },
+ {
+  "id": "T7b-07",
+  "agent": "T7b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The admin rail's count store ignores `photos` when deciding whether anything changed, so a photograph arriving while another queue shrinks by one leav",
+  "where": "`src/components/admin/admin-counts.tsx:51-58` (`publish` compares `waiting`, `messages`, `reports`, `people` \u2014"
+ },
+ {
+  "id": "T7b-08",
+  "agent": "T7b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Duplicate React keys in the room: letters keyed by title, leaderboard rows keyed by name whenever two members share a name without a batch year, top a",
+  "where": "- `src/app/(main)/admin/analytics/page.tsx:397` \u2014 `<li key={l.title}>` where `l.title = title ?? \"Untitled\"` ("
+ },
+ {
+  "id": "T7b-09",
+  "agent": "T7b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "LoginAttempt has neither the write gate nor the read exclusion, so a local sign-in attempt with a typo'd address, or an audit's probe account, becomes",
+  "where": "`src/lib/login-attempt.ts:38-95` (no `statsWritesEnabled()`), `src/lib/admin-analytics.ts:1199-1234` (`failure"
+ },
+ {
+  "id": "T7b-10",
+  "agent": "T7b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`Visit` has no index on `startedAt`, and nine of the room's queries filter on it, so every open of Live, Rhythms or Reach sequentially scans the whole",
+  "where": "`prisma/schema.prisma:1543-1547` (only `@@index([endedAt])` and `@@index([userId, endedAt])`; confirmed live: "
+ },
+ {
+  "id": "T7b-11",
+  "agent": "T7b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`prune.mjs` re-implements the sweep's 30-day notification cutoff with its own copy of the number, no test pinning the two together, and runs three hou",
+  "where": "`scripts/ops/prune.mjs:38-40` (`/** Matches KEEP_DAYS.notifications in src/lib/retention.ts. Change it there. "
+ },
+ {
+  "id": "T7b-12",
+  "agent": "T7b",
+  "sev": "Low",
+  "conf": "likely",
+  "title": "Both thread pages mark a conversation \"seen\" inside a GET render; only the sibling `loading.tsx` stands between a `<Link>` prefetch and a thread read ",
+  "where": "`src/app/(main)/messages/[id]/page.tsx:63-72` (`prisma.adminThread.updateMany({ \u2026 memberUnread: true \u2026 }, { me"
+ },
+ {
+  "id": "T7b-14",
+  "agent": "T7b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The sparklines under \"Letters published\" and \"Feed posts\" count drafts and hidden posts, so the line climbs when nothing was published. Today the tile",
+  "where": "`scripts/ops/snapshot.mjs:105-106` (`(SELECT count(*) FROM \"Post\" WHERE kind = 'post') AS posts_total`, `\u2026 kin"
+ },
+ {
+  "id": "T7b-16",
+  "agent": "T7b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "On a shared browser, the second member to sign in within 30 minutes of the first is invisible to presence for their whole sitting: the visit cookie be",
+  "where": "`src/proxy.ts:367-371` (\"Cookie first\": `existing && /^[0-9a-z-]{8,64}$/.test(existing) ? existing : derivedVi"
+ },
+ {
+  "id": "T7b-17",
+  "agent": "T7b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The search log can't see the two things the Reach view asks of it: feed searches never record a result count, so none can ever count as \"found nothing",
+  "where": "- `src/app/(main)/feed/page.tsx:38-40`: `after(() => logSearch({ scope: \"feed\", query: q, userId: session.user"
+ },
+ {
+  "id": "T7b-18",
+  "agent": "T7b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "An admin's reply has no double-submit guard. C-128 fixed the member's two write paths and missed the third, so a key-repeated Cmd+Enter or a second ta",
+  "where": "`src/app/(main)/messages/actions.ts:218-261` (`adminReplyToThread`: parse \u2192 `findUnique` \u2192 `$transaction([admi"
+ },
+ {
+  "id": "T7b-19",
+  "agent": "T7b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A pasted link in a message to the admins is cut off, not wrapped, everywhere the message shows: the member's own thread clips it at the card edge, the",
+  "where": "- Body: `src/components/messages/conversation.tsx:96-98` (`<p className=\"whitespace-pre-wrap text-[15px] \u2026\">{m"
+ },
+ {
+  "id": "T7b-20",
+  "agent": "T7b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The owner's own comments and photo hearts top two of the room's leaderboards, while the Compare tab leaves the same activity out. The exclusion promis",
+  "where": "`src/lib/stats-exclusion.ts:22-24` (\"the owner's own account and the test account are left out of every activi"
+ },
+ {
+  "id": "T7b-21",
+  "agent": "T7b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Signing out never ends the PostHog identity: the browser keeps capturing as the member who left, so the next person's signed-out browsing is filed und",
+  "where": "`src/components/analytics/posthog-identify.tsx:48-50` (\"And no reset() on the way out \u2026 Sign-out is the only p"
+ },
+ {
+  "id": "T8a-01",
+  "agent": "T8a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The nightly money history is recorded gross and includes the site's own people, so the permanent series disagrees with every money tile by a third",
+  "where": "`scripts/ops/snapshot.mjs:121-125` (the four money subqueries), `:159-172` (the metrics they feed); `.github/w"
+ },
+ {
+  "id": "T8a-02",
+  "agent": "T8a",
+  "sev": "Low",
+  "conf": "possible",
+  "title": "A refund that lands while the gift is \"disputed\" is thrown away, and a later dispute.won/closed then counts the whole gift again",
+  "where": "`src/app/api/razorpay/webhook/route.ts:391-402` (the reversal write: `status: { notIn: [...REVERSED_STATUSES] "
+ },
+ {
+  "id": "T8a-04",
+  "agent": "T8a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "While RAZORPAY_WEBHOOK_SECRET is missing or rotated, the route answers 500 to every event, which is the very behaviour the same file says gets an endp",
+  "where": "`src/app/api/razorpay/webhook/route.ts:97-108` (unconfigured \u2192 500 with \"a retry of this same event records it"
+ },
+ {
+  "id": "T8a-05",
+  "agent": "T8a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "chooseBird's \"the second is refused\" is only true one at a time (L1's lead, confirmed benign, folded)",
+  "where": "`src/app/(main)/support/actions.ts:232-239` (the comment: \"clicking twice absolutely does corrupt state -- the"
+ },
+ {
+  "id": "T8a-06",
+  "agent": "T8a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "/support answers a database failure with \"\u20b90 recovered\", the opposite of what the same audit taught /pick-bird",
+  "where": "`src/app/(main)/support/page.tsx:40-46` (`.catch(() => 0)` on the aggregate), `:52-57` (`.catch(() => null)` o"
+ },
+ {
+  "id": "T8a-07",
+  "agent": "T8a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The member's own data export reports a partially refunded gift as its gross amount",
+  "where": "`src/app/api/account/export/route.ts:282-297` (`select: { id, amount, currency, status, method, createdAt, pai"
+ },
+ {
+  "id": "T8a-08",
+  "agent": "T8a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The demo database is not a seeded world: 40 people from 2026-08-26 and no posts, photographs, places, Editions or notifications; the record that says ",
+  "where": "`docs/planning/bugs.md:535-546` (\"**The demo database is healthy** \u2014 every column the current schema selects i"
+ },
+ {
+  "id": "T8a-09",
+  "agent": "T8a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The demo closes four API prefixes in the proxy with no twin list, no test, and no pin on the money actions' own refusals",
+  "where": "`src/proxy.ts:78-83` (`DEMO_CLOSED_APIS`); `src/lib/demo.ts:297-316` (`DEMO_CLOSED_PATHS` has a twin and `demo"
+ },
+ {
+  "id": "T8a-10",
+  "agent": "T8a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "`verify-guard.mts` calls any demo with other than exactly 40 people \"DAMAGE\"",
+  "where": "`scripts/demo/verify-guard.mts:142` (`if (hacked !== 0 || users !== 40)`); `src/lib/demo-seed/people.ts:630` ("
+ },
+ {
+  "id": "T8a-13",
+  "agent": "T8a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "After a failed attempt inside the Razorpay window, the Contribute button stays live through the successful retry, its confirmation and the redirect",
+  "where": "`src/components/support/support-contribute.tsx:263-266` (`rzp.on(\"payment.failed\", (e) => { setWorking(false);"
+ },
+ {
+  "id": "T8a-14",
+  "agent": "T8a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The admin funnel counts payments and calls them people: today it reads \"4 of 11 people opened a payment and did not finish it\" where the truth is 2 of",
+  "where": "`src/app/(main)/admin/support/page.tsx:143-145` (`live` = ROWS in the 100-row window; `completion = livePaid.l"
+ },
+ {
+  "id": "T8a-17",
+  "agent": "T8a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The demo bar's Reset reloads to /feed whether or not the reset worked",
+  "where": "`src/components/demo/demo-bar.tsx:65-78` (`await fetch(\"/api/demo/reset\", { method: \"POST\" }); window.location"
+ },
+ {
+  "id": "T8a-18",
+  "agent": "T8a",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The two figures /support deliberately never prints ship to every member's browser anyway",
+  "where": "`src/components/support/costs-card.tsx:1` (`\"use client\"`), `:34-36` (`const BUILD_COST_PAISE = 400000 * 100;`"
+ },
+ {
+  "id": "T8b-07",
+  "agent": "T8b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A crash inside the root layout's own client components, or a failed chunk for one of them, shows Next's unstyled \"Application error\" page; and no clie",
+  "where": "`src/app/layout.tsx:90-107` (`PostHogProvider`, `MotionFeatures`, `ThemeProvider`, `FocusModality`, `MascotFli"
+ },
+ {
+  "id": "T8b-08",
+  "agent": "T8b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A 404 inside the signed-in shell renders a second `<main>` sized to the whole viewport inside the padded first one, so the apology is taller than the ",
+  "where": "`src/app/not-found.tsx:35` (`<main className=\"relative flex min-h-svh \u2026\">`), `src/components/layout/app-shell."
+ },
+ {
+  "id": "T8b-09",
+  "agent": "T8b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The public landing page links to no policy document: the only public Privacy / Terms / Guidelines links are in the showcase footer, which is switched ",
+  "where": "`src/app/page.tsx:31-38`, `src/components/landing/showcase.tsx:16-21`, `src/components/landing/landing-footer."
+ },
+ {
+  "id": "T8b-10",
+  "agent": "T8b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The proxy's public-path test admits any path that begins with `//`, and only Next's own repeated-slash redirect stands in front of it",
+  "where": "`src/proxy.ts:237-238` (`\"/\"` in `publicPaths`), `:296-298` (`pathname === path || pathname.startsWith(path + "
+ },
+ {
+  "id": "T8b-11",
+  "agent": "T8b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The proxy says the landing page \"stays statically rendered for logged-out visitors\"; every route in the app has been dynamic since the root layout beg",
+  "where": "`src/proxy.ts:177-180` (\"Handled here rather than in `app/page.tsx` so the landing page stays statically rende"
+ },
+ {
+  "id": "T8b-12",
+  "agent": "T8b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Every revalidating server action re-runs the signed-in shell: about five render-blocking queries and one more behind the response, per action, on top ",
+  "where": "`src/app/(main)/layout.tsx:26, 83-103, 116-122, 131`; 103 `revalidatePath`/`revalidateTag` call sites in 14 no"
+ },
+ {
+  "id": "T8b-13",
+  "agent": "T8b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Two guide comments describe a sidebar \"Guide\" row that does not exist, which is the already-known reason the guide's contents page is unreachable",
+  "where": "`src/components/guide/guide-door.tsx:7-9` (\"the guide has two doors: the Guide row in the sidebar, which is th"
+ },
+ {
+  "id": "T8b-16",
+  "agent": "T8b",
+  "sev": "Low",
+  "conf": "likely",
+  "title": "\"Go to the Feed\" (and the other five chapter doorways) does nothing when the guide was opened from that page's own title, which is how the guide is op",
+  "where": "`src/components/guide/guide-kit.tsx:72-83` (`Doorway`: a plain `<Link href={href}>`);"
+ },
+ {
+  "id": "T8b-18",
+  "agent": "T8b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The public demo reports into production's Sentry project, labelled \"production\", and nothing on the demo side can change that; the demo that 500s on e",
+  "where": "`src/instrumentation.ts:31-33` (the DSN is inline, overridable only by `SENTRY_DSN`), `:39-40`"
+ },
+ {
+  "id": "T8b-19",
+  "agent": "T8b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The landing page, the site's front door, ships every visible element at opacity 0: until JavaScript has downloaded, hydrated, fetched the motion chunk",
+  "where": "`src/components/landing/landing-hero.tsx:244-250` (`<m.section \u2026 initial=\"loading\"`, the variants at `:60-122`"
+ },
+ {
+  "id": "T8b-20",
+  "agent": "T8b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A second finger, or a parent re-render, during a bottom sheet's swipe leaves the sheet stuck partway down the screen with its transition switched off",
+  "where": "`src/components/ui/sheet.tsx:164-239` (`useSwipeDownToClose`). The `start` handler at `:191-197`"
+ },
+ {
+  "id": "T8b-21",
+  "agent": "T8b",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The batch-range filter lets \"From\" exceed \"To\" and then answers with nobody: \"Batch: 2020 to 2010\", 0 people, and no hint that the range is backwards",
+  "where": "`src/components/common/filters/range-facet-pill.tsx:86-112` (two independent `<select>`s, each offering"
+ },
+ {
+  "id": "T9-06",
+  "agent": "T9",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The landing flight's \"overtaken flight\" fix (audit Low 13) is incomplete: an old flight's cleanup still deletes the new bird and cancels its frame loo",
+  "where": "`src/components/mascot/mascot-flight-layer.tsx:566-570` (the `finally`), `:483`, `:487`, `:502`"
+ },
+ {
+  "id": "T9-07",
+  "agent": "T9",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "The sign-in and join pages can hide their bird for six seconds after a cancelled or slow landing exit",
+  "where": "`src/components/landing/landing-hero.tsx:228-241` (flags written at the click, push only"
+ },
+ {
+  "id": "T9-08",
+  "agent": "T9",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Every bird keeps every animation it ever stopped for as long as it is mounted",
+  "where": "`node_modules/framer-motion/dist/es/animation/animate/index.mjs` (`scope.animations.push(animation);"
+ },
+ {
+  "id": "T9-09",
+  "agent": "T9",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A second celebration in the same visit skips the one-hoopoe check",
+  "where": "`src/components/mascot/moments/celebration-detector.tsx:131-172`"
+ },
+ {
+  "id": "T9-10",
+  "agent": "T9",
+  "sev": "Low",
+  "conf": "possible",
+  "title": "After a tab switch the landing's small perching birds vanish until the visitor scrolls",
+  "where": "`src/components/landing/perching-birds.tsx:131-137` (`pausedRef` synced in a passive effect),"
+ },
+ {
+  "id": "T9-11",
+  "agent": "T9",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "mascot.md and several headers describe behaviour the code no longer has",
+  "where": ""
+ },
+ {
+  "id": "T9-12",
+  "agent": "T9",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "Every feed view pays three extra queries, one a duplicate read of the member's own row, to decide a celebration that has almost always already played",
+  "where": "`src/components/mascot/moments/celebration-signals.tsx:30-57` (`Promise.all` of"
+ },
+ {
+  "id": "T9-13",
+  "agent": "T9",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "A bird resting in a sad, worried, sleepy or curious pose has its crest snapped upright by the ambient flick within 5-11 seconds",
+  "where": "`src/components/mascot/hoopoe.tsx:1491-1504` (ambient flick: `rotate: [0, -5, 2.5, 0], scaleY:"
+ },
+ {
+  "id": "T9-14",
+  "agent": "T9",
+  "sev": "Low",
+  "conf": "certain",
+  "title": "\"See them in the Collection\": the bird jumps about 14px sideways as the flyer takes over",
+  "where": "`src/components/mascot/moments/contributed-hoopoe.tsx:113-118` (`flyAway` measures"
+ }
+]

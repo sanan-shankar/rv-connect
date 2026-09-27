@@ -1,0 +1,2382 @@
+[
+ {
+  "id": "L5-01",
+  "finder": "Critical",
+  "final": "Critical",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "On the way to 2,000 members the Vercel Hobby plan runs out before the database does: the presence beacon plus a proxy that runs on every request put the site past 1,000,000 invocations a month, and Hobby then stops serving functions for up to 30 days"
+ },
+ {
+  "id": "L5-02",
+  "finder": "Critical",
+  "final": "Critical",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "A sign-in bot that the rate limiter \"stops\" still writes one database row per attempt and spends Upstash commands per attempt: a single machine can fill the Free plan's 500 MB (read-only database for everyone) in about a day, and exhaust the month's Upstash quota (every rate limit then fails open) in hours"
+ },
+ {
+  "id": "L5-07",
+  "finder": "Critical",
+  "final": "Critical",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The Supabase Free plan's 5 GB-a-month egress is counted on every query through the pooler, the nightly backup alone spends ~1.3 GB of it, and at 2,000 members the app needs several times the allowance \u2014 after a grace period Supabase may pause the project, switch it read-only or answer 402"
+ },
+ {
+  "id": "L8-01",
+  "finder": "Critical",
+  "final": "Critical",
+  "status": "unvalidated",
+  "title": "Hobby's 10 GB of Fast Origin Transfer is the Vercel allowance nobody counted, and two ordinary things spend it: the photograph-download converter pushes every saved photograph through a function as a fresh JPEG, and the directory re-sends its map on every search keystroke"
+ },
+ {
+  "id": "L11-01",
+  "finder": "High",
+  "final": "High",
+  "status": "duplicate \u2192 L3-08 (same failing backup; L11's own note)",
+  "title": "The photo archive's only backup has failed every night since 2026-08-29: the 111 largest full-resolution originals (109 of them the owner's class album) have never been copied, the job's own completeness check has not run once since, and the security board still reports the backup green"
+ },
+ {
+  "id": "L2-01",
+  "finder": "High",
+  "final": "High",
+  "status": "orchestrator PROVED (executed, as Jerry): a crafted router-state header starts the render below lab/layout.tsx",
+  "title": "The /lab admin gate lives only in a layout, and a hand-crafted RSC request renders a lab page without running it; behind that gate several rooms read real members' data, including one batch's private Catch-up answers"
+ },
+ {
+  "id": "L3-08",
+  "finder": "High",
+  "final": "High",
+  "status": "orchestrator CONFIRMED from GitHub logs (28 of 39 backup runs failed; 111 copy failures per run)",
+  "title": "(outside the date lens, found on the seeded question's path) The photo archive's only undelete has failed on every one of its 27 runs since 2026-08-29: every photograph over 8 MiB \u2014 the full-resolution Collection masters \u2014 is missing from the backup bucket, and the job's red status has gone unread"
+ },
+ {
+  "id": "L5-08",
+  "finder": "High",
+  "final": "High",
+  "status": "unvalidated",
+  "title": "Nothing measures the database's size, and at 2,000 members it reaches the Free plan's 500 MB read-only line in roughly one to two years: a 97 MB gazetteer, a view log with no expiry and Catch-up hearts that never age out do most of it"
+ },
+ {
+  "id": "L8-05",
+  "finder": "High",
+  "final": "High",
+  "status": "unvalidated",
+  "title": "T2b-01 in platform terms: on Hobby under Fluid compute, one hostile link in one answer spends the month's 4 Active-CPU-hours in about 48 page views, and while it burns it blocks the event loop every other member's request on that instance shares"
+ },
+ {
+  "id": "O-03",
+  "finder": "High",
+  "final": "High",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "A five-second wait for a pooled connection during the session read signs the member out: NextAuth turns the throw into \"no session\" and the main layout bounces them to the sign-in form mid-form"
+ },
+ {
+  "id": "O-07",
+  "finder": "High",
+  "final": "High",
+  "status": "orchestrator PROVED live for the local config (plaintext socket); production = one Vercel env check",
+  "title": "The app's database connection is not encrypted: `pg` is given no `ssl` and the connection string asks for none, so every query and every row crosses the network in plaintext"
+ },
+ {
+  "id": "T2a-01",
+  "finder": "High",
+  "final": "High",
+  "status": "validated (corrected); orchestrator-checked; LIKELY FIXED after the baseline by ac70bd9d \u2014 re-check",
+  "title": "Correcting a batch year leaves the member inside the wrong batch's Catch-up for ever, with no way out (7 live cases)"
+ },
+ {
+  "id": "T2b-01",
+  "finder": "High",
+  "final": "High",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "One pasted link to a hostile page makes the server spin for minutes in the background, on every save of that answer and every read of that Edition, for ever"
+ },
+ {
+  "id": "T3-01",
+  "finder": "High",
+  "final": "High",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The Settings \"Picture\" row opens nothing: the picture picker is never mounted, so no member or Keeper can change a Catch-up's photograph from the app"
+ },
+ {
+  "id": "T3-02",
+  "finder": "High",
+  "final": "High",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "A question picked from the library loses its kind: the ask box never sends `category`, so \"A photo from everyone\" and \"Songs from everyone\" are stored as plain text questions and the photo wall can never be reached from the app"
+ },
+ {
+  "id": "T3-03",
+  "finder": "High",
+  "final": "High",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "\"Start it again\" on the on-hold card does nothing but reload the page: the Catch-up stays on hold"
+ },
+ {
+  "id": "T4a-01",
+  "finder": "High",
+  "final": "High",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The owner's \"Also add to the Collection\" tick on a post silently does nothing, because the composer path counts his 1,743 class photographs against a 1,000 ceiling the app exempts him from everywhere else"
+ },
+ {
+  "id": "T4b-01",
+  "finder": "High",
+  "final": "High",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The viewer silently switches to a different photograph when the river changes under it, and one everyday edit makes that certain"
+ },
+ {
+  "id": "T4b-02",
+  "finder": "High",
+  "final": "High",
+  "status": "unvalidated; orchestrator-checked; the Collection's instance of T8b-01 (one fix)",
+  "title": "Decline \"Discard N photographs?\" and the next Back leaves the page, discarding the wall without asking"
+ },
+ {
+  "id": "T4b-03",
+  "finder": "High",
+  "final": "High",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "A batch with any failure throws the failed photographs away with the successes, captions and all"
+ },
+ {
+  "id": "T5-01",
+  "finder": "High",
+  "final": "High",
+  "status": "validated (corrected); orchestrator-checked",
+  "title": "A member who mistyped their email at signup is stuck read-only for ever: nothing in the app lets them or the admin change the login address, and every recovery the app offers points at that impossible edit"
+ },
+ {
+  "id": "T5-17",
+  "finder": "High",
+  "final": "High",
+  "status": "duplicate \u2192 O-03 (canonical O-03; orchestrator-checked",
+  "title": "(answer to orchestrator O-03) A five-second pool timeout during the session read is indistinguishable from \"not signed in\": the layout bounces the member to the login form on a still-valid cookie, and nothing on the auth side can say \"the database was slow\" \u2014 confirmation, member-visible path, and the fix from this side"
+ },
+ {
+  "id": "T6-02",
+  "finder": "High",
+  "final": "High",
+  "status": "duplicate \u2192 T2a-01 (its writer half; orchestrator ruling)",
+  "title": "Correcting your own batch year on the profile adds you to the new batch's group and never takes you out of the old one (the writer half of T2a-01); the onboarding register step cannot do this; a teacher can still acquire a batch year through the same action"
+ },
+ {
+  "id": "T8a-03",
+  "finder": "High",
+  "final": "High",
+  "status": "REFUTED \u2192 T8a-02; orchestrator-checked",
+  "title": "`payment.dispute.closed` is treated as \"the money stayed\"; if Razorpay also emits it for a chargeback the owner lost or accepted, a lost gift is counted as given"
+ },
+ {
+  "id": "T8b-01",
+  "finder": "High",
+  "final": "High",
+  "status": "validated; orchestrator-checked",
+  "title": "Press Back on a dialog that refuses to close (busy, unsaved) and the NEXT Back leaves the page, taking the dialog's work with it: the primitive spends the history entry before the caller has answered"
+ },
+ {
+  "id": "T8b-14",
+  "finder": "Medium",
+  "final": "High",
+  "status": "validated (up to High); orchestrator REPRODUCED offline",
+  "title": "Every server error sends the member's live session cookie, and their city, coordinates and postcode, to Sentry: `sendDefaultPii: false` no longer strips them in the installed SDK"
+ },
+ {
+  "id": "T8b-17",
+  "finder": "Medium",
+  "final": "High",
+  "status": "validated (up); orchestrator-checked",
+  "title": "Editing a published letter opens a 384px-wide dialog taller than the screen: for the median letter the Save button sits about a thousand pixels below the fold, and nothing can scroll to it"
+ },
+ {
+  "id": "L1-01",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "Two partial refunds on one gift delivered together lose one of them: the recovery bar and the member's ledger over-count"
+ },
+ {
+  "id": "L10-01",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "An unconfirmed or unvouched account gets inside Catch-ups three ways the trust model never checks: its claimed batch at signup, a Keeper's picker, and the Keeper's hat. Inside, it reads the names, answers and photographs the directory withholds, and with the hat it can nudge, publish, remove and end with no stage gate"
+ },
+ {
+  "id": "L11-02",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "Every erasure the app performs is undone in the backups: the media mirror never deletes and the first-of-month database dumps are kept for ever, so a purged member's rows and photographs, admin-removed photographs and 330 GPS-carrying staged originals are kept indefinitely, while the privacy page says backups \"age out \u2026 within a few weeks\""
+ },
+ {
+  "id": "L11-05",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The delivery webhook ignores the two events that say an accepted mail will never arrive (`email.failed`, `email.suppressed`), so such a confirmation reads \"We sent a link\" to the member for ever and never reaches the admin's list; and the one \"temporary\" event it records leaves a permanent red error under mail that then arrived"
+ },
+ {
+  "id": "L12-01",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "A member who has not been verified yet can save a letter draft exactly once: every later autosave and \"Save as draft\" is refused with \"Confirm your email address before you post\", so the owner's M32 decision holds for one save"
+ },
+ {
+  "id": "L12-09",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "A member a Keeper removes can put themselves straight back: the join action has no memory of the removal, and the Catch-up's never-rotated invite token was handed to every member's browser"
+ },
+ {
+  "id": "L2-03",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "On a client navigation after a session goes bad, the member stays inside a live-looking shell showing empty pages, and is never sent to sign in (the soft-navigation face of O-03 / T5-17 / T8b-02)"
+ },
+ {
+  "id": "L2-06",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "A single failed sidebar-rail or celebration query replaces the whole feed with the error apology, although the feed itself loaded (the decorative-query face of a slow database)"
+ },
+ {
+  "id": "L3-01",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "On a day the mail budget is spent, every member queued two or more days out is told their link \"goes out tomorrow at 5:30 IST\" (C-161 was fixed in the arithmetic and not in the sentence)"
+ },
+ {
+  "id": "L3-02",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The \"totally regeneratable\" Catch-ups export records every timestamp shifted by the laptop's own UTC offset: all four exports on disk are 5 h 30 m early, so a rebuild would move every deadline and publication and put small-hours dates on the wrong day (bugs.md #6, live on the read side)"
+ },
+ {
+  "id": "L4-01",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "A missing COLUMN on any Catch-up table is read as \"Catch-ups is not set up yet\": every Catch-up surface shows the holding scene, the engine stops, and nothing reaches Sentry"
+ },
+ {
+  "id": "L4-02",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "Nine \"never throws\" writers are completely silent in production, and for the three statistics writers the \"loud in development\" witness can never fire: a broken Visit, SearchLog or ContentView write is invisible everywhere"
+ },
+ {
+  "id": "L4-03",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "A storage outage or a revoked R2 key has no alarm anywhere: every upload path maps the error to a friendly sentence (the Collection's two with no log line at all), and every deletion it strands is retried by a nightly job that stays green"
+ },
+ {
+  "id": "L4-04",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "A Razorpay key that is wrong, rotated or suspended stops every contribution, and nothing records that anyone tried: the member reads \"could not reach the payment gateway\", the owner sees a quiet week"
+ },
+ {
+  "id": "L4-06",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The limiter's alarm (C-154) fires only for a backend that THROWS; an Upstash that hangs turns every rate limit off, adds three seconds to every metered action, and reports nothing"
+ },
+ {
+  "id": "L4-08",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "The class behind most of the above: \"reported, not just logged\" is enforced in one file, and everywhere else the codebase's own word for an alarm is `console.error`"
+ },
+ {
+  "id": "L5-03",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "Every relation count on the hot pages aggregates its WHOLE table on every render: three more instances than T1-17/T2b-13 know about, and measured on this server the class turns a 0.5 ms feed page into ~50-130 ms of shared-CPU work per load at the 2,000-member data size \u2014 the thing that turns a burst into five-second pool timeouts"
+ },
+ {
+  "id": "L5-04",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "The pool is not attached to Vercel's suspend hook and closes idle connections only after 10 s, so under Fluid compute a suspended instance keeps Supavisor client slots open and a resumed one can hand a dead connection to the first member after a quiet spell"
+ },
+ {
+  "id": "L6-01",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "Editing a post, letter draft or answer that contains an @-mention silently turns every mention into plain text"
+ },
+ {
+  "id": "L7-01",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "Every signed-in page, and the loading skeleton meant to paint first, is invisible until JavaScript and the motion chunk have arrived; if that chunk fails, every page of the app stays blank for the session"
+ },
+ {
+  "id": "L7-02",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "On an iPhone, tapping into the comment box, the header search, the city picker or any profile field zooms the whole page in, and it stays zoomed"
+ },
+ {
+  "id": "L7-03",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "After a deploy, the first tap on anything the app loads lazily (a post's comments, a photograph, Report, Edit, Contribute, the next onboarding step, a mention) replaces the whole page with \"Something went wrong\", and \"Try again\" repeats it until a reload"
+ },
+ {
+  "id": "L8-02",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "Every alarm and every forensic trail the app writes to the console is gone an hour later: Hobby keeps runtime logs for one hour, allows no log drains, and the code still tells the admin to \"check the server log\""
+ },
+ {
+  "id": "L8-04",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "The public, no-login demo spends production's plan allowances: Vercel's Hobby allotments belong to the team, not the project, and Supabase's free quotas and restrictions belong to the organisation, so anyone scripting requests at demo.rishivalley.space can pause the real site"
+ },
+ {
+  "id": "L8-06",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "After a deploy, a tab opened on the previous build calls server actions the new build does not have, and the app answers \"Check your connection and try again\", which no retry can fix: Hobby has no Skew Protection and the app sets no `deploymentId`, the one mitigation that works without it"
+ },
+ {
+  "id": "L9-11",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "The security status board, a blocking gate quoted as \"74 tracked, 0 open\", marks rows fixed on the presence of a word, and at least six of its \"fixed\" notes are contradicted by this audit's own findings"
+ },
+ {
+  "id": "O-01",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The letters index renders a draft's \"Edited <day> <month>\" without a time zone: a nightly hydration error, and a date one day off for drafts edited late in the evening"
+ },
+ {
+  "id": "O-05",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "Mail queued on a developer's machine is sent for real by production: the local \"never mail real people\" guard only stops the local process, and production drains the one shared queue"
+ },
+ {
+  "id": "T1-01",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated (corrected); orchestrator-checked",
+  "title": "Bold or italic applied to a selection that includes a space publishes as literal asterisks"
+ },
+ {
+  "id": "T1-02",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated (corrected); orchestrator-checked",
+  "title": "\"Save as draft\" on a fresh letter, while the writer keeps typing, creates a SECOND draft on the way to the edit page (and the two name the same photographs)"
+ },
+ {
+  "id": "T1-03",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated (corrected); orchestrator-checked",
+  "title": "Leaving the desk while an autosave is in flight fires a second save with the same version token, and the loser tells the writer the letter did not save"
+ },
+ {
+  "id": "T1-04",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "REFUTED; orchestrator-checked",
+  "title": "editPost reads the row version back in a second statement, so with two devices saving at once the returned base can be the OTHER device's and the next save silently overwrites its words"
+ },
+ {
+  "id": "T1-23",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated (corrected)",
+  "title": "Two tabs on one draft share one device-copy key, so the refused tab's \"Kept on this device\" is deleted by the other tab's next save"
+ },
+ {
+  "id": "T2a-02",
+  "finder": "High",
+  "final": "Medium",
+  "status": "validated (down); orchestrator-checked",
+  "title": "Renaming a Catch-up never reaches its notifications: every bell keeps saying the original name"
+ },
+ {
+  "id": "T2a-03",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated (corrected)",
+  "title": "A Keeper can enrol the whole community: the 100-person cap is per call, `addCatchupMembers` is unmetered, and nobody added is told"
+ },
+ {
+  "id": "T2a-04",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated (corrected)",
+  "title": "Every Catch-up action failure is `console.error`'d and returned as \"Something went wrong\": the only file in the app that swallows into a log nobody reads"
+ },
+ {
+  "id": "T2a-06",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated",
+  "title": "\"Hold the next Edition\" freezes the CURRENT one: nobody can answer, it never publishes, and the owner's own ruling was \"a Round in flight always finishes\""
+ },
+ {
+  "id": "T2a-07",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated",
+  "title": "Ending a Catch-up mid-answering strands every answer written that week, unreadable for ever, and the confirm copy does not say so"
+ },
+ {
+  "id": "T2b-02",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "Link previews are unbounded work and unbounded storage that a member can grow at will, and nothing ever deletes a row or a thumbnail"
+ },
+ {
+  "id": "T2b-03",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "The Catch-ups export never creates its `audio/` folder, so every recorded answer fails to copy, and the JSON still says the file is there"
+ },
+ {
+  "id": "T2b-04",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "The two-minute recording cap is a byte cap in disguise: a low-bitrate client can attach twenty minutes of audio that passes every check"
+ },
+ {
+  "id": "T2b-05",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "Reader shows a blocked member's answers, hearts and votes while hiding their comments on the same page, against the schema's promise that blocking hides everything they wrote"
+ },
+ {
+  "id": "T2b-13",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "Every reader load aggregates every comment AND every heart in the database: both `_count`s in the Edition loader compile to uncorrelated whole-table `GROUP BY` subqueries (routed lead from T1; T1-17 is the canonical row)"
+ },
+ {
+  "id": "T3-04",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "A failed answer autosave cannot be retried the way its own message says: \"Click away and back to try again\" is a no-op with unchanged text"
+ },
+ {
+  "id": "T3-05",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "The completion card's \"Back to the Catch-up\" links to the page it is already on, so it does nothing"
+ },
+ {
+  "id": "T3-06",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "\"Give everyone longer\" adds a whole extension on every tap: a second tap on the same pill silently doubles the extension, and the row keeps saying \"A week more\""
+ },
+ {
+  "id": "T3-11",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "Every scroll frame of a published Edition re-renders every answer tile and re-parses every answer's markdown"
+ },
+ {
+  "id": "T3-17",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "A Keeper can no longer invite anyone by link: the invite link lost its only surface in build phase 7, while the join page, its sign-up path and the accept action still work for a link nobody can copy"
+ },
+ {
+  "id": "T3-18",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "\"Share\" on the last question never finishes for a member who skipped one: it sweeps back to the skipped question every time, so the completion card is out of reach"
+ },
+ {
+  "id": "T3-19",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "On a phone there is no visible way to take a photograph off an answer: the remove control only appears on hover"
+ },
+ {
+  "id": "T3-20",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The magazine layout never finishes, and runs the process out of memory, on an Edition with one list-shaped answer: `layColumns` loops for ever when an answer fits a fresh page but not under its own headline"
+ },
+ {
+  "id": "T4a-02",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "In Chronological order a year holding more than 600 photographs is silently cut to 600 in the river while the rail still counts all of them"
+ },
+ {
+  "id": "T4a-03",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "Half of C-063 is still open: a climbed original that the member removes, discards, or whose session lapses is never deleted by anything in this repo, and the R2 lifecycle rule the code says \"closes it permanently\" is recorded nowhere as existing"
+ },
+ {
+  "id": "T4a-04",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "A downloaded scan files itself under the year it was scanned, not the year it was taken: the stored copy's one kept EXIF tag is written from dates the archive's own judgement refuses"
+ },
+ {
+  "id": "T4a-05",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "One transient PUT failure permanently downgrades a photograph to the 1,600px q80 fallback, with no retry of the direct path and nothing said"
+ },
+ {
+  "id": "T4a-06",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "The screen-copy and album ledgers carry no database stamp, and both undo/reconcile modes delete bucket objects unconditionally, so a production ledger run with `--env .env.demo` deletes production photographs from the shared bucket"
+ },
+ {
+  "id": "T4b-04",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "\"Add more\" and the remove button stay live while a batch is being added: photographs dropped then vanish, and a photograph removed is added anyway"
+ },
+ {
+  "id": "T4b-05",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "A `?scope=class` link opened by a member with no class shows an empty \"Class Collection\" with a working Contribute button and no way back"
+ },
+ {
+  "id": "T4b-06",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "After swapping halves the contribute room promises the other half's quota, and on the class half it tells an untrusted member an admin will review photographs that go straight in"
+ },
+ {
+  "id": "T4b-07",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "A heart or an edit made in a shared link's viewer never reaches the same photograph in the river below; opened again from its tile it shows the old state, and the next tap un-hearts it"
+ },
+ {
+  "id": "T5-02",
+  "finder": "High",
+  "final": "Medium",
+  "status": "validated (down); orchestrator-checked",
+  "title": "A sign-in outage, a broken bot check or a missing mail key never reaches the owner: every alarm on the auth and mail path is a console line, `authorize` deliberately converts a database failure into a non-error, and Sentry captures neither"
+ },
+ {
+  "id": "T5-03",
+  "finder": "High",
+  "final": "Medium",
+  "status": "validated (down); orchestrator-checked",
+  "title": "When Upstash is unreachable the sign-in door does not fail open, it stalls: `hasBudget` bypasses the 3-second race and the Redis client retries five times with backoff, so every attempt waits at least ~4 seconds and, against a hanging endpoint, until the platform kills the function"
+ },
+ {
+  "id": "T5-04",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated (corrected)",
+  "title": "The `login-unverified` allowance is not atomic although its comment says a racing caller \"cannot outrun its own meter\": N simultaneous tokenless sign-ins all pass; and the refusal it eventually gives carries the wrong advice"
+ },
+ {
+  "id": "T5-05",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated",
+  "title": "Take more than about half an hour on the signup form and it dead-ends: the trivia pass expires, every submit says \"Please answer the entry question before signing up\", and the question is no longer on screen"
+ },
+ {
+  "id": "T5-06",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated (corrected); orchestrator-checked",
+  "title": "On the day the absolute 90-day session lapses, a member mid-form is told to \"check your connection\": the expired cookie turns every save into `ACTION_FAILED`, and a reload then loses what they typed"
+ },
+ {
+  "id": "T5-07",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated (corrected)",
+  "title": "Per-IP meters on the signup road are sized for one person per address, and the refusal promises \"a minute\" for windows of ten minutes to an hour: a reunion table, an office NAT or a carrier-grade NAT on launch day gets refused and told to wait the wrong length of time"
+ },
+ {
+  "id": "T5-08",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated (corrected); orchestrator-checked",
+  "title": "With `RESEND_API_KEY` missing in production, every unconfirmed member's banner asserts \"A link has been sent to your email\" and hides the resend button, while the queue silently grows"
+ },
+ {
+  "id": "T5-09",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated",
+  "title": "`TURNSTILE_SITE_KEY` unset while `TURNSTILE_SECRET_KEY` is set locks the site's signup and password-reset doors and throttles sign-in to five an hour per address; the comment says the server \"stays consistent by skipping verification too\" \u2014 it does not"
+ },
+ {
+  "id": "T5-10",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated (corrected); orchestrator-checked",
+  "title": "A limiter backend that is down for hours, or a mistyped Upstash credential, spends the whole month's Sentry quota, after which every real error is dropped"
+ },
+ {
+  "id": "T6-01",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "duplicate \u2192 T7a-06",
+  "title": "An admin's \"Unverify\" is undone by the member's next name, batch-year or leaving-year edit on their own profile (and by three other paths), because the roster hook admits \"unverified\""
+ },
+ {
+  "id": "T6-03",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "The data export is not \"a copy of your data\": it omits five reaction tables, the derived profession tags, and every telemetry row about the member, and it strips the id from every row so its own foreign keys (`comments[].postId`, `likes[].postId`) point at nothing in the file"
+ },
+ {
+  "id": "T6-04",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "After a search, the browser's Back button leaves the search pill showing the old query over an unfiltered \"222 people\" list"
+ },
+ {
+  "id": "T7a-01",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "Deleting a member (admin delete, the 60-day sweep, or a merge) silently destroys every report they ever FILED, pending ones included, while the privacy policy promises the opposite"
+ },
+ {
+  "id": "T7a-02",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "When the author of a reported post deletes it, the report vanishes from the queue with no decision, and the reporter is never answered"
+ },
+ {
+  "id": "T7a-03",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "No admin surface shows that a member has asked to delete their account, so an admin can verify, promote, or merge a duplicate INTO an account that the sweep will erase"
+ },
+ {
+  "id": "T7a-04",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "After a purge, other members' bells still point at the erased member's letters (404) and posts, for up to 30 days; the explicit-delete path was fixed (C-054), the purge path was not"
+ },
+ {
+  "id": "T7a-05",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "An admin's \"Delete for good\" runs a 30-second transaction plus up to 500 sequential R2 deletes inside a page-hosted server action with no `maxDuration`; if the platform cuts it, the account is gone but no `admin.delete` audit line is ever written and the admin is told \"That did not go through\""
+ },
+ {
+  "id": "T7a-06",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "An admin's \"Remove verification\" undoes itself: the roster auto-verify re-verifies the member on their next password reset, profile edit, or \"Ask to be verified\", and on the admin's own next edit of their name or batch (routed lead, confirmed)"
+ },
+ {
+  "id": "T7a-07",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "A merge, and the purge's own succession, hand a Catch-up's Keeper hat over as group role \"admin\", which the Keeper's revoke can never take back (routed lead, confirmed and widened)"
+ },
+ {
+  "id": "T7a-09",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "Purge failures reach only the console: the nightly job goes red with `purge:<id>` and nothing else, and the admin is told to \"check the server log\""
+ },
+ {
+  "id": "T7a-21",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "The image drain stops at 500 objects per call, so a member with a big Collection contribution stays publicly fetchable for nights after \"Delete my account\", and the audit line says \"500 removed\" with the untouched remainder unsaid (routed lead, confirmed)"
+ },
+ {
+  "id": "T7b-01",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The one metric the nightly snapshot calls irreplaceable (\"did last night's backup run\") has failed with HTTP 403 on every one of its ~35 runs, the job reports green, and no surface would show it even if it worked"
+ },
+ {
+  "id": "T7b-02",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "The bell's badge stays dark for a genuinely new notification whenever its count is a number this document has seen before \u2014 which, for a member whose count cycles 0 \u2192 1 \u2192 0, is every notification after the first"
+ },
+ {
+  "id": "T7b-13",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "Six headline tiles in the analytics room are computed from a top-N list instead of being counted. Four are already wrong today (\"Profile opens\" shows 289, the real number is 1,234), and the rest stop growing at 2,000 members"
+ },
+ {
+  "id": "T7b-15",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "Every surface names a Catch-up's deadline as a DAY (\"Answers close Thursday 20 August\"; in the bell, \"Answers close tomorrow\"), but answers shut at 06:55 IST that morning. The named day is one nobody can answer on, and for the ~40 members in the Americas and the UK the close falls the evening or night before. The bell's final reminder is also never withdrawn"
+ },
+ {
+  "id": "T7b-22",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "PostHog autocapture sends the text and the link target of whatever a member clicks, and that includes other members' names and, from a profile's \"Get in touch\" sheet, their email addresses and phone numbers. The same data the owner turned session replay off to keep away from a third party (source: T8b's lead, routed by the orchestrator)"
+ },
+ {
+  "id": "T8a-02",
+  "finder": "Low",
+  "final": "Medium",
+  "status": "validated (corrected); orchestrator-checked",
+  "title": "A refund that lands while the gift is \"disputed\" is thrown away, and a later dispute.won/closed then counts the whole gift again"
+ },
+ {
+  "id": "T8a-11",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated; orchestrator-checked",
+  "title": "Nearly every supporter now gets a \"Pick the bird you want to wear\" bell AFTER they have picked, and following it drops them on the page that asks them to pay"
+ },
+ {
+  "id": "T8a-12",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated; orchestrator-checked",
+  "title": "A member whose session reads as \"nobody\" during checkout is told \"Not authenticated\" in red after the money has moved, with the Contribute button live again"
+ },
+ {
+  "id": "T8a-15",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "known; orchestrator-checked",
+  "title": "M59's premise is refuted by Razorpay's own documentation: answering 2xx to a bad signature never protected the endpoint, and it turns a wrong webhook secret into the silent, permanent loss of every event"
+ },
+ {
+  "id": "T8a-16",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated; orchestrator-checked",
+  "title": "A supporter with a profile photo spends their one pick on a bird nobody will see, including them: the picker promises \"This becomes your avatar everywhere on the site\""
+ },
+ {
+  "id": "T8b-02",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated; orchestrator-checked",
+  "title": "One five-second pool wait in the signed-in shell shows four different screens depending on which query lost, and none of them paints until the shell has waited: blank, then a sign-in form, or a full-screen apology with no navigation, or nothing wrong at all"
+ },
+ {
+  "id": "T8b-03",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "duplicate \u2192 T5-06; orchestrator-checked",
+  "title": "An action POST whose cookie has lapsed is bounced to /login, replayed there by the browser, forwarded by Next back to its own page, bounced again, and comes home as `200 {}`: three invocations to produce \"Check your connection\""
+ },
+ {
+  "id": "T8b-06",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated (corrected)",
+  "title": "The privacy policy promises things the code does not keep, and is silent about the two telemetry tables it keeps longest"
+ },
+ {
+  "id": "T8b-15",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "validated; orchestrator-checked",
+  "title": "\"Try again\" on every error screen shows the same failure again: all three boundaries call `reset`, which never goes back to the server, so a database hiccup can only be escaped by reloading"
+ },
+ {
+  "id": "T9-01",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The three empty-state birds never play their moment and never start their resting life"
+ },
+ {
+  "id": "T9-02",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "bugs.md #20 found: the /login peek-a-boo is killed by React Strict Mode's dev-only remount, so it is broken on localhost (where it was filed) and believed fine in production"
+ },
+ {
+  "id": "T9-03",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "Every bird can jam for good: the ambient blink and crest flick overwrite verbs that do not hold the idle damper, and the overwritten animation never settles"
+ },
+ {
+  "id": "T9-04",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "A failed lazy load of the bird replaces the whole signed-in page with \"Something went wrong\", and the sidebar sleeper triggers it on its own after a deploy"
+ },
+ {
+  "id": "T9-05",
+  "finder": "Medium",
+  "final": "Medium",
+  "status": "unvalidated",
+  "title": "On the public /hoopoe playground, \"Settle down\" (or any interruption) during \"Surprise me\" leaves \"Surprise me\" disabled until a reload"
+ },
+ {
+  "id": "L1-02",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A question removed as answering opens leaves an Edition with nothing to answer, which the C-021 guard cannot see"
+ },
+ {
+  "id": "L1-03",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The two last Keepers leaving in the same instant leave a Catch-up nobody can tend"
+ },
+ {
+  "id": "L1-04",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The account purge runs RepeatableRead with no P2034 retry, so a heart on the member's post mid-purge fails the purge until tomorrow"
+ },
+ {
+  "id": "L1-05",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Two quick taps on two poll options can leave the vote shown different from the vote stored"
+ },
+ {
+  "id": "L1-06",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "An admin's double-send posts the reply twice and rings the member's bell twice"
+ },
+ {
+  "id": "L1-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "`openNextEdition`'s compare-and-swap is not one when `nextOpensAt` is NULL, so two Keepers get \"Something went wrong\" instead of the friendly race message"
+ },
+ {
+  "id": "L10-02",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "For sixty days after \"Delete my account\" everything the member wrote stays on the feed, the letters, the comments and the Catch-ups under a name that links to a 404, the Low-78 split the owner closed for blocked members. Mentions of anyone blocked, leaving or erased dead-end the same way"
+ },
+ {
+  "id": "L10-03",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "When Cloudflare's challenge service is down, nobody can sign up and nobody can reset a forgotten password, and each visitor is told their own browser is to blame. The server's \"fail open\" never engages, because it only covers a token Cloudflare cannot check, not a token the browser never got"
+ },
+ {
+  "id": "L10-04",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Two tabs or two devices on one profile silently erase each other's work: the contact block, the cities and the houses are each written whole from the saving tab's own copy"
+ },
+ {
+  "id": "L10-05",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The designated test profile is an admin in production, so the member messages ring it and every automated screenshot, crawl and visual baseline has only ever rendered an admin's view"
+ },
+ {
+  "id": "L10-06",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The Class Collection's second mitigation, \"an AuditLog row on every `batchYear` change\", never shipped: a member moves between classes without a trace, and the owner accepted the remaining hole on the strength of that row"
+ },
+ {
+  "id": "L11-03",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "A mail Resend has accepted is sent a second time two minutes later whenever the one database write that records the acceptance fails: the code parks the row for \"the stale-claim sweep to decide\", and the sweep can only requeue it (a reset's second mail then burns the first one's link)"
+ },
+ {
+  "id": "L11-04",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A production build run anywhere but Vercel production (the laptop's `next start`, which the phase-4 check and the September performance sessions use, or a Vercel preview) is a full sender for the shared mail queue: M53's \"only the owner's address\" narrowing and the send gate both key on `NODE_ENV`, which those processes set to `production`"
+ },
+ {
+  "id": "L11-06",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The nightly sweep, the tick and every image deletion also run from the owner's laptop against the one database, and there they are only as correct as the laptop's environment: on a machine set up the way AGENTS.md describes (\"local filesystem in dev\"), every pending production image deletion is confirmed as done while the bytes stay public for ever"
+ },
+ {
+  "id": "L11-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The nightly sweep's budget was sized for its transactions and not for the deletes each purge makes inline, and its GitHub timeout equals the function's: a night with a few large erasures is cut mid-purge, the erased member's `account.purge` audit line is never written, and the job dies before it can show why"
+ },
+ {
+  "id": "L12-02",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A photograph taken off a Catch-up answer is never deleted from the bucket: the one writer that rewrites an image list without purging what it dropped"
+ },
+ {
+  "id": "L12-03",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Any signed-in account holding an Edition or answer id drives that Edition's clock through twelve Catch-up actions before it is told it is not a member (confirms T2b's routed lead)"
+ },
+ {
+  "id": "L12-04",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "`adminSetRole` runs the last-admin guard only for the literal `\"member\"`: any other value skips it and is written straight to `User.role`, so one crafted call removes the last admin (extends T7a-11)"
+ },
+ {
+  "id": "L12-05",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Moderation that destroys a member's work leaves no audit row, although SECURITY.md says `AuditLog` covers \"every admin action\": 56 photographs erased by an admin in the last 30 days, none attributable"
+ },
+ {
+  "id": "L12-06",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "On `next dev`, `setArchived` writes to the production database with no authentication at all, from any machine that can reach the laptop"
+ },
+ {
+  "id": "L12-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "No action validates the shape of an id: 70-odd id parameters reach Prisma as whatever the caller sent, so a malformed call throws (and files a Sentry event) instead of being refused, and in four admin writes an object id widens the write to every row (one crafted Save would overwrite every Collection caption)"
+ },
+ {
+  "id": "L12-08",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The demo's second and third layers together leave row creation unbounded: every meter is switched off on the demo, the allowlist admits the tables a script can grow, and the \"sandbox that restores itself every night\" has no size ceiling"
+ },
+ {
+  "id": "L2-02",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "After several admin actions the rail's own counts stay wrong for the rest of a soft-navigation session; the codebase fixes this for some actions and not others (revalidation-map finding; extends T7a-22)"
+ },
+ {
+  "id": "L2-04",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The Catch-up Edition page runs its edition and membership queries twice per view, because it is the one read surface that skips the `cache()` pattern the rest of the app uses"
+ },
+ {
+  "id": "L3-03",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Every deadline morning the admin room calls a healthy Edition \"past its date\" for the 83 minutes between the 07:00 IST deadline and the cron, which for this project fires at 08:23 IST, not \"within thirty minutes\""
+ },
+ {
+  "id": "L3-04",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Two refusals promise a calendar day that no calendar enforces: the Keeper's nudge says \"You cannot send another today\" (it allows five an hour), and the data export says \"Try again tomorrow\" (it is a rolling 24 hours)"
+ },
+ {
+  "id": "L3-05",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The date gates see one shape each: the rendered-date sweep misses every date written inside JSX braces, a template literal or a ternary; the SQL sweep misses EXTRACT; and nothing at all watches `scripts/`, where the live read-side instance of bugs.md #6 is"
+ },
+ {
+  "id": "L3-06",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "`npm run check` goes red for five and a half hours every New Year's Eve: a valley-day test compares the runner's LOCAL year with the valley's year"
+ },
+ {
+  "id": "L3-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The nightly database dump is named by the UTC date it happens to run on, and GitHub runs it up to eight hours late, so a late night and the next on-time night share one name and the second silently overwrites the first (it happened on 2026-08-29)"
+ },
+ {
+  "id": "L4-05",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The Catch-up people pickers answer every refusal and failure of the people search with a false \"nobody\": \"No one found by that name\", \"Everyone from your batch is already here\""
+ },
+ {
+  "id": "L4-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "`reportSwallowed` never flushes, so a report raised at the end of an invocation \u2014 the nightly tick, the sweep, the tail of an `after()` \u2014 may never leave the instance"
+ },
+ {
+  "id": "L5-05",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Under pool pressure the interactive transactions fail at 2 s, not 5 s, and each one that gives up still borrows a connection later to open and roll back a transaction nobody will use (L1's routed lead, confirmed)"
+ },
+ {
+  "id": "L5-06",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "While any mail is waiting for tomorrow's quota (the whole launch: C-161), every hard page load and every revalidating action runs the full drain-lease dance \u2014 up to 11 statements and 4 writes on one hot row \u2014 to send nothing"
+ },
+ {
+  "id": "L5-09",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "`Comment.authorId` has no index, so the member's data export, the account purge and the admin person page scan every comment in the community"
+ },
+ {
+  "id": "L5-10",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "`CatchupEntry.authorId` is only the second column of `(promptId, authorId)`, so every per-member answer query (purge, export, admin merge) scans every answer ever written"
+ },
+ {
+  "id": "L5-11",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "New avatars and Catch-up photographs stop rendering (the alt text shows instead) once a month's 5,000 Vercel image transformations are spent, and at 2,000 members a busy month spends them \u2014 for images that are already sized WebP on a Cloudflare CDN"
+ },
+ {
+  "id": "L5-12",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Under Fluid compute the owner's analytics room shares the members' pool of five: at the 2,000-member data size one open of Live or Usage can hold every connection of its instance for seconds and push co-located members past the 5-second timeout"
+ },
+ {
+  "id": "L6-02",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A bidi override in a name, a Catch-up name or a message runs into the app's own sentence in other members' bells and admin inboxes (the whole-app extension of V-O-B)"
+ },
+ {
+  "id": "L6-03",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A value made only of zero-width characters passes every \"not empty\" rule in the app, so a member can be nameless and a Catch-up, question, choice or caption can be invisible"
+ },
+ {
+  "id": "L6-04",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A NUL character fails every text write in the app with the wrong sentence, and on two paths it fails after something irreversible already happened"
+ },
+ {
+  "id": "L6-05",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Two text scans on the reading path are quadratic: a hostile 20,000-character letter costs ~0.3 s per render, and a hostile answer ~0.22 s per link scan, several scans per view"
+ },
+ {
+  "id": "L6-06",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Twelve fields that a member can overfill from the page answer in Zod's raw English (\"Too big: expected string to have <=50 characters\")"
+ },
+ {
+  "id": "L6-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "orchestrator CONFIRMED LIVE 2026-09-27 (500 on a repeated token=)",
+  "title": "A link with a repeated query parameter crashes the public reset and confirm pages (live-proved) and the directory"
+ },
+ {
+  "id": "L6-08",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Title-casing corrupts Turkish capitals and brand spellings in names and job titles, and can store a name longer than the cap that then refuses to save"
+ },
+ {
+  "id": "L6-09",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A message to the admins that is one long character cluster gets an empty subject and a \"...\" bell"
+ },
+ {
+  "id": "L7-04",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The press sink on the app's shared Button, every dialog's close button and about twenty-four other controls never animates: the scale arrives in one frame"
+ },
+ {
+  "id": "L7-05",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "On a phone, the profile's \"Reaching you\" rows have an invisible remove button that deletes the row and saves on the spot"
+ },
+ {
+  "id": "L7-06",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A network blip between \"account made\" and \"signed in\" tells a new member \"Something went wrong. Please try again.\", and trying again says the email is taken; a blip on NextAuth's provider lookup instead throws the sign-in, sign-up or reset page onto Auth.js's bare error page"
+ },
+ {
+  "id": "L7-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Tapping an unread notification closes the menu and then does nothing until a mark-as-read write has come back; a tap elsewhere in that pause is overridden when the late navigation fires"
+ },
+ {
+  "id": "L7-08",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Every pause while typing a name in the directory adds a page to the browser's history, so Back walks through each half-typed search before it leaves the directory"
+ },
+ {
+  "id": "L8-03",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Every request here passes the proxy, so the real upload ceiling is Vercel Routing Middleware's 4 MB, not the 4.5 MB the client limit was sized against: a body just under the app's own 4 MiB file limit is refused by the platform with no sentence the member can act on"
+ },
+ {
+  "id": "L8-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The nightly backup and the retention sweep (the job that carries out every account erasure) run on a GitHub free-minute budget shared with CI, and when the month's 2,000 minutes are spent GitHub blocks them without a word to the site"
+ },
+ {
+  "id": "L8-08",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The decompression-bomb ceiling was sized for one decode per function, but under Fluid compute concurrent uploads share one 2 GB instance: a few large contributions or downloads at once can run it out of memory and take every other request on that instance down with it"
+ },
+ {
+  "id": "L8-09",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Six platform facts written into the repository are wrong against the vendors' current pages, and three of them steer decisions: the retention sweep lives on GitHub because of a two-cron limit Vercel removed, Sentry tracing was judged against a span allowance 500 times too small, and the analytics proxy is called free"
+ },
+ {
+  "id": "L8-10",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Every page sends a Permissions-Policy feature no current browser knows, so Chromium prints an error line on every page load: the same class of console noise the PostHog rewrites were added to remove"
+ },
+ {
+  "id": "L9-01",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The C-134 regression pin cannot see a wildcard host in most of next.config.ts: it is green today with an unlisted `*.spotifycdn.com`, and would stay green with `*.r2.dev` back in connect-src or `**.r2.dev` in the optimizer's remotePatterns"
+ },
+ {
+  "id": "L9-02",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The comment stripper every shape test relies on deletes real code whenever a string holds `/*`, so negative assertions pass on nothing: the \"no DialogDescription\" pin is blind at the exact place the description used to be"
+ },
+ {
+  "id": "L9-03",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "`npm run check`, and so CI, passes with ESLint errors: a rules-of-hooks violation prints FAIL and ships green"
+ },
+ {
+  "id": "L9-04",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The CI-parity gate can be defeated three ways it does not look at: a `uses:` step, `continue-on-error` on the gate step, and a security gate flipped to non-blocking"
+ },
+ {
+  "id": "L9-05",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Nothing pins the three writes that make session revocation happen: delete `credentialVersion: { increment: 1 }` from the password reset and a phished member's reset stops evicting the attacker, for ninety days, with every gate green"
+ },
+ {
+  "id": "L9-06",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The back-button rule's \"nothing but back-closes.ts pops history\" cannot see `router.back()`, the call the guide's own history bug was made of"
+ },
+ {
+  "id": "L9-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Nine sweeps still take their candidate list from git, the fail-open shape C-189 removed from two others: a new file is invisible to them until it is staged, so the laptop's gate is green and the push's is red"
+ },
+ {
+  "id": "L9-08",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The bell-cleanup sweep (C-054) believes a post can stop being readable two ways; the account purge is a third, and the fix proposed for the admin hide would take that hide out of the sweep"
+ },
+ {
+  "id": "L9-09",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The visual suite's red on /letters was not a mask gap: it is Next's \"1 Issue\" badge over the account chip, photographing the O-01 hydration error; two sessions read it as noise because no spec says a page threw"
+ },
+ {
+  "id": "L9-10",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The demo's last write layer lets any allowed model carry a nested write to a refused one, while prisma.ts and the demo test both say it cannot"
+ },
+ {
+  "id": "L9-12",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Sixteen comments and documents that no finding carried say something the code does not do (Table A's **new** rows), one of them the reason the Keeper hat is spelled the way it is"
+ },
+ {
+  "id": "O-04",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "A server action whose POST fails to fetch (overloaded instance, dropped connection, expired cookie) is always \"Check your connection and try again\", whatever the cause"
+ },
+ {
+  "id": "O-06",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "A null byte in any search box makes the server throw, the member is told to \"check your connection\", and the page also claims \"No posts match your search\""
+ },
+ {
+  "id": "T1-05",
+  "finder": "Low",
+  "final": "Low",
+  "status": "REFUTED; orchestrator-checked",
+  "title": "Publishing a draft from the desk, or deleting a letter from its page, shows the 404 screen for a moment before the navigation lands"
+ },
+ {
+  "id": "T1-06",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected); orchestrator-checked",
+  "title": "Every draft autosave re-renders the edit page AND the (main) layout on the server, for a surface nothing server-rendered shows"
+ },
+ {
+  "id": "T1-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "The letters index pages by createdAt alone, so two letters published in the same millisecond repeat or vanish at a page boundary"
+ },
+ {
+  "id": "T1-08",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected)",
+  "title": "The \"Your drafts\" strip shows at most 20 drafts and never says so"
+ },
+ {
+  "id": "T1-09",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected); orchestrator-checked",
+  "title": "An expired session reads as an empty feed (\"No stories yet\") and an empty comment thread, not as a sign-in prompt"
+ },
+ {
+  "id": "T1-10",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "Sharing a letter from its feed card copies the feed URL, not the letter's"
+ },
+ {
+  "id": "T1-11",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "Escape hides the reply box but keeps the draft, so the next Reply on somebody else opens with words meant for the first person"
+ },
+ {
+  "id": "T1-12",
+  "finder": "Low",
+  "final": "Low",
+  "status": "REFUTED; orchestrator-checked",
+  "title": "A heart tapped on a page restored from the back-cache ends on the right state but the count reads one high"
+ },
+ {
+  "id": "T1-13",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "Reporting a letter files it, announces it and opens the thread as \"a post by X\""
+ },
+ {
+  "id": "T1-14",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected)",
+  "title": "The server accepts a poll on a letter; nothing renders it"
+ },
+ {
+  "id": "T1-15",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected); orchestrator-checked",
+  "title": "A post, a letter body or a letter title made only of whitespace is accepted"
+ },
+ {
+  "id": "T1-16",
+  "finder": "Medium",
+  "final": "Low",
+  "status": "validated (down); orchestrator-checked",
+  "title": "Removing a photograph from one of two duplicate drafts deletes the bytes the other draft still shows"
+ },
+ {
+  "id": "T1-17",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "Every feed page, letters index and letter page aggregates the WHOLE Comment table (joined to User) to count the comments on the twenty posts it shows"
+ },
+ {
+  "id": "T1-18",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected); orchestrator-checked",
+  "title": "The \"Also add to the Collection\" copy runs in `after()` under the /feed route's default function budget, and a cut-off leaves staged bytes unrecorded and a photograph silently missing"
+ },
+ {
+  "id": "T1-19",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "A member whose name begins with an accented or Indic letter cannot be @-mentioned, and typing an email address opens the mention list"
+ },
+ {
+  "id": "T1-20",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "`PollOption` has no index on `postId`, and every feed page fetches poll options for its twenty posts"
+ },
+ {
+  "id": "T1-21",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected)",
+  "title": "`Notification` has no index on `link`, and every post deletion or moderation scans the whole table to clear its bell rows"
+ },
+ {
+  "id": "T1-22",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "`User` has no index on `createdAt`, and the feed rail's \"New in the directory\" sorts every member on every feed render"
+ },
+ {
+  "id": "T1-24",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected)",
+  "title": "Saved applies the city arm of the audience rule but not the batch arm, so a saved post can stay on the shelf after the direct link refuses it"
+ },
+ {
+  "id": "T1-25",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected)",
+  "title": "A crafted keyset cursor past the Date range makes the feed, thread and bell loaders throw instead of serving page one"
+ },
+ {
+  "id": "T2a-05",
+  "finder": "Medium",
+  "final": "Low",
+  "status": "validated (down)",
+  "title": "The next Edition's opening has no tick grace and no civil hour, so the cron misses it about half the time and a dormant group's rhythm slides a day per cycle"
+ },
+ {
+  "id": "T2a-08",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "The double-submit guard on creating a Catch-up is a read before the write, so two requests in flight together still mint two Catch-ups and notify up to 99 people twice"
+ },
+ {
+  "id": "T2a-09",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected)",
+  "title": "Succession can hand the Keeper's hat to a blocked, deletion-pending or teacher account; the purge path writes \"admin\" where every other path writes \"keeper\""
+ },
+ {
+  "id": "T2a-10",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "A member removed by a Keeper keeps their pref row, so re-joining by the invite link lands the Catch-up in their Archived shelf (spec says removal \"does the same\" as leaving)"
+ },
+ {
+  "id": "T2a-11",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected)",
+  "title": "Comment lies in the lifecycle files (the code drifted from its stated contract)"
+ },
+ {
+  "id": "T2a-12",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected)",
+  "title": "A question submitted in the five-minute grace window of a dormant Edition does not revive it, so answering opens with one question and no window"
+ },
+ {
+  "id": "T2a-13",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "Blocked and deletion-pending accounts stay inside every Catch-up: counted toward the batch floor, listed in People, reminded daily, their answers shown while their comments are hidden"
+ },
+ {
+  "id": "T2a-14",
+  "finder": "Medium",
+  "final": "Low",
+  "status": "validated (down)",
+  "title": "Nothing records that the nightly tick ran, so a dead cron (401 after a secret rotation, a disabled schedule) is invisible until a quiet group notices an Edition that never moved"
+ },
+ {
+  "id": "T2b-06",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The empty-answer withdrawal deletes by id after the transaction with no content precondition, and versionless first saves make the race reachable (routed lead from L1, confirmed with a correction)"
+ },
+ {
+  "id": "T2b-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A thumbnail that fails to re-host is never retried and never reported: the card stays imageless for ever, silently"
+ },
+ {
+  "id": "T2b-08",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The export reads every photograph and recording through the public host with no timeout, the one thing TRAPS says a bulk reader must not do"
+ },
+ {
+  "id": "T2b-09",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A Keeper whose Edition tolerated the 41st question can never reorder it again (\"Invalid request.\")"
+ },
+ {
+  "id": "T2b-10",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "`submitEntry`'s replaced-recording check is a sequential scan: `CatchupEntry.audioUrl` has no index"
+ },
+ {
+  "id": "T2b-11",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "`loadEntryComments` is the one comment action outside `runAction`, and a crafted `take` reaches Prisma as `NaN` and throws out of the action"
+ },
+ {
+  "id": "T2b-12",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "One empty answer row from before the withdrawal rule sits in a published Edition, and nothing sweeps the class"
+ },
+ {
+  "id": "T3-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The home prints its state line from the Catch-up row it read BEFORE it advanced the Edition, so the first visitor after a publish sees no \"The next one opens\" line"
+ },
+ {
+  "id": "T3-08",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The home runs an unbounded, in-memory `distinct` over every answer in an answering Edition to build a list nothing renders"
+ },
+ {
+  "id": "T3-09",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The invitation page names the Catch-up by its group's original name, so a renamed Catch-up invites people to something called by a name it no longer has"
+ },
+ {
+  "id": "T3-10",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The photo viewer prints a Catch-up answer's formatting markers raw, while the tile beside it renders the same body as rich text"
+ },
+ {
+  "id": "T3-12",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A navigator \"glide\" keeps driving the window's scroll for up to 900 ms after the reader is gone, so a quick tap on the Catch-up's name lands the home page mid-scroll"
+ },
+ {
+  "id": "T3-13",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Five press, hover and slide responses in Catch-ups never animate: an explicit `transition-[\u2026]` list beside a Tailwind v4 `scale-*` or `translate-*` (three found in the first run, two added in the continuation run)"
+ },
+ {
+  "id": "T3-14",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A member can add themselves to their own new Catch-up and see two chips for one person"
+ },
+ {
+  "id": "T3-15",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Taking the Keeper's hat from a group-admin row says \"no longer a Keeper\" and changes nothing"
+ },
+ {
+  "id": "T3-16",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The 2026-09-09 notification-link migration was never applied to the live database: 22 bells still point at `/catchups/<id>/answer`, 11 of them \"days left to answer\" reminders for an Edition that came out on 2026-09-06, which nothing replaces and only the 30-day sweep will clear"
+ },
+ {
+  "id": "T3-21",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A photo-wall answer takes one photograph, although the owner set the wall's cap at three"
+ },
+ {
+  "id": "T3-22",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The People door's \"Add someone\" offers people who are already in the Catch-up, and the Keeper, and answers \"X is in.\" when nothing changed"
+ },
+ {
+  "id": "T3-23",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Removing someone from a Catch-up is one tap with no confirmation and no undo, on a control a phone always shows 2px from the Keeper sprout"
+ },
+ {
+  "id": "T3-24",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "On the Catch-ups list, Undo on an archive swallows its own failure: the card stays archived and nothing says so"
+ },
+ {
+  "id": "T4a-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A member can love a photograph they are not allowed to see, and learn that it exists, because `togglePhotoLove` never asks the visibility rule its feed twin asks"
+ },
+ {
+  "id": "T4a-08",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "An admin's \"Remove\" on a photograph the uploader deleted a second earlier throws P2025 and shows \"Check your connection\", the wrong diagnosis C-074/C-130 fixed for the two writes beside it"
+ },
+ {
+  "id": "T4a-09",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "On the demo, deleting your own photograph dies in the third write layer with \"Check your connection\", because `deleteOwnPhoto` is the one Collection write without the `IS_DEMO` guard its siblings carry"
+ },
+ {
+  "id": "T4a-10",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Comments and documents describe a database that no longer exists: production has run three of the \"unrun\" drop files, so there are nine hand-made indexes, not eleven, and no `area`, `freeTags` or `greyscale` columns"
+ },
+ {
+  "id": "T4a-11",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "`import-album.mjs` files a photograph under a date the app's own judgement would refuse: DateTimeDigitized or IFD0 DateTime stands in for the shutter time, and the scanner and never-set-clock rules are not applied"
+ },
+ {
+  "id": "T4a-12",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A database hiccup at the moment the row is written loses the member's full-resolution upload entirely, because the staged original is deleted before the row exists"
+ },
+ {
+  "id": "T4a-13",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "On 1 January 2030 every photograph dated that year is filed under era \"unknown\""
+ },
+ {
+  "id": "T4a-14",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The FormData fallback has no `sourceKey`, so the one contribute path that can be double-submitted makes two photographs from one press"
+ },
+ {
+  "id": "T4b-08",
+  "finder": "Medium",
+  "final": "Low",
+  "status": "orchestrator REFUTED the main claim live (no RSC refetch); the 3-queries-per-first-page cost stays Low",
+  "title": "Every filter, order, search pause and year press renders the whole page a second time on the server, because the address-bar write is a Next navigation"
+ },
+ {
+  "id": "T4b-09",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A `?when=` link, and the `when` in the address bar, do not say where the reader is: a shared year link opens at the top of the archive"
+ },
+ {
+  "id": "T4b-10",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A whole year's thumbnails are decoded at once, fire-and-forget, on every band arrival: up to 600 concurrent decodes on a phone"
+ },
+ {
+  "id": "T4b-11",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "OPERATIONS.md still describes the phone scrubber as \"a timer rather than a state\"; it has been a fixed chip since 2026-09-12"
+ },
+ {
+  "id": "T4b-12",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The search box has no client-side length cap, so a long paste goes into the address bar and (through T4b-08) into a request URL"
+ },
+ {
+  "id": "T4b-13",
+  "finder": "High",
+  "final": "Low",
+  "status": "orchestrator re-ruled Low (live: Base UI stops arrow keys at the dialog; + - 0 still zoom)",
+  "title": "Typing in the edit dialog steers the photograph behind it: arrow keys step the viewer, `+`/`-`/`0` zoom it, and Tab is pulled out of the form into the viewer's hidden controls"
+ },
+ {
+  "id": "T5-11",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected)",
+  "title": "A malformed `rv_human` cookie makes every sign-in from that browser report \"This is us, not your password\" for five minutes"
+ },
+ {
+  "id": "T5-12",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "Any NextAuth refusal that is not one of the three known codes prints \"Invalid email or password.\" \u2014 a browser that blocks the CSRF cookie is sent into the reset loop M18 was fixed for"
+ },
+ {
+  "id": "T5-13",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected); orchestrator-checked",
+  "title": "`sendVerificationEmail` throws away the queue's answer, so a resend that was rate-limited reports \"Sent to \u2026\", and its failure copy sends members to an edit that does not exist"
+ },
+ {
+  "id": "T5-14",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated; orchestrator-checked",
+  "title": "A blocked member is told their password is wrong and that a reset link is \"on its way\" that will never come \u2014 a dead-end loop with no hint to write to a human (owner decision needed)"
+ },
+ {
+  "id": "T5-15",
+  "finder": "Low",
+  "final": "Low",
+  "status": "duplicate \u2192 T7b-04; orchestrator-checked",
+  "title": "A local dev-login stamps the signed-in member's `lastSeenAt` even though `stats-exclusion.ts` says localhost records nothing; the analytics \"seen in the last N days\" counts it (seeded question 1)"
+ },
+ {
+  "id": "T5-16",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "A Resend timeout that actually delivered, then a retry, leaves a reset mail in the inbox whose link says \"That link has been used\" \u2014 the member never used it"
+ },
+ {
+  "id": "T6-05",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The `anonymous` system account is a person in the directory: listed in the People view, counted in \"222 people\", found by name search and by the mention picker"
+ },
+ {
+  "id": "T6-06",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The contact editor's email row is seeded with the sign-in address and edits only the shown one; there is no signed-in way to change the password or the login email anywhere on the surfaces I own, and this is where they would live"
+ },
+ {
+  "id": "T6-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Clearing your batch year or leaving year on the profile leaves the derived board credential standing, where the admin editor clears it"
+ },
+ {
+  "id": "T6-08",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "\"Delete my account\" can report a connection error after it has already ended every session, and signing back in \"to check\" cancels the deletion silently"
+ },
+ {
+  "id": "T6-09",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A phone number typed with India's trunk zero (\"09845033712\") is displayed and re-edited as \"+098 45033712\", and a \"+\" with no digits survives validation as a phone"
+ },
+ {
+  "id": "T6-10",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Two survivors of the C-174 class: a crafted call still turns into a 500 instead of a refusal in `updateContactMethods` (a non-boolean `showEmail`) and `loadDirectoryPage` (a non-string `filters.q`/`filters.house`, a non-string `cursor`)"
+ },
+ {
+  "id": "T6-11",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The onboarding register step speaks raw Zod to the member and lets an alumnus write teacher subjects"
+ },
+ {
+  "id": "T6-12",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "The same columns are capped and ruled differently by their writers: the pen's occupation fields accept 120 characters the server refuses at 100; onboarding's house years run 1900-2100 against the profile's 1926-today; the admin's batch-year window is 1930 to +10 against the pen's 1926 to +7; signup accepts a 1-3 character phone the contact editor then refuses; `profileSchema` carries eight fields nothing writes through it"
+ },
+ {
+  "id": "T6-13",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "`/api/places/search`'s header says altNames has no index; it has a GIN trigram index the planner uses, and the route costs 7 to 450 ms per keystroke depending on cache"
+ },
+ {
+  "id": "T6-14",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The saved contact card has no `N` property, which vCard 3.0 requires, and its NOTE can be 4,000 characters on one unfolded line"
+ },
+ {
+  "id": "T6-15",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "Two hand-made directory URLs mislead: `?type=<anything>` draws a chip and lists the whole membership as \"results\", and `?cursor=<stale>` on the server-rendered page has no M39 fallback"
+ },
+ {
+  "id": "T7a-08",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The \"flagged\" member state is dead: nothing in the app can write it, yet a worklist queue, a rail count, a People filter arm, a chip, a Standing line and two comments are built on it"
+ },
+ {
+  "id": "T7a-10",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The purge's cancel-race comment describes READ COMMITTED, but the transaction runs RepeatableRead: a member who signs in during the seconds of their own purge turns the night's job red instead of being counted as \"spared\""
+ },
+ {
+  "id": "T7a-11",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Runtime validation is missing on every people action: an admin-typed name has no length cap (the member's own form caps at 100), `role`/`method`/`trusted` are TypeScript-only, and the note has no server cap"
+ },
+ {
+  "id": "T7a-12",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The merge dialog takes a pasted id with no preview of who the target is; a wrong-but-existing id is an irreversible merge into the wrong person, and a blocked or leaving target is accepted without a word"
+ },
+ {
+  "id": "T7a-13",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Post reports never count toward \"N reports in all\" or the person page's \"Reported\" tally, so the pattern the queue exists to show is invisible for the commonest report type (100% of today's 4)"
+ },
+ {
+  "id": "T7a-14",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Three admin read surfaces have no bound and will not survive two years of 2,000 members: the Catch-ups index loads every Catch-up; the reading room loads every Edition with every answer; Messages `?open=all` loads every open thread ever (nothing closes them)"
+ },
+ {
+  "id": "T7a-15",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Copy that lies on admin surfaces (five lines, one finding)"
+ },
+ {
+  "id": "T7a-16",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Two different \"members\" numbers sit two inches apart: the rail's People count is every row including blocked, the Overview's Members tile excludes them"
+ },
+ {
+  "id": "T7a-17",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "`adminHidePost` throws on a post that vanished between render and press, and the composed \"Hide the post\" button then reports \"Another admin has already settled this report\" for a report the author's own delete cascaded away"
+ },
+ {
+  "id": "T7a-18",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The roster import replaces the table outside a transaction, so a crash between the DELETE and the last chunk leaves a partial roster that vouches for nobody in the missing chunks until somebody notices and re-runs"
+ },
+ {
+  "id": "T7a-19",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The member is told their account is erased \"on <valley day D+60>\", but the sweep at 02:30 IST purges on the first sweep AFTER request+60d, i.e. the morning of D+61 for any request made after 02:30 IST"
+ },
+ {
+  "id": "T7a-20",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Content-list rows for photographs an admin took down draw a broken thumbnail: the bytes were purged, the row kept, and `<img src={thumbUrl}>` is unconditional"
+ },
+ {
+  "id": "T7a-22",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "After a review session the rail's Review and Overview counts are stale until a hard reload: the review actions revalidate the page, not the layout that computes the counts (routed lead, confirmed)"
+ },
+ {
+  "id": "T7a-23",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The `anonymous` system account is an ordinary verified alumnus to every admin control: it can be blocked (hiding the sixteen curated stories), deleted (erasing them) or merged, and nothing in the panel says what it is (routed lead, confirmed)"
+ },
+ {
+  "id": "T7b-03",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "`2026-09-09-answering-moves-to-the-home.sql` never ran on production: 22 bell rows still point at `/catchups/<id>/answer`, nine of them unread reminders that `notifyReminder`'s replace-by-link can no longer find, while the code comment, the spec and refactor audit 3 all say the rows were rewritten"
+ },
+ {
+  "id": "T7b-04",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated; orchestrator-checked",
+  "title": "`User.lastSeenAt` is stamped from localhost for whoever dev-login signs in as, against `stats-exclusion.ts`'s promise that development \"records nothing, whoever is signed in\"; seven numbers in the room read it with no exclusion on either layer, and its \"app state\" justification has no reader outside the room"
+ },
+ {
+  "id": "T7b-05",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The snapshot stamps \"yesterday\" on numbers captured 3.3\u20134.5 hours into today: GitHub's cron lag folds the Indian morning (05:30\u201310:10 IST) into the previous day's row, and the two \"active in N days\" windows are anchored to the day boundary rather than the read"
+ },
+ {
+  "id": "T7b-06",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "\"Members nobody has responded to\" (the panel that tells the owner to go and say hello) lists accounts that never confirmed their e-mail, unverified sign-ups and the audit's own throwaway; \"Only ever read\" counts everyone including the owner, the test account and the blocked"
+ },
+ {
+  "id": "T7b-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The admin rail's count store ignores `photos` when deciding whether anything changed, so a photograph arriving while another queue shrinks by one leaves the Review row's count stale"
+ },
+ {
+  "id": "T7b-08",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Duplicate React keys in the room: letters keyed by title, leaderboard rows keyed by name whenever two members share a name without a batch year, top authors keyed by name unconditionally"
+ },
+ {
+  "id": "T7b-09",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "LoginAttempt has neither the write gate nor the read exclusion, so a local sign-in attempt with a typo'd address, or an audit's probe account, becomes a \"person who still cannot get in\" the owner is told to e-mail, for 365 days"
+ },
+ {
+  "id": "T7b-10",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "`Visit` has no index on `startedAt`, and nine of the room's queries filter on it, so every open of Live, Rhythms or Reach sequentially scans the whole 90-day table; measured today and extrapolated to the owner's 2,000-member target"
+ },
+ {
+  "id": "T7b-11",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "`prune.mjs` re-implements the sweep's 30-day notification cutoff with its own copy of the number, no test pinning the two together, and runs three hours after the sweep already deleted the same rows"
+ },
+ {
+  "id": "T7b-12",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Both thread pages mark a conversation \"seen\" inside a GET render; only the sibling `loading.tsx` stands between a `<Link>` prefetch and a thread read by nobody"
+ },
+ {
+  "id": "T7b-14",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The sparklines under \"Letters published\" and \"Feed posts\" count drafts and hidden posts, so the line climbs when nothing was published. Today the tiles read 6 and 12 while their trends end at 8 and 17, and the letters line spiked to 12 for a night"
+ },
+ {
+  "id": "T7b-16",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "On a shared browser, the second member to sign in within 30 minutes of the first is invisible to presence for their whole sitting: the visit cookie belongs to the first member, and every ping after that is dropped by the C-163 guard"
+ },
+ {
+  "id": "T7b-17",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The search log can't see the two things the Reach view asks of it: feed searches never record a result count, so none can ever count as \"found nothing\"; and an erased account's searches turn anonymous and slip past the exclusion, so this audit's probe query \"ProbeGhost\" is in today's \"found nothing\" list"
+ },
+ {
+  "id": "T7b-18",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "An admin's reply has no double-submit guard. C-128 fixed the member's two write paths and missed the third, so a key-repeated Cmd+Enter or a second tab posts the reply twice and rings the member's bell twice"
+ },
+ {
+  "id": "T7b-19",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A pasted link in a message to the admins is cut off, not wrapped, everywhere the message shows: the member's own thread clips it at the card edge, the admin's thread at the viewport edge, and both bells mid-word"
+ },
+ {
+  "id": "T7b-20",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The owner's own comments and photo hearts top two of the room's leaderboards, while the Compare tab leaves the same activity out. The exclusion promises \"every activity number\" and covers only the three telemetry tables"
+ },
+ {
+  "id": "T7b-21",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Signing out never ends the PostHog identity: the browser keeps capturing as the member who left, so the next person's signed-out browsing is filed under the previous member's profile"
+ },
+ {
+  "id": "T8a-01",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "The nightly money history is recorded gross and includes the site's own people, so the permanent series disagrees with every money tile by a third"
+ },
+ {
+  "id": "T8a-04",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected)",
+  "title": "While RAZORPAY_WEBHOOK_SECRET is missing or rotated, the route answers 500 to every event, which is the very behaviour the same file says gets an endpoint switched off at Razorpay"
+ },
+ {
+  "id": "T8a-05",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "chooseBird's \"the second is refused\" is only true one at a time (L1's lead, confirmed benign, folded)"
+ },
+ {
+  "id": "T8a-06",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected)",
+  "title": "/support answers a database failure with \"\u20b90 recovered\", the opposite of what the same audit taught /pick-bird"
+ },
+ {
+  "id": "T8a-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "The member's own data export reports a partially refunded gift as its gross amount"
+ },
+ {
+  "id": "T8a-08",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected); orchestrator-checked",
+  "title": "The demo database is not a seeded world: 40 people from 2026-08-26 and no posts, photographs, places, Editions or notifications; the record that says \"the demo database is healthy\" is wrong on two counts"
+ },
+ {
+  "id": "T8a-09",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "The demo closes four API prefixes in the proxy with no twin list, no test, and no pin on the money actions' own refusals"
+ },
+ {
+  "id": "T8a-10",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "`verify-guard.mts` calls any demo with other than exactly 40 people \"DAMAGE\""
+ },
+ {
+  "id": "T8a-13",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected); orchestrator-checked",
+  "title": "After a failed attempt inside the Razorpay window, the Contribute button stays live through the successful retry, its confirmation and the redirect"
+ },
+ {
+  "id": "T8a-14",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "The admin funnel counts payments and calls them people: today it reads \"4 of 11 people opened a payment and did not finish it\" where the truth is 2 of 9, and a refunded gift will count as unfinished"
+ },
+ {
+  "id": "T8a-17",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "The demo bar's Reset reloads to /feed whether or not the reset worked"
+ },
+ {
+  "id": "T8a-18",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected)",
+  "title": "The two figures /support deliberately never prints ship to every member's browser anyway"
+ },
+ {
+  "id": "T8b-04",
+  "finder": "Medium",
+  "final": "Low",
+  "status": "validated (down); orchestrator-checked",
+  "title": "\"5m ago\" is computed at render inside client components the server also renders, so any feed with a fresh post or comment hydrates against a different clock and React throws the boundary away and redraws it"
+ },
+ {
+  "id": "T8b-05",
+  "finder": "Medium",
+  "final": "Low",
+  "status": "validated (down); orchestrator-checked",
+  "title": "The (i) tooltip opens on hover and toggles on click, so a finger's tap opens it and closes it in the same gesture on Android; the note needs two taps, and on a desktop the 6 px gap closes it before the pointer can reach it"
+ },
+ {
+  "id": "T8b-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "A crash inside the root layout's own client components, or a failed chunk for one of them, shows Next's unstyled \"Application error\" page; and no client-side error anywhere is reported to anyone"
+ },
+ {
+  "id": "T8b-08",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected); orchestrator-checked",
+  "title": "A 404 inside the signed-in shell renders a second `<main>` sized to the whole viewport inside the padded first one, so the apology is taller than the screen and scrolls for nothing; \"Back to home\" goes through two redirects"
+ },
+ {
+  "id": "T8b-09",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "The public landing page links to no policy document: the only public Privacy / Terms / Guidelines links are in the showcase footer, which is switched off"
+ },
+ {
+  "id": "T8b-10",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "The proxy's public-path test admits any path that begins with `//`, and only Next's own repeated-slash redirect stands in front of it"
+ },
+ {
+  "id": "T8b-11",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "The proxy says the landing page \"stays statically rendered for logged-out visitors\"; every route in the app has been dynamic since the root layout began reading the theme cookie"
+ },
+ {
+  "id": "T8b-12",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "Every revalidating server action re-runs the signed-in shell: about five render-blocking queries and one more behind the response, per action, on top of the page's own"
+ },
+ {
+  "id": "T8b-13",
+  "finder": "Low",
+  "final": "Low",
+  "status": "known \u2192 bugs.md open item \"guide contents page unreachable\"; orchestrator-checked",
+  "title": "Two guide comments describe a sidebar \"Guide\" row that does not exist, which is the already-known reason the guide's contents page is unreachable"
+ },
+ {
+  "id": "T8b-16",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "\"Go to the Feed\" (and the other five chapter doorways) does nothing when the guide was opened from that page's own title, which is how the guide is opened"
+ },
+ {
+  "id": "T8b-18",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "The public demo reports into production's Sentry project, labelled \"production\", and nothing on the demo side can change that; the demo that 500s on every data route shares the 5,000-events-a-month alarm the real site depends on"
+ },
+ {
+  "id": "T8b-19",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "The landing page, the site's front door, ships every visible element at opacity 0: until JavaScript has downloaded, hydrated, fetched the motion chunk and decoded the photo, a stranger sees an empty beige page, and with any of those failing, sees it for good"
+ },
+ {
+  "id": "T8b-20",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated (corrected)",
+  "title": "A second finger, or a parent re-render, during a bottom sheet's swipe leaves the sheet stuck partway down the screen with its transition switched off"
+ },
+ {
+  "id": "T8b-21",
+  "finder": "Low",
+  "final": "Low",
+  "status": "validated",
+  "title": "The batch-range filter lets \"From\" exceed \"To\" and then answers with nobody: \"Batch: 2020 to 2010\", 0 people, and no hint that the range is backwards"
+ },
+ {
+  "id": "T9-06",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The landing flight's \"overtaken flight\" fix (audit Low 13) is incomplete: an old flight's cleanup still deletes the new bird and cancels its frame loop"
+ },
+ {
+  "id": "T9-07",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "The sign-in and join pages can hide their bird for six seconds after a cancelled or slow landing exit"
+ },
+ {
+  "id": "T9-08",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Every bird keeps every animation it ever stopped for as long as it is mounted"
+ },
+ {
+  "id": "T9-09",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A second celebration in the same visit skips the one-hoopoe check"
+ },
+ {
+  "id": "T9-10",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "After a tab switch the landing's small perching birds vanish until the visitor scrolls"
+ },
+ {
+  "id": "T9-11",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "mascot.md and several headers describe behaviour the code no longer has"
+ },
+ {
+  "id": "T9-12",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "Every feed view pays three extra queries, one a duplicate read of the member's own row, to decide a celebration that has almost always already played"
+ },
+ {
+  "id": "T9-13",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "A bird resting in a sad, worried, sleepy or curious pose has its crest snapped upright by the ambient flick within 5-11 seconds"
+ },
+ {
+  "id": "T9-14",
+  "finder": "Low",
+  "final": "Low",
+  "status": "unvalidated",
+  "title": "\"See them in the Collection\": the bird jumps about 14px sideways as the flyer takes over"
+ }
+]

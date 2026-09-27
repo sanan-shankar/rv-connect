@@ -15,6 +15,8 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-27 (audit) — refactor audit 3 paused at fourteen of twenty-eight readings, compiled for a later session
+- 2026-09-27 (audit) — the third bug audit is paused with its findings compiled
 - 2026-09-27 (ui) — the decade presets and the post's audience chips lose the tan fill
 - 2026-09-27 (collection) — the drop box names all three ways in, and paste reads the clipboard the reliable way
 - 2026-09-27 (directory) — the city panel is its old width, "See all" opens People, and rows leave out the filtered city
