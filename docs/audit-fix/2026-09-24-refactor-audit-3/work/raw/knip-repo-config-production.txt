@@ -1,0 +1,379 @@
+Unused files (211)
+src/app/lab/_archive-state.ts                           
+src/app/lab/_birds.tsx                                  
+src/app/lab/_hoopoe.tsx                                 
+src/app/lab/_kit.tsx                                    
+src/app/lab/_lab-client.tsx                             
+src/app/lab/_leaves.tsx                                 
+src/app/lab/_registry.ts                                
+src/app/lab/_second-look-kit.tsx                        
+src/app/lab/_shared.tsx                                 
+src/app/lab/[dir]/auth/page.lab.tsx                     
+src/app/lab/[dir]/page.lab.tsx                          
+src/app/lab/actions.ts                                  
+src/app/lab/birds-bg/page.lab.tsx                       
+src/app/lab/birds-rv/page.lab.tsx                       
+src/app/lab/catchups/_fixtures/magazine/corpus.ts       
+src/app/lab/catchups/_fixtures/pressure.ts              
+src/app/lab/catchups/_settings.tsx                      
+src/app/lab/catchups/capsule/_cases.ts                  
+src/app/lab/catchups/capsule/_mark.tsx                  
+src/app/lab/catchups/capsule/_room.tsx                  
+src/app/lab/catchups/capsule/_sealed.tsx                
+src/app/lab/catchups/capsule/page.lab.tsx               
+src/app/lab/catchups/magazine/_live.ts                  
+src/app/lab/catchups/magazine/_measure.ts               
+src/app/lab/catchups/magazine/_pages.tsx                
+src/app/lab/catchups/magazine/_room.tsx                 
+src/app/lab/catchups/magazine/page.lab.tsx              
+src/app/lab/catchups/settings/_room.tsx                 
+src/app/lab/catchups/settings/page.lab.tsx              
+src/app/lab/catchups/sketches/_cover.tsx                
+src/app/lab/catchups/sketches/_data.ts                  
+src/app/lab/catchups/sketches/_harness.tsx              
+src/app/lab/catchups/sketches/_home.tsx                 
+src/app/lab/catchups/sketches/_list.tsx                 
+src/app/lab/catchups/sketches/_media.ts                 
+src/app/lab/catchups/sketches/_navigator.tsx            
+src/app/lab/catchups/sketches/_parts.tsx                
+src/app/lab/catchups/sketches/_pressure.ts              
+src/app/lab/catchups/sketches/_rail.tsx                 
+src/app/lab/catchups/sketches/_reader.tsx               
+src/app/lab/catchups/sketches/_shelf.ts                 
+src/app/lab/catchups/sketches/_shell.tsx                
+src/app/lab/catchups/sketches/_types.ts                 
+src/app/lab/catchups/sketches/page.lab.tsx              
+src/app/lab/catchups/swipe/_trace.tsx                   
+src/app/lab/catchups/swipe/page.lab.tsx                 
+src/app/lab/catchups/voice/_clip.ts                     
+src/app/lab/catchups/voice/_players.tsx                 
+src/app/lab/catchups/voice/_recorder.tsx                
+src/app/lab/catchups/voice/_room.tsx                    
+src/app/lab/catchups/voice/page.lab.tsx                 
+src/app/lab/catchups/vote/_ask.tsx                      
+src/app/lab/catchups/vote/_ballot.tsx                   
+src/app/lab/catchups/vote/_cases.ts                     
+src/app/lab/catchups/vote/_results.tsx                  
+src/app/lab/catchups/vote/_room.tsx                     
+src/app/lab/catchups/vote/page.lab.tsx                  
+src/app/lab/catchups/wall/_corpus.ts                    
+src/app/lab/catchups/wall/_room.tsx                     
+src/app/lab/catchups/wall/_shapes.tsx                   
+src/app/lab/catchups/wall/page.lab.tsx                  
+src/app/lab/centroid/page.lab.tsx                       
+src/app/lab/chain-lines/page.lab.tsx                    
+src/app/lab/collection/_archive.ts                      
+src/app/lab/collection/page.lab.tsx                     
+src/app/lab/collection/scrub/_scrubbers.tsx             
+src/app/lab/collection/scrub/page.lab.tsx               
+src/app/lab/collection/swap/page.lab.tsx                
+src/app/lab/comments/_room.tsx                          
+src/app/lab/comments/page.lab.tsx                       
+src/app/lab/composer/_variants.tsx                      
+src/app/lab/composer/page.lab.tsx                       
+src/app/lab/craft/_italic-fonts.ts                      
+src/app/lab/craft/_sidebar-specimen.tsx                 
+src/app/lab/craft/page.lab.tsx                          
+src/app/lab/crop/_specimens.ts                          
+src/app/lab/crop/page.lab.tsx                           
+src/app/lab/directory/_chrome.tsx                       
+src/app/lab/directory/_data.ts                          
+src/app/lab/directory/_maps.tsx                         
+src/app/lab/directory/_people.tsx                       
+src/app/lab/directory/_profession.tsx                   
+src/app/lab/directory/_room.tsx                         
+src/app/lab/directory/_ui.tsx                           
+src/app/lab/directory/page.lab.tsx                      
+src/app/lab/eggs/page.lab.tsx                           
+src/app/lab/everything/_findings.ts                     
+src/app/lab/everything/page.lab.tsx                     
+src/app/lab/feed-canvas/page.lab.tsx                    
+src/app/lab/feedback/page.lab.tsx                       
+src/app/lab/focus/page.lab.tsx                          
+src/app/lab/glass-edges/page.lab.tsx                    
+src/app/lab/groups-rethink/_data.ts                     
+src/app/lab/groups-rethink/_shell.tsx                   
+src/app/lab/groups-rethink/batches-interest/page.lab.tsx
+src/app/lab/groups-rethink/circles/page.lab.tsx         
+src/app/lab/groups-rethink/dissolve/page.lab.tsx        
+src/app/lab/groups-rethink/gatherings/page.lab.tsx      
+src/app/lab/groups-rethink/page.lab.tsx                 
+src/app/lab/hoopoe-lives/page.lab.tsx                   
+src/app/lab/hoopoe-marks/_parts.tsx                     
+src/app/lab/hoopoe-marks/page.lab.tsx                   
+src/app/lab/hoopoe/page.lab.tsx                         
+src/app/lab/icon-colours/page.lab.tsx                   
+src/app/lab/icon-directions/page.lab.tsx                
+src/app/lab/landing/page.lab.tsx                        
+src/app/lab/landings/_shared.ts                         
+src/app/lab/landings/_variant-clarity.tsx               
+src/app/lab/landings/_variant-editorial.tsx             
+src/app/lab/landings/_variant-livingvalley.tsx          
+src/app/lab/landings/_variant-noticeboard.tsx           
+src/app/lab/landings/_variant-postcard.tsx              
+src/app/lab/landings/page.lab.tsx                       
+src/app/lab/loading-ideas/page.lab.tsx                  
+src/app/lab/loading/page.lab.tsx                        
+src/app/lab/location-picker/page.lab.tsx                
+src/app/lab/logo/page.lab.tsx                           
+src/app/lab/logos/page.lab.tsx                          
+src/app/lab/mascot-moments/page.lab.tsx                 
+src/app/lab/new-post/_room.tsx                          
+src/app/lab/new-post/page.lab.tsx                       
+src/app/lab/page.lab.tsx                                
+src/app/lab/profiles/_chain-kit.tsx                     
+src/app/lab/profiles/_chain-rail.tsx                    
+src/app/lab/profiles/_chain-route.tsx                   
+src/app/lab/profiles/_chain-serpentine.tsx              
+src/app/lab/profiles/_chain-stave.tsx                   
+src/app/lab/profiles/_chain-stepped.tsx                 
+src/app/lab/profiles/_chain-zigzag.tsx                  
+src/app/lab/profiles/_data.ts                           
+src/app/lab/profiles/_houses-trail.tsx                  
+src/app/lab/profiles/_profile-avatar.tsx                
+src/app/lab/profiles/_variant-broadsheet.tsx            
+src/app/lab/profiles/_variant-dossier.tsx               
+src/app/lab/profiles/_variant-editorial.tsx             
+src/app/lab/profiles/_variant-field-guide.tsx           
+src/app/lab/profiles/_variant-letterhead-2.tsx          
+src/app/lab/profiles/_variant-letterhead-3.tsx          
+src/app/lab/profiles/_variant-letterhead.tsx            
+src/app/lab/profiles/_variant-passport.tsx              
+src/app/lab/profiles/_variant-terrace.tsx               
+src/app/lab/profiles/page.lab.tsx                       
+src/app/lab/reach/page.lab.tsx                          
+src/app/lab/spine-marker/page.lab.tsx                   
+src/app/lab/spine/_columns.tsx                          
+src/app/lab/spine/page.lab.tsx                          
+src/app/lab/support-ideas/_shared.tsx                   
+src/app/lab/support-ideas/_variant-aviary.tsx           
+src/app/lab/support-ideas/_variant-days.tsx             
+src/app/lab/support-ideas/_variant-plate.tsx            
+src/app/lab/support-ideas/_variant-stamps.tsx           
+src/app/lab/support-ideas/page.lab.tsx                  
+src/app/lab/support/_bars.tsx                           
+src/app/lab/support/page.lab.tsx                        
+src/app/lab/tiles/_specimens.tsx                        
+src/app/lab/tiles/page.lab.tsx                          
+src/app/lab/transitions/page.lab.tsx                    
+src/app/lab/type/_fonts.ts                              
+src/app/lab/type/_specimens.tsx                         
+src/app/lab/type/page.lab.tsx                           
+src/app/lab/v2/page.lab.tsx                             
+src/app/lab/valley/_hills.tsx                           
+src/app/lab/valley/_mark-light.tsx                      
+src/app/lab/valley/_room.tsx                            
+src/app/lab/valley/_seal.tsx                            
+src/app/lab/valley/_sun.ts                              
+src/app/lab/valley/_terminator.tsx                      
+src/app/lab/valley/_weather.ts                          
+src/app/lab/valley/hills/_hills-room.tsx                
+src/app/lab/valley/hills/page.lab.tsx                   
+src/app/lab/valley/page.lab.tsx                         
+src/app/lab/valley/seal/_seal-room.tsx                  
+src/app/lab/valley/seal/page.lab.tsx                    
+src/app/lab/viewer/page.lab.tsx                         
+src/app/lab/years/_index.tsx                            
+src/app/lab/years/page.lab.tsx                          
+src/app/lab/years/then/_then-room.tsx                   
+src/app/lab/years/then/_then.tsx                        
+src/app/lab/years/then/page.lab.tsx                     
+src/app/lab/years/wall/_wall-room.tsx                   
+src/app/lab/years/wall/_wall.tsx                        
+src/app/lab/years/wall/page.lab.tsx                     
+src/app/lab/years/weave/_weave-room.tsx                 
+src/app/lab/years/weave/_weave.tsx                      
+src/app/lab/years/weave/page.lab.tsx                    
+src/components/catchups/answer/answer-redirect.tsx      
+src/components/catchups/home/picture-picker-dialog.tsx  
+src/components/landing/ambient-leaves.tsx               
+src/components/landing/feature-section.tsx              
+src/components/landing/footer-hoopoe.tsx                
+src/components/landing/landing-footer.tsx               
+src/components/landing/landing-nav.tsx                  
+src/components/landing/perching-birds.tsx               
+src/components/landing/section-reveal.tsx               
+src/components/landing/shots.ts                         
+src/components/landing/showcase-shot.tsx                
+src/components/landing/showcase.tsx                     
+src/components/landing/trust-section.tsx                
+src/components/support/wood.tsx                         
+src/components/ui/card.tsx                              
+src/lib/catchups-export.ts                              
+src/lib/edge-light.ts                                   
+src/lib/magazine/from-export.ts                         
+src/lib/magazine/grammar.ts                             
+src/lib/magazine/image.ts                               
+src/lib/magazine/index.ts                               
+src/lib/magazine/measure.ts                             
+src/lib/magazine/paginate.ts                            
+src/lib/magazine/score.ts                               
+src/lib/magazine/types.ts                               
+src/lib/photo-suggest.ts                                
+Unused dependencies (2)
+@prisma/client  package.json:38:6
+prisma          package.json:54:6
+Unlisted dependencies (2)
+server-only  src/lib/comment-thread.ts:24:8
+server-only  src/lib/link-preview.ts:53:8  
+Unused exports (147)
+setCatchupPicture              function  src/app/(main)/catchups/actions.ts:797:23                   
+setEditionTimeCapsule          function  src/app/(main)/catchups/actions.ts:1636:23                  
+myPendingPhotos                function  src/app/(main)/collection/collection-data.ts:312:23         
+RAIL_MIN_WINDOW                          src/components/catchups/edition/reader.tsx:114:14           
+HEAD_HEIGHT_PHONE                        src/components/catchups/home/home-head.tsx:40:14            
+HEAD_HEIGHT                              src/components/catchups/home/home-head.tsx:41:14            
+settingsGroups                 function  src/components/catchups/settings/settings-surface.tsx:357:17
+confirmCopy                    function  src/components/catchups/settings/settings-surface.tsx:711:17
+bandsOf                        function  src/components/collection/photo-river.tsx:304:17            
+READING_LINE                             src/components/collection/photo-river.tsx:360:14            
+RIVER_ORDERS                             src/components/collection/river-controls.tsx:64:14          
+orderLabel                               src/components/collection/river-controls.tsx:71:14          
+ARCHETYPES                               src/components/common/bird-avatar-v2.tsx:1613:14            
+PEAK_PLANES                              src/components/layout/peaks-mark.tsx:105:14                 
+seedVerdict                    function  src/components/layout/unread-store.ts:107:17                
+resetUnreadStore               function  src/components/layout/unread-store.ts:132:17                
+DialogTrigger                            src/components/ui/dialog.tsx:204:3                          
+BIRD_SPECIES_COUNT                       src/lib/avatar.ts:44:14                                     
+BIRD_POSE_COUNT                          src/lib/avatar.ts:47:14                                     
+HOOPOE_HASH_REMAP_INDEX                  src/lib/avatar.ts:110:14                                    
+ensureBatchCatchup             function  src/lib/batch-catchups.ts:146:23                            
+healBatchGroupMemberships      function  src/lib/batch-catchups.ts:218:23                            
+healBatchCatchups              function  src/lib/batch-catchups.ts:267:23                            
+FIRST_BATCH_YEAR                         src/lib/batch-year.ts:24:14                                 
+LAST_BATCH_YEAR                          src/lib/batch-year.ts:25:14                                 
+ACTION_FAILED                            src/lib/call-action.ts:23:14                                
+captionNeedsTidying                      src/lib/caption-tidy.ts:95:14                               
+DEFAULT_PICTURE_FOCUS                    src/lib/catchup-pictures.ts:51:14                           
+PICTURE_BAND                             src/lib/catchup-pictures.ts:140:14                          
+PICTURE_BAND_RATIO                       src/lib/catchup-pictures.ts:144:14                          
+bandKeptFraction               function  src/lib/catchup-pictures.ts:153:17                          
+CATCHUP_PICTURES                         src/lib/catchup-pictures.ts:192:14                          
+PICTURE_FOCUS_PATTERN                    src/lib/catchup-pictures.ts:284:14                          
+LIST_GRID_SLOTS                          src/lib/catchup-shelf.ts:48:14                              
+DAY_MS                                   src/lib/catchups-core.ts:81:14                              
+HOUR_MS                                  src/lib/catchups-core.ts:82:14                              
+REMINDER_TWO_DAYS                        src/lib/catchups-core.ts:106:14                             
+REMINDER_LAST_DAY                        src/lib/catchups-core.ts:107:14                             
+REMINDER_EXTENDED                        src/lib/catchups-core.ts:108:14                             
+dailyBucket                    function  src/lib/catchups-core.ts:144:17                             
+withDailyBucket                function  src/lib/catchups-core.ts:149:17                             
+daysLeftUntil                  function  src/lib/catchups-core.ts:158:17                             
+addDays                        function  src/lib/catchups-core.ts:312:17                             
+snapToDeadlineHour             function  src/lib/catchups-core.ts:351:17                             
+capsuleOpensAt                 function  src/lib/catchups-core.ts:384:17                             
+computeStatus                  function  src/lib/catchups-core.ts:659:17                             
+valleyDaysLeft                 function  src/lib/catchups-core.ts:1108:17                            
+THUMB_PX                                 src/lib/collection-image.ts:24:14                           
+SCREEN_PX                                src/lib/collection-image.ts:44:14                           
+THUMB_PX                                 src/lib/collection-photo.ts:31:10                           
+exifBlockOf                              src/lib/collection-photo.ts:31:34                           
+ERAS                                     src/lib/collection.ts:160:14                                
+eraLabel                                 src/lib/collection.ts:178:14                                
+ERA_START_YEAR                           src/lib/collection.ts:344:14                                
+eraSortYear                              src/lib/collection.ts:359:14                                
+eraSeekBoundary                function  src/lib/collection.ts:369:17                                
+eraPhrase                      function  src/lib/collection.ts:482:17                                
+CONTRIBUTION_STATUSES                    src/lib/contribution-state.ts:22:14                         
+canBecomePaid                  function  src/lib/contribution-state.ts:42:17                         
+UNCOUNTED_GIVER_IDS                      src/lib/contribution-state.ts:83:14                         
+DEMO_CLOSED_PATHS                        src/lib/demo.ts:297:14                                      
+dailyBudget                    function  src/lib/email-queue.ts:394:23                               
+SEND_TIMEOUT_MS                          src/lib/email.ts:79:14                                      
+parseExifStamp                           src/lib/exif-date.ts:37:10                                  
+H                                        src/lib/hoopoe-geometry.ts:32:14                            
+G                                        src/lib/hoopoe-geometry.ts:48:14                            
+featherPrims                   function  src/lib/hoopoe-geometry.ts:96:17                            
+crestPrims                     function  src/lib/hoopoe-geometry.ts:190:17                           
+eyePrims                       function  src/lib/hoopoe-geometry.ts:228:17                           
+billPrims                      function  src/lib/hoopoe-geometry.ts:252:17                           
+facePrims                      function  src/lib/hoopoe-geometry.ts:277:17                           
+bodyPrims                      function  src/lib/hoopoe-geometry.ts:302:17                           
+PEEK_AXIS                                src/lib/hoopoe-geometry.ts:320:14                           
+PEEK_CREST                               src/lib/hoopoe-geometry.ts:331:14                           
+peekPrims                      function  src/lib/hoopoe-geometry.ts:350:17                           
+UPLOAD_BODY_LIMIT                        src/lib/image-downscale.ts:90:14                            
+MAX_STORED_PIXELS                        src/lib/image.ts:71:14                                      
+storedPixelFit                 function  src/lib/image.ts:82:17                                      
+WEBP_MAX_DIM                             src/lib/image.ts:100:14                                     
+UNKNOWN_FOCAL                            src/lib/image.ts:183:14                                     
+focalFraction                  function  src/lib/image.ts:244:17                                     
+SESSION_GAP_MIN                          src/lib/last-seen.ts:26:14                                  
+MAX_URL_LENGTH                           src/lib/link-preview-core.ts:41:14                          
+decodeEntities                 function  src/lib/link-preview-core.ts:341:17                         
+RETRY_AFTER_MS                           src/lib/link-preview-core.ts:430:14                         
+ensureLinkPreviews             function  src/lib/link-preview.ts:364:23                              
+drainEligible                  function  src/lib/mail-policy.ts:109:17                               
+drainHasWork                   function  src/lib/mail-policy.ts:328:17                               
+TAP_MIN_PX                               src/lib/map-cluster.ts:66:14                                
+hitRadiusU                     function  src/lib/map-cluster.ts:119:17                               
+ID_SEGMENT                               src/lib/page-label.ts:14:14                                 
+TALL_TARGET                              src/lib/photo-layout.ts:49:14                               
+PHOTO_MAX_HEIGHT                         src/lib/photo-layout.ts:88:14                               
+AIM_Y                                    src/lib/photo-layout.ts:118:14                              
+AIM_WIDE_Y                               src/lib/photo-layout.ts:132:14                              
+CROP_BUDGET                              src/lib/photo-layout.ts:156:14                              
+CAROUSEL_BOX_CAP                         src/lib/photo-layout.ts:381:14                              
+carouselHeight                 function  src/lib/photo-layout.ts:411:17                              
+drawnSize                      function  src/lib/photo-layout.ts:506:17                              
+PHOTO_SCOPES                             src/lib/photo-visibility-rule.ts:23:14                      
+MAX_CLASS_YEARS                          src/lib/photo-visibility-rule.ts:70:14                      
+classYearsOf                   function  src/lib/photo-visibility-rule.ts:96:17                      
+storedClassYears               function  src/lib/photo-visibility-rule.ts:116:17                     
+classYearsInclude              function  src/lib/photo-visibility-rule.ts:129:17                     
+isValley                       function  src/lib/photo-visibility-rule.ts:144:17                     
+PHOTO_NOT_VISIBLE                        src/lib/photo-visibility-rule.ts:152:14                     
+UNMEASURED_RATIO                         src/lib/photo-wall.ts:44:14                                 
+MAX_PLACES                               src/lib/place-input.ts:23:14                                
+batchTargetsInclude            function  src/lib/post-visibility-rule.ts:157:17                      
+PROFESSION_TAGS                          src/lib/profession-tags.ts:39:14                            
+TAG_VALUES                               src/lib/profession-tags.ts:91:14                            
+TAG_MAX_PER_PERSON                       src/lib/profession-tags.ts:149:14                           
+VOCAB_MAX                                src/lib/profession-tags.ts:162:14                           
+TAG_RULES                                src/lib/profession-tags.ts:300:14                           
+FOLD_EARLIEST_BREAK                      src/lib/read-more-fold.ts:22:14                             
+FOLD_GRACE                               src/lib/read-more-fold.ts:26:14                             
+BAND_HEADING                             src/lib/river-geometry.ts:68:14                             
+BAND_HEADING_GAP                         src/lib/river-geometry.ts:69:14                             
+BAND_SEPARATION                          src/lib/river-geometry.ts:70:14                             
+BAND_GRID_TAIL                           src/lib/river-geometry.ts:71:14                             
+RIVER_GAP                                src/lib/river-geometry.ts:74:14                             
+gridHeightOf                   function  src/lib/river-geometry.ts:83:17                             
+targetFor                      function  src/lib/river-geometry.ts:124:17                            
+riverHeightOf                  function  src/lib/river-geometry.ts:224:17                            
+bandAt                         function  src/lib/river-geometry.ts:232:17                            
+stripRosterInitials            function  src/lib/roster-rule.ts:34:17                                
+filenameDate                   function  src/lib/taken-date.ts:285:17                                
+verifyTurnstile                function  src/lib/turnstile.ts:112:23                                 
+uploadOneImage                 function  src/lib/upload-client.ts:122:23                             
+MAX_IMAGE_URL                            src/lib/upload-ownership-rule.ts:34:14                      
+ownUploadsPrefix               function  src/lib/upload-ownership-rule.ts:37:17                      
+valleyDayStart                 function  src/lib/utils.ts:69:17                                      
+firstGrapheme                  function  src/lib/utils.ts:169:17                                     
+truncateGraphemes              function  src/lib/utils.ts:187:17                                     
+VOICE_MIN_SECONDS                        src/lib/voice-answer-rule.ts:21:14                          
+VOICE_CEILING_BITS_PER_SECOND            src/lib/voice-answer-rule.ts:34:14                          
+VOICE_CONTAINER_SLACK_BYTES              src/lib/voice-answer-rule.ts:38:14                          
+VOICE_FORMATS                            src/lib/voice-answer-rule.ts:69:14                          
+STAGED_VOICE_KEY                         src/lib/voice-answer-rule.ts:152:14                         
+STORED_VOICE_KEY                         src/lib/voice-answer-rule.ts:155:14                         
+ownAudioPrefix                 function  src/lib/voice-answer-rule.ts:158:17                         
+MAX_VOICE_URL                            src/lib/voice-answer-rule.ts:173:14                         
+isStoredVoiceUrl               function  src/lib/voice-answer.ts:15:17                               
+VOTE_MIN_CHOICES                         src/lib/vote-question-rule.ts:24:14                         
+VOTE_CHOICE_MAX                          src/lib/vote-question-rule.ts:30:14                         
+MAX_CHOICE_ID                            src/lib/vote-question-rule.ts:81:14                         
+voteResult                     function  src/lib/vote-question-rule.ts:158:17                        
+Unused exported types (11)
+BandCount          type  src/app/(main)/collection/actions.ts:680:13
+AdminCountKey      type  src/components/admin/admin-nav.ts:30:13    
+CatchupIndexCard   type  src/lib/catchups-types.ts:222:13           
+SerializedComment  type  src/lib/comment-thread.ts:93:13            
+FeatherOptions     type  src/lib/hoopoe-geometry.ts:63:13           
+CrestOptions       type  src/lib/hoopoe-geometry.ts:173:13          
+LinkKind           type  src/lib/link-preview-core.ts:25:13         
+BotCheckFailure    type  src/lib/turnstile.ts:90:13                 
+VoteChoiceRow      type  src/lib/vote-question-rule.ts:129:13       
+VoteAnswerRow      type  src/lib/vote-question-rule.ts:131:13       
+VoteResult         type  src/lib/vote-question-rule.ts:138:13       
+EXIT=1

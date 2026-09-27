@@ -1,0 +1,89 @@
+### next/dynamic + import() sites (src, non-generated)
+src/app/not-found.tsx:4:import dynamic from "next/dynamic";
+src/app/not-found.tsx:27:  () => import("@/components/mascot/moments/not-found-stage"),
+src/app/lab/landings/_shared.ts:58:  shot: { name: keyof typeof import("@/components/landing/shots").SHOTS; alt: string };
+src/components/guide/guide-door.tsx:100:      onPointerEnter={() => void import("./guide-body")}
+src/components/guide/guide-door.tsx:101:      onFocus={() => void import("./guide-body")}
+src/components/guide/guide-layer.tsx:14:import dynamic from "next/dynamic";
+src/components/guide/guide-layer.tsx:28:const GuideBody = dynamic(() => import("./guide-body").then((m) => m.GuideBody), {
+src/components/settings/avatar-upload.ts:103:      const { shrinkForUpload } = await import("@/lib/image-downscale");
+src/components/collection/collection-client.tsx:32:import dynamic from "next/dynamic";
+src/components/collection/collection-client.tsx:73:  () => import("@/components/common/confirm-dialog").then((m) => m.ConfirmDialog),
+src/components/collection/collection-client.tsx:77:  () => import("./contribute-room").then((m) => m.ContributeDialog),
+src/components/collection/collection-client.tsx:81:  () => import("@/components/admin/moderation-dialog").then((m) => m.ModerationDialog),
+src/components/collection/collection-client.tsx:85:  () => import("./edit-photo-dialog").then((m) => m.EditPhotoDialog),
+src/components/collection/collection-client.tsx:1331:   *  the whole material. `import()`ing them early does not fix it; the loader
+src/components/letters/letter-menu.tsx:4:import dynamic from "next/dynamic";
+src/components/letters/letter-menu.tsx:55:  () => import("@/components/common/confirm-dialog").then((m) => m.ConfirmDialog),
+src/components/letters/letter-menu.tsx:59:  () => import("@/components/posts/report-dialog").then((m) => m.ReportDialog),
+src/components/letters/letter-menu.tsx:63:  () => import("@/components/posts/edit-post-dialog").then((m) => m.EditPostDialog),
+src/components/letters/letter-menu.tsx:67:  () => import("@/components/admin/moderation-dialog").then((m) => m.ModerationDialog),
+src/components/letters/letter-engagement.tsx:4:import dynamic from "next/dynamic";
+src/components/letters/letter-engagement.tsx:23:  import("@/components/posts/comments-section").then((m) => m.CommentsSection)
+src/components/posts/create-post-form.tsx:5:import dynamic from "next/dynamic";
+src/components/posts/create-post-form.tsx:43:const PollCreator = dynamic(() => import("./poll-creator").then((m) => m.PollCreator), {
+src/components/posts/create-post-form.tsx:47:  () => import("./mention-dropdown").then((m) => m.MentionDropdown),
+src/components/posts/create-post-form.tsx:51:  () => import("@/components/common/attach-image-dialog").then((m) => m.AttachImageDialog),
+src/components/posts/create-post-form.tsx:319:    void import("./poll-creator");
+src/components/posts/create-post-form.tsx:320:    void import("./mention-dropdown");
+src/components/posts/create-post-form.tsx:321:    void import("@/components/common/attach-image-dialog");
+src/components/posts/post-card.tsx:4:import dynamic from "next/dynamic";
+src/components/posts/post-card.tsx:74:  () => import("./comments-section").then((m) => m.CommentsSection),
+src/components/posts/post-card.tsx:77:const ReportDialog = dynamic(() => import("./report-dialog").then((m) => m.ReportDialog), {
+src/components/posts/post-card.tsx:81:  () => import("./edit-post-dialog").then((m) => m.EditPostDialog),
+src/components/posts/post-card.tsx:85:  () => import("@/components/admin/moderation-dialog").then((m) => m.ModerationDialog),
+src/components/posts/post-card.tsx:88:const preloadComments = () => void import("./comments-section");
+src/components/mascot/hoopoe-warmup.tsx:56:    void import("./hoopoe");
+src/components/mascot/moments/not-found-stage.tsx:11: *  with `next/dynamic`: that file is the ROOT not-found boundary, so Next
+src/components/directory/directory-client.tsx:18:import dynamic from "next/dynamic";
+src/components/directory/directory-client.tsx:46:const preloadAlumniMap = () => void import("./alumni-map");
+src/components/directory/directory-client.tsx:48:const AlumniMap = dynamic(() => import("./alumni-map").then((m) => m.AlumniMap), {
+src/components/admin/people/person-detail.tsx:25:import dynamic from "next/dynamic";
+src/components/admin/people/person-detail.tsx:582:  () => import("@/components/common/location-picker").then((m) => m.LocationPicker)
+src/components/mascot/mascot-flight-layer.tsx:30:import dynamic from "next/dynamic";
+src/components/mascot/mascot-flight-layer.tsx:48:const Hoopoe = dynamic<HoopoeProps>(() => import("./hoopoe").then((m) => m.Hoopoe), { ssr: false });
+src/components/mascot/sidebar-hoopoe.tsx:37:import dynamic from "next/dynamic";
+src/components/mascot/sidebar-hoopoe.tsx:50:   shape here: next/dynamic's wrapper does not forward refs, so a `ref` would
+src/components/mascot/sidebar-hoopoe.tsx:56:  () => import("./hoopoe").then((m) => m.Hoopoe),
+src/components/mascot/moments/logo-easter-egg-hoopoe.tsx:27:import dynamic from "next/dynamic";
+src/components/mascot/moments/logo-easter-egg-hoopoe.tsx:34:const loadPeek = () => import("./logo-peek").then((m) => m.LogoPeek);
+src/components/common/lazy-image-viewer.tsx:7: *  the same four things: the `dynamic()`, the bare `import()` that warms it,
+src/components/common/lazy-image-viewer.tsx:26:import dynamic from "next/dynamic";
+src/components/common/lazy-image-viewer.tsx:29:  () => import("@/components/common/image-viewer").then((m) => m.ImageViewer),
+src/components/common/lazy-image-viewer.tsx:33:export const preloadImageViewer = () => void import("@/components/common/image-viewer");
+src/components/common/motion-features-max.ts:3:   import. `import("motion/react").then((m) => m.domMax)` makes it evaluate
+src/components/common/motion-features-max.ts:8:   and `import("./motion-features-max")` then asks for exactly domMax's graph.
+src/components/common/float-field.tsx:4:import dynamic from "next/dynamic";
+src/components/common/float-field.tsx:22:  () => import("@/components/common/info-tooltip").then((m) => m.InfoTooltip),
+src/components/directory/alumni-map.tsx:233:   component is loaded through next/dynamic there, so importing this constant
+src/components/profile/letterhead-profile.tsx:47:import dynamic from "next/dynamic";
+src/components/profile/letterhead-profile.tsx:129:  () => import("@/components/common/location-picker").then((m) => m.LocationPicker),
+src/components/profile/letterhead-profile.tsx:138:  import("@/components/profile/house-chain-editor").then((m) => m.HouseChainEditor)
+src/components/profile/letterhead-profile.tsx:141:  () => import("@/components/profile/contacts-editor").then((m) => m.ContactsEditor),
+src/components/profile/letterhead-profile.tsx:145:  () => import("@/components/common/attach-image-dialog").then((m) => m.AttachImageDialog),
+src/components/profile/letterhead-profile.tsx:149:  () => import("@/components/settings/avatar-crop-dialog").then((m) => m.AvatarCropDialog),
+src/components/profile/letterhead-profile.tsx:431:    void import("@/components/profile/house-chain-editor");
+src/components/profile/letterhead-profile.tsx:432:    void import("@/components/profile/contacts-editor");
+src/components/profile/letterhead-profile.tsx:433:    void import("@/components/common/location-picker");
+src/components/profile/letterhead-profile.tsx:434:    void import("@/components/common/attach-image-dialog");
+src/components/profile/letterhead-profile.tsx:435:    void import("@/components/settings/avatar-crop-dialog");
+src/components/common/motion-features.tsx:34:/* Through its own module, not `import("motion/react").then((m) => m.domMax)`:
+src/components/common/motion-features.tsx:37:const loadDomMax = () => import("./motion-features-max").then((mod) => mod.default);
+src/components/catchups/edition/reader-parts.tsx:46:import dynamic from "next/dynamic";
+src/components/catchups/edition/reader-parts.tsx:514:  () => import("@/components/posts/comments-section").then((m) => m.CommentsSection),
+src/components/catchups/edition/reader-parts.tsx:517:const preloadComments = () => void import("@/components/posts/comments-section");
+src/components/onboarding/onboarding-flow.tsx:37:import dynamic from "next/dynamic";
+src/components/onboarding/onboarding-flow.tsx:61:const RegisterStep = dynamic(() => import("./steps/register-step").then((m) => m.RegisterStep));
+src/components/onboarding/onboarding-flow.tsx:62:const HousesStep = dynamic(() => import("./steps/houses-step").then((m) => m.HousesStep));
+src/components/onboarding/onboarding-flow.tsx:63:const PhotoStep = dynamic(() => import("./steps/photo-step").then((m) => m.PhotoStep));
+src/components/onboarding/onboarding-flow.tsx:66:  register: () => import("./steps/register-step"),
+src/components/onboarding/onboarding-flow.tsx:67:  houses: () => import("./steps/houses-step"),
+src/components/onboarding/onboarding-flow.tsx:68:  photo: () => import("./steps/photo-step"),
+src/components/analytics/posthog-client.ts:62:  void import("posthog-js")
+src/lib/storage.ts:223:  const { copyFile } = await import("fs/promises");
+src/lib/storage.ts:243:    const { open } = await import("fs/promises");
+src/lib/storage.ts:287:      const { stat } = await import("fs/promises");
+
+### counts all / non-lab
+      84
+      83

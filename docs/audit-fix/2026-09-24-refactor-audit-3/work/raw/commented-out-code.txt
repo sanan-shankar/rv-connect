@@ -1,0 +1,15 @@
+### commented-out code candidates
+src/app/lab/directory/_maps.tsx:905:      // <path> with a fill; counting the former is what "objects you can
+src/components/ui/button.tsx:141:// <Plus/> element (its `type` is the component object), while a Server
+src/components/landing/landing-footer.tsx:36:            // <Button>, so keep it in lockstep by hand.
+src/components/mascot/hoopoe.tsx:801:      // let its keyframes race the warps for the same properties, and a caller
+src/components/mascot/hoopoe.tsx:1060:    // function then awaited. A superseded animation's `.finished` never
+src/components/mascot/moments/not-found-stage.tsx:117:// await in this file goes through here. Resolves TRUE if the awaited thing
+src/components/support/bird-picker.tsx:62:      // return to re-test.)
+src/lib/upload-shared.test.mjs:37:  // function is what vouches for a URL before it is embedded (audit M10).
+src/lib/city-coords.ts:163:  // return an inherited member (Object, Object.prototype) -- truthy, no
+src/lib/auth-tokens.ts:224:  // function the instant a response streams, which raced this delete and lost
+src/lib/skeleton-words-rule.test.mjs:54:  // <TextSkeleton>Appearance</TextSkeleton>
+scripts/qa/npm-audit-gate.mjs:79:// import gateVerdict without triggering an npm audit.
+scripts/qa/hoopoe-zoom-probe.mjs:40:  // let layout settle at the new zoom
+scripts/qa/hoopoe-landing-check.mjs:82:  // <section>.

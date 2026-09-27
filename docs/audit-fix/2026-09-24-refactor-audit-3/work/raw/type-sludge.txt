@@ -1,0 +1,110 @@
+### type sludge, non-lab non-generated src
+## : any:        6
+src/app/(main)/catchups/actions.ts:20: *  The lazy-advance touchpoint (spec 2.4): any action that reads an Edition's
+src/components/collection/photo-river.tsx:210:           THE TRAP GENERALISES: any `transition-[...transform...]` in this
+src/components/admin/analytics/compare.tsx:6: *  Compare: any measure, any way of grouping people.
+src/components/mascot/hoopoe-playground.tsx:189:    // rather than asking the scene for its first <svg>: any icon dropped into
+src/lib/profession-tags.ts:250: * are free text: any separator character a person could not type is also
+src/lib/demo-seed/seed.ts:20: *  database legible when something goes wrong: any cuid in the demo
+
+## as any:        3
+src/components/catchups/answer/song-attachment.tsx:11: *  song answer saves through the same path as any other answer.
+src/components/catchups/edition/photo-run.tsx:39: *  the same as any answer. So the answering half needed nothing built --
+src/lib/prisma.ts:99:// commit as any schema change. That is a rule which works right up until
+
+## as unknown as:       13
+src/components/mascot/hoopoe.tsx:262:  const anim = animate as unknown as (
+src/components/mascot/hoopoe.tsx:271:  const NOOP = { finished: Promise.resolve(), stop() {} } as unknown as AnimationPlaybackControls;
+src/components/mascot/hoopoe.tsx:1278:      const fn = (api as unknown as Record<string, (...a: unknown[]) => Promise<void>>)[name];
+src/components/common/motion.tsx:162:  const Comp = (m as unknown as Record<string, typeof m.button>)[as] ?? m.button;
+src/components/directory/alumni-map.tsx:105:  const land = feature(topo, topo.objects.countries) as unknown as {
+src/components/common/flush-avatar.tsx:67:      const box = (svg as unknown as SVGGraphicsElement).getBBox();
+src/components/support/support-contribute.tsx:113:    if ((window as unknown as { Razorpay?: RazorpayCtor }).Razorpay) return resolve();
+src/components/support/support-contribute.tsx:186:    const Razorpay = (window as unknown as { Razorpay?: RazorpayCtor }).Razorpay;
+src/lib/prisma.ts:7:const globalForPrisma = globalThis as unknown as {
+src/lib/prisma.ts:90:  }) as unknown as PrismaClient;
+src/lib/prisma.ts:147:const globalForPrismaKey = globalThis as unknown as { prismaKey: string | undefined };
+src/lib/prisma.ts:151:  Object.entries(Prisma as unknown as Record<string, unknown>)
+src/lib/link-preview.ts:176:        lookup: guardedLookup as unknown as LookupFunction,
+
+## eslint-disable:       52
+src/app/(auth)/reset-password/reset-client.tsx:153:      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+src/components/demo/demo-bar.tsx:73:      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the hard reload IS the point; see above.
+src/components/settings/nightfall.tsx:66:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/collection/photo-river.tsx:122:      {/* eslint-disable-next-line @next/next/no-img-element */}
+src/app/(main)/profile/[id]/page.tsx:386:            {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/posts/create-post-form.tsx:260:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/posts/create-post-form.tsx:771:                  {/* eslint-disable-next-line @next/next/no-img-element -- local
+src/components/posts/post-card.tsx:616:                        {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/settings/dark-gauntlet.tsx:504:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/posts/use-letter-persistence.ts:270:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/posts/use-letter-persistence.ts:363:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/landing/landing-hero.tsx:190:      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reveals from the image's load state, including the cache-hit case where the element is already complete and onLoad will never fire.
+src/components/landing/landing-hero.tsx:387:                  /* eslint-disable-next-line no-restricted-syntax -- "surfaces are never pure
+src/components/landing/section-reveal.tsx:32:    // eslint-disable-next-line react-hooks/set-state-in-effect -- Arms the hidden start state, then reveals from an IntersectionObserver.
+src/components/posts/use-composer-uploads.ts:138:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/mascot/use-flight-arrival.ts:168:    // eslint-disable-next-line react-hooks/set-state-in-effect -- deliberate pre-paint lift; see the comment above
+src/components/mascot/moments/contributed-hoopoe.tsx:199:                {/* eslint-disable-next-line @next/next/no-img-element -- a local object URL for a file that has not been served from anywhere yet; next/image cannot load it. */}
+src/components/mascot/moments/one-hoopoe-guard.ts:33:    // eslint-disable-next-line react-hooks/set-state-in-effect -- Asks the DOM whether another hoopoe is already on screen. Only answerable after mount.
+src/components/admin/content/content-list.tsx:156:                /* eslint-disable-next-line @next/next/no-img-element */
+src/components/auth/signup-form.tsx:37:    // eslint-disable-next-line react-hooks/set-state-in-effect -- Asks matchMedia whether the device has a real pointer. A media query has no server-side answer, so this has to happen after mount.
+src/components/directory/alumni-map.tsx:315:  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+src/components/directory/alumni-map.tsx:427:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/mascot/sidebar-hoopoe.tsx:102:    // eslint-disable-next-line react-hooks/set-state-in-effect -- Subscribes to the md breakpoint and mirrors it into state, so the idle machinery only ever arms on desktop.
+src/components/mascot/sidebar-hoopoe.tsx:117:      // eslint-disable-next-line react-hooks/set-state-in-effect -- Tears the idle machinery down when the breakpoint stops matching, rather than leaving a bird stranded mid-flight.
+src/components/mascot/moments/logo-peek.tsx:196:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/directory/directory-grid.tsx:248:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/common/rich-text-area.tsx:61:    // eslint-disable-next-line react-hooks/exhaustive-deps -- initial value only; later edits live in the DOM
+src/components/mascot/hoopoe.tsx:1298:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/mascot/hoopoe.tsx:1309:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/mascot/hoopoe.tsx:1421:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/mascot/moments/celebration-detector.tsx:161:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/mascot/moments/not-found-stage.tsx:355:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/common/photo-frame.tsx:63:    // eslint-disable-next-line @next/next/no-img-element
+src/components/common/photo-frame.tsx:130:      // eslint-disable-next-line @next/next/no-img-element
+src/components/common/photo-frame.tsx:148:      {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/common/photo-carousel.tsx:270:              {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/common/location-picker.tsx:147:      // eslint-disable-next-line react-hooks/set-state-in-effect -- Clears the result list the moment the query empties, before any request is issued.
+src/components/common/location-picker.tsx:274:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/mascot/moments/celebration-signals.tsx:1:/* eslint-disable react-hooks/purity --
+src/components/common/photo-aim.tsx:287:          {/* eslint-disable-next-line @next/next/no-img-element -- an R2 url
+src/components/common/image-viewer.tsx:821:                      {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/profile/admin-profile-tools.tsx:186:            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+src/components/profile/house-chain-editor.tsx:115:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/feed/rail/collection-module.tsx:104:          {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/feed/rail/pulse-module.tsx:1:/* eslint-disable react-hooks/purity --
+src/components/feed/rail/letters-module.tsx:1:/* eslint-disable react-hooks/purity --
+src/components/catchups/answer/answer-redirect.tsx:20:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/catchups/edition/reader-parts.tsx:440:          {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/onboarding/onboarding-flow.tsx:147:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/catchups/home/picture-picker-dialog.tsx:218:            {/* eslint-disable-next-line @next/next/no-img-element -- one frame
+src/components/catchups/home/picture-picker-dialog.tsx:263:                {/* eslint-disable-next-line @next/next/no-img-element -- see above */}
+src/components/catchups/answer/photo-attachments.tsx:112:            {/* eslint-disable-next-line @next/next/no-img-element */}
+
+## @ts-ignore:        0
+
+## @ts-expect-error:        0
+
+## as object:       13
+src/components/collection/contribute-room.tsx:1218:        {...({ type: "button" } as object)}
+src/components/posts/create-post-form.tsx:919:              } as object)}
+src/components/posts/create-post-form.tsx:944:                  } as object)}
+src/components/posts/comments-section.tsx:621:            } as object)}
+src/components/common/image-viewer.tsx:34: *     That is the one thing the owner has objected to twice ("when the
+src/components/common/image-viewer.tsx:577:     is the graininess he has objected to twice -- so a small photograph keeps
+src/components/common/attach-image-dialog.tsx:188:      } as object)}
+src/components/common/location-picker.tsx:319:                  {...({ type: "button", "aria-label": `Remove ${place.label}` } as object)}
+src/components/common/location-picker.tsx:361:              {...({ type: "button", "aria-label": "Clear city" } as object)}
+src/components/common/tag-input.tsx:91:                  {...({ type: "button", "aria-label": `Remove ${tag}` } as object)}
+src/lib/prisma.ts:156:    .map(([name, value]) => `${name}(${Object.keys(value as object).sort().join("|")})`)
+src/components/catchups/answer/photo-attachments.tsx:127:              {...({ type: "button", "aria-label": "Remove photo" } as object)}
+src/components/catchups/answer/photo-attachments.tsx:141:            {...({ type: "button", disabled: uploading, "aria-label": "Add a photo" } as object)}
+
+## lab-only counts
+: any:        2
+as any:        2
+as unknown as:       10
+eslint-disable:       19
+@ts-ignore:        0
+@ts-expect-error:        1
+as object:       26

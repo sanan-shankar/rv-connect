@@ -1,0 +1,9 @@
+### console.* (src, non-generated)
+src/app/api/resend/webhook/route.ts:174:          console.info(`[resend] ${event.type} matched on retry for email_id ${providerId}`);
+src/lib/prisma.ts:166:    console.info("[prisma] schema changed; rebuilding the dev client");
+src/lib/account-purge.ts:404:      console.info(`[purge] ${userId} was not deleted: the request no longer stands`);
+src/lib/retention.ts:324:    console.info(
+src/lib/retention.ts:330:    console.info(`[retention] purge batch full (${due}); more accounts are due tomorrow`);
+src/lib/email.ts:173:    console.info(
+src/lib/email.ts:196:    console.info(
+src/lib/email-queue.ts:354:      console.info(

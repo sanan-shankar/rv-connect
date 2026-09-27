@@ -1,0 +1,25 @@
+[1mClone found (typescript)[22m
+ - [1m[32mcollection-seek.spec.ts[39m[22m [111:40 - 119:16] (9 lines, 58 tokens)
+   collection-seek.spec.ts [539:43 - 543:16]
+[1mClone found (typescript)[22m
+ - [1m[32mcollection-seek.spec.ts[39m[22m [129:80 - 142:8] (14 lines, 51 tokens)
+   collection-seek.spec.ts [381:89 - 391:8]
+[1mClone found (typescript)[22m
+ - [1m[32mcollection-seek.spec.ts[39m[22m [478:57 - 484:75] (7 lines, 53 tokens)
+   collection-seek.spec.ts [631:23 - 640:73]
+[1mClone found (typescript)[22m
+ - [1m[32mcollection-seek.spec.ts[39m[22m [546:80 - 560:8] (15 lines, 52 tokens)
+   collection-seek.spec.ts [579:78 - 586:8]
+[1mClone found (typescript)[22m
+ - [1m[32mcollection-seek.spec.ts[39m[22m [584:82 - 591:27] (8 lines, 80 tokens)
+   collection-seek.spec.ts [607:41 - 614:27]
+[90m┌────────────┬────────────────┬─────────────┬──────────────┬──────────────┬──────────────────┬───────────────────┐[39m
+[90m│[39m[31m Format     [39m[90m│[39m[31m Files analyzed [39m[90m│[39m[31m Total lines [39m[90m│[39m[31m Total tokens [39m[90m│[39m[31m Clones found [39m[90m│[39m[31m Duplicated lines [39m[90m│[39m[31m Duplicated tokens [39m[90m│[39m
+[90m├────────────┼────────────────┼─────────────┼──────────────┼──────────────┼──────────────────┼───────────────────┤[39m
+[90m│[39m typescript [90m│[39m 10             [90m│[39m 1911        [90m│[39m 8744         [90m│[39m 5            [90m│[39m 53 (2.77%)       [90m│[39m 294 (3.36%)       [90m│[39m
+[90m├────────────┼────────────────┼─────────────┼──────────────┼──────────────┼──────────────────┼───────────────────┤[39m
+[90m│[39m [1mTotal:[22m     [90m│[39m 10             [90m│[39m 1911        [90m│[39m 8744         [90m│[39m 5            [90m│[39m 53 (2.77%)       [90m│[39m 294 (3.36%)       [90m│[39m
+[90m└────────────┴────────────────┴─────────────┴──────────────┴──────────────┴──────────────────┴───────────────────┘[39m
+[90mFound 5 clones.[39m
+[90mtime: 26.610ms[39m
+EXIT=0

@@ -1,0 +1,9 @@
+{
+ "command": "SELECT",
+ "rowCount": 1,
+ "rows": [
+  {
+   "stats_reset": "2026-05-22T15:13:20.515Z"
+  }
+ ]
+}

@@ -1,0 +1,32 @@
+# Top-30 client chunks in .next/static/chunks by raw bytes (HEAD 70570bcd, 2026-09-24). gz = gzip -6. 'eager' = routes whose first load includes it.
+# 311 JS chunks, 8094 KB raw / 2727 KB gz in total.
+   429 KB    128.7 KB gz  1h284jke63n28.js           eager on   2 route(s): /lab/catchups/sketches, /lab/catchups/capsule
+   245 KB     79.3 KB gz  24740q0lmcv1n.js           eager on   0 route(s) (lazy-only)
+   226 KB     70.6 KB gz  0n3nl7s6okyju.js           eager on 118 route(s): /lab/catchups/sketches, /lab/catchups/capsule, /lab/profiles, /profile/[id] ...
+   139 KB     32.7 KB gz  36q3wjbrivkvt.js           eager on   1 route(s): /lab/profiles
+   135 KB     32.7 KB gz  2toa029--llh9.js           eager on   1 route(s): /lab/landings
+   126 KB     33.9 KB gz  1wzeccabdjyp3.js           eager on 118 route(s): /lab/catchups/sketches, /lab/catchups/capsule, /lab/profiles, /profile/[id] ...
+   110 KB     38.5 KB gz  0cz1d0mv5g_q7.js           eager on   0 route(s) (lazy-only)
+    94 KB     26.3 KB gz  2rghf1hhqy35w.js           eager on   1 route(s): /lab/directory
+    86 KB     31.3 KB gz  1vwuntfzvr6vp.js           eager on   1 route(s): /lab/everything
+    77 KB     26.3 KB gz  07pv988y7cucr.js           eager on   2 route(s): /lab/crop, /lab/comments
+    66 KB     22.8 KB gz  3jx_hcu1t7l-u.js           eager on   1 route(s): /lab/valley
+    66 KB     22.7 KB gz  11gartaxotlyo.js           eager on   1 route(s): /lab/profiles
+    62 KB     19.7 KB gz  3jjjz6fv7jv24.js           eager on   1 route(s): /lab/catchups/wall
+    59 KB     19.4 KB gz  3tke5cge7pq4c.js           eager on  51 route(s): /lab/catchups/sketches, /lab/catchups/capsule, /lab/profiles, /profile/[id] ...
+    58 KB     16.0 KB gz  10dr2ve7619r9.js           eager on   1 route(s): /lab/tiles
+    57 KB     17.6 KB gz  3w4oue-auieyk.js           eager on  25 route(s): /lab/profiles, /lab/crop, /lab/comments, /lab/landings ...
+    56 KB     17.5 KB gz  1pxqqs7lh8g6k.js           eager on   1 route(s): /lab/catchups/magazine
+    55 KB     16.8 KB gz  2fa4k3_rm57s2.js           eager on   1 route(s): /lab/type
+    54 KB     18.7 KB gz  31bi7rj3ertj6.js           eager on   1 route(s): /lab/new-post
+    53 KB     15.8 KB gz  19q4_sjwr7_lh.js           eager on   1 route(s): /lab/feedback
+    53 KB     16.0 KB gz  1cji2jzcn5jdi.js           eager on   1 route(s): /lab/location-picker
+    53 KB     15.0 KB gz  0xx21-v0hrivo.js           eager on   1 route(s): /lab/composer
+    53 KB     18.1 KB gz  2limjthu2jfes.js           eager on   1 route(s): /admin/review
+    51 KB     15.9 KB gz  0_v7kot11so86.js           eager on   1 route(s): /lab/mascot-moments
+    51 KB     16.9 KB gz  00rqt63s3zg43.js           eager on   2 route(s): /profile/[id], /feed
+    50 KB     17.6 KB gz  1_xb3a5ndsyvv.js           eager on   1 route(s): /lab/valley/hills
+    50 KB     14.2 KB gz  07-v3jhf3x7-q.js           eager on   1 route(s): /lab/v2
+    50 KB     17.9 KB gz  073dgqy3bwq3m.js           eager on   1 route(s): /feed
+    47 KB     15.7 KB gz  01c64ezhe149a.js           eager on  39 route(s): /profile/[id], /feed, /directory, /catchups/[catchupId] ...
+    47 KB     13.6 KB gz  1j6uf5nsleqz4.js           eager on   1 route(s): /lab/catchups/voice

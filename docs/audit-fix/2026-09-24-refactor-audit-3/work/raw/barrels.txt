@@ -1,0 +1,3 @@
+### barrels (index.ts/tsx under src, non-generated)
+src/lib/magazine/index.ts
+src/components/guide/chapters/index.tsx

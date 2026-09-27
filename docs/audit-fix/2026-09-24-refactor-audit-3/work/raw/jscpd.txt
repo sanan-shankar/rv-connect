@@ -1,0 +1,990 @@
+[1mClone found (javascript)[22m
+ - [1m[32mdev/apple-edge/truth-profile.mjs[39m[22m [4:28 - 9:35] (6 lines, 95 tokens)
+   dev/apple-edge/truth.mjs [2:28 - 5:35]
+[1mClone found (javascript)[22m
+ - [1m[32mdev/backfill-screen-copies.mjs[39m[22m [70:39 - 78:6] (9 lines, 61 tokens)
+   dev/sweep-stranded-originals.mjs [49:82 - 58:6]
+[1mClone found (javascript)[22m
+ - [1m[32mdev/centroid.mjs[39m[22m [7:49 - 17:6] (11 lines, 52 tokens)
+   dev/shot-clip.mjs [1:34 - 9:6]
+[1mClone found (typescript)[22m
+ - [1m[32mdev/city-alias-scan.ts[39m[22m [47:1 - 53:8] (7 lines, 58 tokens)
+   dev/merge-cities.ts [25:1 - 32:8]
+[1mClone found (javascript)[22m
+ - [1m[32mdev/tag-photos-apply.mjs[39m[22m [40:74 - 47:55] (8 lines, 57 tokens)
+   dev/tag-professions-apply.mjs [46:42 - 53:55]
+[1mClone found (javascript)[22m
+ - [1m[32mdev/tag-photos-apply.mjs[39m[22m [205:3 - 216:38] (12 lines, 57 tokens)
+   dev/tag-professions-apply.mjs [221:3 - 228:38]
+[1mClone found (javascript)[22m
+ - [1m[32mdev/tag-professions-apply.mjs[39m[22m [51:28 - 58:24] (8 lines, 76 tokens)
+   dev/tag-professions-pick.mjs [54:31 - 61:24]
+[1mClone found (javascript)[22m
+ - [1m[32mops/prune.mjs[39m[22m [31:1 - 39:6] (9 lines, 50 tokens)
+   ops/snapshot.mjs [32:1 - 39:6]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/_probe-kit.mjs[39m[22m [92:5 - 100:6] (9 lines, 55 tokens)
+   qa/phase3-probe.mjs [40:10 - 48:2]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/crawl.mjs[39m[22m [5:36 - 12:39] (8 lines, 55 tokens)
+   qa/hover-probe.mjs [33:32 - 39:39]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/drive.mjs[39m[22m [17:23 - 27:6] (11 lines, 75 tokens)
+   qa/map-cluster-verify.mjs [18:17 - 28:6]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/drive.mjs[39m[22m [108:18 - 119:10] (12 lines, 80 tokens)
+   qa/drive.mjs [244:14 - 253:10]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/drive.mjs[39m[22m [676:1 - 687:64] (12 lines, 63 tokens)
+   qa/map-cluster-verify.mjs [43:1 - 51:64]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/hoopoe-idle-check.mjs[39m[22m [37:60 - 44:6] (8 lines, 52 tokens)
+   qa/hoopoe-landing-check.mjs [30:37 - 36:6]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/hover-probe.mjs[39m[22m [35:46 - 42:6] (8 lines, 54 tokens)
+   qa/theme-shots.mjs [20:40 - 27:6]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/phase10-probe.mjs[39m[22m [21:1 - 30:6] (10 lines, 58 tokens)
+   qa/phase5-probe.mjs [28:1 - 37:6]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/phase10-probe.mjs[39m[22m [21:1 - 30:8] (10 lines, 59 tokens)
+   qa/phase7-probe.mjs [13:1 - 22:8]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/phase10-probe.mjs[39m[22m [86:2 - 99:16] (14 lines, 145 tokens)
+   qa/phase8-probe.mjs [312:86 - 326:16]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/phase10-probe.mjs[39m[22m [105:45 - 110:8] (6 lines, 51 tokens)
+   qa/phase4-probe.mjs [258:42 - 270:10]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/phase3-probe.mjs[39m[22m [53:36 - 59:20] (7 lines, 55 tokens)
+   qa/phase8-probe.mjs [52:36 - 58:20]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/phase3-probe.mjs[39m[22m [54:42 - 64:20] (11 lines, 103 tokens)
+   qa/phase4-probe.mjs [66:110 - 76:20]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/phase4-probe.mjs[39m[22m [257:42 - 266:22] (10 lines, 58 tokens)
+   qa/phase8-probe.mjs [331:34 - 338:20]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/phase6-probe.mjs[39m[22m [44:77 - 49:89] (6 lines, 50 tokens)
+   qa/phase7-probe.mjs [44:46 - 49:89]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/phase7-probe.mjs[39m[22m [26:48 - 33:20] (8 lines, 88 tokens)
+   qa/phase8-probe.mjs [53:38 - 60:20]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/protocol-audit.mjs[39m[22m [151:16 - 156:9] (6 lines, 50 tokens)
+   qa/protocol-audit.mjs [228:15 - 233:9]
+[1mClone found (javascript)[22m
+ - [1m[32mqa/protocol-audit.mjs[39m[22m [151:16 - 156:9] (6 lines, 50 tokens)
+   qa/protocol-audit.mjs [272:18 - 277:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/(auth)/forgot-password/forgot-client.tsx[39m[22m [190:13 - 195:32] (6 lines, 53 tokens)
+   app/(auth)/reset-password/reset-client.tsx [168:13 - 173:32]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/(auth)/forgot-password/forgot-client.tsx[39m[22m [190:13 - 195:32] (6 lines, 53 tokens)
+   app/(auth)/reset-password/reset-client.tsx [205:13 - 210:32]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/(auth)/login/login-client.tsx[39m[22m [10:65 - 20:56] (11 lines, 74 tokens)
+   app/(auth)/signup/signup-client.tsx [9:59 - 19:56]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/(auth)/login/login-client.tsx[39m[22m [208:3 - 232:28] (25 lines, 56 tokens)
+   app/(auth)/signup/signup-client.tsx [99:3 - 120:28]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/(auth)/login/login-client.tsx[39m[22m [238:11 - 243:30] (6 lines, 51 tokens)
+   app/(auth)/signup/signup-client.tsx [141:11 - 146:30]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/(auth)/login/login-client.tsx[39m[22m [243:78 - 259:45] (17 lines, 50 tokens)
+   app/(auth)/signup/signup-client.tsx [146:78 - 159:45]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/(auth)/login/login-client.tsx[39m[22m [345:15 - 354:18] (10 lines, 56 tokens)
+   components/auth/signup-form.tsx [641:9 - 650:12]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/(auth)/signup/signup-client.tsx[39m[22m [167:17 - 174:36] (8 lines, 56 tokens)
+   app/(auth)/signup/signup-client.tsx [180:17 - 188:36]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/(main)/admin/(index)/loading.tsx[39m[22m [43:29 - 48:16] (6 lines, 50 tokens)
+   app/(main)/admin/(index)/page.tsx [159:21 - 164:16]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/(main)/catchups/(index)/page.tsx[39m[22m [208:28 - 216:22] (9 lines, 69 tokens)
+   app/(main)/catchups/[catchupId]/(home)/page.tsx [308:29 - 316:20]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/(main)/catchups/(index)/page.tsx[39m[22m [216:28 - 224:6] (9 lines, 80 tokens)
+   app/(main)/catchups/[catchupId]/(home)/page.tsx [316:28 - 324:4]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [470:20 - 482:10] (13 lines, 61 tokens)
+   app/(main)/catchups/actions.ts [1009:21 - 1020:10]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [470:20 - 482:10] (13 lines, 61 tokens)
+   app/(main)/catchups/actions.ts [1698:25 - 1710:10]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [471:2 - 479:48] (9 lines, 58 tokens)
+   app/(main)/catchups/actions.ts [607:55 - 614:48]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [471:2 - 482:37] (12 lines, 64 tokens)
+   app/(main)/catchups/actions.ts [2134:1 - 2145:37]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [471:2 - 479:48] (9 lines, 58 tokens)
+   app/(main)/catchups/actions.ts [2431:77 - 2439:48]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [472:32 - 482:10] (11 lines, 50 tokens)
+   app/(main)/collection/actions.ts [983:56 - 993:8]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [473:5 - 482:37] (10 lines, 54 tokens)
+   app/(main)/feed/actions.ts [810:3 - 819:35]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [607:47 - 617:9] (11 lines, 62 tokens)
+   app/(main)/catchups/actions.ts [1986:46 - 1993:9]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [607:47 - 617:9] (11 lines, 62 tokens)
+   app/(main)/catchups/actions.ts [2219:55 - 2225:9]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [608:32 - 617:9] (10 lines, 51 tokens)
+   app/(main)/catchups/actions.ts [2432:32 - 2440:9]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [676:69 - 681:10] (6 lines, 52 tokens)
+   app/(main)/catchups/actions.ts [701:79 - 706:10]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [676:69 - 681:10] (6 lines, 52 tokens)
+   app/(main)/catchups/actions.ts [800:1 - 805:10]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [676:61 - 681:10] (6 lines, 54 tokens)
+   app/(main)/catchups/actions.ts [854:45 - 860:10]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [676:69 - 681:19] (6 lines, 54 tokens)
+   app/(main)/catchups/actions.ts [2754:84 - 2759:19]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [854:35 - 862:17] (9 lines, 76 tokens)
+   app/(main)/catchups/actions.ts [884:36 - 892:17]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [854:35 - 860:10] (7 lines, 56 tokens)
+   app/(main)/catchups/actions.ts [1469:42 - 1477:10]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [1012:5 - 1020:19] (9 lines, 51 tokens)
+   app/(main)/catchups/actions.ts [1701:5 - 1710:19]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [1252:36 - 1259:17] (8 lines, 72 tokens)
+   app/(main)/catchups/actions.ts [1322:38 - 1329:17]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [1252:54 - 1258:10] (7 lines, 52 tokens)
+   app/(main)/catchups/actions.ts [1546:69 - 1551:10]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [1378:23 - 1387:14] (10 lines, 66 tokens)
+   app/(main)/catchups/actions.ts [1418:20 - 1427:12]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [1988:11 - 1993:15] (6 lines, 50 tokens)
+   app/(main)/catchups/actions.ts [2221:11 - 2225:15]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [1988:11 - 1993:15] (6 lines, 50 tokens)
+   app/(main)/catchups/actions.ts [2433:11 - 2440:15]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [1993:85 - 1999:52] (7 lines, 50 tokens)
+   app/(main)/catchups/actions.ts [2089:92 - 2094:50]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [2136:31 - 2148:10] (13 lines, 75 tokens)
+   app/(main)/feed/actions.ts [810:29 - 822:8]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [2156:25 - 2162:52] (7 lines, 55 tokens)
+   app/(main)/feed/actions.ts [842:42 - 848:50]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [2534:3 - 2540:10] (7 lines, 66 tokens)
+   app/(main)/catchups/actions.ts [2704:3 - 2709:7]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/catchups/actions.ts[39m[22m [2596:53 - 2601:91] (6 lines, 62 tokens)
+   app/(main)/catchups/actions.ts [2659:78 - 2664:91]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/(main)/collection/[id]/page.tsx[39m[22m [13:30 - 40:38] (28 lines, 58 tokens)
+   app/(main)/letters/[id]/(read)/page.tsx [47:3 - 56:38]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/collection/actions.ts[39m[22m [189:36 - 195:18] (7 lines, 65 tokens)
+   components/settings/actions.ts [88:50 - 100:18]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/collection/actions.ts[39m[22m [369:9 - 379:15] (11 lines, 66 tokens)
+   app/(main)/collection/actions.ts [1202:5 - 1212:15]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/collection/actions.ts[39m[22m [730:76 - 748:39] (19 lines, 77 tokens)
+   app/(main)/collection/actions.ts [949:63 - 961:39]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/collection/actions.ts[39m[22m [983:54 - 993:8] (11 lines, 51 tokens)
+   app/(main)/feed/actions.ts [328:83 - 338:8]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/collection/actions.ts[39m[22m [983:46 - 993:8] (11 lines, 53 tokens)
+   app/(main)/feed/actions.ts [396:56 - 409:8]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/collection/actions.ts[39m[22m [983:54 - 993:8] (11 lines, 51 tokens)
+   app/(main)/feed/actions.ts [506:66 - 516:8]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/collection/actions.ts[39m[22m [983:46 - 993:8] (11 lines, 53 tokens)
+   app/(main)/feed/actions.ts [701:40 - 710:8]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/collection/actions.ts[39m[22m [983:46 - 993:8] (11 lines, 53 tokens)
+   app/(main)/feed/actions.ts [1194:50 - 1202:8]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/collection/actions.ts[39m[22m [1128:26 - 1136:8] (9 lines, 55 tokens)
+   app/(main)/collection/actions.ts [1226:27 - 1234:8]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/feed/actions.ts[39m[22m [329:3 - 340:30] (12 lines, 74 tokens)
+   app/(main)/feed/actions.ts [507:3 - 518:30]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/feed/actions.ts[39m[22m [379:34 - 385:30] (7 lines, 56 tokens)
+   app/(main)/feed/actions.ts [447:33 - 453:30]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/feed/actions.ts[39m[22m [397:3 - 413:8] (17 lines, 76 tokens)
+   app/(main)/feed/actions.ts [702:3 - 731:8]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/feed/actions.ts[39m[22m [397:3 - 409:24] (13 lines, 52 tokens)
+   app/(main)/feed/actions.ts [1195:3 - 1202:24]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/feed/actions.ts[39m[22m [506:48 - 516:8] (11 lines, 54 tokens)
+   app/(main)/feed/actions.ts [809:37 - 819:8]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/(main)/letters/(index)/page.tsx[39m[22m [72:5 - 85:81] (14 lines, 50 tokens)
+   app/(main)/letters/[id]/(read)/page.tsx [29:17 - 42:81]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/(main)/letters/[id]/(read)/page.tsx[39m[22m [45:5 - 56:7] (12 lines, 56 tokens)
+   app/(main)/profile/[id]/page.tsx [45:57 - 59:7]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/(main)/letters/[id]/(read)/page.tsx[39m[22m [73:41 - 82:23] (10 lines, 51 tokens)
+   app/(main)/letters/[id]/edit/page.tsx [17:45 - 26:23]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/messages/actions.ts[39m[22m [88:1 - 95:16] (8 lines, 77 tokens)
+   app/(main)/messages/actions.ts [147:44 - 155:16]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/(main)/messages/actions.ts[39m[22m [153:50 - 163:14] (11 lines, 75 tokens)
+   app/(main)/messages/actions.ts [225:43 - 233:14]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/api/upload/audio/finalize/route.ts[39m[22m [17:30 - 44:14] (28 lines, 60 tokens)
+   app/api/upload/audio/route.ts [12:33 - 42:14]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/api/upload/finalize/route.ts[39m[22m [77:57 - 93:63] (17 lines, 64 tokens)
+   app/api/upload/route.ts [56:55 - 78:63]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/[dir]/auth/page.lab.tsx[39m[22m [4:42 - 12:11] (9 lines, 50 tokens)
+   app/lab/[dir]/page.lab.tsx [4:42 - 12:11]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/_hoopoe.tsx[39m[22m [99:44 - 104:9] (6 lines, 51 tokens)
+   app/lab/v2/page.lab.tsx [43:45 - 48:7]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/_kit.tsx[39m[22m [26:41 - 32:68] (7 lines, 64 tokens)
+   components/common/motion.tsx [14:80 - 20:68]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/_shared.tsx[39m[22m [324:32 - 333:7] (10 lines, 62 tokens)
+   app/lab/_shared.tsx [557:64 - 566:7]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/_shared.tsx[39m[22m [570:75 - 591:5] (22 lines, 177 tokens)
+   app/lab/_shared.tsx [637:75 - 658:5]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/birds-bg/page.lab.tsx[39m[22m [41:9 - 55:16] (15 lines, 157 tokens)
+   components/common/bird-avatar-v2.tsx [1818:9 - 1832:16]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/_settings.tsx[39m[22m [137:15 - 159:45] (23 lines, 53 tokens)
+   components/catchups/settings/settings-surface.tsx [145:25 - 159:45]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/_settings.tsx[39m[22m [205:18 - 262:25] (58 lines, 218 tokens)
+   components/catchups/settings/settings-surface.tsx [210:39 - 267:25]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/_settings.tsx[39m[22m [267:3 - 280:13] (14 lines, 66 tokens)
+   components/catchups/settings/settings-surface.tsx [268:3 - 281:13]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/_settings.tsx[39m[22m [290:39 - 324:21] (35 lines, 130 tokens)
+   components/catchups/settings/settings-surface.tsx [291:28 - 324:21]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/_settings.tsx[39m[22m [337:9 - 356:7] (20 lines, 73 tokens)
+   components/catchups/settings/settings-surface.tsx [338:9 - 357:7]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/_settings.tsx[39m[22m [480:83 - 541:11] (62 lines, 190 tokens)
+   components/catchups/settings/settings-surface.tsx [443:94 - 502:11]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/_settings.tsx[39m[22m [543:6 - 567:19] (25 lines, 135 tokens)
+   components/catchups/settings/settings-surface.tsx [502:76 - 526:19]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/_settings.tsx[39m[22m [557:30 - 562:36] (6 lines, 50 tokens)
+   components/collection/contribute-room.tsx [1163:10 - 1168:30]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/_settings.tsx[39m[22m [616:35 - 645:24] (30 lines, 111 tokens)
+   components/catchups/settings/settings-surface.tsx [568:44 - 590:24]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/_settings.tsx[39m[22m [645:23 - 657:2] (13 lines, 67 tokens)
+   components/catchups/settings/settings-surface.tsx [591:27 - 603:2]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/_settings.tsx[39m[22m [1076:19 - 1123:23] (48 lines, 172 tokens)
+   components/catchups/settings/settings-surface.tsx [713:15 - 760:23]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/_settings.tsx[39m[22m [1155:33 - 1173:16] (19 lines, 60 tokens)
+   components/catchups/settings/settings-surface.tsx [795:19 - 825:16]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/capsule/_room.tsx[39m[22m [77:75 - 116:24] (40 lines, 195 tokens)
+   app/lab/catchups/vote/_room.tsx [75:140 - 118:24]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/capsule/_room.tsx[39m[22m [84:112 - 116:24] (33 lines, 173 tokens)
+   app/lab/catchups/voice/_room.tsx [98:53 - 134:24]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/capsule/_room.tsx[39m[22m [127:29 - 144:9] (18 lines, 74 tokens)
+   app/lab/catchups/vote/_room.tsx [133:5 - 150:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/capsule/_room.tsx[39m[22m [288:66 - 318:104] (31 lines, 181 tokens)
+   app/lab/catchups/voice/_room.tsx [304:6 - 334:104]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/capsule/_room.tsx[39m[22m [288:66 - 318:104] (31 lines, 181 tokens)
+   app/lab/catchups/vote/_room.tsx [221:70 - 251:104]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/capsule/_room.tsx[39m[22m [291:66 - 306:31] (16 lines, 88 tokens)
+   app/lab/catchups/wall/_room.tsx [154:48 - 169:31]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/lab/catchups/sketches/_data.ts[39m[22m [57:20 - 68:2] (12 lines, 76 tokens)
+   app/lab/catchups/sketches/_pressure.ts [77:20 - 89:2]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_home.tsx[39m[22m [272:36 - 302:7] (31 lines, 133 tokens)
+   components/catchups/home/collecting.tsx [99:102 - 127:7]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_home.tsx[39m[22m [308:75 - 330:20] (23 lines, 150 tokens)
+   components/catchups/home/collecting.tsx [126:13 - 148:20]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_home.tsx[39m[22m [313:13 - 320:23] (8 lines, 71 tokens)
+   app/lab/catchups/sketches/_parts.tsx [207:13 - 214:23]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_home.tsx[39m[22m [497:81 - 541:2] (45 lines, 151 tokens)
+   components/catchups/home/collecting.tsx [370:54 - 414:2]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_home.tsx[39m[22m [507:12 - 528:25] (22 lines, 67 tokens)
+   components/catchups/home/people-door.tsx [138:9 - 159:25]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_home.tsx[39m[22m [615:11 - 623:10] (9 lines, 73 tokens)
+   app/lab/catchups/sketches/_list.tsx [191:13 - 199:12]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_list.tsx[39m[22m [179:7 - 200:13] (22 lines, 126 tokens)
+   components/catchups/index/archived-row.tsx [50:7 - 71:13]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_navigator.tsx[39m[22m [1:1 - 46:7] (46 lines, 54 tokens)
+   components/catchups/edition/navigator.tsx [1:1 - 43:7]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_navigator.tsx[39m[22m [96:24 - 111:65] (16 lines, 83 tokens)
+   components/catchups/edition/navigator.tsx [102:24 - 117:65]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_navigator.tsx[39m[22m [155:3 - 164:99] (10 lines, 59 tokens)
+   components/catchups/edition/navigator.tsx [162:3 - 171:99]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_navigator.tsx[39m[22m [284:33 - 302:78] (19 lines, 102 tokens)
+   components/catchups/edition/navigator.tsx [270:39 - 288:78]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_navigator.tsx[39m[22m [381:10 - 388:8] (8 lines, 62 tokens)
+   components/catchups/edition/navigator.tsx [362:9 - 373:8]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_navigator.tsx[39m[22m [397:5 - 405:40] (9 lines, 59 tokens)
+   components/catchups/edition/navigator.tsx [376:5 - 384:40]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_navigator.tsx[39m[22m [405:50 - 420:7] (16 lines, 69 tokens)
+   components/catchups/edition/navigator.tsx [384:40 - 399:7]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_parts.tsx[39m[22m [97:77 - 119:11] (23 lines, 104 tokens)
+   app/lab/catchups/wall/_shapes.tsx [77:1 - 90:11]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_parts.tsx[39m[22m [125:7 - 134:2] (10 lines, 57 tokens)
+   app/lab/catchups/wall/_shapes.tsx [94:7 - 103:2]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_parts.tsx[39m[22m [180:9 - 188:11] (9 lines, 55 tokens)
+   app/lab/catchups/wall/_room.tsx [424:5 - 432:7]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_parts.tsx[39m[22m [342:13 - 359:26] (18 lines, 54 tokens)
+   components/catchups/edition/reader-parts.tsx [178:32 - 195:26]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_parts.tsx[39m[22m [393:20 - 414:12] (22 lines, 56 tokens)
+   components/catchups/edition/reader-parts.tsx [253:21 - 270:12]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_parts.tsx[39m[22m [414:135 - 441:18] (28 lines, 151 tokens)
+   components/catchups/edition/reader-parts.tsx [270:25 - 297:18]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_parts.tsx[39m[22m [449:37 - 471:10] (23 lines, 119 tokens)
+   components/catchups/edition/reader-parts.tsx [312:53 - 334:10]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_parts.tsx[39m[22m [471:16 - 488:9] (18 lines, 70 tokens)
+   components/catchups/edition/reader-parts.tsx [334:21 - 351:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_parts.tsx[39m[22m [502:7 - 525:2] (24 lines, 104 tokens)
+   components/catchups/edition/reader-parts.tsx [365:7 - 388:2]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_reader.tsx[39m[22m [259:18 - 272:16] (14 lines, 82 tokens)
+   components/catchups/edition/reader.tsx [301:19 - 313:52]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_reader.tsx[39m[22m [276:3 - 290:8] (15 lines, 106 tokens)
+   components/catchups/edition/reader.tsx [313:90 - 327:8]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_reader.tsx[39m[22m [301:11 - 308:14] (8 lines, 58 tokens)
+   components/catchups/edition/reader.tsx [337:85 - 344:14]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_reader.tsx[39m[22m [312:30 - 364:30] (53 lines, 242 tokens)
+   components/catchups/edition/reader.tsx [348:32 - 399:30]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_reader.tsx[39m[22m [365:62 - 376:16] (12 lines, 66 tokens)
+   components/catchups/edition/reader.tsx [399:90 - 410:16]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_reader.tsx[39m[22m [389:3 - 409:8] (21 lines, 70 tokens)
+   components/catchups/edition/reader.tsx [411:3 - 432:8]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_reader.tsx[39m[22m [432:61 - 462:8] (31 lines, 193 tokens)
+   components/catchups/edition/reader.tsx [445:43 - 475:8]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_reader.tsx[39m[22m [510:15 - 519:29] (10 lines, 67 tokens)
+   components/catchups/edition/reader.tsx [535:13 - 544:27]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_reader.tsx[39m[22m [536:17 - 547:20] (12 lines, 84 tokens)
+   app/lab/catchups/sketches/_reader.tsx [667:19 - 678:22]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/sketches/_shell.tsx[39m[22m [28:11 - 34:11] (7 lines, 55 tokens)
+   app/lab/spine-marker/page.lab.tsx [43:50 - 49:11]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/voice/_room.tsx[39m[22m [124:39 - 156:23] (33 lines, 204 tokens)
+   app/lab/catchups/vote/_room.tsx [108:39 - 140:23]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/lab/catchups/wall/_corpus.ts[39m[22m [267:22 - 274:2] (8 lines, 69 tokens)
+   lib/photo-wall.ts [84:25 - 91:2]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/wall/_shapes.tsx[39m[22m [75:21 - 84:36] (10 lines, 67 tokens)
+   components/common/flush-avatar.tsx [45:94 - 59:36]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/wall/_shapes.tsx[39m[22m [88:71 - 103:2] (16 lines, 70 tokens)
+   components/common/flush-avatar.tsx [94:57 - 106:2]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/wall/_shapes.tsx[39m[22m [221:63 - 248:7] (28 lines, 156 tokens)
+   components/catchups/edition/photo-run.tsx [120:32 - 146:7]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/wall/_shapes.tsx[39m[22m [265:9 - 275:40] (11 lines, 61 tokens)
+   components/catchups/edition/photo-run.tsx [158:9 - 168:40]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/wall/_shapes.tsx[39m[22m [275:39 - 283:54] (9 lines, 66 tokens)
+   components/catchups/edition/photo-run.tsx [168:45 - 178:54]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/wall/_shapes.tsx[39m[22m [303:60 - 331:19] (29 lines, 80 tokens)
+   components/catchups/edition/photo-run.tsx [200:41 - 228:19]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/wall/_shapes.tsx[39m[22m [325:12 - 339:2] (15 lines, 61 tokens)
+   app/lab/catchups/wall/_shapes.tsx [900:17 - 914:2]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/catchups/wall/_shapes.tsx[39m[22m [327:9 - 339:2] (13 lines, 53 tokens)
+   app/lab/catchups/wall/_shapes.tsx [653:13 - 665:2]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/chain-lines/page.lab.tsx[39m[22m [216:21 - 278:2] (63 lines, 530 tokens)
+   components/profile/houses-chain.tsx [219:42 - 325:2]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/chain-lines/page.lab.tsx[39m[22m [218:63 - 225:8] (8 lines, 80 tokens)
+   app/lab/profiles/_chain-serpentine.tsx [184:78 - 196:8]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/chain-lines/page.lab.tsx[39m[22m [241:37 - 258:26] (18 lines, 95 tokens)
+   app/lab/profiles/_chain-serpentine.tsx [240:83 - 258:26]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/chain-lines/page.lab.tsx[39m[22m [254:7 - 280:9] (27 lines, 185 tokens)
+   components/profile/houses-chain.tsx [301:7 - 327:5]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/chain-lines/page.lab.tsx[39m[22m [313:81 - 329:10] (17 lines, 135 tokens)
+   components/profile/houses-chain.tsx [536:83 - 596:10]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/chain-lines/page.lab.tsx[39m[22m [330:30 - 340:45] (11 lines, 110 tokens)
+   components/profile/houses-chain.tsx [595:32 - 613:45]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/chain-lines/page.lab.tsx[39m[22m [341:43 - 348:65] (8 lines, 84 tokens)
+   components/profile/houses-chain.tsx [614:55 - 623:40]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/chain-lines/page.lab.tsx[39m[22m [348:109 - 359:35] (12 lines, 78 tokens)
+   components/profile/houses-chain.tsx [625:7 - 655:35]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/chain-lines/page.lab.tsx[39m[22m [359:42 - 368:25] (10 lines, 93 tokens)
+   components/profile/houses-chain.tsx [655:56 - 666:25]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/chain-lines/page.lab.tsx[39m[22m [379:33 - 388:109] (10 lines, 137 tokens)
+   components/profile/houses-chain.tsx [675:53 - 694:109]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/chain-lines/page.lab.tsx[39m[22m [402:24 - 410:23] (9 lines, 67 tokens)
+   components/profile/houses-chain.tsx [703:35 - 713:23]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/collection/page.lab.tsx[39m[22m [310:10 - 322:2] (13 lines, 54 tokens)
+   app/lab/collection/swap/page.lab.tsx [453:14 - 465:2]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/collection/scrub/_scrubbers.tsx[39m[22m [187:43 - 204:8] (18 lines, 69 tokens)
+   components/collection/photo-scrubber.tsx [164:77 - 182:8]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/collection/scrub/_scrubbers.tsx[39m[22m [225:78 - 233:8] (9 lines, 113 tokens)
+   components/collection/photo-scrubber.tsx [223:30 - 234:8]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/collection/scrub/_scrubbers.tsx[39m[22m [257:27 - 282:8] (26 lines, 175 tokens)
+   components/collection/photo-scrubber.tsx [263:11 - 287:8]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/collection/scrub/_scrubbers.tsx[39m[22m [359:9 - 379:29] (21 lines, 125 tokens)
+   components/collection/photo-scrubber.tsx [329:9 - 355:29]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/collection/scrub/_scrubbers.tsx[39m[22m [380:19 - 393:9] (14 lines, 93 tokens)
+   components/collection/photo-scrubber.tsx [356:19 - 369:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/collection/scrub/_scrubbers.tsx[39m[22m [393:9 - 417:9] (25 lines, 118 tokens)
+   components/collection/photo-scrubber.tsx [372:9 - 395:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/collection/scrub/_scrubbers.tsx[39m[22m [600:14 - 617:2] (18 lines, 71 tokens)
+   components/collection/photo-scrubber.tsx [457:4 - 474:2]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/collection/scrub/page.lab.tsx[39m[22m [146:8 - 162:9] (17 lines, 50 tokens)
+   app/lab/collection/swap/page.lab.tsx [454:12 - 475:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/collection/scrub/page.lab.tsx[39m[22m [187:22 - 194:29] (8 lines, 50 tokens)
+   app/lab/new-post/_room.tsx [715:17 - 722:29]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/composer/_variants.tsx[39m[22m [266:35 - 280:16] (15 lines, 85 tokens)
+   app/lab/composer/_variants.tsx [286:41 - 300:16]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/composer/_variants.tsx[39m[22m [283:7 - 291:10] (9 lines, 84 tokens)
+   app/lab/composer/_variants.tsx [322:13 - 330:16]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/composer/_variants.tsx[39m[22m [351:33 - 359:10] (9 lines, 54 tokens)
+   app/lab/composer/_variants.tsx [441:32 - 449:10]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/composer/_variants.tsx[39m[22m [369:12 - 375:27] (7 lines, 65 tokens)
+   app/lab/composer/_variants.tsx [385:25 - 391:27]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/composer/_variants.tsx[39m[22m [513:47 - 536:25] (24 lines, 125 tokens)
+   app/lab/composer/_variants.tsx [666:39 - 687:25]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/composer/_variants.tsx[39m[22m [536:33 - 565:4] (30 lines, 204 tokens)
+   app/lab/composer/_variants.tsx [687:34 - 715:4]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/composer/_variants.tsx[39m[22m [540:32 - 547:76] (8 lines, 50 tokens)
+   components/layout/search-pill.tsx [131:62 - 140:55]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/composer/_variants.tsx[39m[22m [550:57 - 558:12] (9 lines, 52 tokens)
+   app/lab/directory/_ui.tsx [61:38 - 69:12]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/craft/_sidebar-specimen.tsx[39m[22m [33:34 - 39:3] (7 lines, 54 tokens)
+   app/lab/spine-marker/page.lab.tsx [45:40 - 51:3]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/directory/_chrome.tsx[39m[22m [406:29 - 412:20] (7 lines, 53 tokens)
+   app/lab/directory/_chrome.tsx [496:31 - 502:20]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/directory/_chrome.tsx[39m[22m [427:90 - 433:13] (7 lines, 94 tokens)
+   app/lab/directory/_chrome.tsx [506:99 - 520:13]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/directory/_chrome.tsx[39m[22m [540:9 - 547:11] (8 lines, 58 tokens)
+   app/lab/directory/_chrome.tsx [609:7 - 616:9]
+[1mClone found (typescript)[22m
+ - [1m[32mapp/lab/directory/_data.ts[39m[22m [354:25 - 360:11] (7 lines, 57 tokens)
+   app/lab/directory/_data.ts [383:27 - 389:11]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/directory/_maps.tsx[39m[22m [23:74 - 29:9] (7 lines, 50 tokens)
+   components/directory/alumni-map.tsx [6:59 - 12:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/directory/_maps.tsx[39m[22m [39:7 - 52:47] (14 lines, 63 tokens)
+   app/lab/valley/_terminator.tsx [22:25 - 26:47]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/directory/_maps.tsx[39m[22m [302:54 - 310:24] (9 lines, 91 tokens)
+   app/lab/directory/_maps.tsx [637:28 - 645:24]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/directory/_people.tsx[39m[22m [70:96 - 76:24] (7 lines, 60 tokens)
+   app/lab/directory/_people.tsx [96:137 - 102:24]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/directory/_people.tsx[39m[22m [70:96 - 77:17] (8 lines, 66 tokens)
+   app/lab/directory/_people.tsx [121:109 - 128:17]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/directory/_room.tsx[39m[22m [249:14 - 257:15] (9 lines, 84 tokens)
+   app/lab/directory/_room.tsx [494:16 - 502:15]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/eggs/page.lab.tsx[39m[22m [124:3 - 141:26] (18 lines, 135 tokens)
+   components/layout/konami-eggs.tsx [38:3 - 55:26]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/eggs/page.lab.tsx[39m[22m [162:17 - 173:19] (12 lines, 98 tokens)
+   components/layout/konami-eggs.tsx [74:11 - 85:13]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/eggs/page.lab.tsx[39m[22m [198:17 - 208:19] (11 lines, 77 tokens)
+   components/layout/konami-eggs.tsx [109:11 - 119:13]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/groups-rethink/batches-interest/page.lab.tsx[39m[22m [17:59 - 24:51] (8 lines, 70 tokens)
+   app/lab/groups-rethink/circles/page.lab.tsx [17:55 - 24:51]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/groups-rethink/batches-interest/page.lab.tsx[39m[22m [17:59 - 25:11] (9 lines, 75 tokens)
+   app/lab/groups-rethink/gatherings/page.lab.tsx [26:1 - 34:11]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/groups-rethink/batches-interest/page.lab.tsx[39m[22m [20:42 - 25:11] (6 lines, 53 tokens)
+   app/lab/groups-rethink/dissolve/page.lab.tsx [20:56 - 25:11]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/groups-rethink/gatherings/page.lab.tsx[39m[22m [126:40 - 135:103] (10 lines, 51 tokens)
+   app/lab/groups-rethink/gatherings/page.lab.tsx [143:22 - 152:103]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/hoopoe-marks/page.lab.tsx[39m[22m [74:322 - 81:9] (8 lines, 98 tokens)
+   app/lab/hoopoe-marks/page.lab.tsx [85:286 - 92:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/hoopoe-marks/page.lab.tsx[39m[22m [396:47 - 406:33] (11 lines, 83 tokens)
+   app/lab/hoopoe-marks/page.lab.tsx [413:47 - 423:33]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/landings/_variant-clarity.tsx[39m[22m [591:22 - 610:6] (20 lines, 93 tokens)
+   app/lab/landings/_variant-livingvalley.tsx [575:12 - 593:6]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/landings/_variant-clarity.tsx[39m[22m [592:14 - 608:9] (17 lines, 81 tokens)
+   app/lab/landings/_variant-postcard.tsx [488:10 - 503:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/landings/_variant-clarity.tsx[39m[22m [600:1 - 608:9] (9 lines, 77 tokens)
+   app/lab/landings/_variant-editorial.tsx [75:1 - 83:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/landings/_variant-clarity.tsx[39m[22m [628:135 - 646:105] (19 lines, 140 tokens)
+   app/lab/landings/_variant-livingvalley.tsx [605:137 - 623:105]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/landings/_variant-editorial.tsx[39m[22m [73:2 - 81:3] (9 lines, 77 tokens)
+   components/landing/trust-section.tsx [2:49 - 10:3]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/landings/page.lab.tsx[39m[22m [39:65 - 48:9] (10 lines, 56 tokens)
+   app/lab/support-ideas/page.lab.tsx [60:3 - 69:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/landings/page.lab.tsx[39m[22m [48:32 - 58:20] (11 lines, 101 tokens)
+   app/lab/profiles/page.lab.tsx [71:32 - 81:20]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/landings/page.lab.tsx[39m[22m [72:95 - 94:7] (23 lines, 92 tokens)
+   app/lab/profiles/page.lab.tsx [95:95 - 117:7]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/mascot-moments/page.lab.tsx[39m[22m [355:74 - 369:19] (15 lines, 67 tokens)
+   components/mascot/moments/moment-hoopoe.tsx [48:1 - 60:19]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/mascot-moments/page.lab.tsx[39m[22m [434:11 - 445:9] (12 lines, 50 tokens)
+   app/lab/mascot-moments/page.lab.tsx [541:11 - 552:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/mascot-moments/page.lab.tsx[39m[22m [434:11 - 445:9] (12 lines, 50 tokens)
+   app/lab/mascot-moments/page.lab.tsx [597:11 - 608:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/mascot-moments/page.lab.tsx[39m[22m [450:5 - 458:29] (9 lines, 62 tokens)
+   components/mascot/moments/no-results-hoopoe.tsx [27:9 - 35:33]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/new-post/_room.tsx[39m[22m [563:23 - 573:3] (11 lines, 94 tokens)
+   components/posts/feed-column.tsx [19:23 - 26:3]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_chain-kit.tsx[39m[22m [132:8 - 147:2] (16 lines, 89 tokens)
+   components/profile/houses-chain.tsx [158:1 - 173:2]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_chain-kit.tsx[39m[22m [238:66 - 248:18] (11 lines, 76 tokens)
+   components/profile/houses-chain.tsx [370:58 - 382:18]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_chain-kit.tsx[39m[22m [248:32 - 271:18] (24 lines, 164 tokens)
+   components/profile/houses-chain.tsx [382:27 - 406:18]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_chain-rail.tsx[39m[22m [232:22 - 254:48] (23 lines, 74 tokens)
+   app/lab/profiles/_chain-serpentine.tsx [442:21 - 449:46]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_chain-rail.tsx[39m[22m [233:19 - 254:48] (22 lines, 64 tokens)
+   app/lab/profiles/_chain-stepped.tsx [389:15 - 395:44]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_chain-route.tsx[39m[22m [356:35 - 371:8] (16 lines, 95 tokens)
+   app/lab/profiles/_chain-serpentine.tsx [362:48 - 377:8]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_chain-route.tsx[39m[22m [356:35 - 370:24] (15 lines, 88 tokens)
+   app/lab/profiles/_chain-stepped.tsx [319:37 - 338:24]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_chain-route.tsx[39m[22m [451:37 - 458:9] (8 lines, 53 tokens)
+   app/lab/profiles/_chain-serpentine.tsx [424:5 - 431:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_chain-serpentine.tsx[39m[22m [446:21 - 451:21] (6 lines, 60 tokens)
+   app/lab/profiles/_chain-stepped.tsx [392:19 - 397:19]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-broadsheet.tsx[39m[22m [141:3 - 157:9] (17 lines, 60 tokens)
+   app/lab/profiles/_variant-passport.tsx [139:85 - 152:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-broadsheet.tsx[39m[22m [141:4 - 167:9] (27 lines, 106 tokens)
+   app/lab/profiles/_variant-terrace.tsx [147:5 - 165:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-broadsheet.tsx[39m[22m [254:11 - 266:14] (13 lines, 125 tokens)
+   app/lab/profiles/_variant-letterhead-2.tsx [658:13 - 670:16]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-broadsheet.tsx[39m[22m [257:22 - 266:14] (10 lines, 96 tokens)
+   components/profile/letterhead-profile.tsx [1747:19 - 1756:16]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-broadsheet.tsx[39m[22m [360:9 - 390:21] (31 lines, 105 tokens)
+   app/lab/profiles/_variant-dossier.tsx [315:17 - 350:21]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-broadsheet.tsx[39m[22m [375:16 - 390:21] (16 lines, 85 tokens)
+   app/lab/profiles/_variant-terrace.tsx [377:17 - 392:21]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-broadsheet.tsx[39m[22m [383:28 - 390:21] (8 lines, 54 tokens)
+   app/lab/profiles/_variant-passport.tsx [312:29 - 319:21]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-broadsheet.tsx[39m[22m [509:42 - 514:5] (6 lines, 107 tokens)
+   app/lab/profiles/_variant-terrace.tsx [496:39 - 503:5]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-broadsheet.tsx[39m[22m [513:94 - 532:71] (20 lines, 115 tokens)
+   app/lab/profiles/_variant-dossier.tsx [471:69 - 487:100]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-broadsheet.tsx[39m[22m [516:3 - 525:11] (10 lines, 56 tokens)
+   app/lab/profiles/_variant-terrace.tsx [530:3 - 539:11]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-broadsheet.tsx[39m[22m [525:3 - 532:71] (8 lines, 57 tokens)
+   app/lab/profiles/_variant-terrace.tsx [520:3 - 525:100]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-broadsheet.tsx[39m[22m [591:14 - 599:4] (9 lines, 74 tokens)
+   app/lab/profiles/_variant-dossier.tsx [499:16 - 507:4]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-dossier.tsx[39m[22m [297:12 - 302:6] (6 lines, 62 tokens)
+   components/profile/admission-stamp.tsx [27:7 - 32:17]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-dossier.tsx[39m[22m [383:18 - 395:21] (13 lines, 52 tokens)
+   app/lab/profiles/_variant-terrace.tsx [426:17 - 438:21]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-dossier.tsx[39m[22m [426:7 - 439:15] (14 lines, 85 tokens)
+   app/lab/profiles/_variant-terrace.tsx [471:118 - 484:15]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-dossier.tsx[39m[22m [483:5 - 492:11] (10 lines, 58 tokens)
+   app/lab/profiles/_variant-terrace.tsx [521:5 - 530:11]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-dossier.tsx[39m[22m [498:39 - 509:8] (12 lines, 77 tokens)
+   app/lab/profiles/_variant-terrace.tsx [543:19 - 554:8]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-field-guide.tsx[39m[22m [522:21 - 528:18] (7 lines, 52 tokens)
+   app/lab/profiles/_variant-field-guide.tsx [530:21 - 536:18]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [1:1 - 92:9] (92 lines, 55 tokens)
+   app/lab/profiles/_variant-letterhead-3.tsx [1:1 - 102:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [97:46 - 128:6] (32 lines, 53 tokens)
+   app/lab/profiles/_variant-letterhead-3.tsx [115:67 - 141:6]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [144:1 - 234:2] (91 lines, 554 tokens)
+   app/lab/profiles/_variant-letterhead-3.tsx [529:1 - 619:2]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [236:45 - 250:8] (15 lines, 74 tokens)
+   app/lab/profiles/_variant-letterhead-3.tsx [625:47 - 639:8]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [273:9 - 292:11] (20 lines, 116 tokens)
+   app/lab/profiles/_variant-letterhead-3.tsx [730:9 - 749:11]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [318:47 - 331:14] (14 lines, 64 tokens)
+   app/lab/profiles/_variant-letterhead-3.tsx [809:59 - 822:14]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [346:63 - 353:60] (8 lines, 98 tokens)
+   app/lab/profiles/_variant-letterhead-3.tsx [868:47 - 875:60]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [364:62 - 402:46] (39 lines, 241 tokens)
+   components/profile/letterhead-profile.tsx [644:55 - 677:46]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [372:60 - 402:46] (31 lines, 167 tokens)
+   app/lab/profiles/_variant-letterhead-3.tsx [907:72 - 937:46]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [402:64 - 420:11] (19 lines, 71 tokens)
+   app/lab/profiles/_variant-letterhead-3.tsx [937:64 - 955:11]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [425:11 - 443:11] (19 lines, 52 tokens)
+   app/lab/profiles/_variant-letterhead.tsx [152:11 - 170:11]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [426:11 - 447:19] (22 lines, 58 tokens)
+   app/lab/profiles/_variant-letterhead-3.tsx [962:11 - 983:19]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [469:23 - 486:39] (18 lines, 65 tokens)
+   app/lab/profiles/_variant-letterhead-3.tsx [1013:23 - 1030:39]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [518:59 - 532:25] (15 lines, 60 tokens)
+   app/lab/profiles/_variant-letterhead-3.tsx [1073:59 - 1087:25]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [551:83 - 561:23] (11 lines, 72 tokens)
+   components/profile/letterhead-profile.tsx [1146:18 - 1156:23]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [587:95 - 598:23] (12 lines, 60 tokens)
+   app/lab/profiles/_variant-letterhead-3.tsx [1153:19 - 1164:23]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [599:56 - 615:7] (17 lines, 70 tokens)
+   app/lab/profiles/_variant-letterhead-3.tsx [1165:40 - 1181:7]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [635:9 - 710:9] (76 lines, 325 tokens)
+   app/lab/profiles/_variant-letterhead-3.tsx [1204:9 - 1268:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [665:33 - 672:11] (8 lines, 56 tokens)
+   components/profile/letterhead-profile.tsx [1751:33 - 1758:11]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [762:10 - 810:10] (49 lines, 287 tokens)
+   app/lab/profiles/_variant-letterhead-3.tsx [1250:9 - 1304:10]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead-2.tsx[39m[22m [813:27 - 835:2] (23 lines, 129 tokens)
+   app/lab/profiles/_variant-letterhead-3.tsx [1313:12 - 1335:2]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-letterhead.tsx[39m[22m [451:24 - 457:18] (7 lines, 52 tokens)
+   components/profile/letterhead-profile.tsx [1287:25 - 1293:24]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-passport.tsx[39m[22m [134:20 - 139:9] (6 lines, 58 tokens)
+   app/lab/profiles/_variant-terrace.tsx [177:18 - 182:8]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-passport.tsx[39m[22m [371:19 - 391:8] (21 lines, 62 tokens)
+   app/lab/profiles/_variant-passport.tsx [408:21 - 428:8]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/profiles/_variant-passport.tsx[39m[22m [825:25 - 836:29] (12 lines, 79 tokens)
+   app/lab/profiles/_variant-passport.tsx [846:25 - 857:29]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/reach/page.lab.tsx[39m[22m [92:126 - 105:9] (14 lines, 75 tokens)
+   components/profile/get-in-touch.tsx [100:50 - 113:9]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/reach/page.lab.tsx[39m[22m [122:7 - 151:2] (30 lines, 187 tokens)
+   components/profile/get-in-touch.tsx [127:7 - 156:2]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/reach/page.lab.tsx[39m[22m [127:15 - 133:16] (7 lines, 52 tokens)
+   app/lab/reach/page.lab.tsx [138:15 - 144:16]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/reach/page.lab.tsx[39m[22m [138:24 - 156:9] (19 lines, 84 tokens)
+   components/profile/get-in-touch.tsx [143:24 - 159:6]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/spine-marker/page.lab.tsx[39m[22m [71:18 - 79:18] (9 lines, 51 tokens)
+   app/lab/spine-marker/page.lab.tsx [102:18 - 110:18]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/spine-marker/page.lab.tsx[39m[22m [71:18 - 79:18] (9 lines, 51 tokens)
+   app/lab/spine-marker/page.lab.tsx [135:22 - 143:18]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/spine-marker/page.lab.tsx[39m[22m [71:18 - 79:18] (9 lines, 51 tokens)
+   app/lab/spine-marker/page.lab.tsx [170:18 - 178:18]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/spine-marker/page.lab.tsx[39m[22m [71:18 - 82:12] (12 lines, 55 tokens)
+   app/lab/spine-marker/page.lab.tsx [209:17 - 220:12]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/spine-marker/page.lab.tsx[39m[22m [71:18 - 79:18] (9 lines, 51 tokens)
+   app/lab/spine-marker/page.lab.tsx [272:18 - 280:18]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/spine-marker/page.lab.tsx[39m[22m [102:21 - 122:21] (21 lines, 86 tokens)
+   app/lab/spine-marker/page.lab.tsx [272:21 - 292:21]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/support-ideas/_shared.tsx[39m[22m [374:18 - 382:13] (9 lines, 59 tokens)
+   components/support/bird-plate.tsx [123:13 - 131:13]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/tiles/_specimens.tsx[39m[22m [788:17 - 795:18] (8 lines, 53 tokens)
+   app/lab/tiles/_specimens.tsx [815:17 - 822:18]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/valley/_hills.tsx[39m[22m [482:34 - 488:97] (7 lines, 66 tokens)
+   app/lab/years/then/_then.tsx [188:16 - 193:97]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/valley/_hills.tsx[39m[22m [482:34 - 488:97] (7 lines, 66 tokens)
+   app/lab/years/wall/_wall.tsx [259:6 - 266:97]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/valley/_hills.tsx[39m[22m [798:75 - 807:53] (10 lines, 58 tokens)
+   app/lab/years/then/_then.tsx [413:8 - 422:53]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/valley/_hills.tsx[39m[22m [798:76 - 807:53] (10 lines, 57 tokens)
+   app/lab/years/weave/_weave.tsx [501:19 - 510:53]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/years/then/_then.tsx[39m[22m [175:14 - 180:124] (6 lines, 91 tokens)
+   app/lab/years/weave/_weave.tsx [178:17 - 183:124]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/years/then/_then.tsx[39m[22m [180:123 - 186:26] (7 lines, 59 tokens)
+   app/lab/years/weave/_weave.tsx [185:68 - 191:26]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/years/then/_then.tsx[39m[22m [186:89 - 195:7] (10 lines, 89 tokens)
+   app/lab/years/weave/_weave.tsx [191:90 - 200:7]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/years/then/_then.tsx[39m[22m [191:16 - 203:8] (13 lines, 155 tokens)
+   app/lab/years/wall/_wall.tsx [263:16 - 277:8]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/years/then/_then.tsx[39m[22m [411:59 - 423:30] (13 lines, 76 tokens)
+   app/lab/years/wall/_wall.tsx [685:52 - 697:30]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/years/then/_then.tsx[39m[22m [416:18 - 424:30] (9 lines, 62 tokens)
+   app/lab/years/weave/_weave.tsx [504:18 - 512:30]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/years/wall/_wall.tsx[39m[22m [252:103 - 262:10] (11 lines, 62 tokens)
+   app/lab/years/weave/_weave.tsx [258:143 - 262:10]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/years/wall/_wall.tsx[39m[22m [322:11 - 329:80] (8 lines, 123 tokens)
+   app/lab/years/wall/_wall.tsx [655:11 - 662:80]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/years/wall/_wall.tsx[39m[22m [350:5 - 364:12] (15 lines, 135 tokens)
+   app/lab/years/weave/_weave.tsx [260:158 - 273:12]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/years/wall/_wall.tsx[39m[22m [421:15 - 426:26] (6 lines, 106 tokens)
+   app/lab/years/weave/_weave.tsx [352:58 - 355:26]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/years/wall/_wall.tsx[39m[22m [500:16 - 508:28] (9 lines, 63 tokens)
+   app/lab/years/weave/_weave.tsx [400:19 - 407:28]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/years/wall/_wall.tsx[39m[22m [508:96 - 513:6] (6 lines, 57 tokens)
+   app/lab/years/weave/_weave.tsx [407:96 - 409:16]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/years/wall/_wall.tsx[39m[22m [523:21 - 533:18] (11 lines, 151 tokens)
+   app/lab/years/weave/_weave.tsx [421:23 - 430:18]
+[1mClone found (tsx)[22m
+ - [1m[32mapp/lab/years/wall/_wall.tsx[39m[22m [541:28 - 548:11] (8 lines, 87 tokens)
+   app/lab/years/weave/_weave.tsx [438:13 - 445:11]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/auth/member-verify-dialog.tsx[39m[22m [26:35 - 37:17] (12 lines, 59 tokens)
+   components/auth/verify-email-dialog.tsx [83:34 - 94:17]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/auth/signup-form.tsx[39m[22m [175:7 - 183:52] (9 lines, 60 tokens)
+   components/collection/photo-questions.tsx [249:7 - 257:52]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/auth/verify-email-banner.tsx[39m[22m [95:28 - 108:8] (14 lines, 62 tokens)
+   components/auth/verify-email-dialog.tsx [94:30 - 108:8]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/catchups/home/picture-picker-dialog.tsx[39m[22m [120:7 - 143:17] (24 lines, 146 tokens)
+   components/common/photo-aim.tsx [198:47 - 224:17]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/catchups/home/picture-picker-dialog.tsx[39m[22m [199:11 - 215:23] (17 lines, 121 tokens)
+   components/common/photo-aim.tsx [252:9 - 268:21]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/collection/contribute-stage.tsx[39m[22m [204:63 - 214:11] (11 lines, 57 tokens)
+   components/common/photo-carousel.tsx [228:51 - 238:11]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/collection/year-rail.tsx[39m[22m [249:28 - 256:17] (8 lines, 50 tokens)
+   components/collection/year-rail.tsx [274:27 - 281:19]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/common/filters/facet-search-select.tsx[39m[22m [87:8 - 97:73] (11 lines, 78 tokens)
+   components/common/filters/range-facet-pill.tsx [63:47 - 72:73]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/common/filters/range-facet-pill.tsx[39m[22m [88:72 - 98:23] (11 lines, 67 tokens)
+   components/common/filters/range-facet-pill.tsx [103:72 - 113:23]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/landing/ambient-leaves.tsx[39m[22m [116:100 - 130:27] (15 lines, 80 tokens)
+   components/landing/perching-birds.tsx [136:14 - 149:27]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/landing/perching-birds.tsx[39m[22m [190:40 - 197:12] (8 lines, 58 tokens)
+   components/landing/perching-birds.tsx [582:5 - 587:10]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/landing/perching-birds.tsx[39m[22m [311:24 - 318:52] (8 lines, 67 tokens)
+   components/landing/perching-birds.tsx [325:21 - 332:50]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/letters/letter-menu.tsx[39m[22m [63:53 - 69:3] (7 lines, 51 tokens)
+   components/posts/post-card.tsx [81:36 - 87:3]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/mascot/hoopoe.tsx[39m[22m [717:24 - 729:15] (13 lines, 133 tokens)
+   components/mascot/hoopoe.tsx [897:16 - 905:15]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/mascot/hoopoe.tsx[39m[22m [729:67 - 734:8] (6 lines, 53 tokens)
+   components/mascot/hoopoe.tsx [908:50 - 914:8]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/mascot/hoopoe.tsx[39m[22m [737:9 - 745:36] (9 lines, 103 tokens)
+   components/mascot/hoopoe.tsx [844:46 - 850:34]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/mascot/hoopoe.tsx[39m[22m [745:78 - 750:10] (6 lines, 90 tokens)
+   components/mascot/hoopoe.tsx [850:94 - 855:8]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/onboarding/steps/houses-step.tsx[39m[22m [110:10 - 122:24] (13 lines, 84 tokens)
+   components/onboarding/steps/register-step.tsx [193:14 - 205:24]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/onboarding/steps/houses-step.tsx[39m[22m [122:72 - 129:7] (8 lines, 51 tokens)
+   components/onboarding/steps/register-step.tsx [205:51 - 212:7]
+[1mClone found (tsx)[22m
+ - [1m[32mcomponents/posts/post-feed.tsx[39m[22m [238:56 - 258:4] (21 lines, 66 tokens)
+   components/profile/profile-author-feed.tsx [118:81 - 132:4]
+[1mClone found (typescript)[22m
+ - [1m[32mcomponents/posts/use-composer-uploads.ts[39m[22m [154:50 - 164:45] (11 lines, 93 tokens)
+   lib/upload-client.ts [123:44 - 132:43]
+[1mClone found (typescript)[22m
+ - [1m[32mlib/admin-content-query.ts[39m[22m [62:19 - 70:18] (9 lines, 56 tokens)
+   lib/admin-content-query.ts [159:21 - 167:18]
+[1mClone found (typescript)[22m
+ - [1m[32mlib/api-gate.ts[39m[22m [73:40 - 93:22] (21 lines, 64 tokens)
+   lib/api-gate.ts [104:43 - 129:22]
+[1mClone found (typescript)[22m
+ - [1m[32mlib/api-gate.ts[39m[22m [73:40 - 93:7] (21 lines, 62 tokens)
+   lib/api-gate.ts [135:51 - 157:7]
+[1mClone found (typescript)[22m
+ - [1m[32mlib/api-gate.ts[39m[22m [93:39 - 99:8] (7 lines, 52 tokens)
+   lib/api-gate.ts [129:39 - 135:8]
+[1mClone found (typescript)[22m
+ - [1m[32mlib/catchups.ts[39m[22m [182:7 - 187:20] (6 lines, 52 tokens)
+   lib/catchups.ts [209:5 - 214:18]
+[1mClone found (typescript)[22m
+ - [1m[32mlib/photo-visibility-rule.ts[39m[22m [96:29 - 105:26] (10 lines, 98 tokens)
+   lib/post-visibility-rule.ts [111:34 - 120:26]
+[90m┌────────────┬────────────────┬─────────────┬──────────────┬──────────────┬──────────────────┬───────────────────┐[39m
+[90m│[39m[31m Format     [39m[90m│[39m[31m Files analyzed [39m[90m│[39m[31m Total lines [39m[90m│[39m[31m Total tokens [39m[90m│[39m[31m Clones found [39m[90m│[39m[31m Duplicated lines [39m[90m│[39m[31m Duplicated tokens [39m[90m│[39m
+[90m├────────────┼────────────────┼─────────────┼──────────────┼──────────────┼──────────────────┼───────────────────┤[39m
+[90m│[39m javascript [90m│[39m 65             [90m│[39m 11581       [90m│[39m 73967        [90m│[39m 25           [90m│[39m 225 (1.94%)      [90m│[39m 1649 (2.23%)      [90m│[39m
+[90m├────────────┼────────────────┼─────────────┼──────────────┼──────────────┼──────────────────┼───────────────────┤[39m
+[90m│[39m tsx        [90m│[39m 492            [90m│[39m 129206      [90m│[39m 611710       [90m│[39m 244          [90m│[39m 4008 (3.10%)     [90m│[39m 22316 (3.65%)     [90m│[39m
+[90m├────────────┼────────────────┼─────────────┼──────────────┼──────────────┼──────────────────┼───────────────────┤[39m
+[90m│[39m typescript [90m│[39m 271            [90m│[39m 56429       [90m│[39m 230108       [90m│[39m 56           [90m│[39m 579 (1.03%)      [90m│[39m 3423 (1.49%)      [90m│[39m
+[90m├────────────┼────────────────┼─────────────┼──────────────┼──────────────┼──────────────────┼───────────────────┤[39m
+[90m│[39m [1mTotal:[22m     [90m│[39m 828            [90m│[39m 197216      [90m│[39m 915785       [90m│[39m 325          [90m│[39m 4812 (2.44%)     [90m│[39m 27388 (2.99%)     [90m│[39m
+[90m└────────────┴────────────────┴─────────────┴──────────────┴──────────────┴──────────────────┴───────────────────┘[39m
+[90mFound 325 clones.[39m
+[32mJSON report saved to docs/audit-fix/2026-09-24-refactor-audit-3/work/raw/jscpd-json/jscpd-report.json[39m
+[90mtime: 393.517ms[39m
+EXIT=0

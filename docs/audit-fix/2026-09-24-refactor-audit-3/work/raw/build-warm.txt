@@ -1,0 +1,183 @@
+
+> rv-connect@0.1.0 build
+> next build
+
+▲ Next.js 16.3.3 (Turbopack)
+- Environments: .env
+✓ Running next.config.ts took 521ms
+- Experiments (use with caution):
+  ✓ authInterrupts
+  · optimizePackageImports
+  · proxyClientMaxBodySize: "25mb"
+  · serverActions
+
+  Creating an optimized production build ...
+(node:74606) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✓ Compiled successfully in 18.5s
+  Running next.config.js provided runAfterProductionCompile ...
+✓ Completed runAfterProductionCompile in 1163ms
+  Running TypeScript ...
+✓ Finished filesystem cache database compaction in 12.1s
+  Finished TypeScript in 20.6s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/109) ...
+  Generating static pages using 7 workers (27/109) 
+  Generating static pages using 7 workers (54/109) 
+  Generating static pages using 7 workers (81/109) 
+✓ Generating static pages using 7 workers (109/109) in 6.0s
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /about
+├ ƒ /admin
+├ ƒ /admin/analytics
+├ ƒ /admin/audit
+├ ƒ /admin/catchups
+├ ƒ /admin/catchups/[catchupId]
+├ ƒ /admin/content
+├ ƒ /admin/mail
+├ ƒ /admin/messages
+├ ƒ /admin/messages/[id]
+├ ƒ /admin/people
+├ ƒ /admin/people/[id]
+├ ƒ /admin/reports
+├ ƒ /admin/review
+├ ƒ /admin/support
+├ ƒ /api/account/export
+├ ƒ /api/auth/[...nextauth]
+├ ƒ /api/catchups/tick
+├ ƒ /api/demo/reset
+├ ƒ /api/dev-login
+├ ƒ /api/photo/download
+├ ƒ /api/places/search
+├ ƒ /api/presence
+├ ƒ /api/razorpay/webhook
+├ ƒ /api/resend/webhook
+├ ƒ /api/retention/sweep
+├ ƒ /api/upload
+├ ƒ /api/upload/audio
+├ ƒ /api/upload/audio/finalize
+├ ƒ /api/upload/finalize
+├ ƒ /api/upload/presign
+├ ƒ /api/users-by-batch
+├ ƒ /api/users/search
+├ ○ /apple-icon.png
+├ ƒ /birds
+├ ƒ /catchups
+├ ƒ /catchups/[catchupId]
+├ ƒ /catchups/[catchupId]/answer
+├ ƒ /catchups/edition/[editionId]
+├ ƒ /catchups/join
+├ ƒ /catchups/join/[token]
+├ ƒ /catchups/new
+├ ƒ /catchups/round/[editionId]
+├ ƒ /collection
+├ ƒ /collection/[id]
+├ ƒ /dark-mode
+├ ƒ /directory
+├ ƒ /feed
+├ ƒ /forgot-password
+├ ƒ /guide
+├ ƒ /guide/[area]
+├ ƒ /guidelines
+├ ƒ /hoopoe
+├ ○ /icon.svg
+├ ƒ /lab
+├ ƒ /lab/[dir]
+├ ƒ /lab/[dir]/auth
+├ ƒ /lab/birds-bg
+├ ƒ /lab/birds-rv
+├ ƒ /lab/catchups/capsule
+├ ƒ /lab/catchups/magazine
+├ ƒ /lab/catchups/settings
+├ ƒ /lab/catchups/sketches
+├ ƒ /lab/catchups/swipe
+├ ƒ /lab/catchups/voice
+├ ƒ /lab/catchups/vote
+├ ƒ /lab/catchups/wall
+├ ƒ /lab/centroid
+├ ƒ /lab/chain-lines
+├ ƒ /lab/collection
+├ ƒ /lab/collection/scrub
+├ ƒ /lab/collection/swap
+├ ƒ /lab/comments
+├ ƒ /lab/composer
+├ ƒ /lab/craft
+├ ƒ /lab/crop
+├ ƒ /lab/directory
+├ ƒ /lab/eggs
+├ ƒ /lab/everything
+├ ƒ /lab/feed-canvas
+├ ƒ /lab/feedback
+├ ƒ /lab/focus
+├ ƒ /lab/glass-edges
+├ ƒ /lab/groups-rethink
+├ ƒ /lab/groups-rethink/batches-interest
+├ ƒ /lab/groups-rethink/circles
+├ ƒ /lab/groups-rethink/dissolve
+├ ƒ /lab/groups-rethink/gatherings
+├ ƒ /lab/hoopoe
+├ ƒ /lab/hoopoe-lives
+├ ƒ /lab/hoopoe-marks
+├ ƒ /lab/icon-colours
+├ ƒ /lab/icon-directions
+├ ƒ /lab/landing
+├ ƒ /lab/landings
+├ ƒ /lab/loading
+├ ƒ /lab/loading-ideas
+├ ƒ /lab/location-picker
+├ ƒ /lab/logo
+├ ƒ /lab/logos
+├ ƒ /lab/mascot-moments
+├ ƒ /lab/new-post
+├ ƒ /lab/profiles
+├ ƒ /lab/reach
+├ ƒ /lab/spine
+├ ƒ /lab/spine-marker
+├ ƒ /lab/support
+├ ƒ /lab/support-ideas
+├ ƒ /lab/tiles
+├ ƒ /lab/transitions
+├ ƒ /lab/type
+├ ƒ /lab/v2
+├ ƒ /lab/valley
+├ ƒ /lab/valley/hills
+├ ƒ /lab/valley/seal
+├ ƒ /lab/viewer
+├ ƒ /lab/years
+├ ƒ /lab/years/then
+├ ƒ /lab/years/wall
+├ ƒ /lab/years/weave
+├ ƒ /letters
+├ ƒ /letters/[id]
+├ ƒ /letters/[id]/edit
+├ ƒ /letters/new
+├ ƒ /login
+├ ○ /manifest.webmanifest
+├ ƒ /messages
+├ ƒ /messages/[id]
+├ ƒ /pick-bird
+├ ƒ /privacy
+├ ƒ /profile/[id]
+├ ƒ /reset-password
+├ ○ /robots.txt
+├ ƒ /signup
+├ ○ /sitemap.xml
+├ ƒ /support
+├ ƒ /terms
+├ ƒ /verify-email
+└ ƒ /welcome
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+real 68.23
+user 23.86
+sys 17.59
+EXIT=0

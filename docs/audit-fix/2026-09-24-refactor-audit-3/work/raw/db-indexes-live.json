@@ -1,0 +1,1158 @@
+{
+ "command": "SELECT",
+ "rowCount": 128,
+ "rows": [
+  {
+   "tbl": "Photo",
+   "idx": "Photo_caption_trgm_idx",
+   "idx_scan": "0",
+   "bytes": "147456",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Photo_caption_trgm_idx\" ON public.\"Photo\" USING gin (caption gin_trgm_ops)"
+  },
+  {
+   "tbl": "RosterEntry",
+   "idx": "RosterEntry_pkey",
+   "idx_scan": "0",
+   "bytes": "147456",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"RosterEntry_pkey\" ON public.\"RosterEntry\" USING btree (id)"
+  },
+  {
+   "tbl": "MetricSnapshot",
+   "idx": "MetricSnapshot_source_metric_day_idx",
+   "idx_scan": "0",
+   "bytes": "90112",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"MetricSnapshot_source_metric_day_idx\" ON public.\"MetricSnapshot\" USING btree (source, metric, day)"
+  },
+  {
+   "tbl": "MetricSnapshot",
+   "idx": "MetricSnapshot_pkey",
+   "idx_scan": "0",
+   "bytes": "90112",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"MetricSnapshot_pkey\" ON public.\"MetricSnapshot\" USING btree (id)"
+  },
+  {
+   "tbl": "ContentView",
+   "idx": "ContentView_pkey",
+   "idx_scan": "0",
+   "bytes": "73728",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"ContentView_pkey\" ON public.\"ContentView\" USING btree (id)"
+  },
+  {
+   "tbl": "AuditLog",
+   "idx": "AuditLog_pkey",
+   "idx_scan": "0",
+   "bytes": "32768",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"AuditLog_pkey\" ON public.\"AuditLog\" USING btree (id)"
+  },
+  {
+   "tbl": "Report",
+   "idx": "Report_reporterId_reportedUserId_key",
+   "idx_scan": "0",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"Report_reporterId_reportedUserId_key\" ON public.\"Report\" USING btree (\"reporterId\", \"reportedUserId\")"
+  },
+  {
+   "tbl": "PhotoLove",
+   "idx": "PhotoLove_photoId_idx",
+   "idx_scan": "0",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"PhotoLove_photoId_idx\" ON public.\"PhotoLove\" USING btree (\"photoId\")"
+  },
+  {
+   "tbl": "CatchupPromptOption",
+   "idx": "CatchupPromptOption_pkey",
+   "idx_scan": "0",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"CatchupPromptOption_pkey\" ON public.\"CatchupPromptOption\" USING btree (id)"
+  },
+  {
+   "tbl": "AdminMessage",
+   "idx": "AdminMessage_pkey",
+   "idx_scan": "0",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"AdminMessage_pkey\" ON public.\"AdminMessage\" USING btree (id)"
+  },
+  {
+   "tbl": "Report",
+   "idx": "Report_open_post_per_reporter_key",
+   "idx_scan": "0",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"Report_open_post_per_reporter_key\" ON public.\"Report\" USING btree (\"reporterId\", \"postId\") WHERE ((\"targetType\" = 'post'::text) AND (status = 'pending'::text) AND (\"postId\" IS NOT NULL))"
+  },
+  {
+   "tbl": "CatchupReminderPref",
+   "idx": "CatchupReminderPref_pkey",
+   "idx_scan": "0",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"CatchupReminderPref_pkey\" ON public.\"CatchupReminderPref\" USING btree (id)"
+  },
+  {
+   "tbl": "PollVote",
+   "idx": "PollVote_pollOptionId_idx",
+   "idx_scan": "0",
+   "bytes": "8192",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"PollVote_pollOptionId_idx\" ON public.\"PollVote\" USING btree (\"pollOptionId\")"
+  },
+  {
+   "tbl": "UserPlace",
+   "idx": "UserPlace_pkey",
+   "idx_scan": "1",
+   "bytes": "32768",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"UserPlace_pkey\" ON public.\"UserPlace\" USING btree (id)"
+  },
+  {
+   "tbl": "Comment",
+   "idx": "Comment_entryId_createdAt_idx",
+   "idx_scan": "1",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Comment_entryId_createdAt_idx\" ON public.\"Comment\" USING btree (\"entryId\", \"createdAt\")"
+  },
+  {
+   "tbl": "PollVote",
+   "idx": "PollVote_pkey",
+   "idx_scan": "1",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"PollVote_pkey\" ON public.\"PollVote\" USING btree (id)"
+  },
+  {
+   "tbl": "UserPlace",
+   "idx": "UserPlace_city_idx",
+   "idx_scan": "1",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"UserPlace_city_idx\" ON public.\"UserPlace\" USING btree (lower(city))"
+  },
+  {
+   "tbl": "LoginAttempt",
+   "idx": "LoginAttempt_pkey",
+   "idx_scan": "2",
+   "bytes": "32768",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"LoginAttempt_pkey\" ON public.\"LoginAttempt\" USING btree (id)"
+  },
+  {
+   "tbl": "CatchupPromptOption",
+   "idx": "CatchupPromptOption_id_promptId_key",
+   "idx_scan": "3",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"CatchupPromptOption_id_promptId_key\" ON public.\"CatchupPromptOption\" USING btree (id, \"promptId\")"
+  },
+  {
+   "tbl": "CatchupPromptOption",
+   "idx": "CatchupPromptOption_promptId_position_key",
+   "idx_scan": "3",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"CatchupPromptOption_promptId_position_key\" ON public.\"CatchupPromptOption\" USING btree (\"promptId\", \"position\")"
+  },
+  {
+   "tbl": "CatchupEntry",
+   "idx": "CatchupEntry_pollOptionId_promptId_idx",
+   "idx_scan": "3",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"CatchupEntry_pollOptionId_promptId_idx\" ON public.\"CatchupEntry\" USING btree (\"pollOptionId\", \"promptId\")"
+  },
+  {
+   "tbl": "PhotoLove",
+   "idx": "PhotoLove_pkey",
+   "idx_scan": "4",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"PhotoLove_pkey\" ON public.\"PhotoLove\" USING btree (id)"
+  },
+  {
+   "tbl": "PollOption",
+   "idx": "PollOption_pkey",
+   "idx_scan": "5",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"PollOption_pkey\" ON public.\"PollOption\" USING btree (id)"
+  },
+  {
+   "tbl": "User",
+   "idx": "User_name_trgm_idx",
+   "idx_scan": "6",
+   "bytes": "98304",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"User_name_trgm_idx\" ON public.\"User\" USING gin (name gin_trgm_ops)"
+  },
+  {
+   "tbl": "AuthToken",
+   "idx": "AuthToken_pkey",
+   "idx_scan": "7",
+   "bytes": "32768",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"AuthToken_pkey\" ON public.\"AuthToken\" USING btree (id)"
+  },
+  {
+   "tbl": "Report",
+   "idx": "Report_pkey",
+   "idx_scan": "7",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"Report_pkey\" ON public.\"Report\" USING btree (id)"
+  },
+  {
+   "tbl": "CommentLike",
+   "idx": "CommentLike_commentId_idx",
+   "idx_scan": "10",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"CommentLike_commentId_idx\" ON public.\"CommentLike\" USING btree (\"commentId\")"
+  },
+  {
+   "tbl": "PendingImagePurge",
+   "idx": "PendingImagePurge_createdAt_idx",
+   "idx_scan": "12",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"PendingImagePurge_createdAt_idx\" ON public.\"PendingImagePurge\" USING btree (\"createdAt\")"
+  },
+  {
+   "tbl": "AdminThread",
+   "idx": "AdminThread_status_lastMessageAt_idx",
+   "idx_scan": "14",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"AdminThread_status_lastMessageAt_idx\" ON public.\"AdminThread\" USING btree (status, \"lastMessageAt\")"
+  },
+  {
+   "tbl": "Contribution",
+   "idx": "Contribution_razorpayOrderId_key",
+   "idx_scan": "15",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"Contribution_razorpayOrderId_key\" ON public.\"Contribution\" USING btree (\"razorpayOrderId\")"
+  },
+  {
+   "tbl": "SearchLog",
+   "idx": "SearchLog_scope_createdAt_idx",
+   "idx_scan": "16",
+   "bytes": "32768",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"SearchLog_scope_createdAt_idx\" ON public.\"SearchLog\" USING btree (scope, \"createdAt\")"
+  },
+  {
+   "tbl": "Contribution",
+   "idx": "Contribution_pkey",
+   "idx_scan": "20",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"Contribution_pkey\" ON public.\"Contribution\" USING btree (id)"
+  },
+  {
+   "tbl": "PollVote",
+   "idx": "PollVote_postId_idx",
+   "idx_scan": "21",
+   "bytes": "8192",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"PollVote_postId_idx\" ON public.\"PollVote\" USING btree (\"postId\")"
+  },
+  {
+   "tbl": "CommentLike",
+   "idx": "CommentLike_pkey",
+   "idx_scan": "22",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"CommentLike_pkey\" ON public.\"CommentLike\" USING btree (id)"
+  },
+  {
+   "tbl": "AuditLog",
+   "idx": "AuditLog_action_createdAt_idx",
+   "idx_scan": "23",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"AuditLog_action_createdAt_idx\" ON public.\"AuditLog\" USING btree (action, \"createdAt\")"
+  },
+  {
+   "tbl": "CatchupEntryLove",
+   "idx": "CatchupEntryLove_pkey",
+   "idx_scan": "27",
+   "bytes": "49152",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"CatchupEntryLove_pkey\" ON public.\"CatchupEntryLove\" USING btree (id)"
+  },
+  {
+   "tbl": "Like",
+   "idx": "Like_pkey",
+   "idx_scan": "27",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"Like_pkey\" ON public.\"Like\" USING btree (id)"
+  },
+  {
+   "tbl": "Bookmark",
+   "idx": "Bookmark_pkey",
+   "idx_scan": "27",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"Bookmark_pkey\" ON public.\"Bookmark\" USING btree (id)"
+  },
+  {
+   "tbl": "CatchupEditionRead",
+   "idx": "CatchupEditionRead_editionId_idx",
+   "idx_scan": "29",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"CatchupEditionRead_editionId_idx\" ON public.\"CatchupEditionRead\" USING btree (\"editionId\")"
+  },
+  {
+   "tbl": "LabRoomState",
+   "idx": "LabRoomState_pkey",
+   "idx_scan": "31",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"LabRoomState_pkey\" ON public.\"LabRoomState\" USING btree (href)"
+  },
+  {
+   "tbl": "User",
+   "idx": "User_professionTags_idx",
+   "idx_scan": "39",
+   "bytes": "24576",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"User_professionTags_idx\" ON public.\"User\" USING gin (\"professionTags\")"
+  },
+  {
+   "tbl": "PendingImagePurge",
+   "idx": "PendingImagePurge_pkey",
+   "idx_scan": "40",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"PendingImagePurge_pkey\" ON public.\"PendingImagePurge\" USING btree (id)"
+  },
+  {
+   "tbl": "QueueLease",
+   "idx": "QueueLease_pkey",
+   "idx_scan": "71",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"QueueLease_pkey\" ON public.\"QueueLease\" USING btree (name)"
+  },
+  {
+   "tbl": "AdminThread",
+   "idx": "AdminThread_reportId_key",
+   "idx_scan": "93",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"AdminThread_reportId_key\" ON public.\"AdminThread\" USING btree (\"reportId\")"
+  },
+  {
+   "tbl": "Bookmark",
+   "idx": "Bookmark_postId_idx",
+   "idx_scan": "96",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Bookmark_postId_idx\" ON public.\"Bookmark\" USING btree (\"postId\")"
+  },
+  {
+   "tbl": "LinkPreview",
+   "idx": "LinkPreview_pkey",
+   "idx_scan": "100",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"LinkPreview_pkey\" ON public.\"LinkPreview\" USING btree (url)"
+  },
+  {
+   "tbl": "CatchupPrompt",
+   "idx": "CatchupPrompt_pkey",
+   "idx_scan": "102",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"CatchupPrompt_pkey\" ON public.\"CatchupPrompt\" USING btree (id)"
+  },
+  {
+   "tbl": "LoginAttempt",
+   "idx": "LoginAttempt_createdAt_idx",
+   "idx_scan": "111",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"LoginAttempt_createdAt_idx\" ON public.\"LoginAttempt\" USING btree (\"createdAt\")"
+  },
+  {
+   "tbl": "Comment",
+   "idx": "Comment_postId_isHidden_idx",
+   "idx_scan": "112",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Comment_postId_isHidden_idx\" ON public.\"Comment\" USING btree (\"postId\", \"isHidden\")"
+  },
+  {
+   "tbl": "AuditLog",
+   "idx": "AuditLog_createdAt_idx",
+   "idx_scan": "118",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"AuditLog_createdAt_idx\" ON public.\"AuditLog\" USING btree (\"createdAt\")"
+  },
+  {
+   "tbl": "RosterEntry",
+   "idx": "RosterEntry_normalizedName_batchYear_idx",
+   "idx_scan": "122",
+   "bytes": "147456",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"RosterEntry_normalizedName_batchYear_idx\" ON public.\"RosterEntry\" USING btree (\"normalizedName\", \"batchYear\")"
+  },
+  {
+   "tbl": "Comment",
+   "idx": "Comment_parentId_idx",
+   "idx_scan": "127",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Comment_parentId_idx\" ON public.\"Comment\" USING btree (\"parentId\")"
+  },
+  {
+   "tbl": "User",
+   "idx": "User_lastSeenAt_idx",
+   "idx_scan": "141",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"User_lastSeenAt_idx\" ON public.\"User\" USING btree (\"lastSeenAt\") WHERE (\"lastSeenAt\" IS NOT NULL)"
+  },
+  {
+   "tbl": "RosterEntry",
+   "idx": "RosterEntry_email_idx",
+   "idx_scan": "170",
+   "bytes": "98304",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"RosterEntry_email_idx\" ON public.\"RosterEntry\" USING btree (email)"
+  },
+  {
+   "tbl": "AdminThread",
+   "idx": "AdminThread_pkey",
+   "idx_scan": "188",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"AdminThread_pkey\" ON public.\"AdminThread\" USING btree (id)"
+  },
+  {
+   "tbl": "ContentView",
+   "idx": "ContentView_kind_targetId_idx",
+   "idx_scan": "207",
+   "bytes": "49152",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"ContentView_kind_targetId_idx\" ON public.\"ContentView\" USING btree (kind, \"targetId\")"
+  },
+  {
+   "tbl": "GroupMember",
+   "idx": "GroupMember_pkey",
+   "idx_scan": "208",
+   "bytes": "32768",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"GroupMember_pkey\" ON public.\"GroupMember\" USING btree (id)"
+  },
+  {
+   "tbl": "AuthToken",
+   "idx": "AuthToken_tokenHash_key",
+   "idx_scan": "222",
+   "bytes": "40960",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"AuthToken_tokenHash_key\" ON public.\"AuthToken\" USING btree (\"tokenHash\")"
+  },
+  {
+   "tbl": "OutboundEmail",
+   "idx": "OutboundEmail_providerId_idx",
+   "idx_scan": "223",
+   "bytes": "40960",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"OutboundEmail_providerId_idx\" ON public.\"OutboundEmail\" USING btree (\"providerId\")"
+  },
+  {
+   "tbl": "OutboundEmail",
+   "idx": "OutboundEmail_pkey",
+   "idx_scan": "235",
+   "bytes": "32768",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"OutboundEmail_pkey\" ON public.\"OutboundEmail\" USING btree (id)"
+  },
+  {
+   "tbl": "Comment",
+   "idx": "Comment_pkey",
+   "idx_scan": "238",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"Comment_pkey\" ON public.\"Comment\" USING btree (id)"
+  },
+  {
+   "tbl": "CommentLike",
+   "idx": "CommentLike_userId_commentId_key",
+   "idx_scan": "253",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"CommentLike_userId_commentId_key\" ON public.\"CommentLike\" USING btree (\"userId\", \"commentId\")"
+  },
+  {
+   "tbl": "Photo",
+   "idx": "Photo_era_idx",
+   "idx_scan": "315",
+   "bytes": "49152",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Photo_era_idx\" ON public.\"Photo\" USING btree (era)"
+  },
+  {
+   "tbl": "CatchupEntryLove",
+   "idx": "CatchupEntryLove_entryId_idx",
+   "idx_scan": "348",
+   "bytes": "32768",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"CatchupEntryLove_entryId_idx\" ON public.\"CatchupEntryLove\" USING btree (\"entryId\")"
+  },
+  {
+   "tbl": "Notification",
+   "idx": "Notification_pkey",
+   "idx_scan": "367",
+   "bytes": "81920",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"Notification_pkey\" ON public.\"Notification\" USING btree (id)"
+  },
+  {
+   "tbl": "AdminThread",
+   "idx": "AdminThread_memberId_lastMessageAt_idx",
+   "idx_scan": "427",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"AdminThread_memberId_lastMessageAt_idx\" ON public.\"AdminThread\" USING btree (\"memberId\", \"lastMessageAt\")"
+  },
+  {
+   "tbl": "SearchLog",
+   "idx": "SearchLog_pkey",
+   "idx_scan": "494",
+   "bytes": "40960",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"SearchLog_pkey\" ON public.\"SearchLog\" USING btree (id)"
+  },
+  {
+   "tbl": "AuthToken",
+   "idx": "AuthToken_expiresAt_idx",
+   "idx_scan": "507",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"AuthToken_expiresAt_idx\" ON public.\"AuthToken\" USING btree (\"expiresAt\")"
+  },
+  {
+   "tbl": "Place",
+   "idx": "Place_altNames_trgm_idx",
+   "idx_scan": "559",
+   "bytes": "37412864",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Place_altNames_trgm_idx\" ON public.\"Place\" USING gin (\"altNames\" gin_trgm_ops)"
+  },
+  {
+   "tbl": "AuthToken",
+   "idx": "AuthToken_userId_kind_createdAt_idx",
+   "idx_scan": "575",
+   "bytes": "32768",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"AuthToken_userId_kind_createdAt_idx\" ON public.\"AuthToken\" USING btree (\"userId\", kind, \"createdAt\")"
+  },
+  {
+   "tbl": "Bookmark",
+   "idx": "Bookmark_userId_postId_key",
+   "idx_scan": "677",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"Bookmark_userId_postId_key\" ON public.\"Bookmark\" USING btree (\"userId\", \"postId\")"
+  },
+  {
+   "tbl": "Contribution",
+   "idx": "Contribution_userId_idx",
+   "idx_scan": "719",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Contribution_userId_idx\" ON public.\"Contribution\" USING btree (\"userId\")"
+  },
+  {
+   "tbl": "User",
+   "idx": "User_email_lower_key",
+   "idx_scan": "757",
+   "bytes": "32768",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"User_email_lower_key\" ON public.\"User\" USING btree (lower(email))"
+  },
+  {
+   "tbl": "AdminThread",
+   "idx": "AdminThread_adminUnread_lastMessageAt_idx",
+   "idx_scan": "798",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"AdminThread_adminUnread_lastMessageAt_idx\" ON public.\"AdminThread\" USING btree (\"adminUnread\", \"lastMessageAt\")"
+  },
+  {
+   "tbl": "CatchupEdition",
+   "idx": "CatchupEdition_status_publishAt_idx",
+   "idx_scan": "853",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"CatchupEdition_status_publishAt_idx\" ON public.\"CatchupEdition\" USING btree (status, \"publishAt\")"
+  },
+  {
+   "tbl": "Photo",
+   "idx": "Photo_uploaderId_idx",
+   "idx_scan": "924",
+   "bytes": "40960",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Photo_uploaderId_idx\" ON public.\"Photo\" USING btree (\"uploaderId\")"
+  },
+  {
+   "tbl": "PhotoLove",
+   "idx": "PhotoLove_userId_photoId_key",
+   "idx_scan": "954",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"PhotoLove_userId_photoId_key\" ON public.\"PhotoLove\" USING btree (\"userId\", \"photoId\")"
+  },
+  {
+   "tbl": "Place",
+   "idx": "Place_name_idx",
+   "idx_scan": "1024",
+   "bytes": "8486912",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Place_name_idx\" ON public.\"Place\" USING btree (lower(name) text_pattern_ops)"
+  },
+  {
+   "tbl": "CatchupSeries",
+   "idx": "CatchupSeries_inviteToken_key",
+   "idx_scan": "1027",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"CatchupSeries_inviteToken_key\" ON public.\"CatchupSeries\" USING btree (\"inviteToken\")"
+  },
+  {
+   "tbl": "Place",
+   "idx": "Place_asciiName_idx",
+   "idx_scan": "1028",
+   "bytes": "8347648",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Place_asciiName_idx\" ON public.\"Place\" USING btree (lower(\"asciiName\") text_pattern_ops)"
+  },
+  {
+   "tbl": "Comment",
+   "idx": "Comment_postId_createdAt_idx",
+   "idx_scan": "1096",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Comment_postId_createdAt_idx\" ON public.\"Comment\" USING btree (\"postId\", \"createdAt\")"
+  },
+  {
+   "tbl": "CatchupEditionRead",
+   "idx": "CatchupEditionRead_pkey",
+   "idx_scan": "1164",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"CatchupEditionRead_pkey\" ON public.\"CatchupEditionRead\" USING btree (\"userId\", \"editionId\")"
+  },
+  {
+   "tbl": "AdminMessage",
+   "idx": "AdminMessage_threadId_createdAt_idx",
+   "idx_scan": "1267",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"AdminMessage_threadId_createdAt_idx\" ON public.\"AdminMessage\" USING btree (\"threadId\", \"createdAt\")"
+  },
+  {
+   "tbl": "MetricSnapshot",
+   "idx": "MetricSnapshot_day_source_metric_key",
+   "idx_scan": "1313",
+   "bytes": "73728",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"MetricSnapshot_day_source_metric_key\" ON public.\"MetricSnapshot\" USING btree (day, source, metric)"
+  },
+  {
+   "tbl": "CatchupReminderPref",
+   "idx": "CatchupReminderPref_catchupId_userId_key",
+   "idx_scan": "1356",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"CatchupReminderPref_catchupId_userId_key\" ON public.\"CatchupReminderPref\" USING btree (\"catchupId\", \"userId\")"
+  },
+  {
+   "tbl": "CatchupEntry",
+   "idx": "CatchupEntry_pkey",
+   "idx_scan": "1377",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"CatchupEntry_pkey\" ON public.\"CatchupEntry\" USING btree (id)"
+  },
+  {
+   "tbl": "Group",
+   "idx": "Group_batchYear_key",
+   "idx_scan": "1594",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"Group_batchYear_key\" ON public.\"Group\" USING btree (\"batchYear\")"
+  },
+  {
+   "tbl": "Photo",
+   "idx": "Photo_sourceKey_key",
+   "idx_scan": "1826",
+   "bytes": "253952",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"Photo_sourceKey_key\" ON public.\"Photo\" USING btree (\"sourceKey\")"
+  },
+  {
+   "tbl": "OutboundEmail",
+   "idx": "OutboundEmail_userId_kind_status_idx",
+   "idx_scan": "1859",
+   "bytes": "40960",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"OutboundEmail_userId_kind_status_idx\" ON public.\"OutboundEmail\" USING btree (\"userId\", kind, status)"
+  },
+  {
+   "tbl": "SearchLog",
+   "idx": "SearchLog_createdAt_idx",
+   "idx_scan": "1865",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"SearchLog_createdAt_idx\" ON public.\"SearchLog\" USING btree (\"createdAt\")"
+  },
+  {
+   "tbl": "CatchupEntry",
+   "idx": "CatchupEntry_promptId_authorId_key",
+   "idx_scan": "1882",
+   "bytes": "40960",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"CatchupEntry_promptId_authorId_key\" ON public.\"CatchupEntry\" USING btree (\"promptId\", \"authorId\")"
+  },
+  {
+   "tbl": "Like",
+   "idx": "Like_userId_postId_key",
+   "idx_scan": "1889",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"Like_userId_postId_key\" ON public.\"Like\" USING btree (\"userId\", \"postId\")"
+  },
+  {
+   "tbl": "Notification",
+   "idx": "Notification_userId_createdAt_idx",
+   "idx_scan": "1898",
+   "bytes": "81920",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Notification_userId_createdAt_idx\" ON public.\"Notification\" USING btree (\"userId\", \"createdAt\")"
+  },
+  {
+   "tbl": "CatchupPrompt",
+   "idx": "CatchupPrompt_editionId_position_idx",
+   "idx_scan": "2303",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"CatchupPrompt_editionId_position_idx\" ON public.\"CatchupPrompt\" USING btree (\"editionId\", \"position\")"
+  },
+  {
+   "tbl": "Like",
+   "idx": "Like_postId_idx",
+   "idx_scan": "2737",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Like_postId_idx\" ON public.\"Like\" USING btree (\"postId\")"
+  },
+  {
+   "tbl": "Image",
+   "idx": "Image_pkey",
+   "idx_scan": "2948",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"Image_pkey\" ON public.\"Image\" USING btree (url)"
+  },
+  {
+   "tbl": "Photo",
+   "idx": "Photo_pkey",
+   "idx_scan": "3642",
+   "bytes": "155648",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"Photo_pkey\" ON public.\"Photo\" USING btree (id)"
+  },
+  {
+   "tbl": "ContentView",
+   "idx": "ContentView_viewerId_kind_targetId_key",
+   "idx_scan": "3724",
+   "bytes": "147456",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"ContentView_viewerId_kind_targetId_key\" ON public.\"ContentView\" USING btree (\"viewerId\", kind, \"targetId\")"
+  },
+  {
+   "tbl": "Contribution",
+   "idx": "Contribution_status_createdAt_idx",
+   "idx_scan": "3806",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Contribution_status_createdAt_idx\" ON public.\"Contribution\" USING btree (status, \"createdAt\")"
+  },
+  {
+   "tbl": "User",
+   "idx": "User_email_key",
+   "idx_scan": "5728",
+   "bytes": "32768",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"User_email_key\" ON public.\"User\" USING btree (email)"
+  },
+  {
+   "tbl": "CatchupEntryLove",
+   "idx": "CatchupEntryLove_userId_entryId_key",
+   "idx_scan": "5851",
+   "bytes": "73728",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"CatchupEntryLove_userId_entryId_key\" ON public.\"CatchupEntryLove\" USING btree (\"userId\", \"entryId\")"
+  },
+  {
+   "tbl": "Photo",
+   "idx": "Photo_river_taken_idx",
+   "idx_scan": "6285",
+   "bytes": "204800",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Photo_river_taken_idx\" ON public.\"Photo\" USING btree (approved, \"isHidden\", \"takenKey\" DESC, id DESC)"
+  },
+  {
+   "tbl": "CatchupEntry",
+   "idx": "CatchupEntry_editionId_idx",
+   "idx_scan": "8567",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"CatchupEntry_editionId_idx\" ON public.\"CatchupEntry\" USING btree (\"editionId\")"
+  },
+  {
+   "tbl": "Photo",
+   "idx": "Photo_river_added_idx",
+   "idx_scan": "9449",
+   "bytes": "262144",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Photo_river_added_idx\" ON public.\"Photo\" USING btree (approved, \"isHidden\", \"createdAt\" DESC, id DESC)"
+  },
+  {
+   "tbl": "CatchupEdition",
+   "idx": "CatchupEdition_pkey",
+   "idx_scan": "9875",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"CatchupEdition_pkey\" ON public.\"CatchupEdition\" USING btree (id)"
+  },
+  {
+   "tbl": "PollVote",
+   "idx": "PollVote_userId_postId_key",
+   "idx_scan": "12580",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"PollVote_userId_postId_key\" ON public.\"PollVote\" USING btree (\"userId\", \"postId\")"
+  },
+  {
+   "tbl": "Visit",
+   "idx": "Visit_userId_endedAt_idx",
+   "idx_scan": "13199",
+   "bytes": "417792",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Visit_userId_endedAt_idx\" ON public.\"Visit\" USING btree (\"userId\", \"endedAt\")"
+  },
+  {
+   "tbl": "Post",
+   "idx": "Post_pkey",
+   "idx_scan": "13589",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"Post_pkey\" ON public.\"Post\" USING btree (id)"
+  },
+  {
+   "tbl": "Photo",
+   "idx": "Photo_class_river_idx",
+   "idx_scan": "14469",
+   "bytes": "237568",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Photo_class_river_idx\" ON public.\"Photo\" USING btree (scope, \"classYears\", approved, \"isHidden\", \"takenKey\" DESC, id DESC)"
+  },
+  {
+   "tbl": "Visit",
+   "idx": "Visit_endedAt_idx",
+   "idx_scan": "15120",
+   "bytes": "106496",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Visit_endedAt_idx\" ON public.\"Visit\" USING btree (\"endedAt\")"
+  },
+  {
+   "tbl": "Post",
+   "idx": "Post_kind_createdAt_idx",
+   "idx_scan": "15326",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Post_kind_createdAt_idx\" ON public.\"Post\" USING btree (kind, \"createdAt\")"
+  },
+  {
+   "tbl": "GroupMember",
+   "idx": "GroupMember_userId_idx",
+   "idx_scan": "15491",
+   "bytes": "32768",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"GroupMember_userId_idx\" ON public.\"GroupMember\" USING btree (\"userId\")"
+  },
+  {
+   "tbl": "OutboundEmail",
+   "idx": "OutboundEmail_status_nextAttemptAt_priority_createdAt_idx",
+   "idx_scan": "26160",
+   "bytes": "32768",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"OutboundEmail_status_nextAttemptAt_priority_createdAt_idx\" ON public.\"OutboundEmail\" USING btree (status, \"nextAttemptAt\", priority, \"createdAt\")"
+  },
+  {
+   "tbl": "OutboundEmail",
+   "idx": "OutboundEmail_sentAt_idx",
+   "idx_scan": "27463",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"OutboundEmail_sentAt_idx\" ON public.\"OutboundEmail\" USING btree (\"sentAt\")"
+  },
+  {
+   "tbl": "CatchupSeries",
+   "idx": "CatchupSeries_status_nextOpensAt_idx",
+   "idx_scan": "36691",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"CatchupSeries_status_nextOpensAt_idx\" ON public.\"CatchupSeries\" USING btree (status, \"nextOpensAt\")"
+  },
+  {
+   "tbl": "Post",
+   "idx": "Post_createdAt_idx",
+   "idx_scan": "38451",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Post_createdAt_idx\" ON public.\"Post\" USING btree (\"createdAt\")"
+  },
+  {
+   "tbl": "UserPlace",
+   "idx": "UserPlace_userId_idx",
+   "idx_scan": "40015",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"UserPlace_userId_idx\" ON public.\"UserPlace\" USING btree (\"userId\")"
+  },
+  {
+   "tbl": "UserPlace",
+   "idx": "UserPlace_userId_position_key",
+   "idx_scan": "40464",
+   "bytes": "32768",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"UserPlace_userId_position_key\" ON public.\"UserPlace\" USING btree (\"userId\", \"position\")"
+  },
+  {
+   "tbl": "Visit",
+   "idx": "Visit_pkey",
+   "idx_scan": "41811",
+   "bytes": "81920",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"Visit_pkey\" ON public.\"Visit\" USING btree (id)"
+  },
+  {
+   "tbl": "Post",
+   "idx": "Post_authorId_createdAt_idx",
+   "idx_scan": "65688",
+   "bytes": "16384",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Post_authorId_createdAt_idx\" ON public.\"Post\" USING btree (\"authorId\", \"createdAt\")"
+  },
+  {
+   "tbl": "CatchupSeries",
+   "idx": "CatchupSeries_pkey",
+   "idx_scan": "71525",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"CatchupSeries_pkey\" ON public.\"CatchupSeries\" USING btree (id)"
+  },
+  {
+   "tbl": "Notification",
+   "idx": "Notification_userId_read_idx",
+   "idx_scan": "92742",
+   "bytes": "32768",
+   "uniq": false,
+   "pk": false,
+   "def": "CREATE INDEX \"Notification_userId_read_idx\" ON public.\"Notification\" USING btree (\"userId\", read)"
+  },
+  {
+   "tbl": "CatchupEdition",
+   "idx": "CatchupEdition_catchupId_number_key",
+   "idx_scan": "125312",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"CatchupEdition_catchupId_number_key\" ON public.\"CatchupEdition\" USING btree (\"catchupId\", number)"
+  },
+  {
+   "tbl": "Place",
+   "idx": "Place_pkey",
+   "idx_scan": "248643",
+   "bytes": "8863744",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"Place_pkey\" ON public.\"Place\" USING btree (id)"
+  },
+  {
+   "tbl": "CatchupSeries",
+   "idx": "CatchupSeries_groupId_key",
+   "idx_scan": "265855",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"CatchupSeries_groupId_key\" ON public.\"CatchupSeries\" USING btree (\"groupId\")"
+  },
+  {
+   "tbl": "Group",
+   "idx": "Group_pkey",
+   "idx_scan": "273054",
+   "bytes": "16384",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"Group_pkey\" ON public.\"Group\" USING btree (id)"
+  },
+  {
+   "tbl": "GroupMember",
+   "idx": "GroupMember_groupId_userId_key",
+   "idx_scan": "368363",
+   "bytes": "49152",
+   "uniq": true,
+   "pk": false,
+   "def": "CREATE UNIQUE INDEX \"GroupMember_groupId_userId_key\" ON public.\"GroupMember\" USING btree (\"groupId\", \"userId\")"
+  },
+  {
+   "tbl": "User",
+   "idx": "User_pkey",
+   "idx_scan": "508146",
+   "bytes": "32768",
+   "uniq": true,
+   "pk": true,
+   "def": "CREATE UNIQUE INDEX \"User_pkey\" ON public.\"User\" USING btree (id)"
+  }
+ ]
+}
