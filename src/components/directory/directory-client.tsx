@@ -636,7 +636,13 @@ export function DirectoryClient({
           this box is its own formatting context, so it stopped collapsing and
           pushed the map 10px down. A gap simply is not there when there is
           only one child. */}
-      <div className="mb-4 flex flex-col gap-2.5">
+      {/* -mt-1 takes PageHeader's 24px down to 20 for this row alone (owner,
+          2026-09-27: "the gap between those two rows is a bit too big"). The
+          toggle sits under the title, whose leading already leaves 8px of air
+          below the baseline, so 24 read as 32. 20 rather than 16: the toggle
+          drives the map, so it stays nearer the map (mb-4) than the title.
+          Here and not in PageHeader, whose mb-6 every other surface keeps. */}
+      <div className="-mt-1 mb-4 flex flex-col gap-2.5">
         <div className="flex items-center gap-3">
           {/* Canopy-filled thumb, same control as the profile Writing switcher
               (owner, 2026-08-02). Constant three segments, so this never

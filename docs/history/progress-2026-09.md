@@ -8642,3 +8642,20 @@ people added just now only, never the Keeper who added them. The type joins
 `CATCHUP_NOTIFICATION_TYPES`, so leaving or being removed clears it like the rest, and the bell
 shows it with its own icon. Self-joins (an invite link, a batch) are left alone: the person
 already knows. `catchups.md` section 11 has the row; `catchup-added-notify-rule.test.mjs` pins it.
+
+## 2026-09-27 (directory) — full screen shows more of the map rather than a bigger one, and the view toggle sits nearer the title
+
+Owner: full screen was "just a zoomed in version of the other one ... keep the circles and digits
+all of those sizings the same so that when you enter full screen you just get slightly more
+detail". The markers are drawn in viewBox units, so a bigger box drew bigger pins: at 1440 every
+pin and digit grew 30% (the 190 pin 96px to 125px, digits 19px to 25px) and the clusters did not
+change. Full screen now draws the markers at the inline card's scale, which stays measurable
+because the card keeps its place under the overlay. Only the land grows, so pins pull apart:
+six counted markers become eight at 1440 (the 12 splits 8 + 4, the 27 splits 25 + 2). Inline is
+unchanged, and so is a phone, which already sits on the MIN_PX_PER_UNIT floor both ways.
+
+Also: the Map / Batches / People row sat 24px under the header and 16px over the map; "a bit too
+big ... don't make it too small". It is 20 now (`-mt-1`, the loading skeleton too). 16 would
+have spaced the three rows evenly, which loses the toggle belonging to the map it drives.
+A request to stretch the map to 16px off the window's bottom was built, then withdrawn by the
+owner and rolled back. Directory baselines rebaselined for the 4px (the diff was that row alone).

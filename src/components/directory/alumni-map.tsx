@@ -322,6 +322,10 @@ export function AlumniMap({
   /** Live geometry of the rendered <svg>: its CSS box plus `s`, the CSS px that
    *  one viewBox unit currently occupies. See MIN_PX_PER_UNIT. */
   const [box, setBox] = useState({ w: 0, h: 0, s: MIN_PX_PER_UNIT });
+  /** The same ratio for the INLINE card, which keeps its place in the page
+   *  (empty) while full screen is open, so it can be measured either way. */
+  const [cardS, setCardS] = useState(MIN_PX_PER_UNIT);
+  const cardRef = useRef<HTMLDivElement | null>(null);
   const [coarsePointer, setCoarsePointer] = useState(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -334,7 +338,17 @@ export function AlumniMap({
 
   // Counter-scale for the marker layer, on top of the existing 1/k that keeps
   // pins a constant size through map zoom. 1 on desktop, ~2.6 on a phone.
-  const pinBoost = Math.max(1, MIN_PX_PER_UNIT / (box.s || MIN_PX_PER_UNIT));
+  //
+  // Full screen draws the markers at the INLINE card's scale, not its own
+  // (owner, 2026-09-27: "keep the circles and digits all of those sizings the
+  // same so that when you enter full screen you just get slightly more
+  // detail"). Scaled with the bigger box, every pin and digit grew 30% at 1440
+  // and the clusters stayed exactly as they were, so full screen was the same
+  // map, larger. Held at the inline size, only the land grows: cities move
+  // apart under pins that do not, and super-pins split. Below 1 in full screen
+  // on a desktop; a phone is on the MIN_PX_PER_UNIT floor both ways, unchanged.
+  const unitPx = box.s || MIN_PX_PER_UNIT;
+  const pinBoost = Math.max(MIN_PX_PER_UNIT, fullscreen ? cardS : unitPx) / unitPx;
 
   // Every pin projected once. Clustering then works entirely in THIS space --
   // the space the map actually paints in -- rather than in web-mercator tiles.
@@ -392,6 +406,19 @@ export function AlumniMap({
     // Orientation changes resize the box, which ResizeObserver already catches.
     return () => ro.disconnect();
   }, [fullscreen]);
+
+  // The inline card, measured all the time: its content box is exactly the box
+  // the inline svg fills (absolute inset-0, no padding).
+  useLayoutEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width && height) setCardS(Math.min(width / W, height / H));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Coarse pointer => no hover, and tap targets need real size.
   useEffect(() => {
@@ -756,6 +783,7 @@ export function AlumniMap({
     <>
       {/* Inline map. Fills the column, floors at MAP_MIN_H -- see there. */}
       <div
+        ref={cardRef}
         className="card-elevated relative flex-1 overflow-hidden rounded-[var(--radius)] border border-border"
         style={{ minHeight: MAP_MIN_H }}
       >

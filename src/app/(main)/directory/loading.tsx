@@ -43,8 +43,9 @@ export default function DirectoryLoading() {
         }
       />
 
-      {/* THE ROW: the view toggle, and the headcount opposite it. */}
-      <div className="mb-4 flex items-center gap-3">
+      {/* THE ROW: the view toggle, and the headcount opposite it. -mt-1 as
+          the real row has it (20px under the header, not 24). */}
+      <div className="-mt-1 mb-4 flex items-center gap-3">
         <SegmentedPillsSkeleton segments={[{ label: "Map" }, { label: "Batches" }, { label: "People" }]} />
         {/* "194 people", at SentenceLine's 13.5px. */}
         <div className="skeleton-warm ml-auto h-2.5 w-[62px] rounded-md" />
