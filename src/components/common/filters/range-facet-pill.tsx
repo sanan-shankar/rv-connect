@@ -134,7 +134,14 @@ export function RangeFacetPill({
                     // vanished. The ink tint lands at -4.72 there instead.
                     // transition-transform only: the layer is a
                     // background-image, which cannot tween; the press can.
-                    className="state-layer rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-foreground transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
+                    //
+                    // No fill at rest, the facet pills' own outline. These were
+                    // --secondary on the white panel, the tan the owner took off
+                    // the pills themselves on 2026-08-28 and off everything on
+                    // 2026-09-27: "if you click on batch and then all of these
+                    // decades [...] also use that shit brown color. Hate that
+                    // color."
+                    className="state-layer rounded-full border border-border bg-transparent px-3 py-1 text-xs font-medium text-foreground transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
                   >
                     {d.label}
                   </button>
