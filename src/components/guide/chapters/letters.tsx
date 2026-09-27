@@ -1,4 +1,4 @@
-import { Chapter, P } from "../guide-kit";
+import { Chapter, P, type ChapterProps } from "../guide-kit";
 
 /* Read off the code on 2026-09-27 (docs/spec/guide.md section 7): a letter
    shows in the Feed as a card as well as on /letters (post-feed.tsx); up
@@ -8,9 +8,9 @@ import { Chapter, P } from "../guide-kit";
    chapter said a letter stayed out of the Feed and that drafts lived on
    the device; neither was true. */
 
-export function LettersChapter() {
+export function LettersChapter({ bare }: ChapterProps) {
   return (
-    <Chapter title="Letters">
+    <Chapter title="Letters" bare={bare}>
       <P>
         Letters are for writing that is longer or more considered than a post: essays, poems,
         travelogues, an account of a year, a piece about a teacher. A post in the Feed lasts

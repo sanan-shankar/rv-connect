@@ -61,7 +61,20 @@ export const GUIDE_AREAS: GuideArea[] = [
   },
 ];
 
+/** The tour's own first page: what the tour is and how to get it back.
+ *  Not a chapter (no page's title opens it, and /guide/welcome is a 404);
+ *  it exists only at the front of the tour. Owner, 2026-09-27: "Maybe the
+ *  guide and double click to get back to it thing could be mention before
+ *  feed on its own beautiful window?" */
+export const WELCOME: GuideArea = {
+  slug: "welcome",
+  title: "How to use this site",
+  short: "the start",
+  blurb: "",
+};
+
 export function findGuideArea(slug: string): GuideArea | undefined {
+  if (slug === WELCOME.slug) return WELCOME;
   return GUIDE_AREAS.find((a) => a.slug === slug);
 }
 
@@ -76,6 +89,11 @@ const CHAIN = ["feed", "directory", "collection", "letters", "catchups"];
 
 export function guideChain(isTeacher: boolean): string[] {
   return isTeacher ? CHAIN.filter((slug) => slug !== "catchups") : CHAIN;
+}
+
+/** The first-run tour: the welcome page, then the chain. */
+export function tourChain(isTeacher: boolean): string[] {
+  return [WELCOME.slug, ...guideChain(isTeacher)];
 }
 
 /** The chapter after this one in the viewer's chain, if there is one. */

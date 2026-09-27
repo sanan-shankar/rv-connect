@@ -23,7 +23,7 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect } from "react";
-import { guideChain } from "@/lib/guide-areas";
+import { tourChain } from "@/lib/guide-areas";
 import { startTour } from "@/lib/guide-open";
 import { tourEnded, tourStartArea } from "@/lib/guide-tour";
 
@@ -33,19 +33,33 @@ import { tourEnded, tourStartArea } from "@/lib/guide-tour";
  *  outlived it would stop the second from ever starting. */
 let started = false;
 
-export function GuideTourStart({ userId, isTeacher }: { userId: string; isTeacher: boolean }) {
+export function GuideTourStart({
+  userId,
+  isTeacher,
+  replay = false,
+}: {
+  userId: string;
+  isTeacher: boolean;
+  /** An admin's replay from the guide: from the first page, whatever this
+   *  browser or the account remembers, and the address loses its
+   *  ?tour=replay so a reload is an ordinary Feed. */
+  replay?: boolean;
+}) {
   useEffect(() => {
     /* tourEnded() and the account can disagree when the stamp was lost on
        the way. That is left alone rather than re-sent from here: the e2e
        sign-in writes the browser note for the owner's own account so the
        visual suite sees the Feed, and re-sending would spend his real tour.
        The cost of a lost stamp is one more tour on another device. */
-    if (started || tourEnded(userId)) return;
+    if (started || (!replay && tourEnded(userId))) return;
     started = true;
-    const area = tourStartArea(userId, guideChain(isTeacher));
+    const chain = tourChain(isTeacher);
+    const area = replay ? chain[0] : tourStartArea(userId, chain);
     let cancelled = false;
     void import("./guide-body").then(() => {
-      if (!cancelled) startTour(area);
+      if (cancelled) return;
+      if (replay) window.history.replaceState(null, "", "/feed");
+      startTour(area);
     });
     /* Left the Feed before the chunk arrived: the member has already gone to
        do something, so this visit does without it and the next Feed tries
@@ -55,7 +69,7 @@ export function GuideTourStart({ userId, isTeacher }: { userId: string; isTeache
       cancelled = true;
       started = false;
     };
-  }, [userId, isTeacher]);
+  }, [userId, isTeacher, replay]);
 
   return null;
 }

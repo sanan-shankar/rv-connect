@@ -1,4 +1,4 @@
-import { Chapter, Section, P } from "../guide-kit";
+import { Chapter, Section, P, type ChapterProps } from "../guide-kit";
 import { Tap } from "../tap";
 
 /* Read off the code on 2026-09-27 (docs/spec/guide.md section 7): a blue
@@ -11,9 +11,9 @@ import { Tap } from "../tap";
    a signed-in member paging through the directory, so it makes no promise
    about scraping. */
 
-export function DirectoryChapter() {
+export function DirectoryChapter({ bare }: ChapterProps) {
   return (
-    <Chapter title="The Directory">
+    <Chapter title="The Directory" bare={bare}>
       <P>
         The Directory is everyone who has joined, and where they live now. You can look through
         it three ways: Map, Batches and People.

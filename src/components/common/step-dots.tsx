@@ -16,6 +16,7 @@ export function StepDots({
   current,
   onPick,
   labelFor,
+  tone = "paper",
   className,
 }: {
   count: number;
@@ -23,6 +24,9 @@ export function StepDots({
   onPick: (index: number) => void;
   /** The accessible name of the dot at `index`, e.g. "Go back to step 2". */
   labelFor: (index: number) => string;
+  /** "photo" on a darkened photograph (the guide's cover), where canopy on
+   *  near-black and the paper-coloured border would both disappear. */
+  tone?: "paper" | "photo";
   className?: string;
 }) {
   return (
@@ -43,9 +47,10 @@ export function StepDots({
             onClick={() => state === "done" && onPick(i)}
             className={cn(
               "h-2 rounded-full transition-[width,background-color,opacity] duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-              state === "current" && "w-6 bg-canopy",
+              state === "current" && (tone === "photo" ? "w-6 bg-card" : "w-6 bg-canopy"),
               state === "done" && "w-2 cursor-pointer bg-canopy/45 hover:bg-canopy/70",
-              state === "upcoming" && "w-2 cursor-default bg-border"
+              state === "upcoming" &&
+                (tone === "photo" ? "w-2 cursor-default bg-card/35" : "w-2 cursor-default bg-border")
             )}
           />
         );

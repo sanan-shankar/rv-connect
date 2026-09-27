@@ -190,7 +190,11 @@ export default async function MainLayout({
       </AppShell>
       {/* Renders nothing until somebody presses a page title or the Feed
           starts the first-run tour. */}
-      <GuideLayer userId={session.user.id} isTeacher={isTeacher} />
+      <GuideLayer
+        userId={session.user.id}
+        isTeacher={isTeacher}
+        isAdmin={session.user.role === "admin"}
+      />
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { Chapter, Section, P, GuideLink } from "../guide-kit";
+import { Chapter, Section, P, GuideLink, type ChapterProps } from "../guide-kit";
 import { Tap } from "../tap";
 
 /* Read off the code on 2026-09-27 (docs/spec/guide.md section 7). Valley
@@ -13,9 +13,9 @@ import { Tap } from "../tap";
    with a batch year, and skips review (scope-caret.tsx,
    photo-visibility-rule.ts). */
 
-export function CollectionChapter() {
+export function CollectionChapter({ bare }: ChapterProps) {
   return (
-    <Chapter title="The Valley Collection">
+    <Chapter title="The Valley Collection" bare={bare}>
       <P>
         Almost everyone from Rishi Valley has tried to describe the place to someone, then found
         they did not have a single good photograph to show them. The Valley Collection is meant

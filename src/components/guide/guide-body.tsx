@@ -29,11 +29,13 @@
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StepDots } from "@/components/common/step-dots";
-import { findGuideArea, nextGuideArea } from "@/lib/guide-areas";
+import { findGuideArea, nextGuideArea, WELCOME } from "@/lib/guide-areas";
 import { openGuide } from "@/lib/guide-open";
 import { CHAPTERS } from "./chapters";
 import { GuideLink, P, Section } from "./guide-kit";
+import { GuideCover } from "./guide-cover";
 import { GuideOverlay } from "./guide-overlay";
+import { GUIDE_PHOTOS } from "./guide-photos";
 import { DoorHint } from "./tap";
 
 export function GuideBody({
@@ -41,21 +43,44 @@ export function GuideBody({
   title,
   chain,
   tour,
+  isAdmin,
 }: {
   slug: string;
   title: string;
   chain: string[];
   tour: boolean;
+  isAdmin: boolean;
 }) {
-  const Chapter = CHAPTERS[slug];
+  /* On the tour's welcome page the first chapter is laid out beneath the
+     cover, so Next only has to lift the cover away (guide-cover.tsx). */
+  const welcome = slug === WELCOME.slug;
+  const shown = welcome ? chain[1] : slug;
+  const Chapter = CHAPTERS[shown];
   if (!Chapter) return null;
-  const next = nextGuideArea(slug, chain);
-  const at = chain.indexOf(slug);
+  const shownTitle = welcome ? (findGuideArea(shown)?.title ?? title) : title;
+  const next = nextGuideArea(shown, chain);
+  const at = chain.indexOf(shown);
 
   return (
     <GuideOverlay
-      slug={slug}
-      title={title}
+      slug={shown}
+      title={shownTitle}
+      photo={GUIDE_PHOTOS[shown]}
+      nextPhoto={next ? GUIDE_PHOTOS[next.slug] : undefined}
+      cover={
+        welcome
+          ? (close) => (
+              <GuideCover
+                photo={GUIDE_PHOTOS[WELCOME.slug]}
+                title={title}
+                steps={chain.length}
+                nextShort={findGuideArea(shown)?.short ?? ""}
+                onNext={() => openGuide(shown)}
+                close={close}
+              />
+            )
+          : undefined
+      }
       footer={
         tour
           ? (close) => (
@@ -81,15 +106,7 @@ export function GuideBody({
           : undefined
       }
     >
-      {tour && at === 0 && (
-        <div className="mb-10">
-          <P>
-            This is a short guide to the site, with a page for each part of it. It opens by
-            itself just this once; after that, <DoorHint /> to see that page&rsquo;s guide again.
-          </P>
-        </div>
-      )}
-      <Chapter />
+      <Chapter bare />
       {tour && !next && (
         <Section title="Finding this again">
           <P>
@@ -106,6 +123,23 @@ export function GuideBody({
             <ArrowRight aria-hidden="true" />
           </Button>
         </div>
+      )}
+      {!tour && isAdmin && (
+        /* Owner, 2026-09-27: "there should be a way for me as admin to
+           trigger [...] the guide pop up [...] I went through it once [and]
+           can't go through it again". A full load of the Feed rather than a
+           client hop, so it rises exactly as it does for a new member.
+           Only the tour is replayed; his own "seen" stamp is left alone. */
+        <p className="mt-10 text-sm text-muted-foreground">
+          Only admins see this:{" "}
+          <a
+            href="/feed?tour=replay"
+            className="rounded-sm font-medium text-leaf underline decoration-leaf/40 underline-offset-[3px] outline-none transition-colors duration-150 hover:decoration-leaf active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
+          >
+            play the first-run tour again
+          </a>
+          .
+        </p>
       )}
     </GuideOverlay>
   );
