@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-27 (ui) — the close button is a bare X on every dialog and sheet
 - 2026-09-27 (catchups, batches) — a changed batch year moves the member out of the old batch's Catch-up, not just into the new one
 - 2026-09-23 (trivia) — the folk dancing question takes "folky" and "foky", and still turns away "folk"
 - 2026-09-23 (collection, viewer) — a photograph opens as a screen copy, and the original comes only when you zoom

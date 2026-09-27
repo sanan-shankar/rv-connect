@@ -323,7 +323,9 @@ register IS the template, and it lives in exactly one file - `src/components/ui/
   radius, hairline border, layered ink shadow, `max-w-sm`, 16px padding. It enters a beat
   (80ms) after the backdrop - rise 12px + scale from 0.94 on the spring curve - and exits
   immediately (no delay), so closing never lags. X close button top-right, always, and it is
-  `MODAL_CLOSE`: a 32px filled circle with a bold glyph (the iOS sheet close), 44px to a thumb.
+  `MODAL_CLOSE`: a bare X, muted ink that darkens on hover, 44px to a thumb. It was a 32px
+  filled circle (the iOS sheet close) until the owner, 2026-09-27: "I don't know why we do it
+  just have a normal x". No disc, no tan patch behind it, on any dialog or sheet.
 - **Anatomy:** `DialogTitle` (`MODAL_TITLE`: heading face, 18px regular; the face ships 400 and
   700 only, so the old "16px medium" was 400 all along) + `DialogDescription` (14px muted) +
   content + ONE footer shape: a right-aligned Cancel-then-action row. No recessed footer
