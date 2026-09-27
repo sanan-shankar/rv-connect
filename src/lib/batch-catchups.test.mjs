@@ -296,6 +296,32 @@ test("all three creation paths exist, and the signup one is the moment a batch c
   assert.ok(memberships < catchups, "the tick heals Catch-ups before memberships");
 });
 
+test("a changed batch year moves the member OUT of the old batch, not just into the new", () => {
+  /* 2026-09-27: `joinBatchGroup` only ever added, so a member who corrected
+     their year stayed in the old batch's group and could open its Catch-up.
+     Seven members were, when it was measured. His word: "obviously they
+     shouldn't see the previous batch's catch up". */
+  const lib = decomment(read("src/lib/batch-catchups.ts"));
+  const sync = balancedBody(lib, "export async function syncBatchGroup(");
+  assert.match(sync, /accountType === "alumnus" \? user\.batchYear : null/, "only alumni belong to a batch");
+  assert.match(sync, /if \(m\.group\.batchYear === own\) continue/);
+  assert.match(sync, /groupMember\.deleteMany\(\{ where: \{ groupId: m\.groupId, userId \} \}\)/);
+  // The rest of what leaving means: their pref row and their bell.
+  assert.match(sync, /catchupPref\.deleteMany\(\{ where: \{ catchupId, userId \} \}\)/);
+  assert.match(sync, /clearCatchupNotifications\(userId, catchupId\)/);
+  assert.match(sync, /joinBatchGroup\(userId, own\)/);
+
+  // Both places a batch year is edited make the move...
+  for (const file of ["src/app/(main)/admin/people/actions.ts", "src/components/profile/profile-actions.ts"]) {
+    assert.match(decomment(read(file)), /await syncBatchGroupQuietly\(/, `${file} no longer moves batch groups`);
+  }
+
+  // ...and the nightly heal finds anyone either path missed, in both directions.
+  const heal = balancedBody(lib, "export async function healBatchGroupMemberships");
+  assert.match(heal, /g\."batchYear" IS DISTINCT FROM u\."batchYear"/, "the heal no longer finds a member in the wrong batch");
+  assert.match(heal, /await syncBatchGroup\(user\.id\)/);
+});
+
 test("the self-heal runs only on an UNSCOPED sweep, and only these two make one", () => {
   /* Both passes scan a whole table. `advanceDueCatchups` is piggy-backed on
      the app-shell query that fires on essentially every authenticated page

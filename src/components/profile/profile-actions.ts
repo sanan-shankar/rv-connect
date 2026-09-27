@@ -24,6 +24,7 @@ import { prisma } from "@/lib/prisma";
 import { FULL_NAME_MAX, batchTypeFromLeaving } from "@/lib/utils";
 import { titleCase, normalizePhone, instagramHandle } from "@/lib/normalize";
 import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
+import { syncBatchGroupQuietly } from "@/lib/batch-catchups";
 import { contactMethodsSchema, profileSchema } from "@/lib/validators";
 import type { ZodTypeAny } from "zod/v4";
 import { yearClashMessage } from "@/lib/batch-year";
@@ -246,6 +247,10 @@ export async function updateProfileField(field: ProfileField, raw: string) {
   if (field === "name" || field === "batchYear" || field === "yearLeft") {
     await tryRosterAutoVerifyQuietly(session.user.id);
   }
+
+  // A corrected batch year moves them between batch groups, out of the old
+  // batch's Catch-up as well as into the new one's.
+  if (field === "batchYear") await syncBatchGroupQuietly(session.user.id);
 
   revalidatePath(`/profile/${session.user.id}`);
   return { success: true };

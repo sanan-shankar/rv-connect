@@ -319,7 +319,7 @@ test("the bell never carries a word of a sealed Edition, and says when it opens"
   const sealed = notify.slice(notify.indexOf("export const notifySealed"));
   assert.match(sealed, /`\/catchups\/\$\{ctx\.catchupId\}`/, "the seal's bell points at a page with nothing to read");
   assert.match(sealed, /formatDisplayDateLong\(ctx\.opensAt\)/);
-  const types = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const types = decomment(read("src/lib/catchup-notifications.ts"));
   assert.match(types, /"catchup_sealed",/, "leaving a Catch-up leaves its sealed bell behind");
   assert.match(read("src/components/layout/notification-bell.tsx"), /catchup_sealed:/);
 });

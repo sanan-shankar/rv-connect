@@ -21,6 +21,7 @@ import { replaceUserPlaces } from "@/lib/place-write";
 import { lookupGazetteerPlaces } from "@/lib/place-lookup";
 import { SPECIES_SLUGS } from "@/components/common/bird-avatar-v2";
 import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
+import { syncBatchGroupQuietly } from "@/lib/batch-catchups";
 
 /* ------------------------------------------------------------------ *
  *  Everything you can do TO a person, from the panel.
@@ -188,6 +189,10 @@ export async function adminUpdatePerson(
      Best-effort and silent, like every roster call: it can only ever raise
      standing, so a failure leaves the person exactly where they were. */
   await tryRosterAutoVerifyQuietly(userId);
+
+  // A new batch year, or a new account type, is a move between batch groups:
+  // out of the old batch's Catch-up as well as into the new one's.
+  await syncBatchGroupQuietly(userId);
 
   revalidateAdmin(userId);
   revalidatePath("/directory");
