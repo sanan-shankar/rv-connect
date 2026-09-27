@@ -80,7 +80,9 @@ export async function notifyMentioned(opts: {
   if (candidates.length === 0) return;
 
   const members = await prisma.user.findMany({
-    where: { id: { in: candidates }, isBlocked: false },
+    // Held out of every people surface while a deletion is pending, as the
+    // search is (api/users/search).
+    where: { id: { in: candidates }, isBlocked: false, deletionRequestedAt: null },
     select: { id: true, role: true, batchType: true, batchYear: true },
   });
   if (members.length === 0) return;
@@ -102,7 +104,23 @@ export async function notifyMentioned(opts: {
   const link = postNotificationLink(opts.scope);
   const noun = opts.source === "comment" ? "comment" : postNoun(opts.scope.kind);
 
+  /* Told once, ever, for the same thing. editPost has no rate limit, and its
+     diff only compares a save with the one before it, so taking a tag out
+     and putting it back, save after save, would ring the same person every
+     time (write-path review, 2026-09-27). The same message and link means
+     the same post and the same kind of mention; a second comment by the same
+     person is the one thing this also quiets, which is the right way round. */
+  const message = `${opts.actorName} mentioned you in a ${noun}`;
+  const already = new Set(
+    (
+      await prisma.notification.findMany({
+        where: { userId: { in: members.map((m) => m.id) }, type: "mention", message, link },
+        select: { userId: true },
+      })
+    ).map((n) => n.userId),
+  );
   for (const member of members) {
+    if (already.has(member.id)) continue;
     const visible = decidePostVisibility(opts.scope, member, {
       cityMatches: cityMembers ? cityMembers.has(member.id) : true,
     });
@@ -110,7 +128,7 @@ export async function notifyMentioned(opts: {
     await notifyMember({
       userId: member.id,
       type: "mention",
-      message: `${opts.actorName} mentioned you in a ${noun}`,
+      message,
       link,
     });
   }

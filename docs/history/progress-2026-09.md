@@ -8560,3 +8560,11 @@ photograph the card would pick on its own (valley, approved, visible, landscape,
 fits). Its own caption runs 130 characters, far past the card's one line and his no-ellipsis rule,
 so the card reads "Cave Rock at blue hour"; the member's caption is untouched. Valley only, like
 the rest of the card. Delete the constant once the card has moved on, or to end the pin early.
+
+## 2026-09-27 (feed) — a mention rings once, however often the tag is taken out and put back
+
+The write-path review of the mention notifications found that `editPost` has no rate limit and
+its diff only compares a save with the one before it, so removing a tag and adding it back, save
+after save, notified the same member every time. `notifyMentioned` now skips anyone who already
+has a "mention" notification with the same message and link, read or not. It also skips accounts
+with a deletion pending, as the people search does. Pinned in `mention-notifications.test.mjs`.

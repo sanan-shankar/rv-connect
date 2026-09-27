@@ -164,3 +164,12 @@ test("the demo's write guard already allows the Notification model a mention rid
   const src = decomment(read("src/lib/demo.ts"));
   assert.match(src, /"Notification"/, "Notification is no longer in the demo's write allowlist");
 });
+
+test("the same mention never rings twice, and a pending deletion is never told", () => {
+  const src = read("src/lib/mention-notifications.ts");
+  // editPost is not rate-limited: toggling a tag across saves must not re-notify.
+  assert.match(src, /type: "mention", message, link \}/, "no lookup of an earlier identical mention");
+  assert.match(src, /if \(already\.has\(member\.id\)\) continue;/);
+  assert.match(src, /isBlocked: false, deletionRequestedAt: null/);
+});
+
