@@ -41,6 +41,8 @@ import { ShareButton } from "@/components/common/share-button";
 import { PollDisplay } from "./poll-display";
 import { cn, formatTimeAgo, formatDisplayDate, parseJsonArray, batchLine, letterTitle, plainExcerpt, readMinutes } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
+import { linkRanges, stripReplacedLinks, type LinkCardView } from "@/lib/link-preview-core";
+import { LinkCard } from "@/components/common/link-card";
 import { toggleLike, deletePost, toggleBookmark, adminRemovePost } from "@/app/(main)/feed/actions";
 import { m, AnimatePresence, animate } from "motion/react";
 import { SPRINGS, EASE_OUT_SMOOTH } from "@/components/common/motion";
@@ -128,6 +130,11 @@ export interface PostData {
   kind?: string;
   title?: string | null;
   content: string;
+  /** Pasted links in `content` that resolved into a card (same shape a
+   *  Catch-up answer's `links` carries), in no particular order -- see
+   *  `displayLinks` below for why the order is re-derived on render rather
+   *  than trusted from here. */
+  links?: LinkCardView[];
   images: string | null;
   /** What each of those images looks like -- shape, focal point, a smear to
    *  hold its place -- in the same order, from the `Image` table. Absent, or a
@@ -223,6 +230,33 @@ export function PostCard({
   const content = edited?.content ?? post.content;
   const title = edited ? edited.title : post.title;
 
+  /* THE CUT HAPPENS HERE, ON THE CLIENT, unlike a Catch-up answer's -- whose
+     loader (catchups-edition-view.ts) cuts a resolved link out of `body`
+     before the reader ever sees it. `content` above also serves as
+     EditPostDialog's initial value (below), so cutting it on the server would
+     hand the edit dialog a body with the link already missing, and saving
+     that would overwrite the stored post with the link gone for good.
+     `stripReplacedLinks` is the exact function the Catch-up reader calls
+     server-side; it is pure (no network, no database -- link-preview-core.ts)
+     so running it here instead costs nothing and stays safe to edit from.
+     `carded` follows `post.links`, which can be one save behind a link the
+     member just typed -- harmless: that link simply has no card yet and
+     prints as ordinary clickable text via `linkRanges` below, exactly like a
+     Catch-up answer's does before its own resolve lands. */
+  const carded = useMemo(() => new Set((post.links ?? []).map((l) => l.url)), [post.links]);
+  const stripped = useMemo(() => stripReplacedLinks(content, carded), [content, carded]);
+  const displayBody = stripped.cards.length ? stripped.body : content;
+  const linksByUrl = useMemo(
+    () => new Map((post.links ?? []).map((l) => [l.url, l] as const)),
+    [post.links]
+  );
+  /* `stripped.cards` carries the urls in the order they were pasted (the same
+     order `findLinks` walks the text); the LinkCards below draw in that
+     order rather than in whatever order the server happened to list them. */
+  const displayLinks = stripped.cards
+    .map((url) => linksByUrl.get(url))
+    .filter((l): l is LinkCardView => Boolean(l));
+
   /* Parsed once per post payload: `viewerImages` and the row layout below
      both read it, and a fresh array every render would defeat their memos. */
   const images = useMemo(() => parseJsonArray(post.images), [post.images]);
@@ -257,7 +291,9 @@ export function PostCard({
      landed (it wraps differently from the fallback). */
   const bodyRef = useRef<HTMLParagraphElement>(null);
   const [fold, setFold] = useState<Fold | null | "unmeasured">("unmeasured");
-  const folds = fold === "unmeasured" ? content.length > PROBABLY_FOLDS_AT : fold !== null;
+  // `displayBody`, not `content`: it is what actually renders below, and a
+  // link-only post whose one link became a card folds nothing at all.
+  const folds = fold === "unmeasured" ? displayBody.length > PROBABLY_FOLDS_AT : fold !== null;
   useLayoutEffect(() => {
     const el = bodyRef.current;
     if (!el || expanded) return;
@@ -282,7 +318,7 @@ export function PostCard({
       live = false;
       widths.disconnect();
     };
-  }, [content, expanded]);
+  }, [displayBody, expanded]);
 
   /* "Read more" eases the paragraph from its folded height to its full one:
      the height it had BEFORE the click is read in the handler, and the grow is
@@ -495,32 +531,43 @@ export function PostCard({
         ) : (
           <>
             {/* Content: one paragraph, the whole post, clipped at the fold
-                (see `fold` above and foldStyle below). */}
-            <div className="mt-2.5">
-              <p
-                ref={bodyRef}
-                className="whitespace-pre-wrap break-words text-[15px] leading-[1.7] text-foreground"
-                style={foldStyle(fold, folds && !expanded)}
-                dangerouslySetInnerHTML={{ __html: renderRichText(content) }}
-              />
-              {folds && !expanded && (
-                <button
-                  onClick={readMore}
-                  /* Bare text, so its states are ink-only: no state-layer (a tint
-                     behind a 2-word label reads as a stray chip). active:opacity-70
-                     is the press it was missing.
+                (see `fold` above and foldStyle below). Skipped entirely when
+                a post's whole body was one link that just became a card
+                (displayBody === ""), the same fail-soft rule a Catch-up
+                answer's tile follows: the card is the post then, not a
+                paragraph with nothing in it above one. */}
+            {displayBody && (
+              <div className="mt-2.5">
+                <p
+                  ref={bodyRef}
+                  className="whitespace-pre-wrap break-words text-[15px] leading-[1.7] text-foreground"
+                  style={foldStyle(fold, folds && !expanded)}
+                  /* `linkRanges`: a link still in the text is one that did not
+                     become a card, and it prints as an ordinary link rather
+                     than dead text -- opt-in on `renderRichText`, and now a
+                     post opts in the same way a Catch-up answer does
+                     (reader-parts.tsx). */
+                  dangerouslySetInnerHTML={{ __html: renderRichText(displayBody, { linkRanges }) }}
+                />
+                {folds && !expanded && (
+                  <button
+                    onClick={readMore}
+                    /* Bare text, so its states are ink-only: no state-layer (a tint
+                       behind a 2-word label reads as a stray chip). active:opacity-70
+                       is the press it was missing.
 
-                     mt-2 rather than mt-1: at 4px it sat inside the paragraph's
-                     own leading and read as one more line of the post rather
-                     than the control that opens it. The ::after box is the same
-                     device as MENU_TRIGGER_HIT -- 44px of touch on a coarse
-                     pointer, across the label's own width, visible to nobody. */
-                  className="relative mt-2 rounded-sm text-sm font-medium text-leaf transition-opacity duration-150 after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2 after:content-[''] hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [@media(hover:hover)_and_(pointer:fine)]:after:hidden"
-                >
-                  Read more
-                </button>
-              )}
-            </div>
+                       mt-2 rather than mt-1: at 4px it sat inside the paragraph's
+                       own leading and read as one more line of the post rather
+                       than the control that opens it. The ::after box is the same
+                       device as MENU_TRIGGER_HIT -- 44px of touch on a coarse
+                       pointer, across the label's own width, visible to nobody. */
+                    className="relative mt-2 rounded-sm text-sm font-medium text-leaf transition-opacity duration-150 after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2 after:content-[''] hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [@media(hover:hover)_and_(pointer:fine)]:after:hidden"
+                  >
+                    Read more
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Poll */}
             {post.poll && (
@@ -632,6 +679,17 @@ export function PostCard({
                     )}
                   </PhotoRows>
                 )}
+              </div>
+            )}
+
+            {/* Links: one card per pasted link that resolved, under the body
+                and any photographs, 8px apart -- exactly the Catch-up
+                answer's stack (edition/reader.tsx's Tile). */}
+            {displayLinks.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {displayLinks.map((link) => (
+                  <LinkCard key={link.url} link={link} />
+                ))}
               </div>
             )}
           </>

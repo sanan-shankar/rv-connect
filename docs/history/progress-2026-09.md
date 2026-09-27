@@ -8659,3 +8659,24 @@ big ... don't make it too small". It is 20 now (`-mt-1`, the loading skeleton to
 have spaced the three rows evenly, which loses the toggle belonging to the map it drives.
 A request to stretch the map to 16px off the window's bottom was built, then withdrawn by the
 owner and rolled back. Directory baselines rebaselined for the 4px (the diff was that row alone).
+
+## 2026-09-27 (feed, letters) — links in posts and letters show as they do in Catch-ups
+
+Owner: "Let's make the links and posts and letters show up as they do on catch ups." A pasted
+link in a post, letter or comment was escaped plain text, not even clickable, and nothing ever
+fetched a preview for one.
+
+- **Clickable**: posts, letters and comments pass `linkRanges` to `renderRichText`.
+- **Cards**: a link whose preview resolved shows as the Catch-ups `LinkCard` under a post or a
+  letter and is cut from the paragraph, as the Catch-up reader does. Comments get links only.
+  `LinkCard` moved to `components/common/link-card.tsx`; Catch-ups imports it from there.
+- **Fetching**: saving a post, an edit or a published draft schedules the preview (never
+  awaited), and reading a page schedules any that are missing or stale, the same two triggers
+  Catch-ups use. `withLinkCards` (posts.ts) reads a whole feed page's previews in one query, and
+  none when no post on it has a link. The demo never fetches (`ensureLinkPreviews` refuses it).
+- A post card cuts the link on the client, because the same `content` seeds the edit dialog:
+  cutting it on the server would have let an edit save the post with its link gone.
+
+Checked as Jerry on a private draft letter (created and deleted): the link became a Wikipedia
+card under the text. `post-link-cards.test.mjs` pins the one query, the triggers, the edit
+safety, comments' no-card rule and the demo guard.

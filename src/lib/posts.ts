@@ -1,5 +1,14 @@
 import { cityScopeWhere } from "@/lib/city-scope";
 import { batchTargetKey } from "@/lib/post-visibility-rule";
+import { prisma } from "@/lib/prisma";
+import {
+  cardOf,
+  findLinks,
+  needsResolve,
+  type LinkCardView,
+  type PreviewRow,
+} from "@/lib/link-preview-core";
+import { scheduleLinkPreviews } from "@/lib/link-preview";
 
 /**
  * Shared Post query fragments.
@@ -121,4 +130,63 @@ export function audienceWhere(
       { authorId: viewer.id },
     ],
   };
+}
+
+/**
+ * A page of posts (or one letter), with every pasted link that has a resolved
+ * preview attached as `links`. The same on-read trigger `catchups-edition-
+ * view.ts` uses for an Edition: a link with no preview row, or one whose
+ * failed resolve is more than a day old, is handed to `scheduleLinkPreviews`
+ * (after() -- never awaited) and prints as an ordinary link on THIS render;
+ * the next one has the card.
+ *
+ * ONE extra query, whatever `rows.length` is: every pasted link across the
+ * whole page is collected first, then read back in a single
+ * `linkPreview.findMany({ where: { url: { in: [...] } } })`, exactly the
+ * shape `withPhotoFacts` already uses for photographs (image-record.ts). A
+ * page with no pasted link anywhere costs nothing extra at all.
+ *
+ * Deliberately does NOT cut a resolved link out of `content` the way the
+ * Catch-up reader's loader cuts it out of `body` -- `stripReplacedLinks` runs
+ * on the CLIENT instead, in `PostCard`, because a post's `content` column also
+ * doubles as `EditPostDialog`'s initial value. Stripping it here would hand
+ * the edit dialog a body with the link already missing, and saving that would
+ * overwrite the stored post with the link permanently gone. Returning the raw
+ * content plus the resolved cards, and cutting only for DISPLAY, keeps editing
+ * safe without a second fetcher.
+ */
+export async function withLinkCards<T extends { id: string; content: string }>(
+  rows: T[]
+): Promise<(T & { links: LinkCardView[] })[]> {
+  const pastedByPost = new Map<string, string[]>();
+  const allUrls = new Set<string>();
+  for (const row of rows) {
+    const urls = findLinks(row.content).flatMap((f) => (f.url ? [f.url] : []));
+    if (urls.length === 0) continue;
+    pastedByPost.set(row.id, urls);
+    for (const url of urls) allUrls.add(url);
+  }
+  const pasted = [...allUrls];
+  const previewRows: PreviewRow[] = pasted.length
+    ? await prisma.linkPreview.findMany({
+        where: { url: { in: pasted } },
+        select: { url: true, kind: true, title: true, subtitle: true, thumbUrl: true, failedAt: true },
+      })
+    : [];
+  const previewsByUrl = new Map(previewRows.map((r) => [r.url, r]));
+  const now = new Date();
+  scheduleLinkPreviews(pasted.filter((url) => needsResolve(previewsByUrl.get(url), now)));
+
+  const cardsByUrl = new Map<string, LinkCardView>();
+  for (const row of previewRows) {
+    const card = cardOf(row);
+    if (card) cardsByUrl.set(row.url, card);
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    links: (pastedByPost.get(row.id) ?? [])
+      .map((url) => cardsByUrl.get(url))
+      .filter((c): c is LinkCardView => Boolean(c)),
+  }));
 }

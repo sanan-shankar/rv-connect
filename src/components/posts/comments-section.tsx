@@ -19,6 +19,7 @@ import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import Link from "next/link";
 import { cn, formatTimeAgo } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
+import { linkRanges } from "@/lib/link-preview-core";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { appendUnseen } from "@/lib/append-page";
@@ -1055,7 +1056,10 @@ function CommentItem({
               **bold** typed in the comment box reads as bold here, not as
               asterisks. The input stays a plain single-line field; markdown
               is the phone-friendly way in. */}
-          <span dangerouslySetInnerHTML={{ __html: renderRichText(comment.content) }} />
+          <span dangerouslySetInnerHTML={{ __html: renderRichText(comment.content, { linkRanges }) }} />
+          {/* `linkRanges` only: a pasted link is clickable, same as a post's,
+             but a comment never grows a LinkCard and never costs a preview
+             query -- it stays text-only. */}
         </p>
         {/* Measured (not guessed) with a pixel probe on the rendered page: this cluster's own
             leading-relaxed bottom half-leading plus a raw Tailwind margin only ever gets you

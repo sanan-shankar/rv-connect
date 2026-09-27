@@ -47,6 +47,9 @@ import {
   toggleCommentLikeRow,
   writeComment,
 } from "@/lib/comment-thread";
+import { withLinkCards } from "@/lib/posts";
+import { findLinks, type LinkCardView } from "@/lib/link-preview-core";
+import { scheduleLinkPreviews } from "@/lib/link-preview";
 
 /**
  * Delete a post and its stored images, in the order that cannot leave a live
@@ -287,6 +290,14 @@ export async function createPost(formData: FormData) {
     },
   });
 
+  /* A link pasted into the post starts resolving now, after the response
+     (build phase, "links and posts and letters show up as they do on catch
+     ups"; same trigger a Catch-up answer's save uses, catchups/actions.ts).
+     Scheduled for a draft too: writing privately does not mean the preview
+     should not be ready the moment it publishes. Never awaited: the save
+     must not wait on somebody else's website. */
+  scheduleLinkPreviews(findLinks(parsed.data.content).map((f) => f.raw));
+
   /* "And, also, yeah, obviously, notify the person who is tagged." (owner)
    *
    * Skipped for a draft: nobody but its author can see it yet --
@@ -399,6 +410,11 @@ export async function publishDraft(postId: string, opts: { asPost?: boolean } = 
     where: { id: postId },
     data: { status: "published", createdAt: new Date(), ...asPost },
   });
+
+  // `finalContent`, not `post.content`: publishing as a post can prepend the
+  // title as an opening line (asPost above), which moves where a link sits
+  // in the text without changing which links there are.
+  scheduleLinkPreviews(findLinks(finalContent).map((f) => f.raw));
 
   /* A draft has no readers -- `decidePostVisibility` refuses every viewer but
    * its author while status is "draft" -- so THIS is the letter's real
@@ -752,6 +768,10 @@ export async function editPost(postId: string, formData: FormData) {
   // must not hold a transaction open, and a failure is already recorded as
   // work the nightly sweep will redo.
   if (removedImages.length > 0) await drainPendingImagePurges(removedImages);
+
+  // Same trigger as createPost: an edit may add, change or remove a pasted
+  // link, so the save schedules a resolve over whatever the content says now.
+  scheduleLinkPreviews(findLinks(content).map((f) => f.raw));
 
   /* Only people NEWLY mentioned: diff this edit's ids against the ids the
    * body already carried, so re-saving a post that still mentions the same
@@ -1130,13 +1150,24 @@ function postInclude(userId: string) {
 
 type PostRow = Prisma.PostGetPayload<{ include: ReturnType<typeof postInclude> }>;
 
-/** One row as the client's `PostData`. */
-function serializePost(p: PostRow, viewer: { userId: string; isAdmin: boolean }) {
+/** One row as the client's `PostData`. `links` defaults to empty rather than
+ *  being required, so a call site that has not run the row through
+ *  `withLinkCards` (there is none today, but a future one costs nothing) gets
+ *  a post with no cards rather than a type error. */
+function serializePost(
+  p: PostRow & { links?: LinkCardView[] },
+  viewer: { userId: string; isAdmin: boolean }
+) {
   return {
     id: p.id,
     kind: p.kind,
     title: p.title,
     content: p.content,
+    /* The pasted links in `content` that resolved into a card, in NO
+       particular order: `PostCard` re-derives the text order itself (it has
+       to, to cut them out of the paragraph for display) via the same
+       `stripReplacedLinks` a Catch-up answer's reader uses. */
+    links: p.links ?? [],
     images: p.images,
     cityScope: p.cityScope,
     createdAt: p.createdAt.toISOString(),
@@ -1260,12 +1291,19 @@ export async function loadPosts(opts?: {
   if (hasMore) rows = rows.slice(0, PAGE_SIZE);
   const nextCursor = hasMore ? encodeKeyset(rows[rows.length - 1]) : null;
 
+  /* Every pasted link across the whole page, read back in ONE query
+     (withLinkCards, @/lib/posts) rather than one per post -- the same
+     one-query-for-the-page shape `withPhotoFacts` already uses below for
+     photographs. Skipped entirely, for free, when nothing on the page has a
+     pasted link. */
+  const withLinks = await withLinkCards(rows);
+
   return {
     /* Each post's photographs carry what we know about them -- shape, focal
        point, the smear that holds their place -- so the card can lay them out
        without measuring anything. One query for the page. */
     posts: await withPhotoFacts(
-      rows.map((p) => serializePost(p, { userId: session.user.id, isAdmin }))
+      withLinks.map((p) => serializePost(p, { userId: session.user.id, isAdmin }))
     ),
     hasMore: nextCursor !== null,
     nextCursor,
@@ -1319,11 +1357,15 @@ export async function loadSavedPosts() {
   const capped = rows.length > SAVED_POSTS_LIMIT;
   const page = capped ? rows.slice(0, SAVED_POSTS_LIMIT) : rows;
 
+  // Same one-query batching as the main feed (loadPosts above), over the
+  // shelf's own page of posts.
+  const withLinks = await withLinkCards(page.map(({ post: p }) => p));
+
   return {
     /* True when there are older saved posts this page did not load, so the
        shelf can say so rather than end silently (audit Low 76). */
     capped,
-    posts: await withPhotoFacts(page.map(({ post: p }) => serializePost(p, { userId, isAdmin }))),
+    posts: await withPhotoFacts(withLinks.map((p) => serializePost(p, { userId, isAdmin }))),
   };
 }
 
