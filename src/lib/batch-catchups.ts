@@ -36,11 +36,20 @@
  *  Catch-up the moment a batch reaches ten, and the tick catches
  *  everything signup could not.
  *
- *  What a batch Catch-up is NOT: it has no Keeper (`createdById` null),
- *  no invite link (`inviteToken` null -- there is nobody to invite, the
- *  membership IS the batch), no manual transitions of any kind, and no
- *  way out but archiving. Those refusals live with the actions that hold
- *  them; `BATCH_CATCHUP_REFUSAL` in catchups-core.ts is their sentence.
+ *  What a batch Catch-up is NOT: it has no individual Keeper of record
+ *  (`createdById` null), no invite link (`inviteToken` null -- there is
+ *  nobody to invite, the membership IS the batch), no way to add or
+ *  remove a person or hand off a hat, and no way out but archiving. Those
+ *  refusals live with the actions that hold them; `BATCH_CATCHUP_REFUSAL`
+ *  in catchups-core.ts is their sentence.
+ *
+ *  WHAT IT IS, since 2026-09-27: every member runs the cycle together --
+ *  his word, "make everyone a keeper" -- choosing questions, opening
+ *  answering, extending, nudging, closing and publishing, starting the
+ *  next Edition, pausing and resuming. It starts `paused` (below), which
+ *  is the other half of that instruction and the answer to the accident
+ *  worry that used to keep every one of those controls Keeper-only (N30):
+ *  nothing runs until somebody -- any of them -- says to start it.
  *
  *  No em dashes. User-facing copy says "Rishi Valley", never "Alumni".
  * ------------------------------------------------------------------ */
@@ -78,8 +87,9 @@ import { clearCatchupNotifications } from "@/lib/catchup-notifications";
  * included, so creatorId would only have recorded who signed up first -- while
  * making their account deletion look like it owned the batch. That plain
  * "member" role is now load-bearing rather than merely tidy: `isEffectiveKeeper`
- * reads it, so a batch group in which nobody is "admin" or "keeper" is a
- * Catch-up nobody keeps, which is the whole design.
+ * reads it, so nobody in a batch group individually holds "admin" or "keeper" --
+ * the cycle is held by the batch together instead, an `allowBatch` opt-in on
+ * the loaders rather than a role on a row (2026-09-27).
  *
  * Idempotent on membership via the GroupMember (groupId, userId) unique, so
  * re-running is safe.
@@ -134,10 +144,15 @@ export async function joinBatchGroup(userId: string, batchYear: number) {
  * has no Catch-ups item on their sidebar, so there is no empty door either.
  *
  * WHAT IT CREATES, and every field is a decision:
- *   - `createdById` null. Nobody keeps a batch Catch-up (architecture 6).
+ *   - `createdById` null. No one person keeps a batch Catch-up; every member
+ *     runs its cycle together instead (architecture 6, revised 2026-09-27).
  *   - `inviteToken` null. There is nobody to invite: the membership is the
  *     batch, and `joinCatchupByToken` is the one door this closes.
  *   - the rhythm `BATCH_CADENCE`, every three months (owner, 2026-09-27).
+ *   - `status: "paused"`, `pausedAt` now. His word, same day: "have all of
+ *     them paused by default." Nothing runs -- no question can even be
+ *     asked, `submitPrompt` refuses a paused Catch-up like every other write
+ *     -- until a member resumes it, which any of them may.
  *   - a picture, from the shipped pool, the one the batch sees least on the
  *     Catch-ups its members already have, exactly as `createCatchupWithPeople`
  *     picks (spec 3.4). Every Catch-up has one from the day it is made.
@@ -146,7 +161,8 @@ export async function joinBatchGroup(userId: string, batchYear: number) {
  *     catch up would be created for that batch") but does not start: the
  *     window stays open until the batch has asked `BATCH_QUESTIONS_TO_START`
  *     questions, and the one that makes three starts the usual three days
- *     (`submitPrompt`). Nobody had asked for it, so nobody is told.
+ *     (`submitPrompt`) -- once the Catch-up itself has been resumed.
+ *     Nobody had asked for it, so nobody is told.
  */
 export async function ensureBatchCatchup(groupId: string): Promise<string | null> {
   const group = await prisma.group.findUnique({
@@ -163,6 +179,7 @@ export async function ensureBatchCatchup(groupId: string): Promise<string | null
   if (group._count.members < BATCH_CATCHUP_FLOOR) return null;
 
   const picture = await pickCatchupPicture(prisma, group.id);
+  const now = new Date();
 
   try {
     return await prisma.$transaction(async (tx) => {
@@ -172,6 +189,12 @@ export async function ensureBatchCatchup(groupId: string): Promise<string | null
           createdById: null,
           inviteToken: null,
           cadence: BATCH_CADENCE,
+          // Paused from the moment it exists (owner, 2026-09-27: "have all of
+          // them paused by default"). Resuming is open to any member
+          // (`allowBatch` on `pauseCatchup`/`resumeCatchup`), so this is a
+          // deliberate first step rather than a lock nobody holds the key to.
+          status: "paused",
+          pausedAt: now,
           pictureSrc: picture.src,
           pictureFocus: picture.focus,
         },

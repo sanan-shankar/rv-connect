@@ -21,13 +21,17 @@ export type SettingsCatchup = {
   state: EditionStatus | "none";
   paused: boolean;
   ended: boolean;
-  /** Holds the CATCH-UP's verbs: rename, rhythm, hold, end. False on every
-   *  batch Catch-up, where nobody keeps it. */
+  /** Holds the CATCH-UP's identity: rename, rhythm, end. False on every
+   *  batch Catch-up -- the batch IS the roster, so there is nobody to
+   *  rename it, change its rhythm or end it. Narrower than `canRun` since
+   *  2026-09-27; it used to also gate hold/resume, which moved to `canRun`
+   *  when those became a cycle verb everyone in a batch holds. */
   youKeep: boolean;
-  /** May work the EDITION: open answering, nudge, close early, extend, start
-   *  the next one. False on every batch Catch-up, which is his own correction
-   *  (N30) -- a batch runs on its rhythm and there is nothing to press by
-   *  mistake. */
+  /** May run the CYCLE: choose questions, open answering, nudge, close
+   *  early, extend, start the next Edition, hold and resume. True on every
+   *  batch Catch-up too (owner, 2026-09-27: "make everyone a keeper"),
+   *  which reverses his earlier N30 -- the accident worry that word
+   *  answered is why a batch starts paused, not why this stays refused. */
   canRun: boolean;
   canChangePicture: boolean;
   cadence: Cadence;

@@ -98,22 +98,31 @@ export type CatchupHomeData = {
    *  ships in phase 3, and it has to show what it is changing. */
   picture: { src: string; focus: string };
   /** Is this the batch's own Catch-up? `Group.batchYear` is the whole test
-   *  (F6). It runs on its rhythm and the only things anyone does on one are
-   *  ask and answer (architecture 6, his correction N30), so this screen shows
-   *  no way to leave it, no invite link, and none of the Keeper's controls.
-   *  Every one of those is refused server-side too; this decides what is
-   *  OFFERED, never what is allowed. */
+   *  (F6). Every member now runs its cycle together (owner, 2026-09-27:
+   *  "make everyone a keeper"), so this screen shows the same cycle
+   *  controls it would for a people Catch-up's Keeper -- open answering,
+   *  extend, nudge, close and publish, start the next Edition, hold and
+   *  resume. What it still shows NONE of is a way to leave (the batch is
+   *  the roster) or an invite link (there is nobody to invite). Every one
+   *  of those is refused server-side too; this decides what is OFFERED,
+   *  never what is allowed. */
   isBatch: boolean;
   members: HomePersonRef[];
   viewer: {
     id: string;
     name: string;
+    /** The narrow, per-role signal only: this Catch-up's creator, or anyone
+     *  individually given the Keeper hat. Never batch-aware -- a batch has
+     *  no individual Keeper by construction, so this is always false there.
+     *  The batch-inclusive cycle permission lives on `settings.canRun`
+     *  instead; this field stays what `isEffectiveKeeper` says so the two
+     *  cannot quietly drift into meaning the same thing. */
     isKeeper: boolean;
     /** May replace the picture. Wider than `isKeeper` on purpose: on a batch
-     *  Catch-up anyone in the batch may, because it is reversible and nobody
-     *  keeps one. Mirrors `mayChangeCatchupPicture` server-side; it decides
-     *  what this screen OFFERS, never what anyone is allowed to do, which
-     *  `setCatchupPicture` re-derives from the database for itself. */
+     *  Catch-up anyone in the batch may, because it is reversible and
+     *  destroys nothing. Mirrors `mayChangeCatchupPicture` server-side; it
+     *  decides what this screen OFFERS, never what anyone is allowed to do,
+     *  which `setCatchupPicture` re-derives from the database for itself. */
     canChangePicture: boolean;
     reminderMode: ReminderMode;
   };

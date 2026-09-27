@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-27 (catchups, batches) — everyone in a batch Catch-up runs it, and batch Catch-ups start on hold
 - 2026-09-27 (feed, letters) — links in posts and letters show as they do in Catch-ups
 - 2026-09-27 (directory) — full screen shows more of the map rather than a bigger one, and the view toggle sits nearer the title
 - 2026-09-27 (catchups) — a member added to a Catch-up after it started is told

@@ -190,7 +190,10 @@ function EditionRegion({
     return (
       <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-5">
         <p className="font-heading text-[17px] text-foreground">This Catch-up is on hold</p>
-        {data.viewer.isKeeper && (
+        {/* `settings.canRun`, not `viewer.isKeeper`: resuming is a cycle verb,
+            and on a batch Catch-up every member holds it now (owner,
+            2026-09-27), not just a designated Keeper. */}
+        {data.settings.canRun && (
           <Button size="sm" className="mt-4" onClick={onChanged} data-resume>
             Start it again
           </Button>
@@ -211,7 +214,9 @@ function EditionRegion({
         <AskedPanel
           editionId={edition.id}
           prompts={edition.prompts}
-          youKeep={data.viewer.isKeeper && !data.isBatch}
+          // Curating questions is a cycle verb too, so this reads the same
+          // batch-inclusive permission the Edition region's other controls do.
+          youKeep={data.settings.canRun}
           onChanged={onChanged}
         />
       </div>
@@ -285,10 +290,10 @@ export function CatchupHome({ data }: { data: CatchupHomeData }) {
         people={data.members}
         catchupId={data.catchupId}
         viewerId={data.viewer.id}
-        /* Keeper of a PEOPLE Catch-up. Nobody keeps a batch one and its
-           membership is the batch, so all three roster verbs are refused
-           server-side there; this decides what is OFFERED, never what is
-           allowed. */
+        /* Keeper of a PEOPLE Catch-up. Everyone keeps a batch Catch-up's
+           CYCLE now, but its membership is the batch itself, so all three
+           roster verbs stay refused server-side there regardless of who is
+           asking; this decides what is OFFERED, never what is allowed. */
         canManage={data.viewer.isKeeper && !data.isBatch}
         open={people}
         onClose={() => setPeople(false)}

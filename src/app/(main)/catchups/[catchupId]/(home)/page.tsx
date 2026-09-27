@@ -452,15 +452,20 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       state: (freshLatest?.status as EditionStatus | undefined) ?? "none",
       paused: catchup.status === "paused",
       ended: catchup.status === "ended",
-      /* Both are FALSE on a batch Catch-up, and that is his own correction
-         (N30): "Can anyone open answering? That shouldn't be allowed. Because
-         many people would click it by accident. Especially on a batch thing."
-         Nobody keeps a batch and it has no manual transitions at all. Every
-         one of these is refused server-side too -- `loadKeeperScope` and
-         `loadKeeperEdition` both turn a batch away before they ask who the
-         Keeper is -- so this decides what is OFFERED, never what is allowed. */
+      /* SPLIT, since his 2026-09-27 word: "make everyone a keeper ... have
+         all of them paused by default." `canRun` is the CYCLE -- choosing
+         questions, opening answering, extending, nudging, closing and
+         publishing, starting the next Edition, pausing and resuming -- and
+         every batch member now holds it, the same `allowBatch` opt-in
+         `loadKeeperScope`/`loadKeeperEdition` take. `youKeep` is what is
+         LEFT: rename, the rhythm, ending. The batch IS the roster there, so
+         it stays Keeper-only, which for a batch Catch-up is nobody -- his
+         earlier correction (N30) about an accident nobody can undo, and it
+         still holds for exactly these three. Both decide what is OFFERED,
+         never what is allowed; the actions behind them re-derive their own
+         answer from the database. */
       youKeep: isKeeper && !isBatch,
-      canRun: isKeeper && !isBatch,
+      canRun: isKeeper || isBatch,
       canChangePicture: mayChangeCatchupPicture({
         viewerId,
         createdById: catchup.createdById,

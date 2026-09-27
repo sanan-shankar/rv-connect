@@ -60,16 +60,22 @@ Teachers, blocked accounts and anyone inside their deletion window are dropped f
 **A batch Catch-up** belongs to a batch group (`Group.batchYear` set). `isBatchCatchup(batchYear)`
 is the whole test. One exists for every batch group at or over **`BATCH_CATCHUP_FLOOR` = 10**
 members; under ten there is none. On the live database, 2026-09-27, that is nine batches: 1989, 2016,
-2018, 2019, 2021, 2022, 2023, 2024 and 2026. Its `createdById` and `inviteToken` are NULL: nobody
-keeps it and there is nobody to invite, because the membership is the batch. It runs **every three
-months** (`BATCH_CADENCE`, written on the row by `ensureBatchCatchup`; owner, 2026-09-27: "if it's
-monthly now, make it quarterly"). Until then it got the column default, monthly, by omission, and
-with no Keeper nobody could change it; `prisma/migrations-manual/2026-09-27-batch-catchups-quarterly.sql`
-moved the nine. Everyone who signs up with that batch year is added (`joinBatchGroup` in
-`src/lib/batch-catchups.ts`), and a late joiner reads every earlier Edition. A member whose batch
-year changes afterwards, by their own profile or the admin's People edit, is moved: `syncBatchGroup`
-takes them out of the old batch's group, pref row and Catch-up bells, the same as leaving, and into
-the new one. Only alumni are in a batch. Their answers, if any, stay in the old batch's Editions.
+2018, 2019, 2021, 2022, 2023, 2024 and 2026. Its `createdById` and `inviteToken` are NULL: there is no
+individual Keeper of record and nobody to invite, because the membership is the batch. It runs
+**every three months** (`BATCH_CADENCE`, written on the row by `ensureBatchCatchup`; owner, 2026-09-27:
+"if it's monthly now, make it quarterly"). Until then it got the column default, monthly, by omission;
+`prisma/migrations-manual/2026-09-27-batch-catchups-quarterly.sql` moved the nine. Everyone who signs
+up with that batch year is added (`joinBatchGroup` in `src/lib/batch-catchups.ts`), and a late joiner
+reads every earlier Edition. A member whose batch year changes afterwards, by their own profile or the
+admin's People edit, is moved: `syncBatchGroup` takes them out of the old batch's group, pref row and
+Catch-up bells, the same as leaving, and into the new one. Only alumni are in a batch. Their answers,
+if any, stay in the old batch's Editions.
+
+**It starts paused.** Owner, 2026-09-27, in the same breath as making everyone a Keeper: "have all of
+them paused by default." `ensureBatchCatchup` writes `status: "paused"`, `pausedAt` now, on every batch
+Catch-up it creates; `prisma/migrations-manual/2026-09-27-batch-catchups-paused.sql` (applied after
+that day's deploy, not before) paused the nine that already existed. Nothing runs -- not even
+`submitPrompt` -- until a member resumes it, and any member may (§2.2, §4).
 
 Three places make a batch Catch-up exist: `joinBatchGroup` at signup (so the tenth signup of a
 batch is the moment one appears), and the two nightly self-heals (§13).
@@ -87,9 +93,15 @@ Later Editions open on the rhythm as any Catch-up's do. The original backfill wa
 `isEffectiveKeeper` is true for the creator (`createdById`), or for a member whose `GroupMember.role`
 is `keeper` or `admin`. `setCatchupKeeper` only ever writes `keeper`, because `admin` is also the
 group's moderation role; revoking touches only `keeper` rows. The creator is always a Keeper and
-cannot be demoted or removed. A batch Catch-up has no Keeper, and the refusal is checked **before**
-the Keeper question in both preambles (`loadKeeperScope`, `loadKeeperEdition`), so no data accident
-can give one a Keeper.
+cannot be demoted or removed. `isEffectiveKeeper` itself never returns true for a batch member --
+nobody there holds `createdById` or the role, and that does not change.
+
+**Every batch member holds the cycle instead** (owner, 2026-09-27: "make everyone a keeper"),
+reversing his earlier N30 worry about an accident nobody could undo -- answered now by starting
+paused (above), not by locking the controls to nobody. Both preambles (`loadKeeperScope`,
+`loadKeeperEdition`) take an `allowBatch` opt-in per caller, the `mayChangeCatchupPicture` shape: the
+seven cycle controls (§4) pass it and let any batch member through before `isEffectiveKeeper` is even
+asked; membership and identity do not, and are refused outright, the same as before.
 
 ### 2.3 Sidebar
 
@@ -182,13 +194,17 @@ All three swallow their own errors and report them through `reportSwallowed`; no
 
 - **Hold** (`pauseCatchup`, the settings row "Hold the next Edition"): status `paused`, `pausedAt`
   stamped. The clock stops (`advanceEdition` returns early), and every hand-driven write into the
-  Edition is refused by `refuseIfFrozen`.
+  Edition is refused by `refuseIfFrozen`. On a people Catch-up, a Keeper; on a batch one, any member
+  (§2.2) -- including the pause every batch Catch-up starts in (2.1).
 - **Resume** ("Start it again"): every deadline still ahead of `pausedAt` moves forward by exactly the
   time the hold lasted, **not** snapped to 07:00, so two days left stays two days left. If the latest
-  Edition was already published, `nextOpensAt` is re-armed or shifted the same way.
+  Edition was already published, `nextOpensAt` is re-armed or shifted the same way -- unchanged by
+  who is allowed to press it, which is why a batch Catch-up needed no new logic here, only the gate
+  in front of it opened.
 - **End** (`endCatchup`): status `ended`, `nextOpensAt` and `pausedAt` cleared. One-way. Published
   Editions stay readable and still take hearts and comments. Nothing records when it ended, so the
-  list and the home say "Ended" with no date.
+  list and the home say "Ended" with no date. Refused outright on a batch Catch-up: the roster is the
+  batch, so there is nobody to make that call for the rest of it.
 - **Changing the rhythm** re-computes a booked `nextOpensAt` from the last publish date under the new
   gap (or now, if that has passed).
 
@@ -204,18 +220,19 @@ Every action is in `src/app/(main)/catchups/actions.ts`. "Verified" means `requi
 | `createCatchupWithPeople` | any alumnus | n/a | verified, rate-limited (`catchups`) |
 | `joinCatchupByToken` | anyone with the link, not a teacher; refuses an ended one | no link exists | verified |
 | `submitPrompt` (ask) | any member, while collecting | same | verified, frozen, 300 chars, 40 per Edition |
-| `curatePrompt` (remove, reorder) | Keeper, while collecting | refused | |
-| `openAnswering` | Keeper; refuses an Edition with no questions | refused | frozen |
-| `extendDeadline` | Keeper, collecting or answering | refused | frozen |
-| `nudgeGroup` | Keeper, while answering | refused | frozen, rate-limited, off on the demo |
-| `closeAndPublish` | Keeper, while answering (zero answers extends instead) | refused | frozen |
-| `startNextEditionNow` | Keeper, when the latest is published or sealed and the Catch-up active | refused | verified |
-| `setEditionTimeCapsule` | Keeper, while collecting | **any member**, while collecting | verified, frozen; nothing calls it yet |
+| `curatePrompt` (remove, reorder) | Keeper, while collecting | **any member**, while collecting | |
+| `openAnswering` | Keeper; refuses an Edition with no questions | **any member**; same | frozen |
+| `extendDeadline` | Keeper, collecting or answering | **any member**; same | frozen |
+| `nudgeGroup` | Keeper, while answering | **any member**; same | frozen, rate-limited, off on the demo |
+| `closeAndPublish` | Keeper, while answering (zero answers extends instead) | **any member**; same | frozen |
+| `startNextEditionNow` | Keeper, when the latest is published or sealed and the Catch-up active | **any member**; same | verified |
+| `setEditionTimeCapsule` | Keeper, while collecting | any member, while collecting | verified, frozen; nothing calls it yet |
 | `submitEntry` (answer) | any member, while answering | same | verified, frozen |
 | `toggleEntryLove`, comments | any member, published only | same | verified; comments rate-limited |
 | `renameCatchup`, `updateCatchupCadence` | Keeper | refused | |
-| `pauseCatchup`, `resumeCatchup`, `endCatchup` | Keeper | refused | end is off on the demo |
-| `setCatchupPicture` | Keeper | **any member** | pool or own upload only |
+| `pauseCatchup`, `resumeCatchup` | Keeper | **any member** | |
+| `endCatchup` | Keeper | refused | off on the demo |
+| `setCatchupPicture` | Keeper | any member | pool or own upload only |
 | `addCatchupMembers` | Keeper, not ended, up to 100 at a time | refused | verified |
 | `removeCatchupMember` | Keeper; not yourself, not the creator | refused | |
 | `setCatchupKeeper` | Keeper; not on the creator | refused | |
@@ -223,8 +240,12 @@ Every action is in `src/app/(main)/catchups/actions.ts`. "Verified" means `requi
 | `setCatchupArchived` | any member | same (the only exit) | off on the demo |
 | `setReminderPref` | any member | same | |
 
-A batch refusal says one sentence, `BATCH_CATCHUP_REFUSAL`; leaving a batch says
-`BATCH_LEAVE_REFUSAL`, which points at archiving.
+Seven of these (bold above) opened to every batch member on 2026-09-27: choosing questions, opening
+answering, extending, nudging, closing and publishing, starting the next Edition, pausing and
+resuming -- the cycle. `loadKeeperScope` and `loadKeeperEdition` take an `allowBatch` opt-in per
+caller for exactly these; the rest do not, and a batch refusal there still says one sentence,
+`BATCH_CATCHUP_REFUSAL`, now scoped to membership and identity rather than the whole feature. Leaving
+a batch says `BATCH_LEAVE_REFUSAL`, which points at archiving.
 
 ---
 

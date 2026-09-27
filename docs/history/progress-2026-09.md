@@ -8680,3 +8680,25 @@ fetched a preview for one.
 Checked as Jerry on a private draft letter (created and deleted): the link became a Wikipedia
 card under the text. `post-link-cards.test.mjs` pins the one query, the triggers, the edit
 safety, comments' no-card rule and the demo guard.
+
+## 2026-09-27 (catchups, batches) — everyone in a batch Catch-up runs it, and batch Catch-ups start on hold
+
+Owner: "instead of having [only the] keeper for the batch catch ups, make everyone a keeper. So
+that Make everyone a keeper and have all of them paused by default."
+
+- **The cycle is every member's**: choosing questions, opening answering, extending, nudging,
+  closing and publishing, starting the next Edition, holding and resuming. `loadKeeperScope` and
+  `loadKeeperEdition` take an `allowBatch` opt-in on those nine actions. Renaming, the rhythm,
+  adding and removing people, making a Keeper and ending still refuse a batch: the batch is the
+  roster, and the rhythm stays the quarterly one he set today.
+- **The screens** split `canRun` (Keeper, or anyone in a batch) from `youKeep` (rename, rhythm,
+  end), so a batch member sees the on-hold card's "Start it again" and the question controls.
+- **On hold by default**: `ensureBatchCatchup` creates a batch Catch-up paused.
+  `2026-09-27-batch-catchups-paused.sql` pauses the nine that exist. It is committed, NOT applied:
+  the database is production's too, and the code live today lets nobody resume a batch Catch-up,
+  so it runs once this is deployed.
+- The guide's Catch-ups chapter says a batch Catch-up starts on hold and anyone in it can start it.
+
+This reverses his N30 correction for the cycle ("Can anyone open answering? That shouldn't be
+allowed. Because many people would click it by accident. Especially on a batch thing."); it was
+raised with him. `batch-catchup-keeper-rule.test.mjs` pins the nine and the six.
