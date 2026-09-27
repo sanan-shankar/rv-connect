@@ -1,4 +1,4 @@
-import { Chapter, Section, P } from "../guide-kit";
+import { Chapter, Section, P, type ChapterProps } from "../guide-kit";
 
 /* Read off the code on 2026-09-27 (docs/spec/guide.md section 7, and
    docs/spec/catchups.md): three days of questions and seven of answers
@@ -12,9 +12,9 @@ import { Chapter, Section, P } from "../guide-kit";
    extension and the Keeper's early-close are left out on purpose: the
    owner asked for the mechanics without "all the if statements". */
 
-export function CatchupsChapter() {
+export function CatchupsChapter({ bare }: ChapterProps) {
   return (
-    <Chapter title="Catch-ups">
+    <Chapter title="Catch-ups" bare={bare}>
       <P>
         A Catch-up is a newsletter a group of people write for each other. It is the easiest way
         to keep up with a whole group at once, rather than with one person at a time.

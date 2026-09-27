@@ -12,7 +12,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { guideChain, nextGuideArea } from "./guide-areas.ts";
+import { findGuideArea, guideChain, nextGuideArea, tourChain } from "./guide-areas.ts";
 import { read, decomment, balancedBody } from "./test-kit.mjs";
 
 test("the chain is his order, and teachers stop before Catch-ups", () => {
@@ -29,6 +29,18 @@ test("the chain is his order, and teachers stop before Catch-ups", () => {
   assert.equal(nextGuideArea("birds", guideChain(false)), undefined);
 });
 
+test("the tour opens on its own welcome page, which is nobody's chapter", () => {
+  // Owner, 2026-09-27: the guide and the way back to it "mention[ed] before
+  // feed on its own beautiful window".
+  assert.deepEqual(tourChain(false), ["welcome", ...guideChain(false)]);
+  assert.deepEqual(tourChain(true), ["welcome", ...guideChain(true)]);
+  assert.ok(findGuideArea("welcome"), "the welcome page has no title");
+  // No chapter component, so /guide/welcome is a 404 rather than an empty page.
+  assert.doesNotMatch(read("src/components/guide/chapters/index.tsx"), /\bwelcome:/);
+  const start = decomment(read("src/components/guide/guide-tour-start.tsx"));
+  assert.match(start, /const chain = tourChain\(isTeacher\);/, "the tour no longer starts at the welcome page");
+});
+
 test("every chapter in the chain has a component", () => {
   const index = read("src/components/guide/chapters/index.tsx");
   for (const slug of guideChain(false)) {
@@ -41,9 +53,11 @@ test("the Feed starts the tour only for an account that has not had it, and neve
   assert.match(feed, /select: \{ feedSeenAt: true, guideSeenAt: true \}/, "the Feed no longer reads the tour marker");
   assert.match(
     feed,
-    /\{!IS_DEMO && marker && !marker\.guideSeenAt && \(\s*<GuideTourStart/,
+    /\{!IS_DEMO && marker && \(replayTour \|\| !marker\.guideSeenAt\) && \(\s*<GuideTourStart/,
     "the tour is no longer gated on the account's marker and the demo"
   );
+  // The replay is an admin's alone; anyone else sending ?tour=replay gets the Feed.
+  assert.match(feed, /const replayTour = tour === "replay" && session\.user\.role === "admin";/);
 });
 
 test("the account is stamped once, conditionally, when the tour ends", () => {

@@ -85,11 +85,39 @@ warmth (the warmth dial, 4.5 of 10). `docs/content/AI-WRITING-TELLS.md` applies 
 in a chapter was read off the code on 2026-09-27; section 7 lists the ones that corrected what he
 remembered.
 
-**2.3 The header.** "Guide" is a small uppercase label, not a second serif title, and it stands on
-the same left line as the chapter's title and text. The sheet goes back to the bottom sheet's
-standard width (`max-w-xl`), which puts the label, the title and every paragraph on the sheet's own
-16px inset with no per-sheet anatomy, and brings a line of text to about 68 characters on a laptop
-(it was about 100 at `max-w-3xl`, which existed only to give the diagrams room).
+**2.3 The header is the chapter's title**, with the X centred on it. The small "Guide" label that
+stood above it is gone (owner, 2026-09-27, second round: "I don't think we need to say guide [...]
+we can just just ditch the guide thing"), and so is the paragraph about the guide that sat above
+the title on the tour's first page, which put the title a third of the way down ("the feed is,
+like, the primary unit [...] But it's so far down"). The margins are 24px on a phone and 48px on a
+laptop, not the 16px every list sheet uses ("The margins are way too tight").
+
+**2.3a A photograph for each chapter** (`src/components/guide/guide-photos.ts`), because the
+plain-text chapters read "just black and white. Super corporate", and the fix he named was the
+sign-in page's: "On desktop with an image and then a column of content [...] so that it feels more
+homely." His picks from the Class Collection: Three Sisters for the Feed, the December 2011
+silhouettes he linked for the Collection, the senior library for Letters ("if you can correct it
+and just get the shelves even on both sides"), Kartik's house for Catch-ups. The school bell ("we
+should definitely use that somewhere") took the Directory; Birds has the September 2010 basketball
+photograph, because he did not want a bird. Each is cut twice from its stored original, a tall crop
+for a laptop and a wide one for a phone, and served as a static file rather than through the metered
+image optimiser. The library is rotated back to straight on before it is cut, from below the ceiling,
+which he did not like at the top.
+
+- **A laptop** gets a window that floats clear of every edge, 1120px wide and at most 54rem tall,
+  with the blur all round it ("a floating window is better than this dialog from the bottom [...]
+  let the bottom be blurred like the other sides"): the photograph fills its left 44%, the chapter
+  its right. The next chapter's photograph fades in over the last, which stays at full strength
+  until it is covered, and is fetched while the chapter before it is read.
+- **A phone** keeps the sheet that rises from the bottom, and the photograph starts at its top edge
+  with the chapter's title at its foot on a shade, then the writing on paper below: one change from
+  picture to paper, not paper, picture, paper ("the picture is part of this experience rather than
+  we're just tacking on a picture"). Once the photograph has scrolled away, a slim bar fades in at
+  the top with the title small, so the X is never white on white.
+- **Which of the two shows is CSS's decision alone**, at the sheet's own 1024px breakpoint. A
+  JavaScript width check answered a frame late when a window was dragged across it, and for that
+  frame the laptop's white header sat over the phone's page (owner: "there flashes a white row on
+  top saying feed"). Both photographs are in the page and lazy, so the hidden one never downloads.
 
 **2.4 The close button is a bare X**, everywhere (`MODAL_CLOSE` in `ui/dialog.tsx`, which every
 dialog and bottom sheet wears). Muted ink at rest, full ink on hover, a press that sinks, the 44px
@@ -176,15 +204,23 @@ Not on the public demo (`IS_DEMO`): its first frame is the product, by the stand
 
 The guide sheet, with three additions while the tour runs:
 
-- **Page one opens with two sentences** above the Feed chapter, in the chapters' own body style:
-  what this is (a short guide, one page per part of the site), that it opens by itself this once,
-  and how to bring any page of it back (the door, in the device's own verb). This is the answer to
-  "this is not the feed, this is the guide": the sheet says what it is before anything else.
+- **A cover first** (`guide-cover.tsx`): the valley photograph the sign-in page opens on, filling
+  the whole window, with "How to use this site" and one line over its foot: the way back to it, in
+  the device's own verb ("To come back to it later, tap the title at the top of any page twice").
+  He asked for the guide and the way back to it "before feed on its own beautiful window", said the
+  two points were "this is a how to use and you can tap the title to get back to it", and cut the
+  line that said what the tour was ("delete this"). The first chapter is already laid out beneath
+  the cover, so Next fades the cover away and nothing under it moves: its dots, Next and X stand
+  where the chapters' do.
 - **A footer** on the sheet's own surface: step dots on the left (the setup wizard's dots, one per
-  chapter, the current one drawn long; a visited one can be pressed to go back) and a canopy
+  page, the current one drawn long; a visited one can be pressed to go back) and a canopy
   "Next: Directory" on the right. On the last page it says "Done".
 - **The last page ends** with the door again and with Reach out, for anything the guide does not
   answer.
+
+When the tour closes, a bubble under the page's own title says "Tap the title twice to see this
+again" ("Click the title..." on a laptop) for six seconds, or until the first press, key or scroll
+(`door-coach.tsx`). The door is shown where it is, not only described.
 
 Next swaps the chapter inside the same sheet: the old one fades out, the body scrolls to its top,
 the new one rises in. The sheet never closes and reopens between chapters and the page underneath
@@ -192,7 +228,7 @@ never navigates. Navigating the page underneath to each area was the literal rea
 directory", and it was not taken: it would load five routes under a sheet that hides them, each one
 a chance for a skeleton, a map load or a layout jump, for nothing the member can see.
 
-Teachers get four pages: Catch-ups is left out, because `/catchups` sends teachers to the Feed.
+Teachers get four chapters: Catch-ups is left out, because `/catchups` sends teachers to the Feed.
 
 ### 5.3 Once
 
@@ -214,6 +250,12 @@ test run. For the same reason the Feed never re-sends the stamp on the strength 
 `src/lib/guide-tour.test.mjs` pins the Feed's gate, the conditional stamp, both ways the tour ends
 and the e2e note.
 
+An admin can play it again ("there should be a way for me as admin to trigger [...] the guide pop
+up [...] I went through it once [and] can't go through it again"): a guide page opened from a title
+ends, for admins only, with "play the first-run tour again", a full load of `/feed?tour=replay`. The
+Feed honours that address for an admin alone, starts from the cover whatever the browser remembers,
+and drops the query so a reload is an ordinary Feed. The account's stamp is left as it is.
+
 ### 5.4 What waits for it
 
 The hoopoe's celebrations (`CelebrationDetector` on the Feed) hold while any guide chapter is open
@@ -224,8 +266,11 @@ post-signup welcome would otherwise fly across page one.
 
 - **A separate onboarding route** with its own copy of the chapters: two texts to keep in step, and
   the member never meets the object the title opens later.
-- **An intro page before the Feed chapter:** one more press before anything useful, and he asked for
-  the Feed chapter first. The two opening sentences do the same job without the press.
+- **Two sentences above the Feed chapter instead of a cover:** the first version. It put the
+  chapter's title a third of the way down, and he asked for a window of its own.
+- **A cover that listed every chapter with a line each,** and **one that set its two lines in the
+  middle of an otherwise empty column:** both drafts of the cover, both turned down ("we don't need
+  to summarise"; "a fucking metric ton of uneven distasteful whitespace").
 - **Coach marks pointing at each nav item:** he wants the whole screen.
 - **A delay of a second or two:** his own objection, above.
 - **Stamping on first show:** the "once" is kept either way; stamping at the end also keeps the
@@ -314,4 +359,6 @@ Out of this build:
 
 2026-08-27: `/guide`, `/guide/[area]`, `GuideDoor` on six titles, the chapters. 2026-09-02: the `?`
 mark removed. 2026-09-15: the sheet became `BottomSheet`. 2026-09-27: the plain-text chapters, the
-header label, the bare X, Next, `<Tap>`, and the tour with `User.guideSeenAt`.
+header label, the bare X, Next, `<Tap>`, and the tour with `User.guideSeenAt`. The same day, second
+round: the photographs, the floating window, the title in the header, the cover, the bubble on the
+title and the admin's replay.

@@ -24,12 +24,15 @@ export const metadata: Metadata = {
 export default async function FeedPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; tour?: string }>;
 }) {
   const session = await auth();
   if (!session?.user) return null;
 
-  const { q } = await searchParams;
+  const { q, tour } = await searchParams;
+  /* The admin's replay of the first-run tour (the guide's own link, shown
+     to admins only). Anyone else sending ?tour=replay gets the Feed. */
+  const replayTour = tour === "replay" && session.user.role === "admin";
 
   /* The header pill submits here, so this is where a feed search becomes
      visible. after(), not the old `void`: the feed still renders at the same
@@ -74,8 +77,9 @@ export default async function FeedPage({
       <CelebrationSignals userId={session.user.id} />
       {/* The guide's first-run tour, once per account, and never on the demo,
           whose first frame is the product (docs/spec/guide.md 5.1). */}
-      {!IS_DEMO && marker && !marker.guideSeenAt && (
+      {!IS_DEMO && marker && (replayTour || !marker.guideSeenAt) && (
         <GuideTourStart
+          replay={replayTour}
           userId={session.user.id}
           isTeacher={session.user.accountType === "teacher" || session.user.accountType === "ex_teacher"}
         />

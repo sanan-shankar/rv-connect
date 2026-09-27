@@ -1,4 +1,4 @@
-import { Chapter, Section, P } from "../guide-kit";
+import { Chapter, Section, P, type ChapterProps } from "../guide-kit";
 import { Tap } from "../tap";
 
 /* Read off the code on 2026-09-27 (docs/spec/guide.md section 7): the
@@ -11,9 +11,9 @@ import { Tap } from "../tap";
    is reported from its menu and a person flagged from their profile
    (report-action.ts). Comments cannot be reported, so it does not say so. */
 
-export function FeedChapter() {
+export function FeedChapter({ bare }: ChapterProps) {
   return (
-    <Chapter title="The Feed">
+    <Chapter title="The Feed" bare={bare}>
       <P>
         The Feed is for anything worth sharing with the whole Rishi Valley community: a memory
         of the school, news about your life, a question, something useful you have come across.

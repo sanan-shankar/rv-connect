@@ -1,4 +1,4 @@
-import { Chapter, P } from "../guide-kit";
+import { Chapter, P, type ChapterProps } from "../guide-kit";
 
 /* Fifty species, from GALLERY_SPECIES in bird-avatar-v2.tsx. Precedence
    (photo > birdOverride > pin > deterministic) is documented on BirdAvatar.
@@ -7,9 +7,9 @@ import { Chapter, P } from "../guide-kit";
    paragraphs rather than three headings over one paragraph each, which is
    the shape the owner took apart in the other five (2026-09-27). */
 
-export function BirdsChapter() {
+export function BirdsChapter({ bare }: ChapterProps) {
   return (
-    <Chapter title="The birds">
+    <Chapter title="The birds" bare={bare}>
       <P>
         If you have not put up a photograph, you are a bird. Fifty species live in the valley,
         and every member without a picture is one of them.

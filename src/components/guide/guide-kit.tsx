@@ -24,7 +24,23 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-export function Chapter({ title, children }: { title: string; children: React.ReactNode }) {
+/** `bare`: inside the guide sheet, where the title stands in the sheet's own
+ *  header beside the X (owner, 2026-09-27: the chapter is "the primary
+ *  element. But it's so far down"), so the chapter is only its writing. */
+export type ChapterProps = { bare?: boolean };
+
+export function Chapter({
+  title,
+  bare,
+  children,
+}: { title: string; children: React.ReactNode } & ChapterProps) {
+  if (bare) {
+    return (
+      <article>
+        <div className="[&>section:first-child]:mt-0">{children}</div>
+      </article>
+    );
+  }
   return (
     <article>
       {/* tabIndex -1: the tour moves focus here when it swaps in the next

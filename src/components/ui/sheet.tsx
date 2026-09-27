@@ -143,7 +143,7 @@ const FLICK = 600
  *  translate as well as transform because an inline transition replaces the
  *  class one outright, and translate is what Base UI's exit rides on: leave
  *  it out and the X would snap the sheet shut with no fall at all. */
-const SETTLE = `transform 240ms var(--ease-out-smooth), translate ${BOTTOM_SHEET_MS}ms var(--ease-out-smooth)`
+const SETTLE = `transform 240ms var(--ease-out-smooth), translate ${BOTTOM_SHEET_MS}ms var(--ease-out-smooth), opacity ${BOTTOM_SHEET_MS}ms var(--ease-out-smooth)`
 
 /** Swipe down to close.
  *
@@ -238,6 +238,24 @@ function useSwipeDownToClose(
   }, [ref, mounted, onClose])
 }
 
+function SheetColumn({
+  wrap,
+  inert,
+  children,
+}: {
+  wrap: boolean
+  inert?: boolean
+  children: React.ReactNode
+}) {
+  return wrap ? (
+    <div inert={inert} className="flex min-h-0 min-w-0 flex-1 flex-col">
+      {children}
+    </div>
+  ) : (
+    <>{children}</>
+  )
+}
+
 function BottomSheet({
   open,
   onOpenChange,
@@ -247,6 +265,11 @@ function BottomSheet({
   className,
   bodyClassName,
   bodyRef,
+  media,
+  overlay,
+  overlayed = false,
+  headerClassName,
+  footerClassName,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -260,6 +283,22 @@ function BottomSheet({
   /** The scrolling body, for a sheet that swaps what it shows and has to
    *  start the new content at its top (the guide's Next). */
   bodyRef?: React.Ref<HTMLDivElement>
+  /** A photograph beside the column on a laptop, the way the sign-in page
+   *  stands its valley photo beside the form (the guide). The sheet is a
+   *  row there: this on the left, header, body and footer on the right.
+   *  Below lg it is not rendered; a sheet that wants a picture on a phone
+   *  puts one in its own body. */
+  media?: React.ReactNode
+  /** A layer over the whole sheet, positioned by its own classes (the guide's
+   *  cover page). Always rendered as given, so an exit animation inside it
+   *  can finish; `overlayed` says whether it is up, and while it is, every-
+   *  thing under it is inert: Tab and a screen reader meet only the layer. */
+  overlay?: React.ReactNode
+  overlayed?: boolean
+  /** The header's and the footer's insets, for the one sheet that is read
+   *  rather than scanned (the guide) and so takes a page's margins. */
+  headerClassName?: string
+  footerClassName?: string
 }) {
   /* A callback ref as state, because the popup mounts inside a portal a beat
      after `open` flips, and an effect reading a plain ref would find null. */
@@ -289,32 +328,44 @@ function BottomSheet({
                dynamic unit changes as iOS's toolbar shows and hides, and the
                sheet would resize under the finger scrolling it. */
             "fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85svh] w-full max-w-xl flex-col rounded-t-xl bg-popover text-sm text-popover-foreground card-elevated outline-none duration-300 data-starting-style:translate-y-full data-ending-style:translate-y-full",
+            media && "lg:flex-row",
             className
           )}
           style={footer ? undefined : { paddingBottom: "env(safe-area-inset-bottom)" }}
         >
-          <div className="flex shrink-0 items-center gap-3 pt-3 pr-3 pb-2 pl-4">
-            <SheetTitle className="min-w-0 flex-1">{title}</SheetTitle>
-            <SheetPrimitive.Close data-slot="sheet-close" aria-label="Close" className={MODAL_CLOSE}>
-              <XIcon aria-hidden="true" />
-            </SheetPrimitive.Close>
-          </div>
-          {/* overscroll-contain so a flick that runs out of content does not
-              hand the scroll to the page behind the sheet. */}
-          <div ref={bodyRef} className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-1 pb-4", bodyClassName)}>
-            {children}
-          </div>
-          {footer && (
-            /* max(16px, the home indicator): viewport-fit=cover in the root
-               layout makes that strip real, and a button flush against it
-               cannot be pressed without dragging the app switcher up. */
-            <div
-              className="flex shrink-0 items-center gap-3 px-4 pt-3"
-              style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
-            >
-              {footer}
+          {media && (
+            <div inert={overlayed} className="relative hidden shrink-0 overflow-hidden lg:block lg:w-[44%]">
+              {media}
             </div>
           )}
+          {/* With a photograph beside it, or a layer over it, the column is its
+              own flex box; otherwise it is not, so every other sheet keeps the
+              DOM it always had. */}
+          <SheetColumn wrap={Boolean(media || overlay)} inert={overlayed}>
+            <div className={cn("flex shrink-0 items-center gap-3 pt-3 pr-3 pb-2 pl-4", headerClassName)}>
+              <SheetTitle className="min-w-0 flex-1">{title}</SheetTitle>
+              <SheetPrimitive.Close data-slot="sheet-close" aria-label="Close" className={MODAL_CLOSE}>
+                <XIcon aria-hidden="true" />
+              </SheetPrimitive.Close>
+            </div>
+            {/* overscroll-contain so a flick that runs out of content does not
+                hand the scroll to the page behind the sheet. */}
+            <div ref={bodyRef} className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-1 pb-4", bodyClassName)}>
+              {children}
+            </div>
+            {footer && (
+              /* max(16px, the home indicator): viewport-fit=cover in the root
+                 layout makes that strip real, and a button flush against it
+                 cannot be pressed without dragging the app switcher up. */
+              <div
+                className={cn("flex shrink-0 items-center gap-3 px-4 pt-3", footerClassName)}
+                style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+              >
+                {footer}
+              </div>
+            )}
+          </SheetColumn>
+          {overlay}
         </SheetPrimitive.Popup>
       </SheetPortal>
     </Sheet>

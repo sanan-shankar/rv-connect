@@ -8568,3 +8568,32 @@ its diff only compares a save with the one before it, so removing a tag and addi
 after save, notified the same member every time. `notifyMentioned` now skips anyone who already
 has a "mention" notification with the same message and link, read or not. It also skips accounts
 with a deletion pending, as the people search does. Pinned in `mention-notifications.test.mjs`.
+
+## 2026-09-27 (guide) — the guide gets a photograph per chapter, a floating window, a cover, and a bubble that points at the way back
+
+The owner's second round on the guide, from a voice note and six messages while it was built.
+"It's just overall a bit bland [...] On desktop with an image and then a column of content",
+"The margins are way too tight", "we can just ditch the guide thing", the Feed title "so far down",
+"a floating window is better than this dialog from the bottom", and an admin replay because "I
+went through it once [and] can't go through it again".
+
+- **Photographs** (`guide-photos.ts`, `public/images/guide/`): his picks from the Collection, cut
+  tall for a laptop and wide for a phone. The library is rotated back to straight on (3 degrees of
+  turn, 8 of tilt) and cut from below the ceiling. No birds, at his word; Birds has the basketball.
+- **A laptop** gets a floating window, 1120px by at most 54rem, blurred all round: photograph on
+  the left 44%, chapter on the right, title in the header with the X centred on it, 48px margins.
+- **A phone** starts the photograph at the sheet's top edge with the title on a fade to black at
+  its foot, then paper; a slim bar with the title fades in once it scrolls away. CSS alone decides
+  which layout shows, so dragging a window across 1024px no longer flashes the laptop header.
+- **The cover** (`guide-cover.tsx`): the sign-in page's valley photograph, full window, "How to
+  use this site" and one line on the way back. Two drafts were turned down: one that summarised
+  every chapter, one that left a column mostly empty. The Feed is laid out beneath it, so Next
+  fades it away and nothing moves.
+- **The bubble** (`door-coach.tsx`): when the tour closes, "Tap the title twice to see this again"
+  sits under the page's title for six seconds.
+- **The replay**: a guide page opened by an admin ends with "play the first-run tour again", a
+  full load of `/feed?tour=replay`, honoured for admins only; the account's stamp is untouched.
+
+`BottomSheet` gains an optional photograph pane and an overlay layer (everything under it inert);
+`StepDots` gains a tone for photographs. `guide-tour.test.mjs` pins the cover's place in the chain
+and the admin-only replay. `docs/spec/guide.md` sections 2.3, 5.2, 5.3 and 5.5 are rewritten.

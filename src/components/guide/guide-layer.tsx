@@ -17,11 +17,11 @@
  *  the navigation close below.
  * ------------------------------------------------------------------ */
 
-import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { markGuideSeen } from "@/app/(main)/guide/actions";
-import { findGuideArea, guideChain } from "@/lib/guide-areas";
+import { findGuideArea, guideChain, tourChain } from "@/lib/guide-areas";
 import { subscribeGuide, closeGuide, currentGuide } from "@/lib/guide-open";
 import { noteTourAt, noteTourEnded, tourEnded } from "@/lib/guide-tour";
 
@@ -37,12 +37,23 @@ import { noteTourAt, noteTourEnded, tourEnded } from "@/lib/guide-tour";
 const GuideBody = dynamic(() => import("./guide-body").then((m) => m.GuideBody), {
   ssr: false,
 });
+const DoorCoach = dynamic(() => import("./door-coach").then((m) => m.DoorCoach), {
+  ssr: false,
+});
 
 /** The server renders nothing here, always. */
 const serverSnapshot = () => null;
 
 /** `isTeacher` decides the chain Next walks: teachers have no Catch-ups. */
-export function GuideLayer({ userId, isTeacher }: { userId: string; isTeacher: boolean }) {
+export function GuideLayer({
+  userId,
+  isTeacher,
+  isAdmin,
+}: {
+  userId: string;
+  isTeacher: boolean;
+  isAdmin: boolean;
+}) {
   /* useSyncExternalStore rather than an effect that mirrors the store into
      state: this IS an external store, and mirroring it costs a second render
      on every open for no benefit. It also keeps the server snapshot honest,
@@ -50,8 +61,23 @@ export function GuideLayer({ userId, isTeacher }: { userId: string; isTeacher: b
   const guide = useSyncExternalStore(subscribeGuide, currentGuide, serverSnapshot);
   const pathname = usePathname();
   const firstPath = useRef(pathname);
-  const chain = useMemo(() => guideChain(isTeacher), [isTeacher]);
+  /* Opened from a title, Next walks the chapters; the first-run tour puts
+     its welcome page in front of them. */
+  const browseChain = useMemo(() => guideChain(isTeacher), [isTeacher]);
+  const chain = useMemo(() => tourChain(isTeacher), [isTeacher]);
   const touring = useRef(false);
+  /* When a tour closes, a bubble points at the page's own title for a few
+     seconds: the door back is shown where it is, not only described. */
+  const [coach, setCoach] = useState(false);
+  const coachDone = useCallback(() => setCoach(false), []);
+  /* Worked out while rendering, not in the effect below: the store moving
+     from a tour page to nothing IS the tour closing (React's "adjusting
+     state when a value changes", so there is no extra render pass). */
+  const [lastGuide, setLastGuide] = useState(guide);
+  if (guide !== lastGuide) {
+    setLastGuide(guide);
+    if (lastGuide?.tour && !guide) setCoach(true);
+  }
 
   /* Next navigating elsewhere underneath an open chapter means the member went
      somewhere else, so the chapter goes with the page it belonged to. Opening
@@ -83,7 +109,15 @@ export function GuideLayer({ userId, isTeacher }: { userId: string; isTeacher: b
   }, [guide, userId, chain]);
 
   const found = guide ? findGuideArea(guide.area) : undefined;
-  if (!guide || !found) return null;
+  if (!guide || !found) return coach ? <DoorCoach onDone={coachDone} /> : null;
 
-  return <GuideBody slug={found.slug} title={found.title} chain={chain} tour={guide.tour} />;
+  return (
+    <GuideBody
+      slug={found.slug}
+      title={found.title}
+      chain={guide.tour ? chain : browseChain}
+      tour={guide.tour}
+      isAdmin={isAdmin}
+    />
+  );
 }
