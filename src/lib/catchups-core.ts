@@ -487,6 +487,15 @@ export const BATCH_CATCHUP_FLOOR = 10;
 export const BATCH_QUESTIONS_TO_START = 3;
 
 /**
+ * How often a batch Catch-up runs: every three months. Owner, 2026-09-27, on
+ * learning they were monthly: "if it's monthly now, make it quarterly". A
+ * batch has no Keeper, so nobody can change it in the app; this is the whole
+ * setting. It used to be the column default ("monthly") by omission, which is
+ * why it is named here rather than left to the schema.
+ */
+export const BATCH_CADENCE: Cadence = "quarterly";
+
+/**
  * Is this a batch Catch-up?
  *
  * `Group.batchYear` is the whole test (F6): a batch is a Group with the year

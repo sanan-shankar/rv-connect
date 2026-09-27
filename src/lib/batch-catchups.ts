@@ -48,7 +48,7 @@ import { prisma } from "@/lib/prisma";
 import { reportSwallowed } from "@/lib/report-error";
 import { isUniqueViolation } from "@/lib/prisma-errors";
 import { pickCatchupPicture } from "@/lib/catchup-picture-pick";
-import { BATCH_CATCHUP_FLOOR, isMissingCatchupTable } from "@/lib/catchups-core";
+import { BATCH_CADENCE, BATCH_CATCHUP_FLOOR, isMissingCatchupTable } from "@/lib/catchups-core";
 import { clearCatchupNotifications } from "@/lib/catchup-notifications";
 
 /**
@@ -137,6 +137,7 @@ export async function joinBatchGroup(userId: string, batchYear: number) {
  *   - `createdById` null. Nobody keeps a batch Catch-up (architecture 6).
  *   - `inviteToken` null. There is nobody to invite: the membership is the
  *     batch, and `joinCatchupByToken` is the one door this closes.
+ *   - the rhythm `BATCH_CADENCE`, every three months (owner, 2026-09-27).
  *   - a picture, from the shipped pool, the one the batch sees least on the
  *     Catch-ups its members already have, exactly as `createCatchupWithPeople`
  *     picks (spec 3.4). Every Catch-up has one from the day it is made.
@@ -170,6 +171,7 @@ export async function ensureBatchCatchup(groupId: string): Promise<string | null
           groupId: group.id,
           createdById: null,
           inviteToken: null,
+          cadence: BATCH_CADENCE,
           pictureSrc: picture.src,
           pictureFocus: picture.focus,
         },

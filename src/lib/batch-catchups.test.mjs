@@ -25,6 +25,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 import {
+  BATCH_CADENCE,
   BATCH_CATCHUP_FLOOR,
   BATCH_QUESTIONS_TO_START,
   isBatchCatchup,
@@ -234,6 +235,11 @@ test("a batch Catch-up is created with no Keeper, no invite link and a picture",
   // There is nobody to invite: the membership IS the batch. This is what
   // closes joinCatchupByToken on it.
   assert.match(body, /inviteToken: null/, "a batch Catch-up is being given an invite link");
+  // Every three months (owner, 2026-09-27: "if it's monthly now, make it
+  // quarterly"). Written on the row rather than left to the column default,
+  // which is "monthly" and is what every batch got by omission before this.
+  assert.equal(BATCH_CADENCE, "quarterly");
+  assert.match(body, /cadence: BATCH_CADENCE/, "a batch Catch-up is falling back to the monthly column default");
   // Every Catch-up has a photograph from the day it is made (spec 3.4).
   assert.match(
     body,
