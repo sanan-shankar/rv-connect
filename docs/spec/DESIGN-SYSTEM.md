@@ -350,7 +350,10 @@ register IS the template, and it lives in exactly one file - `src/components/ui/
   restate the title in the body, never explain the buttons, never describe input methods
   the UI below already shows — that inversion (an sr-only title behind a 22px paragraph
   listing "drag and drop, browse or paste") is what made the contribute dialog feel wrong
-  before anyone could say why. Left-aligned; centring is for a short icon-anchored block
+  before anyone could say why. The one place the methods ARE named is inside a drop box, as its
+  own second line, on a machine with a cursor: the Collection's reads "Drag and drop, paste, or
+  click to browse" (owner, 2026-09-27: "I just click on it. I don't know that I can drag and
+  drop and copy paste"). Left-aligned; centring is for a short icon-anchored block
   only (M3: centre WITH icon, start without).
 - **Dialog copy (2026-08-29; the research is in docs/planning/dialog-*-research.md).**
   Statement titles naming the object ("Delete post", never "Are you sure?" — banned by

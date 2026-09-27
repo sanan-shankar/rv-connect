@@ -1,14 +1,13 @@
 
 
 
-## 2026-09-27 (directory) — the city panel is its old width, "See all" opens People, and rows leave out the filtered city
+## 2026-09-27 (collection) — the drop box names all three ways in, and paste reads the clipboard the reliable way
 
-Three of the owner's directory notes from the guide memo. The city panel had filled the whole phone
-since the 2026-09-15 sheet refactor: its `w-full sm:max-w-md` had been dead while the primitive's
-data-side width outranked it, and took effect when that went. It is back to the drawer's own three
-quarters of a phone and 384px from sm up (measured 293 of 390, and 384). "See all N" now switches to
-People and keeps the other filters, since N was counted under them: with a batch filter on, "See all
-37" opens exactly 37. Rows in a city-filtered list leave out that city (Bangalore counts as
-Bengaluru); someone whose own city is another one keeps it. The two city string folds moved from
-`city-coords.ts` to `normalize.ts` so the card can use them without the gazetteer, re-exported.
-Verified as Jerry at 1440 and 390. check green.
+Owner: "we should say add your photographs. We should say drag and drop, [...] paste or click to
+browse [...] Because right now, I just click on it." The drop box now reads "Add your photographs",
+then "Drag and drop, paste, or click to browse" with a cursor, "Tap to choose from your photos" on a
+phone. This reverses the 2026-08-29 trim that left paste unsaid; DESIGN-SYSTEM's dialog rule records
+the one exception. Paste read `clipboardData.files`, which not every browser fills; it now uses the
+composer's `imagesFromDataTransfer` (`.items`), exported for it. Verified at 1440 and 390, and a
+synthetic paste of a generated PNG was staged. Note: staging starts a direct upload, so that test
+square may sit under `staging/` in R2 until the lifecycle rule clears it; it was never added. check green.
