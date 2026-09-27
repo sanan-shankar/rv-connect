@@ -85,6 +85,44 @@ test("every month the index names has its file, and every archived entry is inde
   }
 });
 
+test("every session the index lists still has its entry in the month's file", () => {
+  /* The other direction of the test above, added 2026-09-27. That day
+     9ef7d821 replaced progress-2026-09.md with its own entry (-8,363 lines)
+     and five later commits each replaced the one before. The index still
+     listed every session, so "every archived entry is indexed" stayed green
+     while the month's record went missing. A session that WRITES the month
+     file instead of appending to it now fails here. */
+  const sections = [...log.matchAll(/^##\s+\w+\s+\d{4}\s+—\s+\[full entries\]\((.+?)\)/gm)];
+  for (const m of sections) {
+    const relPath = m[1];
+    const start = m.index + m[0].length;
+    const next = log.indexOf("\n## ", start);
+    const listed = log
+      .slice(start, next === -1 ? undefined : next)
+      .split("\n")
+      .filter((l) => /^-\s+(?:Session\s+)?\d{4}-\d{2}-\d{2}/.test(l))
+      .map((l) => l.replace(/^-\s+/, "").trim());
+    const inMonth = new Set(
+      read(relPath)
+        .split("\n")
+        .filter((l) => ENTRY_HEADING.test(l))
+        .map((l) => l.replace(/^##\s*/, "").trim())
+    );
+    /* An index line may run longer than its heading (sixteen September lines
+       do), so a line is matched by the entry whose heading it begins with --
+       the same looseness the includes() check above allows. */
+    const headings = [...inMonth];
+    const missing = listed.filter((t) => !headings.some((h) => t.startsWith(h)));
+    assert.deepEqual(
+      missing,
+      [],
+      `${relPath} has lost ${missing.length} entr(y|ies) that progress.md lists. Was the file written over instead ` +
+        `of appended to? Recover the text with \`git log -p -- ${relPath}\`. First: ` +
+        missing.slice(0, 3).map((t) => t.slice(0, 60)).join(" | ")
+    );
+  }
+});
+
 test("no month file is orphaned from the index without being an 'Earlier months' one", () => {
   /* June and July were archived under the OLD rule and are deliberately not
      itemised -- the index points at them as a block. Anything archived since

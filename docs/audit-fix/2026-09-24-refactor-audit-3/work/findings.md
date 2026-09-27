@@ -265,7 +265,8 @@ history then (tracked-weight-02). This audit's closing commit corrects audit 2's
   own entry. Every later commit did the same (`81bb7d11` +19/−15, `1b6e5fd3` +11/−21, `bda5571c` +10/−11, `60b8fc16`
   +8/−10), so the file now holds one entry (703 B) while `progress.md` still indexes every September session.
 - Recoverable: `git show 9ef7d821^:docs/history/progress-2026-09.md`, then re-add the five entries written since.
-  Not fixed by this audit (other sessions' commits; the owner decides). Reported to the owner at close-out.
+  **Fixed 2026-09-27 at the owner's request** ("Du it"): the month restored from `9ef7d821^` plus the seven
+  entries written since, and the missing test direction added. See the commit that restores the file.
 - **Test gap (a finding for the docs/tests lens):** `scripts/qa/progress-log.test.mjs` checks history → index only
   ("every archived entry is indexed"). An index → history check (every `- YYYY-MM-DD …` line in a month section has its
   `## ` heading in that month's file) would have failed this commit at `npm run check`.
