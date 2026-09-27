@@ -76,10 +76,12 @@ keeps every file.
 | His words on disk | DONE | `brief.md` ¶1 to ¶12 |
 | Round one and round two deleted | DONE | 2026-09-27; this file's "Deleted" section |
 | The three hills located | DONE | from the round-one view he recognised; names unconfirmed |
-| Storyboard and where it lives | OPEN | `storyboard.md`, with the flight built |
-| Imagery and elevation pipeline | OPEN | |
-| The flight, built in the lab | OPEN | |
-| Screenshots, both viewports, two rounds | OPEN | |
+| Storyboard and where it lives | DONE | `storyboard.md`: the landing page, first visit per device, skippable |
+| Imagery and elevation pipeline | DONE | `scripts/dev/valley-film.mjs`; 3,081 tiles, 114,002 trees, 71 MB, gitignored |
+| The flight, built in the lab | DONE, round one | `/lab/valley`: clouds, trees with shadows, afternoon sun; the ending is trace, glass mark, window into the photograph |
+| Screenshots, both viewports, two rounds | DONE | desktop and 390x844, every shot; 42 to 60 fps at 1.25x on his M1 |
+| His review of the flight | OPEN | |
+| Delete the round-one hills room | OPEN | once he accepts the film; kept for comparison at `/lab/valley/hills` |
 
 ## Operational context
 
@@ -93,6 +95,14 @@ keeps every file.
 - Gate: `npm run check`.
 
 ## Log
+
+- 2026-09-28, early. Built the film at `/lab/valley`: tiled aerial imagery on SRTM with a
+  camera-following level of detail, physically based haze and sky, baked hill shadows, 114k
+  ray-traced trees from the imagery with a shadow map, volumetric cumulus with the flight's
+  gap cut into their coverage, AgX. He reviewed it live while it was built: "fully flat",
+  "drab", "the sun blinds" the hills (fixed: heights, colour, a south-west afternoon sun);
+  "still looks fake" (trees, clouds, light); the first ending "a non sequitur" (rebuilt as
+  trace, glass mark, window into his photograph, from his ¶11 storyboard).
 
 - 2026-09-27. He rejected round two (¶10), then narrowed the campaign to the hills (¶11)
   and called the round-one look a graphics malfunction (¶12). Deleted round one's other
