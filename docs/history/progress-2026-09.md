@@ -8533,3 +8533,20 @@ question in the database predates the rebuild.
 The pick now carries the set id with the text, the ask box holds it and sends it. Editing the
 prefilled words keeps it, as the old picker did; clearing the box drops it, so a question typed
 fresh never inherits a stale kind. `catchup-library-pick-rule.test.mjs` pins the wire.
+
+## 2026-09-27 (feed, letters) — a member tagged in a post, letter or comment is told
+
+Owner: "And, also, yeah, obviously, notify the person who is tagged." Nobody was: no create or
+edit path read the `@[Name](id)` a mention is stored as.
+
+- `mentionedUserIds` (rich-text.ts) reads mentions with the same `MENTION_PATTERN` the renderer
+  uses, so the two cannot drift.
+- `notifyMentioned` (mention-notifications.ts) tells each one once, type "mention", "<Name>
+  mentioned you in a post / letter / comment", linking to it. It asks `decidePostVisibility`
+  who may see the post, so a city-only post or a hidden one tells nobody outside it; blocked
+  accounts and the author are skipped; twenty at most per save.
+- Called from `createPost` (not for drafts), `publishDraft`, `editPost` (only people newly
+  tagged) and `createComment` (not the person already getting the comment or reply bell).
+- The bell shows "Mentioned you" with an @ icon.
+
+`mention-notifications.test.mjs` pins the shared pattern, the cap and all four call sites.

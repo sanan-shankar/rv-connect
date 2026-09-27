@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-27 (feed, letters) — a member tagged in a post, letter or comment is told
 - 2026-09-27 (catchups) — a photo or songs question picked from the library is asked as one again
 - 2026-09-27 (collection) — a photograph that misses the direct upload is retried, kept at the size it arrived, and the member is told
 - 2026-09-27 (docs) — the September session history is restored, and the log test now checks both directions

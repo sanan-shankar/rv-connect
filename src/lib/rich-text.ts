@@ -14,6 +14,39 @@
  * ------------------------------------------------------------------ */
 
 /**
+ * The composer's wire-format mention: `@[Name](userId)`. The id capture is a
+ * strict charset, NOT `[^)]+` -- see the note at its one call site in
+ * `renderRichText` for why. Module-level and exported so `mentionedUserIds`
+ * below reads the exact same pattern renderRichText links: two regular
+ * expressions for one wire format is how they quietly stop agreeing the day
+ * either one is tightened.
+ */
+export const MENTION_PATTERN = /@\[([^\]]+)\]\(([A-Za-z0-9_-]+)\)/g
+
+/**
+ * The distinct member ids a body @-mentions, in first-appearance order.
+ *
+ * Runs on the RAW stored text, not renderRichText's escaped/emphasis-applied
+ * output: escaping only touches `& < > " '`, none of which a real profile id
+ * ever contains, and emphasis markers land outside the id group too -- so the
+ * ids this finds are exactly the ids that would render as links, without
+ * paying for a render just to read them back off. `matchAll` clones the
+ * regex internally, so this cannot leave `MENTION_PATTERN.lastIndex` dirty
+ * for `renderRichText`'s own `.replace()` call, or vice versa.
+ */
+export function mentionedUserIds(text: string): string[] {
+  const ids: string[] = []
+  const seen = new Set<string>()
+  for (const match of text.matchAll(MENTION_PATTERN)) {
+    const id = match[2]
+    if (seen.has(id)) continue
+    seen.add(id)
+    ids.push(id)
+  }
+  return ids
+}
+
+/**
  * Build the matcher for one inline emphasis delimiter.
  *
  * The rules are deliberately conservative, the way WhatsApp's are, because
@@ -131,7 +164,7 @@ export function renderRichText(
   // match and is left as the escaped literal text it already is, rather than
   // becoming a malformed link.
   result = result.replace(
-    /@\[([^\]]+)\]\(([A-Za-z0-9_-]+)\)/g,
+    MENTION_PATTERN,
     '<a href="/profile/$2" class="font-semibold text-leaf hover:underline">@$1</a>'
   )
 
