@@ -8352,3 +8352,17 @@ finds misfiled members as well as missing ones. `clearCatchupNotifications` move
 
 The new heal query was dry-run first and matched exactly the eight, then the real function was run
 on live data: healed 8. Afterwards there were 0 misfiled and 0 stranded. `check` green.
+
+
+## 2026-09-27 (ui) — the close button is a bare X on every dialog and sheet
+
+Owner, in the guide memo: "you know how the x button has this, like, darkened patch around it? I
+wanna remove that everywhere. I hate it. I don't know why we do it just have a normal x."
+`MODAL_CLOSE` had drawn a 32px disc of `--secondary` (#EAE7DC) behind the glyph since 2026-09-15,
+and on a white sheet that disc is the tan patch. It is now the glyph alone: 20px at a 2px stroke, a
+size up because nothing else carries it, muted ink at rest, full ink on hover, a press to 90%. The
+box stays 32px and the `::after` still makes the target 44px. Every dialog and bottom sheet takes it
+from that one constant. The two round X buttons that sit over photographs (the contribute stage, a
+Catch-up answer's photos) keep their dark scrim, which is what makes them readable on a picture.
+DESIGN-SYSTEM's dialog section now says so. Measured in the guide sheet at 1440 and 390: background
+transparent, glyph 20x20, ink #5F6359. `check` green.

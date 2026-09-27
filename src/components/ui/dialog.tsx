@@ -64,12 +64,16 @@ export const MODAL_SCRIM = "bg-[#241a12]/55"
  *  all along. */
 export const MODAL_TITLE = "font-heading text-[18px] leading-snug tracking-[-0.01em] text-foreground"
 
-/** The one way out of a modal, top right: a 32px filled circle with a bold
- *  glyph, the iOS sheet close, rather than a bare ghost X that disappears into
- *  the title row. The ::after grows the target to 44px for a thumb without
- *  growing the drawing. */
+/** The one way out of a modal, top right: a bare X. It was a 32px filled
+ *  circle (the iOS sheet close) until the owner, 2026-09-27: "you know how the
+ *  x button has this, like, darkened patch around it? I wanna remove that
+ *  everywhere. I hate it. I don't know why we do it just have a normal x."
+ *  Without the disc the glyph carries the control on its own, so it is drawn a
+ *  size up (20px, 2px stroke) and states itself in ink: muted at rest, full on
+ *  hover, a sink on press. The box stays 32px so the row's rhythm is unchanged,
+ *  and the ::after still grows the target to 44px for a thumb. */
 export const MODAL_CLOSE =
-  "relative grid size-8 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground outline-none transition-[background-color,color,transform] duration-150 ease-out after:absolute after:-inset-1.5 after:content-[''] hover:bg-border hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf [&_svg]:size-4 [&_svg]:stroke-[2.5]"
+  "relative grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground outline-none transition-[color,transform] duration-150 ease-out after:absolute after:-inset-1.5 after:content-[''] hover:text-foreground active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf [&_svg]:size-5 [&_svg]:stroke-[2]"
 
 function DialogOverlay({
   className,
