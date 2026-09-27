@@ -40,7 +40,8 @@ export type PinGeom = { x: number; y: number; count: number };
 export type MarkerSizing = {
   /** Largest single-pin count, the normaliser for sqrtRadius. */
   maxCount: number;
-  /** Marker counter-scale (1 on desktop, ~2.6 on a phone). See alumni-map. */
+  /** Marker counter-scale (1 on desktop, ~2.6 on a phone, below 1 in desktop
+   *  full screen). See alumni-map. */
   pinBoost: number;
   /** CSS px that one viewBox unit currently occupies. See alumni-map. */
   pxPerUnit: number;

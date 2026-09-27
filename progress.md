@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-27 (directory) — full screen shows more of the map rather than a bigger one, and the view toggle sits nearer the title
 - 2026-09-27 (catchups) — a member added to a Catch-up after it started is told
 - 2026-09-27 (feed, letters) — tagging someone in the composer works like Messages: a green tag, a wave, and typed names you can tap
 - 2026-09-27 (guide) — the guide's two protocol findings: the photographs' loading colours are allowlisted, the bubble's corners come down
