@@ -35,6 +35,21 @@ const CAPTION_SLACK_PX = 2;
 const CANDIDATES = 24;
 
 /**
+ * A photograph put on this card by hand, until the archive offers a newer one
+ * that fits (owner, 2026-09-27: "just until the next suitable photo, can you
+ * make the nighttime cave rock photo the from the collection photo"). Its own
+ * caption is 130 characters, so `label` stands in for it on the card's one
+ * line; the member's caption is not touched. Anything added after `since`
+ * that the card would pick anyway takes the place back. Delete this once it
+ * has, or to end the pin early.
+ */
+const PINNED: { id: string; since: Date; label: string } | null = {
+  id: "cmufu2y7e000804l6b2qo1kb9",
+  since: new Date("2026-09-27T21:30:00Z"),
+  label: "Cave Rock at blue hour",
+};
+
+/**
  * "From the Collection": the most recently approved, visible landscape photo
  * from the Valley Collection archive whose caption fits on one line. Hides
  * entirely while the archive has no approved photo yet (it currently has
@@ -49,6 +64,14 @@ const CANDIDATES = 24;
  * nice card; it is a different component with a session in it, not a where
  * clause on this one.
  */
+const PHOTO_SELECT = {
+  id: true,
+  thumbUrl: true,
+  caption: true,
+  createdAt: true,
+  uploader: { select: { name: true, accountType: true, batchType: true, batchYear: true } },
+} as const;
+
 export async function CollectionModule() {
   const candidates = await prisma.photo.findMany({
     /* LANDSCAPE ONLY. The tile below is a fixed 150px band across the rail,
@@ -62,12 +85,7 @@ export async function CollectionModule() {
     where: { scope: "valley", approved: true, isHidden: false, width: { gt: prisma.photo.fields.height } },
     orderBy: { createdAt: "desc" },
     take: CANDIDATES,
-    select: {
-      id: true,
-      thumbUrl: true,
-      caption: true,
-      uploader: { select: { name: true, accountType: true, batchType: true, batchYear: true } },
-    },
+    select: PHOTO_SELECT,
   });
 
   /* WHOLE CAPTIONS ONLY. The caption gets one line and the browser cuts a
@@ -85,12 +103,22 @@ export async function CollectionModule() {
 
      A photograph with no caption at all has nothing to truncate and stays
      eligible; the card falls back to the uploader's line, as it always has. */
-  const photo = candidates.find(
+  let photo = candidates.find(
     (p) =>
       !p.caption ||
       headingTextWidth(p.caption, CAPTION_SIZE_PX, CAPTION_TRACKING_EM) <=
         CAPTION_LINE_PX - CAPTION_SLACK_PX
   );
+
+  // The hand-picked photograph holds the card until something newer fits.
+  // Valley only, like everything this card shows (see above).
+  if (PINNED && (!photo || photo.createdAt <= PINNED.since)) {
+    const pinned = await prisma.photo.findFirst({
+      where: { id: PINNED.id, scope: "valley", approved: true, isHidden: false },
+      select: PHOTO_SELECT,
+    });
+    if (pinned) photo = { ...pinned, caption: PINNED.label };
+  }
 
   if (!photo) return null;
 
