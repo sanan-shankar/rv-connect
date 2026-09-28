@@ -56,6 +56,17 @@ keeps every file.
   same bench years apart, everyone who was here as thread), the atlas script behind the
   first, and the ideas file that chose them.
 
+## Considered and not taken (the film)
+
+- **Copernicus GLO-30 instead of SRTM** for the fine elevation (2026-09-28): decoded the
+  N13 E078 tile and resampled it onto the film's grid. It differs from SRTM by about 4 m
+  and is *smoother* (surface roughness 1.3 against 2.2), because SRTM's extra texture is
+  radar speckle. No crisper hills; the softness is the 30 m limit every open model shares.
+- **Zoom-19 imagery over the campus**: Esri has none here (its "not yet available" tile).
+- **Synthetic rock detail on the hills' geometry**: would make the ridge the mark traces
+  differ from the elevation the trace is computed from. The imagery's own relief (bump
+  from brightness) does the job on the lit faces instead.
+
 ## Decisions
 
 - **LOCKED (¶11).** The hills alone. No second idea rides along.
@@ -81,6 +92,7 @@ keeps every file.
 | The flight, built in the lab | DONE, round one | `/lab/valley`: clouds, trees with shadows, afternoon sun; the ending is trace, glass mark, window into the photograph |
 | Screenshots, both viewports, two rounds | DONE | desktop and 390x844, every shot; 42 to 60 fps at 1.25x on his M1 |
 | Video cuts | DONE | `?record=1` renders frame by frame; landscape and phone MP4s sent to him twice (the second with the campus look-down) |
+| Motion-blurred cuts | DONE | `scripts/dev/valley-film-video.mjs`; landscape and phone sent as the third cut |
 | His review of the flight | OPEN | |
 | Delete the round-one hills room | OPEN | once he accepts the film; kept for comparison at `/lab/valley/hills` |
 
