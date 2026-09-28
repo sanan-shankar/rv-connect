@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { HEADER_CONTROLS_LIFT } from "@/components/common/control-geometry";
 import { NotificationBell } from "./notification-bell";
 import { GuideDoor } from "@/components/guide/guide-door";
 
@@ -142,7 +143,7 @@ export function PageHeader({
         )}
       </div>
       {hasRight && (
-        /* -mt-[3.5px]: the controls CENTRE on the title's capitals (owner,
+        /* HEADER_CONTROLS_LIFT: the controls CENTRE on the title's capitals (owner,
            2026-09-14: "the search notification and new post icons seem lower
            than the Feed text ... make sure it appears on the same horizontal
            line"). Measured at 1440 and 390 on every header route: the cap of
@@ -152,7 +153,7 @@ export function PageHeader({
            dropped the letters 3px and left the controls behind. Centring on
            the cap rather than aligning tops is what reads as one line once
            the things beside the word are circles, not text-height pills. */
-        <div className="-mt-[3.5px] flex flex-nowrap items-center justify-end gap-2.5 shrink-0">
+        <div className={cn(HEADER_CONTROLS_LIFT, "flex flex-nowrap items-center justify-end gap-2.5 shrink-0")}>
           {search && <div className="hidden sm:block">{search}</div>}
           {unreadCount !== undefined && (
             // From md up only. Below md the bell is the top bar's, on every

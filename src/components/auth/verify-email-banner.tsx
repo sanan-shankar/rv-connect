@@ -6,6 +6,7 @@ import { MailWarning, Check, Clock } from "lucide-react";
 import { cn, VALLEY_TIME_ZONE, valleyDayKey } from "@/lib/utils";
 import { callAction } from "@/lib/call-action";
 import { resendVerification } from "./email-actions";
+import { BESIDE_HEADER_CONTROLS } from "@/components/common/control-geometry";
 
 /* ------------------------------------------------------------------ *
  *  "Confirm your email", on every page until they do.
@@ -166,9 +167,16 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
         "mx-auto mb-[var(--space-m)] flex w-fit max-w-full flex-wrap items-center gap-x-2.5 gap-y-2 rounded-[var(--radius-md)] border border-cinnamon/30 bg-cinnamon/[0.07] px-3 py-2",
         // Floated over the rail at rail widths: exactly the rail card's
         // 318px, so it reads as the rail's first card and never reaches far
-        // enough left to touch the New post button.
-        floated &&
-          "min-[1180px]:absolute min-[1180px]:top-0 min-[1180px]:right-0 min-[1180px]:mx-0 min-[1180px]:mb-0 min-[1180px]:w-[318px]"
+        // enough left to touch the New post button. Its TOP is the header's
+        // search and bell circles' top, which PageHeader lifts above the
+        // column (owner, 2026-09-28: "align the top of the confirm your email
+        // box to the top of the notification search circles"). At top-0 it
+        // started 3.5px lower and read as hanging off the Collection card
+        // below it rather than the header row.
+        floated && [
+          BESIDE_HEADER_CONTROLS,
+          "min-[1180px]:absolute min-[1180px]:right-0 min-[1180px]:mx-0 min-[1180px]:mb-0 min-[1180px]:w-[318px]",
+        ]
       )}
     >
       {/* After a resend, the confirmation IS the chip: one check, one line.

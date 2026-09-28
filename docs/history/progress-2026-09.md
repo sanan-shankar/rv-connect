@@ -8748,3 +8748,13 @@ the navigation dots. now there's a weirdly big gap." A 32px margin above the foo
 footer's own 12px, left 60px between the line and the dots. The margin is gone; the footer's padding
 alone keeps them 28px apart. The dots and Next did not move, so the cover still hands over to the
 first chapter without a shift.
+
+## 2026-09-28 (feed) — the confirm-your-email box starts level with the search and bell circles
+
+Owner: "align the top of the confirm your email box to the top the the notification search
+circles. instead of sitting just above the from the collection." On the rail pages at 1180px and
+up the box floats in the rail's corner at the column's top, 3.5px below the header's controls,
+which PageHeader lifts to centre on the title's capitals, so it read as hanging off the Collection
+card. Measured at 1440: box and circles now both start at 36.5px. The lift lives once, in
+`control-geometry.ts` (`HEADER_CONTROLS_LIFT` beside `BESIDE_HEADER_CONTROLS`), so a retune of the
+header moves the box with it.

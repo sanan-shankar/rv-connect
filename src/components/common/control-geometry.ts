@@ -8,6 +8,18 @@
  *  stay with the control.
  * ------------------------------------------------------------------ */
 
+/* PageHeader (layout/page-header.tsx) */
+
+/** How far the header's right-hand controls sit above the column, so they
+ *  centre on the title's capitals (page-header.tsx says how it was measured). */
+export const HEADER_CONTROLS_LIFT = "-mt-[3.5px]";
+
+/** The same top for something floated beside those controls rather than in
+ *  their row: the confirm-your-email chip on the rail pages, from the width the
+ *  rail appears (verify-email-banner.tsx). Kept beside the lift so a retune of
+ *  one is a retune of both. */
+export const BESIDE_HEADER_CONTROLS = "min-[1180px]:-top-[3.5px]";
+
 /* SegmentedPills (segmented-pills.tsx) */
 
 /** The track: a hairline pill with a 4px inset. */
