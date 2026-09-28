@@ -52,7 +52,7 @@ function lookFromQuery(q: URLSearchParams): Look {
   const el = (num("sunel", 18) * Math.PI) / 180;
   return {
     sun: [Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)],
-    mie: num("mie", 2.2e-5),
+    mie: num("mie", 1.6e-5),
     mieH: num("mieh", 1400),
     exposure: num("exp", 30),
     delight: num("delight", 0.6),

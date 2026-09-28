@@ -27,8 +27,9 @@ export const FLIGHT: Key[] = [
   /* 3: Angallu, banking left off the highway towards the campus */
   { t: 7.8, eye: [2800, 880, 600], look: [0, 740, -300], fov: 54, roll: -6 },
   { t: 9.8, eye: [1100, 820, -250], look: [-1500, 760, 200], fov: 54, roll: -3 },
-  /* 4: over the games field, slowing and turning to the three hills */
-  { t: 11.4, eye: [420, 800, -300], look: [-3000, 900, 800], fov: 40 },
+  /* 4: over the games field, looking down on the campus, the Dining Hall
+     and the quadrangles; then the tilt up that finds the three hills */
+  { t: 11.3, eye: [390, 925, 10], look: [-60, 712, 40], fov: 46 },
   /* 5: at rest above the field, the hills lined up as the mark has them;
      the camera stays here while they become the mark and open */
   { t: 13.2, eye: [60, 757, -280], look: [-4847, 1060, 1247], fov: 17, settle: true },

@@ -26,7 +26,7 @@ Nothing else in the app changes.
 | 0 to 3 s | Above the clouds | High over the plateau south-east of Madanapalle, cumulus below, coming down through a gap in them. |
 | 3 to 7 s | The road in | Down over Madanapalle's northern edge and along the NH42, the road every school bus took. |
 | 7 to 10 s | Angallu | Banking off the highway; the three hills rise on the horizon for the first time. |
-| 10 to 13 s | Over the campus | Low over the campus trees, slowing, turning to face the hills. |
+| 10 to 13 s | Over the campus | Over the games field looking down on the campus, then the tilt up that finds the three hills. |
 | 13 to 15 s | The three hills | The camera comes to rest. A line traces their real ridge: Bodikonda, Middle Peak, Rishikonda. |
 | 15 to 16 s | The mark | The traced shape fills as frosted glass: the mark, cut from the real skyline. It peels off and flies to the corner, becoming the drawn mark as it shrinks. |
 | 15 to 17 s | Through the hills | Where it peeled away, a hill-shaped window shows the landing's photograph. The window opens until we are through it. |
