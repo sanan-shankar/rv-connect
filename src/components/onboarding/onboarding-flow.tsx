@@ -239,7 +239,7 @@ export function OnboardingFlow({
             className="w-full"
           >
             {step === "welcome" && (
-              <WelcomeStep user={current} hasHouses={stepOrder.includes("houses")} onNext={goNext} />
+              <WelcomeStep user={current} onNext={goNext} />
             )}
             {step === "register" && (
               <RegisterStep user={current} onSaved={save} onNext={goNext} onSkip={goNext} />

@@ -8740,6 +8740,8 @@ complete particularly on mobile?"
   editor), which showed those members an empty state twice.
 - Considered and not taken: a valley photograph on Welcome. The guide's cover opens on that same
   photograph a minute later.
+- Follow-up the same day: Welcome's "This is you in the Directory. Add where you live..." became "Add
+  a few details so your batchmates can find you." (owner: "so cringe").
 
 ## 2026-09-28 (guide) — the cover's title and line sit down on the dots
 

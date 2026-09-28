@@ -6,21 +6,18 @@ import { firstName, StepActions, StepHead, StepNext, YouCard } from "../step-kit
 /**
  * Step 1: Welcome. Greets by first name and shows the member their own
  * Directory card as it stands, a bird, a name and a batch, which is what the
- * next steps fill in. The line names those steps rather than promising they
- * are quick or optional; the Skip beside every button already says that.
+ * next steps fill in. The card needs no caption: it is plainly them (the owner
+ * cut "This is you in the Directory", 2026-09-28: "so cringe"). Nothing about
+ * the steps being quick or optional either; the Skip on each one says that.
  *
  * The hoopoe's post-signup welcome plays on Done, not here (see
  * onboarding-flow.tsx), so there is never a second bird on screen.
  */
 export function WelcomeStep({
   user,
-  hasHouses,
   onNext,
 }: {
   user: OnboardingUser;
-  /** False for teachers and for anyone whose years are unknown: they have no
-   *  houses step, so the line does not promise one. */
-  hasHouses: boolean;
   onNext: () => void;
 }) {
   const who = user.accountType === "alumnus" ? "batchmates" : "old students";
@@ -30,7 +27,7 @@ export function WelcomeStep({
       <StepHead
         as="h1"
         title={`Welcome, ${firstName(user.name)}.`}
-        line={`This is you in the Directory. Add where you live${hasHouses ? ", what you do and your houses" : " and what you do"} so ${who} can find you.`}
+        line={`Add a few details so your ${who} can find you.`}
       />
       <div className="mt-[var(--space-m)]">
         <YouCard user={user} />
