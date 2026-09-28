@@ -33,6 +33,8 @@ export default async function WelcomePage({
     select: {
       ...IDENTITY_SELECT,
       accountType: true,
+      batchType: true,
+      batchYear: true,
       admissionNumber: true,
       subjects: true,
       workplace: true,
@@ -90,6 +92,8 @@ export default async function WelcomePage({
         photoUrl: user.photoUrl,
         birdOverride: user.birdOverride,
         accountType: user.accountType,
+        batchType: user.batchType,
+        batchYear: user.batchYear,
         admissionNumber: user.admissionNumber,
         subjects: user.subjects,
         places: user.places,

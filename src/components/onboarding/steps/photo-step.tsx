@@ -1,21 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft, ArrowRight, ImagePlus, Loader2 } from "lucide-react";
+import { ImagePlus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BirdAvatar } from "@/components/common/bird-avatar";
 import { speciesNameFor, resolveBirdOverride } from "@/components/common/bird-avatar-v2";
 import { AttachImageDialog } from "@/components/common/attach-image-dialog";
 import { AvatarCropDialog } from "@/components/settings/avatar-crop-dialog";
 import { useAvatarUpload } from "@/components/settings/avatar-upload";
 import type { OnboardingUser } from "../types";
+import { StepActions, StepHead, StepNext, YouCard } from "../step-kit";
 
 /**
  * Step 4: Photo. Reuses the exact settings upload action (Sharp/WebP, R2)
- * rather than a second pipeline. If the person would rather not upload one,
- * "Proudly keep your bird" names their actual deterministic bird instead of
- * just showing the glyph, so the default reads as a real choice, not a
- * placeholder.
+ * rather than a second pipeline. The line under the title names their actual
+ * deterministic bird ("You're a Verditer Flycatcher") instead of just showing
+ * the glyph, so keeping it reads as a real choice, not a placeholder. That is
+ * the step's one warm line; the button that keeps it just says so ("Keep the
+ * bird"), where it used to read "Proudly keep my Verditer Flycatcher".
+ *
+ * One canopy action at a time: Upload a photo while there is none, Continue
+ * once there is. The Directory card shows the photo the moment it lands.
  *
  * And the same crop dialog the profile uses, for the same reason. `updateAvatar`
  * ends in a fixed `resize(512, 512, { fit: "cover", position: "centre" })`, so
@@ -27,93 +30,88 @@ import type { OnboardingUser } from "../types";
  */
 export function PhotoStep({
   user,
+  onSaved,
   onNext,
-  onBack,
   onSkip,
 }: {
   user: OnboardingUser;
+  onSaved: (patch: Partial<OnboardingUser>) => void;
   onNext: () => void;
-  onBack: () => void;
   onSkip: () => void;
 }) {
-  const [photoUrl, setPhotoUrl] = useState<string | null>(user.photoUrl);
+  const { photoUrl } = user;
   const { busy, cropFile, setCropFile, attachOpen, setAttachOpen, pick, send, sendUndecodable } =
-    useAvatarUpload({ onSaved: setPhotoUrl });
+    useAvatarUpload({ onSaved: (url) => onSaved({ photoUrl: url }) });
   const speciesName = speciesNameFor(user.id, resolveBirdOverride(user.id, user.birdOverride));
 
-
   return (
-    <div className="space-y-[var(--space-l)]">
-      <div className="space-y-[var(--space-xxs)] text-center">
-        <h2 className="font-heading text-[24px] leading-tight tracking-[-0.02em] text-foreground">
-          Add a photo, or keep your bird
-        </h2>
-        <p className="mx-auto max-w-[38ch] text-[14px] leading-relaxed text-muted-foreground">
-          Every member gets a valley bird by default. Upload a photo any
-          time you like, from here or from your profile.
-        </p>
+    <>
+      <AttachImageDialog
+        open={attachOpen}
+        onOpenChange={setAttachOpen}
+        onFiles={(files) => pick(files[0] ?? null)}
+        multiple={false}
+        title="Add a photo"
+      />
+      <AvatarCropDialog
+        file={cropFile}
+        onConfirm={async (blob) => {
+          setCropFile(null);
+          await send(blob);
+        }}
+        onCancel={() => setCropFile(null)}
+        onDecodeError={(f) => {
+          setCropFile(null);
+          void sendUndecodable(f);
+        }}
+      />
+      <StepHead
+        title="Add a photo"
+        line={
+          photoUrl ? (
+            "It shows beside your name everywhere on the site."
+          ) : (
+            <>
+              Or keep your bird. You&apos;re a{" "}
+              <span className="font-medium text-foreground">{speciesName}</span>.
+            </>
+          )
+        }
+      />
+      <div className="mt-[var(--space-m)]">
+        <YouCard user={user} avatar="md" />
       </div>
-
-      <div className="flex flex-col items-center gap-[var(--space-m)] rounded-2xl border border-border bg-card p-[var(--space-l)]">
-        <AttachImageDialog
-          open={attachOpen}
-          onOpenChange={setAttachOpen}
-          onFiles={(files) => pick(files[0] ?? null)}
-          multiple={false}
-          title="Add a photo"
-        />
-        <AvatarCropDialog
-          file={cropFile}
-          onConfirm={async (blob) => {
-            setCropFile(null);
-            await send(blob);
-          }}
-          onCancel={() => setCropFile(null)}
-          onDecodeError={(f) => {
-            setCropFile(null);
-            void sendUndecodable(f);
-          }}
-        />
-        <BirdAvatar
-          user={{
-            id: user.id,
-            name: user.name,
-            photoUrl,
-            birdOverride: user.birdOverride,
-          }}
-          size="lg"
-        />
-        {!photoUrl && (
-          <p className="text-[13px] text-muted-foreground">
-            You&apos;re a <span className="font-medium text-foreground">{speciesName}</span>.
-          </p>
+      <StepActions
+        secondary={
+          <Button
+            type="button"
+            variant="ghost"
+            size="lg"
+            disabled={busy}
+            onClick={photoUrl ? () => setAttachOpen(true) : onSkip}
+          >
+            {busy && photoUrl ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {photoUrl ? "Change photo" : "Keep the bird"}
+          </Button>
+        }
+      >
+        {photoUrl ? (
+          <StepNext type="button" busy={busy} onClick={onNext}>
+            Continue
+          </StepNext>
+        ) : (
+          <Button
+            type="button"
+            variant="primary"
+            size="lg"
+            disabled={busy}
+            onClick={() => setAttachOpen(true)}
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+            Upload a photo
+          </Button>
         )}
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={busy}
-          onClick={() => setAttachOpen(true)}
-        >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-          {photoUrl ? "Change photo" : "Upload a photo"}
-        </Button>
-      </div>
-
-      <div className="flex items-center justify-between gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Button>
-        {/* One primary action. With a photo it simply continues; without one it
-            keeps the charming "keep my bird" label (the upload button in the
-            card above is the alternative), so there is never a confusing pair
-            of buttons that do the same thing. */}
-        <Button type="button" variant="primary" onClick={photoUrl ? onNext : onSkip} disabled={busy}>
-          {photoUrl ? "Continue" : `Proudly keep my ${speciesName}`}
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
+      </StepActions>
+    </>
   );
 }

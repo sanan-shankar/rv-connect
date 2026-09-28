@@ -41,7 +41,7 @@ import {
   PopoverPositioner,
 } from "@/components/ui/popover";
 import { BottomSheet } from "@/components/ui/sheet";
-import { academicSpanLabel, parseHouseSpans } from "@/lib/house-spans";
+import { academicSpanLabel, careerRange, parseHouseSpans } from "@/lib/house-spans";
 import { HOUSES, normalizeHouse, type HouseYearEntry } from "@/lib/houses";
 import { cn } from "@/lib/utils";
 import { useWideViewport } from "@/components/common/use-wide-viewport";
@@ -102,12 +102,7 @@ export function HouseChainEditor({
      disagreeing about what a span is. */
   const spans = useMemo(() => parseHouseSpans(JSON.stringify(entries)), [entries]);
 
-  /* Leaving in 2023 means the last academic year here was 2022-23, hence
-     `yearLeft - 1`: the range is end-exclusive. */
-  const career =
-    yearJoined != null && yearLeft != null && yearLeft - 1 >= yearJoined
-      ? { from: yearJoined, to: yearLeft - 1 }
-      : null;
+  const career = careerRange(yearJoined, yearLeft);
 
   const nextYear = useMemo(
     () => (career ? firstGap(entries, career.from, career.to) : null),

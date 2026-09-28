@@ -5,11 +5,20 @@
  *  The register (admission number, city, profession), Houses (year by
  *  year), Photo, Done. Teacher accounts get four: Houses is a student
  *  record, so their order skips it and the register step hides the
- *  admission field. Every data step is individually skippable (its
- *  own "Skip for now" advances without saving) and "Finish later" is
- *  always visible in the header, dropping straight back to /feed at any
- *  point. Nothing here is a hard gate: a member can use the whole site
- *  having completed none of it.
+ *  admission field. So does anyone whose years here are unknown, because
+ *  the chain editor has nothing to lay out without them. Every data step
+ *  is individually skippable (its own "Skip" advances without saving)
+ *  and "Finish later" is always visible in the header, dropping straight
+ *  back to /feed at any point. Nothing here is a hard gate: a member can
+ *  use the whole site having completed none of it.
+ *
+ *  One sheet, anchored to the top of the page, with the header (Back,
+ *  the dots, Finish later) along its top edge and only the step inside
+ *  it changing. The wizard used to centre each step vertically in 65vh,
+ *  so the dots sat at a different height on every step (425, 253, 393
+ *  and 253px down a phone) and jumped as you went; the header on the
+ *  photograph wash also left the upcoming dots nearly invisible. On the
+ *  sheet's paper they read the way the guide's chapters show them.
  *
  *  The one hoopoe for this route is rendered by the server page
  *  (`<CelebrationSignals>` in welcome/page.tsx), passed down here as the
@@ -38,9 +47,12 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, m } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
+import { careerRange } from "@/lib/house-spans";
+import { cn } from "@/lib/utils";
 import { StepDots } from "@/components/common/step-dots";
 import { hasFired, markFired } from "@/components/mascot/moments/one-shot";
 import { ONBOARDING_SEEN, type OnboardingStepId, type OnboardingUser } from "./types";
+import { ChevronLeft } from "lucide-react";
 import { WelcomeStep } from "./steps/welcome-step";
 import { DoneStep } from "./steps/done-step";
 
@@ -70,6 +82,13 @@ const PRELOAD: Partial<Record<OnboardingStepId, () => Promise<unknown>>> = {
 
 const STEP_ORDER: OnboardingStepId[] = ["welcome", "register", "houses", "photo", "done"];
 
+/* Back and Finish later: bare text, so no state layer (a tint behind two
+   words reads as a stray chip), and the opacity is the press answer. The
+   vertical padding is taken back by the negative margin, so the words sit
+   in a 13px line while the finger gets 44px (DESIGN-SYSTEM §10). */
+const BARE =
+  "-my-3 inline-flex items-center gap-0.5 rounded-sm py-3 text-[13px] font-medium text-muted-foreground transition-[color,opacity] duration-150 hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+
 export function OnboardingFlow({
   user,
   initialStep,
@@ -93,16 +112,26 @@ export function OnboardingFlow({
   // step hides its admission field). Derived from the same accountType the
   // signup form collected.
   const isTeacher = user.accountType !== "alumnus";
-  const stepOrder = isTeacher ? STEP_ORDER.filter((id) => id !== "houses") : STEP_ORDER;
+  const stepOrder =
+    isTeacher || !careerRange(user.yearJoined, user.yearLeft)
+      ? STEP_ORDER.filter((id) => id !== "houses")
+      : STEP_ORDER;
   const [step, setStep] = useState<OnboardingStepId>(
-    // A ?step=houses deep link on a teacher account has no screen to land on;
-    // the register step is the nearest real one.
+    // A ?step=houses deep link with no houses step (a teacher, or no years)
+    // has no screen to land on; the register step is the nearest real one.
     stepOrder.includes(initialStep) ? initialStep : "register"
   );
   // Deep links (?step=...) render immediately; a bare "welcome" arrival
   // waits the one tick the mount effect below needs to decide whether to
   // bounce an already-onboarded visitor away, so that never flashes first.
   const [ready, setReady] = useState(initialStep !== "welcome");
+  /* What the steps have saved this visit, laid over the page's row. The page
+     does re-run after each save, but the Directory card on Done and a step
+     revisited with Back should show what was just entered without depending
+     on that refresh having landed. */
+  const [saved, setSaved] = useState<Partial<OnboardingUser>>({});
+  const current: OnboardingUser = { ...user, ...saved };
+  const save = (patch: Partial<OnboardingUser>) => setSaved((s) => ({ ...s, ...patch }));
 
   // Two things get decided here, both client-only and both exactly once:
   //
@@ -150,8 +179,8 @@ export function OnboardingFlow({
   /* Fetch the step AFTER this one while this one is being read. A hook, so it
      has to sit above the `!ready` return: the flow renders null for one tick on
      a bare /welcome arrival, and a preload that only started after that tick
-     would be racing the button. Teachers have no houses step, so `stepOrder`
-     decides what "next" means rather than STEP_ORDER. */
+     would be racing the button. Not everybody has a houses step, so
+     `stepOrder` decides what "next" means rather than STEP_ORDER. */
   const upcoming = stepOrder[stepOrder.indexOf(step) + 1];
   useEffect(() => {
     void PRELOAD[upcoming]?.();
@@ -176,49 +205,55 @@ export function OnboardingFlow({
   }
 
   return (
-    <div className="mx-auto flex min-h-[65vh] w-full max-w-[460px] flex-col justify-center py-[var(--space-xl)]">
-      {step !== "done" && (
-        <div className="mb-[var(--space-l)] flex items-center justify-between gap-3">
-          <StepDots
-            count={dotSteps.length}
-            current={index}
-            onPick={(i) => setStep(dotSteps[i])}
-            labelFor={(i) => `Go back to step ${i + 1}`}
-          />
-          <button
-            type="button"
-            onClick={finishLater}
-            // Bare text, so no state layer (a tint behind two words reads as a
-            // stray chip). It was missing the press answer, hence the opacity.
-            className="shrink-0 rounded-sm text-[13px] font-medium text-muted-foreground transition-[color,opacity] duration-150 hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            Finish later
-          </button>
-        </div>
-      )}
+    <div className="mx-auto w-full max-w-[460px] sm:pt-[var(--space-xl)]">
+      <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)] sm:p-[var(--space-l)]">
+        {step !== "done" && (
+          <div className="mb-[var(--space-l)] grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            {index > 0 ? (
+              <button type="button" onClick={goBack} className={cn(BARE, "-ml-1 justify-self-start")}>
+                <ChevronLeft className="size-4" aria-hidden />
+                Back
+              </button>
+            ) : (
+              <span />
+            )}
+            <StepDots
+              count={dotSteps.length}
+              current={index}
+              onPick={(i) => setStep(dotSteps[i])}
+              labelFor={(i) => `Go back to step ${i + 1}`}
+            />
+            <button type="button" onClick={finishLater} className={cn(BARE, "justify-self-end")}>
+              Finish later
+            </button>
+          </div>
+        )}
 
-      <AnimatePresence mode="wait" initial={false}>
-        <m.div
-          key={step}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={SPRINGS.gentle}
-          className="w-full"
-        >
-          {step === "welcome" && <WelcomeStep name={user.name} onNext={goNext} />}
-          {step === "register" && (
-            <RegisterStep user={user} onNext={goNext} onBack={goBack} onSkip={goNext} />
-          )}
-          {step === "houses" && (
-            <HousesStep user={user} onNext={goNext} onBack={goBack} onSkip={goNext} />
-          )}
-          {step === "photo" && (
-            <PhotoStep user={user} onNext={goNext} onBack={goBack} onSkip={goNext} />
-          )}
-          {step === "done" && <DoneStep name={user.name} next={next} />}
-        </m.div>
-      </AnimatePresence>
+        <AnimatePresence mode="wait" initial={false}>
+          <m.div
+            key={step}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={SPRINGS.gentle}
+            className="w-full"
+          >
+            {step === "welcome" && (
+              <WelcomeStep user={current} hasHouses={stepOrder.includes("houses")} onNext={goNext} />
+            )}
+            {step === "register" && (
+              <RegisterStep user={current} onSaved={save} onNext={goNext} onSkip={goNext} />
+            )}
+            {step === "houses" && (
+              <HousesStep user={current} onSaved={save} onNext={goNext} onSkip={goNext} />
+            )}
+            {step === "photo" && (
+              <PhotoStep user={current} onSaved={save} onNext={goNext} onSkip={goNext} />
+            )}
+            {step === "done" && <DoneStep user={current} next={next} />}
+          </m.div>
+        </AnimatePresence>
+      </div>
 
       {/* Only mounted once the wizard actually reaches Done, so the
           one-shot post-signup celebration plays as the finishing beat, not

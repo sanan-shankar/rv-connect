@@ -1,54 +1,37 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { PartyPopper } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import type { OnboardingUser } from "../types";
+import { firstName, StepActions, StepHead, StepNext, YouCard } from "../step-kit";
 
 /**
- * Step 5: Done. A warm send-off into the feed. No auto-redirect timer, the
- * person leaves this page on their own click.
+ * Step 5: Done. The Directory card the member met on Welcome, now with
+ * whatever they added, which is the whole point of the last four screens.
+ * No auto-redirect timer: the person leaves on their own click, while the
+ * post-signup hoopoe plays (onboarding-flow.tsx mounts it here).
  *
  * `next` is normally the feed, but someone who arrived from an invite link is
  * sent back to it, so the thing they originally clicked is the thing they land
  * on. The button says where it goes either way.
  */
-export function DoneStep({ name, next = "/feed" }: { name: string; next?: string }) {
+export function DoneStep({ user, next = "/feed" }: { user: OnboardingUser; next?: string }) {
   const router = useRouter();
-  const firstName = name.trim().split(/\s+/)[0] || "there";
+  const who = user.accountType === "alumnus" ? "Batchmates" : "Old students";
 
   return (
-    <div className="space-y-[var(--space-l)] text-center">
-      {/* Same opaque bg-card surface every other step uses (see welcome-step.tsx's
-          comment). This is also where the post-signup celebration hoopoe
-          actually plays (see onboarding-flow.tsx), so it doubles as the one
-          moment that needs to read clean against the mascot mid-flight. */}
-      <div className="space-y-[var(--space-l)] rounded-2xl border border-border bg-card p-[var(--space-l)]">
-        {/* Celebration bubble in the leaf tint (colour protocol's chip trio);
-            cinnamon would fight the hoopoe flying through this same moment. */}
-        <div
-          className="mx-auto grid h-16 w-16 place-items-center rounded-full border border-leaf/30 bg-leaf/[0.07] text-leaf"
-          aria-hidden
-        >
-          <PartyPopper className="h-7 w-7" />
-        </div>
-        <div className="space-y-[var(--space-xxs)]">
-          <h2 className="font-heading text-[26px] leading-tight tracking-[-0.02em] text-foreground">
-            You&apos;re in, {firstName}.
-          </h2>
-          <p className="mx-auto max-w-[34ch] text-[16px] leading-relaxed text-muted-foreground">
-            Your page is ready. Come say hello, the valley&apos;s been waiting.
-          </p>
-        </div>
+    <>
+      <StepHead
+        title={`You're in, ${firstName(user.name)}.`}
+        line={`${who} can find you in the Directory now.`}
+      />
+      <div className="mt-[var(--space-m)]">
+        <YouCard user={user} />
       </div>
-      <Button
-        type="button"
-        variant="primary"
-        size="lg"
-        className="w-full"
-        onClick={() => router.push(next)}
-      >
-        {next === "/feed" ? "Take me to the feed" : "Take me there"}
-      </Button>
-    </div>
+      <StepActions>
+        <StepNext type="button" onClick={() => router.push(next)}>
+          {next === "/feed" ? "Go to the feed" : "Continue"}
+        </StepNext>
+      </StepActions>
+    </>
   );
 }

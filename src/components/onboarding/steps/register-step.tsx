@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { Input } from "@/components/ui/input";
@@ -12,6 +11,7 @@ import { TagInput } from "@/components/common/tag-input";
 import { titleCase } from "@/lib/normalize";
 import { saveOnboardingRegister } from "../actions";
 import type { OnboardingUser } from "../types";
+import { StepActions, StepHead, StepNext, YouCard } from "../step-kit";
 
 /**
  * Rishi Valley itself, as the location picker's gazetteer knows it. The row is
@@ -31,22 +31,26 @@ const RISHI_VALLEY: PlaceSelection = {
 /**
  * Step 2: "The register" — current city (or cities), admission number,
  * occupation and organisation. City sits first, then the admission number,
- * per the field order the owner asked for. Every field is optional; "Skip for
- * now" advances without writing anything. Text is title-cased server-side, so
+ * per the field order the owner asked for. Every field is optional; "Skip"
+ * advances without writing anything. Text is title-cased server-side, so
  * the placeholders here only need to read clearly as examples ("e.g. ...").
+ *
+ * The member's Directory card sits above the fields and reads them as they
+ * are typed, so picking a city or typing a job shows up on the card at once.
+ * That is what the fields are for, shown rather than explained.
  *
  * Teacher accounts never had an admission number, so that field simply does
  * not render for them.
  */
 export function RegisterStep({
   user,
+  onSaved,
   onNext,
-  onBack,
   onSkip,
 }: {
   user: OnboardingUser;
+  onSaved: (patch: Partial<OnboardingUser>) => void;
   onNext: () => void;
-  onBack: () => void;
   onSkip: () => void;
 }) {
   const isTeacher = user.accountType !== "alumnus";
@@ -82,23 +86,30 @@ export function RegisterStep({
     e.preventDefault();
     setSaving(true);
     try {
-      const result = await callAction(() =>
-        saveOnboardingRegister({
-          admissionNumber:
-            !isTeacher && admissionNumber.trim() ? Number(admissionNumber) : undefined,
-          // Sent (possibly empty, meaning "clear it") only for teachers; alumni
-          // never see the field, so their saves leave the column untouched.
-          subjects: isTeacher ? subjects.join(", ") : undefined,
-          jobTitle: jobTitle.trim() || undefined,
-          workplace: workplace.trim() || undefined,
-          places,
-        })
-      );
+      const values = {
+        admissionNumber:
+          !isTeacher && admissionNumber.trim() ? Number(admissionNumber) : undefined,
+        // Sent (possibly empty, meaning "clear it") only for teachers; alumni
+        // never see the field, so their saves leave the column untouched.
+        subjects: isTeacher ? subjects.join(", ") : undefined,
+        jobTitle: jobTitle.trim() || undefined,
+        workplace: workplace.trim() || undefined,
+        places,
+      };
+      const result = await callAction(() => saveOnboardingRegister(values));
       if (result.error) {
         toast.error(result.error);
         return;
       }
-      toast.success("Saved");
+      // No "Saved" toast: the next step arriving is the confirmation, and a
+      // toast on a phone lands over the very step it is confirming.
+      onSaved({
+        places,
+        jobTitle: values.jobTitle ?? null,
+        workplace: values.workplace ?? null,
+        ...(values.admissionNumber != null && { admissionNumber: values.admissionNumber }),
+        ...(values.subjects != null && { subjects: values.subjects }),
+      });
       onNext();
     } finally {
       // finally, not a trailing statement: a rejected save used to leave
@@ -108,21 +119,18 @@ export function RegisterStep({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-[var(--space-l)]">
-      <div className="space-y-[var(--space-xxs)] text-center">
-        <h2 className="font-heading text-[24px] leading-tight tracking-[-0.02em] text-foreground">
-          A few details for the register
-        </h2>
-        <p className="mx-auto max-w-[36ch] text-[15px] leading-relaxed text-muted-foreground">
-          {isTeacher
-            ? "These help old students place you. Skip anything you would rather leave."
-            : "These help batchmates place you. Skip anything you would rather leave."}
-        </p>
+    <form onSubmit={handleSubmit}>
+      <StepHead
+        title="Where are you now?"
+        line={`${isTeacher ? "Old students" : "Batchmates"} search the Directory by city and by work.`}
+      />
+      <div className="mt-[var(--space-m)]">
+        <YouCard user={{ ...user, places, jobTitle }} />
       </div>
 
-      <div className="space-y-[var(--space-m)] rounded-2xl border border-border bg-card p-[var(--space-l)]">
+      <div className="mt-[var(--space-l)] space-y-[var(--space-m)]">
         <div className="space-y-2">
-          <Label htmlFor="currentCity">Where you live now</Label>
+          <Label htmlFor="currentCity">City</Label>
           {/* Always the chip-list picker: a picked city commits to a pill on
               tap, and tapping the box again adds the next one. The old
               single-then-"Add another city" toggle made the first pick sit as
@@ -166,7 +174,7 @@ export function RegisterStep({
               max={10000}
             />
             <p className="text-[12.5px] text-muted-foreground">
-              Don&apos;t remember it? Leave it blank, you can add it later.
+              Leave it blank if you don&apos;t remember it.
             </p>
           </div>
         )}
@@ -193,22 +201,17 @@ export function RegisterStep({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Button>
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="ghost" size="sm" onClick={onSkip} disabled={saving}>
-            Skip for now
+      <StepActions
+        secondary={
+          <Button type="button" variant="ghost" size="lg" onClick={onSkip} disabled={saving}>
+            Skip
           </Button>
-          <Button type="submit" variant="primary" disabled={saving}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Save &amp; continue
-            {!saving && <ArrowRight className="h-4 w-4" />}
-          </Button>
-        </div>
-      </div>
+        }
+      >
+        <StepNext type="submit" busy={saving}>
+          Continue
+        </StepNext>
+      </StepActions>
     </form>
   );
 }
