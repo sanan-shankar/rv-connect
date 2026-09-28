@@ -24,6 +24,22 @@ export function academicSpanLabel(fromYear: number, toYear: number): string {
   return `${fromYear}-${endSuffix}`;
 }
 
+/**
+ * The academic years somebody was here, from the years they joined and left:
+ * leaving in 2023 means the last year was 2022-23, so the range ends at
+ * `yearLeft - 1`. Null when either year is unknown or the range is empty.
+ * The chain editor lays its years out from this, and the setup wizard asks
+ * it whether there is a houses step at all, so the two cannot disagree.
+ */
+export function careerRange(
+  yearJoined: number | null | undefined,
+  yearLeft: number | null | undefined
+): { from: number; to: number } | null {
+  return yearJoined != null && yearLeft != null && yearLeft - 1 >= yearJoined
+    ? { from: yearJoined, to: yearLeft - 1 }
+    : null;
+}
+
 /** Parse the raw `houses` JSON into entries, silently ignoring malformed rows
  *  or invalid JSON (returns []) rather than throwing. */
 export function parseHouseYearEntries(raw: string | null | undefined): HouseYearEntry[] {

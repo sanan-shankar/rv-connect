@@ -8717,3 +8717,26 @@ what is his to decide (the imagery's licence first). Shot at both viewports; 42 
 Then: `?record=1` renders it frame by frame for video (both cuts sent to him as MP4s), and
 the ground takes a few metres of relief from its own photographs' brightness plus a fine
 grain, which is most of what moved it from rendered to photographed.
+
+## 2026-09-28 (onboarding) — the setup wizard is one sheet, with your Directory card filling in as you go
+
+Owner: "the onboarding is a bit ugly [...] the copy sucks. it was written before we had our writing
+skills. delete stuff like A few quick steps, and you can skip any of them. Skip anything you would
+rather leave. can you improve the copy and make it more visually appealing but still efficient to
+complete particularly on mobile?"
+
+- **One sheet, top-anchored.** Back, the dots and Finish later along its top; only the step inside
+  changes. Each step used to be centred in 65vh, so the dots sat 425, 253 and 393px down a phone
+  and jumped every step, and the upcoming dots vanished into the photograph wash.
+- **The signature: your Directory card** (bird, name, batch, work, city), in a well under the title
+  on Welcome, the register step (it reads the fields as you type), Photo (the photo lands on it) and
+  Done (finished). What the wizard is for, shown rather than explained.
+- **Buttons:** a small Skip beside a wide canopy Continue, one row. The photo step's "Proudly keep my
+  Verditer Flycatcher" is "Keep the bird"; the species is the step's one warm line instead.
+- **Copy** rewritten plain and left-aligned: "Where are you now?", "Batchmates search the Directory by
+  city and by work."; the skip-reassurance lines are gone. Success toasts dropped: the next step is
+  the confirmation.
+- **No houses step without years** (`careerRange()` in `house-spans.ts`, shared with the chain
+  editor), which showed those members an empty state twice.
+- Considered and not taken: a valley photograph on Welcome. The guide's cover opens on that same
+  photograph a minute later.

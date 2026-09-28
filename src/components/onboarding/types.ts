@@ -30,6 +30,9 @@ export interface OnboardingUser {
   photoUrl: string | null;
   birdOverride: string | null;
   accountType: string; // "alumnus" | "teacher" | "ex_teacher"
+  /** For the Directory card the wizard draws (step-kit.tsx `YouCard`). */
+  batchType: string | null;
+  batchYear: number | null;
   admissionNumber: number | null;
   subjects: string | null;
   places: PlaceSelection[];
