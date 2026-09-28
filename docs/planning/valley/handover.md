@@ -80,6 +80,7 @@ keeps every file.
 | Imagery and elevation pipeline | DONE | `scripts/dev/valley-film.mjs`; 3,081 tiles, 114,002 trees, 71 MB, gitignored |
 | The flight, built in the lab | DONE, round one | `/lab/valley`: clouds, trees with shadows, afternoon sun; the ending is trace, glass mark, window into the photograph |
 | Screenshots, both viewports, two rounds | DONE | desktop and 390x844, every shot; 42 to 60 fps at 1.25x on his M1 |
+| Video cuts | DONE | `?record=1` renders frame by frame; landscape and phone MP4s sent to him twice (the second with the campus look-down) |
 | His review of the flight | OPEN | |
 | Delete the round-one hills room | OPEN | once he accepts the film; kept for comparison at `/lab/valley/hills` |
 
@@ -95,6 +96,14 @@ keeps every file.
 - Gate: `npm run check`.
 
 ## Log
+
+- 2026-09-28, later. Simplify pass (four reviewers; dead code, one tile walk per frame,
+  shared height helpers in `_geo.ts`). Record mode for video; relief from the imagery's
+  brightness and a film grain (the biggest step from rendered to photographed); the
+  camera looks down on the games field before tilting up to the hills; the glass mark has
+  a rim. Commits 03a19bb8, 16414299, 6a26376c, f9cf6ef2. Render a cut:
+  `node /tmp/rv-record.mjs <name> land|port 30 17.8` (a scratch script; recreate from
+  the record-mode comment in `_film.tsx` if /tmp was cleared).
 
 - 2026-09-28, early. Built the film at `/lab/valley`: tiled aerial imagery on SRTM with a
   camera-following level of detail, physically based haze and sky, baked hill shadows, 114k
