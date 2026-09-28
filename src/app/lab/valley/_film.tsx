@@ -121,6 +121,8 @@ export function ValleyFilm() {
   const markLine = useRef<SVGPolylineElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const glass = useRef<HTMLDivElement>(null);
+  const rim = useRef<SVGPathElement>(null);
+  const rimSvg = useRef<SVGSVGElement>(null);
   const markFill = useRef<SVGPathElement>(null);
   const photo = useRef<HTMLDivElement>(null);
   const brand = useRef<HTMLDivElement>(null);
@@ -267,7 +269,11 @@ export function ValleyFilm() {
         const gl = glass.current!;
         gl.style.clipPath = `path('${d}')`;
         gl.style.opacity = lifted >= 1 ? "0" : String(filled);
-        gl.style.backgroundColor = `rgba(255,255,255,${(0.14 + 0.86 * easeInOut(Math.min(1, lifted * 1.4))).toFixed(3)})`;
+        gl.style.backgroundColor = `rgba(255,255,255,${(0.07 + 0.93 * easeInOut(Math.min(1, lifted * 1.4))).toFixed(3)})`;
+        /* a fine bright rim, so it reads as a made thing and not as mist */
+        rimSvg.current!.setAttribute("viewBox", `0 0 ${w} ${h}`);
+        rim.current!.setAttribute("d", d);
+        rim.current!.style.opacity = lifted >= 1 ? "0" : String(filled * (1 - lifted));
         logo.setAttribute("d", d);
         logo.style.opacity = lifted > 0 && lifted < 1 ? String(0.28 * Math.sin(Math.PI * lifted)) : "0";
         svg.style.opacity = "1";
@@ -483,6 +489,9 @@ export function ValleyFilm() {
 
       {/* the mark, traced off the real ridge and flown to the corner */}
       <div ref={glass} className="vf-glass" aria-hidden />
+      <svg ref={rimSvg} className="vf-rim" aria-hidden>
+        <path ref={rim} fill="none" stroke="rgba(255,255,255,0.92)" strokeWidth={1.4} strokeLinejoin="round" style={{ opacity: 0 }} />
+      </svg>
       <svg ref={markSvg} className="vf-mark" aria-hidden>
         <polyline ref={markLine} fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" style={{ filter: "drop-shadow(0 0 5px rgba(255,255,255,0.6))" }} />
         <path ref={markFill} fill="#0c120e" style={{ opacity: 0, filter: "blur(10px)", transform: "translateY(7px)" }} />
@@ -519,7 +528,8 @@ const CSS = `
 .vf-stage { position:absolute; inset:0; will-change:transform; }
 .vf-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
 .vf-mark { position:absolute; inset:0; width:100%; height:100%; z-index:5; pointer-events:none; }
-.vf-glass { position:absolute; inset:0; z-index:6; pointer-events:none; opacity:0; -webkit-backdrop-filter:blur(14px) brightness(1.22) saturate(1.15); backdrop-filter:blur(14px) brightness(1.22) saturate(1.15); }
+.vf-glass { position:absolute; inset:0; z-index:6; pointer-events:none; opacity:0; -webkit-backdrop-filter:blur(12px) brightness(1.14) saturate(1.2); backdrop-filter:blur(12px) brightness(1.14) saturate(1.2); }
+.vf-rim { position:absolute; inset:0; width:100%; height:100%; z-index:7; pointer-events:none; }
 .vf-loading { position:absolute; inset:0; z-index:6; display:grid; place-content:center; justify-items:center; gap:14px; color:rgba(240,236,226,.78); font-size:14px; letter-spacing:.02em; text-align:center; padding:24px; background:#0c0f0d; }
 .vf-bar { width:180px; height:2px; background:rgba(240,236,226,.16); border-radius:2px; overflow:hidden; }
 .vf-bar > span { display:block; height:100%; background:rgba(240,236,226,.8); transform-origin:left; transition:transform .2s linear; }
