@@ -163,8 +163,14 @@ await pool(list, 6, async ([z, x, y]) => {
   const file = join(OUT, "imagery", `${z}`, `${x}`, `${y}.jpg`);
   if (existsSync(file) && statSync(file).size > 0) { have.push([z, x, y]); return; }
   const buf = await fetchRetry(`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`);
-  /* the server answers "no imagery here" with a tiny grey tile */
-  if (!buf || buf.length < 1500) { blank++; return; }
+  /* The server answers "no imagery here" with a small flat-grey tile
+     reading "Map data not yet available" (2.5 KB, grey 204). Size alone
+     cannot tell it from a tile of solid cloud, so it is told by colour. */
+  if (!buf) { blank++; return; }
+  if (buf.length < 4000) {
+    const { channels } = await sharp(buf).stats();
+    if (channels.slice(0, 3).every((c) => Math.abs(c.mean - 204) < 8)) { blank++; return; }
+  }
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, buf);
   fetched++;
