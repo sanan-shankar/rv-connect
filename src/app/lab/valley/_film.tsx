@@ -390,9 +390,11 @@ export function ValleyFilm() {
         };
         /* ?record=1: no clock at all. A script asks for each frame by time
            and gets it back only when every tile in it has arrived, which is
-           how the film is rendered to video (see storyboard.md). */
+           how scripts/dev/valley-film-video.mjs renders the film to video. */
         if (q.get("record") === "1") {
-          (window as unknown as { filmFrame?: (tt: number) => Promise<void> }).filmFrame = async (tt: number) => {
+          const w = window as unknown as { filmFrame?: (tt: number) => Promise<void>; filmEnd?: number };
+          w.filmEnd = END;
+          w.filmFrame = async (tt: number) => {
             c.t = tt;
             c.playing = false;
             const aspect = size();
