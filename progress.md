@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-28 (guide) — the cover's title and line sit down on the dots
 - 2026-09-28 (onboarding) — the setup wizard is one sheet, with your Directory card filling in as you go
 - 2026-09-28 (lab) — the valley, flown into: a film over the real valley that ends on the landing page
 - 2026-09-27 (catchups, batches) — everyone in a batch Catch-up runs it, and batch Catch-ups start on hold

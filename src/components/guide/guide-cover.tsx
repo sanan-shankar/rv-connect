@@ -111,9 +111,14 @@ export function GuideCover({
             To come back to it later, <DoorHint />.
           </p>
         </div>
-        {/* The chapters' footer, to the pixel: same insets, same bottom. */}
+        {/* The chapters' footer, to the pixel: same insets, same bottom.
+            No margin above it: the owner (2026-09-28) found the title and
+            its line "sitting so high above the navigation dots" with "a
+            weirdly big gap". A 32px margin on top of the footer's own 12px
+            put 60px between the line and the dots; the footer's padding
+            alone keeps them 28px apart, closer than to anything above. */}
         <div
-          className="mt-8 flex items-center gap-3 px-6 pt-3 lg:px-12"
+          className="flex items-center gap-3 px-6 pt-3 lg:px-12"
           style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
         >
           <StepDots
