@@ -8740,3 +8740,11 @@ complete particularly on mobile?"
   editor), which showed those members an empty state twice.
 - Considered and not taken: a valley photograph on Welcome. The guide's cover opens on that same
   photograph a minute later.
+
+## 2026-09-28 (guide) — the cover's title and line sit down on the dots
+
+Owner, on the tour's cover: "can you lower those two elements so they're not sitting so high above
+the navigation dots. now there's a weirdly big gap." A 32px margin above the footer, on top of the
+footer's own 12px, left 60px between the line and the dots. The margin is gone; the footer's padding
+alone keeps them 28px apart. The dots and Next did not move, so the cover still hands over to the
+first chapter without a shift.
