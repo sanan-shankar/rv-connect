@@ -8802,6 +8802,42 @@ Audit 3 found this on 2026-09-24 (L3-08, L11-01), but that audit is paused and n
 findings until a fix session runs. The status board's C4 probe only reads the workflow file, not
 the job's result, which is why it stayed green through all of it.
 
+## 2026-09-29 (email) — launch day: waiting for a confirmation email no longer locks anybody out
+
+The owner posted the link to the 800-person alumni group chat today. Resend's free plan sends 100
+emails a day, so on a launch day most new members' confirmations wait in the queue, and until now
+a member whose email was waiting was read-only until a link that had not been sent yet arrived.
+His rule: *"until we have sent the verification email, they should continue to have full access
+... if we've sent the email and they've not verified, then shut it down."*
+
+- **`emailGateOpen`** on the session: confirmed, or a confirmation queued with none ever sent to the
+  address on the account (`confirmationStillWaiting`, pure and tested). Every permission reads it:
+  gated actions and API routes, directory names, the rail card, other profiles, asking to be
+  verified. `emailConfirmed` stays the fact, for the banner. The lookup is one indexed read, only
+  for unconfirmed members, and fails shut.
+- **Not the roster auto-match.** The first cut let a waiting account match the school roster; the
+  write-path review showed that lets anyone claim a real alumnus's name (public, name and batch)
+  with an address they do not own. It stays on the tapped link.
+- **85 confirmations a day**, not 75: the reset reserve went 20 to 10. Resets have never passed 3 a
+  day.
+- **The banner** says *"We'll send your confirmation email tomorrow at 5:30 am IST. Everything is
+  open to you until then."* The label now names the day ("on Thursday"); it only knew "tomorrow",
+  which on a 300-signup day was wrong for over a hundred people, printed "5:30 IST" with no am, and
+  painted a bare "tomorrow" before hydrating. Worded once in `confirmation-copy.ts`.
+- **Three false sentences gone**: `/verify-email`'s resend said "Sent to ..." even when the email
+  was waiting until tomorrow; its waiting copy and the gated-action refusal both said "we sent you
+  a link when you joined".
+- **`/lab/email-states`** renders the real banner in every state. A dev machine sends no mail, so
+  its queue never reaches "waiting"; this is the only place to read those lines off production.
+- **Verified live as Jerry**: waiting, the directory's People view listed 60 members, profiles
+  opened, a gated API answered 200; marked sent, 0 names, profiles locked, 403 with the new
+  sentence. Jerry restored afterwards.
+- **A trap on the way**: `run-sql.mjs` prints `timestamp without time zone` through this Mac's
+  local zone (London, an hour off UTC in summer), so a value copied from its output and written
+  back lands an hour wrong. Restore from `column::text`, never from the printed JSON.
+
+Spec: `docs/spec/email.md`. Phase 2 (a bounced address fixes itself) follows.
+
 ## 2026-09-29 (platform) — links stop rendering pages nobody opened: prefetching off, a third of the CPU was profile prefetches
 
 The owner was forced onto Vercel Pro at ~150 members when Fluid Active CPU hit Hobby's 4 hours,

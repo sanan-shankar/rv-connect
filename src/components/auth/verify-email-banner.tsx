@@ -3,7 +3,8 @@
 import { useState, useSyncExternalStore } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { MailWarning, Check, Clock } from "lucide-react";
-import { cn, VALLEY_TIME_ZONE, valleyDayKey } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { sendTimeLabel } from "@/lib/confirmation-copy";
 import { callAction } from "@/lib/call-action";
 import { resendVerification } from "./email-actions";
 import { BESIDE_HEADER_CONTROLS } from "@/components/common/control-geometry";
@@ -30,41 +31,13 @@ export type BannerState =
   | { state: "sent"; sentTo: string }
   /** In another process's hands right now, or seconds from a retry. */
   | { state: "imminent" }
-  /** Genuinely deferred: the day's budget is spent. The ONLY state whose copy
-   *  may mention the email limit; `sendingAt` (ISO) is when it refills. */
-  | { state: "queued"; sendingAt: string }
+  /** Genuinely deferred: the day's budget is spent. `sendingAt` (ISO) is
+   *  when it refills; `label` is the server's wording of it, so the first
+   *  paint already says the right day. `open` is the session's email gate:
+   *  true while nothing has ever been sent (docs/spec/email.md Rule 1), and
+   *  then the copy says everything is open instead of naming the limit. */
+  | { state: "queued"; sendingAt: string; label?: string; open: boolean }
   | { state: "none"; sentTo: string };
-
-/**
- * "tomorrow at 5:30 am IST", or "at 5:30 am IST" when the refill lands later
- * the same valley day. "Sometime tomorrow" is the kind of vague reassurance
- * that reads as a brush-off, so this says the hour.
- *
- * Formatted in the VALLEY's timezone, not the reader's. This docstring used to
- * claim the opposite, describing behaviour that had already been replaced --
- * an invitation for a later session to "restore" browser-local formatting and
- * re-break the day comparison the inner comment says was fixed (audit C-037).
- * The zone is named in the string because a member in London reading an
- * unlabelled "5:30 am" reads it as their own, and checks an empty inbox at the
- * wrong hour. Exported for the dialog, so the two never phrase the same moment
- * two ways.
- */
-export function sendTimeLabel(iso: string): string {
-  const d = new Date(iso);
-  const now = new Date();
-  const time = d
-    .toLocaleTimeString("en-GB", {
-      timeZone: VALLEY_TIME_ZONE,
-      hour: "numeric",
-      minute: "2-digit",
-    })
-    .toLowerCase();
-  // Compared in the valley's day, because that is the day the time above is
-  // now printed in. Comparing browser-local calendar fields against an IST
-  // clock face made the two disagree for any member reading from abroad.
-  const sameDay = valleyDayKey(d) === valleyDayKey(now);
-  return sameDay ? `at ${time} IST` : `tomorrow at ${time} IST`;
-}
 
 /** A store that never notifies: the "external" value here is the browser's
  *  locale, which does not change within a page's lifetime. */
@@ -111,7 +84,7 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
         setState({ state: "sent", sentTo: result.sentTo ?? "your address" });
         setFlash(`Sent to ${result.sentTo ?? "your address"}.`);
       } else if (result.state === "queued" && result.sendingAt) {
-        setState({ state: "queued", sendingAt: result.sendingAt });
+        setState({ state: "queued", sendingAt: result.sendingAt, open: !!result.open });
         setFlash("");
       } else {
         setState({ state: "imminent" });
@@ -129,23 +102,24 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
   const imminent = state.state === "imminent";
   const Icon = queued || imminent ? Clock : MailWarning;
 
-  // The refill time is rendered ONLY in the browser. The original reason was
-  // locale -- SSR said "5:30 am" where a 24-hour browser said "5:30", and
-  // React threw a hydration mismatch (caught live, 2026-08-13) -- and that is
-  // now pinned to en-GB, so it is no longer the reason. What is still
-  // server-and-client-dependent is `now`: sendTimeLabel compares the send
-  // against the current valley day to choose "at" or "tomorrow at", and the
+  // The refill time depends on `now`: sendTimeLabel compares the send against
+  // the current valley day to choose "at", "tomorrow at" or a weekday, and the
   // server renders at one instant while the browser hydrates at another. Land
-  // either side of valley midnight and the two disagree.
-  // useSyncExternalStore is the sanctioned tool for exactly that: the server
-  // snapshot is empty (both sides hydrate on the bare "tomorrow") and the
-  // client fills it in on the very next render.
+  // either side of valley midnight and the two disagree (a hydration mismatch
+  // was caught live on 2026-08-13, back when locale was the cause).
+  // useSyncExternalStore is the sanctioned tool for exactly that. The server
+  // snapshot is the label the layout already worded, so the first paint says
+  // the right day and hydration matches it; the browser re-words it only in
+  // that midnight minute. It used to be "" on the server, which painted a bare
+  // "tomorrow" first -- wrong for everybody two or more days back in line.
   const sendingAtIso = state.state === "queued" ? state.sendingAt : null;
+  const serverLabel = state.state === "queued" ? (state.label ?? "") : "";
   const timeLabel = useSyncExternalStore(
     subscribeNever,
     () => (sendingAtIso ? sendTimeLabel(sendingAtIso) : ""),
-    () => "",
+    () => serverLabel,
   );
+  const gateOpen = state.state === "queued" && state.open;
 
   return (
     // The outer div is the rail-float anchor: zero-height and relative from
@@ -194,7 +168,22 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
       <Icon className="h-4 w-4 shrink-0 text-cinnamon" aria-hidden />
 
       <p className="min-w-0 flex-1 text-[13.5px] leading-snug text-foreground">
-        {queued ? (
+        {queued && gateOpen ? (
+          // Waiting behind the daily limit with nothing ever sent, so every
+          // gate is open (owner, 2026-09-29: "until we have sent the
+          // verification email, they should continue to have full access").
+          // The promise and the fact that nothing is locked. No reason clause:
+          // they are not blocked, the time is the promise, and "the limit" is
+          // only one of the two ways a row ends up waiting.
+          <>
+            <span className="font-medium">
+              We&apos;ll send your confirmation email {timeLabel || "soon"}.
+            </span>{" "}
+            <span className="text-muted-foreground">
+              Everything is open to you until then.
+            </span>
+          </>
+        ) : queued ? (
           // The one place the limit may be named, and only reachable when the
           // day's count is genuinely at the cap (verificationMailState sends
           // the mail itself in every other case, so this state cannot render
@@ -204,7 +193,7 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
               We have hit today&apos;s email limit.
             </span>{" "}
             <span className="text-muted-foreground">
-              Your link goes out {timeLabel || "tomorrow"}. Nothing you need to
+              Your link goes out {timeLabel || "soon"}. Nothing you need to
               do.
             </span>
           </>

@@ -56,7 +56,7 @@ export async function generateMetadata({
   // confirmed-email capability, and a <title> is serialized like anything
   // else. Own profile excepted, same as the page body.
   const session = await auth();
-  if (session?.user && session.user.id !== id && !session.user.emailConfirmed && !IS_DEMO) {
+  if (session?.user && session.user.id !== id && !session.user.emailGateOpen && !IS_DEMO) {
     return { title: "Profile" };
   }
   const user = await loadProfile(id);
@@ -118,7 +118,7 @@ export default async function ProfilePage({
      to every unconfirmed account carries the resend button, so this card
      does not need one. The demo's invented visitor is exempt, as with every
      gate (its Prisma allowlist is what keeps the demo safe). */
-  if (session.user.id !== id && !session.user.emailConfirmed && !IS_DEMO) {
+  if (session.user.id !== id && !session.user.emailGateOpen && !IS_DEMO) {
     return (
       <div className="mx-auto mt-16 max-w-md rounded-[var(--radius-lg)] border border-border bg-card px-6 py-10 text-center">
         <h1 className="font-heading text-xl text-foreground">Confirm your email first</h1>
@@ -274,7 +274,7 @@ export default async function ProfilePage({
   // Which card the locked "Get in touch" pill opens. The Stage 0 return above
   // means a viewer who reaches here with contacts withheld is confirmed but
   // unverified, so the email case is belt and braces.
-  const contactsLock = maySeeContacts ? null : session.user.emailConfirmed ? ("member" as const) : ("email" as const);
+  const contactsLock = maySeeContacts ? null : session.user.emailGateOpen ? ("member" as const) : ("email" as const);
 
   // Every way of reaching someone, in ONE place: the Get in touch sheet.
   //

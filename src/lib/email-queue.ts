@@ -86,11 +86,16 @@ const DAILY_CAP = 95;
  *
  * Without it, launch day works out as: 95 welcome emails go out in the
  * morning, and the first person who forgets their password that afternoon
- * cannot get back in until tomorrow. 20 is far more than a day's resets for a
- * community this size, and the cost of reserving it is that 20 confirmations
- * slip a day, which nobody experiences as being stuck.
+ * cannot get back in until tomorrow.
+ *
+ * 10, down from 20 on launch day (2026-09-29). Measured, not guessed: in the
+ * log's whole history resets peaked at 3 in a day and password-changed notices
+ * at 2, so 10 is still twice the worst day. The 20 cost ten confirmations every
+ * day to protect nothing, and on launch day each of those is a person's link
+ * slipping to tomorrow. Waiting no longer locks anybody out
+ * (docs/spec/email.md Rule 1), but the link arriving is still the point.
  */
-const RESET_RESERVE = 20;
+const RESET_RESERVE = 10;
 
 /** Sent per drain pass. Resend also rate-limits to a couple of requests a
  *  second, and this runs inside a page request's `after()`, so a pass stays

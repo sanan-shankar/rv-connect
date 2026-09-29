@@ -333,3 +333,35 @@ export function drainHasWork(
   if (row.status !== "sending") return false;
   return row.claimedAt !== null && row.claimedAt.getTime() < now.getTime() - STALE_CLAIM_MS;
 }
+
+/**
+ * Whether a member's confirmation email is still waiting on US: queued, and
+ * never once sent to the address on their account.
+ *
+ * The owner's rule for launch day (2026-09-29): "until we have sent the
+ * verification email, they should continue to have full access ... if we've
+ * sent the email and they've not verified, then shut it down." The 100-a-day
+ * limit is ours, not theirs, so a member waiting behind it is treated as
+ * confirmed by every gate (`emailGateOpen` on the session). The moment one of
+ * their confirmations goes out this turns false for good, and the ordinary
+ * confirm-your-email gate applies until they tap the link.
+ *
+ * Only rows addressed to the CURRENT address count. A member whose first
+ * address bounced and who has moved to another has never been sent anything
+ * they could open, so the wait for their new link is as real as anybody's.
+ *
+ * A failed row is not waiting. A bounce WAS sent (the webhook leaves `sentAt`
+ * alone), and a row that gave up without sending is waiting on a fix rather
+ * than on the limit -- leaving the gate open for it would open it for good.
+ *
+ * docs/spec/email.md, Rule 1.
+ */
+export function confirmationStillWaiting(
+  rows: { to: string; status: string; sentAt: Date | null }[],
+  currentEmail: string,
+): boolean {
+  const address = currentEmail.trim().toLowerCase();
+  const mine = rows.filter((r) => r.to.trim().toLowerCase() === address);
+  if (mine.some((r) => r.sentAt !== null)) return false;
+  return mine.some((r) => r.status === "queued" || r.status === "sending");
+}

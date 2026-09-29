@@ -14,6 +14,7 @@ import { prisma } from "./prisma";
 import { normalizeEmail } from "./email-address";
 import { ownProfileLink } from "./notification-links";
 import { sessionRevoked, SESSION_MAX_AGE } from "./session-revocation";
+import { emailGateOpenFor } from "./email-gate-open";
 
 /* authorize() below can only say "yes" (a user) or "no" (null), and null
    always surfaces as "Invalid email or password." These two let the login
@@ -416,6 +417,16 @@ const nextAuth = NextAuth({
           // out until the JWT next rotated, which is the failure that makes a
           // verification flow feel broken.
           session.user.emailConfirmed = dbUser.emailVerified != null;
+          /* What every gate reads: confirmed, OR still waiting behind the
+             daily email limit with nothing yet sent (owner, 2026-09-29;
+             docs/spec/email.md Rule 1). Kept apart from emailConfirmed
+             because the banner must stay up during the wait -- the fact and
+             the permission are two different questions. */
+          session.user.emailGateOpen = await emailGateOpenFor({
+            id: token.id as string,
+            email: dbUser.email,
+            emailVerified: dbUser.emailVerified,
+          });
           session.user.email = dbUser.email;
           session.user.batchType = dbUser.batchType;
           session.user.batchYear = dbUser.batchYear;
@@ -498,6 +509,7 @@ async function demoSession(): Promise<Session | null> {
       // reads the session rather than calling the gate, from showing a nag bar
       // nobody on that deployment could ever clear.
       emailConfirmed: true,
+      emailGateOpen: true,
     },
     expires: new Date(Date.now() + 86_400_000).toISOString(),
   } as Session;

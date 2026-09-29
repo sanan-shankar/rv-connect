@@ -45,6 +45,14 @@ async function tryRosterAutoVerify(userId: string): Promise<boolean> {
     },
   });
   if (!user) return false;
+  /* Confirmed, NOT merely "the email gate is open". A member waiting behind
+     the daily email limit gets every gate (docs/spec/email.md Rule 1), but the
+     roster matches on name and batch year, which are public: letting a waiting
+     account match would let anyone sign up with an address they do not own,
+     type a real alumnus's name and be verified AS them, posting under that
+     name and reading every member's contact details (write-path review,
+     2026-09-29). A waiting member can still ask to be verified, which reaches
+     the owner; the match itself runs the moment they tap their link. */
   if (!user.emailVerified) return false;
   if (user.verifyState !== "unverified" && user.verifyState !== "pending") return false;
 
