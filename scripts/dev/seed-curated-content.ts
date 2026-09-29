@@ -44,6 +44,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { loadEnv } from "./_env.mjs";
+import { withDatabaseTls } from "../../src/lib/db-tls.ts";
 
 loadEnv();
 
@@ -344,7 +345,7 @@ async function main() {
   const { PrismaPg } = await import("@prisma/adapter-pg");
 
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL as string }),
+    adapter: new PrismaPg(withDatabaseTls(process.env.DATABASE_URL as string)),
   });
 
   console.log(`[seed-curated-content] R2 configured: ${HAS_R2 ? "yes" : "NO (mural post will be skipped)"}`);

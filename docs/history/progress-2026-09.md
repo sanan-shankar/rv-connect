@@ -8974,3 +8974,24 @@ The float is now `railStartsAtTop(pathname)` in `layout/rail-grid.ts`, true for 
 unit-tested. Measured as Jerry (unconfirmed, restored after): the index's chip sits above the
 header clear of the button, a Catch-up's home shows it above the cover, the Feed still floats it
 in the rail at 318px; mobile is in flow on all three.
+
+## 2026-09-30 (database, security) — every connection to the database is encrypted and checks it is talking to Supabase
+
+Bug audit 3, O-07 (High). `pg` sends plaintext unless handed `ssl`, and nothing handed it: probed
+live, the app's own configuration opened a plain socket (`encrypted=false`) on both connection
+strings, so every query and member row crossed the network readable. The pooler offers TLS 1.3,
+but its certificate chains to "Supabase Root 2021 CA", which no system trusts.
+
+`src/lib/db-tls.ts` pins that root. It was fetched from Supabase's published download and
+matched against the root the pooler itself presents (SHA-256 80:70:25:AD...CA:FA, valid to
+2031-04-26), and `withDatabaseTls()` strips any ssl parameter from the connection string,
+because pg lets the string override the object. The app (`prisma.ts`), the demo reset, the nightly
+snapshot and prune jobs, the QA kit and seven dev scripts use it; the backup's pg_dump and psql
+verify with the same certificate (`PGSSLMODE=verify-full`). Proved: the app's exact pool config
+connects `encrypted=true authorized=true` over TLS 1.3; a wrong CA is refused; the real
+`prisma.ts` and `snapshot.mjs --dry` query through it. `db-tls-rule.test.mjs` pins the certificate,
+the stripping, TLS on every database client in `src/` and `scripts/` (a plaintext client fails it
+by name) and the backup's copy.
+
+Not yet done, and in this order: once production is seen working, Supabase's "Enforce SSL on
+incoming connections" (owner's dashboard, both projects), so a client that forgets is refused.

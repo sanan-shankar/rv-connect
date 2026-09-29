@@ -28,6 +28,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { IS_DEMO } from "@/lib/demo";
 import { seedDemo } from "@/lib/demo-seed/seed";
 import { requireCronSecret } from "@/lib/api-gate";
+import { withDatabaseTls } from "@/lib/db-tls";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +65,7 @@ async function runReset() {
     // here on purpose -- the seed's own transaction already caps any single
     // statement at 30s, so 60s can only ever catch something genuinely stuck.
     adapter: new PrismaPg({
-      connectionString: process.env.DATABASE_URL,
+      ...withDatabaseTls(process.env.DATABASE_URL ?? ""),
       max: 5,
       connectionTimeoutMillis: 5_000,
       query_timeout: 60_000,

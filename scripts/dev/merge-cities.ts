@@ -13,6 +13,7 @@
  * Usage: npx tsx scripts/dev/merge-cities.ts
  */
 import { loadEnv } from "./_env.mjs";
+import { withDatabaseTls } from "../../src/lib/db-tls.ts";
 
 loadEnv();
 if (!process.env.DATABASE_URL) { console.error("No DATABASE_URL"); process.exit(1); }
@@ -25,7 +26,7 @@ const VARIANT_NAMES = ["Bangalore", "Bengaluru"]; // any UserPlace.city in this 
 async function main() {
   const { PrismaClient } = await import("../../src/generated/prisma/client.js");
   const { PrismaPg } = await import("@prisma/adapter-pg");
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+  const adapter = new PrismaPg(withDatabaseTls(process.env.DATABASE_URL!));
   const prisma = new PrismaClient({ adapter });
 
   // Find the canonical Place row (Bengaluru, IN) by name to get its lat/lng + id.

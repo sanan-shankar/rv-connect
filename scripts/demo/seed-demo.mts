@@ -22,6 +22,7 @@
  */
 
 import { readEnv } from "../dev/_env.mjs";
+import { withDatabaseTls } from "../../src/lib/db-tls.ts";
 
 const FORCE = process.argv.includes("--i-know-what-im-doing");
 const demoEnv = readEnv([".env.demo"]);
@@ -70,7 +71,7 @@ const { seedDemo } = await import("../../src/lib/demo-seed/seed.js");
 // does; the guard exists to constrain visitors, not the operator holding
 // the database password.
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  adapter: new PrismaPg(withDatabaseTls(process.env.DATABASE_URL ?? "")),
 });
 
 console.log("Seeding the demo database.\n");
