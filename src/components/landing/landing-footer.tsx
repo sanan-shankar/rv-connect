@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { PeaksMark, Wordmark } from "@/components/layout/peaks-mark";
 import { FooterHoopoe } from "@/components/landing/footer-hoopoe";
 

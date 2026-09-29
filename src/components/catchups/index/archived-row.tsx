@@ -21,7 +21,7 @@
  * ------------------------------------------------------------------ */
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { useRouter } from "next/navigation";
 import { CaretRight } from "@phosphor-icons/react";
 import { AnimatePresence, m } from "motion/react";

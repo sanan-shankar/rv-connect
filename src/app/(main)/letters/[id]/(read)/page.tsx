@@ -1,6 +1,6 @@
 import { cache } from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { ArrowLeft, Feather } from "lucide-react";

@@ -83,7 +83,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Download, Loader2, Pencil, X } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { AnimatePresence, m } from "motion/react";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { CarouselArrow } from "@/components/common/carousel-arrow";

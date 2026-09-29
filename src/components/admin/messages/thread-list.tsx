@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { AdminPersonRow, type AdminPerson } from "@/components/admin/admin-person-row";
 import { Chip } from "@/components/admin/admin-chip";
 import { ADMIN_GRID } from "@/components/admin/admin-chrome";

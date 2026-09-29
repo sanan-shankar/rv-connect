@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { AnimatePresence, m } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { FloatField } from "@/components/common/float-field";

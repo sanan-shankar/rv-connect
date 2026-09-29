@@ -26,7 +26,7 @@
  *  Copy pulled verbatim from ./_shared. No new marketing prose.
  * ------------------------------------------------------------------ */
 
-import Link from "next/link";
+import Link from "@/components/common/link";
 import Image from "next/image";
 import { useRef, type CSSProperties, type ReactNode } from "react";
 import { motion } from "motion/react";

@@ -19,7 +19,7 @@ import {
   type ReactNode,
   type CSSProperties,
 } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 

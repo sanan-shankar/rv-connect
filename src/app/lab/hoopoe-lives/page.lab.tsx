@@ -11,7 +11,7 @@
  * ------------------------------------------------------------------ */
 
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { Button } from "@/components/ui/button";
 import { Finish } from "@/components/collection/contribute-room";
 import { FlyAwayHoopoe } from "@/components/mascot/moments/fly-away-hoopoe";

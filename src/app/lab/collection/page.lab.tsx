@@ -27,7 +27,7 @@
  * ------------------------------------------------------------------ */
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import { RiverControls } from "@/components/collection/river-controls";
 import { YearRail } from "@/components/collection/year-rail";

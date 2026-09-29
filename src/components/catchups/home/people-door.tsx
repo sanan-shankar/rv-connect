@@ -41,7 +41,7 @@
  * ------------------------------------------------------------------ */
 
 import { useRef, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { Plus, Sprout, UserMinus, X } from "lucide-react";
 import { toast } from "sonner";
 import { BirdAvatar } from "@/components/common/bird-avatar";

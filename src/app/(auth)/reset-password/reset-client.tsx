@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { signIn } from "next-auth/react";
 import { AnimatePresence, m } from "motion/react";
 import { Button } from "@/components/ui/button";

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { ArrowLeft, Check, RotateCcw, UserRound } from "lucide-react";
 import { useAdminAct } from "@/components/admin/use-admin-act";
 import { Button } from "@/components/ui/button";

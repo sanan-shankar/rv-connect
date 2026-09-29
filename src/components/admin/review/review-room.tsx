@@ -57,7 +57,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { m, AnimatePresence, useMotionValue, useTransform, type MotionValue } from "motion/react";
 import { ArrowLeft, ArrowRight, Check, ImageOff, X } from "lucide-react";
 import { toast } from "sonner";

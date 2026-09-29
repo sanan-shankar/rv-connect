@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { ArrowLeft } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { TriviaGate } from "@/components/auth/trivia-gate";

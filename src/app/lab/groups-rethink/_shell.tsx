@@ -11,7 +11,7 @@
  *  PeaksMark + BirdAvatar are reused for authenticity.
  * ------------------------------------------------------------------ */
 
-import Link from "next/link";
+import Link from "@/components/common/link";
 import type { ReactNode } from "react";
 import {
   Newspaper,

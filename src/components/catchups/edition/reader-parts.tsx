@@ -45,7 +45,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { AnimatePresence, m } from "motion/react";
 import { ChatCircle } from "@phosphor-icons/react";
 import { SPRINGS } from "@/components/common/motion";

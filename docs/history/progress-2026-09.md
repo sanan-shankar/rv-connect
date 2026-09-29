@@ -8801,3 +8801,25 @@ the tag call.
 Audit 3 found this on 2026-09-24 (L3-08, L11-01), but that audit is paused and nothing acts on its
 findings until a fix session runs. The status board's C4 probe only reads the workflow file, not
 the job's result, which is why it stayed green through all of it.
+
+## 2026-09-29 (platform) — links stop rendering pages nobody opened: prefetching off, a third of the CPU was profile prefetches
+
+The owner was forced onto Vercel Pro at ~150 members when Fluid Active CPU hit Hobby's 4 hours,
+after earlier sessions had estimated Hobby would hold 2,000. Those estimates priced CPU per real
+visit and never measured. Measured now with `vercel metrics` over 2026-09-22..29: 87.6 minutes of
+Active CPU (~6.3 h/month), and `/profile/[id]` alone was 33% of it, 27,841 renders against ~546
+real profile views in `Visit.paths`. Every render came from a real browser whose referrer was
+`/directory` or `/feed`. Site-wide, ~67,000 page renders against ~3,300 pages members opened.
+
+Cause: Next prefetches every visible `<Link>`, and for a dynamic route with a `loading.tsx` (all
+of ours) that is a server render of the (main) layout, with its session check, unread count,
+Catch-up advance, mail drain and touchLastSeen. The client cache keeps none of it. One year's
+Directory page holds 40 profile cards.
+
+`src/components/common/link.tsx` wraps next/link with `prefetch={false}` by default; all 105
+imports now use it, and `link-import-rule.test.mjs` fails on a raw next/link import (checked by
+putting one back). What members lose is the shimmer appearing on the tap rather than a beat after
+it; content arrives when it did, since dynamic content was never prefetched. Clicked through as
+Jerry: a Directory card and a sidebar link still navigate client-side, no console errors.
+Nothing can measure the drop locally (prefetch only runs in production), so it is measured with
+the same query a day after the push. TRAPS.md, "Next.js", has the trap and the query.

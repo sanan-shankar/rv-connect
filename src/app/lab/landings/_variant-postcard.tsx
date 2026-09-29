@@ -23,7 +23,7 @@
 import { useId, useRef } from "react";
 import type { RefObject } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { motion, useScroll, useTransform } from "motion/react";
 import { ChevronDown, Mail } from "lucide-react";
 import { PeaksMark, Wordmark } from "@/components/layout/peaks-mark";

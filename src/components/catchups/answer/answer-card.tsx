@@ -20,7 +20,7 @@
 import { useRef, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { FIELD_FOCUS_WITHIN } from "@/components/ui/field-focus";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

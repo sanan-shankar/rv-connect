@@ -14,7 +14,7 @@
  *  the heading does not; it is not a restatement of it.
  * ------------------------------------------------------------------ */
 
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { Button } from "@/components/ui/button";
 import { describeEditionStatus } from "@/lib/catchups-core";
 import type { EditionStatus } from "@/lib/catchups-types";

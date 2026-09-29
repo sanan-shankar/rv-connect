@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { PenLine, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";

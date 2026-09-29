@@ -83,6 +83,19 @@ from `Prisma.ModelName`, so the client rebuilds itself and logs
 
 ## Next.js
 
+**A `<Link>` to a route with a `loading.tsx` renders that route on the server when it scrolls into
+view.** Next prefetches a dynamic route "down to the nearest loading boundary", which means running
+every layout above it, and the client cache keeps none of it (`staleTimes.dynamic` defaults to 0),
+so scrolling past the same card again renders it again. Every signed-in route here has a
+`loading.tsx`, and the (main) layout is not cheap. On production over 2026-09-22..29,
+`/profile/[id]` rendered 27,841 times against ~546 real profile views, a third of all Active CPU;
+the site rendered ~18 pages per page a member opened, and that took the owner off Vercel Hobby at
+~150 members. All links now go through `src/components/common/link.tsx` (prefetch off by default),
+pinned by `link-import-rule.test.mjs`. **Measure platform cost, never estimate it per visit:**
+`vercel metrics vercel.function_invocation.function_cpu_time_ms -p rv-alumni -a sum --since 7d
+--group-by route` (from `/tmp`, the repo is not `vercel link`ed; `--since 30d` times out), against
+real views in `Visit.paths`.
+
 **The NextAuth session is a JSON payload, so a `Date` on `session.user` arrives as a string.**
 Adding `lastSeenAt: true` to the session callback's select and reading `session.user.lastSeenAt`
 in the layout threw `lastSeenAt.getTime is not a function` on every authenticated render

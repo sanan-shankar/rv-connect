@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { Tree } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/button";
 

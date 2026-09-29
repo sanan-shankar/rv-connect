@@ -18,7 +18,7 @@
  * ------------------------------------------------------------------ */
 
 import { Suspense } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { PeaksMark } from "@/components/layout/peaks-mark";

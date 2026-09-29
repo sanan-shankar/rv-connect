@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { ArrowLeft } from "lucide-react";
 import { m } from "motion/react";
 import { Hoopoe } from "@/components/mascot/hoopoe";

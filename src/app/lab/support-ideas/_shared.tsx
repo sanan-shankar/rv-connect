@@ -16,7 +16,7 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { ShieldCheck } from "lucide-react";
 import { birdFor } from "@/lib/avatar";
 import { BirdGlyphV2, SPECIES_FULL_NAMES } from "@/components/common/bird-avatar-v2";

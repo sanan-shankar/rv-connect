@@ -1,5 +1,5 @@
 import { memo } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { batchLine, metaLine } from "@/lib/utils";
