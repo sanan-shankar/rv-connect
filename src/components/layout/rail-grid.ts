@@ -22,3 +22,20 @@ export const RAIL_GRID =
 
 /** The rail cell: hidden until the grid actually has its second column. */
 export const RAIL_ASIDE = "hidden min-[1180px]:block";
+
+/**
+ * Whether the page at `pathname` has a rail whose first card starts level with
+ * the page header -- the one place the confirm-your-email chip
+ * (verify-email-banner.tsx) can float in the rail's top-right corner instead
+ * of pushing the page down.
+ *
+ * Only the Feed. The chip floated on every /catchups page too, from when those
+ * had the Feed's shape, and the Catch-ups rework changed both under it
+ * (2026-09-29): the index lost its rail, so the chip sat on its "Start a
+ * Catch-up" pill, and a Catch-up's home put a full-width cover photograph above
+ * its rail, so the chip sat on the photograph. Kept beside RAIL_GRID so the
+ * next page to take the rail's shape has this in front of it.
+ */
+export function railStartsAtTop(pathname: string): boolean {
+  return pathname === "/feed";
+}

@@ -176,20 +176,16 @@ Phase 2 (straight after):
 Phases 1 and 2 are committed (`a367324b`, and the Phase 2 commit after it).
 Nothing below is started; each is small.
 
-1. **The banner floats over the Catch-ups index header.** At 1180px and wider
-   the chip covers the "Start a Catch-up" pill (`e2e/.shots/grace/
-   bounced-catchups-desktop.png`). `RAIL_FLOAT_ROUTES` in
-   `verify-email-banner.tsx` still lists `/catchups`, but the Catch-ups rework
-   took the rail off the index; only a Catch-up's own home
-   (`/catchups/<id>`, `catchup-home.tsx` uses `RAIL_GRID`) still has one. Fix:
-   a pure `pageHasRail(pathname)` in `components/layout/rail-grid.ts` (the Feed,
-   and `/catchups/<id>` except `new`), unit-tested, used by the banner. Verify
-   with Jerry unconfirmed on `/catchups` and `/catchups/<id>` at 1440 and 390.
-2. **Push, with the owner's go-ahead.** A push deploys every unpushed commit on
-   `main`, including other sessions' work; list them for him first
-   (`git log --oneline origin/main..HEAD`).
-3. **After the deploy**: the queue page `/admin/mail` should show sends going
-   out; the to-do badge should drop Devshrut's and Bhavya's bounces.
+1. ~~**The banner floats over the Catch-ups index header.**~~ Done: the chip
+   floats only on the Feed now (`railStartsAtTop` in `layout/rail-grid.ts`).
+   On a Catch-up's home it had also been landing on the cover photograph.
+2. **Pushed.** Phases 1 and 2 went out with another session's push on
+   2026-09-29 and deployed (Vercel: success). The Catch-ups fix above is the
+   commit after them; push it only with the owner's go-ahead, listing whatever
+   else `git log --oneline origin/main..HEAD` shows.
+3. **Checked after the deploy**: the live pages answer 200, the queue is
+   empty with nothing failed, and the to-do list's mail count went from 2
+   (Devshrut, Bhavya) to 0.
 4. **Visual suite**: the last run passed 24 of 25; `birds` desktop timed out on
    its lazy images, a page this work does not touch. Re-run it on a quiet
    machine (never alongside `npm run check`).

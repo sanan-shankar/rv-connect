@@ -9,6 +9,7 @@ import { callAction } from "@/lib/call-action";
 import { resendVerification } from "./email-actions";
 import { ChangeEmailDialog, type NewLinkState } from "./change-email-dialog";
 import { BESIDE_HEADER_CONTROLS } from "@/components/common/control-geometry";
+import { railStartsAtTop } from "@/components/layout/rail-grid";
 
 /* ------------------------------------------------------------------ *
  *  "Confirm your email", on every page until they do.
@@ -49,23 +50,23 @@ function subscribeNever(): () => void {
   return () => {};
 }
 
-/**
- * The two rail pages (Feed, Catch-ups). On these, at the widths where the
- * 318px rail actually renders (>= 1180px, rail-grid.ts), the chip floats in
- * the rail's top-right corner instead of sitting in flow: centred above the
- * page it pushed the whole feed down, which read as the page starting in
- * the wrong place (owner, 2026-08-18: "move to the right of new post above
- * from the collection... I dont want the feed to start below it"). Other
- * pages have no rail to borrow, so they keep the in-flow chip.
+/*
+ * On the Feed (`railStartsAtTop`), at the widths where the 318px rail
+ * actually renders (>= 1180px, rail-grid.ts),
+ * the chip floats in the rail's top-right corner instead of sitting in flow:
+ * centred above the page it pushed the whole feed down, which read as the page
+ * starting in the wrong place (owner, 2026-08-18: "move to the right of new
+ * post above from the collection... I dont want the feed to start below it").
+ * Other pages have no rail top to borrow, so they keep the in-flow chip. This
+ * was a route list with all of /catchups on it, and after the Catch-ups rework
+ * it floated onto the index's "Start a Catch-up" pill and onto a Catch-up's
+ * cover photograph.
  */
-const RAIL_FLOAT_ROUTES = ["/feed", "/catchups"];
 
 export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
   const router = useRouter();
   const pathname = usePathname();
-  const floated = RAIL_FLOAT_ROUTES.some(
-    (r) => pathname === r || pathname.startsWith(`${r}/`)
-  );
+  const floated = railStartsAtTop(pathname);
   const [state, setState] = useState<BannerState>(initial);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState("");

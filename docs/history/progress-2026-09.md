@@ -8960,3 +8960,17 @@ arithmetic. `docs/OPERATIONS.md` now has a "Capacity" section built from `vercel
 `vercel usage`, SQL and his dashboard screenshots, each dated, with projections labelled as
 projections and the re-measure commands beside them. Pro's credit and Supabase's quotas and
 over-quota behaviour were read from the vendors' pages the same day, not remembered.
+
+## 2026-09-29 (banner) — the confirm-your-email chip stops covering Catch-ups
+
+At 1180px and wider the chip floats in the rail's top-right corner so it does not push the Feed
+down. It floated on every `/catchups` page too, from when those had the Feed's shape, and the
+Catch-ups rework changed both under it: on the index it sat on the "Start a Catch-up" pill, and on a
+Catch-up's home, which now opens with a full-width cover photograph above its rail, it sat on the
+photograph. Found while photographing the new bounced state; every new member on launch day is
+unconfirmed at first, so all of them would have seen it.
+
+The float is now `railStartsAtTop(pathname)` in `layout/rail-grid.ts`, true for the Feed alone,
+unit-tested. Measured as Jerry (unconfirmed, restored after): the index's chip sits above the
+header clear of the button, a Catch-up's home shows it above the cover, the Feed still floats it
+in the rail at 318px; mobile is in flow on all three.
