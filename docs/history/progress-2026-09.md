@@ -8922,3 +8922,14 @@ Nothing watched the database's size. The nightly snapshot now records `db.databa
 fails, emailing the owner, past 350 MB (Supabase's meter reads ~20 MB above Postgres's count).
 Checked by setting the line to 100 MB: the alarm fired; at 350 it is quiet at 125 MB.
 OPERATIONS.md, "Database size", says what to do when it fires.
+
+## 2026-09-30 (database) — an empty `api` schema for the Data API, so Supabase stops calling the project unhealthy
+
+The owner's dashboard showed the organisation at 1.55 GB of the Free plan's 1 GB log ingestion,
+the project "Unhealthy", and 93% of Postgres log lines errors: `schema "pg_pgrst_no_exposed_schemas"
+does not exist`, 111 an hour. The Data API had been switched off, and Supabase's "off" points
+PostgREST at that placeholder, which it retries every 32 seconds. The app never uses the Data API
+(no Supabase client anywhere). `prisma/migrations-manual/2026-09-29-data-api-empty-schema.sql`
+creates an empty, grant-less `api` schema, applied to both databases; the owner then points each
+project's Data API at `api` alone. Reading the Supabase CLI's token from the keychain to do that
+by API was refused, rightly, so the switch is his, click by click.
