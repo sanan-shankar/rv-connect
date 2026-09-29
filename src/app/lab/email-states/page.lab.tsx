@@ -2,7 +2,7 @@
 
 import { DelightShell, DemoGrid, DemoCard } from "../_kit";
 import { VerifyEmailBanner, type BannerState } from "@/components/auth/verify-email-banner";
-import { resendOutcomeMessage, sendTimeLabel } from "@/lib/confirmation-copy";
+import { movedMessage, resendOutcomeMessage, sendTimeLabel } from "@/lib/confirmation-copy";
 
 /* ------------------------------------------------------------------ *
  *  Every line a new member can read about their confirmation email.
@@ -53,6 +53,16 @@ const STATES: { title: string; note: string; state: BannerState }[] = [
     state: { state: "sent", sentTo: "p***@gmail.com" },
   },
   {
+    title: "Bounced, mailbox full",
+    note: "Their mail server took it and handed it back. Use another email opens the fix, with a quiet retry for once they have made space.",
+    state: { state: "bounced", sentTo: "d***@gmail.com", mailboxFull: true },
+  },
+  {
+    title: "Bounced, refused",
+    note: "The address does not take mail at all, usually a typo. Only a new address helps.",
+    state: { state: "bounced", sentTo: "p***@gmial.com", mailboxFull: false },
+  },
+  {
     title: "Nothing on file",
     note: "Rare: the signup's email never got queued.",
     state: { state: "none", sentTo: "p***@gmail.com" },
@@ -66,11 +76,16 @@ const RESENDS = [
   resendOutcomeMessage({ state: "queued", sendingAt: refill(2), open: true }),
 ];
 
+const MOVES = [
+  movedMessage({ state: "sent", sentTo: "n***@gmail.com" }),
+  movedMessage({ state: "queued", sentTo: "n***@gmail.com", sendingAt: refill(1) }),
+];
+
 export default function Page() {
   return (
     <DelightShell
       title="Email states"
-      lede="What a new member reads about their confirmation email, from waiting to sent. These are the live banner, not pictures of it."
+      lede="What a new member reads about their confirmation email, from waiting to sent to bounced. These are the live banner, not pictures of it."
     >
       <DemoGrid>
         {STATES.map((s) => (
@@ -85,6 +100,16 @@ export default function Page() {
         >
           <ul className="space-y-2 text-[13.5px] leading-snug text-foreground">
             {RESENDS.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </DemoCard>
+        <DemoCard
+          title="After using another email"
+          note="Where the new link has got to, and that they sign in with the new address now."
+        >
+          <ul className="space-y-2 text-[13.5px] leading-snug text-foreground">
+            {MOVES.map((line) => (
               <li key={line}>{line}</li>
             ))}
           </ul>

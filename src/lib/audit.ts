@@ -12,6 +12,7 @@ import { IS_DEMO } from "@/lib/demo";
  *   admin.block  admin.unblock  admin.delete  admin.role  admin.verify
  *   admin.unverify  admin.merge
  *   account.delete_request  account.delete_cancel  account.purge  account.export
+ *   account.email_change
  *   report.user  report.post
  *   retention.sweep
  *
@@ -32,6 +33,10 @@ export type AuditAction =
   | "account.delete_cancel"
   | "account.purge"
   | "account.export"
+  /* A member moved their unconfirmed account to another address because the
+     first would not take mail (docs/spec/email.md Rule 4). It changes what they
+     sign in with, so it is on the record, with both addresses masked. */
+  | "account.email_change"
   | "report.user"
   | "report.post"
   | "retention.sweep"

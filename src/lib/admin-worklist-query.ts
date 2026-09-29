@@ -20,6 +20,21 @@ import { prisma } from "@/lib/prisma";
 import { overdueEditionWhere } from "@/lib/catchups-core";
 import { threadTitle } from "@/lib/admin-threads";
 import { AWAITING_REVIEW } from "@/lib/admin-review";
+import type { Prisma } from "@/generated/prisma/client";
+
+/**
+ * Mail that gave up and needs the owner: every failure EXCEPT a confirmation
+ * the receiving server bounced. That one is the member's to fix now -- their
+ * banner says it bounced and offers "use another email" (docs/spec/email.md
+ * Rule 4) -- and on the list it only came back, day after day, for two
+ * members' full inboxes that no amount of resending from here could empty.
+ * /admin/mail still lists it. The badge and the list read this one clause, so
+ * the count never disagrees with the list it points at.
+ */
+export const MAIL_NEEDING_ADMIN = {
+  status: "failed",
+  NOT: { kind: "verify", bouncedAt: { not: null } },
+} satisfies Prisma.OutboundEmailWhereInput;
 
 /** One thing waiting for you, whatever kind of thing it is. */
 export interface WorkItem {
@@ -140,7 +155,7 @@ export async function loadWorklist(): Promise<WorkItem[]> {
       take: PER_QUEUE,
     }),
     prisma.outboundEmail.findMany({
-      where: { status: "failed" },
+      where: MAIL_NEEDING_ADMIN,
       select: {
         id: true,
         to: true,

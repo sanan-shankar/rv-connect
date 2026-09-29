@@ -118,9 +118,20 @@ Now:
   could move the account to their own inbox and reset the password from there.
 - A full mailbox can be tried again after clearing space; the dialog offers
   that as its quiet second option.
-- The owner's to-do list no longer shows a bounced **confirmation**: the member
-  is told and can fix it themselves. `/admin/mail` still lists it. Bounced
-  resets and notices stay on the list.
+- The owner's to-do list and its badge no longer show a bounced
+  **confirmation** (`MAIL_NEEDING_ADMIN`): the member is told and can fix it
+  themselves. `/admin/mail` still lists it, and Retry still works there (right
+  when a member says they emptied their inbox). **Clear** refuses while the
+  member is still unconfirmed at that address, because the row is what their
+  banner reads and the only record that a confirmation was ever sent (Rule 1).
+  Bounced resets and notices stay on the list.
+- A resend folds into a waiting row only when it is for the **same address**,
+  so a row still mid-send to the old address cannot swallow the new link.
+- A move **re-addresses** a still-waiting confirmation in place, keeping its
+  place in line, and a member gets **three moves a month** (`emailMoves`).
+  Deleting and re-queueing made the row the youngest in the oldest-first drain,
+  so an account moving to invented addresses on a backlog day would never reach
+  the front and would stay "waiting" for ever (write-path review, 2026-09-29).
 
 ## Considered and not taken
 
@@ -156,6 +167,32 @@ Phase 1 (before the post):
       link went out "when you joined"
 
 Phase 2 (straight after):
-- [ ] bounced banner state
-- [ ] `useAnotherEmail` action + dialog, write-path review
-- [ ] admin to-do list drops bounced confirmations
+- [x] bounced banner state
+- [x] `changeUnconfirmedEmail` action + dialog, write-path review
+- [x] admin to-do list drops bounced confirmations; Clear guarded
+
+## Left to do (2026-09-29, for whichever session picks this up)
+
+Phases 1 and 2 are committed (`a367324b`, and the Phase 2 commit after it).
+Nothing below is started; each is small.
+
+1. **The banner floats over the Catch-ups index header.** At 1180px and wider
+   the chip covers the "Start a Catch-up" pill (`e2e/.shots/grace/
+   bounced-catchups-desktop.png`). `RAIL_FLOAT_ROUTES` in
+   `verify-email-banner.tsx` still lists `/catchups`, but the Catch-ups rework
+   took the rail off the index; only a Catch-up's own home
+   (`/catchups/<id>`, `catchup-home.tsx` uses `RAIL_GRID`) still has one. Fix:
+   a pure `pageHasRail(pathname)` in `components/layout/rail-grid.ts` (the Feed,
+   and `/catchups/<id>` except `new`), unit-tested, used by the banner. Verify
+   with Jerry unconfirmed on `/catchups` and `/catchups/<id>` at 1440 and 390.
+2. **Push, with the owner's go-ahead.** A push deploys every unpushed commit on
+   `main`, including other sessions' work; list them for him first
+   (`git log --oneline origin/main..HEAD`).
+3. **After the deploy**: the queue page `/admin/mail` should show sends going
+   out; the to-do badge should drop Devshrut's and Bhavya's bounces.
+4. **Visual suite**: the last run passed 24 of 25; `birds` desktop timed out on
+   its lazy images, a page this work does not touch. Re-run it on a quiet
+   machine (never alongside `npm run check`).
+5. **Not done, noted**: the older resend button in the banner still hard-codes
+   `focus-visible:outline-cinnamon` rather than `outline-ring` (design audit,
+   pre-existing).

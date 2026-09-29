@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import { overdueEditionWhere } from "@/lib/catchups-core";
 import { AWAITING_REVIEW } from "@/lib/admin-review";
+import { MAIL_NEEDING_ADMIN } from "@/lib/admin-worklist-query";
 
 /* ------------------------------------------------------------------ *
  *  Server-side furniture shared by every admin route.
@@ -256,7 +257,7 @@ async function worklistCounts(): Promise<WorklistCounts> {
                count(*)::int                                                                  AS people
         FROM "User"
       `,
-      prisma.outboundEmail.count({ where: { status: "failed" } }),
+      prisma.outboundEmail.count({ where: MAIL_NEEDING_ADMIN }),
       prisma.catchupEdition.count({ where: overdueEditionWhere(now) }),
     ]);
   const { flagged, pendingVerify, people } = users[0] ?? {

@@ -89,7 +89,10 @@ export async function resendVerification(): Promise<{
   // The layout deliberately does not (audit M20).
   const state = await verificationMailState(session.user.id, { sendInline: true });
 
-  if (state.state === "failed" || state.state === "none") {
+  // "bounced" cannot follow a fresh enqueue either (the new row is the latest,
+  // and a bounce only ever arrives later, by webhook), but if it somehow did
+  // it is a failure to report, not a message on its way.
+  if (state.state === "failed" || state.state === "none" || state.state === "bounced") {
     // Honest, not "imminent" (M51): "failed" means the row already tried and
     // gave up -- nothing will move it further without a fresh attempt, which
     // is exactly what this button is for, so `ok: false` here (rather than a

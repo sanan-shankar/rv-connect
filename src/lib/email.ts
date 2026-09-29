@@ -120,7 +120,10 @@ export interface MailResult {
  */
 const UNDELIVERABLE_TLDS = [".invalid", ".test", ".example", ".localhost"];
 
-function isUndeliverable(address: string): boolean {
+// Exported for the one place that takes a NEW address from a member rather
+// than mailing one already on file: "use another email" refuses these up
+// front instead of queueing a message that can only fail four times.
+export function isUndeliverable(address: string): boolean {
   const at = address.lastIndexOf("@");
   if (at < 0) return true;
   const domain = address.slice(at + 1).toLowerCase().trim();

@@ -8860,6 +8860,36 @@ Jerry: a Directory card and a sidebar link still navigate client-side, no consol
 Nothing can measure the drop locally (prefetch only runs in production), so it is measured with
 the same query a day after the push. TRAPS.md, "Next.js", has the trap and the query.
 
+## 2026-09-29 (email) — a bounced confirmation fixes itself: the member moves to another address
+
+Devshrut's and Bhavya's Gmail inboxes were full. Resend accepted every resend, Gmail handed each
+one back hours later, and the row came back on the owner's to-do list every time. His choice: the
+member fixes it themselves.
+
+- **The banner says so**: *"We couldn't deliver your confirmation email. The mailbox at d***@gmail.com
+  is full."* (or *"... didn't accept it."*) with **Use another email**.
+- **Use another email** takes the new address and their password. Unconfirmed accounts only;
+  metered by IP and by account before anything can answer "that address already has an account";
+  the password on the `reauth` meter; the update fenced on the row as read; queued confirmations
+  for the old address deleted; an `account.email_change` audit row. A full mailbox also gets a
+  quiet "send it again" for once they have made space.
+- **A resend folds only into a row for the same address**, so a row mid-send to the old address
+  cannot swallow the new link.
+- **From the write-path review**: a move re-addresses a waiting confirmation in place instead of
+  deleting and re-queueing it (a fresh row is always last in line, so moving to invented addresses
+  on a backlog day kept an account "waiting" for ever), and three moves a month is the ceiling. A
+  failure after the address has moved now says so instead of reading as "nothing happened".
+- **The to-do list and badge leave bounced confirmations out** (`MAIL_NEEDING_ADMIN`).
+  `/admin/mail` still lists them, and Clear refuses while the member still depends on the row: it
+  is the only record that a confirmation was sent (the phase-one review's second finding).
+- **Verified live as Jerry**, with a temporary password and everything restored exactly after:
+  the bounced banner on desktop and mobile, the dialog, a wrong password refused, and the move
+  itself (address changed, a confirmation queued to the new one, the audit row, the banner's
+  "Sign in with that address from now on"). The test confirmation was deleted before production
+  could send it.
+
+Devshrut and Bhavya see the new banner the next time they sign in.
+
 ## 2026-09-30 (backup) — every night's database backup is restored in rehearsal, and the place list is kept apart to save egress
 
 No dump had ever been restored; the one restore command in OPERATIONS.md said "rehearse against

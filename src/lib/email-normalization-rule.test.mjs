@@ -87,6 +87,10 @@ test("every lookup by email goes through the canonical form", () => {
       "sentToEmail",
     ],
     "src/lib/roster.ts": ["user.email.toLowerCase()"],
+    // The fence on "use another email": the address the row held when it was
+    // read a moment before, so a second tab or a confirmation in between is
+    // not overwritten. Read off the row, never submitted.
+    "src/components/auth/change-email-actions.ts": ["me.email"],
   };
 
   const walk = (dir, acc = []) => {

@@ -76,11 +76,33 @@ export async function dismissMail(id: string): Promise<AdminActionResult> {
 
   const row = await prisma.outboundEmail.findUnique({
     where: { id },
-    select: { status: true, sentAt: true },
+    select: { status: true, sentAt: true, kind: true, to: true, userId: true },
   });
   if (!row) return { error: "That message is no longer here." };
   if (row.status !== "failed") {
     return { error: "Only a message that gave up can be cleared." };
+  }
+
+  /* A confirmation that REACHED a mail server, for a member still unconfirmed
+     at that same address, stays (write-path review, 2026-09-29). It is what
+     their banner reads to say the address bounced and offer another, and it
+     is the only record that one was ever sent -- which is what shuts the email
+     gate (docs/spec/email.md Rule 1). Cleared, their next resend on a busy day
+     would open the gate again for an address already mailed, and the banner
+     would go back to offering the same address that refused it. Once they
+     confirm or move to another address, it is history and may go. */
+  if (row.kind === "verify" && row.sentAt && row.userId) {
+    const member = await prisma.user.findUnique({
+      where: { id: row.userId },
+      select: { emailVerified: true, email: true },
+    });
+    if (member && !member.emailVerified && member.email.toLowerCase() === row.to.toLowerCase()) {
+      return {
+        error:
+          "Their banner uses this one to tell them the address bounced. " +
+          "It can be cleared once they confirm or switch to another address.",
+      };
+    }
   }
 
   /* A row Resend ACCEPTED today cannot be deleted, however it ended up
