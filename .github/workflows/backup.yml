@@ -19,10 +19,21 @@ name: backup
 # by the C2 arbitrary-delete bug -- survives here until someone consciously
 # removes it from the backup too.
 #
-# Restore, when you need it:
-#   pg_restore --clean --if-exists --no-owner --no-acl \
-#     --dbname "$DIRECT_URL" rv-connect-YYYY-MM-DD.dump
-# Rehearse that against the staging database, never straight at production.
+# Restore, when you need it. Every night the "Rehearse the restore" step runs
+# exactly this against a scratch database, so it is known to work:
+#   1. Find the place list that goes with the dump (it is kept apart, below):
+#        aws s3api head-object --bucket "$BUCKET" --endpoint-url "$ENDPOINT" \
+#          --key postgres/rv-connect-YYYY-MM-DD.dump --query Metadata.place
+#   2. Restore in this order, into a FRESH project, never over production:
+#        R="pg_restore --no-owner --no-acl --exit-on-error --dbname $TARGET"
+#        $R --schema=public --section=pre-data  rv-connect-YYYY-MM-DD.dump
+#        $R --data-only                         place-<that id>.dump
+#        $R --schema=public --section=data      rv-connect-YYYY-MM-DD.dump
+#        $R --schema=public --section=post-data rv-connect-YYYY-MM-DD.dump
+#   The place list goes in second because UserPlace points at it and
+#   post-data adds that foreign key. Everything of ours is in `public`;
+#   Supabase's own schemas already exist in a fresh project. Dumps from
+#   before 2026-09-30 still hold the place list and restore in one go.
 # A lost photo comes back with:
 #   aws s3 cp "s3://$BACKUP_BUCKET/media/<key>" "s3://rv-alumni-media/<key>" \
 #     --endpoint-url "https://<account-id>.r2.cloudflarestorage.com"
@@ -50,6 +61,19 @@ jobs:
   dump:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
+    # A throwaway Postgres 17 for the nightly restore rehearsal. Nothing in
+    # it outlives the job.
+    services:
+      scratch:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: rehearsal
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
 
     steps:
       - name: Refuse to write backups into a public bucket
@@ -110,6 +134,20 @@ jobs:
         run: |
           STAMP="$(date -u +%Y-%m-%d)"
           echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+          # The place list (Place: 235k rows, 36 MB of the 41 MB of table
+          # data) is the GeoNames gazetteer behind location search. The app
+          # never writes it; only the import scripts in scripts/dev do. Every
+          # byte pg_dump reads counts against Supabase's 5 GB-a-month egress,
+          # so re-reading it nightly spent about 1 GB a month copying a table
+          # that had not changed. It is left out of the nightly dump and kept
+          # on its own, re-dumped only when this fingerprint changes (next
+          # step). The hash is computed inside Postgres: 32 characters cross
+          # the wire, not 36 MB.
+          PLACE_FP=$("$PG_BIN/psql" "$DIRECT_URL" -tAc \
+            "SELECT md5(string_agg(md5(p::text), '' ORDER BY p.id)) FROM \"Place\" p")
+          [ "${#PLACE_FP}" -eq 32 ] \
+            || { echo "::error::Could not fingerprint the place list."; exit 1; }
+          echo "PLACE_FP=$PLACE_FP" >> "$GITHUB_ENV"
           # Custom format (-Fc): compressed, and pg_restore can pick out a
           # single table from it, which a plain .sql dump cannot do.
           # --no-owner/--no-acl so it restores cleanly into a fresh project
@@ -118,8 +156,41 @@ jobs:
             --format=custom \
             --no-owner \
             --no-acl \
+            --exclude-table-data='public."Place"' \
             --file="rv-connect-$STAMP.dump"
           ls -lh "rv-connect-$STAMP.dump"
+
+      - name: Keep the place list, once per version
+        env:
+          DIRECT_URL: ${{ secrets.SUPABASE_DIRECT_URL }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+          ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          BUCKET: ${{ secrets.R2_BACKUP_BUCKET }}
+        run: |
+          # place-<fingerprint>.dump is never pruned (the prune below only
+          # matches rv-connect-*.dump), so every version a nightly dump can
+          # point at stays restorable. Fetching the stored copy back for the
+          # rehearsal reads from R2, which charges no egress, not Supabase.
+          KEY="postgres/place-$PLACE_FP.dump"
+          if aws s3api head-object --bucket "$BUCKET" --key "$KEY" \
+               --endpoint-url "$ENDPOINT" > /dev/null 2>&1; then
+            echo "Place list unchanged ($PLACE_FP)."
+            aws s3 cp "s3://$BUCKET/$KEY" "place-$PLACE_FP.dump" \
+              --endpoint-url "$ENDPOINT" --no-progress
+          else
+            echo "Place list is new or changed ($PLACE_FP); dumping it once."
+            "$PG_BIN/pg_dump" "$DIRECT_URL" --format=custom --no-owner --no-acl \
+              --data-only --table='public."Place"' --file="place-$PLACE_FP.dump"
+            aws s3 cp "place-$PLACE_FP.dump" "s3://$BUCKET/$KEY" \
+              --endpoint-url "$ENDPOINT"
+          fi
+          "$PG_BIN/pg_restore" --list "place-$PLACE_FP.dump" \
+            | grep -q 'TABLE DATA public Place ' \
+            || { echo "::error::The place list dump holds no place data."; exit 1; }
 
       - name: Verify the dump is readable before trusting it
         run: |
@@ -153,10 +224,46 @@ jobs:
           ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
           BUCKET: ${{ secrets.R2_BACKUP_BUCKET }}
         run: |
+          # The place list's fingerprint rides on the object, so a restore
+          # can ask which place-<fingerprint>.dump belongs with this night.
           aws s3 cp "rv-connect-$STAMP.dump" \
             "s3://$BUCKET/postgres/rv-connect-$STAMP.dump" \
-            --endpoint-url "$ENDPOINT"
-          echo "Uploaded postgres/rv-connect-$STAMP.dump"
+            --endpoint-url "$ENDPOINT" --metadata "place=$PLACE_FP"
+          echo "Uploaded postgres/rv-connect-$STAMP.dump (place list $PLACE_FP)"
+
+      - name: Rehearse the restore into a scratch database
+        env:
+          SCRATCH: postgresql://postgres:rehearsal@localhost:5432/postgres
+        run: |
+          # A backup nobody has restored is a hope. Every night the dump is
+          # restored the way the header says a real restore goes, into the
+          # throwaway Postgres beside this job, and the job fails if any
+          # step errors or the members are not there afterwards. It runs
+          # AFTER the upload, so a rehearsal problem never costs a night's
+          # backup, and BEFORE the prune, so old backups are only ever
+          # removed once a newer one has been proved.
+          # The three extensions our indexes and defaults use, in the schema
+          # Supabase keeps them in.
+          "$PG_BIN/psql" "$SCRATCH" -v ON_ERROR_STOP=1 -q \
+            -c 'CREATE SCHEMA IF NOT EXISTS extensions' \
+            -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA extensions' \
+            -c 'CREATE EXTENSION IF NOT EXISTS pgcrypto SCHEMA extensions' \
+            -c 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA extensions'
+          R=("$PG_BIN/pg_restore" --no-owner --no-acl --exit-on-error --dbname "$SCRATCH")
+          "${R[@]}" --schema=public --section=pre-data  "rv-connect-$STAMP.dump"
+          "${R[@]}" --data-only                         "place-$PLACE_FP.dump"
+          "${R[@]}" --schema=public --section=data      "rv-connect-$STAMP.dump"
+          "${R[@]}" --schema=public --section=post-data "rv-connect-$STAMP.dump"
+          read -r USERS PLACES LINKS <<< "$("$PG_BIN/psql" "$SCRATCH" -tA -F ' ' -c \
+            'SELECT (SELECT count(*) FROM "User"), (SELECT count(*) FROM "Place"), (SELECT count(*) FROM "UserPlace")')"
+          echo "restored: $USERS members, $PLACES places, $LINKS member places"
+          # Floors, not exact counts: ~300 members and 234,935 places on
+          # 2026-09-29. Anything under these means rows went missing.
+          if [ "$USERS" -lt 100 ] || [ "$PLACES" -lt 200000 ]; then
+            echo "::error::Restore rehearsal came back short: $USERS members, $PLACES places."
+            exit 1
+          fi
+          echo "RESTORED=$USERS members, $PLACES places, $LINKS member places" >> "$GITHUB_ENV"
 
       - name: Prune backups older than 30 days
         env:
@@ -183,7 +290,7 @@ jobs:
             done
 
       - name: Report
-        run: echo "### Backup $STAMP verified and uploaded" >> "$GITHUB_STEP_SUMMARY"
+        run: echo "### Backup $STAMP uploaded and restored in rehearsal ($RESTORED)" >> "$GITHUB_STEP_SUMMARY"
 
   media:
     runs-on: ubuntu-latest

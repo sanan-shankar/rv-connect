@@ -104,11 +104,23 @@ Dumps to a **private** R2 bucket, keeps 30 days plus the 1st of every month fore
   if `User` / `Post` / `Comment` / `Contribution` / `Photo` / `CatchupEntry` are absent. A
   dump nobody has read is a file, not a backup.
 
-**Restore:**
-```
-pg_restore --clean --if-exists --no-owner --no-acl --dbname "$DIRECT_URL" rv-connect-YYYY-MM-DD.dump
-```
-Rehearse against staging, never straight at production.
+- **restores every night's dump into a throwaway Postgres 17** beside the job, the same
+  way a real restore goes, and fails if a step errors or the members are not there. That
+  rehearsal runs before the prune, so an old backup is only removed once a newer one has
+  come back. Until 2026-09-30 no dump had ever been restored.
+
+**The place list is kept apart.** `Place` (235k GeoNames rows, 36 of the 41 MB of table
+data) never changes from the app, and every byte `pg_dump` reads counts against Supabase's
+5 GB-a-month egress, so the nightly dump leaves its rows out. It is dumped once per version
+to `postgres/place-<fingerprint>.dump` (never pruned), and each nightly dump carries that
+fingerprint as `place` metadata. That cut about 1 GB a month of egress.
+
+**Restore** into a fresh project, never over production. The workflow header has the four
+commands; in order: `--schema=public --section=pre-data`, then the place list
+`--data-only`, then `--section=data`, then `--section=post-data` (UserPlace's foreign key
+to the place list is added last). Find the matching place list with
+`aws s3api head-object --key postgres/rv-connect-YYYY-MM-DD.dump --query Metadata.place`.
+Dumps from before 2026-09-30 still hold the place list and restore in one command.
 
 The same workflow's **`media` job** copies every object in `rv-alumni-media` into the
 private bucket under `media/`, server-side, **never with `--delete`**. This is the photo
