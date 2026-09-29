@@ -59,6 +59,7 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Archive,
   Bell,
@@ -106,6 +107,7 @@ import {
   updateCatchupCadence,
 } from "@/app/(main)/catchups/actions";
 import type { SettingsCatchup } from "./types";
+import { PicturePickerDialog } from "@/components/catchups/home/picture-picker-dialog";
 
 /* ── what a row is ─────────────────────────────────────────────────── *
  *  ONE TEXT EDGE, and it is the fix for "the answers for Name and so on
@@ -989,30 +991,44 @@ export function SettingsDialogs({
      touched, and the material's own rule is that nothing is auto-focused
      so Enter cannot do the thing by itself. */
   const panel = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   const shown = open?.shape === "confirm" || open?.shape === "edit";
   return (
-    <Dialog open={shown} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent initialFocus={panel} ref={panel} tabIndex={-1}>
-        {open?.shape === "confirm" &&
-          (() => {
-            const copy = confirmCopy(open.key, c.name);
-            return (
-              <ConfirmBody
-                title={copy.title}
-                line={copy.line}
-                verb={copy.verb}
-                oneWay={copy.oneWay}
-                busy={busy}
-                onCancel={onClose}
-                onDo={() => onConfirm(open.key)}
-              />
-            );
-          })()}
-        {open?.shape === "edit" && (
-          <EditBody title="Name" value={name} busy={busy} onCancel={onClose} onSave={onRename} />
-        )}
-      </DialogContent>
-    </Dialog>
+    <>
+      {/* The picture row set `{ shape: "picture" }` and nothing ever mounted
+          the picker for it, so "Picture" opened nothing and no Catch-up's
+          picture could be changed from the app (bug audit 3, T3-01). The
+          picker saves through its own action; the refresh redraws the head. */}
+      <PicturePickerDialog
+        open={open?.shape === "picture"}
+        onOpenChange={(o) => !o && onClose()}
+        catchupId={c.catchupId}
+        picture={c.picture}
+        onChanged={() => router.refresh()}
+      />
+      <Dialog open={shown} onOpenChange={(o) => !o && onClose()}>
+        <DialogContent initialFocus={panel} ref={panel} tabIndex={-1}>
+          {open?.shape === "confirm" &&
+            (() => {
+              const copy = confirmCopy(open.key, c.name);
+              return (
+                <ConfirmBody
+                  title={copy.title}
+                  line={copy.line}
+                  verb={copy.verb}
+                  oneWay={copy.oneWay}
+                  busy={busy}
+                  onCancel={onClose}
+                  onDo={() => onConfirm(open.key)}
+                />
+              );
+            })()}
+          {open?.shape === "edit" && (
+            <EditBody title="Name" value={name} busy={busy} onCancel={onClose} onSave={onRename} />
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

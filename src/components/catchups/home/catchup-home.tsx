@@ -163,9 +163,12 @@ function EarlierEditions({
 function EditionRegion({
   data,
   onChanged,
+  onResume,
 }: {
   data: CatchupHomeData;
   onChanged: () => void;
+  /** Opens the settings' own "Start it again" confirmation. */
+  onResume: () => void;
 }) {
   const { edition } = data;
 
@@ -194,7 +197,10 @@ function EditionRegion({
             and on a batch Catch-up every member holds it now (owner,
             2026-09-27), not just a designated Keeper. */}
         {data.settings.canRun && (
-          <Button size="sm" className="mt-4" onClick={onChanged} data-resume>
+          /* The confirmation the Settings row opens, not a refresh: the
+             button used to call router.refresh() and nothing else, so the
+             Catch-up stayed on hold (bug audit 3, T3-03). */
+          <Button size="sm" className="mt-4" onClick={onResume}>
             Start it again
           </Button>
         )}
@@ -254,7 +260,11 @@ export function CatchupHome({ data }: { data: CatchupHomeData }) {
 
   const edition = (
     <div className="mt-5 min-[500px]:mt-6">
-      <EditionRegion data={data} onChanged={refresh} />
+      <EditionRegion
+        data={data}
+        onChanged={refresh}
+        onResume={() => s.panel.onOpen({ shape: "confirm", key: "resume" })}
+      />
       <StateLine words={data.stateLine} />
     </div>
   );
