@@ -8906,3 +8906,19 @@ whether `postgres/place-<fingerprint>.dump` needs writing; it is never pruned, a
 dump carries its fingerprint as object metadata so a restore can find the matching one.
 Restore order, workflow header and OPERATIONS.md: pre-data, place list, data, post-data
 (UserPlace's foreign key to Place is added last).
+
+## 2026-09-30 (database) — a sign-in flood can no longer fill the database, and its size now raises an alarm at 350 MB
+
+Bug audit 3, L5-02 (Critical, unvalidated; the mechanism checked here): every refused sign-in
+wrote a `LoginAttempt` row whatever the limiter had decided, kept a year, ~500 bytes each. A bot
+the limiter had already stopped could fill the Free plan's 500 MB in about a day at ten attempts
+a second, and Supabase then makes the whole database read-only. `recordLoginAttempt` now counts
+the last hour's failure rows first (`LIMIT 120` inside the count, on the `createdAt` index,
+checked with EXPLAIN on the live table) and writes nothing past 120. Real traffic was 39
+attempts a fortnight; successful sign-ins are never capped. `login-attempt-cap-rule.test.mjs`
+pins the order and fails by name if the cap line goes (checked by removing it).
+
+Nothing watched the database's size. The nightly snapshot now records `db.database.bytes` and
+fails, emailing the owner, past 350 MB (Supabase's meter reads ~20 MB above Postgres's count).
+Checked by setting the line to 100 MB: the alarm fired; at 350 it is quiet at 125 MB.
+OPERATIONS.md, "Database size", says what to do when it fires.
