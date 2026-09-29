@@ -28,6 +28,7 @@ import pg from "pg";
 import { databaseUrl } from "./_env.mjs";
 import { argv, bytesFor } from "./_cli.mjs";
 import { describeImage } from "../../src/lib/image.ts";
+import { withDatabaseTls } from "../../src/lib/db-tls.ts";
 
 const { flag, value } = argv();
 
@@ -36,7 +37,7 @@ const LIMIT = Number(value("--limit", Infinity));
 const envFile = value("--env", ".env");
 const { env, url } = databaseUrl(envFile);
 
-const client = new pg.Client({ connectionString: url });
+const client = new pg.Client(withDatabaseTls(url));
 await client.connect();
 
 /** Every url held in a JSON array column, flattened, with the empties gone. */

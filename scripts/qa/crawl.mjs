@@ -5,6 +5,7 @@ import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { devLogin } from "./_dev-login.mjs";
 import { chromePath } from "./_probe-kit.mjs";
+import { withDatabaseTls } from "../../src/lib/db-tls.ts";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 process.chdir(repoRoot);
@@ -18,7 +19,7 @@ config({ path: '.env', quiet: true });
    nobody looked. Ids now come from the database, and each profile row also has
    to show that person's name before it counts as OK. */
 async function pickProfiles() {
-  const db = new pg.Client({ connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL });
+  const db = new pg.Client(withDatabaseTls(process.env.DIRECT_URL || process.env.DATABASE_URL));
   await db.connect();
   try {
     const own = (await db.query('SELECT id, name FROM "User" WHERE lower(email) = lower($1)', [process.env.ADMIN_EMAIL])).rows[0];

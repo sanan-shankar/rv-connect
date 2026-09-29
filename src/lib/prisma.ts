@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { PrismaClient, Prisma } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { IS_DEMO, DemoWriteError, demoWriteAllowed } from "./demo";
+import { withDatabaseTls } from "./db-tls";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -44,7 +45,9 @@ function createPrismaClient() {
   // frees the request.
   const adapter = new PrismaPg(
     {
-      connectionString,
+      // Encrypted and verified against Supabase's pinned root. pg sends
+      // plaintext unless handed `ssl` (db-tls.ts; bug audit 3, O-07).
+      ...withDatabaseTls(connectionString),
       max: 5,
       connectionTimeoutMillis: 5_000,
       query_timeout: 20_000,

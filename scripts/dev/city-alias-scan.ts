@@ -9,6 +9,7 @@
  * Usage: npx tsx scripts/dev/city-alias-scan.ts
  */
 import { loadEnv } from "./_env.mjs";
+import { withDatabaseTls } from "../../src/lib/db-tls.ts";
 
 loadEnv();
 if (!process.env.DATABASE_URL) { console.error("No DATABASE_URL"); process.exit(1); }
@@ -47,7 +48,7 @@ function levenshtein(a: string, b: string): number {
 async function main() {
   const { PrismaClient } = await import("../../src/generated/prisma/client.js");
   const { PrismaPg } = await import("@prisma/adapter-pg");
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+  const adapter = new PrismaPg(withDatabaseTls(process.env.DATABASE_URL!));
   const prisma = new PrismaClient({ adapter });
 
   const rows = await prisma.userPlace.findMany({

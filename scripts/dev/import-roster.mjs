@@ -45,6 +45,7 @@ import {
   rosterNameMatches,
   rosterYearMatches,
 } from "../../src/lib/roster-rule.ts";
+import { withDatabaseTls } from "../../src/lib/db-tls.ts";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 process.chdir(repoRoot);
@@ -172,7 +173,7 @@ console.log(
   `\nconsolidated: ${clean.length} people (${withEmail} with an email, ${withYear} with a year)`
 );
 
-const db = new pg.Client({ connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL });
+const db = new pg.Client(withDatabaseTls(process.env.DIRECT_URL || process.env.DATABASE_URL));
 await db.connect();
 
 if (APPLY) {
