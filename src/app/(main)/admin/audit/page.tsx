@@ -37,6 +37,7 @@ const ACTION_LABEL: Record<string, string> = {
   "account.delete_cancel": "Cancelled their deletion",
   "account.purge": "Deletion became final",
   "account.export": "Downloaded their data",
+  "account.email_change": "Moved to another email",
   "retention.sweep": "Retention sweep ran",
   "report.user": "Flagged a member",
   "report.post": "Reported a post",

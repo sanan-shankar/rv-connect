@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { sendTimeLabel, resendOutcomeMessage } from "./confirmation-copy.ts";
+import { sendTimeLabel, resendOutcomeMessage, movedMessage } from "./confirmation-copy.ts";
 
 /* ------------------------------------------------------------------ *
  *  The one sentence a waiting member reads about their confirmation.
@@ -83,5 +83,29 @@ test("in flight says so, without a deadline", () => {
   assert.equal(
     resendOutcomeMessage({ state: "imminent" }),
     "Your link is on its way. Give it a minute, then check spam."
+  );
+});
+
+/* After "use another email": wherever the new link has got to, plus the one
+   thing they must not miss, that they sign in with the new address now. */
+
+test("a move that sent at once says where, and how to sign in", () => {
+  assert.equal(
+    movedMessage({ state: "sent", sentTo: "n***@gmail.com" }),
+    "Sent to n***@gmail.com. Sign in with that address from now on."
+  );
+});
+
+test("a move on a spent day names when the link goes", () => {
+  assert.equal(
+    movedMessage({ state: "queued", sentTo: "n***@gmail.com", sendingAt: "2026-09-30T00:00:00Z" }, NOW),
+    "We'll send your link to n***@gmail.com tomorrow at 5:30 am IST. Sign in with that address from now on."
+  );
+});
+
+test("a move still in flight says it is on its way", () => {
+  assert.equal(
+    movedMessage({ state: "imminent", sentTo: "n***@gmail.com" }),
+    "Your link is on its way to n***@gmail.com. Sign in with that address from now on."
   );
 });

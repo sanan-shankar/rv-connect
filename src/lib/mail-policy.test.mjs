@@ -19,6 +19,7 @@ import {
   STALE_CLAIM_MS,
   RETRY_RESET,
   confirmationStillWaiting,
+  mailboxWasFull,
 } from "./mail-policy.ts";
 
 test("a rate limit is the provider's problem, not the address's", () => {
@@ -314,4 +315,23 @@ test("the address comparison ignores case and stray spaces", () => {
     confirmationStillWaiting([row({ to: "PRIYA@example.com", status: "sent", sentAt: SENT_AT })], ME),
     false
   );
+});
+
+/* ------------------------------------------------------------------ *
+ *  Why a confirmation bounced, in the member's words (docs/spec/email.md
+ *  Rule 4). The webhook keeps Resend's subtype only inside `lastError`,
+ *  "Bounced (<subType>) -- ...", so that sentence is what is read.
+ * ------------------------------------------------------------------ */
+
+test("a full mailbox is told apart, because emptying it is a fix", () => {
+  assert.equal(mailboxWasFull("Bounced (MailboxFull) -- the address did not accept it"), true);
+});
+
+test("every other bounce is a refusal, not a full inbox", () => {
+  assert.equal(mailboxWasFull("Bounced (General) -- the address did not accept it"), false);
+  assert.equal(mailboxWasFull("Bounced (NoEmail) -- the address did not accept it"), false);
+  assert.equal(mailboxWasFull("Bounced (unknown) -- the address did not accept it"), false);
+  assert.equal(mailboxWasFull(null), false);
+  // The word alone, outside the subtype's brackets, is not the subtype.
+  assert.equal(mailboxWasFull("MailboxFull said somebody"), false);
 });

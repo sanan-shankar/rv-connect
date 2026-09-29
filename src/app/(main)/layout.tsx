@@ -189,7 +189,13 @@ export default async function MainLayout({
                           // sent yet) or they are waiting on a resend.
                           open: session.user.emailGateOpen,
                         }
-                      : { state: "none", sentTo: maskEmail(session.user.email) }
+                      : mailState.state === "bounced"
+                        ? {
+                            state: "bounced",
+                            sentTo: maskEmail(session.user.email),
+                            mailboxFull: mailState.mailboxFull,
+                          }
+                        : { state: "none", sentTo: maskEmail(session.user.email) }
               }
             />
           ) : null

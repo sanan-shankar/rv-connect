@@ -4,9 +4,10 @@ import { useState, useSyncExternalStore } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { MailWarning, Check, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { sendTimeLabel } from "@/lib/confirmation-copy";
+import { movedMessage, resendOutcomeMessage, sendTimeLabel } from "@/lib/confirmation-copy";
 import { callAction } from "@/lib/call-action";
 import { resendVerification } from "./email-actions";
+import { ChangeEmailDialog, type NewLinkState } from "./change-email-dialog";
 import { BESIDE_HEADER_CONTROLS } from "@/components/common/control-geometry";
 
 /* ------------------------------------------------------------------ *
@@ -37,6 +38,9 @@ export type BannerState =
    *  true while nothing has ever been sent (docs/spec/email.md Rule 1), and
    *  then the copy says everything is open instead of naming the limit. */
   | { state: "queued"; sendingAt: string; label?: string; open: boolean }
+  /** The receiving server refused it. `mailboxFull` when the reason was a
+   *  full inbox, which emptying fixes (docs/spec/email.md Rule 4). */
+  | { state: "bounced"; sentTo: string; mailboxFull: boolean }
   | { state: "none"; sentTo: string };
 
 /** A store that never notifies: the "external" value here is the browser's
@@ -65,6 +69,30 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
   const [state, setState] = useState<BannerState>(initial);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState("");
+  const [changing, setChanging] = useState(false);
+
+  /** Switch to wherever a fresh link has got to, without a reload. */
+  function applyNewLink(result: NewLinkState): void {
+    if (result.state === "sent") {
+      setState({ state: "sent", sentTo: result.sentTo ?? "your address" });
+    } else if (result.state === "queued" && result.sendingAt) {
+      setState({ state: "queued", sendingAt: result.sendingAt, open: !!result.open });
+    } else {
+      setState({ state: "imminent" });
+    }
+  }
+
+  /** "Use another email" landed, or a full mailbox was tried again. The flash
+   *  is the confirmation, and after a move it says the sign-in address
+   *  changed, which is the one thing they must not miss. The refresh is for
+   *  the gate: a new address still waiting behind the limit opens everything
+   *  (docs/spec/email.md Rule 1), and only the server knows that. */
+  function handleDone(result: NewLinkState, moved: boolean): void {
+    setChanging(false);
+    applyNewLink(result);
+    setFlash(moved ? movedMessage(result) : resendOutcomeMessage(result));
+    router.refresh();
+  }
 
   async function handleSend() {
     if (busy) return;
@@ -80,16 +108,8 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
         setFlash(result.error ?? "That did not work. Try again in a minute.");
         return;
       }
-      if (result.state === "sent") {
-        setState({ state: "sent", sentTo: result.sentTo ?? "your address" });
-        setFlash(`Sent to ${result.sentTo ?? "your address"}.`);
-      } else if (result.state === "queued" && result.sendingAt) {
-        setState({ state: "queued", sendingAt: result.sendingAt, open: !!result.open });
-        setFlash("");
-      } else {
-        setState({ state: "imminent" });
-        setFlash("");
-      }
+      applyNewLink(result);
+      setFlash(result.state === "sent" ? `Sent to ${result.sentTo ?? "your address"}.` : "");
       // The gate is read server-side, so a confirmation that landed while this
       // page was open only takes effect on the next render pass.
       router.refresh();
@@ -206,6 +226,30 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
             A link has been sent to your email. Tap on it to verify your
             account.
           </span>
+        ) : state.state === "bounced" ? (
+          // Accepted, then refused by their mail server (docs/spec/email.md
+          // Rule 4). What happened and why, in their words; the fix is the
+          // button. A full mailbox's own retry lives inside the dialog, so the
+          // chip keeps one control like every other state.
+          <>
+            <span className="font-medium">
+              We couldn&apos;t deliver your confirmation email.
+            </span>{" "}
+            <span className="text-muted-foreground">
+              {state.mailboxFull ? (
+                <>
+                  The mailbox at{" "}
+                  <span className="text-foreground">{state.sentTo}</span> is
+                  full.
+                </>
+              ) : (
+                <>
+                  <span className="text-foreground">{state.sentTo}</span>{" "}
+                  didn&apos;t accept it.
+                </>
+              )}
+            </span>
+          </>
         ) : (
           // Two short facts and nothing else (owner, 2026-08-18: the "to
           // post, upload photos..." feature list came off).
@@ -223,20 +267,39 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
       </p>
 
       {/* No button while it is queued or in flight: there is nothing to send
-          again, and a control that cannot help is worse than no control. */}
-      {!queued && !imminent && (
+          again, and a control that cannot help is worse than no control. A
+          bounce gets the fix instead of a resend: sending the same thing to
+          an address that refused it is the loop this state exists to end. */}
+      {state.state === "bounced" ? (
         <button
           type="button"
-          onClick={handleSend}
-          disabled={busy}
-          className="state-layer shrink-0 rounded-full border border-cinnamon/40 px-3 py-1.5 text-[12.5px] font-semibold text-cinnamon transition-colors duration-150 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cinnamon"
+          onClick={() => setChanging(true)}
+          className="state-layer shrink-0 rounded-full border border-cinnamon/40 px-3 py-1.5 text-[12.5px] font-semibold text-cinnamon transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          {busy ? "Sending..." : state.state === "sent" ? "Send it again" : "Send me the link"}
+          Use another email
         </button>
+      ) : (
+        !queued &&
+        !imminent && (
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={busy}
+            className="state-layer shrink-0 rounded-full border border-cinnamon/40 px-3 py-1.5 text-[12.5px] font-semibold text-cinnamon transition-colors duration-150 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cinnamon"
+          >
+            {busy ? "Sending..." : state.state === "sent" ? "Send it again" : "Send me the link"}
+          </button>
+        )
       )}
         </>
       )}
     </div>
+    <ChangeEmailDialog
+      open={changing}
+      onOpenChange={setChanging}
+      retryTo={state.state === "bounced" && state.mailboxFull ? state.sentTo : undefined}
+      onDone={handleDone}
+    />
     </div>
   );
 }

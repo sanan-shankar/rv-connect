@@ -365,3 +365,20 @@ export function confirmationStillWaiting(
   if (mine.some((r) => r.sentAt !== null)) return false;
   return mine.some((r) => r.status === "queued" || r.status === "sending");
 }
+
+/**
+ * Whether a bounced confirmation came back because the mailbox was FULL.
+ *
+ * The one bounce a member can fix without a new address -- empty the inbox,
+ * send it again -- so the banner and the "use another email" dialog say it
+ * apart from a flat refusal (docs/spec/email.md Rule 4). Two members' Gmail
+ * inboxes were full in September and every resend went the same way.
+ *
+ * Read out of `lastError`, because that is the only place the Resend webhook
+ * keeps the subtype: "Bounced (<subType>) -- the address did not accept it"
+ * (src/app/api/resend/webhook/route.ts). Matched inside the brackets only, so
+ * a message that merely mentions the word is not mistaken for the subtype.
+ */
+export function mailboxWasFull(lastError: string | null): boolean {
+  return /^Bounced \(MailboxFull\)/.test(lastError ?? "");
+}

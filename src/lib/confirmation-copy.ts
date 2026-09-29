@@ -85,3 +85,22 @@ export function resendOutcomeMessage(
   }
   return "Your link is on its way. Give it a minute, then check spam.";
 }
+
+/**
+ * What the banner says after "use another email" (docs/spec/email.md Rule 4):
+ * where the new link has got to, and that the sign-in address changed with it.
+ * The second half is the one they must not miss -- the old address no longer
+ * signs in -- so it is on every branch.
+ */
+export function movedMessage(
+  result: { state?: "sent" | "imminent" | "queued"; sentTo?: string; sendingAt?: string },
+  now: Date = new Date(),
+): string {
+  const to = result.sentTo ?? "your new address";
+  const signIn = "Sign in with that address from now on.";
+  if (result.state === "sent") return `Sent to ${to}. ${signIn}`;
+  if (result.state === "queued" && result.sendingAt) {
+    return `We'll send your link to ${to} ${sendTimeLabel(result.sendingAt, now)}. ${signIn}`;
+  }
+  return `Your link is on its way to ${to}. ${signIn}`;
+}

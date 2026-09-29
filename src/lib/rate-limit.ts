@@ -165,6 +165,20 @@ const LIMITS = {
    *  hour leaves somebody genuinely retrying a failed payment three or four
    *  times entirely untouched, which is the only case that matters here. */
   contributions: { tokens: 10, window: "1 h" },
+  /** Every attempt, keyed by IP and by account. "Use another email" answers
+   *  "that address already has an account", which makes it a membership
+   *  checker like signup's -- and one signed-in account per ten signups an
+   *  hour would multiply signup's own IP meter. Five an hour is a person
+   *  fixing a typo twice with room to spare. Wrong passwords ALSO spend the
+   *  `reauth` meter below, like every other password re-check. */
+  emailChange: { tokens: 5, window: "1 h" },
+  /** SUCCESSFUL moves, per account: three a month. Real people need one, a
+   *  typo fixed twice at most. The ceiling exists because a move is what
+   *  decides when the email gate shuts (docs/spec/email.md Rule 1): without
+   *  one, an account could keep moving to invented addresses on a backlog day
+   *  and stay "waiting" for ever (write-path review, 2026-09-29). Spent only
+   *  when a move lands, so a mistyped password never costs one. */
+  emailMoves: { tokens: 3, window: "30 d" },
   /** Failures only, per account. Confirming deletion re-asks for the
    *  password (audit M35), which hands an attacker who stole a SESSION a
    *  quiet place to guess the password itself — the login limiter never

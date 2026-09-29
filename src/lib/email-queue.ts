@@ -12,6 +12,7 @@ import {
   eligibleKindsFor,
   isRetryableSkip,
   localDrainRecipient,
+  mailboxWasFull,
   SKIP_NO_USER,
   SKIP_TOKEN_RATE_LIMIT,
   retryDelayMs,
@@ -466,6 +467,13 @@ export async function enqueueMail(input: {
         userId: input.userId,
         kind: input.kind,
         status: { in: ["queued", "sending"] },
+        /* The same ADDRESS, not just the same person. A member who has just
+           moved to another address ("use another email", docs/spec/email.md
+           Rule 4) may still have a row mid-send to the old one, and folding
+           into it would answer "queued" while nothing ever went to the new
+           address. Case-insensitive, for rows written before addresses were
+           stored canonical (B-020). */
+        to: { equals: input.to, mode: "insensitive" },
       },
       select: { id: true },
     });
@@ -915,7 +923,12 @@ export type VerificationMailState =
   /** Genuinely deferred: today's budget is SPENT. This is the only state that
    *  may mention the email limit, and `sendingAt` is when it refills. */
   | { state: "queued"; sendingAt: Date }
-  /** Tried and gave up (a bad address, usually). Offer to try again. */
+  /** Accepted, then refused by the receiving server: the webhook's bounce.
+   *  The member can move to another address; a FULL mailbox can also be
+   *  emptied and tried again, which is what `mailboxFull` says. */
+  | { state: "bounced"; mailboxFull: boolean }
+  /** Tried and gave up without a bounce (a provider refusal, usually). Offer
+   *  to try again. */
   | { state: "failed" }
   /** Nothing on file. Offer to send one. */
   | { state: "none" };
@@ -984,12 +997,21 @@ export async function verificationMailState(
       // For the queue-position arithmetic below, which is what makes the
       // banner's "goes out at" honest on a busy day.
       createdAt: true,
+      // A bounce is its own state: offering "send it again" to an address
+      // that refused it is how two members' full inboxes became a loop of
+      // resends and returning to-dos (docs/spec/email.md Rule 4).
+      bouncedAt: true,
+      lastError: true,
     },
   });
 
   if (!row) return { state: "none" };
   if (row.status === "sent" && row.sentAt) return { state: "sent", at: row.sentAt };
-  if (row.status === "failed") return { state: "failed" };
+  if (row.status === "failed") {
+    return row.bouncedAt
+      ? { state: "bounced", mailboxFull: mailboxWasFull(row.lastError) }
+      : { state: "failed" };
+  }
 
   // Queued or sending. A process that cannot send (a dev machine without
   // EMAIL_DEV_SEND, production missing its key) reports the only thing it can
