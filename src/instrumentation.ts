@@ -68,6 +68,12 @@ const common = {
     "NEXT_NOT_FOUND",
     /* A member closing the tab mid-request aborts it. Not a bug. */
     "AbortError",
+    /* The (main) layout throws this on EVERY page view while the database is
+     * not answering, and onRequestError below would file each one: an outage
+     * would spend the month's 5,000 events in an hour. The session callback
+     * already reports the underlying failure, once a minute per instance
+     * (src/lib/auth.ts, sessionReadFailed); that is the signal. */
+    "SESSION_UNAVAILABLE",
   ],
 };
 
