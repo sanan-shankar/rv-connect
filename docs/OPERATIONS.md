@@ -402,6 +402,64 @@ exports exist to be read, not imported.
 
 ---
 
+## Capacity: what 2,000 members costs
+
+**Measured, never estimated per visit.** The first forecasts here priced CPU per real visit and
+said Hobby would hold 2,000 members; at ~150 the site hit Hobby's CPU ceiling and was moved to
+Pro, because Next's link prefetching was rendering ~18 pages on the server for every page a
+member opened (TRAPS.md, "Next.js"; fixed 2026-09-29). Every figure below comes from
+`vercel metrics`, `vercel usage`, SQL or the Supabase dashboard, dated. Anything projected says
+so. Re-measure before trusting a projection; the commands are at the end.
+
+### Vercel (Pro: $20 a month, which includes $20 of usage credit)
+
+| | Before the prefetch fix (week to 2026-09-29, ~280 members) | After (early read, 2026-09-29 12:00–16:00 UTC) |
+|---|---|---|
+| Active CPU | 87.6 min a week, ~6.3 h a month | *hot* CPU per real page view 1.27 s → 0.34 s (−73%) |
+| Server calls per real page view | typically ~16 (8–24 across days) | 4.4 |
+| `/profile/[id]` renders | 27,841 a week vs ~546 real views | fell out of the top ten routes |
+| Usage cost | $1.13 a week, $0.78 of it scaling with traffic | full-day figure due 2026-09-30 |
+
+The early read is 38 real views, and 59% of that window's CPU was cold starts from four deploys
+in two hours; it is a direction, not the number. **Projection to 2,000 members** (7× today):
+before the fix ~$25 a month of usage, slightly over the $20 credit; after it, if the early read
+holds, ~$10 a month, inside the credit, so the bill stays at the $20 plan fee. **Hobby cannot hold
+2,000 members** on these numbers (its 4 CPU-hours would be spent several times over), and Hobby is
+for non-commercial use while the site takes contributions. Pro is the plan for 2,000.
+
+A bot can still spend money that members never would. Vercel's default only *emails*, at $200.
+**Spend Management** (Settings → Billing) can pause the project at a hard cap instead; that is
+the owner's switch.
+
+### Supabase (Free)
+
+Free quotas: database 500 MB per project, egress 5 GB a month, log ingestion 1 GB (as the
+dashboard shows it). Over a quota Supabase gives a grace period, then may pause the project, make
+the database read-only, or answer 402 to every request (its billing FAQ). So each line matters.
+
+| Quota | 2026-09-29 | At 2,000 members (projected) | Guard |
+|---|---|---|---|
+| Database size | 140 MB on Supabase's meter; 119 MB by Postgres, of which 97 MB is the static place list and 23 MB everything else | ~270–290 MB (the 23 MB scaled 7×, plus the place list) | nightly alarm at 350 MB (§2, `snapshot.yml`); sign-in failure rows capped at 120 an hour |
+| Egress | 1.83 of 5 GB this cycle; the nightly backup was ~1.2 GB a month of it | backup now ~30 MB a month; app traffic scales, and the prefetch fix cut server calls per view ~3.5× | **unmeasured split**: read the daily egress chart on the organisation's Usage page |
+| Log ingestion | **1.55 of 1 GB, over**: the Data API failing every 32 s since it was switched off | ~0 from that source once fixed | the Data API points at the empty `api` schema (migration 2026-09-29) |
+| Connections | peak 12 of 60 | pooled; not the constraint | — |
+| CPU / RAM (nano) | 2% / 53% | — | — |
+
+**For the next month**, at ~300 members: database ~25% of its limit, egress well under once the
+backup change lands, log ingestion back under once the Data API setting is changed. That last one
+is the only open item, and it needs the owner's dashboard. **At 2,000 members** the projection
+fits the Free plan with less room, and egress is the line to watch: nothing measures the app's
+share of it directly yet. Supabase Pro ($25 a month: 8 GB database, 250 GB egress) is the answer
+when either line gets near.
+
+### Re-measuring (from `/tmp`; the repo is not `vercel link`ed)
+
+- CPU by route: `vercel metrics vercel.function_invocation.function_cpu_time_ms -p rv-alumni -a sum --since 1d --group-by route --order-by value -F json`
+- The same split by `--group-by function_start_type`: deploys make cold starts, which are not traffic.
+- Money: `vercel usage --from YYYY-MM-DD --to YYYY-MM-DD`.
+- Real page views, to divide by: `SELECT sum(views) FROM "Visit" WHERE "startedAt" > now() - interval '1 day'`.
+- Database size: `db.database.bytes` in `/admin/analytics`, or `SELECT pg_size_pretty(pg_database_size(current_database()))`.
+
 ## Still to do
 - **Staging database** — a second Supabase project so schema changes get a rehearsal.
   Data fixes (capitalisations, cities) would continue to run against production exactly as

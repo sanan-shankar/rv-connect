@@ -8951,3 +8951,12 @@ removing one room's call fails it by name. The lab's one server action already r
 Checked as Jerry (admin): seven rooms, data rooms included, still render 200; signed out still
 307s to /login. NOT exercised live: the crafted request as a non-admin, because no non-admin test
 account exists. The check sits in the page function, which is where that request starts rendering.
+
+## 2026-09-30 (platform) — what 2,000 members costs, written down from measurements this time
+
+The owner asked for a final confirmation that Vercel and Supabase hold 2,000 members (brief ¶11 in
+`docs/planning/platform-health/`). The earlier assurances lived only in chat and were per-visit
+arithmetic. `docs/OPERATIONS.md` now has a "Capacity" section built from `vercel metrics`,
+`vercel usage`, SQL and his dashboard screenshots, each dated, with projections labelled as
+projections and the re-measure commands beside them. Pro's credit and Supabase's quotas and
+over-quota behaviour were read from the vendors' pages the same day, not remembered.
