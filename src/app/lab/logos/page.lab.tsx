@@ -1,3 +1,4 @@
+import { requireLabAdmin } from "@/app/lab/_gate";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 
 /* Logo lab: a few non-bird marks to choose from. Static, self-contained. */
@@ -23,7 +24,8 @@ function Tile({ name, note, children }: { name: string; note: string; children: 
   );
 }
 
-export default function LogoLab() {
+export default async function LogoLab() {
+  await requireLabAdmin();
   return (
     <div className="lg">
       <style

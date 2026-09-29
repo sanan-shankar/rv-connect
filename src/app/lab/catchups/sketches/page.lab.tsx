@@ -21,6 +21,7 @@
  *  Admin only, through the lab layout. Writes nothing.
  * ------------------------------------------------------------------ */
 
+import { requireLabAdmin } from "@/app/lab/_gate";
 import { auth } from "@/lib/auth";
 import { loadSketchEdition } from "./_data";
 import { loadPressureEdition } from "./_pressure";
@@ -33,6 +34,7 @@ export default async function SketchesPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requireLabAdmin();
   const params = await searchParams;
   const pressure = params.data === "pressure";
   const session = await auth();

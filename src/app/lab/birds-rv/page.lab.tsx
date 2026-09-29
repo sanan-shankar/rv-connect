@@ -1,3 +1,4 @@
+import { requireLabAdmin } from "@/app/lab/_gate";
 import { BirdGlyphV2, GALLERY_SPECIES } from "@/components/common/bird-avatar-v2";
 
 /**
@@ -16,7 +17,8 @@ import { BirdGlyphV2, GALLERY_SPECIES } from "@/components/common/bird-avatar-v2
  */
 const NAMES = GALLERY_SPECIES;
 
-export default function BirdGallery() {
+export default async function BirdGallery() {
+  await requireLabAdmin();
   return (
     <div className="min-h-screen bg-[#EFE7D8] px-6 py-16 text-[#33302B]">
       <div className="mx-auto max-w-6xl">

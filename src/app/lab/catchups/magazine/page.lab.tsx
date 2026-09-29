@@ -20,6 +20,7 @@
  *  Admin only, through the lab layout. Writes nothing.
  * ------------------------------------------------------------------ */
 
+import { requireLabAdmin } from "@/app/lab/_gate";
 import { auth } from "@/lib/auth";
 import { sourcesFromFile } from "@/lib/magazine/from-export";
 import type { MagazineSource } from "@/lib/magazine/types";
@@ -51,6 +52,7 @@ export default async function MagazinePage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requireLabAdmin();
   const params = await searchParams;
   const key = typeof params.data === "string" ? params.data : "live";
   const print = params.print === "1";

@@ -1,5 +1,4 @@
-import { notFound } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { requireLabAdmin } from "./_gate";
 import "./lab.css";
 
 /**
@@ -11,10 +10,10 @@ import "./lab.css";
  * tree exists at all, which is the right posture for a surface whose whole
  * content is internal (the room index, and /lab/everything's audit log of
  * quoted source paths). Admins (including the dev-login tooling account) pass
- * straight through.
+ * straight through. Every server-rendered room repeats the check itself
+ * (`_gate.ts` says why this layout is not enough on its own).
  */
 export default async function LabLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
-  if (session?.user?.role !== "admin") notFound();
+  await requireLabAdmin();
   return <>{children}</>;
 }

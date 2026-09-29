@@ -11,8 +11,10 @@
  *  Admin only, through the lab layout.
  * ------------------------------------------------------------------ */
 
+import { requireLabAdmin } from "@/app/lab/_gate";
 import { CapsuleRoom } from "./_room";
 
-export default function CapsulePage() {
+export default async function CapsulePage() {
+  await requireLabAdmin();
   return <CapsuleRoom />;
 }

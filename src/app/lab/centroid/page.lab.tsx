@@ -1,3 +1,4 @@
+import { requireLabAdmin } from "@/app/lab/_gate";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { ARCHETYPES } from "@/components/common/bird-avatar-v2";
@@ -24,6 +25,7 @@ export default async function CentroidProbe({
 }: {
   searchParams: Promise<{ i?: string; flip?: string; pad?: string }>;
 }) {
+  await requireLabAdmin();
   const sp = await searchParams;
   const i = ((Number(sp?.i ?? 0) % ARCHETYPES.length) + ARCHETYPES.length) % ARCHETYPES.length;
   const a = ARCHETYPES[i];

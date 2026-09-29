@@ -1,3 +1,4 @@
+import { requireLabAdmin } from "@/app/lab/_gate";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { ARCHETYPES } from "@/components/common/bird-avatar-v2";
@@ -107,6 +108,7 @@ function Section({
 }
 
 export default async function BirdsBg() {
+  await requireLabAdmin();
   const adj = JSON.parse(
     readFileSync(join(process.cwd(), "src/components/common/bird-adjust.json"), "utf8"),
   ) as Record<string, { x?: number; y?: number; s?: number }>;

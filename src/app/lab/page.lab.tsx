@@ -1,3 +1,4 @@
+import { requireLabAdmin } from "@/app/lab/_gate";
 import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { REGISTRY } from "./_registry";
@@ -30,6 +31,7 @@ export const dynamic = "force-dynamic";
  *  exist, each keeping its own URL.
  * ------------------------------------------------------------------ */
 export default async function LabPage() {
+  await requireLabAdmin();
   const [overrides, session] = await Promise.all([readOverrides(), auth()]);
 
   const entries = REGISTRY.map((entry) => {

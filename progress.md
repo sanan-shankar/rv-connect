@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-30 (lab, security) — every server-rendered lab room checks the admin role itself, so a crafted request cannot skip the gate
 - 2026-09-30 (database) — an empty `api` schema for the Data API, so Supabase stops calling the project unhealthy
 - 2026-09-30 (database) — a sign-in flood can no longer fill the database, and its size now raises an alarm at 350 MB
 - 2026-09-30 (backup) — every night's database backup is restored in rehearsal, and the place list is kept apart to save egress

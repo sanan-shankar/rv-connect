@@ -13,12 +13,14 @@
  *  owner's own, not a stand-in. Everything that moves is in `_room.tsx`.
  * ------------------------------------------------------------------ */
 
+import { requireLabAdmin } from "@/app/lab/_gate";
 import { auth } from "@/lib/auth";
 import { NewPostRoom } from "./_room";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewPostRoomPage() {
+  await requireLabAdmin();
   const session = await auth();
   const u = session?.user;
   return (

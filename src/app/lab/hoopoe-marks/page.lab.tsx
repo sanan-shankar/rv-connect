@@ -11,6 +11,7 @@
  *  is defined by two things: what it draws and where the square sits.
  * ------------------------------------------------------------------ */
 
+import { requireLabAdmin } from "@/app/lab/_gate";
 import type { ReactNode } from "react";
 import { Body, Crest, Face, G } from "./_parts";
 import { PEEK_VIEW_BOX } from "@/lib/hoopoe-geometry";
@@ -257,7 +258,8 @@ function Card({ m }: { m: Mark }) {
   );
 }
 
-export default function HoopoeMarksLab() {
+export default async function HoopoeMarksLab() {
+  await requireLabAdmin();
   return (
     <div className="hm">
       <style

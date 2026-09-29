@@ -39,6 +39,7 @@
  *  Admin only, through the lab layout. Reads one answer, writes nothing.
  * ------------------------------------------------------------------ */
 
+import { requireLabAdmin } from "@/app/lab/_gate";
 import { prisma } from "@/lib/prisma";
 import { SwipeTrace } from "./_trace";
 
@@ -66,5 +67,6 @@ async function photographs(): Promise<string[]> {
 }
 
 export default async function SwipeRoom() {
+  await requireLabAdmin();
   return <SwipeTrace photos={await photographs()} />;
 }
