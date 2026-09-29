@@ -9055,3 +9055,16 @@ to come back to this guide" ("Tap twice on" with a finger). The tour's closing "
 again" uses the same sentence ending "to see any of this again". "like Feed" is joined by a
 non-breaking space so a phone never splits it. Looked at in the replayed tour at 1440 and 390; no
 console errors. `npm run visual` not run: no route in its list renders the guide sheet.
+
+## 2026-09-30 (banner) — the confirm-your-email banner's resend button takes the shared focus ring
+
+"Send me the link" in the confirm-your-email banner still drew its keyboard focus ring in cinnamon,
+the last control outside two lab sketches that did; "Use another email" beside it draws the shared
+Leaf ring (`outline-ring`, DESIGN-SYSTEM "Focus states", controls). Both do now. Measured by tabbing
+onto it in `/lab/email-states` at 1440 and 390: a solid 2px `rgb(31, 138, 76)` ring with its 2px gap.
+
+That closes the email spec's "Left to do". The Catch-ups fix went out with another session's push and
+deployed at `4afde865`, and the visual suite, re-run on a quiet machine, passed 25 of 25 in 3.9
+minutes, `birds` desktop included, so its earlier timeout was load. The spec also records the one Low
+review finding left as it is: with no mail key in production nobody's link goes out, so waiting
+members keep names and profiles open until the key is back, while the drain logs an error each pass.
