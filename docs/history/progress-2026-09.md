@@ -9030,3 +9030,18 @@ fails closed and reports itself. Checked as Jerry: pages render as before, signe
 to /login. NOT exercised live: an actual failed read, which would need breaking the dev server
 another session uses; `session-unavailable-rule.test.mjs` pins all four parts, and removing the
 layout's check fails it by name.
+
+## 2026-09-30 (catchups) — the Picture row opens the picker, and "Start it again" on a held Catch-up asks to start it
+
+Bug audit 3, T3-01 and T3-03 (High), both still live today. The Settings "Picture" row set
+`{ shape: "picture" }` and nothing mounted the picker for it, though `SettingsDialogs`' own comment
+said it did, so no Catch-up's picture could be changed from the app. `SettingsDialogs` now mounts
+`PicturePickerDialog` for that shape, refreshing on save. The on-hold card's "Start it again" called
+`router.refresh()` and nothing else; it now opens the settings' own "Start it again" confirmation.
+
+Checked in a real browser at 1440 and 390, through a scratch lab page rendering the shipped
+`CatchupHome` with a paused sample Catch-up the viewer may run (created and deleted in one
+command; nothing confirmed or saved): the card's button opens the confirmation, Escape leaves it
+on hold, and the Picture row opens "The picture" over Settings; no console errors. The one real
+Catch-up the test account belongs to is held, but he does not keep it, so he rightly sees neither
+control there, and that page renders unchanged.
