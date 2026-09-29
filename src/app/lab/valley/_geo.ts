@@ -174,7 +174,7 @@ export function cameraAt(keys: Key[], t: number): Shot {
    depend on the reviewer's window. */
 
 const MAX_TEXEL_PX = 1.1;
-const REF_HEIGHT_PX = 900;
+export const REF_HEIGHT_PX = 900;
 /* Below this zoom a tile splits for the view whether or not there is
    imagery under it, so the hills keep their shape everywhere. A zoom-14
    tile's 32 x 32 grid is 75 m between vertices, fine enough for ground

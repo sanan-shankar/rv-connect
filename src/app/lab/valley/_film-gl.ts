@@ -19,7 +19,7 @@
  *  own, the sun's, or the air's.
  * ------------------------------------------------------------------ */
 
-import { R_SIGHT, boxInFrustum, cross, demGround, frustumPlanes, norm, selectTiles, sink, tileHeightRange, tileRect, viewOf, type Shot, type TileKey, type V3, type View } from "./_geo";
+import { MERC_M, REF_HEIGHT_PX, R_SIGHT, boxInFrustum, cross, demGround, frustumPlanes, norm, selectTiles, tileHeightRange, tileRect, viewOf, type Shot, type TileKey, type V3, type View } from "./_geo";
 import { ROOTS, maxZoomAt } from "./_flight";
 import { cloudCover, cloudNoise } from "./_clouds";
 
@@ -140,8 +140,10 @@ float toSpace(vec3 rd) {
 
 /* One crown: a clump of six lumps squashed to its height, and a trunk.
    The ray (o, rd) is in eye-relative metres; returns the distance to the
-   first hit (or 1e9), its normal, which lump, how far inside the
-   silhouette the ray passes (for the edge) and whether it hit the trunk. */
+   first hit (or 1e9), its normal, which lump, how far inside the whole
+   crown's outline the ray passes (the most over every lump it crosses,
+   so only the crown's outer edge is softened and never the seam between
+   two lumps) and whether it hit the trunk. */
 const TREE_HIT = /* glsl */ `
 float crownSquash(vec3 tree) {
   return min(mix(0.74, 1.05, fract(tree.z * 7.13)), tree.y * 0.47 / tree.x);
@@ -176,12 +178,12 @@ float treeHit(vec3 o, vec3 rd, vec3 base, vec3 tree, out vec3 nOut, out int idOu
     float disc = B * B - A * C;
     if (disc < 0.0) continue;
     float t = (-B - sqrt(disc)) / A;
+    if (t > 0.0) qOut = max(qOut, sqrt(disc / A) / rho);
     if (t > 0.0 && t < best) {
       best = t;
       vec3 nl = (oo + d * t) - c;
       nOut = normalize(vec3(nl.x, nl.y / sq, nl.z));
       idOut = i;
-      qOut = sqrt(disc / A) / rho;
     }
   }
   float tr = max(0.18, r * 0.07);
@@ -192,7 +194,7 @@ float treeHit(vec3 o, vec3 rd, vec3 base, vec3 tree, out vec3 nOut, out int idOu
     float t = (-b2 - sqrt(disc2)) / a2;
     float y = o.y + rd.y * t;
     if (t > 0.0 && t < best && y > base.y && y < cc.y) {
-      best = t; trunkOut = true; qOut = sqrt(disc2 / a2) / tr;
+      best = t; trunkOut = true; qOut = max(qOut, sqrt(disc2 / a2) / tr);
       vec3 P = o + rd * t;
       nOut = normalize(vec3(P.x - base.x, 0.0, P.z - base.z));
     }
@@ -202,12 +204,15 @@ float treeHit(vec3 o, vec3 rd, vec3 base, vec3 tree, out vec3 nOut, out int idOu
 `;
 
 /* The trees' shadows, from a map drawn each frame along the sunlight
-   over the ground near the camera: nine taps, so the edges are soft the
-   way a crown's shadow is. */
+   over the ground near the camera: nine taps of the hardware's own
+   filtered comparison, so the edges are soft the way a crown's shadow is
+   and never show the map's texels, which near the camera span dozens of
+   pixels. */
 const TREE_SHADOW = /* glsl */ `
-uniform highp sampler2D uTreeShadow;
+uniform highp sampler2DShadow uTreeShadow;
 uniform mat4 uLightMat;
 uniform float uShadowOn;
+uniform float uShadowBias;
 float treeShadow(vec3 P) {
   if (uShadowOn < 0.5) return 1.0;
   vec4 l = uLightMat * vec4(P, 1.0);
@@ -215,10 +220,8 @@ float treeShadow(vec3 P) {
   if (c.x < 0.0 || c.y < 0.0 || c.x > 1.0 || c.y > 1.0 || c.z > 1.0) return 1.0;
   vec2 texel = 1.0 / vec2(textureSize(uTreeShadow, 0));
   float s = 0.0;
-  for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
-    float d = texture(uTreeShadow, c.xy + vec2(float(i), float(j)) * texel * 1.25).r;
-    s += c.z - 0.0004 > d ? 0.0 : 1.0;
-  }
+  for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++)
+    s += texture(uTreeShadow, vec3(c.xy + vec2(float(i), float(j)) * texel, c.z - uShadowBias));
   /* fade out toward the map's edge rather than stopping at a line */
   vec2 e = min(c.xy, 1.0 - c.xy);
   float edge = smoothstep(0.0, 0.08, min(e.x, e.y));
@@ -298,8 +301,10 @@ uniform vec4 uTile;
 uniform vec3 uEye;
 uniform mat4 uViewProj;
 uniform vec3 uTexXform;
+uniform vec3 uTexXformUp;
 out vec3 vRel;
 out vec2 vUv;
+out vec2 vUvUp;
 out vec2 vWorld;
 out vec3 vIns;
 out vec3 vT;
@@ -313,6 +318,7 @@ void main() {
   float y = h - dot(rel, rel) / ${(2 * R_SIGHT).toFixed(1)} - uEye.y;
   vRel = vec3(rel.x, y, rel.y);
   vUv = uTexXform.xy + aGrid.xy * uTexXform.z;
+  vUvUp = uTexXformUp.xy + aGrid.xy * uTexXformUp.z;
   vWorld = w;
   /* the air between the eye and this vertex; it varies slowly across a
      tile, so per vertex is as good as per pixel at a fraction the cost */
@@ -329,10 +335,14 @@ precision highp float;
 precision highp sampler2D;
 in vec3 vRel;
 in vec2 vUv;
+in vec2 vUvUp;
 in vec2 vWorld;
 in vec3 vIns;
 in vec3 vT;
 uniform sampler2D uImg;
+uniform sampler2D uImgUp;
+uniform vec2 uTexel;
+uniform float uLodAngle;
 uniform sampler2D uBakeIn;
 uniform sampler2D uBakeOut;
 uniform vec4 uRectIn;
@@ -357,26 +367,36 @@ vec4 bake(vec2 w) {
   if (k <= 0.0) return bo;
   return mix(bo, texture(uBakeIn, u), k);
 }
+const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
 void main() {
+  float dist = length(vRel);
   vec3 alb = texture(uImg, vUv).rgb;
+  /* The coarser photograph this piece showed before it split, handed
+     over to its own as the camera nears (selectTiles splits a tile at
+     1.1 screen pixels a texel), so a split never shows as a jump, even
+     where the server's zoom levels are different photographs. */
+  vec3 up = texture(uImgUp, vUvUp).rgb;
+  if (uTexel.y > 0.0) alb = mix(up, alb, smoothstep(1.1, 2.2, uTexel.y / (dist * uLodAngle)));
   vec4 b = bake(vWorld);
   vec3 n = vec3(b.r * 2.0 - 1.0, 0.0, b.g * 2.0 - 1.0);
-  n.y = sqrt(max(1.0 - n.x * n.x - n.z * n.z, 0.0));
+  n.y = sqrt(max(1.0 - n.x * n.x - n.z * n.z, 0.01));
   /* Relief from the photograph itself: its brightness read as a few
      metres of height, so every boulder and gully the satellite saw
-     catches the film's sun, where 30 m elevation has only smooth slopes
-     (derivative bump mapping, Mikkelsen 2010). A mip coarser than the
-     one on screen, so it is the ground's shape and not its grain, and
-     only within a few kilometres, where a pixel still shows it. */
-  float dist = length(vRel);
+     catches the film's sun, where 30 m elevation has only smooth slopes.
+     The slope is taken in the photograph's own texels, east and south
+     being the world's x and z, one mip coarser than the one on screen,
+     so it is the ground's shape and not its grain, and it holds still
+     as the camera moves; only within a few kilometres, where a pixel
+     still shows it. */
   float bumpK = uBump * (1.0 - smoothstep(1500.0, 9000.0, dist));
   if (bumpK > 0.0) {
-    float hgt = dot(texture(uImg, vUv, 1.0).rgb, vec3(0.2126, 0.7152, 0.0722)) * bumpK;
-    vec3 dpx = dFdx(vRel), dpy = dFdy(vRel);
-    vec3 r1 = cross(dpy, n), r2 = cross(n, dpx);
-    float det = dot(dpx, r1);
-    vec3 surf = sign(det) * (dFdx(hgt) * r1 + dFdy(hgt) * r2);
-    n = normalize(abs(det) * n - surf);
+    vec2 tx = dFdx(vUv * 256.0), ty = dFdy(vUv * 256.0);
+    float mip = max(0.5 * log2(max(max(dot(tx, tx), dot(ty, ty)), 1e-8)), 0.0) + 1.0;
+    float st = exp2(mip) / 256.0;
+    float hx = dot(textureLod(uImg, vUv + vec2(st, 0.0), mip).rgb - textureLod(uImg, vUv - vec2(st, 0.0), mip).rgb, LUMA);
+    float hz = dot(textureLod(uImg, vUv + vec2(0.0, st), mip).rgb - textureLod(uImg, vUv - vec2(0.0, st), mip).rgb, LUMA);
+    vec2 slope = vec2(hx, hz) * bumpK / (2.0 * exp2(mip) * uTexel.x);
+    n = normalize(n / max(n.y, 0.1) - vec3(slope.x, 0.0, slope.y));
   }
   float shadow = b.b * treeShadow(vRel) * cloudShadow(vec3(vWorld.x, vRel.y + uEyeAlt, vWorld.y));
   float sky = b.a;
@@ -391,7 +411,7 @@ void main() {
      haze: flat and grey-green. Vibrance lifts the colours that are
      already there, most where they are weakest, and leaves the red
      earth and white roofs alone. */
-  float l = dot(alb, vec3(0.2126, 0.7152, 0.0722));
+  float l = dot(alb, LUMA);
   float sat = max(alb.r, max(alb.g, alb.b)) - min(alb.r, min(alb.g, alb.b));
   alb = max(l + (alb - l) * (1.0 + uVibrance * (1.0 - clamp(sat * 4.0, 0.0, 1.0))), 0.0);
   if (uDebug > 0.5) alb = vec3(0.3);
@@ -420,6 +440,7 @@ uniform mat4 uViewProj;
 uniform vec3 uCamRight;
 uniform vec3 uCamUp;
 uniform float uTreeFar;
+uniform float uPixelAngle;
 uniform sampler2D uBakeIn;
 uniform sampler2D uBakeOut;
 ${DEM}
@@ -432,14 +453,21 @@ flat out vec3 vAlb;
 flat out vec3 vIns;
 flat out vec3 vT;
 flat out float vShadow;
+flat out float vCover;
 void main() {
   vec2 rel = aTree.xy - uEye.xz;
   float g = height(aTree.xy);
   vec3 base = vec3(rel.x, g - dot(rel, rel) / ${(2 * R_SIGHT).toFixed(1)} - uEye.y - 0.5, rel.y);
-  /* trees near the edge of the drawing range shrink away rather than
-     stopping at a line */
-  float fade = 1.0 - smoothstep(uTreeFar * 0.8, uTreeFar, length(rel));
-  float r = aTree.z * fade, h = aTree.w * fade;
+  /* A crown smaller than a pixel is caught or missed by the pixel's one
+     ray as it moves, which is a sparkle. So none is drawn smaller than
+     about a pixel across: a smaller one is drawn that size and that much
+     fainter, keeping the share of the pixel it really covers. Near the
+     edge of the drawing range they fade the same way rather than
+     shrinking, which would only make more sparkles. */
+  float d0 = length(base + vec3(0.0, aTree.w * 0.5, 0.0));
+  float grow = max(1.0, 0.9 / max(aTree.z / (d0 * uPixelAngle), 1e-4));
+  float r = aTree.z * grow, h = aTree.w * grow;
+  vCover = (1.0 - smoothstep(uTreeFar * 0.75, uTreeFar, length(rel))) / (grow * grow);
   vec3 mid = base + vec3(0.0, h * 0.5, 0.0);
   /* the card is the tree's bounding cylinder seen from here, a little
      generous for perspective, and no bigger: overlapping cards are what
@@ -474,6 +502,7 @@ flat in vec3 vAlb;
 flat in vec3 vIns;
 flat in vec3 vT;
 flat in float vShadow;
+flat in float vCover;
 uniform mat4 uViewProj;
 uniform vec3 uEye;
 uniform vec3 uSun;
@@ -481,6 +510,8 @@ uniform vec3 uSunE;
 uniform vec3 uSkyE;
 uniform float uExposure;
 uniform float uPixelAngle;
+/* in the video's averaged frames: which sub-frame this is, of how many */
+uniform vec2 uSub;
 out vec4 outColor;
 ${TREE_HIT}
 ${TREE_SHADOW}
@@ -508,12 +539,17 @@ void main() {
   } else {
     /* tufts two metres across, lit and shaded; a crown seen from a
        hundred metres is a dark mass with bright tops, not a bumpy ball.
-       Once a pixel covers most of a tuft, they are left out. */
+       Each size of tuft fades out as a pixel grows to half of it, so
+       none flickers as the camera moves: the finest (half a metre)
+       first, the largest last. */
     float n1 = 0.6, n2 = 0.5;
-    if (best * uPixelAngle < 0.8) {
+    float px = best * uPixelAngle;
+    if (px < 1.0) {
+      float k1 = 1.0 - smoothstep(0.35, 0.7, px);
       vec3 bump = vec3(vnoise(wp * 0.8 + 1.3), vnoise(wp * 0.8 + 5.2), vnoise(wp * 0.8 + 9.1)) - 0.5;
-      N = normalize(N + bump * 0.6);
-      n1 = vnoise(wp * 0.55 + 3.0); n2 = vnoise(wp * 1.9 + 7.7);
+      N = normalize(N + bump * 0.6 * k1);
+      n1 = mix(0.6, vnoise(wp * 0.55 + 3.0), 1.0 - smoothstep(0.5, 1.0, px));
+      n2 = mix(0.5, vnoise(wp * 1.9 + 7.7), 1.0 - smoothstep(0.12, 0.26, px));
     }
     float yr = (P.y - (vBase.y + h - ch)) / ch;
     ao = mix(0.22, 1.0, smoothstep(-1.0, 0.75, yr)) * (id == 0 ? 0.75 : 1.0) * (0.55 + 0.45 * n1);
@@ -523,7 +559,9 @@ void main() {
     vec3 tint = vec3(1.0 + 0.22 * (s1 - 0.5), 1.0 + 0.1 * (s2 - 0.5), 1.0 - 0.16 * (s1 - 0.5));
     alb = vAlb * 1.45 * tint * (0.8 + 0.4 * n2);
   }
-  float sh = vShadow * treeShadow(P);
+  /* the map is looked up a metre out along the surface, so a crown does
+     not shadow itself where its own curve crosses the map's texels */
+  float sh = vShadow * treeShadow(P + N * 1.0);
   float ndl = dot(N, uSun);
   float lit = max((ndl + 0.15) / 1.15, 0.0);
   vec3 col = alb * (uSunE * lit * sh * (0.35 + 0.65 * ao) + uSkyE * ao * ao * (0.35 + 0.65 * max(N.y, 0.0))) * 0.3183099;
@@ -532,7 +570,17 @@ void main() {
   col = col * vT + vIns;
   vec4 clip = uViewProj * vec4(P, 1.0);
   gl_FragDepth = clip.z / clip.w * 0.5 + 0.5;
-  float alpha = clamp(q / max(fwidth(q) * 1.2, 1e-4), 0.0, 1.0);
+  /* A crown drawn at part strength: live, a partial alpha, which the GPU
+     turns into a fixed dither of its samples; in the averaged video, the
+     whole crown in that share of the sub-frames (each tree its own offset
+     into them), which averages to a clean part strength instead of a
+     stipple. */
+  float cover = vCover;
+  if (uSub.y > 1.0) {
+    if (fract(vTree.z * 7.31 + uSub.x / uSub.y) >= cover) discard;
+    cover = 1.0;
+  }
+  float alpha = clamp(q / max(fwidth(q) * 1.2, 1e-4), 0.0, 1.0) * cover;
   outColor = vec4(col * uExposure, alpha);
 }
 `;
@@ -608,6 +656,7 @@ uniform vec3 uSunC;
 uniform vec3 uAmbTop;
 uniform vec3 uAmbBot;
 uniform float uExposure;
+uniform float uFrame;
 out vec4 outColor;
 ${ATMOS}
 ${CLOUD}
@@ -672,8 +721,9 @@ void main() {
   float dt = clamp((t1 - t0) / 64.0, 30.0, 320.0);
   /* each pixel starts its march at a different fraction of a step
      (interleaved gradient noise), which turns step banding into a fine
-     grain the upsample then softens */
-  float t = t0 + dt * fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+     grain the upsample then softens; the video averages many frames with
+     the pattern moved on each, which removes the grain altogether */
+  float t = t0 + dt * fract(52.9829189 * fract(dot(gl_FragCoord.xy + 5.588238 * uFrame, vec2(0.06711056, 0.00583715))));
   float T = 1.0;
   vec3 L = vec3(0.0);
   float tw = 0.0, wsum = 0.0;
@@ -729,7 +779,9 @@ void main() {
   vec4 c = texture(uCloud, vUv) * 0.25
     + (texture(uCloud, vUv + vec2(px.x, 0.0)) + texture(uCloud, vUv - vec2(px.x, 0.0)) + texture(uCloud, vUv + vec2(0.0, px.y)) + texture(uCloud, vUv - vec2(0.0, px.y))) * 0.125
     + (texture(uCloud, vUv + px) + texture(uCloud, vUv - px) + texture(uCloud, vUv + vec2(px.x, -px.y)) + texture(uCloud, vUv + vec2(-px.x, px.y))) * 0.0625;
-  outColor = vec4(texture(uScene, vUv).rgb * c.a + c.rgb, 1.0);
+  /* max() also turns a NaN into 0 on these GPUs: one bad pixel must not
+     reach the bloom, which spreads it into a glowing dot */
+  outColor = vec4(max(texture(uScene, vUv).rgb, 0.0) * clamp(c.a, 0.0, 1.0) + max(c.rgb, 0.0), 1.0);
 }
 `;
 
@@ -853,12 +905,18 @@ void main() {
   vec3 f = texture(uSrc, vUv + uTexel * vec2(-2.0, 0.0)).rgb, g = texture(uSrc, vUv).rgb, h = texture(uSrc, vUv + uTexel * vec2(2.0, 0.0)).rgb;
   vec3 i = texture(uSrc, vUv + uTexel * vec2(-1.0, 1.0)).rgb, j = texture(uSrc, vUv + uTexel * vec2(1.0, 1.0)).rgb;
   vec3 k = texture(uSrc, vUv + uTexel * vec2(-2.0, 2.0)).rgb, l = texture(uSrc, vUv + uTexel * vec2(0.0, 2.0)).rgb, m = texture(uSrc, vUv + uTexel * vec2(2.0, 2.0)).rgb;
-  vec3 s = (d + e + i + j) * 0.125 + (a + b + f + g) * 0.03125 + (b + c + g + h) * 0.03125 + (f + g + k + l) * 0.03125 + (g + h + l + m) * 0.03125;
+  vec3 g0 = (d + e + i + j) * 0.25, g1 = (a + b + f + g) * 0.25, g2 = (b + c + g + h) * 0.25, g3 = (f + g + k + l) * 0.25, g4 = (g + h + l + m) * 0.25;
+  vec3 s;
   if (uFirst > 0.5) {
-    float lum = dot(s, vec3(0.2126, 0.7152, 0.0722));
+    /* each group weighted by 1/(1+brightness) (Karis 2014), so a white
+       roof a pixel across does not flare and flicker as it moves */
+    vec3 L = vec3(0.2126, 0.7152, 0.0722);
+    float w0 = 0.5 / (1.0 + dot(g0, L)), w1 = 0.125 / (1.0 + dot(g1, L)), w2 = 0.125 / (1.0 + dot(g2, L)), w3 = 0.125 / (1.0 + dot(g3, L)), w4 = 0.125 / (1.0 + dot(g4, L));
+    s = (g0 * w0 + g1 * w1 + g2 * w2 + g3 * w3 + g4 * w4) / (w0 + w1 + w2 + w3 + w4);
+    float lum = dot(s, L);
     s *= max(lum - 1.2, 0.0) / max(lum, 1e-4);
     s = min(s, vec3(60.0));
-  }
+  } else s = g0 * 0.5 + (g1 + g2 + g3 + g4) * 0.125;
   outColor = vec4(s, 1.0);
 }
 `;
@@ -877,6 +935,17 @@ void main() {
     + 4.0 * texture(uSrc, vUv).rgb;
   outColor = vec4(s / 16.0, 1.0);
 }
+`;
+
+/* One sub-frame's share of a video frame: the scene, scaled, added
+   (blended) onto the sum. */
+const ACCUM_FS = /* glsl */ `#version 300 es
+precision highp float;
+in vec2 vUv;
+uniform sampler2D uSrc;
+uniform float uWeight;
+out vec4 outColor;
+void main() { outColor = vec4(texture(uSrc, vUv).rgb * uWeight, 1.0); }
 `;
 
 const FINAL_FS = /* glsl */ `#version 300 es
@@ -930,6 +999,36 @@ void main() {
   float lum = dot(o, vec3(0.2126, 0.7152, 0.0722));
   o += (hash(gl_FragCoord.xy + uSeed * 97.0) - 0.5) * uGrain * (1.0 - abs(lum * 2.0 - 1.0) * 0.6);
   outColor = vec4(clamp(o, 0.0, 1.0), 1.0);
+}
+`;
+
+/* The ground nearer than uMaxDist, as a plain mask: what the ending's
+   trace follows (ValleyRenderer.outline). */
+const MASK_FS = /* glsl */ `#version 300 es
+precision highp float;
+in vec3 vRel;
+uniform float uMaxDist;
+out vec4 outColor;
+void main() {
+  if (dot(vRel.xz, vRel.xz) > uMaxDist * uMaxDist) discard;
+  outColor = vec4(1.0);
+}
+`;
+
+/* For each column of the mask, how many rows down from the top the
+   ground begins; -1 where there is none. */
+const REDUCE_FS = /* glsl */ `#version 300 es
+precision highp float;
+uniform sampler2D uMask;
+uniform int uRows;
+out vec4 outColor;
+void main() {
+  int x = int(gl_FragCoord.x);
+  float top = -1.0;
+  for (int y = uRows - 1; y >= 0; y--) {
+    if (texelFetch(uMask, ivec2(x, y), 0).r > 0.5) { top = float(uRows - 1 - y); break; }
+  }
+  outColor = vec4(top, 0.0, 0.0, 1.0);
 }
 `;
 
@@ -1113,6 +1212,7 @@ export class ValleyRenderer {
   private frame = 0;
   private aniso: number;
   private anisoExt: EXT_texture_filter_anisotropic | null;
+  private floatBlend: boolean;
   private msaa: { fb: WebGLFramebuffer; rb: WebGLRenderbuffer; depth: WebGLRenderbuffer; w: number; h: number } | null = null;
   private scene: Target | null = null;
   private blooms: Target[] = [];
@@ -1127,7 +1227,19 @@ export class ValleyRenderer {
   private shadowP: Prog;
   private shadowFb: WebGLFramebuffer;
   private shadowTex: WebGLTexture;
-  private static SHADOW = 2048;
+  /* The trees' shadow map: 4096 texels over a fixed 4 km square, a metre
+     a texel. Fixed, because a map that grew and shrank with the camera's
+     height redrew every shadow at a new scale each frame, and a thousand
+     small shadows redrawn that way shimmer. */
+  private static SHADOW = 4096;
+  private static SHADOW_HALF = 2048;
+  private static SHADOW_DEPTH = 3000;
+  /** 0.8 m along the sunlight, in the map's depth units */
+  private static SHADOW_BIAS = 0.8 / (2 * 3000);
+  private accumP: Prog;
+  private accT: Target | null = null;
+  private maskP: Prog | null = null;
+  private reduceP: Prog | null = null;
   private cloudP: Prog;
   private compP: Prog;
   private noiseTex: WebGLTexture;
@@ -1158,6 +1270,8 @@ export class ValleyRenderer {
     this.look = look;
     this.available = new Set(available);
     this.anisoExt = gl.getExtension("EXT_texture_filter_anisotropic");
+    /* a 32-bit sum must be blended into and then read back filtered */
+    this.floatBlend = !!gl.getExtension("EXT_float_blend") && !!gl.getExtension("OES_texture_float_linear");
     this.aniso = this.anisoExt ? Math.min(16, gl.getParameter(this.anisoExt.MAX_TEXTURE_MAX_ANISOTROPY_EXT)) : 1;
     this.terrain = compile(gl, TERRAIN_VS, TERRAIN_FS);
     this.sky = compile(gl, FULL_VS, SKY_FS);
@@ -1174,6 +1288,7 @@ export class ValleyRenderer {
     this.treeP = compile(gl, TREE_VS, TREE_FS);
     this.cloudP = compile(gl, FULL_VS, CLOUD_FS);
     this.compP = compile(gl, FULL_VS, COMPOSITE_FS);
+    this.accumP = compile(gl, FULL_VS, ACCUM_FS);
     const N = 64;
     this.noiseTex = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_3D, this.noiseTex);
@@ -1194,8 +1309,12 @@ export class ValleyRenderer {
     this.shadowTex = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, this.shadowTex);
     gl.texStorage2D(gl.TEXTURE_2D, 1, gl.DEPTH_COMPONENT32F, ValleyRenderer.SHADOW, ValleyRenderer.SHADOW);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    /* compared, then filtered: each lookup is four texels' verdicts
+       blended by distance (TREE_SHADOW) */
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     this.shadowFb = gl.createFramebuffer()!;
@@ -1258,20 +1377,21 @@ export class ValleyRenderer {
    * map's own texels, so as the camera flies the shadows stay put rather
    * than crawling.
    */
-  private lightMatrix(view: View, halfSize: number) {
+  private lightMatrix(view: View) {
+    const halfSize = ValleyRenderer.SHADOW_HALF;
     const L = this.look.sun;
     const f: V3 = [-L[0], -L[1], -L[2]];
     const r = norm(cross(f, [0, 1, 0]));
     const u = cross(r, f);
     const fl = Math.hypot(view.fwd[0], view.fwd[2]) || 1;
-    const k = halfSize * 0.45;
+    const k = halfSize * 0.5;
     const cw: V3 = [view.eye[0] + (view.fwd[0] / fl) * k, 0, view.eye[2] + (view.fwd[2] / fl) * k];
     cw[1] = this.ground(cw[0], cw[2]);
     const texel = (2 * halfSize) / ValleyRenderer.SHADOW;
     const a = cw[0] * r[0] + cw[1] * r[1] + cw[2] * r[2], b = cw[0] * u[0] + cw[1] * u[1] + cw[2] * u[2];
     const da = Math.round(a / texel) * texel - a, db = Math.round(b / texel) * texel - b;
     const C: V3 = [cw[0] + r[0] * da + u[0] * db - view.eye[0], cw[1] + r[1] * da + u[1] * db - view.eye[1], cw[2] + r[2] * da + u[2] * db - view.eye[2]];
-    const Dz = 1500;
+    const Dz = ValleyRenderer.SHADOW_DEPTH;
     const d = (v: V3) => v[0] * C[0] + v[1] * C[1] + v[2] * C[2];
     const m = new Float32Array(16);
     m[0] = r[0] / halfSize; m[4] = r[1] / halfSize; m[8] = r[2] / halfSize; m[12] = -d(r) / halfSize;
@@ -1499,9 +1619,11 @@ export class ValleyRenderer {
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, dtex, 0);
     gl.drawBuffers([gl.NONE]);
     this.depthT = { fb: dfb, tex: dtex };
-    for (const t of [this.cloudT, this.compT]) if (t) { gl.deleteFramebuffer(t.fb); gl.deleteTexture(t.tex); }
+    for (const t of [this.cloudT, this.compT, this.accT]) if (t) { gl.deleteFramebuffer(t.fb); gl.deleteTexture(t.tex); }
     this.cloudT = colorTarget(gl, Math.max(1, w >> 1), Math.max(1, h >> 1));
     this.compT = colorTarget(gl, w, h);
+    /* the video's sum of sub-frames: 32-bit where the GPU can blend it */
+    this.accT = colorTarget(gl, w, h, this.floatBlend ? gl.RGBA32F : gl.RGBA16F);
     this.blooms = [];
     let bw = w, bh = h;
     for (let i = 0; i < 6; i++) {
@@ -1510,19 +1632,24 @@ export class ValleyRenderer {
     }
   }
 
-  render(shot: Shot, lookahead: Shot[]) {
+  /**
+   * One moment of the film, drawn into compT in linear light, before the
+   * bloom and the tone curve: the trees' shadows, the ground, the trees,
+   * the sky, the clouds. `jitter` moves the frame by a fraction of a
+   * pixel and `seed` moves the clouds' noise, for the video's averaged
+   * sub-frames. Returns how many ground tiles it drew.
+   */
+  private drawScene(shot: Shot, jitter: [number, number], seed: number, sub: [number, number] = [0, 1]): number {
     const gl = this.gl;
-    this.frame++;
     const w = this.canvas.width, h = this.canvas.height;
     const aspect = w / h;
-    this.targets(w, h);
-    for (const s of lookahead) this.eachWanted(s, aspect, (t) => this.requestChain(t));
-    this.evict();
     const view = viewOf(shot, aspect);
     const ground = this.ground(view.eye[0], view.eye[2]);
     const above = Math.max(view.eye[1] - ground, 2);
     const near = Math.max(0.5, above * 0.25);
     const proj = perspective(view.fovY, aspect, near, 400000);
+    proj[8] += (2 * jitter[0]) / w;
+    proj[9] += (2 * jitter[1]) / h;
     const vp = mul(proj, viewRot(view));
     const ivp = invert(vp);
     const look = this.look;
@@ -1532,7 +1659,7 @@ export class ValleyRenderer {
     /* the trees in view, and their shadows, drawn from the sun first */
     const treeMax = Math.min(3800, 1900 + above * 0.9);
     const nTrees = this.gatherTrees(view, treeMax);
-    const light = this.lightMatrix(view, Math.min(2200, Math.max(800, 700 + above * 0.9)));
+    const light = this.lightMatrix(view);
     gl.bindVertexArray(this.treeVao);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.treeBuf);
     if (nTrees > 0) gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.treeScratch, 0, nTrees * 8);
@@ -1608,6 +1735,9 @@ export class ValleyRenderer {
     bind(5, this.shadowTex, "uTreeShadow");
     gl.uniformMatrix4fv(T.u("uLightMat"), false, light.m);
     gl.uniform1f(T.u("uShadowOn"), shadowOn);
+    gl.uniform1f(T.u("uShadowBias"), ValleyRenderer.SHADOW_BIAS);
+    gl.uniform1f(T.u("uLodAngle"), (2 * Math.tan((view.fovY * Math.PI) / 360)) / REF_HEIGHT_PX);
+    gl.uniform1i(T.u("uImgUp"), 9);
     gl.activeTexture(gl.TEXTURE6);
     gl.bindTexture(gl.TEXTURE_2D, this.coverTex);
     this.cloudUniforms(T);
@@ -1623,17 +1753,39 @@ export class ValleyRenderer {
       while (z > 8 && !this.exists(z, x, y)) { z--; x >>= 1; y >>= 1; }
       this.requestChain({ z, x, y });
     });
+    const texel = (z: number) => MERC_M / 2 ** z / 256;
     for (const [k, t] of drawn) {
       const e = this.tiles.get(`${t.z}/${t.x}/${t.y}`)!;
       e.used = this.frame;
       const r = tileRect(k.z, k.x, k.y);
-      /* the piece of the ancestor's photograph this tile covers */
+      /* the piece of the ancestor's photograph this tile covers, and of
+         the next ancestor up, which it hands over from (TERRAIN_FS) */
       const f = 2 ** (t.z - k.z);
+      gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, e.tex);
       gl.uniform3f(T.u("uTexXform"), k.x * f - t.x, k.y * f - t.y, f);
+      let up: TileTex | undefined, uz = t.z - 1, ux = t.x >> 1, uy = t.y >> 1;
+      for (; uz >= 8; uz--, ux >>= 1, uy >>= 1) {
+        up = this.tiles.get(`${uz}/${ux}/${uy}`);
+        if (up?.state === "ready") break;
+        up = undefined;
+      }
+      gl.activeTexture(gl.TEXTURE9);
+      if (up) {
+        up.used = this.frame;
+        const fu = 2 ** (uz - k.z);
+        gl.bindTexture(gl.TEXTURE_2D, up.tex);
+        gl.uniform3f(T.u("uTexXformUp"), k.x * fu - ux, k.y * fu - uy, fu);
+        gl.uniform2f(T.u("uTexel"), texel(t.z), texel(uz));
+      } else {
+        gl.bindTexture(gl.TEXTURE_2D, e.tex);
+        gl.uniform3f(T.u("uTexXformUp"), k.x * f - t.x, k.y * f - t.y, f);
+        gl.uniform2f(T.u("uTexel"), texel(t.z), 0);
+      }
       gl.uniform4f(T.u("uTile"), r.x0 - view.eye[0], r.z0 - view.eye[2], r.size, Math.min(r.size * 0.02 + 8, 400));
       gl.drawElements(gl.TRIANGLES, this.grid.count, gl.UNSIGNED_SHORT, 0);
     }
+    gl.activeTexture(gl.TEXTURE0);
 
     /* the trees */
     if (nTrees > 0) {
@@ -1662,6 +1814,8 @@ export class ValleyRenderer {
       gl.uniform1i(P.u("uTreeShadow"), 5);
       gl.uniformMatrix4fv(P.u("uLightMat"), false, light.m);
       gl.uniform1f(P.u("uShadowOn"), shadowOn);
+      gl.uniform1f(P.u("uShadowBias"), ValleyRenderer.SHADOW_BIAS);
+      gl.uniform2f(P.u("uSub"), sub[0], sub[1]);
       this.cloudUniforms(P);
       gl.bindVertexArray(this.treeVao);
       gl.enable(gl.SAMPLE_ALPHA_TO_COVERAGE);
@@ -1713,6 +1867,7 @@ export class ValleyRenderer {
     gl.uniform3fv(C.u("uSunC"), sunC);
     gl.uniform3fv(C.u("uAmbTop"), ambTop);
     gl.uniform3fv(C.u("uAmbBot"), ambBot);
+    gl.uniform1f(C.u("uFrame"), seed % 64);
     gl.activeTexture(gl.TEXTURE6);
     gl.bindTexture(gl.TEXTURE_2D, this.coverTex);
     gl.activeTexture(gl.TEXTURE7);
@@ -1737,6 +1892,14 @@ export class ValleyRenderer {
     gl.uniform1i(this.compP.u("uCloud"), 1);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
 
+    return drawn.length;
+  }
+
+  /** Bloom and tone, from a linear-light picture to the canvas. */
+  private post(from: Target) {
+    const gl = this.gl;
+    const w = this.canvas.width, h = this.canvas.height;
+    const look = this.look;
     /* bloom, tone */
     const pass = (p: Prog, src: Target, dst: Target | null, first = 0) => {
       gl.bindFramebuffer(gl.FRAMEBUFFER, dst ? dst.fb : null);
@@ -1750,7 +1913,7 @@ export class ValleyRenderer {
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
     gl.bindVertexArray(this.empty);
-    let src = this.compT!;
+    let src = from;
     for (let i = 0; i < this.blooms.length; i++) { pass(this.brightP, src, this.blooms[i], i === 0 ? 1 : 0); src = this.blooms[i]; }
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE);
@@ -1761,7 +1924,7 @@ export class ValleyRenderer {
     const F = this.finalP;
     gl.useProgram(F.p);
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.compT!.tex);
+    gl.bindTexture(gl.TEXTURE_2D, from.tex);
     gl.uniform1i(F.u("uScene"), 0);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, this.blooms[0].tex);
@@ -1772,32 +1935,116 @@ export class ValleyRenderer {
     gl.uniform1f(F.u("uGrain"), look.grain ?? 0);
     gl.uniform1f(F.u("uSeed"), this.frame % 61);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
-    return { tiles: drawn.length, loaded: this.tiles.size, inflight: this.inflight };
+  }
+
+  render(shot: Shot, lookahead: Shot[]) {
+    this.frame++;
+    const w = this.canvas.width, h = this.canvas.height;
+    this.targets(w, h);
+    for (const s of lookahead) this.eachWanted(s, w / h, (t) => this.requestChain(t));
+    this.evict();
+    const tiles = this.drawScene(shot, [0, 0], 0);
+    this.post(this.compT!);
+    return { tiles, loaded: this.tiles.size, inflight: this.inflight };
   }
 
   /**
-   * The skyline as this shot sees it: for each screen x (CSS pixels of a
-   * w x h frame), the screen y of the highest ground in that direction,
-   * with the earth's curve. What the mark is traced from.
+   * One frame of the video: several moments across the shutter's opening,
+   * each moved by a different fraction of a pixel (Halton 2, 3), averaged
+   * in linear light before the bloom and the tone curve, the way a
+   * camera's sensor averages what reaches it. That is the motion blur and
+   * the anti-aliasing in one: a crown or a roof edge smaller than a pixel
+   * lands as its true share of it instead of flickering frame to frame.
    */
-  skyline(shot: Shot, w: number, h: number, xs: number[]): number[] {
-    const view = viewOf(shot, w / h);
-    const tanY = Math.tan((view.fovY * Math.PI) / 360);
-    const tanX = tanY * (w / h);
-    return xs.map((sx) => {
-      const nx = (sx / w) * 2 - 1;
-      const dx = view.fwd[0] + view.right[0] * nx * tanX, dz = view.fwd[2] + view.right[2] * nx * tanX;
-      const l = Math.hypot(dx, dz);
-      const hx = dx / l, hz = dz / l;
-      let best = Infinity;
-      for (let s = 150; s < 16000; s *= 1.012) {
-        const px = view.eye[0] + hx * s, pz = view.eye[2] + hz * s;
-        const py = this.ground(px, pz) - sink(s);
-        const [, y] = ValleyRenderer.project(shot, w, h, [px, py, pz]);
-        if (y < best) best = y;
-      }
-      return best;
+  renderAveraged(moments: { shot: Shot; time: number }[]) {
+    const gl = this.gl;
+    this.frame++;
+    const w = this.canvas.width, h = this.canvas.height;
+    this.targets(w, h);
+    this.evict();
+    const acc = this.accT!;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, acc.fb);
+    gl.viewport(0, 0, w, h);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    const halton = (i: number, b: number) => { let f = 1, r = 0; for (; i > 0; i = Math.floor(i / b)) { f /= b; r += f * (i % b); } return r; };
+    let tiles = 0;
+    moments.forEach(({ shot, time }, i) => {
+      this.time = time;
+      tiles = this.drawScene(shot, [halton(i + 1, 2) - 0.5, halton(i + 1, 3) - 0.5], this.frame * 7 + i, [i, moments.length]);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, acc.fb);
+      gl.viewport(0, 0, w, h);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE);
+      gl.useProgram(this.accumP.p);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.compT!.tex);
+      gl.uniform1i(this.accumP.u("uSrc"), 0);
+      gl.uniform1f(this.accumP.u("uWeight"), 1 / moments.length);
+      gl.bindVertexArray(this.empty);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      gl.disable(gl.BLEND);
     });
+    this.post(acc);
+    return { tiles, loaded: this.tiles.size, inflight: this.inflight };
+  }
+
+  /**
+   * The outline of the ground within `maxDist` metres, exactly as this
+   * shot draws it: for each column of the canvas, how far down from the
+   * top the ground begins, in canvas pixels to a quarter of one (the
+   * mask is drawn four times as tall), NaN where there is no ground that
+   * near. The same tiles and heights the frame itself uses, so a line
+   * drawn along it sits on the rendered ridge and nowhere else.
+   */
+  outline(shot: Shot, maxDist: number): Float32Array {
+    const gl = this.gl;
+    const w = this.canvas.width, h = this.canvas.height, ROWS = 4, H = h * ROWS;
+    this.maskP ??= compile(gl, TERRAIN_VS, MASK_FS);
+    this.reduceP ??= compile(gl, FULL_VS, REDUCE_FS);
+    const mask = colorTarget(gl, w, H, gl.RGBA8);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, mask.fb);
+    gl.viewport(0, 0, w, H);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.BLEND);
+    const view = viewOf(shot, w / h);
+    const above = Math.max(view.eye[1] - this.ground(view.eye[0], view.eye[2]), 2);
+    const vp = mul(perspective(view.fovY, w / h, Math.max(0.5, above * 0.25), 400000), viewRot(view));
+    const M = this.maskP;
+    gl.useProgram(M.p);
+    gl.uniformMatrix4fv(M.u("uViewProj"), false, vp);
+    gl.uniform3fv(M.u("uEye"), view.eye);
+    gl.uniform4f(M.u("uRectIn"), this.inner.rect.x0, this.inner.rect.z0, this.inner.rect.size, this.inner.rect.px);
+    gl.uniform4f(M.u("uRectOut"), this.outer.rect.x0, this.outer.rect.z0, this.outer.rect.size, this.outer.rect.px);
+    gl.uniform1f(M.u("uMaxDist"), maxDist);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.demTex.inner);
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, this.demTex.outer);
+    gl.uniform1i(M.u("uDemIn"), 1);
+    gl.uniform1i(M.u("uDemOut"), 2);
+    gl.bindVertexArray(this.grid.vao);
+    selectTiles(view, ROOTS, this.range, this.exists, this.exists, maxZoomAt, (k) => {
+      const r = tileRect(k.z, k.x, k.y);
+      gl.uniform4f(M.u("uTile"), r.x0 - view.eye[0], r.z0 - view.eye[2], r.size, Math.min(r.size * 0.02 + 8, 400));
+      gl.drawElements(gl.TRIANGLES, this.grid.count, gl.UNSIGNED_SHORT, 0);
+    });
+    const col = colorTarget(gl, w, 1, gl.RGBA32F);
+    gl.viewport(0, 0, w, 1);
+    gl.useProgram(this.reduceP.p);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, mask.tex);
+    gl.uniform1i(this.reduceP.u("uMask"), 0);
+    gl.uniform1i(this.reduceP.u("uRows"), H);
+    gl.bindVertexArray(this.empty);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    const px = new Float32Array(w * 4);
+    gl.readPixels(0, 0, w, 1, gl.RGBA, gl.FLOAT, px);
+    for (const t of [mask, col]) { gl.deleteFramebuffer(t.fb); gl.deleteTexture(t.tex); }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return Float32Array.from({ length: w }, (_, i) => (px[i * 4] < 0 ? NaN : px[i * 4] / ROWS));
   }
 
   /** Where a world point lands on screen, in CSS pixels of a w x h frame. */

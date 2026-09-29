@@ -14,8 +14,13 @@
  *    imagery/<z>/<x>/<y>.jpg        Esri World Imagery tiles, exactly the
  *        ones the film's camera asks for: the room's own tile rule
  *        (_geo.ts selectTiles) run over every frame of _flight.ts, for
- *        a landscape and a portrait frame
- *    imagery.json                   the list of tiles present
+ *        a landscape and a portrait frame. From Esri's Wayback archive,
+ *        release RELEASE below, not the live service: the live imagery
+ *        took a new capture in May 2026 with clouds over Madanapalle,
+ *        which the film showed as white smudges on the ground. The
+ *        release before it is the same photograph over the campus, the
+ *        road and the hills, and clear over the town.
+ *    imagery.json                   the list of tiles present, and the release
  *
  *  Run: node scripts/dev/valley-film.mjs [--dry]
  *  Re-run after changing the flight: tiles already on disk are kept, so
@@ -24,7 +29,7 @@
  *  The imagery's licence is not settled for a public page; see
  *  docs/planning/valley/storyboard.md. Hence the gitignore.
  * ------------------------------------------------------------------ */
-import { mkdirSync, writeFileSync, existsSync, readFileSync, statSync } from "node:fs";
+import { mkdirSync, writeFileSync, existsSync, readFileSync, statSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
@@ -157,12 +162,21 @@ for (const [z] of list) byZoom[z] = (byZoom[z] ?? 0) + 1;
 console.log(`imagery: ${list.length} tiles`, byZoom);
 if (DRY) process.exit(0);
 
+/* Wayback release 2026-02-26 (the archive's ids are not dates; the list is
+   at config.maptiles.arcgis.com/waybackconfig.json). Tiles on disk from
+   another release are thrown away and fetched again. */
+const RELEASE = 64001;
+const index = join(OUT, "imagery.json");
+if (existsSync(index) && JSON.parse(readFileSync(index, "utf8")).release !== RELEASE) {
+  rmSync(join(OUT, "imagery"), { recursive: true, force: true });
+  console.log(`imagery on disk is another release; fetching all of it from ${RELEASE}`);
+}
 const have = [];
 let fetched = 0, blank = 0;
 await pool(list, 6, async ([z, x, y]) => {
   const file = join(OUT, "imagery", `${z}`, `${x}`, `${y}.jpg`);
   if (existsSync(file) && statSync(file).size > 0) { have.push([z, x, y]); return; }
-  const buf = await fetchRetry(`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`);
+  const buf = await fetchRetry(`https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/${RELEASE}/${z}/${y}/${x}`);
   /* The server answers "no imagery here" with a small flat-grey tile
      reading "Map data not yet available" (2.5 KB, grey 204). Size alone
      cannot tell it from a tile of solid cloud, so it is told by colour. */
@@ -201,8 +215,9 @@ for (let z = 17; z >= 8; z--) {
 }
 console.log(`\nrebuilt ${rebuilt} coarser tiles from their children`);
 have.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
-writeFileSync(join(OUT, "imagery.json"), JSON.stringify({
-  source: "Esri World Imagery (Maxar and others); lab only, licence unsettled for a public page",
+writeFileSync(index, JSON.stringify({
+  source: "Esri World Imagery Wayback (Maxar and others); lab only, licence unsettled for a public page",
+  release: RELEASE,
   tiles: have.map(([z, x, y]) => `${z}/${x}/${y}`),
 }) + "\n");
 

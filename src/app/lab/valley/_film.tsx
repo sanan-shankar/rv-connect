@@ -20,26 +20,33 @@ import Image from "next/image";
 import Link from "next/link";
 import { PEAK_PLANES, Wordmark } from "@/components/layout/peaks-mark";
 import { HERO_IMAGE_BLUR, HERO_IMAGE_SRC } from "@/components/landing/hero-photo";
-import { cameraAt, PEAKS, sink, toWorld, type Shot } from "./_geo";
+import { cameraAt, PEAKS, toWorld, type Shot } from "./_geo";
 import { FLIGHT, DURATION } from "./_flight";
 import { ValleyRenderer, loadDem, type DemRect, type Look } from "./_film-gl";
 
 const BASE = "/lab/valley/film";
 
 /* The ending, in film seconds after the camera comes to rest at DURATION:
-   the ridge is traced; the traced shape fills white, the mark cut from the
-   real skyline; it peels off to the corner, becoming the mark exactly as
-   it shrinks; the hill-shaped hole it leaves shows the landing page's
-   photograph; the hole opens until we are through it; the words arrive. */
+   a line traces the three hills' outline from foot to foot; the shape it
+   closes fills as frosted glass; it lifts off to the corner, shrinking,
+   and becomes the drawn mark on the way, landing as the wordmark's own;
+   the hill-shaped hole it leaves shows the landing page's photograph,
+   which opens until we are through it; the words arrive. */
 const H = DURATION;
-const TRACE = [H + 0.2, H + 1.4] as const;
-const FILL = [H + 1.3, H + 1.65] as const;
-const LIFT = [H + 1.8, H + 2.85] as const;
-const HOLE = [H + 1.8, H + 2.2] as const;
-const ENTER = [H + 2.45, H + 3.75] as const;
-const NAME = [H + 2.6, H + 3.2] as const;
-const WORDS = [H + 3.5, H + 4.5] as const;
-export const END = H + 4.6;
+const TRACE = [H + 0.25, H + 1.65] as const;
+const FILL = [H + 1.5, H + 1.9] as const;
+const LIFT = [H + 2.0, H + 3.3] as const;
+/* the photograph shows in the hole only once the glass has lifted clear
+   of it; under the glass it would blur into a green blot */
+const HOLE = [H + 2.3, H + 2.7] as const;
+const ENTER = [H + 2.75, H + 4.05] as const;
+const NAME = [H + 3.0, H + 3.5] as const;
+const WORDS = [H + 3.85, H + 4.85] as const;
+export const END = H + 4.95;
+/** The outline is of the ground this near, which is the three hills and
+ *  the foothills at their feet but not the ridges behind them (Bodikonda,
+ *  the farthest, is 6.6 km off). */
+const OUTLINE_M = 7000;
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const span = (t: number, [a, b]: readonly [number, number]) => clamp01((t - a) / (b - a));
@@ -103,15 +110,26 @@ function inside(pts: [number, number][], x: number, y: number) {
   return c;
 }
 
-/** Least squares for v = a*u + b. */
-function fit(us: number[], vs: number[]): [number, number] {
-  const n = us.length;
-  const mu = us.reduce((s, v) => s + v, 0) / n, mv = vs.reduce((s, v) => s + v, 0) / n;
-  let num = 0, den = 0;
-  for (let i = 0; i < n; i++) { num += (us[i] - mu) * (vs[i] - mv); den += (us[i] - mu) ** 2; }
-  const a = den ? num / den : 1;
-  return [a, mv - a * mu];
+/** A Gaussian blur of a row of numbers, NaN-free in and out. */
+function smooth(v: Float64Array, sigma: number): Float64Array {
+  const r = Math.ceil(sigma * 3);
+  const k = Array.from({ length: 2 * r + 1 }, (_, i) => Math.exp(-((i - r) ** 2) / (2 * sigma * sigma)));
+  return v.map((_, i) => {
+    let s = 0, n = 0;
+    for (let j = -r; j <= r; j++) {
+      const x = Math.min(v.length - 1, Math.max(0, i + j));
+      s += v[x] * k[j + r]; n += k[j + r];
+    }
+    return s / n;
+  });
 }
+
+/** Linear interpolation along a polyline sampled at x = 0.5, 1.5, ... */
+const at = (v: Float64Array, x: number) => {
+  const f = Math.min(v.length - 1, Math.max(0, x - 0.5));
+  const i = Math.min(v.length - 2, Math.floor(f));
+  return v[i] + (v[i + 1] - v[i]) * (f - i);
+};
 
 type Phase = "loading" | "failed" | "playing" | "paused";
 
@@ -119,6 +137,7 @@ export function ValleyFilm() {
   const canvas = useRef<HTMLCanvasElement>(null);
   const markSvg = useRef<SVGSVGElement>(null);
   const markLine = useRef<SVGPolylineElement>(null);
+  const markTip = useRef<SVGCircleElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const glass = useRef<HTMLDivElement>(null);
   const rim = useRef<SVGPathElement>(null);
@@ -148,83 +167,140 @@ export function ValleyFilm() {
     let raf = 0;
     const mark = sampleMark();
     /* The ending's geometry, worked out once when the camera has come to
-       rest: where the mark sits on the real hills, the real ridge in the
-       mark's own units, and how far the hole must open to clear the frame. */
+       rest: the hills' outline as the frame draws it, the shape it closes
+       matched point for point to the mark's own, and how far the hole
+       must open to clear the frame. */
     type Geo = {
       w: number; h: number;
-      pose: [number, number, number, number];
-      realRidge: number[];
-      hole: [number, number][];
+      /** the outline, foot to foot, CSS pixels */
+      line: [number, number][];
+      /** the closed shape on the hills, point for point with the mark's
+       *  outline (cap0, ridge, cap1), and both in their own frames: centred
+       *  on their boxes and divided by their widths, so one can become the
+       *  other while the frame flies */
+      real: [number, number][];
+      realN: [number, number][];
+      markN: [number, number][];
+      /** the real shape's centre and width on screen */
+      frame: [number, number, number];
       anchor: [number, number];
       open: number;
-      /** where the wordmark's own mark sits: the flight's destination */
+      /** the wordmark's own mark: centre, and pixels per mark width, x and y */
       target: [number, number, number, number] | null;
     };
     let geo: Geo | null = null;
-    const toScreen = (pose: Geo["pose"], [x, y]: [number, number]): [number, number] => [pose[0] * x + pose[2], pose[1] * y + pose[3]];
-    const shape = (g: Geo, morph: number, pose: Geo["pose"]) => {
-      const ridge = mark.ridge.map(([x, y], i) => [x, g.realRidge[i] + (y - g.realRidge[i]) * morph] as [number, number]);
-      return [...mark.cap0, ...ridge, ...mark.cap1].map((p) => toScreen(pose, p));
-    };
+    const markPts = [...mark.cap0, ...mark.ridge, ...mark.cap1];
+    const MARK_W = 1106; // the silhouette spans x -98 to 1008 (PEAK_SPAN)
+    const markBox = (() => {
+      const ys = markPts.map((p) => p[1]);
+      return [455, (Math.min(...ys) + Math.max(...ys)) / 2] as [number, number];
+    })();
     const measure = (r: ValleyRenderer, shot: Shot, w: number, h: number): Geo => {
+      /* the outline, one value per CSS pixel column, blurred by two pixels:
+         smooth, and still on the ridge to within a pixel */
+      const raw = r.outline(shot, OUTLINE_M);
+      const dpr = raw.length / w;
+      const ys = new Float64Array(w);
+      for (let x = 0; x < w; x++) {
+        let sum = 0, n = 0;
+        for (let c = Math.floor(x * dpr); c < Math.max(Math.floor(x * dpr) + 1, Math.floor((x + 1) * dpr)); c++) {
+          const v = raw[Math.min(raw.length - 1, c)];
+          if (Number.isFinite(v)) { sum += v; n++; }
+        }
+        ys[x] = n ? sum / n / dpr : NaN;
+      }
+      for (let x = 1; x < w; x++) if (!Number.isFinite(ys[x])) ys[x] = ys[x - 1];
+      for (let x = w - 2; x >= 0; x--) if (!Number.isFinite(ys[x])) ys[x] = ys[x + 1];
+      const sm = smooth(ys, 2);
+      /* the three summits: the outline's highest point near where each
+         hill's top projects */
       const tops = PEAKS.map((p) => {
         const [x, z] = toWorld(p.lat, p.lon);
-        return ValleyRenderer.project(shot, w, h, [x, r.ground(x, z), z]);
-      });
-      const [ax, bx] = fit(mark.tops.map((p) => p[0]), tops.map((p) => p[0]));
-      const xs = mark.ridge.map(([x]) => ax * x + bx);
-      const sky = r.skyline(shot, w, h, xs);
-      const topY = tops.map(([x]) => {
-        let best = Infinity;
-        mark.ridge.forEach(([mx], i) => { if (Math.abs(ax * mx + bx - x) < 10) best = Math.min(best, sky[i]); });
+        const px = Math.round(ValleyRenderer.project(shot, w, h, [x, r.ground(x, z), z])[0]);
+        const R = Math.round(w * 0.04);
+        let best = Math.min(w - 1, Math.max(0, px));
+        for (let i = Math.max(0, px - R); i <= Math.min(w - 1, px + R); i++) if (sm[i] < sm[best]) best = i;
         return best;
-      });
-      /* Vertically the mark is pinned at two places: its middle summit on
-         Middle Peak's, and its base bar on the hills' foot, where the
-         valley floor meets the nearest of them. A fit to the three
-         summits alone put the base halfway up the hills, because the
-         drawn mark is taller than the real ones look. */
-      const [rx, rz] = toWorld(PEAKS[2].lat, PEAKS[2].lon);
-      const fx = shot.eye[0] + (rx - shot.eye[0]) * 0.8, fz = shot.eye[2] + (rz - shot.eye[2]) * 0.8;
-      const footY = ValleyRenderer.project(shot, w, h, [fx, r.ground(fx, fz) - sink(Math.hypot(fx - shot.eye[0], fz - shot.eye[2])), fz])[1];
-      const ay = (footY - topY[1]) / (369 - mark.tops[1][1]);
-      const by = topY[1] - ay * mark.tops[1][1];
-      const pose: Geo["pose"] = [ax, ay, bx, by];
-      /* The real ridge in the mark's units. Past the outer summits the
-         skyline stays high (more hills carry on), where the mark's flanks
-         slope away to its base; so over the outer quarter each side the
-         real line hands over to the mark's own, and the shape closes the
-         way the mark does instead of in two cliffs. */
-      const lo = mark.tops[0][0], hi = mark.tops[2][0];
-      const realRidge = mark.ridge.map(([mx, my], i) => {
-        const real = Math.min((sky[i] - by) / ay, 369);
-        const k = mx < lo ? (mx - (lo - 260)) / 260 : mx > hi ? (hi + 170 - mx) / 170 : 1;
-        const e = k <= 0 ? 0 : k >= 1 ? 1 : k * k * (3 - 2 * k);
-        return my + (real - my) * e;
-      });
+      }).sort((a, b) => a - b);
+      /* The feet: walking out from the outer summits, the last point where
+         the outline was still falling faster than one pixel in twelve;
+         past it is the plain, or the next hill rising. */
+      const foot = (from: number, dir: number) => {
+        let low = from;
+        for (let i = from + dir; i >= 0 && i < w; i += dir) {
+          if (sm[i] > sm[low] + 0.08 * Math.abs(i - low)) low = i;
+          else if (sm[low] - sm[i] > h * 0.025) break;
+        }
+        return low;
+      };
+      const left = foot(tops[0], -1), right = foot(tops[2], 1);
+      const line: [number, number][] = [];
+      for (let x = left; x <= right; x++) line.push([x + 0.5, sm[x]]);
+      const base = (x: number) => sm[left] + ((sm[right] - sm[left]) * (x - left - 0.5)) / Math.max(1, right - left);
+      /* the mark's outline carried onto the real one: its ends to the feet,
+         its three summits to the real three, and in between by x */
+      const mk = [-70, mark.tops[0][0], mark.tops[1][0], mark.tops[2][0], 980];
+      const rk = [left + 0.5, tops[0] + 0.5, tops[1] + 0.5, tops[2] + 0.5, right + 0.5];
+      const mapX = (mx: number) => {
+        if (mx <= mk[0]) return rk[0];
+        if (mx >= mk[4]) return rk[4];
+        let k = 0;
+        while (k < 3 && mx > mk[k + 1]) k++;
+        return rk[k] + ((rk[k + 1] - rk[k]) * (mx - mk[k])) / (mk[k + 1] - mk[k]);
+      };
+      const real: [number, number][] = [
+        ...mark.cap0.map(() => [rk[0], sm[left]] as [number, number]),
+        ...mark.ridge.map(([mx]) => { const x = mapX(mx); return [x, at(sm, x)] as [number, number]; }),
+        ...mark.cap1.map(([mx, my]) => {
+          if (my < 389) return [rk[4], sm[right]] as [number, number];
+          const x = mapX(mx);
+          return [x, base(x)] as [number, number];
+        }),
+      ];
+      const top = Math.min(...real.map((p) => p[1])), bottom = Math.max(...real.map((p) => p[1]));
+      const frame: Geo["frame"] = [(rk[0] + rk[4]) / 2, (top + bottom) / 2, rk[4] - rk[0]];
+      const realN = real.map(([x, y]) => [(x - frame[0]) / frame[2], (y - frame[1]) / frame[2]] as [number, number]);
+      const markN = markPts.map(([x, y]) => [(x - markBox[0]) / MARK_W, (y - markBox[1]) / MARK_W] as [number, number]);
       const brandMark = brand.current?.querySelector("svg") as SVGSVGElement | null;
       let target: Geo["target"] = null;
       if (brandMark) {
         const rect = brandMark.getBoundingClientRect(), vb = brandMark.viewBox.baseVal;
         const tax = rect.width / vb.width, tay = rect.height / vb.height;
-        target = [tax, tay, rect.left - vb.x * tax, rect.top - vb.y * tay];
+        target = [rect.left + (markBox[0] - vb.x) * tax, rect.top + (markBox[1] - vb.y) * tay, MARK_W * tax, MARK_W * tay];
       }
-      const g: Geo = { w, h, pose, realRidge, hole: [], anchor: [0, 0], open: 1, target };
-      g.hole = shape(g, 0, pose);
-      /* open about the middle of the hills: halfway between Middle Peak's
-         summit and the foot, so the way in grows evenly every way */
-      const mid = toScreen(pose, [mark.tops[1][0], (mark.tops[1][1] + 369) / 2 + 40]);
-      g.anchor = mid;
+      /* the way in opens about the middle of the hills: halfway between
+         Middle Peak's summit and the line between the feet */
+      const mx = tops[1] + 0.5;
+      const anchor: [number, number] = [mx, (sm[tops[1]] + base(mx)) / 2];
       const probes: [number, number][] = [[0, 0], [w, 0], [0, h], [w, h], [w / 2, 0], [w / 2, h], [0, h / 2], [w, h / 2]];
       let open = 1;
-      while (open < 400 && !probes.every(([x, y]) => inside(g.hole, mid[0] + (x - mid[0]) / open, mid[1] + (y - mid[1]) / open))) open *= 1.04;
-      g.open = open * 1.05;
-      return g;
+      while (open < 400 && !probes.every(([x, y]) => inside(real, anchor[0] + (x - anchor[0]) / open, anchor[1] + (y - anchor[1]) / open))) open *= 1.04;
+      return { w, h, line, real, realN, markN, frame, anchor, open: open * 1.05, target };
+    };
+    /** The shape at a point of its flight: u = 0 on the hills, 1 in the corner. */
+    const flying = (g: Geo, u: number): [number, number][] => {
+      if (u <= 0 || !g.target) return g.real;
+      /* It peels off quickly, easing in over the first tenth only, so it
+         is clear of the hole before the photograph shows through, and
+         lands gently. It becomes the mark as it shrinks, so it is the
+         mark, and small, well before it lands. */
+      const s = (u < 0.1 ? 5 * u * u : u - 0.05) / 0.95;
+      const fly = 1 - Math.pow(1 - s, 3);
+      const m = Math.min(1, Math.max(0, (fly - 0.05) / 0.8));
+      const morph = m * m * (3 - 2 * m);
+      const [tx, ty, tsx, tsy] = g.target;
+      const cx = g.frame[0] + (tx - g.frame[0]) * fly, cy = g.frame[1] + (ty - g.frame[1]) * fly;
+      const sx = Math.exp(Math.log(g.frame[2]) + (Math.log(tsx) - Math.log(g.frame[2])) * fly);
+      const sy = Math.exp(Math.log(g.frame[2]) + (Math.log(tsy) - Math.log(g.frame[2])) * fly);
+      return g.realN.map(([rx, ry], i) => {
+        const [mx, my] = g.markN[i];
+        return [cx + sx * (rx + (mx - rx) * morph), cy + sy * (ry + (my - ry) * morph)] as [number, number];
+      });
     };
 
     const overlay = (r: ValleyRenderer, time: number, shot: Shot) => {
       const w = window.innerWidth, h = window.innerHeight;
-      const svg = markSvg.current!, line = markLine.current!, logo = markFill.current!;
+      const svg = markSvg.current!, line = markLine.current!, tip = markTip.current!, logo = markFill.current!;
       svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
       if (time >= TRACE[0] && (!geo || geo.w !== w || geo.h !== h)) geo = measure(r, shot, w, h);
       if (time < TRACE[0]) geo = null;
@@ -242,30 +318,27 @@ export function ValleyFilm() {
         st.style.transform = "none";
       } else {
         const g = geo;
-        /* the trace: the real ridge, drawn left to right */
+        /* the trace: the hills' outline, drawn from the left foot to the
+           right, a bright point at the pen */
         const traced = easeInOut(span(time, TRACE));
-        const ridgePts = g.hole.slice(mark.cap0.length, mark.cap0.length + mark.ridge.length);
         let len = 0;
-        for (let i = 1; i < ridgePts.length; i++) len += Math.hypot(ridgePts[i][0] - ridgePts[i - 1][0], ridgePts[i][1] - ridgePts[i - 1][1]);
-        line.setAttribute("points", ridgePts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" "));
+        const acc = [0];
+        for (let i = 1; i < g.line.length; i++) acc.push((len += Math.hypot(g.line[i][0] - g.line[i - 1][0], g.line[i][1] - g.line[i - 1][1])));
+        line.setAttribute("points", g.line.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(2)}`).join(" "));
         line.style.strokeDasharray = `${len}`;
         line.style.strokeDashoffset = `${len * (1 - traced)}`;
         const filled = span(time, FILL);
         line.style.opacity = String(1 - filled);
-        /* the mark, cut from the skyline, peeling off to the corner and
-           becoming the drawn mark on the way */
-        let pose = g.pose;
-        const fly = easeInOut(lifted);
-        if (lifted > 0 && g.target) {
-          const [tax, tay, tbx, tby] = g.target;
-          const lerpLog = (a: number, b: number) => Math.exp(Math.log(a) + (Math.log(b) - Math.log(a)) * fly);
-          pose = [lerpLog(g.pose[0], tax), lerpLog(g.pose[1], tay), g.pose[2] + (tbx - g.pose[2]) * fly, g.pose[3] + (tby - g.pose[3]) * fly];
-        }
-        const morph = easeInOut(Math.min(1, lifted * 1.6));
-        const d = pathOf(shape(g, morph, pose));
-        /* It sits on the hills as frosted glass, the hills blurred and
-           brightened through it, and turns to the wordmark's white as it
-           flies; solid by the time it is small enough to be the mark. */
+        const at_ = len * traced;
+        let k = 1;
+        while (k < acc.length - 1 && acc[k] < at_) k++;
+        const f = acc[k] > acc[k - 1] ? (at_ - acc[k - 1]) / (acc[k] - acc[k - 1]) : 0;
+        tip.setAttribute("cx", (g.line[k - 1][0] + (g.line[k][0] - g.line[k - 1][0]) * f).toFixed(1));
+        tip.setAttribute("cy", (g.line[k - 1][1] + (g.line[k][1] - g.line[k - 1][1]) * f).toFixed(2));
+        tip.style.opacity = time > TRACE[0] && time < TRACE[1] ? String(Math.min(1, span(time, TRACE) * 8, (1 - span(time, TRACE)) * 8)) : "0";
+        /* the shape, frosted glass on the hills, then flying to the corner,
+           shrinking and becoming the mark */
+        const d = pathOf(flying(g, lifted));
         const gl = glass.current!;
         gl.style.clipPath = `path('${d}')`;
         gl.style.opacity = lifted >= 1 ? "0" : String(filled);
@@ -280,12 +353,12 @@ export function ValleyFilm() {
         /* the hole it leaves, with the photograph behind it, then the way in */
         const holed = span(time, HOLE);
         const entering = span(time, ENTER);
-        const s = Math.exp(easeInOut(entering) * Math.log(g.open));
+        const sc = Math.exp(easeInOut(entering) * Math.log(g.open));
         const [cx, cy] = g.anchor;
         p.style.opacity = String(easeOut(holed));
-        p.style.clipPath = entering >= 1 ? "none" : `path('${pathOf(g.hole.map(([x, y]) => [cx + (x - cx) * s, cy + (y - cy) * s]))}')`;
+        p.style.clipPath = entering >= 1 ? "none" : `path('${pathOf(g.real.map(([x, y]) => [cx + (x - cx) * sc, cy + (y - cy) * sc]))}')`;
         st.style.transformOrigin = `${cx}px ${cy}px`;
-        st.style.transform = entering > 0 ? `scale(${s})` : "none";
+        st.style.transform = entering > 0 ? `scale(${sc})` : "none";
         st.style.opacity = entering >= 1 ? "0" : "1";
       }
       p.style.filter = "none";
@@ -390,21 +463,28 @@ export function ValleyFilm() {
         };
         /* ?record=1: no clock at all. A script asks for each frame by time
            and gets it back only when every tile in it has arrived, which is
-           how scripts/dev/valley-film-video.mjs renders the film to video. */
+           how scripts/dev/valley-film-video.mjs renders the film to video.
+           With samples > 1 the frame is that many moments across `shutter`
+           seconds, averaged (ValleyRenderer.renderAveraged). */
         if (q.get("record") === "1") {
-          const w = window as unknown as { filmFrame?: (tt: number) => Promise<void>; filmEnd?: number };
+          const w = window as unknown as { filmFrame?: (tt: number, samples?: number, shutter?: number) => Promise<void>; filmEnd?: number };
           w.filmEnd = END;
-          w.filmFrame = async (tt: number) => {
+          w.filmFrame = async (tt: number, samples = 1, shutter = 0) => {
             c.t = tt;
             c.playing = false;
             const aspect = size();
             const shot = cameraAt(FLIGHT, tt);
+            const moments = Array.from({ length: samples }, (_, i) => {
+              const ts = Math.min(END, Math.max(0, tt + ((i + 0.5) / samples - 0.5) * shutter));
+              return { shot: cameraAt(FLIGHT, ts), time: ts };
+            });
             r.time = tt;
             for (let i = 0; i < 900; i++) {
-              const info = r.render(shot, ahead(tt));
-              if (info.inflight === 0 && r.settled(shot, aspect)) break;
+              const info = r.render(shot, [...moments.map((m) => m.shot), ...ahead(tt)]);
+              if (info.inflight === 0 && moments.every((m) => r.settled(m.shot, aspect))) break;
               await new Promise((ok) => requestAnimationFrame(ok));
             }
+            if (samples > 1) r.renderAveraged(moments);
             overlay(r, tt, shot);
             await new Promise((ok) => requestAnimationFrame(ok));
           };
@@ -496,6 +576,7 @@ export function ValleyFilm() {
       </svg>
       <svg ref={markSvg} className="vf-mark" aria-hidden>
         <polyline ref={markLine} fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" style={{ filter: "drop-shadow(0 0 5px rgba(255,255,255,0.6))" }} />
+        <circle ref={markTip} r={3.2} fill="#fff" style={{ opacity: 0, filter: "drop-shadow(0 0 6px rgba(255,255,255,0.95)) drop-shadow(0 0 14px rgba(255,255,255,0.6))" }} />
         <path ref={markFill} fill="#0c120e" style={{ opacity: 0, filter: "blur(10px)", transform: "translateY(7px)" }} />
       </svg>
 

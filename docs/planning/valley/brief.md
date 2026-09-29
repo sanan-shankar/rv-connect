@@ -51,3 +51,7 @@ Okay, the only one that could amount to anything is the 3D Hills one. So I'm goi
 **¶12** (on the round-one "From the school" screenshot, 2026-09-27)
 
 See like this screenshot you just took you can see the problems these ugly horizontal lines and horrible colours it just looks like a horribly made video game or some kind of graphics malfunction
+
+**¶13** (on the third video cut, 2026-09-28)
+
+there's weird flickering spots throughout the entire video. the tracing of the hills isn't great cause it doesn't cover the hills. do an accurate smooth tracing and then while shrinking to the top left morphi it into what we need. also it's a pretty abysmal frame rate. and the weird dip and then lift near the games field is weird. I like showing it but this is a very janky way of doing so.

@@ -2,9 +2,9 @@
 
 ## Start here
 
-Read `brief.md` first, in full: twelve paragraphs, all his. ¶11 is the ask this campaign now
-runs on, ¶12 is what he thinks of the round-one look, ¶5 names the three hills. Then this
-file's board.
+Read `brief.md` first, in full: thirteen paragraphs, all his. ¶11 is the ask this campaign
+now runs on, ¶12 is what he thinks of the round-one look, ¶13 is his review of the film's
+third cut, ¶5 names the three hills. Then this file's board.
 
 ## What this campaign is now (2026-09-27)
 
@@ -88,12 +88,15 @@ keeps every file.
 | Round one and round two deleted | DONE | 2026-09-27; this file's "Deleted" section |
 | The three hills located | DONE | from the round-one view he recognised; names unconfirmed |
 | Storyboard and where it lives | DONE | `storyboard.md`: the landing page, first visit per device, skippable |
-| Imagery and elevation pipeline | DONE | `scripts/dev/valley-film.mjs`; 3,081 tiles, 114,002 trees, 71 MB, gitignored |
+| Imagery and elevation pipeline | DONE | `scripts/dev/valley-film.mjs`; 2,778 tiles from Esri Wayback release 64001 (2026-02-26), 97,599 trees, gitignored |
 | The flight, built in the lab | DONE, round one | `/lab/valley`: clouds, trees with shadows, afternoon sun; the ending is trace, glass mark, window into the photograph |
 | Screenshots, both viewports, two rounds | DONE | desktop and 390x844, every shot; 42 to 60 fps at 1.25x on his M1 |
 | Video cuts | DONE | `?record=1` renders frame by frame; landscape and phone MP4s sent to him twice (the second with the campus look-down) |
 | Motion-blurred cuts | DONE | `scripts/dev/valley-film-video.mjs`; landscape and phone sent as the third cut |
-| His review of the flight | OPEN | |
+| His review of the third cut (¶13) | DONE | flickering spots, a trace that missed the hills, the frame rate, the games-field dip |
+| Fourth cut: ¶13 answered | DONE | 60 fps, sixteen averaged moments a frame; the flight paced by height; the trace read off the frame; cloud-free imagery |
+| His review of the fourth cut | OPEN | |
+| Live room at 60 fps near the ground | OPEN, not blocking | 32 to 46 fps below 300 m: about 700 tile draws at the telephoto hold, trees 7 ms, clouds 3.5 ms; the video is what ships |
 | Delete the round-one hills room | OPEN | once he accepts the film; kept for comparison at `/lab/valley/hills` |
 
 ## Operational context
@@ -108,6 +111,17 @@ keeps every file.
 - Gate: `npm run check`.
 
 ## Log
+
+- 2026-09-29. His ¶13 on the third cut, answered in the fourth. The spots were NaN pixels
+  (relief from screen derivatives on tile skirts) blown up by the bloom; also stabilised the
+  tile handover, the tree shadow map and sub-pixel crowns. Measured before designing the new
+  flight: the old one moved the ground 25 to 40 px a frame at 60 fps (a kilometre a second at
+  150 m) and turned 58 degrees a second over the field; the new one is at most about 15 px and
+  12 degrees. The trace is `ValleyRenderer.outline` (a GPU mask of the ground within 7 km,
+  read back per column), feet found where the outline stops falling faster than 1 in 12. The
+  hold is reframed at 18 degrees so all three hills stand whole. Imagery moved to Esri Wayback
+  release 64001: the live service's May 2026 capture has clouds over Madanapalle.
+  Render: `node scripts/dev/valley-film-video.mjs [--portrait]`.
 
 - 2026-09-28, later. Simplify pass (four reviewers; dead code, one tile walk per frame,
   shared height helpers in `_geo.ts`). Record mode for video; relief from the imagery's
