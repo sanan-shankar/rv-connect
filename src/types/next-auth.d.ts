@@ -9,6 +9,11 @@ declare module "next-auth" {
      *  src/lib/auth.ts turns this into null, so application code never sees a
      *  session carrying it. */
     invalid?: boolean;
+    /** Set by the session callback when the member's row could not be READ
+     *  (a pool timeout, the database down): not a verdict on the session. The
+     *  auth() wrapper turns it into null plus sessionWasUnavailable(), so the
+     *  (main) layout shows the error screen instead of the sign-in form. */
+    unavailable?: boolean;
     user: {
       id: string;
       name: string;

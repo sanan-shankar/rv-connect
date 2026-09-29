@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth, sessionWasUnavailable } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { unreadNotificationCount } from "@/lib/notification-count";
 import { AppShell } from "@/components/layout/app-shell";
@@ -27,6 +27,13 @@ export default async function MainLayout({
   const session = await auth();
 
   if (!session?.user) {
+    /* The database did not answer, so nobody knows yet whether this member
+       is signed in. Throwing shows the root error screen, whose "Try again"
+       re-asks, instead of a sign-in form that looks like being signed out
+       (bug audit 3, O-03; src/lib/auth.ts, sessionWasUnavailable). */
+    if (sessionWasUnavailable()) {
+      throw new Error("SESSION_UNAVAILABLE: the member's row could not be read in time");
+    }
     /* With the destination in tow, exactly as src/proxy.ts does (B-022).
        The two gates were asymmetric: the proxy only adds `next` when there is
        NO session cookie, and a cookie that exists but no longer authenticates

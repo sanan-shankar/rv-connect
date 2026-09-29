@@ -15,6 +15,7 @@ import { normalizeEmail } from "./email-address";
 import { ownProfileLink } from "./notification-links";
 import { sessionRevoked, SESSION_MAX_AGE } from "./session-revocation";
 import { emailGateOpenFor } from "./email-gate-open";
+import { reportSwallowed } from "./report-error";
 
 /* authorize() below can only say "yes" (a user) or "no" (null), and null
    always surfaces as "Invalid email or password." These two let the login
@@ -369,8 +370,11 @@ const nextAuth = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        // Fetch fresh user data from DB on each session read
-        const dbUser = await prisma.user.findUnique({
+        // Fetch fresh user data from DB on each session read. A read that
+        // FAILS (the pool had no connection within its 5 s, the database is
+        // down) is not a signed-out member; see SESSION_READ_FAILED.
+        const dbUser = await prisma.user
+          .findUnique({
           where: { id: token.id as string },
           select: {
             role: true,
@@ -391,7 +395,12 @@ const nextAuth = NextAuth({
                the row for it separately would cost the round trip it saves. */
             lastSeenAt: true,
           },
-        });
+        })
+          .catch(sessionReadFailed);
+        if (dbUser === SESSION_READ_FAILED) {
+          session.unavailable = true;
+          return session;
+        }
         /* The three ways a token that verifies cryptographically is still not
            a session any more -- deleted row, blocked account, stale password
            epoch -- all live in `sessionRevoked`, which spells each one out.
@@ -531,8 +540,52 @@ async function demoSession(): Promise<Session | null> {
  *  action somebody writes. That is precisely how H1 and H3 happened. */
 async function guardedSession(): Promise<Session | null> {
   const session = await nextAuth.auth();
+  if (session?.unavailable) {
+    unavailableThisRequest().value = true;
+    return null;
+  }
   if (!session || session.invalid) return null;
   return session;
+}
+
+/* ------------------------------------------------------------------ *
+ *  "The database did not answer" is not "you are signed out".
+ *
+ *  The session callback reads the member's row on every request. When that
+ *  read threw -- the pool of five had no free connection inside its 5 s,
+ *  which a burst of page views on one Fluid instance produces -- NextAuth
+ *  logged it and answered "no session", and the (main) layout redirected a
+ *  member with a perfectly good cookie to the sign-in form mid-form (bug
+ *  audit 3, O-03 / T5-17; twelve times in half an hour of a local crawl).
+ *
+ *  Now the callback marks the session `unavailable` instead, auth() still
+ *  answers null (so every one of the ~86 guards refuses exactly as before),
+ *  and this per-request flag lets the layout tell the two apart and show the
+ *  error screen, whose "Try again" works, rather than a sign-in form. The
+ *  flag lives in React's request cache, so it is per request by
+ *  construction; outside a render it reads false, which is today's
+ *  behaviour.
+ * ------------------------------------------------------------------ */
+const SESSION_READ_FAILED = Symbol("session read failed");
+const unavailableThisRequest = cache(() => ({ value: false }));
+
+/** Whether this request's auth() came back empty because the database did
+ *  not answer, rather than because nobody is signed in. Call after auth(). */
+export function sessionWasUnavailable(): boolean {
+  return unavailableThisRequest().value;
+}
+
+/* During an outage every request would report the same failure, and Sentry's
+   free plan is 5,000 events a month (bug audit 3, T5-10): one report a
+   minute per instance says it is happening without spending the quota. */
+let lastUnavailableReport = 0;
+function sessionReadFailed(err: unknown): typeof SESSION_READ_FAILED {
+  const now = Date.now();
+  if (now - lastUnavailableReport > 60_000) {
+    lastUnavailableReport = now;
+    reportSwallowed("auth.session-read", err);
+  }
+  return SESSION_READ_FAILED;
 }
 
 export const auth = cache(

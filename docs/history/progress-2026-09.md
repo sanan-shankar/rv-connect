@@ -9011,3 +9011,22 @@ Every 512 KB hostile page measured now parses in 15 ms or less; ordinary pages u
 fails on the old patterns (checked: 455,239 ms). The audit's second step, recording a failure
 before resolving, is left undone: the fetch already has a total time budget, so with the parse
 linear a resolve can no longer run long enough to be killed.
+
+## 2026-09-30 (auth) — a database that does not answer shows a try-again screen instead of signing the member out
+
+Bug audit 3, O-03 / T5-17 (High). The session callback reads the member's row on every request;
+when that read threw (the pool of five had no connection inside its 5 s, which a burst of page
+views on one Fluid instance produces), NextAuth answered "no session" and the (main) layout sent
+a member with a valid cookie to the sign-in form, mid-form. The dev log had twelve in half an hour
+of a crawl.
+
+The callback now marks the session `unavailable`; `auth()` still answers null, so all ~86 guards
+refuse exactly as before, but records per request (React `cache()`) why; the layout throws
+`SESSION_UNAVAILABLE` to the root error screen, whose "Try again" re-asks. The failure is
+reported once a minute per instance, and `SESSION_UNAVAILABLE` is in Sentry's `ignoreErrors`, so
+an outage cannot spend the free plan's 5,000 events through `onRequestError` (the write-path
+reviewer caught that the throttle was otherwise bypassed). `emailGateOpenFor` needs no catch: it
+fails closed and reports itself. Checked as Jerry: pages render as before, signed out still 307s
+to /login. NOT exercised live: an actual failed read, which would need breaking the dev server
+another session uses; `session-unavailable-rule.test.mjs` pins all four parts, and removing the
+layout's check fails it by name.
