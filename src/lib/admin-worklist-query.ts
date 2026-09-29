@@ -25,9 +25,9 @@ import type { Prisma } from "@/generated/prisma/client";
 /**
  * Mail that gave up and needs the owner: every failure EXCEPT a confirmation
  * the receiving server bounced. That one is the member's to fix now -- their
- * banner says it bounced and offers "use another email" (docs/spec/email.md
- * Rule 4) -- and on the list it only came back, day after day, for two
- * members' full inboxes that no amount of resending from here could empty.
+ * banner says it bounced and offers "use another email" -- and on the list
+ * it only came back, day after day, for two members' full inboxes that no
+ * amount of resending from here could empty.
  * /admin/mail still lists it. The badge and the list read this one clause, so
  * the count never disagrees with the list it points at.
  */

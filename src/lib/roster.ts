@@ -46,7 +46,7 @@ async function tryRosterAutoVerify(userId: string): Promise<boolean> {
   });
   if (!user) return false;
   /* Confirmed, NOT merely "the email gate is open". A member waiting behind
-     the daily email limit gets every gate (docs/spec/email.md Rule 1), but the
+     the daily email limit gets every gate (`confirmationStillWaiting`), but the
      roster matches on name and batch year, which are public: letting a waiting
      account match would let anyone sign up with an address they do not own,
      type a real alumnus's name and be verified AS them, posting under that

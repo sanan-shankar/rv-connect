@@ -16,7 +16,7 @@ import { resendVerification } from "./email-actions";
 
 /* ------------------------------------------------------------------ *
  *  "Use another email": opened from the banner when a confirmation
- *  bounced (docs/spec/email.md Rule 4).
+ *  bounced (see change-email-actions.ts).
  *
  *  The new address and the password, nothing else. The password is what
  *  authorises it, the same as confirming a deletion: a signed-in device

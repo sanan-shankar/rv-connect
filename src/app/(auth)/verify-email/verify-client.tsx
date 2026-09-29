@@ -53,7 +53,7 @@ const COPY: Record<Outcome, { title: string; body: string }> = {
   waiting: {
     title: "Check your email",
     // Not "we sent you a link when you joined": on a launch day the link can
-    // leave a day or two after they did (docs/spec/email.md).
+    // leave a day or two after they did.
     body: "Look for our email and tap the link in it. Check your spam folder if you cannot find it.",
   },
 };

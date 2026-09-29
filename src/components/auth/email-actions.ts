@@ -58,7 +58,7 @@ export async function resendVerification(): Promise<{
   /** ISO. Only set with state "queued". */
   sendingAt?: string;
   /** Only set with state "queued": whether the wait leaves every gate open
-   *  (nothing has ever been sent to this address, docs/spec/email.md Rule 1)
+   *  (nothing has ever been sent to this address, `confirmationStillWaiting`)
    *  or they are waiting on a resend with the gate shut. The two say
    *  different things (`resendOutcomeMessage`). */
   open?: boolean;

@@ -3,7 +3,7 @@ import test from "node:test";
 import { read, decomment, balancedBody } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
- *  A bounced confirmation, end to end (docs/spec/email.md Rule 4).
+ *  A bounced confirmation, end to end (change-email-actions.ts).
  *
  *  The member is told, they move to another address with their password,
  *  and the owner's to-do list stops showing it. Each join below needs a

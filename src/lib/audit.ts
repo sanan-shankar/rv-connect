@@ -34,7 +34,7 @@ export type AuditAction =
   | "account.purge"
   | "account.export"
   /* A member moved their unconfirmed account to another address because the
-     first would not take mail (docs/spec/email.md Rule 4). It changes what they
+     first would not take mail (change-email-actions.ts). It changes what they
      sign in with, so it is on the record, with both addresses masked. */
   | "account.email_change"
   | "report.user"

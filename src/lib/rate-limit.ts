@@ -174,7 +174,7 @@ const LIMITS = {
   emailChange: { tokens: 5, window: "1 h" },
   /** SUCCESSFUL moves, per account: three a month. Real people need one, a
    *  typo fixed twice at most. The ceiling exists because a move is what
-   *  decides when the email gate shuts (docs/spec/email.md Rule 1): without
+   *  decides when the email gate shuts (`confirmationStillWaiting`): without
    *  one, an account could keep moving to invented addresses on a backlog day
    *  and stay "waiting" for ever (write-path review, 2026-09-29). Spent only
    *  when a move lands, so a mistyped password never costs one. */
