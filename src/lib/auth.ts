@@ -428,7 +428,7 @@ const nextAuth = NextAuth({
           session.user.emailConfirmed = dbUser.emailVerified != null;
           /* What every gate reads: confirmed, OR still waiting behind the
              daily email limit with nothing yet sent (owner, 2026-09-29;
-             docs/spec/email.md Rule 1). Kept apart from emailConfirmed
+             `confirmationStillWaiting`). Kept apart from emailConfirmed
              because the banner must stay up during the wait -- the fact and
              the permission are two different questions. */
           session.user.emailGateOpen = await emailGateOpenFor({

@@ -9,8 +9,8 @@ import { VALLEY_TIME_ZONE, valleyDayKey } from "./utils.ts";
  * (`verifySendingAt`) counts the member's real place in line and on a busy
  * launch lands two and three days out, so the label promised tomorrow to
  * people who would not get their link until the day after (2026-09-29, the
- * launch: docs/spec/email.md Rule 2). "Sometime soon" reads as a brush-off; a
- * day and a clock time is a promise somebody can check, so it has to be right.
+ * launch). "Sometime soon" reads as a brush-off; a day and a clock time is a
+ * promise somebody can check, so it has to be right.
  *
  * Formatted in the VALLEY's timezone, not the reader's, and it says so: a
  * member in London reading an unlabelled "5:30 am" reads it as their own and
@@ -87,7 +87,7 @@ export function resendOutcomeMessage(
 }
 
 /**
- * What the banner says after "use another email" (docs/spec/email.md Rule 4):
+ * What the banner says after "use another email" (change-email-actions.ts):
  * where the new link has got to, and that the sign-in address changed with it.
  * The second half is the one they must not miss -- the old address no longer
  * signs in -- so it is on every branch.

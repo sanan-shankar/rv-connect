@@ -353,8 +353,6 @@ export function drainHasWork(
  * A failed row is not waiting. A bounce WAS sent (the webhook leaves `sentAt`
  * alone), and a row that gave up without sending is waiting on a fix rather
  * than on the limit -- leaving the gate open for it would open it for good.
- *
- * docs/spec/email.md, Rule 1.
  */
 export function confirmationStillWaiting(
   rows: { to: string; status: string; sentAt: Date | null }[],
@@ -371,7 +369,7 @@ export function confirmationStillWaiting(
  *
  * The one bounce a member can fix without a new address -- empty the inbox,
  * send it again -- so the banner and the "use another email" dialog say it
- * apart from a flat refusal (docs/spec/email.md Rule 4). Two members' Gmail
+ * apart from a flat refusal (change-email-actions.ts). Two members' Gmail
  * inboxes were full in September and every resend went the same way.
  *
  * Read out of `lastError`, because that is the only place the Resend webhook

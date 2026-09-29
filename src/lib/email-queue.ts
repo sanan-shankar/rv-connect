@@ -36,7 +36,11 @@ import { isUniqueViolation } from "@/lib/prisma-errors";
  *  Resend's free plan sends 100 messages a day. The owner expects more
  *  than 100 signups on the first day of launch and is not willing to cap
  *  who can join, so nothing is mailed inline: every message becomes a
- *  row and a drain pass sends what today's budget allows.
+ *  row and a drain pass sends what today's budget allows. Staying on the
+ *  free plan rather than paying for Pro was the owner's call on launch
+ *  day (2026-09-29): a member waiting behind the limit passes the email
+ *  gate meanwhile (`confirmationStillWaiting`), so the limit delays mail
+ *  and blocks nobody.
  *
  *  Three things this has to get right, and each is a real failure mode
  *  rather than a hypothetical:
@@ -94,7 +98,7 @@ const DAILY_CAP = 95;
  * at 2, so 10 is still twice the worst day. The 20 cost ten confirmations every
  * day to protect nothing, and on launch day each of those is a person's link
  * slipping to tomorrow. Waiting no longer locks anybody out
- * (docs/spec/email.md Rule 1), but the link arriving is still the point.
+ * (`confirmationStillWaiting`), but the link arriving is still the point.
  */
 const RESET_RESERVE = 10;
 
@@ -468,11 +472,11 @@ export async function enqueueMail(input: {
         kind: input.kind,
         status: { in: ["queued", "sending"] },
         /* The same ADDRESS, not just the same person. A member who has just
-           moved to another address ("use another email", docs/spec/email.md
-           Rule 4) may still have a row mid-send to the old one, and folding
-           into it would answer "queued" while nothing ever went to the new
-           address. Case-insensitive, for rows written before addresses were
-           stored canonical (B-020). */
+           moved to another address ("use another email") may still have a
+           row mid-send to the old one, and folding into it would answer
+           "queued" while nothing ever went to the new address.
+           Case-insensitive, for rows written before addresses were stored
+           canonical (B-020). */
         to: { equals: input.to, mode: "insensitive" },
       },
       select: { id: true },
@@ -999,7 +1003,7 @@ export async function verificationMailState(
       createdAt: true,
       // A bounce is its own state: offering "send it again" to an address
       // that refused it is how two members' full inboxes became a loop of
-      // resends and returning to-dos (docs/spec/email.md Rule 4).
+      // resends and returning to-dos (change-email-actions.ts).
       bouncedAt: true,
       lastError: true,
     },

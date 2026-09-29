@@ -22,7 +22,7 @@ import { reportSwallowed } from "@/lib/report-error";
  *  sometimes hours later -- two members' Gmail inboxes were full in
  *  September, and every resend the owner pressed went the same way. The
  *  owner's call (2026-09-29): the member fixes it themselves, rather than
- *  making a second account or waiting on him. docs/spec/email.md Rule 4.
+ *  making a second account or waiting on the owner.
  *
  *  Only for an UNCONFIRMED account. A confirmed address is the account's
  *  identity, and moving it would want the old inbox's say-so, which is

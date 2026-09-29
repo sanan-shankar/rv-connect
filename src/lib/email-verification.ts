@@ -65,7 +65,7 @@ export async function requireVerifiedEmail(): Promise<GateResult> {
   if (IS_DEMO) return { ok: true, user };
 
   // The gate, not the fact: a member whose confirmation is still waiting
-  // behind our daily email limit passes (docs/spec/email.md Rule 1).
+  // behind our daily email limit passes (`confirmationStillWaiting`).
   if (!session.user.emailGateOpen) return { ok: false, error: EMAIL_UNVERIFIED };
 
   return { ok: true, user };

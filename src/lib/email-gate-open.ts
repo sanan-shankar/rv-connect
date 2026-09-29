@@ -5,8 +5,8 @@ import { reportSwallowed } from "./report-error";
 /**
  * Whether the confirmed-email gate stands open for this member: their address
  * is confirmed, or their confirmation is still waiting in our queue with none
- * ever sent to the address on the account (`confirmationStillWaiting`, and
- * docs/spec/email.md Rule 1).
+ * ever sent to the address on the account (`confirmationStillWaiting` in
+ * mail-policy.ts, which carries the owner's rule).
  *
  * The session callback in auth.ts is the caller that matters: it is what every
  * gate reads. The resend and change-address actions ask it too, to word their
@@ -22,6 +22,13 @@ import { reportSwallowed } from "./report-error";
  * length of the hiccup instead; answering "open" would let a transient error
  * open the gate for an account whose mail has already gone out. Reported, so
  * a gate stuck shut for everyone is visible.
+ *
+ * One consequence, weighed and kept (write-path review, 2026-09-29): with no
+ * RESEND_API_KEY in production nothing ever sends, so every new member stays
+ * "waiting" and keeps this gate open until the key is back. That is the
+ * owner's rule applied literally (nothing sent, nothing shut), posting and
+ * contacts still need a verified profile, and `queueIsSendable` logs an
+ * error on every drain pass while the key is missing.
  */
 export async function emailGateOpenFor(user: {
   id: string;

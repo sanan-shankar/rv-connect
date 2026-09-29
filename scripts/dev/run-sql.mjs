@@ -12,6 +12,10 @@
  * connection string. Prints row output as JSON (capped) so it is safe to pipe
  * into logs.
  *
+ * Timestamps: a `timestamp without time zone` column (Prisma's default for a
+ * DateTime) prints shifted by this machine's UTC offset, because pg reads it
+ * as local time. To copy one back into the database, select it as `col::text`.
+ *
  * `--env <file>` points it at a DIFFERENT env file, and when that file names
  * the demo, the connection is checked for the demo project's ref before a
  * statement runs (the guard scripts/demo/run-sql.mjs used to hold; that script

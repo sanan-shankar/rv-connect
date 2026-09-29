@@ -87,7 +87,7 @@ export async function dismissMail(id: string): Promise<AdminActionResult> {
      at that same address, stays (write-path review, 2026-09-29). It is what
      their banner reads to say the address bounced and offer another, and it
      is the only record that one was ever sent -- which is what shuts the email
-     gate (docs/spec/email.md Rule 1). Cleared, their next resend on a busy day
+     gate (`confirmationStillWaiting`). Cleared, their next resend on a busy day
      would open the gate again for an address already mailed, and the banner
      would go back to offering the same address that refused it. Once they
      confirm or move to another address, it is history and may go. */

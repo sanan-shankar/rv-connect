@@ -9063,8 +9063,11 @@ the last control outside two lab sketches that did; "Use another email" beside i
 Leaf ring (`outline-ring`, DESIGN-SYSTEM "Focus states", controls). Both do now. Measured by tabbing
 onto it in `/lab/email-states` at 1440 and 390: a solid 2px `rgb(31, 138, 76)` ring with its 2px gap.
 
-That closes the email spec's "Left to do". The Catch-ups fix went out with another session's push and
-deployed at `4afde865`, and the visual suite, re-run on a quiet machine, passed 25 of 25 in 3.9
-minutes, `birds` desktop included, so its earlier timeout was load. The spec also records the one Low
-review finding left as it is: with no mail key in production nobody's link goes out, so waiting
-members keep names and profiles open until the key is back, while the drain logs an error each pass.
+The Catch-ups fix deployed with another session's push (`4afde865`), and the visual suite, re-run on
+a quiet machine, passed 25 of 25 in 3.9 minutes, `birds` desktop included, so its earlier timeout was
+load. With the work finished, the owner asked for the session's leftover docs to go, so
+`docs/spec/email.md` is deleted. Every rule in it already sat beside the code that enforces it, and
+the comments that cited it now name that code: `confirmationStillWaiting` for the wait,
+`change-email-actions.ts` for bounces. The two things only the spec held moved into comments: the
+owner declining Resend Pro (`email-queue.ts`) and why a missing mail key leaves waiting members'
+access open (`email-gate-open.ts`).

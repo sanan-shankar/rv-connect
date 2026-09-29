@@ -36,11 +36,11 @@ export type BannerState =
   /** Genuinely deferred: the day's budget is spent. `sendingAt` (ISO) is
    *  when it refills; `label` is the server's wording of it, so the first
    *  paint already says the right day. `open` is the session's email gate:
-   *  true while nothing has ever been sent (docs/spec/email.md Rule 1), and
+   *  true while nothing has ever been sent (`confirmationStillWaiting`), and
    *  then the copy says everything is open instead of naming the limit. */
   | { state: "queued"; sendingAt: string; label?: string; open: boolean }
   /** The receiving server refused it. `mailboxFull` when the reason was a
-   *  full inbox, which emptying fixes (docs/spec/email.md Rule 4). */
+   *  full inbox, which emptying fixes (`mailboxWasFull`). */
   | { state: "bounced"; sentTo: string; mailboxFull: boolean }
   | { state: "none"; sentTo: string };
 
@@ -87,7 +87,7 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
    *  is the confirmation, and after a move it says the sign-in address
    *  changed, which is the one thing they must not miss. The refresh is for
    *  the gate: a new address still waiting behind the limit opens everything
-   *  (docs/spec/email.md Rule 1), and only the server knows that. */
+   *  (`confirmationStillWaiting`), and only the server knows that. */
   function handleDone(result: NewLinkState, moved: boolean): void {
     setChanging(false);
     applyNewLink(result);
@@ -228,10 +228,10 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
             account.
           </span>
         ) : state.state === "bounced" ? (
-          // Accepted, then refused by their mail server (docs/spec/email.md
-          // Rule 4). What happened and why, in their words; the fix is the
-          // button. A full mailbox's own retry lives inside the dialog, so the
-          // chip keeps one control like every other state.
+          // Accepted, then refused by their mail server. What happened and
+          // why, in their words; the fix is the button. A full mailbox's own
+          // retry lives inside the dialog, so the chip keeps one control like
+          // every other state.
           <>
             <span className="font-medium">
               We couldn&apos;t deliver your confirmation email.

@@ -9,8 +9,7 @@ import { movedMessage, resendOutcomeMessage, sendTimeLabel } from "@/lib/confirm
  *
  *  The real banner, in each state it has. They cannot be seen any other
  *  way off production: a dev machine does not send mail, so its queue
- *  never reaches "waiting" and every row reads as in flight. Rules in
- *  docs/spec/email.md.
+ *  never reaches "waiting" and every row reads as in flight.
  * ------------------------------------------------------------------ */
 
 /** The next UTC midnight, `days` refills from now: 5:30 am IST. */

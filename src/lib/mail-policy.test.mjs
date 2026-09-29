@@ -318,9 +318,9 @@ test("the address comparison ignores case and stray spaces", () => {
 });
 
 /* ------------------------------------------------------------------ *
- *  Why a confirmation bounced, in the member's words (docs/spec/email.md
- *  Rule 4). The webhook keeps Resend's subtype only inside `lastError`,
- *  "Bounced (<subType>) -- ...", so that sentence is what is read.
+ *  Why a confirmation bounced, in the member's words. The webhook keeps
+ *  Resend's subtype only inside `lastError`, "Bounced (<subType>) -- ...",
+ *  so that sentence is what is read.
  * ------------------------------------------------------------------ */
 
 test("a full mailbox is told apart, because emptying it is a fix", () => {

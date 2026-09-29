@@ -9,7 +9,7 @@ import { ROOT, read, decomment, walk } from "./test-kit.mjs";
  *  Since launch day (2026-09-29) there are two: `emailConfirmed`, the FACT
  *  that the link was tapped, and `emailGateOpen`, the PERMISSION, which is
  *  also true while a confirmation waits behind the daily email limit with
- *  none sent yet (docs/spec/email.md Rule 1). A permission check that reads
+ *  none sent yet (`confirmationStillWaiting`). A permission check that reads
  *  the fact locks a waiting member out of what the owner said they may do;
  *  the roster reading the permission lets a stranger claim a real alumnus's
  *  name with an address they do not own (write-path review, same day).
