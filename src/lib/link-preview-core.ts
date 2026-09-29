@@ -368,15 +368,40 @@ export const SITE_CAP = 80;
  * then Twitter's card tags, then `<title>`. Relative image urls are resolved
  * against the page's FINAL url (after redirects), which is the one the
  * browser would have used.
+ *
+ * EVERY PATTERN HERE IS BOUNDED, so the work grows with the page, not with
+ * its square. The page is whatever a stranger's server sends, and the
+ * unbounded versions backtracked: one `<meta` tag holding a long run of
+ * letters made the attribute pattern retry every length at every position,
+ * measured at 2.8 s for 40 KB and 11.9 s for 80 KB, about eight minutes at
+ * the 512 KB the fetcher allows (bug audit 3, T2b-01 / L8-05). Regex work
+ * cannot be interrupted, and Fluid runs other members' requests in the same
+ * process, so the bound has to be in the patterns themselves. The caps sit
+ * far above anything a real page writes: META_TAG_MAX for one whole tag,
+ * ATTR_NAME_MAX for an attribute's name, TITLE_MAX for a `<title>`.
  */
+const META_TAG_MAX = 2048;
+const ATTR_NAME_MAX = 64;
+const TITLE_MAX = 1024;
+/* `[^<>]`, not `[^>]`: a tag also ends at the next `<`, so no stretch of the
+   page is scanned by more than one opener. With `[^>]` a page of nothing but
+   unclosed `<meta` openers still cost ~0.5 s at 512 KB, each opener reading
+   2 KB ahead. A real attribute value with a raw `<` in it loses its tag. */
+const META_TAG = new RegExp(`<meta\\b[^<>]{0,${META_TAG_MAX}}>`, "gi");
+const META_ATTR = new RegExp(
+  `([a-zA-Z_:.-]{1,${ATTR_NAME_MAX}})\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'>]+))`,
+  "g",
+);
+const TITLE_TAG = new RegExp(`<title\\b[^>]{0,256}>([^<]{0,${TITLE_MAX}})<\\/title\\s*>`, "i");
+
 export function parsePageMeta(html: string, pageUrl: string): PageMeta {
   const headEnd = html.search(/<\/head\s*>/i);
   const head = headEnd === -1 ? html : html.slice(0, headEnd);
 
   const meta = new Map<string, string>();
-  for (const tag of head.matchAll(/<meta\b[^>]*>/gi)) {
+  for (const tag of head.matchAll(META_TAG)) {
     const attrs = new Map<string, string>();
-    for (const a of tag[0].matchAll(/([a-zA-Z_:.-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/g)) {
+    for (const a of tag[0].matchAll(META_ATTR)) {
       attrs.set(a[1].toLowerCase(), a[2] ?? a[3] ?? a[4] ?? "");
     }
     const key = (attrs.get("property") ?? attrs.get("name") ?? "").toLowerCase();
@@ -386,7 +411,7 @@ export function parsePageMeta(html: string, pageUrl: string): PageMeta {
   }
   const first = (...keys: string[]) => keys.map((k) => meta.get(k)).find((v) => v && v.trim());
 
-  const titleTag = /<title\b[^>]*>([\s\S]*?)<\/title\s*>/i.exec(head)?.[1];
+  const titleTag = TITLE_TAG.exec(head)?.[1];
   const title = tidy(first("og:title", "twitter:title") ?? titleTag, TITLE_CAP);
   const siteName = tidy(first("og:site_name", "application-name"), SITE_CAP);
 
