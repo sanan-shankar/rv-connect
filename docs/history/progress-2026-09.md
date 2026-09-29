@@ -8859,3 +8859,20 @@ it; content arrives when it did, since dynamic content was never prefetched. Cli
 Jerry: a Directory card and a sidebar link still navigate client-side, no console errors.
 Nothing can measure the drop locally (prefetch only runs in production), so it is measured with
 the same query a day after the push. TRAPS.md, "Next.js", has the trap and the query.
+
+## 2026-09-30 (backup) — every night's database backup is restored in rehearsal, and the place list is kept apart to save egress
+
+No dump had ever been restored; the one restore command in OPERATIONS.md said "rehearse against
+staging", and there is no staging. The `dump` job now restores each night's dump into a
+throwaway `postgres:17` service container, in the order a real restore uses, with
+`--exit-on-error`, and fails if fewer than 100 members or 200,000 places come back. It runs after
+the upload (a rehearsal problem never costs a night's backup) and before the prune (an old
+backup is only removed once a newer one is proved).
+
+The nightly dump read 41 MB from Supabase, 36 MB of it the static `Place` gazetteer (234,935
+rows the app never writes), about 1.2 GB of the Free plan's 5 GB monthly egress. It now leaves
+Place's rows out. A fingerprint computed inside Postgres (32 characters over the wire) decides
+whether `postgres/place-<fingerprint>.dump` needs writing; it is never pruned, and each nightly
+dump carries its fingerprint as object metadata so a restore can find the matching one.
+Restore order, workflow header and OPERATIONS.md: pre-data, place list, data, post-data
+(UserPlace's foreign key to Place is added last).

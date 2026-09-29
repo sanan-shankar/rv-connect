@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-30 (backup) — every night's database backup is restored in rehearsal, and the place list is kept apart to save egress
 - 2026-09-29 (platform) — links stop rendering pages nobody opened: prefetching off, a third of the CPU was profile prefetches
 - 2026-09-29 (email) — launch day: waiting for a confirmation email no longer locks anybody out
 - 2026-09-29 (backup) — the photograph backup runs again: R2 refused the tag lookup on every large master
