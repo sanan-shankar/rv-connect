@@ -8933,3 +8933,21 @@ PostgREST at that placeholder, which it retries every 32 seconds. The app never 
 creates an empty, grant-less `api` schema, applied to both databases; the owner then points each
 project's Data API at `api` alone. Reading the Supabase CLI's token from the keychain to do that
 by API was refused, rightly, so the switch is his, click by click.
+
+## 2026-09-30 (lab, security) — every server-rendered lab room checks the admin role itself, so a crafted request cannot skip the gate
+
+Bug audit 3, L2-01 (High; the mechanism proved by the audit on a public route): `/lab` was
+admin-only through `lab/layout.tsx` alone, and the App Router renders only what the client's
+router-state tree says has changed, so a hand-crafted RSC request claiming `/lab` was already on
+screen started rendering at the page, below the layout, and its check never ran. Eight rooms read
+real rows, one private Catch-up's answers and photographs among them.
+
+`src/app/lab/_gate.ts` holds the check (`notFound()`, keeping the layout's hide-that-it-exists
+posture); the layout and all 25 server-rendered rooms call it before reading anything. The 37
+`"use client"` rooms render nothing on the server but their own code. `gate-coverage.test.mjs`
+now requires the call in every server lab room, beside the same rule for `/admin` pages (B-024);
+removing one room's call fails it by name. The lab's one server action already re-checks the role.
+
+Checked as Jerry (admin): seven rooms, data rooms included, still render 200; signed out still
+307s to /login. NOT exercised live: the crafted request as a non-admin, because no non-admin test
+account exists. The check sits in the page function, which is where that request starts rendering.

@@ -15,8 +15,10 @@
  *  Admin only, through the lab layout.
  * ------------------------------------------------------------------ */
 
+import { requireLabAdmin } from "@/app/lab/_gate";
 import { WallRoom } from "./_room";
 
-export default function WallPage() {
+export default async function WallPage() {
+  await requireLabAdmin();
   return <WallRoom />;
 }

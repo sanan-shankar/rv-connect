@@ -12,6 +12,7 @@
  *  of it can drift from the shipped mark.
  * ------------------------------------------------------------------ */
 
+import { requireLabAdmin } from "@/app/lab/_gate";
 import type { ReactNode } from "react";
 import { PEAK_PLANES as P } from "@/components/layout/peaks-mark";
 
@@ -426,7 +427,8 @@ function Card({ d }: { d: Direction }) {
   );
 }
 
-export default function IconDirectionsLab() {
+export default async function IconDirectionsLab() {
+  await requireLabAdmin();
   return (
     <div className="idr">
       <style

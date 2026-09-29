@@ -1,3 +1,4 @@
+import { requireLabAdmin } from "@/app/lab/_gate";
 import type { Metadata } from "next";
 import DirectoryRoom, { type Density } from "./_room";
 // STRESS and SCALES come from _data (a plain module), NOT from _chrome
@@ -25,6 +26,7 @@ export default async function DirectoryRoomPage({
 }: {
   searchParams: Promise<{ n?: string; stress?: string; density?: string }>;
 }) {
+  await requireLabAdmin();
   const q = await searchParams;
 
   const n = Number(q.n);

@@ -9,12 +9,14 @@
  *  the hearts are live, because a dead thread is not a fair test).
  * ------------------------------------------------------------------ */
 
+import { requireLabAdmin } from "@/app/lab/_gate";
 import { loadPosts } from "@/app/(main)/feed/actions";
 import { CommentsRoom } from "./_room";
 
 export const dynamic = "force-dynamic";
 
 export default async function CommentsLabPage() {
+  await requireLabAdmin();
   const { posts } = await loadPosts();
 
   /* One busy thread and one empty one: the empty case is half the question,

@@ -12,6 +12,7 @@
  *  drift from the shipped mark. Only the fills change.
  * ------------------------------------------------------------------ */
 
+import { requireLabAdmin } from "@/app/lab/_gate";
 import { PEAK_PLANES } from "@/components/layout/peaks-mark";
 
 /* The brand's raw values, straight off globals.css. */
@@ -294,7 +295,8 @@ function Row({ p }: { p: Palette }) {
   );
 }
 
-export default function IconColoursLab() {
+export default async function IconColoursLab() {
+  await requireLabAdmin();
   const flat: Palette = {
     name: "flat white",
     front: C.white,

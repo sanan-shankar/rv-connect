@@ -10,6 +10,7 @@
  *  cannot drift apart. Nothing here is scaled.
  * ------------------------------------------------------------------ */
 
+import { requireLabAdmin } from "@/app/lab/_gate";
 import { auth } from "@/lib/auth";
 import { loadSketchEdition } from "../sketches/_data";
 import { buildShelf } from "../sketches/_shelf";
@@ -18,6 +19,7 @@ import { SettingsRoom } from "./_room";
 export const dynamic = "force-dynamic";
 
 export default async function SettingsRoomPage() {
+  await requireLabAdmin();
   const session = await auth();
   const edition = session?.user?.id ? await loadSketchEdition(session.user.id) : null;
   if (!edition) {

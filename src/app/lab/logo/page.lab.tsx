@@ -1,3 +1,4 @@
+import { requireLabAdmin } from "@/app/lab/_gate";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 
 function Wordmark() {
@@ -20,7 +21,8 @@ function Lockup({ onDark = false }: { onDark?: boolean }) {
   );
 }
 
-export default function LogoLab() {
+export default async function LogoLab() {
+  await requireLabAdmin();
   return (
     <div className="lg">
       <style

@@ -254,3 +254,35 @@ test("every /admin page checks the role itself", () => {
     );
   }
 });
+
+/* ------------------------------------------------------------------ *
+ *  Every server-rendered /lab room re-establishes the role, too.
+ *
+ *  The same rule as the admin pages above, for the same reason, found the
+ *  harder way: a hand-crafted RSC request whose router-state tree claims
+ *  /lab is already on screen makes the server start rendering at the page,
+ *  below lab/layout.tsx, so the layout's check never runs (bug audit 3,
+ *  L2-01). Several rooms read real members' rows, one private Catch-up's
+ *  answers among them. A "use client" room renders nothing on the server
+ *  but its own code, so only server rooms are held to it.
+ * ------------------------------------------------------------------ */
+
+test("every server-rendered /lab room checks the role itself", () => {
+  const files = walk(resolve(ROOT, "src/app/lab"), {
+    match: (name) => name === "page.lab.tsx",
+  }).map((full) => relative(ROOT, full));
+  assert.ok(files.length >= 40, `found only ${files.length} lab rooms; the glob has drifted`);
+  let server = 0;
+  for (const file of files) {
+    const src = decomment(read(file)).trimStart();
+    if (/^["']use client["']/.test(src)) continue;
+    server += 1;
+    assert.ok(
+      /await\s+requireLabAdmin\s*\(/.test(src),
+      `${file} renders on the server and relies on the lab layout's gate alone, which a crafted request skips (L2-01)`,
+    );
+  }
+  // Anti-vacuity: 25 server rooms on 2026-09-30. If the "use client" test
+  // started matching everything, this would pass over nothing.
+  assert.ok(server >= 15, `only ${server} server-rendered lab rooms found; the client test has drifted`);
+});

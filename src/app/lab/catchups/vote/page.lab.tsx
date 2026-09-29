@@ -11,8 +11,10 @@
  *  Admin only, through the lab layout.
  * ------------------------------------------------------------------ */
 
+import { requireLabAdmin } from "@/app/lab/_gate";
 import { VoteRoom } from "./_room";
 
-export default function VotePage() {
+export default async function VotePage() {
+  await requireLabAdmin();
   return <VoteRoom />;
 }

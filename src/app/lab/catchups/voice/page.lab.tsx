@@ -12,8 +12,10 @@
  *  Admin only, through the lab layout.
  * ------------------------------------------------------------------ */
 
+import { requireLabAdmin } from "@/app/lab/_gate";
 import { VoiceRoom } from "./_room";
 
-export default function VoicePage() {
+export default async function VoicePage() {
+  await requireLabAdmin();
   return <VoiceRoom />;
 }

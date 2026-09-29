@@ -41,6 +41,7 @@
  *  elevation lands on 22% by itself.
  * ------------------------------------------------------------------ */
 
+import { requireLabAdmin } from "@/app/lab/_gate";
 import type { ReactNode } from "react";
 import { PEAK_PLANES as P } from "@/components/layout/peaks-mark";
 import { Crest, Face } from "../hoopoe-marks/_parts";
@@ -215,7 +216,8 @@ const GROUNDS = [
   { key: "paper", label: "paper", bg: C.paper },
 ];
 
-export default function GlassEdgesLab() {
+export default async function GlassEdgesLab() {
+  await requireLabAdmin();
   return (
     <div className="ge">
       <style
