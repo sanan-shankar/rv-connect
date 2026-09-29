@@ -29,6 +29,17 @@ compilation of everything found so far is `../bug-report-3.md` (committed with t
    `npm run check`, commit by pathspec, no push.
 
 
+**Already fixed OUTSIDE the audit, 2026-09-29/30** (the platform-health session, `docs/planning/platform-health/`).
+Validators re-check these against the fix, they do not re-find them: L3-08 / L11-01 photo backup (`5b891c92`, and
+`0cdfcaa3` adds a nightly restore rehearsal); L5-02 sign-in flood rows capped at 120/hour, and L5-08's size alarm
+(`ddae0afb`); L5-07's backup share of egress (`0cdfcaa3`; the app's share is unmeasured); L2-01 lab rooms gate
+themselves (`0dd607b1`); O-07 every database client on verified TLS (`25a9c231`); T2b-01 / L8-05 bounded meta parser
+(`47023cd2`); O-03 / T5-17 a failed session read shows the error screen, not the sign-in form (`79024643`); T3-01 and
+T3-03 (`65049ebc`). By other sessions: T3-02 (`1619d6af`), T6-02 / T2a-01 (`ac70bd9d`), T5-01 for bounced addresses
+(`8000e830`). L8-01 is OPEN as an owner decision (download converter; the options are in the platform handover).
+Not an audit finding but the real Hobby-plan killer: link prefetching, ~18 server renders per real page view
+(`c5fee5b4`); L5-01 had attributed the risk to the presence beacon and the proxy, which measurement did not bear out.
+
 Audit-only session. No application code changes. Report goes to
 `docs/audit-fix/2026-09-24-bug-audit-3/bug-report-3.md`, fix-prompt beside it.
 Previous: audit 1 (closed 2026-08-21), audit 2 (203 findings, all dispositioned 2026-08-25).
