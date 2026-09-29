@@ -248,3 +248,24 @@ test("the url-shape refusal is the same on a paste and on a redirect hop", () =>
     assert.equal(urlRefused(new URL(raw)), false, raw);
   }
 });
+
+test("a hostile page parses in linear time, at the fetcher's whole 512 KB", () => {
+  /* The page is whatever a stranger's server sends. The unbounded patterns
+     backtracked: one <meta> tag of 80 KB of letters took 11.9 s and 512 KB
+     extrapolated to about eight minutes of a blocked process (bug audit 3,
+     T2b-01 / L8-05). Bounded, each of these takes a few milliseconds; the
+     ceiling is loose so a slow CI box never fails it for the wrong reason. */
+  const K = 512 * 1024;
+  const pages = {
+    "one huge <meta> tag": "<head><meta " + "a".repeat(K) + ">",
+    "nothing but unclosed <meta openers": "<head>" + "<meta ".repeat(K / 6),
+    "unclosed <meta openers 2 KB apart": "<head>" + ("<meta " + "a".repeat(2047)).repeat(K / 2053),
+    "nothing but unclosed <title> openers": "<head>" + "<title>".repeat(K / 7),
+  };
+  for (const [name, html] of Object.entries(pages)) {
+    const started = performance.now();
+    parsePageMeta(html, "https://a.com/");
+    const ms = performance.now() - started;
+    assert.ok(ms < 500, `${name} took ${ms.toFixed(0)} ms; a pattern in parsePageMeta is backtracking again`);
+  }
+});

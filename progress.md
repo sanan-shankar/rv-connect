@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-30 (links, security) — a hostile page can no longer make one link preview burn minutes of CPU
 - 2026-09-30 (database, security) — every connection to the database is encrypted and checks it is talking to Supabase
 - 2026-09-30 (platform) — what 2,000 members costs, written down from measurements this time
 - 2026-09-30 (lab, security) — every server-rendered lab room checks the admin role itself, so a crafted request cannot skip the gate

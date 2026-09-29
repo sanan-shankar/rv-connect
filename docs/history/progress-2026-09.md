@@ -8995,3 +8995,19 @@ by name) and the backup's copy.
 
 Not yet done, and in this order: once production is seen working, Supabase's "Enforce SSL on
 incoming connections" (owner's dashboard, both projects), so a client that forgets is refused.
+
+## 2026-09-30 (links, security) — a hostile page can no longer make one link preview burn minutes of CPU
+
+Bug audit 3, T2b-01 / L8-05 (High). `parsePageMeta` reads the `<head>` of whatever a pasted link's
+server sends, with patterns that backtracked: measured here, one `<meta>` tag of 40 KB of letters
+took 2.8 s, 80 KB 11.9 s, and at the fetcher's 512 KB cap **455 s**, in one synchronous call that
+blocks every other request Fluid routes to the same process. Link previews reached posts and
+letters on 2026-09-27 (`022f8bc7`), so any member's pasted link could trigger it.
+
+Every pattern is now bounded: a whole meta tag (2 KB, and it also stops at the next `<`, so no
+stretch of the page is read by more than one opener), an attribute name (64), a title (1 KB).
+Every 512 KB hostile page measured now parses in 15 ms or less; ordinary pages unchanged (the
+15 existing parser tests pass). A new test times four hostile pages against a 500 ms ceiling and
+fails on the old patterns (checked: 455,239 ms). The audit's second step, recording a failure
+before resolving, is left undone: the fetch already has a total time budget, so with the parse
+linear a resolve can no longer run long enough to be killed.
