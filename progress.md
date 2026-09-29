@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-29 (backup) — the photograph backup runs again: R2 refused the tag lookup on every large master
 - 2026-09-29 (lab) — the valley film, fourth cut: no flickering spots, sixty frames, a trace that fits
 - 2026-09-28 (feed) — the confirm-your-email box starts level with the search and bell circles
 - 2026-09-28 (guide) — the cover's title and line sit down on the dots

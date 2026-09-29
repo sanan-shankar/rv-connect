@@ -227,8 +227,19 @@ jobs:
           # the backup. That asymmetry is the entire point of the job. The
           # backup only grows; at WebP sizes that stays far under R2's free
           # tier for years.
+          #
+          # --copy-props metadata-directive, because the default ("default")
+          # also copies tags, and for any object over the CLI's 8 MB multipart
+          # threshold it asks for them with GetObjectTagging, which R2 answers
+          # "NotImplemented". The Collection keeps full-resolution masters
+          # since late August, so from 2026-08-29 every night failed on those
+          # (111 copies a run) and the largest photographs had no backup at
+          # all for a month. metadata-directive still carries content-type
+          # and cache headers, which is all a restore needs; nothing here
+          # sets tags.
           aws s3 sync "s3://rv-alumni-media" "s3://$BUCKET/media/" \
-            --endpoint-url "$ENDPOINT" --no-progress
+            --endpoint-url "$ENDPOINT" --no-progress \
+            --copy-props metadata-directive
 
       - name: Verify the backup holds at least everything live
         env:

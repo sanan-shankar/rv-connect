@@ -8784,3 +8784,20 @@ the games field".
   foot to foot, and the glass flies to the corner morphing point for point into the mark.
 - **Imagery** from Esri's Wayback release of February 2026: the current one bakes clouds into the
   ground over Madanapalle, and is the same photograph everywhere else the film looks.
+
+## 2026-09-29 (backup) — the photograph backup runs again: R2 refused the tag lookup on every large master
+
+The nightly `backup` workflow had failed every night since 2026-08-29, 31 runs, and each failure
+mailed the owner, who took it for noise that the next commit would fix. Only the `media` job was
+failing. The database dump succeeded every night throughout, so the member data was always covered.
+
+The cause: `aws s3 sync` between two buckets copies objects over 8 MB as a multipart copy, and by
+default (`--copy-props default`) reads the source's tags first with `GetObjectTagging`, which R2
+answers `NotImplemented`. Objects this large first appeared when the Collection began keeping
+full-resolution masters, so from that night onward the 111 largest photographs never reached the
+backup bucket. `--copy-props metadata-directive` keeps content-type and cache headers and skips
+the tag call.
+
+Audit 3 found this on 2026-09-24 (L3-08, L11-01), but that audit is paused and nothing acts on its
+findings until a fix session runs. The status board's C4 probe only reads the workflow file, not
+the job's result, which is why it stayed green through all of it.
