@@ -286,7 +286,7 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
             type="button"
             onClick={handleSend}
             disabled={busy}
-            className="state-layer shrink-0 rounded-full border border-cinnamon/40 px-3 py-1.5 text-[12.5px] font-semibold text-cinnamon transition-colors duration-150 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cinnamon"
+            className="state-layer shrink-0 rounded-full border border-cinnamon/40 px-3 py-1.5 text-[12.5px] font-semibold text-cinnamon transition-colors duration-150 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             {busy ? "Sending..." : state.state === "sent" ? "Send it again" : "Send me the link"}
           </button>

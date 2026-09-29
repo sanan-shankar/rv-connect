@@ -153,6 +153,13 @@ Now:
   into a way to claim somebody else's name without proving any inbox.
 - **A `User` column recording "confirmation sent".** A schema change on launch
   day, for a fact the 180-day mail log already holds.
+- **Shutting the gate when production has no mail key.** If `RESEND_API_KEY`
+  goes missing or misnamed in Vercel, nothing sends, so every new member waits,
+  and waiting counts as confirmed: names and profiles stay open to them until
+  the key is back. Left as it is because it is the owner's rule applied
+  literally (nothing sent, nothing shut), posting and contacts still need a
+  verified profile, and the drain logs an error on every pass until someone
+  fixes it (`queueIsSendable` in `email-queue.ts`). Write-path review, Low.
 
 ## Build checklist
 
@@ -173,22 +180,23 @@ Phase 2 (straight after):
 
 ## Left to do (2026-09-29, for whichever session picks this up)
 
-Phases 1 and 2 are committed (`a367324b`, and the Phase 2 commit after it).
-Nothing below is started; each is small.
+Closed 2026-09-30: every item is done, and the list stays as the record. Two
+things are the owner's rather than a session's: nudging Devshrut and Bhavya
+to sign in and tap "Use another email", and the roster call under Rule 1, if
+it should change.
 
 1. ~~**The banner floats over the Catch-ups index header.**~~ Done: the chip
    floats only on the Feed now (`railStartsAtTop` in `layout/rail-grid.ts`).
    On a Catch-up's home it had also been landing on the cover photograph.
-2. **Pushed.** Phases 1 and 2 went out with another session's push on
-   2026-09-29 and deployed (Vercel: success). The Catch-ups fix above is the
-   commit after them; push it only with the owner's go-ahead, listing whatever
-   else `git log --oneline origin/main..HEAD` shows.
-3. **Checked after the deploy**: the live pages answer 200, the queue is
-   empty with nothing failed, and the to-do list's mail count went from 2
+2. ~~**Push.**~~ Done: Phases 1 and 2 and the Catch-ups fix (`6b341816`) went
+   out with other sessions' pushes on 2026-09-29, and the last of them
+   deployed at `4afde865` (Vercel: success, CI green).
+3. ~~**Check after the deploy.**~~ Done: the live pages answer 200, the queue
+   is empty with nothing failed, and the to-do list's mail count went from 2
    (Devshrut, Bhavya) to 0.
-4. **Visual suite**: the last run passed 24 of 25; `birds` desktop timed out on
-   its lazy images, a page this work does not touch. Re-run it on a quiet
-   machine (never alongside `npm run check`).
-5. **Not done, noted**: the older resend button in the banner still hard-codes
-   `focus-visible:outline-cinnamon` rather than `outline-ring` (design audit,
+4. ~~**Visual suite.**~~ Done: re-run on a quiet machine on 2026-09-30, 25 of
+   25 in under four minutes, `birds` desktop included. Its earlier timeout was
+   the machine's load.
+5. ~~**The older resend button's focus ring.**~~ Done: it drew cinnamon, and
+   now takes `outline-ring` like "Use another email" beside it (design audit,
    pre-existing).
