@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { Button } from "@/components/ui/button";
 import { AuthHeading, AuthPanel } from "@/components/auth/auth-panel";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";

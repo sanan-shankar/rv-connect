@@ -45,7 +45,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import Image from "next/image";
 import { Camera, Check, Pencil, X } from "lucide-react";
 import { m, AnimatePresence, useAnimationControls } from "motion/react";

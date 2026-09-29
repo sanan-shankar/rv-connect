@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/common/link";
 
 /** A person's name as a link to their profile. Used everywhere a name appears. */
 export function PersonName({

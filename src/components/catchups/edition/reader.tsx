@@ -72,7 +72,7 @@
  * ------------------------------------------------------------------ */
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { AnimatePresence, m } from "motion/react";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { cn } from "@/lib/utils";

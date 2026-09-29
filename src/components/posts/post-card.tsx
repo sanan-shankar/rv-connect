@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { MoreHorizontal, Trash2, Flag, Pencil, ArrowRight, ShieldAlert, MapPin } from "lucide-react";
 import { ChatCircle, Feather } from "@phosphor-icons/react";
 import {

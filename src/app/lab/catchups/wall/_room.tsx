@@ -27,7 +27,7 @@
  * ------------------------------------------------------------------ */
 
 import { Suspense, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import { SpringPress } from "@/components/common/motion";

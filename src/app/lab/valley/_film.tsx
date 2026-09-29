@@ -17,7 +17,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { PEAK_PLANES, Wordmark } from "@/components/layout/peaks-mark";
 import { HERO_IMAGE_BLUR, HERO_IMAGE_SRC } from "@/components/landing/hero-photo";
 import { cameraAt, PEAKS, toWorld, type Shot } from "./_geo";

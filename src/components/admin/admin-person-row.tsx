@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/common/link";
 import type { ReactNode } from "react";
 import { IdentityRow } from "@/components/common/identity-row";
 import { batchLine, cn, metaLine } from "@/lib/utils";

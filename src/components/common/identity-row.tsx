@@ -1,5 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { BirdAvatar, SIZE_TOKENS, type AvatarUser } from "@/components/common/bird-avatar";
 import { cn } from "@/lib/utils";
 

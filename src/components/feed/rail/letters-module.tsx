@@ -2,7 +2,7 @@
    This is an async Server Component: the body runs once per request on the
    server to build a Prisma query, not inside a React render pass, so Date.now()
    here is not the impurity the rule is guarding against. */
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { Feather } from "@phosphor-icons/react/dist/ssr";
 import { prisma } from "@/lib/prisma";
 import { batchLine, letterTitle, metaLine, plainExcerpt, readMinutes } from "@/lib/utils";

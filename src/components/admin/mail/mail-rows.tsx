@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { useAdminAct } from "@/components/admin/use-admin-act";
 import { Button } from "@/components/ui/button";
 import { Chip, type ChipTone } from "@/components/admin/admin-chip";

@@ -24,7 +24,7 @@
  * ------------------------------------------------------------------ */
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import { PhotoRiver, landAt } from "@/components/collection/photo-river";
 import { LazyImageViewer as ImageViewer } from "@/components/common/lazy-image-viewer";

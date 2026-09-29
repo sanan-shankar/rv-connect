@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { Maximize2, X, MapPin, Globe } from "lucide-react";
 import { geoNaturalEarth1, geoPath } from "d3-geo";
 import { select } from "d3-selection";

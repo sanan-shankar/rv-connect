@@ -43,7 +43,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { FlushAvatar } from "@/components/common/flush-avatar";
 import { EntryLoveButton } from "@/components/catchups/edition/entry-love-button";
 import {

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { prisma } from "@/lib/prisma";
 import { headingTextWidth } from "@/lib/text-width";
 import { batchLine, metaLine } from "@/lib/utils";

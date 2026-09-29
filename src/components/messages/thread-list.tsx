@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { Bug, Flag, Lightbulb, MessageCircle, ShieldCheck } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
 import { previewOf, threadTitle } from "@/lib/admin-threads";

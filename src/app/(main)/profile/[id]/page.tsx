@@ -2,7 +2,7 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { getViewerCities } from "@/lib/city-scope";

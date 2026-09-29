@@ -66,7 +66,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { AnimatePresence, LayoutGroup, MotionConfig, m } from "motion/react";
 import { Bell, ImagePlus, Plus, Search } from "lucide-react";
 import { PeaksMark } from "@/components/layout/peaks-mark";

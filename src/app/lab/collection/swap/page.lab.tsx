@@ -45,7 +45,7 @@
  * ------------------------------------------------------------------ */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { Plus } from "lucide-react";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import { BirdAvatar } from "@/components/common/bird-avatar";

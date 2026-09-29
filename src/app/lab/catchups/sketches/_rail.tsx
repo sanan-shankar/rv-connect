@@ -68,7 +68,7 @@ export function Person({ p, size = 30 }: { p: SketchPerson; size?: number }) {
      shipped version: this roster lives inside `(main)` there, so a <Link> from
      it stays in the same layout tree and is the right thing. It is only the
      lab, sitting outside that tree, that has to leave it by a full page load.
-     Whoever ships this should use next/link. */
+     Whoever ships this should use the app's Link, @/components/common/link. */
   return (
     <a
       href={`/profile/${p.id}`}

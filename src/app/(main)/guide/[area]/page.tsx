@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { findGuideArea, guideChain, nextGuideArea } from "@/lib/guide-areas";

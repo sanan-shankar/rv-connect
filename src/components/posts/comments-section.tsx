@@ -16,7 +16,7 @@ import { PersonName } from "@/components/common/person-name";
 import { LoveButton } from "@/components/common/love-button";
 import { ModerationDialog } from "@/components/admin/moderation-dialog";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { cn, formatTimeAgo } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
 import { linkRanges } from "@/lib/link-preview-core";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { LabShell, Rule, Tell, Ledger, Mount, Bench, Verdict, Pick, Controls } from "../_second-look-kit";
 import { PAIRINGS, ALL_FONT_VARS, SHIPPED_KB } from "./_fonts";
 import {

@@ -22,7 +22,7 @@
  * ------------------------------------------------------------------ */
 
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { useEffect, useRef } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import { PeaksMark, Wordmark } from "@/components/layout/peaks-mark";

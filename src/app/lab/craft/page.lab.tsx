@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { Feather } from "lucide-react";
 import { LabShell, Rule, Tell, Ledger, Mount, Bench, Verdict, Switches, Controls } from "../_second-look-kit";
 import { trueBody, trueHead } from "./_italic-fonts";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { Wordmark } from "@/components/layout/peaks-mark";
 
 /* The invite link's first paint.

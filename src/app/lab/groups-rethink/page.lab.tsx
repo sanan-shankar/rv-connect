@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { ArrowRight, Check, X, Minus } from "lucide-react";
 import { PreviewShell, CONCEPTS, Card, Eyebrow, Chip } from "./_shell";
 

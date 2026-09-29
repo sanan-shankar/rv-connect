@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { cn } from "@/lib/utils";
 import type { MemberRow } from "@/lib/admin-analytics";
 

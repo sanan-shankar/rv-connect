@@ -23,7 +23,7 @@
  *  carried by dotted TOC leaders and rules instead.
  * ------------------------------------------------------------------ */
 
-import Link from "next/link";
+import Link from "@/components/common/link";
 import Image from "next/image";
 import { PeaksMark, Wordmark } from "@/components/layout/peaks-mark";
 import { BirdAvatar } from "@/components/common/bird-avatar";

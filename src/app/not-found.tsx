@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/common/link";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { useSoloHoopoe } from "@/components/mascot/moments/one-hoopoe-guard";

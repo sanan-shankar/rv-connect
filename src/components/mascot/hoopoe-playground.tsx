@@ -20,7 +20,7 @@
  * ------------------------------------------------------------------ */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { m } from "motion/react";
 import { Eye, EyeOff, Moon, Sun } from "lucide-react";
 import { Hoopoe } from "@/components/mascot/hoopoe";

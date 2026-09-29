@@ -14,7 +14,7 @@
  * ------------------------------------------------------------------ */
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMotionValue } from "motion/react";
 import { ChevronLeft } from "lucide-react";

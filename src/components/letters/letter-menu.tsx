@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { useRouter } from "next/navigation";
 import { MoreHorizontal, Pencil, Trash2, Flag, ShieldAlert } from "lucide-react";
 import {

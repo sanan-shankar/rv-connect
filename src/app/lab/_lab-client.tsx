@@ -25,7 +25,7 @@
  * ------------------------------------------------------------------ */
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { toast } from "sonner";
 import { Archive, ArchiveRestore, ArrowUpRight, CornerDownRight, Search, X } from "lucide-react";
 import { FadeRise, SpringPress } from "@/components/common/motion";

@@ -16,7 +16,7 @@
  * ------------------------------------------------------------------ */
 
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { toast } from "sonner";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import type { ViewerImage } from "@/components/common/image-viewer";

@@ -21,7 +21,7 @@
  *  as the start of the next group rather than the end of the last one.
  * ------------------------------------------------------------------ */
 
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { cn } from "@/lib/utils";
 
 /** `bare`: inside the guide sheet, where the title stands in the sheet's own

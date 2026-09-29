@@ -29,7 +29,7 @@
  *  chrome ("No. 0N", the index labels) is original to this file.
  * ------------------------------------------------------------------ */
 
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
 import { Check } from "lucide-react";

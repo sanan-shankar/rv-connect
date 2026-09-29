@@ -9,7 +9,7 @@
  *  the card instead of sitting on an empty gap above it.
  * ------------------------------------------------------------------ */
 
-import Link from "next/link";
+import Link from "@/components/common/link";
 import { ResidentHoopoe } from "@/components/mascot/resident-hoopoe";
 import { useSoloHoopoe } from "@/components/mascot/moments/one-hoopoe-guard";
 import { Button } from "@/components/ui/button";
