@@ -5,14 +5,19 @@
  *  fetches the imagery these keys will look at, so change a key and
  *  re-run the script.
  *
- *  The story, in six shots (docs/planning/valley/storyboard.md):
- *    1. over Madanapalle, the valley ahead in its ring of hills;
- *    2. down onto the NH42, the road every school bus took;
- *    3. off the highway at Angallu, low over the campus from the east;
- *    4. over the games field, turning to the three hills;
- *    5. at rest, while their ridge is traced into the mark, which peels
- *       off to the corner and leaves a hill-shaped window onto the
- *       landing page's photograph, which opens until we are through it.
+ *  The story (docs/planning/valley/storyboard.md): down through the
+ *  clouds over Madanapalle, up the NH42, west at Angallu, over the rocky
+ *  hill east of the campus and the games field, and at rest on the three
+ *  hills, where the ending (_film.tsx) takes over.
+ *
+ *  One rule sets the pace: the camera's speed goes with its height above
+ *  the ground, so the land never moves more than about fifteen pixels a
+ *  frame at sixty frames a second and the camera never turns faster than
+ *  about twelve degrees a second. Fast high up, slow low down, as a
+ *  descent looks from a real aircraft; a kilometre a second at 150 m, as
+ *  the first cut flew, reads as a stuttering frame rate. The camera only
+ *  ever descends, and once its gaze starts lifting to the hills it only
+ *  lifts: a dip and lift over the games field read as janky.
  * ------------------------------------------------------------------ */
 
 import { tileRect, type Key, type TileKey } from "./_geo.ts";
@@ -20,19 +25,21 @@ import { tileRect, type Key, type TileKey } from "./_geo.ts";
 export const FLIGHT: Key[] = [
   /* 1: above the cloud tops south-east of Madanapalle, coming down
      through a gap with the valley ahead to the north-west */
-  { t: 0, eye: [9400, 4100, 15400], look: [1400, 700, 1600], fov: 50 },
-  /* 2: down onto the NH42 at the town's northern edge, and along it */
-  { t: 3.0, eye: [5200, 1600, 7000], look: [3000, 800, 1200], fov: 50, roll: -2 },
-  { t: 5.6, eye: [4100, 1050, 3000], look: [2200, 760, -900], fov: 52, roll: -4 },
-  /* 3: Angallu, banking left off the highway towards the campus */
-  { t: 7.8, eye: [2800, 880, 600], look: [0, 740, -300], fov: 54, roll: -6 },
-  { t: 9.8, eye: [1100, 820, -250], look: [-1500, 760, 200], fov: 54, roll: -3 },
-  /* 4: over the games field, looking down on the campus, the Dining Hall
-     and the quadrangles; then the tilt up that finds the three hills */
-  { t: 11.3, eye: [390, 925, 10], look: [-60, 712, 40], fov: 46 },
-  /* 5: at rest above the field, the hills lined up as the mark has them;
-     the camera stays here while they become the mark and open */
-  { t: 13.2, eye: [60, 757, -280], look: [-4847, 1060, 1247], fov: 17, settle: true },
+  { t: 0, eye: [9000, 4300, 14500], look: [1500, 700, 1500], fov: 52 },
+  { t: 2.2, eye: [5800, 2200, 8000], look: [1300, 720, 1000], fov: 52, roll: -2 },
+  /* 2: over the town's northern edge and up the NH42, the road every
+     school bus took, high enough that the ground never rushes */
+  { t: 4.6, eye: [4300, 1800, 3900], look: [900, 740, 400], fov: 52, roll: -3 },
+  /* 3: Angallu, turning west off the highway, the campus ahead */
+  { t: 7.0, eye: [2800, 1400, 1100], look: [145, 710, 65], fov: 51, roll: -3 },
+  /* 4: down over the rocky hill east of the campus, the games field in
+     the middle of the frame and the three hills beyond it */
+  { t: 9.6, eye: [1250, 1030, 180], look: [-1648, 266, -82], fov: 49, roll: -1 },
+  /* 5: over the field, the gaze lifting to the hills as it passes under */
+  { t: 11.9, eye: [480, 905, 130], look: [-2407, 639, 903], fov: 38 },
+  /* 6: at rest at the field's west end, the hills lined up as the mark
+     has them; the camera stays here while they become the mark */
+  { t: 14.0, eye: [110, 755, 70], look: [-4812, 1060, 1407], fov: 18, settle: true },
 ];
 
 /** The camera arrives at rest here; the ending is the page's (_film.tsx). */

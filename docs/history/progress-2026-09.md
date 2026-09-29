@@ -8760,3 +8760,27 @@ which PageHeader lifts to centre on the title's capitals, so it read as hanging 
 card. Measured at 1440: box and circles now both start at 36.5px. The lift lives once, in
 `control-geometry.ts` (`HEADER_CONTROLS_LIFT` beside `BESIDE_HEADER_CONTROLS`), so a retune of the
 header moves the box with it.
+
+## 2026-09-29 (lab) — the valley film, fourth cut: no flickering spots, sixty frames, a trace that fits
+
+Owner (¶13), on the third cut: "weird flickering spots throughout the entire video", the trace
+"doesn't cover the hills. do an accurate smooth tracing and then while shrinking to the top left
+morph it into what we need", "a pretty abysmal frame rate", and "the weird dip and then lift near
+the games field".
+
+- **The spots** were pixels that were not numbers: the imagery's relief came from screen
+  derivatives, degenerate on the skirts between tiles, and the bloom spread each bad pixel into a
+  glowing dot. Relief is now taken in the photograph's own texels and the composite drops anything
+  not a number. Also: tiles hand over from their parent photograph as they sharpen, the tree shadow
+  map has a fixed scale and filtered lookups, crowns never render below a pixel, and Karis's
+  average in the bloom.
+- **The frame rate**: the camera flew a kilometre a second 150 m up, so the ground moved 25 to 40
+  pixels a frame. Its speed now goes with its height (at most about 15 pixels a frame, 12 degrees a
+  second of turn), and the video is 60 fps, each frame sixteen jittered moments across a 180-degree
+  shutter averaged before the tone curve. Frame-to-frame flicker measured 25 to 200 times lower.
+- **The games field** shows beyond the rocky hill east of the campus and passes under the camera;
+  it only descends, and its gaze only lifts once it starts to.
+- **The trace** is the outline the frame itself draws (a mask of the ground within 7 km read back),
+  foot to foot, and the glass flies to the corner morphing point for point into the mark.
+- **Imagery** from Esri's Wayback release of February 2026: the current one bakes clouds into the
+  ground over Madanapalle, and is the same photograph everywhere else the film looks.
