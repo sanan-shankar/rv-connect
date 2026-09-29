@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-30 (database) — a sign-in flood can no longer fill the database, and its size now raises an alarm at 350 MB
 - 2026-09-30 (backup) — every night's database backup is restored in rehearsal, and the place list is kept apart to save egress
 - 2026-09-29 (email) — a bounced confirmation fixes itself: the member moves to another address
 - 2026-09-29 (platform) — links stop rendering pages nobody opened: prefetching off, a third of the CPU was profile prefetches

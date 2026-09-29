@@ -35,6 +35,17 @@ export type LoginReason =
   | "rate-limited"
   | "bot-check";
 
+/* FAILURE ROWS ARE CAPPED, site-wide, at this many per rolling hour.
+   Every refusal used to write its row whatever the limiter had decided, so a
+   sign-in bot the limiter had already stopped still inserted one row per
+   attempt, kept for a year: ~500 bytes each, which at ten attempts a second
+   fills the Free plan's 500 MB in about a day, and Supabase then makes the
+   whole database read-only (bug audit 3, L5-02). Real traffic was 39
+   attempts in the fortnight to 2026-09-10, so no person ever meets this cap;
+   a flood is held to ~60 KB an hour, and the rows it does write are still
+   there to say a flood happened. Successful sign-ins are never capped. */
+export const FAILURE_ROWS_PER_HOUR = 120;
+
 export function recordLoginAttempt(input: {
   email: string;
   ok: boolean;
@@ -48,6 +59,17 @@ export function recordLoginAttempt(input: {
 }): void {
   const write = async () => {
     try {
+      if (!input.ok) {
+        /* LIMIT inside, so the count stops at the cap instead of walking a
+           flood's worth of rows; the range rides the createdAt index. */
+        const [{ n }] = await prisma.$queryRaw<{ n: number }[]>`
+          SELECT count(*)::int AS n FROM (
+            SELECT 1 FROM "LoginAttempt"
+            WHERE NOT ok AND "createdAt" > now() - interval '1 hour'
+            LIMIT ${FAILURE_ROWS_PER_HOUR}
+          ) recent`;
+        if (n >= FAILURE_ROWS_PER_HOUR) return;
+      }
       await prisma.loginAttempt.create({
         data: {
           email: input.email.trim().toLowerCase().slice(0, 200),

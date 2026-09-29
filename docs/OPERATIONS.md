@@ -180,6 +180,26 @@ number there is exactly how the policy and the practice came apart (refactor aud
 ORCH-04). Notifications are the one table here that grows without bound — ~0.8KB each, and 2,000 members at 500 apiece is ~800MB
 against a 500MB free tier.
 
+#### Database size
+
+The snapshot also records `db.database.bytes` (`pg_database_size`) and **fails the job, which
+emails the owner, once it passes 350 MB**. The Free plan makes the whole database read-only at
+500 MB, and before 2026-09-30 nothing watched it: the first sign would have been every write in
+the app failing. Supabase's own meter reads about 20 MB higher than Postgres's count (140 vs
+119 MB on 2026-09-29), hence 350 rather than 450. At 125 MB with ~280 members, the line is
+months away. When it fires:
+
+1. See what grew: `node scripts/dev/run-sql.mjs --inline "SELECT relname,
+   pg_size_pretty(pg_total_relation_size(oid)) FROM pg_class WHERE relkind='r' AND
+   relnamespace='public'::regnamespace ORDER BY pg_total_relation_size(oid) DESC LIMIT 10"`.
+2. A log table (`LoginAttempt`, `Visit`, `ContentView`, `Notification`) that grew fast is a
+   retention window or a flood. `LoginAttempt` failures are capped at 120 an hour
+   (`src/lib/login-attempt.ts`) for exactly this reason.
+3. `Place` is 97 MB of the total by itself: the static gazetteer and its search indexes. It is
+   the largest single lever if the members' own data ever needs the room.
+4. Supabase Pro ($25 a month) raises the line to 8 GB. That is the answer once the members'
+   own data is what fills it.
+
 ### Minute budget
 Private repos get **2,000 free minutes a month** and the account spending limit is **$0 by
 default**, so exhausting them stops runs rather than producing a bill. Expected usage is

@@ -78,6 +78,9 @@ const add = (source, metric, value) => {
  *     asked about the past -- so these are computed fresh every night
  *     rather than trusted from yesterday's row.
  * ---------------------------------------------------------------- */
+const DB_ALARM_MB = 350;
+let dbAlarm = null;
+
 async function collectDb() {
   const d7 = daysAgo(7).toISOString();
   const d30 = daysAgo(30).toISOString();
@@ -122,7 +125,9 @@ async function collectDb() {
       (SELECT count(*) FROM "Contribution" WHERE livemode AND status = 'paid')       AS give_count,
       (SELECT coalesce(sum(amount),0) FROM "Contribution" WHERE livemode AND status = 'paid') AS give_paise,
       (SELECT count(DISTINCT "userId") FROM "Contribution"
-        WHERE livemode AND status = 'paid' AND "userId" IS NOT NULL)       AS give_people
+        WHERE livemode AND status = 'paid' AND "userId" IS NOT NULL)       AS give_people,
+
+      pg_database_size(current_database())                                 AS db_bytes
   `, [d7, d30]);
 
   const n = (k) => Number(r[k]);
@@ -171,7 +176,21 @@ async function collectDb() {
     add("db", "contributions.completion_rate", n("give_count") / n("give_started"));
   }
 
-  return `${n("members_total")} members, ${n("give_count")} contributions`;
+  /* The database's own size, and an ALARM, because nothing else watches it:
+   * the Free plan makes the whole database read-only at 500 MB, and until
+   * 2026-09-30 the first sign of that would have been every write in the app
+   * failing (bug audit 3, L5-02 / L5-08). Supabase's meter reads ~20 MB above
+   * pg_database_size (140 vs 119 MB on 2026-09-29), so the line is 350 MB:
+   * months of warning at today's growth, not days. Past it this job fails,
+   * which emails the owner, and says in plain words what to do. */
+  add("db", "database.bytes", n("db_bytes"));
+  const mb = Math.round(n("db_bytes") / 1e6);
+  if (mb >= DB_ALARM_MB) {
+    dbAlarm = `Database is ${mb} MB (Postgres's own count). Supabase's Free plan makes it read-only at 500 MB. ` +
+      `Look at docs/OPERATIONS.md, "Database size", before it gets there.`;
+  }
+
+  return `${n("members_total")} members, ${n("give_count")} contributions, database ${mb} MB`;
 }
 
 /* ---------------------------------------------------------------- *
@@ -301,6 +320,13 @@ async function main() {
        * are exact and free; a vendor being down is not a reason to lose them. */
       console.error(`  ${name.padEnd(8)} FAILED -- ${err.message}`);
     }
+  }
+
+  /* The exit code only; the write below still runs, so the size that tripped
+   * the alarm is on the chart too. */
+  if (dbAlarm) {
+    console.error(`::error::${dbAlarm}`);
+    process.exitCode = 1;
   }
 
   console.log(`\n${rows.length} metrics for ${DAY.toISOString().slice(0, 10)}`);
