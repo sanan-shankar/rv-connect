@@ -20,6 +20,7 @@ if the month is new), and add one line here, at the top of that month's list.
 - 2026-09-30 (database) — an empty `api` schema for the Data API, so Supabase stops calling the project unhealthy
 - 2026-09-30 (database) — a sign-in flood can no longer fill the database, and its size now raises an alarm at 350 MB
 - 2026-09-30 (backup) — every night's database backup is restored in rehearsal, and the place list is kept apart to save egress
+- 2026-09-29 (banner) — the confirm-your-email chip stops covering Catch-ups
 - 2026-09-29 (email) — a bounced confirmation fixes itself: the member moves to another address
 - 2026-09-29 (platform) — links stop rendering pages nobody opened: prefetching off, a third of the CPU was profile prefetches
 - 2026-09-29 (email) — launch day: waiting for a confirmation email no longer locks anybody out
