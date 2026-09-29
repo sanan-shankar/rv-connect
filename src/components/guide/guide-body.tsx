@@ -110,7 +110,7 @@ export function GuideBody({
       {tour && !next && (
         <Section title="Finding this again">
           <P>
-            To see any of this again, <DoorHint />. If you have a question the guide does not
+            <DoorHint purpose="see any of this again" /> If you have a question the guide does not
             answer, or anything else to tell us, write to us from{" "}
             <GuideLink href="/messages">Reach out</GuideLink>.
           </P>

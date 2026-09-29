@@ -9045,3 +9045,13 @@ command; nothing confirmed or saved): the card's button opens the confirmation, 
 on hold, and the Picture row opens "The picture" over Settings; no console errors. The one real
 Catch-up the test account belongs to is held, but he does not keep it, so he rightly sees neither
 control there, and that page renders unchanged.
+
+## 2026-09-30 (guide) — the tour's first page says which title opens the guide again, and what it opens
+
+The cover read "To come back to it later, click the title at the top of any page". The owner:
+"what's it, what's title. my 24 year old sister was confused." `DoorHint` is now the whole
+sentence, naming the guide and one real title: "Click the title at the top of any page, like Feed,
+to come back to this guide" ("Tap twice on" with a finger). The tour's closing "Finding this
+again" uses the same sentence ending "to see any of this again". "like Feed" is joined by a
+non-breaking space so a phone never splits it. Looked at in the replayed tour at 1440 and 390; no
+console errors. `npm run visual` not run: no route in its list renders the guide sheet.

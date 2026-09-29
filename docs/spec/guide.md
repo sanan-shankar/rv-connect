@@ -206,7 +206,10 @@ The guide sheet, with three additions while the tour runs:
 
 - **A cover first** (`guide-cover.tsx`): the valley photograph the sign-in page opens on, filling
   the whole window, with "How to use this site" and one line over its foot: the way back to it, in
-  the device's own verb ("To come back to it later, tap the title at the top of any page twice").
+  the device's own verb ("Tap twice on the title at the top of any page, like Feed, to come back to
+  this guide"). It first read "To come back to it later, tap the title at the top of any page
+  twice", and a first-time reader asked "what's it, what's title" (owner, 2026-09-29); naming the
+  guide and one real title answers both.
   He asked for the guide and the way back to it "before feed on its own beautiful window", said the
   two points were "this is a how to use and you can tap the title to get back to it", and cut the
   line that said what the tour was ("delete this"). The first chapter is already laid out beneath

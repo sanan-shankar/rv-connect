@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
+- 2026-09-30 (guide) — the tour's first page says which title opens the guide again, and what it opens
 - 2026-09-30 (catchups) — the Picture row opens the picker, and "Start it again" on a held Catch-up asks to start it
 - 2026-09-30 (auth) — a database that does not answer shows a try-again screen instead of signing the member out
 - 2026-09-30 (links, security) — a hostile page can no longer make one link preview burn minutes of CPU

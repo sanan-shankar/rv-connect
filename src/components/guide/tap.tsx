@@ -43,11 +43,16 @@ export function Tap({ cap = false }: { cap?: boolean }) {
   return <>{cap ? word[0].toUpperCase() + word.slice(1) : word}</>;
 }
 
-/** How to get a page's guide back: two taps on a phone, one click with a mouse. */
-export function DoorHint() {
-  return useTouch() ? (
-    <>tap the title at the top of any page twice</>
-  ) : (
-    <>click the title at the top of any page</>
+/** How to get a page's guide back, as a whole sentence ending "to {purpose}.":
+ *  two taps on a phone, one click with a mouse. It names a real title
+ *  because "the title" alone did not land. The owner, 2026-09-29, on "To
+ *  come back to it later, click the title at the top of any page": "what's
+ *  it, what's title. my 24 year old sister was confused." */
+export function DoorHint({ purpose }: { purpose: string }) {
+  const how = useTouch() ? "Tap twice on" : "Click";
+  return (
+    <>
+      {how} the title at the top of any page, like&nbsp;Feed, to {purpose}.
+    </>
   );
 }
