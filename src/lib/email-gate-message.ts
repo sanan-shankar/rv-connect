@@ -13,5 +13,7 @@
  * complete sentence on its own, so a surface that has not been taught about
  * the dialog degrades to simply showing it.
  */
+// "Tap the link we emailed you", not "we sent you a link when you joined": on
+// a launch day the link can leave a day or two after they did.
 export const EMAIL_UNVERIFIED =
-  "Confirm your email address before you post. We sent you a link when you joined.";
+  "Confirm your email address before you post. Tap the link we emailed you.";

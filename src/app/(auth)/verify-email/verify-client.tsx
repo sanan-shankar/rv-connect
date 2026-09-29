@@ -8,6 +8,7 @@ import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { resendVerification, type ConfirmOutcome } from "@/components/auth/email-actions";
 import { callAction } from "@/lib/call-action";
+import { resendOutcomeMessage } from "@/lib/confirmation-copy";
 
 /* ------------------------------------------------------------------ *
  *  The confirmation link's landing page.
@@ -51,7 +52,9 @@ const COPY: Record<Outcome, { title: string; body: string }> = {
   },
   waiting: {
     title: "Check your email",
-    body: "We sent you a link when you joined. Check your spam folder if you cannot find it.",
+    // Not "we sent you a link when you joined": on a launch day the link can
+    // leave a day or two after they did (docs/spec/email.md).
+    body: "Look for our email and tap the link in it. Check your spam folder if you cannot find it.",
   },
 };
 
@@ -111,7 +114,10 @@ export function VerifyEmailClient({
     // Through callAction (audit C-034): a rejected dispatch skipped the
     // setBusy(false) below and left Resend disabled for ever.
     const result = await callAction(() => resendVerification());
-    if (result.ok) setResent(result.sentTo ?? "your address");
+    // What actually happened, not "Sent to ..." for everything: on a spent
+    // day the new link waits until the refill, and this page used to tell
+    // that member to go and look in their inbox (2026-09-29).
+    if (result.ok) setResent(resendOutcomeMessage(result));
     else setResendError(result.error ?? "That did not work. Try again in a minute.");
     setBusy(false);
   }
@@ -142,8 +148,7 @@ export function VerifyEmailClient({
             // beside "we just sent it" invites a second press, which the rate
             // limit would refuse and which would read as the page ignoring them.
             <p className="rounded-[var(--radius-md)] border border-leaf/30 bg-leaf/[0.07] px-4 py-3 text-[13.5px] leading-relaxed text-foreground">
-              Sent to <span className="font-medium">{resent}</span>. Check your
-              spam folder if it does not arrive.
+              {resent}
             </p>
           ) : (
             <Button

@@ -488,6 +488,13 @@ export const REGISTRY: LabEntry[] = [
     status: "active",
     note: "Dev harness for the shared LocationPicker against the live GeoNames search endpoint, both single and multi mode, with the raw controlled state visible for testing.",
   },
+  {
+    href: "/lab/email-states",
+    title: "Email states",
+    group: "Tools",
+    status: "active",
+    note: "Every line a new member can read about their confirmation email, rendered live: waiting with everything open, waiting on a resend, on its way, sent. A dev machine sends no mail, so this is the only place off production to read them.",
+  },
 
   /* ---------------------------------------------------------------- *
    *  Groups rethink: one archived room. Its four concept pages are

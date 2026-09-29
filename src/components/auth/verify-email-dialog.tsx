@@ -16,7 +16,7 @@ import { MEMBER_UNVERIFIED } from "@/lib/member-gate-message";
 import { callAction } from "@/lib/call-action";
 import { MemberVerifyDialog } from "./member-verify-dialog";
 import { resendVerification } from "./email-actions";
-import { sendTimeLabel } from "./verify-email-banner";
+import { resendOutcomeMessage } from "@/lib/confirmation-copy";
 
 /* ------------------------------------------------------------------ *
  *  What an unconfirmed account sees when it tries to post.
@@ -109,14 +109,9 @@ export function VerifyEmailDialog({
       // Three states, three sentences, because each is a lie if used for the
       // others: "sent" means the provider accepted it, "imminent" means it is in
       // flight, and only "queued" - the budget genuinely spent - may mention the
-      // limit, with the refill time named rather than "up to a day".
-      setFlash(
-        result.state === "sent"
-          ? `Sent to ${result.sentTo}. Check your spam folder if it does not arrive.`
-          : result.state === "queued" && result.sendingAt
-            ? `We have hit today's email limit. Your link goes out ${sendTimeLabel(result.sendingAt)}.`
-            : "Your link is on its way. Give it a minute, then check spam.",
-      );
+      // limit, with the refill time named rather than "up to a day". Worded in
+      // one place for this dialog, the banner's page and /verify-email.
+      setFlash(resendOutcomeMessage(result));
       router.refresh();
     } finally {
       setBusy(false);

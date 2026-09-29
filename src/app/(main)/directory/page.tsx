@@ -165,7 +165,7 @@ export default async function DirectoryPage({
      serialized into the HTML, so the rule has to hold at query time, not at
      render time. The demo's invented visitor is exempt, as with every gate. */
   const session = await auth();
-  const namesLocked = !IS_DEMO && !session?.user?.emailConfirmed;
+  const namesLocked = !IS_DEMO && !session?.user?.emailGateOpen;
 
   // The directory `where` (case-insensitive search + any-of-N-cities match) is
   // built by a shared helper so the SSR first page and the Load more server

@@ -18,9 +18,10 @@ declare module "next-auth" {
       /** Community standing (office list / vouching / flagged). Unrelated to
        *  `emailVerified` below, which is only ever "did this address answer". */
       verifyState: string;
-      /** True once the person clicked the link we mailed them. Gates posting,
-       *  uploads and other members' contact details
-       *  (src/lib/email-verification.ts).
+      /** True once the person clicked the link we mailed them. The FACT
+       *  only: since 2026-09-29 no gate reads it directly, they read
+       *  `emailGateOpen` below, which is this or a confirmation still
+       *  waiting on our daily limit.
        *
        *  NOT called `emailVerified`: NextAuth's own adapter types already
        *  declare that name on this user as a `Date`, and interface merging
@@ -28,6 +29,13 @@ declare module "next-auth" {
        *  resolves to the uninhabitable `Date & boolean`. The database column
        *  is still `User.emailVerified`; this is the derived flag. */
       emailConfirmed: boolean;
+      /** What every confirmed-email gate reads: `emailConfirmed`, OR the
+       *  member's confirmation is still waiting in our queue with none ever
+       *  sent to this address (src/lib/email-gate-open.ts). The daily email
+       *  limit is ours, so it must not lock anybody out (owner, 2026-09-29).
+       *  Read `emailConfirmed` only for the FACT -- the banner, "already
+       *  confirmed" -- and this for every permission. */
+      emailGateOpen: boolean;
       batchType: string | null;
       batchYear: number | null;
       photoUrl: string | null;

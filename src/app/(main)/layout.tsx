@@ -10,6 +10,7 @@ import { isStatsExcluded } from "@/lib/stats-exclusion";
 import { headers } from "next/headers";
 import { drainMailQueue, verificationMailState } from "@/lib/email-queue";
 import { maskEmail } from "@/lib/mask-email";
+import { sendTimeLabel } from "@/lib/confirmation-copy";
 import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
 import { PostHogIdentify } from "@/components/analytics/posthog-identify";
 import { InstallPromptCapture } from "@/components/pwa/install-prompt";
@@ -178,7 +179,16 @@ export default async function MainLayout({
                   : mailState.state === "imminent"
                     ? { state: "imminent" }
                     : mailState.state === "queued"
-                      ? { state: "queued", sendingAt: mailState.sendingAt.toISOString() }
+                      ? {
+                          state: "queued",
+                          sendingAt: mailState.sendingAt.toISOString(),
+                          // Worded here so the first paint names the right
+                          // day, not a placeholder the browser corrects.
+                          label: sendTimeLabel(mailState.sendingAt.toISOString()),
+                          // Whether waiting leaves everything open (nothing
+                          // sent yet) or they are waiting on a resend.
+                          open: session.user.emailGateOpen,
+                        }
                       : { state: "none", sentTo: maskEmail(session.user.email) }
               }
             />

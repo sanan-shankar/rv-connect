@@ -8,6 +8,7 @@ import { maskEmail } from "@/lib/mask-email";
 import { burnTokens, claimToken, readToken } from "@/lib/auth-tokens";
 import { passwordProblem } from "@/lib/password-rule";
 import { enqueueMail, verificationMailState } from "@/lib/email-queue";
+import { emailGateOpenFor } from "@/lib/email-gate-open";
 import { sendVerificationEmail } from "@/lib/verification-mail";
 import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
 import { verifyHumanFromForm } from "@/lib/turnstile";
@@ -56,6 +57,11 @@ export async function resendVerification(): Promise<{
   sentTo?: string;
   /** ISO. Only set with state "queued". */
   sendingAt?: string;
+  /** Only set with state "queued": whether the wait leaves every gate open
+   *  (nothing has ever been sent to this address, docs/spec/email.md Rule 1)
+   *  or they are waiting on a resend with the gate shut. The two say
+   *  different things (`resendOutcomeMessage`). */
+  open?: boolean;
   error?: string;
 }> {
   const session = await auth();
@@ -112,6 +118,15 @@ export async function resendVerification(): Promise<{
           : "imminent",
     sentTo: maskEmail(session.user.email),
     sendingAt: state.state === "queued" ? state.sendingAt.toISOString() : undefined,
+    open:
+      state.state === "queued"
+        ? await emailGateOpenFor({
+            id: session.user.id,
+            email: session.user.email,
+            // Unconfirmed: the early return above answers for everybody else.
+            emailVerified: null,
+          })
+        : undefined,
   };
 }
 

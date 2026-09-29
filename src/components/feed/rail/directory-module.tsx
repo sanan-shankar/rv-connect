@@ -22,7 +22,7 @@ export async function DirectoryModule({ userId }: { userId: string }) {
      Hidden rather than locked-carded: the rail is optional garnish, and the
      directory page already teaches the gate. */
   const session = await auth();
-  if (!IS_DEMO && !session?.user?.emailConfirmed) return null;
+  if (!IS_DEMO && !session?.user?.emailGateOpen) return null;
 
   // IDENTITY_SELECT plus the three the meta line below reads: the account
   // type and batch year `batchLine` needs, and the city beside it. Not

@@ -18,6 +18,7 @@ import {
   drainHasWork,
   STALE_CLAIM_MS,
   RETRY_RESET,
+  confirmationStillWaiting,
 } from "./mail-policy.ts";
 
 test("a rate limit is the provider's problem, not the address's", () => {
@@ -248,4 +249,69 @@ test("a stale claim IS a reason, because nobody else will reclaim it", () => {
   // A "sending" row with no claim stamp at all is not a stale claim; it is a
   // row mid-write, and guessing about it is how a message gets sent twice.
   assert.equal(drainHasWork({ status: "sending", claimedAt: null }, NOW), false);
+});
+
+/* ------------------------------------------------------------------ *
+ *  Waiting counts as confirmed (owner, 2026-09-29, launch day).
+ *
+ *  "until we have sent the verification email, they should continue to
+ *  have full access ... if we've sent the email and they've not verified,
+ *  then shut it down." The daily email limit is ours, so a member stuck
+ *  behind it keeps the site; the moment one confirmation goes out to the
+ *  address on their account, the ordinary gate applies.
+ * ------------------------------------------------------------------ */
+
+const ME = "priya@example.com";
+const row = (over = {}) => ({ to: ME, status: "queued", sentAt: null, ...over });
+const SENT_AT = new Date("2026-09-29T00:00:05Z");
+
+test("a confirmation still in the queue, never sent, keeps the gate open", () => {
+  assert.equal(confirmationStillWaiting([row()], ME), true);
+  // Mid-send is still waiting: it has not reached them yet.
+  assert.equal(confirmationStillWaiting([row({ status: "sending" })], ME), true);
+});
+
+test("once one has gone out, waiting is over for good", () => {
+  assert.equal(confirmationStillWaiting([row({ status: "sent", sentAt: SENT_AT })], ME), false);
+  // A resend queued AFTER one went out does not reopen anything: they were
+  // sent a link, and the owner's rule is to shut it down until they tap it.
+  assert.equal(
+    confirmationStillWaiting([row(), row({ status: "sent", sentAt: SENT_AT })], ME),
+    false
+  );
+});
+
+test("a bounce was sent, so it is not waiting either", () => {
+  // The webhook flips a bounced row to failed and leaves sentAt alone.
+  assert.equal(
+    confirmationStillWaiting([row({ status: "failed", sentAt: SENT_AT })], ME),
+    false
+  );
+});
+
+test("a row that gave up without sending is waiting on a fix, not on the limit", () => {
+  assert.equal(confirmationStillWaiting([row({ status: "failed" })], ME), false);
+  // ...but an earlier give-up does not cancel a live row behind it.
+  assert.equal(confirmationStillWaiting([row({ status: "failed" }), row()], ME), true);
+});
+
+test("nothing on file is not waiting", () => {
+  assert.equal(confirmationStillWaiting([], ME), false);
+});
+
+test("only mail to the address on the account counts", () => {
+  // A member whose first address bounced and who moved to another has never
+  // been sent anything they could open. Their new link's wait is real.
+  const bouncedOld = row({ to: "old@example.com", status: "failed", sentAt: SENT_AT });
+  assert.equal(confirmationStillWaiting([bouncedOld, row()], ME), true);
+  // And a queued row for an address they have left does not hold the gate open.
+  assert.equal(confirmationStillWaiting([row({ to: "old@example.com" })], ME), false);
+});
+
+test("the address comparison ignores case and stray spaces", () => {
+  assert.equal(confirmationStillWaiting([row({ to: " Priya@Example.com" })], ME), true);
+  assert.equal(
+    confirmationStillWaiting([row({ to: "PRIYA@example.com", status: "sent", sentAt: SENT_AT })], ME),
+    false
+  );
 });

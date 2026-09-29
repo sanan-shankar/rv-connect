@@ -32,8 +32,10 @@ export async function requestVerification(): Promise<RequestVerificationResult> 
 
   // First gate first: an unconfirmed address has no business in the
   // verification queue, because the owner would have no way to reach the
-  // person behind it to check anything.
-  if (!session.user.emailConfirmed) return { ok: false, error: EMAIL_UNVERIFIED };
+  // person behind it to check anything. The GATE rather than the fact, so a
+  // member whose confirmation is only waiting on our daily email limit can
+  // ask too (docs/spec/email.md Rule 1).
+  if (!session.user.emailGateOpen) return { ok: false, error: EMAIL_UNVERIFIED };
 
   if (session.user.verifyState === "verified") return { ok: true, state: "verified" };
 
