@@ -108,7 +108,7 @@ export function GuideCover({
             {title}
           </h2>
           <p className={cn("mt-3 max-w-[34rem] text-base leading-[1.65] text-pretty", PAPER)}>
-            To come back to it later, <DoorHint />.
+            <DoorHint purpose="come back to this guide" />
           </p>
         </div>
         {/* The chapters' footer, to the pixel: same insets, same bottom.
