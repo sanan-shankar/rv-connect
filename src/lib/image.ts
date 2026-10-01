@@ -160,6 +160,34 @@ export async function countImageFrames(input: Buffer): Promise<number> {
   }
 }
 
+/**
+ * How far apart, in 0..255 levels, a channel's darkest and brightest pixel may
+ * be and still count as one flat colour. Not zero: lossy WebP can round a flat
+ * field by a level. No photograph of anything spans two levels on every
+ * channel at once.
+ */
+const FLAT_TOLERANCE = 2;
+
+/**
+ * True when an image shows nothing: every pixel fully transparent, or the
+ * whole frame one flat colour.
+ *
+ * Exists because the avatar framer encodes its crop from a browser canvas, and
+ * a browser can hand back an empty canvas without an error. On 2026-10-01 one
+ * member's photo was stored as 512x512 of pure transparency, and since a photo
+ * always replaces the bird, his profile showed neither. A blank is refused so
+ * the bird stays.
+ *
+ * Run on our own encoded output, never on raw upload bytes, so plain `sharp`
+ * rather than `sharpImage`'s decoder policy.
+ */
+export async function isBlankImage(encoded: Buffer): Promise<boolean> {
+  const { channels, isOpaque } = await sharp(encoded).stats();
+  // Not opaque means an alpha band, and sharp reports it last.
+  if (!isOpaque && channels[channels.length - 1].max === 0) return true;
+  return channels.every((c) => c.max - c.min <= FLAT_TOLERANCE);
+}
+
 /* ─── What we know about a stored image ─────────────────────────────────── *
  *
  * Everything below measures the bytes we are about to SERVE -- the display

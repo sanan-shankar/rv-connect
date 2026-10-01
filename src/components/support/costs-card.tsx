@@ -33,7 +33,7 @@ const MONTHLY_TOTAL = SEGMENTS.reduce((sum, s) => sum + s.value, 0);
 
 /* One-time, to design and build the site. The denominator of the recovery
    bar and nothing else; never printed. */
-const BUILD_COST_PAISE = 400000 * 100;
+const BUILD_COST_PAISE = 500000 * 100;
 
 /* Both bars use a 20px track with a 4px inset, leaving a 12px fill; the fund
    fill's minimum width matches that fill height so its zero state stays a
@@ -149,7 +149,7 @@ export function CostsCard({ recoveredPaise }: { recoveredPaise: number }) {
           className="relative mt-[var(--space-m)] h-5 w-full overflow-hidden rounded-full bg-mist p-1"
           role="progressbar"
           // Percentages, not amounts: with the figures off the page, a screen
-          // reader announcing "0 of 400000" would be reading out the one
+          // reader announcing "0 of 500000" would be reading out the one
           // thing this section deliberately does not say.
           aria-valuemin={0}
           aria-valuemax={100}
