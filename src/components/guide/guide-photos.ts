@@ -18,19 +18,24 @@
  *
  *  The owner's choices: the Feed's Three Sisters, the Collection's
  *  December 2011 silhouettes (the one he linked, not its wider twin),
- *  the library for Letters, Kartik's house for Catch-ups. The school
- *  bell ("We could definitely should definitely use that somewhere")
- *  took the Directory. Birds has the basketball photograph because he
+ *  the senior library for Letters, Kartik's house for Catch-ups. The
+ *  school bell ("We could definitely should definitely use that
+ *  somewhere") took the Directory. Birds has the basketball photograph because he
  *  did not want a bird ("Don't wanna use birds"), and Cave Rock at blue
  *  hour, his other offer, is nearly black at this size.
  *
- *  The library was shot turned a little right and tipped down, so its
- *  shelves were uneven and its uprights leaned ("if you can correct it
- *  and just get the shelves even on both sides"). Both crops come from a
- *  copy rotated back to straight on (3 degrees of turn, 8 of tilt,
- *  measured from where the corridor's lines meet), cut from inside the
- *  rotated frame so no empty corner shows, and from below the ceiling,
- *  which he did not like at the top of the tall one.
+ *  The library is Lakshman's "Senior school library" (2026-10-01), which
+ *  replaced an earlier photograph of the same aisle whose dim ceiling the
+ *  owner did not want at the top of the tall crop. This one's ceiling is
+ *  lit teak under rust-red beams, so both crops keep it: the beams run in
+ *  from the top corners to the window, and the window's green comes back
+ *  off the floor below. It was shot tipped about 7.5 degrees down, which
+ *  leaned the end shelves inward, so both crops are cut from a copy turned
+ *  back to level (7.5 degrees of tilt, half a degree of roll, fitted to
+ *  six uprights until each sat on a plumb line), from inside the turned
+ *  frame so no empty corner shows. The window is centred and sits a third
+ *  of the way down the tall one; the wide one keeps the chair clear of
+ *  the shade the phone lays under the title.
  * ------------------------------------------------------------------ */
 
 import { HERO_IMAGE_SRC } from "@/components/landing/hero-photo";
@@ -54,7 +59,7 @@ export const GUIDE_PHOTOS: Record<string, GuidePhoto> = {
   feed: at("feed", "#83897a"),
   directory: at("directory", "#7b824d", "50% 40%"),
   collection: at("collection", "#695d58", "50% 30%"),
-  letters: at("letters", "#626161", "50% 0%"),
+  letters: at("letters", "#756451", "50% 30%"),
   catchups: at("catchups", "#6e3e3d", "50% 25%"),
   birds: at("birds", "#545453", "50% 0%"),
 };

@@ -97,12 +97,12 @@ plain-text chapters read "just black and white. Super corporate", and the fix he
 sign-in page's: "On desktop with an image and then a column of content [...] so that it feels more
 homely." His picks from the Class Collection: Three Sisters for the Feed, the December 2011
 silhouettes he linked for the Collection, the senior library for Letters ("if you can correct it
-and just get the shelves even on both sides"), Kartik's house for Catch-ups. The school bell ("we
+and just get the shelves even on both sides"; since 2026-10-01 Lakshman's photograph of the same
+aisle, ceiling and all), Kartik's house for Catch-ups. The school bell ("we
 should definitely use that somewhere") took the Directory; Birds has the September 2010 basketball
 photograph, because he did not want a bird. Each is cut twice from its stored original, a tall crop
 for a laptop and a wide one for a phone, and served as a static file rather than through the metered
-image optimiser. The library is rotated back to straight on before it is cut, from below the ceiling,
-which he did not like at the top.
+image optimiser. The library is turned back to level before it is cut, so its uprights stand plumb.
 
 - **A laptop** gets a window that floats clear of every edge, 1120px wide and at most 54rem tall,
   with the blur all round it ("a floating window is better than this dialog from the bottom [...]

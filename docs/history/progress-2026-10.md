@@ -1,3 +1,20 @@
+## 2026-10-01 (guide) — the Letters chapter's photograph is Lakshman's senior library, levelled, ceiling and all
+
+The owner: "we were using the Solitude in senior library picture for the letter guide photo. there's a
+good replacement now that lakshman uploaded titled Senior school library. replace the old one with
+this. frame it perfectly and really make use of the photo [...] also take down maya's older version."
+Both crops are cut from Lakshman's 4284x5712 original. It was shot about 7.5 degrees tipped down, so
+the end shelves leaned inward. The copy is turned back to level with a homography fitted to six
+uprights (7.5 degrees of tilt, 0.55 of roll), checked against plumb lines at full resolution; the
+skirting under the window lands on one row across 950px. The old crop stopped below the ceiling
+because the old photograph's was dim. This one's is lit teak under rust-red beams, so both keep it.
+Tall: 2727x4800 from 450px down, the window centred and a third of the way down, its reflection on
+the floor below. Wide: 3600x2400 from 820px, so the chair clears the shade the phone lays under the
+title. Tint `#756451`, focus `50% 30%`. Seen in the app at 1440x900, 1366x680 and 390x844, with no
+console errors. Maya's "Solitude in senior library" went down through the admin content list's
+"Take it down", with no note: the row is hidden, both stored files answer 404, and nothing else in
+the database referenced them. Her other library photograph, the reading room, stays.
+
 ## 2026-10-01 (signup) — an "I don't know" at the trivia gate moves on to another question
 
 The owner: "if anyone answers I don't know or don't know or idk or anything of that variant instead of
