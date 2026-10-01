@@ -13,6 +13,7 @@ import { callAction } from "@/lib/call-action";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 import { getTriviaQuestion, checkTrivia } from "./trivia-actions";
+import { saysDontKnow } from "./trivia-dont-know";
 import { gazeFor } from "@/components/mascot/use-hoopoe";
 
 /**
@@ -108,6 +109,14 @@ export function TriviaGate({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!question || checking || passed) return;
+    // "I don't know" is not a wrong answer, so it gets what the swap arrow
+    // gives rather than a head shake (see trivia-dont-know.ts). Focus goes
+    // back to the box, which a press on Check took it away from.
+    if (saysDontKnow(answer)) {
+      void swapQuestion();
+      answerFocusRef.current?.focus({ preventScroll: true });
+      return;
+    }
     setChecking(true);
     setError("");
     // the hoopoe looks up and ponders while the server checks

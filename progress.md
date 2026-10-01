@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-01 (signup) — an "I don't know" at the trivia gate moves on to another question instead of being called wrong
 - 2026-10-01 (deps, security) — Next.js 16.3.8 closes a critical remote-code-execution advisory
 - 2026-10-01 (profile) — one member's empty About asks after The Script
 
