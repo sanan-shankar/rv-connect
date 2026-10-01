@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-01 (directory) — the first profession pass to read everybody, and it tidies what it reads
 - 2026-10-01 (profile) — an acronym typed into a job title or workplace survives the save
 - 2026-10-01 (guide) — the Letters chapter's photograph is Lakshman's senior library, levelled, ceiling and all
 - 2026-10-01 (signup) — an "I don't know" at the trivia gate moves on to another question instead of being called wrong

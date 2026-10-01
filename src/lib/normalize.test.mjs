@@ -97,10 +97,16 @@ test("a one-word acronym in an occupation field is kept as typed", () => {
   assert.equal(normalize.occupationCase("  UCSD "), "UCSD");
 });
 
-test("everything else in an occupation field is titleCase, unchanged", () => {
+test("everything else in an occupation field is titleCase, save the small words", () => {
   for (const typed of ["software engineer", "IIT BOMBAY", "KIMS Hospitals", "ucsd", "state bank of india"]) {
     assert.equal(normalize.occupationCase(typed), normalize.titleCase(typed));
   }
+  /* What the profession pass writes is what the next save keeps: a tidy the
+     save path re-capitalises is undone the first time the member edits it. */
+  for (const tidied of ["Doctor in Private Practice", "Master's in Behavioural Design", "Analyst at a Hedge Fund"]) {
+    assert.equal(normalize.occupationCase(tidied), tidied);
+  }
+  assert.equal(normalize.occupationCase("doctor in private practice"), "Doctor in Private Practice");
   /* The branch that made the acronyms disappear is still right for names. */
   assert.equal(normalize.titleCase("GNLU"), "Gnlu");
 });

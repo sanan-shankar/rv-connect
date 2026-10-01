@@ -57,8 +57,11 @@ test("the schema really carries the bounds the pen defers to", () => {
      If somebody loosens profileSchema, this is where it shows up. */
   const v = decomment(read("src/lib/validators.ts"));
   const shape = v.slice(v.indexOf("export const profileSchema"));
-  assert.match(shape, /workplace: z\.string\(\)\.max\(100\)/, "workplace's shared cap moved");
-  assert.match(shape, /jobTitle: z\.string\(\)\.max\(100\)/, "jobTitle's shared cap moved");
+  assert.match(shape, /workplace: z\.string\(\)\.max\(OCCUPATION_MAX\)/, "workplace's shared cap moved");
+  assert.match(shape, /jobTitle: z\.string\(\)\.max\(OCCUPATION_MAX\)/, "jobTitle's shared cap moved");
+  /* One constant since 2026-10-01, shared with the signup step, the admin
+     editor and the profession pass -- so its value is what is pinned now. */
+  assert.match(read("src/lib/utils.ts"), /export const OCCUPATION_MAX = 100\b/, "the occupation cap moved");
   assert.match(shape, /admissionNumber: z\.number\(\)\.int\(\)\.min\(0\)\.max\(10000\)/, "the admission cap moved");
   assert.match(shape, /batchYear: yearField\(\{ ahead: 7/, "the batch year no longer tracks the clock");
 });

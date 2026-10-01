@@ -2,7 +2,7 @@ import { z } from "zod/v4";
 import { BUCKET_VALUES, ERA_VALUES } from "./collection";
 import { emailField } from "./email-address";
 import { POST_CONTENT_MAX, POST_TOO_LONG, postContentMax } from "./post-caps";
-import { FULL_NAME_MAX, fullNameFits, valleyYear } from "./utils";
+import { FULL_NAME_MAX, OCCUPATION_MAX, fullNameFits, valleyYear } from "./utils";
 import { MAX_BATCH_TARGETS, parseBatchTargets } from "./post-visibility-rule";
 import { MIN_PASSWORD } from "./password-rule";
 
@@ -156,8 +156,8 @@ export const profileSchema = z.object({
   displayEmail: z.union([z.literal(""), emailField()]).optional(),
   currentCity: z.string().max(100).optional(),
   secondaryCity: z.string().trim().max(100).optional(),
-  workplace: z.string().max(100).optional(),
-  jobTitle: z.string().max(100).optional(),
+  workplace: z.string().max(OCCUPATION_MAX).optional(),
+  jobTitle: z.string().max(OCCUPATION_MAX).optional(),
   // max(24) matches signupSchema's phone cap (it was 20, so a number accepted
   // at sign-up could fail to save in settings).
   phone: z.string().max(24).optional(),

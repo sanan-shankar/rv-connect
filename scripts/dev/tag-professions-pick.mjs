@@ -12,8 +12,9 @@
  *
  *  Like the Collection's tagging pass, the judgement is made by a Claude
  *  Code session on the owner's own subscription rather than a paid API
- *  call. This script does the part a session should not: it reads the
- *  database and writes a manifest. The session reads the manifest, writes
+ *  call. The same reading also tidies the pair itself, since 2026-10-01
+ *  (TIDY_RULES in src/lib/profession-tags.ts). This script does the part a
+ *  session should not: it reads the database and writes a manifest. The session reads the manifest, writes
  *  `scripts/dev/.professions/verdicts.json`, and tag-professions-apply.mjs puts the
  *  answers back. The procedure is .claude/skills/tag-professions/SKILL.md.
  *
@@ -36,7 +37,7 @@ import path from "node:path";
 import pg from "pg";
 import { databaseUrl } from "./_env.mjs";
 import { argv } from "./_cli.mjs";
-import { PROFESSION_TAGS, TAG_FLOOR, TAG_RULES, sourceOf } from "../../src/lib/profession-tags.ts";
+import { PROFESSION_TAGS, TAG_FLOOR, TAG_RULES, TIDY_RULES, sourceOf } from "../../src/lib/profession-tags.ts";
 
 const { flag, value } = argv();
 
@@ -55,7 +56,7 @@ const ONLY_TAG = value("--tag", null);
 const envFile = value("--env", ".env");
 const OUT = path.join(process.cwd(), "scripts", "dev", ".professions");
 
-const { env, url } = databaseUrl(envFile);
+const { url } = databaseUrl(envFile);
 
 const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
 await client.connect();
@@ -187,12 +188,16 @@ if (people.length === 0) {
   process.exit(0);
 }
 
-/* A fresh folder every run, for the reason the photograph picker clears
-   its own: a verdicts file left over from the previous batch sitting
-   beside this manifest is how somebody's answers get applied to the wrong
-   people. */
-await rm(OUT, { recursive: true, force: true });
+/* A fresh batch every run: a verdicts file left over from the previous batch
+   sitting beside this manifest is how somebody's answers get applied to the
+   wrong people. The manifest itself is overwritten just below.
+
+   That one file, NOT the folder. It used to clear the whole folder, and the
+   folder is also where the applier leaves its undo logs -- so the next pick
+   silently deleted the only way back from the last apply, which matters most
+   on the day an apply has rewritten what members typed. */
 await mkdir(OUT, { recursive: true });
+await rm(path.join(OUT, "verdicts.json"), { force: true });
 await writeFile(
   path.join(OUT, "manifest.json"),
   JSON.stringify(
@@ -212,6 +217,9 @@ await writeFile(
          somebody who never opened the skill file. */
       vocabulary: PROFESSION_TAGS.map((t) => ({ value: t.value, label: t.label, hint: t.hint })),
       rules: TAG_RULES,
+      /* How the pair should read, judged in the same pass. Optional per
+         person in the verdicts: a field left out is left alone. */
+      tidyRules: TIDY_RULES,
       people,
     },
     null,
@@ -221,7 +229,7 @@ await writeFile(
 
 console.log(
   `\nwrote ${people.length} to scripts/dev/.professions/manifest.json` +
-    `\n\nNext: read it -- the vocabulary and the rules are in the file -- write` +
+    `\n\nNext: read it -- the vocabulary, the tag rules and the tidy rules are in the file -- write` +
     `\nscripts/dev/.professions/verdicts.json, then \`node scripts/dev/tag-professions-apply.mjs\` (dry by default).` +
     `\nThe procedure is .claude/skills/tag-professions/SKILL.md.`
 );

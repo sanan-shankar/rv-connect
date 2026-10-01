@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { decomment } from "../../src/lib/test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The hand-run passes conform to one shape.
@@ -100,6 +101,26 @@ for (const name of PASSES) {
       /\bvocabulary:/,
       `${name}-pick.mjs does not put its vocabulary in the manifest -- see ${SPEC}.`
     );
+  });
+
+  test(`${name}: a new pick keeps the last apply's undo`, () => {
+    /* Both pickers started each batch by deleting their whole working
+       folder, and the applier's undo logs live in that folder -- so taking
+       the next batch threw away the way back from the last apply, the one
+       guarantee this shape rests on. Found 2026-10-01, the day the profession
+       pass first rewrote words members had typed. A picker clears its batch
+       files by name. */
+    /* A positive pin rather than a ban on one spelling: every delete in a
+       picker names a file inside the folder, so `rmSync(OUT)` or a template
+       string fails here just as `rm(OUT, ...)` does. */
+    const deletes = [...decomment(pick).matchAll(/\brm(?:Sync)?\(\s*([^\n]{0,40})/g)].map((m) => m[1]);
+    for (const target of deletes) {
+      assert.match(
+        target,
+        /^path\.join\(\s*OUT\s*,\s*\S/,
+        `${name}-pick.mjs deletes ${target}, not a named file inside its folder -- undo logs live there too`
+      );
+    }
   });
 
   test(`${name}: the applier is dry by default and leaves an undo`, () => {

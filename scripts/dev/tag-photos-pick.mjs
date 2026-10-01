@@ -50,7 +50,7 @@ const ALL = flag("--all");
 const envFile = value("--env", ".env");
 const OUT = path.join(process.cwd(), "scripts", "dev", ".tagging");
 
-const { env, url } = databaseUrl(envFile);
+const { url } = databaseUrl(envFile);
 
 const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
 await client.connect();
@@ -96,11 +96,17 @@ if (rows.length === 0) {
   process.exit(0);
 }
 
-/* A fresh folder every run. A leftover JPEG from a previous batch sitting
+/* A fresh batch every run. A leftover JPEG from a previous batch sitting
    beside this one's manifest is how a session ends up describing a photograph
    nobody asked about, and the manifest is the only thing that says which is
-   which. */
-await rm(OUT, { recursive: true, force: true });
+   which.
+
+   The batch only, NOT the folder: the applier's undo logs live here too, and
+   clearing the whole folder deleted the way back from the last apply the
+   moment the next batch was picked (docs/spec/hand-run-passes.md). */
+for (const f of ["manifest.json", "verdicts.json", "photos"]) {
+  await rm(path.join(OUT, f), { recursive: true, force: true });
+}
 await mkdir(path.join(OUT, "photos"), { recursive: true });
 
 

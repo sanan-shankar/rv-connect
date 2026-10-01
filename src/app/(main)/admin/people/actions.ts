@@ -15,7 +15,7 @@ import { loadPeoplePage } from "@/lib/admin-people-query";
 import { writeAudit } from "@/lib/audit";
 import { purgeUserAccount } from "@/lib/account-purge";
 import { purgeImageUrls } from "@/lib/image-purge";
-import { batchTypeFromLeaving, valleyYear } from "@/lib/utils";
+import { OCCUPATION_MAX, batchTypeFromLeaving, valleyYear } from "@/lib/utils";
 import { parsePlaces, resolvePlaces } from "@/lib/place-input";
 import { replaceUserPlaces } from "@/lib/place-write";
 import { lookupGazetteerPlaces } from "@/lib/place-lookup";
@@ -74,9 +74,6 @@ export interface PersonEdit {
   jobTitle: string;
   workplace: string;
 }
-
-/** What `profileSchema` allows a member to type into the same two columns. */
-const MAX_OCCUPATION = 100;
 
 /**
  * The six fields the owner has actually had to fix by hand.
@@ -141,8 +138,8 @@ export async function adminUpdatePerson(
   // admin ends up believing they saved something they did not.
   const jobTitle = occupationCase(edit.jobTitle);
   const workplace = occupationCase(edit.workplace);
-  if (jobTitle.length > MAX_OCCUPATION || workplace.length > MAX_OCCUPATION) {
-    return { error: `Keep the occupation and the organisation under ${MAX_OCCUPATION} characters.` };
+  if (jobTitle.length > OCCUPATION_MAX || workplace.length > OCCUPATION_MAX) {
+    return { error: `Keep the occupation and the organisation under ${OCCUPATION_MAX} characters.` };
   }
 
   /* batchType is DERIVED from the two years, never typed, and this action

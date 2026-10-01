@@ -23,8 +23,10 @@
  *  one keystroke from being fixed. Running this silently on the way into
  *  the database would be a different thing entirely, and it is
  *  deliberately not wired into the contribute path -- rewriting what a
- *  member typed without showing them is what this project refuses to do
- *  everywhere else (tag-professions "never touches what a member typed").
+ *  member typed without showing anybody is what this project refuses to do
+ *  everywhere else. Even the profession pass, which has tidied occupations
+ *  since 2026-10-01 at the owner's request, does it through a dry run a
+ *  person reads, guarded on the exact words it read.
  * ------------------------------------------------------------------ */
 
 /** The word "i" standing on its own -- which covers "i'm" and "i've" too,

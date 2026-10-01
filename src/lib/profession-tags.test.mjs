@@ -62,8 +62,8 @@ test("the vocabulary stays inside VOCAB_MAX", () => {
     PROFESSION_TAGS.length <= VOCAB_MAX,
     `${PROFESSION_TAGS.length} tags, and ${VOCAB_MAX} is the ceiling. Adding one means ` +
       `merging two upward first (rule 4) -- start by asking whether ${smallest} belongs ` +
-      `under something broader. Raising VOCAB_MAX is not the fix: it exists so this is a ` +
-      `decision rather than a drift.`
+      `under something broader. Raising VOCAB_MAX is a decision, not a fix: if no merge is ` +
+      `upward, argue the raise on the constant, as the 2026-10-01 one was.`
   );
 });
 

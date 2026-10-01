@@ -238,7 +238,7 @@ exception: `subagent_type: "fork"` always inherits this session's model.)
 | Screenshotting authenticated pages | `.claude/skills/screenshot-auth/SKILL.md` |
 | Reviewing existing pages retroactively | `.claude/skills/ui-audit/SKILL.md` |
 | Tagging Collection photographs nobody filed | `.claude/skills/tag-photos/SKILL.md` |
-| Filing members under a profession for the directory filter | `.claude/skills/tag-professions/SKILL.md` |
+| Filing members under a profession for the directory filter, or tidying their job titles and workplaces | `.claude/skills/tag-professions/SKILL.md` |
 | Building, changing or running ANY of the above hand-run passes | read `docs/spec/hand-run-passes.md` first |
 | Handed a campaign's `fix-prompt.md` or `handover.md`, or asked to run, continue or finish a fix or rework campaign | `/campaign` |
 | A bug that survived two attempts | superpowers systematic debugging |

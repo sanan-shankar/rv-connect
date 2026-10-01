@@ -302,7 +302,7 @@ export default async function DirectoryPage({
        here in SQL so the control cannot offer a tag the server would not
        honour.
          TAG_FLOOR       a tag needs a second person before it is offered at all
-         TAG_VISIBLE_MAX only the twelve largest are offered
+         TAG_VISIBLE_MAX only that many of the largest are offered
        The two do different jobs and hand off as the membership grows -- see
        the comments on each in src/lib/profession-tags.ts.
 
@@ -379,7 +379,7 @@ export default async function DirectoryPage({
         /* Value and label both, unlike `cities`: a city IS its own label, but
            a tag is a slug ("social impact" is stored lower case) and the label
            is the vocabulary's. Resolved on the server so the client never
-           imports the whole vocabulary to render twelve strings. */
+           imports the whole vocabulary to render a handful of strings. */
         professions={professionGroups.map((p) => ({ value: p.tag, label: tagLabel(p.tag) }))}
         minBatchYear={batchYearRange._min.batchYear ?? valleyYear() - 40}
         maxBatchYear={batchYearRange._max.batchYear ?? valleyYear()}
