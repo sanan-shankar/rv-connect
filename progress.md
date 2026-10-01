@@ -13,6 +13,10 @@ build if an entry's body is written here instead of in its month file.
 **Writing an entry:** append the full entry to `docs/history/progress-<YYYY-MM>.md` (create it
 if the month is new), and add one line here, at the top of that month's list.
 
+## October 2026 — [full entries](docs/history/progress-2026-10.md)
+
+- 2026-10-01 (profile) — one member's empty About asks after The Script
+
 ## September 2026 — [full entries](docs/history/progress-2026-09.md)
 
 - 2026-09-30 (banner) — the confirm-your-email banner's resend button takes the shared focus ring
