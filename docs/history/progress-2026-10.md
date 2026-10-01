@@ -1,3 +1,16 @@
+## 2026-10-01 (profile) — an acronym typed into a job title or workplace survives the save
+
+The owner, asking for the occupation text to be tidied: "there's like a lot of really weird mistakes
+that um everyone has". Some of them were the app's. Every writer of `jobTitle` and `workplace` ran
+`titleCase`, whose all-caps branch is right for "JEAN-LUC PICARD" and wrong for "UBS", so a correctly
+typed acronym was saved as a word. Eighteen live workplaces read "Ubs", "Ucsd", "Srmc", "Nalsar" and
+the like, and the admin editor could not correct one: "GNLU" typed there came back "Gnlu".
+`occupationCase` in `normalize.ts` keeps a single word typed in capitals and hands everything else to
+`titleCase` unchanged. The signup step, the profile pen and the admin editor use it for the two
+occupation fields; `name` keeps plain `titleCase`, because a one-word name in capitals is caps lock.
+A phrase typed in capitals ("IIT BOMBAY") still loses its acronym, since nothing can tell the two
+apart inside a phrase; the profession pass tidies those. Pinned in `normalize.test.mjs`.
+
 ## 2026-10-01 (guide) — the Letters chapter's photograph is Lakshman's senior library, levelled, ceiling and all
 
 The owner: "we were using the Solitude in senior library picture for the letter guide photo. there's a

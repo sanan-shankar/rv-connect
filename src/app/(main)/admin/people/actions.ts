@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { titleCase } from "@/lib/normalize";
+import { occupationCase, titleCase } from "@/lib/normalize";
 import {
   requireAdminAction,
   requireAdminActor,
@@ -86,9 +86,10 @@ const MAX_OCCUPATION = 100;
  * were about. An empty name is refused rather than silently kept: a nameless
  * row renders as a blank byline everywhere in the app.
  *
- * `jobTitle` and `workplace` get the same title-casing as `name`, because
- * that is what the member's own profile pen does to them on commit -- a
- * correction typed here should not read differently from one typed there.
+ * `jobTitle` and `workplace` get `occupationCase`, titleCase's twin that keeps
+ * a one-word acronym, because that is what the member's own profile pen does
+ * to them on commit -- a correction typed here should not read differently
+ * from one typed there.
  * Either may be blanked: plenty of members have one half and not the other,
  * and the profile prints "at" only between two real halves.
  *
@@ -138,8 +139,8 @@ export async function adminUpdatePerson(
   // The same cap `profileSchema` puts on the member's own form. Refused, not
   // truncated: silently dropping the tail of somebody's job title is how the
   // admin ends up believing they saved something they did not.
-  const jobTitle = titleCase(edit.jobTitle);
-  const workplace = titleCase(edit.workplace);
+  const jobTitle = occupationCase(edit.jobTitle);
+  const workplace = occupationCase(edit.workplace);
   if (jobTitle.length > MAX_OCCUPATION || workplace.length > MAX_OCCUPATION) {
     return { error: `Keep the occupation and the organisation under ${MAX_OCCUPATION} characters.` };
   }

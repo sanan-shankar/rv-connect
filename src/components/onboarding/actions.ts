@@ -4,7 +4,7 @@ import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { titleCase } from "@/lib/normalize";
+import { occupationCase, titleCase } from "@/lib/normalize";
 import { placesSchema, resolvePlaces } from "@/lib/place-input";
 import { replaceUserPlaces } from "@/lib/place-write";
 import { lookupGazetteerPlaces } from "@/lib/place-lookup";
@@ -54,8 +54,8 @@ export async function saveOnboardingRegister(input: RegisterStepInput) {
   }
 
   const { admissionNumber, places } = parsed.data;
-  const workplace = parsed.data.workplace ? titleCase(parsed.data.workplace) : null;
-  const jobTitle = parsed.data.jobTitle ? titleCase(parsed.data.jobTitle) : null;
+  const workplace = parsed.data.workplace ? occupationCase(parsed.data.workplace) : null;
+  const jobTitle = parsed.data.jobTitle ? occupationCase(parsed.data.jobTitle) : null;
   // undefined = field not shown (alumni), leave the column alone; "" = teacher
   // cleared it. Each comma-separated entry is title-cased on its own so
   // "physics, nature club" stores as "Physics, Nature Club".

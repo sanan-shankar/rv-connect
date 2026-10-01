@@ -109,6 +109,29 @@ export function titleCase(input: string): string {
 }
 
 /**
+ * titleCase for the two occupation fields, `jobTitle` and `workplace`, with
+ * one difference: a single word typed entirely in capitals is kept as typed.
+ *
+ * WHY. In these two fields a lone capitalised word is an acronym far more
+ * often than it is caps lock -- UBS, GNLU, NMIMS, RISD, CEO -- and titleCase's
+ * all-caps branch, right for "JEAN-LUC PICARD", turned each one into a word.
+ * On 2026-10-01 eighteen live workplaces read "Ubs", "Ucsd", "Srmc", "Nalsar"
+ * and the like, and the admin editor could not correct one: "GNLU" typed
+ * there was saved as "Gnlu" again.
+ *
+ * Only the ONE-word case, because that is the one with an answer. "IIT
+ * BOMBAY" still becomes "Iit Bombay": inside a phrase there is no telling an
+ * acronym from a shouted word without a dictionary, and the profession pass
+ * (.claude/skills/tag-professions) tidies what this cannot. `name` keeps
+ * plain titleCase, because a one-word name in capitals is caps lock.
+ */
+export function occupationCase(input: string): string {
+  const trimmed = input.trim().replace(/\s+/g, " ");
+  if (/^[^\sa-z]+$/.test(trimmed) && /[A-Z]/.test(trimmed)) return trimmed;
+  return titleCase(trimmed);
+}
+
+/**
  * Return the primary place name from a disambiguated picker label.
  *
  * The gazetteer stores labels such as "London, England, United Kingdom" so

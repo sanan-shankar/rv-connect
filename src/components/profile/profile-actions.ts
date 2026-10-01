@@ -22,7 +22,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { FULL_NAME_MAX, batchTypeFromLeaving } from "@/lib/utils";
-import { titleCase, normalizePhone, instagramHandle } from "@/lib/normalize";
+import { occupationCase, titleCase, normalizePhone, instagramHandle } from "@/lib/normalize";
 import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
 import { syncBatchGroupQuietly } from "@/lib/batch-catchups";
 import { contactMethodsSchema, profileSchema } from "@/lib/validators";
@@ -134,7 +134,7 @@ export async function updateProfileField(field: ProfileField, raw: string) {
     case "jobTitle":
     case "workplace": {
       if (outsideSchemaBound(field, value)) return { error: "That is too long." };
-      data[field] = value ? titleCase(value) : null;
+      data[field] = value ? occupationCase(value) : null;
       break;
     }
     case "admissionNumber": {
