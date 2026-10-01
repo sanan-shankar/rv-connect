@@ -11,7 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { putImage, ownerPrefix } from "@/lib/storage";
 import { purgeImageUrls } from "@/lib/image-purge";
 import { swapPhotoUrl } from "@/lib/avatar-swap";
-import { sharpImage } from "@/lib/image";
+import { isBlankImage, sharpImage } from "@/lib/image";
 import {
   sniffImageType,
   describeProcessingError,
@@ -115,6 +115,12 @@ export async function updateAvatar(formData: FormData) {
       .resize(512, 512, { fit: "cover", position: "centre" })
       .webp({ quality: 82 })
       .toBuffer();
+    // Before it is stored: a blank would replace the bird with nothing at all.
+    if (await isBlankImage(webp)) {
+      return {
+        error: "That photo came through blank, so nothing was changed. Try once more, or pick a different photo.",
+      };
+    }
     url = await putImage(webp, ownerPrefix("avatars", session.user.id), `${id}.webp`);
   } catch (e) {
     // Log the real cause server-side; hand the client a mapped, path-free

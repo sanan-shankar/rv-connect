@@ -457,7 +457,7 @@ to avoid. Both are listed in the policy now.
   the deep-link button. Do not print the UPI ID back onto the page.
 - Support amounts are ₹500/₹1,000/₹2,000/₹5,000 plus "Other", defaulting to ₹1,000 (2026-07-24, owner
   decision). ₹200 was deliberately dropped; do not reintroduce it.
-- The one-time build cost is published as a fundraiser bar (2026-07-24, owner decision): ₹4,00,000
+- The one-time build cost is published as a fundraiser bar (2026-07-24, owner decision): ₹5,00,000
   goal, in `BuildFundBar` (`cost-bar.tsx`). The amount recovered is a hand-maintained constant
   (`BUILD_RECOVERED`) because nothing tracks UPI contributions automatically. The page no longer says
   the build cost is withheld. Monthly costs are hosting ₹1,950, photos under ₹100, and domain ₹250 a

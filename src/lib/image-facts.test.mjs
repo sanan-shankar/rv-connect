@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import sharp from "sharp";
 import { read, decomment } from "./test-kit.mjs";
-import { describeImage, focalFraction, UNKNOWN_FOCAL } from "./image.ts";
+import { describeImage, focalFraction, isBlankImage, UNKNOWN_FOCAL } from "./image.ts";
 
 /* ------------------------------------------------------------------ *
  *  What we know about a stored image: its shape, where the interesting
@@ -123,4 +123,47 @@ test("deleting the bytes forgets what we knew about them", () => {
   // table nothing points at. Both places bytes are deleted, per the C-069 rule.
   assert.ok(/forgetImages\(/.test(decomment(read("src/lib/image-purge.ts"))));
   assert.ok(/forgetImages\(/.test(decomment(read("src/lib/account-purge.ts"))));
+});
+
+test("a crop that came out blank is caught before it replaces the bird", async () => {
+  // The 2026-10-01 case exactly: the framer's canvas handed back 512x512 of
+  // nothing, stored as a 582-byte WebP, and the member lost his bird to it.
+  const transparent = await sharp({
+    create: { width: 512, height: 512, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+  })
+    .webp({ quality: 82 })
+    .toBuffer();
+  assert.equal(await isBlankImage(transparent), true);
+
+  // The other way a canvas fails: opaque, one colour edge to edge.
+  const black = await sharp({
+    create: { width: 512, height: 512, channels: 3, background: { r: 0, g: 0, b: 0 } },
+  })
+    .webp({ quality: 82 })
+    .toBuffer();
+  assert.equal(await isBlankImage(black), true);
+
+  assert.equal(await isBlankImage(await photoWithSubjectAt(512, 512, 256, 200)), false);
+
+  // A cut-out on a transparent ground is mostly empty but not blank.
+  const patch = await sharp({
+    create: { width: 80, height: 80, channels: 4, background: { r: 200, g: 120, b: 60, alpha: 1 } },
+  })
+    .png()
+    .toBuffer();
+  const cutOut = await sharp({
+    create: { width: 512, height: 512, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+  })
+    .composite([{ input: patch, left: 216, top: 216 }])
+    .webp({ quality: 82 })
+    .toBuffer();
+  assert.equal(await isBlankImage(cutOut), false);
+
+  // And the one upload path that needs it asks before storing anything.
+  const action = decomment(read("src/components/settings/actions.ts"));
+  const body = action.slice(action.indexOf("export async function updateAvatar"));
+  assert.ok(
+    body.indexOf("isBlankImage(") > -1 && body.indexOf("isBlankImage(") < body.indexOf("putImage("),
+    "updateAvatar must refuse a blank crop before putImage stores it"
+  );
 });

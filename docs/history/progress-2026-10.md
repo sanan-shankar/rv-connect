@@ -1,3 +1,30 @@
+## 2026-10-01 (profile, directory) — a blank avatar no longer replaces the bird; two new members put right
+
+The owner: "fix the person whose location doesn't show up on the map the german dude and why does
+dechu kuppanda not have a profile picture or bird", then "if it's blank set it back to a bird".
+
+**Dechu Kuppanda (1983).** His stored photo was 512x512 of pure transparency, 582 bytes, every pixel
+zero. A photo always replaces the bird, so he had neither. The framer (`avatar-crop-dialog.tsx`) draws
+the crop to a canvas and uploads that, while its preview shows the original file, so a browser that
+hands back an empty canvas looks fine to the member and ships nothing. Only his of the 38 stored
+avatars was blank. `isBlankImage` in `image.ts` (fully transparent, or one flat colour within 2
+levels) now runs in `updateAvatar` before `putImage`, and a blank answers "That photo came through
+blank, so nothing was changed." The bird or the previous photo stays. Pinned in
+`image-facts.test.mjs`, and checked against his actual file. His `photoUrl` was nulled by hand. The
+object itself (`avatars/cmupg85sd001g04l5u0of8qhq/2026/10/bxlkdqlcr4rzf35d0i7rshus.webp`) is still in
+R2: the session's permission check refused the delete, so it waits for the owner. Nothing points at it.
+
+**Mahesh Dr G M (1981).** He signed up today with "Osnabrueck Germany", one phrase, no comma. The picker
+found nothing for it and he took "Use what I typed", and the map's gazetteer fallback splits on ", " so
+it never matched. His row now names gazetteer 2856883: "Osnabrück, Lower Saxony, Germany", 52.27264,
+8.0498, with `currentCity` mirrored. Undo: label and city back to "Osnabrueck Germany", placeId, lat and
+lng null.
+
+Still unmapped and left alone: Vicky Chandhok's "Kotturpuram" (a Chennai neighbourhood the gazetteer does
+not hold) and Mishika Bhardwaj's "Everywhere". Dechu has no city at all. The dev server on :3000 had a
+dead database pool, so this was verified against the database and the map's first coordinate rung
+rather than in a browser. `npm run check` green.
+
 ## 2026-10-01 (directory) — the first profession pass to read everybody, and it tidies what it reads
 
 The owner: "there should be a workflow for assigning profession tags intellignetly and combing
