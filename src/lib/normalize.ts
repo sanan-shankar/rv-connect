@@ -78,6 +78,13 @@ function capitalizeWord(word: string): string {
  *   titleCase("naga Reddy")          -> "Naga Reddy"           (mixed case: only lowercase words get fixed)
  */
 export function titleCase(input: string): string {
+  return retitle(input, LOWERCASE_CONNECTORS);
+}
+
+/** titleCase's body, with the lowercase words as a parameter: a name keeps
+ *  its particles (van, de, bin), an occupation adds the small words of a
+ *  phrase (OCCUPATION_CONNECTORS, below). */
+function retitle(input: string, connectors: ReadonlySet<string>): string {
   const trimmed = input.trim().replace(/\s+/g, " ");
   if (!trimmed) return trimmed;
 
@@ -95,14 +102,14 @@ export function titleCase(input: string): string {
         // Mixed case already: leave deliberately-capitalized words alone,
         // only fix a word that starts lowercase.
         if (/^[a-z]/.test(word)) {
-          if (!isFirstOrLast && LOWERCASE_CONNECTORS.has(lower)) return lower;
+          if (!isFirstOrLast && connectors.has(lower)) return lower;
           return capitalizeWord(word);
         }
         return word;
       }
 
       // Fully retitling (was ALL-CAPS or all-lowercase).
-      if (!isFirstOrLast && LOWERCASE_CONNECTORS.has(lower)) return lower;
+      if (!isFirstOrLast && connectors.has(lower)) return lower;
       return capitalizeWord(lower);
     })
     .join(" ");
@@ -124,12 +131,26 @@ export function titleCase(input: string): string {
  * acronym from a shouted word without a dictionary, and the profession pass
  * (.claude/skills/tag-professions) tidies what this cannot. `name` keeps
  * plain titleCase, because a one-word name in capitals is caps lock.
+ *
+ * Its second difference is the small words of a phrase ("in", "at", "a"),
+ * which stay lowercase mid-phrase -- see OCCUPATION_CONNECTORS.
  */
 export function occupationCase(input: string): string {
   const trimmed = input.trim().replace(/\s+/g, " ");
   if (/^[^\sa-z]+$/.test(trimmed) && /[A-Z]/.test(trimmed)) return trimmed;
-  return titleCase(trimmed);
+  return retitle(trimmed, OCCUPATION_CONNECTORS);
 }
+
+/* The small words of a phrase, lowercase inside an occupation as in any title:
+   "Doctor in Private Practice", "Analyst at a Hedge Fund". Not added to
+   LOWERCASE_CONNECTORS, because that list is for names too, and there a lone
+   "A" is an initial. Without them the save path and the profession pass
+   disagreed: the pass wrote "in", and the member's next edit put "In" back
+   (2026-10-01, "Master's In Behavioural Design" was made exactly that way). */
+const OCCUPATION_CONNECTORS: ReadonlySet<string> = new Set([
+  ...LOWERCASE_CONNECTORS,
+  "a", "an", "at", "by", "for", "from", "in", "on", "to", "with",
+]);
 
 /**
  * Return the primary place name from a disambiguated picker label.

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { occupationCase, titleCase } from "@/lib/normalize";
+import { OCCUPATION_MAX } from "@/lib/utils";
 import { placesSchema, resolvePlaces } from "@/lib/place-input";
 import { replaceUserPlaces } from "@/lib/place-write";
 import { lookupGazetteerPlaces } from "@/lib/place-lookup";
@@ -31,8 +32,8 @@ import type { HouseYearEntry } from "@/lib/houses";
    they're showing up under delhi"). Three writers, one gate. */
 const registerStepSchema = z.object({
   admissionNumber: z.number().int().min(0).max(10000).optional(),
-  workplace: z.string().trim().max(100).optional(),
-  jobTitle: z.string().trim().max(100).optional(),
+  workplace: z.string().trim().max(OCCUPATION_MAX).optional(),
+  jobTitle: z.string().trim().max(OCCUPATION_MAX).optional(),
   // Teacher accounts only; the comma list the schema already stores
   // ("Physics, Astronomy Club"). Omitted entirely (undefined) by alumni
   // saves, which must not touch the column. 200 matches the settings

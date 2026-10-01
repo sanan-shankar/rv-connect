@@ -38,10 +38,10 @@ Legend: [have] exists today · [ask] you asked for · [idea] my suggestion · (s
   Multi-tag, so a status and a field share one column: the medical student is
   `["student","healthcare"]` -- the owner's call, against a "student" boolean, *"not that
   scalable"*. Built at 63 members rather than the 150 first guessed, because the display
-  floor makes an early run safe: a tag is offered only at five people and only the twelve
-  largest are offered, so today exactly one clears and the control hides itself rather than
-  show a dropdown of one. Buckets appear on their own as the membership grows, with no
-  re-run. Changing the vocabulary -- add, split, merge, remove -- needs no migration.
+  floor makes an early run safe (the caps, and why each moved, are on `TAG_FLOOR`,
+  `TAG_VISIBLE_MAX` and `VOCAB_MAX`). The first pass to read everybody ran 2026-10-01 at 197
+  members, added Sports and Retired, and tidied the occupation text it read. Changing the
+  vocabulary -- add, split, merge, remove -- needs no migration.
 - [idea] Privacy controls: choose what's visible in the directory vs private.
 
 ## 3. Feed & posts

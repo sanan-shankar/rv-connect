@@ -1,3 +1,54 @@
+## 2026-10-01 (directory) — the first profession pass to read everybody, and it tidies what it reads
+
+The owner: "there should be a workflow for assigning profession tags intellignetly and combing
+through everyone and creating buckets in the best way possible. we have enough to do the first pass
+for that. do it." The workflow already existed (`/tag-professions`, built 2026-08-28 at 34 members);
+this is its first run over everybody, 196 members with work text and 199 by the end. Mid-run he added
+the tidy: "since you're going through all of them you might as well just comb through them polish
+them up and um change them all".
+
+**The buckets.** Every pair read with its batch year. Two tags joined: Sports (two athletes and a
+sports scientist had nowhere true to go) and Retired, the second status beside Student, which the
+vocabulary's own notes said would come. Hints sharpened where the run met a borderline (chips are
+Technology, consulting is Business, a PhD is Research and Student), and `TAG_RULES` gained the rule
+that settled most rows: the role decides when it names a field, the organisation when the role is
+generic. Result: Student 82, Business 21, Finance 16, Healthcare 14, Education 13, Research 12,
+Design 10, Technology 10, Engineering 6, Law 6, Hospitality 5, Arts, Media and Social impact 4 each,
+Retired 3, Sports 3, Environment 2, Farming 2, Government 1. Eight judged and left untagged: three
+bare "Consultant"s, two facilitators, a meditation teacher, "Unemployed" and the test account.
+
+**Two caps moved**, each argued on its constant. `VOCAB_MAX` 18 to 20: nineteen tags each held real
+people, and no merge was upward. `TAG_VISIBLE_MAX` 12 to 18: measured at 1440x900 the list box is
+256px with 36px rows, so twelve already scrolled, and the cut hid six fields (eighteen people) that
+the search box cannot find, because it searches only what is offered. All eighteen tags with two or
+more people are in the dropdown now, on desktop and at 390x844.
+
+**The tidy**, 46 rows: acronyms (UBS, UCSD, NALSAR, SRMC), placeholders emptied ("No Organization",
+"None", "Na", "-"), a course or college typed as an occupation ("College" became Student at Krea
+University, "Masters" Master's Student), "Freelance" and "Self" folded into the title, a doubled
+"University", "Peadiatrician". Nobody's work changed except a 2024 leaver's "Architect", now
+Architecture Student. Rules in `TIDY_RULES`. A verdict may carry `jobTitle`/`workplace`; a row whose
+words changed since the pick is left alone (it caught one member who retitled themselves after the
+apply, and the next pick took them back); the write is ONE statement guarded row by row on the words it read, so it is
+all-or-nothing and one round trip (186ms each from here; a per-row loop would pass a session's
+two-minute tool limit near 640 rows), proved on live rows inside a rolled-back transaction; and the
+undo passes over later edits. Those decisions moved out of the script into `profession-pass.ts`,
+pinned by `profession-pass.test.mjs`, because a script that opens Postgres at load is untestable.
+So the tidy survives the member's next save, `occupationCase` now keeps "in", "at", "a" and the other
+small words of a phrase lowercase (the save path had made "Master's In Behavioural Design" itself),
+and the 100-character occupation cap is one constant, `OCCUPATION_MAX`, instead of five copies.
+
+Two defects fixed on the way. The applier recorded the LIVE text as the source of a judgement made
+on the manifest's text, so an edit between pick and apply was never re-judged. And both pickers
+deleted their whole working folder, undo logs included, at every new pick;
+`hand-run-passes.test.mjs` now fails a picker that does.
+
+Verified: the dry run read line by line before `--apply` (164 rows changed); the undo's dry run
+lists all 164 with nobody passed over; `?profession=sports` and `=retired` return their three each;
+`/simplify` ran four reviewers and its fixes are in;
+the tidied profile reads "Hedge Fund Analyst" at 1440 and 390, no console errors; check and visual
+green.
+
 ## 2026-10-01 (profile) — an acronym typed into a job title or workplace survives the save
 
 The owner, asking for the occupation text to be tidied: "there's like a lot of really weird mistakes

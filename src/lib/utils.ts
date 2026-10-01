@@ -212,6 +212,15 @@ export function getInitials(name: string): string {
 export const FULL_NAME_MAX = 100
 
 /**
+ * The longest `jobTitle` or `workplace` any writer accepts. One number for
+ * the profile schema, the signup step, the admin editor and the profession
+ * pass, which writes the same two columns in raw SQL past every schema --
+ * there it is the only bound, so a copy that drifted would let the pass
+ * write a title the member's own pen then refuses to save back.
+ */
+export const OCCUPATION_MAX = 100
+
+/**
  * Whether `firstName` and `lastName`, joined the way `registerUser` actually
  * joins them (one space between), fit under `FULL_NAME_MAX`. Sign-up's
  * combined-name check must ask this exact question rather than re-deriving

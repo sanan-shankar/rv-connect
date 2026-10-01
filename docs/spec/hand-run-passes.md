@@ -9,7 +9,7 @@ Two exist today:
 | Pass | Judges | Writes | Skill |
 |---|---|---|---|
 | Photographs | what a Collection photograph is | `Photo.subject`, `Photo.era` | `/tag-photos` |
-| Professions | what field a member works in | `User.professionTags` | `/tag-professions` |
+| Professions | what field a member works in, and how their occupation reads | `User.professionTags`; tidies `jobTitle`, `workplace` | `/tag-professions` |
 
 ## What a hand-run pass is
 
@@ -53,6 +53,10 @@ node scripts/dev/<name>-apply.mjs --apply
   member's data on disk for a question nobody asked.
 - Selectors: a default that takes only what is new or has changed since it was judged, and a
   way to re-take a subset deliberately. Never judged is not the same as judged and empty.
+- **Clears its batch, never its folder.** The applier's undo logs live in the same folder, and
+  both pickers used to start each batch by deleting the whole thing, which threw away the way
+  back from the last apply the moment the next batch was taken. Found 2026-10-01;
+  `hand-run-passes.test.mjs` now fails a picker that does it.
 
 ### The session
 
@@ -78,6 +82,10 @@ It must guarantee, so the session does not have to:
   column touched; `--undo <file> --apply` puts them back.
 - Enforce whatever else the vocabulary's own rules say, so they cannot be forgotten. The
   profession applier adds parent tags automatically for exactly this reason.
+- **Keep its decisions where a test can load them.** A script that connects to Postgres at its
+  top level cannot be imported by a test, so what makes an answer well-formed and when a row may
+  be written live in a pure module beside the vocabulary (`src/lib/photo-suggest.ts`,
+  `src/lib/profession-pass.ts`, each with its `.test.mjs`), and the script does only the I/O.
 
 ### The working folder
 
@@ -95,6 +103,18 @@ overwrites a bucket or a date a contributor chose. The profession pass *does* ov
 because nobody types `professionTags`: a bad tag has to be correctable and a vocabulary has to
 be splittable. Which of the two a pass is, is a decision to make explicitly and write down, not
 a default to inherit.
+
+**Overwriting what somebody typed is the owner's call, and it costs two guards.** The profession
+pass rewrites `jobTitle` and `workplace`, which members do type, because the owner asked for it
+on 2026-10-01: *"comb through them polish them up and um change them all"*. A pass that does
+that must leave alone any row whose words changed since the pick, and must guard each write on
+the exact words it read, so it can never land on something newer; its undo must pass over
+anybody who edited after the apply. It fixes form, and changes what a field says only in the
+narrow cases `TIDY_RULES` names (`src/lib/profession-tags.ts`), and it is still the only place
+it happens: nothing on the save path rewrites a member's words, beyond the capitalisation
+`normalize.ts` has always done. The photograph applier's undo does not have that last guard yet:
+it restores unconditionally, so a bucket a contributor changed after an apply would be lost to an
+undo of it.
 
 **Never write the thing you cannot check.** The photograph pass is forbidden from writing
 captions: a bucket is checkable by looking, a name or an occasion is not, and a confident wrong

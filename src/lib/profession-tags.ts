@@ -38,27 +38,27 @@
  */
 export const PROFESSION_TAGS = [
   { value: "technology", label: "Technology", parent: null,
-    hint: "Software, data, product, IT. The computer engineer at a chip company is here, not Engineering." },
+    hint: "Software, data, product, IT, chips. The computer engineer at a chip company is here, not Engineering." },
   { value: "engineering", label: "Engineering", parent: null,
-    hint: "Engineering that is not software: civil, mechanical, electrical, manufacturing." },
+    hint: "Engineering that is not software or chips: civil, mechanical, electrical, chemical, manufacturing, energy." },
   { value: "healthcare", label: "Healthcare", parent: null,
-    hint: "Medicine, nursing, public health, veterinary, mental health. Practising or training for it." },
+    hint: "Medicine of every system, nursing, public health, veterinary, mental health. Practising or training for it." },
   { value: "law", label: "Law", parent: null,
     hint: "Practice, judiciary, legal academia. A law school reads as Law and Student both." },
   { value: "finance", label: "Finance", parent: null,
     hint: "Banking, investing, accountancy, insurance, financial research." },
   { value: "business", label: "Business", parent: null,
-    hint: "Running or managing a company: founders, family business, management, sales, operations." },
+    hint: "Running or managing a company: founders, family business, management, consulting, sales, operations." },
   { value: "education", label: "Education", parent: null,
-    hint: "Teaching and running schools. The teaching side of a university; Research is the other." },
+    hint: "Teaching, and running schools and universities. The academic who also researches is Research too." },
   { value: "research", label: "Research", parent: null,
-    hint: "Academia and research science, in a university, an institute or a lab." },
+    hint: "Academia and research science, in a university, an institute or a lab. A PhD is Research and Student both." },
   { value: "design", label: "Design", parent: null,
     hint: "Architecture, graphic, product, fashion, interiors." },
   { value: "arts", label: "Arts", parent: null,
-    hint: "Making the work itself: music, theatre, film, fine art, dance, writing as an art." },
+    hint: "Making the work itself: music, theatre, film, fine art, illustration, dance, writing as an art, curating." },
   { value: "media", label: "Media", parent: null,
-    hint: "Journalism, publishing, broadcast, film production, communications." },
+    hint: "Journalism, publishing, broadcast, film production, communications, making content." },
   { value: "government", label: "Government", parent: null,
     hint: "Civil service, policy, diplomacy, armed forces, elected office." },
   { value: "social impact", label: "Social impact", parent: null,
@@ -69,6 +69,11 @@ export const PROFESSION_TAGS = [
     hint: "Agriculture and the business of growing things." },
   { value: "environment", label: "Environment", parent: null,
     hint: "Conservation, ecology, climate. A valley with a bird sanctuary will fill this one." },
+  /* Added by the first pass to read everybody (2026-10-01), from the pile
+     rule 8 describes: two athletes and a sports scientist with nowhere true
+     to go. A company that sells sports goods is not this, it is Business. */
+  { value: "sports", label: "Sports", parent: null,
+    hint: "Playing, coaching and the science of sport. A company that sells sport is Business." },
   /* A status, in the same column as the fields, on purpose (rule 9). It
      is 25 of the 34 people who have said anything at all, so a "student"
      boolean would have been the largest and least useful fact in the
@@ -84,6 +89,12 @@ export const PROFESSION_TAGS = [
      see LEGACY_TAGS. */
   { value: "student", label: "Student", parent: null,
     hint: "Still in full-time education. Combine with the field where the course or institution names one." },
+  /* The second status, and the one the note above said would come. It arrived
+     with the first full pass on 2026-10-01: three members whose text says
+     Retired, one of them a retired teacher, who is ["retired", "education"]
+     exactly as the medical student is ["student", "healthcare"]. */
+  { value: "retired", label: "Retired", parent: null,
+    hint: "No longer working. Combine with the field where the pair names it: the retired teacher is Retired and Education." },
 ] as const;
 
 export type TagValue = (typeof PROFESSION_TAGS)[number]["value"];
@@ -119,19 +130,29 @@ export const TAG_FLOOR = 2;
  *
  * The owner, 2026-08-28: "we need to make sure we don't have 100 tags
  * for people to wade through." This is the "is this list readable"
- * gate, and it is the one that survives growth -- the two hand off, so
- * at 63 members the floor does all the work and this does none, and at
- * 2,000 it is the other way round.
+ * gate. It was meant to be the one that survives growth, and VOCAB_MAX
+ * has since taken most of that job: with the vocabulary capped, this can
+ * only ever hide the smallest few, and it cuts a tie alphabetically -- so
+ * once every tag clears the floor, the last of the smallest is unfindable
+ * again. Whether it should exist at all beside VOCAB_MAX is the owner's
+ * call, put to him on 2026-10-01.
  *
- * Twelve because that is a list you take in as a column without
- * scrolling. FacetSelect has a search box, but a filter you have to
- * SEARCH has already failed at being browsable, and browsing is this
- * control's whole job.
+ * RAISED FROM TWELVE on 2026-10-01. Twelve was argued as "a list
+ * you take in as a column without scrolling", and the control was never
+ * that: measured at 1440x900, its list box is 256px tall and a row 36px,
+ * so seven rows show and twelve already scrolled. The cap bought no
+ * readability, and the first full pass showed what it cost instead --
+ * Media, Social impact, Sports, Retired, Environment and Farming, eighteen
+ * people between them, tagged and impossible to choose, because the
+ * search box searches only what is offered. Browsing is still this
+ * control's whole job; a scrolled list of eighteen does it, a list that
+ * hides a third of the vocabulary does not. The new value offers every
+ * tag the vocabulary held that day that cleared the floor.
  *
- * A tag past the twelfth still filters from a URL and still draws its
- * chip -- exactly what the removed House filter's arm does.
+ * A tag past the cap still filters from a URL and still draws its chip --
+ * exactly what the removed House filter's arm does.
  */
-export const TAG_VISIBLE_MAX = 12;
+export const TAG_VISIBLE_MAX = 18;
 
 /**
  * The most tags one person can be given.
@@ -155,11 +176,19 @@ export const TAG_MAX_PER_PERSON = 4;
  * TAG_FLOOR and TAG_VISIBLE_MAX cap what is SHOWN; this caps what
  * EXISTS, so the list cannot grow by drift. It is the rule that makes
  * "merge upward" and "split only when crowded" bite instead of being
- * advice: past eighteen, adding a tag has to be an argument about which
- * one it replaces. Six clear of TAG_VISIBLE_MAX so a new or thin tag
+ * advice: past the cap, adding a tag has to be an argument about which
+ * one it replaces. Kept clear of TAG_VISIBLE_MAX so a new or thin tag
  * can exist and mature without immediately fighting for a slot.
+ *
+ * RAISED FROM 18 TO 20 on 2026-10-01, by the first pass to read everybody
+ * (189 members). It produced nineteen tags with somebody behind each, and the
+ * merge this cap demands had no candidate that was not sideways: every pair
+ * of thin tags -- Government and Social impact, Farming and Environment,
+ * Media and Arts -- would file half its people under a word that is not true
+ * of them. That is the decision this cap exists to force, made and written
+ * down. The next tag past twenty is the same argument again.
  */
-export const VOCAB_MAX = 18;
+export const VOCAB_MAX = 20;
 
 /**
  * Every value a dead vocabulary could have written, onto live ones.
@@ -318,15 +347,70 @@ Healthcare, not Healthcare and Research and Social impact. This is the opposite 
 buckets, where as many as apply is right -- over-tagging a person makes every filtered result the
 whole directory.
 
+The role decides when it names a field, and the organisation adds nothing: a data scientist at a
+bank is Technology, a head of communications at a foundation is Media. When the role is generic --
+Analyst, Executive, Engineer, Account Manager, Salaried, or no role at all -- the organisation is
+what names the field: an analyst at UBS is Finance, an engineer at a chip company is Technology.
+
 No tags is a legitimate answer, and it is how the vocabulary grows. There is no "Other" here:
 someone whose text says nothing gets nothing, and the pick script prints that pile every run. A run
 of people landing there with the same kind of work in them is the evidence for the next tag,
 arriving without anyone having had to guess in advance.
 
-Status is a tag too. Student belongs in the same column as the fields and combines with them:
-["student", "healthcare"] for a medical student, ["student"] alone where the institution is
-general and nothing has said the field. Retired and the rest, when they turn up, work the same way.
+Status is a tag too. Student and Retired belong in the same column as the fields and combine with
+them: ["student", "healthcare"] for a medical student, ["retired", "education"] for a retired
+teacher, ["student"] alone where the institution is general and nothing has said the field. A
+specialist institution names its field -- a law school, a medical college, a business school, a
+culinary academy, a research institute -- and a general university or an institute of technology
+does not, because it could be any of three tags.
 
-Work only from what the pair says. "Student" at Ashoka, NYU or Edinburgh names no field -- that is
-Student and nothing else, and guessing a field from a general university is the single easiest
-mistake to make here.`;
+Work only from what the pair says, read with batchYear. "Student" at Ashoka, NYU or Edinburgh names
+no field -- that is Student and nothing else, and guessing a field from a general university is the
+single easiest mistake to make here. batchYear says who is still studying: a 2024 leaver who writes
+Architect at a university is an architecture student, so Student and Design, and a 1978 alumnus who
+writes Doctor is not a student at all.`;
+
+/**
+ * How the pair should READ, decided in the same reading as its tags.
+ *
+ * The owner, 2026-10-01, the day the pass first read everybody: "tidy up that
+ * whole um, section of their profiles" -- "wrong grammar, wrong
+ * capitalization" -- "sometimes they put the occupation as college but no
+ * it's student" -- "since you're going through all of them you might as well
+ * just comb through them polish them up and um change them all". Until then
+ * this pass never touched what a member typed. What makes it safe to now is
+ * in the applier: a row whose text moved since the pick is refused, the write
+ * itself is guarded on the text it read, and the undo puts every word back.
+ *
+ * Its own string rather than more paragraphs of TAG_RULES because the two
+ * answer different questions about the same row -- which field, and how it
+ * reads -- and a rule for one is not a rule for the other.
+ */
+export const TIDY_RULES = `The pair is also the member's own words, and their profile prints it as one sentence: "<job
+title> at <workplace>", or whichever half exists. Their directory card prints the job title alone.
+Tidy both so that reads right, and change nothing it means. Put a field in the verdict only to
+change it; a field left out is left exactly as it is.
+
+Fix the form: spelling, capitals, an acronym in its own case (UCSD, NALSAR, MBBS, BSc), a missing
+apostrophe, an organisation's real name where the member plainly meant it ("Kaunas Technology
+University University" is Kaunas University of Technology).
+
+Each half holds its own kind of thing: the job title is what they do, the workplace is where.
+"College" or "Masters" typed as a job title is the occupation it stands for -- Student, Master's
+Student. An occupation typed as a workplace moves across: "Graphic Design" at "Consultant" is a
+Graphic Design Consultant with no workplace.
+
+"Freelance", "Self-employed" and "Self" are not places, and "Teacher at Self" is not a sentence.
+Fold them into the title -- Freelance Content Creator, Independent Teacher -- and empty the
+workplace.
+
+A placeholder is not an answer: "No Organization", "None", "Na", "N/A" and "-" become an empty
+field. "Unemployed" is an answer, and it stays.
+
+Keep their words wherever their words are not wrong. Bureaucrat stays Bureaucrat and Business stays
+Business. Do not expand an acronym into a name you are guessing (APU is two universities), do not
+give a title to somebody who wrote only a workplace, and do not change what anybody does. The one
+exception is a title their batchYear makes impossible: a 2024 leaver at a university is not yet an
+Architect, and Architecture Student is what they meant.
+
+Write a change only when you would be glad to defend it to the member.`;
