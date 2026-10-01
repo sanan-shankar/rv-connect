@@ -642,6 +642,10 @@ export function LetterheadProfile({
   /* About shows for a stranger only when there is something to read. On your
      own profile the empty state is a prompt, which is worth the space. */
   const showAbout = Boolean(aboutText) || isOwnProfile;
+  // An easter egg for one member (owner, 2026-10-01). It lives only in the
+  // editable branches, which render on your own sheet alone, so nobody else
+  // ever sees it, not even an admin looking at hers.
+  const forJoyeeta = user.id === "cmup73qqj000104l0v03sld2t";
   /* The stamp: pressed on demand, held a moment, faded away. */
   const [stamp, setStamp] = useState(0);
   const stampTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1198,7 +1202,11 @@ export function LetterheadProfile({
                       editing={live}
                       // At rest this IS the empty state: the same sentence the
                       // read-only sheet shows, sitting in the field it fills.
-                      placeholder="You haven't written an About yet. A few lines, so people know who you are now."
+                      placeholder={
+                        forJoyeeta
+                          ? "You haven't written an About yet. Why not let them know you love The Script."
+                          : "You haven't written an About yet. A few lines, so people know who you are now."
+                      }
                       ariaLabel="About you"
                       delay={0.22}
                       maxLength={4000}
@@ -1211,14 +1219,15 @@ export function LetterheadProfile({
                        line, so picking it up moves nothing. */
                     <p className="mt-[var(--space-s)] text-[15px] leading-[1.7] text-muted-foreground">
                       You haven&rsquo;t written an About yet.{" "}
+                      {forJoyeeta && "Why not "}
                       <button
                         type="button"
                         onClick={() => setLive(true)}
                         className="rounded-sm font-semibold text-leaf hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                       >
-                        Add a few lines
+                        {forJoyeeta ? "let them know" : "Add a few lines"}
                       </button>{" "}
-                      so people know who you are now.
+                      {forJoyeeta ? "you love The Script." : "so people know who you are now."}
                     </p>
                   ) : aboutText ? (
                     <p className="mt-[var(--space-s)] whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground">
