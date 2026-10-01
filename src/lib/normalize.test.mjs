@@ -80,3 +80,27 @@ test("both sides of the Instagram field spend the rule", () => {
     "updateContactMethods stores whatever was pasted again"
   );
 });
+
+/* ------------------------------------------------------------------ *
+ *  An acronym typed into an occupation field survives the save.
+ *
+ *  titleCase's all-caps branch made "GNLU" "Gnlu" on every path that
+ *  writes jobTitle or workplace -- including the admin editor, so the
+ *  owner could not correct one. occupationCase keeps a lone capitalised
+ *  word and hands everything else to titleCase unchanged.
+ * ------------------------------------------------------------------ */
+
+test("a one-word acronym in an occupation field is kept as typed", () => {
+  for (const typed of ["GNLU", "UBS", "CEO", "O.P.", "IIT-B"]) {
+    assert.equal(normalize.occupationCase(typed), typed);
+  }
+  assert.equal(normalize.occupationCase("  UCSD "), "UCSD");
+});
+
+test("everything else in an occupation field is titleCase, unchanged", () => {
+  for (const typed of ["software engineer", "IIT BOMBAY", "KIMS Hospitals", "ucsd", "state bank of india"]) {
+    assert.equal(normalize.occupationCase(typed), normalize.titleCase(typed));
+  }
+  /* The branch that made the acronyms disappear is still right for names. */
+  assert.equal(normalize.titleCase("GNLU"), "Gnlu");
+});
