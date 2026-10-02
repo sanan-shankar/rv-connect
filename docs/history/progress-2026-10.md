@@ -1,3 +1,26 @@
+## 2026-10-02 (docs) — the README is rewritten as the public overview, for people outside the project
+
+The owner is making the repository public and sending the link with job applications (consulting,
+product, applied AI), so the README is now written for executives and recruiters rather than
+contributors: what the site is, the problem, the features in sidebar order, the hours and the
+stack. Two drafts were rejected in review: one an essay (named "Alma", with the school's story, the
+demo link and the build rules explained), the next all taglines. The one that shipped is plain
+sentences, names no school, and is titled "Alumni Connect". The repository's GitHub description and
+topics were set to match. The setup, structure and deploy
+sections moved verbatim to `docs/SETUP.md`, which `docs/README.md` now lists.
+
+Every number in it was read on the day, not estimated: 444 accounts (10 of them teachers), batches
+1965 to 2026, 362 joined since 14 Sep, 110 home cities in 23 countries among the 323 with a place,
+1,964 approved photographs with the oldest dated 1974, 148 unit test files, 516 logged sessions, the
+security board's 74 findings with 0 open. The README rounds them ("more than 400", "over 100 cities")
+so it does not go stale in a week.
+
+Found while checking the demo link: `demo.rishivalley.space` still fails on every data page (the
+2026-09-08 entry in `docs/planning/bugs.md`, a stale build on the demo's Vercel project). Its
+database is also missing `Photo.exifYear`/`exifMonth` from `2026-08-30-photo-exif-date.sql`; applying
+that was refused by the session's permission check and is left to the owner. The demo link in the
+README is dead until both are done. `npm run check` green.
+
 ## 2026-10-01 (profile, directory) — a blank avatar no longer replaces the bird; two new members put right
 
 The owner: "fix the person whose location doesn't show up on the map the german dude and why does

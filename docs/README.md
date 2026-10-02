@@ -6,7 +6,7 @@ worse than no map, because it invites people to recreate them.
 
 Repo-discovery files stay at the root:
 
-- `README.md` — project overview and local setup.
+- `README.md` — the project overview, written for people outside the project.
 - `AGENTS.md` — agent/project rules.
 - `CLAUDE.md` — local Claude workflow instructions (start here — it points at the roadmap and specs).
 - `progress.md` — the session history's INDEX: one line per session, newest first. The full entry
@@ -24,6 +24,8 @@ Everything else is grouped here:
   database, a migration, a scheduled job, or anything that looks like a race.
 - `docs/OPERATIONS.md` — every non-application tool and the moment each one is meant to fire: the
   visual suite, the CI gate, the nightly database backup, Sentry, Renovate.
+- `docs/SETUP.md` — running it locally, the env vars, the project structure and how it
+  deploys. Moved out of the root README on 2026-10-02 when that became the public overview.
 - `docs/SECURITY.md` — the threat model, the gates that enforce it, and the audit status board.
 - `docs/spec/DESIGN-SYSTEM.md` — **canonical for all design/brand decisions** (colour, shape, type,
   spacing, motion, feature naming, component reuse). Read this before any UI work; it supersedes the
