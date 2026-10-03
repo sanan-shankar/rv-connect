@@ -371,18 +371,26 @@ jobs:
           # backup only grows; at WebP sizes that stays far under R2's free
           # tier for years.
           #
-          # --copy-props metadata-directive, because the default ("default")
-          # also copies tags, and for any object over the CLI's 8 MB multipart
-          # threshold it asks for them with GetObjectTagging, which R2 answers
-          # "NotImplemented". The Collection keeps full-resolution masters
-          # since late August, so from 2026-08-29 every night failed on those
-          # (111 copies a run) and the largest photographs had no backup at
-          # all for a month. metadata-directive still carries content-type
-          # and cache headers, which is all a restore needs; nothing here
-          # sets tags.
+          # R2 refuses both ways the CLI has of handling tags on a copy, so
+          # every copy here is a plain single CopyObject, which keeps the
+          # source's content-type, cache headers and metadata by itself:
+          #  - "--copy-props default" asks for the tags with GetObjectTagging
+          #    (R2: NotImplemented), but ONLY on multipart copies, i.e. objects
+          #    over the 8 MB multipart threshold. The Collection's
+          #    full-resolution masters cross it, so from 2026-08-29 every night
+          #    failed on those (111 copies a run).
+          #  - "--copy-props metadata-directive", the first fix, sends
+          #    `x-amz-tagging-directive: REPLACE` on every copy, which R2 also
+          #    refuses. It never copied a thing: the nights it passed had
+          #    nothing new, and from 2026-10-01, when there was, all of it
+          #    failed (57 objects by 10-02).
+          # So: "default", with the threshold raised to S3's single-copy
+          # ceiling. A photograph is megabytes, so nothing goes multipart,
+          # and one that ever did would fail loudly here, not silently.
+          aws configure set default.s3.multipart_threshold 5GB
           aws s3 sync "s3://rv-alumni-media" "s3://$BUCKET/media/" \
             --endpoint-url "$ENDPOINT" --no-progress \
-            --copy-props metadata-directive
+            --copy-props default
 
       - name: Verify the backup holds at least everything live
         env:
