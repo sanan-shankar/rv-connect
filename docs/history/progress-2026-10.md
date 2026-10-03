@@ -1,3 +1,15 @@
+## 2026-10-03 (backup) — the nightly media backup copies again; no October photo had reached it
+
+Same request as the entry below. `backup` failed on 10-01 and 10-02: every object uploaded in
+October (45, then 57) failed to copy into the private bucket with "Header 'x-amz-tagging-directive'
+with value 'REPLACE' not implemented". The 2026-09-29 fix had switched the sync to
+`--copy-props metadata-directive` to dodge R2's missing GetObjectTagging, and the CLI source
+(`CopyPropsSubscriberFactory`) shows that mode sets TaggingDirective=REPLACE on every copy. It never
+copied anything: the three runs after it passed only because the bucket sat at 6,032 objects with
+nothing new. "default" only asks for tags on multipart copies, so the sync is back on "default"
+with `s3.multipart_threshold` raised to 5GB and every copy is one plain CopyObject. The database
+half of the job was never affected.
+
 ## 2026-10-03 (deps) — the two open Dependabot alerts closed: fast-uri 3.1.8, dompurify 3.4.16
 
 The owner: "fix the github problems. I don't want any failed workflows any more". GitHub listed two
