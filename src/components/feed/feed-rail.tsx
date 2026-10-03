@@ -1,7 +1,6 @@
 import { LettersModule } from "./rail/letters-module";
 import { CollectionModule } from "./rail/collection-module";
 import { DirectoryModule } from "./rail/directory-module";
-import { PulseModule } from "./rail/pulse-module";
 import type { RailViewer } from "./rail/rail-viewer";
 
 /**
@@ -13,7 +12,6 @@ import type { RailViewer } from "./rail/rail-viewer";
  *   1. This week in Letters
  *   2. From the Collection
  *   3. New in the directory
- *   4. Signs of life (last, and only when the week is genuinely alive)
  */
 export async function FeedRail({ userId, viewer }: { userId: string; viewer: RailViewer }) {
   return (
@@ -36,7 +34,6 @@ export async function FeedRail({ userId, viewer }: { userId: string; viewer: Rai
       <LettersModule viewer={viewer} />
       <CollectionModule />
       <DirectoryModule userId={userId} />
-      <PulseModule />
     </div>
   );
 }

@@ -1,3 +1,16 @@
+## 2026-10-03 (feed) — "Signs of life" leaves the feed rail; "New in the directory" shows eight people
+
+The owner: "remove the signs of life siderail element. extend the new in directory to 8 people."
+`PulseModule` (`rail/pulse-module.tsx`, the week's post and author counts) is deleted and
+`FeedRail` drops it. `DirectoryModule` takes 8 members instead of 6, and the loading skeleton
+draws eight rows to match, so the rail does not jump when it arrives.
+
+Measured at 1440x900 signed in as Jerry: the directory card is 532.75px (was 411), the rail
+754.5px with its two usual cards, no console errors. The rail is hidden below 1180px, so mobile is
+unchanged. One thing to watch: in a week with a letter, the rail is about 920-955px tall, so on a
+window under roughly 1000px high the last directory row sits below the fold while the rail is
+pinned. `npm run check` green; `npm run visual` 25/25 (the feed is masked below its header).
+
 ## 2026-10-02 (docs) — the README is rewritten as the public overview, for people outside the project
 
 The owner is making the repository public and sending the link with job applications (consulting,

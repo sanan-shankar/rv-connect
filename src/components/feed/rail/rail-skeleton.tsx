@@ -8,15 +8,14 @@ import { IdentityRowSkeleton } from "@/components/common/identity-row";
  * have nothing real to show, and these are the two nearly every member gets:
  * "From the Collection" (hidden only while the archive holds no landscape
  * photograph) and "New in the directory" (hidden only from an unconfirmed
- * account). "This week in Letters" needs a letter in the last week and "Signs
- * of life" a lively one, so a placeholder for either would promise a card
- * that usually never comes.
+ * account). "This week in Letters" needs a letter in the last week, so a
+ * placeholder for it would promise a card that usually never comes.
  *
  * RailCard's own shell (rail-card.tsx) and each module's own numbers: the
  * microhead's 10.5px type on the body's leading, 6px over the content; the
- * photograph's 150px frame; six 40px rows at py-2.5 with the last one's
+ * photograph's 150px frame; eight 40px rows at py-2.5 with the last one's
  * bottom padding dropped and a hairline from the name's edge between each.
- * Measured against the real rail at 1440: 206px and 411px, 16px apart.
+ * Measured against the real rail at 1440: 206px and 533px, 16px apart.
  */
 export function FeedRailSkeleton() {
   return (
@@ -25,14 +24,14 @@ export function FeedRailSkeleton() {
         <div className="skeleton-warm h-[150px] w-full rounded-[var(--radius-md)]" />
       </RailCardSkeleton>
       <RailCardSkeleton labelWidth="w-36">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
+        {NAME_WIDTHS.map((nameWidth, i) => (
           <Fragment key={i}>
             {i > 0 && <div aria-hidden className="ml-[52px] h-px bg-border" />}
             <IdentityRowSkeleton
               nameSize={13.5}
-              nameWidth={NAME_WIDTHS[i]}
+              nameWidth={nameWidth}
               metaWidth="w-16"
-              className={i < 5 ? "py-2.5" : "pt-2.5"}
+              className={i < NAME_WIDTHS.length - 1 ? "py-2.5" : "pt-2.5"}
             />
           </Fragment>
         ))}
@@ -41,8 +40,9 @@ export function FeedRailSkeleton() {
   );
 }
 
-/* Names are different lengths; six equal bars read as a table. */
-const NAME_WIDTHS = ["w-28", "w-24", "w-32", "w-28", "w-36", "w-24"];
+/* One per row of DirectoryModule's `take: 8`. Names are different lengths;
+   eight equal bars read as a table. */
+const NAME_WIDTHS = ["w-28", "w-24", "w-32", "w-28", "w-36", "w-24", "w-32", "w-28"];
 
 function RailCardSkeleton({ labelWidth, children }: { labelWidth: string; children: React.ReactNode }) {
   return (
