@@ -1,3 +1,10 @@
+## 2026-10-03 (feed) — "New in the directory" settles on seven people, down from the eight just shipped
+
+The owner, after the entry below shipped eight: "make it 7 people". `DirectoryModule` takes 7 and
+the skeleton draws seven rows. Measured at 1440x900 as Jerry: the card is 471.75px, the rail
+693.5px, no console errors. With a letter in the rail it comes to roughly 860-895px, so pinned
+28px down it ends near a 900px window's bottom edge, where eight ran a full row past it. `npm run check` green.
+
 ## 2026-10-03 (feed) — "Signs of life" leaves the feed rail; "New in the directory" shows eight people
 
 The owner: "remove the signs of life siderail element. extend the new in directory to 8 people."
