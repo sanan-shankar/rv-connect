@@ -30,7 +30,7 @@ export async function DirectoryModule({ userId }: { userId: string }) {
   const recentMembers = await prisma.user.findMany({
     where: { isBlocked: false, deletionRequestedAt: null, id: { not: userId } },
     orderBy: { createdAt: "desc" },
-    take: 8,
+    take: 7,
     select: {
       ...IDENTITY_SELECT,
       accountType: true,

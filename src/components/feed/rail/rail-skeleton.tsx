@@ -13,9 +13,9 @@ import { IdentityRowSkeleton } from "@/components/common/identity-row";
  *
  * RailCard's own shell (rail-card.tsx) and each module's own numbers: the
  * microhead's 10.5px type on the body's leading, 6px over the content; the
- * photograph's 150px frame; eight 40px rows at py-2.5 with the last one's
+ * photograph's 150px frame; seven 40px rows at py-2.5 with the last one's
  * bottom padding dropped and a hairline from the name's edge between each.
- * Measured against the real rail at 1440: 206px and 533px, 16px apart.
+ * Measured against the real rail at 1440: 206px and 472px, 16px apart.
  */
 export function FeedRailSkeleton() {
   return (
@@ -40,9 +40,9 @@ export function FeedRailSkeleton() {
   );
 }
 
-/* One per row of DirectoryModule's `take: 8`. Names are different lengths;
-   eight equal bars read as a table. */
-const NAME_WIDTHS = ["w-28", "w-24", "w-32", "w-28", "w-36", "w-24", "w-32", "w-28"];
+/* One per row of DirectoryModule's `take: 7`. Names are different lengths;
+   seven equal bars read as a table. */
+const NAME_WIDTHS = ["w-28", "w-24", "w-32", "w-28", "w-36", "w-24", "w-32"];
 
 function RailCardSkeleton({ labelWidth, children }: { labelWidth: string; children: React.ReactNode }) {
   return (
