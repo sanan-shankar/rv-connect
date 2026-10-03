@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-03 (feed) — "Signs of life" leaves the feed rail; "New in the directory" shows eight people
 - 2026-10-02 (docs) — the README is rewritten as the public overview, for people outside the project
 - 2026-10-01 (profile, directory) — a blank avatar no longer replaces the bird; two new members put right
 - 2026-10-01 (directory) — the first profession pass to read everybody, and it tidies what it reads
