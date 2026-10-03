@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-03 (deps) — the two open Dependabot alerts closed: fast-uri 3.1.8, dompurify 3.4.16
 - 2026-10-03 (feed) — "New in the directory" settles on seven people, down from the eight just shipped
 - 2026-10-03 (feed) — "Signs of life" leaves the feed rail; "New in the directory" shows eight people
 - 2026-10-02 (docs) — the README is rewritten as the public overview, for people outside the project

@@ -1,3 +1,12 @@
+## 2026-10-03 (deps) — the two open Dependabot alerts closed: fast-uri 3.1.8, dompurify 3.4.16
+
+The owner: "fix the github problems. I don't want any failed workflows any more". GitHub listed two
+open alerts the local gate does not fail on (it stops at high): fast-uri < 3.1.8 (moderate, host
+case normalisation; through ajv under Sentry's webpack plugin and Prisma's dev tooling) and
+dompurify 3.4.13-3.4.15 (low, an IN_PLACE hook leaving handlers armed; through posthog-js). Both are
+transitive and `npm update` moved them within their parents' ranges; only the lockfile changed.
+`npm audit --omit=dev` reports 0. `npm run check` green.
+
 ## 2026-10-03 (feed) — "New in the directory" settles on seven people, down from the eight just shipped
 
 The owner, after the entry below shipped eight: "make it 7 people". `DirectoryModule` takes 7 and
