@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-05 (profile) — Harini Narayanan joins Srivar on the stray hair's guest list
 - 2026-10-03 (backup) — the nightly media backup copies again; no October photo had reached it
 - 2026-10-03 (deps) — the two open Dependabot alerts closed: fast-uri 3.1.8, dompurify 3.4.16
 - 2026-10-03 (feed) — "New in the directory" settles on seven people, down from the eight just shipped
