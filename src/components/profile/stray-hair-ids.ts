@@ -11,4 +11,5 @@
    TO END THE JOKE: empty this array. That is the whole kill switch. */
 export const STRAY_HAIR_USER_IDS = [
   "cmseun9s0000004l735aog2kw", // Srivar Janna
+  "cmuqqk3d5001704jq6v3seabr", // Harini Narayanan
 ];

@@ -1,3 +1,11 @@
+## 2026-10-05 (profile) — Harini Narayanan joins Srivar on the stray hair's guest list
+
+The owner: "add the hair strand glitch to harini profile". Her id (`cmuqqk3d5001704jq6v3seabr`,
+batch of 2020, the only member matching "harini") goes into `STRAY_HAIR_USER_IDS` beside Srivar
+Janna's. As before, the hair renders only when she opens her own profile; nobody else's page or
+bundle changes. Not seen in a browser: dev-login as a real alumna writes presence telemetry
+against her. `npm run check` green.
+
 ## 2026-10-03 (backup) — the nightly media backup copies again; no October photo had reached it
 
 Same request as the entry below. `backup` failed on 10-01 and 10-02: every object uploaded in
