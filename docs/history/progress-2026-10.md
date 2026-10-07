@@ -1,3 +1,16 @@
+## 2026-10-07 (deps) — sharp 0.35.5 and source-map-js 1.2.2 clear two new high advisories
+
+The dependency gate went red on two advisories published since the last green run: GHSA-wq5f-xc86-pv6w
+in sharp's bundled libvips (librsvg, CVE-2026-96889) and GHSA-68fv-2mgg-jv7q, an event-loop DoS in
+source-map-js. Both move inside their existing ranges, so only the lockfile changes: sharp 0.35.4 to
+0.35.5 with its `@img` binaries (libvips 1.3.3 to 1.3.4), and source-map-js 1.2.1 to 1.2.2 under
+Tailwind and PostCSS. A WebP conversion and an SVG render through sharp both work, `npm run check` is
+green, and `next build` passes. The first build failed on every `next/font/google` import with
+"queries have exactly one entry"; a corrupt `.next/cache/turbopack` (the build's cache, not the dev
+server's `.next/dev`) was the cause, and moving it aside fixed it. `braces` (high, GHSA-vfj7-8cjw-p6xm)
+still shows in `npm audit`: it has no fixed 3.x release and lives only under eslint-config-next, a dev
+tool the gate excludes on purpose.
+
 ## 2026-10-07 (auth) — a signed-out visitor to the bare domain gets the landing page again, not a loop to sign-in
 
 The owner, signed out in Safari: "everytime I to to the url on safari (i'm logged out) it doesn't take me
