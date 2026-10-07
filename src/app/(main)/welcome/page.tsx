@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { redirectToSignIn } from "@/lib/sign-in-redirect";
 import { prisma } from "@/lib/prisma";
 import { CelebrationSignals } from "@/components/mascot/moments/celebration-signals";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
@@ -26,7 +27,7 @@ export default async function WelcomePage({
   searchParams: Promise<{ step?: string; next?: string }>;
 }) {
   const session = await auth();
-  if (!session?.user) redirect("/login");
+  if (!session?.user) return redirectToSignIn();
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },

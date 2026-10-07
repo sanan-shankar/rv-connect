@@ -3,6 +3,8 @@ import type { NextRequest } from "next/server";
 
 // Import-free by design, so it is safe in the edge bundle. See origin.ts.
 import { CANONICAL_ORIGIN } from "@/lib/origin";
+// The same names /api/auth/stale deletes, so the two can never disagree.
+import { isSessionCookie } from "@/lib/stale-session";
 
 // The old default Vercel-assigned domain. Exact match only -- preview
 // deployment hosts (e.g. "rv-alumni-git-branch-team.vercel.app" or
@@ -170,18 +172,19 @@ export function proxy(request: NextRequest) {
 
   // Check for NextAuth session cookie (lightweight check — actual session
   // validation happens server-side in the layout)
-  const sessionCookie =
-    request.cookies.get("authjs.session-token") ||
-    request.cookies.get("__Secure-authjs.session-token");
+  const sessionCookie = request.cookies.getAll().find(({ name }) => isSessionCookie(name));
 
   // Signed-in visitors typing the bare domain want the app, not the sales
   // pitch. Handled here rather than in `app/page.tsx` so the landing page
   // stays statically rendered for logged-out visitors: calling `auth()` in
   // the page would opt the whole route into dynamic rendering for everyone.
   //
-  // A stale cookie sends them "/" -> "/feed" -> "/login" (the (main) layout
-  // does the real session check). That chain is self-correcting and lands
-  // them exactly where a logged-out visitor to "/feed" belongs anyway.
+  // A stale cookie (a session that ended without the browser being told)
+  // sends them "/" -> "/feed" -> /api/auth/stale, which deletes it and
+  // returns them to "/", where they now get the landing page. That last hop
+  // is new: this used to end at "/login" with the cookie still there, so the
+  // bare domain could never show the landing page again
+  // (src/lib/stale-session.ts).
   if (pathname === "/" && sessionCookie) {
     return NextResponse.redirect(new URL("/feed", request.url));
   }

@@ -177,26 +177,30 @@ test("C-117/C-200: both sign-in gates carry the destination, not just the proxy"
   const branch = gate.slice(0, gate.indexOf("\n  }") + 4);
   assert.ok(branch.length > 40, "the layout's auth gate did not slice; this test is vacuous");
   assert.ok(
-    /next=/.test(branch),
-    "the (main) layout redirects to a bare /login again: a revoked session " +
-      "following a deep link loses it (C-117/C-200)"
+    /redirectToSignIn\(/.test(branch),
+    "the (main) layout no longer signs people out through redirectToSignIn, so it " +
+      "either drops the destination (C-117/C-200) or leaves a dead cookie behind"
   );
+
+  // The destination itself is built in the shared helper.
+  const HELPER = decomment(read("src/lib/sign-in-redirect.ts"));
+  const send = balancedBody(HELPER, "export async function redirectToSignIn()");
+  assert.ok(send, "redirectToSignIn moved; re-point this test");
+  // withNext's encoding is pinned by value in stale-session-rule.test.mjs.
   assert.ok(
-    /encodeURIComponent/.test(branch),
-    "the destination is not encoded, so a path with & or # truncates the next param"
+    /withNext\(/.test(send),
+    "redirectToSignIn sends a bare sign-in redirect again: a revoked session " +
+      "following a deep link loses it (C-117/C-200)"
   );
   // The header it must read is the one WITH the query string. x-pathname alone
   // is the page touchLastSeen records, and /directory is not the same
   // destination as /directory?batch=2011.
   assert.ok(
-    /currentTarget\(/.test(branch),
-    "the layout builds next= from something other than currentTarget(); if that " +
-      "is x-pathname it has silently dropped every query string"
+    /currentTarget\(/.test(send),
+    "redirectToSignIn builds next= from something other than currentTarget(); if " +
+      "that is x-pathname it has silently dropped every query string"
   );
-  assert.ok(
-    /x-search/.test(LAYOUT),
-    "currentTarget no longer reads x-search"
-  );
+  assert.ok(/x-search/.test(HELPER), "currentTarget no longer reads x-search");
 });
 
 test("the visit cookie is never set on a server action", () => {

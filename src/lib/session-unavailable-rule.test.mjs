@@ -46,8 +46,9 @@ test("auth() records an unavailable session for the request and still answers nu
 test("the (main) layout shows the error screen, not the sign-in form, when the database did not answer", () => {
   const branch = layout.slice(layout.indexOf("if (!session?.user) {"));
   const check = branch.indexOf("if (sessionWasUnavailable())");
-  const redirectAt = branch.indexOf("redirect(");
+  const redirectAt = branch.indexOf("redirectToSignIn(");
   assert.ok(check !== -1, "the layout no longer asks whether the session was unavailable");
+  assert.ok(redirectAt !== -1, "the layout no longer redirects through redirectToSignIn; re-point this test");
   assert.ok(check < redirectAt, "the layout redirects to sign-in before asking");
   assert.match(branch.slice(check, redirectAt), /throw new Error\("SESSION_UNAVAILABLE/, "an unavailable session must throw to the error screen");
 });

@@ -1,13 +1,12 @@
-import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { auth, sessionWasUnavailable } from "@/lib/auth";
+import { redirectToSignIn } from "@/lib/sign-in-redirect";
 import { prisma } from "@/lib/prisma";
 import { unreadNotificationCount } from "@/lib/notification-count";
 import { AppShell } from "@/components/layout/app-shell";
 import { advanceDueCatchups } from "@/lib/catchups";
 import { touchLastSeen } from "@/lib/last-seen";
 import { isStatsExcluded } from "@/lib/stats-exclusion";
-import { headers } from "next/headers";
 import { drainMailQueue, verificationMailState } from "@/lib/email-queue";
 import { maskEmail } from "@/lib/mask-email";
 import { sendTimeLabel } from "@/lib/confirmation-copy";
@@ -34,15 +33,17 @@ export default async function MainLayout({
     if (sessionWasUnavailable()) {
       throw new Error("SESSION_UNAVAILABLE: the member's row could not be read in time");
     }
-    /* With the destination in tow, exactly as src/proxy.ts does (B-022).
-       The two gates were asymmetric: the proxy only adds `next` when there is
-       NO session cookie, and a cookie that exists but no longer authenticates
+    /* Through the route that deletes a dead cookie on the way, so the bare
+       domain is the landing page again rather than a loop back to sign-in
+       (src/lib/stale-session.ts), and with the destination in tow, exactly
+       as src/proxy.ts does (B-022). The two gates were asymmetric: the proxy
+       only adds `next` when there is NO session cookie, and a cookie that
+       exists but no longer authenticates
        -- the state a password reset or a block deliberately creates on every
        other device -- sails past it and lands here, where a bare
        redirect("/login") threw the link away and dropped the member on /feed
        after they signed in (audit C-117/C-200). */
-    const path = await currentTarget();
-    redirect(path ? `/login?next=${encodeURIComponent(path)}` : "/login");
+    return redirectToSignIn();
   }
 
   /* Lazy, read-time Catch-up advance (spec 2.4), piggy-backed alongside the
@@ -220,14 +221,4 @@ export default async function MainLayout({
       />
     </>
   );
-}
-
-/* The page WITH its query string, which is what a sign-in detour has to carry
-   back: /directory?batch=2011 is a different destination from /directory.
-   Both headers come from src/proxy.ts. */
-async function currentTarget(): Promise<string | undefined> {
-  const h = await headers();
-  const path = h.get("x-pathname");
-  if (!path) return undefined;
-  return path + (h.get("x-search") ?? "");
 }

@@ -548,6 +548,19 @@ async function guardedSession(): Promise<Session | null> {
   return session;
 }
 
+/** Whether this request carries a sign-in cookie that no longer signs anyone
+ *  in: undecodable, expired, or revoked by the credential epoch. False for a
+ *  live session AND for a database that did not answer, because neither may
+ *  have its cookie deleted (src/app/api/auth/stale). Reads nextAuth.auth()
+ *  directly rather than auth(): the request-cache flag sessionWasUnavailable()
+ *  relies on reads false outside a render, and this runs in a route handler. */
+export async function sessionIsStale(): Promise<boolean> {
+  if (IS_DEMO) return false;
+  const session = await nextAuth.auth();
+  if (session?.unavailable) return false;
+  return !session || Boolean(session.invalid);
+}
+
 /* ------------------------------------------------------------------ *
  *  "The database did not answer" is not "you are signed out".
  *
