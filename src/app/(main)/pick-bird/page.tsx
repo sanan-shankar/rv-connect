@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { redirectToSignIn } from "@/lib/sign-in-redirect";
 import { prisma } from "@/lib/prisma";
 import { CONTRIBUTION_SUM, netPaise } from "@/lib/contribution-state";
 import { razorpayLivemode } from "@/lib/razorpay";
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
 
 export default async function PickBirdPage() {
   const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  if (!session?.user?.id) return redirectToSignIn();
 
   /* Nothing is caught here, deliberately (audit C-155).
      Both reads used to carry a `.catch(() => 0)` / `.catch(() => null)`, which

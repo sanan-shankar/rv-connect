@@ -1,7 +1,7 @@
 import { cache } from "react";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { redirectToSignIn } from "@/lib/sign-in-redirect";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { AlmostReady } from "@/components/catchups/almost-ready";
@@ -491,7 +491,7 @@ export default async function CatchupHomePage({
 }) {
   const { catchupId } = await params;
   const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  if (!session?.user?.id) return redirectToSignIn();
 
   let result: CatchupHomeResult;
   try {

@@ -19,9 +19,10 @@
  * ------------------------------------------------------------------ */
 
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { auth } from "@/lib/auth";
+import { redirectToSignIn } from "@/lib/sign-in-redirect";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import {
@@ -138,7 +139,7 @@ export default async function EditionPage({
 }) {
   const { editionId } = await params;
   const session = await auth();
-  if (!session?.user) redirect("/login");
+  if (!session?.user) return redirectToSignIn();
 
   let edition: LightEdition | null = null;
   let membership: Awaited<ReturnType<typeof loadMembership>> = null;

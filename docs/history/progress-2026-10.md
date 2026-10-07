@@ -1,3 +1,28 @@
+## 2026-10-07 (auth) — a signed-out visitor to the bare domain gets the landing page again, not a loop to sign-in
+
+The owner, signed out in Safari: "everytime I to to the url on safari (i'm logged out) it doesn't take me
+to the landing but instead over here." Safari still held a session cookie whose session had ended (a
+password reset, block or deletion request ends every session through the credential epoch, and an
+undecodable token is dead too, but none of them removes the cookie). The proxy only asks whether a
+cookie exists, so "/" went to /feed; the (main) layout found no session and went to /login; nothing
+deleted the cookie, and the sign-in page's Back link went to "/" and round again, on every visit.
+Reproduced against production with curl before touching anything.
+
+Every signed-out redirect now goes through `redirectToSignIn()` (`src/lib/sign-in-redirect.ts`): the
+layout and the four pages that did their own `redirect("/login")`, since layouts and pages render in
+parallel. It sends the visitor to a new GET route, `/api/auth/stale`. That route asks `sessionIsStale()`
+(new in `auth.ts`), and only if the cookie is confirmed dead deletes it, `__Secure-` and chunked names
+included. It then sends the visitor where someone with no cookie would have gone: "/" when the destination was just the
+feed (which is what the bare domain had already become), sign-in with `next=` for anything else. A live
+session or a database that did not answer gets the old sign-in redirect with the cookie untouched, so a
+cross-site link cannot sign anyone out and a slow pool is not a sign-out (O-03). The demo keeps going
+straight to /login. The proxy's own "has a cookie" check now uses the same name rule the route deletes by,
+so the two cannot disagree. `stale-session-rule.test.mjs` pins the destinations, the cookie names, check-before-delete and
+that no page redirects to /login around it; the C-117 and O-03 tests follow the redirect into the helper.
+Driven against the dev server: a garbage cookie and a revoked token on "/" both end at the landing page
+with `Max-Age=0` sent; a deep link ends at /login with its query intact; a live session is untouched;
+`next=//evil.example` lands on "/".
+
 ## 2026-10-05 (profile) — Harini Narayanan joins Srivar on the stray hair's guest list
 
 The owner: "add the hair strand glitch to harini profile". Her id (`cmuqqk3d5001704jq6v3seabr`,
