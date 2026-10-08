@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-08 (birds) — the birds expansion campaign opens: brief, selection, reviewer loop, two tools
 - 2026-10-07 (deps) — sharp 0.35.5 and source-map-js 1.2.2 clear two new high advisories
 - 2026-10-07 (auth) — a signed-out visitor to the bare domain gets the landing page again, not a loop to sign-in
 - 2026-10-05 (profile) — Harini Narayanan joins Srivar on the stray hair's guest list
