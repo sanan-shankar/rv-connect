@@ -413,19 +413,20 @@ so. Re-measure before trusting a projection; the commands are at the end.
 
 ### Vercel (Pro: $20 a month, which includes $20 of usage credit)
 
-| | Before the prefetch fix (week to 2026-09-29, ~280 members) | After (early read, 2026-09-29 12:00–16:00 UTC) |
+| | Week before the prefetch fix (09-22..28) | 8 days after (09-30..10-07) |
 |---|---|---|
-| Active CPU | 87.6 min a week, ~6.3 h a month | *hot* CPU per real page view 1.27 s → 0.34 s (−73%) |
-| Server calls per real page view | typically ~16 (8–24 across days) | 4.4 |
-| `/profile/[id]` renders | 27,841 a week vs ~546 real views | fell out of the top ten routes |
-| Usage cost | $1.13 a week, $0.78 of it scaling with traffic | full-day figure due 2026-09-30 |
+| Real page views (`Visit`) | 3,291 | 5,818, a busier week |
+| Active CPU | 84 min | 47 min |
+| CPU per real page view | 1.53 s | **0.48 s (−69%)** |
+| Server calls per real page view | 16.6 | 5.9 |
+| Usage cost (beyond the plan line) | $1.13 a week | $1.20 for 10-01..07, of which ~$0.59 scales with traffic; billed beyond the plan $0.00 |
 
-The early read is 38 real views, and 59% of that window's CPU was cold starts from four deploys
-in two hours; it is a direction, not the number. **Projection to 2,000 members** (7× today):
-before the fix ~$25 a month of usage, slightly over the $20 credit; after it, if the early read
-holds, ~$10 a month, inside the credit, so the bill stays at the $20 plan fee. **Hobby cannot hold
-2,000 members** on these numbers (its 4 CPU-hours would be spent several times over), and Hobby is
-for non-commercial use while the site takes contributions. Pro is the plan for 2,000.
+**Projection to 2,000 members** (~7× today's ~290), from the measured per-view cost: roughly
+$9–18 a month of usage depending on how active people are (the low end at the steady
+1.3 views/member/day of 10-03..07, the high end at launch-week activity), inside or at the edge
+of the $20 credit, so the bill stays at or near the $20 plan fee. **Hobby cannot hold 2,000
+members**, and Hobby is for non-commercial use while the site takes contributions. Pro is the
+plan for 2,000.
 
 A bot can still spend money that members never would. Vercel's default only *emails*, at $200.
 **Spend Management** (Settings → Billing) can pause the project at a hard cap instead; that is
@@ -440,8 +441,8 @@ the database read-only, or answer 402 to every request (its billing FAQ). So eac
 | Quota | 2026-09-29 | At 2,000 members (projected) | Guard |
 |---|---|---|---|
 | Database size | 140 MB on Supabase's meter; 119 MB by Postgres, of which 97 MB is the static place list and 23 MB everything else | ~270–290 MB (the 23 MB scaled 7×, plus the place list) | nightly alarm at 350 MB (§2, `snapshot.yml`); sign-in failure rows capped at 120 an hour |
-| Egress | 1.83 of 5 GB this cycle; the nightly backup was ~1.2 GB a month of it | backup now ~30 MB a month; app traffic scales, and the prefetch fix cut server calls per view ~3.5× | **unmeasured split**: read the daily egress chart on the organisation's Usage page |
-| Log ingestion | **1.55 of 1 GB, over**: the Data API failing every 32 s since it was switched off | ~0 from that source once fixed | the Data API points at the empty `api` schema (migration 2026-09-29) |
+| Egress | 0.39 of 5 GB, 10-01..08 (cycle runs 1st to 1st). **~60 KB per real page view**, steady across days (10-01: 153 MB / 2,364 views; 10-05: 25 MB / 427; 10-07: 14 MB / 227) | ~4.7 GB a month at the steady 1.3 views/member/day, more in a busy month: **the binding Free-plan limit, reached somewhere between ~1,100 and 2,000 members** | the organisation Usage page's daily chart; cut the bytes per page, or Supabase Pro when it nears |
+| Log ingestion | 1.55 of 1 GB in September (over); 0.435 GB 10-01..08, still the Data API loop. Marked UPCOMING, not yet enforced | ~0 from that source since the owner pointed both projects' Data API at `api` alone on 2026-10-08 | re-read the meter a few days later: it should stop climbing |
 | Connections | peak 12 of 60 | pooled; not the constraint | — |
 | CPU / RAM (nano) | 2% / 53% | — | — |
 
