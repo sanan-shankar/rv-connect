@@ -1,3 +1,17 @@
+## 2026-10-08 (collection) — the order menu names its clock: Recently added, Oldest added, Year taken
+
+The owner: *"newest and oldest is confusing with chronological."* The menu runs on two clocks, when a
+photograph was added and when it was taken, and "Newest" and "Oldest" never said which. A photograph's
+age is when it was taken, so "Oldest" read as the 1950s and returned the first uploads. The labels are
+now Recently added, Oldest added, Year taken, Most loved, with the two "added" orders adjacent: it is
+one order run both ways, and with four items, placing Year taken second gained nothing. "First added"
+was tried and rejected: *"first added sounds like recent ... it should be a negative recent."* The URL
+values (`newest`, `oldest`, `taken`, `loved`) are unchanged, so no link breaks. The skeleton's
+placeholder word, the two Playwright specs that pick orders by name, and the comments that named the
+old labels follow. `npm run check` green; `npm run visual` 25/25; the Collection specs 14 pass, and
+"every year the rail offers lands on that year, lit" fails with or without this change (A/B against
+HEAD's labels, which failed on 2013), so it is pre-existing and unrelated.
+
 ## 2026-10-08 (birds) — the birds expansion campaign opens: brief, selection, reviewer loop, two tools
 
 The owner's spoken brief (a dictated message and a pasted transcript, 2026-10-08) asks for three

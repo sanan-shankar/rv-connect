@@ -26,7 +26,7 @@ import { test, expect, type Page } from "@playwright/test";
  *
  *    1. A photograph appears once. Ever, after any sequence of actions.
  *    2. Pressing a year puts that year at the top and lights that year.
- *    3. Year headings exist in Chronological and in no other order.
+ *    3. Year headings exist in Year taken and in no other order.
  *    4. Swapping halves lands on that half, whole, and returns to the same
  *       place when you swap back.
  *
@@ -119,14 +119,14 @@ async function chooseOrder(page: Page, label: string) {
   await orderButton(page).click();
   await page.getByRole("menuitem", { name: label, exact: true }).click();
   await expect(orderButton(page)).toContainText(label);
-  // Chronological draws headings; nothing else does. Either way, waiting on
+  // Year taken draws headings; nothing else does. Either way, waiting on
   // the river's own shape is waiting on the page that actually arrived.
   await expect
     .poll(async () => (await drawn(page)).bands.length > 0, {
-      message: `choosing ${label} never produced a river ${label === "Chronological" ? "with" : "without"} year headings`,
+      message: `choosing ${label} never produced a river ${label === "Year taken" ? "with" : "without"} year headings`,
       timeout: RIVER_ARRIVES,
     })
-    .toBe(label === "Chronological");
+    .toBe(label === "Year taken");
 }
 
 /** The years the rail is offering right now, as labels. Only four-digit ones:
@@ -165,7 +165,7 @@ test.describe("the Collection survives being used", () => {
     const swap = page.locator('h1 button[aria-label^="Switch"]');
     const canSwap = await swap.count();
 
-    for (const label of ["Chronological", "Newest", "Oldest", "Chronological", "Newest"]) {
+    for (const label of ["Year taken", "Recently added", "Oldest added", "Year taken", "Recently added"]) {
       await chooseOrder(page, label);
       const river = await drawn(page);
       expect(river.total, `${label}: the river is showing a photograph more than once`).toBe(
@@ -187,20 +187,20 @@ test.describe("the Collection survives being used", () => {
   /* ---------------------------------------------------------------- *
    *  2. HEADINGS ARE A FACT ABOUT THE PHOTOGRAPHS, NOT ABOUT THE REQUEST.
    *
-   *  A year heading under "Newest" is the visible half of the same fault: the
+   *  A year heading under "Recently added" is the visible half of the same fault: the
    *  river was grouped by the order that had been ASKED for while still
    *  holding the previous order's photographs. The owner's screenshot had
-   *  "2021" twice under Newest.
+   *  "2021" twice under Recently added.
    * ---------------------------------------------------------------- */
-  test("year headings exist in Chronological and nowhere else", async ({ page }) => {
-    await chooseOrder(page, "Chronological");
+  test("year headings exist in Year taken and nowhere else", async ({ page }) => {
+    await chooseOrder(page, "Year taken");
     expect((await drawn(page)).bands.length).toBeGreaterThan(0);
 
-    for (const label of ["Newest", "Oldest", "Most loved"]) {
+    for (const label of ["Recently added", "Oldest added", "Most loved"]) {
       await chooseOrder(page, label);
       expect(
         (await drawn(page)).bands,
-        `${label} is drawing year headings, which only Chronological has`
+        `${label} is drawing year headings, which only Year taken has`
       ).toEqual([]);
     }
   });
@@ -214,8 +214,8 @@ test.describe("the Collection survives being used", () => {
    *  page but the siderail says 2026". Measured before: three of six seeks
    *  landed wrong. After: ten of ten.
    *
-   *  Every year the rail offers, from Newest each time, because entering
-   *  Chronological from a non-time order is the path that was broken.
+   *  Every year the rail offers, from Recently added each time, because entering
+   *  Year taken from a non-time order is the path that was broken.
    * ---------------------------------------------------------------- */
   test("every year the rail offers lands on that year, lit", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name === "mobile", "the year rail is xl-only; the phone has the scrubber");
@@ -228,20 +228,20 @@ test.describe("the Collection survives being used", () => {
        the valley passes; against the class it fails on the first press. */
     const swap = page.locator('h1 button[aria-label^="Switch"]');
     if (await swap.count()) {
-      await chooseOrder(page, "Chronological");
+      await chooseOrder(page, "Year taken");
       const here = (await offeredYears(page)).length;
       await switchHalf(page);
-      await chooseOrder(page, "Chronological");
+      await chooseOrder(page, "Year taken");
       // Back if the other half turned out to be the shallower one.
       if ((await offeredYears(page)).length < here) await switchHalf(page);
     }
 
-    await chooseOrder(page, "Chronological");
+    await chooseOrder(page, "Year taken");
     const years = await offeredYears(page);
     test.skip(years.length < 2, "this archive has fewer than two years to travel between");
 
     for (const year of years) {
-      await chooseOrder(page, "Newest");
+      await chooseOrder(page, "Recently added");
       await rail(page).getByRole("button", { name: year, exact: true }).click();
 
       /* Geometry, not presence, per CLAUDE.md: a heading mid-animation

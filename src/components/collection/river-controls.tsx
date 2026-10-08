@@ -48,12 +48,29 @@ import { BUCKET_WORD } from "@/components/common/control-geometry";
 /** Every order the river can take. "A wander" is deleted -- the owner,
  *  verbatim: "can you please delete that a wander that's not great."
  *
- *  "Chronological" is the one that is not a sort of the upload log. It orders
- *  by when the photograph was TAKEN and turns on the decade headings, which
- *  is the archive's own spine and the reason `takenKey` exists. It was called
- *  "Through time" until the owner read the menu back to himself as "newest,
- *  chronological, oldest, most loved" -- the house phrase was costing a reader
- *  a beat to work out what the other three say plainly.
+ *  There are TWO clocks in this menu and every label names its own. Three
+ *  orders count from when a photograph was added to the site; "Year taken"
+ *  counts from when it was taken, turns on the year headings, and is the
+ *  archive's own spine (the reason `takenKey` exists). The labels used to be
+ *  "Newest", "Chronological" and "Oldest", and the owner caught what that
+ *  costs: *"newest and oldest is confusing with chronological."* A
+ *  photograph's age, to anybody, is when it was taken, so "Oldest" promised
+ *  the 1950s and handed over the first uploads. ("Chronological" had itself
+ *  replaced "Through time", a house phrase that cost a beat to decode.)
+ *
+ *  "Recently added" and "Oldest added" are one order run both ways, so they
+ *  sit together, and the pair explains itself. "Year taken" was weighed for second
+ *  place as the most important order, and lost: with four items the eye
+ *  takes in the whole menu at once, so position buys nothing, while
+ *  splitting the pair left "Oldest added" alone under a time order -- which
+ *  is exactly where "Oldest" got misread. Considered and not taken:
+ *  "First added", which was tried first -- the owner: *"first added
+ *  sounds like recent ... it should be a negative recent,"* because "first"
+ *  and "recent" both point at the top of a list. "Oldest" is the antonym the
+ *  ear expects, and "added" names its clock. Also "Newest uploaded" (upload
+ *  is plumbing), "Recent" (recently taken, or
+ *  recently added?), "Date taken" (most of these prints have a year at
+ *  best, and a year is what the headings show).
  *
  *  AND THERE IS NO SECOND LINE. Each of these used to carry a note under it
  *  ("Most recently added", "By when it was taken") set at 11.5px, and the
@@ -62,14 +79,14 @@ import { BUCKET_WORD } from "@/components/common/control-geometry";
  *  themselves do not need eight more words explaining them in type nobody can
  *  read. */
 export const RIVER_ORDERS: { value: RiverOrder; label: string }[] = [
-  { value: "newest", label: "Newest" },
-  { value: "taken", label: "Chronological" },
-  { value: "oldest", label: "Oldest" },
+  { value: "newest", label: "Recently added" },
+  { value: "oldest", label: "Oldest added" },
+  { value: "taken", label: "Year taken" },
   { value: "loved", label: "Most loved" },
 ];
 
 export const orderLabel = (v: RiverOrder) =>
-  RIVER_ORDERS.find((o) => o.value === v)?.label ?? "Newest";
+  RIVER_ORDERS.find((o) => o.value === v)?.label ?? RIVER_ORDERS[0].label;
 
 function BucketWord({
   active,

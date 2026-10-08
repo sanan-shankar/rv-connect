@@ -10,7 +10,7 @@
  *  (handover F26, F33).
  *
  *  What is worth pressing: a bucket, and watch the underline glide and
- *  the river cross-fade; "Chronological" in the order menu, which turns
+ *  the river cross-fade; "Year taken" in the order menu, which turns
  *  the years into headings you scroll past and brings up the rail;
  *  a decade on it, which SEEKS -- the grid does not empty out, it jumps
  *  to that stretch of one continuous river and scrolling either way
@@ -135,7 +135,7 @@ export default function CollectionRoom() {
       setTop(at);
       setBottom(Math.min(at + PAGE_SIZE, takenSorted.length));
       setActiveBand(key);
-      // The rail turns the river to Chronological on a press, same as the
+      // The rail turns the river to Year taken on a press, same as the
       // real one: a decade is a position, and only this order has a spine
       // for it to be a position along.
       setOrder("taken");

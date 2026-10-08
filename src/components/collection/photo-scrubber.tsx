@@ -74,17 +74,17 @@
  *
  *  IN EVERY ORDER, exactly as the rail is, and for the same reason: the
  *  archive's shape is worth reaching at rest, and pressing it is what
- *  commits to reading in time. Gating it to Chronological was a mistake
- *  and a bad one -- the Collection OPENS in Newest, so on a phone there
+ *  commits to reading in time. Gating it to Year taken was a mistake
+ *  and a bad one -- the Collection OPENS in Recently added, so on a phone there
  *  was simply nothing there: "how do you access the side rail on mobile,
  *  can't find it" (owner, 2026-09-02).
  *
  *  What does change with the order is what the chip SAYS. Running in
- *  time it names the band you are in. In Newest or Most loved there is
+ *  time it names the band you are in. In Recently added or Most loved there is
  *  no such answer -- the river is sorted by upload date or by love, and
  *  a year would be a number with nothing behind it -- so it shows the
  *  gesture instead, two carets, and claims nothing. Held, it is the same
- *  index either way, and letting go turns the river to Chronological and
+ *  index either way, and letting go turns the river to Year taken and
  *  travels there, which is precisely what pressing the rail does.
  * ------------------------------------------------------------------ */
 
@@ -425,7 +425,7 @@ export function PhotoScrubber({
             aria-hidden
             /* ONE SILHOUETTE IN EVERY ORDER. Without the minimum the caret
                form is 31px and very nearly a circle, and the Collection opens
-               in Newest -- so the first thing anybody saw was a small round
+               in Recently added -- so the first thing anybody saw was a small round
                white button sitting under the round green Contribute one,
                reading as a pair of buttons rather than as an index. A year is
                48px; holding the carets to the same width makes the control one

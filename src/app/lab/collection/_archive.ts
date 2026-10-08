@@ -122,8 +122,8 @@ export const LAB_ARCHIVE: PhotoData[] = Array.from({ length: 240 }, (_, n) => {
 
   const name = pick(NAMES, n, 37);
   const caption = pick(CAPTIONS, n, 41);
-  /* Newest first by upload, one a day going backwards, so "Newest" and
-     "Chronological" are visibly DIFFERENT orders rather than the same list. */
+  /* Recently added first by upload, one a day going backwards, so "Recently added" and
+     "Year taken" are visibly DIFFERENT orders rather than the same list. */
   const added = new Date(Date.UTC(2026, 7, 28) - n * 86_400_000);
 
   const datePrecision = month ? "month" : year ? "year" : "decade";

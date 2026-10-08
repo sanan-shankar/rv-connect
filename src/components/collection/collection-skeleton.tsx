@@ -48,7 +48,7 @@ export function CollectionSkeleton() {
         </div>
         <div className="ml-auto flex shrink-0 items-center pb-0.5 text-[13px]">
           <span className="relative inline-flex items-center gap-1 py-0.5 font-medium">
-            <span className="invisible">Newest</span>
+            <span className="invisible">Recently added</span>
             <span className="size-[11px]" />
             <span className="skeleton-warm absolute inset-x-0 top-1/2 h-2.5 -translate-y-1/2 rounded-md" />
           </span>

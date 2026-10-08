@@ -284,7 +284,7 @@ export const Tile = memo(
 /* ------------------------------------------------------------------ *
  *  Reading the river in time order.
  *
- *  "Chronological" is the only order where a heading means anything, and
+ *  "Year taken" is the only order where a heading means anything, and
  *  there it means a great deal: it is the foldering the owner wanted
  *  ("all the organization foldering that we do, we have to do in a really
  *  beautiful way") delivered INLINE, at the cost of no clicks at all. You
@@ -308,7 +308,7 @@ export function bandsOf(photos: PhotoData[], order: RiverOrder): Band[] {
      React key both unique and STILL. A year is not unique -- runs are cut
      consecutively, so the same year returns as several bands whenever the
      list is not sorted by year, which is every render between asking for
-     Chronological and its page arriving. Keyed by the year alone React got
+     Year taken and its page arriving. Keyed by the year alone React got
      the same key twice, stopped reconciling, and left whole sections behind.
      Keyed by the band's FIRST PHOTOGRAPH it was unique -- and moved: a page
      arriving above changes which photograph a year begins at, so the key

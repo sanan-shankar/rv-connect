@@ -157,13 +157,13 @@ export function CollectionClient({
 
   /* THE ORDER THE PHOTOGRAPHS ON SCREEN WERE FETCHED IN, which is a different
      fact from `order` below -- that one is the order that has been ASKED for.
-     They part company for the second or two between pressing Chronological
+     They part company for the second or two between pressing Year taken
      and the chronological page arriving, and everything the river draws about
      time has to follow this one rather than the request.
      Drawn from `order`, the river spent that second cutting an
      upload-ordered list into year chapters, which is where the duplicate
      section keys came from (see PhotoRiver) and why a year heading appeared
-     under Newest at all. The rail lit the wrong year in the same window. */
+     under Recently added at all. The rail lit the wrong year in the same window. */
   const [riverOrder, setRiverOrder] = useState<RiverOrder>(filters.order ?? "newest");
 
   /* Every year with the exact height its photographs occupy. Only in "taken"
@@ -320,8 +320,8 @@ export function CollectionClient({
   }, []);
 
   /** An order picked from the menu abandons the seek too. Left in state, a
-   *  seek survived a trip through Newest and resurfaced the moment the
-   *  reader came back to Chronological -- the archive opening at 1970s when
+   *  seek survived a trip through Recently added and resurfaced the moment the
+   *  reader came back to Year taken -- the archive opening at 1970s when
    *  they had asked for the archive. An order chosen by hand starts at its
    *  own head; only the rail's own press sets a year, and it sets the
    *  order with it (`seekTo`). */
@@ -342,7 +342,7 @@ export function CollectionClient({
   const chooseScope = useCallback((next: PhotoScope) => {
     setScope(next);
     /* And the ORDER goes with them, to whatever that half opens on -- a
-       class on Chronological, the valley on Newest. Everything else here is
+       class on Year taken, the valley on Recently added. Everything else here is
        cleared because the other half is a different archive rather than a
        filtered view of this one, and the order it is read in is part of
        that. */
@@ -951,7 +951,7 @@ export function CollectionClient({
      with the same generation guard, the same cross-fade and the same single
      round trip.
 
-     It also turns the order to Chronological, because that is the only order
+     It also turns the order to Year taken, because that is the only order
      with a date spine to seek along: "1956" means nothing in a river sorted
      by upload date or by love. The rail stays visible in every order
      regardless -- it is a picture of the archive's shape, which is worth
@@ -1179,9 +1179,9 @@ export function CollectionClient({
        document, so no scroll position puts its heading at the top until the
        blank after the river grows. The 2026-09-10 fix went into `seekTo` and
        not here, and here is the route every press from ANOTHER order takes.
-       Measured 2026-09-13, 2015 pressed from Newest: `scrollTo` asked for
+       Measured 2026-09-13, 2015 pressed from Recently added: `scrollTo` asked for
        104590, the browser clamped at 104218, and the heading rested 396px
-       down with the blank never grown. The same press from Chronological, on
+       down with the blank never grown. The same press from Year taken, on
        `landAt`, grew it 364px and landed at 24. */
     landAt(want, tail.current);
     syncScrollWatch();
@@ -1665,9 +1665,9 @@ export function CollectionClient({
 
             {/* In EVERY order, because the marks are a picture of what the
                 archive holds and that is worth having at rest -- but lit
-                only in Chronological, where "which year am I in" is a
+                only in Year taken, where "which year am I in" is a
                 question the river has an answer to. Pressing a mark in any
-                other order turns the river to Chronological and travels
+                other order turns the river to Year taken and travels
                 there (see `seekTo`). */}
             <YearRail
               bands={bands}
@@ -1687,7 +1687,7 @@ export function CollectionClient({
 
           {/* The same index, for a thumb. Below 1280px the rail's margin does
               not exist, so the phone gets a Google-Photos-style scrubber that
-              is invisible until the river moves. Only in Chronological, where
+              is invisible until the river moves. Only in Year taken, where
               "which year am I in" is a question the river can answer -- see
               its own docblock. */}
           <PhotoScrubber

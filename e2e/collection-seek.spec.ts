@@ -111,7 +111,7 @@ async function openDecade(page: import("@playwright/test").Page, decade: string)
 async function readInChronologicalOrder(page: import("@playwright/test").Page) {
   await page.goto("/lab/collection");
   await page.getByRole("button", { name: /^Order:/ }).click();
-  await page.getByRole("menuitem", { name: "Chronological" }).click();
+  await page.getByRole("menuitem", { name: "Year taken" }).click();
 
   /* Readiness is the LIT MARK: the rail lights the moment the order lands
      (from the top photograph's own year when the scrollspy has nothing to
@@ -158,25 +158,25 @@ test("pressing a year travels there, and leaves the rest of the river in place",
   );
 });
 
-test("pressing a year from another order turns the river to Chronological", async ({
+test("pressing a year from another order turns the river to Year taken", async ({
   page,
 }, testInfo) => {
   desktopOnly(testInfo.project.name);
 
   /* The rail is drawn in EVERY order, because the marks are a picture of what
      the archive holds and that is worth having at rest. But a year is only a
-     position along a date spine, so pressing one in "Newest" -- where the
+     position along a date spine, so pressing one in "Recently added" -- where the
      river is sorted by upload date -- has to commit to reading in time
      rather than quietly doing nothing. */
   await page.goto("/lab/collection");
-  await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Newest/);
+  await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Recently added/);
   await expect(rail(page)).toBeVisible();
   // Nothing is lit, because "which year am I in" has no answer here.
   await expect(rail(page).locator('button[aria-current="true"]')).toHaveCount(0);
 
   await pressYear(page, "1953");
 
-  await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Chronological/);
+  await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Year taken/);
   await expect(page.locator('h2[data-band="1953"]')).toBeVisible();
   await page.mouse.move(20, 400);
   await expect(rail(page).locator('button[aria-current="true"]')).toHaveAttribute(
@@ -539,7 +539,7 @@ const mobileOnly = (name: string) =>
 async function readChronologicallyOnAPhone(page: import("@playwright/test").Page) {
   await page.goto("/lab/collection");
   await page.getByRole("button", { name: /^Order:/ }).click();
-  await page.getByRole("menuitem", { name: "Chronological" }).click();
+  await page.getByRole("menuitem", { name: "Year taken" }).click();
   await expect(page.locator("h2[data-band]").first()).toBeVisible();
 }
 
@@ -548,11 +548,11 @@ test("the phone's scrubber is there before anybody touches the page, and stays",
 }, testInfo) => {
   mobileOnly(testInfo.project.name);
   /* THE ORDER THE COLLECTION ACTUALLY OPENS IN, not the one that suits the
-     scrubber. It was gated to Chronological once, which meant that on a
+     scrubber. It was gated to Year taken once, which meant that on a
      phone, on the real page, there was nothing there at all: "how do you
      access the side rail on mobile, can't find it" (owner, 2026-09-02). */
   await page.goto("/lab/collection");
-  await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Newest/);
+  await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Recently added/);
 
   /* THERE, WITH NO SCROLL AT ALL. This is the assertion that replaced its own
      opposite, and it is the whole of the 2026-09-12 change: a control nobody
@@ -576,12 +576,12 @@ test("the phone's scrubber is there before anybody touches the page, and stays",
   await expect(page.locator("[data-scrub-year]")).toHaveCount(0);
 });
 
-test("using the scrubber from another order turns the river to Chronological", async ({
+test("using the scrubber from another order turns the river to Year taken", async ({
   page,
 }, testInfo) => {
   mobileOnly(testInfo.project.name);
   await page.goto("/lab/collection");
-  await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Newest/);
+  await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Recently added/);
 
   await page.mouse.wheel(0, 3000);
   await expect(scrubber(page)).toBeVisible();
@@ -598,7 +598,7 @@ test("using the scrubber from another order turns the river to Chronological", a
 
   /* Letting go commits to reading in time, which is exactly what pressing
      the wide-screen rail does. */
-  await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Chronological/);
+  await expect(page.getByRole("button", { name: /^Order:/ })).toHaveText(/Year taken/);
   await expect(scrubber(page)).toHaveAttribute("aria-label", new RegExp(`Now at ${landed}$`));
 });
 

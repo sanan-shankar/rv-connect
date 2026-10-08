@@ -79,10 +79,10 @@ test("loadNewer does not build its own query", () => {
  *
  * `bandsOf` cuts consecutive runs, so the same year comes back as several
  * bands whenever the list is not sorted by year -- which is every render
- * between pressing Chronological and the chronological page arriving.
+ * between pressing Year taken and the chronological page arriving.
  * `key={band.key}` therefore emitted `key="2021"` four times, React stopped
  * being able to reconcile the list, and sections it no longer owned stayed on
- * the page: photographs shown twice, year headings under Newest, a river only
+ * the page: photographs shown twice, year headings under Recently added, a river only
  * a reload could clear. Measured 2026-09-02: eight scope swaps grew the
  * valley's 17 photographs to 41 nodes.
  */
