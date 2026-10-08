@@ -1,3 +1,28 @@
+## 2026-10-08 (birds) — the birds expansion campaign opens: brief, selection, reviewer loop, two tools
+
+The owner's spoken brief (a dictated message and a pasted transcript, 2026-10-08) asks for three
+things: more birds from the school's own list (`sanan's stuff/The Birds of Rishi Valley.pdf`), chosen
+for colour and for being obviously different from each other and from the fifty; fixes to the birds
+he does not like, the Peregrine and the Paradise Flycatcher above all; and a dealing rule so new
+members land on the least-worn birds, paid picks counted, nothing ever at zero. Set up as a campaign
+under `/campaign` in `docs/planning/birds-expansion/`: `brief.md` is his words cleaned of fillers only,
+40 numbered paragraphs with the mangled bird names read from the gallery order and bracketed;
+`selection.md` is the colour census of the fifty (eleven greens, ten blacks, fifteen browns), the
+twelve birds to add and why each, a reserve of six, and every reject with its reason; `reviewer.md` is
+the independent review loop he asked for (ten lines, three rounds, then parked); `handover.md` is the
+board, the ledger of every ask against its paragraph, the decisions marked LOCKED, RECOMMENDED and
+OPEN, the unit briefs, and eleven questions with a default on each.
+
+Two tools, both in `scripts/dev/`: `bird-sheet.mjs` renders any bird alone at 600px and the set at 96
+and 40px through `/lab/centroid`; `bird-edges.mjs` lists every straight edge in every bird's source,
+and found 58, the Hornbill's casque, the Pond Heron's bill and the Coucal's wing edge among them,
+which are the three he named. Counted who wears what across all 510 members with the hash and the
+overrides resolved the way `BirdAvatar` resolves them: 75 photographs, 22 overrides (15 paid), visible
+wearers from 1 (Baya Weaver) to 21 (Rufous Treepie), mean 8.8; the Common Kingfisher carries five paid
+picks. The dealing rule needs no schema change: the dealt bird goes in `birdOverride`, new species
+are appended past the Roller so no existing member's hash can reach them, and the weight is
+`1/(n+1)^2` over visible wearers. Stopped at gate 1 with the questions printed and pushed.
+
 ## 2026-10-07 (deps) — sharp 0.35.5 and source-map-js 1.2.2 clear two new high advisories
 
 The dependency gate went red on two advisories published since the last green run: GHSA-wq5f-xc86-pv6w
