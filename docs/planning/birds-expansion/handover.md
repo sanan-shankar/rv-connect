@@ -39,17 +39,18 @@ flag is his call alone (¶39), and the Hoopoe and the Indian Roller are never de
 | Selection written | DONE | `selection.md`: census, twelve to build, six in reserve, rejects with reasons |
 | Reviewer protocol written | DONE | `reviewer.md`: the loop, the checklist, the answer format |
 | U1 Tooling | DONE | `scripts/dev/bird-sheet.mjs` (renders), `scripts/dev/bird-edges.mjs` (58 straight edges found across the 51); both in `scripts/README.md` |
-| Owner questions 1 to 11 | OWNER-GATED | written 2026-10-08, printed in the session; one reply restarts the run |
-| U2a Cut-offs and bills | OPEN | Hornbill 10, Drongo 17, Coucal 18, Pond Heron 27, Cormorant 28, Cattle Egret 30, Flameback 41, Shrike 42, plus the edge sweep over all 51 |
-| U2b Structure and colour | OPEN | Magpie-Robin 14, Lapwing 24, Golden Oriole 29, Blue-faced Malkoha 34, Common Kingfisher 38, Leafbird 39, Minivet 47 (Q10), Green-Pigeon 48 (Q3) |
-| U3a Hard redraws | OPEN | Paradise Flycatcher 26 as the white male, Peregrine 32, Jacobin 35, Black Eagle 36; two attempts each for 26 and 32 |
-| U3b Redraws | OPEN | R-W Bulbul 13, Indian Robin 15 (Q9), Brahminy Starling 23, Orange-headed Thrush 33, Tickell's 44 (Q4) |
+| Owner questions 1 to 11 | DONE | answered 2026-10-08 in the session; his words and the readings under "Owner answers" |
+| U2a Cut-offs and bills | OPEN | Hornbill 10, Drongo 17, Coucal 18, Pond Heron 27, Cormorant 28, Cattle Egret 30, Flameback 41, Shrike 42, plus the edge sweep over every bird not slated for a redraw |
+| U5 The dealing rule | OPEN | `src/lib/avatar-deal.ts`, signup wiring, tests, `write-path-reviewer`; runs second so it cannot be cut short |
+| U2b Structure and colour | OPEN | Magpie-Robin 14, Golden Oriole 29, Blue-faced Malkoha 34, Common Kingfisher 38, Leafbird 39, Green-Pigeon 48 fixed plus a Yellow-footed Green-Pigeon candidate (Q3) |
+| U3a Hard redraws | OPEN | Paradise Flycatcher 26 as the white male, Peregrine 32, Jacobin 35, Black Eagle 36; then a second hand draws alternative 26 and 32 as appended candidates |
+| U3b Redraws | OPEN | R-W Bulbul 13, Indian Robin 15, Brahminy Starling 23, Orange-headed Thrush 33, Tickell's 44 plus a Blue-capped Rock-Thrush candidate (Q4), Sirkeer Malkoha 11 and Small Minivet 47 (Q10, old kept for the pair) |
 | U4a New birds 1 to 4 | OPEN | Grey Junglefowl, Spot-billed Duck, Grey-headed Swamphen, Black-winged Kite |
 | U4b New birds 5 to 8 | OPEN | Indian Eagle-Owl, Common Tailorbird, Common Kestrel, Black-crowned Night Heron |
 | U4c New birds 9 to 12 | OPEN | Pied Kingfisher (Q5), Wire-tailed Swallow, Grey Wagtail, Rock Pigeon |
-| U4d The reserve | OPEN | only if every bird of U4a to U4c passed and the answer to Q1 allows it |
-| U5 The dealing rule | OPEN | `src/lib/avatar-deal.ts`, signup wiring, tests, `write-path-reviewer`; may run beside U2a (disjoint paths, no browser) |
-| U6 Close-out | OPEN | centroid for every changed bird, contact photos, the "fifty" copy, visual baselines, `docs/spec/avatars.md`, history |
+| U4d New birds 13 and 14, and a candidate | OPEN | Red-vented Bulbul and White-browed Bulbul from their colours (Q6); the Red-wattled Lapwing candidate beside 24 (Q2) |
+| U4e The reserve | OPEN | only if every bird of U4a to U4d passed (Q1) |
+| U6 Close-out | OPEN | centroid for every changed bird, contact photos, the "fifty" copy, visual baselines, `docs/spec/avatars.md`, history, the gate-2 sheets |
 | Gate 2, the owner looks | OPEN | the whole point of the run on a design campaign |
 
 ---
@@ -154,8 +155,9 @@ the order of `/birds`.
 - **Where it runs**: in `signup` right after `prisma.user.create`, as a best-effort step like
   the batch-group join below it: a failure is reported, the member keeps the hash bird, and
   signup succeeds. Pure and tested: `dealBird(counts, random)` in `src/lib/avatar-deal.ts`.
-- **Two attempts** in separate worktrees for the Paradise Flycatcher and the Peregrine (the two
-  he cares about most and has been disappointed by most); one attempt for everything else.
+- **Two attempts** for the Paradise Flycatcher and the Peregrine (the two he cares about most
+  and has been disappointed by most): a second hand draws each again as an appended candidate
+  entry, since a worktree cannot render through the one dev server. One attempt for the rest.
 - **A `--only` flag on `scripts/dev/centroid.mjs`** so re-centring a changed bird does not
   re-measure, and nudge by a pixel, the fifty that did not change.
 - **Copy says the live count**: the guide chapter and the Support page's "See all 50" read the
@@ -171,6 +173,11 @@ the order of `/birds`.
 ---
 
 ## The units
+
+**Order**: U2a, U5, U2b, U3a, U3b, U4a, U4b, U4c, U4d, U4e, U6, one at a time. U5 goes second
+so the rule he asked for cannot be lost to a long run of drawing. Candidates for a slot (Q2,
+Q3, Q4, Q10) are appended entries named with " (candidate)" while the run lasts; U6 resolves
+each pair to one bird after he has looked.
 
 Every drawing unit is one worker at **Fable, max effort** (the skill: Fable for highly creative
 work), reviewed bird by bird by a separate **Opus** agent that reads `reviewer.md`. U5 is **Opus**
@@ -341,7 +348,37 @@ end.
 
 ## Owner answers
 
-(none yet)
+**2026-10-08, in the session, his words verbatim:**
+
+> 1 default. 2 whicvhever looks better. 3 both pick whichever looks better. 4 both pick
+> whichever looks better. 5. I can't decide these fucking things without seeing them. your
+> descriptions don't help me at all. 6. I feel like you can make both and just use the more
+> interesting colours they have instaed of just making them brown. 7 leave them. count visible
+> birds. 9a. 10 redraw and pick the best. 11 idk what that is just ignore
+
+**The reading taken (argue with this, not with a re-derivation):**
+
+- **Q1** (a): the twelve, then the reserve if they clear.
+- **Q2, Q3, Q4**: draw the candidate as well, and keep whichever looks better. The Red-wattled
+  Lapwing is drawn beside the Yellow-wattled (24), the Yellow-footed Green-Pigeon beside the
+  fixed Orange-breasted (48), the Blue-capped Rock-Thrush beside the redrawn Tickell's (44). Each
+  candidate is appended as its own entry while the run lasts, so both render on the same sheet;
+  the runner recommends one and **he sees both at gate 2 and picks**. The loser is deleted
+  before anything is pushed. A candidate that wins takes the slot (so the members wearing the
+  old bird change bird); one that loses leaves no trace.
+- **Q5**: build the Pied Kingfisher; he decides on seeing it. And the general rule this answer
+  states: **he decides by looking, never from a description.** Gate 2 is rendered sheets,
+  before-and-after pairs and candidate pairs, with one line each, not prose.
+- **Q6**: build both bulbuls, and draw them from their interesting colours rather than their
+  brown: the Red-vented's crimson vent, white rump and scaly dark breast under a crested
+  black head; the White-browed's yellow vent and undertail, white brow and olive-yellow wash.
+  They join U4 as new birds 13 and 14.
+- **Q7**: the Support plate's twelve stay.
+- **Q8** (a): count only visible birds.
+- **Q9** (a): redraw the Indian Robin.
+- **Q10**: redraw both the Sirkeer Malkoha and the Small Minivet; keep whichever of old and new
+  looks better, shown as a pair at gate 2.
+- **Q11**: the leg remark is dropped; the Lapwing's legs are not moved.
 
 ---
 
