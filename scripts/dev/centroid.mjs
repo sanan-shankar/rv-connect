@@ -7,10 +7,12 @@ import sharp from "sharp";
 import { readFileSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
-import { chromePath } from "../qa/_probe-kit.mjs";
+import { chromePath, loadEnv } from "../qa/_probe-kit.mjs";
+import { devLogin } from "../qa/_dev-login.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 process.chdir(repoRoot);
+loadEnv(repoRoot);
 
 // /preview was folded into /lab on 2026-07-30 and its URLs are not redirected, so this pointed at
 // a 404 until 2026-08-04.
@@ -23,6 +25,12 @@ const MAXREACH_CAP = 50; // ...but never scale so far that any point exceeds thi
 const PXV = 6; // 600px / 100 viewBox units
 const ADJUST_PATH = "src/components/common/bird-adjust.json";
 const WRITE = !process.argv.includes("--measure-only");
+// `--only 51,52` measures and corrects just those indices (ARCHES order) and leaves every other
+// bird's entry exactly as it was. Added for the 2026-10 birds expansion: re-running the whole set
+// to seat one new bird re-measures the fifty that did not change and nudges each by a fraction of
+// a unit, which moves pixels on every avatar in the app for no reason.
+const onlyArg = process.argv[process.argv.indexOf("--only") + 1];
+const ONLY = process.argv.includes("--only") && onlyArg ? new Set(onlyArg.split(",").map((n) => Number(n.trim()))) : null;
 
 const existing = JSON.parse(readFileSync(ADJUST_PATH, "utf8"));
 
@@ -33,12 +41,17 @@ const browser = await puppeteer.launch({
 });
 const page = await browser.newPage();
 await page.setViewport({ width: 600, height: 600, deviceScaleFactor: 1 });
+// /lab is admin-only (audit M19), so the probe signs in the way every QA script does. Without this
+// the page is the sign-in redirect, which has no [data-count], and the script died on line one of
+// its loop from the day the gate landed until 2026-10-08.
+await devLogin(page);
 
 await page.goto(`${BASE}?i=0`, { waitUntil: "load", timeout: 30000 });
 const count = Number(await page.$eval("[data-count]", (el) => el.getAttribute("data-count")));
 
 const rows = [];
 for (let i = 0; i < count; i++) {
+  if (ONLY && !ONLY.has(i)) continue;
   await page.goto(`${BASE}?i=${i}`, { waitUntil: "load", timeout: 30000 });
   await page.addStyleTag({ content: "html,body,#__next,*{background:transparent !important;background-color:transparent !important;background-image:none !important;}" });
   await new Promise((r) => setTimeout(r, 250));
@@ -108,7 +121,8 @@ if (WRITE) {
   // s_new sizes by visual mass (TARGET_AREA_R / rArea) but is capped so the farthest point never
   // exceeds the frame (MAXREACH_CAP / reach); t_new = s_new * (dx,dy) zeroes the residual offset.
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-  const next = {};
+  // With --only, every bird not re-measured keeps its entry untouched.
+  const next = ONLY ? { ...existing } : {};
   for (const r of rows) {
     if (r.empty) continue;
     const old = existing[r.name] || {};
