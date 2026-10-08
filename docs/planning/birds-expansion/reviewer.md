@@ -21,7 +21,12 @@ never the agent that drew the bird.
    edge it lists is a question with exactly two answers: it is hidden under another shape, or it
    is a chisel bill or a leg and both its ends are rounded. Anything else is redrawn before the
    reviewer sees it.
-4. The reviewer (a separate agent, Opus, which can read PNGs) gets: this file's path, the bird's
+4. **One reviewer per unit, spawned by the runner after the drawer reports, never by the
+   drawer and never one per bird.** On 2026-10-08 the first drawing hand spawned seventeen
+   reviewers at once, one per bird, and the harness ended it before any answered: every verdict
+   was lost and the owner asked, reasonably, what seventeen agents were doing. The drawer's job
+   ends at its own look and the edge audit; the runner then gives ONE Opus agent the whole
+   unit's birds, in sequence, and relays its faults back. The reviewer gets: this file's path, the bird's
    index and name, the paths of the 600px render and the 96 and 40px sheets, the bird's source
    (the `draw()` body), the edge audit output, and the owner's paragraphs about that bird quoted
    from `brief.md`. It answers in the format below.

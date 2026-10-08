@@ -40,7 +40,7 @@ flag is his call alone (¶39), and the Hoopoe and the Indian Roller are never de
 | Reviewer protocol written | DONE | `reviewer.md`: the loop, the checklist, the answer format |
 | U1 Tooling | DONE | `scripts/dev/bird-sheet.mjs` (renders), `scripts/dev/bird-edges.mjs` (58 straight edges found across the 51); both in `scripts/README.md` |
 | Owner questions 1 to 11 | DONE | answered 2026-10-08 in the session; his words and the readings under "Owner answers" |
-| U2a Cut-offs and bills | OPEN | Hornbill 10, Drongo 17, Coucal 18, Pond Heron 27, Cormorant 28, Cattle Egret 30, Flameback 41, Shrike 42, plus the edge sweep over every bird not slated for a redraw |
+| U2a Cut-offs and bills | PARTIAL | DRAWN and committed 2026-10-08, review pending: 17 birds changed (4, 5, 9, 10, 12, 17, 18, 19, 20, 21, 27, 28, 30, 40, 41, 42, 46). Resume: one Opus reviewer over those indices per `reviewer.md`, fix the FAILs, `node scripts/dev/centroid.mjs --only <those>` until no flags, look, commit |
 | U5 The dealing rule | OPEN | `src/lib/avatar-deal.ts`, signup wiring, tests, `write-path-reviewer`; runs second so it cannot be cut short |
 | U2b Structure and colour | OPEN | Magpie-Robin 14, Golden Oriole 29, Blue-faced Malkoha 34, Common Kingfisher 38, Leafbird 39, Green-Pigeon 48 fixed plus a Yellow-footed Green-Pigeon candidate (Q3) |
 | U3a Hard redraws | OPEN | Paradise Flycatcher 26 as the white male, Peregrine 32, Jacobin 35, Black Eagle 36; then a second hand draws alternative 26 and 32 as appended candidates |
@@ -80,27 +80,27 @@ the order of `/birds`.
 | F1 | Red-whiskered Bulbul (13) | 7 | "looks a bit almost angry and it's very sharp... a mess... particularly the thing on top" | redraw: soft tall crest, round body, calm face, the red cheek spot and vent kept | U3b | OPEN |
 | F2 | Oriental Magpie-Robin (14) | 8, 12, 23 | "the white shapes in the middle feel a bit arbitrary"; "even the shape slightly"; "a bit long" | rework the white panels into the bird's real belly and wing bar; shorten the body | U2b | OPEN |
 | F3 | Indian Robin (15) | 8, 36 | "okay" then "looks like a bird trying to wave... I feel bad for everyone who gets that bird" | redraw (Q9): the cocked tail as a tail, not an arm; same family as the Magpie-Robin | U3b | OPEN |
-| F4 | Black Drongo (17) | 9 | "the fork is good. If we could make the fork a bit nicer, now it's like very rough" | smooth the fork's notch and lobes | U2a | OPEN |
-| F5 | Greater Coucal (18) | 9 | "even with [the Coucal], there's a very rough straight line... the image has just been cut off" | the chestnut wing's edge curves | U2a | OPEN |
+| F4 | Black Drongo (17) | 9 | "the fork is good. If we could make the fork a bit nicer, now it's like very rough" | smooth the fork's notch and lobes | U2a | DRAWN, review pending |
+| F5 | Greater Coucal (18) | 9 | "even with [the Coucal], there's a very rough straight line... the image has just been cut off" | the chestnut wing's edge curves | U2a | DRAWN, review pending |
 | F6 | Tickell's Blue Flycatcher (44) | 12, 23, 30 | "a bit weird"; "a bit long"; "I don't like it... looks just weird" | redraw (Q4) | U3b | OPEN |
 | F7 | Orange-headed Thrush (33) | 12, 23 | "a bit weird... straying a bit far"; "the shape is a bit long... just not working for me" | redraw, rounder | U3b | OPEN |
 | F8 | Common Kingfisher (38) | 12 | "looks fine. Though that's also kind of dull" | brighten the cyan and the orange; nothing structural | U2b | OPEN |
 | F9 | Small Minivet (47) | 12, 23 | "okay. It's not not great"; "a little bit [long]... it's still okay" | shorten a little (Q10) | U2b | OPEN |
-| F10 | Bay-backed Shrike (42) | 13, 34 | "looks okay... the beak is a bit too crooked and pointy"; later "is good" | soften the hook | U2a | OPEN |
+| F10 | Bay-backed Shrike (42) | 13, 34 | "looks okay... the beak is a bit too crooked and pointy"; later "is good" | soften the hook | U2a | DRAWN, review pending |
 | F11 | Peregrine Falcon (32) | 13, 22 | "crooked and pointy"; "overengineered... derpy... pot belly... overthought... 70 different elements... I've gone through maybe four or five versions" | redraw from nothing: strength and cuteness, under twelve shapes; two attempts, keep the better | U3a | OPEN |
 | F12 | Brahminy Starling (23) | 15 | "I don't like at all... the color... that super thin black line... I don't like anything about it... should be redone" | redraw from nothing | U3b | OPEN |
 | F13 | Asian Paradise Flycatcher (26) | 16 | "one of the most iconic birds in our school... insanely long tail, is white, magnificent... the females look like what you've done, but I think we should pick the male... doing justice to it" | redraw as the white male: black crested head, white body, the long white ribbon tail; two attempts | U3a | OPEN |
-| F14 | Indian Pond Heron (27) | 17 | "very cute... we could add color... kind of bland. The shape is good... the beak has this weirdly, very sharply cut off thing" | keep the shape; colour the crown and the bill; round the bill tip | U2a | OPEN |
-| F15 | Little Cormorant (28) | 18, 34 | "there in the middle... if it could be rounded just a bit"; "a black bird you've taken and done something really nice" | round the straight edge; change nothing else | U2a | OPEN |
-| F16 | Indian Grey Hornbill (10) | 8, 18 | "looks good"; "the beak... looks like the image has been interrupted and cut up" | round the casque and the bill's ends | U2a | OPEN |
-| F17 | every bird | 17, 18, 19 | "we still have a lot of these very odd arbitrary sharp cutoffs"; "I've asked you to do this multiple times" | the edge audit over all 51; every edge answered or redrawn | U2a | OPEN |
+| F14 | Indian Pond Heron (27) | 17 | "very cute... we could add color... kind of bland. The shape is good... the beak has this weirdly, very sharply cut off thing" | keep the shape; colour the crown and the bill; round the bill tip | U2a | DRAWN, review pending |
+| F15 | Little Cormorant (28) | 18, 34 | "there in the middle... if it could be rounded just a bit"; "a black bird you've taken and done something really nice" | round the straight edge; change nothing else | U2a | DRAWN, review pending |
+| F16 | Indian Grey Hornbill (10) | 8, 18 | "looks good"; "the beak... looks like the image has been interrupted and cut up" | round the casque and the bill's ends | U2a | DRAWN, review pending |
+| F17 | every bird | 17, 18, 19 | "we still have a lot of these very odd arbitrary sharp cutoffs"; "I've asked you to do this multiple times" | the edge audit over all 51; every edge answered or redrawn | U2a | DRAWN, review pending |
 | F18 | Indian Golden Oriole (29) | 20 | "the eye, and then there's this line going through the eye, and then that intersects the beak... looks almost like it's wearing sunglasses" | the eye-stripe stops short of the bill and sits behind the eye; keep the colours | U2b | OPEN |
-| F19 | Cattle Egret (30) | 21 | "is good, against some sharp stuff" | soften the buff crown's points; nothing else | U2a | OPEN |
+| F19 | Cattle Egret (30) | 21 | "is good, against some sharp stuff" | soften the buff crown's points; nothing else | U2a | DRAWN, review pending |
 | F20 | Blue-faced Malkoha (34) | 24 | "the background color is... all of the green, and then inside, we have a dark and [olive] green. I'm not so sure about the color science" | one body green, the wing a clear step darker or a different warmth; the blue face bigger | U2b | OPEN |
 | F21 | Jacobin Cuckoo (35) | 25 | "a lot of randomly harsh and weird cut off shapes... another black and white bird... think of the white as... white space... should be redone again" | redraw: the white belly bounded by black, a soft crest, the wing flash as one shape | U3a | OPEN |
 | F22 | Black Eagle (36) | 26 | "that eyebrow... a random brown spot on top of the beak... a black line over the eye, but you can't really see that... too many elements" | redraw simpler: one body, one lit region, yellow cere and eye, no scallops | U3a | OPEN |
 | F23 | Jerdon's Leafbird (39) | 27 | "such lovely colors. It's hard to make sense of what is the eye, beak, face... the structure could be made a bit clearer" | keep every colour; make the black bib, the eye and the bill read as a face | U2b | OPEN |
-| F24 | Black-rumped Flameback (41) | 28 | "honestly fine... but the beak is a bit [great: unclear]" | round the chisel's ends; nothing else | U2a | OPEN |
+| F24 | Black-rumped Flameback (41) | 28 | "honestly fine... but the beak is a bit [great: unclear]" | round the chisel's ends; nothing else | U2a | DRAWN, review pending |
 | F25 | Orange-breasted Green-Pigeon (48) | 31 | "the colors are a bit very random... light purple near the eyes in two different parts... overlapping shapes... cutting off" | redo the bands as bounded shapes on the breast only; the crown one grey; or swap (Q3) | U2b | OPEN |
 | F26 | Yellow-wattled Lapwing (24) | 35 | "the leg could be put in different places. It looks a bit off right now" (bird unnamed; Q11) | move the legs under the body's centre of mass; check the Shrike's and Thrush's leg stubs | U2b | OPEN |
 | F27 | Yellow-throated Bulbul (12) | 33 | "The eye is not in that, like, white circle that you've slowly built up to. I don't know if that's intentional" | nothing unless the reviewer finds the eye lost in the glow | U2b | OPEN |
@@ -404,3 +404,26 @@ the way `BirdAvatar` resolves them:
 
 Wrote `brief.md`, `selection.md`, `reviewer.md`, this file. Questions printed and pushed.
 Stopped at gate 1.
+
+### 2026-10-08, U2a drawing (Fable, max), cut off before review
+
+The hand drew all seventeen: the eight rows plus nine from the edge sweep (Kingfisher 4, Pitta 5,
+Barbet 9, Y-T Bulbul 12 adjust only, Treepie 19, Black-hooded Oriole 20, Weaver 21, Brahminy Kite
+40, Munia 46). It then spawned seventeen Opus reviewers at once and the harness ended it before
+any answered, so no bird has a verdict; `reviewer.md` now says one reviewer per unit, spawned by
+the runner. Its work is committed as drawn, review pending, so nothing is lost to an interruption.
+
+**Its key finding, which changes U6:** the app's `<svg viewBox="0 0 100 100">` clips at the box,
+and `scripts/dev/centroid.mjs` measured a shot of that same clipped box, so it could not see a
+bill that ran past the edge and converged birds with their tips AT the frame. That is the owner's
+"sharply cut off" beak on the Pond Heron, the Egret, the Kingfisher and the Drongo's fork, in
+pixels rather than in the drawing. The script now reads the probe with `?pad=1` (viewBox
+-12.5..112.5, 4.8 px per unit) and caps reach at 47, three units inside the frame. The Lapwing's
+legs run about 10 units past the bottom and were not re-measured on purpose: he called the bird
+okay and dropped the leg remark (Q11); re-centring it would shrink it by a fifth. Show him at
+gate 2.
+
+The hand's two least-sure calls, for the reviewer to weigh: the Drongo's body is about 18% smaller
+(adjust s 1.447 to 1.18) to fit a whole fork inside the frame, which may read as "smaller bird";
+the Pond Heron's maroon went on the back, where the real bird wears it in breeding plumage, not
+the crown the ledger row said, and its dagger is shorter.
