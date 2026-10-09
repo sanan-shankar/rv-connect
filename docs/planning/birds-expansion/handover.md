@@ -90,9 +90,10 @@ the order of `/birds`.
 | F11 | Peregrine Falcon (32) | 13, 22 | "crooked and pointy"; "overengineered... derpy... pot belly... overthought... 70 different elements... I've gone through maybe four or five versions" | redraw from nothing: strength and cuteness, under twelve shapes; two attempts, keep the better | U3a | OPEN |
 | F12 | Brahminy Starling (23) | 15 | "I don't like at all... the color... that super thin black line... I don't like anything about it... should be redone" | redraw from nothing | U3b | OPEN |
 | F13 | Asian Paradise Flycatcher (26) | 16 | "one of the most iconic birds in our school... insanely long tail, is white, magnificent... the females look like what you've done, but I think we should pick the male... doing justice to it" | redraw as the white male: black crested head, white body, the long white ribbon tail; two attempts | U3a | OPEN |
-| F14 | Indian Pond Heron (27) | 17 | "very cute... we could add color... kind of bland. The shape is good... the beak has this weirdly, very sharply cut off thing" | keep the shape; colour the crown and the bill; round the bill tip | U2a | DRAWN, review pending |
+| F14 | Indian Pond Heron (27) | 17 | "very cute... we could add color... kind of bland. The shape is good... the beak has this weirdly, very sharply cut off thing" | keep the shape; colour the crown and the bill; round the bill tip | U2a | FAIL round 1: the maroon mantle ends in a straight diagonal slash to a point; the bill is a matchstick with a dark knob fatter than itself; its underside is ruler-straight. Fixes in the session log |
 | F15 | Little Cormorant (28) | 18, 34 | "there in the middle... if it could be rounded just a bit"; "a black bird you've taken and done something really nice" | round the straight edge; change nothing else | U2a | DRAWN, review pending |
-| F16 | Indian Grey Hornbill (10) | 8, 18 | "looks good"; "the beak... looks like the image has been interrupted and cut up" | round the casque and the bill's ends | U2a | DRAWN, review pending |
+| F16 | Indian Grey Hornbill (10) | 8, 18 | "looks good"; "the beak... looks like the image has been interrupted and cut up" | round the casque and the bill's ends | U2a | DONE. Reviewer: "the same grey hornbill with the big pale bill and dark casque that he called a good representation, and nothing on it looks cut any more" |
+| F17a | Coppersmith Barbet (9) | 34 | "Culbersmith, Lovitz [Coppersmith Barbet, lovely]" | from the sweep: the forehead band's rear rounded | U2a | FAIL round 1: the band's underside `Q58 40.4 50 40` is a ruler line shaving the top of the yellow face; the breast band's rear end `Q32.8 64.4 34 62` stops in a chop. Fixes in the session log |
 | F17 | every bird | 17, 18, 19 | "we still have a lot of these very odd arbitrary sharp cutoffs"; "I've asked you to do this multiple times" | the edge audit over all 51; every edge answered or redrawn | U2a | DRAWN, review pending |
 | F18 | Indian Golden Oriole (29) | 20 | "the eye, and then there's this line going through the eye, and then that intersects the beak... looks almost like it's wearing sunglasses" | the eye-stripe stops short of the bill and sits behind the eye; keep the colours | U2b | OPEN |
 | F19 | Cattle Egret (30) | 21 | "is good, against some sharp stuff" | soften the buff crown's points; nothing else | U2a | DRAWN, review pending |
@@ -427,3 +428,21 @@ The hand's two least-sure calls, for the reviewer to weigh: the Drongo's body is
 (adjust s 1.447 to 1.18) to fit a whole fork inside the frame, which may read as "smaller bird";
 the Pond Heron's maroon went on the back, where the real bird wears it in breeding plumage, not
 the crown the ledger row said, and its dagger is shorter.
+
+**Review round 1 (three of seventeen answered before the rest were stopped):** Hornbill PASS;
+Pond Heron FAIL; Barbet FAIL. The reviewers' exact fixes, for the drawer:
+
+- Pond Heron: replace the mantle's lower edge `Q44 52 32 56 Q26 58.5 22 60` with one sag such as
+  `Q38 60 22 60` that lands level on the outline (then start the top streak at x~40 so it clears
+  the cap); taper the bill from about 5 units at the head to a soft rounded point about 2 units
+  across and draw the dark tip as the bill's own last 4 to 5 units, tracing the bill's edges, so
+  it is not a knob; bow the underside (`Q75 50.6 66 49.6` has its control 0.11 off the chord) by
+  at least 1 unit. Keep the body path, the maroon mantle and the rounded crown.
+- Barbet: the forehead band's lower edge `Q58 40.4 50 40 Q44.5 40.2 41 42` becomes one gentle
+  arch from (68,40) to (41,42), for example `M40 36 Q56 30 66.5 37 Q71.4 39.4 68 40 Q55 37.4
+  41 42 Q37.4 40 40 36 Z`; the breast band's rear control moves to about (31.2,65) so it ends
+  round like the right end. Nothing else moves.
+- Both reviewers found the edge audit blind to a `Q` whose control point sits on its chord;
+  `bird-edges.mjs` now flags those ("flat Q", chord >= 4, control within 6% of the chord), and
+  on the seventeen it lists 27 of them, most on tails and forks. The drawer clears the visible
+  ones before the reviewers look again, so the review happens once.

@@ -6,6 +6,7 @@
 // such edge comes from one of three things in the SVG source, and all three can be found without
 // rendering anything:
 //   - an `L` command (a straight segment drawn on purpose)
+//   - a `Q` curve whose control point lies on its own chord (a straight line in disguise)
 //   - a `Z` that closes a subpath with a long straight chord back to its start point
 //   - a <rect> or <line> element
 // A straight edge is not automatically wrong (a chisel bill, a leg) -- but every one is a question
@@ -57,7 +58,21 @@ function straightEdges(d) {
     } continue; }
     if (cmd === "M") { cur = [num(), num()]; startPt = cur; cmd = "L"; continue; }
     if (cmd === "L") { const p = [num(), num()]; out.push({ kind: "L", from: cur, to: p, len: Math.hypot(p[0] - cur[0], p[1] - cur[1]) }); cur = p; continue; }
-    if (cmd === "Q") { num(); num(); cur = [num(), num()]; continue; }
+    if (cmd === "Q") {
+      // A quadratic whose control point sits on (or nearly on) its own chord IS a straight line,
+      // and the first review round (2026-10-08) found five of them that this walk had waved
+      // through. Flag any chord of 4 units or more whose control point lies within 6% of the
+      // chord's length from the chord: the curve's bulge is half that, so under 3%, invisible.
+      const c = [num(), num()];
+      const p = [num(), num()];
+      const chord = Math.hypot(p[0] - cur[0], p[1] - cur[1]);
+      if (chord >= 4) {
+        const dist = Math.abs((p[0] - cur[0]) * (cur[1] - c[1]) - (cur[0] - c[0]) * (p[1] - cur[1])) / chord;
+        if (dist <= 0.06 * chord) out.push({ kind: "flat Q", from: cur, to: p, len: chord });
+      }
+      cur = p;
+      continue;
+    }
     if (cmd === "A") { num(); num(); num(); num(); num(); cur = [num(), num()]; continue; }
     break;
   }
