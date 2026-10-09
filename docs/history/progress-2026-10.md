@@ -1,3 +1,23 @@
+## 2026-10-09 (birds) — new members are dealt the least-worn bird; the campaign's first review round
+
+Day two of the birds expansion campaign (`docs/planning/birds-expansion/`). The dealing rule (U5)
+shipped: a member who signs up from now on is dealt a bird inside the create, weighted `1/(n+1)^2`
+over the members whose bird is visible (no photograph), so a species nobody wears is a hundred times
+likelier than one worn by nine, a bird many supporters picked is dealt less but never zero, and the
+Hoopoe and the Roller are never dealt. Nobody who already has a bird changes. The dealt slug lives in
+`birdOverride` without `birdPickedAt`, so a supporter's first paid pick is untouched, and `/pick-bird`
+shows the dealt bird as the member's current one. The `% 51` wrap on an override index is gone: it
+would have folded the first species appended past the Roller onto the Hoopoe. Ten tests, a write-path
+review with nothing blocking, 150 of 150 green.
+
+The first review round of the glyph fixes (U2a) taught the tools two things: the app's svg clips at
+its box and the centring script measured that clipped box, so long-billed birds had converged with
+their tips at the edge (the "sharply cut off" beak was literal); and the edge audit could not see a
+straight line written as a quadratic with its control point on its own chord. Both are fixed
+(`centroid.mjs` reads the padded probe and caps reach at 47; `bird-edges.mjs` flags "flat Q"). A
+drawing hand that spawned seventeen reviewers at once was ended by the harness with no verdict
+delivered; the protocol now says one reviewer per unit, spawned by the runner.
+
 ## 2026-10-08 (collection) — the order menu names its clock: Recently added, Oldest added, Year taken
 
 The owner: *"newest and oldest is confusing with chronological."* The menu runs on two clocks, when a

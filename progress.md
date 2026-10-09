@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-09 (birds) — new members are dealt the least-worn bird; the campaign's first review round
 - 2026-10-08 (collection) — the order menu names its clock: Recently added, Oldest added, Year taken
 - 2026-10-08 (birds) — the birds expansion campaign opens: brief, selection, reviewer loop, two tools
 - 2026-10-07 (deps) — sharp 0.35.5 and source-map-js 1.2.2 clear two new high advisories

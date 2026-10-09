@@ -3,10 +3,13 @@
  *
  * Every member without an uploaded photo gets a bird, derived stably from their id, so it never
  * changes and is evenly distributed. The three axes (species, disc colour, pose) are hashed with
- * different salts so they do not correlate. The set is 50 real Rishi Valley species (see
- * bird-avatar-v2.tsx); the avatars currently render with no background (BG_MODE="none"), so the
- * visible variety is 50 species x 2 poses (left/right) and the disc colour is held in reserve for
- * the disc-bearing modes.
+ * different salts so they do not correlate. The species hash is the floor for members who joined
+ * before 2026-10; a member who signs up later is dealt a species instead (avatar-deal.ts), stored
+ * as their `birdOverride`, so the birds stay equally common as species are added and supporters
+ * pick favourites. Pose and disc colour come from the hash for everyone. The set is 50 real Rishi
+ * Valley species (see bird-avatar-v2.tsx); the avatars currently render with no background
+ * (BG_MODE="none"), so the visible variety is 50 species x 2 poses (left/right) and the disc colour
+ * is held in reserve for the disc-bearing modes.
  *
  * Two of those birds belong to one account each and are not dealt to anyone: the Hoopoe (the
  * mascot, index 0) and the Indian Roller (the owner, index 50). See their constants below.
@@ -38,8 +41,11 @@ export const AVATAR_PALETTE = [
  * ever returns 0..49, which is what keeps the reserved bird unreachable by chance.
  *
  * Do not raise this number to "make room" for a new species. It is the modulo the whole member base
- * hashes through, so changing it re-rolls every existing member's bird. A new species takes a slot
- * inside 0..49 instead (the Laughing Dove took slot 3 this way).
+ * hashes through, so changing it re-rolls every existing member's bird. A new species is appended
+ * past the Roller instead (index 51 and up), where the hash cannot reach it, so nobody's bird
+ * changes; the dealing rule (avatar-deal.ts) and a supporter's pick are how it comes to be worn.
+ * (The Laughing Dove took the Roller's vacated slot 3 before there was a deal, which re-dressed
+ * the members who hashed there.)
  */
 export const BIRD_SPECIES_COUNT = 50;
 
@@ -59,13 +65,6 @@ export const BIRD_POSE_COUNT = 4;
  * who hash onto it. The Roller needs no remap at all.
  */
 export const ROLLER_SPECIES_INDEX = 50;
-
-/**
- * How many species are actually DRAWN (== ARCHES.length in bird-avatar-v2.tsx): the 50-strong
- * hashable pool plus the reserved Roller. Only used to bound an explicit override index; the hash
- * never sees it.
- */
-const DRAWN_SPECIES_COUNT = ROLLER_SPECIES_INDEX + 1;
 
 /**
  * The ids allowed to wear the Roller. Two entries for two databases: the local demo seed and the
@@ -128,10 +127,14 @@ export function hashSpeciesFor(seed: string): number {
  * know about slugs at all.
  */
 export function speciesForMember(seed: string, overrideIndex?: number | null): number {
-  if (overrideIndex !== undefined && overrideIndex !== null) {
-    // Wrapped against DRAWN_SPECIES_COUNT, not BIRD_SPECIES_COUNT: the pool size would fold the
-    // reserved Roller at index 50 back onto 0 and dress the owner as the Hoopoe mascot.
-    return ((overrideIndex % DRAWN_SPECIES_COUNT) + DRAWN_SPECIES_COUNT) % DRAWN_SPECIES_COUNT;
+  // Used as it is. An override has been through resolveBirdOverride, which only returns the index
+  // of a real species name with its reservation honoured. It used to be wrapped modulo the drawn
+  // count (51), which was dead safety until the first species appended past the Roller, whose
+  // index 51 it would have folded onto the Hoopoe. All that is left is to stop a caller that
+  // skipped the resolver from handing the glyph a negative or fractional index;
+  // avatar-deal.test.mjs pins that every resolvable name has a drawing.
+  if (typeof overrideIndex === "number" && Number.isInteger(overrideIndex) && overrideIndex >= 0) {
+    return overrideIndex;
   }
   const pinned = SPECIES_PINS[seed];
   if (pinned !== undefined) return pinned;

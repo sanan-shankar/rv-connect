@@ -138,6 +138,31 @@ export async function registerUser(formData: FormData) {
       ? "ex_teacher"
       : "teacher";
 
+  /* The new member's bird, dealt once, here: a draw weighted towards the
+     birds the fewest members visibly wear, so every species ends up about
+     as common as the next and a bird many supporters chose is dealt less
+     (owner, 2026-10-08; the rule and its weights are src/lib/avatar-deal.ts).
+     It rides in the create below rather than in an update after it, so the
+     account never exists with a different bird, and it costs no second
+     write. Stored WITHOUT birdPickedAt: being dealt a bird spends no
+     supporter's pick (chooseBird).
+
+     Best effort and REPORTED, like the batch-group join below: a failed
+     count must not sink the registration, and a member who is not dealt a
+     bird wears the one their id hashes to, as every member who joined
+     before 2026-10 does. */
+  let birdOverride: string | undefined;
+  try {
+    // Imported inside the try so that even a module failing to load (the
+    // species lists it reads are built at load, and plate-data.ts throws
+    // there on purpose when a plate bird's name goes missing) costs the
+    // member their dealt bird, never their account.
+    const { dealNewMemberBird } = await import("@/lib/avatar-deal-server");
+    birdOverride = await dealNewMemberBird();
+  } catch (err) {
+    reportSwallowed("signup", err, { step: "dealBird" });
+  }
+
   // Create the user. gradeJoined is deliberately not written here: sign-up now
   // takes the batch directly, so that column stays untouched. The two year
   // columns are strictly student facts; a teacher's years land in the tenure
@@ -165,6 +190,7 @@ export async function registerUser(formData: FormData) {
       // The consent receipt (audit H12). Members who joined before the box
       // existed carry null, which the owner's decision reads as agreement.
         consentAt: new Date(),
+        birdOverride,
       },
     });
   } catch (err) {

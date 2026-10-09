@@ -41,7 +41,7 @@ flag is his call alone (¶39), and the Hoopoe and the Indian Roller are never de
 | U1 Tooling | DONE | `scripts/dev/bird-sheet.mjs` (renders), `scripts/dev/bird-edges.mjs` (58 straight edges found across the 51); both in `scripts/README.md` |
 | Owner questions 1 to 11 | DONE | answered 2026-10-08 in the session; his words and the readings under "Owner answers" |
 | U2a Cut-offs and bills | PARTIAL | DRAWN and committed 2026-10-08, review pending: 17 birds changed (4, 5, 9, 10, 12, 17, 18, 19, 20, 21, 27, 28, 30, 40, 41, 42, 46). Resume: one Opus reviewer over those indices per `reviewer.md`, fix the FAILs, `node scripts/dev/centroid.mjs --only <those>` until no flags, look, commit |
-| U5 The dealing rule | OPEN | `src/lib/avatar-deal.ts`, signup wiring, tests, `write-path-reviewer`; runs second so it cannot be cut short |
+| U5 The dealing rule | DONE | 2026-10-09. `src/lib/avatar-deal.ts` (pure), `avatar-deal-server.ts` (the count and the draw), ten tests, signup deals INSIDE the create, write-path review clean. The twelve new species would take ~70% of the first fifty signups and reach the old birds' average after ~250 |
 | U2b Structure and colour | OPEN | Magpie-Robin 14, Golden Oriole 29, Blue-faced Malkoha 34, Common Kingfisher 38, Leafbird 39, Green-Pigeon 48 fixed plus a Yellow-footed Green-Pigeon candidate (Q3) |
 | U3a Hard redraws | OPEN | Paradise Flycatcher 26 as the white male, Peregrine 32, Jacobin 35, Black Eagle 36; then a second hand draws alternative 26 and 32 as appended candidates |
 | U3b Redraws | OPEN | R-W Bulbul 13, Indian Robin 15, Brahminy Starling 23, Orange-headed Thrush 33, Tickell's 44 plus a Blue-capped Rock-Thrush candidate (Q4), Sirkeer Malkoha 11 and Small Minivet 47 (Q10, old kept for the pair) |
@@ -111,9 +111,8 @@ the order of `/birds`.
 
 | ID | ¶ | His words | Status |
 |---|---|---|---|
-| G1 | 37 | "assign birds that somewhat make all the birds equal... take into account the people who have paid to override their birds... assign the common kingfisher less. Maybe not zero, but less" | OPEN, U5 |
-| G2 | 38 | "I don't want to change the code at any future point. I want it to be adaptable... assign people the new birds. And then when the new birds kinda level up, then it goes more random" | OPEN, U5 |
-
+| G1 | 37 | "assign birds that somewhat make all the birds equal... take into account the people who have paid to override their birds... assign the common kingfisher less. Maybe not zero, but less" | DONE, U5 (2026-10-09) |
+| G2 | 38 | "I don't want to change the code at any future point. I want it to be adaptable... assign people the new birds. And then when the new birds kinda level up, then it goes more random" | DONE, U5 (2026-10-09) |
 ---
 
 ## Decisions
@@ -153,9 +152,11 @@ the order of `/birds`.
   other bird, which ¶37 forbids, and a deterministic queue that looks like a bug).
 - **Who counts as wearing a bird**: members with no photograph, since a photograph hides the
   bird (question 8).
-- **Where it runs**: in `signup` right after `prisma.user.create`, as a best-effort step like
-  the batch-group join below it: a failure is reported, the member keeps the hash bird, and
-  signup succeeds. Pure and tested: `dealBird(counts, random)` in `src/lib/avatar-deal.ts`.
+- **Where it runs**: in `signup`, dealt just before and written INSIDE `prisma.user.create`
+  (the worker's improvement on "after the create": the row is complete in one write, and the
+  new member is not counted in their own draw). Best effort like the batch-group join: a
+  failure is reported, the member keeps the hash bird, signup succeeds. Pure and tested:
+  `dealBird(counts, species, random)` in `src/lib/avatar-deal.ts`.
 - **Two attempts** for the Paradise Flycatcher and the Peregrine (the two he cares about most
   and has been disappointed by most): a second hand draws each again as an appended candidate
   entry, since a worktree cannot render through the one dev server. One attempt for the rest.
@@ -446,3 +447,30 @@ Pond Heron FAIL; Barbet FAIL. The reviewers' exact fixes, for the drawer:
   `bird-edges.mjs` now flags those ("flat Q", chord >= 4, control within 6% of the chord), and
   on the seventeen it lists 27 of them, most on tails and forks. The drawer clears the visible
   ones before the reviewers look again, so the review happens once.
+
+### 2026-10-09, U5, the dealing rule (Opus, max; write-path review by its own agent)
+
+Shipped as designed with four improvements the worker argued for and the runner accepted: the
+dealt bird is written inside the create rather than by an update after it; the pure rule takes
+the species list as an argument so `node:test` can load it without the `.tsx`; the deal draws
+from `WEARABLE_SPECIES`, the very list `chooseBird` validates against, so the two can never
+disagree; and the deal module is imported inside the `try`, since `plate-data.ts` throws at load
+on purpose and a top-level import would have turned that into a failed signup. The `% 51` wrap on
+an override index is gone (it would have folded the first appended species onto the Hoopoe); a
+test pins that names and drawings are equal in number. Measured in the tests: a bird nobody wears
+is dealt 100x as often as one worn by nine; nine against ten is 1.2x; the Hoopoe and the Roller
+came up 0 times in a million draws; at today's counts the Common Kingfisher (14 wearers) was
+dealt 69 times against the Peafowl's (7) 236 in 200,000, held back but never zero. The twelve
+new species at zero would take about 70% of the first fifty signups and reach the old birds'
+average (8.8) after about 250, not the 150 the set-up session guessed. Live, read-only: 441
+visible birds across 517 members.
+
+The write-path reviewer found nothing blocking. Its three low notes: a test now pins that the
+deal call sits inside the try (added); the contact-card PNGs in `public/images/birds/` stop at
+index 50, so U6 must regenerate them and then pin their count to twice the names; and one
+member-visible effect to tell the owner: a new member's `/pick-bird` now shows their dealt bird
+as "your current bird" with the choose button disabled on it, and their paid pick stays
+unspent. One tooling note outside this campaign: the reviewer's own definition points at
+`scripts/demo/verify-guard.mts` with a command that cannot resolve `@/` imports; it got a real
+run (15 passed) through a temporary loader. Logged in `docs/planning/bugs.md`? No: left here for
+the next audit, since it is the agent definition, not the app.

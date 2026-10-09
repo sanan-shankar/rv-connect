@@ -50,7 +50,21 @@
 >   drawn to take its vacated slot 3** rather than being appended: appending would have meant raising
 >   `BIRD_SPECIES_COUNT`, and since that number is the hash modulo, every member in the database
 >   would have woken up as a different bird. Taking slot 3 changed only the members who used to hash
->   onto the Roller. **Never raise `BIRD_SPECIES_COUNT` to add a species**; take a slot inside 0..49.
+>   onto the Roller. **Never raise `BIRD_SPECIES_COUNT` to add a species.** Since 2026-10 a new
+>   species is appended past the Roller instead (index 51 and up), where `hash % 50` cannot reach it,
+>   so nobody's bird changes; the deal below and a supporter's pick are how it comes to be worn.
+> - **Dealt at signup (2026-10, birds expansion U5)**: the hash is the floor for members who joined
+>   before 2026-10. Later members are dealt a bird once, in `registerUser`, stored in
+>   `User.birdOverride` (without `birdPickedAt`, so no supporter's pick is spent). A wearable species
+>   (`WEARABLE_SPECIES`, so never the Hoopoe or the Roller) with `n` visible wearers weighs
+>   `1 / (n + 1)^2`: a bird nobody wears is 100x likelier than one worn by nine, nine and ten are
+>   nearly even, and no weight is ever zero (brief ¶37 and ¶38 in `docs/planning/birds-expansion/`).
+>   "Visible" means members with no photograph, each counted under the bird `BirdAvatar` shows
+>   (question 8, 2026-10-08), so a paid pick counts under the bird it bought. A failed count is
+>   reported and the member keeps their hash bird. The rule is `src/lib/avatar-deal.ts` (tested by
+>   `avatar-deal.test.mjs`), the database half `src/lib/avatar-deal-server.ts`. This supersedes the
+>   proposal's "No randomness anywhere": equal numbers need to know who wears what, and the stored
+>   slug keeps the one draw stable for good.
 > - Rooms: **`/lab/birds-rv`** (gallery, mirrors the shipped `/birds`) and **`/lab/centroid`**
 >   (dev harness for the centering script and the contact-card photos). Verified by `src/lib/avatar.test.mjs`, which covers both
 >   the hash distribution and the two reservations.
@@ -72,6 +86,8 @@
 > - Precedence is now: **photo > `birdOverride` (per-user DB slug) > owner/staff pin > hash**
 >   (with the Hoopoe hash-exclusion described above). "Manual" in the draft below refers to the old,
 >   now-removed `avatarSpecies` render prop, not `birdOverride`.
+> - "No randomness anywhere" holds only for members who joined before 2026-10. Later members are
+>   dealt their species once at signup (see "Dealt at signup" above); pose still comes from the hash.
 
 I have everything I need. The current production code uses `UserAvatar` (initials + `avatarColor` random color), `pickAvatarColor()` assigns random colors at signup, and `User.avatarColor` is the only avatar field in the schema. The v2 preview proves out the bird concept with a single `BirdGlyph` and 3 variants. Now I'll write the exhaustive spec.
 
