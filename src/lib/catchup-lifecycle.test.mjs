@@ -235,7 +235,13 @@ test("C-125: the answering surface actually sends the version it holds", () => {
     read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx")
   );
   assert.match(page, /entryUpdatedAt: entry\?\.updatedAt\.toISOString\(\) \?\? null/);
-  assert.match(page, /select: \{ promptId: true, body: true, images: true, updatedAt: true \}/);
+  /* The four this guard needs, named rather than matched as one string: the
+     recording's three columns joined the same select in build phase 12 and a
+     fifth field is not a regression. `updatedAt` IS the guard. */
+  const draftSelect = /select: \{ promptId: true,[^}]*\}/.exec(page)?.[0] ?? "";
+  for (const field of ["promptId: true", "body: true", "images: true", "updatedAt: true"]) {
+    assert.ok(draftSelect.includes(field), `the answering draft stopped loading ${field}`);
+  }
 });
 
 test("C-020 is closed by deletion: there is no bin left to disarm", () => {

@@ -379,7 +379,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     const mine = accepted.length
       ? await prisma.catchupEntry.findMany({
           where: { promptId: { in: accepted.map((p) => p.id) }, authorId: viewerId },
-          select: { promptId: true, body: true, images: true, updatedAt: true },
+          select: { promptId: true, body: true, images: true, audioUrl: true, audioSeconds: true, audioIsAuto: true, updatedAt: true },
         })
       : [];
     const byPrompt = new Map(mine.map((e) => [e.promptId, e]));
@@ -398,7 +398,16 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
         asker: askerVisible({ showAsker: p.showAsker, authorId: p.author?.id ?? null }, viewerId)
           ? p.author
           : null,
-        entry: { body: entry?.body ?? "", images: parseJsonArray(entry?.images) },
+        entry: {
+          body: entry?.body ?? "",
+          images: parseJsonArray(entry?.images),
+          /* `audioSeconds` is NOT NULL beside a url by a CHECK the phase 12
+             migration added, so the fallback never runs; it is here because
+             the column is nullable in the type. */
+          audio: entry?.audioUrl
+            ? { url: entry.audioUrl, seconds: entry.audioSeconds ?? 0, transcribed: entry.audioIsAuto }
+            : null,
+        },
         // The row version this page was rendered from, sent back with every
         // save so a second device cannot silently replace what the first one
         // wrote (audit C-125).

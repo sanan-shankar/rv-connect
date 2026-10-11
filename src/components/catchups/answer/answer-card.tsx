@@ -17,9 +17,8 @@
  *  saved draft with no reset effects needed.
  * ------------------------------------------------------------------ */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft } from "lucide-react";
-import { FIELD_FOCUS_WITHIN } from "@/components/ui/field-focus";
 import Link from "@/components/common/link";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { Button } from "@/components/ui/button";
@@ -27,6 +26,9 @@ import { cn } from "@/lib/utils";
 import { RichTextArea } from "@/components/common/rich-text-area";
 import { PhotoAttachments } from "./photo-attachments";
 import { SongNameField } from "./song-attachment";
+import { MicInTheBox, useVoiceRecorder } from "./voice-recorder";
+import { bodyWithTranscript } from "@/lib/voice-transcript";
+import type { StoredRecording } from "@/lib/voice-upload-client";
 import type { AnswerEntryDraft, AnswerPromptData } from "./types";
 
 const MIN_TEXTAREA_HEIGHT = 168;
@@ -39,6 +41,7 @@ export function AnswerCard({
   saveStatus,
   onBodyBlur,
   onImagesChange,
+  onAudioChange,
   onBack,
   onAdvance,
 }: {
@@ -49,11 +52,45 @@ export function AnswerCard({
   saveStatus: "idle" | "saving" | "saved" | "failed";
   onBodyBlur: (body: string) => void;
   onImagesChange: (images: string[]) => void;
+  onAudioChange: (audio: StoredRecording | null) => void;
   onBack: () => void;
   onAdvance: () => void;
 }) {
   const [body, setBody] = useState(entry.body);
   const savedRef = useRef(entry.body);
+
+  /* The writing surface is uncontrolled -- a contentEditable seeded once --
+     so putting spoken words into it means re-seeding it. `seed` is what it
+     opens with and `seedVersion` is its key, bumped only when a recording
+     ends. Nobody is typing at that moment, which is why remounting costs
+     nothing here and would be unforgivable on a keystroke. */
+  const [seed, setSeed] = useState(entry.body);
+  const [seedVersion, setSeedVersion] = useState(0);
+
+  /* `body` as of now, for callbacks that outlive this render: the recorder is
+     made once and its handlers would otherwise close over the first body. */
+  const bodyRef = useRef(body);
+  useEffect(() => {
+    bodyRef.current = body;
+  });
+
+  /** The last transcript this recorder wrote, so "Record again" replaces its
+   *  own words instead of stacking a second copy under the first. */
+  const lastTranscript = useRef("");
+
+  const recorder = useVoiceRecorder({
+    initial: entry.audio,
+    onTranscript: (transcript) => {
+      const next = bodyWithTranscript(bodyRef.current, lastTranscript.current, transcript);
+      lastTranscript.current = transcript;
+      bodyRef.current = next;
+      setBody(next);
+      setSeed(next);
+      setSeedVersion((v) => v + 1);
+      flushBody(next);
+    },
+    onStored: onAudioChange,
+  });
 
   // `latest` covers the blur path, where the setBody from the same event has
   // not re-rendered yet; the advance buttons call it bare and use state.
@@ -104,7 +141,7 @@ export function AnswerCard({
       <div className="mt-[var(--space-m)] space-y-[var(--space-m)]">
         {prompt.kind === "text" && (
           <>
-            <div className={`overflow-hidden rounded-[var(--radius-input)] border border-border hover:border-leaf/40 ${FIELD_FOCUS_WITHIN}`}>
+            <MicInTheBox recorder={recorder}>
               {/* The same writing surface as the composer (owner, 2026-08-13:
                   "bold italics etc in every text box... not just the feed"):
                   a contentEditable on the shared markdown primitives, so
@@ -112,8 +149,8 @@ export function AnswerCard({
                   It grows with its content on its own; the old textarea
                   needed a measure-and-set effect for that. */}
               <RichTextArea
-                key={prompt.id}
-                initialValue={entry.body}
+                key={`${prompt.id}:${seedVersion}`}
+                initialValue={seed}
                 ariaLabel={prompt.text}
                 onChange={setBody}
                 onBlur={(markdown) => {
@@ -123,7 +160,7 @@ export function AnswerCard({
                 className="bg-card px-4 py-3.5 font-heading text-[17px] leading-[1.7]"
                 minHeight={MIN_TEXTAREA_HEIGHT}
               />
-            </div>
+            </MicInTheBox>
             <PhotoAttachments images={entry.images} onChange={onImagesChange} />
           </>
         )}
@@ -187,7 +224,10 @@ export function AnswerCard({
             size="sm"
             onClick={() => {
               flushBody();
-              onAdvance();
+              /* A recording still on its way to the bucket keeps the page
+                 until it lands, so nobody leaves a half-sent answer behind.
+                 It resolves at once when there is nothing in flight. */
+              void recorder.settle().then(onAdvance);
             }}
           >
             {advanceLabel}

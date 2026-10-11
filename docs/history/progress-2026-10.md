@@ -347,3 +347,42 @@ export and admin bits, the demo allow-list row, and spec.md 3.11. The feed's own
 removal has deployed: `2026-10-09-drop-vote-questions.sql` is written and NOT APPLIED, because a
 column dropped before its code is live breaks production. Commits `6e663ba5` and `7f36fea9` hold the
 whole feature if it is ever wanted back.
+
+
+## 2026-10-11 (catchups) — answering out loud ships: the mic in the box, the tape in the reader, and the transcript stops welding words together
+
+He picked the recorder off `/lab/catchups/voice` on 2026-10-09 ("the mic in the box ... is fine")
+and reported two faults from trying it: "sometimes it just didn't put a space between different
+words um, the capitalizations were kind of weird", and "every time when I played the recording it
+was just quiet ... if there's any types of those kind of bugs then none of the front end even
+matters". The player is the tape, this session's call of the three he did not choose between: it
+needs nothing stored but `audioSeconds`, and the bird is already in the byline two lines above.
+
+**The transcript fault was in our code, not the recogniser.** `SpeechRecognition` hands over a list
+of settled phrases, each capitalised as though it opened a sentence and none carrying a separator;
+the lab recorder joined them with `heard += result[0].transcript`, which welds the last word of one
+to the first of the next. `lib/voice-transcript.ts` joins with a space and takes the capital off a
+continuing phrase ONLY when its first word is on a closed list of function words, so "the banyan"
+is lower-cased and "Rishi Valley" and every surname are not. 17 tests.
+
+**The quiet was not storage.** Measured end to end against the real bucket as Jerry: 23,478 bytes
+recorded, 23,478 fetched back, identical RMS (0.000656), peak and sample count, served as
+audio/webm. Nothing between the microphone and the ear changes a byte. What is now in the code is
+the other half of the answer: the recorder watches its own level while he talks, and a recording
+whose loudest moment never cleared `QUIET_RMS` says so and offers a retake rather than saving
+silence. The test object was deleted afterwards (404 confirms).
+
+**A spoken answer with no words would have vanished.** `said()` kept an entry only for words,
+photographs or link cards, so a Firefox answer -- a recording and no transcript, which spec 3.10
+drew first on purpose -- would have been dropped from the Edition with nothing on screen to say so:
+F38 and F39 with a microphone. Fixed and pinned.
+
+Wired: the draft and the home loader carry the recording, `submitEntry` already took it, the
+advance pill waits on `settle()` so nobody leaves with an upload in flight, and the reader's loader
+and tile draw the tape above the words with "From the recording" under them. The focus edge moved
+with the box into `MicInTheBox`; `answer-card.tsx` joins the reasoned borderless list naming where
+its box went. C-125's pin now names the four fields it needs instead of matching the select whole.
+
+**Not tested here, and it is the one he must do**: a real microphone. Headless Chrome on this
+machine cannot open one, and Chrome's fake device emits intermittent beeps, so its loudness
+readings are worthless. Record one answer and play it back.

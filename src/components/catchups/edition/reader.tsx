@@ -82,6 +82,7 @@ import { LinkCard } from "@/components/common/link-card";
 import { BAR, EditionMeta, QuestionList, Strip, UnfoldedPanel } from "./navigator";
 import { PhotoRun } from "./photo-run";
 import { AskedBy, Body, Byline, Photographs, Reactions, said } from "./reader-parts";
+import { VoiceTape } from "./voice-tape";
 import type { ReaderEdition, ReaderQuestion } from "./reader-types";
 import type { EditionEntry } from "@/lib/catchups-edition-view";
 
@@ -166,7 +167,21 @@ function Tile({ entry, viewerIsAdmin }: { entry: EditionEntry; viewerIsAdmin: bo
     >
       <div className="px-4 pt-3.5 md:px-5 md:pt-4">
         <Byline person={entry.author} />
+        {/* The recording first, then the words it was written down from: the
+            tape is the answer and the transcript is how you read it without
+            playing anything (spec 3.10). */}
+        {entry.audio && (
+          <VoiceTape
+            url={entry.audio.url}
+            seconds={entry.audio.seconds}
+            name={entry.author.name}
+            className="mt-2.5"
+          />
+        )}
         {body && <Body text={body} className="mt-2.5" />}
+        {entry.audio?.transcribed && body && (
+          <p className="mt-1.5 text-[12.5px] text-muted-foreground">From the recording</p>
+        )}
       </div>
       {entry.images.length > 0 && (
         <Photographs entry={entry} className="mt-3 max-h-[460px] md:max-h-[560px]" />

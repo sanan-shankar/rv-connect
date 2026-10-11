@@ -491,6 +491,11 @@ export function Reactions({
  *  photograph is not empty: the photograph is the answer. */
 export function said(entries: EditionEntry[]): EditionEntry[] {
   return entries.filter(
-    (e) => Boolean(e.body?.trim()) || e.images.length > 0 || e.links.length > 0,
+    /* A RECORDING COUNTS, and it has to: Firefox writes nothing down, so a
+       spoken answer there has no body at all (spec 3.10, and the no-words
+       case was drawn first for exactly this reason). Without `e.audio` the
+       reader would drop somebody's whole answer and say nothing about it,
+       which is the fault F38 and F39 were about, with a microphone. */
+    (e) => Boolean(e.body?.trim()) || e.images.length > 0 || e.links.length > 0 || Boolean(e.audio),
   );
 }

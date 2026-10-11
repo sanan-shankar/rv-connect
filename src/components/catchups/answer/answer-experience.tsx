@@ -18,6 +18,7 @@ import { callAction } from "@/lib/call-action";
 import { cn } from "@/lib/utils";
 import { EASE_SPRING } from "@/components/common/motion";
 import { submitEntry } from "@/app/(main)/catchups/actions";
+import type { StoredRecording } from "@/lib/voice-upload-client";
 import { AnswerCard } from "./answer-card";
 import { CompletionCard } from "./completion-card";
 import { isMeaningfulEntry, type AnswerEntryDraft, type AnswerPromptData } from "./types";
@@ -125,7 +126,10 @@ export function AnswerExperience({
     Object.fromEntries(prompts.map((p) => [p.id, p.entryUpdatedAt]))
   );
 
-  function persist(promptId: string, patch: { body?: string; images?: string[] }) {
+  function persist(
+    promptId: string,
+    patch: { body?: string; images?: string[]; audio?: StoredRecording | null }
+  ) {
     const run = async () => {
       setSaveStatus((s) => ({ ...s, [promptId]: "saving" }));
       // callAction: a rejected save (deploy skew, dropped network, expired
@@ -159,6 +163,14 @@ export function AnswerExperience({
   function handleImagesChange(promptId: string, images: string[]) {
     updateEntry(promptId, { images });
     void persist(promptId, { images });
+  }
+
+  /* The recording, once it is really in the bucket (or null when it is taken
+     off). The words it was written down from are saved by the body path, on
+     its own queue entry, so a failure of one never silently drops the other. */
+  function handleAudioChange(promptId: string, audio: StoredRecording | null) {
+    updateEntry(promptId, { audio });
+    void persist(promptId, { audio });
   }
 
   return (
@@ -227,6 +239,7 @@ export function AnswerExperience({
                   saveStatus={saveStatus[current.id] ?? "idle"}
                   onBodyBlur={(body) => handleBodyBlur(current.id, body)}
                   onImagesChange={(images) => handleImagesChange(current.id, images)}
+                  onAudioChange={(audio) => handleAudioChange(current.id, audio)}
                   onBack={() => goTo(index - 1, -1)}
                   onAdvance={advance}
                 />

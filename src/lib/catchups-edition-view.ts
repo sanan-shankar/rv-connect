@@ -124,6 +124,9 @@ export async function loadPublishedEditionView(
               images: true,
               /* No song columns: they are null on every row and die in phase
                  11. A song is a link pasted into `body` now. */
+              audioUrl: true,
+              audioSeconds: true,
+              audioIsAuto: true,
               createdAt: true,
               author: {
                 /* No `verifyState`, deliberately, and the same omission the
@@ -242,6 +245,9 @@ export async function loadPublishedEditionView(
         images,
         photos: images.map((url) => photos.get(url) ?? null),
         links: stripped.cards.map((url) => cards.get(url)!),
+        audio: e.audioUrl
+          ? { url: e.audioUrl, seconds: e.audioSeconds ?? 0, transcribed: e.audioIsAuto }
+          : null,
         loveCount: e._count.loves,
         lovedByViewer: e.loves.length > 0,
         commentCount: e._count.comments,

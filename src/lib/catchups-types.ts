@@ -204,6 +204,10 @@ export type CatchupEntryView = {
    *  were pasted (build phase 10, spec 3.8). The body arrives with exactly
    *  these links taken out of it and every other link left in. */
   links: CatchupLinkView[];
+  /** The recording on this answer, or null (build phase 12, spec 3.10). The
+   *  words, when the browser wrote any down, are in `body` like any other
+   *  answer's: a spoken answer is an answer, not a kind of its own. */
+  audio: { url: string; seconds: number; transcribed: boolean } | null;
   loveCount: number;
   lovedByViewer: boolean;
   /** How many replies this answer has, BEFORE the thread is opened (build

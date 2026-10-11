@@ -59,6 +59,7 @@ const BORDERLESS = new Map([
   ["src/components/auth/signup-form.tsx", "checkbox only; its text fields are FloatField"],
   ["src/components/common/attach-image-dialog.tsx", "hidden file input"],
   ["src/components/catchups/home/picture-picker-dialog.tsx", "hidden file input; the visible control is a Button"],
+  ["src/components/catchups/answer/answer-card.tsx", "its writing surface is wrapped in MicInTheBox, which owns the box and wears FIELD_FOCUS_WITHIN"],
 ]);
 
 test("every text field with a box wears FIELD_FOCUS (or is on the reasoned borderless list)", () => {
