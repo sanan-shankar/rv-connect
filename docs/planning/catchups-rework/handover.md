@@ -3949,6 +3949,45 @@ at runtime.
 
 ---
 
+## Closing report, 2026-10-11 — THE CAMPAIGN IS CLOSED
+
+**His decisions of 2026-10-09 ended it**, and they are in "Owner answers" verbatim. Votes and the
+magazine are deleted, the time capsule is parked switched off, the voice answer shipped, the song
+columns stopped being read, and the orphaned 2024 group is gone. Nothing in this campaign is
+waiting on a session; two things wait on him and are listed at the bottom.
+
+| Unit | State on 2026-10-11 |
+|---|---|
+| Phases 1 to 11 | **LIVE**, in his releases |
+| Phase 12, answering out loud | **SHIPPED**, `ffdcc422`. The mic in the box and the tape, his pick; the transcript rule, the quiet-recording retake, and `said()` keeping a recording with no words. **Unreleased**: the commit needs his push |
+| Phase 13, votes | **DELETED**, `b36aeb73`. The empty table and column wait on `2026-10-09-drop-vote-questions.sql`, NOT APPLIED |
+| Phase 14, time capsule | **PARKED**, built and switched off, on his *"let's park the time capsule. no one is using catch ups so no point on overengineering it"* |
+| M1/M2+, the magazine | **DELETED**, `b36aeb73`, on his *"magazine is a failed experiement. delete it."* `35b75868` is the whole record |
+| The song columns | **UNREAD**, `e646ef82`. `2026-10-11-drop-song-columns.sql` is NOT APPLIED and runs after that commit deploys |
+| The orphaned 2024 group | **GONE**, `d260fba1`, applied to production after a rolled-back proof |
+| The question library draft | **his to cut**, `library-draft.md`, 64 questions and 10 for a capsule |
+
+**Questions 22 to 55 are closed or withdrawn.** 39 to 44 went with the magazine; 53 and 54 with
+votes; 48 to 52 are parked with the capsule; 33 to 35 the same; 45, 46 and 47 he answered; 55 he
+answered for voice and the other two rooms are moot. Nothing here is waiting on an answer.
+
+**The two things that are his, and only his:**
+
+1. **A push.** Four commits sit unreleased: the voice answer, the two deletions and the song
+   removal. Until they deploy, the two drop files above must not run, and nobody can answer out
+   loud. A push is a deploy, which is his alone.
+2. **One recording on a real microphone.** No headless browser on this machine can open one, and
+   Chrome's fake device emits intermittent beeps, so its loudness readings are worthless. The round
+   trip through the real bucket is measured byte-identical in and out, so if a recording of his own
+   still comes back quiet, the microphone is the cause and the recorder now says so on screen while
+   he is still talking.
+
+**What a later session must not re-propose**: votes, the magazine, and a notice line telling members
+their speech is transcribed by Google or Apple. He declined all three in his own words, which are in
+"Owner answers" under 2026-10-09.
+
+---
+
 ## Closing report, 2026-09-14 (the `/campaign` run that took phases 10 to 14 and M1)
 
 **What shipped**, each verified by the orchestrator: its own `npm run check`, `npm run visual`, the
