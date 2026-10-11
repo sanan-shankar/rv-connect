@@ -89,13 +89,7 @@ const iso = (d) => (d ? new Date(d).toISOString() : null);
  *  mislabel a fixture's `kind`; the `category` it derives from is exported
  *  beside it, so nothing is lost either way. */
 const kindOf = (category) =>
-  category === "photo-wall"
-    ? "photo"
-    : category === "songs"
-      ? "songs"
-      : category === "vote"
-        ? "vote"
-        : "text";
+  category === "photo-wall" ? "photo" : category === "songs" ? "songs" : "text";
 
 // ─── read everything ─────────────────────────────────────────────────────────
 
@@ -127,13 +121,6 @@ const entries = await q(`
   order by e."promptId", e."createdAt"
 `);
 const hearts = await q(`select "entryId", "userId" from "CatchupEntryLove"`);
-/* A vote's choices (build phase 13). Asked for only where the table exists, so
-   the export still runs against a database the migration has not reached --
-   which is exactly when spec 3.1 says to run it. */
-const [{ t: hasChoices }] = await q(`select to_regclass('"CatchupPromptOption"') as t`);
-const options = hasChoices
-  ? await q(`select id, "promptId", text, position from "CatchupPromptOption" order by "promptId", position`)
-  : [];
 
 await client.end();
 
@@ -155,7 +142,6 @@ const editionsByCatchup = by(editions, "catchupId");
 const promptsByEdition = by(prompts, "editionId");
 const entriesByPrompt = by(entries, "promptId");
 const heartsByEntry = by(hearts, "entryId");
-const optionsByPrompt = by(options, "promptId");
 
 const person = (r, prefix = "a_") => {
   const id = r[`${prefix}id`];
@@ -241,11 +227,6 @@ const out = {
           category: p.category,
           kind: kindOf(p.category),
           source: p.source,
-          choices: (optionsByPrompt.get(p.id) ?? []).map((o) => ({
-            id: o.id,
-            text: o.text,
-            position: o.position,
-          })),
           showAsker: p.showAsker,
           accepted: p.accepted,
           position: p.position,
@@ -286,7 +267,6 @@ const out = {
                     file: NO_PHOTOS ? null : wantPhoto(e.audioUrl, "audio", e.id),
                   }
                 : null,
-              pollOptionId: e.pollOptionId ?? null,
               hearts: (heartsByEntry.get(e.id) ?? []).map((h) => h.userId),
               createdAt: iso(e.createdAt),
               updatedAt: iso(e.updatedAt),
@@ -345,9 +325,9 @@ let copied = 0;
 const failed = [];
 const sizes = new Map();
 /* Pixel size per copied photograph, read off the bytes just fetched. The
-   magazine's image rules (src/lib/magazine/image.ts) size every frame from
-   it, so an export that does not carry it is a corpus that cannot be laid
-   out. A file sharp cannot read is recorded with no size, not dropped. */
+   lab's sketch rooms size a photograph's frame from it (`sketches/_pressure.ts`),
+   so an export that does not carry it is a corpus they cannot draw. A file
+   sharp cannot read is recorded with no size, not dropped. */
 const dims = new Map();
 for (const { url: u, file } of wanted) {
   try {

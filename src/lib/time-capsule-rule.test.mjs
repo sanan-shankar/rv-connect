@@ -17,7 +17,6 @@ import {
   catchupStageLine,
   describeEditionStatus,
 } from "./catchups-core.ts";
-import { voteResult } from "./vote-question-rule.ts";
 import { formatDayAndDate, formatDisplayDateLong } from "./utils.ts";
 
 /* ------------------------------------------------------------------ *
@@ -273,7 +272,6 @@ test("every reader path asks for published before a word of an Edition", () => {
   const actions = decomment(read("src/app/(main)/catchups/actions.ts"));
   assert.match(balancedBody(actions, "export async function toggleEntryLove"), /edition\.status !== "published"/);
   assert.match(balancedBody(actions, "async function loadCommentableEntry"), /scope\.edition\.status !== "published"/);
-  assert.equal(voteResult("sealed", [{ id: "a", text: "A", position: 0 }], []), null);
 
   const home = decomment(read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx"));
   assert.match(home, /where: \{ catchupId: catchup\.id, status: "published" \}/);

@@ -1,3 +1,27 @@
+## 2026-10-09 (catchups) — the magazine is deleted: engine, corpus, room, printer and spec
+
+The owner, 2026-10-09: *"magazine is a failed experiement. delete it."* Track M is closed. Out of the
+tree: `src/lib/magazine/` (the grammar, the beam search, the scorer, the measurer, the image rules,
+`from-export.ts`, `magazine.test.mjs` and its 178 checks), the lab room `/lab/catchups/magazine` with
+its four modules and its registry row, the twelve JSON fixtures and their corpus, the printer
+`scripts/dev/print-magazine.mjs` with its `scripts/README.md` row, and `magazine.md` (783 lines).
+37 files, about 23,000 lines. **Commit `35b75868` is the whole record** — the layout grammar, the
+three-round failure hunt, the paper panel and the print spike — if it is ever wanted back.
+
+Two seams the deletion exposed. `ExportedImage.width`/`height` were added for the magazine's image
+rules and look like magazine fields, but `sketches/_pressure.ts` reads them to size a photograph's
+frame, so they **stay** and their comments now name the real reader; the exporter's sharp-based
+dimension read stays with them. `loadSketchEdition`'s `opts.editionId` existed only so the magazine
+room could draw a second Edition and is now dead, so it is gone. Nothing else referenced
+`src/lib/magazine`; the remaining uses of the word in the lab are typography metaphors.
+
+`scripts/dev/.magazine/` is 225 MB of gitignored scratch PDFs and PNGs from the M1 spike. It is not
+this session's to delete and has been left alone; it is the owner's to clear.
+
+`npm run check` green (148/148). `npm run visual` 21 passed; the four reds are `/birds` and
+`/support` at both viewports, and the diff is bird glyph outlines from another session's uncommitted
+`bird-avatar-v2.tsx` edits, not this work — no baseline was touched.
+
 ## 2026-10-09 (birds) — new members are dealt the least-worn bird; the campaign's first review round
 
 Day two of the birds expansion campaign (`docs/planning/birds-expansion/`). The dealing rule (U5)
@@ -306,3 +330,20 @@ you love The Script." Keyed on her user id, not her name, and only in the two ed
 `letterhead-profile.tsx` (the resting line and the open pen's placeholder), which render on your own
 sheet and nowhere else, so an admin opening her profile still sees the ordinary text. Once she writes
 an About it never shows again.
+
+
+## 2026-10-09 (catchups) — the vote question is deleted, code and spec, with its empty table left for a later drop
+
+His, 2026-10-09: "no need to vote. let's ditch that. I don't like it particularly cause it takes up
+real estate in the UI and I don't think anyone's gonna use it." Built in phase 13, never released,
+never seen by a member.
+
+Out of the tree: `/lab/catchups/vote` and its registry row, the `"vote"` prompt category,
+`submitPrompt`'s choices, `submitEntry`'s `pollOptionId`, `vote-question-rule.ts` and its test, the
+export and admin bits, the demo allow-list row, and spec.md 3.11. The feed's own `PollOption` and
+`PollVote` are a different feature and are untouched.
+
+`CatchupPromptOption` and `CatchupEntry.pollOptionId` were measured empty and stay until the code
+removal has deployed: `2026-10-09-drop-vote-questions.sql` is written and NOT APPLIED, because a
+column dropped before its code is live breaks production. Commits `6e663ba5` and `7f36fea9` hold the
+whole feature if it is ever wanted back.

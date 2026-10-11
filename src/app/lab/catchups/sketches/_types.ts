@@ -64,7 +64,7 @@ export type SketchEntry = {
 export type SketchQuestion = {
   id: string;
   text: string;
-  kind: "text" | "photo" | "songs" | "vote";
+  kind: "text" | "photo" | "songs";
   /** "library" | "member" | "keeper". Only a member-written question names
    *  its asker: see AskedBy in _parts.tsx. */
   source: string;

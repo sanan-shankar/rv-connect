@@ -31,7 +31,6 @@ test("the surfaces that make the demo feel alive stay writable", () => {
     "PhotoLove",
     "CatchupEntry",
     "CatchupEntryLove",
-    "CatchupPromptOption",
     "Notification",
     "UserPlace",
   ]) {

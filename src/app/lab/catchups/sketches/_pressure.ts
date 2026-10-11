@@ -11,7 +11,7 @@
  *
  *  `_fixtures/pressure.ts` is written in the EXPORT's shape, because that
  *  is the one shape a Catch-up takes when it leaves the database
- *  (`src/lib/catchups-export.ts`) and the magazine engine will read the
+ *  (`src/lib/catchups-export.ts`), and the lab rooms read the
  *  same file. The drawing speaks `SketchEdition`. This is the only place the
  *  two meet, and it is deliberately the only adapter: one loader, two
  *  sources, so nothing in the room can be true of the real Edition and false
@@ -59,9 +59,9 @@ const SIZES: Record<string, { width: number; height: number }> = {
 };
 
 function photoOf(img: { url: string; width?: number | null; height?: number | null }): StoredPhoto | null {
-  /* A file that carries its own pixel size (the exporter writes it since
-     the magazine work) wins over the table above, which only knows the
-     five public stills. */
+  /* A file that carries its own pixel size (the exporter reads it off the
+     bytes) wins over the table above, which only knows the five public
+     stills. */
   const size = img.width && img.height ? { width: img.width, height: img.height } : SIZES[img.url];
   if (!size) return null;
   return { ...size, focalX: 0.5, focalY: 0.5, blurDataUrl: null };

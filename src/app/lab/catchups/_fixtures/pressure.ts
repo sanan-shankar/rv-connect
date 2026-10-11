@@ -11,7 +11,7 @@
  *  Every direction room in /lab/catchups renders THIS as well as the two
  *  real published Editions. A layout that only ever meets 133 well-behaved
  *  answers is not a layout that has been tested; it is a layout that has
- *  been lucky. The magazine engine (track M) reads the same file.
+ *  been lucky.
  *
  *  INVENTED PEOPLE, INVENTED WORDS. Not one line here is a real member's.
  *  That is the whole reason this file can be committed while

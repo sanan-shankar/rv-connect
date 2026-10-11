@@ -33,7 +33,6 @@ whole group reads. Then the next one opens.
 | **Edition** | `CatchupEdition` | One cycle. Its status, its two deadlines, when it came out |
 | **Question** | `CatchupPrompt` | One thing asked in an Edition. Always stores its asker; `showAsker` false hides them |
 | **Answer** | `CatchupEntry` | One member's answer to one question. Unique on `(promptId, authorId)`. Never anonymous |
-| **Choice** | `CatchupPromptOption` | One of a vote question's two to six fixed choices (built, not yet drawn in the app; §16) |
 | **Heart** | `CatchupEntryLove` | One member's heart on one answer |
 | **Comment** | `Comment` with `entryId` set | The feed's own comment table, widened (§9) |
 | **Read mark** | `CatchupEditionRead` | Who has opened which published Edition (§12) |
@@ -589,14 +588,12 @@ Each of these was checked in the code on 2026-09-14.
   `staging/<id>/` and kept under `audio/<id>/`; `submitEntry`'s optional `audio`, owner-checked;
   the purge and both exports. The rules are `src/lib/voice-answer-rule.ts`. **No surface records or
   plays yet**: the drawings are `/lab/catchups/voice`, waiting for the owner's pick.
-- **Phase 13, a question the group votes on**: fixed choices, the result drawn as who chose what.
-  **Underneath is built** (2026-09-14): category `"vote"` (`promptKind` answers `"vote"`),
-  `CatchupPromptOption` (two to six, 80 characters, written only by `submitPrompt` in the question's
-  own transaction), `CatchupEntry.pollOptionId` with a composite foreign key onto the choice's
-  `(id, promptId)`, and `submitEntry`'s `pollOptionId` (a pick and an optional line; `null` takes the
-  vote back). `voteResult()` refuses anything unpublished. Both exports carry choices and picks; the
-  demo allows the table. The rules are `src/lib/vote-question-rule.ts`. **No surface asks, casts or
-  shows a vote yet**: the drawings are `/lab/catchups/vote`, waiting for the owner's pick.
+- **Phase 13, a question the group votes on**: **DELETED 2026-10-09**, the owner's word (*"no need
+  to vote. let's ditch that. I don't like it particularly cause it takes up real estate in the UI and
+  I don't think anyone's gonna use it"*). Every line of it is out of the code. `CatchupPromptOption`
+  and `CatchupEntry.pollOptionId` are both empty and are dropped by
+  `prisma/migrations-manual/2026-10-09-drop-vote-questions.sql`, which is NOT APPLIED until this removal
+  deploys. Commits `6e663ba5` and `7f36fea9` hold the whole thing if it is wanted back.
 - **Phase 14, time capsule**: one Edition, sealed until it opens, with nothing readable before then,
   your own answer included; a batch Catch-up's Edition can be one. **Underneath is built**
   (2026-09-14): `CatchupEdition.timeCapsule`, `sealedAt`, `publishAt`, the `sealed` status and its
@@ -606,4 +603,4 @@ Each of these was checked in the code on 2026-09-14.
   for the owner's pick.
 - **The longer question library**: drafted in `docs/planning/catchups-rework/library-draft.md` for the
   owner to cut. `CATCHUP_PROMPT_SETS` is unchanged until he does.
-- **M1, the magazine and its PDF**, last.
+- ~~**M1, the magazine and its PDF**~~ — **DELETED 2026-10-09**, the owner's word: *"magazine is a failed experiement. delete it."* Commit `35b75868` holds the design and the engine.

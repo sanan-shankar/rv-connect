@@ -12,7 +12,7 @@
  *     needs the R2 bucket to still exist is a backup of a backup, not a
  *     rebuildable copy.
  *
- *  2. The lab rooms and the magazine engine READ it, from
+ *  2. The lab rooms READ it, from
  *     `src/app/lab/catchups/_fixtures/`. A direction room renders a real
  *     exported Edition and an invented pressure fixture through the same
  *     loader, so "does this design survive a 3,000-word answer" is
@@ -95,9 +95,9 @@ export type ExportedImage = {
   url: string;
   /** Pixels, read off the copied bytes by the exporter (and written by hand
    *  in a fixture). Optional and additive, so files taken before it still
-   *  read; null when the bytes did not arrive. The magazine's image rules
-   *  need them: a photograph's pixel count sets the largest frame it may
-   *  take (docs/planning/catchups-rework/magazine.md). */
+   *  read; null when the bytes did not arrive. The lab's sketch rooms need
+   *  them: a photograph's pixel count sets the frame it may take
+   *  (`src/app/lab/catchups/sketches/_pressure.ts`). */
   width?: number | null;
   height?: number | null;
   /** Relative path of the bytes inside the export folder, or null when the
@@ -119,9 +119,6 @@ export type ExportedAnswer = {
    *  body was transcribed, and the copied bytes like a photograph's. Null
    *  when the answer was written, which is every answer before phase 12. */
   audio?: { url: string; seconds: number | null; transcribed: boolean; file: string | null } | null;
-  /** A vote's pick, the id of one of its question's `choices` (build phase
-   *  13). Null on every answer that is not a vote. */
-  pollOptionId?: string | null;
   /** Who hearted it, by id. The count is `hearts.length`; it is not stored
    *  separately, so the two can never disagree. */
   hearts: string[];
@@ -139,9 +136,6 @@ export type ExportedQuestion = {
    *  directly without inventing a category id. */
   kind: PromptKind;
   source: PromptSource;
-  /** A vote's fixed choices in the asker's order (build phase 13). Empty on
-   *  every question that is not a vote. */
-  choices?: Array<{ id: string; text: string; position: number }>;
   showAsker: boolean;
   accepted: boolean;
   position: number;

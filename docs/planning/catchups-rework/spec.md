@@ -625,73 +625,20 @@ phone does it locally. No key and no bill is still true; "no bytes go anywhere" 
 browser may not hand the microphone to the recorder and the recogniser at once (Chrome on Android
 is the known case), so the transcript is a best effort on a phone until it is tried on his.
 
-### 3.11 LOCKED — a question the group votes on
+### 3.11 DELETED 2026-10-09 — a question the group votes on
 
-His: *"F2. Yes, sure."*
+**The owner killed it**, 2026-10-09, in his words: *"no need to vote. let's ditch that. I don't like
+it particularly cause it takes up real estate in the UI and I don't think anyone's gonna use it."*
 
-The evidence it works is already in the database: **"Who believes Sanan made this website?" drew
-eleven answers averaging 46 characters** — a poll that had to be typed because there was no poll.
+Everything this section specified is removed from the code: the `"vote"` category, the choices, the
+pick, the rules module and the lab room. The design and the whole implementation are in commits
+`6e663ba5` and `7f36fea9` if it is ever wanted back.
 
-**RECOMMENDED, and this corrects the shape S-features proposed.** That document said to widen the
-feed's `PollOption`/`PollVote`, on the grounds that the machinery exists. On inspection it is the
-wrong reuse: both tables carry a non-null `postId` and a required `Post` relation, so widening them
-means two nullable foreign keys, two check constraints nobody writes, and a permanent coupling
-between Catch-ups and the feed's poll for no shared behaviour. Smaller and cleaner:
-
-```prisma
-model CatchupPromptOption {
-  id       String @id @default(cuid())
-  promptId String
-  text     String
-  position Int
-  prompt   CatchupPrompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
-  @@index([promptId])
-}
-
-// on CatchupEntry
-pollOptionId String?
-```
-
-**A vote IS an answer.** `CatchupEntry` already carries `@@unique([promptId, authorId])`, so one
-vote per person per question is enforced by a constraint that already exists, a voter appears in
-"who wrote in" like everybody else, and the heart works on a vote with no new code. The options
-belong to the question because the question is where they are written.
-
-**The published result is a thing worth looking at, and that is the design half.** Not a bar chart
-with percentages — the app's standing objection is to useless information (R32). Who chose what,
-with their birds, is the interesting part in a group of seventy people who know each other.
-
-**Who writes the choices: the asker, two to six, fixed.** His answer 37, 2026-09-14, the default:
-members pick one and cannot add their own.
-
-**What is built underneath, 2026-09-14 (phase 13, his 31a: draw it, build what does not depend on
-the look, stop for his pick).** CORRECTED against the sketch above in four places, each argued in
-`2026-09-14-vote-questions.sql` and `src/lib/vote-question-rule.ts`:
-
-- **A vote is a category, `"vote"`**, in `PROMPT_CATEGORIES`, and `promptKind()` returns `"vote"`.
-  The photo-wall and songs mechanism, so no column says what kind a question is.
-- **The pick is keyed on `(pollOptionId, promptId)`**, a composite foreign key onto
-  `@@unique([id, promptId])` on the choices, so a vote naming another question's choice is refused
-  by Postgres as well as by the action. `@@unique([promptId, position])` replaces the sketch's
-  `@@index([promptId])` and does its job. **Cascade, not SET NULL**: a vote whose choice is gone is
-  a vote for nothing, and nulling it would leave the empty row audit Low 36 deleted.
-- **Choices are written with the question, in `submitPrompt`'s one transaction, and nowhere else.**
-  There is no edit path, so they are frozen once answering opens by construction; a test fails on
-  any second writer. Caps: two to six, 80 characters each, blanks dropped, no duplicate ignoring
-  case. A question that is not a vote may carry none.
-- **A vote carries a pick and optionally a line.** `submitEntry` takes `pollOptionId`: always sent
-  on a vote (a choice, or `null` to take it back, which takes the line too and deletes the row),
-  never on anything else; photographs, a recording and a song are refused on a vote. The line is
-  allowed because the evidence is eleven people who typed 46 characters each: a pick with a remark
-  is what they were doing. It keeps the ordinary 6,000 cap (*"We don't have to enforce them in the
-  answers"*).
-
-`voteResult()` is the only thing that turns rows into who-chose-what, and it answers `null` for
-any Edition that is not published, so a count cannot leak during answering (§3.13). Applied to
-both projects. The account export and the rework export carry the choices and the picks; the purge
-needs no line (a purged asker's question keeps its choices, a purged voter's votes cascade). The
-demo allows `CatchupPromptOption`. **Nothing calls any of it**: the asking box, the ballot and three
-results are drawn at `/lab/catchups/vote` and wait for him.
+The two database objects — `CatchupPromptOption` and `CatchupEntry.pollOptionId`, both empty on
+production and the demo — are dropped by
+`prisma/migrations-manual/2026-10-09-drop-vote-questions.sql`, which is **NOT APPLIED**: a column drop
+before its code has deployed breaks production, so it runs only after this removal is pushed, and
+that is the owner's call.
 
 ### 3.12 LOCKED that it exists, RECOMMENDED how — time capsule mode
 
@@ -1067,7 +1014,7 @@ in it.
 | **10** | **Link previews** — **DONE 2026-09-14** | `LinkPreview`, resolution on any pasted link after the response (on save and lazily on read), Spotify and YouTube song cards, **and a link card for any other page** (his, 2026-09-14), the SSRF-guarded fetcher, images re-hosted rather than hotlinked, unresolved links printed as real links, the fail-soft rule. §3.8 says what shipped | `2026-09-14-link-previews.sql`, additive, **applied to both** (0 rows, RLS on) |
 | **11** | **Cleanup** — **PARTIAL 2026-09-14**: the three throwaways are deleted (`2026-09-14-delete-test-catchups.sql`, production; the demo had none). **The snapshot group was NOT deleted**: his answer to 28 authorised the test Catch-ups only, so it waits on him. The drops below wait on his release | the dead columns dropped **after phases 2, 5 and 10 have deployed**; the three throwaway Catch-ups and the orphaned snapshot group removed; `docs/spec/catchups.md` rewritten to describe what shipped. **CORRECTED 2026-09-09: `CatchupEdition.publishAt` is NOT dropped.** It was on the list because the `preparing` hold it served died in phase 2 — but a time capsule (§3.12) is exactly a scheduled publish date and it is the same column. Dropping it now to add it back is two migrations against a live database for nothing. Keep it, and say so in the file. `CatchupPref.deletedAt` still goes | the drop file |
 | **12** | **A question you answer out loud** — **PARTIAL 2026-09-14: plumbed, drawn, OWNER-GATED on his pick** (`/lab/catchups/voice`) | §3.10. **Cap is 120 seconds** (his 32). `audioUrl`, `audioSeconds`, `audioIsAuto` on `CatchupEntry`; the recorder in the composer; the player in the reader; the browser's own speech recognition writing the body, editable afterwards. **Draw the no-transcript case first**, because Firefox has none | the three columns |
-| **13** | **A question the group votes on** — **PARTIAL 2026-09-14: plumbed, drawn, OWNER-GATED on his pick** (`/lab/catchups/vote`) | §3.11. `CatchupPromptOption`, `CatchupEntry.pollOptionId`; options written where the question is written; the published result drawn as who chose what, with their birds, and never as a percentage | one table, one column |
+| **13** | **A question the group votes on** — **DELETED 2026-10-09 on the owner's word** (*"no need to vote. let's ditch that"*). The code is gone; the table and the column wait on the drop file | §3.11 | `2026-10-09-drop-vote-questions.sql`, NOT APPLIED |
 | **14** | **Time capsule**, drawn and plumbed 2026-09-14, **OWNER-GATED on his pick** | §3.12. **CORRECTED (his 33): `CatchupEdition.timeCapsule`, one Edition, and a `sealed` status**; the mark in settings, while collecting; `publishAt` a year out and the tick already publishing it; **the sealed-Edition surface, which is a drawing job and the real content of this phase**; the library's own capsule set (drafted in `library-draft.md`, waiting on his cut) | `2026-09-14-time-capsule.sql` |
 
 **Two sessions run beside these, not inside them.**
@@ -1080,7 +1027,7 @@ in it.
   2026-09-09**, and it ships inside phase 8. See §10.1 for what he picked and the two rules that
   came with it.
 
-**Track M, the magazine**, runs on its own timetable from `M1` and is not sequenced here.
+**Track M, the magazine, is DELETED**, 2026-10-09, on the owner's word: *"magazine is a failed experiement. delete it."* Commit `35b75868` holds the whole design and the layout engine if it is ever wanted back.
 
 **X may ship first and at any time.** It is independent of the redesign, it is fixes from causes
 S1 already root-caused, and F23 and F18 are live faults on a surface seventy members use.
@@ -1263,7 +1210,7 @@ The ledger in `handover.md` is the aid; **the brief is the test**. ¶1 to ¶52, 
 | 18 | the architecture; what the home is; a Back button is not the answer | §4.2, architecture §7 |
 | 19 | "if catch-ups was my entire app"; two parts; about 10% is good | §0 |
 | 20 | recon, then multiple rounds of brainstorming, then build it several ways | done — S1, S3, S3b, S3c, S4 |
-| 21 | the PDF and the magazine, both aspirational; scope it as a side project | track M — out of this spec, §14 |
+| 21 | the PDF and the magazine, both aspirational; scope it as a side project | **withdrawn** — track M deleted 2026-10-09, §14 |
 | 22 | amend the writing-for-agents skill | done in S0 — out |
 | 23 | three calls to action; the birds and "+18" identify nobody | §4.1 |
 | 24 | the ended/archive problem; three dots belong top right if at all | §3.6, §4.1 |
@@ -1272,8 +1219,8 @@ The ledger in `handover.md` is the aid; **the brief is the test**. ¶1 to ¶52, 
 | 27 | the birds row; "13 of the group wrote in"; the horizontal rule; "Question 1"; the tiles are fine | §6, §4.3 |
 | 28 | the image viewer: the size snap, the wrong swipe-back, the overshoot | X |
 | 29 | the heart's animation a second late | X (F23) |
-| 30 | the thick empty band under a tile; the magazine as the real answer | §4.3 (N93), track M |
-| 31 | Cyan's tile using 15% of itself; the hundred things that could go wrong | §4.3, track M |
+| 30 | the thick empty band under a tile; the magazine as the real answer | §4.3 (N93); the magazine half is withdrawn with track M |
+| 31 | Cyan's tile using 15% of itself; the hundred things that could go wrong | §4.3; the track M half is withdrawn |
 | 32 | the caption's More and Less, 2 lines → 4 | X (D38) |
 | 33 | the half-centimetre of white space on the right | X (F18) |
 | 34 | no way to navigate on a phone once you have scrolled; maybe a Collection-like navigation | §4.3 |
@@ -1300,13 +1247,10 @@ The ledger in `handover.md` is the aid; **the brief is the test**. ¶1 to ¶52, 
 
 ## 14. What this spec does not cover, and why
 
-- **The magazine and the PDF (¶21, ¶30, ¶31).** He called both *aspirational* and asked for it to
-  be scoped as its own side project. It is track M — `M1` writes its layout grammar, its failure
-  list and its feasibility spike, and it runs beside these phases rather than after them. D24 has
-  the recommended pipeline; D27 has the resolution problem, which is a data question this spec
-  does **not** settle: Catch-up photographs are boxed to 1920px on the long edge, which is 164 dpi
-  at A4 full-bleed. If M1 needs more, it needs the Collection's keep-the-original treatment, and
-  that is a migration of its own.
+- **The magazine and the PDF (¶21, ¶30, ¶31).** **Track M, the magazine, is DELETED**, 2026-10-09, on the owner's word: *"magazine is a failed experiement. delete it."* Commit `35b75868` holds the whole design and the layout engine if it is ever wanted back. M1 was built — a layout grammar,
+  a twelve-fixture corpus and a working printer — and it is gone with the rest of the track: the
+  engine, the lab room, the fixtures, the printer and `magazine.md`. M2 to M8 are withdrawn
+  unbuilt. Nothing else in this spec depended on it.
 - **The settings surface and its confirmations.** §10.3 — his own session, before phase 7.
 - **The photo wall's reading surface.** §11 — the S-features session, before phase 8.
 - **N11, the reader's title.** §4.3 — phase 8 owns it, drawn in the lab and shown to him.

@@ -234,25 +234,11 @@ export const REGISTRY: LabEntry[] = [
     note: "A question answered out loud, for him to pick. The recorder in the answering box two ways (a mic in the box, or say it instead) with every state it can land in, and the player in the reader three ways (the bird speaks, a line of voice, the tape). The recorder is real: record something and it plays in all three. The upload and its checks are built underneath and switched off.",
   },
   {
-    href: "/lab/catchups/vote",
-    title: "Who picked what",
-    group: "Delight",
-    status: "active",
-    note: "A question the group votes on, for him to pick. Asking one in the home's ask box, casting one while answering, and the result in the Edition three ways (flocks, piles, a roll call) against eight votes: two choices, six, one nobody picked, a landslide, a tie, forty on one, long choices and a single voter. The choices, the pick and their checks are built underneath and switched off.",
-  },
-  {
     href: "/lab/catchups/capsule",
     title: "Sealed for a year",
     group: "Delight",
     status: "active",
     note: "A time capsule, for him to pick. The sealed Edition three ways (the year line, asleep, waiting for morning) on the home, the list and a shared link, against seven cases from 364 days left to opened; the morning it opens; and making one in settings. The seal, the date and the checks are built underneath and switched off.",
-  },
-  {
-    href: "/lab/catchups/magazine",
-    title: "Laid out by rules, not by hand",
-    group: "Delight",
-    status: "active",
-    note: "The Catch-up magazine: a real Edition and twelve invented ones turned into A4 pages by the grammar in src/lib/magazine, drawn at true size with every page's score beside it and every photograph's dpi on it. ?data=one-writer|forty-notes|all-portraits|wall-300|hostile|... picks a fixture; ?print=1 is what headless Chrome prints. scripts/dev/print-magazine.mjs makes the PDF.",
   },
   {
     href: "/lab/catchups/swipe",
