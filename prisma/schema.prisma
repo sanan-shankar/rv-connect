@@ -1240,12 +1240,11 @@ model CatchupEntry {
   authorId  String
   body      String?
   images    String?                          // JSON array of R2 urls (reuse /api/upload)
-  // DEAD since build phase 10: null on every row, and nothing reads them. A
-  // pasted link in `body` becomes a card through `LinkPreview` instead. Dropped
-  // in phase 11, after the build that stopped reading them has deployed.
-  songUrl   String?
-  songTitle String?
-  songArt   String?
+  // The three `song*` columns WERE here. Nothing has read them since build
+  // phase 10 made a pasted link a card, and the last code touching them went
+  // on 2026-10-11 ("remove songs"). They are out of the model now and leave
+  // the database in 2026-10-11-drop-song-columns.sql, which runs only after
+  // this has deployed: a column dropped under a running build breaks it.
   // A question answered out loud (build phase 12, catchups-rework spec 3.10;
   // prisma/migrations-manual/2026-09-14-voice-answers.sql). An ordinary answer
   // with a recording attached, so every read path keeps working with no branch.

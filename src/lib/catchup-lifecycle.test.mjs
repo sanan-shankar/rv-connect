@@ -201,15 +201,12 @@ test("C-027: the answer window is re-read at write time, not trusted", () => {
   const start = src.indexOf("export async function submitEntry(");
   const body = src.slice(start, src.indexOf("\nexport async function", start + 10));
 
-  // resolveSpotify sits between the status read and the write with a 3-second
-  // network budget; every other transition here CASes on status for exactly
-  // this reason.
+  /* The gap this guards used to be a Spotify fetch with a 3-second budget,
+     deleted with the song field on 2026-10-11. The re-read stays: every other
+     transition in this feature CASes on status for the same reason, and an
+     answer landing in an Edition already on its way out is the fault. */
   assert.match(body, /tx\.catchupEdition\.count\(\{\s*where: \{ id: prompt\.editionId, status: "answering" \}/);
   assert.match(body, /if \(open === 0\) return "closed"/);
-  assert.ok(
-    body.indexOf("resolveSpotify") < body.indexOf("catchupEdition.count"),
-    "the re-read happens before the slow call, which is the read it was meant to replace"
-  );
   assert.ok(
     body.indexOf("catchupEdition.count") < body.indexOf("catchupEntry.upsert"),
     "the write happens before the window is re-read"

@@ -15,6 +15,8 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-11 (catchups) — the orphaned 2024 snapshot group is deleted, 11 duplicate memberships with it
+- 2026-10-11 (catchups) — the song columns stop being read, and their drop file waits for his release
 - 2026-10-11 (catchups) — answering out loud ships: the mic in the box, the tape in the reader, and the transcript stops welding words together
 - 2026-10-09 (catchups) — the vote question is deleted, code and spec, with its empty table left for a later drop
 - 2026-10-09 (catchups) — the magazine is deleted: engine, corpus, room, printer and spec

@@ -108,7 +108,6 @@ export default async function AdminCatchupReadingRoom({
                 select: {
                   id: true,
                   body: true,
-                  songTitle: true,
                   createdAt: true,
                   author: {
                     select: IDENTITY_SELECT,
@@ -293,7 +292,7 @@ export default async function AdminCatchupReadingRoom({
                                     entry._count.loves > 0
                                       ? `${entry._count.loves} ${entry._count.loves === 1 ? "heart" : "hearts"}`
                                       : null,
-                                    entry.songTitle
+                                    null
                                   )}
                                 </p>
                                 {entry.body && (

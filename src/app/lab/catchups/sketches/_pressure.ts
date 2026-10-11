@@ -99,9 +99,9 @@ async function entryOf(
     body: a.body,
     images: a.images.map((i) => i.url),
     photos: a.images.map((i) => photoOf(i)),
-    song: a.songUrl
-      ? { url: a.songUrl, title: a.songTitle ?? a.songUrl, art: a.songArt }
-      : null,
+    /* No song: the columns went with the song field on 2026-10-11, and a
+       pasted link is drawn by the media stack below like any other. */
+    song: null,
     media,
     text: stripLinks(a.body),
     loveCount: a.hearts.length,

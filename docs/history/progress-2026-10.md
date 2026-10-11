@@ -386,3 +386,40 @@ its box went. C-125's pin now names the four fields it needs instead of matching
 **Not tested here, and it is the one he must do**: a real microphone. Headless Chrome on this
 machine cannot open one, and Chrome's fake device emits intermittent beeps, so its loudness
 readings are worthless. Record one answer and play it back.
+
+
+## 2026-10-11 (catchups) — the orphaned 2024 snapshot group is deleted, 11 duplicate memberships with it
+
+His, 2026-10-09, answering question 45: "figure out what it's like now. it might be gone already.
+tidy up if not." It was not gone. Measured immediately before the delete: 11 members, 0 Catch-ups,
+and 0 of those members missing from the real batchYear=2024 group, so it was still the inert
+leftover of the hand-made 2024 Catch-up that build phase 4 re-pointed away from it on 2026-09-08.
+
+`2026-10-11-delete-orphan-2024-snapshot.sql` is pinned by id and refuses rather than deletes if the
+group has since acquired a Catch-up, a batch year, or a member who is not in the real batch. Proved
+in a rolled-back transaction first, then applied: snapshot gone, the real Batch of 2024 untouched
+with its 41 members. Only `GroupMember` and `CatchupSeries` carry a foreign key to `Group`, and the
+memberships cascade, so nothing else was reachable from it.
+
+
+## 2026-10-11 (catchups) — the song columns stop being read, and their drop file waits for his release
+
+His, 2026-10-09: "remove songs." `CatchupEntry.songUrl/songTitle/songArt` have been null on every
+row since build phase 10 made a pasted link a `LinkPreview` card wherever it is pasted, which is
+brief 50's actual ask.
+
+Gone from the code: `submitEntry`'s `songUrl` input, its zod field, the resolve block, `songPatch`,
+`songWarning` on both returns, the three columns in the create, and the select; `resolveSpotify`
+itself and its ten tests; the account export's two selects; the rework export's three fields and
+their type; the admin list's song in `metaLine`; and the song shape in the pressure corpus, where
+the Spotify link is now pasted into the body like any other link. The three fields are out of
+`schema.prisma`, which is safe while the columns remain: Prisma tolerates columns it does not know.
+
+**The columns themselves wait.** `2026-10-11-drop-song-columns.sql` is written and NOT APPLIED, and
+it also takes `CatchupReminderPref.deletedAt`, dead since the 30-day bin went in phase 5. It runs
+only after this commit has deployed, because one database serves production and local dev and a
+column dropped under a running build breaks it. It refuses if any answer has started carrying a song
+again. `CatchupEdition.publishAt` is NOT in it and must never be: a time capsule is that column.
+
+C-027's pin no longer orders the window re-read against a Spotify fetch that no longer exists; the
+re-read stays, with its reason rewritten.

@@ -28,9 +28,9 @@
  *  calling any of these before the owner applies the migration degrades
  *  gracefully rather than surfacing a raw server-action exception.
  *
- *  Spotify (threat T-catchups-01, the SSRF boundary): the host/path allowlist
- *  and the keyless oembed fetch live in `resolveSpotify` (WP1, `lib/catchups.ts`)
- *  only. This file calls it and never re-implements the fetch.
+ *  No song field, and no Spotify fetch from here: a pasted link becomes a
+ *  card through `lib/link-preview.ts` (build phase 10), which is the one place
+ *  that fetches anything a member typed.
  *
  *  No em dashes. User-facing copy says "Rishi Valley", never "Alumni".
  * ------------------------------------------------------------------ */
@@ -79,7 +79,6 @@ import {
   QUESTION_WINDOW_DAYS,
   deadlineIn,
   REMINDER_QUESTIONS_EXTENDED,
-  resolveSpotify,
   shiftEditionPatch,
   shiftPausedInstant,
   shouldExtendForTooFew,
@@ -184,7 +183,6 @@ const submitEntrySchema = z.object({
   promptId: z.string().min(1),
   body: z.string().trim().max(6000, "Keep it under 6000 characters.").optional(),
   images: z.array(z.url()).max(3, "Up to 3 photos.").optional(),
-  songUrl: z.string().trim().max(2000).optional(),
   /* A recording (build phase 12, spec 3.10). `null` takes it off the answer
      and leaves the words; absent leaves the column alone, like every field
      here. `transcribed` says the body came from the browser's speech
@@ -1674,17 +1672,19 @@ export async function setEditionTimeCapsule(editionId: string, timeCapsule: bool
 /**
  * Autosave-friendly upsert of one member's answer to one prompt, keyed by
  * `[promptId, authorId]`. Every field is independently optional so a blur on
- * just the text area does not clobber a photo or song saved moments earlier
- * (a field only gets written when the caller actually sent it). A pasted
- * Spotify link is resolved server-side via `resolveSpotify`; on failure the
- * rest of the answer still saves and a friendly `songWarning` comes back
- * instead of blocking the save (spec 3.4.1, "never block the answer").
+ * just the text area does not clobber a photo or a recording saved moments
+ * earlier (a field only gets written when the caller actually sent it).
+ *
+ * THERE IS NO SONG FIELD. A song is a pasted link like any other link now,
+ * resolved into a card by build phase 10, and the three `song*` columns are
+ * null on every row and dropped by
+ * `prisma/migrations-manual/2026-10-11-drop-song-columns.sql` once this has
+ * deployed. His word, 2026-10-09: "remove songs."
  */
 export async function submitEntry(input: {
   promptId: string;
   body?: string;
   images?: string[];
-  songUrl?: string;
   baseUpdatedAt?: string;
 }) {
   return runAction(async () => {
@@ -1721,7 +1721,6 @@ export async function submitEntry(input: {
 
     const hasBody = parsed.data.body !== undefined;
     const hasImages = parsed.data.images !== undefined;
-    const hasSong = parsed.data.songUrl !== undefined;
 
     // An answer's images must be this member's own uploads, not arbitrary
     // external URLs (M10) or another member's objects (C2). `z.url()` above
@@ -1762,22 +1761,6 @@ export async function submitEntry(input: {
       }
     }
 
-    let songPatch: { songUrl: string | null; songTitle: string | null; songArt: string | null } | undefined;
-    let songWarning: string | undefined;
-    if (hasSong) {
-      const trimmedSong = parsed.data.songUrl!.trim();
-      if (!trimmedSong) {
-        songPatch = { songUrl: null, songTitle: null, songArt: null };
-      } else {
-        const resolved = await resolveSpotify(trimmedSong);
-        if (resolved.ok) {
-          songPatch = { songUrl: resolved.songUrl, songTitle: resolved.songTitle, songArt: resolved.songArt };
-        } else {
-          songWarning = resolved.error; // fail soft: the rest of the answer still saves below
-        }
-      }
-    }
-
     /* The lost-update guard, when the caller is holding a row version (audit
      * C-125, the same instrument editPost carries for M66).
      *
@@ -1800,14 +1783,12 @@ export async function submitEntry(input: {
     const written = {
       ...(hasBody ? { body: bodyValue } : {}),
       ...(hasImages ? { images: imagesValue } : {}),
-      ...(songPatch ? songPatch : {}),
       ...(audioPatch ? audioPatch : {}),
     };
     const columns = {
       id: true,
       body: true,
       images: true,
-      songUrl: true,
       audioUrl: true,
       updatedAt: true,
     } as const;
@@ -1815,14 +1796,13 @@ export async function submitEntry(input: {
     /* The window is re-read at WRITE time, not trusted from the read above
      * (audit C-027).
      *
-     * Between the two sits `resolveSpotify`, a network call with a 3-second
-     * budget, and every other transition in this feature is a CAS on status
-     * for exactly this reason. In those three seconds a Keeper's "close and
-     * prepare", or any page view's clock advance, can move the Edition out of
-     * `answering` -- and this write would have landed an answer in an Edition
-     * already being made ready to publish, where it appears in the keepsake
-     * with nobody expecting it. Counted inside the transaction that does the
-     * write, so nothing can move in between. */
+     * Between the read and the write a Keeper's "close and send it out", or
+     * any page view's clock advance, can move the Edition out of `answering`
+     * -- and this write would have landed an answer in an Edition already on
+     * its way out, where it appears with nobody expecting it. Counted inside
+     * the transaction that does the write, so nothing can move in between.
+     * (The gap used to be measured in seconds: a Spotify fetch sat here until
+     * the song field was deleted on 2026-10-11.) */
     const entry = await prisma.$transaction(async (tx) => {
       const open = await tx.catchupEdition.count({
         where: { id: prompt.editionId, status: "answering" },
@@ -1854,9 +1834,6 @@ export async function submitEntry(input: {
           authorId: session.user.id,
           body: bodyValue ?? null,
           images: imagesValue ?? null,
-          songUrl: songPatch?.songUrl ?? null,
-          songTitle: songPatch?.songTitle ?? null,
-          songArt: songPatch?.songArt ?? null,
           audioUrl: audioPatch?.audioUrl ?? null,
           audioSeconds: audioPatch?.audioSeconds ?? null,
           audioIsAuto: audioPatch?.audioIsAuto ?? false,
@@ -1904,11 +1881,11 @@ export async function submitEntry(input: {
       if (stillUsed === 0) await purgeImageUrls([entry.replacedAudio], "replaced");
     }
 
-    if (!entry.body && !entry.images && !entry.songUrl && !entry.audioUrl) {
+    if (!entry.body && !entry.images && !entry.audioUrl) {
       await prisma.catchupEntry.deleteMany({ where: { id: entry.id } });
       revalidatePath(`/catchups/${edition.catchupId}`);
       // No row, so no version: the next save creates one afresh.
-      return { success: true, entryId: null, updatedAt: null, songWarning };
+      return { success: true, entryId: null, updatedAt: null };
     }
 
     /* A link pasted into the answer starts resolving now, after the response
@@ -1924,7 +1901,6 @@ export async function submitEntry(input: {
       success: true,
       entryId: entry.id,
       updatedAt: entry.updatedAt.toISOString(),
-      songWarning,
     };
   });
 }

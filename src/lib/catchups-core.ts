@@ -39,7 +39,7 @@ import type {
  *  import instead of a static `import`:
  *
  *  The pure state machine below (computeStatus, planNextAction, the
- *  patch helpers, cadence math, resolveSpotify) is unit-tested with
+ *  patch helpers, cadence math) is unit-tested with
  *  `node --test src/lib/catchups-core.test.mjs` and MUST run with no database.
  *  Node strips `import type` entirely, so the only remaining static import
  *  here is erased at load; a static `import { prisma }` would instead pull
@@ -1331,80 +1331,6 @@ export function catchupStageLine(
     // "Open for questions" would be a lie on the one card that ever had it.
     default:
       return "Not open yet";
-  }
-}
-
-// ─── Spotify (keyless oembed; the SSRF boundary) ─────────────────────────────
-
-export type SpotifyResult =
-  | { ok: false; error: string }
-  | { ok: true; songUrl: string; songTitle: string; songArt: string | null };
-
-/** Optional intl prefix, then exactly track / album / playlist and a base62 id. */
-const SPOTIFY_PATH_RE = /^(?:\/intl-[a-z]{2})?\/(track|album|playlist)\/([A-Za-z0-9]+)/;
-
-/**
- * Resolve a user-supplied Spotify URL through the keyless oembed endpoint.
- * SSRF boundary: the host MUST be exactly open.spotify.com over https, and the
- * path MUST be a track / album / playlist. Anything else is rejected with a
- * friendly error. On a valid link we fetch with a 3s timeout and fail soft:
- * the answer is never blocked on Spotify.
- */
-export async function resolveSpotify(
-  rawUrl: string,
-  opts: { fetchImpl?: typeof fetch; timeoutMs?: number } = {}
-): Promise<SpotifyResult> {
-  const input = (rawUrl ?? "").trim();
-  if (!input) return { ok: false, error: "Paste a Spotify link to add a song." };
-
-  let parsed: URL;
-  try {
-    parsed = new URL(input);
-  } catch {
-    return {
-      ok: false,
-      error: "That does not look like a link. Paste a Spotify track, album, or playlist.",
-    };
-  }
-
-  if (parsed.protocol !== "https:" || parsed.hostname !== "open.spotify.com") {
-    return { ok: false, error: "Only Spotify links work here. Paste one from open.spotify.com." };
-  }
-
-  const match = SPOTIFY_PATH_RE.exec(parsed.pathname);
-  if (!match) {
-    return { ok: false, error: "Paste a link to a Spotify track, album, or playlist." };
-  }
-
-  const kind = match[1];
-  const id = match[2];
-  const songUrl = `https://open.spotify.com/${kind}/${id}`;
-
-  const fetchImpl = opts.fetchImpl ?? globalThis.fetch;
-  if (typeof fetchImpl !== "function") {
-    return { ok: true, songUrl, songTitle: songUrl, songArt: null };
-  }
-
-  const timeoutMs = opts.timeoutMs ?? 3000;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetchImpl(
-      `https://open.spotify.com/oembed?url=${encodeURIComponent(songUrl)}`,
-      { signal: controller.signal }
-    );
-    if (!res.ok) return { ok: true, songUrl, songTitle: songUrl, songArt: null };
-    const data = (await res.json()) as { title?: unknown; thumbnail_url?: unknown };
-    const title =
-      typeof data.title === "string" && data.title.trim() ? data.title.trim() : songUrl;
-    const art =
-      typeof data.thumbnail_url === "string" && data.thumbnail_url ? data.thumbnail_url : null;
-    return { ok: true, songUrl, songTitle: title, songArt: art };
-  } catch {
-    // Timeout, network failure, or bad JSON: fail soft, still store the link.
-    return { ok: true, songUrl, songTitle: songUrl, songArt: null };
-  } finally {
-    clearTimeout(timer);
   }
 }
 

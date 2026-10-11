@@ -112,9 +112,6 @@ export type ExportedAnswer = {
   author: ExportedPerson;
   body: string | null;
   images: ExportedImage[];
-  songUrl: string | null;
-  songTitle: string | null;
-  songArt: string | null;
   /** A recorded answer (build phase 12): the url, its length, whether the
    *  body was transcribed, and the copied bytes like a photograph's. Null
    *  when the answer was written, which is every answer before phase 12. */

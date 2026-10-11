@@ -111,9 +111,6 @@ const answer = (
   author,
   body,
   images: [],
-  songUrl: null,
-  songTitle: null,
-  songArt: null,
   hearts: [],
   createdAt: "2026-08-14T09:00:00.000Z",
   updatedAt: "2026-08-14T09:00:00.000Z",
@@ -226,12 +223,9 @@ const SONGS = question(
   "Songs you've had on repeat lately",
   "songs",
   [
-    /* A Spotify link the resolver can read. */
-    answer(CAST.ordinary, "Straight Line Was A Lie", {
-      songUrl: "https://open.spotify.com/track/1KpAjuTO2M9eYnaGz6uoTc",
-      songTitle: "Straight Line Was A Lie",
-      songArt: "/images/collection/c1.webp",
-    }),
+    /* A Spotify link, which is a pasted link like any other since build
+       phase 10: the card comes from `LinkPreview`, not from a song column. */
+    answer(CAST.ordinary, "Straight Line Was A Lie https://open.spotify.com/track/1KpAjuTO2M9eYnaGz6uoTc"),
     /* A YouTube link, which today's resolver does not handle at all. */
     answer(CAST.diacritics, "https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
     /* A host nobody has written a resolver for. */

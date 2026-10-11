@@ -254,9 +254,6 @@ const out = {
                 width: null,
                 height: null,
               })),
-              songUrl: e.songUrl,
-              songTitle: e.songTitle,
-              songArt: e.songArt,
               /* A recording is copied like a photograph, because a url is
                  only regenerable while the bucket keeps the key (phase 12). */
               audio: e.audioUrl

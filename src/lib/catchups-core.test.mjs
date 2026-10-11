@@ -45,7 +45,6 @@ import {
   editionCountdownLabel,
   describeEditionStatus,
   catchupStageLine,
-  resolveSpotify,
   isMissingCatchupTable,
   CATCHUP_PROMPT_SETS,
   dailyBucket,
@@ -688,75 +687,6 @@ test("catchupStageLine: every state has a line, including the ones nothing reach
   /* Missing timestamps must not print "Answers close undefined". */
   assert.equal(catchupStageLine("active", { status: "answering" }, FMT), "Open for answers");
   assert.equal(catchupStageLine("active", { status: "published" }, FMT), "Out now");
-});
-
-// ─── resolveSpotify: host/path allowlist + fail-soft (stubbed fetch) ─────────
-
-const okFetch = async () => ({
-  ok: true,
-  json: async () => ({ title: "Nightcall", thumbnail_url: "https://i.scdn.co/image/abc" }),
-});
-const throwFetch = async () => {
-  throw new Error("network down");
-};
-const notOkFetch = async () => ({ ok: false, json: async () => ({}) });
-
-test("resolveSpotify: rejects a non-Spotify host", async () => {
-  const r = await resolveSpotify("https://evil.example.com/track/abc", { fetchImpl: throwFetch });
-  assert.equal(r.ok, false);
-});
-
-test("resolveSpotify: rejects non-https", async () => {
-  const r = await resolveSpotify("http://open.spotify.com/track/abc", { fetchImpl: throwFetch });
-  assert.equal(r.ok, false);
-});
-
-test("resolveSpotify: rejects a non track/album/playlist path", async () => {
-  const r = await resolveSpotify("https://open.spotify.com/user/someone", { fetchImpl: throwFetch });
-  assert.equal(r.ok, false);
-});
-
-test("resolveSpotify: rejects garbage that is not a URL", async () => {
-  const r = await resolveSpotify("not a link", { fetchImpl: throwFetch });
-  assert.equal(r.ok, false);
-});
-
-test("resolveSpotify: rejects an empty string", async () => {
-  const r = await resolveSpotify("", { fetchImpl: throwFetch });
-  assert.equal(r.ok, false);
-});
-
-test("resolveSpotify: resolves a track and normalizes the URL (strips tracking query)", async () => {
-  const r = await resolveSpotify("https://open.spotify.com/track/abc123?si=deadbeef", { fetchImpl: okFetch });
-  assert.equal(r.ok, true);
-  assert.equal(r.songUrl, "https://open.spotify.com/track/abc123");
-  assert.equal(r.songTitle, "Nightcall");
-  assert.equal(r.songArt, "https://i.scdn.co/image/abc");
-});
-
-test("resolveSpotify: accepts album and playlist paths", async () => {
-  assert.equal((await resolveSpotify("https://open.spotify.com/album/xyz", { fetchImpl: okFetch })).ok, true);
-  assert.equal((await resolveSpotify("https://open.spotify.com/playlist/xyz", { fetchImpl: okFetch })).ok, true);
-});
-
-test("resolveSpotify: accepts an intl-prefixed link and normalizes it", async () => {
-  const r = await resolveSpotify("https://open.spotify.com/intl-de/track/abc123", { fetchImpl: okFetch });
-  assert.equal(r.ok, true);
-  assert.equal(r.songUrl, "https://open.spotify.com/track/abc123");
-});
-
-test("resolveSpotify: fails soft when the oembed fetch throws (still stores the link)", async () => {
-  const r = await resolveSpotify("https://open.spotify.com/track/abc123", { fetchImpl: throwFetch });
-  assert.equal(r.ok, true);
-  assert.equal(r.songUrl, "https://open.spotify.com/track/abc123");
-  assert.equal(r.songTitle, "https://open.spotify.com/track/abc123");
-  assert.equal(r.songArt, null);
-});
-
-test("resolveSpotify: fails soft on a non-200 oembed response", async () => {
-  const r = await resolveSpotify("https://open.spotify.com/track/abc123", { fetchImpl: notOkFetch });
-  assert.equal(r.ok, true);
-  assert.equal(r.songArt, null);
 });
 
 // ─── P2021 guard ─────────────────────────────────────────────────────────────
