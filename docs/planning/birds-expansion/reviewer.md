@@ -46,6 +46,12 @@ coordinates, 0..100, centre 50,50), and the fix.
    dead: fail. The one straight edge allowed is a chisel bill on a woodpecker or kingfisher
    (the "chisel ceiling" the file already names), and even that has a rounded tip and base. Legs
    may be straight with rounded ends.
+   **A bill is never cured by making it a club.** After the first round the owner saw "some
+   beaks that have become very thick and rounded" and said that is "not the only way to solve
+   the problem" (¶41, ¶42). A bill is slim, tapers along its length and ends in a soft rounded
+   tip; the Purple-rumped Sunbird's (43) is one right answer, "unique, but still cute, and not
+   like this ultra sharp thing", and there are others. A bill that is as thick at the tip as at
+   the base, or a thick blunt rounded wedge, fails this line as surely as a chop does.
 2. **No needles.** Nothing thinner than about 3 units at its base. Crests are rounded tufts;
    tail streamers are slender ribbons with rounded ends.
 3. **Element budget.** Body, head, wing, tail, bill, eye, and at most three marks. Past about

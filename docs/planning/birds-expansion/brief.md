@@ -246,3 +246,15 @@ know, I can't add more than this. Just keep the quality really high and make sur
 criteria. Make sure you have an independent reviewer. Make sure you review everything and you are
 proud of your work, because we're not shipping anything off big [half-baked? unclear]. Birds are
 one of the biggest personalities of this website, so this is incredibly important.
+
+## Part three, after the first round of fixes (2026-10-11, typed and spoken in the session)
+
+**[41]** I see some beaks that have become very thick and rounded after my comments. That's not
+the only way to solve the problem. For example, what the Purple-rumped Sunbird's beak is, is
+pretty nice and unique and still cute.
+
+**[42]** It's not to say that that's the only way to do it. There's probably other ways to do it.
+But I just didn't like that super thick blunt one. And saying that this is good doesn't mean it's
+the only way and you should only use this. There might be multiple correct answers. I'm just
+saying that this is one. That does it unique, but it's still cute, and it's not like this ultra
+sharp thing.

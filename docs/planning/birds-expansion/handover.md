@@ -125,6 +125,9 @@ the order of `/birds`.
 - Replacing a bird he did not flag is his call (¶39); the questions below carry each one.
 - Quality over count (¶39, ¶40); a bird that fails three reviews is parked.
 - The Koel's and the Coucal's red eyes stay (¶14).
+- **A bill is slim and tapered to a soft rounded tip, never a thick blunt club** (¶41, ¶42,
+  2026-10-11): "I just didn't like that super thick blunt one"; the Purple-rumped Sunbird's is
+  one right answer and "there might be multiple correct answers".
 - Prior, still standing: the Hoopoe is the mascot and never a member's; the Indian Roller is
   the owner's alone (`src/lib/avatar.ts`); `BIRD_SPECIES_COUNT` is never raised, because it is
   the modulo every existing member hashes through; no `prisma db push`, ever.
@@ -381,6 +384,23 @@ end.
 - **Q10**: redraw both the Sirkeer Malkoha and the Small Minivet; keep whichever of old and new
   looks better, shown as a pair at gate 2.
 - **Q11**: the leg remark is dropped; the Lapwing's legs are not moved.
+
+**2026-10-11, after seeing the first round's renders, his words verbatim:**
+
+> continue. also I see some beaks that have become very thick and rounded after my comments.
+> that not the only way to solve the problem. for examle what the purple rumped sunbird beak is
+> pretty nice and unique and still cute.
+
+> It's not to say that that's not that that's the only way to do it. Um, there's probably other
+> ways to do it. But I just didn't like that super thick blunt one. And saying that this is good
+> doesn't mean it's the only way and you should only use this. Any there's, there might be
+> multiple correct answers. I'm just saying that this is one. Um, that does it unique, but it's
+> still cute and it's not like this ultra sharp thing.
+
+**The reading taken:** the round-1 cure for a chopped bill overshot into thick blunt clubs. A
+bill keeps a slim taper and a soft rounded tip (the Purple-rumped Sunbird's slim down-curved arc
+is one model, not the template); the reviewer checklist line 1 now says so, and U2a gets a
+round 3 on bills before its review.
 
 ---
 
