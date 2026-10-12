@@ -31,6 +31,45 @@ flag is his call alone (¶39), and the Hoopoe and the Indian Roller are never de
 
 ---
 
+## Resume here (kept current; read before the board)
+
+**State on 2026-10-12.** Units DONE: set-up, tooling, U5 (dealing rule, commit 9ef4c6f9). U2a is
+PARTIAL: rounds 1 to 3 committed (e9cf7112, e7f32046), review 1 verbatim in
+`reviews/u2a-review-1.md` (4 pass: 4, 19, 27, 30; 13 fail), round 4 (the fix round for the
+thirteen, one Fable hand, no commit, no handover edits) was running when this block was written.
+If it has reported: re-centre the seventeen (`node scripts/dev/centroid.mjs --only
+4,5,9,10,12,17,18,19,20,21,27,28,30,40,41,42,46`, run until "0 need attention"), render them
+(`node scripts/dev/bird-sheet.mjs --only <same>`), look at the 220 and 40 sheets yourself, send
+the thirteen to ONE re-review (see the budget rule below), act on remaining faults once more at
+most (review round 3 of 3 parks a bird), then commit by pathspec with the ledger rows updated.
+If it has not reported and no agent is running (`ListAgents`), re-brief round 4 from
+`reviews/u2a-review-1.md`: the brief is its "runner's scope decisions" section plus the loop
+in "How to work a drawing unit".
+
+**Then, in order:** U2b, U3a, U3b, U4a, U4b, U4c, U4d, U4e, U6 (see the board and "The units").
+Owner answers are all in; nothing is owner-gated until gate 2, which is rendered sheets and
+before/after pairs, not prose (he decides by seeing, Q5).
+
+**Rules this unit taught, all binding:**
+- One reviewer per unit, spawned by the runner, never by the drawer; at most two agents at once.
+  A drawer spawned seventeen reviewers and was killed (2026-10-08); the owner: "tf are 17
+  agents doing that's crazy".
+- **Reviewer budget**: a verdict per bird in about five minutes, from the 600px render, the 40px
+  sheet and the path coordinates; no pixel sampling, no reconstructing old renders, no scripts
+  beyond `bird-edges.mjs` and `bird-sheet.mjs`. Two reviewers ran eight hours each on 2026-10-11
+  and cost a night. Stop any reviewer past an hour (`TaskStop`) and re-brief with the budget.
+- Commit each round as it lands (drawn, review pending) so an interruption loses nothing; the
+  owner asked for this on 2026-10-08. Always `git commit -- <paths>`: another session's
+  catch-ups work sits staged and modified in this checkout.
+- A bill is never cured by a club (¶41, ¶42); the `Eye` now takes a disc colour so a head darker
+  than ink keeps a visible eye; the app's svg clips at the 100-unit box, so every tip stays 3
+  units inside (centroid.mjs measures the padded probe, cap 47); `bird-edges.mjs` flags flat
+  quadratics, and the eye still judges a near-straight one.
+- Candidates for a slot (Q2, Q3, Q4, Q10) are appended entries named " (candidate)" until he
+  picks at gate 2; new species are appended past the Roller (index 51 and up).
+
+---
+
 ## Status board (update every unit)
 
 | Item | Status | Notes |
