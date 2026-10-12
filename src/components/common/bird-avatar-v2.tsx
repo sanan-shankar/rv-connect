@@ -255,8 +255,10 @@ const ARCHES: Arche[] = [
           <path d="M31 68 Q29 71 32.5 73 Q46 86 64 78 Q67.5 76 65 73 Q56 64 40 64 Q33 64 31 68 Z" fill={CHOC} />
           {/* white bib */}
           <ellipse cx="48" cy="58" rx="14" ry="13" fill={WHITE} />
-          {/* big coral bill (thick) */}
-          <path d="M70 38 Q85 39 89.2 44.4 Q91 46.8 89 48.8 Q85 51.6 70 50 Q66 44 70 38 Z" fill={RED} />
+          {/* big coral dagger: 7.5 deep where it starts beside the eye, 23 long, tapering steadily to a
+              2.5-unit round point. Both long edges bow only a fourteenth of their chord, so it reads as a
+              blade and not a lozenge; the rear edge is a soft bow over the chocolate head */}
+          <path d="M66 39.6 Q78 39.7 88.2 43.3 Q90 44.5 88.3 45.8 Q78 47.9 66 47.1 Q63.6 43.4 66 39.6 Z" fill={RED} />
           <Eye cx={60} cy={40} />
         </g>
       );
@@ -398,10 +400,16 @@ const ARCHES: Arche[] = [
           <ellipse cx="46" cy="64" rx="16" ry="13" fill={mix(GREY, "#fff", 0.18)} />
           {/* head */}
           <circle cx="56" cy="42" r="15" fill={GREY} />
-          {/* huge down-curved bill */}
-          <path d="M61.5 35.8 Q89 35 84 50.5 Q83.5 55 79 55.8 Q71 56.8 65 55.2 Q59.6 53.3 59.3 46.5 Q59 39.5 61.5 35.8 Z" fill={HORN} />
-          {/* casque ridge: the rear end is a round knob over the eye, never a chord */}
-          <path d="M61.5 33.8 Q82.5 31 84.4 36 Q85 38.4 82.4 39.6 Q72 37 63.8 40.2 Q58.8 40.6 58.9 37 Q59 34.2 61.5 33.8 Z" fill={CASQ} />
+          {/* huge down-curved banana bill: both edges are offsets of ONE curved midline, so the bill is
+              12.5 units deep where it leaves the head, 9 at mid-length, 6.5 at three quarters and a
+              3.6-unit round tip; the culmen is the outside of the curve (convex), the lower edge the
+              inside, and the rear edge over the head is a soft bow. Big, because the bill IS the
+              hornbill; never a block, never a sickle */}
+          <path d="M61.5 35.3 Q71 35 77.4 40.3 Q82.6 45.7 83.9 53.8 Q83.2 57 80.6 55.2 Q76.8 49.1 72.6 48 Q68.5 47.1 62.5 47.7 Q60.3 41.5 61.5 35.3 Z" fill={HORN} />
+          {/* casque: a small dark knob riding the base of the culmen, its front a rounded point that
+              just overhangs the bill; its underside is inside the bill and its rear wraps the bill's
+              top corner, so only the dome shows */}
+          <path d="M61.3 38.2 Q60 32.8 66 31.2 Q74.5 30 77.8 36.4 Q78.6 39 76.8 40.6 Q70 38 63.6 39.6 Q61.4 39.8 61.3 38.2 Z" fill={CASQ} />
           <Eye cx={58} cy={41} />
         </g>
       );
@@ -700,12 +708,14 @@ const ARCHES: Arche[] = [
       return (
         <g>
           <circle cx="49" cy="55" r="33" fill={YEL} />
+          {/* pink bill, drawn UNDER the hood so it emerges from the hood's own curve: 7 deep at the
+              hood's edge, slightly down-curved, tapering to a 2.8-unit round tip */}
+          <path d="M64 39.2 Q76 38.9 83.8 44.4 Q85.6 45.9 84.1 47.2 Q76 48 64 45.6 Z" fill={PINK} />
           {/* black hood */}
           <circle cx="55" cy="42" r="17" fill={BLK} />
           <path d="M38 40 Q52 32 66 40 Q52 40 44 44 Z" fill={BLK} />
           {/* black wing edge */}
           <path d="M31.5 66.5 Q39 77 50 79.5 Q55.6 80 54.5 77 Q50.3 66.8 42 59.5 Q40 57.2 37.5 57.5 Q32.5 58.5 30 62 Q29 64.5 31.5 66.5 Z" fill={BLK} />
-          <path d="M70 40 Q84 41 82 49 Q78 53 71 51 Q68 46 70 40 Z" fill={PINK} />
           <Eye cx={60} cy={41} />
         </g>
       );
@@ -935,10 +945,12 @@ const ARCHES: Arche[] = [
           {/* small head capping the top of the neck */}
           <circle cx="57" cy="40" r="8" fill={BLK} />
           <ellipse cx="54.5" cy="45" rx="4.5" ry="5" fill={BLK} />
-          {/* hooked grey bill: base tucked into the head, flows out, small rounded hook tip */}
-          <path d="M61 37 Q71 36.2 76.5 38.9 Q79 40.1 78 41.6 Q77.2 42.4 75.3 42.4 Q76.4 43.7 74.9 44.8 Q72.8 45.4 71.4 43.9 Q66 44.6 61 42 Q59 39.5 61 37 Z" fill={BILL} />
+          {/* slim grey bill: under 4 units deep at the head, nearly parallel-sided for 15 units, then
+              the culmen curls down into a small round hook that drops 2 units below the lower mandible.
+              Base tucked into the head with a soft rear bow */}
+          <path d="M61 37.7 Q70 37.5 77.6 39.4 Q80.2 40.4 79.4 42.6 Q78.8 44.2 77.2 43.3 Q76.6 42.3 75.6 41.8 Q68 42.6 61 41.5 Q59.7 39.6 61 37.7 Z" fill={BILL} />
           {/* soft culmen ridge so the bill reads dimensional (rounded stroke ends) */}
-          <path d="M62.5 38.3 Q69 37.9 75 40.1" stroke={mix(BILL, "#000", 0.22)} strokeWidth="0.9" fill="none" strokeLinecap="round" opacity="0.45" />
+          <path d="M62.5 38.6 Q69 38.4 75.5 40.3" stroke={mix(BILL, "#000", 0.22)} strokeWidth="0.9" fill="none" strokeLinecap="round" opacity="0.45" />
           {/* blue-green eye */}
           <circle cx="57" cy="39.6" r="3.1" fill={EYE} />
           <circle cx="57" cy="39.6" r="1.45" fill={INK} />
@@ -986,8 +998,9 @@ const ARCHES: Arche[] = [
           <ellipse cx="50" cy="64" rx="13" ry="10" fill={mix(BUFF, "#fff", 0.32)} />
           {/* nape plumes: a round tuft mostly under the head, its visible rear a lobe not a chop */}
           <path d="M46 36 Q52 33.8 57 36 Q59.5 39 57 42 Q52 45 45.5 44.2 Q41.8 40 46 36 Z" fill={BUFF} />
-          {/* yellow dagger bill, drawn UNDER the head so it emerges from the head's own curve */}
-          <path d="M64 44.6 Q78.5 45.6 81.2 49 Q82.6 51 80.8 51.6 Q74 53 64 49.8 Z" fill={BILL} />
+          {/* yellow dagger bill, drawn UNDER the head so it emerges from the head's own curve: 5.4 deep
+              at the head's edge, tapering evenly to a 2-unit round point */}
+          <path d="M64 45.2 Q77.5 45.6 81 49.2 Q82.2 50.9 80.7 51.3 Q73.5 51.8 64 49.6 Z" fill={BILL} />
           <circle cx="58" cy="45" r="12" fill={WHT} />
           {/* crown plume on the head: both ends rounded */}
           <path d="M52.5 40.5 Q59 36.2 64.5 39.3 Q66.8 40.8 64.6 42.2 Q59 40.6 54.5 43.8 Q51.3 43.2 52.5 40.5 Z" fill={BUFF} />
@@ -1359,9 +1372,10 @@ const ARCHES: Arche[] = [
                 <path d="M53 57 Q69 61 66 75 Q57 82 49 76 Q46.5 66 53 57 Z" fill={CREAM} />
                 {/* separate rounded HEAD set clearly above the body - this is what makes it read as a bird */}
                 <circle cx="58" cy="36" r="14" fill={BAY} />
-                {/* stout hooked bill, softened: a convex culmen that droops into a round tip. Drawn UNDER
-                    the mask so it emerges from the mask's own rounded end, with no base edge to see */}
-                <path d="M70.5 36.5 Q80.5 36 82 41 Q82.5 44.5 78.5 45 Q76.5 45 76 43 Q73.5 42.8 70.5 41.5 Q67.5 41.5 67.5 39 Q67.5 36.5 70.5 36.5 Z" fill={BILL} />
+                {/* short stout shrike bill: 5.2 deep where it leaves the mask, a convex culmen that drops
+                    to 3.9 deep over 6 units and curls into a small round hook 2 below the lower mandible.
+                    Drawn UNDER the mask so it emerges from the mask's own rounded end, with no base edge */}
+                <path d="M69 36.2 Q77.2 35.7 81 39.3 Q82.6 41.1 81.7 43 Q81 44 79.7 43.2 Q79.1 42.3 78.2 41.5 Q74 41.9 69 41 Q67.5 38.5 69 36.2 Z" fill={BILL} />
                 {/* THE SIGNATURE: one bold black bandit mask through the eye, sitting only on the head */}
                 <path d="M47 35 Q60 30 72 36 Q73 40 70 43 Q60 38 49 41 Q45 39 47 35 Z" fill={MASK} />
                 <Eye cx={60} cy={38} r={3.8} />

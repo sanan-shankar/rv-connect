@@ -34,10 +34,11 @@ flag is his call alone (¶39), and the Hoopoe and the Indian Roller are never de
 ## Resume here (kept current; read before the board)
 
 **State on 2026-10-12.** Units DONE: set-up, tooling, U5 (dealing rule, commit 9ef4c6f9). U2a is
-PARTIAL: rounds 1 to 3 committed (e9cf7112, e7f32046), review 1 verbatim in
+PARTIAL: rounds 1 to 3 committed (e9cf7112, e7f32046, and the round-3 bills in the commit after cdb6260c), review 1 verbatim in
 `reviews/u2a-review-1.md` (4 pass: 4, 19, 27, 30; 13 fail), round 4 (the fix round for the
-thirteen, one Fable hand, no commit, no handover edits) was running when this block was written.
-If it has reported: re-centre the seventeen (`node scripts/dev/centroid.mjs --only
+thirteen, one Fable hand, no commit, no handover edits) was stopped on 2026-10-12 two minutes in,
+before it edited anything, when the owner paused the session; it must be re-briefed from scratch.
+When it has reported: re-centre the seventeen (`node scripts/dev/centroid.mjs --only
 4,5,9,10,12,17,18,19,20,21,27,28,30,40,41,42,46`, run until "0 need attention"), render them
 (`node scripts/dev/bird-sheet.mjs --only <same>`), look at the 220 and 40 sheets yourself, send
 the thirteen to ONE re-review (see the budget rule below), act on remaining faults once more at
