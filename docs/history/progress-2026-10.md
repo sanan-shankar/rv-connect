@@ -1,3 +1,18 @@
+## 2026-10-14 (birds) — U2a closed: seventeen birds through two reviews, and the campaign goes lean
+
+The owner, resuming: *"I've added birds before and it's never taken so long or so much usage...
+you can achieve the same quality with less usage. I don't have a problem with time."* Read: the
+same bar, less ceremony. Round four of U2a was one Fable drawer with a brief that pointed at
+`reviews/u2a-review-1.md` instead of quoting it; it fixed the thirteen that failed review one and
+gave `Eye` an optional disc colour (the Flameback's and the Shrike's heads are darker than ink)
+with inline iris-and-pupil eyes on the Oriole, Drongo and Munia. Review two was one Opus agent on
+a five-minute-a-bird budget: fifteen minutes, nine pass, four fail on six faults, five of them
+made by the fixes (a ruler line where the Hornbill's bill meets the face, a blunt thumb on the
+Shrike, a chestnut wedge on the Munia, the Flameback's eye stripe reading as a shadow). One fix
+pass by the same drawer, context intact, then the runner's own look at 600px and no third review.
+Every unit from here runs draw, one review, one fix pass, commit; the rule and his words sit in
+the handover's Resume block. Visual baselines move once, in U6, when every changed bird is in.
+
 ## 2026-10-09 (catchups) — the magazine is deleted: engine, corpus, room, printer and spec
 
 The owner, 2026-10-09: *"magazine is a failed experiement. delete it."* Track M is closed. Out of the

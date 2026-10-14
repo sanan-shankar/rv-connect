@@ -58,10 +58,16 @@ function mix(hex: string, withHex: string, pct: number) {
   return `#${[r, g, bl].map((n) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0")).join("")}`;
 }
 
-function Eye({ cx, cy, r = 4.4 }: { cx: number; cy: number; r?: number }) {
+/**
+ * The house eye: a dark disc with a catchlight up-left. `disc` defaults to INK; a bird whose head
+ * is darker than INK (the Munia's near-black hood, the Shrike's mask) passes a darker disc so the
+ * eye stays the darkest point on the bird (review 1, 2026-10-12). A species with a coloured eye
+ * draws its own iris and pupil, the way the Koel, Coucal and Cormorant do.
+ */
+function Eye({ cx, cy, r = 4.4, disc = INK }: { cx: number; cy: number; r?: number; disc?: string }) {
   return (
     <g>
-      <circle cx={cx} cy={cy} r={r} fill={INK} />
+      <circle cx={cx} cy={cy} r={r} fill={disc} />
       <circle cx={cx - r * 0.34} cy={cy - r * 0.34} r={r * 0.33} fill="#FFFFFF" />
     </g>
   );
@@ -280,10 +286,11 @@ const ARCHES: Arche[] = [
           <ellipse cx="38" cy="52" rx="13" ry="12" fill={AZ} transform="rotate(-14 38 52)" />
           {/* scarlet vent low */}
           <path d="M53 72 Q60 67.8 68.5 69.5 Q71.5 71 69.5 74 Q66 82 53.5 78 Q50 75.5 53 72 Z" fill={RED} />
-          {/* head stripe */}
-          <path d="M40.5 36 Q56 30 69.5 37.5 Q73.2 40.8 69.5 44.2 Q56 38 42.5 44 Q37.3 41 40.5 36 Z" fill={INK} />
+          {/* head stripe: a 6.8-unit band along one arc with a round cap at each end (review 1 found
+              both ends chopped), raised so at least 2 units of buff/green show between it and the eye */}
+          <path d="M39.8 35.1 Q45.1 31.9 50.5 31 Q56 30 61.4 31.3 Q66.7 32.5 71.9 36 Q74.7 37.8 72.8 40.7 Q71 43.5 68.1 41.6 Q64 38.9 59.8 37.9 Q55.8 36.9 51.7 37.7 Q47.5 38.4 43.2 40.9 Q40.3 42.7 38.6 39.7 Q36.8 36.8 39.8 35.1 Z" fill={INK} />
           {beak(76, 50, 11, 3, "#C9B48E")}
-          <Eye cx={62} cy={44} />
+          <Eye cx={62} cy={45.5} />
         </g>
       );
     },
@@ -379,8 +386,8 @@ const ARCHES: Arche[] = [
           {/* yellow eye-patches */}
           <ellipse cx="52" cy="48" rx="20" ry="13" fill={YEL} />
           {/* crimson forehead + breast band */}
-          <path d="M40 36 Q56 30 66.5 37 Q71.4 39.4 68 40 Q55 37.4 41 42 Q37.4 40 40 36 Z" fill={RED} />
-          <path d="M34 62 Q52 70 69 62.4 Q71.6 64.4 69 66.6 Q52 74 35 67 Q31.2 65 34 62 Z" fill={RED} />
+          <path d="M40 36 Q56 30 66.5 37 Q71.4 39.4 68 40 Q55 37.4 41 42 Q37.2 42.4 37.4 39.2 Q37.8 36.2 40 36 Z" fill={RED} />
+          <path d="M35.8 62.4 Q41.1 64.8 46.3 65.6 Q51.5 66.3 56.6 65.6 Q61.8 64.8 67 62.4 Q69.1 61.5 70.1 63.5 Q71 65.6 69 66.6 Q63.2 69.2 57.3 70.1 Q51.5 71 45.6 70.1 Q39.8 69.2 34 66.6 Q31.9 65.6 32.8 63.6 Q33.8 61.5 35.8 62.4 Z" fill={RED} />
           {beak(78, 49, 9, 3.2, "#3A352E")}
           <Eye cx={60} cy={47} />
         </g>
@@ -401,16 +408,18 @@ const ARCHES: Arche[] = [
           {/* head */}
           <circle cx="56" cy="42" r="15" fill={GREY} />
           {/* huge down-curved banana bill: both edges are offsets of ONE curved midline, so the bill is
-              12.5 units deep where it leaves the head, 9 at mid-length, 6.5 at three quarters and a
+              12 units deep where it leaves the head, 9 at mid-length, 6.5 at three quarters and a
               3.6-unit round tip; the culmen is the outside of the curve (convex), the lower edge the
-              inside, and the rear edge over the head is a soft bow. Big, because the bill IS the
-              hornbill; never a block, never a sickle */}
-          <path d="M61.5 35.3 Q71 35 77.4 40.3 Q82.6 45.7 83.9 53.8 Q83.2 57 80.6 55.2 Q76.8 49.1 72.6 48 Q68.5 47.1 62.5 47.7 Q60.3 41.5 61.5 35.3 Z" fill={HORN} />
-          {/* casque: a small dark knob riding the base of the culmen, its front a rounded point that
-              just overhangs the bill; its underside is inside the bill and its rear wraps the bill's
-              top corner, so only the dome shows */}
-          <path d="M61.3 38.2 Q60 32.8 66 31.2 Q74.5 30 77.8 36.4 Q78.6 39 76.8 40.6 Q70 38 63.6 39.6 Q61.4 39.8 61.3 38.2 Z" fill={CASQ} />
-          <Eye cx={58} cy={41} />
+              inside, and the rear edge over the face bows 1.5 into the bill with a rounded lower
+              corner, so the face's feathering wraps the bill's base (review 2: a ruler line). Big,
+              because the bill IS the hornbill; never a block, never a sickle */}
+          <path d="M64.5 35.5 Q71 35 77.4 40.3 Q82.6 45.7 83.9 53.8 Q83.2 57 80.6 55.2 Q76.8 49.1 72.6 48 Q68.5 47.1 64.6 47.7 Q63.4 47.6 63.6 46.4 Q67 41 64.5 35.5 Z" fill={HORN} />
+          {/* casque: a low dark ridge that reads as the culmen's own top edge (review 1: a dome as big
+              as the bill fused with the eye). Its top runs about 3 units above the bill's edge and
+              parallel to it, its underside under 1 unit inside the bill, its rear a round end 1.5+
+              clear of the eye, its front tapering onto the bill's edge at x 75 with no step */}
+          <path d="M64.6 37.6 Q63.3 36.2 64.8 34.6 Q69.5 31.6 74 36.2 Q75.2 37.5 75.6 38.8 Q70.5 36.3 64.6 37.6 Z" fill={CASQ} />
+          <Eye cx={56.5} cy={41.5} />
         </g>
       );
     },
@@ -459,17 +468,18 @@ const ARCHES: Arche[] = [
                 <path d="M31 56 Q28 66 33 75 Q31 64 34 56 Q33 54 31 56 Z" fill={mix(ASHD, "#000", 0.18)} opacity="0.5" />
                 {/* bright yellow undertail lobe tucked at the lower rear (the field cue) */}
                 <path d="M30 68 Q23 73 26 83 Q33 88 41 81 Q43 73 36 68 Q33 66 30 68 Z" fill={YEL} />
-                <path d="M29 72 Q25 77 29 83 Q34 85 38 79 Q38 73 32 71 Z" fill={YELB} opacity="0.7" />
+                <path d="M29 72 Q25 77 29 83 Q34 85 38 79 Q38 73 32 71 Q29.6 70.6 29 72 Z" fill={YELB} opacity="0.7" />
                 {/* THE STAR: glowing olive-yellow head + throat as ONE luminous hood */}
                 {/* soft halo first so the yellow bleeds outward and reads as glowing, not a sticker */}
-                <path d="M44 30 Q70 30 74 48 Q75 62 64 70 Q52 74 44 66 Q38 56 39 44 Q40 35 44 30 Z" fill={HALO} opacity="0.55" />
+                <path d="M50 30 Q70 30 74 48 Q75 62 64 70 Q52 74 44 66 Q38 56 39 44 Q39.5 31 50 30 Z" fill={HALO} opacity="0.55" />
                 {/* olive outer of the hood: covers head and flows down into the throat */}
-                <path d="M46 31 Q68 32 71 48 Q72 60 62 67 Q52 70 46 63 Q41 54 42 44 Q43 36 46 31 Z" fill={YELD} />
+                <path d="M51 31.5 Q68 32 71 48 Q72 60 62 67 Q52 70 46 63 Q41 54 42 44 Q42.5 32.5 51 31.5 Z" fill={YELD} />
                 {/* core yellow */}
-                <path d="M47 33 Q66 34 69 48 Q69 58 61 64 Q52 67 47 60 Q43 52 44 44 Q45 37 47 33 Z" fill={YEL} />
-                {/* brightest glow toward the face/forehead */}
+                <path d="M53 32.3 Q66 34 69 48 Q69 58 61 64 Q52 67 47 60 Q43 52 44 44 Q44.5 34 53 32.3 Z" fill={YEL} />
+                {/* brightest glow toward the face, its pale centre a ring around the eye (his ¶33: the eye
+                    was not in "that white circle"; review 1 found it half in, half out) */}
                 <ellipse cx="58" cy="44" rx="11" ry="12" fill={YELB} opacity="0.85" />
-                <ellipse cx="61" cy="42" rx="5.5" ry="6" fill={mix(YELB, "#FFFDEC", 0.6)} opacity="0.9" />
+                <circle cx="60" cy="46" r="7" fill={mix(YELB, "#FFFDEC", 0.6)} opacity="0.9" />
                 {/* neat soft bulbul crest: a short backswept rounded tuft leaning forward over the brow,
                     broad at the base so it reads as a crest fused to the head, not a separate ear */}
                 <path d="M48 33 Q46 19 56 16 Q64 15 63 22 Q61.5 29 56 34 Q52 32 48 33 Z" fill={YELD} />
@@ -616,8 +626,6 @@ const ARCHES: Arche[] = [
             d="M30 50.5 Q21.9 42.8 11.5 38.8 Q9.1 37.9 7.5 39.9 Q6.3 41.6 9 45.2 Q13.5 51.2 20 55 Q22 56 20 57 Q13.5 60.8 9 66.8 Q6.3 70.4 7.5 72.1 Q9.1 74.1 11.5 73.2 Q21.9 69.2 30 61.5 Z"
             fill={BLK}
           />
-          {/* gloss running along the upper blade so the tail reads glossy, not dead-flat */}
-          <path d="M11 41.5 Q19.1 44.3 25.5 50" stroke={GLOSS} strokeWidth="2.2" fill="none" strokeLinecap="round" opacity="0.5" />
 
           {/* slim body, tilted so it reads slender rather than a fat ball */}
           <ellipse cx="50" cy="55" rx="29" ry="24" fill={BLK} transform="rotate(-12 50 55)" />
@@ -631,10 +639,13 @@ const ARCHES: Arche[] = [
           {/* head + slight forehead bump (small circle merged onto the crown) */}
           <circle cx="62" cy="44" r="13" fill={BLK} />
           <circle cx="64" cy="35" r="6.5" fill={BLK} />
-          <ellipse cx="60" cy="40" rx="6" ry="3" fill={GLOSS} opacity="0.65" />
+          <ellipse cx="57.5" cy="35.2" rx="5" ry="2.4" fill={GLOSS} opacity="0.65" />
 
           {beak(74, 45, 10, 2.8, "#23202A")}
-          <Eye cx={65} cy={42} r={3.6} />
+          {/* the Black Drongo's eye is dark red-brown: iris, a pupil darker than the body, catchlight */}
+          <circle cx="65" cy="42" r="3.6" fill="#4E2A26" />
+          <circle cx="65" cy="42" r="1.9" fill="#141218" />
+          <circle cx="63.8" cy="40.8" r="1.2" fill="#FFFFFF" />
         </g>
       );
     },
@@ -646,7 +657,7 @@ const ARCHES: Arche[] = [
     draw: () => {
       const BLK = "#2A2730", BLKL = mix(BLK, "#3A4660", 0.32),
               CHES = "#A4521F", CHESL = "#C26A2C", CHESD = mix(CHES, "#000", 0.22),
-              RED = "#B33028", BILL = "#211E22", BILLR = mix(BILL, "#fff", 0.16);
+              RED = "#B33028", BILL = "#211E22";
             return (
               <g>
                 {/* LONG BROAD graduated tail sweeping down-left well clear of the body (key field mark);
@@ -658,19 +669,18 @@ const ARCHES: Arche[] = [
                 {/* big rich CHESTNUT wing laid over the back/shoulder = the diagnostic mark. A leaf: the
                     outer edge follows the body, the inner edge bows OUT so it reads as a wing on a round
                     bird, not a ruler line down the middle; the shoulder tucks under the head */}
-                <path d="M49 29 Q48.6 24.8 44.5 27.8 Q18 30.5 19 57 Q20 77 41 79 Q45.5 79.6 46.5 76.5 Q52.5 60 46.5 42 Q49.5 35 49 29 Z" fill={CHES} />
-                <path d="M46.5 31 Q45.5 28.2 43 30 Q24 35 24 55 Q25 71 42 75 Q47.5 60 43 44 Q47 35.5 46.5 31 Z" fill={CHESL} opacity="0.5" />
-                {/* folded primaries: a darker chestnut pad low on the wing, its top one convex dome */}
-                <path d="M22.5 60 Q25 76 43 78.2 Q48 71 46 65 Q38 53.5 22.5 60 Z" fill={CHESD} opacity="0.85" />
+                <path d="M49 29 Q48.8 27.4 44.5 27.8 Q18 30.5 19 57 Q20 77 41 79 Q45.5 79.6 46.5 76.5 Q54 52 49 29 Z" fill={CHES} />
+                <path d="M46.5 31 Q46.3 29.4 43 30 Q24 35 24 55 Q25 71 42 75 Q50.5 52 46.5 31 Z" fill={CHESL} opacity="0.5" />
+                {/* folded primaries: a darker chestnut pad low on the wing, its top one convex dome, its
+                    rear corner on the wing's own outline so no point shows */}
+                <path d="M19.5 60.5 Q22 76 43 78.2 Q48 71 46 65 Q38 53.5 19.5 60.5 Z" fill={CHESD} opacity="0.85" />
+                {/* slightly-decurved BLACK bill, drawn UNDER the head so the head's round edge is its base:
+                    8.6 deep where it leaves the head, 6 at mid-length, a 3.1-unit round tip (review 1:
+                    the old one was a club as thick at the hook as at the base) */}
+                <path d="M72 37 Q82 36.8 85.6 44.4 Q86.2 47 84.2 47.2 Q80.4 43.4 70.5 48.5 Q70 42 72 37 Z" fill={BILL} />
                 {/* distinct black head up-right, soft join into the body (no neck corner) */}
                 <path d="M50 36 Q54 26 64 28 Q74 30 73 44 Q70 56 58 56 Q49 50 50 36 Z" fill={BLK} />
                 <circle cx="62" cy="40" r="13.5" fill={BLK} />
-                <ellipse cx="56" cy="36" rx="6" ry="3.4" fill={BLKL} opacity="0.6" />
-                {/* HEAVY slightly-decurved BLACK bill: deep stout base, culmen arcs down to a rounded tucked
-                    tip; every corner a Q-curve, blunter + shorter than the Flameback chisel ceiling */}
-                <path d="M72 37 Q82.5 37 85.2 43.2 Q87 47.8 83.5 50.3 Q80.5 51.3 79.5 48.3 Q77.5 44 72.5 45 Q71.5 41 72 37 Z" fill={BILL} />
-                <path d="M73.5 39 Q81.5 39.5 84.6 44.8" stroke={BILLR} strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.55" />
-                <path d="M72.8 45 Q78 46.6 82.5 46.5" stroke={mix(BILL, "#000", 0.4)} strokeWidth="0.8" fill="none" strokeLinecap="round" opacity="0.5" />
                 {/* CALM deep-red eye: smaller iris, normal dark pupil + catchlight (character, not horror) */}
                 <circle cx="64" cy="39" r="4.2" fill={RED} />
                 <circle cx="64" cy="39" r="2" fill={INK} />
@@ -714,9 +724,13 @@ const ARCHES: Arche[] = [
           {/* black hood */}
           <circle cx="55" cy="42" r="17" fill={BLK} />
           <path d="M38 40 Q52 32 66 40 Q52 40 44 44 Z" fill={BLK} />
-          {/* black wing edge */}
-          <path d="M31.5 66.5 Q39 77 50 79.5 Q55.6 80 54.5 77 Q50.3 66.8 42 59.5 Q40 57.2 37.5 57.5 Q32.5 58.5 30 62 Q29 64.5 31.5 66.5 Z" fill={BLK} />
-          <Eye cx={60} cy={41} />
+          {/* black folded wing: broad round end at the shoulder behind the hood, trailing back and down
+              along the body's curve to a round tip (review 1: it pointed forward like a flipper) */}
+          <path d="M43.5 57.3 Q47.5 59.5 44 64.5 Q37 71.5 28.5 74.5 Q24.5 75.5 25 72 Q28 63 37 58.5 Q40.5 56.2 43.5 57.3 Z" fill={BLK} />
+          {/* the adult's crimson eye: iris, a pupil in the hood's own colour, catchlight */}
+          <circle cx="60" cy="41" r="4.4" fill="#B53A3C" />
+          <circle cx="60" cy="41" r="2.4" fill={BLK} />
+          <circle cx="58.5" cy="39.5" r="1.45" fill="#FFFFFF" />
         </g>
       );
     },
@@ -732,7 +746,7 @@ const ARCHES: Arche[] = [
           <circle cx="49" cy="56" r="32" fill={BRN} />
           {/* streaks */}
           {[36, 46, 56].map((y, k) => (
-            <path key={k} d={`M28 ${y} Q48 ${y + 4} 68 ${y}`} stroke={mix(BRN, "#000", 0.22)} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.6" />
+            <path key={k} d={`M28 ${y} Q39.5 ${y + 3} 51 ${y + 1}`} stroke={mix(BRN, "#000", 0.22)} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.6" />
           ))}
           {/* golden cap + breast */}
           <path d="M32.5 40 Q50 24 67.5 36.5 Q71.2 38.6 68 40 Q56 44.5 44 42 Q38.5 42 33.5 45.5 Q29.8 43.8 32.5 40 Z" fill={YEL} />
@@ -935,22 +949,21 @@ const ARCHES: Arche[] = [
           {/* low oval glossy body (large + raised so the tall raised-neck bird fits the frame, head not cut off) */}
           <ellipse cx="46" cy="62" rx="30" ry="24" fill={BLK} />
           {/* subtle green-black gloss hugging the upper back/shoulder */}
-          <path d="M23 58 Q21 45 33 42.5 Q40 40.2 46.5 41.5 Q50 43.5 47.5 47 Q40 52.5 23 58 Z" fill={SHEEN} />
+          <path d="M23 55.5 Q21 45 33 42.5 Q40 40.2 46.5 41.5 Q50 43.5 47.5 47 Q40 55.5 25.5 58.6 Q22.4 58.6 23 55.5 Z" fill={SHEEN} />
           {/* soft folded-wing shade low on the body: a crescent whose inner edge is one convex arc */}
           <path d="M24 66 Q25 86 48 84.6 Q52.5 84 51.5 79 Q50 70 27 63.5 Q23.5 64 24 66 Z" fill={SHADE} />
           {/* raised snaky S-neck rising out of the body (head set a touch lower so it stays in frame) */}
           <path d="M48 66 Q45 54 50 47 Q53 42 56 40 Q60 44 57 49 Q53 56 54 63 Q51 67 48 66 Z" fill={BLK} />
           {/* merge the neck base smoothly into the body */}
           <ellipse cx="50" cy="64" rx="8" ry="6" fill={BLK} />
+          {/* slim grey bill, drawn UNDER the head so it emerges from the head's own curve: 3.9 deep at
+              the head's edge tapering to 2.4 behind the tip, where only the upper mandible's end turns
+              down as a soft round nail about 1 unit below the lower edge, with no notch behind it
+              (review 1: the old one read as a bent pipe laid on the head) */}
+          <path d="M60 37.4 Q69 36.8 77.8 38.9 Q80 39.7 79.6 41.4 Q79.3 42.5 78.2 42.2 Q77.2 41.9 76.2 41.1 Q68 40.1 60 41.5 Q59 39.4 60 37.4 Z" fill={BILL} />
           {/* small head capping the top of the neck */}
           <circle cx="57" cy="40" r="8" fill={BLK} />
           <ellipse cx="54.5" cy="45" rx="4.5" ry="5" fill={BLK} />
-          {/* slim grey bill: under 4 units deep at the head, nearly parallel-sided for 15 units, then
-              the culmen curls down into a small round hook that drops 2 units below the lower mandible.
-              Base tucked into the head with a soft rear bow */}
-          <path d="M61 37.7 Q70 37.5 77.6 39.4 Q80.2 40.4 79.4 42.6 Q78.8 44.2 77.2 43.3 Q76.6 42.3 75.6 41.8 Q68 42.6 61 41.5 Q59.7 39.6 61 37.7 Z" fill={BILL} />
-          {/* soft culmen ridge so the bill reads dimensional (rounded stroke ends) */}
-          <path d="M62.5 38.6 Q69 38.4 75.5 40.3" stroke={mix(BILL, "#000", 0.22)} strokeWidth="0.9" fill="none" strokeLinecap="round" opacity="0.45" />
           {/* blue-green eye */}
           <circle cx="57" cy="39.6" r="3.1" fill={EYE} />
           <circle cx="57" cy="39.6" r="1.45" fill={INK} />
@@ -1300,12 +1313,12 @@ const ARCHES: Arche[] = [
         <g>
           <circle cx="49" cy="56" r="32" fill={CHES} />
           {/* black wingtip */}
-          <path d="M23 61 Q20 79 41 83 Q34 70 32.4 61 Q31 59 28 59 Q24 59 23 61 Z" fill="#1A1A1A" />
-          {/* white head + breast */}
-          <path d="M50 26 Q72 30 70 56 Q60 68 49.5 65 Q46 64.5 45.3 61 Q42.5 54 47 48 Q46 38 50 26 Z" fill={WHT} />
+          <path d="M23 61 Q20 79 40 83 Q42.6 83.3 41.2 81 Q34 70 32.4 61 Q31 59 28 59 Q24 59 23 61 Z" fill="#1A1A1A" />
+          {/* white head + breast: the bib's side bows out about a unit and rounds into its lower edge */}
+          <path d="M50 26 Q75 32 71.5 51 Q70.5 61 62 65.5 Q55.5 68 49.5 65 Q46 64.5 45.3 61 Q42.5 54 47 48 Q46 38 50 26 Z" fill={WHT} />
           <circle cx="55" cy="40" r="15" fill={WHT} />
-          {/* pale-yellow hooked beak */}
-          <path d="M68 38 Q80 38 80 45 Q76 43 70 44 Q67 41 68 38 Z" fill="#E0C24A" />
+          {/* pale-yellow hooked beak: keeps its curl but ends in a small round nail, not a point */}
+          <path d="M68 38 Q80.6 38.4 80.4 44 Q80.1 45.6 78.8 44.8 Q75.5 43 70 44 Q67 41 68 38 Z" fill="#E0C24A" />
           <Eye cx={58} cy={39} />
         </g>
       );
@@ -1318,7 +1331,7 @@ const ARCHES: Arche[] = [
     draw: () => {
       const GOLD = "#C7A12A", GOLDD = "#9C7A12";
             const CREAM = "#F1EBD8", SCALE = "#3A352E";
-            const RED = "#D8392B", REDD = "#B62A21";
+            const RED = "#D8392B";
             const BLK = "#2B2824";
             return (
               <g>
@@ -1329,25 +1342,21 @@ const ARCHES: Arche[] = [
                 {/* cream white underparts sweeping up the front to the throat */}
                 <path d="M50 40 Q72 44 71 70 Q67 85 52 85 Q44 70 46 56 Q47 46 50 40 Z" fill={CREAM} />
                 {/* soft round scaly spots (woodpecker scaling) */}
-                {[[59, 55], [65, 61], [58, 66], [64, 72], [56, 77]].map(([x, y], k) => (
-                  <circle key={k} cx={x} cy={y} r={k > 2 ? 1.7 : 1.9} fill={SCALE} />
+                {[[66, 65.5], [58, 66], [64, 72], [56, 77]].map(([x, y], k) => (
+                  <circle key={k} cx={x} cy={y} r={k > 1 ? 1.7 : 1.9} fill={SCALE} />
                 ))}
                 {/* head: cream profile head merged onto the upper body */}
                 <circle cx="58" cy="44" r="14.5" fill={CREAM} />
-                {/* clean black eye-stripe hugging the head curve, rounded both ends */}
-                <path d="M52 43 Q64 41 74 46 Q75 49 73 50.5 Q64 46 54 49 Q50.5 46 52 43 Z" fill={BLK} />
-                {/* black malar/moustache stripe, lower and rounded */}
-                <path d="M53 53 Q63 54 71 59 Q70 62 67 62 Q60 58 54 58 Q51 55 53 53 Z" fill={BLK} />
+                {/* no eye-stripe: under this crest only a grey wedge of it ever showed (review 2), so the
+                    face is eye, moustache and bill. Moustache ends round, 1.6 inside the cream */}
+                <path d="M53 53 Q62 54 67.5 57.6 Q70 59.6 67.4 61.3 Q66.3 61.8 65 61.4 Q59 58 54 58 Q51 55 53 53 Z" fill={BLK} />
                 {/* swept-back crimson crest: ONE smooth dome over the crown, sweeping down the nape behind
                     the head. Outer edge one arc; lower edge curves gently back. No notch, no spike. */}
-                <path d="M65 35 Q63 20 49 16 Q36 14 30 23 Q27 30 33 36 Q40 41 47 50 Q52 53 55 49 Q56 42 58 38 Q61 36 65 35 Z" fill={RED} />
-                {/* soft darker crown fold for depth, fully rounded */}
-                <path d="M41 22 Q34 23 32 29 Q37 33 44 33 Q47 28 46 23 Q44 22 41 22 Z" fill={REDD} />
-                {/* strong straight chisel bill, rounded tip + rounded base (soft wedge, never a needle) */}
+                <path d="M65 35 Q63 20 49 16 Q36 14 30 23 Q28 29 33 36 Q37 43.5 47 50 Q52 53 55 49 Q56 42 58 38 Q61 36 65 35 Z" fill={RED} />
+                {/* strong straight chisel bill, rounded tip + rounded base (soft wedge, never a needle);
+                    one flat INK fill, the allowed chisel */}
                 <path d="M71 43 L82.5 45.1 Q86.6 46.4 82.5 47.7 L71 51 Q68.4 47 71 43 Z" fill={INK} />
-                {/* faint gloss ridge down the bill so it reads as a chisel; its base is round too */}
-                <path d="M72 44.5 L82 46.2 Q84.2 46.9 82 47.6 L72 49.5 Q70.8 47 72 44.5 Z" fill={mix(INK, "#fff", 0.12)} opacity="0.5" />
-                <Eye cx={61} cy={44} r={4} />
+                <Eye cx={61} cy={44} r={4} disc="#221F1C" />
               </g>
             );
     },
@@ -1372,13 +1381,16 @@ const ARCHES: Arche[] = [
                 <path d="M53 57 Q69 61 66 75 Q57 82 49 76 Q46.5 66 53 57 Z" fill={CREAM} />
                 {/* separate rounded HEAD set clearly above the body - this is what makes it read as a bird */}
                 <circle cx="58" cy="36" r="14" fill={BAY} />
-                {/* short stout shrike bill: 5.2 deep where it leaves the mask, a convex culmen that drops
-                    to 3.9 deep over 6 units and curls into a small round hook 2 below the lower mandible.
-                    Drawn UNDER the mask so it emerges from the mask's own rounded end, with no base edge */}
-                <path d="M69 36.2 Q77.2 35.7 81 39.3 Q82.6 41.1 81.7 43 Q81 44 79.7 43.2 Q79.1 42.3 78.2 41.5 Q74 41.9 69 41 Q67.5 38.5 69 36.2 Z" fill={BILL} />
-                {/* THE SIGNATURE: one bold black bandit mask through the eye, sitting only on the head */}
-                <path d="M47 35 Q60 30 72 36 Q73 40 70 43 Q60 38 49 41 Q45 39 47 35 Z" fill={MASK} />
-                <Eye cx={60} cy={38} r={3.8} />
+                {/* slim shrike bill: the culmen starts its descent early, so the bill is about 4.7 deep
+                    where it leaves the mask, 4.3 at x 78 and ends in a 3.1-unit round nail drooping 0.6
+                    below the lower mandible, whose edge bows gently up into the bill and meets the nail
+                    under 10 degrees (review 2: the softened one was a blunt thumb). Drawn UNDER the
+                    mask so it emerges from the mask's own rounded end, with no base edge */}
+                <path d="M69 36.2 Q76.5 35.9 80.4 39.6 Q81.6 41 80.6 42.1 Q79.9 42.8 78.8 42.3 Q74.2 41 69 41 Q67.5 38.5 69 36.2 Z" fill={BILL} />
+                {/* THE SIGNATURE: one bold black bandit mask through the eye, sitting only on the head;
+                    the eye sits wholly inside it with a disc darker than the mask, a glint in the band */}
+                <path d="M47 35 Q60 30 72 36 Q73 40 70 43 Q60 43.6 49 41 Q45 39 47 35 Z" fill={MASK} />
+                <Eye cx={60} cy={37.8} r={3.6} disc="#0F0D0C" />
               </g>
             );
     },
@@ -1501,12 +1513,16 @@ const ARCHES: Arche[] = [
           <circle cx="49" cy="55" r="31" fill={CHES} />
           {/* black hood + breast */}
           <circle cx="55" cy="44" r="15" fill={BLK} />
-          <path d="M44 50 Q58 52 60 63 Q52 67 46 62 Q44 56 44 50 Z" fill={BLK} />
-          {/* white belly */}
-          <path d="M50 61 Q70 65 66 80 Q54 84 46 78 Q46 67 50 61 Z" fill={WHT} />
+          {/* white belly first, round at every corner */}
+          <path d="M49 62 Q68 62 67.5 76 Q66.5 81 61 82 Q53 83.5 48 79 Q45 75 46 68 Q46.8 63.5 49 62 Z" fill={WHT} />
+          {/* black breast over it: one rounded lobe whose lower edge is a single convex arc */}
+          <path d="M44.5 50 Q58 50 61 58 Q63 62.5 61.6 65.6 Q59.8 67.8 52 66.8 Q45.5 66 44.3 58 Q43.2 54 44.5 50 Z" fill={BLK} />
           {/* stout pale conical bill, rounded tip */}
           <path d="M68 42 Q74 43.2 78.6 45.6 Q81.8 47 78.6 48.4 Q74 50.8 68 52 Q62.8 47 68 42 Z" fill="#B7C2CB" />
-          <Eye cx={58} cy={43} />
+          {/* dark-brown eye: iris, a pupil in the hood's own colour, catchlight */}
+          <circle cx="58" cy="43" r="4.4" fill="#4A2C20" />
+          <circle cx="58" cy="43" r="2.6" fill={BLK} />
+          <circle cx="56.5" cy="41.5" r="1.45" fill="#FFFFFF" />
         </g>
       );
     },
