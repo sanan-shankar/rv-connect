@@ -1,3 +1,16 @@
+## 2026-10-15 (birds) — U2b closed: seven birds restructured, the first candidate drawn and gated
+
+The Magpie-Robin's white shapes are now its belly and wing-bar on a folded wing, the Golden
+Oriole's stripe trails behind the eye and its black oval is a wing, the Malkoha's head stands up
+out of the body with the blue face on it, the Kingfisher is brighter with four cut-offs gone, the
+Leafbird has a face (mask, brown iris, slim grey bill), the Green-Pigeon has one orange breast
+and a grey crown instead of three bands, and a Yellow-footed Green-Pigeon candidate sits at index
+51 for him to choose against it. A candidate is gated: `GALLERY_SPECIES` drops names ending
+" (candidate)", which keeps it out of the birds page, the paid picker and the signup deal at
+once, pinned by a test. Two reviews (nineteen faults, then four), one fix pass by the drawer, the
+last four fixes applied by the runner from the review's own paths. The Lapwing's legs are
+declined on his Q11 answer. Visual baselines still wait for U6.
+
 ## 2026-10-14 (birds) — U2a closed: seventeen birds through two reviews, and the campaign goes lean
 
 The owner, resuming: *"I've added birds before and it's never taken so long or so much usage...

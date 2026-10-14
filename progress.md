@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-15 (birds) — U2b closed: seven birds restructured, the first candidate drawn and gated
 - 2026-10-14 (birds) — U2a closed: seventeen birds through two reviews, and the campaign goes lean
 - 2026-10-11 (catchups) — the orphaned 2024 snapshot group is deleted, 11 duplicate memberships with it
 - 2026-10-11 (catchups) — the song columns stop being read, and their drop file waits for his release

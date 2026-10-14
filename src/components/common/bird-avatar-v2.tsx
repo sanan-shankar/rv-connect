@@ -519,29 +519,35 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 14 - ORIENTAL MAGPIE-ROBIN. Clean black-and-white pied, cocked tail.
+  // 14 - ORIENTAL MAGPIE-ROBIN. Clean black-and-white pied, cocked tail. U2b (F2, paragraphs 8, 12,
+  // 23): the body is shorter, and the white is the bird's own: a belly lobe on the lower front with a
+  // black breast above it and a black rim below, and the white wing-bar laid along a folded wing that
+  // is its own darker lobe (review 1: a bar with no wing read as a shine on a ball). The cocked tail
+  // stays, solid black (its white panel left a 1.4-unit rim and read as a hole).
   {
     name: "Magpie-Robin",
     skip: [],
     draw: () => {
-      const BLK = "#2E2A2C";
+      const BLK = "#2E2A2C", WING = "#1C191B";
       return (
         <g>
-          {/* cocked tail: a broad black paddle swept UP and back, the magpie-robin signature, with a white outer edge */}
-          <path d="M40 46 Q24 40 17 25 Q15 19 21 19 Q28 21 34 30 Q43 41 48 52 Q45 49 40 46 Z" fill={BLK} />
-          <path d="M21 21 Q27 23 33 31 Q29 30 25 31 Q22 26 21 21 Z" fill={WHITE} />
-          {/* upright body leaning slightly back so it reads as a perched bird */}
-          <g transform="rotate(9 49 59)">
-            <ellipse cx="49" cy="59" rx="22" ry="28" fill={BLK} />
+          {/* cocked tail: a broad black paddle swept UP and back, the magpie-robin signature */}
+          <path d="M41 50 Q27 44 20 31 Q18 25 24 25 Q31 28 36 36 Q45.5 44.5 49 56 Q46 53 41 50 Z" fill={BLK} />
+          {/* compact body leaning slightly back so it reads as a perched bird (ry 24, was 28: he found it long) */}
+          <g transform="rotate(9 49 58)">
+            <ellipse cx="49" cy="58" rx="23" ry="24" fill={BLK} />
           </g>
-          {/* crisp white belly as a bounded front panel (black rims it, so it never merges with the page) */}
-          <path d="M53 53 Q68 57 65 76 Q55 83 48 76 Q46 63 53 53 Z" fill={WHITE} />
+          {/* folded wing: one darker lobe from the shoulder (under the head) back and down the flank, a 3-unit rim of body black round it */}
+          <path d="M49 44 Q35 45 29.5 58 Q29.5 69 34 74.5 Q37 77.5 39 73 Q39.5 63 44 54 Q45.5 47 49 44 Z" fill={WING} />
+          {/* the long white wing-bar: one lozenge lying along the wing from the shoulder back towards the tail */}
+          <ellipse cx="37" cy="57" rx="6" ry="3" fill={WHITE} transform="rotate(-35 37 57)" />
+          {/* the real bird's white belly: one lobe on the lower front; black breast above, a black rim below so it never merges with the page */}
+          <path d="M58 58 Q66 63 62 72 Q60 79 50 79 Q43 77 44 69 Q46 61 52 58 Q55 57 58 58 Z" fill={WHITE} />
           {/* head lifted high and forward */}
-          <circle cx="59" cy="37" r="13" fill={BLK} />
-          {/* white wing-bar slash on the black wing (the diagnostic mark) */}
-          <ellipse cx="42" cy="58" rx="3.4" ry="11" fill={WHITE} transform="rotate(-22 42 58)" />
-          {beak(71, 35, 9, 2.6, "#2E2A26")}
-          <Eye cx={62} cy={34} />
+          <circle cx="59" cy="38" r="13" fill={BLK} />
+          {beak(71, 36, 9, 2.6, "#2E2A26")}
+          {/* eye disc darker than the head so it is the darkest point on the bird */}
+          <Eye cx={62} cy={35} disc="#141218" />
         </g>
       );
     },
@@ -973,7 +979,9 @@ const ARCHES: Arche[] = [
     },
   },
   // 29 - INDIAN GOLDEN ORIOLE. Glowing golden-yellow body, black eye-stripe (not a hood), black
-  // wing, pink-red bill. (Distinct from the full-hooded Black-hooded Oriole.)
+  // wing, pink-red bill. (Distinct from the full-hooded Black-hooded Oriole.) U2b (F18, paragraph
+  // 20): the stripe trails BEHIND the eye and never reaches the bill, so eye and bill are two things
+  // on one face rather than a pair of sunglasses; the bill tapers to a soft tip. Colours unchanged.
   {
     name: "Golden Oriole",
     skip: [7],
@@ -982,12 +990,13 @@ const ARCHES: Arche[] = [
       return (
         <g>
           <circle cx="49" cy="55" r="33" fill={YEL} />
-          {/* small black wing tip only - silhouette stays mostly-yellow, unlike the black-headed Oriole */}
-          <ellipse cx="33" cy="64" rx="8" ry="9" fill={BLK} transform="rotate(-12 33 64)" />
-          {/* black eye-stripe through the eye (the Golden Oriole's signature) */}
-          <path d="M50 39 Q63 37 73 42 Q74 44.5 73 47 Q63 43 52 46 Z" fill={BLK} />
-          {/* pink-red bill */}
-          <path d="M71 42 Q84 43 83 51 Q79 55 72 53 Q69 47 71 42 Z" fill={PINK} />
+          {/* black folded wing: a broad round end at the shoulder trailing back and down along the body's
+              curve to a round tip (the idiom that passed on the Black-hooded Oriole); the silhouette stays yellow */}
+          <path d="M44 49 Q49 52 45 57 Q37 66 27 70 Q22.5 71 23.5 67 Q27 58 36 52 Q40 48.5 44 49 Z" fill={BLK} />
+          {/* black eye-stripe: a rounded flick trailing back from the eye (its front end hides under the eye disc) */}
+          <path d="M61 39.8 Q54 38.5 48 40.8 Q45 42.6 47.5 45 Q53 47 61 46.2 Z" fill={BLK} />
+          {/* pink-red bill: slim, a soft down-turned tip, clear yellow between it and the eye */}
+          <path d="M70.5 41 Q80 41 84.5 46.5 Q85.5 48.5 83.5 49 Q77.5 47.5 71 49.5 Q68.8 45.5 70.5 41 Z" fill={PINK} />
           <Eye cx={62} cy={43} />
         </g>
       );
@@ -1128,22 +1137,28 @@ const ARCHES: Arche[] = [
             );
     },
   },
-  // 34 - BLUE-FACED MALKOHA. Dark olive body, bold blue facial patch around the eye, green bill.
+  // 34 - BLUE-FACED MALKOHA. Grey-green body, bold blue facial patch around the eye, green bill.
+  // U2b (F20, paragraph 24): one body green with the wing a clear step darker (two greens, not three
+  // near-misses), the blue face bigger so it is the signature, the bill slimmed to a soft tip. Review
+  // 1: the head now sits up and forward, breaking the outline, and the wing sits back and down, clear
+  // of the head, so it keeps its own rounded shape instead of showing the head as a bite.
   {
     name: "Blue-faced Malkoha",
-    skip: [],
+    skip: GREENS,
     draw: () => {
-      const OLV = "#6E7458", BLUE = "#3A78A8", BILL = "#9AB04A";
+      const OLV = "#6F7F4F", WING = "#4E5C3A", BLUE = "#3A78A8", BILL = "#9AB04A";
       return (
         <g>
           <circle cx="46" cy="56" r="31" fill={OLV} />
-          <ellipse cx="42" cy="62" rx="15" ry="13" fill={mix(OLV, "#000", 0.16)} />
-          <circle cx="57" cy="44" r="14" fill={OLV} />
-          {/* blue face patch */}
-          <ellipse cx="60" cy="44" rx="9" ry="7" fill={BLUE} />
-          <Eye cx={61} cy={44} r={3.3} />
-          {/* pale green bill */}
-          <path d="M70 43 Q83 43 82 51 Q78 54 72 52 Q69 47 70 43 Z" fill={BILL} />
+          {/* folded wing: the one darker step on the body, back and low */}
+          <ellipse cx="37" cy="66" rx="14" ry="12" fill={WING} />
+          {/* head set up and forward: its dome breaks the body's outline by about 4 units */}
+          <circle cx="60" cy="38" r="14" fill={OLV} />
+          {/* the bare blue face: big, the whole side of the head around the eye */}
+          <ellipse cx="61.5" cy="38" rx="9.5" ry="9" fill={BLUE} />
+          <Eye cx={64} cy={38} r={3.8} />
+          {/* pale green bill: stout at the base, arched to a soft rounded tip */}
+          <path d="M71.5 36.5 Q81 36 85 41.5 Q86 43.5 84 44 Q78 43.5 72.5 44.5 Q70 40.5 71.5 36.5 Z" fill={BILL} />
         </g>
       );
     },
@@ -1234,71 +1249,80 @@ const ARCHES: Arche[] = [
     },
   },
   // 38 - COMMON KINGFISHER. A vivid two-tone jewel: electric cyan top, rufous-orange belly, white dab.
+  // U2b (F8, paragraph 12, "kind of dull"): the cyan and the orange brightened; nothing structural.
+  // Review 1 (the unit owns its edges, F17): the belly kept inside the body with no straight side, the
+  // cheek's point pulled inside the head, the gloss ridge's base rounded, the darker belly oval dropped
+  // (it left a lighter sliver under itself; the real bird's underside is one orange).
   {
     name: "Common Kingfisher",
     skip: BLUES,
     draw: () => {
-      const CYAN = "#1FA6D6", CYANL = "#3FD0F0", TEAL = "#1483B0", COB = "#2E5FB0", ORG = "#D2691E", ORGD = "#BF5C18", DAGGER = mix(INK, "#000", 0.12), GLOSS = mix(DAGGER, "#fff", 0.28);
+      const CYAN = "#12B6EA", CYANL = "#5CE0FA", TEAL = "#1290C4", COB = "#2559C4", ORG = "#F27A1F", DAGGER = mix(INK, "#000", 0.12), GLOSS = mix(DAGGER, "#fff", 0.28);
       return (
         <g>
           {/* short stubby tail-nub poking down-back (kingfishers are near tail-less - the silhouette break vs long-tailed cuckoos) */}
-          <path d="M36 71 Q26 77 22 85 Q20 89 24 88 Q32 83 42 76 Q43 72 36 71 Z" fill={TEAL} />
+          <path d="M36 71 Q26 77 22 85 Q20 89 24 88 Q28 81.5 42 76 Q43 72 36 71 Z" fill={TEAL} />
           {/* compact DUMPY body mass, gently tilted so it never reads as a plain ball */}
           <ellipse cx="46" cy="62" rx="25" ry="23" fill={CYAN} transform="rotate(-6 46 62)" />
           {/* glowing electric-cyan back-stripe down the mantle (the lit kingfisher back line) */}
           <path d="M41 42 Q29 53 26 73 Q31 71 35 60 Q40 49 48 45 Q45 41 41 42 Z" fill={CYANL} opacity="0.95" />
-          {/* rufous-orange underparts: ONE warm zone wrapping belly + lower front */}
-          <path d="M47 55 Q74 57 73 80 Q57 88 42 81 Q39 64 47 55 Z" fill={ORG} />
-          <ellipse cx="56" cy="73" rx="13" ry="10" fill={ORGD} />
+          {/* rufous-orange underparts: ONE warm zone on the belly and lower front, every edge curved and the
+              whole of it inside the cyan body (review 1: its right side ran straight to a corner at the edge) */}
+          <path d="M48 54.5 Q69 57 67 69 Q66 78 56 80.5 Q47 81 43 78 Q39.5 65 45 56.5 Q46.5 54.5 48 54.5 Z" fill={ORG} />
           {/* OVERSIZED head set high + forward (the top-heavy big-headed signature) */}
           <circle cx="62" cy="40" r="19" fill={CYAN} />
           {/* rounded cobalt crown hugging the dome of the head (rounded, no point, no flat brim) */}
           <path d="M44 40 Q43 22 60 18 Q77 17 81 32 Q82 40 79 45 Q74 33 62 33 Q51 34 46 44 Q44 43 44 40 Z" fill={COB} />
           {/* rufous cheek wrapping under + behind the eye, continuous with the warm underside */}
-          <path d="M58 44 Q74 45 76 58 Q72 62 62 60 Q54 53 58 44 Z" fill={ORG} />
+          <path d="M59 43.5 Q73 45 72 54 Q69 61 62 60 Q54 53 56.5 45.5 Q57.5 43.5 59 43.5 Z" fill={ORG} />
           {/* white neck-patch (the diagnostic side dab) at the cheek/neck join */}
           <ellipse cx="54" cy="51" rx="5.8" ry="6.2" fill={WHITE} />
           {/* long STOUT dagger bill: rounded tip + rounded base, no sharper than the Flameback chisel ceiling */}
           <path d="M76 37 L93 40 Q96.5 41.4 93 42.8 L76 46 Q74 41.5 76 37 Z" fill={DAGGER} />
           {/* faint gloss ridge so the bill reads as a three-dimensional dagger */}
-          <path d="M77 38.5 L91 41 Q92.5 41.5 91 42 L77 44.5 Z" fill={GLOSS} opacity="0.5" />
+          <path d="M77 38.5 L91 41 Q92.5 41.5 91 42 L77 44.5 Q75.6 41.5 77 38.5 Z" fill={GLOSS} opacity="0.5" />
           <Eye cx={66} cy={38} r={4.2} />
         </g>
       );
     },
   },
   // 39 - JERDON'S LEAFBIRD. A bright leaf-green bird read in three clean zones: a green body, a
-  // green head set up-forward, and ONE neat connected black face-and-throat patch (forehead, chin
-  // and throat as a single rounded shape with clean edges). A short turquoise moustache streak sits
-  // at the lower jaw, the eye sits inside the black, and a soft bill points out the front. The old
-  // muddy orange smudge is dropped to a subtle low shoulder wash so nothing crisscrosses the face.
+  // green head set up-forward, and ONE black face-and-throat patch. U2b (F23, paragraph 27): every
+  // colour kept; the black is a mask-and-bib the size of a face (forehead, lores, cheek, chin, throat)
+  // rather than the whole front of the head, the turquoise moustache runs from the bill base back along
+  // the jaw, and the bill is a slim dark-grey curve that parts from the black. Review 1: the eye sits
+  // wholly inside the mask as the species' brown iris with a dark pupil (a near-black disc in a black
+  // mask was the "where is the eye" he named); the wing is one smooth teardrop that nothing cuts, with
+  // the breast lift in front of it and the warm wash inside it, both opaque and bounded.
   {
     name: "Jerdon's Leafbird",
     skip: GREENS,
     draw: () => {
       const GRN = "#4FA63C", GRNL = "#67C04A", DARK = "#3C7E2B", BIB = "#23201C",
-        TURQ = "#3FC2D6", ORG = "#D98A38";
+        TURQ = "#3FC2D6", ORG = "#D98A38", BILL = "#5A5249", IRIS = "#7A4A2A";
       return (
         <g>
           {/* leaf-green body mass: one confident round zone */}
           <circle cx="47" cy="58" r="31" fill={GRN} />
-          {/* folded wing: one clean darker-green rounded panel hugging the back/flank (gives form) */}
-          <path d="M24 50 Q40 44 52 52 Q50 70 40 82 Q26 80 22 64 Q21 56 24 50 Z" fill={DARK} />
-          {/* subtle lime breast lift so the green mass is not flat (well below the face, no crisscross) */}
-          <ellipse cx="50" cy="70" rx="16" ry="11" fill={GRNL} opacity="0.8" />
-          {/* faint warm shoulder wash low on the flank, kept clear of the black face */}
-          <ellipse cx="40" cy="68" rx="9" ry="7" fill={mix(ORG, GRN, 0.45)} opacity="0.55" />
+          {/* folded wing: one darker-green teardrop along the back and flank, smooth all round, 2 units clear of the head */}
+          <path d="M24.5 53 Q27 48.5 33 48 Q40 47.5 43 53 Q47.5 57 46.5 65 Q45.5 74 41 79.5 Q37.5 82.5 32 80 Q24.5 76 24 69 Q22 59 24.5 53 Z" fill={DARK} />
+          {/* warm shoulder wash, wholly inside the wing */}
+          <ellipse cx="33" cy="68" rx="7" ry="5.5" fill={mix(DARK, ORG, 0.4)} />
+          {/* lime breast lift, wholly in front of the wing and below the bib */}
+          <ellipse cx="56" cy="74" rx="9" ry="7" fill={mix(GRN, GRNL, 0.8)} />
           {/* rounded green head set clearly up and forward (the songbird crown) */}
           <circle cx="58" cy="42" r="16" fill={GRN} />
-          {/* SIGNATURE: ONE connected black face-and-throat patch (forehead, chin, throat, upper breast),
-              a single rounded lobe with clean edges across the front of the head and down the throat */}
-          <path d="M51 30 Q62 27 71 37 Q74 46 72 56 Q67 69 55 71 Q47 69 45 58 Q44 47 47 38 Q48 33 51 30 Z" fill={BIB} />
-          {/* short turquoise moustache streak at the lower jaw of the black (rounded, no spike) */}
-          <path d="M54 56 Q61 56 65 60 Q60 61 55 61 Q52 59 54 56 Z" fill={TURQ} />
-          {/* soft stout petal bill pointing out the front of the face */}
-          {beak(71, 41, 9, 2.8, "#3A352E")}
-          {/* eye sitting inside the black patch so it reads as a dark-faced bird */}
-          <Eye cx={61} cy={40} r={4.2} />
+          {/* SIGNATURE: the black mask-and-bib: forehead, lores, cheek, chin and throat down to a rounded bib on
+              the upper breast; the green crown stays above it and the green nape behind it */}
+          <path d="M53 38 Q58 32.5 66 33.5 Q72 35.5 73 43 Q74 52 72 56 Q69 64 61 66 Q53 65 50 57 Q48.5 47 53 38 Z" fill={BIB} />
+          {/* turquoise moustache: a short rounded streak from the bill base back along the jaw */}
+          <path d="M68.5 46.5 Q65 50.5 58 52.5 Q55 52.5 55.5 50.2 Q60 47 66 44.8 Q69 44.3 68.5 46.5 Z" fill={TURQ} />
+          {/* slim leafbird bill, a touch down-curved, soft tip, dark grey so it reads against the black */}
+          <path d="M70 39 Q79 39 83.5 43.5 Q85 45.8 83 46 Q78 44.8 70.5 46 Q68.8 42.5 70 39 Z" fill={BILL} />
+          {/* the eye, wholly inside the mask: brown iris, INK pupil, catchlight */}
+          <circle cx="62" cy="40" r="4.4" fill={IRIS} />
+          <circle cx="62" cy="40" r="2.8" fill={INK} />
+          <circle cx="60.5" cy="38.5" r="1.45" fill="#FFFFFF" />
         </g>
       );
     },
@@ -1571,30 +1595,28 @@ const ARCHES: Arche[] = [
             );
     },
   },
-  // 48 - ORANGE-BREASTED GREEN-PIGEON. Fat green barrel with bold lilac-over-orange breast bands.
+  // 48 - ORANGE-BREASTED GREEN-PIGEON. Fat green barrel, grey crown, orange breast. U2b (F25,
+  // paragraph 31): the breast is ONE bounded orange lobe on the front (the field mark; the lilac band
+  // read as lips on a lobe and as a pill in a stack, so it is gone), the head sits up and forward and
+  // breaks the outline, and the crown is ONE grey cap on the dome, clear of the eye.
   {
     name: "Green-Pigeon",
     skip: GREENS,
     draw: () => {
-      const GRN = "#8FB84A", GREY = "#9AA38C", LILAC = "#C98AA8", ORG = "#E0913A", BELLY = "#B6C46A";
+      const GRN = "#8FB84A", GREY = "#9AA38C", ORG = "#E0913A";
       return (
         <g>
           <ellipse cx="48" cy="56" rx="31" ry="29" fill={GRN} />
-          {/* grey crown */}
-          <path d="M30 44.5 Q44 31 63 39 Q66.4 40 63.5 41.2 Q52 42 44 45 Q40 46.5 30 44.5 Z" fill={GREY} />
-          {/* pale belly */}
-          <ellipse cx="52" cy="69" rx="18" ry="12" fill={BELLY} />
-          {/* breast bands: lilac over orange (solid blocks) */}
-          <path d="M40 50 Q56 52 69 50 L69 55 Q56 57 40 55 Z" fill={LILAC} />
-          <path d="M40 56 Q56 58 69 56 L69 62 Q56 64 40 62 Z" fill={ORG} />
-          {/* head */}
-          <circle cx="58" cy="44" r="11" fill={GRN} />
-          <path d="M52 40 Q60 36 66 40 Q59 41 55 43 Z" fill={GREY} />
-          {beak(68, 45, 8, 2.6, "#C9C2B4")}
+          {/* the orange breast: one rounded lobe on the front, green all round it, 2.7 units under the chin */}
+          <ellipse cx="58" cy="61" rx="11.5" ry="9.5" fill={ORG} />
+          {/* head up and forward (its dome is about 5 units above the body's outline), one grey cap on top */}
+          <circle cx="60" cy="37" r="12.5" fill={GRN} />
+          <path d="M49.5 31.5 Q52 24.5 60 24.5 Q68 24.5 70.5 31.5 Q60 34 49.5 31.5 Z" fill={GREY} />
+          {beak(70, 42.5, 8, 2.6, "#C9C2B4")}
           {/* stubby red legs */}
           <rect x="44" y="82" width="3" height="6" rx="1.5" fill="#C24A3A" />
           <rect x="54" y="82" width="3" height="6" rx="1.5" fill="#C24A3A" />
-          <Eye cx={61} cy={43} />
+          <Eye cx={63.5} cy={40.5} />
         </g>
       );
     },
@@ -1644,6 +1666,39 @@ const ARCHES: Arche[] = [
           <ellipse cx="35" cy="64" rx="12" ry="7" fill={SKY} transform="rotate(-16 35 64)" />
           {beak(78, 50, 12, 3.2, "#3A352E")}
           <Eye cx={62} cy={45} />
+        </g>
+      );
+    },
+  },
+  // 51 - YELLOW-FOOTED GREEN-PIGEON (candidate, Q3 of the 2026-10 expansion: he keeps whichever of
+  // this and the Orange-breasted looks better, from one sheet). The same fat barrel as 48, told from it
+  // by colour: olive-green back and wing, a yellow-olive head-and-breast drawn as ONE pear with soft
+  // concave necks (review 1: two crossing circles left V notches), a grey crown on the dome clear of the
+  // eye, one mauve patch at the bend of the wing, and the field mark, bright yellow legs and feet.
+  // Appended past the Roller so no member can land on it by chance while it is a candidate.
+  {
+    name: "Yellow-footed Green-Pigeon",
+    skip: GREENS,
+    draw: () => {
+      const OLV = "#7A9A3A", YEL = "#D2C44C", GREY = "#9CA4A2", MAUVE = "#B48AB6", LEG = "#F2C230", BILL = "#C9C8B8";
+      return (
+        <g>
+          {/* bright yellow legs and feet: the field mark; rounded stubs, each with a soft toe pad */}
+          <rect x="43.5" y="81" width="3.4" height="7" rx="1.7" fill={LEG} />
+          <rect x="53.5" y="81" width="3.4" height="7" rx="1.7" fill={LEG} />
+          <ellipse cx="45.5" cy="88" rx="3.6" ry="1.6" fill={LEG} />
+          <ellipse cx="55.5" cy="88" rx="3.6" ry="1.6" fill={LEG} />
+          {/* olive-green barrel body */}
+          <ellipse cx="48" cy="56" rx="31" ry="29" fill={OLV} />
+          {/* one mauve patch at the bend of the folded wing, behind the yellow front */}
+          <ellipse cx="35.5" cy="52" rx="5.5" ry="6.5" fill={MAUVE} transform="rotate(-12 35.5 52)" />
+          {/* yellow-olive head and breast as ONE pear: a dome breaking the outline, soft concave necks,
+              a round breast with at least 4 units of olive round it */}
+          <path d="M60 25 Q72 25 72 37 Q71.5 43 67.5 46.5 Q66 48.5 67 51 Q67.8 52.6 69 53.5 Q72.5 58 72 66 Q71 80 56 80 Q40 80 40 64 Q40.5 57 43.5 53.5 Q50 50 49.8 46.5 Q49.6 41.3 48 37 Q48 25 60 25 Z" fill={YEL} />
+          {/* grey crown on the dome, clear of the eye */}
+          <path d="M49.1 30.9 Q51.6 25 60 25 Q68.4 25 70.9 30.9 Q60 33.5 49.1 30.9 Z" fill={GREY} />
+          {beak(70, 42.5, 8, 2.6, BILL)}
+          <Eye cx={63.5} cy={40.5} />
         </g>
       );
     },
@@ -1713,20 +1768,32 @@ export const SPECIES_FULL_NAMES: string[] = [
   "Orange-breasted Green-Pigeon",
   "Indian White-eye",
   "Indian Roller", // index 50, reserved; see the ARCHES entry and GALLERY_SPECIES below
+  "Yellow-footed Green-Pigeon (candidate)", // index 51, a Q3 candidate beside the Orange-breasted (48) until he picks
 ];
 
 /**
- * What the public bird galleries list: every species except the ones held back for one account.
- * Today that is the Indian Roller alone. The Hoopoe stays on the shelf even though no member may
- * wear it, because a gallery of the valley's birds that left out the mascot would read as an
- * omission rather than a decision.
+ * What the public bird galleries list: every species except the ones held back for one account
+ * and the candidates (below). Today the held-back one is the Indian Roller alone. The Hoopoe stays
+ * on the shelf even though no member may wear it, because a gallery of the valley's birds that
+ * left out the mascot would read as an omission rather than a decision.
  *
- * Fifty entries. Both /birds and /lab/birds-rv render from this one list, so the count in the page
- * copy and the birds actually shown can never drift apart.
+ * Both /birds and /lab/birds-rv render from this one list, so the count in the page copy and the
+ * birds actually shown can never drift apart; the copy's number is checked against it in U6 of
+ * the birds expansion (docs/planning/birds-expansion/handover.md).
  */
 export const GALLERY_SPECIES: { index: number; name: string }[] = SPECIES_FULL_NAMES.map(
   (name, index) => ({ index, name })
-).filter(({ index }) => index !== ROLLER_SPECIES_INDEX);
+).filter(({ index, name }) => index !== ROLLER_SPECIES_INDEX && !isCandidate(name));
+
+/**
+ * A candidate is a second drawing of a bird that already has one, appended while the birds
+ * expansion runs (2026-10) so the owner can see both on one sheet and keep one. Until he picks,
+ * it is drawn by the dev tooling only: not in the gallery, not in the paid picker, not dealt at
+ * signup (all three read GALLERY_SPECIES). The name suffix is the whole marker.
+ */
+export function isCandidate(name: string): boolean {
+  return name.endsWith(" (candidate)");
+}
 
 /**
  * The species name for a member's deterministic bird (same precedence as

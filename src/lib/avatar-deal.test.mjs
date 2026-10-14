@@ -211,6 +211,18 @@ test("every species name has a drawing", () => {
   assert.equal(named.length, drawn.length, `${named.length} names for ${drawn.length} drawings`);
 });
 
+/* A candidate drawing (a second take on a bird, appended while the birds
+ * expansion runs, name ending " (candidate)") exists for the owner to compare
+ * on a sheet. Until he keeps one, nobody wears it: the gallery, the paid
+ * picker and the signup deal all read GALLERY_SPECIES, so that one filter is
+ * the whole gate. */
+test("a candidate drawing is never dealt, picked or listed until the owner keeps it", () => {
+  const src = decomment(read("src/components/common/bird-avatar-v2.tsx"));
+  const gallery = src.slice(src.indexOf("export const GALLERY_SPECIES"), src.indexOf("export function isCandidate"));
+  assert.match(gallery, /!isCandidate\(name\)/, "GALLERY_SPECIES no longer filters candidates");
+  assert.match(src, /function isCandidate[^{]*\{\s*return name\.endsWith\(" \(candidate\)"\)/, "isCandidate must test the \" (candidate)\" suffix");
+});
+
 test("signup deals the new member a bird and spends no supporter's pick", () => {
   const signup = decomment(read("src/components/auth/actions.ts"));
   assert.match(signup, /dealNewMemberBird\(\)/, "registerUser no longer deals a bird");
