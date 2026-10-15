@@ -1,3 +1,14 @@
+## 2026-10-16 (birds) — U3b closed: five redraws and three candidate pairs for gate 2
+
+The Red-whiskered Bulbul (one soft crest, calm face, whisker behind the eye), the Indian Robin
+(the cocked tail a fan off the rump, no longer "a bird trying to wave"), the Brahminy Starling
+(from nothing: apricot, grey wing, black crown, yellow bill with a blue base), the Orange-headed
+Thrush (round) and Tickell's Blue Flycatcher (rust over white, round) are redrawn in place. Three
+gated candidates sit beside birds he called okay for him to choose between on one sheet: a
+Blue-capped Rock-Thrush beside Tickell's, a rounder Small Minivet beside the old, and a long-tailed
+Sirkeer Malkoha beside the old. Two reviews, one fix pass by the drawer, the last three one-fault
+fixes applied by the runner from the review's own paths. Visual baselines still wait for U6.
+
 ## 2026-10-15 (birds) — U3a closed: Jacobin and Black Eagle pass, the Flycatcher and Peregrine go to gate 2 as pairs
 
 The four hard redraws. The Jacobin Cuckoo (white underparts held inside a black rim, a short

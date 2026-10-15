@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-16 (birds) — U3b closed: five redraws and three candidate pairs for gate 2
 - 2026-10-15 (birds) — U3a closed: Jacobin and Black Eagle pass, the Flycatcher and Peregrine go to gate 2 as pairs
 - 2026-10-15 (birds) — U2b closed: seven birds restructured, the first candidate drawn and gated
 - 2026-10-14 (birds) — U2a closed: seventeen birds through two reviews, and the campaign goes lean
