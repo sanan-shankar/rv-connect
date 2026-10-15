@@ -1,0 +1,93 @@
+# U3a, independent review 2 (2026-10-15)
+
+Review 2 of U3a: verification of the drawer's one fix pass on the eleven faults of [review 1](u3a-review-1.md) for 26, 32, 35 and 36, and a first full review of the two second-hand candidates, 52 "Paradise Flycatcher (candidate)" and 53 "Peregrine Falcon (candidate)". Judged against `reviewer.md` by the same Opus reviewer, who drew none of them.
+
+Of the eleven review-1 faults, nine are fixed, one is partly fixed (26's white back) and one is not (32's penguin). All six birds fail, but four of them by one or two faults with a short fix. The fixes created four new faults: a sliver at 26's tail root, two stubs at 32's rear, a wing flash on 35 tangent to its wing, and a ruler-straight shoulder on 36's new wing. 52 fails on three faults, 53 on five.
+
+Runner's scope decision, applied and not failed: the Black Eagle's eye is dark brown on purpose.
+
+Inputs: the 600px renders, `sheet-26_32_35_36.png` and its 96/40px versions, `sheet-26_52_32_53.png` and its 96/40px versions, the `draw()` bodies, the re-centring in `bird-adjust.json` and `bird-edges.mjs` for all six. Every chord the edge audit lists (26: two, 32: one, 35: two, 36: one, 52: three, 53: none) is under another shape, so none of them is a fault. Coordinates are viewBox units (0..100) from the source. "px" is a point on that bird's 600px render, after re-centring. A "turn" is the change of direction where two path segments join.
+
+## For the gate-2 sheet: the two pairs at 40px (description, not a choice)
+
+- **26 against 52 (Paradise Flycatcher).** 52 reads more as the species at 40px. Its tail is a white ribbon with a grey shadow side that flows out of the white body, and its body keeps an edge because a grey rim runs along the belly and rear. 26's tail is a grey string that fuses with its grey oval wing, and the top of its white body melts into the paper, so it reads as a black head over a grey blob.
+- **32 against 53 (Peregrine Falcon).** 53 reads more as the species at 40px, by its face: a dark cap and moustache over a cream cheek and chin, with a big yellow-ringed eye. That pattern is a peregrine's and nothing else's. 32's round dark helmet over a white front reads as a penguin first. Both bodies carry the penguin; see below.
+
+## What tells a Peregrine from a penguin in this idiom
+
+Both takes read as a penguin for the same two reasons. **A clean pale front runs from the chin to the bottom of the body**, a shirt front. **The dark wing ends in its own round paddle beside or below the body, with no tail to lie on**, a flipper. Two changes break it, within the element budget:
+
+1. **Bib above, barring below.** Keep the cream only on the cheek, throat and upper breast. Make the lower breast and belly ONE mid-tone shape (slate and cream mixed, about `mix(SLATE, CREAM, 0.45)`, the colour 53's bar already uses), its top a soft curve across the breast at about the level of the wing's elbow. A penguin is white to its feet; a peregrine's underparts are grey-barred below the bib. This replaces the bar(s) rather than adding marks: +0 on 53 (it swaps the bar), +1 on 32 (it has room at ten shapes).
+2. **One long taper at the rear.** A narrow, round-ended tail projecting about ten units past the body, down and back, with the wing's tip lying ON it and ending a few units short of its end. The bird's rear then reads as the falcon's long point of wingtips and tail, not a paddle hanging at its side. +0 on 32 (lengthen its tail and tuck it under the wing tip), +1 on 53 (paid by its bar under change 1).
+
+An optional third: lean the body 10 to 15 degrees so the rear sits back. An upright egg is the penguin's own stance. Review 1's fault 4 on 32 told the drawer to delete the two bars; that was right on the count and wrong on the reading. The bars were the one thing breaking the shirt front, and change 1 is what should have replaced them.
+
+---
+
+BIRD 26 Paradise Flycatcher: FAIL
+Verdict: Now a perched male with the ribbon hanging down and back, which fixes the saucer. But the top of the white body still has no edge on the paper, and a white sliver sits where the wing, the tail and the underside meet.
+Neighbours at 40px: Cattle Egret (30), Tricolored Munia (46), 52 (its own candidate), told apart from 30 and 46 by colour: a black head on a white body. The Egret has no black and the Munia's body is chestnut.
+Review 1: fault 1 (tail as saucer) fixed. The ribbon leaves the vent at (40-44, 58-62), falls in an S to a round cap at about (11,90), and never comes forward of the body. At 600px it reads as a tail hanging from the bird. Fault 2 (notched tip) fixed: the cap is `A1.8 1.8 0 0 0`, it bulges forward, and both its joins turn under 5 degrees. Fault 3 (no edge along the back) only partly fixed: see fault 1 below.
+Faults:
+  1. [line 8] The upper back still has no edge. The grey wing ellipse now forms the rim from the vent up to about (28,49). From there over the top of the body to the crest's base at about (50,33.2), px (170,287) to (314,181), about 25 units of rim are cool white #ECEEE6 directly on the paper #F5F2EA. At 40px that part of the body disappears. Fix: carry grey up that arc. Either move and turn the wing so its outer edge follows the rim up to under the crest, or add one rim crescent on the upper back from (28,49) round to about (47,33), 2 to 2.5 units at its widest, with both horns hidden under the wing and the crest (ten shapes).
+  2. [line 8] A white sliver at the tail root. The wing ellipse's lower end (bottom at about (32.5,66)) crosses the rim at about (34,65.5). Below it, the body's rim runs to the underside crescent's left horn at (37.5,68.5), and the tail's right edge crosses the rim at (37.8,69). Between the grey wing and the grey tail and crescent this leaves a white wedge 1 to 4 units deep that tapers to a point, px about (210-240, 395-412). Fix: no white between those three greys. Run the crescent's left horn round the rim to end under the wing, so its inner edge meets the wing's edge at a steep angle rather than a glancing one. Or move the tail's root so it leaves from under the wing's lower end.
+Notes (not blocking):
+  - The wing is a plain ellipse, and the tail is the same grey #CDCFC5 and leaves from its foot, so the two read as one grey haunch with a string tail. At 220px that gives a slight mouse reading. A wing that tapers to its tip (a teardrop, as on 35 and 36) would read as a wing.
+
+---
+
+BIRD 32 Peregrine Falcon: FAIL
+Verdict: Every corner and tangent from review 1 is fixed and the bird is down to ten shapes. But it still reads as a penguin: with the bars gone the cream front is a clean shirt from chin to vent, and the new tail sits beside the wing tip as a second stub, not under it.
+Neighbours at 40px: Jacobin Cuckoo (35), Magpie-Robin (14), Brahminy Kite (40), 53 (its own candidate), told apart from 35, 14 and 40 by colour: the only slate-blue body with a cream front.
+Review 1: fault 1 (penguin) NOT fixed: see faults 1 and 2. Fault 2 (three corners) fixed: the wing tip's joins turn 9, 2 and 8 degrees, and the cream front's bottom-left now turns 10 degrees or less with a slate rim of about 2.9. Fault 3 (eye-ring on the cheek's edge) fixed: the cream's top edge is at about y 44.4 under the eye, which leaves 2.4 units of helmet below the ring, and the moustache starts inside that band at (60.5,43.5), 2.4 from the ring. Fault 4 (marks) fixed: both bars deleted, ten shapes.
+Faults:
+  1. [line 5] The front is a penguin's shirt. The cream runs unbroken from the chin at (67,44) to (44.5,84) at the bottom of the body, a clean pale oval inside a slate rim, px about (245-500, 205-520). Fix: change 1 above. Cream only on the cheek, throat and upper breast, then one barred mid-tone shape over the lower breast and belly, its top a soft curve at about y 62.
+  2. [line 5, line 7] The rear is two stubs, not one taper. The wing tip (20-25.5, 83-88) and the new tail's round end (28-34.6, 85-92) sit side by side. A notch of paper about 3 units wide lies between them at about (26-29, 83-86), px about (146,514), and they read as a flipper and a foot (¶36). The comment says the wingtip crosses the tail; in the source the two do not overlap. Fix: change 2 above. Make the tail narrower and longer, reaching about ten units past the rim down and back (round end near (16,95) before re-centring), and lay the wing's tip on top of it so no paper shows between them.
+Notes (not blocking):
+  - The wing's upper inner edge, from (40,56) to where it meets the helmet at about (46,47.5), bows only about 4 percent over its 10 visible units. Review 1 suggested this path, so the near-straight edge is partly my doing. The run is short and its join turns 8 degrees, so it is not failed. `Q47.5 50 49 41` in place of `Q46 49 49 41` makes it a curve (about 10 percent, join 3 degrees, 2.9 units of slate kept to the cream).
+
+---
+
+BIRD 35 Jacobin Cuckoo: FAIL
+Verdict: The belly's corner is gone and the flash now sits low on the wing, which is truer and further from the Magpie-Robin. But the flash is exactly as wide as the wing, so its two ends touch the black body and cut the wing in two.
+Neighbours at 40px: Magpie-Robin (14), Tricolored Munia (46), Black Eagle (36), told apart from 14 by silhouette (crest bump and dropped tail, against a cocked tail), from 46 by colour (chestnut disc) and from 36 by colour (white belly).
+Review 1: fault 1 (belly corner) fixed. `Q58 83.6 47 82.6 Q42 82 41.8 74 Q42 67 47 60` turns 15 degrees or less at every join, the black rim under the belly is about 3.4, and at 600px the white's bottom-left is round.
+Faults:
+  1. [line 8] The flash's ends kiss the wing's edges. The ellipse (35,69) rx 4.2 ry 2.3 at -15 degrees runs from x 30.9 to x 39.1. At that height the wing lobe runs from 30.96 (left edge, at y 69.75) to 39.13 (right edge, at y 68.26). The bar pokes 0.06 out on the left and is 0.03 inside on the right, px about (173,405) and (238,395). So the white bar meets the black body at both ends, and the darker wing below it, (33-38.5, 71-78), becomes a separate island (¶31: shapes cutting each other). Fix: keep the bar inside the wing with about 1 unit of wing at each end. For example rx 3.2 ry 2.1 at (35,68), which leaves about 1 unit at each end at that height. The bar still reads as crossing the wing.
+
+---
+
+BIRD 36 Black Eagle: FAIL
+Verdict: Much closer to an eagle. The paler folded wing runs from the shoulder to a tip lying on the tail, and the face is a dark eye in a brown ring with a yellow cere on a grey hooked bill. The one fault is the wing's shoulder, which is a straight cut with an elbow below it.
+Neighbours at 40px: Koel (16), Coucal (18), Drongo (17), told apart by colour. A warm sooty brown with a dull grey-brown wing and a yellow cere, against the cool blue-black Koel and Drongo (red eyes) and the Coucal's bright rufous wing on black.
+Review 1: fault 1 (yellow iris) fixed within the runner's scope: iris ring #5E4430 r 4.9 round an eye disc #141110 r 3.9, the darkest point on the bird. Fault 2 (no eagle shape) fixed: the lit region is now one long folded wing whose tip (21.5-25.5, 84-88) lies over the tail paddle, and the tail's end shows beyond it. Its joins turn 18 degrees or less, and the hidden corner at (52,44) sits under the head. Fault 3 (breast corner) is moot: the lit breast is gone.
+Faults:
+  1. [line 1] The wing's upper inner edge is a ruler line with an elbow. The segment `Q44.5 51.5 52 44` from (41.5,57) bows only 3.4 percent of its length. About 12.5 units of it show between (41.5,57) and where it enters the head at about (49.5,47.5), light brown on sooty, px (251,305) to (312,232). Where it meets the curve below at (41.5,57) the join turns 18 degrees, so at 600px it reads as a straight slanted cut with an elbow. U2a review 2 called 3 to 5 percent a ruler line. Fix: one curve from (30,77) to the shoulder. Replace `Q31 67 41.5 57 Q44.5 51.5 52 44` with `Q32 63 52 44`: it bows about 7.7 percent, the join at (30,77) turns about 2 degrees, and the end stays hidden under the head.
+Notes (not blocking):
+  - The cere ellipse (74,33.6) rx 4.2 ry 2 has a top edge about 1.4 units above the bill's top at x 74 to 77, and between x 75 and 77.5 it stands proud of the bill onto the paper, px about (470-500, 112-120). So it reads as a yellow pill riding on the bill rather than the bill's own base. Lowering it about 1 unit, so its top follows the bill's top edge, finishes what review 1's note asked.
+
+---
+
+BIRD 52 Paradise Flycatcher (candidate): FAIL
+Verdict: The stronger of the two Flycatchers. A small white body leaning up and forward, the black hood with its crest and black throat as one shape, a cobalt eye-ring and bill, and a long white ribbon with a grey shadow side, trailing behind and down. It reads as the male at 600 and 40px. It fails on two white slivers where black or grey runs alongside the white body, a pointed throat, and a tail tip almost touching the edge of the box.
+Neighbours at 40px: Cattle Egret (30), Tricolored Munia (46), 26 (its own pair), told apart from 30 and 46 by colour: a black hood on a white body. The Egret has no black and the Munia's body is chestnut.
+Faults:
+  1. [line 1, line 8] The throat lobe ends in a point and its front edge glances along the body's front. (a) The hood's lowest point (66,50) is a join that turns about 40 degrees: `Q77.5 47 66 50` arrives heading left and `Q54.5 44.5` leaves heading up-left. So the black ends in a sharp tip in the breast, px about (367,330). (b) The lobe's front edge runs alongside the white body's front edge: 0.55 units OUTSIDE it at the chin (75.8,37.8), 0.5 inside at (75.6,42.8), 1.6 inside at (74.2,45.5). That leaves a white sliver tapering to nothing between the black throat and the grey shade rim, px about (420-430, 270-300). Fix: either let the black throat BE the front silhouette from the chin to about y 46, reaching past the shade ellipse's front (about x 78.7), or keep it at least 2 units inside the white and make it cross the body's edge steeply at the chin. Either way, round its bottom with two segments through a tip point, so no join turns more than about 20 degrees.
+  2. [line 8] A white sliver between the wing and the hood. The wing lobe's front edge (`Q57 34.5 55 31`) runs beside the hood's back edge. The white between them is 2.5 units at y 39.5, 1.1 at y 37, 0.3 at y 35, and nothing at the wing's top. It is a white needle pointing up into the nape, px about (300-310, 235-255). Fix: tuck the wing's front edge under the hood, e.g. `... Q48.5 45 57 40.5 Q59 35 55 31 Z`. Its front edge then crosses the hood's edge at about 35 to 40 degrees instead of running beside it. Or pull it back so at least 2.5 units of white separate the two all the way.
+  3. [line 9] The tail's tip nearly touches the box. After re-centring (s 0.984, x -4.63) the ribbon's end lands at about x 2, y 91, px about (11-25, 530-550), about 2 units from the left edge. Inside the avatar's disc it is safe (inset scale 0.66), but on paper it kisses the edge. Fix: end the ribbon about 5 units sooner, or turn its final flick upward, so the tip sits at least 6 units from the edge after re-centring.
+Notes (not blocking):
+  - Along the back, the grey shade is a 0 to 1.4 unit hairline outside the white. The back's edge at 40px is really made by the wing lobe, 1.5 to 3 units inside. It holds at 40px; it would hold better if the lobe's outer edge ran 1 unit closer to the rim.
+
+---
+
+BIRD 53 Peregrine Falcon (candidate): FAIL
+Verdict: The best Peregrine face in the set: a dark cap and moustache over a cream cheek and chin, a big yellow-ringed eye, a slate-blue hooked bill with its cere. Below the neck it is a penguin: an upright egg with a clean cream front and a flipper wing. The cream also breaks out of the body on the lower right, the wing's inner edge is ruler-straight, the cheek ends in a sharp point under the eye, and the bird is scaled so large it touches the top and bottom of the box.
+Neighbours at 40px: Jacobin Cuckoo (35), Magpie-Robin (14), Brahminy Kite (40), 32 (its own pair), told apart from 35, 14 and 40 by colour: slate with a cream face and front, and the face pattern.
+Faults:
+  1. [line 5] The body says penguin. An upright, symmetrical egg, a clean cream front from the neck to (56,81), no tail, and the wing tip (29-36.5, 76-87.5) hanging below the body on its own. The single bar (57.5,72) rx 6.5 ry 1.6, px about (300-400, 455-475), reads as a stray grey dash, not barring. Fix: both changes above. Replace the bar with one barred mid-tone shape over the lower breast and belly, and add a narrow round-ended tail projecting about ten units down and back, with the wing tip lying on it. Optionally lean the egg 10 to 15 degrees.
+  2. [line 8] The cream front breaks out of the slate on the lower right. Between about y 69 and y 78 the segment `Q69.5 77 56 81` runs up to 1.1 units OUTSIDE the body's edge (cream at (66.5,74.25) against the body at about (65.4,74.5)), px about (425-445, 450-490). So the pale belly sits straight on the paper there, with no slate rim. Fix: pull the lower right in, e.g. `... Q72 46 70 61 Q66 73.5 56 80 Q49.5 81.8 47.5 73 ...`: rim 2.6 or more, joins 18 degrees or less.
+  3. [line 1] The wing's inner edge is a ruler line. `Q47 56 49 36` from (36.5,81) bows 3.7 percent over its 46.7-unit chord. About 38 units show, from the head at about (48,44) to the tip, px (272,233) to (178,536): one long straight diagonal against the slate. Fix: bow it back, so the wing is a sickle that tapers to its tip, e.g. `Q38 50 49 36` (about 7 percent). The slate band between wing and cream then widens and no edge touches.
+  4. [line 1, line 4] The cheek ends in a sharp point just under the eye. The moustache's back edge (`Q61.5 41.5 62.5 36.5`) and the mask line (`Q54 39.5 45.2 38`) meet at (62.5,36.5) with a turn of about 121 degrees. That leaves the cream cheek as a 59-degree point aimed at the eye-ring, 1.5 units below it, px about (391,171). Fix: round the cheek's top, e.g. `... Q65 47.5 63.5 45.5 Q61 42 61 39.5 Q61 37.5 58.5 37.8 Q52 38.8 45.2 38 Z`: joins 2 degrees or less, about 2.9 units of hood under the ring.
+  5. [line 9] Too big for the box. At s 1.366 the cap's top lands at about y 4 (px 25) and the wing tip's bottom at about y 98 (px 587). It touches the top and bottom of the 600px frame. Fix: runner, re-centre at about s 1.2 once fault 1 settles the outline; a tail will change the reach anyway.
+Notes (not blocking):
+  - The cream chin in front of the moustache (73-75, 36-42) sits about 1 unit beyond the slate body, cream on paper. It is visible at 600px and too small to matter at 40px.

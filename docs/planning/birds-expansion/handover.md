@@ -33,23 +33,25 @@ flag is his call alone (¶39), and the Hoopoe and the Indian Roller are never de
 
 ## Resume here (kept current; read before the board)
 
-**State on 2026-10-15.** Units DONE: set-up, tooling, U5 (9ef4c6f9), U2a (9101e61d), U2b (the
-commit after 9101e61d). **Next is U3a**: Paradise Flycatcher 26 as the white male with the long
-tail, Peregrine 32, Jacobin 35, Black Eagle 36; brief one Fable hand from this file's ledger rows
-for them (F11, F12, F13, F21, F22 and whichever others name those indices), "How to work a drawing
-unit", `reviewer.md`, and the owner's paragraphs the rows cite. Then, as the board says, a second
-hand draws alternative 26 and 32 as appended " (candidate)" entries (index 52 and up; the
-`isCandidate()` gate keeps them out of the gallery, the picker and the deal until he picks).
-The loop that closed U2a and U2b: the drawer draws and looks; the runner re-centres
-(`centroid.mjs --only ...` until "0 need attention"), renders the unit's sheet and looks; ONE
-Opus reviewer under the budget rule writes `reviews/u3a-review-1.md`; the same drawer gets the
-faults once (SendMessage, context intact); the same reviewer verifies once (review 2, under
-thirty minutes); faults with exact paths left after that the runner applies itself and looks at;
-then commit by pathspec with the ledger rows, the board, this block, the session log and the
-progress line inside. If a drawer or reviewer is mid-flight when you resume, `ListAgents` shows
-it; uncommitted edits in `bird-avatar-v2.tsx` are the round in progress.
+**State on 2026-10-15, evening.** Units DONE: set-up, tooling, U5 (9ef4c6f9), U2a (9101e61d), U2b
+(17a5c8e0), U3a (the commit after 17a5c8e0). **Next is U3b**: redraw in place 13 R-W Bulbul (F1),
+15 Indian Robin (F3), 23 Brahminy Starling (F12), 33 Orange-headed Thrush (F7), 44 Tickell's (F6);
+append as " (candidate)" entries (index 54 and up, `isCandidate()` keeps them out of the gallery,
+the picker and the deal) a Blue-capped Rock-Thrush beside 44 (Q4), a Small Minivet beside 47 and a
+Sirkeer Malkoha beside 11 (Q10, the old kept for the pair; F9). Brief one Fable hand from those
+ledger rows, "How to work a drawing unit", `reviewer.md`, and the owner's paragraphs the rows cite.
+The loop that closed U2a to U3a: the drawer draws and looks; the runner re-centres
+(`centroid.mjs --only ...` until "0 need attention"), renders the unit's sheet and looks; ONE Opus
+reviewer under the budget rule writes `reviews/u3b-review-1.md`; the same drawer gets the faults
+once (SendMessage, context intact); the same reviewer verifies once; faults with exact paths left
+after that the runner applies itself and looks at; a bird that fails review 3 is PARKED and still
+shown at gate 2; then commit by pathspec with the ledger rows, the board, this block, the session
+log and the progress line inside. If a drawer or reviewer is mid-flight when you resume,
+`ListAgents` shows it; uncommitted edits in `bird-avatar-v2.tsx` are the round in progress. A
+usage limit (HTTP 429) has cut an agent off twice; a resumed agent carries on from its own
+transcript with nothing lost, so resume it rather than re-brief.
 
-**Then, in order:** U3b, U4a, U4b, U4c, U4d, U4e, U6 (see the board and "The units").
+**Then, in order:** U4a, U4b, U4c, U4d, U4e, U6 (see the board and "The units").
 Owner answers are all in; nothing is owner-gated until gate 2, which is rendered sheets and
 before/after pairs, not prose (he decides by seeing, Q5).
 
@@ -94,7 +96,7 @@ before/after pairs, not prose (he decides by seeing, Q5).
 | U2a Cut-offs and bills | DONE | 2026-10-14. Seventeen birds, four drawing rounds, two reviews (`reviews/u2a-review-1.md`, `u2a-review-2.md`): review 1 passed 4, review 2 passed 9 of the 13, the last 4 (10, 41, 42, 46) fixed once more and checked by the runner at 600px. `Eye` takes a disc colour. Commits e9cf7112, e7f32046, 3c3bf8ac and the closing one |
 | U5 The dealing rule | DONE | 2026-10-09. `src/lib/avatar-deal.ts` (pure), `avatar-deal-server.ts` (the count and the draw), ten tests, signup deals INSIDE the create, write-path review clean. The twelve new species would take ~70% of the first fifty signups and reach the old birds' average after ~250 |
 | U2b Structure and colour | DONE | 2026-10-15. 14, 29, 34, 38, 39, 48 fixed and the Yellow-footed Green-Pigeon candidate appended at 51 (`reviews/u2b-review-1.md`, `u2b-review-2.md`: all seven failed review 1 on nineteen faults, review 2 passed four and failed three on four small faults the runner fixed from the review's own paths). Candidates are gated out of the gallery, the paid picker and the deal by `isCandidate()` with a test. The Lapwing's legs declined (Q11) |
-| U3a Hard redraws | OPEN | Paradise Flycatcher 26 as the white male, Peregrine 32, Jacobin 35, Black Eagle 36; then a second hand draws alternative 26 and 32 as appended candidates |
+| U3a Hard redraws | DONE | 2026-10-15. Jacobin 35 and Black Eagle 36 pass review 3. Paradise Flycatcher 26 and Peregrine 32 (first hand) PARKED at review 3; the second hand's candidates 52 and 53 are the ones the reviewer would show (`reviews/u3a-review-1..3.md`). Gate 2 shows each pair on one sheet; he picks |
 | U3b Redraws | OPEN | R-W Bulbul 13, Indian Robin 15, Brahminy Starling 23, Orange-headed Thrush 33, Tickell's 44 plus a Blue-capped Rock-Thrush candidate (Q4), Sirkeer Malkoha 11 and Small Minivet 47 (Q10, old kept for the pair) |
 | U4a New birds 1 to 4 | OPEN | Grey Junglefowl, Spot-billed Duck, Grey-headed Swamphen, Black-winged Kite |
 | U4b New birds 5 to 8 | OPEN | Indian Eagle-Owl, Common Tailorbird, Common Kestrel, Black-crowned Night Heron |
@@ -138,9 +140,9 @@ the order of `/birds`.
 | F8 | Common Kingfisher (38) | 12 | "looks fine. Though that's also kind of dull" | brighten the cyan and the orange; nothing structural | U2b | DONE. Colours brightened (cyan #12B6EA, orange #F27A1F); review 1 found four cut-offs the sweep had missed (bill highlight's flat end, straight-sided belly, cheek point, orange sliver), review 2 PASS with all four gone |
 | F9 | Small Minivet (47) | 12, 23 | "okay. It's not not great"; "a little bit [long]... it's still okay" | shorten a little (Q10) | U3b | OPEN (Q10: redraw and pick the best, the old kept for the pair) |
 | F10 | Bay-backed Shrike (42) | 13, 34 | "looks okay... the beak is a bit too crooked and pointy"; later "is good" | soften the hook | U2a | DONE. Review 1 softened the hook; review 2 failed it as a blunt thumb (5.8 deep, 4-unit knob); the fix pass slimmed it (4.7 at the base, a drooping 3.1 nail, underside bowed up). Runner looked at 600px; not re-reviewed (the 2026-10-14 rule) |
-| F11 | Peregrine Falcon (32) | 13, 22 | "crooked and pointy"; "overengineered... derpy... pot belly... overthought... 70 different elements... I've gone through maybe four or five versions" | redraw from nothing: strength and cuteness, under twelve shapes; two attempts, keep the better | U3a | OPEN |
+| F11 | Peregrine Falcon (32) | 13, 22 | "crooked and pointy"; "overengineered... derpy... pot belly... overthought... 70 different elements... I've gone through maybe four or five versions" | redraw from nothing: strength and cuteness, under twelve shapes; two attempts, keep the better | U3a | PARKED at review 3 (2026-10-15, `reviews/u3a-review-3.md`): the first hand's Peregrine broke the penguin reading (cream bib over a barred belly, tail under the wing tip) but its tail is a straight stick; shown at gate 2 beside the second hand's candidate 53, which the reviewer reads as "plainly a perched falcon" and "the set's best falcon face"; 53 failed only on finish, and the runner applied its three exact fixes (underside one curve, wing edge bowed, nape corner rounded inside the cream). He picks; U6 deletes the loser |
 | F12 | Brahminy Starling (23) | 15 | "I don't like at all... the color... that super thin black line... I don't like anything about it... should be redone" | redraw from nothing | U3b | OPEN |
-| F13 | Asian Paradise Flycatcher (26) | 16 | "one of the most iconic birds in our school... insanely long tail, is white, magnificent... the females look like what you've done, but I think we should pick the male... doing justice to it" | redraw as the white male: black crested head, white body, the long white ribbon tail; two attempts | U3a | OPEN |
+| F13 | Asian Paradise Flycatcher (26) | 16 | "one of the most iconic birds in our school... insanely long tail, is white, magnificent... the females look like what you've done, but I think we should pick the male... doing justice to it" | redraw as the white male: black crested head, white body, the long white ribbon tail; two attempts | U3a | PARKED at review 3: the first hand's white male has a grey-rimmed body and a grey tail that fuse into "a white button with a grey ring"; shown at gate 2 beside the second hand's candidate 52, "the Flycatcher to show" (black hood leaning forward, white body edged by grey shade, the ribbon trailing behind). Reviewer's finding for the whole idiom: the tail twice the body is what fights the box; a later try is worth it only with a broader ribbon (6 to 8 units) about 1.5 body lengths long behind a near-full-size body. 52's one fault is a tip 3 units from the edge, which is the campaign rule's own limit |
 | F14 | Indian Pond Heron (27) | 17 | "very cute... we could add color... kind of bland. The shape is good... the beak has this weirdly, very sharply cut off thing" | keep the shape; colour the crown and the bill; round the bill tip | U2a | DONE. Review 1 (2026-10-12) PASS after the round-2 fixes |
 | F15 | Little Cormorant (28) | 18, 34 | "there in the middle... if it could be rounded just a bit"; "a black bird you've taken and done something really nice" | round the straight edge; change nothing else | U2a | DONE. Review 2 PASS: the bill is slim and hooked, drawn before the head so the head's curve is its base |
 | F16 | Indian Grey Hornbill (10) | 8, 18 | "looks good"; "the beak... looks like the image has been interrupted and cut up" | round the casque and the bill's ends | U2a | DONE. Review 1 failed the casque dome fused with the eye; review 2 passed the low ridge and failed the bill's rear edge (a ruler line, 97-degree corner); the fix pass bowed it 1.5 into the bill with a rounded corner. Runner looked at 600px |
@@ -149,8 +151,8 @@ the order of `/birds`.
 | F18 | Indian Golden Oriole (29) | 20 | "the eye, and then there's this line going through the eye, and then that intersects the beak... looks almost like it's wearing sunglasses" | the eye-stripe stops short of the bill and sits behind the eye; keep the colours | U2b | DONE. The stripe is a rounded flick behind the eye, four units of yellow between eye and bill; review 1 failed the wing as a floating black oval, review 2 PASS with it a folded-wing teardrop from the shoulder. The head stays inside the body on purpose (he flagged only the sunglasses) |
 | F19 | Cattle Egret (30) | 21 | "is good, against some sharp stuff" | soften the buff crown's points; nothing else | U2a | DONE. Review 1 PASS |
 | F20 | Blue-faced Malkoha (34) | 24 | "the background color is... all of the green, and then inside, we have a dark and [olive] green. I'm not so sure about the color science" | one body green, the wing a clear step darker or a different warmth; the blue face bigger | U2b | DONE. One body green with the wing a clear step darker, blue face 10.5x9; review 1 failed the head hidden inside the body, review 2 passed the raised head and failed a hairline of olive between the blue face and the paper; the runner pulled the face in to (61.5,38) rx 9.5 per the review's path and looked at 600px |
-| F21 | Jacobin Cuckoo (35) | 25 | "a lot of randomly harsh and weird cut off shapes... another black and white bird... think of the white as... white space... should be redone again" | redraw: the white belly bounded by black, a soft crest, the wing flash as one shape | U3a | OPEN |
-| F22 | Black Eagle (36) | 26 | "that eyebrow... a random brown spot on top of the beak... a black line over the eye, but you can't really see that... too many elements" | redraw simpler: one body, one lit region, yellow cere and eye, no scallops | U3a | OPEN |
+| F21 | Jacobin Cuckoo (35) | 25 | "a lot of randomly harsh and weird cut off shapes... another black and white bird... think of the white as... white space... should be redone again" | redraw: the white belly bounded by black, a soft crest, the wing flash as one shape | U3a | DONE. Review 3 PASS: "a black crested cuckoo, its white underparts held inside a black rim and a short white flash low on a darker folded wing"; told from the Magpie-Robin by crest, dropped tail and lower flash |
+| F22 | Black Eagle (36) | 26 | "that eyebrow... a random brown spot on top of the beak... a black line over the eye, but you can't really see that... too many elements" | redraw simpler: one body, one lit region, yellow cere and eye, no scallops | U3a | DONE. Review 3 PASS: "a sooty eagle with one paler folded wing running from the shoulder to a tip that lies on its broad tail", dark eye in a brown ring, yellow cere on a grey hooked bill. Seven shapes. The eye is dark brown on purpose (the adult's iris); the row's "yellow eye" was the set-up session's summary, not his words |
 | F23 | Jerdon's Leafbird (39) | 27 | "such lovely colors. It's hard to make sense of what is the eye, beak, face... the structure could be made a bit clearer" | keep every colour; make the black bib, the eye and the bill read as a face | U2b | DONE. Every colour kept; the black is a mask-and-bib the size of a face, the bill a slim decurved grey; review 1 failed the eye straddling the mask, review 2 PASS with the eye inside the mask as a brown iris and ink pupil (a near-black disc in a black mask is the fault he named) |
 | F24 | Black-rumped Flameback (41) | 28 | "honestly fine... but the beak is a bit [great: unclear]" | round the chisel's ends; nothing else | U2a | DONE. Review 2 failed three (eye stripe read as a shadow, moustache touching the gold, crest's lower edge a ruled diagonal); the fix pass deleted the stripe, ended the moustache 1.6 inside the cream, bowed the crest. Runner looked at 600px |
 | F25 | Orange-breasted Green-Pigeon (48) | 31 | "the colors are a bit very random... light purple near the eyes in two different parts... overlapping shapes... cutting off" | redo the bands as bounded shapes on the breast only; the crown one grey; or swap (Q3) | U2b | DONE. Review 1 failed three stacked lozenges as pills and the head hidden with the crown on the eye; review 2 passed one bounded orange breast lobe and the raised head, and failed a green band over the grey cap; the runner made the cap the top of the dome per the review's path. Gate-2 note: no lilac band (it read as lips); the real male has one |
@@ -576,3 +578,17 @@ audit caught. The candidate gate: `GALLERY_SPECIES` drops names ending " (candid
 candidate is drawn by the dev tooling only; pinned in `avatar-deal.test.mjs`. Gate-2 notes for
 him: the Magpie-Robin leans penguin; the candidate reads as a yellow duckling in front of a green
 egg (the reviewer's words), which is the 48-or-51 choice he asked to make by looking.
+
+### 2026-10-15, U3a closed (two Fable hands, one Opus reviewer, one session)
+
+Four hard redraws by one hand, then a second hand's independent takes on the two he cares about
+most (Flycatcher, Peregrine) as candidates 52 and 53. Three reviews. Review 1 failed all four
+(saucer tail, penguin, a corner, a blackbird); review 2 failed all six (the fixes made new corners,
+both Peregrines still penguins) and named the two cues that make a penguin, a clean pale front
+from chin to vent and a wing paddle with no tail, with the two changes that break it; both hands
+applied them. Review 3: Jacobin and Black Eagle pass; 26 and 32 fail on one small fault each and
+are parked by the three-strikes rule, kept in the tree for the gate-2 pair; 52 and 53 are the
+ones to show, 53 after the runner applied its three exact fixes. The reviewer's answer on the
+Flycatcher idiom is in the F13 row. The usage limit cut the reviewer off after it had written
+review 3 to disk; nothing was lost. The Black Eagle's eye is dark brown (the adult's), a runner's
+call against the ledger's summary.

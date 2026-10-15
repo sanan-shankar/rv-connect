@@ -1,3 +1,16 @@
+## 2026-10-15 (birds) — U3a closed: Jacobin and Black Eagle pass, the Flycatcher and Peregrine go to gate 2 as pairs
+
+The four hard redraws. The Jacobin Cuckoo (white underparts held inside a black rim, a short
+flash low on the wing) and the Black Eagle (one paler folded wing on a sooty body, dark eye, yellow
+cere) passed their third review. The Paradise Flycatcher and the Peregrine each got two independent
+takes: the first hand's in place, a second hand's appended as gated candidates 52 and 53. After
+three reviews the first-hand pair is parked (a grey ring that makes the Flycatcher a button, a
+stick tail on the Peregrine) and the candidates are the ones to show: a black hood leaning over a
+white body with the ribbon trailing behind, and a leaning teardrop falcon with a sickle wing and a
+cream bib over a barred belly. The reviewer's read on why the Flycatcher fights the box (a tail
+twice the body shrinks the face) is in the ledger for a later try. All four pairs render on one
+sheet for gate 2; he picks. Visual baselines still wait for U6.
+
 ## 2026-10-15 (birds) — U2b closed: seven birds restructured, the first candidate drawn and gated
 
 The Magpie-Robin's white shapes are now its belly and wing-bar on a folded wing, the Golden
