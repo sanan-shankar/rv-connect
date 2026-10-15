@@ -1,3 +1,12 @@
+## 2026-10-16 (birds) — U4a closed: the first four new species, each with its own silhouette
+
+Grey Junglefowl, Indian Spot-billed Duck, Grey-headed Swamphen and Black-winged Kite join the set
+at index 57 to 60, drawn from nothing: a comb, gold hackle and layered sickle tail; a boat body with
+a black spatula bill tapering to a yellow nail; a purple-blue ball with a red shield and long red
+legs; a pale pearl raptor with a jet shoulder and a ruby eye. Two reviews, one fix pass, the last
+notch closed from the review's own path. They join the gallery, the paid picker and the signup
+deal on commit; nothing is pushed until gate 2. Visual baselines and the "fifty" copy wait for U6.
+
 ## 2026-10-16 (birds) — U3b closed: five redraws and three candidate pairs for gate 2
 
 The Red-whiskered Bulbul (one soft crest, calm face, whisker behind the eye), the Indian Robin

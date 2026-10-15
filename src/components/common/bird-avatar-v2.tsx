@@ -1889,6 +1889,149 @@ const ARCHES: Arche[] = [
       );
     },
   },
+  // 57 - GREY JUNGLEFOWL (U4a, selection.md 2.1: the valley's wild rooster). A hen-shaped grey body
+  // (an ellipse wider than tall, not the set's disc), a darker folded wing, and the two signatures a
+  // child draws on a rooster: a red comb of three soft scallops drawn UNDER the head so only the
+  // lobes above the crown show, and a sickle tail that leaves the rump, arches up the back and
+  // curls in at a round tip, a glossy green-black plume with a shorter teal-green one layered in
+  // front. The golden hackles are one cape lobe draped over the neck and shoulder between head and
+  // body (it is also the neck). A red wattle hangs under the chin; a short pale bill. No spangles,
+  // so it never reads as the Spurfowl's white moons. Ten shapes.
+  {
+    name: "Grey Junglefowl",
+    skip: WARMS,
+    draw: () => {
+      const GREY = "#8A9394", GREYD = "#687072", TAILD = "#1E3A33", TAIL = "#2E7D66", GOLD = "#E3A93A", RED = "#D63C3A", BILL = "#D6C3A0";
+      return (
+        <g>
+          {/* sickle tail in two layers: one fat green-black plume rising from the rump, arching over and drooping, and a slimmer teal plume lying ON it (same inner edge, so no paper between them; the dark shows as a band of 3 or more outside the teal and its tip emerges below) */}
+          <path d="M32 54 Q25.5 44 29 34 Q28 17 16 18 Q11 18 10.5 28 Q10.5 37 13.5 41 Q16 44.5 20 42.5 Q25.5 38 24 32 Q32 33 33 40 Q34 45 40 50 Z" fill={TAILD} />
+          <path d="M36 54 Q30 44 29.5 37 Q28.5 27 19 27 Q14 27 14 33 Q14 37.5 17.5 38.5 Q20.5 39 20.5 36 Q21 34.5 24.5 34.5 Q32 34 33 40 Q34 45 40 50 Z" fill={TAIL} />
+          {/* hen-shaped body */}
+          <ellipse cx="47" cy="62" rx="27" ry="22" fill={GREY} />
+          {/* darker folded wing lobe */}
+          <path d="M50 49 Q36 50 29 61 Q28 69 32 75 Q35 77.5 37 73 Q38.5 64 43.5 57 Q46 51.5 50 49 Z" fill={GREYD} />
+          {/* golden hackle cape over the neck and shoulder, its top hidden under the head */}
+          <path d="M52 32 Q43 35 39 46 Q38 55 46 58 Q57 60 68 54 Q73 48 70 42 Q64 35 52 32 Z" fill={GOLD} />
+          {/* comb: three scallops, base chord hidden under the head, each lobe 6 wide at the crown */}
+          <path d="M51 35 Q50 26 54.5 24 Q58 23 57.8 28 Q58.5 20.5 61 20 Q64 20.5 64.5 28 Q65 23 68 24 Q72 26 71 35 Z" fill={RED} />
+          {/* short pale bill under the head: 4.6 deep at the head's edge, round 2.3 tip */}
+          <path d="M70 39.6 Q77.5 39 81.5 42 Q82.8 43.3 81.4 44.3 Q76.5 46 70 44.2 Z" fill={BILL} />
+          {/* head up and forward */}
+          <circle cx="61" cy="41" r="12.5" fill={GREY} />
+          {/* wattle under the chin */}
+          <ellipse cx="67" cy="52.5" rx="3.6" ry="4.6" fill={RED} />
+          <Eye cx={64} cy={40} r={4.2} />
+        </g>
+      );
+    },
+  },
+  // 58 - INDIAN SPOT-BILLED DUCK (U4a, selection.md 2.2). A boat: one low wide body path with a
+  // soft upturned tail nub at the rear, the head on a short neck at the front (a neck ellipse in the
+  // body's colour fills the throat), and the one broad bill in the set: a black spatula 7.5 deep
+  // where it leaves the head, drooping a little, its tip a 4.5-unit round end, the yellow tip cut
+  // from the bill's own two edges, one red spot at its base. A dark crown cap sits inside the head's
+  // outline with its lower edge above the eye (no stripe through the eye); the folded wing is a brown
+  // lobe whose upper edge IS the back's curve, with the green speculum low at its rear. Ten shapes.
+  {
+    name: "Spot-billed Duck",
+    skip: WARMS,
+    draw: () => {
+      const FAWN = "#CFC4A8", WING = "#A08862", CAP = "#4C3B2C", BILL = "#2B2724", YEL = "#F0C83C", RED = "#D8443A", SPEC = "#2E8C6A";
+      return (
+        <g>
+          {/* the boat: tail nub, belly, breast, arched back */}
+          <path d="M16 50 Q10 51 12 58 Q16 80 42 84 Q68 86 74 70 Q80 58 68 50 Q45 41 16 50 Z" fill={FAWN} />
+          {/* folded wing: its top edge is the back's own curve (a sub-curve of it), the lower edge bowed */}
+          <path d="M61 47.7 Q45 43.5 26.2 47.3 Q17 54 21 63 Q26 69 36 67.5 Q50 63 58 55 Q62 50 61 47.7 Z" fill={WING} />
+          {/* green speculum, low at the wing's rear */}
+          <ellipse cx="29" cy="60" rx="5" ry="3.4" fill={SPEC} transform="rotate(-18 29 60)" />
+          {/* neck, in the body's colour, so the throat is one curve */}
+          <ellipse cx="62" cy="50" rx="7" ry="7" fill={FAWN} />
+          {/* the bill, under the head: its culmen a shallow dished line out of the forehead, 7.7 deep at the face, tapering to the 4.5 yellow nail; the nail cut from the same two edges; one red spot at the base */}
+          <path d="M70 35 Q77 39 85 39.5 Q87.5 41.75 85 44 Q78 46 70 44.5 Z" fill={BILL} />
+          <path d="M81.06 39.03 Q83 39.375 85 39.5 Q87.5 41.75 85 44 Q83.25 44.5 81.44 44.78 Q80.2 41.9 81.06 39.03 Z" fill={YEL} />
+          <circle cx="74" cy="38.6" r="1.4" fill={RED} />
+          {/* head on the neck */}
+          <circle cx="61" cy="42" r="12.5" fill={FAWN} />
+          {/* dark crown: on the head's own outline from the forehead (ending 5 units short of the bill) over the crown to the nape, lower edge above the eye */}
+          <path d="M68.5 32 Q66 29.5 61 29.5 Q52.5 30 49.3 37.7 Q50 41.5 54 41.5 Q60 41 64.5 37 Q67.5 35.5 68.5 32 Z" fill={CAP} />
+          <Eye cx={65} cy={43.5} r={4} />
+        </g>
+      );
+    },
+  },
+  // 59 - GREY-HEADED SWAMPHEN (U4a, selection.md 2.3: "a chunky hen with a comically big red nose").
+  // A big purple-blue ball with a turquoise folded-wing lobe, a short dark tail cocked up at the
+  // rear, a pale grey-blue head up and forward, and the signature drawn as ONE red shape over the
+  // head: the frontal shield, a plate standing 4 units off the forehead from the crown down, running
+  // without a seam into the bill, which tapers from the face to a 4.6-unit round tip with a convex
+  // culmen and a bowed lower edge. The eye sits just behind the shield's rear edge. Two long red
+  // legs with rounded ends and two soft feet break the circle below. Eleven shapes.
+  {
+    name: "Swamphen",
+    skip: [1, 6],
+    draw: () => {
+      const PUR = "#4A4FA3", TURQ = "#3E9FB0", TAIL = "#2E2A5A", HEAD = "#AAB8C8", RED = "#D6413C";
+      return (
+        <g>
+          {/* short tail cocked up at the rear, root under the body */}
+          <path d="M31 43 Q23 32 15 38 Q12 46 22 51 Z" fill={TAIL} />
+          {/* long red legs, tops under the body, round-ended, and two soft feet */}
+          <path d="M37.5 72 Q35.5 82 37 90.5 Q37.5 93.5 40.5 93.5 Q43.5 93.3 43 90.5 Q41.5 82 43.5 72 Z" fill={RED} />
+          <path d="M50 72 Q48.5 82 49.5 90.5 Q50 93.5 53 93.5 Q56 93.3 55.5 90.5 Q54 82 56 72 Z" fill={RED} />
+          <ellipse cx="41.5" cy="92.6" rx="6" ry="1.8" fill={RED} />
+          <ellipse cx="54" cy="92.6" rx="6" ry="1.8" fill={RED} />
+          {/* purple-blue body */}
+          <circle cx="46" cy="52" r="27" fill={PUR} />
+          {/* turquoise folded wing lobe */}
+          <path d="M49 37 Q34 38 27 51 Q26 62 31 70 Q34.5 73 37 68 Q37.5 56 43 46 Q45.5 40 49 37 Z" fill={TURQ} />
+          {/* pale grey-blue head, up and forward */}
+          <circle cx="58" cy="34" r="12.5" fill={HEAD} />
+          {/* shield and bill, one red shape: crown, plate off the forehead, convex culmen to the round
+              tip, bowed lower edge back to the chin, then up the plate's rear edge in front of the eye */}
+          <path d="M61 22 Q70 20 73 28 Q80 30 84.5 37.8 Q86.8 40.3 84.8 42.4 Q76 45 66 43.5 Q62.5 41 63.5 33 Q64 26 61 22 Z" fill={RED} />
+          <Eye cx={57} cy={35.5} r={4.2} />
+        </g>
+      );
+    },
+  },
+  // 60 - BLACK-WINGED KITE (U4a, selection.md 2.4: "a soft, dove-shaped ghost with ruby eyes"). The
+  // bird's white is a pale pearl (#D3D7DC) so the silhouette has an edge on the paper without a rim
+  // holding it in (a first pass held white inside grey the Jacobin's way and read as a snowman in a
+  // ring). Grey above, pale below: a mid-pearl crown cap on the head's own outline with its lower
+  // edge above the eye, and one mid-pearl folded wing from the shoulder back and down past the
+  // body's rear to a round tip (a long-winged bird; both edges bowed), the jet-black shoulder a cap
+  // on the wing's upper end sharing the wing's own two edges. A small black hooked bill under the
+  // head, and the ruby eye: iris, dark pupil, catchlight. No brow (it would be a scowl), no legs.
+  // Seven shapes and the eye.
+  {
+    name: "Black-winged Kite",
+    skip: [],
+    draw: () => {
+      const PALE = "#D3D7DC", MID = "#A3ACB6", BLK = "#26232A", RUBY = "#C22E3C";
+      return (
+        <g>
+          {/* pale pearl body */}
+          <circle cx="46" cy="58" r="28" fill={PALE} />
+          {/* long folded wing: shoulder (under the head) back and down to a round tip past the body's rear */}
+          <path d="M52 38 Q36 40 27 54 Q17 65 16 80 Q14.5 85 19 85 Q24 83 28 76 Q31 60 44 50 Q50 45 52 38 Z" fill={MID} />
+          {/* jet-black shoulder: the wing's upper end, its lower edge one sag */}
+          <path d="M52 38 Q36 40 27 54 Q33 60 44 50 Q50 45 52 38 Z" fill={BLK} />
+          {/* small black hooked bill under the head: 5.8 deep at the head's edge, curling to a 2.5 nail */}
+          <path d="M71 35.5 Q80 35.5 81.5 40.8 Q81.8 43.2 79.6 42.8 Q76.5 41 72.5 41.8 Z" fill={BLK} />
+          {/* head up and forward, breaking the outline by 8 */}
+          <circle cx="61" cy="38" r="13.5" fill={PALE} />
+          {/* mid-pearl crown: on the head's own outline from the forehead (a pale brow between it and the bill) over the crown to the nape, lower edge above the eye */}
+          <path d="M71.3 29.3 Q67.25 24.7 61 24.5 Q51.8 25 48.4 33.4 Q49.1 37.5 53.4 37.5 Q60 37 65.3 32.5 Q69.5 32 71.3 29.3 Z" fill={MID} />
+          {/* ruby eye: iris, dark pupil, catchlight */}
+          <circle cx="65" cy="39" r="4.6" fill={RUBY} />
+          <circle cx="65" cy="39" r="2.5" fill={BLK} />
+          <circle cx="63.5" cy="37.5" r="1.5" fill="#FFFFFF" />
+        </g>
+      );
+    },
+  },
 ];
 
 
@@ -1960,6 +2103,10 @@ export const SPECIES_FULL_NAMES: string[] = [
   "Blue-capped Rock-Thrush (candidate)", // index 54, U3b's Q4 candidate beside Tickell's (44); he keeps one
   "Small Minivet (candidate)", // index 55, U3b's Q10 second take on 47; he keeps one
   "Sirkeer Malkoha (candidate)", // index 56, U3b's Q10 second take on 11; he keeps one
+  "Grey Junglefowl", // index 57, U4a, a new species
+  "Indian Spot-billed Duck", // index 58, U4a, a new species
+  "Grey-headed Swamphen", // index 59, U4a, a new species
+  "Black-winged Kite", // index 60, U4a, a new species
 ];
 
 /**
