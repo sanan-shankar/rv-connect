@@ -2321,6 +2321,113 @@ const ARCHES: Arche[] = [
       );
     },
   },
+  // 69 - RED-VENTED BULBUL (U4d, Q6: "use the more interesting colours they have instead of just making
+  // them brown"). The commonest bird in the school. Kept apart from the Red-whiskered Bulbul (13), a brown
+  // ball with a white face and bib, and the Indian Robin (15), black all over with its tail cocked, by
+  // where its dark and pale sit: ONE black hood (the head, a short crest peaked at the back of the crown,
+  // the throat and the breast) over a buff belly. The breast is scaly: four dark-grey cups on the
+  // black. A sooty-brown back and folded wing whose outer edge is the back's own arc, the crimson vent at
+  // the base of the tail with the body's arc as its outer edge, and the tail hanging down and back. Nine
+  // shapes and the scales (a white rump read as a bite out of the back and was cut, U4d review 1).
+  {
+    name: "R-V Bulbul",
+    skip: WARMS,
+    draw: () => {
+      const HOOD = "#231F21", SCALE = "#776B62", WING = "#5B5049", BELLY = "#CDBFA8", VENT = "#C8233B", TAIL = "#2F2927", BILL = "#25201F";
+      return (
+        <g>
+          {/* tail hanging down and back, root under the body, both edges bowed, round end */}
+          <path d="M30.03 70.03 Q21.5 74 16.61 82.61 Q13.21 86 16.61 89.39 Q20 92.79 23.39 89.39 Q31.5 85.5 35.97 75.97 Q34.5 71.5 30.03 70.03 Z" fill={TAIL} />
+          <circle cx="47" cy="58" r="26" fill={BELLY} />
+          {/* the hood's breast: from under the bill down the throat (filling the neck's notch) and the body's front, a hem across the breast, its rear under the wing */}
+          <path d="M73.2 39.81 Q71.18 46.72 72.43 52.59 A26 26 0 0 1 72.23 64.29 Q60 70 46 61 Q50 50 56 44 Q66 38 73.2 39.81 Z" fill={HOOD} />
+          {/* crimson vent: the body's own arc at the base of the tail, its top under the wing, its front edge one curve on the belly */}
+          <path d="M43.83 83.81 A26 26 0 0 1 26.51 74.01 Q30 70 40 70.5 Q49.5 77 43.83 83.81 Z" fill={VENT} />
+          {/* sooty back and folded wing: the back's own arc from under the head to the tail's root, a round turn, the lower edge bowed back up to the shoulder */}
+          <path d="M52.41 32.57 A26 26 0 0 0 27.08 74.71 Q29.5 79 35 77.6 Q47 74 53.5 61 Q57 54 56 45 Q55.5 38 52.41 32.57 Z" fill={WING} />
+          {/* slim black bill under the head, 4.5 deep at the face, a round tip */}
+          <path d="M70.5 35.9 Q77 36 81.4 38.5 Q82.8 39.4 81.4 40.3 Q76.5 41.2 71 40.4 Z" fill={BILL} />
+          {/* the crest: the crown rising from the forehead to a round peak at the back, dropping into the nape; base inside the head */}
+          <path d="M70.34 28.32 Q63.2 19.8 54 18 Q44 16.4 46 20 Q49.5 26 47.24 32.6 Q58 34 70.34 28.32 Z" fill={HOOD} />
+          <circle cx="60" cy="37" r="13.5" fill={HOOD} />
+          {/* the scaly breast: four cups in two staggered rows, each 2 or more inside the black */}
+          {[[62.4, 53.4], [68.2, 53.4], [59.4, 58.9], [65.3, 58.9]].map(([x, y], k) => (
+            <path key={k} d={`M${x - 2.4} ${y} Q${x} ${y + 6.4} ${x + 2.4} ${y} Q${x} ${y + 0.4} ${x - 2.4} ${y} Z`} fill={SCALE} />
+          ))}
+          <Eye cx={64.5} cy={35.5} r={4.4} disc="#0C0A0B" />
+        </g>
+      );
+    },
+  },
+  // 70 - WHITE-BROWED BULBUL, the PDF's "Murukku bird" (U4d, Q6: drawn from "the more interesting colours
+  // they have"). Kept apart from the Yellow-throated Bulbul (12), grey with a yellow HEAD, and the
+  // Tailorbird (62), a cream ball with a rust cap and an upright tail, by colour: an olive head on a darker
+  // olive back and folded wing (its outer edge the back's own arc), over a butter-yellow body (the yellow
+  // wash), and the golden vent at the base of the tail with the body's arc as its outer edge. The white
+  // brow is its name: a long, low, level stripe from the forehead above the bill back over the eye, 0.7
+  // above it, to well behind it, 3.5 to 4.8 thick with round ends. Level, because the Wagtail's short arch
+  // read as a raised eyebrow and a front end dipped toward the bill reads as a frown. The eye sits low in
+  // the head, under it. Round-headed, no crest, so it never reads as the Red-vented. Eight shapes.
+  {
+    name: "W-B Bulbul",
+    skip: [0, 5, 7, 8],
+    draw: () => {
+      const HEAD = "#9C9D50", WING = "#7F803E", TAIL = "#6B6A35", BODY = "#E6DBA6", VENT = "#EDB526", BROW = "#F6F3EA", BILL = "#3E3A33";
+      return (
+        <g>
+          {/* tail down and back, root under the body, both edges bowed, round end */}
+          <path d="M28.31 64.31 Q19.33 69.33 13.89 77.89 Q10.78 81 13.89 84.11 Q17 87.22 20.11 84.11 Q28.67 78.67 33.69 69.69 Q32.5 65.5 28.31 64.31 Z" fill={TAIL} />
+          <ellipse cx="47" cy="58" rx="27" ry="23" fill={BODY} />
+          {/* golden vent: the body's own arc at the base of the tail, its top under the wing, its front edge one curve on the belly */}
+          <path d="M42.31 80.65 A27 23 0 0 1 23.62 69.5 Q28 66 40 68.5 Q47.5 73.5 42.31 80.65 Z" fill={VENT} />
+          {/* olive back and folded wing: the back's own arc from under the head to the tail's root, a round turn, the lower edge bowed back up to the shoulder */}
+          <path d="M56.23 36.39 A27 23 0 0 0 24.1 70.19 Q26.8 74.2 32 73.6 Q44.5 71 52 57 Q55.5 50.5 56.5 44 Q57.2 40 56.23 36.39 Z" fill={WING} />
+          {/* slim dark bill under the head, 4.6 deep at the face, a round tip */}
+          <path d="M72 37.2 Q79 37.3 83.8 39.9 Q85.2 40.9 83.8 41.7 Q78.5 42.6 72.4 41.6 Z" fill={BILL} />
+          <circle cx="62" cy="37" r="13" fill={HEAD} />
+          {/* the white brow: long, low and level, from the forehead back over the eye to well behind it, round ends inside the head */}
+          <path d="M56.6 31 Q63.5 29.6 71.2 30.8 Q72.6 32.6 71.1 34.3 Q63 35.4 56.8 34 Q55 32.5 56.6 31 Z" fill={BROW} />
+          <Eye cx={66.3} cy={40} r={4.4} />
+        </g>
+      );
+    },
+  },
+  // 71 - RED-WATTLED LAPWING (candidate, Q2 of the 2026-10 expansion: he keeps whichever of this and the
+  // Yellow-wattled (24) looks better, from one sheet; 24 is on his LOCKED list and is not touched). The
+  // school's own lapwing, the "did-he-do-it" bird. A plump white body on two long yellow legs, each ending
+  // in a soft foot; a bronze-brown back and folded wing whose outer edge is the back's own arc; and ONE
+  // black hood shaped like a C round the eye: the cap over the crown, the forehead and lores, the throat
+  // (filling the neck's notch) and the breast down to a hem. The white between its two arms is the cheek
+  // patch, running down the side of the neck into the white belly. The red is one shape: the bare ring
+  // round the eye and the wattle in front of it, ending 2.4 short of the red bill, whose dark tip is cut
+  // from the bill's own two edges. Ten shapes.
+  {
+    name: "Red-wattled Lapwing (candidate)",
+    skip: WARMS,
+    draw: () => {
+      const WHT = "#DCDAD2", WING = "#9A7B58", BLK = "#232022", RED = "#D63A3C", TIP = "#262225", LEG = "#E6BF3C", LEGD = "#C9A230";
+      return (
+        <g>
+          {/* two long yellow legs, tops under the body, each turning forward into a soft round foot */}
+          <path d="M39 68 Q38.6 79 38.7 86.6 Q38.5 90.6 42 90.8 Q45.8 91 46 89.3 Q45.8 87.8 42.6 87.6 Q42.4 79 42.6 68 Z" fill={LEGD} />
+          <path d="M49.4 68 Q49.7 79 50 86.6 Q49.8 90.6 53.3 90.8 Q57.1 91 57.3 89.3 Q57.1 87.8 53.9 87.6 Q53.3 79 53 68 Z" fill={LEG} />
+          <ellipse cx="45" cy="52" rx="27" ry="22" fill={WHT} />
+          {/* bronze-brown back and folded wing: the back's own arc from under the head to the rear, the lower edge bowed up to a round wrist, then up under the head */}
+          <path d="M56.41 32.06 A27 22 0 0 0 21.62 63 Q36 64.5 47.5 53.5 Q50.5 50.5 50.3 46.5 Q50.4 41.5 53.5 38 Q55 34 56.41 32.06 Z" fill={WING} />
+          {/* red bill under the head, 4.7 deep at the face, a round tip */}
+          <path d="M71 30 Q78.5 30.2 84 32.6 Q85.5 33.5 84 34.4 Q78.5 35.6 71 34.6 Z" fill={RED} />
+          {/* its dark tip, cut from the bill's own two edges, the boundary bowed toward the base */}
+          <path d="M80.3 31.3 Q82.25 31.84 84 32.6 Q85.5 33.5 84 34.4 Q82.25 34.78 80.3 34.94 Q79.5 33.1 80.3 31.3 Z" fill={TIP} />
+          <circle cx="61.5" cy="30" r="12.5" fill={WHT} />
+          {/* the black hood as one C: cap from the nape over the crown, down the face, the throat over the neck's notch, the body's front to the hem, then up the bib's rear edge to the eye and back along the cap's lower edge */}
+          <path d="M49.91 25.32 A12.5 12.5 0 0 1 61.5 17.5 A12.5 12.5 0 0 1 73.25 34.28 Q69.9 41.62 71.41 47.43 A27 22 0 0 1 70.68 58.8 Q61 62.2 54 55.2 Q55 42.5 62.5 32.5 Q63.5 29 61 27.2 Q55 28 49.91 25.32 Z" fill={BLK} />
+          {/* the red: the bare ring round the eye and the wattle in front of it, one shape, ending 2.4 short of the bill */}
+          <path d="M64.5 22.9 Q69.4 22.9 70.9 27.6 Q72.2 31.8 70.4 34.1 Q68 36.2 64.5 34.4 Q58.9 34.4 58.9 28.6 Q58.9 22.9 64.5 22.9 Z" fill={RED} />
+          <Eye cx={64.5} cy={28.5} r={4.2} disc="#0D0B0C" />
+        </g>
+      );
+    },
+  },
 ];
 
 
@@ -2404,6 +2511,9 @@ export const SPECIES_FULL_NAMES: string[] = [
   "Wire-tailed Swallow", // index 66, U4c, a new species
   "Grey Wagtail", // index 67, U4c, a new species
   "Rock Pigeon", // index 68, U4c, a new species
+  "Red-vented Bulbul", // index 69, U4d, a new species (Q6)
+  "White-browed Bulbul", // index 70, U4d, a new species (Q6), the PDF's "Murukku bird"
+  "Red-wattled Lapwing (candidate)", // index 71, U4d's Q2 candidate beside the Yellow-wattled (24); he keeps one
 ];
 
 /**

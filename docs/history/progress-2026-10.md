@@ -1,3 +1,12 @@
+## 2026-10-17 (birds) — U4d closed: the two bulbuls he asked for, and a Red-wattled Lapwing to choose
+
+The Red-vented Bulbul (a crested black hood with a scaly breast over buff, and the crimson vent)
+and the White-browed Bulbul (olive over butter-yellow, a golden vent, the white brow) join at index
+69 and 70, drawn from their colours as he asked. A Red-wattled Lapwing waits beside the
+Yellow-wattled as a gated candidate for him to choose between on one sheet; the Yellow-wattled is
+untouched. One review; four exact fixes on the bulbuls applied by the runner and checked by eye.
+Nothing is pushed until gate 2.
+
 ## 2026-10-16 (birds) — U4c closed: the twelve new species are in
 
 The last four of the twelve join at index 65 to 68: a Pied Kingfisher with a black shaggy crest,

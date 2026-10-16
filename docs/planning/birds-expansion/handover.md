@@ -33,31 +33,33 @@ flag is his call alone (¶39), and the Hoopoe and the Indian Roller are never de
 
 ## Resume here (kept current; read before the board)
 
-**State on 2026-10-16, night.** Units DONE: set-up, tooling, U5 (9ef4c6f9), U2a (9101e61d), U2b
-(17a5c8e0), U3a, U3b, U4a, U4b, U4c (the five commits after 17a5c8e0). The twelve new species are
-in (57 to 68). **Next is U4d**: the Red-vented Bulbul and the White-browed Bulbul as real species
-at index 69 and 70, drawn from their colours, not their brown (Q6, his words and the reading under
-"Owner answers": the Red-vented's crimson vent, white rump and scaly dark breast under a crested
-black head; the White-browed's yellow vent and undertail, white brow and olive-yellow wash), and a
-"Red-wattled Lapwing (candidate)" at index 71 beside the Yellow-wattled 24 (Q2), gated by
-`isCandidate()`. The Lapwing at 24 is on his LOCKED list; do not touch it. Brief one hand the way
-U4c was briefed (`selection.md` sections 3 and 4 hold the two bulbuls and the lapwing; the
-reviewer's lessons so far: a belly patch with vertical sides is an apron; three marks at most; a
-white too near the paper loses its edge, use about #DADFE5 or darker; a thin brow over the eye
-reads as a raised eyebrow). The loop as U4b and U4c ran it: the drawer draws and looks; the
-runner re-centres (`centroid.mjs --only ...` until "0 need attention"), renders and looks; ONE
-Opus reviewer (resume the last one with SendMessage: it holds the checklist and the selection)
-writes `reviews/u4d-review-1.md`; exact one-line fixes the runner applies itself, re-audits with
-`bird-edges.mjs` and looks at; faults that need drawing go back to the drawer once and to the
-reviewer once more; a bird that fails review 3 is PARKED and still shown at gate 2; then commit
-by pathspec with the board, this block, the session log and the progress line inside. Then U4e:
-Q1 (a) says the reserve is built if the twelve clear, and they have. If a drawer or reviewer is
-mid-flight when you resume, `ListAgents` shows it; uncommitted edits in `bird-avatar-v2.tsx` are
-the round in progress. A usage limit (HTTP 429) has cut an agent off four times; a resumed agent
-carries on from its own transcript with nothing lost, so resume it rather than re-brief, unless
-the limit is the model's own (then re-brief on the next model).
+**State on 2026-10-17.** Units DONE: set-up, tooling, U5 (9ef4c6f9), U2a (9101e61d), U2b
+(17a5c8e0), U3a, U3b, U4a to U4d (the six commits after 17a5c8e0). Fourteen new species are in
+(57 to 70) and seven candidates wait for gate 2 (51 to 56, 71). **Next is U4e, the reserve** (Q1
+(a): built because the twelve cleared): from `selection.md` section 3, the Spot-breasted Fantail,
+the Scaly-breasted Munia, the Black-headed Ibis, the Little Grebe, and the Common Iora only if the
+reviewer can hold it apart from the two orioles at 40px; appended as real species at 72 and up
+(the Blue-capped Rock-Thrush, the Yellow-footed Green-Pigeon and the Red-wattled Lapwing in that
+section are already candidates). Brief one hand the way U4d was briefed (the reviewer's lessons so
+far: a belly patch with vertical sides is an apron; three marks at most; a white too near the
+paper loses its edge, use about #DADFE5 or darker; a thin brow over the eye reads as a raised
+eyebrow and a long one as a headband; a crest's back must curve). The loop as U4b to U4d ran it:
+the drawer draws and looks; the runner re-centres, renders and looks; ONE Opus reviewer (resume
+the last one with SendMessage) writes `reviews/u4e-review-1.md`; exact fixes the runner applies,
+re-audits with `bird-edges.mjs` and looks at; faults that need drawing go back to the drawer once
+and to the reviewer once more; a bird that fails review 3 is PARKED; then commit by pathspec.
+**Then U6** (see its section): the copy that says fifty takes its number from `GALLERY_SPECIES`
+(the birds page description, the guide's birds chapter, the Support page's "See all" button);
+`generate-bird-photos.mjs` and a test pinning the image count to twice the names; `npm run visual`
+and a looked-at `visual:update`; the spec banner; the gate-2 sheets (before-and-after pairs from
+`git show bcec4cdc:public/images/birds/<i>-0.png` beside the new renders, the candidate pairs, the
+new species); then gate 2. If a drawer or reviewer is mid-flight when you resume, `ListAgents`
+shows it; uncommitted edits in `bird-avatar-v2.tsx` are the round in progress. A usage limit (HTTP
+429) has cut an agent off four times; a resumed agent carries on from its own transcript with
+nothing lost, so resume it rather than re-brief, unless the limit is the model's own (then
+re-brief on the next model).
 
-**Then, in order:** U4d, U4e, U6 (see the board and "The units").
+**Then, in order:** U4e, U6 (see the board and "The units").
 Owner answers are all in; nothing is owner-gated until gate 2, which is rendered sheets and
 before/after pairs, not prose (he decides by seeing, Q5).
 
@@ -107,7 +109,7 @@ before/after pairs, not prose (he decides by seeing, Q5).
 | U4a New birds 1 to 4 | DONE | 2026-10-16. Grey Junglefowl 57, Spot-billed Duck 58, Grey-headed Swamphen 59, Black-winged Kite 60 appended as real species (`reviews/u4a-review-1.md`, `-2.md`: 2 pass, 2 fail on 4 faults; after the fix pass all four pass, the Junglefowl's last notch closed by the runner from the review's path). Each has its own silhouette: comb and sickle tail, boat and spatula bill, red shield and legs, black shoulder and ruby eye |
 | U4b New birds 5 to 8 | DONE | 2026-10-16. Indian Eagle-Owl 61, Common Tailorbird 62, Common Kestrel 63, Black-crowned Night Heron 64 appended as real species, drawn on Opus (Fable's allowance out). Review 1 (`reviews/u4b-review-1.md`): Tailorbird and Night Heron pass; the Owl's belly sides and the Kestrel's fourth mark failed with exact fixes, which the runner applied with the review's two colour notes and looked at; no second review |
 | U4c New birds 9 to 12 | DONE | 2026-10-16. Pied Kingfisher 65 (Q5: he decides on seeing it), Wire-tailed Swallow 66, Grey Wagtail 67, Rock Pigeon 68 appended as real species, drawn on Opus. Review 1 (`reviews/u4c-review-1.md`): the Pigeon passes; three fail on one fault each with exact fixes (the two whites too near the paper, the Wagtail's brow read as a raised eyebrow), which the runner applied with the Swallow's optional cap path and looked at; no second review |
-| U4d New birds 13 and 14, and a candidate | OPEN | Red-vented Bulbul and White-browed Bulbul from their colours (Q6); the Red-wattled Lapwing candidate beside 24 (Q2) |
+| U4d New birds 13 and 14, and a candidate | DONE | 2026-10-16. Red-vented Bulbul 69 (crested black hood and scaly breast over buff, crimson vent) and White-browed Bulbul 70 (olive over butter-yellow, golden vent, white brow) appended from their colours (Q6); "Red-wattled Lapwing (candidate)" 71 beside the untouched 24 (Q2). Review 1 (`reviews/u4d-review-1.md`): the Lapwing passes; four exact fixes on the bulbuls (a vertical crest back, a rump that read as a bite, scales under 3 thick, a brow that read as a headband) applied by the runner and looked at. Reviewer's pair line: 71 reads more as a lapwing, 24 is the cuter avatar |
 | U4e The reserve | OPEN | only if every bird of U4a to U4d passed (Q1) |
 | U6 Close-out | OPEN | centroid for every changed bird, contact photos, the "fifty" copy, visual baselines, `docs/spec/avatars.md`, history, the gate-2 sheets |
 | Gate 2, the owner looks | OPEN | the whole point of the run on a design campaign |
@@ -124,7 +126,7 @@ the order of `/birds`.
 
 | ID | ¶ | Ask, in his words | What it means here | Status |
 |---|---|---|---|---|
-| A1 | 1, 2, 3 | "expand our catalog of 50 birds into more" from the PDF; "somewhat colorful, separate from the background... thorough sense of color science"; "obviously different from each other and different to the ones that are already there" | `selection.md` | DONE (selection); build: the twelve DONE (U4a to U4c, 2026-10-16); the two bulbuls (Q6) in U4d; the reserve in U4e (Q1) |
+| A1 | 1, 2, 3 | "expand our catalog of 50 birds into more" from the PDF; "somewhat colorful, separate from the background... thorough sense of color science"; "obviously different from each other and different to the ones that are already there" | `selection.md` | DONE (selection); build: the twelve DONE (U4a to U4c, 2026-10-16); the two bulbuls DONE (U4d, Q6); the reserve in U4e (Q1) |
 | A2 | 4 | "when you build it, it's just one criteria, cuteness" | reviewer line 7 | applies to every unit |
 | A3 | 39 | "if there's one [species] that you wanted to remove slash replace... Just run it by me. Obviously, don't replace any of the ones I like" | questions 2, 3, 4, 6 | OWNER-GATED |
 | A4 | 19, 40 | "an independent reviewing agent... some kind of a loop"; "Make sure you have an independent reviewer. Make sure you review everything" | `reviewer.md`, U1 | DONE (protocol), applies to every unit |
@@ -652,3 +654,15 @@ the Pigeon passed; the Kingfisher and the Swallow failed on a white too near the
 edge at 40px, the Wagtail on a brow that read as an eyebrow raised in surprise. All three fixes
 were one line; the runner applied them and the Swallow's optional cap path, audited and looked.
 The twelve new species are in.
+
+### 2026-10-16 to 17, U4d closed (one Opus hand, one Opus reviewer)
+
+The two bulbuls he asked for by colour (Q6) and the Red-wattled Lapwing candidate (Q2). The
+Red-vented is one crested black hood with a scaly breast over a buff belly and a crimson vent; it
+parts from the Red-whiskered Bulbul and the Indian Robin at 40px by where its black and pale sit,
+which was the selection's worry. The White-browed is olive over butter-yellow with a golden vent
+and a white brow. The Lapwing candidate is pied on long yellow legs with the red wattle. One
+review: the candidate passed; the bulbuls failed on four faults with exact fixes (the crest's back
+a vertical line, a rump that read as a bite, scale cups under 3 thick, a brow long enough to read
+as a headband), which the runner applied, audited and looked at. Watch at gate 2: the
+White-browed's brow is the bird's name and still the boldest mark on it.
