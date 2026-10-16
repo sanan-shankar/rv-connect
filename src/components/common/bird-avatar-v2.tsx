@@ -2176,6 +2176,151 @@ const ARCHES: Arche[] = [
       );
     },
   },
+  // 65 - PIED KINGFISHER (U4c, selection.md 2.9: "crest, dagger, breast band"; Q5, he decides on
+  // seeing it). Kept apart from the Magpie-Robin (14) and the Jacobin (35), both black balls with a white
+  // belly, by being a WHITE bird with black on it: the white head with the eye on it, the crest, the long
+  // dagger. The white is a cool #E3E6E9, so the throat, face and belly hold an edge on the paper without
+  // a rim (the Jacobin's held-in white read as a hole, paragraph 25). One black crown from above the bill
+  // over the top, its lower edge arching just clear of the eye, flowing back into three shaggy tufts; the
+  // cap ends above the nape so a white collar parts it from the black back. A black folded wing whose top
+  // edge is the back's own arc, six white spots in two rows for the pied back, one breast band whose
+  // front end is the body's own outline and whose rear end tucks under the wing, a short black tail, and
+  // the chisel bill: two straight edges, a round tip, the base under the head. Nine shapes and the spots.
+  {
+    name: "Pied Kingfisher",
+    skip: [],
+    draw: () => {
+      const WHT = "#DADFE5", BLK = "#24252A", BILL = "#1D1E22";
+      return (
+        <g>
+          {/* short black tail down and back, root inside the body, round end, both edges bowed */}
+          <path d="M39 75 Q33 82 31 90.5 Q30 94.8 34 94.6 Q37.5 94 40.5 89 Q42.4 85.2 47 81 Z" fill={BLK} />
+          <circle cx="46" cy="62" r="24" fill={WHT} />
+          {/* breast band, sagging a little: front end the body's own arc, rear end under the wing */}
+          <path d="M48 52 Q60 61 69.18 55.79 A24 24 0 0 1 70 62 Q60 66.5 46 59 Z" fill={BLK} />
+          {/* black folded wing: the back's own arc from the shoulder (under the head) to a round tip on the tail, the lower edge bowed toward the breast */}
+          <path d="M52.21 38.82 A24 24 0 0 0 24.25 72.14 Q22 80 26 84 Q30 87 34 82 Q50 66 55 50 Q56 44 52.21 38.82 Z" fill={BLK} />
+          {/* the pied back: six white spots in two rows along the wing, each 2 or more inside its edges */}
+          {[[42.9, 49.85], [37.4, 58.6], [31.9, 67.35], [47, 58.3], [41.5, 67.1], [36, 75.8]].map(([x, y], k) => (
+            <circle key={k} cx={x} cy={y} r="1.9" fill={WHT} />
+          ))}
+          {/* the dagger: a chisel 9 deep at the face tapering to a 3-unit round tip, base under the head */}
+          <path d="M72 31.5 L90.5 38.4 Q94 40 90.4 41.4 L72 42 Q69.5 36.5 72 31.5 Z" fill={BILL} />
+          <circle cx="60" cy="35" r="15" fill={WHT} />
+          {/* one black crown: the head's outline from 3 above the bill over the top, three shaggy tufts back off the crown, then a lower edge ending above the nape and arching 2.5 or more clear of the eye */}
+          <path d="M73.91 29.38 A15 15 0 0 0 58.69 20.06 Q51 14.2 44.2 13.6 Q40.6 13.6 42.4 16.6 Q44.6 19.6 47.4 21.2 Q42 19.6 38.6 21.4 Q35.4 23.4 38.6 25.6 Q41.6 28.2 45.6 28.4 Q41.2 28.8 38.9 30.4 Q36.4 32.6 39.6 34 Q42.6 34.2 45.23 32.4 Q50.5 34.6 56.5 32 Q63.7 28.88 73.91 29.38 Z" fill={BLK} />
+          <Eye cx={64.5} cy={37} r={4.6} disc="#0E0F12" />
+        </g>
+      );
+    },
+  },
+  // 66 - WIRE-TAILED SWALLOW (U4c, selection.md 2.10: "blue over white with a rust cap, swept"). Perched,
+  // leaning back a little the way a swallow sits on a wire, so its long axis runs toward the frame's
+  // lower-left corner and the wires fit without shrinking the body (laid level they set the frame cap and
+  // left the bird a quarter smaller than its neighbours). Steel-blue above: the head and one long folded
+  // wing on the back's own arc, ending in a soft point past the rump. Pure white below, a cool white with
+  // an edge on the paper: the body, and a throat lobe on the head whose rear runs past the head's edge
+  // over the white body (an earlier pass left a blue hairline there) and meets the wing's lower edge
+  // exactly. The rust cap on the head's own outline from 2 above the bill, its lower edge 2.8 clear of the
+  // eye. The two wires come out from under the wing tip as slender ribbons, 3.6 wide at the base and 2.6
+  // at the round end, bowed so neither is a ruler line. A tiny black bill. Nine shapes.
+  {
+    name: "Wire-tailed Swallow",
+    skip: BLUES,
+    draw: () => {
+      const WHT = "#DADFE5", BLUE = "#27427F", TAIL = "#1D3266", CAP = "#C8642E", BILL = "#1A1D24";
+      return (
+        <g>
+          {/* the two wire streamers, bases under the wing tip, diverging a little, round ends */}
+          <path d="M21.32 69.36 Q17.77 79.48 9.67 86.50 Q8.50 89.17 11.33 88.50 Q20.29 81.28 24.68 70.64 Z" fill={TAIL} />
+          <path d="M22.71 71.32 Q21.92 81.94 15.94 90.75 Q15.50 93.62 18.06 92.25 Q24.82 83.03 26.29 71.68 Z" fill={TAIL} />
+          <ellipse cx="48.5" cy="57.5" rx="25" ry="21.5" fill={WHT} transform="rotate(-26 48.5 57.5)" />
+          {/* steel-blue folded wing: the back's own arc from under the head to a soft point past the rump, the lower edge one long S back under the head */}
+          <path d="M55.72 35.65 A25 21.5 -26 0 0 24.73 64.94 Q19 68.5 16 73.5 Q14.4 76.8 17.8 76.6 Q32 75 46 66 Q57.5 58.5 61.5 48 Z" fill={BLUE} />
+          {/* tiny bill under the head, 5.7 deep at the face, a round 1.8 tip */}
+          <path d="M79 32.2 Q85 33.2 88.4 35.4 Q89.7 36.4 88.2 37.2 Q84 38.4 79 38.2 Z" fill={BILL} />
+          <circle cx="66" cy="34" r="16" fill={BLUE} />
+          {/* white throat: the head's lower-front arc, then past the head's edge over the white body to where the wing's edge crosses the head, and its top edge 5 under the eye */}
+          <path d="M81.04 39.47 A16 16 0 0 1 69.33 49.65 Q65.5 52.6 62.4 51.2 Q61.6 50.4 61.01 49.20 Q70.5 40 81.04 39.47 Z" fill={WHT} />
+          {/* rust cap: the head's outline from forehead to nape, its lower edge dipping toward the eye */}
+          <path d="M81.2 29 A16 16 0 0 0 50.06 32.61 Q57.6 31.2 64.2 26.4 Q72.8 22 81.2 29 Z" fill={CAP} />
+          <Eye cx={71} cy={32.5} r={4.7} disc="#0E121B" />
+        </g>
+      );
+    },
+  },
+  // 67 - GREY WAGTAIL (U4c, selection.md 2.11: "lemon under slate, a long tail"). The winter bird, the one
+  // the valley actually sees: no black throat. Kept apart from the Yellow-throated Bulbul (12), grey with
+  // a yellow HEAD, by putting the lemon low: a lemon body under one slate folded wing whose top edge is
+  // the back's own arc, so slate runs from the crown down the back and lemon from the breast to the vent.
+  // The long dark tail held out behind and a little down (laid level it set the frame cap and shrank the
+  // body), the slate wing's tip lying on it. A plain slate head (the white supercilium was tried and
+  // read as an eyebrow raised in surprise, U4c review 1), a slim dark bill, two pink legs. Eight shapes.
+  {
+    name: "Grey Wagtail",
+    skip: [7],
+    draw: () => {
+      const LEMON = "#F2D13A", SLATE = "#78838F", TAIL = "#33373E", BILL = "#2A2D33", LEG = "#D99A96";
+      return (
+        <g>
+          {/* long dark tail, root inside the body, both edges arched, round end */}
+          <path d="M31 60.5 Q20 64.2 11 71 Q8.8 73.2 10.6 75.4 Q12.6 77 15 75.8 Q24.5 69.2 33.5 66.5 Z" fill={TAIL} />
+          {/* pink legs, tops under the body, round-ended */}
+          <path d="M43.5 72 Q42.7 82 43.6 88 Q44.1 90.2 45.8 90 Q47.4 89.6 47 87.6 Q46.3 82 46.9 72 Z" fill={LEG} />
+          <path d="M52 72 Q51.2 82 52.1 88 Q52.6 90.2 54.3 90 Q55.9 89.6 55.5 87.6 Q54.8 82 55.4 72 Z" fill={LEG} />
+          <ellipse cx="47" cy="58" rx="25" ry="19" fill={LEMON} transform="rotate(-15 47 58)" />
+          {/* slate back and folded wing: the back's own arc from under the head to a round tip on the tail, the lower edge one sag back under the head */}
+          <path d="M56.82 39.26 A25 19 -15 0 0 22.40 59.50 Q17.5 60.5 14.5 62.5 Q12.5 64.6 15.6 65.8 Q32 68 47 61.5 Q57 56.5 60.5 48.5 Z" fill={SLATE} />
+          {/* slim bill under the head, both edges bowed, a round tip */}
+          <path d="M77 37.2 Q83.5 37.9 87.7 39.8 Q89 40.8 87.6 41.6 Q82.5 42.8 77 42.4 Z" fill={BILL} />
+          <circle cx="66" cy="39" r="14" fill={SLATE} />
+          <Eye cx={70.5} cy={39} r={4.4} disc="#1E2024" />
+        </g>
+      );
+    },
+  },
+  // 68 - ROCK PIGEON (U4c, selection.md 2.12: "the shimmer collar, the two bars, the puffed chest"). The
+  // campus pigeon: a plump blue-grey body with the breast puffed forward under a small round darker
+  // head, so it parts from the Hornbill (10), a warm-grey ball with a banana bill, by colour and by the
+  // collar. The collar is one band in two flat colours wrapping the neck under the head, green over
+  // purple, each running from the breast's own outline back under the wing's front edge (an earlier pass
+  // left a purple sliver on the nape). A pale grey folded wing on the back's own arc with a round tip over
+  // the short dark tail, and the two black bars across its rear half, each running to the wing's lower
+  // edge as an exact piece of that edge (an inside dash read as claw marks). The orange eye (iris, dark
+  // pupil, catchlight), a small dark bill, short coral legs. The white cere was tried and dropped: it read
+  // as a spot on top of the bill (paragraph 26). Eleven shapes and the eye.
+  {
+    name: "Rock Pigeon",
+    skip: BLUES,
+    draw: () => {
+      const BODY = "#8F9AAB", HEAD = "#6F7A8B", WING = "#B4BDC8", BAR = "#2E3138", GREEN = "#3E9A7A", PURP = "#8B4F8F", TAILC = "#5E6878", BILL = "#4A4E57", IRIS = "#E8742A", LEG = "#D65F4E";
+      return (
+        <g>
+          {/* short dark tail out behind, root inside the body, round end */}
+          <path d="M30 58 Q18 59 9 63 Q6 65 7.5 68 Q9.5 70.5 13 69.5 Q22 67 32 68 Z" fill={TAILC} />
+          {/* short coral legs, tops under the body, round-ended */}
+          <path d="M44 78 Q43.5 83 44.2 86.5 Q44.6 88.4 46.3 88.3 Q47.8 88 47.5 86.3 Q47 83 47.6 78 Z" fill={LEG} />
+          <path d="M52 78 Q51.5 83 52.2 86.5 Q52.6 88.4 54.3 88.3 Q55.8 88 55.5 86.3 Q55 83 55.6 78 Z" fill={LEG} />
+          <ellipse cx="47" cy="60" rx="28" ry="22" fill={BODY} transform="rotate(-8 47 60)" />
+          {/* the shimmer collar: purple, then green over it, each the body's own outline from the nape round to the breast and one sag back */}
+          <path d="M42.97 38.36 A28 22 -8 0 1 74.36 54.22 Q58 63 42.97 38.36 Z" fill={PURP} />
+          <path d="M46.37 37.96 A28 22 -8 0 1 72.99 50.60 Q60 57 46.37 37.96 Z" fill={GREEN} />
+          {/* pale folded wing: the back's own arc from the collar's rear to a round tip over the tail, the lower edge bowed, the front edge a round shoulder over the collar */}
+          <path d="M46.37 37.96 A28 22 -8 0 0 19.16 60.05 Q14.5 63 12.5 66.5 Q11.5 69.5 15 69.5 Q34 71 47 63.5 Q55 58 54 50 Q53 42 46.37 37.96 Z" fill={WING} />
+          {/* the two black bars: across the wing's rear half, round tops, each bottom an exact piece of the wing's lower edge */}
+          <path d="M35.79 68.02 Q32.82 63.60 31.49 58.44 Q31.75 54.48 35.09 57.37 Q36.42 62.53 39.40 66.94 Q37.64 67.55 35.79 68.02 Z" fill={BAR} />
+          <path d="M27.56 69.45 Q24.69 65.26 23.46 60.33 Q23.81 56.41 27.43 59.80 Q28.66 64.73 31.53 68.92 Q29.59 69.25 27.56 69.45 Z" fill={BAR} />
+          {/* small dark bill under the head, a round tip */}
+          <path d="M74 34 Q80 35 83 37.6 Q84.2 38.8 82.8 39.5 Q79 40.6 74 39.8 Z" fill={BILL} />
+          <circle cx="65" cy="35" r="12" fill={HEAD} />
+          {/* orange eye: iris, dark pupil, catchlight */}
+          <circle cx="68.5" cy="33" r="4" fill={IRIS} />
+          <circle cx="68.5" cy="33" r="2.2" fill="#1B1B1F" />
+          <circle cx="67.3" cy="31.8" r="1.3" fill="#FFFFFF" />
+        </g>
+      );
+    },
+  },
 ];
 
 
@@ -2255,6 +2400,10 @@ export const SPECIES_FULL_NAMES: string[] = [
   "Common Tailorbird", // index 62, U4b, a new species
   "Common Kestrel", // index 63, U4b, a new species
   "Black-crowned Night Heron", // index 64, U4b, a new species
+  "Pied Kingfisher", // index 65, U4c, a new species
+  "Wire-tailed Swallow", // index 66, U4c, a new species
+  "Grey Wagtail", // index 67, U4c, a new species
+  "Rock Pigeon", // index 68, U4c, a new species
 ];
 
 /**

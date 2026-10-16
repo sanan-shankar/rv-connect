@@ -1,3 +1,13 @@
+## 2026-10-16 (birds) — U4c closed: the twelve new species are in
+
+The last four of the twelve join at index 65 to 68: a Pied Kingfisher with a black shaggy crest,
+a pied wing and a long dagger bill; a navy-and-white Wire-tailed Swallow with a rust cap and two
+wire streamers; a slate-over-lemon Grey Wagtail with a long tail held out; and a blue-grey Rock
+Pigeon with an iridescent collar and two wing bars. One review; the three one-line faults (two
+whites too close to the paper, a brow that read as a raised eyebrow) were fixed by the runner and
+checked by eye. Next are the two bulbuls he asked for by colour and the Red-wattled Lapwing
+candidate. Nothing is pushed until gate 2.
+
 ## 2026-10-16 (birds) — U4b closed: an eagle-owl, a tailorbird, a kestrel and a night heron
 
 Four more new species at index 61 to 64, each with its own outline: a face-on Indian Eagle-Owl
