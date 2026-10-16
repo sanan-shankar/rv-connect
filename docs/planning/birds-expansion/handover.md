@@ -33,26 +33,29 @@ flag is his call alone (¶39), and the Hoopoe and the Indian Roller are never de
 
 ## Resume here (kept current; read before the board)
 
-**State on 2026-10-16, later.** Units DONE: set-up, tooling, U5 (9ef4c6f9), U2a (9101e61d), U2b
-(17a5c8e0), U3a, U3b, U4a (the three commits after 17a5c8e0). **Next is U4b**, new species 5 to 8:
-Indian Eagle-Owl, Common Tailorbird, Common Kestrel, Black-crowned Night Heron, appended at index
-61 to 64. Brief one Fable hand exactly as U4a was briefed (the U4a brief is the pattern: `selection.md`
-section 2 entries, "How to work a drawing unit" step 4, `reviewer.md`, ¶1 to ¶4, ¶10 and ¶11, and
-the demand that each bird carry its OWN silhouette, not the set's disc). A new species is not a
-candidate: it joins the gallery, the picker and the deal on commit, and nothing is pushed until
-gate 2. The loop that closed U2a to U4a: the drawer draws and looks; the runner re-centres
-(`centroid.mjs --only ...` until "0 need attention"), renders the unit's sheet and looks; ONE Opus
-reviewer under the budget rule writes `reviews/u4b-review-1.md`; the same drawer gets the faults
-once (SendMessage, context intact); the same reviewer verifies once; faults with exact paths left
-after that the runner applies itself, re-audits with `bird-edges.mjs` (a reviewer's path can
-itself be a flat Q: it happened twice, revert or bow it) and looks at; a bird that fails review 3
-is PARKED and still shown at gate 2; then commit by pathspec with the ledger rows, the board, this
-block, the session log and the progress line inside. If a drawer or reviewer is mid-flight when
-you resume, `ListAgents` shows it; uncommitted edits in `bird-avatar-v2.tsx` are the round in
-progress. A usage limit (HTTP 429) has cut an agent off three times; a resumed agent carries on
-from its own transcript with nothing lost, so resume it rather than re-brief.
+**State on 2026-10-16, evening.** Units DONE: set-up, tooling, U5 (9ef4c6f9), U2a (9101e61d),
+U2b (17a5c8e0), U3a, U3b, U4a, U4b (the four commits after 17a5c8e0). **Next is U4c**, new species
+9 to 12: Pied Kingfisher (Q5: he decides on seeing it), Wire-tailed Swallow, Grey Wagtail, Rock
+Pigeon, appended at index 65 to 68. Brief one hand exactly as U4b was briefed (the U4b brief is
+the pattern: `selection.md` section 2 entries, "How to work a drawing unit" step 4, `reviewer.md`,
+¶1 to ¶4, ¶10 and ¶11, the U4a and U4b sheets to calibrate the eye, and the demand that each bird
+carry its OWN silhouette, not the set's disc). A new species is not a candidate: it joins the
+gallery, the picker and the deal on commit, and nothing is pushed until gate 2. The loop, as lean
+as U4b ran it: the drawer draws and looks; the runner re-centres (`centroid.mjs --only ...` until
+"0 need attention"), renders the unit's sheet and looks; ONE Opus reviewer (resume the last one
+with SendMessage: it already holds the checklist and the selection) writes
+`reviews/u4c-review-1.md`; faults that come with exact one-line fixes the runner applies itself,
+re-audits with `bird-edges.mjs` (a reviewer's path can itself be a flat Q) and looks at; faults
+that need drawing go back to the drawer once (SendMessage, context intact) and to the reviewer
+once more; a bird that fails review 3 is PARKED and still shown at gate 2; then commit by
+pathspec with the ledger rows, the board, this block, the session log and the progress line
+inside. If a drawer or reviewer is mid-flight when you resume, `ListAgents` shows it;
+uncommitted edits in `bird-avatar-v2.tsx` are the round in progress. A usage limit (HTTP 429)
+has cut an agent off four times; a resumed agent carries on from its own transcript with nothing
+lost, so resume it rather than re-brief, unless the limit is the model's own (then re-brief on
+the next model).
 
-**Then, in order:** U4c, U4d, U4e, U6 (see the board and "The units").
+**Then, in order:** U4d, U4e, U6 (see the board and "The units").
 Owner answers are all in; nothing is owner-gated until gate 2, which is rendered sheets and
 before/after pairs, not prose (he decides by seeing, Q5).
 
@@ -100,7 +103,7 @@ before/after pairs, not prose (he decides by seeing, Q5).
 | U3a Hard redraws | DONE | 2026-10-15. Jacobin 35 and Black Eagle 36 pass review 3. Paradise Flycatcher 26 and Peregrine 32 (first hand) PARKED at review 3; the second hand's candidates 52 and 53 are the ones the reviewer would show (`reviews/u3a-review-1..3.md`). Gate 2 shows each pair on one sheet; he picks |
 | U3b Redraws | DONE | 2026-10-15. 13, 15, 23, 33, 44 redrawn in place; candidates 54 Blue-capped Rock-Thrush (beside 44, Q4), 55 Small Minivet and 56 Sirkeer Malkoha (beside 47 and 11, Q10) appended. Two reviews (`reviews/u3b-review-1.md`, `-2.md`): 1 pass then 7 fail on 12 faults; after the fix pass 4 pass and 3 fail on one exact-path fault each, which the runner applied. Reviewer's gate-2 note: seven of the eight share one body template and part at 40px by colour (A6) |
 | U4a New birds 1 to 4 | DONE | 2026-10-16. Grey Junglefowl 57, Spot-billed Duck 58, Grey-headed Swamphen 59, Black-winged Kite 60 appended as real species (`reviews/u4a-review-1.md`, `-2.md`: 2 pass, 2 fail on 4 faults; after the fix pass all four pass, the Junglefowl's last notch closed by the runner from the review's path). Each has its own silhouette: comb and sickle tail, boat and spatula bill, red shield and legs, black shoulder and ruby eye |
-| U4b New birds 5 to 8 | OPEN | Indian Eagle-Owl, Common Tailorbird, Common Kestrel, Black-crowned Night Heron |
+| U4b New birds 5 to 8 | DONE | 2026-10-16. Indian Eagle-Owl 61, Common Tailorbird 62, Common Kestrel 63, Black-crowned Night Heron 64 appended as real species, drawn on Opus (Fable's allowance out). Review 1 (`reviews/u4b-review-1.md`): Tailorbird and Night Heron pass; the Owl's belly sides and the Kestrel's fourth mark failed with exact fixes, which the runner applied with the review's two colour notes and looked at; no second review |
 | U4c New birds 9 to 12 | OPEN | Pied Kingfisher (Q5), Wire-tailed Swallow, Grey Wagtail, Rock Pigeon |
 | U4d New birds 13 and 14, and a candidate | OPEN | Red-vented Bulbul and White-browed Bulbul from their colours (Q6); the Red-wattled Lapwing candidate beside 24 (Q2) |
 | U4e The reserve | OPEN | only if every bird of U4a to U4d passed (Q1) |
@@ -119,7 +122,7 @@ the order of `/birds`.
 
 | ID | ¶ | Ask, in his words | What it means here | Status |
 |---|---|---|---|---|
-| A1 | 1, 2, 3 | "expand our catalog of 50 birds into more" from the PDF; "somewhat colorful, separate from the background... thorough sense of color science"; "obviously different from each other and different to the ones that are already there" | `selection.md` | DONE (selection); build: 4 of 12 (U4a, 2026-10-16), U4b to U4d open |
+| A1 | 1, 2, 3 | "expand our catalog of 50 birds into more" from the PDF; "somewhat colorful, separate from the background... thorough sense of color science"; "obviously different from each other and different to the ones that are already there" | `selection.md` | DONE (selection); build: 8 of 12 (U4a, U4b, 2026-10-16), U4c and U4d open |
 | A2 | 4 | "when you build it, it's just one criteria, cuteness" | reviewer line 7 | applies to every unit |
 | A3 | 39 | "if there's one [species] that you wanted to remove slash replace... Just run it by me. Obviously, don't replace any of the ones I like" | questions 2, 3, 4, 6 | OWNER-GATED |
 | A4 | 19, 40 | "an independent reviewing agent... some kind of a loop"; "Make sure you have an independent reviewer. Make sure you review everything" | `reviewer.md`, U1 | DONE (protocol), applies to every unit |
@@ -621,3 +624,18 @@ on the Junglefowl, closed from the review's path. The reviewer's optional Duck p
 by the audit and was reverted. Seating note for U6: the centroid rule seats long-billed birds with
 the tip near 97 percent of the frame; the cap of 47 is the rule and all three (57, 58, 60) sit at
 it.
+
+### 2026-10-16, U4b closed (one Opus hand after a Fable cut-off, one Opus reviewer)
+
+The first drawer was a Fable hand; the usage limit cut it off before it drew anything, and when
+it was resumed the Fable model's own allowance was spent, so the owner moved the session to Opus
+and the unit was re-briefed on Opus with the same brief. Four new species, each its own shape: a
+face-on Eagle-Owl with ear tufts and orange eyes, a cream Tailorbird with a rust cap and an
+upright olive tail, an upright Kestrel with a chestnut wing and a banded grey tail, and a
+hunched Night Heron on yellow legs with a red eye. One review, resumed from U4a's reviewer (it
+already held the checklist and the selection, which is cheaper than a fresh read): two pass, two
+fail on one fault each with exact fixes (the Owl's belly sides were vertical lines; the Kestrel
+had a fourth mark). The runner applied those and the review's two colour notes (a warmer cream
+on the Tailorbird for an edge on the paper, the Night Heron's black made the real bird's
+blue-green so it parts from the Black-winged Kite by colour as well as shape), audited the edges
+and looked; no second review was spent on one-line fixes.

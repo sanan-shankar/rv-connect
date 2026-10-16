@@ -2032,6 +2032,150 @@ const ARCHES: Arche[] = [
       );
     },
   },
+  // 61 - INDIAN EAGLE-OWL (U4b, selection.md 2.5: "tufts and orange eyes"). Face-on, the way a child
+  // draws an owl, and kept apart from the Owlet (2) by silhouette and colour rather than detail: two
+  // soft ear tufts stand up off the crown and break the outline, the body is a warm tawny egg where
+  // the Owlet is a cool grey-brown disc, and the eyes are orange. The facial disc is two round buff
+  // lobes, one per eye, their rims arched over the eyes (raised brows, never a V scowl). A tawny-buff
+  // belly whose lower edge IS the body's own arc, so the darker folded wings show as the two sides,
+  // with five dark streaks set three over two (three set two over one read as a second face). A small
+  // grey bill points down between the eyes. Ten shapes and the streaks.
+  {
+    name: "Eagle-Owl",
+    skip: WARMS,
+    draw: () => {
+      const BODY = "#93582A", BELLY = "#D49A55", FACE = "#EBCD98", IRIS = "#F08A1E", BILL = "#4A4440", STREAK = "#7A4420";
+      return (
+        <g>
+          {/* ear tufts, leaning out a little, their base chords hidden inside the body */}
+          <path d="M32.5 36 Q27.5 26 29.6 15.6 Q30.4 12.2 33.6 13.4 Q39.5 18 42.5 29 Z" fill={BODY} />
+          <path d="M67.5 36 Q72.5 26 70.4 15.6 Q69.6 12.2 66.4 13.4 Q60.5 18 57.5 29 Z" fill={BODY} />
+          <ellipse cx="50" cy="57" rx="29" ry="32" fill={BODY} />
+          {/* belly: its top tucked under the face, its lower edge the body's own arc */}
+          <path d="M30 80.2 A30 30 0 0 1 38.5 57 Q50 50 61.5 57 A30 30 0 0 1 70 80.2 A29 32 0 0 1 30 80.2 Z" fill={BELLY} />
+          {[[41, 66.5], [50, 66.5], [59, 66.5], [45.5, 75], [54.5, 75]].map(([x, y], k) => (
+            <ellipse key={k} cx={x} cy={y} rx="1.3" ry="2.8" fill={STREAK} />
+          ))}
+          {/* facial disc: two round lobes, a shallow dip between them above and below */}
+          <path d="M50 38 Q46 32.5 39 32.5 Q28 33 27.5 45 Q28 57 39 57.5 Q46 57.5 50 54 Q54 57.5 61 57.5 Q72 57 72.5 45 Q72 33 61 32.5 Q54 32.5 50 38 Z" fill={FACE} />
+          <circle cx="39" cy="45" r="8.5" fill={IRIS} />
+          <circle cx="61" cy="45" r="8.5" fill={IRIS} />
+          <Eye cx={39.5} cy={45.5} r={5} />
+          <Eye cx={60.5} cy={45.5} r={5} />
+          {/* small grey bill, clear of both irises, tapering to a round tip */}
+          <path d="M47 50.5 Q50 49 53 50.5 Q53.2 55.5 51 58.8 Q50 60 49 58.8 Q46.8 55.5 47 50.5 Z" fill={BILL} />
+        </g>
+      );
+    },
+  },
+  // 62 - COMMON TAILORBIRD (U4b, selection.md 2.6: "the cocked-up tail and the rust cap"). The pale
+  // body the selection asks for (a cream ball with an edge on the paper, so it is nothing like the
+  // White-eye's olive ball) under an olive folded wing whose top edge is the back's own arc, and the
+  // signature: a darker olive tail rising from the rump and swept a little back, narrow where it
+  // leaves the body and fanning to a round tip, so it reads as a tail and not a stalk. A rust cap on
+  // the head's own outline with its lower edge arched well above the eye, a slim dark bill drooping to
+  // a soft tip, and two short pink legs. Nine shapes.
+  {
+    name: "Tailorbird",
+    skip: GREENS,
+    draw: () => {
+      const CREAM = "#E6D5AE", OLIVE = "#8F9C45", TAIL = "#6F7B36", CAP = "#C4602B", BILL = "#4E453C", LEG = "#D59A8C";
+      return (
+        <g>
+          {/* short pink legs, tops under the body, round-ended */}
+          <path d="M42.6 79 Q41.8 84.5 42.7 88.5 Q43.2 90.6 45 90.4 Q46.6 90 46.2 88 Q45.4 84.5 46 79 Z" fill={LEG} />
+          <path d="M51.6 79 Q50.8 84.5 51.7 88.5 Q52.2 90.6 54 90.4 Q55.6 90 55.2 88 Q54.4 84.5 55 79 Z" fill={LEG} />
+          {/* the cocked tail: root under the body, both edges bowed back, 7 wide at the rump and 10 at the round tip */}
+          <path d="M30 58 Q19.5 45 18.2 30.5 Q17.6 24 23.3 23.6 Q29 23.3 28.4 29.6 Q26.2 44 34 55 Z" fill={TAIL} />
+          <circle cx="47" cy="61" r="21" fill={CREAM} />
+          {/* olive folded wing: its top edge the body's arc from the shoulder to the rump, the lower edge one sag turning up into the front edge without a corner */}
+          <path d="M55.9 42 A21 21 0 0 0 27.3 53.8 Q37 73 52.5 58 Q57 53.6 55.9 42 Z" fill={OLIVE} />
+          {/* slim bill under the head, both edges bowed, drooping to a round tip */}
+          <path d="M70.5 39 Q78.5 39.3 84 42.6 Q85.6 43.9 83.8 44.7 Q77.5 45.8 71 43.6 Z" fill={BILL} />
+          <circle cx="61" cy="38.5" r="12.5" fill={CREAM} />
+          {/* rust cap: the head's outline from forehead to nape, its lower edge arched 3.8 above the eye */}
+          <path d="M72.3 33.2 A12.5 12.5 0 0 0 48.7 36.3 Q60 28.5 72.3 33.2 Z" fill={CAP} />
+          <Eye cx={65} cy={39.5} r={4.2} />
+        </g>
+      );
+    },
+  },
+  // 63 - COMMON KESTREL, the male (U4b, selection.md 2.7: "a blue-grey head on a chestnut back, black
+  // band on the tail"). Kept apart from both Peregrines (32, 53) by colour and silhouette: warm where
+  // they are slate, a mid-grey head where they wear a dark hood, and upright with the tail hanging
+  // straight down where theirs angles away. One cream teardrop body, a chestnut folded wing laid on
+  // it (its outer edge is the back's own curve, its tip lies on the tail) with three dark spots, and
+  // a grey tail whose black band is cut from the tail's own two edges, a grey tip below it. A big
+  // round grey head, a pale cheek, and the moustache as a short tapering streak hanging from under
+  // the eye-ring onto the cheek (a long one read as a tongue). A small hooked bill ending in a round
+  // nail. Ten shapes and the spots.
+  {
+    name: "Kestrel",
+    skip: WARMS,
+    draw: () => {
+      const CHES = "#B4602C", CREAM = "#EED8B0", GREY = "#8D9BAC", BAND = "#2A2D34", MOUS = "#3E4654", YEL = "#E9B83C", BILL = "#4A5260";
+      return (
+        <g>
+          {/* grey tail hanging straight down, root under the body, a little wider at the round end */}
+          <path d="M41.5 72 Q37.2 83 37.8 89.5 Q38.3 94.6 44 94.6 Q49.7 94.6 50.2 89.5 Q52.4 81 50.5 73 Z" fill={GREY} />
+          {/* black band: its sides are sub-curves of the tail's two edges, top and bottom bowed with the round end */}
+          <path d="M37.82 85.8 Q37.64 87.8 37.8 89.5 Q44 92.1 50.2 89.5 Q50.68 87.64 50.97 85.8 Q44.4 88.4 37.82 85.8 Z" fill={BAND} />
+          {/* cream teardrop body: back, rump, round belly, the breast bulging forward */}
+          <path d="M52 31 Q31 37 30 57 Q30 72 40 78.5 Q46.5 82 53.5 78.5 Q74 68 74.5 51 Q74.5 39 64 35 Q58 31 52 31 Z" fill={CREAM} />
+          {/* chestnut folded wing: the back's own curve, then past the rump to a round tip on the tail, the lower edge bowed toward the breast */}
+          <path d="M52 31 Q31 37 30 57 Q28.6 69.5 36.6 79 Q38.2 82.2 40.9 79.6 Q50.6 70 55.5 52 Q57.5 41 54 33 Z" fill={CHES} />
+          {/* small hooked bill under the head, curling to a round nail */}
+          <path d="M70.5 24.5 Q80 24.9 81 30.6 Q81.2 33 79.6 32.4 Q76.4 30.6 71.5 31.5 Q69.4 28 70.5 24.5 Z" fill={BILL} />
+          <circle cx="60" cy="28.5" r="13.5" fill={GREY} />
+          {/* pale cheek and throat: the head's lower-front arc, its top edge 2.4 under the eye-ring */}
+          <path d="M73.1 31.77 A13.5 13.5 0 0 1 56.51 41.54 Q62.5 32 73.1 31.77 Z" fill={CREAM} />
+          {/* moustache: 4 wide under the ring tapering to a 2.4 round end, behind the eye, never toward the bill */}
+          <path d="M60.8 30.6 Q63 30 64.9 31.4 Q64.7 35.6 62.8 38.6 Q62 40.2 60.9 39.2 Q60.1 35 60.8 30.6 Z" fill={MOUS} />
+          {/* yellow eye-ring, then the eye, darker than the band */}
+          <circle cx="64" cy="26.5" r="5.4" fill={YEL} />
+          <Eye cx={64} cy={26.5} r={4.1} disc="#16181D" />
+        </g>
+      );
+    },
+  },
+  // 64 - BLACK-CROWNED NIGHT HERON (U4b, selection.md 2.8: "red eye under a black cap, hunched"). A
+  // stocky pale-grey loaf on two short yellow legs, the big round head sunk into the shoulders but
+  // still breaking the back's line. Black on top only: a cap on the head's own outline from the
+  // forehead (a pale sliver left above the bill) over the crown to the nape, and a black saddle on
+  // the back whose outer edge is the body's arc, so the two read as one black crown-and-mantle. A pale
+  // grey folded wing below the saddle, running past the rump to a round tail tip. The red eye (iris,
+  // dark pupil, catchlight) sits just under the cap's edge, and the bill is a stout black dagger, 7
+  // deep at the face, tapering to a round tip. The white nape plume was tried and dropped: held on the
+  // black it read as a slot cut in the back. Eight shapes and the eye. Kept apart from the
+  // Black-winged Kite (60), which shares grey, black and a red eye, by silhouette: a horizontal
+  // heron on legs with a long bill and black ON TOP, against a round disc with a black wing slash.
+  {
+    name: "Night Heron",
+    skip: [],
+    draw: () => {
+      const PALE = "#D5D9DC", WING = "#A3ACB5", BLK = "#1F3436", RED = "#CF2B39", LEG = "#E2BE48", BILL = "#202429";
+      return (
+        <g>
+          {/* short yellow legs, tops under the body, round-ended */}
+          <path d="M41 74 Q40 82 41 87.8 Q41.5 90.2 43.6 90 Q45.4 89.6 45 87.6 Q44 82 45 74 Z" fill={LEG} />
+          <path d="M51 74 Q50 82 51 87.8 Q51.5 90.2 53.6 90 Q55.4 89.6 55 87.6 Q54 82 55 74 Z" fill={LEG} />
+          <ellipse cx="46" cy="59" rx="28" ry="21" fill={PALE} />
+          {/* grey folded wing: the body's arc from the shoulder to the rump, a round tail tip past it, the lower edge rising under the head */}
+          <path d="M55.58 39.27 A28 21 0 0 0 18.43 62.65 Q12.5 66.5 14.5 71.5 Q16.5 75.5 23.5 72.5 Q42 66 56 51 Q60 47 55.58 39.27 Z" fill={WING} />
+          {/* black saddle: the same arc from the shoulder to mid-back, its lower edge one sag */}
+          <path d="M55.58 39.27 A28 21 0 0 0 26.2 44.15 Q40 56 55.58 39.27 Z" fill={BLK} />
+          {/* stout dagger bill under the head, both edges bowed, a round tip */}
+          <path d="M72 41.5 Q80 41.6 86.4 45.3 Q88 46.5 86.4 47.4 Q79.5 49.8 72.5 48.6 Z" fill={BILL} />
+          <circle cx="63" cy="43" r="13" fill={PALE} />
+          {/* black cap: the head's outline from forehead to nape, its lower edge 2 above the eye */}
+          <path d="M75.2 38.55 A13 13 0 0 0 50.2 45.26 Q62 33 75.2 38.55 Z" fill={BLK} />
+          <circle cx="66.5" cy="43.5" r="4.6" fill={RED} />
+          <circle cx="66.5" cy="43.5" r="2.5" fill="#15181C" />
+          <circle cx="65" cy="42" r="1.5" fill="#FFFFFF" />
+        </g>
+      );
+    },
+  },
 ];
 
 
@@ -2107,6 +2251,10 @@ export const SPECIES_FULL_NAMES: string[] = [
   "Indian Spot-billed Duck", // index 58, U4a, a new species
   "Grey-headed Swamphen", // index 59, U4a, a new species
   "Black-winged Kite", // index 60, U4a, a new species
+  "Indian Eagle-Owl", // index 61, U4b, a new species
+  "Common Tailorbird", // index 62, U4b, a new species
+  "Common Kestrel", // index 63, U4b, a new species
+  "Black-crowned Night Heron", // index 64, U4b, a new species
 ];
 
 /**

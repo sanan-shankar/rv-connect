@@ -1,3 +1,13 @@
+## 2026-10-16 (birds) — U4b closed: an eagle-owl, a tailorbird, a kestrel and a night heron
+
+Four more new species at index 61 to 64, each with its own outline: a face-on Indian Eagle-Owl
+with ear tufts and big orange eyes, a Common Tailorbird with a rust cap and its tail held
+straight up, a Common Kestrel standing upright with a chestnut wing and a banded grey tail, and
+a hunched Black-crowned Night Heron on yellow legs with a red eye. Fable's allowance ran out, so
+the drawing moved to Opus with the same brief. One review: two passed, two failed on one fault
+each with exact fixes, which the runner applied and checked by eye. They join the gallery, the
+picker and the deal on commit; nothing is pushed until gate 2.
+
 ## 2026-10-16 (birds) — U4a closed: the first four new species, each with its own silhouette
 
 Grey Junglefowl, Indian Spot-billed Duck, Grey-headed Swamphen and Black-winged Kite join the set
