@@ -13,8 +13,8 @@
 --      now) and one people Catch-up, "in the loop". `pausedAt` cleared.
 --
 -- APPLIED to main on 2026-10-17, right after the push deployed: 9 paused rows
--- made active, 0 booked, 0 left to reopen. NOT YET on the demo (its run needs
--- the owner's go-ahead); the demo's code already reads paused as active.
+-- made active, 0 booked, 0 left to reopen. On the demo the same day, at the
+-- owner's go-ahead: nothing to change there, as expected.
 --   2. `nextOpensAt` cleared everywhere. Nothing reads it; this is so nobody
 --      reading the table thinks something is booked.
 --   3. A `collecting` Edition whose question window closed with nothing asked

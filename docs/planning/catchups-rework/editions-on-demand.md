@@ -115,5 +115,5 @@ So a member who never takes part gets two bells per Edition, and a batch nobody 
 | Pushed and deployed | DONE | 2026-10-17, Vercel and CI green |
 | `editions-start-by-hand.sql` on main | DONE | after the deploy: 9 paused -> active (8 batches + "in the loop"), 0 booked, 0 reopenable |
 | `reminders-default-off.sql` on main | DONE | before the push; safe either side |
-| Both on the demo | OPEN | the run was refused at the permission prompt; his to run or approve. Not urgent: the demo's code reads paused as active and writes "off" itself |
-| `drop-rhythm-columns.sql` | OPEN | after both demo runs; it refuses until no row is paused or booked |
+| Both on the demo | DONE | 2026-10-17 at his go-ahead: 0 rows to change, reminder default now off |
+| `drop-rhythm-columns.sql` | OPEN | both databases are settled, so it can run; it drops columns, so it waits for his word |
