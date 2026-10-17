@@ -112,4 +112,8 @@ So a member who never takes part gets two bells per Edition, and a batch nobody 
 | 1. Start by hand | DONE | engine, actions, home, settings, create, list, admin, guide, spec; driven end to end as Jerry |
 | 2. Two bells | DONE | taking-part audience, reminders off by default (column moved, applied), extension silent, nudge deleted |
 | 3. Batch shortcut | DONE | the shortcut becomes "Your batch already has a Catch-up" and links there |
-| Migration applied | OPEN | after the push, which is his to approve |
+| Pushed and deployed | DONE | 2026-10-17, Vercel and CI green |
+| `editions-start-by-hand.sql` on main | DONE | after the deploy: 9 paused -> active (8 batches + "in the loop"), 0 booked, 0 reopenable |
+| `reminders-default-off.sql` on main | DONE | before the push; safe either side |
+| Both on the demo | OPEN | the run was refused at the permission prompt; his to run or approve. Not urgent: the demo's code reads paused as active and writes "off" itself |
+| `drop-rhythm-columns.sql` | OPEN | after both demo runs; it refuses until no row is paused or booked |

@@ -8,9 +8,13 @@
 -- the data say what the code already assumes.
 --
 -- WHAT IT DOES, measured the same day before it was written:
---   1. Paused -> active. Nine batch Catch-ups (made paused on 2026-09-27 so
+--   1. Paused -> active. Eight batch Catch-ups (made paused on 2026-09-27 so
 --      nobody was bothered by one they had not asked for; being idle does that
 --      now) and one people Catch-up, "in the loop". `pausedAt` cleared.
+--
+-- APPLIED to main on 2026-10-17, right after the push deployed: 9 paused rows
+-- made active, 0 booked, 0 left to reopen. NOT YET on the demo (its run needs
+-- the owner's go-ahead); the demo's code already reads paused as active.
 --   2. `nextOpensAt` cleared everywhere. Nothing reads it; this is so nobody
 --      reading the table thinks something is booked.
 --   3. A `collecting` Edition whose question window closed with nothing asked
