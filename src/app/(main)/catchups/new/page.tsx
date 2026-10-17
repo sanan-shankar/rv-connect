@@ -24,9 +24,13 @@ export const metadata: Metadata = {
  * starts one.) The Group row that still backs membership underneath is created
  * silently by `createCatchupWithPeople`.
  *
- * The only thing loaded here is the viewer's batch year, which seeds both the
- * suggested name and the "everyone from my batch" shortcut, so the overwhelmingly
- * common case (a batch Catch-up) takes no typing at all.
+ * Two things are loaded here: the viewer's batch year, for the "everyone from
+ * my batch" shortcut, and their batch's own Catch-up, which REPLACES that
+ * shortcut when it exists. A batch Catch-up is made for every batch of ten, and
+ * a second one with the same people is the thing to stop: on 2026-10-15 a 2024
+ * alumnus built exactly that rather than find Start on the batch's own
+ * (`2026-10-17-fold-2024-duplicate-into-batch.sql`). His answer: send them to
+ * it. Hand-picking people for a smaller group is untouched.
  *
  * `?group=<id>` used to preload a group's name and roster into this form. It
  * is gone (2026-08-21, owner's call). The index's "Start one" row was the only
@@ -42,6 +46,7 @@ export default async function NewCatchupPage() {
   if (!session?.user) return null;
 
   let batchYear: number | null = null;
+  let batchCatchupId: string | null = null;
   let tableMissing = false;
   // The viewer's own chip in the With list. Falls back to the session's
   // identity so the chip is never missing even if this read fails.
@@ -53,11 +58,22 @@ export default async function NewCatchupPage() {
     batchYear: null,
   };
   try {
-    const viewer = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { ...IDENTITY_SELECT, batchYear: true },
-    });
+    /* In parallel: the batch Catch-up is found through the viewer's own
+       membership rather than their year, and a member is only ever in their
+       own batch's group (`syncBatchGroup`), so the two reads do not wait on
+       each other. */
+    const [viewer, batchCatchup] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { ...IDENTITY_SELECT, batchYear: true },
+      }),
+      prisma.catchup.findFirst({
+        where: { group: { batchYear: { not: null }, members: { some: { userId: session.user.id } } } },
+        select: { id: true },
+      }),
+    ]);
     batchYear = viewer?.batchYear ?? null;
+    batchCatchupId = batchCatchup?.id ?? null;
     if (viewer) {
       me = {
         id: session.user.id,
@@ -95,7 +111,7 @@ export default async function NewCatchupPage() {
     // margin -- see the two-column arrangement in CreateCatchupForm.
     <div>
       <PageHeader title="Start a Catch-up" />
-      <CreateCatchupForm myBatchYear={batchYear} me={me} />
+      <CreateCatchupForm myBatchYear={batchYear} batchCatchupId={batchCatchupId} me={me} />
     </div>
   );
 }

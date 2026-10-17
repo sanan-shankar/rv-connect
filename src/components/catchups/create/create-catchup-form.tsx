@@ -33,9 +33,12 @@ import { createCatchupWithPeople } from "@/app/(main)/catchups/actions";
 
 export function CreateCatchupForm({
   myBatchYear,
+  batchCatchupId,
   me,
 }: {
   myBatchYear: number | null;
+  /** The viewer's batch Catch-up, when there is one. See PeoplePicker. */
+  batchCatchupId: string | null;
   /** The viewer, so the With list can show them in it (see PeoplePicker). */
   me: PickedPerson;
   /** Preloaded from `?group=<id>` (an existing group with no Catch-up yet
@@ -137,7 +140,13 @@ export function CreateCatchupForm({
       <div className="sm:col-start-2 sm:row-start-1">
         <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-muted-foreground">With</p>
         <div className="mt-[var(--space-xs)]">
-          <PeoplePicker value={people} onChange={setPeople} myBatchYear={myBatchYear} me={me} />
+          <PeoplePicker
+            value={people}
+            onChange={setPeople}
+            myBatchYear={myBatchYear}
+            batchCatchupId={batchCatchupId}
+            me={me}
+          />
         </div>
       </div>
 

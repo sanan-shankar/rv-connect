@@ -1,3 +1,13 @@
+## 2026-10-17 (catchups) — Start a Catch-up sends you to your batch's own instead of copying it
+
+His answer, 2026-10-17: when "everyone from my batch" is pressed and the batch already has a
+Catch-up, "Send them to it." On `/catchups/new` that button is now "Your batch already has a
+Catch-up", the same outline pill in the same place, linking to the batch's Catch-up, where anyone
+can press Start. Found through the viewer's own batch membership, in parallel with the read the page
+already made. A batch under ten has no Catch-up, so it keeps the shortcut; hand-picking is untouched.
+Checked at 1440 and 390 as the owner (Batch of 2023).
+
+
 ## 2026-10-17 (catchups) — two bells an Edition for anyone not taking part; reminders off unless turned on
 
 His answer, 2026-10-17, to how many bells an Edition may ring for somebody not taking part: "Only 'a

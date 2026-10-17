@@ -11,8 +11,9 @@
  *  created silently by `createCatchupWithPeople`.
  *
  *  Two ways in, because they are the two real cases: search someone by
- *  name, or add a whole batch at once (the batch Catch-up being the one
- *  everybody wants).
+ *  name, or add a whole batch at once. The second only while the batch has
+ *  no Catch-up of its own; once it has one (every batch of ten does), the
+ *  button leads there instead (2026-10-17).
  *
  *  You ARE listed, first, in a chip like everyone else's. Being in your own
  *  Catch-up was always true and used to be left unsaid, which read to
@@ -24,7 +25,8 @@
  * ------------------------------------------------------------------ */
 
 import { useState } from "react";
-import { Loader2, Plus, Search, X } from "lucide-react";
+import Link from "@/components/common/link";
+import { ArrowRight, Loader2, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -60,6 +62,7 @@ export function PeoplePicker({
   value,
   onChange,
   myBatchYear,
+  batchCatchupId = null,
   me,
   canRemove = true,
 }: {
@@ -67,6 +70,14 @@ export function PeoplePicker({
   onChange: (next: PickedPerson[]) => void;
   /** Enables the "everyone from my batch" shortcut when known. */
   myBatchYear: number | null;
+  /**
+   * The batch's own Catch-up, when it has one. The shortcut then becomes the
+   * way there instead: the same place on the form, the same pill, but it
+   * leads to the Catch-up that already holds everyone, where anyone can start
+   * an Edition. His answer, 2026-10-17: "Send them to it." A whole batch is
+   * the one roster this form must not be able to make twice.
+   */
+  batchCatchupId?: string | null;
   /** The viewer, shown first and unremovable. Never part of `value`: the
    *  server adds the creator to the group itself, so including them here
    *  would submit them twice. */
@@ -204,17 +215,29 @@ export function PeoplePicker({
         </ul>
       )}
 
-      {myBatchYear != null && (
+      {batchCatchupId ? (
         <Button
-          type="button"
           variant="outline"
           size="sm"
-          onClick={addMyBatch}
-          disabled={addingBatch}
+          nativeButton={false}
+          render={<Link href={`/catchups/${batchCatchupId}`} />}
         >
-          {addingBatch ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-          Everyone from {myBatchYear}
+          Your batch already has a Catch-up
+          <ArrowRight className="h-4 w-4" />
         </Button>
+      ) : (
+        myBatchYear != null && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addMyBatch}
+            disabled={addingBatch}
+          >
+            {addingBatch ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            Everyone from {myBatchYear}
+          </Button>
+        )
       )}
 
       <ul className="flex flex-wrap gap-1.5 pt-1">

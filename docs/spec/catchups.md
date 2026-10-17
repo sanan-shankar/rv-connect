@@ -335,9 +335,11 @@ The header carries **Start a Catch-up**, and for an admin a link to the admin ro
 
 ### 7.2 Starting one, `/catchups/new`
 
-One form: name, people. The viewer's batch year seeds an "everyone from my batch" shortcut.
-Questions are not picked here, and there is no rhythm to pick (2026-10-17). Making it starts its
-first Edition.
+One form: name, people. The viewer's batch year seeds an "everyone from my batch" shortcut, and
+**when the batch already has its Catch-up the shortcut is a link to it instead** ("Your batch
+already has a Catch-up"), so a whole batch cannot be made into a second Catch-up from here (his
+answer, 2026-10-17: "Send them to it"). Questions are not picked here, and there is no rhythm to
+pick. Making it starts its first Edition.
 
 ### 7.3 The home, `/catchups/[catchupId]`
 

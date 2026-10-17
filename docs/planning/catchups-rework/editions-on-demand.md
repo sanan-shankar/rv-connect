@@ -111,5 +111,5 @@ So a member who never takes part gets two bells per Edition, and a batch nobody 
 | Fold the 2024 duplicate | DONE | 4bb43f76, 4ac75cd1; checked as a member, 42/42 in, 9 questions intact |
 | 1. Start by hand | DONE | engine, actions, home, settings, create, list, admin, guide, spec; driven end to end as Jerry |
 | 2. Two bells | DONE | taking-part audience, reminders off by default (column moved, applied), extension silent, nudge deleted |
-| 3. Batch shortcut | OPEN | |
+| 3. Batch shortcut | DONE | the shortcut becomes "Your batch already has a Catch-up" and links there |
 | Migration applied | OPEN | after the push, which is his to approve |

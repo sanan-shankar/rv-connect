@@ -430,3 +430,22 @@ test("the migration is the fourth creation path, and it asserts before it re-poi
   // migrate it is a second database that will be wrong.
   assert.match(sql, /--env \.env\.demo/, "the file does not say to apply it to the demo project");
 });
+
+test("Start a Catch-up sends a batch to its own Catch-up rather than copying it", () => {
+  /* His answer, 2026-10-17, after a 2024 alumnus pressed "everyone from my
+     batch" and made a second Catch-up of the same 42 people: "Send them to
+     it." The shortcut becomes a link to the batch's own Catch-up whenever
+     there is one, so this form cannot make a whole batch twice. */
+  const page = decomment(read("src/app/(main)/catchups/new/page.tsx"));
+  assert.match(
+    page,
+    /prisma\.catchup\.findFirst\(\{\s*where: \{ group: \{ batchYear: \{ not: null \}, members: \{ some: \{ userId: session\.user\.id \} \} \} \}/,
+    "the create page no longer looks up the viewer's batch Catch-up"
+  );
+  const picker = decomment(read("src/components/catchups/create/people-picker.tsx"));
+  const at = picker.indexOf("{batchCatchupId ? (");
+  assert.ok(at > -1, "the batch shortcut no longer checks for the batch's own Catch-up first");
+  const branch = picker.slice(at, picker.indexOf(") : (", at));
+  assert.match(branch, /render=\{<Link href=\{`\/catchups\/\$\{batchCatchupId\}`\} \/>\}/, "the shortcut no longer leads to the batch Catch-up");
+  assert.doesNotMatch(branch, /addMyBatch/, "the batch Catch-up's branch still adds the whole batch");
+});
