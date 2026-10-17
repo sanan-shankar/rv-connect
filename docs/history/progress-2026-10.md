@@ -1,3 +1,27 @@
+## 2026-10-17 (catchups) — the 🪇 Catch-up folds into the Batch of 2024's, its round and nine questions with it
+
+On 2026-10-15 a 2024 alumnus started a new Catch-up through /catchups/new, pressed "everyone from
+my batch", and named it "🪇": the same 42 people as the Batch of 2024 Catch-up, so all of them were
+in two. The batch one had run one round (one person answered) and its rhythm put the next in
+December; "Start the next Edition now" was open to every member but lived in the settings panel.
+The second time 2024 has done this (the first was adopted on 2026-09-08).
+
+His, 2026-10-17: "make it the batch catch-up that has everything and remove this [one] ... port all
+the questions, all the settings, everything like that, move it onto the batch catch-up."
+
+`2026-10-17-fold-2024-duplicate-into-batch.sql` moves the duplicate's one Edition, still taking
+questions, onto the batch Catch-up as Edition 2 with its nine questions and its 19 October
+deadline; re-points and renames the 41 bell rows that announced it; clears the batch's booked
+December date, since a round is now running; and deletes the duplicate's Catch-up and group. Its
+settings were all creation defaults (pool picture, monthly) and a batch keeps its own name, so
+nothing else moved. Refuses if the duplicate gains a member outside the batch, a second Edition,
+or the batch starts a round of its own. Rows snapshotted first; applied, then re-run as a no-op.
+The admin room shows Batch of 2024 with 42 people, 2 Editions, Edition 2 taking 9 questions.
+
+The cause (start-a-round buried, a rhythm nobody chose, nothing on /catchups/new pointing at the
+batch's own Catch-up) is the redesign he asked for in the same message, and is not in this commit.
+
+
 ## 2026-10-17 (collection) — seventeen of Santharam's emailed photographs wait in the review room, under his name
 
 The photographs the owner kept from three of Santharam Venkap's emails (2026-10-15): eleven from
