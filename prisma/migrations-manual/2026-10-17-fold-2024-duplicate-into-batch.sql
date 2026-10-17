@@ -86,8 +86,11 @@ BEGIN
   GET DIAGNOSTICS moved = ROW_COUNT;
 
   -- A round is running now, so nothing is booked; the clock stamps the next
-  -- date itself when this one comes out.
-  UPDATE "CatchupSeries" SET "nextOpensAt" = NULL WHERE id = batch_id;
+  -- date itself when this one comes out. `updatedAt` by hand, because raw SQL
+  -- does not touch Prisma's @updatedAt and the admin list sorts by it: without
+  -- it the batch sat 18th of 21 where the duplicate had been first, and read
+  -- as gone (owner, the same morning: "are you sure 2024 exists?").
+  UPDATE "CatchupSeries" SET "nextOpensAt" = NULL, "updatedAt" = now() WHERE id = batch_id;
 
   UPDATE "Notification"
      SET link = replace(link, dup_id, batch_id),
