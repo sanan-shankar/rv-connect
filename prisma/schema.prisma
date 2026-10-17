@@ -1298,7 +1298,9 @@ model CatchupPref {
   id           String @id @default(cuid())
   catchupId    String
   userId       String
-  reminderMode String @default("all")       // "all" | "last" | "off"
+  // "all" (daily) | "last" | "off". Off by default since 2026-10-17: no reminders unless a
+  // member turns them on (DEFAULT_REMINDER_MODE). 2026-10-17-reminders-default-off.sql moved the column.
+  reminderMode String @default("off")
   // One member's own copy of this Catch-up, filed away. PERSONAL by decision
   // (owner, 2026-08-21): nobody else's view changes, so no member action can
   // destroy something another member relies on. This row is already unique on

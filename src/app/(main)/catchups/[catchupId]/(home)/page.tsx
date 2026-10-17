@@ -28,6 +28,7 @@ import {
   mayChangeCatchupPicture,
   isBatchCatchup,
   catchupDisplayName,
+  DEFAULT_REMINDER_MODE,
   type AdvanceEditionInput,
 } from "@/lib/catchups";
 import type {
@@ -441,7 +442,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
         groupRole: membership.role,
         batchYear: catchup.group.batchYear,
       }),
-      reminderMode: (pref?.reminderMode as ReminderMode) ?? "all",
+      reminderMode: (pref?.reminderMode as ReminderMode) ?? DEFAULT_REMINDER_MODE,
     },
     edition: editionView,
     latest,
@@ -480,7 +481,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
         groupRole: membership.role,
         batchYear: catchup.group.batchYear,
       }),
-      reminderMode: (pref?.reminderMode as ReminderMode) ?? "all",
+      reminderMode: (pref?.reminderMode as ReminderMode) ?? DEFAULT_REMINDER_MODE,
       editionId: freshLatest?.id ?? null,
       answersCloseAt: freshLatest?.answersCloseAt?.toISOString() ?? null,
       picture: fallback,

@@ -37,7 +37,6 @@ const OPENED_TO_BATCH = [
   "openAnswering",
   "closeAndPublish",
   "extendDeadline",
-  "nudgeGroup",
 ];
 
 const STAYS_REFUSED = [

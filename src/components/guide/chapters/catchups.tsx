@@ -10,7 +10,8 @@ import { Chapter, Section, P, type ChapterProps } from "../guide-kit";
    a rhythm and nothing is held: an Edition starts when anyone in the
    Catch-up starts one (startEdition), batch or group alike. Everyone in a
    batch runs its cycle; a group Catch-up's Keeper does that alone
-   (catchups/actions.ts, allowBatch). Reminders cover answering only. The window lengths, the no-answers
+   (catchups/actions.ts, allowBatch). Reminders cover answering only and are
+   off unless a member turns them on (DEFAULT_REMINDER_MODE). The window lengths, the no-answers
    extension and the Keeper's early-close are left out on purpose: the
    owner asked for the mechanics without "all the if statements". */
 
@@ -55,9 +56,10 @@ export function CatchupsChapter({ bare }: ChapterProps) {
         </P>
         <P>
           Each Catch-up has a photograph of the school as its picture, which can be swapped for
-          one of your own. In a Catch-up&rsquo;s Settings you can choose how often you are reminded
-          to answer, and leave one you no longer want to be part of. Your batch&rsquo;s cannot be
-          left, but you can put it away.
+          one of your own. You hear when an Edition starts and when it comes out. Reminders to
+          answer are off unless you turn them on in a Catch-up&rsquo;s Settings, where you can also
+          leave one you no longer want to be part of. Your batch&rsquo;s cannot be left, but you
+          can put it away.
         </P>
       </Section>
     </Chapter>

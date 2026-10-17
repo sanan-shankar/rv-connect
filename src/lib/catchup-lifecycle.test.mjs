@@ -71,7 +71,6 @@ test("B-061: every hand-driven write into a live Edition refuses an ended Catch-
     "openAnswering",
     "closeAndPublish",
     "extendDeadline",
-    "nudgeGroup",
     "submitPrompt",
     "submitEntry",
     "startEdition",

@@ -10,12 +10,18 @@
  *  atomically with the status flip (exactly-once), or standalone from a
  *  server action.
  *
- *  Recipients follow section 11's rules:
- *   - questions-open / answers-open / published: all group members, minus
- *     anyone who has deleted their own copy (B-063; see `groupMemberIds`).
- *   - the two dated reminders: only members with no Entry yet, filtered by
- *     CatchupPref.reminderMode (default "all" when a member has no pref row).
- *   - the manual Keeper nudge: all non-answerers, bypassing "off".
+ *  Recipients follow section 11's rules, and since 2026-10-17 one budget sits
+ *  over them. His answer to how many bells an Edition may ring for somebody
+ *  who is not taking part: "Only 'a round started' and 'it's published'. No
+ *  reminders unless you've turned them on yourself." So:
+ *   - questions-open (somebody started one) and published: every member.
+ *   - answers-open: only the people TAKING PART -- who asked a question in
+ *     this Edition, or turned reminders on (`takingPartIds`).
+ *   - the daily / last-day reminder: only members with no Entry yet who
+ *     turned it on; no pref row means `DEFAULT_REMINDER_MODE`, which is off.
+ *   - the questions extension: nobody (planNextAction, silent).
+ *   - the manual nudge is deleted: it reached every non-answerer whatever
+ *     they had chosen, and on a batch any of forty people could fire it.
  *   - love (optional): the answer's author, coalesced so it cannot spam.
  *   - added (bug fix, 2026-09-27): not audience math at all -- exactly the
  *     people `addCatchupMembers` just enrolled, never whoever added them.
@@ -23,7 +29,7 @@
  *  All copy is placeholder. The owner rewrites it later (spec section 11).
  * ------------------------------------------------------------------ */
 
-import { answerReminderMessage } from "@/lib/catchups-core";
+import { answerReminderMessage, DEFAULT_REMINDER_MODE } from "@/lib/catchups-core";
 import { formatDisplayDateLong } from "@/lib/utils";
 import type {
   CatchupDb,
@@ -63,6 +69,37 @@ async function groupMemberIds(db: CatchupDb, groupId: string): Promise<string[]>
   return rows.map((r) => r.userId);
 }
 
+/**
+ * The members TAKING PART in one Edition: whoever asked a question in it, and
+ * whoever turned this Catch-up's reminders on. Everybody else gets two bells an
+ * Edition and no more -- it started, it is out -- which is his answer of
+ * 2026-10-17 ("Only 'a round started' and 'it's published'"). Asking counts
+ * even when it was anonymous: the bell is the asker's own, and says nothing
+ * to anyone else about who asked.
+ */
+async function takingPartIds(
+  db: CatchupDb,
+  ctx: { catchupId: string; groupId: string; editionId: string }
+): Promise<string[]> {
+  const [members, askers, optedIn] = await Promise.all([
+    groupMemberIds(db, ctx.groupId),
+    db.catchupPrompt.findMany({
+      where: { editionId: ctx.editionId, authorId: { not: null } },
+      select: { authorId: true },
+      distinct: ["authorId"],
+    }),
+    db.catchupPref.findMany({
+      where: { catchupId: ctx.catchupId, reminderMode: { in: ["all", "last"] } },
+      select: { userId: true },
+    }),
+  ]);
+  const taking = new Set<string>([
+    ...askers.map((a) => a.authorId as string),
+    ...optedIn.map((p) => p.userId),
+  ]);
+  return members.filter((id) => taking.has(id));
+}
+
 async function answeredUserIds(db: CatchupDb, editionId: string): Promise<Set<string>> {
   const rows = await db.catchupEntry.findMany({
     where: { editionId },
@@ -70,19 +107,6 @@ async function answeredUserIds(db: CatchupDb, editionId: string): Promise<Set<st
     distinct: ["authorId"],
   });
   return new Set(rows.map((r) => r.authorId));
-}
-
-/** Members who have not written any Entry in this Edition. */
-async function nonAnswererIds(
-  db: CatchupDb,
-  groupId: string,
-  editionId: string
-): Promise<string[]> {
-  const [members, answered] = await Promise.all([
-    groupMemberIds(db, groupId),
-    answeredUserIds(db, editionId),
-  ]);
-  return members.filter((id) => !answered.has(id));
 }
 
 async function createMany(
@@ -125,12 +149,18 @@ export const notifyQuestionsOpen: NotifyQuestionsOpenFn = async (db, ctx) => {
   );
 };
 
-/** Edition enters `answering`: answers are open. Re-fired to non-answerers on a too-few extension. */
+/**
+ * Edition enters `answering`: answers are open. Re-fired to non-answerers on a
+ * too-few extension. Either way, only to the people taking part
+ * (`takingPartIds`); everyone else hears about this Edition twice, when it
+ * starts and when it is out.
+ */
 export const notifyAnswersOpen: NotifyAnswersOpenFn = async (db, ctx) => {
-  const audience = ctx.onlyNonAnswerers
-    ? await nonAnswererIds(db, ctx.groupId, ctx.editionId)
-    : await groupMemberIds(db, ctx.groupId);
-  const members = audience.filter((id) => id !== ctx.excludeUserId);
+  const [taking, answered] = await Promise.all([
+    takingPartIds(db, ctx),
+    ctx.onlyNonAnswerers ? answeredUserIds(db, ctx.editionId) : Promise.resolve(new Set<string>()),
+  ]);
+  const members = taking.filter((id) => id !== ctx.excludeUserId && !answered.has(id));
   await createMany(
     db,
     members,
@@ -147,15 +177,15 @@ export const notifyAnswersOpen: NotifyAnswersOpenFn = async (db, ctx) => {
 };
 
 /**
- * A reminder to non-answerers. Fires once a DAY while the answer window is
- * open (owner, 2026-08-05), with `daysLeft` counting down; `bypassOff` is the
- * manual Keeper nudge, which reaches everyone with no Entry regardless of
- * their pref.
+ * A reminder to non-answerers who asked for one. Fires once a DAY while the
+ * answer window is open (owner, 2026-08-05), with `daysLeft` counting down.
  *
  * Who gets one:
  *   - "all" (shown as Daily): every day.
  *   - "last": only on the last day.
- *   - "off": never, unless this is the Keeper's manual nudge.
+ *   - "off": never. And a member who never chose is `DEFAULT_REMINDER_MODE`,
+ *     which is off since 2026-10-17 ("No reminders unless you've turned them
+ *     on yourself"); it used to be daily.
  *
  * Today's reminder REPLACES yesterday's rather than stacking on it (owner:
  * "make sure it deletes the previous notification, so that they don't build
@@ -178,24 +208,20 @@ export const notifyReminder: NotifyReminderFn = async (db, ctx) => {
   ]);
   const nonAnswerers = members.filter((id) => !answered.has(id));
 
-  let recipients = nonAnswerers;
-  if (!ctx.bypassOff) {
-    const prefs = await db.catchupPref.findMany({
-      where: { catchupId: ctx.catchupId, userId: { in: nonAnswerers } },
-      select: { userId: true, reminderMode: true },
-    });
-    const prefByUser = new Map<string, ReminderMode>(
-      prefs.map((p) => [p.userId, p.reminderMode as ReminderMode])
-    );
-    const isLastDay = days <= 1;
-    recipients = nonAnswerers.filter((id) => {
-      // Default to "all" when a member has never set a pref.
-      const mode = prefByUser.get(id) ?? "all";
-      if (mode === "all") return true;
-      if (mode === "last") return isLastDay;
-      return false;
-    });
-  }
+  const prefs = await db.catchupPref.findMany({
+    where: { catchupId: ctx.catchupId, userId: { in: nonAnswerers } },
+    select: { userId: true, reminderMode: true },
+  });
+  const prefByUser = new Map<string, ReminderMode>(
+    prefs.map((p) => [p.userId, p.reminderMode as ReminderMode])
+  );
+  const isLastDay = days <= 1;
+  const recipients = nonAnswerers.filter((id) => {
+    const mode = prefByUser.get(id) ?? DEFAULT_REMINDER_MODE;
+    if (mode === "all") return true;
+    if (mode === "last") return isLastDay;
+    return false;
+  });
 
   if (members.length > 0) {
     await db.notification.deleteMany({
@@ -211,11 +237,13 @@ export const notifyReminder: NotifyReminderFn = async (db, ctx) => {
      this, a deadline at 07:30 IST had the bell saying "Last day to answer"
      from half past seven the morning BEFORE, with the page one tap away
      saying "Answers close tomorrow" (audits C-141/C-031). */
-  const message = ctx.bypassOff
-    ? `${ctx.keeperName ?? "The Keeper"} is waiting on you for ${ctx.groupName}'s Catch-up.`
-    : answerReminderMessage(ctx.groupName, ctx.closesAt, new Date());
-
-  await createMany(db, recipients, "catchup_reminder", message, link);
+  await createMany(
+    db,
+    recipients,
+    "catchup_reminder",
+    answerReminderMessage(ctx.groupName, ctx.closesAt, new Date()),
+    link
+  );
 };
 
 /** Edition enters `published`: the reveal notification, the moment the ritual pays off. */

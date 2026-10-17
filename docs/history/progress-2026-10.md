@@ -1,3 +1,21 @@
+## 2026-10-17 (catchups) — two bells an Edition for anyone not taking part; reminders off unless turned on
+
+His answer, 2026-10-17, to how many bells an Edition may ring for somebody not taking part: "Only 'a
+round started' and 'it's published'. No reminders unless you've turned them on yourself." Most
+batches never touch Catch-ups, and his worry was the bell filling until people stop reading it.
+
+Started and published still reach everyone. Answers-open reaches only the people taking part
+(`takingPartIds`: asked a question in that Edition, or turned reminders on). The daily reminder
+reaches only those who turned it on: `DEFAULT_REMINDER_MODE` is off, the column default moved with
+`2026-10-17-reminders-default-off.sql` (applied; safe either side of the deploy; existing choices
+untouched), and archiving writes "off" explicitly. The empty-window extension is silent. The manual
+nudge is deleted: it reached every non-answerer whatever they chose, and on a batch any of forty
+people could fire it. "Open answering" no longer says everyone is told.
+
+`catchup-two-bells-rule.test.mjs` pins it. Driven as Jerry on a throwaway Catch-up: Open answering
+ran the new audience query, the answering settings show no Nudge, Reminders reads Never.
+
+
 ## 2026-10-17 (catchups) — Editions start by hand: no rhythm, no hold, Start on the home for anyone in it
 
 His, 2026-10-17, after the duplicate 2024 Catch-up: "you should be able to start one whenever you

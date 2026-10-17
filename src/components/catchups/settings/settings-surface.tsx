@@ -64,7 +64,6 @@ import { useRouter } from "next/navigation";
 import {
   Archive,
   Bell,
-  BellRing,
   CalendarClock,
   Image as ImageIcon,
   Inbox,
@@ -94,7 +93,6 @@ import {
   endCatchup,
   extendDeadline,
   leaveCatchup,
-  nudgeGroup,
   openAnswering,
   renameCatchup,
   setCatchupArchived,
@@ -125,7 +123,6 @@ export type ChoiceKey = "reminders" | "extend";
 
 export type ConfirmKey =
   | "open-answering"
-  | "nudge"
   | "close-now"
   | "start"
   | "end"
@@ -215,14 +212,6 @@ function editionGroup(c: SettingsCatchup, extended: number | null): Group | null
       : c.state === "answering"
         ? [
             longer,
-            {
-              key: "nudge",
-              label: "Nudge everyone",
-              icon: BellRing,
-              line: "One reminder to whoever has not",
-              oneWay: true,
-              opens: { shape: "confirm", key: "nudge" },
-            },
             {
               key: "close-now",
               label: "Close and send it out",
@@ -557,7 +546,7 @@ function SettingsPanel({
 
 /* ── the two dialog shapes this file draws ─────────────────────────── */
 
-/** The five clock rows are only ever drawn when there IS an Edition, so
+/** The clock rows are only ever drawn when there IS an Edition, so
  *  this is the sentence for a race rather than for a state: the Edition
  *  published between the panel rendering and the button being pressed. */
 const NO_EDITION = "This Edition has moved on. Reload the page.";
@@ -671,15 +660,8 @@ export function confirmCopy(
     case "open-answering":
       return {
         title: "Open answering",
-        line: "Nobody can add a question after this. Everyone is told they have until the deadline to write.",
+        line: "Nobody can add a question after this, and everyone has a week to write.",
         verb: "Open it",
-        oneWay: true,
-      };
-    case "nudge":
-      return {
-        title: "Nudge everyone",
-        line: "One reminder goes to whoever has not written yet. You cannot send another today.",
-        verb: "Nudge",
         oneWay: true,
       };
     case "close-now":
@@ -833,8 +815,6 @@ export function useSettings(c: SettingsCatchup, onGone: () => void) {
       switch (key) {
         case "open-answering":
           return id ? await openAnswering(id) : { error: NO_EDITION };
-        case "nudge":
-          return id ? await nudgeGroup(id) : { error: NO_EDITION };
         case "close-now":
           return id ? await closeAndPublish(id) : { error: NO_EDITION };
         case "start":

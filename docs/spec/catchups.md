@@ -131,7 +131,7 @@ path opens straight into `collecting`.
 | Status | Members see | Keepers can also |
 |---|---|---|
 | `collecting` | the ask box and the questions so far | remove or reorder a question, open answering, give everyone longer |
-| `answering` | the questions to answer, on the home | give everyone longer, nudge, close and publish now |
+| `answering` | the questions to answer, on the home | give everyone longer, close and publish now |
 | `sealed` | a time capsule waiting out its year: nothing in it, their own answer included (built, not yet drawn; §16) | (anyone may start the next Edition, §3.5) |
 | `published` | the Edition, readable forever by every member, whether they wrote or not; on the home, Start under its cover | (anyone may start the next Edition) |
 
@@ -165,21 +165,21 @@ transaction with a compare-and-swap on status (or on `remindersSent`), so a seco
 nothing twice.
 
 - **Collecting closes with no questions**: the question window is extended 3 days, once
-  (`REMINDER_QUESTIONS_EXTENDED`), and the group is told again. If it closes empty a second time the
+  (`REMINDER_QUESTIONS_EXTENDED`), silently. If it closes empty a second time the
   Edition **fizzles**: the clock clears its question deadline, nobody is told, and it stays in
   `collecting`, idle (§3.5). The next Start reuses the row with a fresh window. A question no longer
   revives it; only Start does.
-- **Collecting closes with questions**: answering opens, everyone is told.
+- **Collecting closes with questions**: answering opens, and the people taking part are told (§11).
 - **Answering closes with no answers at all**: extended 3 days, once (`REMINDER_EXTENDED`), and the
-  non-answerers are told again. After that it publishes whatever is there.
+  non-answerers taking part are told again. After that it publishes whatever is there.
 - **Answering closes with answers**: published, everyone told, and the Catch-up is idle. A time
   capsule goes `sealed` instead, with `sealedAt` and `publishAt` written together, everyone told the
   day it opens (`catchup_sealed`); the Catch-up is idle beside it and may start its next Edition. The
   write requires the flag, so a stale read can never publish a capsule.
 - **A sealed Edition reaches `publishAt`**: published, everyone told. This one step runs even when
   the Catch-up has ended.
-- **While answering**: one reminder a day to non-answerers (§11), guarded by a days-left bucket in the
-  high bits of `remindersSent`, so a hundred page views produce one.
+- **While answering**: one reminder a day to non-answerers who turned reminders on (§11), guarded by
+  a days-left bucket in the high bits of `remindersSent`, so a hundred page views produce one.
 
 ### 3.4 Three ways the clock is driven
 
@@ -237,7 +237,6 @@ while nothing is running (§3.5).
 | `curatePrompt` (remove, reorder) | Keeper, while collecting | **any member**, while collecting | |
 | `openAnswering` | Keeper; refuses an Edition with no questions | **any member**; same | ended, idle |
 | `extendDeadline` | Keeper, collecting or answering | **any member**; same | ended, idle |
-| `nudgeGroup` | Keeper, while answering | **any member**; same | ended, rate-limited, off on the demo |
 | `closeAndPublish` | Keeper, while answering (zero answers extends instead) | **any member**; same | ended |
 | `setEditionTimeCapsule` | Keeper, while collecting | any member, while collecting | verified, ended; nothing calls it yet |
 | `submitEntry` (answer) | any member, while answering | same | verified, ended |
@@ -253,7 +252,8 @@ while nothing is running (§3.5).
 | `setReminderPref` | any member | same | |
 
 The cycle (bold above) opened to every batch member on 2026-09-27: choosing questions, opening
-answering, extending, nudging, closing and publishing. Starting opened to everyone in any Catch-up on
+answering, extending, closing and publishing. (Nudging was one of them until it was deleted on
+2026-10-17; §11.) Starting opened to everyone in any Catch-up on
 2026-10-17, and pausing, resuming and the rhythm were deleted the same day. `loadKeeperScope` and
 `loadKeeperEdition` take an `allowBatch` opt-in per caller for exactly the cycle; the rest do not,
 and a batch refusal there still says one sentence,
@@ -420,13 +420,13 @@ which rows exist.
 
 | Group | Rows | Shown to |
 |---|---|---|
-| **This Edition** | collecting: Open answering, Give everyone longer. answering: Give everyone longer, Nudge everyone, Close and send it out | whoever runs the cycle (§2.2), while an Edition is running; never when idle |
+| **This Edition** | collecting: Open answering, Give everyone longer. answering: Give everyone longer, Close and send it out | whoever runs the cycle (§2.2), while an Edition is running; never when idle |
 | **This Catch-up** | Name, Picture, for everyone; then End this Catch-up | the first two to all, pressable by whoever may change them; End to Keepers of a people Catch-up, not once ended |
 | **You** | Reminders; Leave, or on a batch Catch-up Put it away | everyone |
 
 Three dialog shapes only: a confirmation, a chooser that unfolds in the row, an editor. The words
-"Cannot be undone" in cinnamon mark a one-way row (Open answering, Nudge, Close and send it out, End,
-Leave). Reminders: Daily, On the last day, Never. Start's confirmation is drawn by this file too
+"Cannot be undone" in cinnamon mark a one-way row (Open answering, Close and send it out, End,
+Leave). Reminders: Daily, On the last day, Never, and Never is what a member who never chose has. Start's confirmation is drawn by this file too
 (`confirmCopy("start")`), but opened from the home; Rhythm, Hold and Start left the panel on
 2026-10-17.
 
@@ -488,11 +488,18 @@ photograph. **No live Edition has ever used a photo-wall question**, so the grou
 
 Written by `src/lib/catchups-notify.ts` into `Notification`; `type` is a free string.
 
+**Two bells an Edition for anybody not taking part** (owner, 2026-10-17: "Only 'a round started' and
+'it's published'. No reminders unless you've turned them on yourself"). Taking part means asking a
+question in that Edition, or turning this Catch-up's reminders on (`takingPartIds`). Reminders are
+off unless a member turns them on (`DEFAULT_REMINDER_MODE`; the column default since
+`2026-10-17-reminders-default-off.sql`). The manual nudge is deleted. `catchup-two-bells-rule.test.mjs`
+pins all of it.
+
 | Type | When | Who | Link |
 |---|---|---|---|
-| `catchup_questions_open` | an Edition starts (creation of a people Catch-up, or somebody pressing Start, named in the bell; never a batch reaching ten), or an empty question window is extended | every member but whoever did it | `/catchups/<id>` |
-| `catchup_answers_open` | answering opens; re-sent on the no-answers extension | every member but the Keeper who opened it; on the extension, non-answerers only | `/catchups/<id>` |
-| `catchup_reminder` | once a day while answering; or a Keeper's nudge | non-answerers by preference: Daily every day, On the last day on the last day, Never not at all. A nudge ignores Never. Today's replaces yesterday's | `/catchups/<id>` |
+| `catchup_questions_open` | an Edition starts: creation of a people Catch-up, or somebody pressing Start, named in the bell. Never a batch reaching ten, and never the empty-window extension | every member but whoever did it | `/catchups/<id>` |
+| `catchup_answers_open` | answering opens; re-sent on the no-answers extension | the people taking part, but whoever opened it; on the extension, the non-answerers among them | `/catchups/<id>` |
+| `catchup_reminder` | once a day while answering | non-answerers by preference: Daily every day, On the last day on the last day, Never (the default) not at all. Today's replaces yesterday's | `/catchups/<id>` |
 | `catchup_published` | published, by the clock or a Keeper; or a time capsule opening | every member but the Keeper who closed it | `/catchups/edition/<editionId>` |
 | `catchup_sealed` | a time capsule closes, saying the day it opens | every member but the Keeper who closed it | `/catchups/<id>` |
 | `catchup_love` | a heart on your answer | the answer's author, if still a member; at most one unread per author per Edition | `/catchups/edition/<editionId>` |
@@ -534,7 +541,7 @@ analytics counter, has no foreign key on `targetId`, and is written for unpublis
 
 - **The demo** (`docs/spec/demo.md`) has its own database; its seed (`src/lib/demo-seed/seed.ts`)
   writes one Catch-up, though the demo database held none when checked on 2026-09-14. Every visitor is
-  the same persona, so leave, archive, end and nudge are refused with a sentence, a picture upload is
+  the same persona, so leave, archive and end are refused with a sentence, a picture upload is
   refused (the pool works), and links never resolve.
 - **The admin room**, `/admin/catchups` and `/admin/catchups/[catchupId]`, is oversight, not a second
   control panel. It runs the unscoped advance before reading, lists every Catch-up and any stuck

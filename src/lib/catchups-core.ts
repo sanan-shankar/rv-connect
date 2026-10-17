@@ -31,6 +31,7 @@ import type {
   EditionStatus,
   EditionTiming,
   PromptCategory,
+  ReminderMode,
 } from "@/lib/catchups-types";
 
 /* ------------------------------------------------------------------ *
@@ -94,6 +95,16 @@ export const HOUR_MS = 60 * 60 * 1000;
 export function newInviteToken(): string {
   return randomUUID().replace(/-/g, "");
 }
+
+/**
+ * A member's reminders when they have never chosen: none. His answer,
+ * 2026-10-17, to "how many notifications should a round send to someone who
+ * isn't taking part?": "Only 'a round started' and 'it's published'. No
+ * reminders unless you've turned them on yourself." Read by the notify
+ * builders and the settings row alike, so the bell and the page agree about
+ * what a member who never touched it gets. It was "all" (daily) by default.
+ */
+export const DEFAULT_REMINDER_MODE: ReminderMode = "off";
 
 /** Question window: 3 days. Answer window: 7 days. Both snap to DEADLINE_HOUR. */
 export const QUESTION_WINDOW_DAYS = 3;
@@ -888,7 +899,7 @@ export type EditionAction =
       requires: { timeCapsule: boolean } | null;
     }
   | { kind: "extend"; patch: EditionPatch; notify: "catchup_answers_open" }
-  | { kind: "extend-questions"; patch: EditionPatch; notify: "catchup_questions_open" }
+  | { kind: "extend-questions"; patch: EditionPatch }
   | { kind: "fizzle"; patch: EditionPatch }
   | { kind: "reminder"; daysLeft: number; patch: EditionPatch };
 
@@ -915,12 +926,11 @@ export function planNextAction(ed: EditionTiming, counts: EditionCounts, now: Da
     if (ed.status === "collecting" && next === "answering" && counts.prompts === 0) {
       // Nothing was asked. Give the group one more window to ask something,
       // then stop: an Edition with no questions has nothing to open for.
+      // SILENTLY since 2026-10-17: it used to tell everyone again, a third
+      // bell for people who had already ignored the first (his answer: the
+      // start and the publish, and nothing else, for anyone not taking part).
       if (shouldExtendForNoQuestions(ed, counts.prompts)) {
-        return {
-          kind: "extend-questions",
-          patch: questionsExtendPatch(ed, now),
-          notify: "catchup_questions_open",
-        };
+        return { kind: "extend-questions", patch: questionsExtendPatch(ed, now) };
       }
       // Its one extension spent and still empty: it fizzles. Clearing the
       // deadline is the whole write, and it is what makes the Edition idle,

@@ -418,12 +418,14 @@ test("planNextAction: after an extension it publishes even with zero answers", (
 
 // ─── an Edition nobody asked anything in (audit B-062) ──────────────────────────
 
-test("planNextAction: a question window closing with no questions extends once, not opens", () => {
+test("planNextAction: a question window closing with no questions extends once, silently, not opens", () => {
   let ed = edition({ status: "collecting", questionsCloseAt: at(-HOUR_MS), remindersSent: 0 });
 
   const a1 = planNextAction(ed, counts(0, 0), NOW);
   assert.equal(a1.kind, "extend-questions");
-  assert.equal(a1.notify, "catchup_questions_open");
+  // No bell (2026-10-17): it used to tell everyone again, a third bell for
+  // people who had not taken part. His budget is two: it started, it is out.
+  assert.equal("notify" in a1, false, "the empty-window extension rings a bell again");
   assert.equal(a1.patch.questionsCloseAt.getTime(), deadlineIn(NOW, 3).getTime());
   assert.equal(a1.patch.remindersSent & REMINDER_QUESTIONS_EXTENDED, REMINDER_QUESTIONS_EXTENDED);
   // Crucially it did NOT open answering, which would have invited the whole

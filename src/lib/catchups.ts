@@ -187,13 +187,12 @@ async function applyEditionAction(
     }
 
     if (action.kind === "extend-questions") {
+      // Silent (2026-10-17): see planNextAction.
       const cas = await tx.catchupEdition.updateMany({
         where: { id: editionId, status: "collecting", remindersSent: before.remindersSent },
         data: action.patch,
       });
-      if (cas.count === 0) return false;
-      await notify.notifyQuestionsOpen(tx, { ...meta, editionId });
-      return true;
+      return cas.count > 0;
     }
 
     /* reminder

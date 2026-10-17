@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-17 (catchups) — two bells an Edition for anyone not taking part; reminders off unless turned on
 - 2026-10-17 (catchups) — Editions start by hand: no rhythm, no hold, Start on the home for anyone in it
 - 2026-10-17 (catchups) — the 🪇 Catch-up folds into the Batch of 2024's, its round and nine questions with it
 - 2026-10-17 (collection) — seventeen of Santharam's emailed photographs wait in the review room, under his name

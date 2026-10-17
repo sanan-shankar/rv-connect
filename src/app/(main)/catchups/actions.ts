@@ -66,6 +66,7 @@ import {
   isBatchCatchup,
   BATCH_CATCHUP_REFUSAL,
   BATCH_LEAVE_REFUSAL,
+  DEFAULT_REMINDER_MODE,
   isEditionRunning,
   isMissingCatchupTable,
   mayChangeCatchupPicture,
@@ -88,7 +89,6 @@ import {
   notifyLove,
   notifyPublished,
   notifyQuestionsOpen,
-  notifyReminder,
   notifySealed,
 } from "@/lib/catchups-notify";
 import { PROMPT_CATEGORIES } from "@/lib/catchups-types";
@@ -1993,7 +1993,10 @@ async function upsertCatchupPref(
   try {
     await prisma.catchupPref.upsert({
       where: { catchupId_userId: { catchupId, userId } },
-      create: { catchupId, userId, ...data },
+      /* The default spelled out rather than left to the column's, which was
+         "all" until 2026-10-17-reminders-default-off.sql: archiving a
+         Catch-up must never be what turns its reminders on. */
+      create: { catchupId, userId, reminderMode: DEFAULT_REMINDER_MODE, ...data },
       update: data,
     });
   } catch (err) {
@@ -2421,46 +2424,9 @@ export async function setReminderPref(catchupId: string, reminderMode: ReminderM
   });
 }
 
-/** Keeper-only on a people Catch-up; any member on a batch one. Manually
- *  nudges every non-answerer, bypassing their `off` pref. */
-export async function nudgeGroup(editionId: string) {
-  return runAction(async () => {
-    const session = await auth();
-    if (!session?.user?.id) return { error: "Not authenticated" };
-    if (IS_DEMO) return { error: "A nudge would notify everyone in the Catch-up, so the demo leaves it switched off." };
-    if (typeof editionId !== "string" || !editionId) return { error: "Invalid request." };
-
-    const scope = await loadKeeperEdition(editionId, session.user.id, {
-      notKeeper: "Only the Keeper can nudge the group.",
-      refuseEnded: true,
-      allowBatch: true,
-    });
-    if ("error" in scope) return scope;
-    const { edition } = scope;
-    if (edition.status !== "answering") {
-      return { error: "Nudges only make sense while answers are open." };
-    }
-
-    /* Metered like the other whole-group fanouts (audit C-026). This one is a
-       manual nudge: it bypasses the daily bucket AND every member's "off"
-       setting, so it is the one notification in the feature with no natural
-       ceiling of its own. Looped, it re-creates an unread bell entry for the
-       whole roster as often as the caller likes, for people who have
-       explicitly asked not to hear about it. The shared "catchups" bucket is
-       five an hour, which is far more nudging than any real Keeper does. */
-    const limited = await rateLimit("catchups", session.user.id);
-    if (!limited.ok) return { error: limited.error };
-
-    await notifyReminder(prisma, {
-      catchupId: edition.catchupId,
-      editionId,
-      groupId: edition.catchup.group.id,
-      groupName: edition.catchup.group.name,
-      bypassOff: true,
-      keeperName: session.user.name,
-    });
-
-    revalidatePath(`/catchups/${edition.catchupId}`);
-    return { success: true };
-  });
-}
+/* `nudgeGroup` stood here: "Nudge everyone", one reminder to every member
+   who had not written yet, whatever they had chosen. Deleted 2026-10-17 with
+   his answer that somebody not taking part hears about an Edition twice -- it
+   started, it is out -- and no more; on a batch any of forty people could
+   fire it. Reminders are each member's own setting now, off unless they turn
+   them on (`DEFAULT_REMINDER_MODE`). */

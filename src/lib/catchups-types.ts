@@ -279,7 +279,7 @@ export type NotifyReminderFn = (
     /**
      * Whole days left in the answer window, 1 meaning "last day". Decides both
      * the copy and who qualifies: `reminderMode: "last"` members only hear from
-     * us at 1. Omitted for a manual Keeper nudge, which is not a countdown.
+     * us at 1.
      */
     daysLeft?: number;
     /**
@@ -288,9 +288,8 @@ export type NotifyReminderFn = (
      * valley calendar days, like the page the reminder links to (C-141/C-031).
      */
     closesAt?: Date | string | null;
-    /** Manual Keeper nudge: reaches "off" members too. */
-    bypassOff?: boolean;
-    keeperName?: string;
+    /* `bypassOff` and `keeperName` were the manual nudge's, which reached
+       every non-answerer whatever they had chosen. Deleted 2026-10-17. */
   }
 ) => Promise<void>;
 
