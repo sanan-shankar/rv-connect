@@ -1,3 +1,18 @@
+## 2026-10-17 (collection) — seventeen of Santharam's emailed photographs wait in the review room, under his name
+
+The photographs the owner kept from three of Santharam Venkap's emails (2026-10-15): eleven from
+the Rishi Valley Bird Race, February 2010; five of the Gotipua dance of Odisha, September 2010; and
+the group photograph from the declaration of Rishi Valley as a bird preserve, 27 July 1991 (photo
+by S. Sridhar, Navbharat Press). Filed under Santharam's own account, as the owner asked, and
+unapproved, on the Waiting pile for him to adjust and approve. Captions are the sender's own with
+the grammar fixed; the bird race reads "Bird race" on the owner's word.
+
+`import-album.mjs` learned two things for it. `--review` (valley only) lands rows waiting rather
+than approved, which is also what lets a member be the uploader, since nothing skips review. A
+`--captions` line may carry the sender's date as a third column, winning over the file's stamp:
+one bird race file is an edited copy whose stamp sharp cannot read. Ledgers in
+`scripts/dev/.album-import/` undo all three runs.
+
 ## 2026-10-17 (birds) — U4d closed: the two bulbuls he asked for, and a Red-wattled Lapwing to choose
 
 The Red-vented Bulbul (a crested black hood with a scaly breast over buff, and the crimson vent)

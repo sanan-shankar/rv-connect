@@ -67,12 +67,21 @@
  *  album rather than all of them. Built for the owner's spoken pass over
  *  "Pics from Nattu" (2026-09-17), one folder at a time.
  *
+ *  FOR REVIEW, NOT PUBLISHED. `--review` (valley only) lands every row
+ *  unapproved, on the review room's Waiting pile, exactly where a member's
+ *  contribution goes: for photographs somebody else sent the owner, which
+ *  he wants to adjust before anyone sees them (Santharam's email batch,
+ *  2026-10-17). A `--captions` line may carry a third column, `1991-07` or
+ *  `1991`, the date the sender gave; it is the photograph's date and wins
+ *  over the file's stamp, which on a scan is the day it was scanned. The
+ *  stamp still goes to exifYear/exifMonth, as what the file said.
+ *
  *  Run: node scripts/dev/import-album.mjs [--apply] [--quality 90]
  *                                         [--album <dir>] [--as <email>]
  *                                         [--limit N] [--env .env]
  *                                         [--scope class|valley]
  *                                         [--folder <name>] [--captions <tsv>]
- *                                         [--buckets a,b]
+ *                                         [--buckets a,b] [--review]
  *       node scripts/dev/import-album.mjs --undo scripts/dev/.album-import/….jsonl --apply
  * ------------------------------------------------------------------ */
 
@@ -96,6 +105,7 @@ import { COLLECTION_WEBP_QUALITY } from "../../src/lib/upload-shared.ts";
 const { flag, value } = argv();
 
 const APPLY = flag("--apply");
+const REVIEW = flag("--review");
 const UNDO = value("--undo", null);
 /* The app's own setting by default, so an imported photograph and a
    contributed one are the same photograph. `--quality` is for measuring, not
@@ -127,6 +137,11 @@ for (const k of ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R
 }
 if (SCOPE !== "class" && SCOPE !== "valley") {
   console.error(`--scope must be class or valley, got ${SCOPE}`);
+  process.exit(1);
+}
+/* A class photograph has no review room to wait in: the app files it live. */
+if (REVIEW && SCOPE !== "valley") {
+  console.error("--review is for the Valley Collection only");
   process.exit(1);
 }
 const unknownBucket = BUCKETS.find((b) => !BUCKET_VALUES.includes(b));
@@ -177,8 +192,11 @@ const classYear = /^\d{4}$/.test(String(who.batchYear)) ? String(who.batchYear) 
 if (SCOPE === "class" && (who.verifyState !== "verified" || !classYear)) {
   fail(`${AS} is ${who.verifyState} with batchYear ${who.batchYear}: cannot contribute to a Class Collection.`);
 }
-if (SCOPE === "valley" && who.role !== "admin") {
-  fail(`${AS} is ${who.role}: only an admin's valley photographs skip review, and these rows land approved.`);
+/* Under `--review` nothing skips review, so the uploader may be the member
+   who actually sent the photographs: his name on them, his folder in the
+   bucket, exactly as if he had contributed them himself. */
+if (SCOPE === "valley" && !REVIEW && who.role !== "admin") {
+  fail(`${AS} is ${who.role}: only an admin's valley photographs skip review, and these rows land approved. Add --review.`);
 }
 
 function fail(message) {
@@ -261,18 +279,24 @@ const folders = FOLDER
       .map((d) => d.name)
       .sort();
 
-/* file name -> caption, or null when no `--captions` was given. */
+/* file name -> { caption, given }, or null when no `--captions` was given.
+   `given` is the sender's date from the optional third column, or null. */
 async function captionMap() {
   if (!CAPTIONS) return null;
   const map = new Map();
   for (const line of (await readFile(CAPTIONS, "utf8")).split("\n")) {
     if (!line.trim()) continue;
-    const [name, caption = ""] = line.split("\t");
+    const [name, caption = "", when = ""] = line.split("\t");
     // 300 is `photoSchema`'s ceiling in src/lib/validators.ts, which a bare
     // node cannot import (it resolves its siblings without extensions).
     if (!caption.trim() || caption.trim().length > 300) fail(`${CAPTIONS}: bad caption for ${name}`);
     if (map.has(name)) fail(`${CAPTIONS}: ${name} is listed twice`);
-    map.set(name, caption.trim());
+    const m = /^(\d{4})(?:-(\d{2}))?$/.exec(when.trim());
+    const given = m ? { year: Number(m[1]), month: m[2] ? Number(m[2]) : null } : null;
+    if (when.trim() && (!given || given.year > THIS_YEAR || (given.month !== null && (given.month < 1 || given.month > 12)))) {
+      fail(`${CAPTIONS}: bad date "${when.trim()}" for ${name}; want YYYY or YYYY-MM`);
+    }
+    map.set(name, { caption: caption.trim(), given });
   }
   return map;
 }
@@ -287,6 +311,7 @@ for (const folder of folders) {
     const file = path.join(ALBUM, rel);
     const stamp = exifStamp(await exifBlockOf(await readFile(file)), THIS_YEAR);
     const date = stamp ? parseExifStamp(stamp, THIS_YEAR) : null;
+    const given = captions?.get(name)?.given ?? null;
 
     /* NO STAMP THIS READER CAN SEE. Three PNGs in the owner's album are in
        this state: exiftool finds a DateTimeOriginal in them and sharp's
@@ -296,18 +321,19 @@ for (const folder of folders) {
        source the year-only entries above come from. Filed at YEAR precision
        for exactly that reason, and listed at the end so the fallback is never
        silent. */
-    const foldered = !date && /(\d{4})/.exec(folder);
-    if (!date && !foldered) {
+    const foldered = !given && !date && /(\d{4})/.exec(folder);
+    if (!given && !date && !foldered) {
       refused.push(rel);
       continue;
     }
 
-    const year = date ? date.year : Number(foldered[1]);
+    const year = given ? given.year : date ? date.year : Number(foldered[1]);
     const yearsOnly = yearOnly.has(rel) || !date;
+    const photoMonth = given ? given.month : yearsOnly ? null : date.month;
     planned.push({
       rel,
       file,
-      caption: captions?.get(name) ?? null,
+      caption: captions?.get(name)?.caption ?? null,
       /* Null when the file had no stamp to keep: the stored copy then carries
          no date rather than one this script made up. */
       stamp,
@@ -317,8 +343,12 @@ for (const folder of folders) {
          touch is worse than no report. */
       viaFolder: !!foldered,
       photoYear: year,
-      photoMonth: yearsOnly ? null : date.month,
-      datePrecision: yearsOnly || date.month === null ? "year" : "month",
+      photoMonth,
+      datePrecision: photoMonth === null ? "year" : "month",
+      /* What the file said. Without a sender's date this has always been the
+         filed date itself; with one, it is the stamp alone, or nothing. */
+      exifYear: given ? (date?.year ?? null) : year,
+      exifMonth: given ? (date?.month ?? null) : photoMonth,
       era: eraFromYear(year),
     });
   }
@@ -351,7 +381,7 @@ for (const p of todo) byYear.set(p.photoYear, (byYear.get(p.photoYear) ?? 0) + 1
 
 console.log(`album      ${ALBUM}`);
 console.log(`uploader   ${who.name} <${AS}>, class of ${classYear}, ${who.role}`);
-console.log(`into       ${SCOPE === "valley" ? "the Valley Collection" : `the Class Collection of ${classYear}`}, buckets: ${BUCKETS.join(",") || "none"}`);
+console.log(`into       ${SCOPE === "valley" ? "the Valley Collection" : `the Class Collection of ${classYear}`}, buckets: ${BUCKETS.join(",") || "none"}${REVIEW ? ", WAITING IN THE REVIEW ROOM" : ", approved"}`);
 console.log(`quality    WebP q${QUALITY}, full resolution (storedResizeBox)`);
 console.log(`planned    ${todo.length} photographs${LIMIT ? ` (--limit ${LIMIT} of ${fresh.length})` : ""}`);
 if (already.size) console.log(`already in ${already.size} skipped without re-encoding`);
@@ -472,18 +502,21 @@ async function importOne(p) {
      ) VALUES (
        $1,$2,$3,$4,$5,$6,$15,$7,
        $16,$8,$9,$10,$11,
-       $12,$13,$17,$14,true,false,
-       now(),$2,now(),now(),$18
+       $12,$13,$17,$14,$19,false,
+       CASE WHEN $19 THEN now() END,CASE WHEN $19 THEN $2 END,now(),now(),$18
      ) ON CONFLICT ("sourceKey") DO NOTHING
      RETURNING "id"`,
     [
       id, who.id, thumbUrl, url, display.info.width, display.info.height,
       `album:${p.rel}`,
       p.era, p.photoYear, p.photoMonth, p.datePrecision,
-      p.photoYear, p.photoMonth,
+      p.exifYear, p.exifMonth,
       // Never an audience on a valley row, as photoRowData has it.
       SCOPE === "class" ? classYear : null,
       p.caption, BUCKETS.join(","), SCOPE, screenUrl,
+      /* Unapproved, with no approver, is the whole of what "waiting" means:
+         AWAITING_REVIEW in src/lib/admin-review.ts, heldAt left null. */
+      !REVIEW,
     ]
   );
 
